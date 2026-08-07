@@ -1,0 +1,28 @@
+--- a/xt16_fastlio_bridge.py
++++ b/xt16_fastlio_bridge.py
+@@
+-from rclpy.node import Node
++from rclpy.node import Node
++from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
++from rclpy.executors import MultiThreadedExecutor
+@@
++CLOUD_DECIMATION = 4
+@@
+-        self.create_subscription(PointCloud2, '/lidar_points', self.on_cloud, 5)
+-        self.create_subscription(LowState, '/lowstate', self.on_lowstate, best_effort)
++        self.cloud_group = MutuallyExclusiveCallbackGroup()
++        self.imu_group = ReentrantCallbackGroup()
++        self.create_subscription(PointCloud2, '/lidar_points', self.on_cloud, 5,
++                                 callback_group=self.cloud_group)
++        self.create_subscription(LowState, '/lowstate', self.on_lowstate, best_effort,
++                                 callback_group=self.imu_group)
+@@
+-        ts = src['timestamp']
++        src = src[::CLOUD_DECIMATION]
++        n = len(src)
++        ts = src['timestamp']
+@@
+-        rclpy.spin(node)
++        executor = MultiThreadedExecutor(num_threads=2)
++        executor.add_node(node)
++        executor.spin()
