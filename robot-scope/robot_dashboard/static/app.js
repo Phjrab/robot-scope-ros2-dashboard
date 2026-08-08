@@ -9,6 +9,8 @@ const ui = {
   rosDomain: $('#rosDomain'),
   topicCount: $('#topicCount'),
   profileLabel: $('#profileLabel'),
+  pageTitle: $('#pageTitle'),
+  pageDescription: $('#pageDescription'),
   linkMetric: $('#linkMetric'),
   linkSub: $('#linkSub'),
   cameraMetric: $('#cameraMetric'),
@@ -37,8 +39,35 @@ const ui = {
   mapViewMode: $('#mapViewMode'),
   mapOverlayToggle: $('#mapOverlayToggle'),
   mappingState: $('#mappingState'),
+  liveModelState: $('#liveModelState'),
   mapFrame: $('#mapFrame'),
   mapPoints: $('#mapPoints'),
+  savedSceneCanvas: $('#savedSceneCanvas'),
+  savedMapCanvas: $('#savedMapCanvas'),
+  savedMapGridOverlay: $('#savedMapGridOverlay'),
+  savedSceneControls: $('#savedSceneControls'),
+  savedSceneResetButton: $('#savedSceneResetButton'),
+  savedSceneTopButton: $('#savedSceneTopButton'),
+  savedSceneFrontButton: $('#savedSceneFrontButton'),
+  savedMapViewMode: $('#savedMapViewMode'),
+  savedMapOverlayToggle: $('#savedMapOverlayToggle'),
+  savedMappingState: $('#savedMappingState'),
+  savedModelState: $('#savedModelState'),
+  savedMapFrame: $('#savedMapFrame'),
+  savedMapPoints: $('#savedMapPoints'),
+  savedMapCount: $('#savedMapCount'),
+  savedMapList: $('#savedMapList'),
+  savedMapTitle: $('#savedMapTitle'),
+  savedMapSource: $('#savedMapSource'),
+  savedMapDetailFrame: $('#savedMapDetailFrame'),
+  savedMapDetailPoints: $('#savedMapDetailPoints'),
+  savedMapBounds: $('#savedMapBounds'),
+  liveCloudTopic: $('#liveCloudTopic'),
+  liveCloudStatus: $('#liveCloudStatus'),
+  liveOdomTopic: $('#liveOdomTopic'),
+  liveOdomStatus: $('#liveOdomStatus'),
+  liveMapTopic: $('#liveMapTopic'),
+  liveMapStatus: $('#liveMapStatus'),
   sensorGrid: $('#sensorGrid'),
   sensorCount: $('#sensorCount'),
   odomTopic: $('#odomTopic'),
@@ -67,11 +96,22 @@ let poseTrail = [];
 let lastCloudSnapshot = null;
 let offlineCloudSnapshot = null;
 let lastMapSnapshot = null;
+let savedOccupancySnapshot = null;
+let savedMapCatalog = [];
+let selectedSavedMapId = '';
+let selectedSavedMapMeta = null;
+const savedMapDataCache = new Map();
+let activePage = 'overview';
 let activeMapView = null;
 let mapViewPreference = 'cloud';
+let savedMapViewPreference = 'cloud';
 let mapOverlayVisible = true;
+let savedMapOverlayVisible = true;
 let sceneCloudDataKey = '';
 let sceneCloudSourceKey = '';
+let savedSceneCloudDataKey = '';
+let savedSceneCloudSourceKey = '';
+let liveSceneHadCloud = false;
 
 const scene3d = window.RobotScene3D && ui.sceneCanvas
   ? new window.RobotScene3D(ui.sceneCanvas, {
@@ -88,7 +128,84 @@ if (scene3d) {
     top: ui.sceneTopButton,
     front: ui.sceneFrontButton,
   });
-  scene3d.setStatus({ online: false, lidarOnline: false, message: '저장된 3D 지도를 불러오는 중입니다' });
+  scene3d.setStatus({ online: false, lidarOnline: false, snapshot: false, message: '실시간 LiDAR 신호를 기다리고 있습니다' });
+}
+
+const savedScene3d = window.RobotScene3D && ui.savedSceneCanvas
+  ? new window.RobotScene3D(ui.savedSceneCanvas, {
+      maxPoints: 10000,
+      maxCloudRadius: 150,
+      pointSize: 0.05,
+      autoFitOnFirstCloud: true,
+    })
+  : null;
+
+if (savedScene3d) {
+  savedScene3d.bindControls({
+    reset: ui.savedSceneResetButton,
+    top: ui.savedSceneTopButton,
+    front: ui.savedSceneFrontButton,
+  });
+  savedScene3d.setStatus({ online: null, lidarOnline: null, snapshot: true, message: '저장 지도를 불러오는 중입니다' });
+}
+
+async function prepareOfficialRobotModels() {
+  const renderers = [scene3d, savedScene3d].filter((scene) => typeof scene?.loadOfficialRobotModel === 'function');
+  try {
+    if (renderers.length !== 2) throw new Error('official model renderer unavailable');
+    await Promise.all(renderers.map((scene) => scene.loadOfficialRobotModel()));
+    [ui.liveModelState, ui.savedModelState].forEach((element) => {
+      element.textContent = 'OFFICIAL GO2 URDF';
+      element.classList.add('ready');
+    });
+  } catch (error) {
+    console.warn('Official Go2 model fallback:', error);
+    [ui.liveModelState, ui.savedModelState].forEach((element) => {
+      element.textContent = 'GO2 FALLBACK MODEL';
+      element.classList.add('fallback');
+    });
+  }
+}
+
+const PAGE_META = {
+  overview: ['Overview', '로봇과 ROS 2 시스템의 전체 상태를 빠르게 확인합니다.'],
+  mapping: ['Live LiDAR Mapping', '실시간 점군, 로봇 자세와 매핑 파이프라인을 확인합니다.'],
+  maps: ['Saved Maps', '이미 매핑된 3D PCD와 2D 점유 지도를 센서 없이 탐색합니다.'],
+  sensors: ['Sensors & Camera', '카메라 스트림과 로봇 센서 값을 기능별로 확인합니다.'],
+  topics: ['ROS Graph', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
+  settings: ['Settings', '로봇 연결 대상과 자동 탐색된 ROS 2 데이터 소스를 선택합니다.'],
+};
+
+function pageFromHash() {
+  const route = location.hash.replace(/^#\/?/, '').trim();
+  return Object.hasOwn(PAGE_META, route) ? route : 'overview';
+}
+
+function activatePage(page, updateHash = false) {
+  activePage = Object.hasOwn(PAGE_META, page) ? page : 'overview';
+  document.querySelectorAll('[data-page]').forEach((element) => {
+    const active = element.dataset.page === activePage;
+    element.hidden = !active;
+    element.classList.toggle('is-active', active);
+  });
+  document.querySelectorAll('[data-nav]').forEach((element) => {
+    const active = element.dataset.nav === activePage;
+    element.classList.toggle('is-active', active);
+    if (active) element.setAttribute('aria-current', 'page'); else element.removeAttribute('aria-current');
+  });
+  const [title, description] = PAGE_META[activePage];
+  ui.pageTitle.textContent = title;
+  ui.pageDescription.textContent = description;
+  if (updateHash && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
+  requestAnimationFrame(() => {
+    if (activePage === 'mapping') {
+      scene3d?.resize();
+      redrawActiveMap();
+    } else if (activePage === 'maps') {
+      savedScene3d?.resize();
+      redrawSavedMap();
+    }
+  });
 }
 
 function showToast(message, error = false) {
@@ -156,9 +273,12 @@ function isLiveCloudReady() {
     (cloudState === 'ok' || mappingState === 'mapping' || mappingState === 'cloud_only');
 }
 
-function activeSceneCloud(candidate = lastCloudSnapshot) {
-  if (candidate?.points?.length && isLiveCloudReady()) return candidate;
-  return offlineCloudSnapshot?.points?.length ? offlineCloudSnapshot : candidate;
+function liveSceneCloud(candidate = lastCloudSnapshot) {
+  return candidate?.points?.length && isLiveCloudReady() ? candidate : null;
+}
+
+function savedSceneCloud() {
+  return offlineCloudSnapshot?.points?.length ? offlineCloudSnapshot : null;
 }
 
 function cloudPointCount(cloud) {
@@ -214,32 +334,30 @@ function updateOverview(state) {
 
   const hesaiTopic = latestTopics.find((topic) => topic.name === '/lidar_points');
   const hesaiOnline = Number(hesaiTopic?.publishers || 0) > 0;
+  const cloudMetric = mapping.cloud || {};
+  const liveCloud = liveSceneCloud();
+  const cloudTopic = latestTopics.find((topic) => topic.name === cloudSource);
+  const odomTopic = latestTopics.find((topic) => topic.name === odomSource);
+  const gridTopic = latestTopics.find((topic) => topic.name === gridSource);
+
+  ui.lidarMetric.textContent = liveCloud ? formatHz(cloudMetric.hz ?? cloudTopic?.hz) : 'OFFLINE';
+  ui.lidarSub.textContent = `${hesaiOnline ? 'XT16 ONLINE · ' : ''}${cloudSource || 'No live cloud topic'}`;
+  ui.liveCloudTopic.textContent = cloudSource || 'NO SOURCE';
+  ui.liveCloudStatus.textContent = liveCloud ? `live · ${formatHz(cloudMetric.hz ?? cloudTopic?.hz)}` : (cloudTopic?.state || 'waiting');
+  ui.liveOdomTopic.textContent = odomSource || 'NO SOURCE';
+  ui.liveOdomStatus.textContent = odomTopic?.state === 'ok' ? `live · ${formatHz(odomTopic.hz)}` : (odomTopic?.state || 'waiting');
+  ui.liveMapTopic.textContent = gridSource || 'NO SOURCE';
+  ui.liveMapStatus.textContent = gridTopic?.state === 'ok' ? (gridTopic.hz == null ? 'static ready' : `live · ${formatHz(gridTopic.hz)}`) : (gridTopic?.state || 'waiting');
+
   if (desiredMapView() === 'occupancy') {
-    const gridTopic = latestTopics.find((topic) => topic.name === gridSource);
-    ui.lidarMetric.textContent = gridTopic?.state === 'ok' && gridTopic?.hz == null ? 'STATIC' : formatHz(gridTopic?.hz);
-    ui.lidarSub.textContent = `${hesaiOnline ? 'XT16 ONLINE · ' : ''}${gridSource || 'No 2D map topic'}`;
     ui.mapFrame.textContent = `FRAME ${grid.frame_id || '—'}`;
     ui.mapPoints.textContent = grid.width && grid.height ? `${grid.width}×${grid.height} CELLS` : '0 CELLS';
-    setStatePill(ui.mappingState, gridTopic?.state || 'waiting', gridTopic?.state === 'ok' ? '2D MAP READY' : (gridTopic?.state || 'WAITING').toUpperCase());
+    setStatePill(ui.mappingState, gridTopic?.state || 'waiting', gridTopic?.state === 'ok' && state.health?.robot_online ? 'LIVE 2D MAP' : 'LIVE DATA WAITING');
   } else {
-    const cloudMetric = mapping.cloud || {};
-    const sceneCloud = activeSceneCloud();
-    const saved = Boolean(sceneCloud?.offline_snapshot);
-    if (saved) {
-      const demo = Boolean(sceneCloud.demo_snapshot);
-      ui.lidarMetric.textContent = `${cloudPointCount(sceneCloud).toLocaleString()} pts`;
-      ui.lidarSub.textContent = `${demo ? 'DEMO' : 'SAVED'} SNAPSHOT · ${sceneCloud.topic || '/saved/Laser_map'}`;
-      ui.mapFrame.textContent = `FRAME ${sceneCloud.frame_id || '—'}`;
-      ui.mapPoints.textContent = `${cloudPointCount(sceneCloud).toLocaleString()} POINTS · ${demo ? 'DEMO' : 'SAVED'}`;
-      setStatePill(ui.mappingState, 'saved', demo ? 'DEMO 3D MAP' : 'SAVED 3D MAP');
-    } else {
-      ui.lidarMetric.textContent = formatHz(cloudMetric.hz);
-      ui.lidarSub.textContent = `${hesaiOnline ? 'XT16 ONLINE · ' : ''}${cloudSource || 'No cloud topic'}`;
-      ui.mapFrame.textContent = `FRAME ${cloud.frame_id || sceneCloud?.frame_id || '—'}`;
-      ui.mapPoints.textContent = `${Number(cloud.sent_points || cloudPointCount(sceneCloud)).toLocaleString()} POINTS`;
-      const mappingLabels = { mapping: 'MAPPING', cloud_only: 'CLOUD LIVE', waiting: 'WAITING', stale: 'STALE' };
-      setStatePill(ui.mappingState, mapping.state || 'waiting', mappingLabels[mapping.state] || 'WAITING');
-    }
+    ui.mapFrame.textContent = `FRAME ${cloud.frame_id || liveCloud?.frame_id || '—'}`;
+    ui.mapPoints.textContent = `${Number(cloud.sent_points || cloudPointCount(liveCloud)).toLocaleString()} POINTS`;
+    const mappingLabels = { mapping: 'MAPPING LIVE', cloud_only: 'CLOUD LIVE', waiting: 'LIVE DATA WAITING', stale: 'LIVE DATA STALE' };
+    setStatePill(ui.mappingState, liveCloud ? (mapping.state || 'cloud_only') : 'waiting', liveCloud ? (mappingLabels[mapping.state] || 'CLOUD LIVE') : 'LIVE DATA WAITING');
   }
   ui.lidarSub.title = ui.lidarSub.textContent;
 
@@ -250,7 +368,63 @@ function updateOverview(state) {
 
   updateSensors(state.sensors || []);
   updateOdometry(state.sensors || [], odomSource);
+  updateSavedMapOverview();
   ui.lastUpdated.textContent = `Last update ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`;
+}
+
+function formatBounds(bounds) {
+  if (!bounds?.min || !bounds?.max) return '—';
+  const span = bounds.min.map((value, index) => Math.abs(Number(bounds.max[index]) - Number(value)));
+  return span.every(Number.isFinite) ? `${span.map((value) => value.toFixed(1)).join(' × ')} m` : '—';
+}
+
+function updateSavedMapOverview() {
+  const cloud = savedSceneCloud();
+  const entries = savedMapCatalog.length ? savedMapCatalog : (cloud ? [{
+    id: '__fallback_cloud', name: cloud.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
+    kind: 'pointcloud3d', file_name: cloud.topic || '/saved/map', point_count: cloudPointCount(cloud),
+    frame_id: cloud.frame_id || 'map', bounds: cloud.bounds,
+  }] : []);
+  if (!selectedSavedMapMeta && entries.length) {
+    selectedSavedMapMeta = entries[0];
+    selectedSavedMapId = entries[0].id;
+  }
+  ui.savedMapCount.textContent = `${entries.length} map${entries.length === 1 ? '' : 's'}`;
+  ui.savedMapList.innerHTML = entries.length ? entries.map((entry) => {
+    const grid = entry.kind === 'occupancy2d';
+    const count = grid ? `${entry.width || '—'}×${entry.height || '—'}` : `${Number(entry.point_count || 0).toLocaleString()} pts`;
+    return `<button class="saved-map-item${selectedSavedMapId === entry.id ? ' is-active' : ''}" type="button" data-saved-map-id="${escapeHtml(entry.id)}"><i>${grid ? '▦' : '◌'}</i><span><strong>${escapeHtml(entry.name || 'Saved map')}</strong><small>${escapeHtml(entry.file_name || (grid ? '2D occupancy' : '3D point cloud'))}</small></span><b>${escapeHtml(count)}</b></button>`;
+  }).join('') : '<div class="sensor-placeholder">저장 지도가 없습니다.</div>';
+
+  const showingGrid = selectedSavedMapMeta?.kind === 'occupancy2d';
+  const selected = showingGrid ? savedOccupancySnapshot : cloud;
+  if (showingGrid && selected) {
+    ui.savedMapTitle.textContent = selectedSavedMapMeta?.name || selected.name || 'Saved 2D map';
+    ui.savedMapSource.textContent = selectedSavedMapMeta?.file_name || selected.topic || '/saved/map';
+    ui.savedMapDetailFrame.textContent = selected.frame_id || '—';
+    ui.savedMapDetailPoints.textContent = `${selected.width}×${selected.height} cells`;
+    ui.savedMapBounds.textContent = `${safeNumber(selected.width * selected.resolution, 1)} × ${safeNumber(selected.height * selected.resolution, 1)} m`;
+    ui.savedMapFrame.textContent = `FRAME ${selected.frame_id || '—'}`;
+    ui.savedMapPoints.textContent = `${selected.width}×${selected.height} CELLS`;
+    setStatePill(ui.savedMappingState, 'saved', 'SAVED 2D MAP');
+  } else if (!showingGrid && selected) {
+    const demo = Boolean(selected.demo_snapshot);
+    ui.savedMapTitle.textContent = selectedSavedMapMeta?.name || (demo ? 'Public demo cloud' : selected.name || 'Saved point cloud');
+    ui.savedMapSource.textContent = selectedSavedMapMeta?.file_name || selected.topic || '/saved/map';
+    ui.savedMapDetailFrame.textContent = selected.frame_id || '—';
+    ui.savedMapDetailPoints.textContent = `${cloudPointCount(selected).toLocaleString()} points`;
+    ui.savedMapBounds.textContent = formatBounds(selected.bounds);
+    ui.savedMapFrame.textContent = `FRAME ${selected.frame_id || '—'}`;
+    ui.savedMapPoints.textContent = `${cloudPointCount(selected).toLocaleString()} POINTS · ${demo ? 'DEMO' : 'SAVED'}`;
+    setStatePill(ui.savedMappingState, 'saved', demo ? 'DEMO 3D MAP' : 'SAVED 3D MAP');
+  } else {
+    ui.savedMapTitle.textContent = selectedSavedMapMeta?.name || '—';
+    ui.savedMapSource.textContent = selectedSavedMapMeta?.file_name || '—';
+    ui.savedMapDetailFrame.textContent = selectedSavedMapMeta?.frame_id || '—';
+    ui.savedMapDetailPoints.textContent = showingGrid ? '2D map loading…' : '3D map loading…';
+    ui.savedMapBounds.textContent = '—';
+    setStatePill(ui.savedMappingState, entries.length ? 'waiting' : 'waiting', entries.length ? 'LOADING MAP' : 'NO SAVED MAP');
+  }
 }
 
 function compactValue(value) {
@@ -319,7 +493,7 @@ function updateMapPose(position, orientation, frameId) {
     poseTrail = poseTrail.slice(-36);
   }
   currentPose = nextPose;
-  redrawActiveMap();
+  if (activePage === 'mapping') redrawActiveMap();
 }
 
 function quaternionYaw(quaternion) {
@@ -394,7 +568,8 @@ async function refreshState() {
   try {
     latestState = await api('/api/v1/state');
     updateOverview(latestState);
-    redrawActiveMap();
+    if (activePage === 'mapping') redrawActiveMap();
+    if (activePage === 'maps') redrawSavedMap();
   } catch (error) {
     ui.connectionChip.className = 'connection-chip error';
     ui.connectionLabel.textContent = '에이전트 연결 끊김';
@@ -425,14 +600,14 @@ async function refreshPointcloud() {
   try {
     const cloud = await latestApi('/api/v1/pointcloud', cloudSeq);
     if (!cloud?.seq || !cloud.points?.length) {
-      if (desiredMapView() === 'cloud' && offlineCloudSnapshot) drawPointcloud(offlineCloudSnapshot);
+      if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
       return;
     }
     cloudSeq = cloud.seq;
     lastCloudSnapshot = cloud;
-    if (desiredMapView() === 'cloud') drawPointcloud(cloud);
+    if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(cloud);
   } catch (_) {
-    if (desiredMapView() === 'cloud' && offlineCloudSnapshot) drawPointcloud(offlineCloudSnapshot);
+    if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(null);
   }
 }
 
@@ -443,13 +618,83 @@ async function loadOfflinePointcloud() {
     const cloud = await response.json();
     if (!cloud?.points?.length) throw new Error('empty snapshot');
     offlineCloudSnapshot = { ...cloud, offline_snapshot: true };
-    if (desiredMapView() === 'cloud') drawPointcloud(offlineCloudSnapshot);
+    updateSavedMapOverview();
+    if (activePage === 'maps') redrawSavedMap();
     if (latestState) updateOverview(latestState);
   } catch (error) {
     console.info('offline 3D map unavailable; using generated demo cloud:', error);
     offlineCloudSnapshot = buildDemoPointcloud();
-    if (desiredMapView() === 'cloud') drawPointcloud(offlineCloudSnapshot);
+    updateSavedMapOverview();
+    if (activePage === 'maps') redrawSavedMap();
     if (latestState) updateOverview(latestState);
+  }
+}
+
+async function refreshSavedMaps() {
+  try {
+    const payload = await api('/api/v1/saved-maps');
+    const maps = Array.isArray(payload.maps) ? payload.maps : [];
+    savedMapCatalog = maps;
+    const preserved = maps.find((entry) => entry.id === selectedSavedMapId);
+    const next = preserved || maps[0] || null;
+    if (preserved) selectedSavedMapMeta = preserved;
+    if (next && (next.id !== selectedSavedMapId || !savedMapDataCache.has(next.id))) {
+      await selectSavedMap(next.id, false);
+      return;
+    }
+    if (!next) {
+      selectedSavedMapId = offlineCloudSnapshot ? '__fallback_cloud' : '';
+      selectedSavedMapMeta = offlineCloudSnapshot ? {
+        id: '__fallback_cloud', name: offlineCloudSnapshot.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
+        kind: 'pointcloud3d', file_name: offlineCloudSnapshot.topic || '/saved/map', frame_id: offlineCloudSnapshot.frame_id,
+      } : null;
+      savedMapViewPreference = 'cloud';
+    }
+    updateSavedMapOverview();
+    if (activePage === 'maps') redrawSavedMap();
+  } catch (error) {
+    console.info('saved map catalog unavailable; using bundled fallback:', error);
+    updateSavedMapOverview();
+  }
+}
+
+async function selectSavedMap(mapId, notify = true) {
+  if (mapId === '__fallback_cloud') {
+    selectedSavedMapId = mapId;
+    selectedSavedMapMeta = savedMapCatalog.find((entry) => entry.id === mapId) || {
+      id: mapId, name: offlineCloudSnapshot?.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
+      kind: 'pointcloud3d', file_name: offlineCloudSnapshot?.topic || '/saved/map', frame_id: offlineCloudSnapshot?.frame_id,
+    };
+    savedMapViewPreference = 'cloud';
+    ui.savedMapViewMode.value = 'cloud';
+    updateSavedMapOverview();
+    if (activePage === 'maps') redrawSavedMap();
+    return;
+  }
+  const meta = savedMapCatalog.find((entry) => entry.id === mapId);
+  if (!meta) return;
+  selectedSavedMapId = meta.id;
+  selectedSavedMapMeta = meta;
+  savedMapViewPreference = meta.kind === 'occupancy2d' ? 'occupancy' : 'cloud';
+  ui.savedMapViewMode.value = savedMapViewPreference;
+  if (meta.kind === 'occupancy2d') savedOccupancySnapshot = null;
+  else offlineCloudSnapshot = null;
+  updateSavedMapOverview();
+  try {
+    let payload = savedMapDataCache.get(meta.id);
+    if (!payload) {
+      payload = await api(meta.data_url || `/api/v1/saved-maps/${encodeURIComponent(meta.id)}/data`);
+      savedMapDataCache.set(meta.id, payload);
+    }
+    if (selectedSavedMapId !== meta.id) return;
+    if (meta.kind === 'occupancy2d') savedOccupancySnapshot = payload;
+    else offlineCloudSnapshot = { ...payload, offline_snapshot: true };
+    updateSavedMapOverview();
+    if (activePage === 'maps') redrawSavedMap();
+    if (notify) showToast(`${meta.name || '저장 지도'}를 불러왔습니다.`);
+  } catch (error) {
+    setStatePill(ui.savedMappingState, 'error', 'LOAD FAILED');
+    if (notify) showToast(`저장 지도 로드 실패: ${error.message}`, true);
   }
 }
 
@@ -462,30 +707,76 @@ function setMapLayerVisibility(mode) {
   if (cloudMode) scene3d?.resize();
 }
 
+function setSavedMapLayerVisibility(mode) {
+  const cloudMode = mode !== 'occupancy';
+  ui.savedSceneCanvas?.classList.toggle('is-hidden', !cloudMode);
+  ui.savedMapCanvas?.classList.toggle('is-hidden', cloudMode);
+  ui.savedMapGridOverlay?.classList.toggle('is-hidden', cloudMode);
+  ui.savedSceneControls?.classList.toggle('is-hidden', !cloudMode);
+  if (cloudMode) savedScene3d?.resize();
+}
+
 function drawPointcloud(cloud) {
-  const selectedCloud = activeSceneCloud(cloud);
+  const selectedCloud = liveSceneCloud(cloud);
   setMapLayerVisibility('cloud');
   activeMapView = 'cloud';
-  if (!scene3d || !selectedCloud?.points?.length) return;
+  if (!scene3d) return;
+  if (!selectedCloud?.points?.length) {
+    if (liveSceneHadCloud) {
+      scene3d.clearPointCloud();
+      sceneCloudDataKey = '';
+      sceneCloudSourceKey = '';
+      liveSceneHadCloud = false;
+    }
+    scene3d.setRobotPose(null);
+    scene3d.setTrail([]);
+    scene3d.setRobotVisible(mapOverlayVisible);
+    scene3d.setStatus({ online: Boolean(latestState?.health?.robot_online), lidarOnline: false, snapshot: false, message: '실시간 LiDAR 신호를 기다리고 있습니다' });
+    return;
+  }
 
-  const saved = Boolean(selectedCloud.offline_snapshot);
-  const sourceKey = `${saved ? 'saved' : 'live'}:${selectedCloud.topic || selectedCloud.frame_id || 'cloud'}`;
+  const sourceKey = `live:${selectedCloud.topic || selectedCloud.frame_id || 'cloud'}`;
   const dataKey = `${sourceKey}:${selectedCloud.seq ?? selectedCloud.stamp_ns ?? cloudPointCount(selectedCloud)}`;
   if (dataKey !== sceneCloudDataKey) {
     scene3d.setPointCloud(selectedCloud, { fit: sourceKey !== sceneCloudSourceKey });
     sceneCloudDataKey = dataKey;
     sceneCloudSourceKey = sourceKey;
   }
-  scene3d.setRobotPose(saved || !latestState?.health?.robot_online ? null : currentPose);
+  liveSceneHadCloud = true;
+  scene3d.setRobotPose(latestState?.health?.robot_online ? currentPose : null);
   scene3d.setTrail(poseTrail);
   scene3d.setRobotVisible(mapOverlayVisible);
   scene3d.setTrailVisible(mapOverlayVisible);
   scene3d.setStatus({
     online: Boolean(latestState?.health?.robot_online),
-    lidarOnline: !saved && isLiveCloudReady(),
-    snapshot: saved,
-    message: saved ? '저장된 LiDAR 지도를 표시하고 있습니다' : '실시간 LiDAR 포인트클라우드',
+    lidarOnline: isLiveCloudReady(),
+    snapshot: false,
+    message: '실시간 LiDAR 포인트클라우드',
   });
+}
+
+function drawSavedPointcloud() {
+  const selectedCloud = savedSceneCloud();
+  setSavedMapLayerVisibility('cloud');
+  if (!savedScene3d) return;
+  if (!selectedCloud?.points?.length) {
+    savedScene3d.clearPointCloud();
+    savedScene3d.setRobotPose(null);
+    savedScene3d.setStatus({ online: null, lidarOnline: null, snapshot: true, message: '저장된 3D 지도가 없습니다' });
+    return;
+  }
+  const sourceKey = `saved:${selectedCloud.topic || selectedCloud.frame_id || 'cloud'}`;
+  const dataKey = `${sourceKey}:${selectedCloud.seq ?? cloudPointCount(selectedCloud)}`;
+  if (dataKey !== savedSceneCloudDataKey) {
+    savedScene3d.setPointCloud(selectedCloud, { fit: sourceKey !== savedSceneCloudSourceKey });
+    savedSceneCloudDataKey = dataKey;
+    savedSceneCloudSourceKey = sourceKey;
+  }
+  savedScene3d.setRobotPose(null);
+  savedScene3d.setTrail([]);
+  savedScene3d.setRobotVisible(savedMapOverlayVisible);
+  savedScene3d.setTrailVisible(false);
+  savedScene3d.setStatus({ online: null, lidarOnline: null, snapshot: true, message: selectedCloud.demo_snapshot ? '공개용 데모 지도' : '저장된 LiDAR 지도' });
 }
 
 async function refreshMap() {
@@ -494,13 +785,13 @@ async function refreshMap() {
     if (!map?.seq || !map.data_b64) return;
     mapSeq = map.seq;
     lastMapSnapshot = map;
-    if (desiredMapView() === 'occupancy') drawOccupancyMap(map);
+    if (activePage === 'mapping' && desiredMapView() === 'occupancy') drawOccupancyMap(map, false);
   } catch (_) {}
 }
 
-function drawOccupancyMap(map) {
-  setMapLayerVisibility('occupancy');
-  const canvas = ui.mapCanvas;
+function drawOccupancyMap(map, saved = false) {
+  if (saved) setSavedMapLayerVisibility('occupancy'); else setMapLayerVisibility('occupancy');
+  const canvas = saved ? ui.savedMapCanvas : ui.mapCanvas;
   const { width, height, ratio } = resizeCanvas(canvas);
   const source = document.createElement('canvas');
   source.width = map.width; source.height = map.height;
@@ -529,8 +820,11 @@ function drawOccupancyMap(map) {
   const top = (height - drawHeight) / 2;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(source, left, top, drawWidth, drawHeight);
-  lastMapSnapshot = map;
-  activeMapView = 'occupancy';
+  if (saved) savedOccupancySnapshot = map;
+  else {
+    lastMapSnapshot = map;
+    activeMapView = 'occupancy';
+  }
   const origin = Array.isArray(map.origin) ? map.origin : [0, 0, 0];
   const originX = Number(origin[0]) || 0;
   const originY = Number(origin[1]) || 0;
@@ -550,22 +844,34 @@ function drawOccupancyMap(map) {
       inside: localX >= 0 && localX <= map.width * resolution && localY >= 0 && localY <= map.height * resolution,
     };
   };
-  drawMapOverlay(ctx, { width, height, ratio, projectWorld, fallbackScale: scale / resolution, mode: 'GRID', frameId: map.frame_id || '' });
+  if (!saved) drawMapOverlay(ctx, { width, height, ratio, projectWorld, fallbackScale: scale / resolution, mode: 'GRID', frameId: map.frame_id || '' });
 }
 
 function redrawActiveMap() {
   const desired = desiredMapView();
   setMapLayerVisibility(desired);
-  if (desired === 'occupancy' && lastMapSnapshot) drawOccupancyMap(lastMapSnapshot);
-  else if (desired === 'cloud') drawPointcloud(activeSceneCloud());
+  if (desired === 'occupancy' && lastMapSnapshot) drawOccupancyMap(lastMapSnapshot, false);
+  else if (desired === 'cloud') drawPointcloud(lastCloudSnapshot);
+}
+
+function redrawSavedMap() {
+  setSavedMapLayerVisibility(savedMapViewPreference);
+  if (savedMapViewPreference === 'occupancy') {
+    if (savedOccupancySnapshot) drawOccupancyMap(savedOccupancySnapshot, true);
+    else setStatePill(ui.savedMappingState, 'waiting', 'LOADING 2D MAP');
+  } else {
+    drawSavedPointcloud();
+  }
+  updateSavedMapOverview();
 }
 
 function desiredMapView() {
+  const liveGridReady = Boolean(latestState?.health?.robot_online && latestState?.sources?.occupancy_grid && lastMapSnapshot);
   if (mapViewPreference === 'occupancy') {
-    return latestState?.sources?.occupancy_grid ? 'occupancy' : 'cloud';
+    return liveGridReady ? 'occupancy' : 'cloud';
   }
   if (mapViewPreference === 'cloud') return 'cloud';
-  return latestState?.sources?.occupancy_grid && lastMapSnapshot ? 'occupancy' : 'cloud';
+  return liveGridReady ? 'occupancy' : 'cloud';
 }
 
 function chooseMapView(mode) {
@@ -573,6 +879,18 @@ function chooseMapView(mode) {
   ui.mapViewMode.value = mode;
   redrawActiveMap();
   if (latestState) updateOverview(latestState);
+}
+
+function chooseSavedMapView(mode) {
+  const kind = mode === 'occupancy' ? 'occupancy2d' : 'pointcloud3d';
+  const candidate = savedMapCatalog.find((entry) => entry.kind === kind);
+  if (candidate) {
+    selectSavedMap(candidate.id);
+    return;
+  }
+  savedMapViewPreference = mode === 'occupancy' && savedOccupancySnapshot ? 'occupancy' : 'cloud';
+  ui.savedMapViewMode.value = savedMapViewPreference;
+  redrawSavedMap();
 }
 
 function drawMapOverlay(ctx, viewport) {
@@ -829,13 +1147,28 @@ ui.mapOverlayToggle.addEventListener('change', () => {
   mapOverlayVisible = ui.mapOverlayToggle.checked;
   redrawActiveMap();
 });
+ui.savedMapViewMode.addEventListener('change', () => chooseSavedMapView(ui.savedMapViewMode.value));
+ui.savedMapOverlayToggle.addEventListener('change', () => {
+  savedMapOverlayVisible = ui.savedMapOverlayToggle.checked;
+  redrawSavedMap();
+});
+ui.savedMapList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-saved-map-id]');
+  if (button) selectSavedMap(button.dataset.savedMapId);
+});
 ui.topicSearch.addEventListener('input', renderTopics);
 ui.categoryFilter.addEventListener('change', renderTopics);
-window.addEventListener('resize', () => { cloudSeq = -1; mapSeq = -1; redrawActiveMap(); });
+window.addEventListener('hashchange', () => activatePage(pageFromHash()));
+window.addEventListener('resize', () => {
+  if (activePage === 'mapping') redrawActiveMap();
+  if (activePage === 'maps') redrawSavedMap();
+});
 
 startClock();
+activatePage(pageFromHash(), true);
+prepareOfficialRobotModels();
 connectCamera();
-loadOfflinePointcloud();
+loadOfflinePointcloud().then(refreshSavedMaps);
 refreshState();
 refreshTopics();
 refreshSources();
@@ -846,3 +1179,4 @@ setInterval(refreshPointcloud, 1000);
 setInterval(refreshMap, 2000);
 setInterval(refreshTopics, 3500);
 setInterval(refreshSources, 5000);
+setInterval(refreshSavedMaps, 15000);

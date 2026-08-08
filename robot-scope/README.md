@@ -39,8 +39,9 @@ Robot Scope agent (각 로봇의 Jetson)
 - Unitree Go2: LowState, SportModeState, LidarState, Go2FrontVideoData
 - Go2 H.264 전면 영상의 GStreamer→JPEG 변환과 브라우저 WebCodecs 대체 경로
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
-- URDF 비율을 반영한 경량 Go2 3D 모델, yaw 방향과 최근 이동 궤적 표시
-- 실시간 LiDAR와 저장된 PCD 스냅샷, 2D OccupancyGrid 레이어 전환
+- Unitree 공식 `go2_urdf`에서 변환한 경량 Go2 3D 모델과 최근 이동 궤적 표시
+- Overview / Live Mapping / Saved Maps / Sensors / ROS Graph 메뉴 분리
+- 실시간 LiDAR와 저장된 PCD·map_server 2D 지도를 서로 독립적으로 표시
 - Hesai `/lidar_points` publisher를 `XT16 ONLINE`으로 표시
 - 로봇 IP ping, ROS 배포판·Domain·RMW 표시
 - 토픽별 소스 변경
@@ -111,17 +112,17 @@ cd ~/robot-scope
 | 저장된 2D 지도 | `/map` | 971×677, 0.05 m/cell |
 
 화면에서 `LiDAR / 3D 맵`을 `/lidar_points`로 선택하면 XT16 원본 스캔을,
-`/Laser_map`으로 선택하면 누적 지도를 볼 수 있습니다. 지도 패널의 `LAYER`는
-`3D SCENE`, `2D MAP`, `AUTO` 중에서 고릅니다. 3D 장면은 드래그로 회전,
+`/Laser_map`으로 선택하면 누적 지도를 볼 수 있습니다. `Live Mapping`의 `VIEW`는
+`LIVE 3D`, `LIVE 2D`, `AUTO` 중에서 고릅니다. 3D 장면은 드래그로 회전,
 Shift/오른쪽 드래그로 이동, 휠로 확대하며 `ISO`, `TOP`, `FRONT` 버튼으로
 시점을 즉시 바꿀 수 있습니다. `ROBOT`을 끄면 로봇 모델과 궤적을 숨깁니다.
 
-로봇이나 LiDAR 전원이 꺼져 있으면 로컬의
-`robot_dashboard/static/data/go2_saved_map.json`에 저장한 마지막 PCD를 자동으로
-표시합니다. 이 파일이 없는 공개 저장소 환경에서는 실제 공간 정보가 없는 데모 맵을
-브라우저에서 생성합니다. 따라서 장비가 꺼진 상태에서도 모델과 LiDAR 지도를 조작하고
-UI를 점검할 수 있습니다. 로봇이 다시 연결되고 정상 점군이 들어오면 실시간 장면으로
-자동 전환합니다. 새 PCD 스냅샷은 다음처럼 만들 수 있습니다.
+`Live Mapping`은 현재 들어오는 데이터만 표시하며, 로봇이나 LiDAR가 꺼져 있으면
+`LIVE DATA WAITING`을 표시합니다. 과거 지도는 `Saved Maps`에서 별도로 선택합니다.
+에이전트는 `config/go2.json`에 지정된 디렉터리를 읽기 전용으로 탐색해 binary PCD,
+Robot Scope JSON, map_server YAML+PGM을 목록으로 제공합니다. 공개 저장소처럼 지도
+파일이 없는 환경에서는 실제 공간 정보가 없는 데모 점군을 브라우저에서 생성합니다.
+새 PCD 스냅샷은 다음처럼 정적 JSON으로 만들 수도 있습니다.
 
 ```bash
 python3 scripts/pcd_to_scene.py /path/to/map.pcd \
@@ -209,6 +210,8 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 - `GET/POST /api/v1/sources`: 표시 소스 조회·변경
 - `GET /api/v1/pointcloud`: 다운샘플된 최신 점군
 - `GET /api/v1/map`: 최신 OccupancyGrid
+- `GET /api/v1/saved-maps`: 허용된 디렉터리의 저장 지도 목록
+- `GET /api/v1/saved-maps/{id}/data`: 선택한 PCD 또는 2D 지도의 렌더링 데이터
 - `WS /api/v1/ws/camera`: 카메라 바이너리 스트림
 - `/docs`: FastAPI OpenAPI 문서
 
@@ -223,9 +226,10 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 
 ## 라이선스
 
-Robot Scope 자체 코드는 [MIT License](LICENSE)로 배포합니다. 향후 Unitree의
-공식 URDF/DAE 또는 변환된 GLB를 포함할 경우 해당 자산의 BSD 3-Clause 저작권·
-면책문과 원본 출처를 별도로 보존해야 합니다.
+Robot Scope 자체 코드는 [MIT License](LICENSE)로 배포합니다. 포함된 Go2 경량
+모델은 Unitree Robotics의 `go2_urdf` 커밋
+`f3772ce54c56ef2d34c6aee8100bc768896c7d19`에서 변환했으며 BSD 3-Clause 원문과
+변환 내역은 `robot_dashboard/static/assets/go2/`에 보존합니다.
 
 ## 2026-08-08 실습 환경 검증 결과
 

@@ -12,57 +12,33 @@
   <div class="ambient ambient-b"></div>
 
   <header class="topbar">
-    <a class="brand" href="#" aria-label="Robot Scope 홈">
+    <a class="brand" href="#overview" aria-label="Robot Scope 홈">
       <span class="brand-mark"><span></span></span>
-      <span>
-        <strong>ROBOT SCOPE</strong>
-        <small>ROS 2 OBSERVABILITY AGENT</small>
-      </span>
+      <span><strong>ROBOT SCOPE</strong><small>ROS 2 OBSERVABILITY AGENT</small></span>
     </a>
     <div class="top-actions">
       <button class="ghost-button" id="refreshButton" type="button">새로고침</button>
       <div class="connection-chip waiting" id="connectionChip">
-        <span class="status-dot"></span>
-        <span id="connectionLabel">에이전트 확인 중</span>
+        <span class="status-dot"></span><span id="connectionLabel">에이전트 확인 중</span>
       </div>
     </div>
   </header>
 
   <main class="shell">
     <aside class="sidebar">
-      <section class="side-section">
-        <div class="eyebrow">CONNECTION</div>
-        <label class="field-label" for="robotIp">로봇 IP</label>
-        <div class="input-row">
-          <input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161">
-          <button id="connectButton" type="button">확인</button>
-        </div>
-        <div class="connection-detail">
-          <div><span>Agent</span><strong id="agentHost">—</strong></div>
-          <div><span>ROS</span><strong id="rosRuntime">—</strong></div>
-          <div><span>Domain</span><strong id="rosDomain">—</strong></div>
-          <div><span>Topics</span><strong id="topicCount">—</strong></div>
-        </div>
-      </section>
-
-      <section class="side-section sources-section">
-        <div class="eyebrow">DATA SOURCES</div>
-        <label class="field-label" for="cameraSource">카메라</label>
-        <select id="cameraSource"><option value="">탐색 중…</option></select>
-        <label class="field-label" for="cloudSource">LiDAR / 3D 맵</label>
-        <select id="cloudSource"><option value="">탐색 중…</option></select>
-        <label class="field-label" for="odomSource">Odometry</label>
-        <select id="odomSource"><option value="">탐색 중…</option></select>
-        <label class="field-label" for="mapSource">2D 맵</label>
-        <select id="mapSource"><option value="">없음</option></select>
-      </section>
+      <nav class="app-nav" aria-label="Robot Scope 기능 메뉴">
+        <div class="eyebrow">WORKSPACE</div>
+        <a class="nav-item is-active" href="#overview" data-nav="overview"><i>01</i><span><b>Overview</b><small>전체 연결 상태</small></span></a>
+        <a class="nav-item" href="#mapping" data-nav="mapping"><i>02</i><span><b>Live Mapping</b><small>실시간 LiDAR</small></span></a>
+        <a class="nav-item" href="#maps" data-nav="maps"><i>03</i><span><b>Saved Maps</b><small>저장 지도 보기</small></span></a>
+        <a class="nav-item" href="#sensors" data-nav="sensors"><i>04</i><span><b>Sensors</b><small>카메라·텔레메트리</small></span></a>
+        <a class="nav-item" href="#topics" data-nav="topics"><i>05</i><span><b>ROS Graph</b><small>토픽 탐색</small></span></a>
+        <a class="nav-item" href="#settings" data-nav="settings"><i>06</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
+      </nav>
 
       <section class="side-section read-only-note">
         <span class="lock-icon">◇</span>
-        <div>
-          <strong>READ-ONLY MODE</strong>
-          <p>센서와 매핑 상태만 관찰합니다. 로봇 제어 명령은 보내지 않습니다.</p>
-        </div>
+        <div><strong>READ-ONLY MODE</strong><p>센서와 매핑 상태만 관찰합니다. 로봇 제어 명령은 보내지 않습니다.</p></div>
       </section>
     </aside>
 
@@ -70,162 +46,153 @@
       <div class="page-heading">
         <div>
           <div class="eyebrow" id="profileLabel">GENERIC ROS 2</div>
-          <h1>Live telemetry</h1>
-          <p>카메라, 센서, 위치 추정과 LiDAR 맵을 한 화면에서 확인합니다.</p>
+          <h1 id="pageTitle">Overview</h1>
+          <p id="pageDescription">로봇과 ROS 2 시스템의 전체 상태를 빠르게 확인합니다.</p>
         </div>
-        <div class="live-clock">
-          <span>LOCAL TIME</span>
-          <strong id="clock">--:--:--</strong>
-        </div>
+        <div class="live-clock"><span>LOCAL TIME</span><strong id="clock">--:--:--</strong></div>
       </div>
 
-      <section class="kpi-grid">
-        <article class="kpi-card">
-          <div class="kpi-icon cyan">↔</div>
-          <div><span>ROBOT LINK</span><strong id="linkMetric">—</strong><small id="linkSub">응답 대기 중</small></div>
-        </article>
-        <article class="kpi-card">
-          <div class="kpi-icon violet">◉</div>
-          <div><span>CAMERA</span><strong id="cameraMetric">—</strong><small id="cameraSub">소스 탐색 중</small></div>
-        </article>
-        <article class="kpi-card">
-          <div class="kpi-icon amber">⌁</div>
-          <div><span>LIDAR / MAP</span><strong id="lidarMetric">—</strong><small id="lidarSub">소스 탐색 중</small></div>
-        </article>
-        <article class="kpi-card">
-          <div class="kpi-icon green">ϟ</div>
-          <div><span>BATTERY</span><strong id="batteryMetric">—</strong><small id="batterySub">데이터 대기 중</small></div>
-        </article>
+      <section class="page-view is-active" data-page="overview">
+        <section class="kpi-grid">
+          <article class="kpi-card"><div class="kpi-icon cyan">↔</div><div><span>ROBOT LINK</span><strong id="linkMetric">—</strong><small id="linkSub">응답 대기 중</small></div></article>
+          <article class="kpi-card"><div class="kpi-icon violet">◉</div><div><span>CAMERA</span><strong id="cameraMetric">—</strong><small id="cameraSub">소스 탐색 중</small></div></article>
+          <article class="kpi-card"><div class="kpi-icon amber">⌁</div><div><span>LIVE LIDAR</span><strong id="lidarMetric">—</strong><small id="lidarSub">소스 탐색 중</small></div></article>
+          <article class="kpi-card"><div class="kpi-icon green">ϟ</div><div><span>BATTERY</span><strong id="batteryMetric">—</strong><small id="batterySub">데이터 대기 중</small></div></article>
+        </section>
+        <section class="route-grid" aria-label="주요 기능 바로가기">
+          <a href="#mapping" class="route-card"><span>LIVE</span><strong>LiDAR Mapping</strong><small>실시간 점군, 로봇 자세와 2D 맵을 확인합니다.</small><b>열기 →</b></a>
+          <a href="#maps" class="route-card"><span>ARCHIVE</span><strong>Saved Maps</strong><small>배터리와 센서가 꺼져도 저장된 지도를 탐색합니다.</small><b>열기 →</b></a>
+          <a href="#sensors" class="route-card"><span>INPUTS</span><strong>Sensors</strong><small>카메라, IMU, 배터리와 로봇 상태를 확인합니다.</small><b>열기 →</b></a>
+          <a href="#topics" class="route-card"><span>ROS 2</span><strong>ROS Graph</strong><small>발견된 토픽, 타입, 수신률과 지연을 조회합니다.</small><b>열기 →</b></a>
+        </section>
       </section>
 
-      <section class="primary-grid">
-        <article class="panel camera-panel">
+      <section class="page-view" data-page="mapping" hidden>
+        <article class="panel mapping-panel">
           <div class="panel-header">
-            <div>
-              <div class="eyebrow">VISION</div>
-              <h2>Camera stream</h2>
-            </div>
-            <div class="panel-state waiting" id="cameraState"><span></span>WAITING</div>
+            <div><div class="eyebrow">LIVE SPATIAL</div><h2>LiDAR mapping</h2></div>
+            <div class="panel-header-status"><div class="model-state" id="liveModelState">GO2 MODEL · LOADING</div><div class="panel-state waiting" id="mappingState"><span></span>WAITING</div></div>
           </div>
-          <div class="camera-stage">
-            <canvas id="cameraCanvas"></canvas>
-            <div class="empty-state" id="cameraEmpty">
-              <div class="radar-icon"><span></span></div>
-              <strong>영상 신호 대기 중</strong>
-              <small id="cameraEmptyText">카메라 토픽을 자동으로 찾고 있습니다.</small>
-            </div>
-            <div class="stream-overlay">
-              <span id="cameraTopicLabel">NO SOURCE</span>
-              <span id="cameraCodecLabel">—</span>
-            </div>
-          </div>
-        </article>
-
-        <article class="panel map-panel">
-          <div class="panel-header">
-            <div>
-              <div class="eyebrow">SPATIAL</div>
-              <h2>LiDAR mapping</h2>
-            </div>
-            <div class="panel-state waiting" id="mappingState"><span></span>WAITING</div>
-          </div>
-          <div class="map-stage">
-            <canvas id="sceneCanvas" class="map-layer" aria-label="회전과 확대가 가능한 Go2 및 LiDAR 3D 장면"></canvas>
-            <canvas id="mapCanvas" class="map-layer is-hidden" aria-label="2D 점유 지도"></canvas>
+          <div class="map-stage live-map-stage">
+            <canvas id="sceneCanvas" class="map-layer" aria-label="실시간 Go2 및 LiDAR 3D 장면"></canvas>
+            <canvas id="mapCanvas" class="map-layer is-hidden" aria-label="실시간 2D 점유 지도"></canvas>
             <div class="map-grid-overlay is-hidden" id="mapGridOverlay"></div>
-            <div class="scene-controls" id="sceneControls" aria-label="3D 시점 제어">
-              <button id="sceneResetButton" type="button" title="등각 시점으로 맞추기">ISO</button>
-              <button id="sceneTopButton" type="button" title="위에서 보기">TOP</button>
-              <button id="sceneFrontButton" type="button" title="앞에서 보기">FRONT</button>
+            <div class="scene-controls" id="sceneControls" aria-label="실시간 3D 시점 제어">
+              <button id="sceneResetButton" type="button">ISO</button><button id="sceneTopButton" type="button">TOP</button><button id="sceneFrontButton" type="button">FRONT</button>
             </div>
             <div class="map-legend">
-              <span><i class="legend-low"></i>LOW</span>
-              <span><i class="legend-high"></i>HIGH</span>
-              <span><i class="legend-robot"></i>ROBOT</span>
-              <span><i class="legend-trail"></i>TRAIL</span>
-              <label class="map-view-select" title="표시할 지도 레이어"><span>LAYER</span><select id="mapViewMode"><option value="cloud" selected>3D SCENE</option><option value="auto">AUTO</option><option value="occupancy">2D MAP</option></select></label>
-              <label class="overlay-toggle" title="로봇 모델 표시"><input id="mapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+              <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span><span><i class="legend-trail"></i>TRAIL</span>
+              <label class="map-view-select"><span>VIEW</span><select id="mapViewMode"><option value="cloud" selected>LIVE 3D</option><option value="occupancy">LIVE 2D</option><option value="auto">AUTO</option></select></label>
+              <label class="overlay-toggle"><input id="mapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
             </div>
-            <div class="map-meta">
-              <span id="mapFrame">FRAME —</span>
-              <span id="mapPoints">0 POINTS</span>
-            </div>
+            <div class="map-meta"><span id="mapFrame">FRAME —</span><span id="mapPoints">0 POINTS</span></div>
           </div>
         </article>
+        <section class="mapping-support-grid">
+          <article class="panel odom-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">LOCALIZATION</div><h2>Pose & motion</h2></div><span class="topic-badge" id="odomTopic">NO SOURCE</span></div>
+            <div class="pose-layout"><div class="axis-visual"><span class="axis-x">X</span><span class="axis-y">Y</span><span class="axis-z">Z</span><i></i></div><div class="pose-values">
+              <div><span>POSITION X</span><strong id="posX">—</strong><small>m</small></div><div><span>POSITION Y</span><strong id="posY">—</strong><small>m</small></div><div><span>POSITION Z</span><strong id="posZ">—</strong><small>m</small></div><div><span>LINEAR SPEED</span><strong id="speed">—</strong><small>m/s</small></div>
+            </div></div>
+          </article>
+          <article class="panel mapping-inputs-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">PIPELINE</div><h2>Mapping inputs</h2></div><span class="muted">READ ONLY</span></div>
+            <div class="pipeline-list">
+              <div><span>POINT CLOUD</span><strong id="liveCloudTopic">NO SOURCE</strong><small id="liveCloudStatus">waiting</small></div>
+              <div><span>ODOMETRY</span><strong id="liveOdomTopic">NO SOURCE</strong><small id="liveOdomStatus">waiting</small></div>
+              <div><span>2D MAP OUTPUT</span><strong id="liveMapTopic">NO SOURCE</strong><small id="liveMapStatus">waiting</small></div>
+            </div>
+          </article>
+        </section>
       </section>
 
-      <section class="secondary-grid">
-        <article class="panel telemetry-panel">
-          <div class="panel-header compact">
-            <div>
-              <div class="eyebrow">TELEMETRY</div>
-              <h2>Robot sensors</h2>
+      <section class="page-view" data-page="maps" hidden>
+        <section class="saved-layout">
+          <article class="panel saved-map-panel">
+            <div class="panel-header">
+              <div><div class="eyebrow">ARCHIVE</div><h2>Saved map viewer</h2></div>
+              <div class="panel-header-status"><div class="model-state" id="savedModelState">GO2 MODEL · LOADING</div><div class="panel-state waiting" id="savedMappingState"><span></span>LOADING</div></div>
             </div>
-            <span class="muted" id="sensorCount">0 streams</span>
-          </div>
-          <div class="sensor-grid" id="sensorGrid">
-            <div class="sensor-placeholder">센서 데이터를 기다리고 있습니다.</div>
-          </div>
-        </article>
-
-        <article class="panel odom-panel">
-          <div class="panel-header compact">
-            <div>
-              <div class="eyebrow">LOCALIZATION</div>
-              <h2>Pose & motion</h2>
+            <div class="map-stage saved-map-stage">
+              <canvas id="savedSceneCanvas" class="map-layer" aria-label="저장된 Go2 및 LiDAR 3D 지도"></canvas>
+              <canvas id="savedMapCanvas" class="map-layer is-hidden" aria-label="저장된 2D 점유 지도"></canvas>
+              <div class="map-grid-overlay is-hidden" id="savedMapGridOverlay"></div>
+              <div class="scene-controls" id="savedSceneControls" aria-label="저장 지도 3D 시점 제어">
+                <button id="savedSceneResetButton" type="button">ISO</button><button id="savedSceneTopButton" type="button">TOP</button><button id="savedSceneFrontButton" type="button">FRONT</button>
+              </div>
+              <div class="map-legend">
+                <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>GO2</span>
+                <label class="map-view-select"><span>VIEW</span><select id="savedMapViewMode"><option value="cloud" selected>SAVED 3D</option><option value="occupancy">SAVED 2D</option></select></label>
+                <label class="overlay-toggle"><input id="savedMapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+              </div>
+              <div class="map-meta"><span id="savedMapFrame">FRAME —</span><span id="savedMapPoints">0 POINTS</span></div>
             </div>
-            <span class="topic-badge" id="odomTopic">NO SOURCE</span>
-          </div>
-          <div class="pose-layout">
-            <div class="axis-visual"><span class="axis-x">X</span><span class="axis-y">Y</span><span class="axis-z">Z</span><i></i></div>
-            <div class="pose-values">
-              <div><span>POSITION X</span><strong id="posX">—</strong><small>m</small></div>
-              <div><span>POSITION Y</span><strong id="posY">—</strong><small>m</small></div>
-              <div><span>POSITION Z</span><strong id="posZ">—</strong><small>m</small></div>
-              <div><span>LINEAR SPEED</span><strong id="speed">—</strong><small>m/s</small></div>
+          </article>
+          <aside class="panel saved-library-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">MAP LIBRARY</div><h2>Available snapshots</h2></div><span class="muted" id="savedMapCount">0 maps</span></div>
+            <div class="saved-map-list" id="savedMapList"><div class="sensor-placeholder">저장 지도를 찾고 있습니다.</div></div>
+            <div class="saved-map-detail">
+              <span>SELECTED</span><strong id="savedMapTitle">—</strong>
+              <dl><div><dt>Source</dt><dd id="savedMapSource">—</dd></div><div><dt>Frame</dt><dd id="savedMapDetailFrame">—</dd></div><div><dt>Points</dt><dd id="savedMapDetailPoints">—</dd></div><div><dt>Bounds</dt><dd id="savedMapBounds">—</dd></div></dl>
             </div>
-          </div>
-        </article>
+          </aside>
+        </section>
       </section>
 
-      <section class="panel topics-panel">
-        <div class="panel-header compact">
-          <div>
-            <div class="eyebrow">ROS GRAPH</div>
-            <h2>Discovered topics</h2>
-          </div>
-          <div class="table-actions">
-            <input id="topicSearch" placeholder="토픽 또는 타입 검색">
-            <select id="categoryFilter">
-              <option value="">모든 분류</option>
-              <option value="camera">Camera</option>
-              <option value="pointcloud">Point cloud</option>
-              <option value="occupancy_grid">2D map</option>
-              <option value="odometry">Odometry</option>
-              <option value="imu">IMU</option>
-              <option value="robot_state">Robot state</option>
-              <option value="lidar">LiDAR</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>STATE</th><th>TOPIC</th><th>TYPE</th><th>CATEGORY</th><th>RATE</th><th>AGE</th></tr></thead>
-            <tbody id="topicsBody"><tr><td colspan="6" class="table-empty">ROS graph를 읽고 있습니다.</td></tr></tbody>
-          </table>
-        </div>
+      <section class="page-view" data-page="sensors" hidden>
+        <section class="sensor-page-grid">
+          <article class="panel camera-panel">
+            <div class="panel-header"><div><div class="eyebrow">VISION</div><h2>Camera stream</h2></div><div class="panel-state waiting" id="cameraState"><span></span>WAITING</div></div>
+            <div class="camera-stage"><canvas id="cameraCanvas"></canvas><div class="empty-state" id="cameraEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraEmptyText">카메라 토픽을 자동으로 찾고 있습니다.</small></div><div class="stream-overlay"><span id="cameraTopicLabel">NO SOURCE</span><span id="cameraCodecLabel">—</span></div></div>
+          </article>
+          <article class="panel telemetry-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">TELEMETRY</div><h2>Robot sensors</h2></div><span class="muted" id="sensorCount">0 streams</span></div>
+            <div class="sensor-grid" id="sensorGrid"><div class="sensor-placeholder">센서 데이터를 기다리고 있습니다.</div></div>
+          </article>
+        </section>
       </section>
 
-      <footer>
-        <span>Robot Scope v0.1 · Read-only ROS 2 agent</span>
-        <span id="lastUpdated">Last update —</span>
-      </footer>
+      <section class="page-view" data-page="topics" hidden>
+        <section class="panel topics-panel">
+          <div class="panel-header compact"><div><div class="eyebrow">ROS GRAPH</div><h2>Discovered topics</h2></div><div class="table-actions"><input id="topicSearch" placeholder="토픽 또는 타입 검색"><select id="categoryFilter"><option value="">모든 분류</option><option value="camera">Camera</option><option value="pointcloud">Point cloud</option><option value="occupancy_grid">2D map</option><option value="odometry">Odometry</option><option value="imu">IMU</option><option value="robot_state">Robot state</option><option value="lidar">LiDAR</option><option value="other">Other</option></select></div></div>
+          <div class="table-wrap"><table><thead><tr><th>STATE</th><th>TOPIC</th><th>TYPE</th><th>CATEGORY</th><th>RATE</th><th>AGE</th></tr></thead><tbody id="topicsBody"><tr><td colspan="6" class="table-empty">ROS graph를 읽고 있습니다.</td></tr></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="page-view" data-page="settings" hidden>
+        <section class="settings-grid">
+          <article class="panel settings-panel">
+            <div class="panel-header"><div><div class="eyebrow">CONNECTION</div><h2>Robot target</h2></div><span class="muted">PING ONLY</span></div>
+            <div class="settings-card-body">
+              <label class="field-label" for="robotIp">로봇 IP</label>
+              <div class="input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161"><button id="connectButton" type="button">확인</button></div>
+              <div class="connection-detail settings-detail">
+                <div><span>Agent</span><strong id="agentHost">—</strong></div>
+                <div><span>ROS</span><strong id="rosRuntime">—</strong></div>
+                <div><span>Domain</span><strong id="rosDomain">—</strong></div>
+                <div><span>Topics</span><strong id="topicCount">—</strong></div>
+              </div>
+            </div>
+          </article>
+          <article class="panel settings-panel">
+            <div class="panel-header"><div><div class="eyebrow">DATA SOURCES</div><h2>Topic selection</h2></div><span class="muted">AUTO DISCOVERY</span></div>
+            <div class="settings-card-body source-settings-grid">
+              <label><span>카메라</span><select id="cameraSource"><option value="">탐색 중…</option></select></label>
+              <label><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select></label>
+              <label><span>Odometry</span><select id="odomSource"><option value="">탐색 중…</option></select></label>
+              <label><span>2D 맵</span><select id="mapSource"><option value="">없음</option></select></label>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <footer><span>Robot Scope v0.2 · Read-only ROS 2 agent</span><span id="lastUpdated">Last update —</span></footer>
     </section>
   </main>
 
   <div class="toast" id="toast"></div>
   <script src="/static/scene3d.js" defer></script>
+  <script src="/static/go2_official_model.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

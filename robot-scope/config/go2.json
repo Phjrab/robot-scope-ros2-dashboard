@@ -4,6 +4,17 @@
   "disabled_sources": ["camera"],
   "observed_topics": ["/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
   "cloud_radius_limit_m": 150,
+  "saved_maps": {
+    "directories": [
+      "~/ws/go2_3d/maps",
+      "../robot_dashboard/static/data"
+    ],
+    "max_files": 100,
+    "max_depth": 2,
+    "max_file_bytes": 268435456,
+    "preview_points": 10000,
+    "max_grid_cells": 16000000
+  },
   "preferred_topics": {
     "camera": ["/frontvideostream"],
     "pointcloud": ["/velodyne_points", "/Laser_map", "/cloud_registered", "/lidar_points", "/utlidar/cloud", "/utlidar/cloud_deskewed", "/uslam/cloud_map", "/utlidar/grid_map"],

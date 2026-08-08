@@ -17,7 +17,15 @@ if [[ -f "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash" ]]; then
   source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
 fi
 if [[ -f "$HOME/setup_go2_ros2_humble.sh" ]]; then
-  source "$HOME/setup_go2_ros2_humble.sh"
+  if ! source "$HOME/setup_go2_ros2_humble.sh"; then
+    # Keep the observability UI available while the dedicated Go2 cable is
+    # disconnected. CycloneDDS auto-selects an active interface; reconnecting
+    # the cable and restarting restores the dedicated-interface profile.
+    export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    export ROS_LOCALHOST_ONLY=0
+    unset CYCLONEDDS_URI
+    echo "[Robot Scope] Go2 interface unavailable; starting dashboard in offline viewer mode."
+  fi
 fi
 
 PYTHON_BIN="python3"
