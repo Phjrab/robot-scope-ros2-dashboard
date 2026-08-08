@@ -100,12 +100,16 @@
   }
 
   function rootMatrix(pose, z, scale) {
-    const c = Math.cos(pose.yaw);
-    const s = Math.sin(pose.yaw);
+    const roll = finite(pose.roll);
+    const pitch = finite(pose.pitch);
+    const yaw = finite(pose.yaw);
+    const cr = Math.cos(roll), sr = Math.sin(roll);
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
     return [
-      c * scale, -s * scale, 0, pose.x,
-      s * scale, c * scale, 0, pose.y,
-      0, 0, scale, z,
+      cy * cp * scale, (cy * sp * sr - sy * cr) * scale, (cy * sp * cr + sy * sr) * scale, pose.x,
+      sy * cp * scale, (sy * sp * sr + cy * cr) * scale, (sy * sp * cr - cy * sr) * scale, pose.y,
+      -sp * scale, cp * sr * scale, cp * cr * scale, z,
       0, 0, 0, 1,
     ];
   }

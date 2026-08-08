@@ -91,6 +91,12 @@ python3 ~/ws/go2_3d/save_map.py
 확인할 수 있습니다. 로봇 전원이 꺼진 환경에서는 저장된 로컬 PCD 또는 공개용
 데모 점군으로 3D UI를 계속 테스트할 수 있습니다.
 
+`Live Mapping` 메뉴에서는 허용된 Hesai+FAST-LIO 세션을 새로 시작하고, 최신
+`/Laser_map`을 검증된 binary PCD와 선택적 2D PGM+YAML로 저장할 수 있습니다.
+공식 Go2 모델은 `/joint_states` 또는 `/lowstate`의 12축 관절과 몸통 기울기를
+WebSocket으로 받아 실제 로봇 움직임을 반영합니다. 로봇 구동 명령과 임의 shell
+명령은 대시보드에서 실행할 수 없습니다.
+
 ## 안전
 
 - 제자리 급회전과 빠른 주행은 맵을 왜곡할 수 있습니다. 큰 원을 그리듯 천천히 움직입니다.

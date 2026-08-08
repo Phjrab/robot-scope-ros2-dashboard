@@ -25,7 +25,14 @@ from rosidl_runtime_py.utilities import get_message
 
 from .camera_decoder import H264JpegDecoder
 from .pointcloud import extract_xyz, reject_spatial_outliers
-from .serializers import classify_type, is_observable_type, summarize_message
+from .serializers import (
+    classify_type,
+    extract_go2_imu_rpy,
+    extract_go2_joint_positions,
+    go2_joint_state_payload,
+    is_observable_type,
+    summarize_message,
+)
 
 
 CAMERA_TYPES = {
@@ -95,6 +102,22 @@ class RosAgent:
         self._summary_updated: Dict[str, float] = {}
         self._subscriptions: Dict[str, Any] = {}
         self._special_subscription_topics: Dict[str, str] = {}
+
+        self._joint_stale_after = max(
+            0.2,
+            min(float(self.profile.get("joint_state_stale_after_s", 1.0)), 10.0),
+        )
+        self._joint_last_processed = 0.0
+        self._joints: Dict[str, Any] = {
+            "seq": 0,
+            "topic": "",
+            "type": "",
+            "position_rad": None,
+            "imu_rpy_rad": None,
+            "source_order": "",
+            "stamp_ns": 0,
+            "updated": 0.0,
+        }
 
         self._sources: Dict[str, str] = {
             "camera": "",
@@ -233,6 +256,7 @@ class RosAgent:
                 self._graph = discovered
                 self._pick_default_sources_locked()
             self._sync_special_subscriptions()
+            self._sync_joint_subscription()
             self._sync_observable_subscriptions()
         except Exception as exc:
             with self._lock:
@@ -285,10 +309,67 @@ class RosAgent:
                     with self._lock:
                         self._special_subscription_topics[category] = wanted
 
+    def _preferred_joint_source_locked(self) -> str:
+        """Select one real joint source, preferring named JointState data."""
+
+        candidates = [
+            (topic, descriptor.get("type", ""))
+            for topic, descriptor in self._graph.items()
+            if descriptor.get("publishers", 0) > 0
+            and (
+                descriptor.get("type") == "sensor_msgs/msg/JointState"
+                or str(descriptor.get("type", "")).casefold().endswith("/lowstate")
+            )
+        ]
+        if not candidates:
+            return ""
+
+        def priority(item: Tuple[str, str]) -> Tuple[int, int, str]:
+            topic, type_name = item
+            is_joint_state = type_name == "sensor_msgs/msg/JointState"
+            exact_name = topic in {"/joint_states", "/lowstate"}
+            return (0 if is_joint_state else 1, 0 if exact_name else 1, topic)
+
+        return min(candidates, key=priority)[0]
+
+    def _sync_joint_subscription(self) -> None:
+        """Maintain one lightweight subscription for Go2 model articulation."""
+
+        with self._lock:
+            wanted = self._preferred_joint_source_locked()
+            current = self._special_subscription_topics.get("joints", "")
+        if wanted == current:
+            return
+        if current:
+            self._destroy_subscription("special:joints")
+            with self._lock:
+                self._special_subscription_topics["joints"] = ""
+        with self._lock:
+            self._joints = {
+                "seq": self._joints["seq"],
+                "topic": wanted,
+                "type": self._graph.get(wanted, {}).get("type", ""),
+                "position_rad": None,
+                "imu_rpy_rad": None,
+                "source_order": "",
+                "stamp_ns": 0,
+                "updated": 0.0,
+            }
+        if not wanted:
+            return
+        # Avoid deserializing a high-rate LowState twice if it was also allowed
+        # by the generic observed-topic policy.  The dedicated callback stores
+        # the same compact summary at 5 Hz in addition to joint positions.
+        self._destroy_subscription(f"observe:{wanted}")
+        if self._create_subscription("special:joints", wanted, self._joint_callback):
+            with self._lock:
+                self._special_subscription_topics["joints"] = wanted
+
     def _sync_observable_subscriptions(self) -> None:
         with self._lock:
             items = list(self._graph.items())
             selected_odometry = self._sources.get("odometry", "")
+            selected_joints = self._special_subscription_topics.get("joints", "")
         configured = self.profile.get("observed_topics") if self.profile else None
         observed_topics = set(configured) if isinstance(configured, list) else None
         for topic, descriptor in items:
@@ -297,6 +378,8 @@ class RosAgent:
             if not is_observable_type(type_name):
                 continue
             if category in {"camera", "pointcloud", "occupancy_grid"}:
+                continue
+            if topic == selected_joints:
                 continue
             # High-rate robot graphs often expose duplicated aliases (for
             # example /lowstate and /lf/lowstate).  A profile allowlist avoids
@@ -379,6 +462,9 @@ class RosAgent:
     def _summary_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
         self._tick(topic, now)
+        self._store_summary(topic, type_name, message, now)
+
+    def _store_summary(self, topic: str, type_name: str, message: Any, now: float) -> None:
         with self._lock:
             last = self._summary_updated.get(topic, 0.0)
         if now - last < 0.2:
@@ -396,6 +482,39 @@ class RosAgent:
         except Exception as exc:
             with self._lock:
                 self._last_error = f"summarize {topic}: {exc}"
+
+    def _joint_callback(self, topic: str, type_name: str, message: Any) -> None:
+        """Extract only the twelve Go2 positions needed by the web model."""
+
+        now = time.monotonic()
+        with self._lock:
+            if topic != self._special_subscription_topics.get("joints", ""):
+                return
+        self._tick(topic, now)
+        self._store_summary(topic, type_name, message, now)
+        # LowState is commonly 500 Hz.  A 50 Hz model stream is smooth while
+        # avoiding needless repeated list construction and lock contention.
+        if now - self._joint_last_processed < 0.02:
+            return
+        self._joint_last_processed = now
+        positions = extract_go2_joint_positions(message, type_name)
+        if positions is None:
+            return
+        imu_rpy = extract_go2_imu_rpy(message, type_name)
+        source_order = "named_joint_state" if type_name == "sensor_msgs/msg/JointState" else "unitree_lowstate"
+        with self._lock:
+            if topic != self._special_subscription_topics.get("joints", ""):
+                return
+            self._joints = {
+                "seq": self._joints["seq"] + 1,
+                "topic": topic,
+                "type": type_name,
+                "position_rad": positions,
+                "imu_rpy_rad": imu_rpy,
+                "source_order": source_order,
+                "stamp_ns": self._stamp_ns(message),
+                "updated": now,
+            }
 
     def _camera_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
@@ -727,6 +846,27 @@ class RosAgent:
                 result.append(row)
             return sorted(result, key=lambda row: (row["category"], row["name"]))
 
+    def _joint_snapshot_locked(self, now: float) -> Dict[str, Any]:
+        joint_data = dict(self._joints)
+        return go2_joint_state_payload(
+            topic=str(joint_data.get("topic", "")),
+            type_name=str(joint_data.get("type", "")),
+            positions=joint_data.get("position_rad"),
+            updated_at=float(joint_data.get("updated", 0.0)),
+            now=now,
+            stale_after_s=self._joint_stale_after,
+            seq=int(joint_data.get("seq", 0)),
+            stamp_ns=int(joint_data.get("stamp_ns", 0)),
+            source_order=str(joint_data.get("source_order", "")),
+            imu_rpy_rad=joint_data.get("imu_rpy_rad"),
+        )
+
+    def joint_snapshot(self) -> Dict[str, Any]:
+        """Return the small joint-only snapshot for a high-rate API/WS route."""
+
+        with self._lock:
+            return self._joint_snapshot_locked(time.monotonic())
+
     def state_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             sensors = []
@@ -738,6 +878,7 @@ class RosAgent:
             camera_meta = {key: value for key, value in self._camera.items() if key != "data"}
             cloud_meta = {key: value for key, value in self._cloud.items() if key != "points"}
             map_meta = {key: value for key, value in self._map.items() if key != "data_b64"}
+            robot_joints = self._joint_snapshot_locked(time.monotonic())
 
             mapping_topic = sources.get("pointcloud", "")
             mapping_metric = self._metric_snapshot(mapping_topic, "pointcloud") if mapping_topic else {"state": "waiting"}
@@ -759,6 +900,7 @@ class RosAgent:
                 "camera": camera_meta,
                 "cloud": cloud_meta,
                 "map": map_meta,
+                "robot_joints": robot_joints,
                 "mapping": {
                     "state": mapping_state,
                     "cloud": mapping_metric,

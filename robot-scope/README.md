@@ -1,7 +1,7 @@
 # Robot Scope
 
 Robot Scope는 ROS 2 로봇의 연결 상태, 센서 값, 카메라 스트림, 위치 추정과
-LiDAR 맵을 브라우저에서 확인하는 읽기 전용 대시보드입니다.
+LiDAR 맵을 브라우저에서 확인하고, 허용된 매핑 세션을 시작·저장하는 대시보드입니다.
 
 현재 버전은 Unitree Go2 + ROS 2 Humble + Jetson Orin Nano 환경을 기본
 프로필로 제공하지만, 표준 ROS 2 메시지 타입을 기준으로 토픽을 자동 분류하므로
@@ -18,7 +18,8 @@ Robot Scope agent (각 로봇의 Jetson)
   ├─ 센서 메시지 요약
   ├─ H.264/JPEG/raw 카메라 게이트웨이
   ├─ PointCloud2 다운샘플링
-  └─ OccupancyGrid / Odometry 상태
+  ├─ Go2 관절 상태 WebSocket
+  └─ 허용된 FAST-LIO 시작·PCD/2D 지도 저장
           │ HTTP + WebSocket
           ▼
        Web browser
@@ -40,14 +41,17 @@ Robot Scope agent (각 로봇의 Jetson)
 - Go2 H.264 전면 영상의 GStreamer→JPEG 변환과 브라우저 WebCodecs 대체 경로
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
 - Unitree 공식 `unitree_ros/robots/go2_description`에서 변환한 경량 Go2 3D 모델과 최근 이동 궤적 표시
+- `/joint_states` 우선, `/lowstate` 대체 경로를 이용한 12축 다리 관절 및 몸통 RPY 실시간 반영
 - Overview / Live Mapping / Saved Maps / Sensors / ROS Graph 메뉴 분리
 - 실시간 LiDAR와 저장된 PCD·map_server 2D 지도를 서로 독립적으로 표시
+- 대시보드에서 Hesai+FAST-LIO 새 세션 시작, 3D PCD 저장, 선택적 2D PGM+YAML 변환
 - Hesai `/lidar_points` publisher를 `XT16 ONLINE`으로 표시
 - 로봇 IP ping, ROS 배포판·Domain·RMW 표시
 - 토픽별 소스 변경
 
-대시보드는 의도적으로 읽기 전용입니다. 로봇 제어, 임의 명령 실행, launch 시작·
-종료 기능은 포함하지 않습니다.
+로봇 보행·자세 제어와 임의 명령 실행은 포함하지 않습니다. 매핑 작업은 서버에
+고정된 Humble 스크립트만 실행하며 브라우저 입력은 지도 이름과 2D 변환 여부로
+제한합니다.
 
 ## Jetson 설치
 
@@ -55,7 +59,8 @@ Robot Scope agent (각 로봇의 Jetson)
 cd ~/robot-scope
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install -r requirements.txt
-chmod +x scripts/run_go2_humble.sh
+chmod +x scripts/run_go2_humble.sh scripts/start_hesai_mapping_humble.sh \
+  scripts/save_hesai_map_humble.sh scripts/check_pcd_bounds.py
 ./scripts/run_go2_humble.sh
 ```
 
@@ -117,6 +122,19 @@ cd ~/robot-scope
 Shift/오른쪽 드래그로 이동, 휠로 확대하며 `ISO`, `TOP`, `FRONT` 버튼으로
 시점을 즉시 바꿀 수 있습니다. `ROBOT`을 끄면 로봇 모델과 궤적을 숨깁니다.
 
+### 대시보드에서 새 지도 만들기
+
+1. `Live Mapping`의 `새 맵 시작`을 누르고 기존 누적 지도 초기화 확인창에 동의합니다.
+2. `ROS DATA`가 `LASER_MAP READY`가 될 때까지 기다립니다.
+3. ASCII 지도 이름을 입력하고, 필요하면 `2D 지도도 함께 생성`을 켭니다.
+4. `현재 맵 저장`을 누릅니다. PCD와 선택한 PGM·YAML 검증이 끝나면 `Saved Maps`가 자동 갱신됩니다.
+
+새 세션은 같은 사용자로 실행 중인 기존 Hesai driver, XT16 bridge, FAST-LIO만
+`SIGINT`와 `SIGTERM` 순으로 정리한 뒤 시작합니다. 지도 저장은 비공개 임시 폴더에서
+완료되며 PCD 헤더·point 수, YAML 이미지 참조, PGM magic과 파일 크기를 검증한
+결과만 `~/ws/go2_3d/maps`에 공개합니다. 2D 변환은 기존 정적 `/map`과 충돌하지
+않는 작업별 토픽을 사용하며 최대 1,600만 cell로 제한합니다.
+
 `Live Mapping`은 현재 들어오는 데이터만 표시하며, 로봇이나 LiDAR가 꺼져 있으면
 `LIVE DATA WAITING`을 표시합니다. 과거 지도는 `Saved Maps`에서 별도로 선택합니다.
 에이전트는 `config/go2.json`에 지정된 디렉터리를 읽기 전용으로 탐색해 binary PCD,
@@ -139,11 +157,10 @@ TF가 없으면 잘못된 좌표를 쓰지 않고 `FRAME RELATIVE`로 중앙에 
 `MAPPING` 배지는 두 입력의 수신 상태를 뜻하며, SLAM 품질을 판정한다는 뜻은
 아닙니다.
 
-Go2 프로필은 지도 처리 성능을 보호하기 위해 카메라를 자동 구독하지 않고,
-`observed_topics`에 지정된 IMU·LiDAR 상태만 상시 요약합니다. `/lowstate`는 약
-350–500 Hz라 Python 대시보드가 한 CPU 코어를 사용할 수 있습니다. 배터리와
-모터 값을 계속 표시해야 할 때만 `config/go2.json`의 `observed_topics`에
-`/lowstate`를 추가하세요.
+Go2 프로필은 지도 처리 성능을 보호하기 위해 카메라를 자동 구독하지 않습니다.
+`/lowstate`는 약 350–500 Hz지만 관절 렌더링용 최신값만 최대 50 Hz로 처리하고,
+센서 카드 요약은 더 낮은 주기로 제한합니다. 정상 관절 메시지가 1초 이상 끊기면
+마지막 값을 고정하지 않고 공식 모델의 기본 대기 자세로 되돌립니다.
 
 ### 이번 장비에서 확인한 트러블슈팅
 
@@ -210,9 +227,13 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 - `GET/POST /api/v1/sources`: 표시 소스 조회·변경
 - `GET /api/v1/pointcloud`: 다운샘플된 최신 점군
 - `GET /api/v1/map`: 최신 OccupancyGrid
+- `GET /api/v1/joints`: 정규화된 Go2 12축 관절과 몸통 RPY
+- `GET /api/v1/mapping/control`: 매핑 프로세스·저장 작업·제한된 로그
+- `POST /api/v1/mapping/start|stop|save`: 허용된 매핑 작업
 - `GET /api/v1/saved-maps`: 허용된 디렉터리의 저장 지도 목록
 - `GET /api/v1/saved-maps/{id}/data`: 선택한 PCD 또는 2D 지도의 렌더링 데이터
 - `WS /api/v1/ws/camera`: 카메라 바이너리 스트림
+- `WS /api/v1/ws/joints`: 최대 50 Hz 관절 상태 스트림
 - `/docs`: FastAPI OpenAPI 문서
 
 ## 운영 원칙과 다음 단계
@@ -221,8 +242,7 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 - Go2 실행 스크립트는 웹 표시용 PointCloud를 최대 10,000점, 약 3 Hz로 제한합니다. 원본 SLAM 토픽은
   변경하지 않습니다.
 - 인터넷이나 공용망에 노출하기 전에는 토큰 인증과 TLS를 추가해야 합니다.
-- 2차 버전 후보: TF 트리, rosbag 녹화, 다중 로봇 목록,
-  RealSense depth 컬러맵, 허용된 매핑 launch의 시작·저장 제어.
+- 다음 후보: TF 트리, rosbag 녹화, 다중 로봇 목록, RealSense depth 컬러맵.
 
 ## 라이선스
 
@@ -244,5 +264,5 @@ Robot Scope 자체 코드는 [MIT License](LICENSE)로 배포합니다. 포함�
 | FAST-LIO 지도 | `/Laser_map`과 `/Odometry` 수신 및 로봇 모델 오버레이 확인 |
 | 2D 지도 | `/map` 971×677 OccupancyGrid 및 레이어 전환 확인 |
 | 위치 | `/Odometry`, `camera_init` frame, 약 8–10 Hz |
-| 상태 센서 | `/imu/body`, `/lidar_imu`, `/utlidar/lidar_state` 정상 수신 |
-| 안전 모드 | 읽기 전용, 제어 명령 미전송 |
+| 상태 센서 | `/lowstate` 12축 관절·몸통 RPY 및 IMU·LiDAR 상태 수신 |
+| 안전 모드 | 지도 작업만 허용, 로봇 구동·임의 명령 비활성 |

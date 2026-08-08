@@ -38,7 +38,7 @@
 
       <section class="side-section read-only-note">
         <span class="lock-icon">◇</span>
-        <div><strong>READ-ONLY MODE</strong><p>센서와 매핑 상태만 관찰합니다. 로봇 제어 명령은 보내지 않습니다.</p></div>
+        <div><strong>MAPPING OPERATIONS</strong><p>센서 수집과 지도 저장만 실행합니다. 로봇 구동 명령은 비활성입니다.</p></div>
       </section>
     </aside>
 
@@ -88,6 +88,34 @@
             <div class="map-meta"><span id="mapFrame">FRAME —</span><span id="mapPoints">0 POINTS</span></div>
           </div>
         </article>
+        <article class="panel mapping-control-panel">
+          <div class="panel-header compact">
+            <div><div class="eyebrow">MAPPING CONSOLE</div><h2>Create & save map</h2></div>
+            <div class="panel-state waiting" id="mappingControlState"><span></span>IDLE</div>
+          </div>
+          <div class="mapping-control-layout">
+            <section class="mapping-session-form">
+              <label class="field-label" for="mappingSessionName">저장 지도 이름</label>
+              <input id="mappingSessionName" class="mapping-name-input" autocomplete="off" maxlength="64" spellcheck="false" placeholder="map_YYYYMMDD_HHMMSS">
+              <label class="mapping-checkbox"><input id="mappingCreate2d" type="checkbox" checked><span><b>2D 지도도 함께 생성</b><small>3D PCD 저장 후 0.05 m/cell PGM·YAML로 변환합니다.</small></span></label>
+              <div class="mapping-action-row">
+                <button id="mappingStartButton" class="mapping-action primary" type="button">새 맵 시작</button>
+                <button id="mappingSaveButton" class="mapping-action" type="button">현재 맵 저장</button>
+                <button id="mappingStopButton" class="mapping-action danger" type="button">매핑 중지</button>
+              </div>
+              <p class="mapping-safety-note">저장은 최신 <code>/Laser_map</code>이 있을 때만 가능합니다. 새로 시작하면 FAST-LIO 누적 지도가 초기화됩니다.</p>
+            </section>
+            <section class="mapping-job-panel">
+              <div class="mapping-job-summary">
+                <div><span>PIPELINE</span><strong id="mappingPipelineLabel">IDLE</strong></div>
+                <div><span>ROS DATA</span><strong id="mappingDataLabel">WAITING</strong></div>
+                <div><span>LAST SAVE</span><strong id="mappingSaveLabel">—</strong></div>
+              </div>
+              <div class="mapping-operation-message" id="mappingOperationMessage">맵 생성 또는 기존 라이브 매핑의 저장을 시작할 수 있습니다.</div>
+              <pre class="mapping-log" id="mappingLog" aria-live="polite">[Robot Scope] mapping console ready</pre>
+            </section>
+          </div>
+        </article>
         <section class="mapping-support-grid">
           <article class="panel odom-panel">
             <div class="panel-header compact"><div><div class="eyebrow">LOCALIZATION</div><h2>Pose & motion</h2></div><span class="topic-badge" id="odomTopic">NO SOURCE</span></div>
@@ -96,7 +124,7 @@
             </div></div>
           </article>
           <article class="panel mapping-inputs-panel">
-            <div class="panel-header compact"><div><div class="eyebrow">PIPELINE</div><h2>Mapping inputs</h2></div><span class="muted">READ ONLY</span></div>
+            <div class="panel-header compact"><div><div class="eyebrow">PIPELINE</div><h2>Mapping inputs</h2></div><span class="muted">LIVE STATUS</span></div>
             <div class="pipeline-list">
               <div><span>POINT CLOUD</span><strong id="liveCloudTopic">NO SOURCE</strong><small id="liveCloudStatus">waiting</small></div>
               <div><span>ODOMETRY</span><strong id="liveOdomTopic">NO SOURCE</strong><small id="liveOdomStatus">waiting</small></div>
@@ -186,7 +214,7 @@
         </section>
       </section>
 
-      <footer><span>Robot Scope v0.2 · Read-only ROS 2 agent</span><span id="lastUpdated">Last update —</span></footer>
+      <footer><span>Robot Scope v0.3 · Mapping operations · Motion control disabled</span><span id="lastUpdated">Last update —</span></footer>
     </section>
   </main>
 

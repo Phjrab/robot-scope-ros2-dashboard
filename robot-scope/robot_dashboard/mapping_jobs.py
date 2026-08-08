@@ -1,0 +1,752 @@
+"""Safe process manager for dashboard-controlled mapping and map saves.
+
+The HTTP layer is intentionally not part of this module.  Callers select a
+logical action (start mapping, stop mapping, or save one of the configured map
+kinds); request data is never interpreted as a command line.  Every executable
+and argument template is supplied by trusted application configuration and all
+processes are launched with ``shell=False`` in their own process group.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import threading
+import time
+import uuid
+from collections import deque
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from types import MappingProxyType
+from typing import Any, Iterable, Mapping, Optional, Sequence
+
+
+MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+KIND_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+SUFFIX_RE = re.compile(r"^\.[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
+OUTPUT_PREFIX_TOKEN = "{output_prefix}"
+
+
+class MappingJobError(RuntimeError):
+    """Base class for an expected mapping-control failure."""
+
+
+class JobBusyError(MappingJobError):
+    """Raised when a conflicting mapping operation is already active."""
+
+
+class InvalidMapName(MappingJobError):
+    """Raised when a requested map name is not a safe portable filename."""
+
+
+class PipelineNotRunning(MappingJobError):
+    """Raised when a save requires a manager-owned mapping pipeline."""
+
+
+class SaveResultError(MappingJobError):
+    """Raised when a save command did not produce valid expected artifacts."""
+
+
+@dataclass(frozen=True)
+class CommandSpec:
+    """A trusted, immutable argv allowlist entry.
+
+    ``argv[0]`` must be an absolute executable.  No interpolation is supported
+    for pipeline commands.
+    """
+
+    argv: tuple[str, ...]
+    cwd: Optional[Path] = None
+    timeout_seconds: float = 30.0
+
+    def __post_init__(self) -> None:
+        _validate_argv(self.argv, allow_output_prefix=False)
+        if self.timeout_seconds <= 0 or self.timeout_seconds > 900:
+            raise ValueError("command timeout must be between 0 and 900 seconds")
+
+
+@dataclass(frozen=True)
+class SaveCommandSpec:
+    """A trusted map-save argv template and its required output artifacts.
+
+    An argv entry may contain ``{output_prefix}``; it is replaced with a path in
+    a private staging directory.  ``expected_suffixes`` are fixed extensions
+    appended to that prefix, for example ``('.yaml', '.pgm')``.
+    """
+
+    argv: tuple[str, ...]
+    expected_suffixes: tuple[str, ...]
+    cwd: Optional[Path] = None
+    timeout_seconds: float = 45.0
+    min_result_bytes: int = 4
+    max_result_bytes: int = 512 * 1024 * 1024
+
+    def __post_init__(self) -> None:
+        _validate_argv(self.argv, allow_output_prefix=True)
+        if not any(OUTPUT_PREFIX_TOKEN in value for value in self.argv):
+            raise ValueError("save command must use {output_prefix}")
+        if not self.expected_suffixes:
+            raise ValueError("save command must declare expected output suffixes")
+        if len(set(self.expected_suffixes)) != len(self.expected_suffixes):
+            raise ValueError("save command output suffixes must be unique")
+        for suffix in self.expected_suffixes:
+            if not isinstance(suffix, str) or not SUFFIX_RE.fullmatch(suffix):
+                raise ValueError(f"unsafe save output suffix: {suffix!r}")
+        if self.timeout_seconds <= 0 or self.timeout_seconds > 900:
+            raise ValueError("save timeout must be between 0 and 900 seconds")
+        if self.min_result_bytes < 1 or self.min_result_bytes > 1024 * 1024:
+            raise ValueError("min_result_bytes is outside the supported range")
+        if (
+            self.max_result_bytes < self.min_result_bytes
+            or self.max_result_bytes > 2 * 1024**3
+        ):
+            raise ValueError("max_result_bytes is outside the supported range")
+
+
+def _validate_argv(argv: Sequence[str], *, allow_output_prefix: bool) -> None:
+    if not isinstance(argv, tuple) or not argv:
+        raise ValueError("command argv must be a non-empty tuple")
+    executable = argv[0]
+    if not isinstance(executable, str) or not Path(executable).is_absolute():
+        raise ValueError("command executable must be an absolute path")
+    for value in argv:
+        if not isinstance(value, str) or not value or "\x00" in value:
+            raise ValueError("command arguments must be non-empty strings without NUL")
+        remainder = value.replace(OUTPUT_PREFIX_TOKEN, "") if allow_output_prefix else value
+        if "{" in remainder or "}" in remainder:
+            raise ValueError("command contains an unsupported interpolation token")
+        if not allow_output_prefix and OUTPUT_PREFIX_TOKEN in value:
+            raise ValueError("pipeline command cannot contain output interpolation")
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _inside(root: Path, candidate: Path) -> bool:
+    try:
+        candidate.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+class MappingJobManager:
+    """Manage one mapping pipeline and one bounded save operation at a time.
+
+    Public methods are thread-safe.  ``start_mapping`` is non-blocking,
+    ``stop_mapping`` waits for the process group to stop, and ``save_map`` waits
+    for the bounded save command and verified publication of its result.
+    """
+
+    def __init__(
+        self,
+        *,
+        project_dir: Path,
+        output_dir: Path,
+        start_command: CommandSpec,
+        save_commands: Mapping[str, SaveCommandSpec],
+        log_capacity: int = 300,
+        stop_grace_seconds: float = 4.0,
+        require_pipeline_for_save: bool = True,
+    ) -> None:
+        self.project_dir = project_dir.expanduser().resolve(strict=True)
+        if not self.project_dir.is_dir():
+            raise ValueError("project_dir must be a directory")
+        self.output_dir = output_dir.expanduser().resolve()
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        if not self.output_dir.is_dir() or self.output_dir.is_symlink():
+            raise ValueError("output_dir must be a real directory")
+
+        self.start_command = self._prepare_command(start_command)
+        prepared_saves: dict[str, SaveCommandSpec] = {}
+        for kind, spec in save_commands.items():
+            if not isinstance(kind, str) or not KIND_RE.fullmatch(kind):
+                raise ValueError(f"unsafe map kind: {kind!r}")
+            prepared_saves[kind] = self._prepare_save_command(spec)
+        self.save_commands = MappingProxyType(prepared_saves)
+
+        if log_capacity < 10 or log_capacity > 5_000:
+            raise ValueError("log_capacity must be between 10 and 5000")
+        if stop_grace_seconds <= 0 or stop_grace_seconds > 30:
+            raise ValueError("stop_grace_seconds must be between 0 and 30 seconds")
+
+        self.stop_grace_seconds = float(stop_grace_seconds)
+        self.require_pipeline_for_save = bool(require_pipeline_for_save)
+        self._lock = threading.RLock()
+        self._logs: deque[dict[str, Any]] = deque(maxlen=int(log_capacity))
+        self._seq = 0
+        self._pipeline_process: Optional[subprocess.Popen[str]] = None
+        self._pipeline_pgid: Optional[int] = None
+        self._pipeline_token = ""
+        self._stop_requested = False
+        self._closing = False
+        self._save_active = False
+        self._save_process: Optional[subprocess.Popen[str]] = None
+        self._save_pgid: Optional[int] = None
+        self._pipeline: dict[str, Any] = {
+            "state": "idle",
+            "job_id": None,
+            "pid": None,
+            "started_at": None,
+            "stopped_at": None,
+            "exit_code": None,
+            "error": None,
+        }
+        self._operation: dict[str, Any] = {
+            "state": "idle",
+            "job_id": None,
+            "kind": None,
+            "map_name": None,
+            "started_at": None,
+            "finished_at": None,
+            "exit_code": None,
+            "files": [],
+            "error": None,
+        }
+
+    @classmethod
+    def for_robot_scope(
+        cls,
+        *,
+        project_dir: Path,
+        output_dir: Path,
+        save_commands: Mapping[str, SaveCommandSpec],
+        **kwargs: Any,
+    ) -> "MappingJobManager":
+        """Build a manager using the repository's allowlisted Humble launcher."""
+
+        project = project_dir.expanduser().resolve(strict=True)
+        launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
+        return cls(
+            project_dir=project,
+            output_dir=output_dir,
+            start_command=CommandSpec((str(launcher),), cwd=project, timeout_seconds=30),
+            save_commands=save_commands,
+            **kwargs,
+        )
+
+    @property
+    def allowed_save_kinds(self) -> tuple[str, ...]:
+        return tuple(sorted(self.save_commands))
+
+    def _prepare_command(self, spec: CommandSpec) -> CommandSpec:
+        executable = self._resolve_executable(spec.argv[0])
+        cwd = self._resolve_cwd(spec.cwd)
+        return CommandSpec(
+            (str(executable), *spec.argv[1:]),
+            cwd=cwd,
+            timeout_seconds=spec.timeout_seconds,
+        )
+
+    def _prepare_save_command(self, spec: SaveCommandSpec) -> SaveCommandSpec:
+        executable = self._resolve_executable(spec.argv[0])
+        cwd = self._resolve_cwd(spec.cwd)
+        return SaveCommandSpec(
+            (str(executable), *spec.argv[1:]),
+            spec.expected_suffixes,
+            cwd=cwd,
+            timeout_seconds=spec.timeout_seconds,
+            min_result_bytes=spec.min_result_bytes,
+            max_result_bytes=spec.max_result_bytes,
+        )
+
+    @staticmethod
+    def _resolve_executable(value: str) -> Path:
+        try:
+            executable = Path(value).expanduser().resolve(strict=True)
+        except OSError as exc:
+            raise ValueError(f"allowlisted executable does not exist: {value}") from exc
+        if not executable.is_file() or not os.access(executable, os.X_OK):
+            raise ValueError(f"allowlisted executable is not executable: {value}")
+        return executable
+
+    def _resolve_cwd(self, value: Optional[Path]) -> Path:
+        cwd = (value or self.project_dir).expanduser().resolve(strict=True)
+        if not cwd.is_dir():
+            raise ValueError("command cwd must be a directory")
+        return cwd
+
+    def snapshot(self, *, since_log_seq: int = 0) -> dict[str, Any]:
+        """Return JSON-safe state and ring-buffered logs after ``since_log_seq``."""
+
+        with self._lock:
+            requested = max(0, int(since_log_seq))
+            logs = [dict(item) for item in self._logs if item["seq"] > requested]
+            oldest = self._logs[0]["seq"] if self._logs else self._seq + 1
+            return {
+                "pipeline": dict(self._pipeline),
+                "operation": {**self._operation, "files": list(self._operation["files"])},
+                "allowed_save_kinds": list(self.allowed_save_kinds),
+                "logs": logs,
+                "log_cursor": self._seq,
+                "logs_truncated": bool(requested and requested < oldest - 1),
+            }
+
+    def start_mapping(self) -> dict[str, Any]:
+        """Start the allowlisted mapping pipeline in a new process group."""
+
+        with self._lock:
+            if self._closing:
+                raise MappingJobError("mapping manager is shutting down")
+            if self._save_active:
+                raise JobBusyError("a map save is in progress")
+            if self._pipeline["state"] in {"starting", "running", "stopping"}:
+                raise JobBusyError("mapping pipeline is already active")
+            token = uuid.uuid4().hex
+            self._pipeline_token = token
+            self._stop_requested = False
+            self._pipeline = {
+                "state": "starting",
+                "job_id": token,
+                "pid": None,
+                "started_at": _utc_now(),
+                "stopped_at": None,
+                "exit_code": None,
+                "error": None,
+            }
+            self._append_log_locked("pipeline", "starting allowlisted Hesai + FAST-LIO pipeline")
+
+        try:
+            process = self._spawn(self.start_command.argv, self.start_command.cwd)
+        except OSError as exc:
+            with self._lock:
+                self._pipeline.update(
+                    state="failed",
+                    stopped_at=_utc_now(),
+                    error=f"pipeline could not be started: {exc.strerror or type(exc).__name__}",
+                )
+                self._append_log_locked("pipeline", self._pipeline["error"])
+            raise MappingJobError("mapping pipeline could not be started") from exc
+
+        # start_new_session=True makes the child's PID the process-group ID.
+        # Deriving it locally also handles a launcher that exits immediately.
+        pgid = process.pid
+        with self._lock:
+            self._pipeline_process = process
+            self._pipeline_pgid = pgid
+            self._pipeline.update(state="running", pid=process.pid)
+            self._append_log_locked(
+                "pipeline",
+                f"pipeline process group started (pid {process.pid})",
+            )
+
+        self._start_reader(process, "pipeline")
+        threading.Thread(
+            target=self._monitor_pipeline,
+            args=(token, process, pgid),
+            name="robot-scope-mapping-monitor",
+            daemon=True,
+        ).start()
+        return self.snapshot()
+
+    def stop_mapping(self) -> dict[str, Any]:
+        """Gracefully stop the complete manager-owned mapping process group."""
+
+        with self._lock:
+            if self._save_active:
+                raise JobBusyError("map save must finish before mapping can stop")
+            if self._pipeline["state"] not in {"starting", "running", "stopping"}:
+                return self.snapshot()
+            process = self._pipeline_process
+            pgid = self._pipeline_pgid
+            self._stop_requested = True
+            self._pipeline["state"] = "stopping"
+            self._append_log_locked("pipeline", "stopping mapping process group")
+
+        if pgid is not None:
+            self._terminate_group(process, pgid)
+
+        exit_code = process.poll() if process is not None else None
+        with self._lock:
+            self._pipeline.update(
+                state="stopped",
+                stopped_at=_utc_now(),
+                exit_code=exit_code,
+                error=None,
+            )
+            self._pipeline_process = None
+            self._pipeline_pgid = None
+            self._append_log_locked("pipeline", "mapping pipeline stopped")
+        return self.snapshot()
+
+    def save_map(self, name: str, kind: str) -> dict[str, Any]:
+        """Run one allowlisted save recipe and publish only verified artifacts."""
+
+        safe_name = self.validate_map_name(name)
+        spec = self.save_commands.get(kind) if isinstance(kind, str) else None
+        if spec is None:
+            raise MappingJobError(f"map kind is not allowlisted: {kind}")
+
+        with self._lock:
+            if self._closing:
+                raise MappingJobError("mapping manager is shutting down")
+            if self._save_active:
+                raise JobBusyError("another map save is already in progress")
+            if self._pipeline["state"] == "stopping":
+                raise JobBusyError("mapping pipeline is stopping")
+            if self.require_pipeline_for_save and self._pipeline["state"] != "running":
+                raise PipelineNotRunning("mapping pipeline must be running before saving")
+            self._ensure_targets_available(safe_name, spec.expected_suffixes)
+            token = uuid.uuid4().hex
+            self._save_active = True
+            self._operation = {
+                "state": "saving",
+                "job_id": token,
+                "kind": kind,
+                "map_name": safe_name,
+                "started_at": _utc_now(),
+                "finished_at": None,
+                "exit_code": None,
+                "files": [],
+                "error": None,
+            }
+            self._append_log_locked("save", f"saving {kind} map as {safe_name}")
+
+        jobs_dir = self.output_dir / ".robot_scope_jobs"
+        staging_dir = jobs_dir / token
+        prefix = staging_dir / safe_name
+        argv = tuple(value.replace(OUTPUT_PREFIX_TOKEN, str(prefix)) for value in spec.argv)
+        process: Optional[subprocess.Popen[str]] = None
+        pgid: Optional[int] = None
+        try:
+            with self._lock:
+                if self._closing:
+                    raise SaveResultError("map save cancelled during shutdown")
+            jobs_dir.mkdir(mode=0o700, exist_ok=True)
+            if jobs_dir.is_symlink() or jobs_dir.resolve(strict=True).parent != self.output_dir:
+                raise SaveResultError("map staging directory is unsafe")
+            staging_dir.mkdir(mode=0o700, exist_ok=False)
+            process = self._spawn(argv, spec.cwd)
+            pgid = process.pid
+            with self._lock:
+                self._save_process = process
+                self._save_pgid = pgid
+            reader = self._start_reader(process, "save")
+            try:
+                exit_code = process.wait(timeout=spec.timeout_seconds)
+            except subprocess.TimeoutExpired as exc:
+                self._terminate_group(process, pgid)
+                raise SaveResultError("map save timed out") from exc
+            reader.join(timeout=1.0)
+            if exit_code != 0:
+                raise SaveResultError(f"map save command exited with status {exit_code}")
+            if self._group_alive(pgid):
+                self._terminate_group(process, pgid)
+                raise SaveResultError("map save command left child processes running")
+
+            sources = self._validate_outputs(prefix, spec)
+            published = self._publish_outputs(safe_name, spec.expected_suffixes, sources)
+            with self._lock:
+                self._operation.update(
+                    state="succeeded",
+                    finished_at=_utc_now(),
+                    exit_code=exit_code,
+                    files=[path.name for path in published],
+                    error=None,
+                )
+                self._append_log_locked(
+                    "save",
+                    f"saved {', '.join(path.name for path in published)}",
+                )
+            return self.snapshot()
+        except (OSError, SaveResultError) as exc:
+            if pgid is not None and self._group_alive(pgid):
+                self._terminate_group(process, pgid)
+            message = str(exc) if isinstance(exc, SaveResultError) else "map save process failed"
+            with self._lock:
+                self._operation.update(
+                    state="failed",
+                    finished_at=_utc_now(),
+                    exit_code=process.poll() if process is not None else None,
+                    files=[],
+                    error=message,
+                )
+                self._append_log_locked("save", message)
+            if isinstance(exc, SaveResultError):
+                raise
+            raise MappingJobError(message) from exc
+        finally:
+            with self._lock:
+                self._save_active = False
+                self._save_process = None
+                self._save_pgid = None
+            shutil.rmtree(staging_dir, ignore_errors=True)
+            try:
+                jobs_dir.rmdir()
+            except OSError:
+                pass
+
+    @staticmethod
+    def validate_map_name(name: str) -> str:
+        if not isinstance(name, str) or not MAP_NAME_RE.fullmatch(name):
+            raise InvalidMapName(
+                "map name must be 1-64 ASCII letters, numbers, underscores or hyphens"
+            )
+        return name
+
+    def close(self) -> None:
+        """Best-effort lifecycle cleanup for an application shutdown hook."""
+
+        with self._lock:
+            self._closing = True
+        deadline = time.monotonic() + self.stop_grace_seconds * 2 + 1.0
+        while time.monotonic() < deadline:
+            with self._lock:
+                save_active = self._save_active
+                save_process = self._save_process
+                save_pgid = self._save_pgid
+            if not save_active:
+                break
+            if save_pgid is not None:
+                self._terminate_group(save_process, save_pgid)
+            time.sleep(0.02)
+        try:
+            self.stop_mapping()
+        except JobBusyError:
+            # A concurrent save thread owns final state publication; its process
+            # group has already been stopped above.  Application shutdown must
+            # remain best effort and must not leak the mapping pipeline.
+            with self._lock:
+                process = self._pipeline_process
+                pgid = self._pipeline_pgid
+            if pgid is not None:
+                self._terminate_group(process, pgid)
+
+    @staticmethod
+    def _spawn(argv: Sequence[str], cwd: Optional[Path]) -> subprocess.Popen[str]:
+        return subprocess.Popen(
+            list(argv),
+            cwd=str(cwd) if cwd else None,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            shell=False,
+            start_new_session=True,
+            close_fds=True,
+        )
+
+    def _start_reader(self, process: subprocess.Popen[str], source: str) -> threading.Thread:
+        def read_output() -> None:
+            if process.stdout is None:
+                return
+            try:
+                for line in process.stdout:
+                    self._append_log(source, line)
+            finally:
+                process.stdout.close()
+
+        thread = threading.Thread(
+            target=read_output,
+            name=f"robot-scope-{source}-log",
+            daemon=True,
+        )
+        thread.start()
+        return thread
+
+    def _monitor_pipeline(
+        self,
+        token: str,
+        process: subprocess.Popen[str],
+        pgid: int,
+    ) -> None:
+        exit_code = process.wait()
+        while self._group_alive(pgid):
+            with self._lock:
+                if token != self._pipeline_token or self._pipeline["state"] == "stopped":
+                    return
+            time.sleep(0.1)
+
+        with self._lock:
+            if token != self._pipeline_token or self._pipeline["state"] == "stopped":
+                return
+            stopped = self._stop_requested
+            self._pipeline_process = None
+            self._pipeline_pgid = None
+            self._pipeline.update(
+                state="stopped" if stopped else "failed",
+                stopped_at=_utc_now(),
+                exit_code=exit_code,
+                error=None if stopped else "mapping pipeline exited unexpectedly",
+            )
+            self._append_log_locked(
+                "pipeline",
+                "mapping pipeline stopped" if stopped else "mapping pipeline exited unexpectedly",
+            )
+
+    def _append_log(self, source: str, message: str) -> None:
+        with self._lock:
+            self._append_log_locked(source, message)
+
+    def _append_log_locked(self, source: str, message: str) -> None:
+        clean = "".join(char for char in str(message).strip() if char == "\t" or ord(char) >= 32)
+        if not clean:
+            return
+        self._seq += 1
+        self._logs.append(
+            {
+                "seq": self._seq,
+                "at": _utc_now(),
+                "source": source,
+                "message": clean[:1_000],
+            }
+        )
+
+    def _ensure_targets_available(self, name: str, suffixes: Iterable[str]) -> None:
+        for suffix in suffixes:
+            target = (self.output_dir / f"{name}{suffix}").resolve()
+            if not _inside(self.output_dir, target):
+                raise SaveResultError("map output escaped the configured directory")
+            if target.exists() or target.is_symlink():
+                raise SaveResultError(f"map already exists: {target.name}")
+
+    def _validate_outputs(self, prefix: Path, spec: SaveCommandSpec) -> list[Path]:
+        results: list[Path] = []
+        staging_root = prefix.parent.resolve(strict=True)
+        for suffix in spec.expected_suffixes:
+            candidate = prefix.with_name(prefix.name + suffix)
+            if candidate.is_symlink():
+                raise SaveResultError(f"save result cannot be a symlink: {candidate.name}")
+            try:
+                resolved = candidate.resolve(strict=True)
+            except OSError as exc:
+                raise SaveResultError(f"save result is missing: {candidate.name}") from exc
+            if not _inside(staging_root, resolved) or not resolved.is_file():
+                raise SaveResultError(f"save result is not a regular staged file: {candidate.name}")
+            if resolved.stat().st_size < spec.min_result_bytes:
+                raise SaveResultError(f"save result is empty: {candidate.name}")
+            if resolved.stat().st_size > spec.max_result_bytes:
+                raise SaveResultError(f"save result exceeds the configured limit: {candidate.name}")
+            self._validate_file_format(resolved, prefix.name, spec.expected_suffixes)
+            results.append(resolved)
+        return results
+
+    @staticmethod
+    def _validate_file_format(path: Path, prefix_name: str, suffixes: Sequence[str]) -> None:
+        suffix = path.suffix.lower()
+        if suffix == ".pcd":
+            with path.open("rb") as stream:
+                raw_header = stream.read(16_384)
+            header = raw_header.split(b"DATA", 1)[0].decode("ascii", "replace")
+            fields = next(
+                (line for line in header.splitlines() if line.upper().startswith("FIELDS ")),
+                "",
+            )
+            points = next(
+                (line for line in header.splitlines() if line.upper().startswith("POINTS ")),
+                "",
+            )
+            if not {"x", "y", "z"}.issubset(set(fields.lower().split()[1:])):
+                raise SaveResultError("PCD result is missing x/y/z fields")
+            try:
+                point_count = int(points.split()[1])
+            except (IndexError, ValueError) as exc:
+                raise SaveResultError("PCD result has an invalid point count") from exc
+            if point_count < 1 or b"DATA " not in raw_header.upper():
+                raise SaveResultError("PCD result has no point data")
+        elif suffix in {".yaml", ".yml"}:
+            with path.open("r", encoding="utf-8") as stream:
+                text = stream.read(65_536)
+            image_line = next(
+                (line for line in text.splitlines() if line.strip().lower().startswith("image:")),
+                "",
+            )
+            image = image_line.split(":", 1)[1].strip().strip("'\"") if image_line else ""
+            expected_images = {
+                f"{prefix_name}{value}"
+                for value in suffixes
+                if value in {".pgm", ".png"}
+            }
+            if (
+                not image
+                or Path(image).name != image
+                or (expected_images and image not in expected_images)
+            ):
+                raise SaveResultError("map YAML does not reference its expected local image")
+        elif suffix == ".pgm":
+            with path.open("rb") as stream:
+                magic = stream.read(2)
+            if magic not in {b"P2", b"P5"}:
+                raise SaveResultError("occupancy image is not a PGM file")
+        elif suffix == ".json":
+            try:
+                with path.open("r", encoding="utf-8") as stream:
+                    payload = json.load(stream)
+            except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+                raise SaveResultError("saved map JSON is invalid") from exc
+            points = payload.get("points") if isinstance(payload, dict) else None
+            if not isinstance(points, list) or len(points) < 3 or len(points) % 3:
+                raise SaveResultError("saved map JSON has no points array")
+
+    def _publish_outputs(
+        self,
+        name: str,
+        suffixes: Sequence[str],
+        sources: Sequence[Path],
+    ) -> list[Path]:
+        self._ensure_targets_available(name, suffixes)
+        targets = [self.output_dir / f"{name}{suffix}" for suffix in suffixes]
+        published: list[Path] = []
+        try:
+            for source, target in zip(sources, targets):
+                os.link(source, target, follow_symlinks=False)
+                published.append(target)
+        except OSError as exc:
+            for target in published:
+                try:
+                    target.unlink()
+                except OSError:
+                    pass
+            raise SaveResultError("verified map files could not be published") from exc
+        for source in sources:
+            source.unlink()
+        return published
+
+    def _terminate_group(
+        self,
+        process: Optional[subprocess.Popen[str]],
+        pgid: int,
+    ) -> None:
+        grace = self.stop_grace_seconds
+        for sig, wait_seconds in (
+            (signal.SIGINT, grace),
+            (signal.SIGTERM, grace / 2),
+            (signal.SIGKILL, grace / 4),
+        ):
+            if not self._group_alive(pgid):
+                break
+            try:
+                os.killpg(pgid, sig)
+            except ProcessLookupError:
+                break
+            deadline = time.monotonic() + max(0.05, wait_seconds)
+            while time.monotonic() < deadline:
+                if not self._group_alive(pgid):
+                    break
+                if process is not None:
+                    process.poll()
+                time.sleep(0.05)
+        if process is not None:
+            try:
+                process.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                pass
+
+    @staticmethod
+    def _group_alive(pgid: int) -> bool:
+        try:
+            os.killpg(pgid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True

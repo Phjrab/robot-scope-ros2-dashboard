@@ -8,7 +8,48 @@ from __future__ import annotations
 
 import math
 import numbers
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional, Sequence
+
+
+# Unitree documents the first twelve LowState motors in FR, FL, RR, RL order,
+# with hip, thigh, and calf motors within each leg.  This is also the order
+# stored in the official Go2 web-model asset.  Keeping it here makes the ROS
+# bridge contract explicit and independent of browser implementation details.
+GO2_JOINT_ORDER = (
+    "FR_hip_joint",
+    "FR_thigh_joint",
+    "FR_calf_joint",
+    "FL_hip_joint",
+    "FL_thigh_joint",
+    "FL_calf_joint",
+    "RR_hip_joint",
+    "RR_thigh_joint",
+    "RR_calf_joint",
+    "RL_hip_joint",
+    "RL_thigh_joint",
+    "RL_calf_joint",
+)
+
+# Limits come from unitreerobotics/unitree_ros go2_description.  Clamping
+# corrupt/out-of-range telemetry to these limits prevents an invalid ROS
+# sample from exploding the web model while preserving every physically valid
+# Go2 joint position.
+GO2_JOINT_LIMITS = {
+    "FR_hip_joint": (-1.0472, 1.0472),
+    "FR_thigh_joint": (-1.5708, 3.4907),
+    "FR_calf_joint": (-2.7227, -0.83776),
+    "FL_hip_joint": (-1.0472, 1.0472),
+    "FL_thigh_joint": (-1.5708, 3.4907),
+    "FL_calf_joint": (-2.7227, -0.83776),
+    "RR_hip_joint": (-1.0472, 1.0472),
+    "RR_thigh_joint": (-0.5236, 4.5379),
+    "RR_calf_joint": (-2.7227, -0.83776),
+    "RL_hip_joint": (-1.0472, 1.0472),
+    "RL_thigh_joint": (-0.5236, 4.5379),
+    "RL_calf_joint": (-2.7227, -0.83776),
+}
+
+_GO2_JOINT_BY_CASEFOLD = {name.casefold(): name for name in GO2_JOINT_ORDER}
 
 
 def _number(value: Any, digits: int = 4) -> Any:
@@ -42,6 +83,148 @@ def _quat(value: Any) -> Dict[str, Any]:
         "y": _number(getattr(value, "y", 0.0)),
         "z": _number(getattr(value, "z", 0.0)),
         "w": _number(getattr(value, "w", 1.0)),
+    }
+
+
+def _bounded_go2_position(value: Any, joint_name: str) -> Optional[float]:
+    if isinstance(value, bool) or not isinstance(value, numbers.Real):
+        return None
+    result = float(value)
+    if not math.isfinite(result):
+        return None
+    lower, upper = GO2_JOINT_LIMITS[joint_name]
+    return round(max(lower, min(upper, result)), 6)
+
+
+def _canonical_go2_joint_name(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    # Accept a namespace prefix (for example ``go2/FR_hip_joint``) while
+    # requiring an exact canonical basename so unrelated joints cannot be
+    # accidentally assigned to the robot model.
+    basename = value.strip().rstrip("/").rsplit("/", 1)[-1]
+    return _GO2_JOINT_BY_CASEFOLD.get(basename.casefold())
+
+
+def extract_go2_joint_positions(message: Any, type_name: str) -> Optional[List[float]]:
+    """Extract exactly twelve safe Go2 joint positions in model order.
+
+    ``LowState`` uses Unitree's fixed motor order. ``JointState`` is reordered
+    by joint name, so arbitrary message order is safe.  Missing, non-finite, or
+    incomplete telemetry rejects the whole sample instead of partially moving
+    the browser model.
+    """
+
+    if type_name.casefold().endswith("/lowstate"):
+        motors = list(getattr(message, "motor_state", []))[: len(GO2_JOINT_ORDER)]
+        if len(motors) != len(GO2_JOINT_ORDER):
+            return None
+        positions = [
+            _bounded_go2_position(getattr(motor, "q", None), joint_name)
+            for motor, joint_name in zip(motors, GO2_JOINT_ORDER)
+        ]
+        return None if any(value is None for value in positions) else positions  # type: ignore[return-value]
+
+    if type_name != "sensor_msgs/msg/JointState":
+        return None
+    names = list(getattr(message, "name", []))
+    values = list(getattr(message, "position", []))
+    if len(names) != len(values):
+        return None
+    named_positions: Dict[str, float] = {}
+    for raw_name, raw_value in zip(names[:64], values[:64]):
+        joint_name = _canonical_go2_joint_name(raw_name)
+        if not joint_name or joint_name in named_positions:
+            continue
+        bounded = _bounded_go2_position(raw_value, joint_name)
+        if bounded is None:
+            return None
+        named_positions[joint_name] = bounded
+    if any(name not in named_positions for name in GO2_JOINT_ORDER):
+        return None
+    return [named_positions[name] for name in GO2_JOINT_ORDER]
+
+
+def extract_go2_imu_rpy(message: Any, type_name: str) -> Optional[List[float]]:
+    """Return the LowState body IMU roll/pitch/yaw in radians when valid."""
+
+    if not type_name.casefold().endswith("/lowstate"):
+        return None
+    try:
+        values = list(getattr(getattr(message, "imu_state", None), "rpy", []))
+    except TypeError:
+        return None
+    if len(values) != 3:
+        return None
+    result: List[float] = []
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, numbers.Real):
+            return None
+        number = float(value)
+        if not math.isfinite(number):
+            return None
+        result.append(round(number, 6))
+    return result
+
+
+def go2_joint_state_payload(
+    *,
+    topic: str,
+    type_name: str,
+    positions: Optional[Sequence[float]],
+    updated_at: float,
+    now: float,
+    stale_after_s: float,
+    seq: int = 0,
+    stamp_ns: int = 0,
+    source_order: str = "",
+    imu_rpy_rad: Optional[Sequence[float]] = None,
+) -> Dict[str, Any]:
+    """Build the bounded, freshness-aware ``/api/v1/state`` joint contract."""
+
+    age = max(0.0, now - updated_at) if updated_at > 0.0 else None
+    valid = positions is not None and len(positions) == len(GO2_JOINT_ORDER)
+    if not topic or not valid or age is None:
+        state = "waiting"
+    elif age > stale_after_s:
+        state = "stale"
+    else:
+        state = "ok"
+
+    safe_positions: Optional[List[float]] = None
+    safe_imu_rpy: Optional[List[float]] = None
+    if state == "ok":
+        candidate = [
+            _bounded_go2_position(value, joint_name)
+            for value, joint_name in zip(positions or (), GO2_JOINT_ORDER)
+        ]
+        if len(candidate) == len(GO2_JOINT_ORDER) and all(value is not None for value in candidate):
+            safe_positions = candidate  # type: ignore[assignment]
+        else:
+            state = "waiting"
+        if imu_rpy_rad is not None and len(imu_rpy_rad) == 3:
+            candidate_rpy = []
+            for value in imu_rpy_rad:
+                if isinstance(value, bool) or not isinstance(value, numbers.Real) or not math.isfinite(float(value)):
+                    candidate_rpy = []
+                    break
+                candidate_rpy.append(round(float(value), 6))
+            if len(candidate_rpy) == 3:
+                safe_imu_rpy = candidate_rpy
+
+    return {
+        "state": state,
+        "topic": topic,
+        "type": type_name,
+        "seq": int(seq),
+        "age_s": round(age, 3) if age is not None else None,
+        "stamp_ns": int(stamp_ns),
+        "order": list(GO2_JOINT_ORDER),
+        # A stale or incomplete sample must never continue driving the model.
+        "position_rad": safe_positions,
+        "imu_rpy_rad": safe_imu_rpy if state == "ok" else None,
+        "source_order": source_order,
+        "limit_policy": "clamped_to_go2_urdf",
     }
 
 
@@ -101,18 +284,20 @@ def summarize_message(message: Any, type_name: str) -> Dict[str, Any]:
         imu = getattr(message, "imu_state", None)
         bms = getattr(message, "bms_state", None)
         motors = list(getattr(message, "motor_state", []))
+        joint_positions = extract_go2_joint_positions(message, type_name)
         return {
             "battery_soc": int(getattr(bms, "soc", 0)) if bms else None,
             "battery_current_ma": int(getattr(bms, "current", 0)) if bms else None,
             "power_v": _number(getattr(message, "power_v", 0.0)),
             "power_a": _number(getattr(message, "power_a", 0.0)),
-            "imu_rpy": _vector(getattr(imu, "rpy", []), 3) if imu else [],
+            "imu_rpy": extract_go2_imu_rpy(message, type_name),
             "gyro": _vector(getattr(imu, "gyroscope", []), 3) if imu else [],
             "accel": _vector(getattr(imu, "accelerometer", []), 3) if imu else [],
             "imu_temperature_c": int(getattr(imu, "temperature", 0)) if imu else None,
             "foot_force": _vector(getattr(message, "foot_force", []), 4),
             "motor_temperature_c": [int(getattr(m, "temperature", 0)) for m in motors[:12]],
-            "motor_position_rad": [_number(getattr(m, "q", 0.0), 3) for m in motors[:12]],
+            "motor_position_rad": joint_positions,
+            "motor_joint_order": list(GO2_JOINT_ORDER),
             "error_code": int(getattr(message, "error_code", 0)),
         }
 

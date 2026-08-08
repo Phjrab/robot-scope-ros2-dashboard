@@ -68,6 +68,17 @@ const ui = {
   liveOdomStatus: $('#liveOdomStatus'),
   liveMapTopic: $('#liveMapTopic'),
   liveMapStatus: $('#liveMapStatus'),
+  mappingControlState: $('#mappingControlState'),
+  mappingSessionName: $('#mappingSessionName'),
+  mappingCreate2d: $('#mappingCreate2d'),
+  mappingStartButton: $('#mappingStartButton'),
+  mappingSaveButton: $('#mappingSaveButton'),
+  mappingStopButton: $('#mappingStopButton'),
+  mappingPipelineLabel: $('#mappingPipelineLabel'),
+  mappingDataLabel: $('#mappingDataLabel'),
+  mappingSaveLabel: $('#mappingSaveLabel'),
+  mappingOperationMessage: $('#mappingOperationMessage'),
+  mappingLog: $('#mappingLog'),
   sensorGrid: $('#sensorGrid'),
   sensorCount: $('#sensorCount'),
   odomTopic: $('#odomTopic'),
@@ -83,6 +94,7 @@ let latestState = null;
 let latestTopics = [];
 let sourceFingerprint = '';
 let cameraSocket = null;
+let jointSocket = null;
 let cameraMeta = null;
 let videoDecoder = null;
 let cameraHasKey = false;
@@ -112,6 +124,15 @@ let sceneCloudSourceKey = '';
 let savedSceneCloudDataKey = '';
 let savedSceneCloudSourceKey = '';
 let liveSceneHadCloud = false;
+let officialModelsReady = false;
+let officialModelsFailed = false;
+let jointLive = false;
+let lastJointAt = 0;
+let latestBodyRpy = [0, 0, 0];
+let mappingControlSnapshot = null;
+let mappingLogCursor = 0;
+let mappingLogLines = [];
+let handledMappingOperation = '';
 
 const scene3d = window.RobotScene3D && ui.sceneCanvas
   ? new window.RobotScene3D(ui.sceneCanvas, {
@@ -154,16 +175,29 @@ async function prepareOfficialRobotModels() {
   try {
     if (renderers.length !== 2) throw new Error('official model renderer unavailable');
     await Promise.all(renderers.map((scene) => scene.loadOfficialRobotModel()));
-    [ui.liveModelState, ui.savedModelState].forEach((element) => {
-      element.textContent = 'OFFICIAL GO2 URDF';
-      element.classList.add('ready');
-    });
+    officialModelsReady = true;
+    ui.savedModelState.textContent = 'OFFICIAL GO2 URDF';
+    ui.savedModelState.classList.add('ready');
+    updateLiveModelBadge();
   } catch (error) {
     console.warn('Official Go2 model fallback:', error);
+    officialModelsFailed = true;
     [ui.liveModelState, ui.savedModelState].forEach((element) => {
       element.textContent = 'GO2 FALLBACK MODEL';
       element.classList.add('fallback');
     });
+  }
+}
+
+function updateLiveModelBadge() {
+  if (officialModelsFailed) return;
+  ui.liveModelState.classList.toggle('ready', officialModelsReady);
+  if (!officialModelsReady) {
+    ui.liveModelState.textContent = 'GO2 MODEL · LOADING';
+  } else if (jointLive) {
+    ui.liveModelState.textContent = 'OFFICIAL GO2 · JOINTS LIVE';
+  } else {
+    ui.liveModelState.textContent = 'OFFICIAL GO2 · JOINTS WAITING';
   }
 }
 
@@ -316,6 +350,7 @@ function buildDemoPointcloud() {
 
 function updateOverview(state) {
   updateHealth(state.health);
+  applyJointSnapshot(state.robot_joints);
   const camera = state.camera || {};
   const cloud = state.cloud || {};
   const grid = state.map || {};
@@ -484,7 +519,15 @@ function updateMapPose(position, orientation, frameId) {
   const z = Number(position?.z);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return;
   const yaw = quaternionYaw(orientation);
-  const nextPose = { x, y, z: Number.isFinite(z) ? z : 0, yaw, frameId: frameId || '' };
+  const nextPose = {
+    x,
+    y,
+    z: Number.isFinite(z) ? z : 0,
+    roll: Number(latestBodyRpy[0]) || 0,
+    pitch: Number(latestBodyRpy[1]) || 0,
+    yaw,
+    frameId: frameId || '',
+  };
   const previous = poseTrail[poseTrail.length - 1];
   const distance = previous ? Math.hypot(nextPose.x - previous.x, nextPose.y - previous.y) : Infinity;
   const turn = previous ? Math.abs(angleDelta(nextPose.yaw, previous.yaw)) : Infinity;
@@ -577,11 +620,166 @@ async function refreshState() {
   }
 }
 
+function generatedMapName() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, '0');
+  return `map_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+function hasFreshLaserMap() {
+  return latestTopics.some((topic) => topic.name === '/Laser_map' && topic.state === 'ok');
+}
+
+function mappingPipelineActive() {
+  return ['starting', 'running', 'stopping'].includes(mappingControlSnapshot?.pipeline?.state);
+}
+
+function renderMappingControl() {
+  if (!mappingControlSnapshot) return;
+  const pipeline = mappingControlSnapshot.pipeline || {};
+  const operation = mappingControlSnapshot.operation || {};
+  const laserMapReady = hasFreshLaserMap();
+  const lidarLive = latestState?.mapping?.cloud?.state === 'ok';
+  const pipelineActive = mappingPipelineActive();
+  const saving = operation.state === 'saving';
+  const external = laserMapReady && !pipelineActive;
+
+  ui.mappingPipelineLabel.textContent = external ? 'EXTERNAL · LIVE' : String(pipeline.state || 'idle').toUpperCase();
+  ui.mappingDataLabel.textContent = laserMapReady ? 'LASER_MAP READY' : lidarLive ? 'LIDAR LIVE · MAP WAITING' : 'WAITING';
+  ui.mappingSaveLabel.textContent = operation.state === 'succeeded'
+    ? (operation.files || []).join(' · ')
+    : operation.state === 'failed' ? 'FAILED' : operation.map_name || '—';
+
+  if (saving) {
+    setStatePill(ui.mappingControlState, 'waiting', 'SAVING');
+    ui.mappingOperationMessage.textContent = `${operation.map_name || 'map'} 저장 및 검증을 진행하고 있습니다.`;
+  } else if (pipeline.state === 'failed' && !external) {
+    setStatePill(ui.mappingControlState, 'error', 'START FAILED');
+    ui.mappingOperationMessage.textContent = pipeline.error || '매핑 파이프라인이 종료되었습니다. 로그를 확인하세요.';
+  } else if (operation.state === 'failed') {
+    setStatePill(ui.mappingControlState, 'error', 'SAVE FAILED');
+    ui.mappingOperationMessage.textContent = operation.error || '지도 저장 또는 검증에 실패했습니다.';
+  } else if (laserMapReady) {
+    setStatePill(ui.mappingControlState, 'ok', external ? 'EXTERNAL MAPPING' : 'MAPPING READY');
+    ui.mappingOperationMessage.textContent = external
+      ? '터미널에서 시작된 매핑을 감지했습니다. 현재 맵 저장은 가능하며 중지는 시작한 터미널에서 해야 합니다.'
+      : '누적 /Laser_map이 정상입니다. 지금 3D PCD와 선택한 2D 지도를 저장할 수 있습니다.';
+  } else if (pipelineActive) {
+    setStatePill(ui.mappingControlState, 'waiting', 'DATA WAITING');
+    ui.mappingOperationMessage.textContent = '프로세스는 시작됐지만 /Laser_map 데이터가 아직 없습니다. 케이블과 XT16 입력을 확인하세요.';
+  } else if (operation.state === 'succeeded') {
+    setStatePill(ui.mappingControlState, 'ok', 'SAVED');
+    ui.mappingOperationMessage.textContent = `${operation.map_name} 저장과 결과 검증이 완료되었습니다.`;
+  } else {
+    setStatePill(ui.mappingControlState, 'waiting', 'IDLE');
+    ui.mappingOperationMessage.textContent = '로봇과 XT16 연결 후 새 매핑을 시작할 수 있습니다.';
+  }
+
+  ui.mappingStartButton.textContent = external ? '외부 세션 동작 중' : pipelineActive ? '새 세션 재시작' : '새 맵 시작';
+  ui.mappingStartButton.disabled = saving || external || pipeline.state === 'stopping';
+  ui.mappingSaveButton.disabled = saving || !laserMapReady;
+  ui.mappingStopButton.disabled = saving || !pipelineActive || pipeline.state === 'stopping';
+  ui.mappingSessionName.disabled = saving;
+  ui.mappingCreate2d.disabled = saving;
+
+  ui.mappingLog.textContent = mappingLogLines.length
+    ? mappingLogLines.join('\n')
+    : '[Robot Scope] mapping console ready';
+  ui.mappingLog.scrollTop = ui.mappingLog.scrollHeight;
+
+  if (operation.job_id && ['succeeded', 'failed'].includes(operation.state)) {
+    const key = `${operation.job_id}:${operation.state}`;
+    if (handledMappingOperation !== key) {
+      handledMappingOperation = key;
+      if (operation.state === 'succeeded') {
+        showToast(`${operation.map_name} 지도를 저장했습니다.`);
+        ui.mappingSessionName.value = generatedMapName();
+        savedMapDataCache.clear();
+        refreshSavedMaps();
+      } else {
+        showToast(`지도 저장 실패: ${operation.error || '로그를 확인하세요.'}`, true);
+      }
+    }
+  }
+}
+
+async function refreshMappingControl() {
+  try {
+    const payload = await api(`/api/v1/mapping/control?since_log_seq=${mappingLogCursor}`);
+    if (payload.logs_truncated) mappingLogLines = [];
+    for (const entry of payload.logs || []) {
+      const time = entry.at ? new Date(entry.at).toLocaleTimeString('ko-KR', { hour12: false }) : '--:--:--';
+      mappingLogLines.push(`[${time}] ${String(entry.message || '')}`);
+    }
+    mappingLogLines = mappingLogLines.slice(-80);
+    mappingLogCursor = Number(payload.log_cursor || mappingLogCursor);
+    mappingControlSnapshot = payload;
+    renderMappingControl();
+  } catch (error) {
+    ui.mappingStartButton.disabled = ui.mappingSaveButton.disabled = ui.mappingStopButton.disabled = true;
+    setStatePill(ui.mappingControlState, 'error', 'UNAVAILABLE');
+    ui.mappingOperationMessage.textContent = `매핑 제어를 사용할 수 없습니다: ${error.message}`;
+  }
+}
+
+async function startMappingSession() {
+  const active = mappingPipelineActive();
+  const warning = active
+    ? '저장하지 않은 현재 누적 지도를 지우고 새 FAST-LIO 세션을 시작할까요?'
+    : '새 맵 시작은 기존 Hesai·FAST-LIO 프로세스를 정리하고 누적 지도를 처음부터 만듭니다. 계속할까요?';
+  if (!window.confirm(warning)) return;
+  ui.mappingStartButton.disabled = true;
+  try {
+    if (active) await api('/api/v1/mapping/stop', { method: 'POST', body: '{}' });
+    await api('/api/v1/mapping/start', { method: 'POST', body: '{}' });
+    showToast(active ? '새 매핑 세션을 시작했습니다.' : 'Hesai + FAST-LIO 시작을 요청했습니다.');
+  } catch (error) {
+    showToast(`매핑 시작 실패: ${error.message}`, true);
+  } finally {
+    await refreshMappingControl();
+  }
+}
+
+async function saveMappingSession() {
+  const name = ui.mappingSessionName.value.trim() || generatedMapName();
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name)) {
+    showToast('지도 이름은 영문, 숫자, 밑줄, 하이픈만 사용할 수 있습니다.', true);
+    return;
+  }
+  ui.mappingSessionName.value = name;
+  ui.mappingSaveButton.disabled = true;
+  try {
+    await api('/api/v1/mapping/save', {
+      method: 'POST',
+      body: JSON.stringify({ name, create_2d: ui.mappingCreate2d.checked }),
+    });
+    showToast('지도 캡처와 저장을 시작했습니다.');
+  } catch (error) {
+    showToast(`지도 저장 시작 실패: ${error.message}`, true);
+  } finally {
+    setTimeout(refreshMappingControl, 120);
+  }
+}
+
+async function stopMappingSession() {
+  if (hasFreshLaserMap() && !window.confirm('저장하지 않은 누적 지도는 사라집니다. 매핑을 중지할까요?')) return;
+  ui.mappingStopButton.disabled = true;
+  try {
+    await api('/api/v1/mapping/stop', { method: 'POST', body: '{}' });
+    showToast('대시보드가 시작한 매핑 프로세스를 중지했습니다.');
+  } catch (error) {
+    showToast(`매핑 중지 실패: ${error.message}`, true);
+  } finally {
+    await refreshMappingControl();
+  }
+}
+
 async function refreshTopics() {
   try {
     latestTopics = (await api('/api/v1/topics')).topics || [];
     renderTopics();
     if (latestState) updateOverview(latestState);
+    renderMappingControl();
   } catch (error) { console.warn(error); }
 }
 
@@ -1078,6 +1276,51 @@ function renderRawImage(data, metadata) {
   ui.cameraEmpty.style.display = 'none';
 }
 
+function markJointsStale(force = false) {
+  if (!force && Date.now() - lastJointAt <= 1200) return;
+  if (jointLive) scene3d?.resetRobotJointPositions?.();
+  jointLive = false;
+  latestBodyRpy = [0, 0, 0];
+  if (currentPose) {
+    currentPose = { ...currentPose, roll: 0, pitch: 0 };
+    scene3d?.setRobotPose(currentPose);
+  }
+  updateLiveModelBadge();
+}
+
+function applyJointSnapshot(snapshot) {
+  const positions = snapshot?.position_rad;
+  const validPositions = snapshot?.state === 'ok' && Array.isArray(positions) && positions.length === 12 && positions.every(Number.isFinite);
+  if (!validPositions) {
+    if (snapshot?.state === 'stale') markJointsStale(true);
+    return;
+  }
+  lastJointAt = Date.now();
+  jointLive = true;
+  scene3d?.setRobotJointPositions?.(positions);
+  const rpy = snapshot?.imu_rpy_rad;
+  if (Array.isArray(rpy) && rpy.length === 3 && rpy.every(Number.isFinite)) {
+    latestBodyRpy = rpy.slice(0, 3);
+    if (currentPose) {
+      currentPose = { ...currentPose, roll: rpy[0], pitch: rpy[1] };
+      scene3d?.setRobotPose(currentPose);
+    }
+  }
+  updateLiveModelBadge();
+}
+
+function connectJoints() {
+  if (jointSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(jointSocket.readyState)) return;
+  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  jointSocket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/joints`);
+  jointSocket.onmessage = (event) => {
+    try { applyJointSnapshot(JSON.parse(event.data)); }
+    catch (error) { console.warn('joint stream:', error); }
+  };
+  jointSocket.onclose = () => setTimeout(connectJoints, 1400);
+  jointSocket.onerror = () => jointSocket.close();
+}
+
 function connectCamera() {
   if (cameraSocket) cameraSocket.close();
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1129,7 +1372,10 @@ function startClock() {
 
 $('#connectButton').addEventListener('click', setRobotIp);
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources()]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl()]); showToast('대시보드를 갱신했습니다.'); });
+ui.mappingStartButton.addEventListener('click', startMappingSession);
+ui.mappingSaveButton.addEventListener('click', saveMappingSession);
+ui.mappingStopButton.addEventListener('click', stopMappingSession);
 ui.cameraSource.addEventListener('change', () => selectSource('camera', ui.cameraSource.value));
 ui.cloudSource.addEventListener('change', () => {
   if (ui.cloudSource.value) chooseMapView('cloud');
@@ -1166,17 +1412,22 @@ window.addEventListener('resize', () => {
 
 startClock();
 activatePage(pageFromHash(), true);
+ui.mappingSessionName.value = generatedMapName();
 prepareOfficialRobotModels();
 connectCamera();
+connectJoints();
 loadOfflinePointcloud().then(refreshSavedMaps);
 refreshState();
 refreshTopics();
 refreshSources();
 refreshPointcloud();
 refreshMap();
+refreshMappingControl();
 setInterval(refreshState, 1000);
 setInterval(refreshPointcloud, 1000);
 setInterval(refreshMap, 2000);
 setInterval(refreshTopics, 3500);
 setInterval(refreshSources, 5000);
 setInterval(refreshSavedMaps, 15000);
+setInterval(refreshMappingControl, 1000);
+setInterval(markJointsStale, 250);

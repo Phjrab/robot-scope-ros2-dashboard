@@ -81,6 +81,8 @@
       x,
       y,
       z: finite(position?.z),
+      roll: finite(root.roll ?? value.roll),
+      pitch: finite(root.pitch ?? value.pitch),
       yaw: Number.isFinite(explicitYaw) ? explicitYaw : quaternionYaw(orientation),
       frameId: String(root.frameId || root.frame_id || value.frameId || value.frame_id || ''),
     };
@@ -766,6 +768,8 @@
         x: center[0],
         y: center[1],
         z: this.options.groundZ,
+        roll: pose?.roll || 0,
+        pitch: pose?.pitch || 0,
         yaw: pose?.yaw || 0,
         frameId: pose?.frameId || '',
         preview: !pose,

@@ -2,7 +2,7 @@
   "name": "Unitree Go2",
   "robot_ip": "192.168.123.161",
   "disabled_sources": ["camera"],
-  "observed_topics": ["/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
+  "observed_topics": ["/lowstate", "/joint_states", "/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
   "cloud_radius_limit_m": 150,
   "saved_maps": {
     "directories": [
