@@ -6,9 +6,9 @@ dependency-free Canvas renderer; no CDN or WebGL library is required.
 
 ## Provenance
 
-- Upstream project: [unitreerobotics/go2_urdf](https://github.com/unitreerobotics/go2_urdf)
+- Upstream project: [unitreerobotics/unitree_ros](https://github.com/unitreerobotics/unitree_ros)
 - Upstream commit: `f3772ce54c56ef2d34c6aee8100bc768896c7d19`
-- ROS package: `go2_description`
+- Package path: `robots/go2_description`
 - Source files: `urdf/go2_description.urdf` and the seven files under `dae/`
 - License: BSD-3-Clause; see [LICENSE.txt](LICENSE.txt)
 - Local source location used for this build:

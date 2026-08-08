@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 
 
 COLLADA_NS = {"c": "http://www.collada.org/2005/11/COLLADASchema"}
-SOURCE_REPOSITORY = "https://github.com/unitreerobotics/go2_urdf"
+SOURCE_REPOSITORY = "https://github.com/unitreerobotics/unitree_ros"
 SOURCE_COMMIT = "f3772ce54c56ef2d34c6aee8100bc768896c7d19"
 QUANTIZATION_METERS = 0.00001
 
@@ -421,7 +421,7 @@ def build(source: Path, output: Path, targets: dict[str, int]) -> dict[str, obje
         "units": "meter",
         "up_axis": "Z",
         "source": {
-            "project": "Unitree Robotics go2_urdf",
+            "project": "Unitree Robotics unitree_ros / go2_description",
             "repository": SOURCE_REPOSITORY,
             "commit": SOURCE_COMMIT,
             "package": "go2_description",

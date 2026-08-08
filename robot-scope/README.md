@@ -39,7 +39,7 @@ Robot Scope agent (각 로봇의 Jetson)
 - Unitree Go2: LowState, SportModeState, LidarState, Go2FrontVideoData
 - Go2 H.264 전면 영상의 GStreamer→JPEG 변환과 브라우저 WebCodecs 대체 경로
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
-- Unitree 공식 `go2_urdf`에서 변환한 경량 Go2 3D 모델과 최근 이동 궤적 표시
+- Unitree 공식 `unitree_ros/robots/go2_description`에서 변환한 경량 Go2 3D 모델과 최근 이동 궤적 표시
 - Overview / Live Mapping / Saved Maps / Sensors / ROS Graph 메뉴 분리
 - 실시간 LiDAR와 저장된 PCD·map_server 2D 지도를 서로 독립적으로 표시
 - Hesai `/lidar_points` publisher를 `XT16 ONLINE`으로 표시
@@ -227,7 +227,7 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 ## 라이선스
 
 Robot Scope 자체 코드는 [MIT License](LICENSE)로 배포합니다. 포함된 Go2 경량
-모델은 Unitree Robotics의 `go2_urdf` 커밋
+모델은 Unitree Robotics의 `unitree_ros` 내 `robots/go2_description` 커밋
 `f3772ce54c56ef2d34c6aee8100bc768896c7d19`에서 변환했으며 BSD 3-Clause 원문과
 변환 내역은 `robot_dashboard/static/assets/go2/`에 보존합니다.
 

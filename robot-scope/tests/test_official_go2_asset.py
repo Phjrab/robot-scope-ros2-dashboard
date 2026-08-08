@@ -17,6 +17,10 @@ class OfficialGo2AssetTests(unittest.TestCase):
         self.assertEqual(self.asset["schema"], "robot-scope.go2-official-lite")
         self.assertEqual(self.asset["source"]["license"], "BSD-3-Clause")
         self.assertEqual(
+            self.asset["source"]["repository"],
+            "https://github.com/unitreerobotics/unitree_ros",
+        )
+        self.assertEqual(
             self.asset["source"]["commit"],
             "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
         )

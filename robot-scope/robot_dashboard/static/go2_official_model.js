@@ -15,7 +15,8 @@
  *   scene.configureOfficialRobot({ enabled, poseOrigin, adaptiveScale, scale });
  *   scene.getOfficialRobotModelStatus();
  *
- * The geometry is derived from Unitree Robotics go2_urdf (BSD-3-Clause).
+ * The geometry is derived from Unitree Robotics unitree_ros/go2_description
+ * (BSD-3-Clause).
  * Attribution: /static/assets/go2/LICENSE.txt and README.md
  */
 (function installGo2OfficialModel(global) {
