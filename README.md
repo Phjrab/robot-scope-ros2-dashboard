@@ -83,6 +83,14 @@ python3 ~/ws/go2_3d/save_map.py
 
 자세한 원인과 검증 명령은 [troubleshooting.md](docs/troubleshooting.md)를 참고하세요.
 
+## Robot Scope 웹 대시보드
+
+이번 실습에서 만든 범용 ROS 2 관측 대시보드는
+[`robot-scope/`](robot-scope/)에 있습니다. Jetson에서 에이전트를 실행하면
+브라우저에서 센서·카메라·odometry·2D 지도와 RViz형 3D LiDAR/Go2 장면을
+확인할 수 있습니다. 로봇 전원이 꺼진 환경에서는 저장된 로컬 PCD 또는 공개용
+데모 점군으로 3D UI를 계속 테스트할 수 있습니다.
+
 ## 안전
 
 - 제자리 급회전과 빠른 주행은 맵을 왜곡할 수 있습니다. 큰 원을 그리듯 천천히 움직입니다.

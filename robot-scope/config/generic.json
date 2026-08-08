@@ -1,0 +1,27 @@
+{
+  "name": "Generic ROS 2",
+  "robot_ip": "",
+  "preferred_topics": {
+    "camera": [
+      "/camera/color/image_raw",
+      "/camera/image_raw",
+      "/image_raw",
+      "/camera/color/image_raw/compressed"
+    ],
+    "pointcloud": [
+      "/Laser_map",
+      "/cloud_map",
+      "/map_cloud",
+      "/rtabmap/cloud_map",
+      "/lio_sam/mapping/cloud_global",
+      "/lio_sam/mapping/cloud_registered",
+      "/camera/depth/color/points",
+      "/lidar_points",
+      "/velodyne_points",
+      "/points",
+      "/cloud"
+    ],
+    "odometry": ["/odom", "/odometry"],
+    "occupancy_grid": ["/map"]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Unitree Go2",
+  "robot_ip": "192.168.123.161",
+  "disabled_sources": ["camera"],
+  "observed_topics": ["/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
+  "cloud_radius_limit_m": 150,
+  "preferred_topics": {
+    "camera": ["/frontvideostream"],
+    "pointcloud": ["/velodyne_points", "/Laser_map", "/cloud_registered", "/lidar_points", "/utlidar/cloud", "/utlidar/cloud_deskewed", "/uslam/cloud_map", "/utlidar/grid_map"],
+    "odometry": ["/Odometry", "/uslam/frontend/odom", "/utlidar/robot_odom", "/lio_sam_ros2/mapping/odometry"],
+    "occupancy_grid": ["/map"]
+  }
+}
