@@ -36,6 +36,7 @@ const ui = {
   sceneResetButton: $('#sceneResetButton'),
   sceneTopButton: $('#sceneTopButton'),
   sceneFrontButton: $('#sceneFrontButton'),
+  sceneFollowButton: $('#sceneFollowButton'),
   mapViewMode: $('#mapViewMode'),
   mapOverlayToggle: $('#mapOverlayToggle'),
   mappingState: $('#mappingState'),
@@ -95,6 +96,7 @@ let latestTopics = [];
 let sourceFingerprint = '';
 let cameraSocket = null;
 let jointSocket = null;
+let poseSocket = null;
 let cameraMeta = null;
 let videoDecoder = null;
 let cameraHasKey = false;
@@ -104,8 +106,15 @@ let cloudSeq = -1;
 let mapSeq = -1;
 let toastTimer = null;
 let currentPose = null;
+let targetPose = null;
+let poseLive = false;
+let lastPoseAt = 0;
+let lastMotionFrameAt = 0;
+let poseImuAnchor = null;
+let lastPoseSignature = '';
 let poseTrail = [];
 let lastCloudSnapshot = null;
+let liveCloudAccumulator = null;
 let offlineCloudSnapshot = null;
 let lastMapSnapshot = null;
 let savedOccupancySnapshot = null;
@@ -128,7 +137,9 @@ let officialModelsReady = false;
 let officialModelsFailed = false;
 let jointLive = false;
 let lastJointAt = 0;
-let latestBodyRpy = [0, 0, 0];
+let latestBodyRpy = null;
+let targetJointPositions = null;
+let renderedJointPositions = null;
 let mappingControlSnapshot = null;
 let mappingLogCursor = 0;
 let mappingLogLines = [];
@@ -148,6 +159,7 @@ if (scene3d) {
     reset: ui.sceneResetButton,
     top: ui.sceneTopButton,
     front: ui.sceneFrontButton,
+    follow: ui.sceneFollowButton,
   });
   scene3d.setStatus({ online: false, lidarOnline: false, snapshot: false, message: '실시간 LiDAR 신호를 기다리고 있습니다' });
 }
@@ -175,6 +187,7 @@ async function prepareOfficialRobotModels() {
   try {
     if (renderers.length !== 2) throw new Error('official model renderer unavailable');
     await Promise.all(renderers.map((scene) => scene.loadOfficialRobotModel()));
+    scene3d.configureOfficialRobot?.({ poseOrigin: 'base', adaptiveScale: false, scale: 1 });
     officialModelsReady = true;
     ui.savedModelState.textContent = 'OFFICIAL GO2 URDF';
     ui.savedModelState.classList.add('ready');
@@ -303,8 +316,7 @@ function updateHealth(health) {
 function isLiveCloudReady() {
   const cloudState = latestState?.mapping?.cloud?.state;
   const mappingState = latestState?.mapping?.state;
-  return Boolean(latestState?.health?.robot_online) &&
-    (cloudState === 'ok' || mappingState === 'mapping' || mappingState === 'cloud_only');
+  return cloudState === 'ok' || mappingState === 'mapping' || mappingState === 'cloud_only';
 }
 
 function liveSceneCloud(candidate = lastCloudSnapshot) {
@@ -317,6 +329,50 @@ function savedSceneCloud() {
 
 function cloudPointCount(cloud) {
   return Number(cloud?.sent_points || (cloud?.points?.length ? Math.floor(cloud.points.length / 3) : 0));
+}
+
+function resetLiveCloudAccumulator() {
+  liveCloudAccumulator = null;
+}
+
+function accumulateRegisteredCloud(cloud) {
+  if (cloud?.topic !== '/cloud_registered' || !cloud?.points?.length) {
+    resetLiveCloudAccumulator();
+    return cloud;
+  }
+  const key = `${cloud.topic}:${cloud.frame_id || ''}`;
+  if (liveCloudAccumulator?.key === key && liveCloudAccumulator.lastSeq === cloud.seq) {
+    return liveCloudAccumulator.payload;
+  }
+  const previous = liveCloudAccumulator?.key === key ? liveCloudAccumulator.payload?.points || [] : [];
+  const combined = previous.concat(Array.from(cloud.points));
+  const available = Math.floor(combined.length / 3);
+  const limit = 30000;
+  let points = combined;
+  if (available > limit) {
+    points = new Array(limit * 3);
+    const stride = available / limit;
+    for (let index = 0; index < limit; index += 1) {
+      const source = Math.min(available - 1, Math.floor(index * stride)) * 3;
+      points[index * 3] = combined[source];
+      points[index * 3 + 1] = combined[source + 1];
+      points[index * 3 + 2] = combined[source + 2];
+    }
+  }
+  const oldBounds = liveCloudAccumulator?.key === key ? liveCloudAccumulator.payload?.bounds : null;
+  const bounds = oldBounds?.min && cloud.bounds?.min ? {
+    min: oldBounds.min.map((value, index) => Math.min(Number(value), Number(cloud.bounds.min[index]))),
+    max: oldBounds.max.map((value, index) => Math.max(Number(value), Number(cloud.bounds.max[index]))),
+  } : cloud.bounds;
+  const payload = {
+    ...cloud,
+    points,
+    bounds,
+    sent_points: Math.floor(points.length / 3),
+    accumulated_registered_scans: true,
+  };
+  liveCloudAccumulator = { key, lastSeq: cloud.seq, payload };
+  return payload;
 }
 
 function buildDemoPointcloud() {
@@ -374,11 +430,14 @@ function updateOverview(state) {
   const cloudTopic = latestTopics.find((topic) => topic.name === cloudSource);
   const odomTopic = latestTopics.find((topic) => topic.name === odomSource);
   const gridTopic = latestTopics.find((topic) => topic.name === gridSource);
+  const cloudFrame = cloud.frame_id || liveCloud?.frame_id || '';
+  const poseFrame = state.robot_pose?.frame_id || '';
+  const frameMismatch = Boolean(cloudFrame && poseFrame && cloudFrame !== poseFrame);
 
   ui.lidarMetric.textContent = liveCloud ? formatHz(cloudMetric.hz ?? cloudTopic?.hz) : 'OFFLINE';
   ui.lidarSub.textContent = `${hesaiOnline ? 'XT16 ONLINE · ' : ''}${cloudSource || 'No live cloud topic'}`;
   ui.liveCloudTopic.textContent = cloudSource || 'NO SOURCE';
-  ui.liveCloudStatus.textContent = liveCloud ? `live · ${formatHz(cloudMetric.hz ?? cloudTopic?.hz)}` : (cloudTopic?.state || 'waiting');
+  ui.liveCloudStatus.textContent = liveCloud ? `live · ${formatHz(cloudMetric.hz ?? cloudTopic?.hz)} · ${cloudFrame || 'no frame'}` : (cloudTopic?.state || 'waiting');
   ui.liveOdomTopic.textContent = odomSource || 'NO SOURCE';
   ui.liveOdomStatus.textContent = odomTopic?.state === 'ok' ? `live · ${formatHz(odomTopic.hz)}` : (odomTopic?.state || 'waiting');
   ui.liveMapTopic.textContent = gridSource || 'NO SOURCE';
@@ -390,9 +449,11 @@ function updateOverview(state) {
     setStatePill(ui.mappingState, gridTopic?.state || 'waiting', gridTopic?.state === 'ok' && state.health?.robot_online ? 'LIVE 2D MAP' : 'LIVE DATA WAITING');
   } else {
     ui.mapFrame.textContent = `FRAME ${cloud.frame_id || liveCloud?.frame_id || '—'}`;
-    ui.mapPoints.textContent = `${Number(cloud.sent_points || cloudPointCount(liveCloud)).toLocaleString()} POINTS`;
-    const mappingLabels = { mapping: 'MAPPING LIVE', cloud_only: 'CLOUD LIVE', waiting: 'LIVE DATA WAITING', stale: 'LIVE DATA STALE' };
-    setStatePill(ui.mappingState, liveCloud ? (mapping.state || 'cloud_only') : 'waiting', liveCloud ? (mappingLabels[mapping.state] || 'CLOUD LIVE') : 'LIVE DATA WAITING');
+    const displayPoints = liveCloud?.accumulated_registered_scans ? cloudPointCount(liveCloud) : Number(cloud.sent_points || cloudPointCount(liveCloud));
+    ui.mapPoints.textContent = `${displayPoints.toLocaleString()} POINTS${liveCloud?.accumulated_registered_scans ? ' · ACCUMULATED' : ''}`;
+    const mappingLabels = { mapping: 'WORLD FRAME · LIVE', cloud_only: 'CLOUD LIVE', waiting: 'LIVE DATA WAITING', stale: 'LIVE DATA STALE' };
+    const label = frameMismatch ? 'SENSOR FRAME · EXTRINSIC' : (mappingLabels[mapping.state] || 'CLOUD LIVE');
+    setStatePill(ui.mappingState, liveCloud ? (frameMismatch ? 'waiting' : (mapping.state || 'cloud_only')) : 'waiting', liveCloud ? label : 'LIVE DATA WAITING');
   }
   ui.lidarSub.title = ui.lidarSub.textContent;
 
@@ -495,48 +556,77 @@ function updateSensors(sensors) {
 }
 
 function updateOdometry(sensors, source) {
+  const snapshot = latestState?.robot_pose;
   const odom = sensors.find((sensor) => sensor.topic === source) || sensors.find((sensor) => sensor.category === 'odometry');
-  ui.odomTopic.textContent = source || odom?.topic || 'NO SOURCE';
-  if (latestState?.health?.robot_online === false) {
-    ui.posX.textContent = ui.posY.textContent = ui.posZ.textContent = ui.speed.textContent = '—';
-    currentPose = null;
-    poseTrail = [];
+  ui.odomTopic.textContent = snapshot?.topic || source || odom?.topic || 'NO SOURCE';
+  if (snapshot) {
+    applyPoseSnapshot(snapshot);
     return;
   }
-  const position = odom?.values?.position || {};
-  const velocity = odom?.values?.linear_velocity || {};
-  ui.posX.textContent = safeNumber(position.x);
-  ui.posY.textContent = safeNumber(position.y);
-  ui.posZ.textContent = safeNumber(position.z);
-  const speed = Math.hypot(Number(velocity.x || 0), Number(velocity.y || 0), Number(velocity.z || 0));
-  ui.speed.textContent = odom ? safeNumber(speed) : '—';
-  updateMapPose(position, odom?.values?.orientation, odom?.values?.frame_id);
+  updateMapPose(
+    odom?.values?.position,
+    odom?.values?.orientation,
+    odom?.values?.frame_id,
+    odom?.values?.linear_velocity,
+    odom?.topic || source || '',
+  );
 }
 
-function updateMapPose(position, orientation, frameId) {
+function applyPoseSnapshot(snapshot) {
+  ui.odomTopic.textContent = snapshot?.topic || latestState?.sources?.odometry || 'NO SOURCE';
+  const signature = `${snapshot?.topic || ''}:${snapshot?.seq || 0}:${snapshot?.state || 'waiting'}`;
+  if (signature === lastPoseSignature) return;
+  lastPoseSignature = signature;
+  if (snapshot?.state !== 'ok') {
+    clearLivePose();
+    return;
+  }
+  updateMapPose(
+    snapshot.position,
+    snapshot.orientation,
+    snapshot.frame_id,
+    snapshot.linear_velocity,
+    snapshot.topic,
+  );
+}
+
+function updateMapPose(position, orientation, frameId, velocity = null, topic = '') {
   const x = Number(position?.x);
   const y = Number(position?.y);
   const z = Number(position?.z);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-  const yaw = quaternionYaw(orientation);
+  const rpy = quaternionRpy(orientation);
   const nextPose = {
     x,
     y,
     z: Number.isFinite(z) ? z : 0,
-    roll: Number(latestBodyRpy[0]) || 0,
-    pitch: Number(latestBodyRpy[1]) || 0,
-    yaw,
+    roll: rpy[0],
+    pitch: rpy[1],
+    yaw: rpy[2],
     frameId: frameId || '',
+    topic,
   };
   const previous = poseTrail[poseTrail.length - 1];
   const distance = previous ? Math.hypot(nextPose.x - previous.x, nextPose.y - previous.y) : Infinity;
   const turn = previous ? Math.abs(angleDelta(nextPose.yaw, previous.yaw)) : Infinity;
   if (!previous || distance > 0.025 || turn > 0.035) {
     poseTrail.push(nextPose);
-    poseTrail = poseTrail.slice(-36);
+    poseTrail = poseTrail.slice(-120);
   }
-  currentPose = nextPose;
-  if (activePage === 'mapping') redrawActiveMap();
+  if (!targetPose || targetPose.frameId !== nextPose.frameId || Math.hypot(targetPose.x - x, targetPose.y - y) > 5) {
+    currentPose = { ...nextPose };
+  }
+  targetPose = nextPose;
+  poseLive = true;
+  lastPoseAt = Date.now();
+  poseImuAnchor = Array.isArray(latestBodyRpy)
+    ? { imuYaw: latestBodyRpy[2], odomYaw: nextPose.yaw }
+    : null;
+  const speed = Math.hypot(Number(velocity?.x || 0), Number(velocity?.y || 0), Number(velocity?.z || 0));
+  ui.posX.textContent = safeNumber(x);
+  ui.posY.textContent = safeNumber(y);
+  ui.posZ.textContent = safeNumber(nextPose.z);
+  ui.speed.textContent = safeNumber(speed);
 }
 
 function quaternionYaw(quaternion) {
@@ -546,6 +636,65 @@ function quaternionYaw(quaternion) {
   const w = Number(quaternion?.w);
   const normalizedW = Number.isFinite(w) ? w : 1;
   return Math.atan2(2 * (normalizedW * z + x * y), 1 - 2 * (y * y + z * z));
+}
+
+function quaternionRpy(quaternion) {
+  const x = Number(quaternion?.x) || 0;
+  const y = Number(quaternion?.y) || 0;
+  const z = Number(quaternion?.z) || 0;
+  const w = Number.isFinite(Number(quaternion?.w)) ? Number(quaternion.w) : 1;
+  const roll = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y));
+  const sinPitch = Math.max(-1, Math.min(1, 2 * (w * y - z * x)));
+  return [roll, Math.asin(sinPitch), quaternionYaw({ x, y, z, w })];
+}
+
+function clearLivePose() {
+  poseLive = false;
+  targetPose = null;
+  currentPose = null;
+  poseImuAnchor = null;
+  ui.posX.textContent = ui.posY.textContent = ui.posZ.textContent = ui.speed.textContent = '—';
+  if (activePage === 'mapping') scene3d?.setRobotPose(null);
+}
+
+function animateRobot(timestamp) {
+  requestAnimationFrame(animateRobot);
+  if (!lastMotionFrameAt) lastMotionFrameAt = timestamp;
+  const elapsed = Math.min(Math.max((timestamp - lastMotionFrameAt) / 1000, 0), 0.2);
+  if (elapsed < 1 / 30) return;
+  lastMotionFrameAt = timestamp;
+
+  if (targetJointPositions) {
+    if (!renderedJointPositions || renderedJointPositions.length !== targetJointPositions.length) {
+      renderedJointPositions = targetJointPositions.slice();
+    } else {
+      const alpha = 1 - Math.exp(-elapsed / 0.055);
+      renderedJointPositions = renderedJointPositions.map((value, index) =>
+        value + (targetJointPositions[index] - value) * alpha);
+    }
+  }
+
+  if (targetPose) {
+    if (!currentPose || currentPose.frameId !== targetPose.frameId) {
+      currentPose = { ...targetPose };
+    } else {
+      const alpha = 1 - Math.exp(-elapsed / 0.09);
+      currentPose = {
+        ...targetPose,
+        x: currentPose.x + (targetPose.x - currentPose.x) * alpha,
+        y: currentPose.y + (targetPose.y - currentPose.y) * alpha,
+        z: currentPose.z + (targetPose.z - currentPose.z) * alpha,
+        roll: currentPose.roll + angleDelta(targetPose.roll, currentPose.roll) * alpha,
+        pitch: currentPose.pitch + angleDelta(targetPose.pitch, currentPose.pitch) * alpha,
+        yaw: currentPose.yaw + angleDelta(targetPose.yaw, currentPose.yaw) * alpha,
+      };
+    }
+  }
+
+  if (activePage === 'mapping' && desiredMapView() === 'cloud') {
+    if (renderedJointPositions) scene3d?.setRobotJointPositions?.(renderedJointPositions);
+    scene3d?.setRobotPose(poseLive ? currentPose : null);
+  }
 }
 
 function angleDelta(a, b) {
@@ -627,7 +776,18 @@ function generatedMapName() {
 }
 
 function hasFreshLaserMap() {
-  return latestTopics.some((topic) => topic.name === '/Laser_map' && topic.state === 'ok');
+  const topic = latestTopics.find((item) => item.name === '/Laser_map');
+  if (topic?.state === 'ok') return true;
+  // The live renderer deliberately subscribes to the much smaller
+  // /cloud_registered stream.  /Laser_map is therefore not metered by the
+  // dashboard, even though FAST-LIO is publishing it.  A live registered scan,
+  // matching FAST-LIO odometry, and a Laser_map publisher together are a safe
+  // readiness signal; the saver still waits for and validates an actual map.
+  return Number(topic?.publishers || 0) > 0 &&
+    latestState?.sources?.pointcloud === '/cloud_registered' &&
+    latestState?.sources?.odometry === '/Odometry' &&
+    latestState?.mapping?.cloud?.state === 'ok' &&
+    latestState?.mapping?.odometry?.state === 'ok';
 }
 
 function mappingPipelineActive() {
@@ -732,6 +892,13 @@ async function startMappingSession() {
   try {
     if (active) await api('/api/v1/mapping/stop', { method: 'POST', body: '{}' });
     await api('/api/v1/mapping/start', { method: 'POST', body: '{}' });
+    resetLiveCloudAccumulator();
+    lastCloudSnapshot = null;
+    cloudSeq = -1;
+    poseTrail = [];
+    sceneCloudDataKey = '';
+    sceneCloudSourceKey = '';
+    scene3d?.clearTrail();
     showToast(active ? '새 매핑 세션을 시작했습니다.' : 'Hesai + FAST-LIO 시작을 요청했습니다.');
   } catch (error) {
     showToast(`매핑 시작 실패: ${error.message}`, true);
@@ -802,8 +969,8 @@ async function refreshPointcloud() {
       return;
     }
     cloudSeq = cloud.seq;
-    lastCloudSnapshot = cloud;
-    if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(cloud);
+    lastCloudSnapshot = accumulateRegisteredCloud(cloud);
+    if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
   } catch (_) {
     if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(null);
   }
@@ -941,12 +1108,12 @@ function drawPointcloud(cloud) {
     sceneCloudSourceKey = sourceKey;
   }
   liveSceneHadCloud = true;
-  scene3d.setRobotPose(latestState?.health?.robot_online ? currentPose : null);
+  scene3d.setRobotPose(poseLive ? currentPose : null);
   scene3d.setTrail(poseTrail);
   scene3d.setRobotVisible(mapOverlayVisible);
   scene3d.setTrailVisible(mapOverlayVisible);
   scene3d.setStatus({
-    online: Boolean(latestState?.health?.robot_online),
+    online: poseLive || jointLive || Boolean(latestState?.health?.robot_online),
     lidarOnline: isLiveCloudReady(),
     snapshot: false,
     message: '실시간 LiDAR 포인트클라우드',
@@ -1280,11 +1447,10 @@ function markJointsStale(force = false) {
   if (!force && Date.now() - lastJointAt <= 1200) return;
   if (jointLive) scene3d?.resetRobotJointPositions?.();
   jointLive = false;
-  latestBodyRpy = [0, 0, 0];
-  if (currentPose) {
-    currentPose = { ...currentPose, roll: 0, pitch: 0 };
-    scene3d?.setRobotPose(currentPose);
-  }
+  latestBodyRpy = null;
+  targetJointPositions = null;
+  renderedJointPositions = null;
+  poseImuAnchor = null;
   updateLiveModelBadge();
 }
 
@@ -1297,13 +1463,20 @@ function applyJointSnapshot(snapshot) {
   }
   lastJointAt = Date.now();
   jointLive = true;
-  scene3d?.setRobotJointPositions?.(positions);
+  targetJointPositions = positions.slice();
+  if (!renderedJointPositions) renderedJointPositions = positions.slice();
   const rpy = snapshot?.imu_rpy_rad;
   if (Array.isArray(rpy) && rpy.length === 3 && rpy.every(Number.isFinite)) {
     latestBodyRpy = rpy.slice(0, 3);
-    if (currentPose) {
-      currentPose = { ...currentPose, roll: rpy[0], pitch: rpy[1] };
-      scene3d?.setRobotPose(currentPose);
+    // FAST-LIO starts camera_init yaw at zero and does not consume Unitree's
+    // absolute IMU quaternion.  Only use the high-rate IMU yaw *delta* from
+    // the latest Odometry anchor; the mapped roll/pitch/yaw basis remains the
+    // full FAST-LIO quaternion.
+    if (targetPose && poseImuAnchor) {
+      targetPose = {
+        ...targetPose,
+        yaw: poseImuAnchor.odomYaw + angleDelta(rpy[2], poseImuAnchor.imuYaw),
+      };
     }
   }
   updateLiveModelBadge();
@@ -1319,6 +1492,18 @@ function connectJoints() {
   };
   jointSocket.onclose = () => setTimeout(connectJoints, 1400);
   jointSocket.onerror = () => jointSocket.close();
+}
+
+function connectPose() {
+  if (poseSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(poseSocket.readyState)) return;
+  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  poseSocket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/pose`);
+  poseSocket.onmessage = (event) => {
+    try { applyPoseSnapshot(JSON.parse(event.data)); }
+    catch (error) { console.warn('pose stream:', error); }
+  };
+  poseSocket.onclose = () => setTimeout(connectPose, 1200);
+  poseSocket.onerror = () => poseSocket.close();
 }
 
 function connectCamera() {
@@ -1379,6 +1564,8 @@ ui.mappingStopButton.addEventListener('click', stopMappingSession);
 ui.cameraSource.addEventListener('change', () => selectSource('camera', ui.cameraSource.value));
 ui.cloudSource.addEventListener('change', () => {
   if (ui.cloudSource.value) chooseMapView('cloud');
+  resetLiveCloudAccumulator();
+  lastCloudSnapshot = null;
   cloudSeq = -1;
   selectSource('pointcloud', ui.cloudSource.value);
 });
@@ -1416,6 +1603,8 @@ ui.mappingSessionName.value = generatedMapName();
 prepareOfficialRobotModels();
 connectCamera();
 connectJoints();
+connectPose();
+requestAnimationFrame(animateRobot);
 loadOfflinePointcloud().then(refreshSavedMaps);
 refreshState();
 refreshTopics();
@@ -1424,7 +1613,7 @@ refreshPointcloud();
 refreshMap();
 refreshMappingControl();
 setInterval(refreshState, 1000);
-setInterval(refreshPointcloud, 1000);
+setInterval(refreshPointcloud, 400);
 setInterval(refreshMap, 2000);
 setInterval(refreshTopics, 3500);
 setInterval(refreshSources, 5000);

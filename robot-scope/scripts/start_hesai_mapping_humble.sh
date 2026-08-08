@@ -11,6 +11,18 @@ mkdir -p "$LOG_DIR"
 source /opt/ros/humble/setup.bash
 source "$HOME/setup_go2_ros2_humble.sh"
 
+has_live_match() {
+  local pattern="$1"
+  local pid
+  while read -r pid; do
+    [[ -z "$pid" ]] && continue
+    if [[ "$(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null || true)" != "Z" ]]; then
+      return 0
+    fi
+  done < <(pgrep -u "$(id -u)" -f -- "$pattern" || true)
+  return 1
+}
+
 stop_existing() {
   local pattern="$1"
   local label="$2"
@@ -25,7 +37,7 @@ stop_existing() {
   while (( SECONDS < deadline )); do
     local alive=0
     for pid in "${pids[@]}"; do
-      if kill -0 "$pid" 2>/dev/null; then alive=1; fi
+      if kill -0 "$pid" 2>/dev/null && [[ "$(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null || true)" != "Z" ]]; then alive=1; fi
     done
     [[ "$alive" -eq 0 ]] && return
     sleep 0.25
@@ -33,8 +45,26 @@ stop_existing() {
   kill -TERM "${pids[@]}" 2>/dev/null || true
   sleep 1
   for pid in "${pids[@]}"; do
-    if kill -0 "$pid" 2>/dev/null; then
-      echo "[Robot Scope] previous $label process did not stop (pid $pid)" >&2
+    local state="$(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null || true)"
+    if ! kill -0 "$pid" 2>/dev/null || [[ "$state" == "Z" ]]; then continue; fi
+    # "새 맵 시작" explicitly resets the fixed mapping stack.  Revalidate the
+    # exact same-user process and command pattern before the final escalation,
+    # so a reused PID or unrelated process can never be killed.
+    local owner="$(stat -c '%u' "/proc/$pid" 2>/dev/null || true)"
+    local command="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+    if [[ "$owner" == "$(id -u)" && "$command" =~ $pattern ]]; then
+      echo "[Robot Scope] force stopping verified previous $label process (pid $pid)"
+      kill -KILL "$pid" 2>/dev/null || true
+    else
+      echo "[Robot Scope] refused to force stop unverified pid $pid" >&2
+      exit 1
+    fi
+  done
+  sleep 0.5
+  for pid in "${pids[@]}"; do
+    local state="$(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null || true)"
+    if kill -0 "$pid" 2>/dev/null && [[ "$state" != "Z" ]]; then
+      echo "[Robot Scope] previous $label process did not stop (pid $pid, state $state)" >&2
       exit 1
     fi
   done
@@ -45,7 +75,7 @@ start_once() {
   local label="$2"
   local log_file="$3"
   local command="$4"
-  if pgrep -f "$pattern" >/dev/null; then
+  if has_live_match "$pattern"; then
     echo "[Robot Scope] $label already running"
     return
   fi

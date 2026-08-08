@@ -249,6 +249,7 @@
 
   function drawOfficialRobot(scene, runtime) {
     const pose = scene._effectiveRobotPose();
+    if (!pose) return;
     const asset = runtime.asset;
     const config = scene._go2OfficialConfig;
     const approximateWidth = finite(asset.model?.approximate_size_m?.[0], 0.8);

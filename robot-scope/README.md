@@ -19,6 +19,7 @@ Robot Scope agent (각 로봇의 Jetson)
   ├─ H.264/JPEG/raw 카메라 게이트웨이
   ├─ PointCloud2 다운샘플링
   ├─ Go2 관절 상태 WebSocket
+  ├─ 선택된 Odometry 고주기 pose WebSocket
   └─ 허용된 FAST-LIO 시작·PCD/2D 지도 저장
           │ HTTP + WebSocket
           ▼
@@ -41,7 +42,8 @@ Robot Scope agent (각 로봇의 Jetson)
 - Go2 H.264 전면 영상의 GStreamer→JPEG 변환과 브라우저 WebCodecs 대체 경로
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
 - Unitree 공식 `unitree_ros/robots/go2_description`에서 변환한 경량 Go2 3D 모델과 최근 이동 궤적 표시
-- `/joint_states` 우선, `/lowstate` 대체 경로를 이용한 12축 다리 관절 및 몸통 RPY 실시간 반영
+- `/joint_states` 우선, `/lowstate` 대체 경로를 이용한 12축 다리 관절 실시간 반영
+- Odometry quaternion 전체 자세와 IMU yaw delta를 이용한 30 FPS 최단각 보간
 - Overview / Live Mapping / Saved Maps / Sensors / ROS Graph 메뉴 분리
 - 실시간 LiDAR와 저장된 PCD·map_server 2D 지도를 서로 독립적으로 표시
 - 대시보드에서 Hesai+FAST-LIO 새 세션 시작, 3D PCD 저장, 선택적 2D PGM+YAML 변환
@@ -93,8 +95,8 @@ sudo apt install gstreamer1.0-tools gstreamer1.0-plugins-good \
 | 역할 | 기본 선택 |
 |---|---|
 | 카메라 | 자동 구독 끔; 필요 시 `/frontvideostream` 선택 |
-| 3D 점군 | `/velodyne_points` (XT16 브리지 출력) |
-| 누적 3D 지도 | 필요 시 `/Laser_map` 선택 |
+| 실시간 3D 매핑 | FAST-LIO 실행 시 `/cloud_registered`; 브라우저에서 최대 30,000점 누적 |
+| Go2 내장 LiDAR 대체 | `/utlidar/cloud_deskewed` (`odom` frame) |
 | 위치 추정 | `/Odometry` |
 | 2D 맵 | `/map` |
 
@@ -112,15 +114,18 @@ cd ~/robot-scope
 |---|---|---|
 | Hesai XT16 원본 | `/lidar_points` | 약 10 Hz, 64,000 points/frame |
 | FAST-LIO 입력 | `/velodyne_points`, `/imu/body` | 약 8–10 Hz / 60 Hz 이상 |
-| 누적 3D 지도 | `/Laser_map` | 약 1 Hz |
+| 누적 3D 지도/저장 원본 | `/Laser_map` | scan 주기에 맞춰 발행되며 계속 커짐 |
 | 지도 기준 자세 | `/Odometry` | 약 10 Hz, frame `camera_init` |
 | 저장된 2D 지도 | `/map` | 971×677, 0.05 m/cell |
 
-화면에서 `LiDAR / 3D 맵`을 `/lidar_points`로 선택하면 XT16 원본 스캔을,
-`/Laser_map`으로 선택하면 누적 지도를 볼 수 있습니다. `Live Mapping`의 `VIEW`는
+FAST-LIO가 켜지면 화면은 같은 `camera_init` 좌표계인 `/cloud_registered`와
+`/Odometry`로 자동 전환합니다. 등록된 스캔은 브라우저에서 제한된 크기로 누적하고,
+실제 저장은 전체 `/Laser_map`을 사용합니다. `Live Mapping`의 `VIEW`는
 `LIVE 3D`, `LIVE 2D`, `AUTO` 중에서 고릅니다. 3D 장면은 드래그로 회전,
 Shift/오른쪽 드래그로 이동, 휠로 확대하며 `ISO`, `TOP`, `FRONT` 버튼으로
-시점을 즉시 바꿀 수 있습니다. `ROBOT`을 끄면 로봇 모델과 궤적을 숨깁니다.
+시점을 즉시 바꿀 수 있습니다. `WORLD`가 기본 지도 고정 시점이며, 누르면 카메라
+방향을 고정한 채 위치만 따라가는 `FOLLOW`로 바뀝니다. `ROBOT`을 끄면 로봇
+모델과 궤적을 숨깁니다.
 
 ### 대시보드에서 새 지도 만들기
 
@@ -130,7 +135,8 @@ Shift/오른쪽 드래그로 이동, 휠로 확대하며 `ISO`, `TOP`, `FRONT` �
 4. `현재 맵 저장`을 누릅니다. PCD와 선택한 PGM·YAML 검증이 끝나면 `Saved Maps`가 자동 갱신됩니다.
 
 새 세션은 같은 사용자로 실행 중인 기존 Hesai driver, XT16 bridge, FAST-LIO만
-`SIGINT`와 `SIGTERM` 순으로 정리한 뒤 시작합니다. 지도 저장은 비공개 임시 폴더에서
+`SIGINT`와 `SIGTERM` 순으로 정리합니다. 그래도 남은 정확한 동일 사용자·명령행
+프로세스만 다시 검증한 뒤 최후 수단으로 `SIGKILL`합니다. 지도 저장은 비공개 임시 폴더에서
 완료되며 PCD 헤더·point 수, YAML 이미지 참조, PGM magic과 파일 크기를 검증한
 결과만 `~/ws/go2_3d/maps`에 공개합니다. 2D 변환은 기존 정적 `/map`과 충돌하지
 않는 작업별 토픽을 사용하며 최대 1,600만 cell로 제한합니다.
@@ -147,13 +153,12 @@ python3 scripts/pcd_to_scene.py /path/to/map.pcd \
   robot_dashboard/static/data/go2_saved_map.json --max-points 10000
 ```
 
-좌표계가 같은 `/Laser_map`(`camera_init`)과 `/Odometry`는 로봇을 지도 절대
-좌표에 표시합니다. 저장된 `/map`의 `map` frame과 현재 odometry frame 사이에
-TF가 없으면 잘못된 좌표를 쓰지 않고 `FRAME RELATIVE`로 중앙에 표시합니다.
+좌표계가 같은 `/cloud_registered`(`camera_init`)와 `/Odometry`는 로봇을 지도 절대
+좌표에 표시합니다. 원시 `hesai_lidar` 화면에서는 설정된 `body <- hesai_lidar`
+장착 오프셋을 적용합니다. 그 밖의 서로 다른 frame에 유효한 변환이 없으면 잘못된
+좌표를 임의로 중앙에 놓지 않고 로봇 오버레이를 숨깁니다.
 
-현재 Go2 기본 선택인 `/velodyne_points`는 XT16 브리지가 재발행한 안정적인 순간
-점군입니다. 누적된 SLAM 지도를 보려면 SLAM 노드를 먼저 실행한 뒤 `/Laser_map`
-또는 `/map`을 선택해야 합니다. 점군과 odometry가 모두 살아 있을 때 표시되는
+점군과 odometry가 모두 살아 있을 때 표시되는
 `MAPPING` 배지는 두 입력의 수신 상태를 뜻하며, SLAM 품질을 판정한다는 뜻은
 아닙니다.
 
@@ -172,7 +177,11 @@ Go2 프로필은 지도 처리 성능을 보호하기 위해 카메라를 자동
   CPU·메모리가 급증했습니다. Go2 프로필에서는 카메라 자동 구독을 끄고 지도와
   센서를 우선합니다.
 - `/Laser_map`은 계속 커지는 누적 지도입니다. 에이전트는 전체 배열을 복사하지
-  않고 원본 버퍼에서 먼저 샘플링해 브라우저 전송을 10,000점 이하로 제한합니다.
+  않고 실시간 표시는 더 작은 `/cloud_registered`를 샘플링합니다. 브라우저는
+  등록 스캔을 최대 30,000점까지 누적하고 장면 렌더링은 10,000점으로 제한합니다.
+- 원시 `/velodyne_points`(`hesai_lidar`)와 `/Odometry`(`camera_init`)를 직접
+  겹치면 로봇과 점군 위치가 어긋납니다. 자동 소스 선택은 publisher가 사라진
+  stale 선택을 버리고 `/cloud_registered + /Odometry` world-frame pair로 승격합니다.
 - 로봇 전원을 끄는 순간 FAST-LIO 점군에 비정상적으로 큰 좌표가 섞일 수 있습니다.
   에이전트와 3D 렌더러가 각각 중앙값 기준 공간 이상치를 제거하므로 장면 전체가
   한 점처럼 축소되는 현상을 막습니다.
@@ -228,12 +237,14 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 - `GET /api/v1/pointcloud`: 다운샘플된 최신 점군
 - `GET /api/v1/map`: 최신 OccupancyGrid
 - `GET /api/v1/joints`: 정규화된 Go2 12축 관절과 몸통 RPY
+- `GET /api/v1/pose`: 선택된 Odometry의 freshness-aware pose
 - `GET /api/v1/mapping/control`: 매핑 프로세스·저장 작업·제한된 로그
 - `POST /api/v1/mapping/start|stop|save`: 허용된 매핑 작업
 - `GET /api/v1/saved-maps`: 허용된 디렉터리의 저장 지도 목록
 - `GET /api/v1/saved-maps/{id}/data`: 선택한 PCD 또는 2D 지도의 렌더링 데이터
 - `WS /api/v1/ws/camera`: 카메라 바이너리 스트림
 - `WS /api/v1/ws/joints`: 최대 50 Hz 관절 상태 스트림
+- `WS /api/v1/ws/pose`: 최대 50 Hz compact pose 스트림
 - `/docs`: FastAPI OpenAPI 문서
 
 ## 운영 원칙과 다음 단계

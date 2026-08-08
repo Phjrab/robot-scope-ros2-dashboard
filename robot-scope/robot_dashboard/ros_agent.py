@@ -27,10 +27,12 @@ from .camera_decoder import H264JpegDecoder
 from .pointcloud import extract_xyz, reject_spatial_outliers
 from .serializers import (
     classify_type,
+    extract_odometry_pose,
     extract_go2_imu_rpy,
     extract_go2_joint_positions,
     go2_joint_state_payload,
     is_observable_type,
+    odometry_pose_payload,
     summarize_message,
 )
 
@@ -115,6 +117,23 @@ class RosAgent:
             "position_rad": None,
             "imu_rpy_rad": None,
             "source_order": "",
+            "stamp_ns": 0,
+            "updated": 0.0,
+        }
+
+        self._pose_stale_after = max(
+            0.25,
+            min(float(self.profile.get("odometry_stale_after_s", 1.5)), 10.0),
+        )
+        self._pose_position_limit = max(
+            1.0,
+            min(float(self.profile.get("pose_position_limit_m", 10_000.0)), 1_000_000.0),
+        )
+        self._pose: Dict[str, Any] = {
+            "seq": 0,
+            "topic": "",
+            "type": "",
+            "pose": None,
             "stamp_ns": 0,
             "updated": 0.0,
         }
@@ -267,26 +286,60 @@ class RosAgent:
         disabled = set(self.profile.get("disabled_sources", [])) if self.profile else set()
         for category in self._sources:
             requested = self._requested_sources.get(category, "")
+            previous = self._sources.get(category, "")
             if category in disabled and not requested:
-                self._sources[category] = ""
-                continue
-            if requested and requested in self._graph:
-                self._sources[category] = requested
-                continue
-            current = self._sources.get(category, "")
-            if current and current in self._graph:
-                continue
-            candidates = [
-                name
-                for name, item in self._graph.items()
-                if item.get("category") == category and item.get("publishers", 0) > 0
-            ]
-            ordered = list(preferences.get(category, []))
-            chosen = next((name for name in ordered if name in candidates), "")
-            if not chosen and candidates:
-                chosen = sorted(candidates)[0]
+                chosen = ""
+            else:
+                candidates = [
+                    name
+                    for name, item in self._graph.items()
+                    if item.get("category") == category and item.get("publishers", 0) > 0
+                ]
+                ordered = list(preferences.get(category, []))
+                # A user choice is sticky while it is live.  If its publisher
+                # disappears we temporarily fail over, then restore it when it
+                # returns.  Automatic choices are never copied into the manual
+                # override, so a newly available world-frame mapping topic can
+                # supersede a raw LiDAR topic on the next graph refresh.
+                chosen = requested if requested in candidates else ""
+                if not chosen:
+                    chosen = next((name for name in ordered if name in candidates), "")
+                if not chosen and previous in candidates:
+                    chosen = previous
+                if not chosen and candidates:
+                    chosen = sorted(candidates)[0]
             self._sources[category] = chosen
-            self._requested_sources[category] = chosen
+            if chosen != previous:
+                if category == "odometry":
+                    self._reset_pose_locked(chosen)
+                elif category == "pointcloud":
+                    self._reset_cloud_locked(chosen)
+
+    def _reset_pose_locked(self, topic: str) -> None:
+        self._pose = {
+            "seq": int(self._pose.get("seq", 0)) + 1,
+            "topic": topic,
+            "type": str(self._graph.get(topic, {}).get("type", "")),
+            "pose": None,
+            "stamp_ns": 0,
+            "updated": 0.0,
+        }
+
+    def _reset_cloud_locked(self, topic: str) -> None:
+        self._cloud = {
+            "seq": int(self._cloud.get("seq", 0)) + 1,
+            "points": [],
+            "sent_points": 0,
+            "source_points": 0,
+            "frame_id": "",
+            "stamp_ns": 0,
+            "units": "m",
+            "bounds": None,
+            "topic": topic,
+            "robot_pose_in_frame": None,
+            "updated": 0.0,
+        }
+        self._last_cloud_processed = 0.0
 
     def _sync_special_subscriptions(self) -> None:
         for category in ("camera", "pointcloud", "occupancy_grid"):
@@ -462,7 +515,32 @@ class RosAgent:
     def _summary_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
         self._tick(topic, now)
+        if type_name == "nav_msgs/msg/Odometry":
+            self._update_pose(topic, type_name, message, now)
         self._store_summary(topic, type_name, message, now)
+
+    def _update_pose(self, topic: str, type_name: str, message: Any, now: float) -> None:
+        with self._lock:
+            if topic != self._sources.get("odometry", ""):
+                return
+        pose = extract_odometry_pose(
+            message,
+            type_name,
+            position_limit_m=self._pose_position_limit,
+        )
+        if pose is None:
+            return
+        with self._lock:
+            if topic != self._sources.get("odometry", ""):
+                return
+            self._pose = {
+                "seq": int(self._pose.get("seq", 0)) + 1,
+                "topic": topic,
+                "type": type_name,
+                "pose": pose,
+                "stamp_ns": self._stamp_ns(message),
+                "updated": now,
+            }
 
     def _store_summary(self, topic: str, type_name: str, message: Any, now: float) -> None:
         with self._lock:
@@ -678,6 +756,9 @@ class RosAgent:
                     "units": "m",
                     "bounds": {"min": mins, "max": maxs},
                     "topic": topic,
+                    "robot_pose_in_frame": self._robot_pose_in_cloud_frame(
+                        str(getattr(getattr(message, "header", None), "frame_id", ""))
+                    ),
                     "updated": now,
                 }
         except Exception as exc:
@@ -738,9 +819,40 @@ class RosAgent:
                     raise ValueError(f"unknown ROS topic: {candidate}")
                 if candidate and self._graph[candidate].get("category") != category:
                     raise ValueError(f"{candidate} is not a {category} topic")
+                previous = self._sources.get(category, "")
                 self._requested_sources[category] = candidate
                 self._sources[category] = candidate
+                if candidate != previous:
+                    if category == "odometry":
+                        self._reset_pose_locked(candidate)
+                    elif category == "pointcloud":
+                        self._reset_cloud_locked(candidate)
         return self.sources_snapshot()
+
+    def _robot_pose_in_cloud_frame(self, frame_id: str) -> Optional[Dict[str, Any]]:
+        configured = self.profile.get("robot_pose_in_cloud_frames", {}) if self.profile else {}
+        value = configured.get(frame_id) if isinstance(configured, dict) else None
+        if not isinstance(value, dict):
+            return None
+        try:
+            position = [float(item) for item in value.get("position", [])]
+            rpy = [float(item) for item in value.get("rpy", [])]
+        except (TypeError, ValueError):
+            return None
+        if len(position) != 3 or len(rpy) != 3 or not all(
+            math.isfinite(item) for item in position + rpy
+        ):
+            return None
+        return {
+            "x": position[0],
+            "y": position[1],
+            "z": position[2],
+            "roll": rpy[0],
+            "pitch": rpy[1],
+            "yaw": rpy[2],
+            "frame_id": frame_id,
+            "source": "configured_sensor_extrinsic",
+        }
 
     @staticmethod
     def _stamp_ns(message: Any) -> int:
@@ -867,6 +979,25 @@ class RosAgent:
         with self._lock:
             return self._joint_snapshot_locked(time.monotonic())
 
+    def _pose_snapshot_locked(self, now: float) -> Dict[str, Any]:
+        pose_data = dict(self._pose)
+        return odometry_pose_payload(
+            topic=str(pose_data.get("topic", "")),
+            type_name=str(pose_data.get("type", "")),
+            pose=pose_data.get("pose"),
+            updated_at=float(pose_data.get("updated", 0.0)),
+            now=now,
+            stale_after_s=self._pose_stale_after,
+            seq=int(pose_data.get("seq", 0)),
+            stamp_ns=int(pose_data.get("stamp_ns", 0)),
+        )
+
+    def pose_snapshot(self) -> Dict[str, Any]:
+        """Return the selected world pose without the large state payload."""
+
+        with self._lock:
+            return self._pose_snapshot_locked(time.monotonic())
+
     def state_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             sensors = []
@@ -879,6 +1010,7 @@ class RosAgent:
             cloud_meta = {key: value for key, value in self._cloud.items() if key != "points"}
             map_meta = {key: value for key, value in self._map.items() if key != "data_b64"}
             robot_joints = self._joint_snapshot_locked(time.monotonic())
+            robot_pose = self._pose_snapshot_locked(time.monotonic())
 
             mapping_topic = sources.get("pointcloud", "")
             mapping_metric = self._metric_snapshot(mapping_topic, "pointcloud") if mapping_topic else {"state": "waiting"}
@@ -901,6 +1033,7 @@ class RosAgent:
                 "cloud": cloud_meta,
                 "map": map_meta,
                 "robot_joints": robot_joints,
+                "robot_pose": robot_pose,
                 "mapping": {
                     "state": mapping_state,
                     "cloud": mapping_metric,

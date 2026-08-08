@@ -177,6 +177,7 @@
         medians: null,
         rejectedPoints: 0,
         usedAdvertisedBounds: false,
+        robotPoseInFrame: null,
       };
       this.robotPose = null;
       this.trail = [];
@@ -195,6 +196,7 @@
       this._basis = null;
       this._controlDisposers = [];
       this._controlElements = {};
+      this.cameraMode = 'world';
 
       canvas.style.touchAction = 'none';
       canvas.style.cursor = 'grab';
@@ -322,6 +324,7 @@
         medians,
         rejectedPoints,
         usedAdvertisedBounds,
+        robotPoseInFrame: normalizedPose(cloud?.robot_pose_in_frame || cloud?.robotPoseInFrame),
       };
 
       const shouldFit = options.fit === true ||
@@ -345,7 +348,7 @@
     clearPointCloud() {
       this.cloud = {
         points: new Float64Array(0), bounds: null, frameId: '', sourcePoints: 0, stamp: null,
-        medians: null, rejectedPoints: 0, usedAdvertisedBounds: false,
+        medians: null, rejectedPoints: 0, usedAdvertisedBounds: false, robotPoseInFrame: null,
       };
       this._hasFittedCloud = false;
       this.render();
@@ -353,8 +356,28 @@
 
     setRobotPose(value) {
       this.robotPose = normalizedPose(value);
+      if (this.cameraMode === 'follow' && this.robotPose) {
+        const alpha = 0.16;
+        this.camera.target[0] += (this.robotPose.x - this.camera.target[0]) * alpha;
+        this.camera.target[1] += (this.robotPose.y - this.camera.target[1]) * alpha;
+      }
       this.render();
       return Boolean(this.robotPose);
+    }
+
+    setCameraMode(value) {
+      this.cameraMode = value === 'follow' ? 'follow' : 'world';
+      const control = this._controlElements.follow;
+      if (control) {
+        control.textContent = this.cameraMode === 'follow' ? 'FOLLOW' : 'WORLD';
+        control.setAttribute('aria-pressed', this.cameraMode === 'follow' ? 'true' : 'false');
+      }
+      this.render();
+      return this.cameraMode;
+    }
+
+    toggleCameraMode() {
+      return this.setCameraMode(this.cameraMode === 'follow' ? 'world' : 'follow');
     }
 
     updatePose(value) {
@@ -488,6 +511,7 @@
         reset: () => this.resetView(),
         top: () => this.topView(),
         front: () => this.frontView(),
+        follow: () => this.toggleCameraMode(),
       };
       Object.entries(actions).forEach(([name, handler]) => {
         const element = resolveElement(controls[name]);
@@ -496,6 +520,7 @@
         this._controlElements[name] = element;
         this._controlDisposers.push(() => element.removeEventListener('click', handler));
       });
+      this.setCameraMode(this.cameraMode);
       return () => this.unbindControls();
     }
 
@@ -565,7 +590,8 @@
 
     _updateControlState(active) {
       Object.entries(this._controlElements).forEach(([name, element]) => {
-        element.setAttribute('aria-pressed', name === active ? 'true' : 'false');
+        const pressed = name === 'follow' ? this.cameraMode === 'follow' : name === active;
+        element.setAttribute('aria-pressed', pressed ? 'true' : 'false');
       });
     }
 
@@ -760,6 +786,24 @@
       const cloudFrame = this.cloud.frameId;
       const mismatch = Boolean(pose && cloudFrame && pose.frameId && cloudFrame !== pose.frameId);
       if (pose && !mismatch) return { ...pose, preview: false, frameMismatch: false };
+      if (pose && mismatch) {
+        const sensorPose = this.cloud.robotPoseInFrame;
+        if (!sensorPose) return null;
+        return {
+          ...sensorPose,
+          preview: false,
+          frameMismatch: true,
+          sensorRelative: true,
+        };
+      }
+      if (!pose && this.cloud.robotPoseInFrame) {
+        return {
+          ...this.cloud.robotPoseInFrame,
+          preview: true,
+          frameMismatch: true,
+          sensorRelative: true,
+        };
+      }
       const center = this.cloud.bounds ? [
         (this.cloud.bounds.min[0] + this.cloud.bounds.max[0]) / 2,
         (this.cloud.bounds.min[1] + this.cloud.bounds.max[1]) / 2,
@@ -773,7 +817,7 @@
         yaw: pose?.yaw || 0,
         frameId: pose?.frameId || '',
         preview: !pose,
-        frameMismatch: mismatch,
+        frameMismatch: false,
       };
     }
 
@@ -783,6 +827,7 @@
       const mismatch = Boolean(pose && this.cloud.frameId && pose.frameId && this.cloud.frameId !== pose.frameId);
       if (!mismatch) return this.trail;
       const anchor = this._effectiveRobotPose();
+      if (!anchor || anchor.sensorRelative) return [];
       return this.trail.map((point) => ({
         ...point,
         x: anchor.x + point.x - pose.x,
@@ -852,6 +897,7 @@
 
     _drawRobot() {
       const pose = this._effectiveRobotPose();
+      if (!pose) return;
       const worldPerPixel = 2 * this.camera.distance * Math.tan(this.options.fov / 2) / Math.max(this.height, 1);
       const scale = clamp(Math.max(1, worldPerPixel * 44 / 0.72), 1, 7);
       const ctx = this.ctx;
@@ -976,7 +1022,7 @@
 
     _drawRobotLabel(anchor, pose) {
       const ctx = this.ctx;
-      const primary = pose.frameMismatch ? 'FRAME RELATIVE' : pose.preview ? 'MODEL PREVIEW' : 'GO2 · LIVE POSE';
+      const primary = pose.sensorRelative ? 'GO2 · SENSOR EXTRINSIC' : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? 'MODEL PREVIEW' : 'GO2 · LIVE POSE';
       const secondary = this.robotPose
         ? `X ${this.robotPose.x.toFixed(2)}  Y ${this.robotPose.y.toFixed(2)}  YAW ${((this.robotPose.yaw / DEG + 360) % 360).toFixed(0)}°`
         : 'ODOMETRY WAITING';

@@ -5,9 +5,11 @@ from types import SimpleNamespace as NS
 from robot_dashboard.serializers import (
     GO2_JOINT_ORDER,
     classify_type,
+    extract_odometry_pose,
     extract_go2_imu_rpy,
     extract_go2_joint_positions,
     go2_joint_state_payload,
+    odometry_pose_payload,
     summarize_message,
 )
 
@@ -130,6 +132,47 @@ class SerializerTests(unittest.TestCase):
         )
         self.assertIsNone(
             extract_go2_imu_rpy(NS(imu_state=NS(rpy=[0.1, math.inf, 0.3])), "unitree_go/msg/LowState")
+        )
+
+    def test_odometry_pose_is_normalized_bounded_and_freshness_aware(self):
+        message = NS(
+            header=NS(frame_id="camera_init"),
+            child_frame_id="body",
+            pose=NS(pose=NS(
+                position=NS(x=1.25, y=-2.5, z=0.4),
+                orientation=NS(x=0.0, y=0.0, z=1.0, w=1.0),
+            )),
+            twist=NS(twist=NS(
+                linear=NS(x=0.2, y=0.0, z=0.0),
+                angular=NS(x=0.0, y=0.0, z=0.3),
+            )),
+        )
+        pose = extract_odometry_pose(message, "nav_msgs/msg/Odometry")
+        self.assertEqual(pose["frame_id"], "camera_init")
+        self.assertEqual(pose["child_frame_id"], "body")
+        self.assertAlmostEqual(
+            sum(value * value for value in pose["orientation"].values()),
+            1.0,
+            places=6,
+        )
+        fresh = odometry_pose_payload(
+            topic="/Odometry", type_name="nav_msgs/msg/Odometry", pose=pose,
+            updated_at=10.0, now=10.2, stale_after_s=1.0, seq=7,
+        )
+        self.assertEqual(fresh["state"], "ok")
+        self.assertEqual(fresh["position"]["x"], 1.25)
+        stale = odometry_pose_payload(
+            topic="/Odometry", type_name="nav_msgs/msg/Odometry", pose=pose,
+            updated_at=10.0, now=11.1, stale_after_s=1.0, seq=7,
+        )
+        self.assertEqual(stale["state"], "stale")
+        self.assertIsNone(stale["position"])
+
+        message.pose.pose.position.x = 1_000_001.0
+        self.assertIsNone(
+            extract_odometry_pose(
+                message, "nav_msgs/msg/Odometry", position_limit_m=10_000.0
+            )
         )
 
 

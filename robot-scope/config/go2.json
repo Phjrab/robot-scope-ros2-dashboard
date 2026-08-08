@@ -4,6 +4,14 @@
   "disabled_sources": ["camera"],
   "observed_topics": ["/lowstate", "/joint_states", "/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
   "cloud_radius_limit_m": 150,
+  "odometry_stale_after_s": 8.0,
+  "pose_position_limit_m": 10000,
+  "robot_pose_in_cloud_frames": {
+    "hesai_lidar": {
+      "position": [0.0, 0.25, 0.0],
+      "rpy": [0.0, 0.0, -1.5707963268]
+    }
+  },
   "saved_maps": {
     "directories": [
       "~/ws/go2_3d/maps",
@@ -17,7 +25,7 @@
   },
   "preferred_topics": {
     "camera": ["/frontvideostream"],
-    "pointcloud": ["/velodyne_points", "/Laser_map", "/cloud_registered", "/lidar_points", "/utlidar/cloud", "/utlidar/cloud_deskewed", "/uslam/cloud_map", "/utlidar/grid_map"],
+    "pointcloud": ["/cloud_registered", "/Laser_map", "/velodyne_points", "/lidar_points", "/utlidar/cloud_deskewed", "/uslam/cloud_map", "/utlidar/cloud", "/utlidar/cloud_base", "/utlidar/grid_map"],
     "odometry": ["/Odometry", "/uslam/frontend/odom", "/utlidar/robot_odom", "/lio_sam_ros2/mapping/odometry"],
     "occupancy_grid": ["/map"]
   }

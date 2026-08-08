@@ -182,6 +182,11 @@ async def robot_joints() -> Dict[str, Any]:
     return await asyncio.to_thread(agent().joint_snapshot)
 
 
+@app.get("/api/v1/pose")
+async def robot_pose() -> Dict[str, Any]:
+    return await asyncio.to_thread(agent().pose_snapshot)
+
+
 @app.get("/api/v1/mapping/control")
 async def mapping_control(since_log_seq: int = 0) -> Dict[str, Any]:
     return await asyncio.to_thread(mapping_jobs().snapshot, since_log_seq=since_log_seq)
@@ -291,6 +296,28 @@ async def joint_stream(websocket: WebSocket) -> None:
         while True:
             snapshot = agent().joint_snapshot()
             signature = (int(snapshot.get("seq", 0)), str(snapshot.get("state", "waiting")))
+            if signature != last_signature:
+                await websocket.send_text(
+                    json.dumps(snapshot, separators=(",", ":"), allow_nan=False)
+                )
+                last_signature = signature
+            await asyncio.sleep(0.02)
+    except (WebSocketDisconnect, RuntimeError):
+        return
+
+
+@app.websocket("/api/v1/ws/pose")
+async def pose_stream(websocket: WebSocket) -> None:
+    await websocket.accept()
+    last_signature: tuple[int, str, str] | None = None
+    try:
+        while True:
+            snapshot = agent().pose_snapshot()
+            signature = (
+                int(snapshot.get("seq", 0)),
+                str(snapshot.get("state", "waiting")),
+                str(snapshot.get("topic", "")),
+            )
             if signature != last_signature:
                 await websocket.send_text(
                     json.dumps(snapshot, separators=(",", ":"), allow_nan=False)

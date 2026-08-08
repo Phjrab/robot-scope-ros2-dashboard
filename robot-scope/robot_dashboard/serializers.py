@@ -228,6 +228,95 @@ def go2_joint_state_payload(
     }
 
 
+def extract_odometry_pose(
+    message: Any,
+    type_name: str,
+    *,
+    position_limit_m: float = 10_000.0,
+) -> Optional[Dict[str, Any]]:
+    """Extract one finite, normalized Odometry sample for the live pose stream."""
+
+    if type_name != "nav_msgs/msg/Odometry":
+        return None
+    pose = getattr(getattr(message, "pose", None), "pose", None)
+    twist = getattr(getattr(message, "twist", None), "twist", None)
+    position = getattr(pose, "position", None)
+    orientation = getattr(pose, "orientation", None)
+
+    try:
+        xyz = [float(getattr(position, axis)) for axis in ("x", "y", "z")]
+        quaternion = [float(getattr(orientation, axis)) for axis in ("x", "y", "z", "w")]
+    except (AttributeError, TypeError, ValueError):
+        return None
+    limit = max(1.0, min(float(position_limit_m), 1_000_000.0))
+    if not all(math.isfinite(value) for value in xyz + quaternion):
+        return None
+    if any(abs(value) > limit for value in xyz):
+        return None
+    norm = math.sqrt(sum(value * value for value in quaternion))
+    if norm < 1e-9:
+        return None
+    quaternion = [value / norm for value in quaternion]
+
+    def safe_vector(value: Any) -> Dict[str, float]:
+        result: Dict[str, float] = {}
+        for axis in ("x", "y", "z"):
+            try:
+                number = float(getattr(value, axis, 0.0))
+            except (TypeError, ValueError):
+                number = 0.0
+            result[axis] = round(number, 6) if math.isfinite(number) else 0.0
+        return result
+
+    return {
+        "frame_id": str(getattr(getattr(message, "header", None), "frame_id", "")),
+        "child_frame_id": str(getattr(message, "child_frame_id", "")),
+        "position": dict(zip(("x", "y", "z"), (round(value, 6) for value in xyz))),
+        "orientation": dict(
+            zip(("x", "y", "z", "w"), (round(value, 8) for value in quaternion))
+        ),
+        "linear_velocity": safe_vector(getattr(twist, "linear", None)),
+        "angular_velocity": safe_vector(getattr(twist, "angular", None)),
+    }
+
+
+def odometry_pose_payload(
+    *,
+    topic: str,
+    type_name: str,
+    pose: Optional[Dict[str, Any]],
+    updated_at: float,
+    now: float,
+    stale_after_s: float,
+    seq: int = 0,
+    stamp_ns: int = 0,
+) -> Dict[str, Any]:
+    """Build the compact freshness-aware contract used by ``/ws/pose``."""
+
+    age = max(0.0, now - updated_at) if updated_at > 0.0 else None
+    if not topic or pose is None or age is None:
+        state = "waiting"
+    elif age > stale_after_s:
+        state = "stale"
+    else:
+        state = "ok"
+    visible_pose = pose if state == "ok" else {}
+    return {
+        "state": state,
+        "topic": topic,
+        "type": type_name,
+        "seq": int(seq),
+        "age_s": round(age, 3) if age is not None else None,
+        "stamp_ns": int(stamp_ns),
+        "frame_id": str(pose.get("frame_id", "")) if pose else "",
+        "child_frame_id": str(pose.get("child_frame_id", "")) if pose else "",
+        "position": visible_pose.get("position"),
+        "orientation": visible_pose.get("orientation"),
+        "linear_velocity": visible_pose.get("linear_velocity"),
+        "angular_velocity": visible_pose.get("angular_velocity"),
+    }
+
+
 def classify_type(type_name: str) -> str:
     exact = {
         "sensor_msgs/msg/Image": "camera",
