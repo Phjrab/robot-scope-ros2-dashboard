@@ -23,9 +23,15 @@ case "$OUTPUT_PREFIX" in
 esac
 [[ -f "$SAVE_SCRIPT" ]] || { echo "FAST-LIO map saver is not installed" >&2; exit 2; }
 
+# ROS 2 and colcon-generated setup files are not safe to source while Bash's
+# nounset option is enabled (for example, they probe AMENT_TRACE_SETUP_FILES
+# and COLCON_TRACE before those variables exist). Keep strict mode for this
+# script, but suspend nounset only while importing trusted environment files.
+set +u
 source /opt/ros/humble/setup.bash
 source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
 source "$HOME/setup_go2_ros2_humble.sh"
+set -u
 
 echo "[Robot Scope] capturing the fresh /Laser_map snapshot"
 /usr/bin/python3 "$SAVE_SCRIPT" "$OUTPUT_PREFIX.pcd"
@@ -44,13 +50,22 @@ Z_MAX="0.8"
 # it cannot collide with the archived /map server or another ROS machine.
 unset AMENT_PREFIX_PATH COLCON_PREFIX_PATH CMAKE_PREFIX_PATH PYTHONPATH
 unset CYCLONEDDS_URI
+set +u
 source /opt/ros/humble/setup.bash
 source "$HOME/ws/install/setup.bash"
+set -u
 export ROS_LOCALHOST_ONLY=1
 
-JOB_TOKEN="$(basename "$(dirname "$OUTPUT_PREFIX")" | tr '-' '_')"
+# Mapping job IDs are UUID-like and can begin with a digit. ROS graph-name
+# tokens cannot, so always add an alphabetic prefix before using the ID in a
+# topic or node name.
+JOB_TOKEN="job_$(basename "$(dirname "$OUTPUT_PREFIX")" | tr '-' '_')"
 MAP_TOPIC="/robot_scope/conversion/${JOB_TOKEN}/map"
 NODE_NAME="robot_scope_pcd2pgm_${JOB_TOKEN}"
+PCD2PGM_EXEC="$(ros2 pkg prefix pcd2pgm)/lib/pcd2pgm/pcd2pgm_node"
+MAP_SAVER_EXEC="$(ros2 pkg prefix nav2_map_server)/lib/nav2_map_server/map_saver_cli"
+[[ -x "$PCD2PGM_EXEC" ]] || { echo "pcd2pgm executable is not installed" >&2; exit 1; }
+[[ -x "$MAP_SAVER_EXEC" ]] || { echo "map_saver_cli executable is not installed" >&2; exit 1; }
 CONVERTER_PID=""
 cleanup() {
   if [[ -n "$CONVERTER_PID" ]] && kill -0 "$CONVERTER_PID" 2>/dev/null; then
@@ -60,7 +75,10 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-ros2 run pcd2pgm pcd2pgm_node --ros-args \
+# Run the node executable directly. Sending SIGINT only to the `ros2 run`
+# launcher leaves its child alive, which makes the save job wait until the
+# outer 90-second timeout even after map_saver has written all three files.
+"$PCD2PGM_EXEC" --ros-args \
   -r "__node:=$NODE_NAME" \
   -p "pcd_file:=$OUTPUT_PREFIX.pcd" \
   -p "map_topic_name:=$MAP_TOPIC" \
@@ -73,7 +91,7 @@ ros2 run pcd2pgm pcd2pgm_node --ros-args \
 CONVERTER_PID="$!"
 
 echo "[Robot Scope] converting PCD to a 0.05 m/cell occupancy map"
-/usr/bin/timeout --signal=INT 35s ros2 run nav2_map_server map_saver_cli \
+/usr/bin/timeout --signal=INT --kill-after=5s 35s "$MAP_SAVER_EXEC" \
   -t "$MAP_TOPIC" -f "$OUTPUT_PREFIX" --fmt pgm --mode trinary --occ 0.65 --free 0.25
 cleanup
 trap - EXIT INT TERM

@@ -274,6 +274,7 @@ Robot Scope 자체 코드는 [MIT License](LICENSE)로 배포합니다. 포함�
 | Hesai XT16 | `192.168.123.20`, `/lidar_points` 64,000점/프레임 확인 |
 | FAST-LIO 지도 | `/Laser_map`과 `/Odometry` 수신 및 로봇 모델 오버레이 확인 |
 | 2D 지도 | `/map` 971×677 OccupancyGrid 및 레이어 전환 확인 |
+| 대시보드 지도 저장 | `map_20260808_150850`: PCD 408,599점 + 535×634 PGM/YAML 생성·카탈로그 등록 확인 |
 | 위치 | `/Odometry`, `camera_init` frame, 약 8–10 Hz |
 | 상태 센서 | `/lowstate` 12축 관절·몸통 RPY 및 IMU·LiDAR 상태 수신 |
 | 안전 모드 | 지도 작업만 허용, 로봇 구동·임의 명령 비활성 |
