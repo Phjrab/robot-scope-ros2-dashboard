@@ -9,6 +9,7 @@ from unittest.mock import patch
 import numpy as np
 
 from robot_dashboard.saved_maps import (
+    NavigationMapSnapshot,
     SavedMapCatalog,
     SavedMapConflict,
     SavedMapFormatError,
@@ -186,6 +187,157 @@ class SavedMapCatalogTests(unittest.TestCase):
         self.assertEqual(payload["origin"], [-1.0, -2.0, 0.0])
         decoded = __import__("base64").b64decode(payload["data_b64"])
         self.assertEqual(list(decoded), [255, 0, 0, 100])
+
+    def test_navigation_map_resolver_copies_and_pins_managed_trinary_pair(self):
+        floor = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        private = self.root / "private-navigation-job"
+        private.mkdir()
+
+        source = self.managed_catalog.resolve_navigation_map(
+            floor["id"], floor["revision"]
+        )
+        snapshot = self.managed_catalog.snapshot_navigation_map(
+            floor["id"], floor["revision"], private
+        )
+
+        self.assertEqual((source.map_id, source.revision), (floor["id"], floor["revision"]))
+        self.assertEqual((snapshot.width, snapshot.height), (2, 2))
+        self.assertEqual(snapshot.occupancy, bytes([255, 0, 0, 100]))
+        self.assertEqual(
+            self.managed_catalog._read_map_yaml(snapshot.yaml_path)["image"],
+            "map.pgm",
+        )
+        self.assertNotEqual(source.yaml_path.stat().st_ino, snapshot.yaml_path.stat().st_ino)
+        self.assertNotEqual(source.image_path.stat().st_ino, snapshot.image_path.stat().st_ino)
+        # Cell (1,0) is free; unknown, occupied and out-of-map cells fail closed.
+        self.assertTrue(snapshot.known_free(-0.925, -1.975, clearance_radius=0.0))
+        self.assertFalse(snapshot.known_free(-0.975, -1.975, clearance_radius=0.0))
+        self.assertFalse(snapshot.known_free(-0.925, -1.925, clearance_radius=0.0))
+        self.assertFalse(snapshot.known_free(10.0, 10.0, clearance_radius=0.0))
+
+    def test_navigation_map_resolver_rejects_read_only_stale_and_unsupported_maps(self):
+        managed_floor = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        read_only_floor = next(
+            item
+            for item in self.catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        with self.assertRaises(SavedMapReadOnly):
+            self.catalog.resolve_navigation_map(
+                read_only_floor["id"], read_only_floor["revision"]
+            )
+        with self.assertRaises(SavedMapConflict):
+            self.managed_catalog.resolve_navigation_map(
+                managed_floor["id"], "0" * 64
+            )
+
+        (self.root / "unsupported.pgm").write_bytes(b"P2\n1 1\n255\n255\n")
+        (self.root / "unsupported.yaml").write_text(
+            "image: unsupported.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n"
+            "negate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.25\n",
+            encoding="utf-8",
+        )
+        unsupported = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "unsupported.yaml"
+        )
+        with self.assertRaisesRegex(SavedMapFormatError, "P5"):
+            self.managed_catalog.resolve_navigation_map(
+                unsupported["id"], unsupported["revision"]
+            )
+
+    def test_navigation_snapshot_aborts_if_source_pair_changes_mid_copy(self):
+        floor = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        private = self.root / "racing-navigation-job"
+        private.mkdir()
+        real_copy = self.managed_catalog._copy_regular_snapshot
+        calls = 0
+
+        def mutate_after_first_copy(source_path, target_path, signature):
+            nonlocal calls
+            real_copy(source_path, target_path, signature)
+            calls += 1
+            if calls == 1:
+                (self.root / "floor.pgm").write_bytes(
+                    b"P5\n2 2\n255\n" + bytes([255, 0, 128, 254])
+                )
+
+        with patch.object(
+            self.managed_catalog,
+            "_copy_regular_snapshot",
+            side_effect=mutate_after_first_copy,
+        ):
+            with self.assertRaises((SavedMapConflict, SavedMapMutationError)):
+                self.managed_catalog.snapshot_navigation_map(
+                    floor["id"], floor["revision"], private
+                )
+        self.assertEqual(list(private.iterdir()), [])
+
+    def test_navigation_clearance_uses_actual_subcell_pose_and_grid_limit(self):
+        occupancy = bytearray([0] * 9)
+        occupancy[1] = 100
+        snapshot = NavigationMapSnapshot(
+            map_id="a" * 24,
+            revision="b" * 64,
+            name="subcell",
+            frame_id="map",
+            yaml_path=self.root / "floor.yaml",
+            image_path=self.root / "floor.pgm",
+            width=3,
+            height=3,
+            resolution=1.0,
+            origin=(0.0, 0.0, 0.0),
+            occupancy=bytes(occupancy),
+        )
+        # The pose is still in cell (0,0), but its footprint crosses into the
+        # occupied neighbor. Checking only cell-center offsets would miss it.
+        self.assertFalse(snapshot.known_free(0.99, 0.5, clearance_radius=0.2))
+        self.assertTrue(snapshot.known_free(0.5, 0.5, clearance_radius=0.2))
+        with self.assertRaises(ValueError):
+            NavigationMapSnapshot(
+                map_id="a" * 24,
+                revision="b" * 64,
+                name="bad",
+                frame_id="map",
+                yaml_path=self.root / "floor.yaml",
+                image_path=self.root / "floor.pgm",
+                width=2,
+                height=2,
+                resolution=1.0,
+                origin=(0.0, 0.0, 0.0),
+                occupancy=b"\x00",
+            )
+
+        (self.root / "large_navigation.pgm").write_bytes(
+            b"P5\n32 32\n255\n" + bytes([255]) * (32 * 32)
+        )
+        (self.root / "large_navigation.yaml").write_text(
+            "image: large_navigation.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n"
+            "negate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.25\n",
+            encoding="utf-8",
+        )
+        limited = SavedMapCatalog(
+            [self.root],
+            managed_roots=[self.root],
+            max_grid_cells=1_000,
+        )
+        self.assertNotIn(
+            "large_navigation.yaml",
+            {item["file_name"] for item in limited.list_snapshot()["maps"]},
+        )
 
     def test_unknown_and_traversal_like_ids_are_rejected(self):
         for map_id in ("../floor.yaml", "0" * 24, "/etc/passwd"):

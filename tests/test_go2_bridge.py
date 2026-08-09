@@ -26,12 +26,20 @@ class Go2BridgeCoreTests(unittest.TestCase):
         payload.update(values)
         return payload
 
-    def tick(self, advance=0.0, age=0.01, subscribers=1, publishers=1):
+    def tick(
+        self,
+        advance=0.0,
+        age=0.01,
+        subscribers=1,
+        publishers=1,
+        sport_publishers=1,
+    ):
         self.now += advance
         return self.core.tick(
             now=self.now,
             lowstate_age_s=age,
             sport_subscribers=subscribers,
+            sport_publishers=sport_publishers,
             lowstate_publishers=publishers,
         )
 
@@ -65,6 +73,7 @@ class Go2BridgeCoreTests(unittest.TestCase):
             lowstate_age_s=0.01,
             lowstate_publishers=1,
             sport_subscribers=1,
+            sport_publishers=1,
         )
         self.assertEqual(snapshot["limits"]["command_timeout_ms"], 200)
 
@@ -120,6 +129,7 @@ class Go2BridgeCoreTests(unittest.TestCase):
             lowstate_age_s=0.01,
             lowstate_publishers=1,
             sport_subscribers=1,
+            sport_publishers=1,
         )
         self.assertTrue(snapshot["ready"])
         self.assertEqual(snapshot["state"], "idle")
@@ -179,32 +189,46 @@ class Go2BridgeCoreTests(unittest.TestCase):
             self.core.accept(command, now=self.now)
 
     def test_ready_requires_exactly_one_robot_graph_endpoint(self):
-        for publishers, subscribers, expected in (
-            (1, 1, True),
-            (0, 1, False),
-            (2, 1, False),
-            (1, 0, False),
-            (1, 2, False),
+        for publishers, subscribers, sport_publishers, expected in (
+            (1, 1, 1, True),
+            (0, 1, 1, False),
+            (2, 1, 1, False),
+            (1, 0, 1, False),
+            (1, 2, 1, False),
+            (1, 1, 0, False),
+            (1, 1, 2, False),
         ):
             with self.subTest(
                 publishers=publishers,
                 subscribers=subscribers,
+                sport_publishers=sport_publishers,
             ):
                 snapshot = self.core.snapshot(
                     now=self.now,
                     lowstate_age_s=0.01,
                     lowstate_publishers=publishers,
                     sport_subscribers=subscribers,
+                    sport_publishers=sport_publishers,
                 )
                 self.assertEqual(snapshot["ready"], expected)
                 self.assertEqual(snapshot["lowstate_publishers"], publishers)
                 self.assertEqual(snapshot["sport_subscribers"], subscribers)
+                self.assertEqual(snapshot["sport_publishers"], sport_publishers)
+                self.assertIs(type(snapshot["sport_publishers"]), int)
                 self.assertEqual(snapshot["bridge_epoch"], self.core.bridge_epoch)
 
-        for publishers, subscribers in ((0, 1), (2, 1), (1, 0), (1, 2)):
+        for publishers, subscribers, sport_publishers in (
+            (0, 1, 1),
+            (2, 1, 1),
+            (1, 0, 1),
+            (1, 2, 1),
+            (1, 1, 0),
+            (1, 1, 2),
+        ):
             with self.subTest(
                 rejects_drive_publishers=publishers,
                 rejects_drive_subscribers=subscribers,
+                rejects_drive_sport_publishers=sport_publishers,
             ):
                 core = Go2BridgeCore()
                 core.accept(
@@ -225,6 +249,7 @@ class Go2BridgeCoreTests(unittest.TestCase):
                     lowstate_age_s=0.01,
                     lowstate_publishers=publishers,
                     sport_subscribers=subscribers,
+                    sport_publishers=sport_publishers,
                 )
                 self.assertNotIn(API_MOVE, [request.api_id for request in requests])
                 self.assertEqual(requests[-1].api_id, API_STOP_MOVE)
@@ -277,6 +302,7 @@ class Go2BridgeCoreTests(unittest.TestCase):
             lowstate_age_s=0.01,
             lowstate_publishers=1,
             sport_subscribers=1,
+            sport_publishers=1,
         )
         self.assertTrue(guarded["action_guard"]["active"])
         self.assertFalse(guarded["ready"])

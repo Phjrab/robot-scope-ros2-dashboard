@@ -34,7 +34,8 @@
         <a class="nav-item" href="#sensors" data-nav="sensors"><i>04</i><span><b>Sensors</b><small>카메라·텔레메트리</small></span></a>
         <a class="nav-item" href="#topics" data-nav="topics"><i>05</i><span><b>ROS Graph</b><small>토픽 탐색</small></span></a>
         <a class="nav-item" href="#controls" data-nav="controls"><i>06</i><span><b>Controls</b><small>주행·모션 실행</small></span></a>
-        <a class="nav-item" href="#settings" data-nav="settings"><i>07</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
+        <a class="nav-item" href="#navigation" data-nav="navigation"><i>07</i><span><b>Navigation</b><small>Nav2 자율주행</small></span></a>
+        <a class="nav-item" href="#settings" data-nav="settings"><i>08</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
       </nav>
 
       <section class="side-section read-only-note">
@@ -66,6 +67,7 @@
           <a href="#sensors" class="route-card"><span>INPUTS</span><strong>Sensors</strong><small>카메라, IMU, 배터리와 로봇 상태를 확인합니다.</small><b>열기 →</b></a>
           <a href="#topics" class="route-card"><span>ROS 2</span><strong>ROS Graph</strong><small>발견된 토픽, 타입, 수신률과 지연을 조회합니다.</small><b>열기 →</b></a>
           <a href="#controls" class="route-card control-route-card"><span>ARM REQUIRED</span><strong>Robot Controls</strong><small>키보드·게임패드 주행과 서버가 허용한 Go2 모션을 실행합니다.</small><b>열기 →</b></a>
+          <a href="#navigation" class="route-card navigation-route-card"><span>NAV2</span><strong>Autonomous Navigation</strong><small>정적 지도에서 초기 위치와 목표를 지정하고 Nav2 상태를 추적합니다.</small><b>열기 →</b></a>
         </section>
       </section>
 
@@ -371,6 +373,101 @@
         </article>
       </section>
 
+      <section class="page-view" data-page="navigation" hidden>
+        <div class="navigation-safety-banner is-offline" id="navigationSafetyBanner" role="status" aria-live="polite">
+          <span class="navigation-safety-icon">◇</span>
+          <div><strong id="navigationSafetyTitle">NAVIGATION OFFLINE</strong><p id="navigationSafetyMessage">Nav2 백엔드와 로봇 상태를 확인하고 있습니다.</p></div>
+          <a href="#controls" id="navigationControlLink">Controls 열기</a>
+        </div>
+
+        <section class="navigation-status-grid" aria-label="Nav2 상태">
+          <article class="navigation-status-card"><span>PIPELINE</span><strong id="navigationPipelineState">IDLE</strong><small id="navigationPipelineNote">백엔드 확인 중</small></article>
+          <article class="navigation-status-card"><span>ROBOT</span><strong id="navigationRobotState">OFFLINE</strong><small id="navigationRobotNote">연결 대기</small></article>
+          <article class="navigation-status-card"><span>LOCALIZATION</span><strong id="navigationLocalizationState">UNKNOWN</strong><small id="navigationLocalizationNote">초기 위치 필요</small></article>
+          <article class="navigation-status-card"><span>GOAL</span><strong id="navigationGoalState">IDLE</strong><small id="navigationGoalNote">목표 없음</small></article>
+        </section>
+
+        <section class="navigation-main-grid">
+          <article class="panel navigation-map-panel">
+            <div class="panel-header">
+              <div><div class="eyebrow">NAV2 · STATIC MAP</div><h2>Pose & goal planner</h2></div>
+              <div class="panel-state waiting" id="navigationMapState"><span></span>NO MAP</div>
+            </div>
+            <div class="navigation-map-toolbar">
+              <label><span>정적 2D 지도</span><select id="navigationMapSelect"><option value="">저장된 2D 지도 없음</option></select></label>
+              <div class="navigation-pipeline-actions">
+                <button id="navigationStartButton" class="navigation-primary" type="button" disabled>START NAV2</button>
+                <button id="navigationStopButton" class="navigation-danger" type="button" disabled>STOP</button>
+              </div>
+            </div>
+            <div class="navigation-map-stage">
+              <canvas id="navigationMapCanvas" aria-label="정적 지도에서 초기 위치와 목표 위치 지정"></canvas>
+              <div class="navigation-map-empty" id="navigationMapEmpty"><strong>STATIC MAP REQUIRED</strong><small>Saved Maps에서 2D YAML·PGM 지도를 준비하세요.</small></div>
+              <div class="navigation-map-hint" id="navigationMapHint">도구를 선택한 뒤 지도에서 로봇 위치를 누르고 진행 방향으로 드래그하세요.</div>
+            </div>
+            <div class="navigation-pose-toolbar">
+              <div class="navigation-pose-tools" role="group" aria-label="지도 상호작용 도구">
+                <button id="navigationInitialPoseTool" type="button" data-navigation-tool="initial"><span>①</span> INITIAL POSE</button>
+                <button id="navigationGoalPoseTool" type="button" data-navigation-tool="goal"><span>②</span> GOAL POSE</button>
+              </div>
+              <div class="navigation-pose-readout">
+                <span id="navigationPoseMode">NO TOOL</span>
+                <strong id="navigationPoseCoordinates">X — · Y — · YAW —</strong>
+                <small>지도 좌표계 <code>map</code> · 드래그 화살표 방향</small>
+              </div>
+              <div class="navigation-pose-actions">
+                <button id="navigationPoseDiscard" type="button" disabled>DISCARD</button>
+                <button id="navigationPoseSend" class="navigation-primary" type="button" disabled>SEND POSE</button>
+              </div>
+            </div>
+          </article>
+
+          <aside class="panel navigation-mission-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">MISSION CONTROL</div><h2>Navigation progress</h2></div><span class="muted" id="navigationJobId">JOB —</span></div>
+            <div class="navigation-readiness" id="navigationReadiness">
+              <div data-navigation-ready="map_server"><span>MAP SERVER</span><strong>WAIT</strong></div>
+              <div data-navigation-ready="localization"><span>LOCALIZATION</span><strong>WAIT</strong></div>
+              <div data-navigation-ready="planner"><span>PLANNER</span><strong>WAIT</strong></div>
+              <div data-navigation-ready="controller"><span>CONTROLLER</span><strong>WAIT</strong></div>
+              <div data-navigation-ready="cmd_bridge"><span>CMD BRIDGE</span><strong>WAIT</strong></div>
+              <div data-navigation-ready="scan"><span>XT16 /SCAN</span><strong>WAIT</strong></div>
+            </div>
+            <div class="navigation-goal-progress">
+              <div><span>DISTANCE</span><strong id="navigationGoalDistance">—</strong><small>m remaining</small></div>
+              <div><span>ELAPSED</span><strong id="navigationGoalElapsed">—</strong><small>navigation time</small></div>
+              <div><span>RECOVERIES</span><strong id="navigationGoalRecoveries">0</strong><small>behavior attempts</small></div>
+              <progress id="navigationGoalProgress" max="1" value="0"></progress>
+              <p id="navigationGoalMessage">Nav2를 시작하고 초기 위치를 지정한 뒤 목표를 보낼 수 있습니다.</p>
+            </div>
+            <div class="navigation-mission-actions">
+              <button id="navigationCancelGoal" class="navigation-danger" type="button" disabled>CANCEL GOAL</button>
+              <button id="navigationClearCostmaps" type="button" disabled>CLEAR COSTMAPS</button>
+            </div>
+            <p class="navigation-cleanup-note">로봇 연결이 끊겨도 STOP과 CANCEL은 서버측 작업 정리를 위해 사용할 수 있습니다. 대시보드의 SOFTWARE STOP은 물리 E-stop이 아니므로 주행 중에는 물리 리모컨을 반드시 손에 들고 주변을 비워 두세요.</p>
+          </aside>
+        </section>
+
+        <article class="panel navigation-parameters-panel">
+          <div class="panel-header">
+            <div><div class="eyebrow">PDF 11 · TUNED PROFILE</div><h2>Navigation parameters</h2></div>
+            <div class="panel-state waiting" id="navigationParameterState"><span></span>LOADING</div>
+          </div>
+          <div class="navigation-parameter-toolbar">
+            <label><span>Preset</span><select id="navigationPreset"><option value="">서버 preset 대기</option></select></label>
+            <button id="navigationPresetLoad" type="button" disabled>LOAD PRESET</button>
+            <button id="navigationParameterReset" type="button" disabled>RESET CHANGES</button>
+            <button id="navigationParameterApply" class="navigation-primary" type="button" disabled>APPLY</button>
+            <span id="navigationParameterDirty">NO CHANGES</span>
+          </div>
+          <div class="navigation-parameter-groups" id="navigationParameterGroups"><div class="sensor-placeholder">파라미터 계약을 확인하고 있습니다.</div></div>
+          <div class="navigation-runtime-bindings">
+            <div><span>SCAN BINDING</span><strong id="navigationScanBinding">/scan · XT16 360°</strong><small>서버 고정 · 임의 토픽 입력 불가</small></div>
+            <div><span>ODOMETRY BINDING</span><strong id="navigationOdomBinding">/utlidar/robot_odom</strong><small>서버 고정 · 실행 중 변경 불가</small></div>
+            <p id="navigationParameterMessage">PDF 11의 Go2 실내 tuned profile입니다. 적용한 값은 Nav2를 다시 시작할 때 사용됩니다.</p>
+          </div>
+        </article>
+      </section>
+
       <section class="page-view" data-page="settings" hidden>
         <section class="settings-grid">
           <article class="panel settings-panel">
@@ -422,6 +519,7 @@
   <script src="/static/go2_official_model.js" defer></script>
   <script src="/static/control_input.js" defer></script>
   <script src="/static/map_editor.js" defer></script>
+  <script src="/static/navigation.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

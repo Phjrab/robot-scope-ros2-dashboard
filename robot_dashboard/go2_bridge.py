@@ -271,6 +271,7 @@ class Go2BridgeCore:
         now: float,
         lowstate_age_s: float | None,
         sport_subscribers: int,
+        sport_publishers: int,
         lowstate_publishers: int = 1,
     ) -> list[SportRequest]:
         now = float(now)
@@ -283,6 +284,7 @@ class Go2BridgeCore:
             telemetry_fresh
             and int(lowstate_publishers) == 1
             and int(sport_subscribers) == 1
+            and int(sport_publishers) == 1
         )
         requests: list[SportRequest] = []
 
@@ -346,6 +348,7 @@ class Go2BridgeCore:
         now: float,
         lowstate_age_s: float | None,
         sport_subscribers: int,
+        sport_publishers: int,
         lowstate_publishers: int = 1,
     ) -> dict[str, Any]:
         telemetry_fresh = (
@@ -357,6 +360,7 @@ class Go2BridgeCore:
             telemetry_fresh
             and int(lowstate_publishers) == 1
             and int(sport_subscribers) == 1
+            and int(sport_publishers) == 1
         )
         command_age = None if not self._last_drive else max(0.0, now - self._last_drive)
         action_remaining = max(0.0, self._action_hold_until - now)
@@ -378,6 +382,7 @@ class Go2BridgeCore:
             ),
             "lowstate_publishers": max(0, int(lowstate_publishers)),
             "sport_subscribers": max(0, int(sport_subscribers)),
+            "sport_publishers": max(0, int(sport_publishers)),
             "command_age_ms": (
                 None if command_age is None else round(command_age * 1_000)
             ),

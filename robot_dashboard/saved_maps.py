@@ -12,6 +12,7 @@ import ast
 import base64
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -109,6 +110,131 @@ class SavedMapRecord:
         }
         result.update(self.details)
         return result
+
+
+@dataclass(frozen=True)
+class NavigationMapSource:
+    """Private, revision-pinned occupancy pair resolved from an opaque ID."""
+
+    map_id: str
+    revision: str
+    name: str
+    frame_id: str
+    yaml_path: Path
+    image_path: Path
+    yaml_signature: tuple[int, int, int, int]
+    image_signature: tuple[int, int, int, int]
+
+
+@dataclass(frozen=True)
+class NavigationMapSnapshot:
+    """Independent private map copy retained for one navigation job.
+
+    ``occupancy`` is ROS row-major map order, encoded as bytes containing
+    ``0`` (free), ``100`` (occupied) or ``255`` (unknown/-1).  Paths are
+    intentionally private implementation details and are never serialized by
+    the HTTP layer.
+    """
+
+    map_id: str
+    revision: str
+    name: str
+    frame_id: str
+    yaml_path: Path
+    image_path: Path
+    width: int
+    height: int
+    resolution: float
+    origin: tuple[float, float, float]
+    occupancy: bytes
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.width, bool)
+            or isinstance(self.height, bool)
+            or not isinstance(self.width, int)
+            or not isinstance(self.height, int)
+            or self.width <= 0
+            or self.height <= 0
+        ):
+            raise ValueError("navigation map dimensions are invalid")
+        if (
+            isinstance(self.resolution, bool)
+            or not isinstance(self.resolution, (int, float))
+            or not math.isfinite(float(self.resolution))
+            or float(self.resolution) <= 0.0
+        ):
+            raise ValueError("navigation map resolution is invalid")
+        if (
+            not isinstance(self.origin, tuple)
+            or len(self.origin) != 3
+            or not all(
+                isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+                for value in self.origin
+            )
+        ):
+            raise ValueError("navigation map origin is invalid")
+        if not isinstance(self.occupancy, bytes) or len(self.occupancy) != self.width * self.height:
+            raise ValueError("navigation occupancy payload is invalid")
+
+    def known_free(self, x: float, y: float, *, clearance_radius: float) -> bool:
+        """Return true only when a circular footprint is entirely known-free."""
+
+        if (
+            not all(math.isfinite(value) for value in (x, y, clearance_radius))
+            or clearance_radius < 0
+            or self.resolution <= 0
+        ):
+            return False
+        ox, oy, origin_yaw = self.origin
+        dx, dy = x - ox, y - oy
+        cosine, sine = math.cos(origin_yaw), math.sin(origin_yaw)
+        local_x = cosine * dx + sine * dy
+        local_y = -sine * dx + cosine * dy
+        center_x = math.floor(local_x / self.resolution)
+        center_y = math.floor(local_y / self.resolution)
+        if not (0 <= center_x < self.width and 0 <= center_y < self.height):
+            return False
+
+        # Keep the full footprint within map bounds.  A tiny margin makes
+        # exact cell/map boundaries conservative instead of floating-point
+        # dependent.
+        epsilon = max(1e-12, self.resolution * 1e-12)
+        footprint_radius = clearance_radius + epsilon
+        map_width = self.width * self.resolution
+        map_height = self.height * self.resolution
+        if (
+            local_x - footprint_radius < 0.0
+            or local_y - footprint_radius < 0.0
+            or local_x + footprint_radius > map_width
+            or local_y + footprint_radius > map_height
+        ):
+            return False
+        first_x = max(0, math.floor((local_x - footprint_radius) / self.resolution))
+        last_x = min(
+            self.width - 1,
+            math.floor((local_x + footprint_radius) / self.resolution),
+        )
+        first_y = max(0, math.floor((local_y - footprint_radius) / self.resolution))
+        last_y = min(
+            self.height - 1,
+            math.floor((local_y + footprint_radius) / self.resolution),
+        )
+        for cell_y in range(first_y, last_y + 1):
+            lower_y = cell_y * self.resolution
+            upper_y = lower_y + self.resolution
+            distance_y = max(lower_y - local_y, 0.0, local_y - upper_y)
+            for cell_x in range(first_x, last_x + 1):
+                lower_x = cell_x * self.resolution
+                upper_x = lower_x + self.resolution
+                distance_x = max(lower_x - local_x, 0.0, local_x - upper_x)
+                if math.hypot(distance_x, distance_y) > footprint_radius:
+                    continue
+                if self.occupancy[cell_y * self.width + cell_x] != 0:
+                    return False
+        return True
 
 
 class SavedMapCatalog:
@@ -226,6 +352,176 @@ class SavedMapCatalog:
     def metadata(self, map_id: str) -> Dict[str, Any]:
         with self._lock:
             return self._find(map_id).public()
+
+    def resolve_navigation_map(
+        self,
+        map_id: str,
+        expected_revision: str,
+    ) -> NavigationMapSource:
+        """Resolve one managed, revision-pinned map without exposing its path."""
+
+        if (
+            not isinstance(expected_revision, str)
+            or not REVISION_RE.fullmatch(expected_revision)
+        ):
+            raise SavedMapConflict("saved map revision is invalid")
+        with self._lock:
+            record = self._find(map_id)
+            self._require_manageable(record)
+            if record.format != "map-server-pgm" or record.auxiliary_path is None:
+                raise SavedMapFormatError(
+                    "navigation requires a managed 2D occupancy map"
+                )
+            self._require_editable_record(record)
+            if record.revision != expected_revision:
+                raise SavedMapConflict(
+                    "saved map changed; reload it before starting navigation"
+                )
+            metadata = self._read_map_yaml(record.path)
+            magic, _, _, maximum = self._read_pgm_header(record.auxiliary_path)
+            if metadata["mode"] != "trinary" or magic != "P5" or maximum != 255:
+                raise SavedMapFormatError(
+                    "navigation requires a managed trinary P5/255 occupancy map"
+                )
+            return NavigationMapSource(
+                map_id=record.map_id,
+                revision=record.revision,
+                name=record.name,
+                frame_id=str(record.details.get("frame_id", "map")) or "map",
+                yaml_path=record.path,
+                image_path=record.auxiliary_path,
+                yaml_signature=self._regular_signature(record.path),
+                image_signature=self._regular_signature(record.auxiliary_path),
+            )
+
+    def snapshot_navigation_map(
+        self,
+        map_id: str,
+        expected_revision: str,
+        destination: Path,
+    ) -> NavigationMapSnapshot:
+        """Copy a validated map pair into one manager-owned private job dir."""
+
+        target_dir = Path(destination)
+        created: list[Path] = []
+        try:
+            current = target_dir.lstat()
+            if not stat.S_ISDIR(current.st_mode) or target_dir.is_symlink():
+                raise SavedMapMutationError(
+                    "navigation snapshot directory is unsafe"
+                )
+        except OSError as exc:
+            raise SavedMapMutationError(
+                "navigation snapshot directory is unavailable"
+            ) from exc
+
+        with self._lock:
+            source = self.resolve_navigation_map(map_id, expected_revision)
+            source_yaml = target_dir / "map.source.yaml"
+            target_yaml = target_dir / "map.yaml"
+            target_pgm = target_dir / "map.pgm"
+            if any(os.path.lexists(path) for path in (source_yaml, target_yaml, target_pgm)):
+                raise SavedMapMutationError(
+                    "navigation snapshot targets already exist"
+                )
+            try:
+                self._copy_regular_snapshot(
+                    source.yaml_path,
+                    source_yaml,
+                    source.yaml_signature,
+                )
+                created.append(source_yaml)
+                self._copy_regular_snapshot(
+                    source.image_path,
+                    target_pgm,
+                    source.image_signature,
+                )
+                created.append(target_pgm)
+                rewritten = self._rewrite_yaml_image(
+                    source_yaml.read_text(encoding="utf-8"),
+                    target_pgm.name,
+                ).encode("utf-8")
+                if len(rewritten) > self.max_file_bytes:
+                    raise SavedMapFormatError(
+                        "navigation map YAML exceeds the configured limit"
+                    )
+                self._write_exclusive(target_yaml, rewritten)
+                created.append(target_yaml)
+                source_yaml.unlink()
+                created.remove(source_yaml)
+
+                # Exact source signatures must still match after both copies.
+                if (
+                    self._regular_signature(source.yaml_path)
+                    != source.yaml_signature
+                    or self._regular_signature(source.image_path)
+                    != source.image_signature
+                    or self._signature_revision(
+                        (source.yaml_path, source.image_path)
+                    )
+                    != source.revision
+                ):
+                    raise SavedMapConflict(
+                        "saved map changed while preparing navigation"
+                    )
+
+                metadata = self._read_map_yaml(target_yaml)
+                magic, width, height, maximum = self._read_pgm_header(target_pgm)
+                if (
+                    metadata["image"] != target_pgm.name
+                    or metadata["mode"] != "trinary"
+                    or magic != "P5"
+                    or maximum != 255
+                ):
+                    raise SavedMapFormatError(
+                        "navigation map snapshot did not pass validation"
+                    )
+                if width * height > self.max_grid_cells:
+                    raise SavedMapFormatError(
+                        "navigation map exceeds the configured cell limit"
+                    )
+                image_width, image_height, pixels = self._read_pgm(
+                    target_pgm,
+                    pixels=True,
+                )
+                if (image_width, image_height) != (width, height) or pixels is None:
+                    raise SavedMapFormatError(
+                        "navigation map image dimensions changed"
+                    )
+                grid = self._pixels_to_occupancy(pixels, metadata)
+                encoded = bytes(
+                    255 if int(value) == -1 else int(value)
+                    for value in grid.reshape(-1)
+                )
+                return NavigationMapSnapshot(
+                    map_id=source.map_id,
+                    revision=source.revision,
+                    name=source.name,
+                    frame_id=source.frame_id,
+                    yaml_path=target_yaml,
+                    image_path=target_pgm,
+                    width=width,
+                    height=height,
+                    resolution=float(metadata["resolution"]),
+                    origin=tuple(float(value) for value in metadata["origin"]),
+                    occupancy=encoded,
+                )
+            except SavedMapError:
+                for path in reversed(created):
+                    try:
+                        path.unlink()
+                    except OSError:
+                        pass
+                raise
+            except (OSError, UnicodeError, ValueError, TypeError) as exc:
+                for path in reversed(created):
+                    try:
+                        path.unlink()
+                    except OSError:
+                        pass
+                raise SavedMapMutationError(
+                    "navigation map snapshot could not be created"
+                ) from exc
 
     def data(
         self,

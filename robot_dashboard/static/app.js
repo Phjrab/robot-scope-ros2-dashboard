@@ -116,6 +116,50 @@ const ui = {
   mapEditorSaveName: $('#mapEditorSaveName'),
   mapEditorSave: $('#mapEditorSave'),
   mapEditorMessage: $('#mapEditorMessage'),
+  navigationSafetyBanner: $('#navigationSafetyBanner'),
+  navigationSafetyTitle: $('#navigationSafetyTitle'),
+  navigationSafetyMessage: $('#navigationSafetyMessage'),
+  navigationControlLink: $('#navigationControlLink'),
+  navigationPipelineState: $('#navigationPipelineState'),
+  navigationPipelineNote: $('#navigationPipelineNote'),
+  navigationRobotState: $('#navigationRobotState'),
+  navigationRobotNote: $('#navigationRobotNote'),
+  navigationLocalizationState: $('#navigationLocalizationState'),
+  navigationLocalizationNote: $('#navigationLocalizationNote'),
+  navigationGoalState: $('#navigationGoalState'),
+  navigationGoalNote: $('#navigationGoalNote'),
+  navigationMapState: $('#navigationMapState'),
+  navigationMapSelect: $('#navigationMapSelect'),
+  navigationStartButton: $('#navigationStartButton'),
+  navigationStopButton: $('#navigationStopButton'),
+  navigationMapCanvas: $('#navigationMapCanvas'),
+  navigationMapEmpty: $('#navigationMapEmpty'),
+  navigationMapHint: $('#navigationMapHint'),
+  navigationInitialPoseTool: $('#navigationInitialPoseTool'),
+  navigationGoalPoseTool: $('#navigationGoalPoseTool'),
+  navigationPoseMode: $('#navigationPoseMode'),
+  navigationPoseCoordinates: $('#navigationPoseCoordinates'),
+  navigationPoseDiscard: $('#navigationPoseDiscard'),
+  navigationPoseSend: $('#navigationPoseSend'),
+  navigationJobId: $('#navigationJobId'),
+  navigationReadiness: $('#navigationReadiness'),
+  navigationGoalDistance: $('#navigationGoalDistance'),
+  navigationGoalElapsed: $('#navigationGoalElapsed'),
+  navigationGoalRecoveries: $('#navigationGoalRecoveries'),
+  navigationGoalProgress: $('#navigationGoalProgress'),
+  navigationGoalMessage: $('#navigationGoalMessage'),
+  navigationCancelGoal: $('#navigationCancelGoal'),
+  navigationClearCostmaps: $('#navigationClearCostmaps'),
+  navigationParameterState: $('#navigationParameterState'),
+  navigationPreset: $('#navigationPreset'),
+  navigationPresetLoad: $('#navigationPresetLoad'),
+  navigationParameterReset: $('#navigationParameterReset'),
+  navigationParameterApply: $('#navigationParameterApply'),
+  navigationParameterDirty: $('#navigationParameterDirty'),
+  navigationParameterGroups: $('#navigationParameterGroups'),
+  navigationScanBinding: $('#navigationScanBinding'),
+  navigationOdomBinding: $('#navigationOdomBinding'),
+  navigationParameterMessage: $('#navigationParameterMessage'),
   liveCloudTopic: $('#liveCloudTopic'),
   liveCloudStatus: $('#liveCloudStatus'),
   liveOdomTopic: $('#liveOdomTopic'),
@@ -277,6 +321,26 @@ let mappingLogCursor = 0;
 let mappingLogLines = [];
 let handledMappingOperation = '';
 let mappingControlRequestGeneration = 0;
+const navigationEngine = window.RobotNavigation;
+let navigationSnapshot = null;
+let navigationStatusBusy = false;
+let navigationStatusRequestGeneration = 0;
+let navigationOperationBusy = false;
+let navigationApiAvailable = null;
+let navigationParameterSnapshot = null;
+let navigationParameterDraft = null;
+let navigationParameterBusy = false;
+let navigationSelectedMapMeta = null;
+let navigationMapSnapshot = null;
+let navigationMapError = '';
+let navigationMapLoadGeneration = 0;
+let navigationMapSourceCanvas = null;
+let navigationMapCells = null;
+let navigationMapLayout = null;
+let navigationMapTool = '';
+let navigationStagedPose = null;
+let navigationPointer = null;
+let navigationRenderFrame = 0;
 const controlInput = window.RobotControlInput;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
@@ -594,6 +658,7 @@ const PAGE_META = {
   sensors: ['Sensors & Camera', '카메라 스트림과 로봇 센서 값을 기능별로 확인합니다.'],
   topics: ['ROS Graph', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
   controls: ['Robot Controls', 'ARM 버튼으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
+  navigation: ['Nav2 Navigation', '저장된 2D 지도에서 초기 위치와 목표를 지정하고 Go2 자율주행을 관리합니다.'],
   settings: ['Settings', '로봇 유형을 고르고 네트워크에서 연결 대상을 찾은 뒤 ROS 2 데이터 소스를 선택합니다.'],
 };
 
@@ -640,6 +705,9 @@ function activatePage(page, updateHash = false) {
       savedScene3d?.resize();
       redrawSavedMap();
       drawMapEditor();
+    } else if (activePage === 'navigation') {
+      drawNavigationMap();
+      refreshNavigationParameters();
     }
   });
 }
@@ -660,7 +728,9 @@ async function api(path, options = {}) {
   if (!response.ok) {
     let detail = `${response.status}`;
     try { detail = (await response.json()).detail || detail; } catch (_) {}
-    throw new Error(detail);
+    const error = new Error(detail);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -2317,6 +2387,7 @@ async function refreshSavedMaps() {
     const payload = await api('/api/v1/saved-maps');
     const maps = Array.isArray(payload.maps) ? payload.maps : [];
     savedMapCatalog = maps;
+    await syncNavigationMapOptions();
     const preserved = maps.find((entry) => entry.id === selectedSavedMapId);
     if (editorHasUnsavedChanges() && mapEditorSession?.sourceId === selectedSavedMapId &&
         (!preserved || preserved.revision !== mapEditorSession.revision)) {
@@ -2663,6 +2734,923 @@ function drawOccupancyMap(map, saved = false) {
     };
   };
   if (!saved) drawMapOverlay(ctx, { width, height, ratio, projectWorld, fallbackScale: scale / resolution, mode: 'GRID', frameId: map.frame_id || '' });
+}
+
+function extractNavigationSnapshot(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.navigation && typeof payload.navigation === 'object') return payload.navigation;
+  if (payload.pipeline && payload.readiness && payload.goal) return payload;
+  return null;
+}
+
+function navigationActivityBlocksManualControl() {
+  return Boolean(
+    navigationEngine &&
+    (navigationEngine.pipelineActive(navigationSnapshot) || navigationEngine.goalActive(navigationSnapshot))
+  );
+}
+
+function navigationManualControlConflict() {
+  return Boolean(
+    controlArmBusy ||
+    navigationEngine?.manualControlActive(controlSnapshot, controlLeaseId)
+  );
+}
+
+function navigationMapCandidates() {
+  return savedMapCatalog.filter((entry) => (
+    entry.kind === 'occupancy2d' &&
+    entry.format === 'map-server-pgm' &&
+    typeof entry.revision === 'string' &&
+    entry.revision.length > 0
+  ));
+}
+
+function navigationActiveMapMatchesSelection() {
+  if (!navigationEngine?.pipelineActive(navigationSnapshot)) return true;
+  const active = navigationSnapshot?.map || {};
+  const activeId = String(active.id || '');
+  const activeRevision = String(active.revision || '');
+  return Boolean(
+    activeId &&
+    activeRevision &&
+    navigationSelectedMapMeta?.id === activeId &&
+    String(navigationSelectedMapMeta?.revision || '') === activeRevision &&
+    String(navigationMapSnapshot?.revision || '') === activeRevision &&
+    navigationMapCandidates().some((entry) => entry.id === activeId && String(entry.revision || '') === activeRevision)
+  );
+}
+
+async function syncNavigationMapOptions() {
+  const candidates = navigationMapCandidates();
+  const previousId = navigationSelectedMapMeta?.id || ui.navigationMapSelect.value;
+  const activeMapId = String(navigationSnapshot?.map?.id || '');
+  const activeMapRevision = String(navigationSnapshot?.map?.revision || '');
+  const pipelineActive = navigationEngine?.pipelineActive(navigationSnapshot) || false;
+  const exactActiveMap = candidates.find((entry) => entry.id === activeMapId && String(entry.revision || '') === activeMapRevision);
+  if (pipelineActive && !exactActiveMap) {
+    ui.navigationMapSelect.innerHTML = `<option value="${escapeHtml(activeMapId)}">활성 지도 revision 확인 필요</option>`;
+    ui.navigationMapSelect.value = activeMapId;
+    navigationMapError = '활성 Nav2 지도 ID·revision이 현재 Saved Maps catalog와 일치하지 않습니다. STOP 후 지도를 다시 선택하세요.';
+    discardNavigationPose(false);
+    drawNavigationMap();
+    renderNavigationStatus();
+    return false;
+  }
+  const savedSelection = selectedSavedMapMeta?.kind === 'occupancy2d' ? selectedSavedMapId : '';
+  ui.navigationMapSelect.innerHTML = candidates.length
+    ? candidates.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name || entry.file_name || 'Saved 2D map')}</option>`).join('')
+    : '<option value="">저장된 2D 지도 없음</option>';
+  const preferredId = [
+    pipelineActive ? activeMapId : '',
+    previousId,
+    savedSelection,
+    candidates[0]?.id || '',
+  ].find((id) => candidates.some((entry) => entry.id === id)) || '';
+  ui.navigationMapSelect.value = preferredId;
+  const selected = candidates.find((entry) => entry.id === preferredId) || null;
+  if (!selected) {
+    navigationMapLoadGeneration += 1;
+    navigationSelectedMapMeta = null;
+    navigationMapSnapshot = null;
+    navigationMapSourceCanvas = null;
+    navigationMapCells = null;
+    navigationMapLayout = null;
+    navigationMapError = candidates.length ? '선택한 정적 지도를 찾을 수 없습니다.' : 'Saved Maps에 2D YAML·PGM 지도가 없습니다.';
+    discardNavigationPose(false);
+    drawNavigationMap();
+    renderNavigationStatus();
+    return false;
+  }
+  if (
+    navigationSelectedMapMeta?.id === selected.id &&
+    navigationSelectedMapMeta?.revision === selected.revision &&
+    navigationMapSnapshot?.revision === selected.revision &&
+    navigationMapSourceCanvas
+  ) {
+    navigationSelectedMapMeta = selected;
+    drawNavigationMap();
+    renderNavigationStatus();
+    return true;
+  }
+  return loadNavigationMap(selected);
+}
+
+function buildNavigationMapSource(map) {
+  const geometry = navigationEngine.mapGeometry(map);
+  const binary = atob(String(map.data_b64 || ''));
+  if (binary.length !== geometry.width * geometry.height) throw new Error('2D 지도 셀 수가 width·height와 일치하지 않습니다.');
+  const source = document.createElement('canvas');
+  source.width = geometry.width;
+  source.height = geometry.height;
+  const context = source.getContext('2d');
+  const image = context.createImageData(geometry.width, geometry.height);
+  const cells = new Int8Array(geometry.width * geometry.height);
+  for (let y = 0; y < geometry.height; y += 1) {
+    for (let x = 0; x < geometry.width; x += 1) {
+      const input = y * geometry.width + x;
+      const output = ((geometry.height - 1 - y) * geometry.width + x) * 4;
+      const byte = binary.charCodeAt(input);
+      const value = byte > 127 ? byte - 256 : byte;
+      cells[input] = value;
+      const color = value < 0 ? [30, 45, 41] : value >= 65 ? [8, 13, 12] : [185, 220, 207];
+      image.data[output] = color[0];
+      image.data[output + 1] = color[1];
+      image.data[output + 2] = color[2];
+      image.data[output + 3] = 255;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  return { source, cells };
+}
+
+async function loadNavigationMap(meta) {
+  if (!meta || !navigationEngine) return false;
+  const generation = ++navigationMapLoadGeneration;
+  navigationSelectedMapMeta = meta;
+  navigationMapSnapshot = null;
+  navigationMapSourceCanvas = null;
+  navigationMapCells = null;
+  navigationMapLayout = null;
+  navigationMapError = '';
+  discardNavigationPose(false);
+  ui.navigationMapSelect.value = meta.id;
+  setStatePill(ui.navigationMapState, 'waiting', 'LOADING');
+  drawNavigationMap();
+  renderNavigationStatus();
+  try {
+    const payload = await api(meta.data_url || `/api/v1/saved-maps/${encodeURIComponent(meta.id)}/data`);
+    if (generation !== navigationMapLoadGeneration || navigationSelectedMapMeta?.id !== meta.id) return false;
+    if (String(payload?.revision || '') !== String(meta.revision || '')) {
+      throw new Error('지도 revision이 목록과 다릅니다. Saved Maps 목록을 새로고침하세요.');
+    }
+    navigationEngine.mapGeometry(payload);
+    const decoded = buildNavigationMapSource(payload);
+    navigationMapSourceCanvas = decoded.source;
+    navigationMapCells = decoded.cells;
+    navigationMapSnapshot = payload;
+    navigationMapError = '';
+    drawNavigationMap();
+    renderNavigationStatus();
+    return true;
+  } catch (error) {
+    if (generation !== navigationMapLoadGeneration || navigationSelectedMapMeta?.id !== meta.id) return false;
+    navigationMapError = error.message;
+    navigationMapSnapshot = null;
+    navigationMapSourceCanvas = null;
+    navigationMapCells = null;
+    setStatePill(ui.navigationMapState, 'error', 'LOAD FAILED');
+    drawNavigationMap();
+    renderNavigationStatus();
+    return false;
+  }
+}
+
+function drawNavigationPoseMarker(context, layout, pose, color, label, ratio = 1, dashed = false) {
+  if (!pose || !navigationEngine) return;
+  let projected;
+  try { projected = navigationEngine.worldToCanvas(layout, pose); }
+  catch (_) { return; }
+  if (!projected.inside) return;
+  const radius = 6 * ratio;
+  const arrow = 28 * ratio;
+  context.save();
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 2 * ratio;
+  if (dashed) context.setLineDash([5 * ratio, 4 * ratio]);
+  context.beginPath();
+  context.arc(projected.x, projected.y, radius, 0, Math.PI * 2);
+  context.stroke();
+  const tipX = projected.x + Math.cos(projected.heading) * arrow;
+  const tipY = projected.y + Math.sin(projected.heading) * arrow;
+  context.beginPath();
+  context.moveTo(projected.x, projected.y);
+  context.lineTo(tipX, tipY);
+  context.stroke();
+  context.setLineDash([]);
+  context.beginPath();
+  context.arc(tipX, tipY, 2.5 * ratio, 0, Math.PI * 2);
+  context.fill();
+  context.font = `${Math.max(8, 8 * ratio)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  context.fillText(label, projected.x + 9 * ratio, projected.y - 9 * ratio);
+  context.restore();
+}
+
+function drawNavigationMap() {
+  if (!ui.navigationMapCanvas) return;
+  const canvas = ui.navigationMapCanvas;
+  const { width, height, ratio } = resizeCanvas(canvas);
+  const context = canvas.getContext('2d');
+  context.fillStyle = '#04100d';
+  context.fillRect(0, 0, width, height);
+  const ready = Boolean(navigationEngine && navigationMapSnapshot && navigationMapSourceCanvas);
+  ui.navigationMapEmpty.hidden = ready;
+  if (!ready) {
+    navigationMapLayout = null;
+    if (navigationMapError) {
+      ui.navigationMapEmpty.innerHTML = `<strong>MAP UNAVAILABLE</strong><small>${escapeHtml(navigationMapError)}</small>`;
+    } else {
+      ui.navigationMapEmpty.innerHTML = '<strong>STATIC MAP REQUIRED</strong><small>Saved Maps에서 2D YAML·PGM 지도를 준비하세요.</small>';
+    }
+    return;
+  }
+  try {
+    const layout = navigationEngine.mapLayout(navigationMapSnapshot, width, height, 0.055);
+    navigationMapLayout = layout;
+    context.imageSmoothingEnabled = false;
+    context.drawImage(navigationMapSourceCanvas, layout.left, layout.top, layout.drawWidth, layout.drawHeight);
+    context.strokeStyle = 'rgba(93,222,216,.34)';
+    context.lineWidth = Math.max(1, ratio);
+    context.strokeRect(layout.left, layout.top, layout.drawWidth, layout.drawHeight);
+
+    const path = Array.isArray(navigationSnapshot?.path) ? navigationSnapshot.path : [];
+    const projectedPath = path.map((pose) => {
+      try { return navigationEngine.worldToCanvas(layout, pose); } catch (_) { return null; }
+    }).filter((point) => point?.inside);
+    if (projectedPath.length > 1) {
+      context.save();
+      context.beginPath();
+      projectedPath.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+      context.strokeStyle = 'rgba(162,139,255,.88)';
+      context.lineWidth = 2 * ratio;
+      context.setLineDash([6 * ratio, 4 * ratio]);
+      context.stroke();
+      context.restore();
+    }
+    drawNavigationPoseMarker(context, layout, navigationSnapshot?.localization?.pose, '#7df0b6', 'ROBOT', ratio);
+    drawNavigationPoseMarker(context, layout, navigationSnapshot?.goal?.pose, '#a28bff', 'GOAL', ratio, true);
+    if (navigationStagedPose) {
+      drawNavigationPoseMarker(
+        context,
+        layout,
+        navigationStagedPose,
+        navigationStagedPose.mode === 'initial' ? '#5dded8' : '#ffc66d',
+        navigationStagedPose.mode === 'initial' ? 'INITIAL · STAGED' : 'GOAL · STAGED',
+        ratio,
+      );
+    }
+  } catch (error) {
+    navigationMapLayout = null;
+    navigationMapError = error.message;
+    ui.navigationMapEmpty.hidden = false;
+    ui.navigationMapEmpty.innerHTML = `<strong>MAP RENDER FAILED</strong><small>${escapeHtml(error.message)}</small>`;
+  }
+}
+
+function scheduleNavigationMapDraw() {
+  if (navigationRenderFrame) return;
+  navigationRenderFrame = requestAnimationFrame(() => {
+    navigationRenderFrame = 0;
+    drawNavigationMap();
+  });
+}
+
+function navigationCanvasPoint(event) {
+  const bounds = ui.navigationMapCanvas.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return null;
+  return {
+    x: (event.clientX - bounds.left) * (ui.navigationMapCanvas.width / bounds.width),
+    y: (event.clientY - bounds.top) * (ui.navigationMapCanvas.height / bounds.height),
+  };
+}
+
+function navigationPoseToolAllowed(mode) {
+  const state = String(navigationSnapshot?.pipeline?.state || '').toLowerCase();
+  const robotOnline = navigationSnapshot?.robot_online === true;
+  const manualConflict = navigationManualControlConflict();
+  const safety = navigationSnapshot?.safety || {};
+  if (!navigationApiAvailable || state !== 'running' || !robotOnline || manualConflict || !navigationMapSnapshot || !navigationActiveMapMatchesSelection()) return false;
+  if (mode === 'initial') return safety.can_set_initial_pose === true;
+  return safety.can_send_goal === true &&
+    String(navigationSnapshot?.localization?.state || '').toLowerCase() === 'localized' &&
+    !navigationEngine?.goalActive(navigationSnapshot);
+}
+
+function renderNavigationPoseSelection() {
+  const initialAllowed = navigationPoseToolAllowed('initial');
+  const goalAllowed = navigationPoseToolAllowed('goal');
+  ui.navigationInitialPoseTool.disabled = navigationOperationBusy || !initialAllowed;
+  ui.navigationGoalPoseTool.disabled = navigationOperationBusy || !goalAllowed;
+  ui.navigationInitialPoseTool.classList.toggle('is-active', navigationMapTool === 'initial');
+  ui.navigationGoalPoseTool.classList.toggle('is-active', navigationMapTool === 'goal');
+  ui.navigationInitialPoseTool.setAttribute('aria-pressed', navigationMapTool === 'initial' ? 'true' : 'false');
+  ui.navigationGoalPoseTool.setAttribute('aria-pressed', navigationMapTool === 'goal' ? 'true' : 'false');
+  const staged = navigationStagedPose;
+  ui.navigationPoseMode.textContent = staged
+    ? `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
+    : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
+  ui.navigationPoseCoordinates.textContent = staged
+    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)}`
+    : 'X — · Y — · YAW —';
+  const stagedAllowed = staged && navigationPoseToolAllowed(staged.mode);
+  ui.navigationPoseDiscard.disabled = !staged || navigationOperationBusy;
+  ui.navigationPoseSend.disabled = !stagedAllowed || navigationOperationBusy;
+  ui.navigationPoseSend.textContent = staged?.mode === 'goal' ? 'SEND GOAL' : 'SEND POSE';
+}
+
+function discardNavigationPose(render = true) {
+  navigationPointer = null;
+  navigationStagedPose = null;
+  ui.navigationMapCanvas?.classList.remove('is-dragging');
+  if (render) {
+    renderNavigationPoseSelection();
+    drawNavigationMap();
+  }
+}
+
+function selectNavigationTool(mode) {
+  const normalized = mode === 'goal' ? 'goal' : 'initial';
+  if (!navigationPoseToolAllowed(normalized)) {
+    showToast(normalized === 'goal' ? '목표 전송 조건이 준비되지 않았습니다.' : '초기 위치 지정 조건이 준비되지 않았습니다.', true);
+    return;
+  }
+  navigationMapTool = navigationMapTool === normalized ? '' : normalized;
+  navigationStagedPose = null;
+  renderNavigationPoseSelection();
+  drawNavigationMap();
+}
+
+function beginNavigationPose(event) {
+  if (event.button !== 0 || !navigationMapTool || navigationOperationBusy || !navigationMapLayout) return;
+  if (!navigationPoseToolAllowed(navigationMapTool)) return;
+  const point = navigationCanvasPoint(event);
+  let occupancy = null;
+  try {
+    occupancy = point && navigationEngine.occupancyCellAtCanvas(navigationMapLayout, navigationMapCells, point);
+  } catch (_) {}
+  if (!occupancy?.inside) {
+    ui.navigationMapHint.textContent = '지도 경계 안에서 위치를 선택하세요.';
+    ui.navigationMapHint.classList.add('is-error');
+    return;
+  }
+  if (!occupancy.free) {
+    ui.navigationMapHint.textContent = occupancy.value < 0
+      ? '미관측(UNKNOWN) 셀에는 위치나 목표를 지정할 수 없습니다.'
+      : '장애물(OCCUPIED) 셀에는 위치나 목표를 지정할 수 없습니다.';
+    ui.navigationMapHint.classList.add('is-error');
+    return;
+  }
+  event.preventDefault();
+  ui.navigationMapHint.classList.remove('is-error');
+  ui.navigationMapHint.textContent = '진행 방향으로 드래그한 뒤 SEND 버튼으로 확인하세요.';
+  try { ui.navigationMapCanvas.setPointerCapture(event.pointerId); } catch (_) {}
+  navigationPointer = { id: event.pointerId, start: point, end: point, mode: navigationMapTool };
+  ui.navigationMapCanvas.classList.add('is-dragging');
+  updateNavigationStagedPose();
+}
+
+function updateNavigationStagedPose() {
+  if (!navigationPointer || !navigationMapLayout) return;
+  const fallbackYaw = Number(navigationSnapshot?.localization?.pose?.yaw) || 0;
+  const pose = navigationEngine.poseFromDrag(
+    navigationMapLayout,
+    navigationPointer.start,
+    navigationPointer.end,
+    fallbackYaw,
+  );
+  navigationStagedPose = pose ? { mode: navigationPointer.mode, ...pose } : null;
+  renderNavigationPoseSelection();
+  scheduleNavigationMapDraw();
+}
+
+function moveNavigationPose(event) {
+  if (!navigationPointer || navigationPointer.id !== event.pointerId) return;
+  const point = navigationCanvasPoint(event);
+  if (!point) return;
+  event.preventDefault();
+  navigationPointer.end = point;
+  updateNavigationStagedPose();
+}
+
+function finishNavigationPose(event) {
+  if (!navigationPointer || navigationPointer.id !== event.pointerId) return;
+  const point = navigationCanvasPoint(event);
+  if (point) navigationPointer.end = point;
+  updateNavigationStagedPose();
+  navigationPointer = null;
+  ui.navigationMapCanvas.classList.remove('is-dragging');
+  try { ui.navigationMapCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
+  renderNavigationPoseSelection();
+}
+
+function navigationStatusCard(strong, note, state, label, message) {
+  const card = strong.closest('.navigation-status-card');
+  card?.classList.toggle('is-ok', state === 'ok');
+  card?.classList.toggle('is-error', state === 'error');
+  strong.textContent = label;
+  note.textContent = message;
+}
+
+function navigationBlockerMessage(blocker) {
+  const messages = {
+    navigation_unavailable: 'Nav2 패키지 또는 허용된 launcher가 준비되지 않았습니다.',
+    robot_offline: '로봇 연결이 없어 새 주행 명령을 보낼 수 없습니다.',
+    manual_control_active: '수동 제어가 ARM되어 있습니다. Controls에서 먼저 DISARM하세요.',
+    mapping_active: '매핑 pipeline이 실행 중입니다. 매핑을 중지한 뒤 Nav2를 시작하세요.',
+    map_required: '정적 2D 지도를 선택하세요.',
+    initial_pose_required: '지도에서 로봇의 초기 위치와 방향을 지정하세요.',
+    localization_lost: '위치추정이 유실되었습니다. 초기 위치를 다시 지정하세요.',
+    parameters_unavailable: '안전한 파라미터 snapshot이 없습니다.',
+  };
+  return messages[String(blocker || '')] || String(blocker || '').replaceAll('_', ' ');
+}
+
+function renderNavigationStatus() {
+  if (!navigationEngine) {
+    navigationApiAvailable = false;
+    ui.navigationSafetyBanner.className = 'navigation-safety-banner is-error';
+    ui.navigationSafetyTitle.textContent = 'NAVIGATION MODULE ERROR';
+    ui.navigationSafetyMessage.textContent = 'navigation.js를 불러오지 못했습니다. 페이지를 새로고침하세요.';
+    return;
+  }
+  const snapshot = navigationSnapshot || {};
+  const pipelineState = String(snapshot.pipeline?.state || 'idle').toLowerCase();
+  const pipelineActive = navigationEngine.pipelineActive(snapshot);
+  const pipelineRunning = pipelineState === 'running';
+  const goalState = String(snapshot.goal?.state || 'idle').toLowerCase();
+  const goalActive = navigationEngine.goalActive(snapshot);
+  const localizationState = String(snapshot.localization?.state || 'unknown').toLowerCase();
+  const robotOnline = snapshot.robot_online === true;
+  const available = navigationApiAvailable === true && snapshot.available === true;
+  const manualConflict = navigationManualControlConflict();
+  const safety = snapshot.safety || {};
+  const blockers = Array.isArray(safety.blockers) ? safety.blockers : [];
+  const firstBlocker = blockers[0];
+  const activeMapMismatch = pipelineActive && !navigationActiveMapMatchesSelection();
+
+  ui.navigationSafetyBanner.className = 'navigation-safety-banner';
+  ui.navigationControlLink.hidden = !manualConflict;
+  if (!navigationApiAvailable) {
+    ui.navigationSafetyBanner.classList.add('is-offline');
+    ui.navigationSafetyTitle.textContent = 'NAVIGATION API OFFLINE';
+    ui.navigationSafetyMessage.textContent = '상태 API에 연결할 수 없습니다. 기존 STOP/CANCEL은 마지막 상태 기준으로 계속 시도할 수 있습니다.';
+  } else if (!available) {
+    ui.navigationSafetyBanner.classList.add('is-error');
+    ui.navigationSafetyTitle.textContent = 'NAVIGATION UNAVAILABLE';
+    ui.navigationSafetyMessage.textContent = snapshot.error || navigationBlockerMessage(firstBlocker || 'navigation_unavailable');
+  } else if (activeMapMismatch) {
+    ui.navigationSafetyBanner.classList.add('is-error');
+    ui.navigationSafetyTitle.textContent = 'ACTIVE MAP REVISION MISMATCH';
+    ui.navigationSafetyMessage.textContent = '현재 Nav2가 사용 중인 지도 revision과 Saved Maps catalog가 다릅니다. 새 pose·goal은 차단되었습니다.';
+  } else if (manualConflict) {
+    ui.navigationSafetyBanner.classList.add('is-warning');
+    ui.navigationSafetyTitle.textContent = 'MANUAL CONTROL ACTIVE';
+    ui.navigationSafetyMessage.textContent = '수동 제어와 Nav2는 동시에 명령할 수 없습니다. Controls에서 DISARM한 뒤 진행하세요.';
+  } else if (!robotOnline) {
+    ui.navigationSafetyBanner.classList.add('is-offline');
+    ui.navigationSafetyTitle.textContent = 'ROBOT OFFLINE';
+    ui.navigationSafetyMessage.textContent = '새 시작·초기 위치·목표 명령은 잠겼습니다. STOP과 CANCEL은 작업 정리를 위해 유지됩니다.';
+  } else if (pipelineState === 'failed') {
+    ui.navigationSafetyBanner.classList.add('is-error');
+    ui.navigationSafetyTitle.textContent = 'NAVIGATION FAILED';
+    ui.navigationSafetyMessage.textContent = snapshot.pipeline?.error || 'Nav2 pipeline 로그를 확인하세요.';
+  } else if (firstBlocker) {
+    ui.navigationSafetyBanner.classList.add('is-warning');
+    ui.navigationSafetyTitle.textContent = 'ACTION REQUIRED';
+    ui.navigationSafetyMessage.textContent = navigationBlockerMessage(firstBlocker);
+  } else {
+    ui.navigationSafetyTitle.textContent = pipelineRunning ? 'NAV2 RUNNING · SAFETY READY' : 'READY TO START';
+    ui.navigationSafetyMessage.textContent = pipelineRunning
+      ? '정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.'
+      : '정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세요.';
+  }
+
+  navigationStatusCard(
+    ui.navigationPipelineState,
+    ui.navigationPipelineNote,
+    pipelineState === 'failed' ? 'error' : pipelineRunning ? 'ok' : 'waiting',
+    pipelineState.toUpperCase(),
+    snapshot.pipeline?.error || (snapshot.pipeline?.job_id ? `job ${String(snapshot.pipeline.job_id).slice(0, 8)}` : 'pipeline idle'),
+  );
+  navigationStatusCard(
+    ui.navigationRobotState,
+    ui.navigationRobotNote,
+    robotOnline ? 'ok' : 'error',
+    robotOnline ? 'ONLINE' : 'OFFLINE',
+    robotOnline ? '로봇 상태 수신 중' : '새 주행 명령 잠김',
+  );
+  navigationStatusCard(
+    ui.navigationLocalizationState,
+    ui.navigationLocalizationNote,
+    localizationState === 'localized' ? 'ok' : ['lost', 'error'].includes(localizationState) ? 'error' : 'waiting',
+    localizationState.toUpperCase(),
+    localizationState === 'localized' ? 'map frame pose ready' : localizationState === 'lost' ? '초기 위치 재설정 필요' : '초기 위치 필요',
+  );
+  navigationStatusCard(
+    ui.navigationGoalState,
+    ui.navigationGoalNote,
+    goalState === 'succeeded' ? 'ok' : goalState === 'failed' ? 'error' : 'waiting',
+    goalState.toUpperCase(),
+    snapshot.goal?.error || (snapshot.goal?.goal_id ? `goal ${String(snapshot.goal.goal_id).slice(0, 8)}` : '목표 없음'),
+  );
+
+  ui.navigationJobId.textContent = snapshot.pipeline?.job_id ? `JOB ${String(snapshot.pipeline.job_id).slice(0, 8)}` : 'JOB —';
+  ui.navigationReadiness.querySelectorAll('[data-navigation-ready]').forEach((element) => {
+    const key = element.dataset.navigationReady;
+    const value = snapshot.readiness?.[key];
+    element.classList.toggle('is-ok', value === true);
+    element.classList.toggle('is-error', navigationApiAvailable === true && value === false);
+    element.querySelector('strong').textContent = value === true ? 'READY' : value === false ? 'BLOCKED' : 'WAIT';
+  });
+  const bindings = snapshot.bindings || {};
+  ui.navigationScanBinding.textContent = bindings.scan || '/scan · XT16 360°';
+  ui.navigationOdomBinding.textContent = bindings.odometry || '/utlidar/robot_odom';
+
+  const distance = Number(snapshot.goal?.distance_remaining);
+  const elapsed = Number(snapshot.goal?.navigation_time);
+  const recoveries = Number(snapshot.goal?.recoveries);
+  ui.navigationGoalDistance.textContent = Number.isFinite(distance) ? distance.toFixed(2) : '—';
+  ui.navigationGoalElapsed.textContent = Number.isFinite(elapsed) ? `${elapsed.toFixed(1)} s` : '—';
+  ui.navigationGoalRecoveries.textContent = Number.isFinite(recoveries) ? String(Math.max(0, Math.floor(recoveries))) : '0';
+  const initialDistance = Number(snapshot.goal?.initial_distance);
+  if (goalActive && Number.isFinite(distance) && Number.isFinite(initialDistance) && initialDistance > 0) {
+    ui.navigationGoalProgress.value = Math.max(0, Math.min(1, 1 - distance / initialDistance));
+  } else if (goalActive) {
+    ui.navigationGoalProgress.removeAttribute('value');
+  } else {
+    ui.navigationGoalProgress.value = goalState === 'succeeded' ? 1 : 0;
+  }
+  ui.navigationGoalMessage.textContent = snapshot.goal?.error || snapshot.goal?.message || (
+    goalState === 'active' ? 'Nav2가 목표 경로를 추종하고 있습니다.' :
+      goalState === 'succeeded' ? '목표에 도착했습니다.' :
+        'Nav2를 시작하고 초기 위치를 지정한 뒤 목표를 보낼 수 있습니다.'
+  );
+
+  const mapReady = Boolean(
+    navigationSelectedMapMeta &&
+    navigationMapSnapshot &&
+    navigationSelectedMapMeta.revision === navigationMapSnapshot.revision
+  );
+  const parameterReady = Boolean(navigationParameterSnapshot?.revision);
+  const canStart = available && robotOnline && mapReady && parameterReady &&
+    safety.can_start === true && !pipelineActive && !manualConflict;
+  ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart;
+  ui.navigationStopButton.disabled = navigationOperationBusy || !pipelineActive;
+  ui.navigationCancelGoal.disabled = navigationOperationBusy || !goalActive;
+  ui.navigationClearCostmaps.disabled = navigationOperationBusy || !pipelineRunning;
+  ui.navigationMapSelect.disabled = navigationOperationBusy || pipelineActive;
+  ui.navigationMapHint.textContent = activeMapMismatch
+    ? '활성 지도 revision이 변경되었습니다. STOP 후 정적 지도를 다시 선택하세요.'
+    : !mapReady
+    ? 'Saved Maps의 2D 지도를 불러와야 위치를 지정할 수 있습니다.'
+    : !pipelineRunning ? 'Nav2를 시작하면 초기 위치와 목표 도구가 활성화됩니다.'
+      : localizationState !== 'localized' ? 'INITIAL POSE를 선택하고 현재 로봇 위치에서 진행 방향으로 드래그하세요.'
+        : 'GOAL POSE를 선택하고 목표 위치에서 도착 방향으로 드래그하세요.';
+  if (navigationMapError || activeMapMismatch) setStatePill(ui.navigationMapState, 'error', 'MAP ERROR');
+  else if (mapReady) setStatePill(ui.navigationMapState, 'ok', 'STATIC MAP');
+  else setStatePill(ui.navigationMapState, 'waiting', 'NO MAP');
+  renderNavigationPoseSelection();
+  syncNavigationParameterControls();
+  scheduleNavigationMapDraw();
+}
+
+function applyNavigationSnapshot(payload) {
+  const snapshot = extractNavigationSnapshot(payload);
+  if (!snapshot) throw new Error('서버가 유효한 navigation snapshot을 반환하지 않았습니다.');
+  navigationSnapshot = snapshot;
+  navigationApiAvailable = true;
+  renderNavigationStatus();
+  renderControlStatus();
+  const serverMapId = String(snapshot.map?.id || '');
+  const serverMapRevision = String(snapshot.map?.revision || '');
+  if (serverMapId && (
+    navigationSelectedMapMeta?.id !== serverMapId ||
+    String(navigationSelectedMapMeta?.revision || '') !== serverMapRevision
+  )) syncNavigationMapOptions();
+  return snapshot;
+}
+
+async function refreshNavigation() {
+  if (navigationStatusBusy || navigationOperationBusy) return;
+  navigationStatusBusy = true;
+  const generation = navigationStatusRequestGeneration;
+  try {
+    const payload = await api('/api/v1/navigation');
+    if (generation !== navigationStatusRequestGeneration) return;
+    applyNavigationSnapshot(payload);
+  } catch (_) {
+    if (generation !== navigationStatusRequestGeneration) return;
+    navigationApiAvailable = false;
+    renderNavigationStatus();
+    renderControlStatus();
+  } finally {
+    navigationStatusBusy = false;
+  }
+}
+
+async function runNavigationMutation(path, body, successMessage) {
+  if (navigationOperationBusy) return null;
+  navigationOperationBusy = true;
+  navigationStatusRequestGeneration += 1;
+  renderNavigationStatus();
+  let response = null;
+  try {
+    response = await api(path, { method: 'POST', body: JSON.stringify(body) });
+    try { applyNavigationSnapshot(response); } catch (_) {}
+    if (successMessage) showToast(successMessage);
+    return response;
+  } catch (error) {
+    showToast(`Navigation 명령 실패: ${error.message}`, true);
+    return null;
+  } finally {
+    navigationOperationBusy = false;
+    renderNavigationStatus();
+    refreshNavigation();
+  }
+}
+
+async function startNavigation() {
+  if (navigationManualControlConflict()) {
+    showToast('Controls에서 수동 제어를 DISARM한 뒤 Nav2를 시작하세요.', true);
+    return;
+  }
+  if (!navigationSelectedMapMeta || !navigationMapSnapshot || !navigationParameterSnapshot) {
+    showToast('정적 지도와 파라미터 revision이 모두 필요합니다.', true);
+    return;
+  }
+  await runNavigationMutation('/api/v1/navigation/start', {
+    map_id: navigationSelectedMapMeta.id,
+    map_revision: navigationSelectedMapMeta.revision,
+    parameters_revision: navigationParameterSnapshot.revision,
+  }, 'Nav2 시작을 요청했습니다.');
+}
+
+async function stopNavigation() {
+  if (!navigationEngine?.pipelineActive(navigationSnapshot)) return;
+  discardNavigationPose();
+  await runNavigationMutation('/api/v1/navigation/stop', {}, 'Nav2 중지를 요청했습니다.');
+}
+
+async function sendNavigationPose() {
+  const staged = navigationStagedPose;
+  if (!staged || !navigationSelectedMapMeta || !navigationPoseToolAllowed(staged.mode)) return;
+  if (navigationManualControlConflict()) {
+    showToast('수동 제어가 활성화되어 위치·목표 명령을 보낼 수 없습니다.', true);
+    return;
+  }
+  if (staged.mode === 'goal' && !window.confirm('주변이 비어 있고 물리 리모컨을 즉시 사용할 수 있나요? 확인을 누르면 로봇이 자율 이동을 시작할 수 있습니다.')) {
+    return;
+  }
+  const endpoint = staged.mode === 'goal' ? '/api/v1/navigation/goal' : '/api/v1/navigation/initial-pose';
+  const body = {
+    map_id: navigationSelectedMapMeta.id,
+    map_revision: navigationSelectedMapMeta.revision,
+    pose: { x: staged.x, y: staged.y, yaw: staged.yaw },
+  };
+  if (staged.mode === 'goal') body.confirmed = true;
+  const response = await runNavigationMutation(endpoint, {
+    ...body,
+  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : '초기 위치를 전송했습니다.');
+  if (response) {
+    navigationMapTool = '';
+    discardNavigationPose();
+  }
+}
+
+async function cancelNavigationGoal() {
+  const goalId = String(navigationSnapshot?.goal?.goal_id || '');
+  if (!goalId || !navigationEngine?.goalActive(navigationSnapshot)) return;
+  await runNavigationMutation('/api/v1/navigation/cancel', { goal_id: goalId }, '활성 목표 취소를 요청했습니다.');
+}
+
+async function clearNavigationCostmaps() {
+  if (String(navigationSnapshot?.pipeline?.state || '').toLowerCase() !== 'running') return;
+  await runNavigationMutation('/api/v1/navigation/clear-costmaps', { scope: 'both' }, '전역·로컬 costmap 초기화를 요청했습니다.');
+}
+
+function navigationParameterPresets() {
+  if (!navigationEngine) return [];
+  const presets = [...(navigationParameterSnapshot?.presets || [])];
+  if (!presets.some((preset) => preset.id === 'pdf11_go2_indoor')) {
+    presets.unshift({
+      id: 'pdf11_go2_indoor',
+      label: 'PDF 11 · Go2 indoor tuned',
+      description: '수업 자료의 Go2 실내 주행 기준값',
+      values: navigationEngine.TUNED_VALUES,
+    });
+  }
+  return presets;
+}
+
+function renderNavigationParameterGroups(values = navigationParameterDraft || navigationEngine?.TUNED_VALUES, disabled = false) {
+  if (!navigationEngine || !values) {
+    ui.navigationParameterGroups.innerHTML = '<div class="sensor-placeholder">Navigation parameter module unavailable</div>';
+    return;
+  }
+  ui.navigationParameterGroups.innerHTML = navigationEngine.GROUPS.map((group) => {
+    const fields = navigationEngine.FIELDS.filter((field) => field.group === group.id);
+    return `<section class="navigation-parameter-group" data-navigation-parameter-group="${escapeHtml(group.id)}">
+      <header><strong>${escapeHtml(group.label)}</strong><small>${escapeHtml(group.description)}</small></header>
+      <div class="navigation-parameter-fields">${fields.map((field) => {
+        const value = values[field.key];
+        const locked = field.locked === true;
+        const control = field.type === 'boolean'
+          ? `<select data-navigation-parameter="${escapeHtml(field.key)}" ${disabled || locked ? 'disabled' : ''}><option value="true" ${value === true ? 'selected' : ''}>TRUE</option><option value="false" ${value === false ? 'selected' : ''}>FALSE</option></select>`
+          : `<input data-navigation-parameter="${escapeHtml(field.key)}" type="number" min="${field.minimum}" max="${field.maximum}" step="${field.step}" value="${escapeHtml(value)}" ${disabled || locked ? 'disabled' : ''}>`;
+        return `<label class="navigation-parameter-field${locked ? ' is-locked' : ''}" data-navigation-parameter-row="${escapeHtml(field.key)}"><span><b>${escapeHtml(field.label)}${field.unit ? ` · ${escapeHtml(field.unit)}` : ''}${locked ? ' · LOCKED' : ''}</b><small>${escapeHtml(field.help)}</small></span>${control}</label>`;
+      }).join('')}</div>
+    </section>`;
+  }).join('');
+}
+
+function renderNavigationPresetOptions() {
+  const presets = navigationParameterPresets();
+  ui.navigationPreset.innerHTML = presets.length
+    ? presets.map((preset) => `<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`).join('')
+    : '<option value="">사용 가능한 preset 없음</option>';
+  const preferred = navigationParameterSnapshot?.active_preset || 'pdf11_go2_indoor';
+  ui.navigationPreset.value = presets.some((preset) => preset.id === preferred) ? preferred : presets[0]?.id || '';
+}
+
+function navigationParameterValidation() {
+  if (!navigationEngine || !navigationParameterSnapshot || !navigationParameterDraft) {
+    throw new Error('서버 parameter snapshot이 없습니다.');
+  }
+  return navigationEngine.parameterValues(navigationParameterDraft, { requireAll: true });
+}
+
+function navigationParametersDirty() {
+  if (!navigationEngine || !navigationParameterSnapshot || !navigationParameterDraft) return false;
+  try {
+    return Object.keys(navigationEngine.changedParameterValues(
+      navigationParameterSnapshot.values,
+      navigationParameterDraft,
+    )).length > 0;
+  } catch (_) {
+    return true;
+  }
+}
+
+function syncNavigationParameterControls() {
+  const pipelineActive = navigationEngine?.pipelineActive(navigationSnapshot) || false;
+  const ready = Boolean(navigationEngine && navigationParameterSnapshot && navigationParameterDraft);
+  let validationError = '';
+  let changes = {};
+  if (ready) {
+    try {
+      navigationParameterValidation();
+      changes = navigationEngine.changedParameterValues(navigationParameterSnapshot.values, navigationParameterDraft);
+    } catch (error) {
+      validationError = error.message;
+    }
+  }
+  const dirty = ready && (validationError || Object.keys(changes).length > 0);
+  ui.navigationParameterGroups.querySelectorAll('[data-navigation-parameter]').forEach((input) => {
+    const field = navigationEngine.FIELD_BY_KEY[input.dataset.navigationParameter];
+    input.disabled = navigationParameterBusy || !ready || field?.locked === true;
+  });
+  ui.navigationParameterGroups.querySelectorAll('[data-navigation-parameter-row]').forEach((row) => {
+    row.classList.toggle('is-changed', Object.hasOwn(changes, row.dataset.navigationParameterRow));
+  });
+  ui.navigationPreset.disabled = navigationParameterBusy || !ready;
+  ui.navigationPresetLoad.disabled = navigationParameterBusy || !ready || !ui.navigationPreset.value;
+  ui.navigationParameterReset.disabled = navigationParameterBusy || !dirty;
+  ui.navigationParameterApply.disabled = navigationParameterBusy || pipelineActive || !dirty || Boolean(validationError);
+  ui.navigationParameterDirty.textContent = validationError
+    ? 'INVALID VALUES'
+    : dirty ? `${Object.keys(changes).length} CHANGED` : 'NO CHANGES';
+  ui.navigationParameterDirty.classList.toggle('is-dirty', Boolean(dirty));
+  if (!ready) {
+    setStatePill(ui.navigationParameterState, 'error', 'UNAVAILABLE');
+    ui.navigationParameterMessage.textContent = '서버가 27개 tuned parameter와 revision을 모두 제공해야 편집·적용할 수 있습니다.';
+    ui.navigationParameterMessage.classList.add('is-error');
+  } else if (validationError) {
+    setStatePill(ui.navigationParameterState, 'error', 'INVALID');
+    ui.navigationParameterMessage.textContent = `파라미터 검증 실패: ${validationError}`;
+    ui.navigationParameterMessage.classList.add('is-error');
+  } else if (pipelineActive && dirty) {
+    setStatePill(ui.navigationParameterState, 'waiting', 'RESTART REQUIRED');
+    ui.navigationParameterMessage.textContent = '변경값은 유지됩니다. STOP으로 Nav2를 중지한 뒤 APPLY하세요.';
+    ui.navigationParameterMessage.classList.remove('is-error');
+  } else if (dirty) {
+    setStatePill(ui.navigationParameterState, 'waiting', 'MODIFIED');
+    ui.navigationParameterMessage.textContent = '아직 서버에 적용되지 않은 값입니다. APPLY 후 Nav2를 시작하세요.';
+    ui.navigationParameterMessage.classList.remove('is-error');
+  } else {
+    setStatePill(ui.navigationParameterState, 'ok', 'APPLIED');
+    ui.navigationParameterMessage.textContent = navigationParameterSnapshot.requires_restart
+      ? '현재 revision이 적용되어 있습니다. 이후 변경은 Nav2 중지 상태에서 저장되고 다음 시작에 사용됩니다.'
+      : '현재 revision이 적용되어 있습니다.';
+    ui.navigationParameterMessage.classList.remove('is-error');
+  }
+}
+
+function updateNavigationParameterDraft(event) {
+  const input = event.target.closest('[data-navigation-parameter]');
+  if (!input || !navigationParameterDraft || !navigationEngine) return;
+  const key = input.dataset.navigationParameter;
+  try {
+    const value = navigationEngine.coerceParameterValue(key, input.value);
+    navigationParameterDraft = { ...navigationParameterDraft, [key]: value };
+  } catch (_) {
+    navigationParameterDraft = { ...navigationParameterDraft, [key]: input.value };
+  }
+  syncNavigationParameterControls();
+}
+
+async function refreshNavigationParameters(force = false) {
+  if (!navigationEngine || navigationParameterBusy || (navigationParameterSnapshot && !force)) {
+    syncNavigationParameterControls();
+    return;
+  }
+  navigationParameterBusy = true;
+  setStatePill(ui.navigationParameterState, 'waiting', 'LOADING');
+  syncNavigationParameterControls();
+  try {
+    const payload = await api('/api/v1/navigation/parameters');
+    const raw = payload?.parameters && typeof payload.parameters === 'object' ? payload.parameters : payload;
+    navigationParameterSnapshot = navigationEngine.normalizeParameterSnapshot(raw);
+    navigationParameterDraft = { ...navigationParameterSnapshot.values };
+    renderNavigationPresetOptions();
+    renderNavigationParameterGroups(navigationParameterDraft);
+  } catch (error) {
+    navigationParameterSnapshot = null;
+    navigationParameterDraft = null;
+    renderNavigationPresetOptions();
+    renderNavigationParameterGroups(navigationEngine.TUNED_VALUES, true);
+    ui.navigationParameterMessage.textContent = `파라미터 API 확인 실패: ${error.message}`;
+    ui.navigationParameterMessage.classList.add('is-error');
+  } finally {
+    navigationParameterBusy = false;
+    syncNavigationParameterControls();
+    renderNavigationStatus();
+  }
+}
+
+function loadNavigationPreset() {
+  if (!navigationParameterSnapshot || navigationParameterBusy) return;
+  const preset = navigationParameterPresets().find((item) => item.id === ui.navigationPreset.value);
+  if (!preset) return;
+  try {
+    navigationParameterDraft = navigationEngine.parameterValues(preset.values, { requireAll: true });
+    renderNavigationParameterGroups(navigationParameterDraft);
+    syncNavigationParameterControls();
+    showToast(`${preset.label} 값을 draft에 불러왔습니다. APPLY 전에는 서버 값이 바뀌지 않습니다.`);
+  } catch (error) {
+    showToast(`Preset 로드 실패: ${error.message}`, true);
+  }
+}
+
+function resetNavigationParameterDraft() {
+  if (!navigationParameterSnapshot || navigationParameterBusy) return;
+  navigationParameterDraft = { ...navigationParameterSnapshot.values };
+  renderNavigationParameterGroups(navigationParameterDraft);
+  syncNavigationParameterControls();
+}
+
+async function applyNavigationParameters() {
+  if (!navigationParameterSnapshot || navigationParameterBusy) return;
+  if (navigationEngine.pipelineActive(navigationSnapshot)) {
+    showToast('Nav2를 STOP한 뒤 파라미터를 적용하세요.', true);
+    return;
+  }
+  let patch;
+  try {
+    patch = navigationEngine.parameterPatch(
+      navigationParameterSnapshot.revision,
+      navigationParameterSnapshot.values,
+      navigationParameterDraft,
+    );
+  } catch (error) {
+    showToast(`파라미터 검증 실패: ${error.message}`, true);
+    return;
+  }
+  if (!Object.keys(patch.values).length) {
+    showToast('적용할 변경 사항이 없습니다.');
+    return;
+  }
+  navigationParameterBusy = true;
+  let reloadAfterConflict = false;
+  syncNavigationParameterControls();
+  try {
+    const response = await api('/api/v1/navigation/parameters', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        base_revision: patch.base_revision,
+        values: patch.values,
+      }),
+    });
+    const raw = response?.parameters && typeof response.parameters === 'object' ? response.parameters : response;
+    navigationParameterSnapshot = navigationEngine.normalizeParameterSnapshot(raw);
+    navigationParameterDraft = { ...navigationParameterSnapshot.values };
+    renderNavigationPresetOptions();
+    renderNavigationParameterGroups(navigationParameterDraft);
+    showToast('Navigation 파라미터를 적용했습니다. 다음 Nav2 시작에 사용됩니다.');
+  } catch (error) {
+    showToast(`파라미터 적용 실패: ${error.message}`, true);
+    reloadAfterConflict = error.status === 409 || String(error.message).includes('409');
+  } finally {
+    navigationParameterBusy = false;
+    syncNavigationParameterControls();
+    renderNavigationStatus();
+  }
+  if (reloadAfterConflict) {
+    await refreshNavigationParameters(true);
+    showToast('파라미터 revision이 변경되어 최신 값을 다시 불러왔습니다. 변경 사항을 다시 확인하세요.', true);
+  }
 }
 
 function redrawActiveMap() {
@@ -3520,6 +4508,7 @@ function renderControlStatus() {
   const estopLatched = controlEstopLatched(snapshot);
   const serverLease = snapshot.lease || {};
   const locallyArmed = Boolean(controlLeaseId);
+  const navigationBlocking = navigationActivityBlocksManualControl();
   const { bridge, state: bridgeState, ready: bridgeReady } = normalizedBridgeState();
   const availabilityCard = controlUi.availability.closest('.control-status-card');
   const leaseCard = controlUi.leaseState.closest('.control-status-card');
@@ -3528,7 +4517,9 @@ function renderControlStatus() {
   availabilityCard.classList.toggle('is-ok', ready);
   availabilityCard.classList.toggle('is-error', !go2Profile || snapshot.enabled === false || snapshot.configured === false);
   controlUi.availability.textContent = !go2Profile ? 'GO2 ONLY' : ready ? 'AVAILABLE' : snapshot.enabled === false ? 'DISABLED' : snapshot.configured === false ? 'NOT CONFIGURED' : 'UNAVAILABLE';
-  controlUi.availabilityNote.textContent = !go2Profile ? `${activeRobotProfile()?.label || '선택 로봇'} 제어는 아직 지원하지 않음` : snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
+  controlUi.availabilityNote.textContent = navigationBlocking
+    ? 'Nav2 실행 중 · STOP 후 수동 제어 가능'
+    : !go2Profile ? `${activeRobotProfile()?.label || '선택 로봇'} 제어는 아직 지원하지 않음` : snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
 
   leaseCard.classList.toggle('is-ok', locallyArmed && serverLease.active !== false);
   leaseCard.classList.toggle('is-error', Boolean(serverLease.active && !locallyArmed));
@@ -3546,9 +4537,10 @@ function renderControlStatus() {
 
   if (estopLatched) setStatePill(controlUi.statePill, 'error', 'SOFTWARE STOP');
   else if (locallyArmed) setStatePill(controlUi.statePill, 'ok', serverLease.bound ? 'ARMED · BOUND' : 'ARMED · BINDING');
+  else if (navigationBlocking) setStatePill(controlUi.statePill, 'waiting', 'NAVIGATION ACTIVE');
   else setStatePill(controlUi.statePill, ready ? 'waiting' : 'error', ready ? 'DISARMED' : 'UNAVAILABLE');
 
-  controlUi.arm.disabled = controlArmBusy || controlDisarmBusy || locallyArmed || !ready || estopLatched;
+  controlUi.arm.disabled = controlArmBusy || controlDisarmBusy || locallyArmed || !ready || estopLatched || navigationActivityBlocksManualControl();
   controlUi.disarm.disabled = controlDisarmBusy || !locallyArmed;
   controlUi.inputSource.setAttribute('aria-disabled', locallyArmed ? 'true' : 'false');
   controlUi.estop.disabled = controlEmergencyBusy || !go2Profile;
@@ -3588,7 +4580,7 @@ function renderControlActions() {
     controlUi.actions.innerHTML = '<div class="control-action-empty">서버에서 허용한 모션이 없습니다.</div>';
     return;
   }
-  const armed = Boolean(controlLeaseId) && !controlEstopLatched() && !controlHadDeadman && !controlActionBusy;
+  const armed = Boolean(controlLeaseId) && !controlEstopLatched() && !controlHadDeadman && !controlActionBusy && !navigationActivityBlocksManualControl();
   const now = Date.now();
   if (actionConfirmation && actionConfirmation.expires <= now) actionConfirmation = null;
   controlUi.actions.innerHTML = actions.map((action) => {
@@ -3644,11 +4636,12 @@ function applyControlSnapshot(snapshot) {
   }
   controlUi.speedOutput.textContent = `${controlUi.speed.value}%`;
   renderControlStatus();
+  renderNavigationStatus();
   if (!controlLeaseId) renderControlCommand(snapshot.command);
 }
 
 async function refreshControlSnapshot() {
-  if (activePage !== 'controls') return;
+  if (!['controls', 'navigation'].includes(activePage)) return;
   // A poll started before ARM can finish afterward with the old inactive
   // snapshot. Never let that stale response revoke a newer local lease.
   const armGenerationAtRequest = controlArmGeneration;
@@ -3878,6 +4871,10 @@ function invalidatePendingArm() {
 
 async function armControl() {
   if (controlLeaseId || controlDisarmBusy || controlArmBusy) return;
+  if (navigationActivityBlocksManualControl()) {
+    showToast('Nav2 pipeline 또는 목표가 활성 상태입니다. Navigation에서 STOP한 뒤 ARM하세요.', true);
+    return;
+  }
   const source = controlUi.inputSource.value;
   if (source === 'gamepad' && !selectedControlGamepad()) { showToast('연결된 게임패드를 선택하세요.', true); return; }
   const armGeneration = ++controlArmGeneration;
@@ -4216,7 +5213,7 @@ ui.robotIp.addEventListener('input', () => {
   });
 });
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot()]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot(), refreshNavigation(), refreshNavigationParameters(true)]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
@@ -4316,6 +5313,26 @@ ui.mapEditorSave.addEventListener('click', saveMapEditorCopy);
 ui.mapEditorCanvas.addEventListener('pointerdown', beginMapEditorStroke);
 ui.mapEditorCanvas.addEventListener('pointermove', moveMapEditorStroke);
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => ui.mapEditorCanvas.addEventListener(name, finishMapEditorStroke));
+ui.navigationMapSelect.addEventListener('change', () => {
+  const selected = navigationMapCandidates().find((entry) => entry.id === ui.navigationMapSelect.value);
+  if (selected) loadNavigationMap(selected);
+});
+ui.navigationStartButton.addEventListener('click', startNavigation);
+ui.navigationStopButton.addEventListener('click', stopNavigation);
+ui.navigationInitialPoseTool.addEventListener('click', () => selectNavigationTool('initial'));
+ui.navigationGoalPoseTool.addEventListener('click', () => selectNavigationTool('goal'));
+ui.navigationPoseDiscard.addEventListener('click', () => discardNavigationPose());
+ui.navigationPoseSend.addEventListener('click', sendNavigationPose);
+ui.navigationCancelGoal.addEventListener('click', cancelNavigationGoal);
+ui.navigationClearCostmaps.addEventListener('click', clearNavigationCostmaps);
+ui.navigationMapCanvas.addEventListener('pointerdown', beginNavigationPose);
+ui.navigationMapCanvas.addEventListener('pointermove', moveNavigationPose);
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => ui.navigationMapCanvas.addEventListener(name, finishNavigationPose));
+ui.navigationParameterGroups.addEventListener('input', updateNavigationParameterDraft);
+ui.navigationParameterGroups.addEventListener('change', updateNavigationParameterDraft);
+ui.navigationPresetLoad.addEventListener('click', loadNavigationPreset);
+ui.navigationParameterReset.addEventListener('click', resetNavigationParameterDraft);
+ui.navigationParameterApply.addEventListener('click', applyNavigationParameters);
 ui.topicSearch.addEventListener('input', renderTopics);
 ui.categoryFilter.addEventListener('change', renderTopics);
 ui.cameraCaptureButton.addEventListener('click', captureCameraFrame);
@@ -4371,6 +5388,7 @@ window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
   if (activePage === 'mapping') redrawActiveMap();
   if (activePage === 'maps') { redrawSavedMap(); drawMapEditor(); }
+  if (activePage === 'navigation') drawNavigationMap();
 });
 
 startClock();
@@ -4381,6 +5399,9 @@ renderControlStatus();
 renderControlCommand();
 syncMapConversionPanel();
 syncMapEditorUi();
+renderNavigationParameterGroups(navigationEngine?.TUNED_VALUES, true);
+renderNavigationPresetOptions();
+renderNavigationStatus();
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
 initializeRobotProfiles();
@@ -4396,6 +5417,8 @@ refreshSources();
 pointBudgetReady.then(refreshPointcloud);
 refreshMap();
 refreshMappingControl();
+refreshNavigation();
+refreshNavigationParameters();
 setInterval(refreshState, 1000);
 setInterval(refreshPointcloud, 400);
 setInterval(refreshMap, 2000);
@@ -4403,6 +5426,7 @@ setInterval(refreshTopics, 3500);
 setInterval(refreshSources, 5000);
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
+setInterval(refreshNavigation, 1000);
 setInterval(markJointsStale, 250);
 setInterval(syncCameraFrameFreshness, 500);
 setInterval(controlTick, 50);

@@ -109,7 +109,7 @@ class Go2ControlBridge(Node):
             callback_group=self._callback_group,
         )
         self.get_logger().info(
-            f"Go2 control watchdog ready; waiting for exactly one {self._lowstate_topic} publisher and sport subscriber"
+            f"Go2 control watchdog ready; waiting for exactly one {self._lowstate_topic} publisher, sport publisher, and sport subscriber"
         )
 
     def _lowstate_callback(self, _: LowState) -> None:
@@ -135,7 +135,7 @@ class Go2ControlBridge(Node):
             self._core.force_stop(f"rejected command: {exc}")
             self.get_logger().warning(str(exc))
 
-    def _environment(self, now: float) -> tuple[float | None, int, int]:
+    def _environment(self, now: float) -> tuple[float | None, int, int, int]:
         lowstate_age = (
             None if self._last_lowstate <= 0 else max(0.0, now - self._last_lowstate)
         )
@@ -143,7 +143,8 @@ class Go2ControlBridge(Node):
         # two different global LowState topics into a false single-robot view.
         lowstate_publishers = self.count_publishers(self._lowstate_topic)
         subscribers = self.count_subscribers(SPORT_REQUEST_TOPIC)
-        return lowstate_age, lowstate_publishers, subscribers
+        publishers = self.count_publishers(SPORT_REQUEST_TOPIC)
+        return lowstate_age, lowstate_publishers, subscribers, publishers
 
     def _publish_request(self, request: SportRequest) -> None:
         message = Request()
@@ -157,12 +158,14 @@ class Go2ControlBridge(Node):
         lowstate_age: float | None,
         lowstate_publishers: int,
         sport_subscribers: int,
+        sport_publishers: int,
     ) -> None:
         snapshot = self._core.snapshot(
             now=now,
             lowstate_age_s=lowstate_age,
             lowstate_publishers=lowstate_publishers,
             sport_subscribers=sport_subscribers,
+            sport_publishers=sport_publishers,
         )
         snapshot.update(
             {
@@ -179,12 +182,18 @@ class Go2ControlBridge(Node):
 
     def _tick(self) -> None:
         now = time.monotonic()
-        lowstate_age, lowstate_publishers, sport_subscribers = self._environment(now)
+        (
+            lowstate_age,
+            lowstate_publishers,
+            sport_subscribers,
+            sport_publishers,
+        ) = self._environment(now)
         for request in self._core.tick(
             now=now,
             lowstate_age_s=lowstate_age,
             lowstate_publishers=lowstate_publishers,
             sport_subscribers=sport_subscribers,
+            sport_publishers=sport_publishers,
         ):
             self._publish_request(request)
         if now - self._last_status >= 0.25:
@@ -193,6 +202,7 @@ class Go2ControlBridge(Node):
                 lowstate_age,
                 lowstate_publishers,
                 sport_subscribers,
+                sport_publishers,
             )
             self._last_status = now
 

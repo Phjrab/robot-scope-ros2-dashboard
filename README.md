@@ -89,6 +89,14 @@ python3 -m venv --system-site-packages .venv
 chmod +x scripts/*.sh scripts/check_pcd_bounds.py
 ~~~
 
+Navigation 화면까지 사용할 Jetson에는 ROS 2 Humble Nav2가 설치되어 있어야 합니다.
+별도의 `pointcloud_to_laserscan` 패키지는 사용하지 않으며, 저장소의 제한된 runtime이
+XT16 `PointCloud2`를 `/scan`으로 변환합니다.
+
+~~~bash
+sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
+~~~
+
 ### Go2 + ROS 2 Humble
 
 ~~~bash
@@ -364,6 +372,55 @@ same-origin 검사를 통과해야 합니다.
 Robot Scope는 인증 없는 신뢰 LAN 실습 배포를 전제로 하므로 8088 포트를 인터넷에 직접
 노출하지 마세요.
 
+### Navigation: 저장 지도에서 Go2 주행
+
+Navigation 메뉴는 관리 가능한 `mode: trinary` YAML + `P5/255` PGM 지도를 선택해
+ROS 2 Humble Nav2를 실행합니다. 브라우저는 파일 경로나 ROS 토픽 이름을 보내지 않고
+opaque map ID와 64자리 map/parameter revision만 전송합니다. 서버는 원본 지도를
+덮어쓰지 않는 private snapshot을 만든 뒤 저장소의 고정 launcher와 생성된 Humble
+parameter YAML만 `shell=False` process group으로 실행합니다.
+
+내비게이션 시작 시 Hesai + XT16 bridge + FAST-LIO가 이미 대시보드 소유 process로
+실행 중이면 그대로 공유합니다. 파이프라인이 idle/failed 상태면 동일한 allowlisted
+매핑 시작 경로를 자동 실행한 뒤 Nav2를 시작합니다. 이 shared pipeline이
+`/velodyne_points`와 `/Odometry`를 공급하고 navigation runtime이 고정 `/scan`과
+`odom -> base_link` TF를 만듭니다. Navigation의 중지는 Nav2와 signed motion lease만
+정리하며 Hesai + FAST-LIO는 계속 실행하므로, 다시 매핑 화면에서 관측하거나 다음
+내비게이션 시작에 재사용할 수 있습니다.
+
+Nav2 controller 출력은 전역 `/cmd_vel`이 아니라 서버 고정
+`/robot_scope/nav/cmd_vel_raw`로 격리됩니다. RosAgent는 publisher가 정확히 하나이고
+scan, FAST-LIO odometry, Go2 `/utlidar/robot_odom`, TF, 위치추정과 signed bridge가 모두
+fresh일 때만 이 명령을 기존 단일 lease/watchdog bridge로 전달합니다. 초기 위치와
+목표는 선택한 revision의 known-free 셀 안에서 Go2 반경만큼 여유가 있을 때만
+허용되며, 목표 전송은 화면 확인 뒤 `confirmed: true`가 있어야 합니다.
+
+Navigation이 active인 동안 다음 요청은 409로 차단됩니다.
+
+- Hesai + FAST-LIO 시작·중지와 현재 지도 저장
+- PCD→2D 변환과 브러시 편집본 저장
+- 저장 지도 이름 변경과 삭제
+
+반대로 지도 저장·변환 작업 또는 파이프라인 시작/중지 전환 중에는 Navigation 시작을
+허용하지 않습니다. STOP과 목표 CANCEL은 로봇이나 센서가 offline이어도 정리를 위해
+계속 사용할 수 있습니다. 이 기능은 경로 주변의 사람·장애물 확인과 물리 리모컨을
+대체하지 않습니다.
+
+대시보드에서는 다음 순서로 사용합니다.
+
+1. Saved Maps에서 PCD를 2D로 변환하거나 관리 가능한 기존 2D 지도를 확인합니다.
+2. Navigation에서 지도를 선택하고 필요하면 안전 범위 안의 파라미터를 적용합니다.
+3. START로 공유 Hesai + FAST-LIO와 Nav2를 준비합니다.
+4. 지도에서 `INITIAL POSE`를 드래그해 방향까지 지정하고 전송합니다.
+5. 모든 readiness가 초록색일 때 `GOAL POSE`를 지정하고 물리 리모컨을 손에 든 상태에서
+   확인 후 전송합니다.
+6. 이상 동작 시 먼저 CANCEL 또는 STOP을 누르고 물리 리모컨으로 정지합니다.
+
+파라미터 변경은 Navigation이 정지된 상태에서만 저장되며 다음 START부터 적용됩니다.
+브라우저가 보내는 값은 27개 allowlist와 교차 조건을 다시 검사합니다. PDF의
+`0.9 rad/s`, `2.0 rad/s²` 값은 현재 대시보드 하드 한계보다 높으므로 각각
+`0.5 rad/s`, `1.2 rad/s²` 이하로 제한됩니다.
+
 ## 카메라
 
 Go2 전면 카메라는 ROS 2 `/frontvideostream`을 거치지 않습니다. 로봇이 공장 설정으로
@@ -476,6 +533,14 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 | POST /api/v1/mapping/start | 새 매핑 세션 시작 |
 | POST /api/v1/mapping/stop | 매핑 세션 중지 |
 | POST /api/v1/mapping/save | 현재 지도 저장 |
+| GET /api/v1/navigation | Nav2 파이프라인, 센서, 위치추정과 목표 상태 |
+| GET/PATCH /api/v1/navigation/parameters | revision 기반 안전 파라미터 조회와 변경 |
+| POST /api/v1/navigation/start | 선택한 지도 revision으로 공유 파이프라인과 Nav2 시작 |
+| POST /api/v1/navigation/stop | signed motion gate를 닫고 Nav2 정지 |
+| POST /api/v1/navigation/initial-pose | known-free 셀의 초기 위치·방향 지정 |
+| POST /api/v1/navigation/goal | 확인된 known-free 목표 전송 |
+| POST /api/v1/navigation/cancel | 현재 목표 취소와 즉시 정지 |
+| POST /api/v1/navigation/clear-costmaps | 정지 상태에서 local/global costmap 정리 |
 | GET /api/v1/control | 제어 준비, lease, 브리지와 허용 모션 상태 |
 | POST /api/v1/control/arm | 버튼 요청으로 단일 제어 lease 발급 |
 | POST /api/v1/control/disarm | 제로 명령과 제어 lease 반납 |
@@ -496,6 +561,7 @@ python3 -m unittest discover -s tests -v
 node --test tests/*.mjs
 node --check robot_dashboard/static/app.js
 node --check robot_dashboard/static/control_input.js
+node --check robot_dashboard/static/navigation.js
 node --check robot_dashboard/static/robot_profiles.js
 node --check robot_dashboard/static/scene3d.js
 ~~~

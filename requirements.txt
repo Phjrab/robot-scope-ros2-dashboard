@@ -1,4 +1,5 @@
 fastapi>=0.110,<1
 numpy>=1.24,<3
+PyYAML>=5.4,<7
 uvicorn>=0.27,<1
 websockets>=12,<16

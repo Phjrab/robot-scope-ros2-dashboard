@@ -169,6 +169,7 @@ ACTION_METADATA: dict[str, dict[str, str]] = {
 CONFIRM_ACTIONS = frozenset(SAFE_ACTIONS)
 
 INPUT_SOURCES = frozenset({"keyboard", "gamepad"})
+INTERNAL_NAVIGATION_SOURCE = "navigation"
 
 
 class ClientFrameClock:
@@ -431,7 +432,12 @@ class ControlManager:
             if not bridge_ready or not lowstate_ready:
                 self._fail_closed("readiness_lost")
 
-    def acquire_lease(self, input_source: str) -> dict[str, Any]:
+    def _acquire_lease(
+        self,
+        input_source: str,
+        *,
+        allow_navigation: bool,
+    ) -> dict[str, Any]:
         with self._lock:
             self._ensure_configured()
             now = self._now()
@@ -446,7 +452,10 @@ class ControlManager:
             if not self._ready_at(now):
                 raise ControlNotReady("bridge and lowstate must both be fresh")
             source = str(input_source).strip().lower()
-            if source not in INPUT_SOURCES:
+            allowed = source in INPUT_SOURCES or (
+                allow_navigation and source == INTERNAL_NAVIGATION_SOURCE
+            )
+            if not allowed:
                 raise CommandValidationError("input_source must be keyboard or gamepad")
             if self._lease is not None:
                 raise LeaseBusy("another controller already owns the robot")
@@ -462,6 +471,25 @@ class ControlManager:
                 "last_seq": -1,
             }
             return {"token": token, "lease": self._lease_public(now)}
+
+    def acquire_lease(self, input_source: str) -> dict[str, Any]:
+        """Acquire a browser lease for one allowlisted human input source."""
+
+        return self._acquire_lease(input_source, allow_navigation=False)
+
+    def acquire_navigation_lease(self) -> dict[str, Any]:
+        """Acquire the internal Nav2 lease without widening the HTTP contract.
+
+        Only the in-process ROS integration calls this method.  Browser ARM
+        remains limited to keyboard/gamepad, while the shared lease guarantees
+        that autonomous navigation and manual control can never own motion at
+        the same time.
+        """
+
+        return self._acquire_lease(
+            INTERNAL_NAVIGATION_SOURCE,
+            allow_navigation=True,
+        )
 
     def bind_lease(self, token: str, binding: str) -> dict[str, Any]:
         """Bind a lease once to a WebSocket/session identifier."""
@@ -933,6 +961,7 @@ __all__ = [
     "ACTION_METADATA",
     "ACTION_GUARD_S",
     "CONFIRM_ACTIONS",
+    "INTERNAL_NAVIGATION_SOURCE",
     "INPUT_SOURCES",
     "SAFE_ACTIONS",
     "ClientFrameClock",
