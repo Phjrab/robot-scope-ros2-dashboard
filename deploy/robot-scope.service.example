@@ -1,16 +1,17 @@
 [Unit]
 Description=Robot Scope ROS 2 dashboard
 Wants=network-online.target
-After=network-online.target
+After=network-online.target robot-scope-control-bridge.service
 
 [Service]
 Type=simple
 User=jetson_orin_nano
-WorkingDirectory=/home/jetson_orin_nano/robot-scope-ros2-dashboard
+WorkingDirectory=/home/jetson_orin_nano/robot-scope
 EnvironmentFile=-/home/jetson_orin_nano/.config/robot-scope/control.env
-ExecStart=/home/jetson_orin_nano/robot-scope-ros2-dashboard/scripts/run_go2_humble.sh
+ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_humble.sh
 Restart=on-failure
 RestartSec=3
+Environment=HOME=/home/jetson_orin_nano
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

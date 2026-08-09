@@ -74,8 +74,18 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(appSource, /if \(response\.robot\?\.changed\) resetLiveRobotSessionView\(\)/);
   assert.match(appSource, /response\.robot\?\.restart_required/);
   assert.match(appSource, /ROS 재시작 전 기존 데이터 · 로봇 오버레이 숨김/);
-  assert.match(appSource, /대상 IP 응답/);
+  assert.match(appSource, /ROS\/DDS 오프라인 뷰어/);
+  assert.match(appSource, /ROS\/DDS 인터페이스 준비/);
   assert.match(appSource, /if \(robotConnectionBusy\) return/);
+});
+
+test('sensor cards keep all observed streams and rank unknown categories last', () => {
+  const start = appSource.indexOf('function updateSensors(sensors)');
+  const end = appSource.indexOf('function updateOdometry(', start);
+  assert.ok(start >= 0 && end > start, 'updateSensors implementation must exist');
+  const implementation = appSource.slice(start, end);
+  assert.match(implementation, /index < 0 \? priority\.length : index/);
+  assert.doesNotMatch(implementation, /\.slice\(0,\s*6\)/);
 });
 
 test('model renderer accepts the official Go2 and generic robot-model-lite schemas', () => {

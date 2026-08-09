@@ -42,6 +42,7 @@ from .discovery import (
     robot_type_definition,
 )
 from .pointcloud import extract_xyz, reject_spatial_outliers
+from .runtime_status import ros_transport_status
 from .serializers import (
     classify_type,
     extract_odometry_pose,
@@ -1038,13 +1039,31 @@ class RosAgent:
     def _preferred_joint_source_locked(self) -> str:
         """Select one real joint source, preferring named JointState data."""
 
+        now = time.monotonic()
+
+        def has_recent_samples(topic: str) -> bool:
+            meter = self._metrics.get(topic)
+            return bool(
+                meter
+                and meter.last is not None
+                and 0.0 <= now - meter.last <= 3.0
+            )
+
         candidates = [
             (topic, descriptor.get("type", ""))
             for topic, descriptor in self._graph.items()
-            if descriptor.get("publishers", 0) > 0
-            and (
-                descriptor.get("type") == "sensor_msgs/msg/JointState"
-                or str(descriptor.get("type", "")).casefold().endswith("/lowstate")
+            if (
+                (
+                    descriptor.get("type") == "sensor_msgs/msg/JointState"
+                    and descriptor.get("publishers", 0) > 0
+                )
+                or (
+                    str(descriptor.get("type", "")).casefold().endswith("/lowstate")
+                    and (
+                        descriptor.get("publishers", 0) > 0
+                        or has_recent_samples(topic)
+                    )
+                )
             )
         ]
         if not candidates:
@@ -1679,6 +1698,9 @@ class RosAgent:
 
     def health_snapshot(self) -> Dict[str, Any]:
         online, latency = self._network_status()
+        ros_transport = ros_transport_status(
+            require_go2_interface=self._startup_robot_type == "go2"
+        )
         with self._lock:
             runtime_profile = (
                 robot_type_definition(self._robot_type) if self._robot_type else None
@@ -1695,6 +1717,9 @@ class RosAgent:
                 "ros_distro": os.environ.get("ROS_DISTRO", "unknown"),
                 "ros_domain_id": os.environ.get("ROS_DOMAIN_ID", "0"),
                 "rmw": os.environ.get("RMW_IMPLEMENTATION", "default"),
+                "ros_transport": ros_transport,
+                "ros_interface_ready": ros_transport["interface_ready"],
+                "ros_offline_viewer": ros_transport["offline_viewer"],
                 "robot_ip": self.robot_ip,
                 "robot_hostname": self._robot_hostname,
                 "robot_type": self._robot_type,

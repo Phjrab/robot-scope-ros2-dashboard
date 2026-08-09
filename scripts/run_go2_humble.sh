@@ -17,6 +17,13 @@ source /opt/ros/humble/setup.bash
 if [[ -f "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash" ]]; then
   source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
 fi
+
+# Publish the startup DDS decision to the health API.  ICMP reachability can
+# recover after a cable is connected, but an rclpy participant created in the
+# fallback mode cannot retarget itself to the dedicated Go2 interface.
+export ROBOT_SCOPE_DDS_MODE="offline_viewer"
+export ROBOT_SCOPE_DDS_INTERFACE_READY="0"
+unset ROBOT_SCOPE_DDS_INTERFACE
 if [[ -f "$HOME/setup_go2_ros2_humble.sh" ]]; then
   if ! source "$HOME/setup_go2_ros2_humble.sh"; then
     # Keep the observability UI available while the dedicated Go2 cable is
@@ -26,7 +33,14 @@ if [[ -f "$HOME/setup_go2_ros2_humble.sh" ]]; then
     export ROS_LOCALHOST_ONLY=0
     unset CYCLONEDDS_URI
     echo "[Robot Scope] Go2 interface unavailable; starting dashboard in offline viewer mode."
+  else
+    export ROBOT_SCOPE_DDS_MODE="go2_interface"
+    export ROBOT_SCOPE_DDS_INTERFACE_READY="1"
+    ROBOT_SCOPE_DDS_INTERFACE="$(ip -o -4 addr show 2>/dev/null | awk '$4 ~ /^192\.168\.123\./ {print $2; exit}')"
+    export ROBOT_SCOPE_DDS_INTERFACE
   fi
+else
+  echo "[Robot Scope] Go2 environment helper unavailable; starting dashboard in offline viewer mode."
 fi
 
 PYTHON_BIN="python3"

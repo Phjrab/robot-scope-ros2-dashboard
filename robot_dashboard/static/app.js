@@ -622,10 +622,20 @@ function safeNumber(value, digits = 2) {
 function updateHealth(health) {
   const ready = Boolean(health.agent_ready);
   const online = Boolean(health.robot_online);
-  ui.connectionChip.className = `connection-chip ${ready && online ? 'ok' : ready ? 'waiting' : 'error'}`;
-  ui.connectionLabel.textContent = ready && online ? '대상 IP 응답' : ready ? 'ROS 에이전트 연결됨' : '에이전트 오류';
+  const rosTransport = health.ros_transport || {};
+  const rosInterfaceReady = rosTransport.interface_ready ?? health.ros_interface_ready;
+  const offlineViewer = Boolean(rosTransport.offline_viewer ?? health.ros_offline_viewer);
+  ui.connectionChip.className = `connection-chip ${ready && rosInterfaceReady === true && online ? 'ok' : ready ? 'waiting' : 'error'}`;
+  ui.connectionLabel.textContent = !ready
+    ? '에이전트 오류'
+    : offlineViewer || rosInterfaceReady === false
+      ? 'ROS/DDS 오프라인 뷰어'
+      : rosInterfaceReady === true
+        ? 'ROS/DDS 인터페이스 준비'
+        : 'ROS 에이전트 연결됨';
   ui.agentHost.textContent = health.hostname || '—';
-  ui.rosRuntime.textContent = `${health.ros_distro || '—'} · ${health.rmw || 'default'}`;
+  const rosInterface = rosTransport.interface ? ` · ${rosTransport.interface}` : '';
+  ui.rosRuntime.textContent = `${health.ros_distro || '—'} · ${health.rmw || 'default'}${rosInterface}`;
   ui.rosDomain.textContent = health.ros_domain_id ?? '0';
   ui.topicCount.textContent = health.topic_count ?? '—';
   ui.profileLabel.textContent = (health.profile || 'GENERIC ROS 2').toUpperCase();
@@ -1096,7 +1106,11 @@ function compactValue(value) {
 
 function updateSensors(sensors) {
   const priority = ['robot_state', 'imu', 'lidar', 'battery', 'gnss', 'range', 'environment'];
-  const sorted = [...sensors].sort((a, b) => priority.indexOf(a.category) - priority.indexOf(b.category)).slice(0, 6);
+  const rank = (sensor) => {
+    const index = priority.indexOf(sensor.category);
+    return index < 0 ? priority.length : index;
+  };
+  const sorted = [...sensors].sort((a, b) => rank(a) - rank(b) || String(a.topic).localeCompare(String(b.topic)));
   ui.sensorCount.textContent = `${sensors.length} streams`;
   if (!sorted.length) {
     ui.sensorGrid.innerHTML = '<div class="sensor-placeholder">센서 데이터를 기다리고 있습니다.</div>';

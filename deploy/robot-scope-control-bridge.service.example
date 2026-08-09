@@ -8,13 +8,14 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=jetson_orin_nano
-WorkingDirectory=/home/jetson_orin_nano/robot-scope-ros2-dashboard
+WorkingDirectory=/home/jetson_orin_nano/robot-scope
 EnvironmentFile=/home/jetson_orin_nano/.config/robot-scope/control.env
-ExecStart=/home/jetson_orin_nano/robot-scope-ros2-dashboard/scripts/run_go2_control_bridge_humble.sh
+ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_control_bridge_humble.sh
 Restart=on-failure
 RestartSec=3
 KillSignal=SIGINT
 TimeoutStopSec=2
+Environment=HOME=/home/jetson_orin_nano
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

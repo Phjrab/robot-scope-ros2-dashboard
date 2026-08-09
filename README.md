@@ -78,8 +78,8 @@ Jetson에서 저장소를 clone하고 ROS 패키지를 볼 수 있도록 system 
 포함한 가상환경을 만듭니다.
 
 ~~~bash
-git clone https://github.com/Phjrab/robot-scope-ros2-dashboard.git
-cd robot-scope-ros2-dashboard
+git clone https://github.com/Phjrab/robot-scope-ros2-dashboard.git robot-scope
+cd robot-scope
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install -r requirements.txt
 chmod +x scripts/*.sh scripts/check_pcd_bounds.py
@@ -100,6 +100,9 @@ chmod +x scripts/*.sh scripts/check_pcd_bounds.py
 
 전용 이더넷이 빠져 있으면 대시보드는 offline viewer 모드로 계속 실행됩니다.
 케이블 연결 후 프로세스를 다시 시작하면 Go2 전용 DDS 설정이 복구됩니다.
+상단의 `ROS/DDS 오프라인 뷰어` 표시는 이 시작 상태를 뜻하며, Overview의 Robot
+Link는 별도의 IP ping 결과입니다. 따라서 Link가 ONLINE이어도 이 표시가 남아 있으면
+센서 토픽을 받을 수 없으므로 케이블을 확인한 뒤 대시보드를 다시 시작합니다.
 
 브라우저에서 다음 주소를 엽니다.
 
@@ -340,8 +343,10 @@ realsense2_camera를 실행합니다. 표준 color, depth, points 토픽이 발�
 
 ## 자동 시작
 
-deploy의 두 서비스 예제에서 사용자명과 설치 경로를 실제 환경에 맞춘 뒤 systemd에
-등록할 수 있습니다. 제어를 사용하지 않으면 대시보드 서비스만 등록합니다.
+deploy의 두 서비스 예제는 기본적으로 `jetson_orin_nano` 사용자의
+`/home/jetson_orin_nano/robot-scope` 설치를 가리킵니다. 다른 사용자명이나 경로를
+사용하면 두 값을 먼저 수정한 뒤 systemd에 등록합니다. 제어를 사용하지 않으면
+대시보드 서비스만 등록합니다.
 
 ~~~bash
 sudo cp deploy/robot-scope.service.example /etc/systemd/system/robot-scope.service

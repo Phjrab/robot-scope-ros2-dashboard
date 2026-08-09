@@ -1,6 +1,8 @@
 import importlib.util
+import os
 import sys
 import threading
+import time
 import types
 import unittest
 from pathlib import Path
@@ -36,10 +38,44 @@ if importlib.util.find_spec("rclpy") is None:
     sys.modules.update(stubs)
 
 from robot_dashboard.control import ControlDisabled, ControlManager
-from robot_dashboard.ros_agent import RosAgent
+from robot_dashboard.ros_agent import RateMeter, RosAgent
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class JointSourceSelectionTests(unittest.TestCase):
+    def setUp(self):
+        self.agent = object.__new__(RosAgent)
+        self.agent._graph = {
+            "/lowstate": {
+                "type": "unitree_go/msg/LowState",
+                "publishers": 0,
+            },
+        }
+        self.agent._metrics = {}
+
+    def test_zero_publisher_lowstate_requires_recent_received_samples(self):
+        self.assertEqual(self.agent._preferred_joint_source_locked(), "")
+
+        meter = RateMeter()
+        meter.tick(time.monotonic())
+        self.agent._metrics["/lowstate"] = meter
+        self.assertEqual(self.agent._preferred_joint_source_locked(), "/lowstate")
+
+        meter.times.clear()
+        meter.tick(time.monotonic() - 4.0)
+        self.assertEqual(self.agent._preferred_joint_source_locked(), "")
+
+    def test_publisher_backed_joint_state_still_wins_over_observed_lowstate(self):
+        meter = RateMeter()
+        meter.tick(time.monotonic())
+        self.agent._metrics["/lowstate"] = meter
+        self.agent._graph["/joint_states"] = {
+            "type": "sensor_msgs/msg/JointState",
+            "publishers": 1,
+        }
+        self.assertEqual(self.agent._preferred_joint_source_locked(), "/joint_states")
 
 
 class RobotTargetSafetyTests(unittest.TestCase):
@@ -218,6 +254,15 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(health["profile"], "Unitree Go2")
         self.assertEqual(health["runtime_profile"]["id"], "go2")
         self.assertEqual(health["selected_profile"]["id"], "turtlebot")
+
+    def test_health_keeps_ping_link_separate_from_missing_go2_dds_interface(self):
+        self.agent._network_cache = (time.monotonic(), True, 1.2)
+        with patch.dict(os.environ, {}, clear=True):
+            health = self.agent.health_snapshot()
+        self.assertTrue(health["robot_online"])
+        self.assertFalse(health["ros_interface_ready"])
+        self.assertTrue(health["ros_offline_viewer"])
+        self.assertTrue(health["ros_transport"]["dedicated_interface_required"])
 
     def test_old_ping_result_cannot_poison_new_target_cache(self):
         started = threading.Event()
