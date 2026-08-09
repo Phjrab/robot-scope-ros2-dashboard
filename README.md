@@ -413,6 +413,9 @@ Go2 프로필의 ROS 카메라 자동 구독은 계속 꺼져 있습니다. 직�
 3. `gstreamer1.0-plugins-good`, `-bad`, `-libav`가 설치되어 있는지 확인합니다.
 4. `/api/v1/health`의 `direct_camera.last_error`, `state`, `age_s`를 확인합니다.
 
+실습실에서 사용한 Jetson, Go2, XT16의 주소와 Mac 인터넷 공유 시 주의사항은
+[`docs/lab-network.md`](docs/lab-network.md)에 날짜와 확인 상태별로 기록합니다.
+
 RealSense가 로봇 탑재 Jetson USB에 연결되어 있다면 같은 Jetson에서
 realsense2_camera를 실행합니다. 표준 color, depth, points 토픽이 발견되면
 카메라와 PointCloud 소스 목록에서 선택할 수 있습니다.
