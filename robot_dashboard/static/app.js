@@ -37,6 +37,13 @@ const ui = {
   cameraState: $('#cameraState'),
   cameraTopicLabel: $('#cameraTopicLabel'),
   cameraCodecLabel: $('#cameraCodecLabel'),
+  cameraMediaStatus: $('#cameraMediaStatus'),
+  cameraMediaHelp: $('#cameraMediaHelp'),
+  cameraRecordDuration: $('#cameraRecordDuration'),
+  cameraCaptureFormat: $('#cameraCaptureFormat'),
+  cameraCaptureButton: $('#cameraCaptureButton'),
+  cameraRecordButton: $('#cameraRecordButton'),
+  cameraStopRecordButton: $('#cameraStopRecordButton'),
   sceneCanvas: $('#sceneCanvas'),
   mapCanvas: $('#mapCanvas'),
   mapGridOverlay: $('#mapGridOverlay'),
@@ -160,10 +167,15 @@ let cameraSocket = null;
 let jointSocket = null;
 let poseSocket = null;
 let cameraMeta = null;
+let cameraStatusMeta = null;
 let videoDecoder = null;
 let cameraHasKey = false;
 let cameraFrames = 0;
 let cameraFrameWindow = [];
+let cameraLastFrameAt = 0;
+let cameraActiveSourceKey = '';
+let cameraRecording = null;
+let cameraImageDecodeQueue = null;
 let cloudSeq = -1;
 let pointcloudRequestInFlight = false;
 let pointcloudRequestGeneration = 0;
@@ -566,6 +578,9 @@ function activatePage(page, updateHash = false) {
   if (updateHash && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
   if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
   if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();
+  if (previousPage === 'sensors' && activePage !== 'sensors' && cameraRecording) {
+    stopCameraRecording(cameraRecordingCleanupPolicy('sensors_page_left'));
+  }
   requestAnimationFrame(() => {
     if (activePage === 'mapping') {
       scene3d?.resize();
@@ -961,12 +976,35 @@ function updateOverview(state) {
   const odomSource = state.sources?.odometry || '';
   const gridSource = state.sources?.occupancy_grid || '';
 
-  const cameraTopic = latestTopics.find((topic) => topic.name === cameraSource);
-  ui.cameraMetric.textContent = formatHz(cameraTopic?.hz);
-  ui.cameraSub.textContent = cameraSource || 'No camera topic';
-  ui.cameraTopicLabel.textContent = cameraSource || 'NO SOURCE';
-  ui.cameraCodecLabel.textContent = camera.format && camera.format !== 'none' ? `${camera.format.toUpperCase()} ${camera.width || ''}×${camera.height || ''}` : '—';
-  setStatePill(ui.cameraState, cameraTopic?.state || 'waiting', cameraTopic?.state === 'ok' ? 'LIVE' : (cameraTopic?.state || 'WAITING').toUpperCase());
+  const directCamera = camera.direct_camera || {};
+  const cameraTopicName = camera.topic || cameraSource;
+  const cameraTopic = latestTopics.find((topic) => topic.name === cameraTopicName);
+  const cameraSourceKey = cameraTopicName || camera.source || directCamera.uri || '';
+  if (cameraSourceKey) noteCameraSource(cameraSourceKey);
+  // /api/v1/state is also the liveness clock for the direct Go2 multicast
+  // camera.  Merge it into the latest WS frame metadata so a frozen canvas
+  // becomes stale even when no more WebSocket messages arrive.
+  cameraStatusMeta = { ...camera };
+  const cameraLabel = camera.source_label || camera.topic || cameraSource || 'NO SOURCE';
+  const cameraTransport = camera.transport || directCamera.transport || '';
+  const cameraInterface = camera.interface || directCamera.interface || '';
+  const cameraFps = camera.fps ?? directCamera.fps ?? cameraTopic?.hz;
+  const cameraAge = camera.age_s ?? directCamera.age_s ?? cameraTopic?.age_s;
+  const reportedCameraState = camera.state || directCamera.state || cameraTopic?.state || 'waiting';
+  const reportedCameraLive = camera.live ?? directCamera.live ?? (reportedCameraState === 'ok');
+  const cameraLive = Boolean(reportedCameraLive) && (cameraAge == null || Number(cameraAge) <= 3);
+  ui.cameraMetric.textContent = formatHz(cameraFps);
+  ui.cameraSub.textContent = [cameraLabel, cameraTransport, cameraInterface].filter(Boolean).join(' · ') || 'No camera source';
+  ui.cameraSub.title = ui.cameraSub.textContent;
+  ui.cameraTopicLabel.textContent = cameraLabel;
+  ui.cameraTopicLabel.title = camera.topic || cameraSource || cameraLabel;
+  const cameraWidth = camera.width || directCamera.width || '';
+  const cameraHeight = camera.height || directCamera.height || '';
+  const cameraFormat = camera.format && camera.format !== 'none' ? camera.format.toUpperCase() : '';
+  const cameraDimensions = cameraWidth && cameraHeight ? `${cameraWidth}×${cameraHeight}` : '';
+  ui.cameraCodecLabel.textContent = [cameraFormat, cameraDimensions, cameraTransport].filter(Boolean).join(' · ') || '—';
+  setStatePill(ui.cameraState, cameraLive ? 'ok' : reportedCameraState, cameraLive ? 'LIVE' : String(reportedCameraState).toUpperCase());
+  syncCameraFrameFreshness();
 
   const hesaiTopic = latestTopics.find((topic) => topic.name === '/lidar_points');
   const hesaiOnline = Number(hesaiTopic?.publishers || 0) > 0;
@@ -1317,6 +1355,10 @@ async function refreshSources() {
     if (fingerprint === sourceFingerprint) return;
     sourceFingerprint = fingerprint;
     fillSourceSelect(ui.cameraSource, payload.options.camera, payload.selected.camera, '카메라 없음');
+    ui.cameraSource.disabled = Boolean(payload.locked?.camera);
+    ui.cameraSource.title = payload.locked?.camera
+      ? 'Go2 직접 멀티캐스트 카메라는 실행 프로필에서 고정됩니다.'
+      : '';
     fillSourceSelect(ui.cloudSource, payload.options.pointcloud, payload.selected.pointcloud, 'PointCloud 없음');
     fillSourceSelect(ui.odomSource, payload.options.odometry, payload.selected.odometry, 'Odometry 없음');
     fillSourceSelect(ui.mapSource, payload.options.occupancy_grid, payload.selected.occupancy_grid, '2D 맵 없음');
@@ -2053,6 +2095,477 @@ function drawPoseLabel(ctx, anchor, viewport, unit) {
   }
 }
 
+const CAMERA_FRAME_FRESH_MS = 3000;
+const CAMERA_RECORD_MAX_MS = 10 * 60 * 1000;
+const CAMERA_RECORD_MAX_BYTES = 256 * 1024 * 1024;
+
+function cameraFrameIsFresh(lastFrameAt, metadata = {}, now = Date.now(), maxAgeMs = CAMERA_FRAME_FRESH_MS) {
+  const localAgeMs = Number(now) - Number(lastFrameAt || 0);
+  if (!lastFrameAt || !Number.isFinite(localAgeMs) || localAgeMs < 0 || localAgeMs > maxAgeMs) return false;
+  const state = String(metadata?.state || '').toLowerCase();
+  if (state && state !== 'ok' && state !== 'live') return false;
+  const reportedAge = Number(metadata?.age_s);
+  if (metadata?.age_s != null && (!Number.isFinite(reportedAge) || reportedAge * 1000 > maxAgeMs)) return false;
+  return true;
+}
+
+function createLatestCameraFrameQueue({ decode, render, close, onError = () => {} }) {
+  let generation = 0;
+  let active = false;
+  let pending = null;
+
+  async function drain(initialFrame) {
+    let frame = initialFrame;
+    while (frame) {
+      let decoded = null;
+      try {
+        decoded = await decode(frame);
+        if (frame.generation === generation) render(decoded, frame);
+      } catch (error) {
+        if (frame.generation === generation) onError(error, frame);
+      } finally {
+        if (decoded) close(decoded, frame);
+      }
+      frame = pending;
+      pending = null;
+    }
+    active = false;
+  }
+
+  return Object.freeze({
+    enqueue(frame) {
+      const tagged = { ...frame, generation };
+      if (active) {
+        // Keep only the newest undecoded frame. ArrayBuffer payloads require no
+        // explicit close and are released when this reference is replaced.
+        pending = tagged;
+      } else {
+        active = true;
+        void drain(tagged);
+      }
+      return generation;
+    },
+    reset() {
+      generation += 1;
+      pending = null;
+      return generation;
+    },
+    snapshot() {
+      return { generation, active, pending: pending ? 1 : 0 };
+    },
+  });
+}
+
+function getCameraImageDecodeQueue() {
+  if (cameraImageDecodeQueue) return cameraImageDecodeQueue;
+  cameraImageDecodeQueue = createLatestCameraFrameQueue({
+    decode: (frame) => createImageBitmap(new Blob(
+      [frame.data],
+      { type: frame.format === 'png' ? 'image/png' : 'image/jpeg' },
+    )),
+    render: (bitmap, frame) => renderCameraSourceFrame(
+      bitmap,
+      bitmap.width,
+      bitmap.height,
+      frame.sourceKey,
+    ),
+    close: (bitmap) => bitmap.close(),
+    onError: (error) => console.warn('camera image decode:', error),
+  });
+  return cameraImageDecodeQueue;
+}
+
+function resetCameraImageDecodeQueue() {
+  cameraImageDecodeQueue?.reset();
+}
+
+function enqueueCameraImageFrame(data, metadata) {
+  getCameraImageDecodeQueue().enqueue({
+    data,
+    format: metadata.format,
+    seq: metadata.seq,
+    sourceKey: metadata.topic || metadata.source || metadata.stream_url || metadata.transport || cameraActiveSourceKey,
+  });
+}
+
+function cameraFrameAvailable(now = Date.now()) {
+  return Boolean(
+    ui.cameraCanvas.width > 1
+    && ui.cameraCanvas.height > 1
+    && cameraFrameIsFresh(cameraLastFrameAt, cameraStatusMeta || cameraMeta, now),
+  );
+}
+
+function cameraRecordingSupported() {
+  return typeof ui.cameraCanvas?.captureStream === 'function' && typeof window.MediaRecorder === 'function';
+}
+
+function setCameraMediaMessage(status, help, error = false) {
+  ui.cameraMediaStatus.textContent = status;
+  ui.cameraMediaStatus.dataset.state = error ? 'error' : 'ok';
+  if (help) ui.cameraMediaHelp.textContent = help;
+}
+
+function syncCameraMediaControls() {
+  const hasFrame = cameraFrameAvailable();
+  const recording = Boolean(cameraRecording);
+  const stopping = Boolean(cameraRecording?.stopping);
+  const supported = cameraRecordingSupported();
+  ui.cameraCaptureButton.disabled = !hasFrame;
+  ui.cameraCaptureFormat.disabled = !hasFrame || recording;
+  ui.cameraRecordButton.disabled = !hasFrame || recording || !supported;
+  ui.cameraStopRecordButton.disabled = !recording || stopping;
+  ui.cameraCanvas.closest('.camera-panel')?.classList.toggle('is-recording', recording && !stopping);
+}
+
+function syncCameraFrameFreshness(now = Date.now()) {
+  const fresh = cameraFrameAvailable(now);
+  syncCameraMediaControls();
+  if (fresh || !cameraLastFrameAt) return fresh;
+  const reportedState = String(cameraStatusMeta?.state || cameraMeta?.state || 'stale').toUpperCase();
+  const message = `마지막 영상 프레임이 ${Math.max(0, (now - cameraLastFrameAt) / 1000).toFixed(1)}초 전입니다. 새 프레임을 기다리고 있습니다.`;
+  if (cameraRecording) {
+    if (!cameraRecording.stopping) {
+      stopCameraRecording({ discard: false, reason: '영상 신호가 3초 이상 멈춰 녹화를 종료하고 저장했습니다.' });
+    }
+  } else {
+    setCameraMediaMessage(`FRAME ${reportedState === 'OK' ? 'STALE' : reportedState}`, message, true);
+  }
+  return false;
+}
+
+function markCameraFrameRendered(sourceKey = '') {
+  const wasFresh = cameraFrameAvailable();
+  if (sourceKey) cameraActiveSourceKey = sourceKey;
+  cameraLastFrameAt = Date.now();
+  cameraFrames += 1;
+  cameraFrameWindow.push(performance.now());
+  while (cameraFrameWindow.length && performance.now() - cameraFrameWindow[0] > 1000) cameraFrameWindow.shift();
+  ui.cameraEmpty.style.display = 'none';
+  if (!cameraRecording && !wasFresh) {
+    const recorderNote = cameraRecordingSupported()
+      ? '현재 표시 프레임을 캡처하거나 브라우저에서 녹화할 수 있습니다.'
+      : '화면 캡처 가능 · 이 브라우저는 영상 녹화를 지원하지 않습니다.';
+    setCameraMediaMessage('FRAME READY', recorderNote);
+  }
+  syncCameraMediaControls();
+}
+
+// Every camera transport ends here.  A direct Flask/MJPEG adapter can pass its
+// HTMLImageElement to this function and gets the same capture/record behavior
+// as the existing ROS/WebSocket H.264, JPEG, PNG and raw-image paths.
+function renderCameraSourceFrame(source, requestedWidth = 0, requestedHeight = 0, sourceKey = '') {
+  const width = Number(requestedWidth || source?.displayWidth || source?.videoWidth || source?.naturalWidth || source?.width || 0);
+  const height = Number(requestedHeight || source?.displayHeight || source?.videoHeight || source?.naturalHeight || source?.height || 0);
+  if (!source || !Number.isFinite(width) || !Number.isFinite(height) || width < 2 || height < 2) {
+    throw new Error('카메라 프레임 크기가 비어 있습니다.');
+  }
+  const canvas = ui.cameraCanvas;
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  canvas.getContext('2d').drawImage(source, 0, 0, width, height);
+  markCameraFrameRendered(sourceKey || cameraMeta?.topic || cameraActiveSourceKey);
+}
+
+function cameraTimestamp() {
+  const value = new Date();
+  const parts = [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, '0'),
+    String(value.getDate()).padStart(2, '0'),
+    '_',
+    String(value.getHours()).padStart(2, '0'),
+    String(value.getMinutes()).padStart(2, '0'),
+    String(value.getSeconds()).padStart(2, '0'),
+  ];
+  return parts.join('');
+}
+
+function cameraDownloadName(kind, extension, sourceOverride = '') {
+  const source = String(sourceOverride || cameraMeta?.topic || cameraActiveSourceKey || 'camera')
+    .split('/').filter(Boolean).pop()?.replace(/[^a-z0-9_-]+/gi, '_') || 'camera';
+  return `${source}_${kind}_${cameraTimestamp()}.${extension}`;
+}
+
+function downloadCameraBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.hidden = true;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1200);
+}
+
+async function captureCameraFrame() {
+  if (!cameraFrameAvailable()) {
+    const message = '캡처할 카메라 프레임이 없습니다. 영상이 표시된 뒤 다시 시도하세요.';
+    setCameraMediaMessage('NO FRAME', message, true);
+    showToast(message, true);
+    return;
+  }
+  const mimeType = ui.cameraCaptureFormat.value === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+  const extension = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+  try {
+    const blob = await new Promise((resolve, reject) => {
+      ui.cameraCanvas.toBlob(
+        (result) => result ? resolve(result) : reject(new Error('브라우저가 이미지 파일을 만들지 못했습니다.')),
+        mimeType,
+        mimeType === 'image/jpeg' ? 0.92 : undefined,
+      );
+    });
+    const filename = cameraDownloadName('capture', extension);
+    downloadCameraBlob(blob, filename);
+    setCameraMediaMessage('CAPTURE SAVED', `${filename} 다운로드를 시작했습니다.`);
+    showToast(`카메라 화면을 ${extension.toUpperCase()}로 저장했습니다.`);
+  } catch (error) {
+    const message = `화면 캡처 실패: ${error.message}`;
+    setCameraMediaMessage('CAPTURE FAILED', message, true);
+    showToast(message, true);
+  }
+}
+
+function chooseCameraRecordingMimeType() {
+  const candidates = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4',
+  ];
+  if (typeof window.MediaRecorder?.isTypeSupported !== 'function') return '';
+  return candidates.find((mimeType) => window.MediaRecorder.isTypeSupported(mimeType)) || '';
+}
+
+function updateCameraRecordingDuration(session = cameraRecording) {
+  if (!session || session.finalized) return;
+  const elapsedMs = Math.max(0, performance.now() - session.startedAt);
+  const seconds = Math.floor(elapsedMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  ui.cameraRecordDuration.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  ui.cameraRecordDuration.dateTime = `PT${seconds}S`;
+  if (elapsedMs >= CAMERA_RECORD_MAX_MS && !session.stopping) {
+    stopCameraRecording({ discard: false, reason: '최대 녹화 시간 10분에 도달하여 자동 저장했습니다.' });
+  }
+}
+
+function finalizeCameraRecording(session) {
+  if (!session || session.finalized) return;
+  session.finalized = true;
+  clearInterval(session.timer);
+  session.stream.getTracks().forEach((track) => track.stop());
+  if (cameraRecording === session) cameraRecording = null;
+  syncCameraMediaControls();
+
+  if (session.discard) {
+    const message = session.reason || '녹화를 중단하고 임시 데이터를 정리했습니다.';
+    setCameraMediaMessage(session.failed ? 'RECORDING FAILED' : 'RECORDING STOPPED', message, session.failed);
+    if (session.failed && !session.silent) showToast(message, true);
+    return;
+  }
+  const mimeType = session.recorder.mimeType || session.mimeType || 'video/webm';
+  const blob = new Blob(session.chunks, { type: mimeType });
+  if (!blob.size) {
+    const message = '녹화된 프레임이 없어 파일을 만들지 못했습니다.';
+    setCameraMediaMessage('EMPTY RECORDING', message, true);
+    showToast(message, true);
+    return;
+  }
+  const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+  const filename = cameraDownloadName('recording', extension, session.sourceKey);
+  downloadCameraBlob(blob, filename);
+  setCameraMediaMessage('RECORDING SAVED', session.reason || `${filename} 다운로드를 시작했습니다.`);
+  showToast(session.reason || `카메라 녹화를 ${extension.toUpperCase()}로 저장했습니다.`);
+}
+
+function startCameraRecording() {
+  if (cameraRecording) return;
+  if (!cameraFrameAvailable()) {
+    const message = '녹화할 카메라 프레임이 없습니다. 영상이 표시된 뒤 다시 시도하세요.';
+    setCameraMediaMessage('NO FRAME', message, true);
+    showToast(message, true);
+    return;
+  }
+  if (!cameraRecordingSupported()) {
+    const message = '이 브라우저는 canvas.captureStream 또는 MediaRecorder를 지원하지 않습니다.';
+    setCameraMediaMessage('RECORDING UNSUPPORTED', message, true);
+    showToast(message, true);
+    return;
+  }
+
+  let stream = null;
+  try {
+    stream = ui.cameraCanvas.captureStream(30);
+    if (!stream.getVideoTracks().length) throw new Error('캔버스 비디오 트랙을 만들지 못했습니다.');
+    const mimeType = chooseCameraRecordingMimeType();
+    let recorder;
+    try {
+      recorder = mimeType
+        ? new window.MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 })
+        : new window.MediaRecorder(stream);
+    } catch (_) {
+      recorder = new window.MediaRecorder(stream);
+    }
+    const session = {
+      recorder,
+      stream,
+      mimeType,
+      chunks: [],
+      bytes: 0,
+      startedAt: performance.now(),
+      sourceKey: cameraActiveSourceKey,
+      timer: null,
+      stopping: false,
+      discard: false,
+      reason: '',
+      failed: false,
+      silent: false,
+      finalized: false,
+    };
+    recorder.addEventListener('dataavailable', (event) => {
+      if (session.discard || !event.data?.size) return;
+      session.chunks.push(event.data);
+      session.bytes += event.data.size;
+      if (session.bytes >= CAMERA_RECORD_MAX_BYTES && !session.stopping) {
+        stopCameraRecording({ discard: false, reason: '녹화 데이터가 256 MiB 제한에 도달하여 자동 저장했습니다.' });
+      }
+    });
+    recorder.addEventListener('error', (event) => {
+      if (session.stopping) return;
+      session.discard = true;
+      session.failed = true;
+      session.reason = `브라우저 녹화 오류: ${event.error?.message || '알 수 없는 오류'}`;
+      if (recorder.state !== 'inactive') recorder.stop(); else finalizeCameraRecording(session);
+    });
+    recorder.addEventListener('stop', () => finalizeCameraRecording(session), { once: true });
+    cameraRecording = session;
+    recorder.start(1000);
+    session.timer = setInterval(() => updateCameraRecordingDuration(session), 250);
+    updateCameraRecordingDuration(session);
+    setCameraMediaMessage('RECORDING', '표시 중인 캔버스를 녹화합니다 · 최대 10분 또는 256 MiB');
+    syncCameraMediaControls();
+  } catch (error) {
+    stream?.getTracks().forEach((track) => track.stop());
+    cameraRecording = null;
+    const message = `녹화 시작 실패: ${error.message}`;
+    setCameraMediaMessage('RECORDING FAILED', message, true);
+    syncCameraMediaControls();
+    showToast(message, true);
+  }
+}
+
+function cameraRecordingCleanupPolicy(trigger) {
+  if (trigger === 'page_hidden') {
+    return { discard: true, reason: '페이지를 벗어나 녹화를 중단하고 임시 데이터를 정리했습니다.', silent: true };
+  }
+  if (trigger === 'sensors_page_left') {
+    return { discard: false, reason: 'Sensors 화면을 벗어나 녹화를 종료하고 저장했습니다.', silent: false };
+  }
+  return { discard: false, reason: '페이지가 숨겨져 녹화를 종료하고 저장했습니다.', silent: false };
+}
+
+function stopCameraRecording({ discard = false, reason = '', silent = false } = {}) {
+  const session = cameraRecording;
+  if (!session || session.stopping || session.finalized) return false;
+  session.stopping = true;
+  session.discard = discard;
+  session.reason = reason;
+  session.silent = silent;
+  if (discard) {
+    session.chunks.length = 0;
+    session.bytes = 0;
+  }
+  clearInterval(session.timer);
+  setCameraMediaMessage('FINALIZING', discard ? '녹화 데이터를 정리하고 있습니다.' : '녹화 파일을 마무리하고 있습니다.');
+  syncCameraMediaControls();
+  try {
+    if (!discard && session.recorder.state === 'recording') session.recorder.requestData();
+    if (session.recorder.state !== 'inactive') session.recorder.stop();
+    else finalizeCameraRecording(session);
+    if (discard) session.stream.getTracks().forEach((track) => track.stop());
+  } catch (error) {
+    session.discard = true;
+    session.failed = true;
+    session.reason = `녹화 종료 실패: ${error.message}`;
+    finalizeCameraRecording(session);
+  }
+  return true;
+}
+
+function discardCameraRecordingForPageHide() {
+  const session = cameraRecording;
+  if (!session) return false;
+  const policy = cameraRecordingCleanupPolicy('page_hidden');
+  if (!session.stopping) return stopCameraRecording(policy);
+  // visibilitychange may have started an asynchronous save immediately before
+  // pagehide. A download cannot be trusted once the document is unloading, so
+  // convert that in-flight finalization to a discard and release tracks now.
+  session.discard = true;
+  session.reason = policy.reason;
+  session.silent = true;
+  session.chunks.length = 0;
+  session.bytes = 0;
+  session.stream.getTracks().forEach((track) => track.stop());
+  return true;
+}
+
+function resetCameraRenderedFrame(nextSourceKey = '', { discardRecording = false, reason = '' } = {}) {
+  if (cameraRecording) {
+    stopCameraRecording({
+      discard: discardRecording,
+      reason: reason || (discardRecording ? '페이지를 벗어나 녹화를 중단했습니다.' : '카메라 소스 변경으로 녹화를 종료하고 저장했습니다.'),
+      silent: discardRecording,
+    });
+  }
+  resetCameraImageDecodeQueue();
+  if (videoDecoder && videoDecoder.state !== 'closed') {
+    try { videoDecoder.close(); } catch (_) {}
+  }
+  videoDecoder = null;
+  cameraHasKey = false;
+  cameraMeta = null;
+  cameraStatusMeta = null;
+  cameraLastFrameAt = 0;
+  cameraFrames = 0;
+  cameraFrameWindow = [];
+  cameraActiveSourceKey = nextSourceKey;
+  ui.cameraCanvas.width = 1;
+  ui.cameraCanvas.height = 1;
+  ui.cameraEmpty.style.display = '';
+  ui.cameraEmptyText.textContent = reason || '새 카메라 영상 신호를 기다리고 있습니다.';
+  ui.cameraRecordDuration.textContent = '00:00';
+  ui.cameraRecordDuration.dateTime = 'PT0S';
+  if (!cameraRecording) setCameraMediaMessage('FRAME WAITING', '영상이 표시되면 캡처와 녹화를 사용할 수 있습니다.');
+  syncCameraMediaControls();
+}
+
+function noteCameraSource(sourceKey) {
+  const nextSourceKey = String(sourceKey || '').trim();
+  if (!nextSourceKey) return;
+  if (cameraActiveSourceKey && cameraActiveSourceKey !== nextSourceKey) {
+    resetCameraRenderedFrame(nextSourceKey, { reason: '카메라 소스가 변경되어 새 프레임을 기다리고 있습니다.' });
+  } else {
+    cameraActiveSourceKey = nextSourceKey;
+  }
+}
+
+function initializeCameraMediaControls() {
+  syncCameraMediaControls();
+  if (!cameraRecordingSupported()) {
+    ui.cameraMediaHelp.textContent = '화면 캡처 가능 · 녹화는 canvas.captureStream 및 MediaRecorder 지원 브라우저가 필요합니다.';
+  }
+}
+
+window.RobotScopeCameraFrame = Object.freeze({
+  beginSource: noteCameraSource,
+  draw: renderCameraSourceFrame,
+  markRendered: markCameraFrameRendered,
+});
+
 function resetDecoder() {
   if (videoDecoder && videoDecoder.state !== 'closed') {
     try { videoDecoder.close(); } catch (_) {}
@@ -2074,26 +2587,15 @@ function resetDecoder() {
 }
 
 function renderVideoFrame(frame) {
-  const canvas = ui.cameraCanvas;
-  if (canvas.width !== frame.displayWidth || canvas.height !== frame.displayHeight) {
-    canvas.width = frame.displayWidth;
-    canvas.height = frame.displayHeight;
+  try {
+    renderCameraSourceFrame(frame, frame.displayWidth, frame.displayHeight);
+  } finally {
+    frame.close();
   }
-  canvas.getContext('2d').drawImage(frame, 0, 0);
-  frame.close();
-  cameraFrames += 1;
-  cameraFrameWindow.push(performance.now());
-  while (cameraFrameWindow.length && performance.now() - cameraFrameWindow[0] > 1000) cameraFrameWindow.shift();
-  ui.cameraEmpty.style.display = 'none';
 }
 
-async function renderImageBlob(data, format) {
-  const bitmap = await createImageBitmap(new Blob([data], { type: format === 'png' ? 'image/png' : 'image/jpeg' }));
-  const canvas = ui.cameraCanvas;
-  canvas.width = bitmap.width; canvas.height = bitmap.height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0);
-  bitmap.close();
-  ui.cameraEmpty.style.display = 'none';
+function renderImageBlob(data, metadata) {
+  enqueueCameraImageFrame(data, metadata);
 }
 
 function renderRawImage(data, metadata) {
@@ -2121,7 +2623,7 @@ function renderRawImage(data, metadata) {
     }
   }
   ctx.putImageData(image, 0, 0);
-  ui.cameraEmpty.style.display = 'none';
+  markCameraFrameRendered(cameraMeta?.topic || cameraActiveSourceKey);
 }
 
 function markJointsStale(force = false) {
@@ -2196,31 +2698,34 @@ function connectCamera() {
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
   cameraSocket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/camera`);
   cameraSocket.binaryType = 'arraybuffer';
-  cameraSocket.onmessage = async (event) => {
+  cameraSocket.onmessage = (event) => {
     if (typeof event.data === 'string') {
-      cameraMeta = JSON.parse(event.data);
+      const metadata = JSON.parse(event.data);
+      noteCameraSource(metadata.topic || metadata.source || metadata.stream_url || metadata.transport);
+      cameraMeta = metadata;
       return;
     }
     if (!cameraMeta) return;
+    const metadata = { ...cameraMeta };
     try {
-      if (cameraMeta.format === 'h264') {
+      if (metadata.format === 'h264') {
         if (!videoDecoder || videoDecoder.state === 'closed') if (!resetDecoder()) return;
-        if (cameraMeta.key) cameraHasKey = true;
+        if (metadata.key) cameraHasKey = true;
         if (!cameraHasKey) return;
         const chunk = new EncodedVideoChunk({
-          type: cameraMeta.key ? 'key' : 'delta',
-          timestamp: Number(cameraMeta.seq) * 33333,
+          type: metadata.key ? 'key' : 'delta',
+          timestamp: Number(metadata.seq) * 33333,
           data: new Uint8Array(event.data),
         });
         if (videoDecoder.decodeQueueSize < 4) videoDecoder.decode(chunk);
-      } else if (cameraMeta.format === 'jpeg' || cameraMeta.format === 'png') {
-        await renderImageBlob(event.data, cameraMeta.format);
-      } else if (cameraMeta.format === 'raw') {
-        renderRawImage(event.data, cameraMeta);
+      } else if (metadata.format === 'jpeg' || metadata.format === 'png') {
+        renderImageBlob(event.data, metadata);
+      } else if (metadata.format === 'raw') {
+        renderRawImage(event.data, metadata);
       }
     } catch (error) {
       console.warn('camera render:', error);
-      if (cameraMeta.format === 'h264') resetDecoder();
+      if (metadata.format === 'h264') resetDecoder();
     }
   };
   cameraSocket.onclose = () => setTimeout(connectCamera, 1800);
@@ -2927,7 +3432,10 @@ $('#refreshButton').addEventListener('click', async () => { await Promise.all([r
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
-ui.cameraSource.addEventListener('change', () => selectSource('camera', ui.cameraSource.value));
+ui.cameraSource.addEventListener('change', () => {
+  resetCameraRenderedFrame(ui.cameraSource.value, { reason: '카메라 소스를 변경하여 새 프레임을 기다리고 있습니다.' });
+  selectSource('camera', ui.cameraSource.value);
+});
 ui.cloudSource.addEventListener('change', () => {
   if (ui.cloudSource.value) chooseMapView('cloud');
   resetLiveCloudAccumulator();
@@ -2988,6 +3496,9 @@ ui.savedMapDeleteButton.addEventListener('click', deleteSelectedSavedMap);
 ui.savedMapNameInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') renameSelectedSavedMap(); });
 ui.topicSearch.addEventListener('input', renderTopics);
 ui.categoryFilter.addEventListener('change', renderTopics);
+ui.cameraCaptureButton.addEventListener('click', captureCameraFrame);
+ui.cameraRecordButton.addEventListener('click', startCameraRecording);
+ui.cameraStopRecordButton.addEventListener('click', () => stopCameraRecording());
 controlUi.arm.addEventListener('click', armControl);
 controlUi.disarm.addEventListener('click', () => failSafeDisarm('manual_disarm', { notify: true }));
 controlUi.pin.addEventListener('keydown', (event) => { if (event.key === 'Enter') armControl(); });
@@ -3024,10 +3535,12 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) return;
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('document_hidden');
+  if (cameraRecording) stopCameraRecording(cameraRecordingCleanupPolicy('visibility_hidden'));
 });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('page_hidden');
+  discardCameraRecordingForPageHide();
 });
 window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
@@ -3036,6 +3549,7 @@ window.addEventListener('resize', () => {
 });
 
 startClock();
+initializeCameraMediaControls();
 bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();
@@ -3063,6 +3577,7 @@ setInterval(refreshSources, 5000);
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
 setInterval(markJointsStale, 250);
+setInterval(syncCameraFrameFreshness, 500);
 setInterval(controlTick, 50);
 setInterval(refreshControlSnapshot, 1000);
 setInterval(refreshControlGamepads, 1000);

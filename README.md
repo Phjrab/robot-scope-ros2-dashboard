@@ -13,7 +13,8 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 
 - ROS graph, 토픽 타입, publisher 수와 데이터 수신 상태 자동 탐색
 - IMU, 배터리, 관절, GPS, 거리 센서와 odometry 요약
-- JPEG, CompressedImage, raw Image와 Go2 H.264 카메라 표시
+- JPEG, CompressedImage, raw Image와 Go2 직접 RTP/H.264 카메라 표시
+- 표시 중인 카메라 화면 PNG/JPEG 캡처와 브라우저 WebM/MP4 녹화
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
 - Settings에서 Go2, TurtleBot, SO-101 유형 선택과 제한된 로컬 네트워크 자동 검색
 - 발견 후보의 IP, hostname, 인터페이스와 응답 지연을 확인한 뒤 연결 대상 선택
@@ -40,6 +41,7 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 Web browser  <-- HTTP + WebSocket -->  Robot Scope agent on Jetson
                                            |
 Robot sensors / ROS 2 DDS  ----------------+
+Go2 camera / RTP multicast 230.1.1.1:1720 -+
                                            |
                                            | signed allowlisted commands
                                            v
@@ -327,15 +329,52 @@ Robot Scope -> live view + PCD/PGM/YAML save
 
 ## 카메라
 
-Go2 전면 H.264 영상 변환에는 Jetson의 GStreamer가 필요합니다.
+Go2 전면 카메라는 ROS 2 `/frontvideostream`을 거치지 않습니다. 로봇이 공장 설정으로
+`230.1.1.1:1720`에 송출하는 RTP/H.264 멀티캐스트를 Jetson이 전용 Go2 이더넷에서
+직접 받고, GStreamer로 JPEG 프레임을 만든 뒤 기존 FastAPI WebSocket으로 같은 출처의
+대시보드에 전달합니다. 별도 Flask 개발 서버나 OpenCV Python 패키지는 필요하지
+않습니다.
+
+~~~text
+Go2 camera -- RTP/H.264 multicast --> GStreamer on Jetson
+           230.1.1.1:1720             |
+                                      +-- JPEG --> FastAPI WS --> browser canvas
+~~~
+
+필요한 GStreamer 도구와 플러그인은 다음과 같이 설치합니다.
 
 ~~~bash
 sudo apt install gstreamer1.0-tools gstreamer1.0-plugins-good \
   gstreamer1.0-plugins-bad gstreamer1.0-libav
 ~~~
 
-Go2 프로필은 고대역폭 지도 처리를 우선하기 위해 카메라 자동 구독을 끕니다.
-필요할 때 Settings에서 /frontvideostream을 선택합니다.
+`config/go2.json`의 `direct_camera`가 직접 수신을 활성화하고, 기본 인터페이스는
+`eno1`, 출력은 1280×720, 최대 15fps, JPEG 품질 80입니다. 실행 스크립트가 확인한
+`ROBOT_SCOPE_DDS_INTERFACE`를 우선 사용하며, 다른 유선 어댑터를 쓸 때는 그 이름을
+allowlist에도 추가한 뒤 다음 환경 변수로 지정할 수 있습니다.
+
+~~~bash
+export ROBOT_SCOPE_CAMERA_INTERFACE=enx0123456789ab
+./scripts/run_go2_humble.sh
+~~~
+
+Go2 프로필의 ROS 카메라 자동 구독은 계속 꺼져 있습니다. 직접 카메라가 설정된 동안
+`/frontvideostream`은 영상 소스로 사용되지 않으므로, 대용량 Unitree 영상 메시지로
+인한 DDS 병목이 센서·제어 경로에 영향을 주지 않습니다. Sensors 화면에는 직접 수신
+상태, FPS, 해상도와 인터페이스가 표시됩니다.
+
+영상이 표시되면 Sensors 화면에서 PNG/JPEG `화면 캡처` 또는 `녹화 시작`을 누릅니다.
+파일은 Jetson에 쌓이지 않고 현재 브라우저의 다운로드 폴더에 저장됩니다. 녹화 형식은
+브라우저가 지원하는 WebM 또는 MP4 중 자동 선택되며, 카메라 소스를 바꾸거나 Sensors
+메뉴를 떠나면 현재 녹화를 마무리해 저장합니다. 브라우저 탭 자체를 닫는 경우에는
+완성되지 않은 임시 녹화를 안전하게 폐기할 수 있습니다.
+
+직접 영상이 보이지 않으면 다음을 확인합니다.
+
+1. Jetson의 Go2 전용 인터페이스에 `192.168.123.99/24`가 있는지 확인합니다.
+2. `direct_camera.interface`와 실제 인터페이스 이름이 같은지 확인합니다.
+3. `gstreamer1.0-plugins-good`, `-bad`, `-libav`가 설치되어 있는지 확인합니다.
+4. `/api/v1/health`의 `direct_camera.last_error`, `state`, `age_s`를 확인합니다.
 
 RealSense가 로봇 탑재 Jetson USB에 연결되어 있다면 같은 Jetson에서
 realsense2_camera를 실행합니다. 표준 color, depth, points 토픽이 발견되면
@@ -368,6 +407,7 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 - ROBOT_SCOPE_DIR: 프로젝트 루트 강제 지정
 - ROBOT_SCOPE_PORT: HTTP 포트, 기본 8088
 - ROBOT_SCOPE_ROBOT_IP: 네트워크 생존 확인 대상
+- ROBOT_SCOPE_CAMERA_INTERFACE: Go2 영상 멀티캐스트를 받을 allowlist 유선 인터페이스
 - ROBOT_SCOPE_OVERLAY: Generic 프로필에서 불러올 ROS workspace setup 파일
 - ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot | so-101
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더

@@ -41,6 +41,7 @@ from .discovery import (
     normalize_hostname,
     robot_type_definition,
 )
+from .go2_multicast_camera import Go2MulticastCamera
 from .pointcloud import extract_xyz, reject_spatial_outliers
 from .runtime_status import ros_transport_status
 from .serializers import (
@@ -242,12 +243,52 @@ class RosAgent:
             "width": 0,
             "height": 0,
             "encoding": "",
+            "source": "none",
+            "transport": "",
+            "state": "waiting",
+            "fps": None,
+            "age_s": None,
         }
         self._h264_sps = b""
         self._h264_pps = b""
         self._h264_pending_stamp = 0
         self._h264_pending = bytearray()
         self._camera_decoder = H264JpegDecoder(self._decoded_camera_callback)
+        direct_camera_profile = self.profile.get("direct_camera", {})
+        if not isinstance(direct_camera_profile, dict):
+            direct_camera_profile = {}
+        configured_interface = str(direct_camera_profile.get("interface", "")).strip()
+        runtime_interface = (
+            os.environ.get("ROBOT_SCOPE_CAMERA_INTERFACE", "").strip()
+            or os.environ.get("ROBOT_SCOPE_DDS_INTERFACE", "").strip()
+            or configured_interface
+        )
+        allowed_interfaces_value = direct_camera_profile.get("allowed_interfaces", [])
+        allowed_interfaces = (
+            [str(value) for value in allowed_interfaces_value]
+            if isinstance(allowed_interfaces_value, list)
+            else []
+        )
+        self._direct_camera = Go2MulticastCamera(
+            self._direct_camera_callback,
+            enabled=(
+                self._startup_robot_type == "go2"
+                and bool(direct_camera_profile.get("enabled", False))
+            ),
+            interface=runtime_interface,
+            allowed_interfaces=allowed_interfaces,
+            width=direct_camera_profile.get("width", 1280),
+            height=direct_camera_profile.get("height", 720),
+            fps_limit=direct_camera_profile.get("fps_limit", 15),
+            jpeg_quality=direct_camera_profile.get("jpeg_quality", 80),
+            stale_after_s=direct_camera_profile.get("stale_after_s", 3.0),
+            startup_frame_timeout_s=direct_camera_profile.get(
+                "startup_frame_timeout_s", 8.0
+            ),
+            frame_timeout_s=direct_camera_profile.get("frame_timeout_s"),
+            restart_initial_s=direct_camera_profile.get("restart_initial_s", 0.5),
+            restart_max_s=direct_camera_profile.get("restart_max_s", 8.0),
+        )
 
         self._cloud: Dict[str, Any] = {
             "seq": 0,
@@ -344,6 +385,7 @@ class RosAgent:
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
             return
+        self._direct_camera.start()
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._run, name="robot-scope-ros", daemon=True)
         self._thread.start()
@@ -354,6 +396,7 @@ class RosAgent:
         # as a second line of defence if transport is already unavailable.
         self.shutdown_control()
         self._stop_event.set()
+        self._direct_camera.stop()
         self._camera_decoder.stop()
         executor = self._executor
         if executor:
@@ -1289,6 +1332,12 @@ class RosAgent:
     def _camera_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
         self._tick(topic, now)
+        if self._direct_camera.configured:
+            # The Go2 profile deliberately uses the factory multicast feed as
+            # its sole camera transport.  A manually selected legacy ROS topic
+            # remains measurable in the graph but cannot race and overwrite the
+            # direct JPEG stream.
+            return
         camera: Dict[str, Any]
         if type_name.endswith("/Go2FrontVideoData"):
             payload = bytes(getattr(message, "video720p", b""))
@@ -1324,6 +1373,9 @@ class RosAgent:
                 "width": 1280,
                 "height": 720,
                 "encoding": "avc1.42E01E",
+                "source": "ros_topic",
+                "transport": "ros2",
+                "state": "ok",
             }
         elif type_name == "sensor_msgs/msg/CompressedImage":
             fmt = str(getattr(message, "format", "jpeg")).lower()
@@ -1335,6 +1387,9 @@ class RosAgent:
                 "width": 0,
                 "height": 0,
                 "encoding": fmt,
+                "source": "ros_topic",
+                "transport": "ros2",
+                "state": "ok",
             }
         else:
             camera = {
@@ -1346,6 +1401,9 @@ class RosAgent:
                 "height": int(getattr(message, "height", 0)),
                 "step": int(getattr(message, "step", 0)),
                 "encoding": str(getattr(message, "encoding", "")),
+                "source": "ros_topic",
+                "transport": "ros2",
+                "state": "ok",
             }
         if not camera["data"]:
             return
@@ -1356,6 +1414,8 @@ class RosAgent:
             self._camera = camera
 
     def _decoded_camera_callback(self, jpeg: bytes) -> None:
+        if self._direct_camera.configured:
+            return
         now = time.monotonic()
         with self._lock:
             self._camera = {
@@ -1368,6 +1428,36 @@ class RosAgent:
                 "encoding": "jpeg",
                 "seq": self._camera["seq"] + 1,
                 "topic": self._sources.get("camera", "/frontvideostream"),
+                "updated": now,
+                "decoder": "gstreamer",
+                "source": "ros_topic",
+                "transport": "ros2",
+                "state": "ok",
+            }
+
+    def _direct_camera_callback(self, jpeg: bytes) -> None:
+        """Store one JPEG decoded from the Go2's non-ROS RTP multicast."""
+
+        now = time.monotonic()
+        status = self._direct_camera.status()
+        with self._lock:
+            self._camera = {
+                "format": "jpeg",
+                "data": jpeg,
+                "stamp_us": int(time.time() * 1_000_000),
+                "key": True,
+                "width": int(status.get("width", 1280)),
+                "height": int(status.get("height", 720)),
+                "encoding": "jpeg",
+                "seq": int(self._camera.get("seq", 0)) + 1,
+                "topic": str(status.get("uri", "go2-camera://230.1.1.1:1720")),
+                "source": "go2_multicast",
+                "source_label": str(status.get("source_label", "Go2 front camera")),
+                "transport": str(status.get("transport", "udp_multicast_rtp_h264")),
+                "interface": str(status.get("interface", "")),
+                "fps": status.get("fps"),
+                "age_s": status.get("age_s"),
+                "state": "ok",
                 "updated": now,
                 "decoder": "gstreamer",
             }
@@ -1508,6 +1598,12 @@ class RosAgent:
                 candidate = values.get(category)
                 if candidate is None:
                     continue
+                if category == "camera" and self._direct_camera.configured:
+                    if candidate == self._direct_camera.source_uri:
+                        continue
+                    raise ValueError(
+                        "Go2 direct camera is active; ROS camera selection is locked"
+                    )
                 if candidate and candidate not in self._graph:
                     raise ValueError(f"unknown ROS topic: {candidate}")
                 if candidate and self._graph[candidate].get("category") != category:
@@ -1701,6 +1797,7 @@ class RosAgent:
         ros_transport = ros_transport_status(
             require_go2_interface=self._startup_robot_type == "go2"
         )
+        direct_camera = self._direct_camera.status()
         with self._lock:
             runtime_profile = (
                 robot_type_definition(self._robot_type) if self._robot_type else None
@@ -1739,6 +1836,7 @@ class RosAgent:
                 "uptime_s": round(time.monotonic() - self._started_at, 1),
                 "topic_count": len(self._graph),
                 "last_error": self._last_error,
+                "direct_camera": direct_camera,
                 # `profile` always names the actually running ROS profile.
                 # Runtime selection is display/observation metadata only.
                 "profile": self._startup_profile_name,
@@ -1761,7 +1859,25 @@ class RosAgent:
                     options[category].append({"topic": name, "type": item.get("type", "")})
             for values in options.values():
                 values.sort(key=lambda item: item["topic"])
-            return {"selected": dict(self._sources), "options": options}
+            selected = dict(self._sources)
+            locked: Dict[str, bool] = {}
+            direct_camera = self._direct_camera.status()
+            if direct_camera.get("enabled") and direct_camera.get("configured"):
+                uri = str(direct_camera.get("uri", self._direct_camera.source_uri))
+                options["camera"] = [
+                    {
+                        "topic": uri,
+                        "type": "video/H264 (direct RTP multicast)",
+                    }
+                ]
+                selected["camera"] = uri
+                locked["camera"] = True
+            return {
+                "selected": selected,
+                "options": options,
+                "locked": locked,
+                "direct_camera": direct_camera,
+            }
 
     def _metric_snapshot(self, topic: str, category: str) -> Dict[str, Any]:
         now = time.monotonic()
@@ -1840,6 +1956,28 @@ class RosAgent:
         with self._lock:
             return self._pose_snapshot_locked(time.monotonic())
 
+    def _camera_snapshot_locked(self) -> Dict[str, Any]:
+        snapshot = dict(self._camera)
+        direct_status = self._direct_camera.status()
+        snapshot["direct_camera"] = direct_status
+        direct_active = bool(
+            direct_status.get("enabled") and direct_status.get("configured")
+        )
+        if direct_active:
+            snapshot.update(
+                {
+                    "topic": direct_status.get("uri", "go2-camera://230.1.1.1:1720"),
+                    "source": direct_status.get("source", "go2_multicast"),
+                    "source_label": direct_status.get("source_label", "Go2 front camera"),
+                    "transport": direct_status.get("transport", "udp_multicast_rtp_h264"),
+                    "interface": direct_status.get("interface", ""),
+                    "state": direct_status.get("state", "waiting"),
+                    "fps": direct_status.get("fps"),
+                    "age_s": direct_status.get("age_s"),
+                }
+            )
+        return snapshot
+
     def state_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             sensors = []
@@ -1848,7 +1986,14 @@ class RosAgent:
                 item.update(self._metric_snapshot(topic, summary.get("category", "")))
                 sensors.append(item)
             sources = dict(self._sources)
-            camera_meta = {key: value for key, value in self._camera.items() if key != "data"}
+            camera_meta = {
+                key: value for key, value in self._camera_snapshot_locked().items() if key != "data"
+            }
+            if camera_meta.get("source") == "go2_multicast":
+                # State consumers can treat the direct feed like a selected
+                # source without adding a non-ROS URI to /api/v1/sources, whose
+                # POST validation remains strictly tied to the ROS graph.
+                sources["camera"] = str(camera_meta.get("topic", ""))
             cloud_meta = {key: value for key, value in self._cloud.items() if key != "points"}
             map_meta = {key: value for key, value in self._map.items() if key != "data_b64"}
             robot_joints = self._joint_snapshot_locked(time.monotonic())
@@ -1885,7 +2030,7 @@ class RosAgent:
 
     def camera_snapshot(self) -> Dict[str, Any]:
         with self._lock:
-            return dict(self._camera)
+            return self._camera_snapshot_locked()
 
     def pointcloud_snapshot(self) -> Dict[str, Any]:
         with self._lock:

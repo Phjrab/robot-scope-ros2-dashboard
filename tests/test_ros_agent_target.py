@@ -264,6 +264,60 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertTrue(health["ros_offline_viewer"])
         self.assertTrue(health["ros_transport"]["dedicated_interface_required"])
 
+    def test_direct_camera_is_exposed_without_mutating_ros_source_selection(self):
+        sources = self.agent.sources_snapshot()
+        self.assertEqual(
+            sources["selected"]["camera"], "go2-camera://230.1.1.1:1720"
+        )
+        self.assertTrue(sources["locked"]["camera"])
+        self.assertEqual(
+            sources["options"]["camera"][0]["type"],
+            "video/H264 (direct RTP multicast)",
+        )
+        waiting = self.agent.camera_snapshot()
+        self.assertEqual(waiting["source"], "go2_multicast")
+        self.assertEqual(waiting["topic"], "go2-camera://230.1.1.1:1720")
+        self.assertEqual(waiting["state"], "waiting")
+
+        self.agent._direct_camera._publish_jpeg(b"\xff\xd8frame\xff\xd9")
+        camera = self.agent.camera_snapshot()
+        self.assertEqual(camera["format"], "jpeg")
+        self.assertEqual(camera["source"], "go2_multicast")
+        self.assertEqual(camera["transport"], "udp_multicast_rtp_h264")
+        self.assertEqual(camera["state"], "ok")
+        self.agent._network_cache = (time.monotonic(), False, None)
+        state = self.agent.state_snapshot()
+        self.assertEqual(state["sources"]["camera"], "go2-camera://230.1.1.1:1720")
+        self.assertEqual(
+            self.agent.sources_snapshot()["selected"]["camera"],
+            "go2-camera://230.1.1.1:1720",
+        )
+
+        with self.assertRaisesRegex(ValueError, "direct camera is active"):
+            self.agent.set_sources({"camera": "/frontvideostream"})
+        accepted = self.agent.set_sources(
+            {"camera": "go2-camera://230.1.1.1:1720"}
+        )
+        self.assertTrue(accepted["locked"]["camera"])
+
+    def test_direct_camera_exclusively_ignores_legacy_ros_camera_callbacks(self):
+        self.agent._direct_camera._publish_jpeg(b"\xff\xd8direct\xff\xd9")
+        before = self.agent.camera_snapshot()
+        ros_message = types.SimpleNamespace(format="jpeg", data=b"legacy")
+
+        self.agent._camera_callback(
+            "/frontvideostream",
+            "sensor_msgs/msg/CompressedImage",
+            ros_message,
+        )
+        self.agent._decoded_camera_callback(b"\xff\xd8legacy\xff\xd9")
+
+        after = self.agent.camera_snapshot()
+        self.assertEqual(after["seq"], before["seq"])
+        self.assertEqual(after["data"], before["data"])
+        self.assertEqual(after["source"], "go2_multicast")
+        self.assertEqual(self.agent._metrics["/frontvideostream"].samples, 1)
+
     def test_old_ping_result_cannot_poison_new_target_cache(self):
         started = threading.Event()
         release = threading.Event()
