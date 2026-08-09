@@ -1876,7 +1876,6 @@ class RosAgent:
                 "selected": selected,
                 "options": options,
                 "locked": locked,
-                "direct_camera": direct_camera,
             }
 
     def _metric_snapshot(self, topic: str, category: str) -> Dict[str, Any]:

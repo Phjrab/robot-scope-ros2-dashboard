@@ -295,8 +295,8 @@ class Go2MulticastCamera:
                 stderr_error = self._last_error
             if forced_error and not self._stop_event.is_set():
                 error = forced_error
-            elif not error and stderr_error and not self._stop_event.is_set():
-                error = stderr_error
+            elif stderr_error and not self._stop_event.is_set():
+                error = f"{error}: {stderr_error}" if error else stderr_error
         return error or "Go2 camera pipeline ended"
 
     def _read_jpegs(self, stream: object) -> None:
