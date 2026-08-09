@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-PROJECT_DIR="${ROBOT_SCOPE_DIR:-$HOME/robot-scope}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
 LOG_DIR="${ROBOT_SCOPE_MAPPING_LOG_DIR:-$HOME/ws/go2_3d}"
 mkdir -p "$LOG_DIR"
 

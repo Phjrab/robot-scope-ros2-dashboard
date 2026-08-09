@@ -12,7 +12,8 @@ fi
 
 OUTPUT_PREFIX="$(realpath -m -- "$1")"
 SAVE_MODE="$2"
-PROJECT_DIR="${ROBOT_SCOPE_DIR:-$HOME/robot-scope}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
 MAPS_DIR="$(realpath -m -- "${ROBOT_SCOPE_MAPS_DIR:-$HOME/ws/go2_3d/maps}")"
 JOBS_DIR="$MAPS_DIR/.robot_scope_jobs"
 SAVE_SCRIPT="$HOME/ws/go2_3d/save_map.py"

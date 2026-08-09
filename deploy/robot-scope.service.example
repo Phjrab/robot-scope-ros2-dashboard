@@ -6,8 +6,8 @@ After=network-online.target
 [Service]
 Type=simple
 User=jetson_orin_nano
-WorkingDirectory=/home/jetson_orin_nano/robot-scope
-ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_humble.sh
+WorkingDirectory=/home/jetson_orin_nano/robot-scope-ros2-dashboard
+ExecStart=/home/jetson_orin_nano/robot-scope-ros2-dashboard/scripts/run_go2_humble.sh
 Restart=on-failure
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1
