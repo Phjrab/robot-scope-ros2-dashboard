@@ -1,4 +1,6 @@
+import ast
 import unittest
+from pathlib import Path
 
 from robot_dashboard.control import ACTION_GUARD_S, SAFE_ACTIONS
 from robot_dashboard.go2_bridge import (
@@ -46,6 +48,22 @@ class Go2BridgeCoreTests(unittest.TestCase):
     def test_dashboard_and_watchdog_action_allowlists_match(self):
         self.assertEqual(SAFE_ACTION_API_IDS, SAFE_ACTIONS)
         self.assertEqual(SAFE_ACTION_GUARD_S, ACTION_GUARD_S)
+
+    def test_bridge_keeps_ros_context_alive_for_shutdown_stop(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "robot_dashboard"
+            / "go2_control_bridge.py"
+        ).read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        main = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "main"
+        )
+        rendered = ast.unparse(main)
+        self.assertIn("signal_handler_options=SignalHandlerOptions.NO", rendered)
+        self.assertLess(rendered.index("node.stop_safely()"), rendered.index("rclpy.shutdown()"))
 
     def test_startup_and_watchdog_publish_stop(self):
         requests = self.tick()

@@ -12,6 +12,7 @@ import argparse
 import fcntl
 import json
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -22,6 +23,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.signals import SignalHandlerOptions
 from std_msgs.msg import String
 from unitree_api.msg import Request
 from unitree_go.msg import LowState
@@ -266,7 +268,23 @@ def main() -> None:
     except (ControlProtocolError, RuntimeError) as exc:
         raise SystemExit(str(exc)) from exc
 
-    rclpy.init(args=None)
+    # rclpy's default SIGINT handler shuts the ROS context down before
+    # ``executor.spin()`` returns.  That makes the shutdown StopMove publishes
+    # fail with "publisher's context is invalid".  Keep the context alive,
+    # interrupt the spin ourselves, then publish the final stops before calling
+    # ``rclpy.shutdown()``.
+    shutdown_requested = False
+
+    def request_shutdown(_signum: int, _frame: Any) -> None:
+        nonlocal shutdown_requested
+        if shutdown_requested:
+            return
+        shutdown_requested = True
+        raise KeyboardInterrupt
+
+    rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
+    previous_sigint = signal.signal(signal.SIGINT, request_shutdown)
+    previous_sigterm = signal.signal(signal.SIGTERM, request_shutdown)
     node: Go2ControlBridge | None = None
     executor: MultiThreadedExecutor | None = None
     try:
@@ -288,6 +306,8 @@ def main() -> None:
             node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+        signal.signal(signal.SIGINT, previous_sigint)
+        signal.signal(signal.SIGTERM, previous_sigterm)
         process_lock.close()
 
 
