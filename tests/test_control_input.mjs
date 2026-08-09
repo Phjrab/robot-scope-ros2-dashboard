@@ -194,6 +194,7 @@ test('keyboard repeats are idempotent and direction keyup stops without disarmin
   assert.match(upHandler, /keyboard_deadman_released/);
   assert.match(upHandler, /else \{[\s\S]{0,180}controlTick\(\)/);
   assert.doesNotMatch(upHandler, /keyboard_key_released/);
+  assert.match(indexSource, /방향키를 놓으면 정지하고 ARM은 유지됩니다/);
 });
 
 test('screen direction release also stops without releasing a held deadman', () => {
