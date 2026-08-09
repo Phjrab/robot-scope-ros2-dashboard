@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import copy
 import ipaddress
 import json
 import math
@@ -27,12 +28,18 @@ from rosidl_runtime_py.utilities import get_message
 from std_msgs.msg import String
 
 from .camera_decoder import H264JpegDecoder
-from .control import ControlClosed, ControlManager
+from .control import ControlClosed, ControlDisabled, ControlManager
 from .control_protocol import (
     ControlProtocolError,
     decode_signed,
     encode_signed,
     shared_key,
+)
+from .discovery import (
+    infer_robot_type,
+    is_local_robot_ipv4,
+    normalize_hostname,
+    robot_type_definition,
 )
 from .pointcloud import extract_xyz, reject_spatial_outliers
 from .serializers import (
@@ -100,6 +107,18 @@ class RosAgent:
         self.robot_ip = self._valid_ip(robot_ip)
         self.cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
         self.profile = self._load_profile(profile_path)
+        self._startup_profile_name = str(self.profile.get("name", "Generic ROS 2"))
+        self._robot_type = infer_robot_type(self.profile)
+        # These values describe the immutable ROS/DDS control transport that
+        # was constructed at process startup.  Runtime UI selection only
+        # changes observation/display metadata; it never retargets the bridge.
+        self._startup_robot_type = self._robot_type
+        self._startup_robot_ip = self.robot_ip
+        self._target_restart_required = False
+        self._robot_hostname = ""
+        self._robot_model = (
+            robot_type_definition(self._robot_type)["model"] if self._robot_type else None
+        )
         self.cloud_radius_limit = max(
             5.0,
             min(float(self.profile.get("cloud_radius_limit_m", 500.0)), 10_000.0),
@@ -682,11 +701,54 @@ class RosAgent:
         with self._control_operation_lock:
             self._publish_control_outputs(self._control_manager.drain_outputs())
 
+    def _target_matches_startup(self) -> bool:
+        with self._lock:
+            return (
+                self._robot_type == self._startup_robot_type
+                and self.robot_ip == self._startup_robot_ip
+            )
+
+    def _go2_control_target(self) -> bool:
+        with self._lock:
+            return (
+                self._startup_robot_type == "go2"
+                and bool(self._startup_robot_ip)
+                and self._robot_type == "go2"
+                and self.robot_ip == self._startup_robot_ip
+                and not self._target_restart_required
+            )
+
+    def _control_target_reason(self) -> str:
+        with self._lock:
+            if self._target_restart_required:
+                return "runtime_target_changed_restart_required"
+            if self._startup_robot_type != "go2":
+                return "startup_profile_not_go2"
+            if not self._startup_robot_ip:
+                return "startup_go2_ip_not_configured"
+            if self._robot_type != "go2":
+                return "selected_type_not_go2"
+            if self.robot_ip != self._startup_robot_ip:
+                return "selected_ip_not_startup_control_target"
+            return "startup_go2_target_match"
+
+    def _ensure_go2_control_target(self) -> None:
+        if not self._go2_control_target():
+            raise ControlDisabled(
+                "selected target is not bound to the startup Go2 DDS control transport; "
+                "restart the dashboard with the intended Go2 profile and IP"
+            )
+
     def control_snapshot(self) -> Dict[str, Any]:
         with self._control_operation_lock:
             snapshot = self._control_manager.snapshot()
             self._flush_control_outputs()
             snapshot = self._control_manager.snapshot()
+            target_supported = self._go2_control_target()
+            target_matches_startup = self._target_matches_startup()
+            with self._lock:
+                restart_required = self._target_restart_required
+            target_reason = self._control_target_reason()
             with self._control_transport_lock:
                 bridge = dict(self._control_status)
                 received = self._control_status_received
@@ -699,6 +761,32 @@ class RosAgent:
         bridge["status_age_s"] = (
             None if received <= 0.0 else round(max(0.0, time.monotonic() - received), 3)
         )
+        if not target_supported:
+            snapshot.update(
+                {
+                    "enabled": False,
+                    "configured": False,
+                    "ready": False,
+                    "actions": [],
+                }
+            )
+            bridge.update(
+                {
+                    "ready": False,
+                    "available": False,
+                    "message": (
+                        "런타임 로봇 선택은 DDS 제어 대상을 변경하지 않습니다. "
+                        "선택한 Go2 프로필과 IP로 대시보드를 재시작해야 합니다."
+                        if restart_required or not target_matches_startup
+                        else "Go2 시작 프로필이 아니므로 Go2 제어 브리지가 차단됩니다."
+                    ),
+                }
+            )
+        snapshot["target_supported"] = target_supported
+        snapshot["target_matches_startup"] = target_matches_startup
+        snapshot["restart_required"] = restart_required
+        snapshot["control_restart_required"] = restart_required
+        snapshot["control_target_reason"] = target_reason
         snapshot["bridge"] = bridge
         snapshot["transport_configured"] = transport_configured
         snapshot["available"] = bool(snapshot.get("ready"))
@@ -731,6 +819,7 @@ class RosAgent:
     def control_acquire(self, pin: str, input_source: str) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
+                self._ensure_go2_control_target()
                 return self._control_manager.acquire_lease(pin, input_source)
             finally:
                 self._flush_control_outputs()
@@ -738,6 +827,7 @@ class RosAgent:
     def control_bind(self, token: str, binding: str) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
+                self._ensure_go2_control_target()
                 return self._control_manager.bind_lease(token, binding)
             finally:
                 self._flush_control_outputs()
@@ -745,6 +835,7 @@ class RosAgent:
     def control_heartbeat(self, token: str, binding: str, seq: int) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
+                self._ensure_go2_control_target()
                 return self._control_manager.heartbeat(token, binding, seq)
             finally:
                 self._flush_control_outputs()
@@ -758,6 +849,7 @@ class RosAgent:
     ) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
+                self._ensure_go2_control_target()
                 return self._control_manager.submit_drive(token, binding, seq, **kwargs)
             finally:
                 # Deadman/timeout paths publish StopMove before success or an
@@ -775,6 +867,7 @@ class RosAgent:
     ) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
+                self._ensure_go2_control_target()
                 return self._control_manager.request_action(
                     token,
                     binding,
@@ -815,6 +908,7 @@ class RosAgent:
     ) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
+                self._ensure_go2_control_target()
                 return self._control_manager.clear_emergency_stop(pin, confirm=confirm)
             finally:
                 self._flush_control_outputs()
@@ -1439,25 +1533,133 @@ class RosAgent:
         stamp = getattr(getattr(message, "header", None), "stamp", None)
         return int(getattr(stamp, "sec", 0)) * 1_000_000_000 + int(getattr(stamp, "nanosec", 0))
 
+    def _stop_for_target_change_locked(self) -> None:
+        """Revoke any Go2 lease before an IP or robot type can change."""
+
+        try:
+            self._control_manager.emergency_stop("robot_target_changed")
+        except ControlClosed:
+            pass
+        self._flush_control_outputs()
+
+    def robot_target_snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            target_matches_startup = (
+                self._robot_type == self._startup_robot_type
+                and self.robot_ip == self._startup_robot_ip
+            )
+            return {
+                "ip": self.robot_ip,
+                "hostname": self._robot_hostname,
+                "robot_type": self._robot_type,
+                "profile": {
+                    "id": self._robot_type,
+                    "label": (
+                        robot_type_definition(self._robot_type)["label"]
+                        if self._robot_type
+                        else self._startup_profile_name
+                    ),
+                    "startup_label": self._startup_profile_name,
+                },
+                "model": copy.deepcopy(self._robot_model),
+                "target_matches_startup": target_matches_startup,
+                "restart_required": self._target_restart_required,
+                "control_restart_required": self._target_restart_required,
+                "control_target_reason": self._control_target_reason(),
+                "control_target_supported": (
+                    self._startup_robot_type == "go2"
+                    and bool(self._startup_robot_ip)
+                    and target_matches_startup
+                    and not self._target_restart_required
+                ),
+            }
+
+    def set_robot_target(
+        self,
+        value: str,
+        robot_type: str,
+        hostname: str | None = None,
+    ) -> Dict[str, Any]:
+        """Select a discovered local robot/controller and its display model.
+
+        A runtime type switch deliberately does not hot-swap the startup ROS
+        profile or control implementation.  Observation can keep running, while
+        Go2 control is gated independently below and is always revoked before a
+        target/type change becomes visible.
+        """
+
+        valid = self._valid_ip(value)
+        if not valid or not is_local_robot_ipv4(valid):
+            raise ValueError("로봇 대상은 로컬 RFC1918 또는 link-local IPv4 주소여야 합니다.")
+        definition = robot_type_definition(robot_type)
+        normalized_hostname = normalize_hostname(hostname)
+        with self._control_operation_lock:
+            with self._lock:
+                changed = valid != self.robot_ip or definition["id"] != self._robot_type
+                # Generic/TurtleBot/SO-101 profiles have no Go2 motion
+                # transport. Their target selection is observation/display
+                # metadata and can change live. Any transition touching Go2,
+                # or any change from a Go2 startup, remains fail-closed.
+                go2_involved = (
+                    self._startup_robot_type == "go2"
+                    or self._robot_type == "go2"
+                    or definition["id"] == "go2"
+                )
+            if changed and go2_involved:
+                self._stop_for_target_change_locked()
+            with self._lock:
+                if changed:
+                    self._target_restart_required = (
+                        True
+                        if self._startup_robot_type == "go2"
+                        else definition["id"] == "go2"
+                    )
+                self.robot_ip = valid
+                self._robot_type = definition["id"]
+                self._robot_hostname = normalized_hostname
+                self._robot_model = copy.deepcopy(definition["model"])
+                self._network_cache = (0.0, False, None)
+            # Snapshot while the operation lock still owns this mutation, so
+            # concurrent direct API clients cannot make this request report a
+            # later request's target.
+            snapshot = self.robot_target_snapshot()
+            snapshot["changed"] = changed
+        return snapshot
+
     def set_robot_ip(self, value: str) -> str:
+        """Legacy IP-only setter; still revokes motion when the target changes."""
+
         valid = self._valid_ip(value)
         if not valid:
             raise ValueError("유효한 IPv4 또는 IPv6 주소가 아닙니다.")
-        self.robot_ip = valid
-        self._network_cache = (0.0, False, None)
+        with self._control_operation_lock:
+            with self._lock:
+                changed = valid != self.robot_ip
+                go2_involved = (
+                    self._startup_robot_type == "go2" or self._robot_type == "go2"
+                )
+            if changed and go2_involved:
+                self._stop_for_target_change_locked()
+            with self._lock:
+                if changed:
+                    self._target_restart_required = go2_involved
+                self.robot_ip = valid
+                self._network_cache = (0.0, False, None)
         return valid
 
     def _network_status(self) -> Tuple[bool, Optional[float]]:
-        cached_at, online, latency = self._network_cache
         now = time.monotonic()
+        with self._lock:
+            cached_at, online, latency = self._network_cache
+            target_ip = self.robot_ip
         if now - cached_at < 3.0:
             return online, latency
-        if not self.robot_ip:
+        if not target_ip:
             return False, None
         started = time.monotonic()
         try:
             result = subprocess.run(
-                ["ping", "-c", "1", "-W", "1", self.robot_ip],
+                ["ping", "-c", "1", "-W", "1", target_ip],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=2.0,
@@ -1467,12 +1669,24 @@ class RosAgent:
             latency = round((time.monotonic() - started) * 1000.0, 1) if online else None
         except (OSError, subprocess.TimeoutExpired):
             online, latency = False, None
-        self._network_cache = (now, online, latency)
+        with self._lock:
+            # A concurrent target selection must not let an old ping poison the
+            # new target's three-second health cache.
+            if self.robot_ip != target_ip:
+                return False, None
+            self._network_cache = (now, online, latency)
         return online, latency
 
     def health_snapshot(self) -> Dict[str, Any]:
         online, latency = self._network_status()
         with self._lock:
+            runtime_profile = (
+                robot_type_definition(self._robot_type) if self._robot_type else None
+            )
+            target_matches_startup = (
+                self._robot_type == self._startup_robot_type
+                and self.robot_ip == self._startup_robot_ip
+            )
             return {
                 "agent_ready": self._ready,
                 "agent_version": "0.1.0",
@@ -1482,12 +1696,35 @@ class RosAgent:
                 "ros_domain_id": os.environ.get("ROS_DOMAIN_ID", "0"),
                 "rmw": os.environ.get("RMW_IMPLEMENTATION", "default"),
                 "robot_ip": self.robot_ip,
+                "robot_hostname": self._robot_hostname,
+                "robot_type": self._robot_type,
+                "robot_model": copy.deepcopy(self._robot_model),
+                "target_matches_startup": target_matches_startup,
+                "restart_required": self._target_restart_required,
+                "control_restart_required": self._target_restart_required,
+                "control_target_reason": self._control_target_reason(),
+                "control_target_supported": (
+                    self._startup_robot_type == "go2"
+                    and bool(self._startup_robot_ip)
+                    and target_matches_startup
+                    and not self._target_restart_required
+                ),
                 "robot_online": online,
                 "robot_latency_ms": latency,
                 "uptime_s": round(time.monotonic() - self._started_at, 1),
                 "topic_count": len(self._graph),
                 "last_error": self._last_error,
-                "profile": self.profile.get("name", "Generic ROS 2"),
+                # `profile` always names the actually running ROS profile.
+                # Runtime selection is display/observation metadata only.
+                "profile": self._startup_profile_name,
+                "runtime_profile": {
+                    "id": self._startup_robot_type,
+                    "label": self._startup_profile_name,
+                },
+                "selected_profile": {
+                    "id": self._robot_type,
+                    "label": runtime_profile["label"] if runtime_profile else "Unselected",
+                },
             }
 
     def sources_snapshot(self) -> Dict[str, Any]:

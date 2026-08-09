@@ -15,7 +15,10 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 - IMU, 배터리, 관절, GPS, 거리 센서와 odometry 요약
 - JPEG, CompressedImage, raw Image와 Go2 H.264 카메라 표시
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
-- Unitree 공식 Go2 모델과 12축 다리 관절, 몸통 자세, 이동 궤적 표시
+- Settings에서 Go2, TurtleBot, SO-101 유형 선택과 제한된 로컬 네트워크 자동 검색
+- 발견 후보의 IP, hostname, 인터페이스와 응답 지연을 확인한 뒤 연결 대상 선택
+- 유형별 3D 모델 자동 전환: 공식 기반 Go2와 포함된 TurtleBot/SO-101 URDF 근사 모델
+- Go2 12축 다리 관절, 몸통 자세와 이동 궤적 표시
 - 실시간 점군 포인트 수를 10K~250K, 사용자 지정 또는 ALL SESSION으로 선택
 - 저장 PCD를 미리보기 포인트 수 또는 ALL로 표시
 - Hesai + XT16 bridge + FAST-LIO 매핑 시작·중지
@@ -48,8 +51,10 @@ Robot sensors / ROS 2 DDS  ----------------+
 
 ROS 2 DDS는 일반 TCP 서비스처럼 로봇 IP 하나에 접속하는 방식이 아닙니다.
 센서가 연결된 Jetson에서 Robot Scope를 실행하고 브라우저로 Jetson의 8088
-포트에 접속합니다. 화면의 로봇 IP는 로봇 제어기의 네트워크 생존 여부를
-확인하는 대상입니다.
+포트에 접속합니다. Settings에서 고른 IP는 네트워크 생존 확인과 대시보드의 현재
+대상·모델 선택에 사용됩니다. 실행 중인 DDS 인터페이스, domain, ROS workspace와
+토픽 규칙을 자동으로 바꾸지는 않습니다. 다른 네트워크나 ROS 프로필로 전환했다면
+알맞은 실행 스크립트와 설정으로 대시보드를 다시 시작해야 합니다.
 
 ## 검증 환경
 
@@ -162,14 +167,51 @@ Unitree 토픽은 IP로 로봇 한 대를 식별하지 못하므로 제어할 Go
 export ROS_DISTRO=humble
 export ROBOT_SCOPE_ROBOT_IP=192.168.1.20
 export ROBOT_SCOPE_OVERLAY=$HOME/ros2_ws/install/setup.bash
+export ROBOT_SCOPE_PROFILE=turtlebot  # generic | turtlebot | so-101
 ./scripts/run_generic.sh
 ~~~
 
 Generic 프로필은 표준 sensor_msgs와 nav_msgs 타입을 기준으로 카메라, 점군,
 IMU, 배터리, 관절, GPS, 거리 센서, odometry와 OccupancyGrid를 분류합니다.
 표시할 토픽은 Settings의 Data Sources에서 변경할 수 있습니다.
+`ROBOT_SCOPE_PROFILE`은 위 세 값만 허용합니다. TurtleBot과 SO-101은 각각
+`config/turtlebot.json`, `config/so101.json`을 시작 프로필로 사용하며 Go2 제어는
+활성화하지 않습니다.
+
+Settings의 Connection에서 다음 표시 유형을 선택할 수 있습니다.
+
+| 유형 | 검색 대상 | 3D 모델 | 현재 제어 범위 |
+|---|---|---|---|
+| Unitree Go2 | Go2 본체와 전용 유선망 | Unitree 공식 URDF 기반 경량 모델 | 안전 설정을 마친 경우 주행·허용 모션 |
+| TurtleBot | 같은 LAN의 TurtleBot ROS 2 컴퓨터 | 저장소에 포함된 범용 URDF 근사 모델 | 관측·센서·지도 표시 |
+| SO-101 | 팔이 USB/serial로 연결된 ROS 2 컨트롤러 호스트 | 저장소에 포함된 범용 URDF 근사 모델 | 관측·센서·지도 표시 |
+
+TurtleBot과 SO-101 모델은 제조사 공식 치수·충돌 모델이 아니며 대시보드에서 유형을
+구분하기 위한 primitive-only 시각화입니다. 현재 기본 URDF 자세로 표시되고, 각 로봇의
+실시간 joint topic 매핑은 포함하지 않습니다. 시뮬레이션, 충돌 검사, 제어 또는 제작
+치수로 사용하지 마세요.
 
 ## 대시보드 사용 방법
+
+### Settings: 로봇 찾기와 모델 선택
+
+1. Connection에서 Go2, TurtleBot 또는 SO-101을 선택합니다.
+2. 대시보드가 Jetson의 활성 사설 IPv4 인터페이스를 기준으로 자동 검색합니다.
+3. 후보의 IP와 hostname을 확인하고 원하는 항목을 선택합니다. 찾지 못하면 IP를 직접
+   입력할 수 있습니다.
+4. 연결을 누르면 현재 대상과 실시간·저장 지도 화면의 3D 모델이 함께 바뀝니다.
+
+검색은 브라우저가 임의 subnet이나 probe 대상을 지정하지 못하게 제한되어 있습니다.
+Jetson에 직접 연결된 RFC1918 또는 link-local IPv4 중 한 인터페이스의 최대 /24만
+검색하며, 최대 256개 주소·32개 worker로 제한합니다. 능동 ping 단계는 최대 12초,
+hostname 해석 단계는 최대 4초이며 결과를 잠시 캐시합니다.
+낮은 신뢰도의 후보는 선택한 유형으로 확인된 장비가 아니라 같은 LAN에서 ping에
+응답한 호스트일 수 있으므로 hostname과 실제 장비를 함께 확인하세요.
+
+연결 버튼은 DDS 재초기화 버튼이 아닙니다. 유형 또는 네트워크가 바뀌어 ROS 2 토픽이
+보이지 않으면 해당 로봇 workspace, ROS_DOMAIN_ID와 DDS 인터페이스를 설정한 뒤
+대시보드를 다시 시작하세요. Go2가 아닌 유형을 선택하면 Go2 제어 lease와 명령은
+서버에서도 차단됩니다.
 
 ### Overview
 
@@ -317,10 +359,12 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 
 - config/go2.json: Go2 토픽 우선순위, 장착 오프셋, 저장 지도 폴더와 포인트 상한
 - config/generic.json: 범용 ROS 2 토픽 우선순위와 저장 지도 설정
+- config/turtlebot.json, config/so101.json: 해당 유형의 관측 전용 시작 프로필
 - ROBOT_SCOPE_DIR: 프로젝트 루트 강제 지정
 - ROBOT_SCOPE_PORT: HTTP 포트, 기본 8088
 - ROBOT_SCOPE_ROBOT_IP: 네트워크 생존 확인 대상
 - ROBOT_SCOPE_OVERLAY: Generic 프로필에서 불러올 ROS workspace setup 파일
+- ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot | so-101
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
 - ROBOT_SCOPE_CONTROL_PIN_SHA256: UI 제어 PIN의 SHA-256, 원문 PIN 저장 금지
@@ -334,6 +378,9 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 | GET /api/v1/state | 센서, 카메라, 매핑 요약 |
 | GET /api/v1/topics | 발견한 ROS 토픽 |
 | GET/POST /api/v1/sources | 표시 소스 조회와 변경 |
+| GET /api/v1/robots/types | 지원 로봇 유형과 3D 모델 catalog |
+| POST /api/v1/robots/discover | 선택 유형의 제한된 로컬 네트워크 검색 |
+| POST /api/v1/robot | 현재 로봇 유형, IP와 hostname 선택 |
 | GET /api/v1/pointcloud | 최신 실시간 점군 |
 | GET/POST /api/v1/pointcloud/settings | 실시간 포인트 예산 |
 | GET /api/v1/map | 최신 OccupancyGrid |
@@ -360,18 +407,19 @@ ROS가 없는 개발 PC에서도 핵심 로직 테스트를 실행할 수 있습
 
 ~~~bash
 python3 -m unittest discover -s tests -v
-node --test tests/test_control_input.mjs
+node --test tests/*.mjs
 node --check robot_dashboard/static/app.js
 node --check robot_dashboard/static/control_input.js
+node --check robot_dashboard/static/robot_profiles.js
 node --check robot_dashboard/static/scene3d.js
 ~~~
 
 ## 프로젝트 구조
 
 ~~~text
-config/             Go2와 Generic 프로필
+config/             Go2, Generic, TurtleBot, SO-101 시작 프로필
 deploy/             systemd 서비스 예제
-robot_dashboard/    FastAPI 에이전트, 제어 워치독과 웹 UI
+robot_dashboard/    FastAPI 에이전트, 로컬 검색, 제어 워치독, 모델 asset과 웹 UI
 scripts/            실행, 제어 브리지, 매핑, 저장과 모델 생성 도구
 tests/              지도, 안전 제어, 작업, 직렬화와 asset 테스트
 requirements.txt    Python 웹 의존성
@@ -389,12 +437,16 @@ requirements.txt    Python 웹 의존성
 - 첫 실기 검증은 다리를 안전하게 띄우거나 제조사 권장 시험 자세에서 수행하고,
   브리지 강제 종료·네트워크 단절 때 Go2 펌웨어가 Move를 자체 만료시키는지 확인합니다.
 - 같은 네트워크의 사용자는 관리 허용 지도 이름 변경·삭제 API를 호출할 수 있습니다.
+- 네트워크 검색 API도 same-origin으로 제한하고, 서버가 직접 확인한 로컬 인터페이스의
+  최대 /24만 검색합니다. 검색 결과는 장비 유형을 보증하지 않으므로 선택 전에 확인합니다.
 - 인터넷이나 공용망에 노출하기 전 토큰 인증, TLS와 접근 제어를 추가해야 합니다.
 - 비밀번호, SSH 키, 토큰, .env, rosbag, PCD와 생성 지도는 Git에 올리지 않습니다.
 - 지도 삭제는 되돌릴 수 없으므로 대상 이름과 파일 묶음을 확인한 뒤 실행합니다.
 
 ## 라이선스
 
-Robot Scope 코드는 MIT License로 배포합니다. 포함된 Go2 경량 모델은 Unitree
-Robotics의 unitree_ros robots/go2_description에서 변환했으며, BSD 3-Clause
-원문과 변환 내역은 robot_dashboard/static/assets/go2에 보존합니다.
+Robot Scope 코드와 저장소에서 직접 작성한 TurtleBot/SO-101 primitive-only URDF는
+MIT License로 배포합니다. 포함된 Go2 경량 모델은 Unitree Robotics의 unitree_ros
+robots/go2_description에서 변환했으며, BSD 3-Clause 원문과 변환 내역은
+robot_dashboard/static/assets/go2에 보존합니다. 각 모델의 출처·정확도 안내는
+robot_dashboard/static/assets 아래 README와 catalog에 기록합니다.

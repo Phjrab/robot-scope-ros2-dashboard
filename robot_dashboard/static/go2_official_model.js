@@ -24,6 +24,8 @@
 
   const DEFAULT_ASSET_URL = '/static/assets/go2/go2-official-lite.json';
   const EXPECTED_SCHEMA = 'robot-scope.go2-official-lite';
+  const GENERIC_SCHEMA = 'robot-scope.robot-model-lite';
+  const SUPPORTED_SCHEMAS = new Set([EXPECTED_SCHEMA, GENERIC_SCHEMA]);
   const sharedLoads = new Map();
 
   function finite(value, fallback = 0) {
@@ -126,14 +128,14 @@
   }
 
   function validateAsset(asset) {
-    if (!asset || asset.schema !== EXPECTED_SCHEMA || asset.version !== 1) {
-      throw new Error(`Unsupported Go2 model schema: ${asset?.schema || 'missing'}`);
+    if (!asset || !SUPPORTED_SCHEMAS.has(asset.schema) || asset.version !== 1) {
+      throw new Error(`Unsupported robot model schema: ${asset?.schema || 'missing'}`);
     }
     if (!asset.meshes || !Array.isArray(asset.skeleton?.links) || !Array.isArray(asset.skeleton?.joints)) {
-      throw new Error('Incomplete Go2 model asset.');
+      throw new Error('Incomplete robot model asset.');
     }
-    if (asset.source?.license !== 'BSD-3-Clause') {
-      throw new Error('Go2 model asset is missing BSD-3-Clause provenance.');
+    if (!String(asset.source?.license || '').trim()) {
+      throw new Error('Robot model asset is missing license provenance.');
     }
     return asset;
   }
@@ -169,7 +171,7 @@
         return global.fetch(url, { cache: 'force-cache' });
       })
       .then((response) => {
-        if (!response.ok) throw new Error(`Go2 model request failed (${response.status})`);
+        if (!response.ok) throw new Error(`Robot model request failed (${response.status})`);
         return response.json();
       })
       .then(hydrateAsset)
@@ -328,6 +330,20 @@
     if (labelAnchor) scene._drawRobotLabel(labelAnchor, pose);
   }
 
+  function drawModelPlaceholder(scene) {
+    const pose = scene._effectiveRobotPose();
+    if (!pose) return;
+    const worldPerPixel = 2 * scene.camera.distance * Math.tan(scene.options.fov / 2) / Math.max(scene.height, 1);
+    const scale = clamp(Math.max(1, worldPerPixel * 38 / 0.45), 1, 6);
+    scene._drawCuboid(scene._robotWorldPoint([0, 0, 0.18], pose, scale), [0.34 * scale, 0.28 * scale, 0.24 * scale], pose.yaw, {
+      fill: 'rgba(41, 105, 92, .72)',
+      side: 'rgba(17, 54, 47, .78)',
+      stroke: pose.frameMismatch || pose.preview ? '#ffd38f' : '#79d8c1',
+    });
+    const anchor = scene._project(scene._robotWorldPoint([0, 0, 0.52], pose, scale));
+    if (anchor) scene._drawRobotLabel(anchor, pose);
+  }
+
   function install(SceneClass, options = {}) {
     if (!SceneClass?.prototype) throw new TypeError('Go2OfficialModel.install requires RobotScene3D.');
     const prototype = SceneClass.prototype;
@@ -363,22 +379,36 @@
       this._go2OfficialState = 'loading';
       this._go2OfficialError = null;
       this._go2OfficialLoadingUrl = target;
-      this._go2OfficialPromise = loadAsset(target)
+      const request = loadAsset(target)
         .then((runtime) => {
+          if (this._go2OfficialLoadingUrl !== target) return runtime.asset;
           this._go2OfficialRuntime = runtime;
           this._go2OfficialLoadedUrl = target;
           this._go2OfficialState = 'ready';
           this._go2OfficialError = null;
+          this._robotModelLabel = String(
+            runtime.asset.model?.display_name || runtime.asset.model?.name || runtime.asset.model?.robot_type || 'ROBOT',
+          ).trim();
           this.render();
           return runtime.asset;
         })
         .catch((error) => {
+          if (this._go2OfficialLoadingUrl !== target) throw error;
           this._go2OfficialState = 'error';
           this._go2OfficialError = error;
           this.render();
           throw error;
+        })
+        .finally(() => {
+          // A transient asset failure must be retryable.  Identity checking
+          // prevents an older request from clearing a newer model load.
+          if (this._go2OfficialPromise === request) {
+            this._go2OfficialPromise = null;
+            this._go2OfficialLoadingUrl = '';
+          }
         });
-      return this._go2OfficialPromise;
+      this._go2OfficialPromise = request;
+      return request;
     };
 
     prototype.configureOfficialRobot = function configureOfficialRobot(value = {}) {
@@ -421,11 +451,15 @@
     prototype._drawRobot = function drawGo2OfficialOrFallback() {
       const config = this._ensureGo2OfficialConfig();
       if (!config.enabled) return fallbackDrawRobot.call(this);
-      if (this._go2OfficialRuntime) return drawOfficialRobot(this, this._go2OfficialRuntime);
+      if (this._go2OfficialRuntime && this._go2OfficialLoadedUrl === config.assetUrl) {
+        return drawOfficialRobot(this, this._go2OfficialRuntime);
+      }
       if (!this._go2OfficialPromise || this._go2OfficialLoadingUrl !== config.assetUrl) {
         this.loadOfficialRobotModel(config.assetUrl).catch(() => {});
       }
-      return fallbackDrawRobot.call(this);
+      return this._robotModelType && this._robotModelType !== 'go2'
+        ? drawModelPlaceholder(this)
+        : fallbackDrawRobot.call(this);
     };
 
     return SceneClass;
@@ -434,6 +468,7 @@
   const api = {
     DEFAULT_ASSET_URL,
     EXPECTED_SCHEMA,
+    GENERIC_SCHEMA,
     install,
     loadAsset,
     validateAsset,

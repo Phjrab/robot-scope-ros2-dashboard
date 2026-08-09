@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<!--
+  Robot Scope generic SO-101-class dashboard model.
+  Copyright (c) 2026 Robot Scope contributors. MIT licensed.
+
+  This is an original primitive-only approximation. It is not an official
+  SO-101 CAD/URDF and its link lengths, joint limits, and geometry are not
+  suitable for collision checking, simulation, control, or fabrication.
+-->
+<robot name="robot_scope_generic_so101">
+  <robot_scope
+    robot_type="so-101"
+    name="Generic SO-101-class approximation"
+    display_name="SO-101 (generic approximation)"
+    fidelity="generic-approximation"
+    approximate_size_m="0.35 0.22 0.82"
+    base_height_m="0.0"
+    notice="Robot Scope generic SO-101-class visualization; not an official or dimensionally accurate kinematic model."/>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.025" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.09" length="0.05"/></geometry>
+      <material name="base_dark"><color rgba="0.08 0.10 0.14 1"/></material>
+    </visual>
+  </link>
+
+  <link name="shoulder_pan_link">
+    <visual>
+      <origin xyz="0 0 0.045" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.052" length="0.09"/></geometry>
+      <material name="arm_blue"><color rgba="0.13 0.43 0.78 1"/></material>
+    </visual>
+  </link>
+  <joint name="shoulder_pan" type="revolute">
+    <parent link="base_link"/><child link="shoulder_pan_link"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/><axis xyz="0 0 1"/>
+    <limit lower="-1.92" upper="1.92" effort="1" velocity="2"/>
+  </joint>
+
+  <link name="shoulder_lift_link">
+    <visual>
+      <origin xyz="0 0 0.095" rpy="0 0 0"/>
+      <geometry><box size="0.052 0.065 0.19"/></geometry>
+      <material name="arm_blue"><color rgba="0.13 0.43 0.78 1"/></material>
+    </visual>
+  </link>
+  <joint name="shoulder_lift" type="revolute">
+    <parent link="shoulder_pan_link"/><child link="shoulder_lift_link"/>
+    <origin xyz="0 0 0.09" rpy="0 0 0"/><axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="1" velocity="2"/>
+  </joint>
+
+  <link name="elbow_flex_link">
+    <visual>
+      <origin xyz="0 0 0.085" rpy="0 0 0"/>
+      <geometry><box size="0.045 0.055 0.17"/></geometry>
+      <material name="arm_light"><color rgba="0.78 0.82 0.87 1"/></material>
+    </visual>
+  </link>
+  <joint name="elbow_flex" type="revolute">
+    <parent link="shoulder_lift_link"/><child link="elbow_flex_link"/>
+    <origin xyz="0 0 0.19" rpy="0 0 0"/><axis xyz="0 1 0"/>
+    <limit lower="-1.75" upper="1.75" effort="1" velocity="2"/>
+  </joint>
+
+  <link name="wrist_flex_link">
+    <visual>
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <geometry><box size="0.04 0.05 0.11"/></geometry>
+      <material name="arm_blue"><color rgba="0.13 0.43 0.78 1"/></material>
+    </visual>
+  </link>
+  <joint name="wrist_flex" type="revolute">
+    <parent link="elbow_flex_link"/><child link="wrist_flex_link"/>
+    <origin xyz="0 0 0.17" rpy="0 0 0"/><axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="1" velocity="2"/>
+  </joint>
+
+  <link name="wrist_roll_link">
+    <visual>
+      <origin xyz="0 0 0.035" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.035" length="0.07"/></geometry>
+      <material name="wrist_dark"><color rgba="0.12 0.15 0.19 1"/></material>
+    </visual>
+  </link>
+  <joint name="wrist_roll" type="revolute">
+    <parent link="wrist_flex_link"/><child link="wrist_roll_link"/>
+    <origin xyz="0 0 0.11" rpy="0 0 0"/><axis xyz="0 0 1"/>
+    <limit lower="-2.79" upper="2.79" effort="1" velocity="2"/>
+  </joint>
+
+  <link name="gripper_body_link">
+    <visual>
+      <origin xyz="0 0 0.025" rpy="0 0 0"/>
+      <geometry><box size="0.075 0.055 0.05"/></geometry>
+      <material name="gripper_gray"><color rgba="0.42 0.47 0.54 1"/></material>
+    </visual>
+  </link>
+  <joint name="gripper_roll_mount" type="fixed">
+    <parent link="wrist_roll_link"/><child link="gripper_body_link"/>
+    <origin xyz="0 0 0.07" rpy="0 0 0"/>
+  </joint>
+
+  <link name="left_finger_link">
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry><box size="0.018 0.018 0.08"/></geometry>
+      <material name="finger_dark"><color rgba="0.07 0.08 0.10 1"/></material>
+    </visual>
+  </link>
+  <joint name="left_finger_mount" type="fixed">
+    <parent link="gripper_body_link"/><child link="left_finger_link"/>
+    <origin xyz="0 0.038 0.045" rpy="0 0 0"/>
+  </joint>
+
+  <link name="right_finger_link">
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry><box size="0.018 0.018 0.08"/></geometry>
+      <material name="finger_dark"><color rgba="0.07 0.08 0.10 1"/></material>
+    </visual>
+  </link>
+  <joint name="right_finger_mount" type="fixed">
+    <parent link="gripper_body_link"/><child link="right_finger_link"/>
+    <origin xyz="0 -0.038 0.045" rpy="0 0 0"/>
+  </joint>
+
+  <robot_scope_defaults>
+    <joint name="shoulder_pan" position="0"/>
+    <joint name="shoulder_lift" position="-0.35"/>
+    <joint name="elbow_flex" position="0.72"/>
+    <joint name="wrist_flex" position="-0.37"/>
+    <joint name="wrist_roll" position="0"/>
+  </robot_scope_defaults>
+</robot>

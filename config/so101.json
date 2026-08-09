@@ -1,6 +1,6 @@
 {
-  "name": "Generic ROS 2",
-  "robot_type": "",
+  "name": "SO-101 ROS 2 Controller",
+  "robot_type": "so-101",
   "robot_ip": "",
   "control": {
     "enabled": false
@@ -22,19 +22,11 @@
       "/camera/color/image_raw/compressed"
     ],
     "pointcloud": [
-      "/Laser_map",
-      "/cloud_map",
-      "/map_cloud",
-      "/rtabmap/cloud_map",
-      "/lio_sam/mapping/cloud_global",
-      "/lio_sam/mapping/cloud_registered",
       "/camera/depth/color/points",
-      "/lidar_points",
-      "/velodyne_points",
       "/points",
       "/cloud"
     ],
-    "odometry": ["/odom", "/odometry"],
-    "occupancy_grid": ["/map"]
+    "odometry": [],
+    "occupancy_grid": []
   }
 }

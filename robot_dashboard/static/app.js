@@ -3,7 +3,15 @@ const $ = (selector) => document.querySelector(selector);
 const ui = {
   connectionChip: $('#connectionChip'),
   connectionLabel: $('#connectionLabel'),
+  robotType: $('#robotType'),
+  robotTypeNote: $('#robotTypeNote'),
+  discoverRobotsButton: $('#discoverRobotsButton'),
+  robotDiscoveryStatus: $('#robotDiscoveryStatus'),
+  robotDiscoveryResults: $('#robotDiscoveryResults'),
+  selectedRobotModel: $('#selectedRobotModel'),
+  selectedRobotUrdf: $('#selectedRobotUrdf'),
   robotIp: $('#robotIp'),
+  connectButton: $('#connectButton'),
   agentHost: $('#agentHost'),
   rosRuntime: $('#rosRuntime'),
   rosDomain: $('#rosDomain'),
@@ -104,6 +112,8 @@ const ui = {
 };
 
 const controlUi = {
+  profileNotice: $('#controlProfileNotice'),
+  profileNoticeText: $('#controlProfileNoticeText'),
   availability: $('#controlAvailability'),
   availabilityNote: $('#controlAvailabilityNote'),
   leaseState: $('#controlLeaseState'),
@@ -193,8 +203,19 @@ let sceneCloudSourceKey = '';
 let savedSceneCloudDataKey = '';
 let savedSceneCloudSourceKey = '';
 let liveSceneHadCloud = false;
-let officialModelsReady = false;
-let officialModelsFailed = false;
+let robotModelsReady = false;
+let robotModelsFailed = false;
+let robotModelLoadGeneration = 0;
+let robotTypes = [];
+let selectedRobotType = 'go2';
+let selectedRobotCandidate = null;
+let robotDiscoveryBusy = false;
+let robotTypeDirty = false;
+let robotIpDirty = false;
+let robotDiscoveryGeneration = 0;
+let robotDiscoveryController = null;
+let robotConnectionBusy = false;
+let robotRuntimeDataCompatible = true;
 let jointLive = false;
 let lastJointAt = 0;
 let latestBodyRpy = null;
@@ -268,36 +289,247 @@ if (savedScene3d) {
   savedScene3d.setStatus({ online: null, lidarOnline: null, snapshot: true, message: '저장 지도를 불러오는 중입니다' });
 }
 
-async function prepareOfficialRobotModels() {
-  const renderers = [scene3d, savedScene3d].filter((scene) => typeof scene?.loadOfficialRobotModel === 'function');
-  try {
-    if (renderers.length !== 2) throw new Error('official model renderer unavailable');
-    await Promise.all(renderers.map((scene) => scene.loadOfficialRobotModel()));
-    scene3d.configureOfficialRobot?.({ poseOrigin: 'base', adaptiveScale: false, scale: 1 });
-    officialModelsReady = true;
-    ui.savedModelState.textContent = 'OFFICIAL GO2 URDF';
-    ui.savedModelState.classList.add('ready');
-    updateLiveModelBadge();
-  } catch (error) {
-    console.warn('Official Go2 model fallback:', error);
-    officialModelsFailed = true;
-    [ui.liveModelState, ui.savedModelState].forEach((element) => {
-      element.textContent = 'GO2 FALLBACK MODEL';
-      element.classList.add('fallback');
-    });
+function activeRobotProfile() {
+  const profiles = robotTypes.length ? robotTypes : (window.RobotProfiles?.normalizeTypes?.([]) || []);
+  return profiles.find((profile) => profile.id === selectedRobotType) || profiles[0] || null;
+}
+
+function modelBadgeLabel(profile = activeRobotProfile()) {
+  return String(profile?.model?.label || profile?.label || 'ROBOT MODEL').trim().toUpperCase();
+}
+
+function modelFidelityNote(profile = activeRobotProfile()) {
+  const fidelity = String(profile?.model?.fidelity || '').toLowerCase();
+  if (fidelity.includes('generic') || fidelity.includes('approx')) return '범용 URDF 근사 모델 · 제조사 공식 모델 아님';
+  if (fidelity.includes('official')) return '공식 URDF 기반 모델';
+  return fidelity ? fidelity.replace(/[-_]/g, ' ') : 'URDF 기반 3D 모델';
+}
+
+function updateControlProfileUx(profile = activeRobotProfile()) {
+  const go2 = profile?.id === 'go2';
+  if (controlUi.profileNotice) controlUi.profileNotice.hidden = go2;
+  if (controlUi.profileNoticeText && !go2) {
+    controlUi.profileNoticeText.textContent = `${profile?.label || '이 로봇'}은 현재 상태 확인·센서·3D 모델만 지원하며, 주행과 모션 명령은 Go2에서만 사용할 수 있습니다.`;
   }
+  renderControlStatus();
 }
 
 function updateLiveModelBadge() {
-  if (officialModelsFailed) return;
-  ui.liveModelState.classList.toggle('ready', officialModelsReady);
-  if (!officialModelsReady) {
-    ui.liveModelState.textContent = 'GO2 MODEL · LOADING';
-  } else if (jointLive) {
-    ui.liveModelState.textContent = 'OFFICIAL GO2 · JOINTS LIVE';
-  } else {
-    ui.liveModelState.textContent = 'OFFICIAL GO2 · JOINTS WAITING';
+  const label = modelBadgeLabel();
+  ui.liveModelState.classList.toggle('ready', robotModelsReady);
+  ui.liveModelState.classList.toggle('fallback', robotModelsFailed);
+  if (!robotRuntimeDataCompatible) ui.liveModelState.textContent = `${label} · RESTART REQUIRED`;
+  else if (robotModelsFailed) ui.liveModelState.textContent = `${label} · FALLBACK`;
+  else if (!robotModelsReady) ui.liveModelState.textContent = `${label} · LOADING`;
+  else if (jointLive) ui.liveModelState.textContent = `${label} · JOINTS LIVE`;
+  else ui.liveModelState.textContent = `${label} · READY`;
+}
+
+async function applyRobotModel(profile = activeRobotProfile()) {
+  if (!profile) return;
+  const generation = ++robotModelLoadGeneration;
+  const assetUrl = String(profile.model?.asset_url || '').trim();
+  const renderers = [scene3d, savedScene3d].filter(Boolean);
+  robotModelsReady = false;
+  robotModelsFailed = false;
+  renderers.forEach((renderer, index) => {
+    renderer._robotModelLabel = profile.label;
+    renderer._robotModelType = profile.id;
+    renderer.resetRobotJointPositions?.();
+    renderer.configureOfficialRobot?.({
+      enabled: Boolean(assetUrl),
+      assetUrl,
+      poseOrigin: index === 0 ? 'base' : 'ground',
+      adaptiveScale: index !== 0,
+      scale: 1,
+    });
+  });
+  if (ui.selectedRobotModel) ui.selectedRobotModel.textContent = `${profile.model?.label || profile.label} · ${modelFidelityNote(profile)}`;
+  if (ui.selectedRobotUrdf) {
+    const urdfUrl = String(profile.model?.urdf_url || '').trim();
+    ui.selectedRobotUrdf.hidden = !urdfUrl;
+    if (urdfUrl) ui.selectedRobotUrdf.href = urdfUrl;
+    else ui.selectedRobotUrdf.removeAttribute('href');
   }
+  ui.savedModelState.textContent = `${modelBadgeLabel(profile)} · LOADING`;
+  ui.savedModelState.classList.remove('ready', 'fallback');
+  updateLiveModelBadge();
+  try {
+    if (!assetUrl || renderers.length !== 2 || renderers.some((renderer) => typeof renderer.loadOfficialRobotModel !== 'function')) {
+      throw new Error('robot model renderer or asset is unavailable');
+    }
+    await Promise.all(renderers.map((renderer) => renderer.loadOfficialRobotModel(assetUrl)));
+    if (generation !== robotModelLoadGeneration) return;
+    robotModelsReady = true;
+    ui.savedModelState.textContent = modelBadgeLabel(profile);
+    ui.savedModelState.classList.add('ready');
+    updateLiveModelBadge();
+  } catch (error) {
+    if (generation !== robotModelLoadGeneration) return;
+    console.warn(`${profile.label} model fallback:`, error);
+    robotModelsFailed = true;
+    ui.savedModelState.textContent = `${modelBadgeLabel(profile)} · FALLBACK`;
+    ui.savedModelState.classList.add('fallback');
+    updateLiveModelBadge();
+  }
+}
+
+function renderRobotTypeOptions() {
+  const fragment = document.createDocumentFragment();
+  robotTypes.forEach((profile) => {
+    const option = document.createElement('option');
+    option.value = profile.id;
+    option.textContent = profile.label;
+    fragment.appendChild(option);
+  });
+  ui.robotType.replaceChildren(fragment);
+  if (robotTypes.some((profile) => profile.id === selectedRobotType)) ui.robotType.value = selectedRobotType;
+}
+
+function clearRobotDiscovery(message = '네트워크 검색을 시작하면 연결 후보가 여기에 표시됩니다.') {
+  selectedRobotCandidate = null;
+  const empty = document.createElement('div');
+  empty.className = 'robot-discovery-empty';
+  empty.textContent = message;
+  ui.robotDiscoveryResults.replaceChildren(empty);
+}
+
+function setDiscoveryStatus(message, error = false) {
+  ui.robotDiscoveryStatus.textContent = message;
+  ui.robotDiscoveryStatus.classList.toggle('error', error);
+}
+
+function cancelRobotDiscovery() {
+  robotDiscoveryGeneration += 1;
+  robotDiscoveryController?.abort();
+  robotDiscoveryController = null;
+  robotDiscoveryBusy = false;
+  ui.discoverRobotsButton.disabled = false;
+  ui.discoverRobotsButton.textContent = '네트워크 검색';
+}
+
+function selectRobotCandidate(candidate) {
+  selectedRobotCandidate = candidate;
+  robotIpDirty = true;
+  ui.robotIp.value = candidate.ip;
+  ui.robotDiscoveryResults.querySelectorAll('.robot-candidate').forEach((button) => {
+    const selected = button.dataset.robotIp === candidate.ip;
+    button.classList.toggle('is-selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+function renderRobotCandidates(candidates) {
+  if (!candidates.length) {
+    clearRobotDiscovery('선택한 유형의 로봇을 찾지 못했습니다. 연결과 전원을 확인하거나 IP를 직접 입력하세요.');
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  candidates.forEach((candidate) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'robot-candidate';
+    button.dataset.robotIp = candidate.ip;
+    button.setAttribute('aria-pressed', 'false');
+    const identity = document.createElement('span');
+    const ip = document.createElement('strong');
+    ip.textContent = candidate.ip;
+    const host = document.createElement('small');
+    const details = [candidate.hostname, candidate.interface, candidate.reason].filter(Boolean);
+    host.textContent = details.join(' · ');
+    identity.append(ip, host);
+    const metric = document.createElement('em');
+    const confidenceLabel = candidate.confidence == null
+      ? '유형 미확인'
+      : candidate.confidence >= 0.8
+        ? '유형 일치'
+        : candidate.confidence >= 0.4
+          ? '네트워크 후보'
+          : '미확인 호스트';
+    const latencyLabel = candidate.latency_ms == null ? '응답 확인' : `${candidate.latency_ms.toFixed(1)} ms`;
+    metric.textContent = `${confidenceLabel} · ${latencyLabel}`;
+    button.title = details.join(' · ');
+    button.append(identity, metric);
+    button.addEventListener('click', () => selectRobotCandidate(candidate));
+    fragment.appendChild(button);
+  });
+  ui.robotDiscoveryResults.replaceChildren(fragment);
+}
+
+async function discoverRobots() {
+  const generation = ++robotDiscoveryGeneration;
+  robotDiscoveryController?.abort();
+  const controller = new AbortController();
+  robotDiscoveryController = controller;
+  robotDiscoveryBusy = true;
+  selectedRobotCandidate = null;
+  ui.discoverRobotsButton.disabled = true;
+  ui.discoverRobotsButton.textContent = '검색 중…';
+  setDiscoveryStatus('검색 중');
+  clearRobotDiscovery('Jetson에 연결된 네트워크 인터페이스를 검색하고 있습니다…');
+  try {
+    const payload = await api('/api/v1/robots/discover', {
+      method: 'POST',
+      signal: controller.signal,
+      body: JSON.stringify({ robot_type: selectedRobotType }),
+    });
+    if (generation !== robotDiscoveryGeneration) return;
+    const candidates = window.RobotProfiles.normalizeDiscovery(payload);
+    renderRobotCandidates(candidates);
+    setDiscoveryStatus(candidates.length ? `${candidates.length}개 발견` : '후보 없음');
+  } catch (error) {
+    if (generation !== robotDiscoveryGeneration) return;
+    if (error.name === 'AbortError') return;
+    clearRobotDiscovery('자동 검색에 실패했습니다. IP를 직접 입력해 연결할 수 있습니다.');
+    setDiscoveryStatus(`검색 실패 · ${error.message}`, true);
+  } finally {
+    if (generation === robotDiscoveryGeneration) {
+      robotDiscoveryBusy = false;
+      robotDiscoveryController = null;
+      ui.discoverRobotsButton.disabled = false;
+      ui.discoverRobotsButton.textContent = '다시 검색';
+    }
+  }
+}
+
+function activateRobotType(typeId, { discover = false, dirty = false } = {}) {
+  const profile = robotTypes.find((candidate) => candidate.id === typeId) || robotTypes[0];
+  if (!profile) return;
+  const typeChanged = selectedRobotType !== profile.id;
+  if (typeChanged) {
+    cancelRobotDiscovery();
+    robotRuntimeDataCompatible = false;
+    resetLiveRobotSessionView();
+  }
+  selectedRobotType = profile.id;
+  robotTypeDirty = dirty;
+  markJointsStale(true);
+  ui.robotType.value = profile.id;
+  ui.robotTypeNote.textContent = `${profile.description || `${profile.label} 네트워크 설정을 사용합니다.`} · ${modelFidelityNote(profile)}`;
+  clearRobotDiscovery();
+  setDiscoveryStatus('검색 대기');
+  applyRobotModel(profile);
+  updateControlProfileUx(profile);
+  if (discover) discoverRobots();
+}
+
+async function initializeRobotProfiles() {
+  const profiles = window.RobotProfiles;
+  if (!profiles) {
+    showToast('로봇 유형 모듈을 불러오지 못했습니다.', true);
+    return;
+  }
+  let payload = null;
+  try {
+    payload = await api('/api/v1/robots/types');
+  } catch (error) {
+    console.warn('Robot type catalog fallback:', error);
+  }
+  robotTypes = profiles.normalizeTypes(payload);
+  selectedRobotType = profiles.robotTypeId(payload?.selected_type) || selectedRobotType;
+  if (!robotTypes.some((profile) => profile.id === selectedRobotType)) selectedRobotType = robotTypes[0]?.id || 'go2';
+  renderRobotTypeOptions();
+  activateRobotType(selectedRobotType);
 }
 
 const PAGE_META = {
@@ -307,7 +539,7 @@ const PAGE_META = {
   sensors: ['Sensors & Camera', '카메라 스트림과 로봇 센서 값을 기능별로 확인합니다.'],
   topics: ['ROS Graph', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
   controls: ['Robot Controls', 'PIN으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
-  settings: ['Settings', '로봇 연결 대상과 자동 탐색된 ROS 2 데이터 소스를 선택합니다.'],
+  settings: ['Settings', '로봇 유형을 고르고 네트워크에서 연결 대상을 찾은 뒤 ROS 2 데이터 소스를 선택합니다.'],
 };
 
 function pageFromHash() {
@@ -391,13 +623,23 @@ function updateHealth(health) {
   const ready = Boolean(health.agent_ready);
   const online = Boolean(health.robot_online);
   ui.connectionChip.className = `connection-chip ${ready && online ? 'ok' : ready ? 'waiting' : 'error'}`;
-  ui.connectionLabel.textContent = ready && online ? '로봇 연결됨' : ready ? '에이전트 연결됨' : '에이전트 오류';
+  ui.connectionLabel.textContent = ready && online ? '대상 IP 응답' : ready ? 'ROS 에이전트 연결됨' : '에이전트 오류';
   ui.agentHost.textContent = health.hostname || '—';
   ui.rosRuntime.textContent = `${health.ros_distro || '—'} · ${health.rmw || 'default'}`;
   ui.rosDomain.textContent = health.ros_domain_id ?? '0';
   ui.topicCount.textContent = health.topic_count ?? '—';
   ui.profileLabel.textContent = (health.profile || 'GENERIC ROS 2').toUpperCase();
-  if (document.activeElement !== ui.robotIp && health.robot_ip) ui.robotIp.value = health.robot_ip;
+  const healthRobotType = window.RobotProfiles?.robotTypeId?.(health.robot_type || health.profile_id);
+  const runtimeCompatible = !robotTypeDirty
+    && !Boolean(health.restart_required || health.control_restart_required)
+    && (!healthRobotType || healthRobotType === selectedRobotType);
+  if (robotRuntimeDataCompatible && !runtimeCompatible) resetLiveRobotSessionView();
+  robotRuntimeDataCompatible = runtimeCompatible;
+  updateLiveModelBadge();
+  if (!robotTypeDirty && healthRobotType && healthRobotType !== selectedRobotType && robotTypes.some((profile) => profile.id === healthRobotType)) {
+    activateRobotType(healthRobotType);
+  }
+  if (!robotIpDirty && document.activeElement !== ui.robotIp && health.robot_ip) ui.robotIp.value = health.robot_ip;
   ui.linkMetric.textContent = online ? (health.robot_latency_ms != null ? `${health.robot_latency_ms} ms` : 'ONLINE') : 'OFFLINE';
   ui.linkSub.textContent = health.robot_ip || 'IP not configured';
   if (health.last_error) console.warn('Robot Scope:', health.last_error);
@@ -583,6 +825,21 @@ async function initializePointBudgets() {
 
 function resetLiveCloudAccumulator() {
   liveCloudAccumulator = null;
+}
+
+function resetLiveRobotSessionView() {
+  resetLiveCloudAccumulator();
+  lastCloudSnapshot = null;
+  pointcloudRequestGeneration += 1;
+  cloudSeq = -1;
+  poseTrail = [];
+  sceneCloudDataKey = '';
+  sceneCloudSourceKey = '';
+  liveSceneHadCloud = false;
+  clearLivePose();
+  scene3d?.clearPointCloud();
+  scene3d?.clearTrail();
+  scene3d?.setRobotPose(null);
 }
 
 function accumulateRegisteredCloud(cloud) {
@@ -874,6 +1131,10 @@ function updateOdometry(sensors, source) {
 
 function applyPoseSnapshot(snapshot) {
   ui.odomTopic.textContent = snapshot?.topic || latestState?.sources?.odometry || 'NO SOURCE';
+  if (!robotRuntimeDataCompatible) {
+    clearLivePose();
+    return;
+  }
   const signature = `${snapshot?.topic || ''}:${snapshot?.seq || 0}:${snapshot?.state || 'waiting'}`;
   if (signature === lastPoseSignature) return;
   lastPoseSignature = signature;
@@ -992,8 +1253,8 @@ function animateRobot(timestamp) {
   }
 
   if (activePage === 'mapping' && desiredMapView() === 'cloud') {
-    if (renderedJointPositions) scene3d?.setRobotJointPositions?.(renderedJointPositions);
-    scene3d?.setRobotPose(poseLive ? currentPose : null);
+    if (robotRuntimeDataCompatible && renderedJointPositions) scene3d?.setRobotJointPositions?.(renderedJointPositions);
+    scene3d?.setRobotPose(robotRuntimeDataCompatible && poseLive ? currentPose : null);
   }
 }
 
@@ -1488,8 +1749,15 @@ function drawPointcloud(cloud) {
     }
     scene3d.setRobotPose(null);
     scene3d.setTrail([]);
-    scene3d.setRobotVisible(mapOverlayVisible);
-    scene3d.setStatus({ online: Boolean(latestState?.health?.robot_online), lidarOnline: false, snapshot: false, message: '실시간 LiDAR 신호를 기다리고 있습니다' });
+    scene3d.setRobotVisible(mapOverlayVisible && robotRuntimeDataCompatible);
+    scene3d.setStatus({
+      online: Boolean(latestState?.health?.robot_online),
+      lidarOnline: false,
+      snapshot: false,
+      message: robotRuntimeDataCompatible
+        ? '실시간 LiDAR 신호를 기다리고 있습니다'
+        : 'ROS 재시작 전 로봇 오버레이 숨김',
+    });
     return;
   }
 
@@ -1501,15 +1769,17 @@ function drawPointcloud(cloud) {
     sceneCloudSourceKey = sourceKey;
   }
   liveSceneHadCloud = true;
-  scene3d.setRobotPose(poseLive ? currentPose : null);
-  scene3d.setTrail(poseTrail);
-  scene3d.setRobotVisible(mapOverlayVisible);
-  scene3d.setTrailVisible(mapOverlayVisible);
+  scene3d.setRobotPose(robotRuntimeDataCompatible && poseLive ? currentPose : null);
+  scene3d.setTrail(robotRuntimeDataCompatible ? poseTrail : []);
+  scene3d.setRobotVisible(mapOverlayVisible && robotRuntimeDataCompatible);
+  scene3d.setTrailVisible(mapOverlayVisible && robotRuntimeDataCompatible);
   scene3d.setStatus({
     online: poseLive || jointLive || Boolean(latestState?.health?.robot_online),
     lidarOnline: isLiveCloudReady(),
     snapshot: false,
-    message: '실시간 LiDAR 포인트클라우드',
+    message: robotRuntimeDataCompatible
+      ? '실시간 LiDAR 포인트클라우드'
+      : 'ROS 재시작 전 기존 데이터 · 로봇 오버레이 숨김',
   });
 }
 
@@ -1852,6 +2122,10 @@ function markJointsStale(force = false) {
 }
 
 function applyJointSnapshot(snapshot) {
+  if (!robotRuntimeDataCompatible || selectedRobotType !== 'go2') {
+    if (jointLive || targetJointPositions || renderedJointPositions) markJointsStale(true);
+    return;
+  }
   const positions = snapshot?.position_rad;
   const validPositions = snapshot?.state === 'ok' && Array.isArray(positions) && positions.length === 12 && positions.every(Number.isFinite);
   if (!validPositions) {
@@ -1940,6 +2214,7 @@ function connectCamera() {
 }
 
 function controlReady(snapshot = controlSnapshot) {
+  if (selectedRobotType !== 'go2') return false;
   const available = snapshot?.available ?? snapshot?.ready;
   return Boolean(snapshot?.enabled && snapshot?.configured && available);
 }
@@ -1982,11 +2257,12 @@ function normalizedBridgeState() {
 }
 
 function syncEstopClearButton() {
-  controlUi.clear.disabled = controlEmergencyBusy || !controlEstopLatched() || !controlUi.clearConfirm.checked || !controlUi.clearPin.value.trim();
+  controlUi.clear.disabled = selectedRobotType !== 'go2' || controlEmergencyBusy || !controlEstopLatched() || !controlUi.clearConfirm.checked || !controlUi.clearPin.value.trim();
 }
 
 function renderControlStatus() {
   const snapshot = controlSnapshot || {};
+  const go2Profile = selectedRobotType === 'go2';
   const ready = controlReady(snapshot);
   const estopLatched = controlEstopLatched(snapshot);
   const serverLease = snapshot.lease || {};
@@ -1997,19 +2273,19 @@ function renderControlStatus() {
   const bridgeCard = controlUi.bridgeState.closest('.control-status-card');
 
   availabilityCard.classList.toggle('is-ok', ready);
-  availabilityCard.classList.toggle('is-error', snapshot.enabled === false || snapshot.configured === false);
-  controlUi.availability.textContent = ready ? 'AVAILABLE' : snapshot.enabled === false ? 'DISABLED' : snapshot.configured === false ? 'NOT CONFIGURED' : 'UNAVAILABLE';
-  controlUi.availabilityNote.textContent = snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
+  availabilityCard.classList.toggle('is-error', !go2Profile || snapshot.enabled === false || snapshot.configured === false);
+  controlUi.availability.textContent = !go2Profile ? 'GO2 ONLY' : ready ? 'AVAILABLE' : snapshot.enabled === false ? 'DISABLED' : snapshot.configured === false ? 'NOT CONFIGURED' : 'UNAVAILABLE';
+  controlUi.availabilityNote.textContent = !go2Profile ? `${activeRobotProfile()?.label || '선택 로봇'} 제어는 아직 지원하지 않음` : snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
 
   leaseCard.classList.toggle('is-ok', locallyArmed && serverLease.active !== false);
   leaseCard.classList.toggle('is-error', Boolean(serverLease.active && !locallyArmed));
   controlUi.leaseState.textContent = locallyArmed ? (serverLease.bound ? 'BOUND' : 'ARMED') : serverLease.active ? 'IN USE' : 'DISARMED';
   controlUi.leaseNote.textContent = locallyArmed ? `${controlLeaseSource.toUpperCase()} · 이 브라우저` : serverLease.active ? `${String(serverLease.source || serverLease.input_source || 'other').toUpperCase()} 제어 중` : '명령 권한 없음';
 
-  bridgeCard.classList.toggle('is-ok', bridgeReady);
+  bridgeCard.classList.toggle('is-ok', go2Profile && bridgeReady);
   bridgeCard.classList.toggle('is-error', ['error', 'offline', 'failed'].includes(bridgeState.toLowerCase()));
   controlUi.bridgeState.textContent = bridgeState.toUpperCase();
-  controlUi.bridgeNote.textContent = bridge.message || bridge.detail || (bridgeReady ? 'Go2 명령 브리지 준비' : 'Go2 연결 대기');
+  controlUi.bridgeNote.textContent = !go2Profile ? 'Go2 유형 선택 시에만 사용' : bridge.message || bridge.detail || (bridgeReady ? 'Go2 명령 브리지 준비' : 'Go2 연결 대기');
 
   controlUi.estopStatusCard.classList.toggle('is-latched', estopLatched);
   controlUi.estopState.textContent = estopLatched ? 'LATCHED' : 'CLEAR';
@@ -2022,7 +2298,7 @@ function renderControlStatus() {
   controlUi.arm.disabled = controlArmBusy || controlDisarmBusy || locallyArmed || !ready || estopLatched;
   controlUi.disarm.disabled = controlDisarmBusy || !locallyArmed;
   controlUi.inputSource.setAttribute('aria-disabled', locallyArmed ? 'true' : 'false');
-  controlUi.estop.disabled = controlEmergencyBusy;
+  controlUi.estop.disabled = controlEmergencyBusy || !go2Profile;
   syncEstopClearButton();
   renderControlInputMode();
   renderControlActions();
@@ -2586,11 +2862,33 @@ function leaveControlPage(reason = 'controls_page_left') {
 }
 
 async function setRobotIp() {
+  if (robotConnectionBusy) return;
+  robotConnectionBusy = true;
+  ui.connectButton.disabled = true;
+  ui.connectButton.textContent = '확인 중…';
   try {
-    await api('/api/v1/robot', { method: 'POST', body: JSON.stringify({ ip: ui.robotIp.value.trim() }) });
-    showToast('로봇 연결 대상을 변경했습니다.');
+    const ip = ui.robotIp.value.trim();
+    const candidate = selectedRobotCandidate?.ip === ip ? selectedRobotCandidate : null;
+    const payload = window.RobotProfiles.connectionPayload(activeRobotProfile(), candidate, ip);
+    const response = await api('/api/v1/robot', { method: 'POST', body: JSON.stringify(payload) });
+    if (response.robot?.changed) resetLiveRobotSessionView();
+    robotRuntimeDataCompatible = !Boolean(response.robot?.restart_required)
+      && (!response.robot_type || response.robot_type === selectedRobotType);
+    robotTypeDirty = false;
+    robotIpDirty = false;
+    if (response.robot_type && response.robot_type !== selectedRobotType) activateRobotType(response.robot_type);
+    const restartNote = response.robot?.restart_required
+      ? ' DDS 재연결을 위해 해당 프로필로 대시보드를 다시 시작해야 하며, 그 전에는 Go2 제어가 차단됩니다.'
+      : ' ROS 연결 설정은 별도로 확인하세요.';
+    showToast(`${activeRobotProfile()?.label || '로봇'} 표시·확인 대상을 변경했습니다.${restartNote}`);
     await refreshState();
-  } catch (error) { showToast(`IP 변경 실패: ${error.message}`, true); }
+  } catch (error) {
+    showToast(`IP 변경 실패: ${error.message}`, true);
+  } finally {
+    robotConnectionBusy = false;
+    ui.connectButton.disabled = false;
+    ui.connectButton.textContent = '연결';
+  }
 }
 
 function startClock() {
@@ -2599,6 +2897,17 @@ function startClock() {
 }
 
 $('#connectButton').addEventListener('click', setRobotIp);
+ui.robotType.addEventListener('change', () => activateRobotType(ui.robotType.value, { discover: true, dirty: true }));
+ui.discoverRobotsButton.addEventListener('click', discoverRobots);
+ui.robotIp.addEventListener('input', () => {
+  robotIpDirty = true;
+  if (selectedRobotCandidate?.ip === ui.robotIp.value.trim()) return;
+  selectedRobotCandidate = null;
+  ui.robotDiscoveryResults.querySelectorAll('.robot-candidate').forEach((button) => {
+    button.classList.remove('is-selected');
+    button.setAttribute('aria-pressed', 'false');
+  });
+});
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
 $('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot()]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
@@ -2719,7 +3028,7 @@ renderControlStatus();
 renderControlCommand();
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
-prepareOfficialRobotModels();
+initializeRobotProfiles();
 connectCamera();
 connectJoints();
 connectPose();

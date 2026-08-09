@@ -73,7 +73,7 @@
         <article class="panel mapping-panel">
           <div class="panel-header">
             <div><div class="eyebrow">LIVE SPATIAL</div><h2>LiDAR mapping</h2></div>
-            <div class="panel-header-status"><div class="model-state" id="liveModelState">GO2 MODEL · LOADING</div><div class="panel-state waiting" id="mappingState"><span></span>WAITING</div></div>
+            <div class="panel-header-status"><div class="model-state" id="liveModelState">ROBOT MODEL · LOADING</div><div class="panel-state waiting" id="mappingState"><span></span>WAITING</div></div>
           </div>
           <div class="map-stage live-map-stage">
             <canvas id="sceneCanvas" class="map-layer" aria-label="실시간 Go2 및 LiDAR 3D 장면"></canvas>
@@ -143,7 +143,7 @@
           <article class="panel saved-map-panel">
             <div class="panel-header">
               <div><div class="eyebrow">ARCHIVE</div><h2>Saved map viewer</h2></div>
-              <div class="panel-header-status"><div class="model-state" id="savedModelState">GO2 MODEL · LOADING</div><div class="panel-state waiting" id="savedMappingState"><span></span>LOADING</div></div>
+              <div class="panel-header-status"><div class="model-state" id="savedModelState">ROBOT MODEL · LOADING</div><div class="panel-state waiting" id="savedMappingState"><span></span>LOADING</div></div>
             </div>
             <div class="map-stage saved-map-stage">
               <canvas id="savedSceneCanvas" class="map-layer" aria-label="저장된 Go2 및 LiDAR 3D 지도"></canvas>
@@ -153,7 +153,7 @@
                 <button id="savedSceneResetButton" type="button">ISO</button><button id="savedSceneTopButton" type="button">TOP</button><button id="savedSceneFrontButton" type="button">FRONT</button>
               </div>
               <div class="map-legend">
-                <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>GO2</span>
+                <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span>
                 <label class="map-view-select"><span>VIEW</span><select id="savedMapViewMode"><option value="cloud" selected>SAVED 3D</option><option value="occupancy">SAVED 2D</option></select></label>
                 <label class="map-view-select"><span>POINTS</span><select id="savedPointBudget"><option value="10000">10K</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all" selected>ALL ≤2M</option><option value="custom">CUSTOM</option></select></label>
                 <span class="point-budget-custom is-hidden" id="savedPointCustomWrap"><input id="savedPointCustom" type="number" min="1000" max="1000000" step="1000" value="100000" aria-label="저장 지도 표시 포인트 수"><button id="savedPointApply" type="button">SET</button></span>
@@ -200,6 +200,7 @@
       </section>
 
       <section class="page-view" data-page="controls" hidden>
+        <div class="control-profile-notice" id="controlProfileNotice" hidden><strong>GO2 전용 제어</strong><span id="controlProfileNoticeText">현재 선택한 로봇 유형은 상태 확인과 3D 모델 표시만 지원합니다.</span></div>
         <section class="control-status-grid" aria-label="로봇 제어 상태">
           <article class="control-status-card"><span>CONTROL</span><strong id="controlAvailability">CHECKING</strong><small id="controlAvailabilityNote">서버 설정을 확인하고 있습니다.</small></article>
           <article class="control-status-card"><span>LEASE</span><strong id="controlLeaseState">DISARMED</strong><small id="controlLeaseNote">명령 권한 없음</small></article>
@@ -296,10 +297,24 @@
       <section class="page-view" data-page="settings" hidden>
         <section class="settings-grid">
           <article class="panel settings-panel">
-            <div class="panel-header"><div><div class="eyebrow">CONNECTION</div><h2>Robot target</h2></div><span class="muted">PING ONLY</span></div>
+            <div class="panel-header"><div><div class="eyebrow">CONNECTION</div><h2>Robot target</h2></div><span class="muted">NETWORK DISCOVERY</span></div>
             <div class="settings-card-body">
-              <label class="field-label" for="robotIp">로봇 IP</label>
-              <div class="input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161"><button id="connectButton" type="button">확인</button></div>
+              <label class="field-label" for="robotType">로봇 유형</label>
+              <div class="robot-type-row">
+                <select id="robotType"><option value="go2">Unitree Go2</option><option value="turtlebot">TurtleBot</option><option value="so-101">SO-101</option></select>
+                <button id="discoverRobotsButton" type="button">네트워크 검색</button>
+              </div>
+              <p class="robot-type-note" id="robotTypeNote">유형을 선택하면 같은 네트워크에서 연결 가능한 로봇을 자동으로 찾습니다.</p>
+              <div class="robot-discovery-head">
+                <span>발견된 로봇</span><strong id="robotDiscoveryStatus" role="status" aria-live="polite">검색 대기</strong>
+              </div>
+              <div class="robot-discovery-results" id="robotDiscoveryResults" role="group" aria-label="발견된 로봇 후보">
+                <div class="robot-discovery-empty">로봇 유형을 선택하면 네트워크 검색을 시작합니다.</div>
+              </div>
+              <label class="field-label manual-ip-label" for="robotIp">선택한 IP 또는 직접 입력</label>
+              <div class="input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161"><button id="connectButton" type="button">연결</button></div>
+              <p class="connection-runtime-note">대상 선택은 IP 확인과 3D 모델을 바꿉니다. DDS 인터페이스·Domain·ROS workspace는 실행 중 자동 변경되지 않으므로, 네트워크나 유형이 달라지면 올바른 프로필로 대시보드를 다시 시작하세요.</p>
+              <div class="selected-model-note"><span>3D 모델</span><div><strong id="selectedRobotModel">선택한 유형에 맞춰 준비 중</strong><a id="selectedRobotUrdf" href="#" target="_blank" rel="noopener" hidden>URDF 보기</a></div></div>
               <div class="connection-detail settings-detail">
                 <div><span>Agent</span><strong id="agentHost">—</strong></div>
                 <div><span>ROS</span><strong id="rosRuntime">—</strong></div>
@@ -325,6 +340,7 @@
   </main>
 
   <div class="toast" id="toast"></div>
+  <script src="/static/robot_profiles.js" defer></script>
   <script src="/static/scene3d.js" defer></script>
   <script src="/static/go2_official_model.js" defer></script>
   <script src="/static/control_input.js" defer></script>

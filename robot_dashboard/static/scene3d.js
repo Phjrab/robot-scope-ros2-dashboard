@@ -1125,7 +1125,8 @@
 
     _drawRobotLabel(anchor, pose) {
       const ctx = this.ctx;
-      const primary = pose.sensorRelative ? 'GO2 · SENSOR EXTRINSIC' : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? 'MODEL PREVIEW' : 'GO2 · LIVE POSE';
+      const modelLabel = String(this._robotModelLabel || 'ROBOT').trim().toUpperCase();
+      const primary = pose.sensorRelative ? `${modelLabel} · SENSOR EXTRINSIC` : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? `${modelLabel} · PREVIEW` : `${modelLabel} · LIVE POSE`;
       const secondary = this.robotPose
         ? `X ${this.robotPose.x.toFixed(2)}  Y ${this.robotPose.y.toFixed(2)}  YAW ${((this.robotPose.yaw / DEG + 360) % 360).toFixed(0)}°`
         : 'ODOMETRY WAITING';

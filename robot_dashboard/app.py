@@ -34,6 +34,13 @@ from .control import (
     PinRateLimited,
     SequenceError,
 )
+from .discovery import (
+    DiscoveryBusy,
+    DiscoveryUnavailable,
+    LocalRobotDiscovery,
+    UnknownRobotType,
+    public_robot_types,
+)
 from .mapping_jobs import (
     InvalidMapName,
     JobBusyError,
@@ -64,6 +71,7 @@ MAPPING_JOBS: MappingJobManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
 JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
 CONTROL_BINDINGS: Dict[str, str] = {}
+ROBOT_DISCOVERY = LocalRobotDiscovery()
 
 
 class StrictRequest(BaseModel):
@@ -78,7 +86,13 @@ class SourceSelection(StrictRequest):
 
 
 class RobotTarget(StrictRequest):
-    ip: str
+    ip: str = Field(min_length=7, max_length=45)
+    robot_type: str = Field(min_length=2, max_length=32)
+    hostname: str | None = Field(default=None, max_length=253)
+
+
+class RobotDiscoveryRequest(StrictRequest):
+    robot_type: str = Field(min_length=2, max_length=32)
 
 
 class MapSaveRequest(StrictRequest):
@@ -213,8 +227,21 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         snapshot.get("transport_configured", True)
     )
     available = bool(snapshot.get("ready", snapshot.get("available", False)))
+    target_supported = bool(snapshot.get("target_supported", True))
+    target_matches_startup = bool(snapshot.get("target_matches_startup", True))
+    restart_required = bool(
+        snapshot.get("control_restart_required", snapshot.get("restart_required", False))
+    )
+    target_reason = str(snapshot.get("control_target_reason", ""))
     estop_latched = bool(estop.get("latched", snapshot.get("estop_latched", False)))
-    if not enabled:
+    if not target_supported:
+        state = (
+            "로봇 유형 또는 IP가 실행 중 변경되었습니다. 선택한 Go2 설정으로 "
+            "대시보드를 재시작해야 제어할 수 있습니다."
+            if restart_required
+            else "현재 시작 프로필과 IP는 Go2 제어 브리지에 연결되어 있지 않습니다."
+        )
+    elif not enabled:
         state = "서버 시작 설정에서 제어가 비활성화되어 있습니다."
     elif not configured:
         state = "제어 PIN 또는 브리지 키가 설정되지 않았습니다."
@@ -238,6 +265,11 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         "configured": configured,
         "available": available,
         "state": state,
+        "target_supported": target_supported,
+        "target_matches_startup": target_matches_startup,
+        "restart_required": restart_required,
+        "control_restart_required": restart_required,
+        "control_target_reason": target_reason,
         "estop_latched": estop_latched,
         "estop_reason": estop.get("reason"),
         "lease": lease,
@@ -345,13 +377,53 @@ async def select_sources(selection: SourceSelection) -> Dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@app.post("/api/v1/robot")
-async def set_robot(target: RobotTarget) -> Dict[str, Any]:
+@app.get("/api/v1/robots/types")
+async def robot_types() -> Dict[str, Any]:
+    selected_type = AGENT.robot_target_snapshot()["robot_type"] if AGENT is not None else ""
+    return {"types": public_robot_types(), "selected_type": selected_type}
+
+
+@app.post("/api/v1/robots/discover")
+async def discover_robots(request: Request, body: RobotDiscoveryRequest) -> Dict[str, Any]:
+    require_same_origin(request)
     try:
-        value = await asyncio.to_thread(agent().set_robot_ip, target.ip)
-    except ValueError as exc:
+        return await asyncio.to_thread(ROBOT_DISCOVERY.discover, body.robot_type)
+    except UnknownRobotType as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"robot_ip": value}
+    except DiscoveryBusy as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except DiscoveryUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/robot")
+async def set_robot(request: Request, target: RobotTarget) -> Dict[str, Any]:
+    require_same_origin(request)
+    try:
+        await asyncio.to_thread(
+            ROBOT_DISCOVERY.validate_target,
+            target.robot_type,
+            target.ip,
+        )
+        selected = await asyncio.to_thread(
+            agent().set_robot_target,
+            target.ip,
+            target.robot_type,
+            target.hostname,
+        )
+        if selected.get("changed"):
+            CONTROL_BINDINGS.clear()
+        return {
+            "robot": selected,
+            "robot_ip": selected["ip"],
+            "robot_type": selected["robot_type"],
+            "hostname": selected["hostname"],
+            "model": selected["model"],
+        }
+    except (UnknownRobotType, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except DiscoveryUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 def encode_json(payload: Dict[str, Any]) -> bytes:

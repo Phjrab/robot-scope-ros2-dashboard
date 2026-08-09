@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<!--
+  Robot Scope generic TurtleBot-class dashboard model.
+  Copyright (c) 2026 Robot Scope contributors. MIT licensed.
+
+  This is an original primitive-only approximation. It is not an official
+  ROBOTIS model and does not represent a particular TurtleBot variant or exact
+  dimensions. Do not use it for collision checking, simulation, or fabrication.
+-->
+<robot name="robot_scope_generic_turtlebot">
+  <robot_scope
+    robot_type="turtlebot"
+    name="Generic TurtleBot-class approximation"
+    display_name="TurtleBot (generic approximation)"
+    fidelity="generic-approximation"
+    approximate_size_m="0.32 0.31 0.43"
+    base_height_m="0.0"
+    notice="Robot Scope generic TurtleBot-class visualization; not a variant-specific or dimensionally accurate model."/>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.125" length="0.08"/></geometry>
+      <material name="turtlebot_blue"><color rgba="0.10 0.42 0.78 1"/></material>
+    </visual>
+  </link>
+
+  <link name="bumper_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.145" length="0.028"/></geometry>
+      <material name="bumper_dark"><color rgba="0.08 0.10 0.13 1"/></material>
+    </visual>
+  </link>
+  <joint name="bumper_joint" type="fixed">
+    <parent link="base_link"/><child link="bumper_link"/>
+    <origin xyz="0 0 0.028" rpy="0 0 0"/>
+  </joint>
+
+  <link name="left_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.055" length="0.035"/></geometry>
+      <material name="wheel_rubber"><color rgba="0.035 0.04 0.05 1"/></material>
+    </visual>
+  </link>
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/><child link="left_wheel_link"/>
+    <origin xyz="0 0.142 0.055" rpy="0 0 0"/><axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="right_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.055" length="0.035"/></geometry>
+      <material name="wheel_rubber"><color rgba="0.035 0.04 0.05 1"/></material>
+    </visual>
+  </link>
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/><child link="right_wheel_link"/>
+    <origin xyz="0 -0.142 0.055" rpy="0 0 0"/><axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="rear_caster_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.026"/></geometry>
+      <material name="caster_dark"><color rgba="0.12 0.13 0.15 1"/></material>
+    </visual>
+  </link>
+  <joint name="rear_caster_joint" type="fixed">
+    <parent link="base_link"/><child link="rear_caster_link"/>
+    <origin xyz="-0.092 0 0.022" rpy="0 0 0"/>
+  </joint>
+
+  <link name="deck_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.105" length="0.025"/></geometry>
+      <material name="deck_silver"><color rgba="0.72 0.76 0.80 1"/></material>
+    </visual>
+  </link>
+  <joint name="deck_joint" type="fixed">
+    <parent link="base_link"/><child link="deck_link"/>
+    <origin xyz="0 0 0.108" rpy="0 0 0"/>
+  </joint>
+
+  <link name="mast_link">
+    <visual>
+      <origin xyz="0 0 0.075" rpy="0 0 0"/>
+      <geometry><box size="0.055 0.055 0.15"/></geometry>
+      <material name="mast_gray"><color rgba="0.34 0.38 0.43 1"/></material>
+    </visual>
+  </link>
+  <joint name="mast_joint" type="fixed">
+    <parent link="deck_link"/><child link="mast_link"/>
+    <origin xyz="0 0 0.015" rpy="0 0 0"/>
+  </joint>
+
+  <link name="lidar_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.055" length="0.065"/></geometry>
+      <material name="lidar_black"><color rgba="0.03 0.04 0.05 1"/></material>
+    </visual>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="mast_link"/><child link="lidar_link"/>
+    <origin xyz="0 0 0.185" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.045 0.07 0.038"/></geometry>
+      <material name="camera_gray"><color rgba="0.22 0.25 0.29 1"/></material>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="mast_link"/><child link="camera_link"/>
+    <origin xyz="0.052 0 0.105" rpy="0 0 0"/>
+  </joint>
+
+  <robot_scope_defaults>
+    <joint name="left_wheel_joint" position="0"/>
+    <joint name="right_wheel_joint" position="0"/>
+  </robot_scope_defaults>
+</robot>

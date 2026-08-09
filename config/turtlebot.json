@@ -1,6 +1,6 @@
 {
-  "name": "Generic ROS 2",
-  "robot_type": "",
+  "name": "TurtleBot ROS 2",
+  "robot_type": "turtlebot",
   "robot_ip": "",
   "control": {
     "enabled": false
@@ -22,15 +22,9 @@
       "/camera/color/image_raw/compressed"
     ],
     "pointcloud": [
-      "/Laser_map",
-      "/cloud_map",
-      "/map_cloud",
-      "/rtabmap/cloud_map",
-      "/lio_sam/mapping/cloud_global",
-      "/lio_sam/mapping/cloud_registered",
       "/camera/depth/color/points",
+      "/scan/points",
       "/lidar_points",
-      "/velodyne_points",
       "/points",
       "/cloud"
     ],
