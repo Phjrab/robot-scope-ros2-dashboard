@@ -33,12 +33,13 @@
         <a class="nav-item" href="#maps" data-nav="maps"><i>03</i><span><b>Saved Maps</b><small>저장 지도 보기</small></span></a>
         <a class="nav-item" href="#sensors" data-nav="sensors"><i>04</i><span><b>Sensors</b><small>카메라·텔레메트리</small></span></a>
         <a class="nav-item" href="#topics" data-nav="topics"><i>05</i><span><b>ROS Graph</b><small>토픽 탐색</small></span></a>
-        <a class="nav-item" href="#settings" data-nav="settings"><i>06</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
+        <a class="nav-item" href="#controls" data-nav="controls"><i>06</i><span><b>Controls</b><small>주행·모션 실행</small></span></a>
+        <a class="nav-item" href="#settings" data-nav="settings"><i>07</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
       </nav>
 
       <section class="side-section read-only-note">
         <span class="lock-icon">◇</span>
-        <div><strong>MAPPING OPERATIONS</strong><p>센서 수집과 지도 저장만 실행합니다. 로봇 구동 명령은 비활성입니다.</p></div>
+        <div><strong>CONTROL SAFETY</strong><p>조작은 매번 PIN으로 ARM해야 합니다. 데드맨을 놓거나 화면을 벗어나면 즉시 해제됩니다.</p></div>
       </section>
     </aside>
 
@@ -64,6 +65,7 @@
           <a href="#maps" class="route-card"><span>ARCHIVE</span><strong>Saved Maps</strong><small>배터리와 센서가 꺼져도 저장된 지도를 탐색합니다.</small><b>열기 →</b></a>
           <a href="#sensors" class="route-card"><span>INPUTS</span><strong>Sensors</strong><small>카메라, IMU, 배터리와 로봇 상태를 확인합니다.</small><b>열기 →</b></a>
           <a href="#topics" class="route-card"><span>ROS 2</span><strong>ROS Graph</strong><small>발견된 토픽, 타입, 수신률과 지연을 조회합니다.</small><b>열기 →</b></a>
+          <a href="#controls" class="route-card control-route-card"><span>ARM REQUIRED</span><strong>Robot Controls</strong><small>키보드·게임패드 주행과 서버가 허용한 Go2 모션을 실행합니다.</small><b>열기 →</b></a>
         </section>
       </section>
 
@@ -197,6 +199,100 @@
         </section>
       </section>
 
+      <section class="page-view" data-page="controls" hidden>
+        <section class="control-status-grid" aria-label="로봇 제어 상태">
+          <article class="control-status-card"><span>CONTROL</span><strong id="controlAvailability">CHECKING</strong><small id="controlAvailabilityNote">서버 설정을 확인하고 있습니다.</small></article>
+          <article class="control-status-card"><span>LEASE</span><strong id="controlLeaseState">DISARMED</strong><small id="controlLeaseNote">명령 권한 없음</small></article>
+          <article class="control-status-card"><span>BRIDGE</span><strong id="controlBridgeState">WAITING</strong><small id="controlBridgeNote">Go2 연결 대기</small></article>
+          <article class="control-status-card estop" id="estopStatusCard"><span>DASHBOARD SOFTWARE STOP</span><strong id="controlEstopState">CLEAR</strong><small id="controlEstopNote">대시보드 정지 해제 상태</small></article>
+        </section>
+
+        <section class="control-main-grid">
+          <article class="panel control-drive-panel">
+            <div class="panel-header">
+              <div><div class="eyebrow">DEADMAN TELEOP</div><h2>Drive control</h2></div>
+              <div class="panel-state waiting" id="controlStatePill"><span></span>DISARMED</div>
+            </div>
+            <div class="control-drive-body">
+              <section class="control-arm-panel" aria-labelledby="controlArmHeading">
+                <h3 id="controlArmHeading">1. 입력 장치 선택 및 ARM</h3>
+                <div class="control-form-grid">
+                  <label><span>입력 장치</span><select id="controlInputSource"><option value="keyboard">키보드 + 화면 버튼</option><option value="gamepad">게임패드</option></select></label>
+                  <label id="gamepadDeviceWrap" class="is-hidden"><span>게임패드</span><select id="gamepadDevice"><option value="">연결된 장치 없음</option></select></label>
+                  <label><span>제어 PIN</span><input id="controlPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 입력" aria-describedby="controlArmHelp"></label>
+                </div>
+                <div class="control-device-line"><span class="device-indicator" id="controlDeviceIndicator"></span><strong id="controlDeviceStatus">키보드 입력 준비</strong><small id="controlArmHelp">ARM 후에도 Shift 또는 LB 데드맨을 계속 누르고 있어야 움직입니다.</small></div>
+                <div class="control-arm-actions">
+                  <button id="controlArmButton" class="control-arm-button" type="button">ARM CONTROL</button>
+                  <button id="controlDisarmButton" class="control-disarm-button" type="button" disabled>DISARM</button>
+                </div>
+              </section>
+
+              <section class="teleop-console" aria-labelledby="teleopHeading">
+                <div class="teleop-console-head">
+                  <div><h3 id="teleopHeading">2. 데드맨을 누른 채 조작</h3><p>키를 놓거나 포커스가 사라지면 다시 ARM해야 합니다.</p></div>
+                  <label class="speed-scale-control" for="controlSpeedScale"><span>SPEED <output id="controlSpeedOutput">30%</output></span><input id="controlSpeedScale" type="range" min="10" max="100" step="5" value="30"></label>
+                </div>
+                <div class="teleop-input-grid">
+                  <div class="keyboard-guide" id="keyboardControlGuide">
+                    <div class="key-row"><kbd>Q<small>회전 좌</small></kbd><kbd>W<small>전진</small></kbd><kbd>E<small>회전 우</small></kbd></div>
+                    <div class="key-row"><kbd>A<small>좌 이동</small></kbd><kbd>S<small>후진</small></kbd><kbd>D<small>우 이동</small></kbd></div>
+                    <div class="shift-key"><kbd>⇧ SHIFT</kbd><span>DEADMAN · 계속 누르기</span></div>
+                  </div>
+                  <div class="gamepad-guide is-hidden" id="gamepadControlGuide">
+                    <div><span class="stick-visual">L</span><strong>왼쪽 스틱</strong><small>전후·좌우 이동</small></div>
+                    <div><span class="stick-visual">R↔</span><strong>오른쪽 X</strong><small>좌우 회전</small></div>
+                    <div><span class="button-visual lb">LB</span><strong>데드맨</strong><small>계속 누르기</small></div>
+                    <div><span class="button-visual b">B</span><strong>대시보드 정지</strong><small>소프트웨어 정지 래치</small></div>
+                  </div>
+                  <div class="touch-controller" id="touchController" aria-label="화면 조작 패드">
+                    <div class="touch-dpad">
+                      <button type="button" data-control-direction="turn-left" aria-label="왼쪽 회전">↶</button>
+                      <button type="button" data-control-direction="forward" aria-label="전진">↑</button>
+                      <button type="button" data-control-direction="turn-right" aria-label="오른쪽 회전">↷</button>
+                      <button type="button" data-control-direction="left" aria-label="왼쪽 이동">←</button>
+                      <button type="button" class="touch-deadman" data-control-deadman aria-label="데드맨 버튼">HOLD<small>DEADMAN</small></button>
+                      <button type="button" data-control-direction="right" aria-label="오른쪽 이동">→</button>
+                      <span></span><button type="button" data-control-direction="backward" aria-label="후진">↓</button><span></span>
+                    </div>
+                    <p>멀티터치는 HOLD+방향, 마우스는 Shift+방향을 함께 누르세요.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="command-monitor" aria-label="현재 로봇 속도 명령">
+                <div><span>LINEAR X</span><strong id="controlCommandX">+0.000</strong><small>m/s</small><i><b id="controlCommandXBar"></b></i></div>
+                <div><span>LINEAR Y</span><strong id="controlCommandY">+0.000</strong><small>m/s</small><i><b id="controlCommandYBar"></b></i></div>
+                <div><span>ANGULAR Z</span><strong id="controlCommandZ">+0.000</strong><small>rad/s</small><i><b id="controlCommandZBar"></b></i></div>
+                <div class="deadman-monitor"><span>DEADMAN</span><strong id="controlDeadmanState">RELEASED</strong><small id="controlCommandSource">NO COMMAND</small></div>
+              </section>
+            </div>
+          </article>
+
+          <aside class="control-safety-column">
+            <article class="panel estop-panel">
+              <div class="panel-header compact"><div><div class="eyebrow danger-text">SOFTWARE SAFETY COMMAND</div><h2>Dashboard stop</h2></div></div>
+              <div class="estop-body">
+                <button id="softwareEstopButton" class="software-estop" type="button"><span>DASHBOARD</span><strong>SOFTWARE<br>STOP</strong><small>물리 E-stop 아님 · ARM 불필요</small></button>
+                <p>대시보드 소프트웨어 정지는 통신 가능한 제어 경로에만 래치됩니다. 물리 비상정지 장치를 대신하지 않습니다. 안전 확인 후 PIN과 체크로 해제하세요.</p>
+                <label class="estop-pin"><span>해제 PIN</span><input id="estopClearPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 입력"></label>
+                <label class="estop-confirm"><input id="estopClearConfirm" type="checkbox"><span>로봇 주변이 안전하고 움직임이 멈춘 것을 확인했습니다.</span></label>
+                <button id="estopClearButton" class="estop-clear-button" type="button" disabled>SOFTWARE STOP CLEAR</button>
+              </div>
+            </article>
+          </aside>
+        </section>
+
+        <article class="panel control-actions-panel">
+          <div class="panel-header">
+            <div><div class="eyebrow">SERVER ALLOWLIST</div><h2>Go2 modes & motions</h2></div>
+            <span class="muted">ARM + 확인 필요</span>
+          </div>
+          <div class="control-action-notice">서버 설정에 등록된 동작만 표시됩니다. 동작 전 로봇 주변 공간과 바닥 상태를 확인하세요.</div>
+          <div class="control-action-grid" id="controlActions"><div class="control-action-empty">허용된 모션 목록을 불러오고 있습니다.</div></div>
+        </article>
+      </section>
+
       <section class="page-view" data-page="settings" hidden>
         <section class="settings-grid">
           <article class="panel settings-panel">
@@ -224,13 +320,14 @@
         </section>
       </section>
 
-      <footer><span>Robot Scope v0.3 · Mapping operations · Motion control disabled</span><span id="lastUpdated">Last update —</span></footer>
+      <footer><span>Robot Scope v0.4 · Mapping · Telemetry · Fail-safe control</span><span id="lastUpdated">Last update —</span></footer>
     </section>
   </main>
 
   <div class="toast" id="toast"></div>
   <script src="/static/scene3d.js" defer></script>
   <script src="/static/go2_official_model.js" defer></script>
+  <script src="/static/control_input.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

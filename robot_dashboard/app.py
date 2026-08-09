@@ -6,16 +6,34 @@ import argparse
 import asyncio
 import json
 import logging
+import secrets
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Literal
+from urllib.parse import urlsplit
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
+from .control import (
+    ClientFrameClock,
+    CommandValidationError,
+    ControlClosed,
+    ControlDisabled,
+    ControlError,
+    ControlNotReady,
+    EmergencyStopLatched,
+    LeaseBindingError,
+    LeaseBusy,
+    LeaseInvalid,
+    PinInvalid,
+    PinRateLimited,
+    SequenceError,
+)
 from .mapping_jobs import (
     InvalidMapName,
     JobBusyError,
@@ -45,30 +63,53 @@ SAVED_MAPS: SavedMapCatalog | None = None
 MAPPING_JOBS: MappingJobManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
 JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
+CONTROL_BINDINGS: Dict[str, str] = {}
 
 
-class SourceSelection(BaseModel):
+class StrictRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class SourceSelection(StrictRequest):
     camera: str | None = None
     pointcloud: str | None = None
     odometry: str | None = None
     occupancy_grid: str | None = None
 
 
-class RobotTarget(BaseModel):
+class RobotTarget(StrictRequest):
     ip: str
 
 
-class MapSaveRequest(BaseModel):
+class MapSaveRequest(StrictRequest):
     name: str
     create_2d: bool = True
 
 
-class CloudPointLimitRequest(BaseModel):
+class CloudPointLimitRequest(StrictRequest):
     max_points: int | None
 
 
-class SavedMapRenameRequest(BaseModel):
+class SavedMapRenameRequest(StrictRequest):
     name: str
+
+
+class ControlArmRequest(StrictRequest):
+    pin: str = Field(min_length=1, max_length=128)
+    input_source: Literal["keyboard", "gamepad"]
+
+
+class ControlLeaseRequest(StrictRequest):
+    lease_id: str = Field(min_length=16, max_length=256)
+
+
+class ControlStopRequest(StrictRequest):
+    reason: str = Field(default="dashboard_button", min_length=1, max_length=128)
+
+
+class ControlClearEstopRequest(StrictRequest):
+    pin: str = Field(min_length=1, max_length=128)
+    confirmed: bool
 
 
 @asynccontextmanager
@@ -79,6 +120,8 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
+        # Motion stop takes priority over potentially slow mapping cleanup.
+        AGENT.shutdown_control()
         if MAPPING_JOBS is not None:
             await asyncio.to_thread(MAPPING_JOBS.close)
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
@@ -91,8 +134,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Robot Scope",
-    version="0.1.0",
-    description="ROS 2 observability and allowlisted mapping operations",
+    version="0.2.0",
+    description="ROS 2 observability, allowlisted mapping, and fail-safe Go2 control",
     lifespan=lifespan,
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -114,6 +157,111 @@ def mapping_jobs() -> MappingJobManager:
     if MAPPING_JOBS is None:
         raise HTTPException(status_code=503, detail="mapping operations are not configured")
     return MAPPING_JOBS
+
+
+def require_same_origin(request: Request) -> None:
+    """Reject browser control mutations that did not originate at this host."""
+
+    origin = request.headers.get("origin", "")
+    host = request.headers.get("host", "")
+    try:
+        origin_host = urlsplit(origin).netloc
+    except ValueError:
+        origin_host = ""
+    if not origin_host or not host or origin_host.lower() != host.lower():
+        raise HTTPException(status_code=403, detail="control requests must be same-origin")
+
+
+def websocket_same_origin(websocket: WebSocket) -> bool:
+    origin = websocket.headers.get("origin", "")
+    host = websocket.headers.get("host", "")
+    try:
+        return bool(host) and urlsplit(origin).netloc.lower() == host.lower()
+    except ValueError:
+        return False
+
+
+def control_error(exc: ControlError) -> HTTPException:
+    if isinstance(exc, PinInvalid):
+        return HTTPException(status_code=401, detail=str(exc))
+    if isinstance(exc, PinRateLimited):
+        return HTTPException(status_code=429, detail=str(exc))
+    if isinstance(exc, (LeaseBusy, LeaseBindingError, SequenceError, LeaseInvalid)):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, CommandValidationError):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, EmergencyStopLatched):
+        return HTTPException(status_code=423, detail=str(exc))
+    if isinstance(exc, ControlDisabled):
+        return HTTPException(status_code=403, detail=str(exc))
+    if isinstance(exc, (ControlNotReady, ControlClosed)):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(status_code=500, detail="control operation failed")
+
+
+def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """Translate the internal safety snapshot to the stable browser contract."""
+
+    limits = snapshot.get("limits", {})
+    readiness = snapshot.get("readiness", {})
+    bridge = dict(snapshot.get("bridge", {}))
+    estop = snapshot.get("estop", {})
+    lease = dict(snapshot.get("lease", {}))
+    action_guard = dict(snapshot.get("action_guard", {}))
+    enabled = bool(snapshot.get("enabled", False))
+    configured = bool(snapshot.get("configured", False)) and bool(
+        snapshot.get("transport_configured", True)
+    )
+    available = bool(snapshot.get("ready", snapshot.get("available", False)))
+    estop_latched = bool(estop.get("latched", snapshot.get("estop_latched", False)))
+    if not enabled:
+        state = "서버 시작 설정에서 제어가 비활성화되어 있습니다."
+    elif not configured:
+        state = "제어 PIN 또는 브리지 키가 설정되지 않았습니다."
+    elif estop_latched:
+        state = "대시보드 SOFTWARE STOP이 잠겨 있습니다."
+    elif action_guard.get("active"):
+        state = (
+            f"{action_guard.get('action') or 'Go2 동작'} 안전 대기 중 "
+            f"({float(action_guard.get('remaining_s', 0.0)):.1f}s)"
+        )
+    elif not available:
+        state = "Go2 LowState와 제어 브리지를 기다리는 중입니다."
+    else:
+        state = "제어 서버 준비 완료"
+    lease["source"] = lease.get("input_source")
+    bridge.setdefault("connected", bool(readiness.get("bridge_fresh", False)))
+    bridge.setdefault("available", bool(bridge.get("ready", False)))
+    bridge.setdefault("state", "ready" if bridge.get("available") else "waiting")
+    return {
+        "enabled": enabled,
+        "configured": configured,
+        "available": available,
+        "state": state,
+        "estop_latched": estop_latched,
+        "estop_reason": estop.get("reason"),
+        "lease": lease,
+        "bridge": bridge,
+        "action_guard": action_guard,
+        "limits": {
+            "max_linear_x": float(limits.get("vx_mps", limits.get("max_linear_x", 0.0))),
+            "max_linear_y": float(limits.get("vy_mps", limits.get("max_linear_y", 0.0))),
+            "max_angular_z": float(limits.get("wz_rps", limits.get("max_angular_z", 0.0))),
+            "default_speed_scale": float(limits.get("default_speed_scale", 0.35)),
+            "command_timeout_s": float(limits.get("command_timeout_s", 0.20)),
+        },
+        "command": snapshot.get(
+            "command",
+            {
+                "source": lease.get("source") or "keyboard",
+                "deadman": False,
+                "linear_x": 0.0,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            },
+        ),
+        "actions": snapshot.get("actions", []),
+    }
 
 
 def mapping_error(exc: MappingJobError) -> HTTPException:
@@ -258,6 +406,240 @@ async def robot_joints() -> Dict[str, Any]:
 @app.get("/api/v1/pose")
 async def robot_pose() -> Dict[str, Any]:
     return await asyncio.to_thread(agent().pose_snapshot)
+
+
+@app.get("/api/v1/control")
+async def control_status() -> Dict[str, Any]:
+    return {"control": control_view(agent().control_snapshot())}
+
+
+@app.post("/api/v1/control/arm")
+async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, Any]:
+    require_same_origin(request)
+    try:
+        result = agent().control_acquire(body.pin, body.input_source)
+    except ControlError as exc:
+        raise control_error(exc) from exc
+    return {
+        "lease_id": result["token"],
+        "control": control_view(agent().control_snapshot()),
+    }
+
+
+@app.post("/api/v1/control/disarm")
+async def control_disarm(request: Request, body: ControlLeaseRequest) -> Dict[str, Any]:
+    require_same_origin(request)
+    binding = CONTROL_BINDINGS.pop(body.lease_id, None)
+    try:
+        agent().control_release(body.lease_id, binding)
+    except LeaseInvalid:
+        # WebSocket release and page-unload HTTP fallback deliberately race;
+        # either one having already stopped the lease is a successful disarm.
+        pass
+    except ControlError as exc:
+        raise control_error(exc) from exc
+    return {"control": control_view(agent().control_snapshot())}
+
+
+@app.post("/api/v1/control/stop")
+async def control_stop(request: Request, body: ControlStopRequest) -> Dict[str, Any]:
+    require_same_origin(request)
+    CONTROL_BINDINGS.clear()
+    try:
+        agent().control_estop(body.reason)
+    except ControlError as exc:
+        raise control_error(exc) from exc
+    return {"control": control_view(agent().control_snapshot())}
+
+
+@app.post("/api/v1/control/estop/clear")
+async def control_clear_estop(
+    request: Request,
+    body: ControlClearEstopRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    try:
+        agent().control_clear_estop(body.pin, confirm=body.confirmed)
+    except ControlError as exc:
+        raise control_error(exc) from exc
+    return {"control": control_view(agent().control_snapshot())}
+
+
+def validate_control_message(
+    payload: object,
+    *,
+    message_type: str,
+    allowed_keys: set[str],
+) -> Dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("type") != message_type:
+        raise CommandValidationError(f"expected {message_type} control message")
+    if set(payload) - allowed_keys:
+        raise CommandValidationError("unexpected control message fields")
+    return payload
+
+
+@app.websocket("/api/v1/ws/control")
+async def control_stream(websocket: WebSocket) -> None:
+    if not websocket_same_origin(websocket):
+        await websocket.close(code=4403, reason="same-origin control WebSocket required")
+        return
+    await websocket.accept()
+    lease_id = ""
+    binding = f"ws-{secrets.token_urlsafe(24)}"
+    released = False
+    client_clock: ClientFrameClock | None = None
+    try:
+        first = await asyncio.wait_for(websocket.receive_json(), timeout=3.0)
+        bind = validate_control_message(
+            first,
+            message_type="bind",
+            allowed_keys={"type", "lease_id", "client_time_ms"},
+        )
+        client_clock = ClientFrameClock(
+            bind.get("client_time_ms"),
+            time.time_ns() / 1_000_000.0,
+        )
+        lease_id = str(bind.get("lease_id", ""))
+        agent().control_bind(lease_id, binding)
+        CONTROL_BINDINGS[lease_id] = binding
+        await websocket.send_json(
+            {
+                "type": "bound",
+                "max_frame_age_ms": round(ClientFrameClock.MAX_AGE_MS),
+                "control": control_view(agent().control_snapshot()),
+            }
+        )
+
+        while True:
+            payload = await asyncio.wait_for(websocket.receive_json(), timeout=2.25)
+            if not isinstance(payload, dict):
+                raise CommandValidationError("control message must be a JSON object")
+            if str(payload.get("lease_id", "")) != lease_id:
+                raise LeaseInvalid("control lease does not match this WebSocket")
+            kind = payload.get("type")
+            if kind == "twist":
+                message = validate_control_message(
+                    payload,
+                    message_type="twist",
+                    allowed_keys={
+                        "type", "lease_id", "seq", "source", "deadman",
+                        "linear_x", "linear_y", "angular_z", "speed_scale",
+                        "client_time_ms",
+                    },
+                )
+                frame_age_ms = client_clock.validate(
+                    message.get("client_time_ms"),
+                    time.time_ns() / 1_000_000.0,
+                )
+                agent().control_drive(
+                    lease_id,
+                    binding,
+                    message.get("seq"),
+                    vx=message.get("linear_x"),
+                    vy=message.get("linear_y"),
+                    wz=message.get("angular_z"),
+                    speed_scale=message.get("speed_scale", 1.0),
+                    deadman=message.get("deadman"),
+                    client_age_s=max(0.0, frame_age_ms / 1_000.0),
+                )
+            elif kind == "heartbeat":
+                message = validate_control_message(
+                    payload,
+                    message_type="heartbeat",
+                    allowed_keys={"type", "lease_id", "seq", "client_time_ms"},
+                )
+                client_clock.validate(
+                    message.get("client_time_ms"),
+                    time.time_ns() / 1_000_000.0,
+                )
+                agent().control_heartbeat(
+                    lease_id,
+                    binding,
+                    message.get("seq"),
+                )
+            elif kind == "action":
+                message = validate_control_message(
+                    payload,
+                    message_type="action",
+                    allowed_keys={
+                        "type", "lease_id", "seq", "action_id", "confirmed",
+                        "client_time_ms",
+                    },
+                )
+                client_clock.validate(
+                    message.get("client_time_ms"),
+                    time.time_ns() / 1_000_000.0,
+                )
+                action_id = message.get("action_id")
+                result = agent().control_action(
+                    lease_id,
+                    binding,
+                    message.get("seq"),
+                    action_id,
+                    confirm=message.get("confirmed") is True,
+                )
+                await websocket.send_json(
+                    {
+                        "type": "action_accepted",
+                        "action_id": action_id,
+                        "lease_released": bool(result.get("lease_released")),
+                        "detail": "대시보드가 동작 명령을 접수했습니다. 브리지 수신이나 로봇 실행 완료 신호가 아닙니다.",
+                        "control": control_view(agent().control_snapshot()),
+                    }
+                )
+                # One-shot actions consume the lease so guessed completion
+                # timers can never resume teleoperation over an active motion.
+                released = True
+                CONTROL_BINDINGS.pop(lease_id, None)
+                await websocket.close(code=1000)
+                return
+            elif kind == "release":
+                validate_control_message(
+                    payload,
+                    message_type="release",
+                    allowed_keys={"type", "lease_id", "reason", "client_time_ms"},
+                )
+                agent().control_release(lease_id, binding)
+                released = True
+                CONTROL_BINDINGS.pop(lease_id, None)
+                await websocket.send_json(
+                    {"type": "released", "control": control_view(agent().control_snapshot())}
+                )
+                await websocket.close(code=1000)
+                return
+            else:
+                raise CommandValidationError("unknown control message type")
+    except WebSocketDisconnect:
+        pass
+    except asyncio.TimeoutError:
+        try:
+            await websocket.send_json(
+                {"type": "error", "detail": "control stream heartbeat timed out"}
+            )
+        except (RuntimeError, WebSocketDisconnect):
+            pass
+    except ControlError as exc:
+        try:
+            await websocket.send_json({"type": "error", "detail": str(exc)})
+        except (RuntimeError, WebSocketDisconnect):
+            pass
+    except (TypeError, ValueError) as exc:
+        try:
+            await websocket.send_json({"type": "error", "detail": f"invalid control message: {exc}"})
+        except (RuntimeError, WebSocketDisconnect):
+            pass
+    finally:
+        if lease_id:
+            CONTROL_BINDINGS.pop(lease_id, None)
+            if not released:
+                try:
+                    agent().control_release(lease_id, binding)
+                except ControlError:
+                    pass
+        try:
+            await websocket.close(code=1000)
+        except (RuntimeError, WebSocketDisconnect):
+            pass
 
 
 @app.get("/api/v1/mapping/control")

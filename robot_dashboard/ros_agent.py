@@ -8,6 +8,7 @@ import json
 import math
 import os
 import platform
+import secrets
 import socket
 import subprocess
 import threading
@@ -18,12 +19,21 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import rclpy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rosidl_runtime_py.utilities import get_message
+from std_msgs.msg import String
 
 from .camera_decoder import H264JpegDecoder
+from .control import ControlClosed, ControlManager
+from .control_protocol import (
+    ControlProtocolError,
+    decode_signed,
+    encode_signed,
+    shared_key,
+)
 from .pointcloud import extract_xyz, reject_spatial_outliers
 from .serializers import (
     classify_type,
@@ -42,6 +52,9 @@ CAMERA_TYPES = {
     "sensor_msgs/msg/CompressedImage",
     "unitree_go/msg/Go2FrontVideoData",
 }
+
+CONTROL_COMMAND_TOPIC = "/robot_scope/control/command"
+CONTROL_STATUS_TOPIC = "/robot_scope/control/status"
 
 
 class RateMeter:
@@ -73,7 +86,7 @@ class RateMeter:
 
 
 class RosAgent:
-    """A single-process, read-only bridge between ROS 2 and the web API."""
+    """ROS observability agent with an isolated, signed control transport."""
 
     MIN_CLOUD_POINTS = 1_000
     MAX_CUSTOM_CLOUD_POINTS = 1_000_000
@@ -92,11 +105,62 @@ class RosAgent:
             min(float(self.profile.get("cloud_radius_limit_m", 500.0)), 10_000.0),
         )
 
+        # Browser input is validated and statefully gated by the pure-Python
+        # manager.  This process only transports its already-bounded outputs to
+        # the separately watchdog-protected Go2 bridge.
+        self._control_manager = ControlManager(self.profile)
+        control_profile = self.profile.get("control", {})
+        if not isinstance(control_profile, dict):
+            control_profile = {}
+        self._control_status_timeout_s = self._bounded_control_timeout(
+            control_profile.get("bridge_status_timeout_s"),
+            default=0.75,
+            low=0.25,
+            high=5.0,
+        )
+        self._control_lowstate_timeout_s = self._bounded_control_timeout(
+            control_profile.get("telemetry_timeout_s"),
+            default=0.50,
+            low=0.20,
+            high=2.0,
+        )
+        try:
+            self._control_bridge_key: Optional[bytes] = shared_key(
+                os.environ.get("ROBOT_SCOPE_CONTROL_BRIDGE_KEY", "")
+            )
+            bridge_key_error = ""
+        except ControlProtocolError as exc:
+            self._control_bridge_key = None
+            bridge_key_error = str(exc)
+        self._control_source_id = (
+            f"robot-scope-agent-{os.getpid()}-{secrets.token_hex(8)}"
+        )
+        self._control_bridge_seq = -1
+        self._control_bridge_epoch = ""
+
         self._lock = threading.RLock()
+        # Serializes every control state mutation with output publication.  A
+        # terminal stop/release that has returned can therefore never be
+        # followed by a drive output drained by an earlier timer tick.
+        self._control_operation_lock = threading.RLock()
+        self._control_transport_lock = threading.RLock()
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._node: Optional[Node] = None
         self._executor: Optional[MultiThreadedExecutor] = None
+        self._control_callback_group: Optional[MutuallyExclusiveCallbackGroup] = None
+        self._control_command_publisher: Any = None
+        self._control_status_subscription: Any = None
+        self._control_timer: Any = None
+        self._control_status_received = 0.0
+        self._control_status: Dict[str, Any] = {
+            "state": "not_configured" if bridge_key_error else "waiting",
+            "ready": False,
+            "connected": False,
+            "available": False,
+            "message": bridge_key_error or "signed Go2 bridge status waiting",
+        }
+        self._control_shutdown = False
         self._started_at = time.monotonic()
         self._ready = False
         self._last_error = ""
@@ -188,6 +252,22 @@ class RosAgent:
         self._network_cache: Tuple[float, bool, Optional[float]] = (0.0, False, None)
 
     @staticmethod
+    def _bounded_control_timeout(
+        value: object,
+        *,
+        default: float,
+        low: float,
+        high: float,
+    ) -> float:
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return default
+        if not math.isfinite(parsed):
+            return default
+        return max(low, min(parsed, high))
+
+    @staticmethod
     def _valid_ip(value: str) -> str:
         if not value:
             return ""
@@ -249,6 +329,10 @@ class RosAgent:
         self._thread.start()
 
     def stop(self) -> None:
+        # Publish the manager's final signed stop while the ROS node and
+        # executor are still alive.  The standalone bridge has its own watchdog
+        # as a second line of defence if transport is already unavailable.
+        self.shutdown_control()
         self._stop_event.set()
         self._camera_decoder.stop()
         executor = self._executor
@@ -264,10 +348,11 @@ class RosAgent:
         try:
             rclpy.init(args=None)
             node = Node("robot_scope_agent")
-            executor = MultiThreadedExecutor(num_threads=2)
+            executor = MultiThreadedExecutor(num_threads=3)
             executor.add_node(node)
             self._node = node
             self._executor = executor
+            self._setup_control_transport(node)
             node.create_timer(2.0, self._refresh_graph)
             self._refresh_graph()
             with self._lock:
@@ -278,6 +363,7 @@ class RosAgent:
             with self._lock:
                 self._last_error = f"{type(exc).__name__}: {exc}"
         finally:
+            self.shutdown_control()
             with self._lock:
                 self._ready = False
             if self._node:
@@ -290,6 +376,460 @@ class RosAgent:
                     rclpy.shutdown()
                 except Exception:
                     pass
+
+    def _setup_control_transport(self, node: Node) -> None:
+        """Create the signed dashboard-to-watchdog transport in one group."""
+
+        try:
+            callback_group = MutuallyExclusiveCallbackGroup()
+            reliable = QoSProfile(
+                history=HistoryPolicy.KEEP_LAST,
+                depth=10,
+                reliability=ReliabilityPolicy.RELIABLE,
+                durability=DurabilityPolicy.VOLATILE,
+            )
+            publisher = node.create_publisher(
+                String,
+                CONTROL_COMMAND_TOPIC,
+                reliable,
+                callback_group=callback_group,
+            )
+            subscription = node.create_subscription(
+                String,
+                CONTROL_STATUS_TOPIC,
+                self._control_status_callback,
+                reliable,
+                callback_group=callback_group,
+            )
+            timer = node.create_timer(
+                0.05,
+                self._control_tick,
+                callback_group=callback_group,
+            )
+            with self._control_transport_lock:
+                self._control_callback_group = callback_group
+                self._control_command_publisher = publisher
+                self._control_status_subscription = subscription
+                self._control_timer = timer
+        except Exception as exc:
+            self._set_control_unready(f"control ROS transport unavailable: {exc}")
+
+    @staticmethod
+    def _control_status_readiness(
+        payload: Dict[str, Any],
+        *,
+        lowstate_timeout_s: float,
+    ) -> Tuple[bool, bool, str]:
+        """Validate the bridge health fields after signature verification."""
+
+        if payload.get("type") != "bridge_status":
+            raise ControlProtocolError("unexpected bridge status type")
+        reported_ready = payload.get("ready")
+        if not isinstance(reported_ready, bool):
+            raise ControlProtocolError("bridge ready flag is invalid")
+        subscribers = payload.get("sport_subscribers")
+        if isinstance(subscribers, bool) or not isinstance(subscribers, int):
+            raise ControlProtocolError("bridge subscriber count is invalid")
+        publishers = payload.get("lowstate_publishers")
+        if isinstance(publishers, bool) or not isinstance(publishers, int):
+            raise ControlProtocolError("LowState publisher count is invalid")
+        bridge_epoch = payload.get("bridge_epoch")
+        if not isinstance(bridge_epoch, str) or not 16 <= len(bridge_epoch) <= 128:
+            raise ControlProtocolError("bridge epoch is invalid")
+        lowstate_age_ms = payload.get("lowstate_age_ms")
+        if (
+            isinstance(lowstate_age_ms, bool)
+            or not isinstance(lowstate_age_ms, (int, float))
+            or not math.isfinite(float(lowstate_age_ms))
+            or float(lowstate_age_ms) < 0.0
+        ):
+            lowstate_ready = False
+        else:
+            lowstate_ready = (
+                float(lowstate_age_ms) <= float(lowstate_timeout_s) * 1_000.0
+            )
+        # ``ready`` is calculated by the watchdog from both telemetry freshness
+        # and the presence of a Unitree sport-request subscriber.  Recheck the
+        # subscriber field instead of trusting a truthy status value alone.
+        bridge_ready = reported_ready and subscribers == 1 and publishers == 1
+        return bridge_ready, lowstate_ready, bridge_epoch
+
+    def _control_status_callback(self, message: String) -> None:
+        key = self._control_bridge_key
+        if key is None:
+            self._set_control_unready("signed bridge key is not configured")
+            return
+        try:
+            payload = decode_signed(
+                message.data,
+                key,
+                max_age_s=max(1.0, self._control_status_timeout_s * 2.0),
+            )
+            bridge_ready, lowstate_ready, bridge_epoch = self._control_status_readiness(
+                payload,
+                lowstate_timeout_s=self._control_lowstate_timeout_s,
+            )
+        except (ControlProtocolError, TypeError, ValueError) as exc:
+            self._set_control_unready(f"rejected bridge status: {exc}")
+            return
+
+        now = time.monotonic()
+        available = bridge_ready and lowstate_ready
+        status = dict(payload)
+        status.update(
+            {
+                "authenticated": True,
+                "connected": available,
+                "available": available,
+                "message": (
+                    "signed Go2 bridge ready"
+                    if available
+                    else str(payload.get("last_error") or "Go2 bridge is not ready")
+                ),
+            }
+        )
+        with self._control_operation_lock:
+            with self._control_transport_lock:
+                previous_epoch = self._control_bridge_epoch
+                self._control_bridge_epoch = bridge_epoch
+                self._control_status_received = now
+                self._control_status = status
+            if previous_epoch and previous_epoch != bridge_epoch:
+                # A restarted bridge rejects the old epoch.  Revoke any active
+                # browser lease and publish a new-epoch StopMove before readying.
+                self._set_control_readiness(
+                    bridge_ready=False,
+                    lowstate_ready=False,
+                )
+            self._set_control_readiness(
+                bridge_ready=bridge_ready,
+                lowstate_ready=lowstate_ready,
+            )
+
+    def _set_control_readiness(
+        self,
+        *,
+        bridge_ready: bool,
+        lowstate_ready: bool,
+    ) -> None:
+        with self._control_operation_lock:
+            try:
+                self._control_manager.set_readiness(
+                    bridge_ready=bridge_ready,
+                    lowstate_ready=lowstate_ready,
+                )
+            except ControlClosed:
+                return
+            self._flush_control_outputs()
+
+    def _set_control_unready(self, message: str) -> None:
+        with self._control_operation_lock:
+            with self._control_transport_lock:
+                self._control_status_received = 0.0
+                self._control_status = {
+                    "state": "error",
+                    "ready": False,
+                    "connected": False,
+                    "available": False,
+                    "authenticated": False,
+                    "message": str(message)[:240],
+                }
+            self._set_control_readiness(bridge_ready=False, lowstate_ready=False)
+
+    def _control_tick(self) -> None:
+        with self._control_operation_lock:
+            now = time.monotonic()
+            with self._control_transport_lock:
+                status_received = self._control_status_received
+                stale = (
+                    status_received <= 0.0
+                    or now - status_received > self._control_status_timeout_s
+                )
+                if stale and status_received > 0.0:
+                    self._control_status = {
+                        **self._control_status,
+                        "state": "stale",
+                        "ready": False,
+                        "connected": False,
+                        "available": False,
+                        "message": "signed Go2 bridge status is stale",
+                    }
+                    self._control_status_received = 0.0
+            if stale:
+                self._set_control_readiness(bridge_ready=False, lowstate_ready=False)
+            try:
+                outputs = self._control_manager.tick()
+            except ControlClosed:
+                return
+            self._publish_control_outputs(outputs)
+
+    @staticmethod
+    def _control_bridge_envelope(
+        output: Dict[str, Any],
+        *,
+        source_id: str,
+        sequence: int,
+        bridge_epoch: str,
+    ) -> Dict[str, Any]:
+        """Translate a manager output into the watchdog's narrow contract."""
+
+        kind = output.get("type")
+        envelope: Dict[str, Any] = {
+            "type": kind,
+            "source_id": source_id,
+            "seq": sequence,
+            "bridge_epoch": bridge_epoch,
+        }
+        if kind == "drive":
+            velocity = output.get("velocity")
+            if not isinstance(velocity, dict):
+                raise ValueError("drive output has no velocity")
+            values = {
+                "linear_x": velocity.get("vx"),
+                "linear_y": velocity.get("vy"),
+                "angular_z": velocity.get("wz"),
+            }
+            if any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                for value in values.values()
+            ):
+                raise ValueError("drive output velocity is invalid")
+            envelope.update(
+                {
+                    "deadman": True,
+                    **{name: float(value) for name, value in values.items()},
+                }
+            )
+            return envelope
+        if kind == "stop":
+            envelope["reason"] = str(output.get("reason", "dashboard stop"))[:160]
+            return envelope
+        if kind == "action":
+            action_name = output.get("action")
+            if not isinstance(action_name, str) or not action_name:
+                raise ValueError("action output has no action name")
+            # The standalone bridge deliberately accepts the allowlisted action
+            # name, not the numeric API ID supplied by the browser manager.
+            envelope["action_id"] = action_name
+            return envelope
+        raise ValueError("unknown control manager output")
+
+    def _publish_control_outputs(
+        self,
+        outputs: List[Dict[str, Any]],
+        *,
+        allow_shutdown: bool = False,
+    ) -> None:
+        if not outputs:
+            return
+        with self._control_transport_lock:
+            # A timer may have obtained drive outputs immediately before another
+            # thread closes the manager.  Once shutdown starts, only the final
+            # stop drained by ``shutdown_control`` may cross the transport.
+            if self._control_shutdown and not allow_shutdown:
+                return
+            publisher = self._control_command_publisher
+            key = self._control_bridge_key
+            bridge_epoch = self._control_bridge_epoch
+            if publisher is None or key is None or not bridge_epoch:
+                return
+            try:
+                for output in outputs:
+                    self._control_bridge_seq += 1
+                    envelope = self._control_bridge_envelope(
+                        output,
+                        source_id=self._control_source_id,
+                        sequence=self._control_bridge_seq,
+                        bridge_epoch=bridge_epoch,
+                    )
+                    message = String()
+                    message.data = encode_signed(envelope, key)
+                    publisher.publish(message)
+            except (ControlProtocolError, TypeError, ValueError) as exc:
+                self._control_status = {
+                    "state": "error",
+                    "ready": False,
+                    "connected": False,
+                    "available": False,
+                    "message": f"control command publish rejected: {exc}",
+                }
+                try:
+                    self._control_manager.set_readiness(
+                        bridge_ready=False,
+                        lowstate_ready=False,
+                    )
+                except ControlClosed:
+                    pass
+            except Exception as exc:
+                self._control_status = {
+                    "state": "error",
+                    "ready": False,
+                    "connected": False,
+                    "available": False,
+                    "message": f"control command transport failed: {exc}",
+                }
+                try:
+                    self._control_manager.set_readiness(
+                        bridge_ready=False,
+                        lowstate_ready=False,
+                    )
+                except ControlClosed:
+                    pass
+
+    def _flush_control_outputs(self) -> None:
+        with self._control_operation_lock:
+            self._publish_control_outputs(self._control_manager.drain_outputs())
+
+    def control_snapshot(self) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            snapshot = self._control_manager.snapshot()
+            self._flush_control_outputs()
+            snapshot = self._control_manager.snapshot()
+            with self._control_transport_lock:
+                bridge = dict(self._control_status)
+                received = self._control_status_received
+                transport_configured = bool(
+                    self._control_bridge_key is not None
+                    and self._control_command_publisher is not None
+                    and self._control_status_subscription is not None
+                    and self._control_timer is not None
+                )
+        bridge["status_age_s"] = (
+            None if received <= 0.0 else round(max(0.0, time.monotonic() - received), 3)
+        )
+        snapshot["bridge"] = bridge
+        snapshot["transport_configured"] = transport_configured
+        snapshot["available"] = bool(snapshot.get("ready"))
+        snapshot["state"] = (
+            "closed"
+            if snapshot.get("closed")
+            else "ready"
+            if snapshot.get("ready")
+            else "unavailable"
+        )
+        snapshot["estop_latched"] = bool(snapshot.get("estop", {}).get("latched"))
+        limits = snapshot.setdefault("limits", {})
+        limits.update(
+            {
+                "max_linear_x": limits.get("vx_mps", 0.0),
+                "max_linear_y": limits.get("vy_mps", 0.0),
+                "max_angular_z": limits.get("wz_rps", 0.0),
+                "default_speed_scale": self._bounded_control_timeout(
+                    self.profile.get("control", {}).get("default_speed_scale")
+                    if isinstance(self.profile.get("control"), dict)
+                    else None,
+                    default=0.35,
+                    low=0.10,
+                    high=1.0,
+                ),
+            }
+        )
+        return snapshot
+
+    def control_acquire(self, pin: str, input_source: str) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.acquire_lease(pin, input_source)
+            finally:
+                self._flush_control_outputs()
+
+    def control_bind(self, token: str, binding: str) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.bind_lease(token, binding)
+            finally:
+                self._flush_control_outputs()
+
+    def control_heartbeat(self, token: str, binding: str, seq: int) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.heartbeat(token, binding, seq)
+            finally:
+                self._flush_control_outputs()
+
+    def control_drive(
+        self,
+        token: str,
+        binding: str,
+        seq: int,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.submit_drive(token, binding, seq, **kwargs)
+            finally:
+                # Deadman/timeout paths publish StopMove before success or an
+                # error returns; a live drive stays coalesced for the ROS timer.
+                self._flush_control_outputs()
+
+    def control_action(
+        self,
+        token: str,
+        binding: str,
+        seq: int,
+        action: str | int,
+        *,
+        confirm: bool = False,
+    ) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.request_action(
+                    token,
+                    binding,
+                    seq,
+                    action,
+                    confirm=confirm,
+                )
+            finally:
+                self._flush_control_outputs()
+
+    def control_release(
+        self,
+        token: str,
+        binding: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        # ``None`` intentionally asks ControlManager to authenticate only the
+        # unguessable token.  This permits safe disarm if a client disconnects
+        # between HTTP acquire and WebSocket binding; release never enables
+        # motion and always emits a stop.
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.release_lease(token, binding)
+            finally:
+                self._flush_control_outputs()
+
+    def control_estop(self, reason: str = "operator_estop") -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.emergency_stop(reason)
+            finally:
+                self._flush_control_outputs()
+
+    def control_clear_estop(
+        self,
+        pin: str,
+        *,
+        confirm: bool = False,
+    ) -> Dict[str, Any]:
+        with self._control_operation_lock:
+            try:
+                return self._control_manager.clear_emergency_stop(pin, confirm=confirm)
+            finally:
+                self._flush_control_outputs()
+
+    def shutdown_control(self) -> None:
+        with self._control_operation_lock:
+            with self._control_transport_lock:
+                if self._control_shutdown:
+                    return
+                self._control_shutdown = True
+                self._control_manager.close()
+                # RLock permits the shared publisher path to allocate the final,
+                # independent bridge sequence while shutdown owns the transport.
+                outputs = self._control_manager.drain_outputs()
+                self._publish_control_outputs(outputs, allow_shutdown=True)
 
     def _refresh_graph(self) -> None:
         node = self._node

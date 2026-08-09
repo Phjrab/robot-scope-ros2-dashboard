@@ -1,0 +1,21 @@
+[Unit]
+Description=Robot Scope Go2 control safety bridge
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=jetson_orin_nano
+WorkingDirectory=/home/jetson_orin_nano/robot-scope-ros2-dashboard
+EnvironmentFile=/home/jetson_orin_nano/.config/robot-scope/control.env
+ExecStart=/home/jetson_orin_nano/robot-scope-ros2-dashboard/scripts/run_go2_control_bridge_humble.sh
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=2
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

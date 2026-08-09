@@ -103,6 +103,46 @@ const ui = {
   toast: $('#toast'),
 };
 
+const controlUi = {
+  availability: $('#controlAvailability'),
+  availabilityNote: $('#controlAvailabilityNote'),
+  leaseState: $('#controlLeaseState'),
+  leaseNote: $('#controlLeaseNote'),
+  bridgeState: $('#controlBridgeState'),
+  bridgeNote: $('#controlBridgeNote'),
+  estopStatusCard: $('#estopStatusCard'),
+  estopState: $('#controlEstopState'),
+  estopNote: $('#controlEstopNote'),
+  statePill: $('#controlStatePill'),
+  inputSource: $('#controlInputSource'),
+  gamepadWrap: $('#gamepadDeviceWrap'),
+  gamepad: $('#gamepadDevice'),
+  pin: $('#controlPin'),
+  deviceIndicator: $('#controlDeviceIndicator'),
+  deviceStatus: $('#controlDeviceStatus'),
+  arm: $('#controlArmButton'),
+  disarm: $('#controlDisarmButton'),
+  speed: $('#controlSpeedScale'),
+  speedOutput: $('#controlSpeedOutput'),
+  keyboardGuide: $('#keyboardControlGuide'),
+  gamepadGuide: $('#gamepadControlGuide'),
+  touchController: $('#touchController'),
+  commandX: $('#controlCommandX'),
+  commandY: $('#controlCommandY'),
+  commandZ: $('#controlCommandZ'),
+  commandXBar: $('#controlCommandXBar'),
+  commandYBar: $('#controlCommandYBar'),
+  commandZBar: $('#controlCommandZBar'),
+  deadmanState: $('#controlDeadmanState'),
+  deadmanMonitor: $('.deadman-monitor'),
+  commandSource: $('#controlCommandSource'),
+  estop: $('#softwareEstopButton'),
+  clearPin: $('#estopClearPin'),
+  clearConfirm: $('#estopClearConfirm'),
+  clear: $('#estopClearButton'),
+  actions: $('#controlActions'),
+};
+
 let latestState = null;
 let latestTopics = [];
 let sourceFingerprint = '';
@@ -164,6 +204,32 @@ let mappingControlSnapshot = null;
 let mappingLogCursor = 0;
 let mappingLogLines = [];
 let handledMappingOperation = '';
+const controlInput = window.RobotControlInput;
+const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
+let controlSnapshot = null;
+let controlLeaseId = '';
+let controlLeaseSource = '';
+let controlSocket = null;
+let controlSocketBound = false;
+const intentionallyClosedControlSockets = new WeakSet();
+let controlSequence = 0;
+let lastControlHeartbeatAt = 0;
+let controlDisarmBusy = false;
+let controlEmergencyBusy = false;
+let controlArmBusy = false;
+let controlArmGeneration = 0;
+let controlActionBusy = false;
+let controlActionAckTimer = null;
+let pendingControlActionId = '';
+let controlSpeedInitialized = false;
+let controlHadDeadman = false;
+let controlLastCommand = null;
+let selectedGamepadIndex = '';
+let gamepadEstopPressed = false;
+let actionConfirmation = null;
+const controlPressedKeys = new Set();
+const controlPointerDirections = new Map();
+const controlDeadmanPointers = new Set();
 
 const scene3d = window.RobotScene3D && ui.sceneCanvas
   ? new window.RobotScene3D(ui.sceneCanvas, {
@@ -240,6 +306,7 @@ const PAGE_META = {
   maps: ['Saved Maps', '이미 매핑된 3D PCD와 2D 점유 지도를 센서 없이 탐색합니다.'],
   sensors: ['Sensors & Camera', '카메라 스트림과 로봇 센서 값을 기능별로 확인합니다.'],
   topics: ['ROS Graph', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
+  controls: ['Robot Controls', 'PIN으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
   settings: ['Settings', '로봇 연결 대상과 자동 탐색된 ROS 2 데이터 소스를 선택합니다.'],
 };
 
@@ -249,6 +316,7 @@ function pageFromHash() {
 }
 
 function activatePage(page, updateHash = false) {
+  const previousPage = activePage;
   activePage = Object.hasOwn(PAGE_META, page) ? page : 'overview';
   document.querySelectorAll('[data-page]').forEach((element) => {
     const active = element.dataset.page === activePage;
@@ -264,6 +332,8 @@ function activatePage(page, updateHash = false) {
   ui.pageTitle.textContent = title;
   ui.pageDescription.textContent = description;
   if (updateHash && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
+  if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
+  if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();
   requestAnimationFrame(() => {
     if (activePage === 'mapping') {
       scene3d?.resize();
@@ -1869,6 +1939,652 @@ function connectCamera() {
   cameraSocket.onerror = () => cameraSocket.close();
 }
 
+function controlReady(snapshot = controlSnapshot) {
+  const available = snapshot?.available ?? snapshot?.ready;
+  return Boolean(snapshot?.enabled && snapshot?.configured && available);
+}
+
+function controlEstopLatched(snapshot = controlSnapshot) {
+  return Boolean(snapshot?.estop_latched ?? snapshot?.estop?.latched);
+}
+
+function controlLimits() {
+  const limits = controlSnapshot?.limits || {};
+  return {
+    max_linear_x: Math.max(0, Number(limits.max_linear_x ?? limits.vx_mps) || 0),
+    max_linear_y: Math.max(0, Number(limits.max_linear_y ?? limits.vy_mps) || 0),
+    max_angular_z: Math.max(0, Number(limits.max_angular_z ?? limits.wz_rps) || 0),
+  };
+}
+
+function extractControlSnapshot(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.control && typeof payload.control === 'object') return payload.control;
+  if (Object.hasOwn(payload, 'enabled') && Object.hasOwn(payload, 'lease')) return payload;
+  if (payload.snapshot && typeof payload.snapshot === 'object') return extractControlSnapshot(payload.snapshot);
+  return null;
+}
+
+function actionList(snapshot = controlSnapshot) {
+  const actions = snapshot?.actions;
+  if (Array.isArray(actions)) return actions;
+  if (actions && typeof actions === 'object') {
+    return Object.entries(actions).map(([id, metadata]) => ({ id, ...(metadata || {}) }));
+  }
+  return [];
+}
+
+function normalizedBridgeState() {
+  const bridge = controlSnapshot?.bridge || {};
+  const state = String(bridge.state || (bridge.connected ? 'connected' : bridge.available ? 'ready' : 'waiting'));
+  const ready = Boolean(bridge.connected || bridge.available || ['ready', 'connected', 'online', 'ok'].includes(state.toLowerCase()));
+  return { bridge, state, ready };
+}
+
+function syncEstopClearButton() {
+  controlUi.clear.disabled = controlEmergencyBusy || !controlEstopLatched() || !controlUi.clearConfirm.checked || !controlUi.clearPin.value.trim();
+}
+
+function renderControlStatus() {
+  const snapshot = controlSnapshot || {};
+  const ready = controlReady(snapshot);
+  const estopLatched = controlEstopLatched(snapshot);
+  const serverLease = snapshot.lease || {};
+  const locallyArmed = Boolean(controlLeaseId);
+  const { bridge, state: bridgeState, ready: bridgeReady } = normalizedBridgeState();
+  const availabilityCard = controlUi.availability.closest('.control-status-card');
+  const leaseCard = controlUi.leaseState.closest('.control-status-card');
+  const bridgeCard = controlUi.bridgeState.closest('.control-status-card');
+
+  availabilityCard.classList.toggle('is-ok', ready);
+  availabilityCard.classList.toggle('is-error', snapshot.enabled === false || snapshot.configured === false);
+  controlUi.availability.textContent = ready ? 'AVAILABLE' : snapshot.enabled === false ? 'DISABLED' : snapshot.configured === false ? 'NOT CONFIGURED' : 'UNAVAILABLE';
+  controlUi.availabilityNote.textContent = snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
+
+  leaseCard.classList.toggle('is-ok', locallyArmed && serverLease.active !== false);
+  leaseCard.classList.toggle('is-error', Boolean(serverLease.active && !locallyArmed));
+  controlUi.leaseState.textContent = locallyArmed ? (serverLease.bound ? 'BOUND' : 'ARMED') : serverLease.active ? 'IN USE' : 'DISARMED';
+  controlUi.leaseNote.textContent = locallyArmed ? `${controlLeaseSource.toUpperCase()} · 이 브라우저` : serverLease.active ? `${String(serverLease.source || serverLease.input_source || 'other').toUpperCase()} 제어 중` : '명령 권한 없음';
+
+  bridgeCard.classList.toggle('is-ok', bridgeReady);
+  bridgeCard.classList.toggle('is-error', ['error', 'offline', 'failed'].includes(bridgeState.toLowerCase()));
+  controlUi.bridgeState.textContent = bridgeState.toUpperCase();
+  controlUi.bridgeNote.textContent = bridge.message || bridge.detail || (bridgeReady ? 'Go2 명령 브리지 준비' : 'Go2 연결 대기');
+
+  controlUi.estopStatusCard.classList.toggle('is-latched', estopLatched);
+  controlUi.estopState.textContent = estopLatched ? 'LATCHED' : 'CLEAR';
+  controlUi.estopNote.textContent = estopLatched ? 'PIN 확인 전까지 ARM 불가' : '대시보드 정지 해제 상태';
+
+  if (estopLatched) setStatePill(controlUi.statePill, 'error', 'SOFTWARE STOP');
+  else if (locallyArmed) setStatePill(controlUi.statePill, 'ok', serverLease.bound ? 'ARMED · BOUND' : 'ARMED · BINDING');
+  else setStatePill(controlUi.statePill, ready ? 'waiting' : 'error', ready ? 'DISARMED' : 'UNAVAILABLE');
+
+  controlUi.arm.disabled = controlArmBusy || controlDisarmBusy || locallyArmed || !ready || estopLatched;
+  controlUi.disarm.disabled = controlDisarmBusy || !locallyArmed;
+  controlUi.inputSource.setAttribute('aria-disabled', locallyArmed ? 'true' : 'false');
+  controlUi.estop.disabled = controlEmergencyBusy;
+  syncEstopClearButton();
+  renderControlInputMode();
+  renderControlActions();
+}
+
+function renderControlInputMode() {
+  const source = controlUi.inputSource.value;
+  const gamepadMode = source === 'gamepad';
+  const locallyArmed = Boolean(controlLeaseId);
+  controlUi.gamepadWrap.classList.toggle('is-hidden', !gamepadMode);
+  controlUi.keyboardGuide.classList.toggle('is-hidden', gamepadMode);
+  controlUi.gamepadGuide.classList.toggle('is-hidden', !gamepadMode);
+  controlUi.touchController.classList.toggle('is-hidden', gamepadMode);
+  controlUi.touchController.querySelectorAll('button').forEach((button) => { button.disabled = !locallyArmed || gamepadMode; });
+
+  if (gamepadMode) {
+    const pad = selectedControlGamepad();
+    controlUi.deviceIndicator.className = `device-indicator ${pad ? 'is-ok' : 'is-error'}`;
+    controlUi.deviceStatus.textContent = pad ? `${pad.id} 연결됨` : '선택한 게임패드 연결 끊김';
+  } else {
+    controlUi.deviceIndicator.className = 'device-indicator is-ok';
+    controlUi.deviceStatus.textContent = locallyArmed ? '키보드·화면 버튼 제어 활성' : '키보드 입력 준비';
+  }
+}
+
+function actionNeedsConfirmation(action) {
+  return Boolean(action.requires_confirmation ?? action.confirmation_required ?? action.dangerous ?? true);
+}
+
+function renderControlActions() {
+  const focusedAction = document.activeElement?.dataset?.controlAction || '';
+  const actions = actionList();
+  if (!actions.length) {
+    controlUi.actions.innerHTML = '<div class="control-action-empty">서버에서 허용한 모션이 없습니다.</div>';
+    return;
+  }
+  const armed = Boolean(controlLeaseId) && !controlEstopLatched() && !controlHadDeadman && !controlActionBusy;
+  const now = Date.now();
+  if (actionConfirmation && actionConfirmation.expires <= now) actionConfirmation = null;
+  controlUi.actions.innerHTML = actions.map((action) => {
+    const id = String(action.action_id ?? (typeof action.id === 'string' ? action.id : action.name ?? action.id ?? ''));
+    const confirming = actionConfirmation?.id === id && actionConfirmation.expires > now;
+    const enabled = armed && action.enabled !== false && action.available !== false;
+    const needsConfirmation = actionNeedsConfirmation(action);
+    const buttonLabel = confirming ? '다시 눌러 실행 확인' : action.button_label || action.buttonLabel || '실행';
+    return `<article class="control-action-card">
+      <span>${escapeHtml(action.category || action.group || action.type || 'GO2 ACTION')}</span>
+      <strong>${escapeHtml(action.label || action.name || id)}</strong>
+      <small>${escapeHtml(action.description || action.note || '서버 허용 목록에 등록된 Go2 동작입니다.')}</small>
+      <button type="button" data-control-action="${escapeHtml(id)}" data-confirm="${needsConfirmation ? 'true' : 'false'}" class="${confirming ? 'is-confirming' : ''}" ${enabled ? '' : 'disabled'}>${escapeHtml(buttonLabel)}</button>
+    </article>`;
+  }).join('');
+  if (focusedAction) {
+    requestAnimationFrame(() => {
+      Array.from(controlUi.actions.querySelectorAll('[data-control-action]'))
+        .find((button) => button.dataset.controlAction === focusedAction)?.focus({ preventScroll: true });
+    });
+  }
+}
+
+function commandNumber(value) {
+  const number = Number(value) || 0;
+  return `${number >= 0 ? '+' : ''}${number.toFixed(3)}`;
+}
+
+function renderControlCommand(command = controlLastCommand || controlSnapshot?.command || controlInput?.zeroCommand(controlUi.inputSource.value)) {
+  if (!command) return;
+  const limits = controlLimits();
+  const x = Number(command.linear_x) || 0;
+  const y = Number(command.linear_y) || 0;
+  const z = Number(command.angular_z) || 0;
+  controlUi.commandX.textContent = commandNumber(x);
+  controlUi.commandY.textContent = commandNumber(y);
+  controlUi.commandZ.textContent = commandNumber(z);
+  controlUi.commandXBar.style.width = `${Math.min(100, Math.abs(x) / (limits.max_linear_x || 1) * 100)}%`;
+  controlUi.commandYBar.style.width = `${Math.min(100, Math.abs(y) / (limits.max_linear_y || 1) * 100)}%`;
+  controlUi.commandZBar.style.width = `${Math.min(100, Math.abs(z) / (limits.max_angular_z || 1) * 100)}%`;
+  controlUi.deadmanState.textContent = command.deadman ? 'HELD' : 'RELEASED';
+  controlUi.deadmanMonitor.classList.toggle('is-active', Boolean(command.deadman));
+  controlUi.commandSource.textContent = command.deadman ? `${String(command.source || controlLeaseSource || 'input').toUpperCase()} · LIVE` : 'ZERO COMMAND';
+}
+
+function applyControlSnapshot(snapshot) {
+  if (!snapshot) return;
+  controlSnapshot = snapshot;
+  if (!controlSpeedInitialized) {
+    const percent = controlInput.clamp(Number(snapshot.limits?.default_speed_scale) || 0.3, 0.1, 1) * 100;
+    controlUi.speed.value = String(Math.round(percent / 5) * 5);
+    controlSpeedInitialized = true;
+  }
+  controlUi.speedOutput.textContent = `${controlUi.speed.value}%`;
+  renderControlStatus();
+  if (!controlLeaseId) renderControlCommand(snapshot.command);
+}
+
+async function refreshControlSnapshot() {
+  if (activePage !== 'controls') return;
+  try {
+    const snapshot = extractControlSnapshot(await api('/api/v1/control'));
+    applyControlSnapshot(snapshot);
+    if (controlLeaseId && snapshot?.lease?.active === false && !controlDisarmBusy) {
+      await failSafeDisarm('lease_expired', { notify: true });
+    }
+  } catch (error) {
+    controlUi.availability.textContent = 'API ERROR';
+    controlUi.availabilityNote.textContent = error.message;
+    controlUi.availability.closest('.control-status-card').classList.add('is-error');
+  }
+}
+
+function selectedControlGamepad() {
+  if (!navigator.getGamepads || selectedGamepadIndex === '') return null;
+  return Array.from(navigator.getGamepads()).find((pad) => pad?.mapping === 'standard' && String(pad.index) === String(selectedGamepadIndex)) || null;
+}
+
+function refreshControlGamepads() {
+  if (!navigator.getGamepads) return;
+  const detectedPads = Array.from(navigator.getGamepads()).filter(Boolean);
+  const pads = detectedPads.filter((pad) => pad.mapping === 'standard');
+  const previous = selectedGamepadIndex || controlUi.gamepad.value;
+  controlUi.gamepad.innerHTML = pads.length
+    ? pads.map((pad) => `<option value="${pad.index}">${escapeHtml(pad.id || `Gamepad ${pad.index + 1}`)}</option>`).join('')
+    : `<option value="">${detectedPads.length ? '표준 매핑 장치 없음' : '연결된 장치 없음'}</option>`;
+  const stillPresent = pads.some((pad) => String(pad.index) === String(previous));
+  const selectedDisconnected = previous !== '' && !stillPresent;
+  selectedGamepadIndex = stillPresent ? String(previous) : pads.length ? String(pads[0].index) : '';
+  controlUi.gamepad.value = selectedGamepadIndex;
+  renderControlInputMode();
+  if (controlLeaseId && controlLeaseSource === 'gamepad' && (selectedDisconnected || !selectedControlGamepad())) {
+    failSafeDisarm('gamepad_disconnected', { notify: true });
+  }
+}
+
+function controlSocketSend(message, socket = controlSocket) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+  const queuedBytes = Number(socket.bufferedAmount);
+  if (!Number.isFinite(queuedBytes) || queuedBytes !== 0 || queuedBytes > CONTROL_SOCKET_MAX_BUFFER_BYTES) {
+    if (!controlDisarmBusy) failSafeDisarm('websocket_backpressure', { notify: true });
+    return false;
+  }
+  try { socket.send(JSON.stringify(message)); return true; }
+  catch (_) {
+    if (!controlDisarmBusy) failSafeDisarm('websocket_send_failed', { notify: true });
+    return false;
+  }
+}
+
+function clearPendingControlAction(render = true) {
+  if (controlActionAckTimer) clearTimeout(controlActionAckTimer);
+  controlActionAckTimer = null;
+  controlActionBusy = false;
+  pendingControlActionId = '';
+  actionConfirmation = null;
+  if (render) renderControlActions();
+}
+
+function zeroTwistMessage(leaseId = controlLeaseId, source = controlLeaseSource || controlUi.inputSource.value) {
+  return {
+    type: 'twist', lease_id: leaseId, seq: ++controlSequence, source,
+    deadman: false, linear_x: 0, linear_y: 0, angular_z: 0,
+    speed_scale: Number(controlUi.speed.value) / 100, client_time_ms: Date.now(),
+  };
+}
+
+function sendImmediateZero(leaseId = controlLeaseId, source = controlLeaseSource) {
+  if (!leaseId) return;
+  controlSocketSend(zeroTwistMessage(leaseId, source));
+  controlLastCommand = controlInput.zeroCommand(source || 'keyboard');
+  renderControlCommand(controlLastCommand);
+}
+
+function closeControlSocket(reason = 'client_close') {
+  const socket = controlSocket;
+  controlSocket = null;
+  controlSocketBound = false;
+  clearPendingControlAction(false);
+  if (!socket) return;
+  intentionallyClosedControlSockets.add(socket);
+  try { socket.close(1000, reason.slice(0, 90)); } catch (_) {}
+}
+
+function connectControlSocket() {
+  if (activePage !== 'controls' || !controlLeaseId) return;
+  if (controlSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(controlSocket.readyState)) return;
+  const leaseAtConnect = controlLeaseId;
+  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/control`);
+  controlSocket = socket;
+  controlSocketBound = false;
+  socket.onopen = () => {
+    if (activePage !== 'controls' || controlLeaseId !== leaseAtConnect) {
+      intentionallyClosedControlSockets.add(socket);
+      socket.close(1000, 'inactive_control_page');
+      return;
+    }
+    controlSocketSend({ type: 'bind', lease_id: leaseAtConnect, client_time_ms: Date.now() }, socket);
+    lastControlHeartbeatAt = Date.now();
+  };
+  socket.onmessage = (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.type === 'error') {
+        clearPendingControlAction();
+        showToast(`제어 스트림 오류: ${payload.detail || payload.message || 'unknown'}`, true);
+        failSafeDisarm('websocket_server_error');
+        return;
+      }
+      if (payload.type === 'bound') {
+        controlSocketBound = true;
+        applyControlSnapshot(extractControlSnapshot(payload));
+        return;
+      }
+      if (payload.type === 'action_accepted') {
+        const acceptedAction = pendingControlActionId || payload.action_id || payload.action || 'Go2';
+        const acceptedSnapshot = extractControlSnapshot(payload);
+        controlLeaseId = '';
+        controlLeaseSource = '';
+        clearPendingControlAction(false);
+        resetControlInputs();
+        // Do not send zero/release after an accepted one-shot action: either
+        // frame could cancel it. Closing the socket intentionally makes the
+        // next browser command require a completely new ARM.
+        closeControlSocket('action_accepted');
+        if (acceptedSnapshot) {
+          controlSnapshot = {
+            ...acceptedSnapshot,
+            lease: { ...(acceptedSnapshot.lease || {}), active: false, bound: false, source: null },
+          };
+        }
+        renderControlStatus();
+        showToast(`${acceptedAction} 대시보드 명령 접수 · 브리지 수신/실행 완료 신호가 아닙니다. 안전 대기 종료 후 다시 ARM하세요.`);
+        setTimeout(() => refreshControlSnapshot(), 400);
+        return;
+      }
+      applyControlSnapshot(extractControlSnapshot(payload));
+    } catch (error) { console.warn('control stream:', error); }
+  };
+  socket.onerror = () => { try { socket.close(); } catch (_) {} };
+  socket.onclose = () => {
+    if (controlSocket === socket) {
+      controlSocket = null;
+      controlSocketBound = false;
+    }
+    if (intentionallyClosedControlSockets.has(socket)) return;
+    // A lost command stream is a terminal lease event: do not auto re-arm.
+    if (controlLeaseId === leaseAtConnect) failSafeDisarm('websocket_closed', { notify: true });
+  };
+}
+
+function resetControlInputs() {
+  controlPressedKeys.clear();
+  controlPointerDirections.clear();
+  controlDeadmanPointers.clear();
+  controlHadDeadman = false;
+  document.querySelectorAll('.keyboard-guide kbd.is-pressed, .touch-dpad button.is-pressed').forEach((element) => element.classList.remove('is-pressed'));
+  controlLastCommand = controlInput.zeroCommand(controlLeaseSource || controlUi.inputSource.value);
+  renderControlCommand(controlLastCommand);
+}
+
+async function failSafeDisarm(reason, { notify = false } = {}) {
+  if (controlDisarmBusy) return;
+  const leaseId = controlLeaseId;
+  const source = controlLeaseSource;
+  if (!leaseId) {
+    closeControlSocket(reason);
+    resetControlInputs();
+    renderControlStatus();
+    return;
+  }
+  controlDisarmBusy = true;
+  sendImmediateZero(leaseId, source);
+  controlSocketSend({ type: 'release', lease_id: leaseId, reason, client_time_ms: Date.now() });
+  controlLeaseId = '';
+  controlLeaseSource = '';
+  closeControlSocket(reason);
+  resetControlInputs();
+  renderControlStatus();
+  try {
+    await api('/api/v1/control/disarm', { method: 'POST', keepalive: true, body: JSON.stringify({ lease_id: leaseId }) });
+    if (notify) showToast('안전 해제: 제로 명령 후 제어 권한을 반납했습니다.');
+  } catch (error) {
+    if (notify) showToast(`제어 해제 확인 실패: ${error.message}`, true);
+  } finally {
+    controlDisarmBusy = false;
+    if (activePage === 'controls') await refreshControlSnapshot();
+  }
+}
+
+function invalidatePendingArm() {
+  controlArmGeneration += 1;
+  controlArmBusy = false;
+}
+
+async function armControl() {
+  if (controlLeaseId || controlDisarmBusy || controlArmBusy) return;
+  const source = controlUi.inputSource.value;
+  const pin = controlUi.pin.value.trim();
+  if (!pin) { showToast('제어 PIN을 입력하세요.', true); controlUi.pin.focus(); return; }
+  if (source === 'gamepad' && !selectedControlGamepad()) { showToast('연결된 게임패드를 선택하세요.', true); return; }
+  const armGeneration = ++controlArmGeneration;
+  controlArmBusy = true;
+  renderControlStatus();
+  try {
+    const response = await api('/api/v1/control/arm', {
+      method: 'POST', body: JSON.stringify({ pin, input_source: source }),
+    });
+    if (!response.lease_id) throw new Error('서버가 lease_id를 반환하지 않았습니다.');
+    if (armGeneration !== controlArmGeneration || activePage !== 'controls') {
+      try {
+        await api('/api/v1/control/disarm', {
+          method: 'POST', keepalive: true, body: JSON.stringify({ lease_id: String(response.lease_id) }),
+        });
+      } catch (_) {}
+      return;
+    }
+    controlLeaseId = String(response.lease_id);
+    controlLeaseSource = source;
+    controlSequence = -1;
+    controlUi.pin.value = '';
+    resetControlInputs();
+    applyControlSnapshot(extractControlSnapshot(response));
+    connectControlSocket();
+    renderControlStatus();
+    showToast(`${source === 'gamepad' ? '게임패드' : '키보드'} 제어를 ARM했습니다. 데드맨을 계속 누르세요.`);
+  } catch (error) {
+    if (armGeneration === controlArmGeneration) showToast(`ARM 실패: ${error.message}`, true);
+  } finally {
+    if (armGeneration === controlArmGeneration) controlArmBusy = false;
+    renderControlStatus();
+  }
+}
+
+function currentRawControlCommand() {
+  if (controlLeaseSource === 'gamepad') return controlInput.gamepadCommand(selectedControlGamepad());
+  const keyboard = controlInput.keyboardCommand(controlPressedKeys);
+  const pointer = controlInput.pointerCommand(
+    new Set(controlPointerDirections.values()),
+    controlDeadmanPointers.size > 0 || keyboard.deadman,
+  );
+  if (keyboard.deadman && pointer.deadman) {
+    return {
+      source: 'keyboard', deadman: true,
+      linear_x: controlInput.clamp(keyboard.linear_x + pointer.linear_x),
+      linear_y: controlInput.clamp(keyboard.linear_y + pointer.linear_y),
+      angular_z: controlInput.clamp(keyboard.angular_z + pointer.angular_z),
+    };
+  }
+  return keyboard.deadman ? keyboard : pointer;
+}
+
+function controlTick() {
+  if (activePage !== 'controls') return;
+  const estopPad = controlUi.inputSource.value === 'gamepad' ? selectedControlGamepad() : null;
+  const estopPressed = Boolean(estopPad && controlInput.gamepadButtonPressed(estopPad, 1));
+  if (estopPressed && !gamepadEstopPressed) {
+    gamepadEstopPressed = true;
+    triggerEmergencyStop('gamepad_b');
+    return;
+  }
+  gamepadEstopPressed = estopPressed;
+  if (!controlLeaseId || controlActionBusy) return;
+  if (controlLeaseSource === 'gamepad') {
+    const pad = selectedControlGamepad();
+    if (!pad) { failSafeDisarm('gamepad_disconnected', { notify: true }); return; }
+  }
+  const raw = currentRawControlCommand();
+  if (controlHadDeadman && !raw.deadman) {
+    failSafeDisarm('deadman_released', { notify: true });
+    return;
+  }
+  if (raw.deadman && !controlHadDeadman) {
+    controlHadDeadman = true;
+    renderControlActions();
+  }
+  const speedScale = Number(controlUi.speed.value) / 100;
+  const scaled = controlInput.scaleCommand(raw, controlLimits(), speedScale);
+  controlLastCommand = scaled;
+  renderControlCommand(scaled);
+  if (controlSocketBound && controlSocket?.readyState === WebSocket.OPEN) {
+    if (Date.now() - lastControlHeartbeatAt >= 1000) {
+      const heartbeatSent = controlSocketSend({
+        type: 'heartbeat', lease_id: controlLeaseId, seq: ++controlSequence,
+        client_time_ms: Date.now(),
+      });
+      if (heartbeatSent) lastControlHeartbeatAt = Date.now();
+      return;
+    }
+    if (!raw.deadman && !controlHadDeadman) return;
+    controlSocketSend({
+      type: 'twist', lease_id: controlLeaseId, seq: ++controlSequence,
+      source: controlLeaseSource, deadman: raw.deadman,
+      linear_x: raw.linear_x, linear_y: raw.linear_y, angular_z: raw.angular_z,
+      speed_scale: speedScale, client_time_ms: Date.now(),
+    });
+  }
+}
+
+async function triggerEmergencyStop(reason = 'dashboard_button') {
+  if (controlEmergencyBusy) return;
+  invalidatePendingArm();
+  controlEmergencyBusy = true;
+  const leaseId = controlLeaseId;
+  const source = controlLeaseSource;
+  sendImmediateZero(leaseId, source);
+  if (leaseId) controlSocketSend({ type: 'release', lease_id: leaseId, reason: 'software_estop', client_time_ms: Date.now() });
+  controlLeaseId = '';
+  controlLeaseSource = '';
+  closeControlSocket('software_estop');
+  resetControlInputs();
+  renderControlStatus();
+  try {
+    await api('/api/v1/control/stop', { method: 'POST', body: JSON.stringify({ reason }) });
+    if (leaseId) {
+      try { await api('/api/v1/control/disarm', { method: 'POST', body: JSON.stringify({ lease_id: leaseId }) }); } catch (_) {}
+    }
+    showToast('대시보드 SOFTWARE STOP 명령을 전송했습니다. 물리 E-stop은 아닙니다.', true);
+  } catch (error) {
+    showToast(`대시보드 정지 전송 실패: ${error.message}`, true);
+  } finally {
+    controlEmergencyBusy = false;
+    if (activePage === 'controls') await refreshControlSnapshot();
+  }
+}
+
+async function clearEmergencyStop() {
+  const pin = controlUi.clearPin.value.trim();
+  if (!pin || !controlUi.clearConfirm.checked) return;
+  controlEmergencyBusy = true;
+  syncEstopClearButton();
+  try {
+    const response = await api('/api/v1/control/estop/clear', {
+      method: 'POST', body: JSON.stringify({ pin, confirmed: true }),
+    });
+    controlUi.clearPin.value = '';
+    controlUi.clearConfirm.checked = false;
+    applyControlSnapshot(extractControlSnapshot(response));
+    showToast('대시보드 SOFTWARE STOP 래치를 해제했습니다. 제어하려면 다시 ARM하세요.');
+  } catch (error) {
+    showToast(`대시보드 정지 해제 실패: ${error.message}`, true);
+  } finally {
+    controlEmergencyBusy = false;
+    syncEstopClearButton();
+    if (activePage === 'controls') await refreshControlSnapshot();
+  }
+}
+
+function invokeControlAction(id, confirmed) {
+  if (!controlLeaseId) { showToast('먼저 제어를 ARM하세요.', true); return; }
+  if (controlActionBusy) return;
+  if (controlHadDeadman) {
+    showToast('주행에 사용한 ARM은 안전 해제 후, 모션 실행용으로 다시 ARM하세요.', true);
+    return;
+  }
+  if (!controlSocketBound || !controlSocket || controlSocket.readyState !== WebSocket.OPEN) {
+    showToast('제어 소켓 바인딩이 완료되지 않아 동작을 실행할 수 없습니다.', true);
+    failSafeDisarm('action_socket_unavailable');
+    return;
+  }
+  controlActionBusy = true;
+  pendingControlActionId = id;
+  actionConfirmation = null;
+  renderControlActions();
+  const sent = controlSocketSend({
+    type: 'action', lease_id: controlLeaseId, seq: ++controlSequence,
+    action_id: id, confirmed: Boolean(confirmed), client_time_ms: Date.now(),
+  });
+  if (!sent) {
+    clearPendingControlAction();
+    failSafeDisarm('action_send_failed', { notify: true });
+    return;
+  }
+  controlActionAckTimer = setTimeout(() => {
+    clearPendingControlAction();
+    failSafeDisarm('action_ack_timeout', { notify: true });
+  }, 1200);
+}
+
+function handleControlActionClick(event) {
+  const button = event.target.closest('[data-control-action]');
+  if (!button || button.disabled) return;
+  const id = button.dataset.controlAction;
+  if (button.dataset.confirm === 'true') {
+    const now = Date.now();
+    if (actionConfirmation?.id !== id || actionConfirmation.expires <= now) {
+      actionConfirmation = { id, expires: now + 3500 };
+      renderControlActions();
+      setTimeout(() => {
+        if (actionConfirmation?.id === id && actionConfirmation.expires <= Date.now()) {
+          actionConfirmation = null;
+          renderControlActions();
+        }
+      }, 3600);
+      return;
+    }
+  }
+  invokeControlAction(id, button.dataset.confirm === 'true');
+}
+
+function isFormControlTarget(target) {
+  return Boolean(target?.closest?.('input, select, textarea, button, [contenteditable="true"]'));
+}
+
+function updateKeyboardGuide() {
+  const keyMap = { KeyQ: 0, KeyW: 1, KeyE: 2, KeyA: 3, KeyS: 4, KeyD: 5 };
+  const keys = Array.from(controlUi.keyboardGuide.querySelectorAll('.key-row kbd'));
+  Object.entries(keyMap).forEach(([code, index]) => keys[index]?.classList.toggle('is-pressed', controlPressedKeys.has(code)));
+  controlUi.keyboardGuide.querySelector('.shift-key kbd')?.classList.toggle('is-pressed', controlPressedKeys.has('ShiftLeft') || controlPressedKeys.has('ShiftRight'));
+}
+
+function handleControlKeyDown(event) {
+  if (activePage !== 'controls' || controlLeaseSource !== 'keyboard' || !controlLeaseId || isFormControlTarget(event.target) || !controlInput.isControlCode(event.code)) return;
+  event.preventDefault();
+  controlPressedKeys.add(event.code);
+  updateKeyboardGuide();
+}
+
+function handleControlKeyUp(event) {
+  if (!controlInput.isControlCode(event.code) || !controlPressedKeys.has(event.code)) return;
+  controlPressedKeys.delete(event.code);
+  updateKeyboardGuide();
+  if (controlLeaseId && controlLeaseSource === 'keyboard') {
+    failSafeDisarm('keyboard_key_released', { notify: true });
+  }
+}
+
+function releaseControlPointer(event) {
+  const button = event.currentTarget;
+  const wasDirection = controlPointerDirections.delete(event.pointerId);
+  const wasDeadman = controlDeadmanPointers.delete(event.pointerId);
+  button.classList.remove('is-pressed');
+  if ((wasDirection || wasDeadman) && controlLeaseId) {
+    failSafeDisarm(wasDeadman ? 'pointer_deadman_released' : 'pointer_direction_released', { notify: true });
+  }
+}
+
+function bindControlPointerButtons() {
+  controlUi.touchController.querySelectorAll('[data-control-direction], [data-control-deadman]').forEach((button) => {
+    button.addEventListener('pointerdown', (event) => {
+      if (!controlLeaseId || controlLeaseSource !== 'keyboard') return;
+      event.preventDefault();
+      try { button.setPointerCapture(event.pointerId); } catch (_) {}
+      if (button.dataset.controlDirection) controlPointerDirections.set(event.pointerId, button.dataset.controlDirection);
+      else controlDeadmanPointers.add(event.pointerId);
+      button.classList.add('is-pressed');
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => button.addEventListener(name, releaseControlPointer));
+  });
+}
+
+function enterControlPage() {
+  refreshControlGamepads();
+  refreshControlSnapshot();
+  if (controlLeaseId) connectControlSocket();
+}
+
+function leaveControlPage(reason = 'controls_page_left') {
+  invalidatePendingArm();
+  if (controlLeaseId) failSafeDisarm(reason);
+  else closeControlSocket(reason);
+  resetControlInputs();
+}
+
 async function setRobotIp() {
   try {
     await api('/api/v1/robot', { method: 'POST', body: JSON.stringify({ ip: ui.robotIp.value.trim() }) });
@@ -1884,7 +2600,7 @@ function startClock() {
 
 $('#connectButton').addEventListener('click', setRobotIp);
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl()]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot()]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
@@ -1949,6 +2665,47 @@ ui.savedMapDeleteButton.addEventListener('click', deleteSelectedSavedMap);
 ui.savedMapNameInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') renameSelectedSavedMap(); });
 ui.topicSearch.addEventListener('input', renderTopics);
 ui.categoryFilter.addEventListener('change', renderTopics);
+controlUi.arm.addEventListener('click', armControl);
+controlUi.disarm.addEventListener('click', () => failSafeDisarm('manual_disarm', { notify: true }));
+controlUi.pin.addEventListener('keydown', (event) => { if (event.key === 'Enter') armControl(); });
+controlUi.inputSource.addEventListener('change', () => {
+  invalidatePendingArm();
+  if (controlLeaseId) failSafeDisarm('input_source_changed', { notify: true });
+  resetControlInputs();
+  renderControlInputMode();
+});
+controlUi.gamepad.addEventListener('change', () => {
+  invalidatePendingArm();
+  if (controlLeaseId) failSafeDisarm('gamepad_selection_changed', { notify: true });
+  selectedGamepadIndex = controlUi.gamepad.value;
+  resetControlInputs();
+  renderControlInputMode();
+});
+controlUi.speed.addEventListener('input', () => {
+  controlUi.speedOutput.textContent = `${controlUi.speed.value}%`;
+});
+controlUi.estop.addEventListener('click', () => triggerEmergencyStop('dashboard_button'));
+controlUi.clearPin.addEventListener('input', syncEstopClearButton);
+controlUi.clearConfirm.addEventListener('change', syncEstopClearButton);
+controlUi.clear.addEventListener('click', clearEmergencyStop);
+controlUi.actions.addEventListener('click', handleControlActionClick);
+document.addEventListener('keydown', handleControlKeyDown);
+document.addEventListener('keyup', handleControlKeyUp);
+window.addEventListener('gamepadconnected', refreshControlGamepads);
+window.addEventListener('gamepaddisconnected', refreshControlGamepads);
+window.addEventListener('blur', () => {
+  if (controlArmBusy) invalidatePendingArm();
+  if (controlLeaseId) failSafeDisarm('window_blurred');
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  if (controlArmBusy) invalidatePendingArm();
+  if (controlLeaseId) failSafeDisarm('document_hidden');
+});
+window.addEventListener('pagehide', () => {
+  if (controlArmBusy) invalidatePendingArm();
+  if (controlLeaseId) failSafeDisarm('page_hidden');
+});
 window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
   if (activePage === 'mapping') redrawActiveMap();
@@ -1956,6 +2713,10 @@ window.addEventListener('resize', () => {
 });
 
 startClock();
+bindControlPointerButtons();
+refreshControlGamepads();
+renderControlStatus();
+renderControlCommand();
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
 prepareOfficialRobotModels();
@@ -1979,3 +2740,6 @@ setInterval(refreshSources, 5000);
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
 setInterval(markJointsStale, 250);
+setInterval(controlTick, 50);
+setInterval(refreshControlSnapshot, 1000);
+setInterval(refreshControlGamepads, 1000);

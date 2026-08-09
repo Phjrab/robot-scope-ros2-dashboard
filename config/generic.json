@@ -1,6 +1,9 @@
 {
   "name": "Generic ROS 2",
   "robot_ip": "",
+  "control": {
+    "enabled": false
+  },
   "saved_maps": {
     "directories": ["../robot_dashboard/static/data"],
     "max_files": 50,
