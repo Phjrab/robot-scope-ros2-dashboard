@@ -6,9 +6,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
+
 from robot_dashboard.saved_maps import (
     SavedMapCatalog,
     SavedMapConflict,
+    SavedMapFormatError,
     SavedMapInvalidName,
     SavedMapMutationError,
     SavedMapNotFound,
@@ -168,6 +171,15 @@ class SavedMapCatalogTests(unittest.TestCase):
 
     def test_map_server_pgm_becomes_occupancy_grid_payload(self):
         record = next(item for item in self.catalog.list_snapshot()["maps"] if item["kind"] == "occupancy2d")
+        self.assertFalse(record["editable"])
+        self.assertEqual(record["edit_reason"], "saved map is read-only")
+        self.assertEqual(record["mode"], "trinary")
+        managed_record = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["kind"] == "occupancy2d"
+        )
+        self.assertTrue(managed_record["editable"])
         payload = self.catalog.data(record["id"])
         self.assertEqual((payload["width"], payload["height"]), (2, 2))
         self.assertEqual(payload["resolution"], 0.05)
@@ -485,6 +497,461 @@ class SavedMapCatalogTests(unittest.TestCase):
             self.managed_catalog.data(floor_copy["id"])["kind"],
             "occupancy2d",
         )
+
+    def test_revisions_are_exact_signature_hashes_in_metadata_and_data(self):
+        room = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "room.pcd"
+        )
+        self.assertRegex(room["revision"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            self.managed_catalog.data(room["id"], max_points=10)["revision"],
+            room["revision"],
+        )
+
+    def _clustered_pcd(self, name="clusters.pcd"):
+        points = []
+        for x_origin in (0.0, 0.4):
+            points.extend(
+                (
+                    x_origin + (index % 5) * 0.005,
+                    (index // 5) * 0.005,
+                    0.2,
+                )
+                for index in range(10)
+            )
+        points.append((0.2, 0.0, 1.5))
+        write_pcd(self.root / name, points)
+        return next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == name
+        )
+
+    def test_converts_managed_pcd_to_new_unknown_background_pair(self):
+        source = self._clustered_pcd()
+        original = (self.root / "clusters.pcd").read_bytes()
+        source_inode = (self.root / "clusters.pcd").stat().st_ino
+        observed_snapshot = []
+        real_reader = self.managed_catalog._pcd_xyz
+
+        def observe_copy(path):
+            observed_snapshot.append(path.stat().st_ino)
+            return real_reader(path)
+
+        with patch.object(self.managed_catalog, "_pcd_xyz", side_effect=observe_copy):
+            result = self.managed_catalog.convert_pcd_to_2d(
+                source["id"],
+                "clusters_2d",
+                z_min=-0.2,
+                z_max=0.8,
+                resolution=0.05,
+                noise_radius=0.1,
+                min_neighbors=10,
+            )
+
+        self.assertNotEqual(observed_snapshot, [source_inode])
+        self.assertEqual((self.root / "clusters.pcd").read_bytes(), original)
+        self.assertEqual(result["files"], ["clusters_2d.yaml", "clusters_2d.pgm"])
+        self.assertEqual(result["details"]["filter"], "projected_xy_density")
+        self.assertEqual(result["details"]["background"], "unknown")
+        self.assertEqual(result["details"]["source_points"], 21)
+        self.assertEqual(result["details"]["z_slice_points"], 20)
+        self.assertEqual(result["details"]["selected_points"], 20)
+        self.assertEqual(result["details"]["occupied_cells"], 2)
+        self.assertEqual(result["details"]["result_map_id"], result["map"]["id"])
+        payload = self.managed_catalog.data(result["map"]["id"])
+        decoded = list(__import__("base64").b64decode(payload["data_b64"]))
+        self.assertIn(255, decoded)
+        self.assertIn(100, decoded)
+        self.assertNotIn(0, decoded)
+        self.assertFalse((self.root / ".robot_scope_transactions").exists())
+
+    def test_free_background_is_an_explicit_pdf_compatible_option(self):
+        source = self._clustered_pcd("free_source.pcd")
+        result = self.managed_catalog.convert_pcd_to_2d(
+            source["id"],
+            "free_background",
+            z_min=-0.2,
+            z_max=0.8,
+            resolution=0.05,
+            noise_radius=0.1,
+            min_neighbors=10,
+            background="free",
+        )
+        decoded = list(
+            __import__("base64").b64decode(
+                self.managed_catalog.data(result["map"]["id"])["data_b64"]
+            )
+        )
+        self.assertIn(0, decoded)
+        self.assertIn(100, decoded)
+        self.assertNotIn(255, decoded)
+
+    def test_conversion_rejects_empty_filter_and_full_view_point_overflow(self):
+        source = self._clustered_pcd("filtered_out.pcd")
+        with self.assertRaises(SavedMapFormatError):
+            self.managed_catalog.convert_pcd_to_2d(
+                source["id"],
+                "empty_filter",
+                z_min=-0.2,
+                z_max=0.8,
+                resolution=0.05,
+                noise_radius=0.01,
+                min_neighbors=100,
+            )
+        self.assertFalse((self.root / "empty_filter.yaml").exists())
+
+        guarded = SavedMapCatalog(
+            [self.root],
+            managed_roots=[self.root],
+            max_full_view_points=10,
+        )
+        guarded_source = next(
+            item
+            for item in guarded.list_snapshot()["maps"]
+            if item["file_name"] == "filtered_out.pcd"
+        )
+        with self.assertRaises(SavedMapPointLimitError):
+            guarded.validate_pcd_conversion(
+                guarded_source["id"],
+                "too_many",
+                z_min=-0.2,
+                z_max=0.8,
+                resolution=0.05,
+            )
+
+    def test_conversion_checks_grid_limit_before_dense_allocation(self):
+        write_pcd(
+            self.root / "wide.pcd",
+            [(0.0, 0.0, 0.2), (50.0, 50.0, 0.2)],
+        )
+        source = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "wide.pcd"
+        )
+        self.assertEqual(self.managed_catalog.max_grid_cells, 16_000_000)
+        with patch("robot_dashboard.saved_maps.np.full") as allocate:
+            with self.assertRaises(SavedMapFormatError):
+                self.managed_catalog.convert_pcd_to_2d(
+                    source["id"],
+                    "too_wide",
+                    z_min=-0.2,
+                    z_max=0.8,
+                    resolution=0.01,
+                    noise_radius=0.1,
+                    min_neighbors=1,
+                )
+        allocate.assert_not_called()
+        self.assertFalse((self.root / "too_wide.yaml").exists())
+
+    def test_conversion_aborts_on_source_inode_race(self):
+        source = self._clustered_pcd("racing.pcd")
+        real_reader = self.managed_catalog._pcd_xyz
+
+        def replace_source(path):
+            result = real_reader(path)
+            replacement = self.root / "replacement.pcd"
+            write_pcd(replacement, [(0.0, 0.0, 0.2)] * 20)
+            replacement.replace(self.root / "racing.pcd")
+            return result
+
+        with patch.object(self.managed_catalog, "_pcd_xyz", side_effect=replace_source):
+            with self.assertRaises(SavedMapMutationError):
+                self.managed_catalog.convert_pcd_to_2d(
+                    source["id"],
+                    "raced_output",
+                    z_min=-0.2,
+                    z_max=0.8,
+                    resolution=0.05,
+                    noise_radius=0.1,
+                    min_neighbors=10,
+                )
+        self.assertFalse((self.root / "raced_output.yaml").exists())
+        self.assertFalse((self.root / "raced_output.pgm").exists())
+
+    def test_conversion_requires_the_revision_captured_during_preflight(self):
+        source = self._clustered_pcd("preflight_source.pcd")
+        expected_revision = source["revision"]
+        replacement = self.root / "preflight_replacement.pcd"
+        write_pcd(replacement, [(0.0, 0.0, 0.2)] * 20)
+        replacement.replace(self.root / "preflight_source.pcd")
+
+        with patch.object(self.managed_catalog, "_copy_regular_snapshot") as copy_snapshot:
+            with self.assertRaisesRegex(SavedMapConflict, "validate it again"):
+                self.managed_catalog.convert_pcd_to_2d(
+                    source["id"],
+                    "stale_preflight",
+                    z_min=-0.2,
+                    z_max=0.8,
+                    resolution=0.05,
+                    noise_radius=0.1,
+                    min_neighbors=10,
+                    expected_revision=expected_revision,
+                )
+        copy_snapshot.assert_not_called()
+        self.assertFalse((self.root / "stale_preflight.yaml").exists())
+
+    def test_conversion_cancellation_is_checked_again_before_publication(self):
+        source = self._clustered_pcd("cancel_source.pcd")
+        checks = iter((False, True))
+        with patch.object(self.managed_catalog, "_publish_occupancy_pair") as publish:
+            with self.assertRaisesRegex(SavedMapMutationError, "before publication"):
+                self.managed_catalog.convert_pcd_to_2d(
+                    source["id"],
+                    "cancelled_output",
+                    z_min=-0.2,
+                    z_max=0.8,
+                    resolution=0.05,
+                    noise_radius=0.1,
+                    min_neighbors=10,
+                    expected_revision=source["revision"],
+                    cancelled=lambda: next(checks),
+                )
+        publish.assert_not_called()
+        self.assertFalse((self.root / "cancelled_output.yaml").exists())
+        self.assertFalse((self.root / "cancelled_output.pgm").exists())
+        self.assertFalse((self.root / ".robot_scope_transactions").exists())
+
+    def test_conversion_pair_publish_failure_rolls_back_both_outputs(self):
+        source = self._clustered_pcd("rollback_source.pcd")
+        real_publish = self.managed_catalog._publish_link
+        calls = 0
+
+        def fail_second(source_path, target_path):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise SavedMapConflict("injected pair publication race")
+            return real_publish(source_path, target_path)
+
+        with patch.object(self.managed_catalog, "_publish_link", side_effect=fail_second):
+            with self.assertRaises(SavedMapConflict):
+                self.managed_catalog.convert_pcd_to_2d(
+                    source["id"],
+                    "rollback_2d",
+                    z_min=-0.2,
+                    z_max=0.8,
+                    resolution=0.05,
+                    noise_radius=0.1,
+                    min_neighbors=10,
+                )
+        self.assertFalse((self.root / "rollback_2d.yaml").exists())
+        self.assertFalse((self.root / "rollback_2d.pgm").exists())
+        self.assertFalse((self.root / ".robot_scope_transactions").exists())
+
+    def test_edited_copy_preserves_unedited_pixels_and_requires_exact_revision(self):
+        source = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        result = self.managed_catalog.save_edited_copy(
+            source["id"],
+            "floor_brushed",
+            source["revision"],
+            [{"start": 0, "length": 1, "value": 100}],
+        )
+        _, _, pixels = self.managed_catalog._read_pgm(
+            self.root / "floor_brushed.pgm",
+            pixels=True,
+        )
+        self.assertEqual(np.rint(pixels * 255).astype(int).tolist(), [[255, 0], [0, 255]])
+        self.assertEqual((self.root / "floor.pgm").read_bytes()[-4:], bytes([255, 0, 128, 255]))
+        output_bytes = (self.root / "floor_brushed.pgm").read_bytes()[-4:]
+        self.assertEqual(
+            [output_bytes[index] for index in (0, 1, 3)],
+            [255, 0, 255],
+        )
+        self.assertEqual(result["edit"]["source_revision"], source["revision"])
+        self.assertEqual(result["edit"]["edited_cells"], 1)
+        self.assertRegex(result["revision"], r"^[0-9a-f]{64}$")
+
+        (self.root / "floor.yaml").write_text(
+            (self.root / "floor.yaml").read_text(encoding="utf-8") + "\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(SavedMapConflict):
+            self.managed_catalog.save_edited_copy(
+                source["id"],
+                "stale_edit",
+                source["revision"],
+                [{"start": 0, "length": 1, "value": 0}],
+            )
+        self.assertFalse((self.root / "stale_edit.yaml").exists())
+
+    def test_threshold_aware_pixels_round_trip_unknown_for_narrow_valid_gap(self):
+        metadata = {
+            "free_thresh": 0.49,
+            "occupied_thresh": 0.51,
+            "negate": 0,
+        }
+        grid = np.asarray([[0, -1, 100], [100, -1, 0]], dtype=np.int16)
+        pixels = self.managed_catalog._occupancy_to_pixels(grid, metadata)
+        normalized = pixels.astype(np.float64) / 255.0
+        self.assertTrue(
+            np.array_equal(
+                self.managed_catalog._pixels_to_occupancy(normalized, metadata),
+                grid,
+            )
+        )
+
+    def test_edit_limits_and_pair_rollback_leave_no_partial_copy(self):
+        source = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        limited = SavedMapCatalog(
+            [self.root],
+            managed_roots=[self.root],
+            max_edited_cells=2,
+        )
+        limited_source = next(
+            item
+            for item in limited.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        with self.assertRaises(SavedMapFormatError):
+            limited.save_edited_copy(
+                limited_source["id"],
+                "too_many_edits",
+                limited_source["revision"],
+                [{"start": 0, "length": 3, "value": 100}],
+            )
+
+        real_publish = self.managed_catalog._publish_link
+        calls = 0
+
+        def fail_second(source_path, target_path):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise SavedMapConflict("injected edit pair race")
+            return real_publish(source_path, target_path)
+
+        with patch.object(self.managed_catalog, "_publish_link", side_effect=fail_second):
+            with self.assertRaises(SavedMapConflict):
+                self.managed_catalog.save_edited_copy(
+                    source["id"],
+                    "rollback_edit",
+                    source["revision"],
+                    [{"start": 0, "length": 1, "value": 100}],
+                )
+        self.assertFalse((self.root / "rollback_edit.yaml").exists())
+        self.assertFalse((self.root / "rollback_edit.pgm").exists())
+        self.assertFalse((self.root / ".robot_scope_transactions").exists())
+
+    def test_editor_rejects_p2_16bit_scale_and_raw_maps(self):
+        variants = {
+            "ascii_map": (
+                b"P2\n2 1\n255\n0 255\n",
+                None,
+                "binary P5",
+            ),
+            "wide_map": (
+                b"P5\n2 1\n65535\n" + struct.pack(">HH", 0, 65535),
+                None,
+                "maxval=255",
+            ),
+            "scale_map": (b"P5\n2 1\n255\n\x00\xff", "scale", "trinary"),
+            "raw_map": (b"P5\n2 1\n255\n\x00\xff", "raw", "trinary"),
+        }
+        for stem, (pgm, mode, expected_reason) in variants.items():
+            (self.root / f"{stem}.pgm").write_bytes(pgm)
+            lines = [
+                f"image: {stem}.pgm",
+                "resolution: 0.05",
+                "origin: [0, 0, 0]",
+                "negate: 0",
+                "occupied_thresh: 0.65",
+                "free_thresh: 0.196",
+            ]
+            if mode:
+                lines.append(f"mode: {mode}")
+            (self.root / f"{stem}.yaml").write_text("\n".join(lines), encoding="utf-8")
+
+        records = {
+            item["name"]: item for item in self.managed_catalog.list_snapshot()["maps"]
+        }
+        for stem, (_, _, expected_reason) in variants.items():
+            record = records[stem]
+            self.assertFalse(record["editable"])
+            self.assertIn(expected_reason, record["edit_reason"])
+            with self.assertRaisesRegex(SavedMapFormatError, expected_reason):
+                self.managed_catalog.save_edited_copy(
+                    record["id"],
+                    f"{stem}_edited",
+                    record["revision"],
+                    [{"start": 0, "length": 1, "value": 100}],
+                )
+            self.assertFalse((self.root / f"{stem}_edited.yaml").exists())
+
+    def test_editor_revalidates_copied_snapshot_format(self):
+        source = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        real_copy = self.managed_catalog._copy_regular_snapshot
+
+        def alter_yaml_snapshot(source_path, target_path, signature):
+            real_copy(source_path, target_path, signature)
+            if target_path.name == "source.yaml":
+                target_path.write_text(
+                    target_path.read_text(encoding="utf-8") + "\nmode: raw\n",
+                    encoding="utf-8",
+                )
+
+        with patch.object(
+            self.managed_catalog,
+            "_copy_regular_snapshot",
+            side_effect=alter_yaml_snapshot,
+        ):
+            with self.assertRaisesRegex(SavedMapFormatError, "trinary"):
+                self.managed_catalog.save_edited_copy(
+                    source["id"],
+                    "snapshot_bypass",
+                    source["revision"],
+                    [{"start": 0, "length": 1, "value": 100}],
+                )
+        self.assertFalse((self.root / "snapshot_bypass.yaml").exists())
+        self.assertFalse((self.root / "snapshot_bypass.pgm").exists())
+        self.assertFalse((self.root / ".robot_scope_transactions").exists())
+
+    def test_invalid_negate_and_nonfinite_yaml_geometry_are_not_catalogued(self):
+        invalid_lines = {
+            "bad_negate": "negate: 2",
+            "nan_resolution": "resolution: nan",
+            "nan_origin": "origin: [nan, 0, 0]",
+        }
+        for stem, override in invalid_lines.items():
+            (self.root / f"{stem}.pgm").write_bytes(b"P5\n1 1\n255\n\x00")
+            values = {
+                "resolution": "resolution: 0.05",
+                "origin": "origin: [0, 0, 0]",
+                "negate": "negate: 0",
+            }
+            values[override.split(":", 1)[0]] = override
+            (self.root / f"{stem}.yaml").write_text(
+                "\n".join(
+                    [
+                        f"image: {stem}.pgm",
+                        values["resolution"],
+                        values["origin"],
+                        values["negate"],
+                        "occupied_thresh: 0.65",
+                        "free_thresh: 0.196",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+        names = {
+            item["name"] for item in self.managed_catalog.list_snapshot()["maps"]
+        }
+        self.assertTrue(set(invalid_lines).isdisjoint(names))
 
     def test_concurrent_mutations_of_one_opaque_id_are_serialized(self):
         room = next(

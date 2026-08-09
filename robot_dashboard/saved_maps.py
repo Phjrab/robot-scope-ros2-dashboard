@@ -21,7 +21,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Callable, ContextManager, Dict, Iterable, Optional
 
 import numpy as np
 
@@ -59,6 +59,17 @@ class SavedMapConflict(SavedMapMutationError):
 
 
 MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+REVISION_RE = re.compile(r"^[0-9a-f]{64}$")
+
+PCD_Z_LIMIT_M = 20.0
+MIN_MAP_RESOLUTION_M = 0.01
+MAX_MAP_RESOLUTION_M = 1.0
+MIN_NOISE_RADIUS_M = 0.01
+MAX_NOISE_RADIUS_M = 2.0
+MAX_NOISE_NEIGHBORS = 1_000
+MAX_EDIT_RUNS = 10_000
+DEFAULT_MAX_EDITED_CELLS = 2_000_000
+BACKGROUND_MODES = frozenset({"unknown", "free"})
 
 
 @dataclass(frozen=True)
@@ -70,6 +81,7 @@ class SavedMapRecord:
     path: Path
     root: Path
     modified_ns: int
+    revision: str
     size_bytes: int
     details: Dict[str, Any]
     manageable: bool = False
@@ -89,6 +101,10 @@ class SavedMapRecord:
             "modified_at": modified,
             "size_bytes": self.size_bytes,
             "manageable": self.manageable,
+            # The filesystem signature revision is an opaque string so it is
+            # exact across the JavaScript boundary and changes when either
+            # artifact in a YAML/PGM pair is replaced.
+            "revision": self.revision,
             "data_url": f"/api/v1/saved-maps/{self.map_id}/data",
         }
         result.update(self.details)
@@ -111,6 +127,7 @@ class SavedMapCatalog:
         max_full_view_points: int = 2_000_000,
         cloud_radius_limit_m: float = 500.0,
         max_grid_cells: int = 16_000_000,
+        max_edited_cells: int = DEFAULT_MAX_EDITED_CELLS,
     ) -> None:
         resolved_roots = []
         for value in roots:
@@ -147,6 +164,10 @@ class SavedMapCatalog:
         )
         self.cloud_radius_limit_m = max(5.0, min(float(cloud_radius_limit_m), 10_000.0))
         self.max_grid_cells = max(1_000, min(int(max_grid_cells), 64_000_000))
+        self.max_edited_cells = max(
+            1,
+            min(int(max_edited_cells), self.max_grid_cells, 8_000_000),
+        )
         self._lock = threading.RLock()
 
     @classmethod
@@ -183,6 +204,10 @@ class SavedMapCatalog:
                 profile.get("cloud_radius_limit_m", 500.0),
             ),
             max_grid_cells=settings.get("max_grid_cells", 16_000_000),
+            max_edited_cells=settings.get(
+                "max_edited_cells",
+                DEFAULT_MAX_EDITED_CELLS,
+            ),
         )
 
     @property
@@ -219,18 +244,23 @@ class SavedMapCatalog:
             try:
                 self._validate_record(record)
                 if record.format == "pcd-binary":
-                    return self._pcd_snapshot(
+                    payload = self._pcd_snapshot(
                         record,
                         self._point_limit(max_points),
                     )
-                if record.format == "robot-scope-json":
-                    return self._json_snapshot(
+                elif record.format == "robot-scope-json":
+                    payload = self._json_snapshot(
                         record,
                         self._point_limit(max_points),
                     )
-                if record.format == "map-server-pgm":
-                    return self._occupancy_snapshot(record)
-                raise SavedMapFormatError(f"unsupported saved map format: {record.format}")
+                elif record.format == "map-server-pgm":
+                    payload = self._occupancy_snapshot(record)
+                else:
+                    raise SavedMapFormatError(
+                        f"unsupported saved map format: {record.format}"
+                    )
+                payload["revision"] = record.revision
+                return payload
             except SavedMapError:
                 raise
             except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
@@ -392,6 +422,316 @@ class SavedMapCatalog:
                 "files": [path.name for path in sources],
             }
 
+    def validate_pcd_conversion(
+        self,
+        map_id: str,
+        name: str,
+        *,
+        z_min: object,
+        z_max: object,
+        resolution: object,
+        noise_radius: object = 0.1,
+        min_neighbors: object = 10,
+        background: object = "unknown",
+    ) -> Dict[str, Any]:
+        """Validate a managed PCD conversion without exposing its path."""
+
+        safe_name = self.validate_map_name(name)
+        parameters = self._conversion_parameters(
+            z_min=z_min,
+            z_max=z_max,
+            resolution=resolution,
+            noise_radius=noise_radius,
+            min_neighbors=min_neighbors,
+            background=background,
+        )
+        with self._lock:
+            record = self._find(map_id)
+            self._require_manageable(record)
+            if record.format != "pcd-binary":
+                raise SavedMapFormatError("only a managed binary PCD can be converted")
+            if int(record.details.get("point_count", 0)) > self.max_full_view_points:
+                raise SavedMapPointLimitError(
+                    "PCD conversion exceeds the configured point limit of "
+                    f"{self.max_full_view_points}"
+                )
+            self._ensure_targets_absent(self._occupancy_targets(record.root, safe_name))
+            return {
+                "source": record.public(),
+                "output_name": safe_name,
+                "parameters": parameters,
+                "filter": "projected_xy_density",
+            }
+
+    def convert_pcd_to_2d(
+        self,
+        map_id: str,
+        name: str,
+        *,
+        z_min: object,
+        z_max: object,
+        resolution: object,
+        noise_radius: object = 0.1,
+        min_neighbors: object = 10,
+        background: object = "unknown",
+        expected_revision: Optional[str] = None,
+        cancelled: Optional[Callable[[], bool]] = None,
+        publication_guard: Optional[Callable[[], ContextManager[bool]]] = None,
+    ) -> Dict[str, Any]:
+        """Create a new map-server PGM/YAML pair from one managed binary PCD.
+
+        The automatic filter is deliberately described as a projected XY
+        density filter.  It is not PCL's 3D RadiusOutlierRemoval.  Manual brush
+        edits are a separate :meth:`save_edited_copy` operation.
+        """
+
+        safe_name = self.validate_map_name(name)
+        parameters = self._conversion_parameters(
+            z_min=z_min,
+            z_max=z_max,
+            resolution=resolution,
+            noise_radius=noise_radius,
+            min_neighbors=min_neighbors,
+            background=background,
+        )
+        if expected_revision is not None and (
+            not isinstance(expected_revision, str)
+            or not REVISION_RE.fullmatch(expected_revision)
+        ):
+            raise SavedMapFormatError(
+                "expected_revision must be a 64-character lowercase hex string"
+            )
+        with self._lock:
+            record = self._find(map_id)
+            self._require_manageable(record)
+            if record.format != "pcd-binary":
+                raise SavedMapFormatError("only a managed binary PCD can be converted")
+            if int(record.details.get("point_count", 0)) > self.max_full_view_points:
+                raise SavedMapPointLimitError(
+                    "PCD conversion exceeds the configured point limit of "
+                    f"{self.max_full_view_points}"
+                )
+            if expected_revision is not None and expected_revision != record.revision:
+                raise SavedMapConflict(
+                    "saved PCD changed; validate it again before conversion"
+                )
+            if self._operation_cancelled(cancelled):
+                raise SavedMapMutationError("PCD conversion was cancelled")
+            targets = self._occupancy_targets(record.root, safe_name)
+            self._ensure_targets_absent(targets)
+            source_signature = self._regular_signature(record.path)
+            source_revision = record.revision
+            transaction_root, transaction = self._create_transaction(record.root)
+            source_snapshot = transaction / "source.pcd"
+            try:
+                self._copy_regular_snapshot(
+                    record.path,
+                    source_snapshot,
+                    source_signature,
+                )
+            except Exception:
+                self._cleanup_transaction(transaction_root, transaction)
+                raise
+
+        published: Dict[Path, tuple[int, int]] = {}
+        try:
+            points, source_points = self._pcd_xyz(source_snapshot)
+            pixels, details = self._project_xy_occupancy(points, parameters)
+            staged_yaml, staged_pgm = self._stage_occupancy_pair(
+                transaction,
+                safe_name,
+                pixels,
+                resolution=parameters["resolution"],
+                origin=(details["origin_x"], details["origin_y"], 0.0),
+                occupied_thresh=0.65,
+                free_thresh=0.196,
+            )
+
+            with self._lock:
+                if self._regular_signature(record.path) != source_signature:
+                    raise SavedMapMutationError("PCD changed during conversion")
+                self._ensure_targets_absent(targets)
+                if publication_guard is None:
+                    if self._operation_cancelled(cancelled):
+                        raise SavedMapMutationError(
+                            "PCD conversion was cancelled before publication"
+                        )
+                    created = self._publish_occupancy_pair(
+                        record.root,
+                        safe_name,
+                        staged_yaml,
+                        staged_pgm,
+                        published,
+                    )
+                else:
+                    with publication_guard() as authorized:
+                        if not authorized:
+                            raise SavedMapMutationError(
+                                "PCD conversion was cancelled before publication"
+                            )
+                        created = self._publish_occupancy_pair(
+                            record.root,
+                            safe_name,
+                            staged_yaml,
+                            staged_pgm,
+                            published,
+                        )
+        except SavedMapError:
+            rolled_back = self._rollback_mutation({}, published)
+            if rolled_back:
+                self._cleanup_transaction(transaction_root, transaction)
+            else:
+                raise SavedMapMutationError(
+                    "PCD conversion failed and requires manual recovery"
+                )
+            raise
+        except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
+            rolled_back = self._rollback_mutation({}, published)
+            if rolled_back:
+                self._cleanup_transaction(transaction_root, transaction)
+            else:
+                raise SavedMapMutationError(
+                    "PCD conversion failed and requires manual recovery"
+                ) from exc
+            raise SavedMapMutationError("PCD could not be converted safely") from exc
+        else:
+            self._cleanup_transaction(transaction_root, transaction)
+            conversion = {
+                "filter": "projected_xy_density",
+                "result_map_id": created.map_id,
+                "source_revision": source_revision,
+                "source_points": source_points,
+                **details,
+                **parameters,
+            }
+            public = created.public()
+            public["conversion"] = conversion
+            return {
+                "map": public,
+                "files": [
+                    created.path.name,
+                    created.auxiliary_path.name if created.auxiliary_path else "",
+                ],
+                "details": conversion,
+            }
+
+    def save_edited_copy(
+        self,
+        map_id: str,
+        name: str,
+        source_revision: str,
+        runs: Iterable[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Publish bounded RLE brush edits as a new occupancy-map pair."""
+
+        safe_name = self.validate_map_name(name)
+        if not isinstance(source_revision, str) or not REVISION_RE.fullmatch(source_revision):
+            raise SavedMapFormatError("source_revision must be a 64-character lowercase hex string")
+        with self._lock:
+            record = self._find(map_id)
+            self._require_manageable(record)
+            if record.format != "map-server-pgm" or record.auxiliary_path is None:
+                raise SavedMapFormatError("only a managed 2D occupancy map can be edited")
+            self._require_editable_record(record)
+            if source_revision != record.revision:
+                raise SavedMapConflict("saved map changed; reload it before saving edits")
+            targets = self._occupancy_targets(record.root, safe_name)
+            self._ensure_targets_absent(targets)
+
+            yaml_signature = self._regular_signature(record.path)
+            pgm_signature = self._regular_signature(record.auxiliary_path)
+            transaction_root, transaction = self._create_transaction(record.root)
+            yaml_snapshot = transaction / "source.yaml"
+            pgm_snapshot = transaction / "source.pgm"
+            try:
+                self._copy_regular_snapshot(record.path, yaml_snapshot, yaml_signature)
+                self._copy_regular_snapshot(
+                    record.auxiliary_path,
+                    pgm_snapshot,
+                    pgm_signature,
+                )
+            except Exception:
+                self._cleanup_transaction(transaction_root, transaction)
+                raise
+
+        published: Dict[Path, tuple[int, int]] = {}
+        try:
+            metadata = self._read_map_yaml(yaml_snapshot)
+            pgm_magic, header_width, header_height, pgm_maximum = self._read_pgm_header(
+                pgm_snapshot
+            )
+            if metadata["mode"] != "trinary":
+                raise SavedMapFormatError("only absent/trinary map mode is editable")
+            if pgm_magic != "P5":
+                raise SavedMapFormatError("only binary P5 occupancy images are editable")
+            if pgm_maximum != 255:
+                raise SavedMapFormatError("only 8-bit maxval=255 occupancy images are editable")
+            width, height, source_pixels = self._read_pgm(pgm_snapshot, pixels=True)
+            if (width, height) != (header_width, header_height):
+                raise SavedMapFormatError("occupancy image header changed during editing")
+            assert source_pixels is not None
+            normalized_runs = self._validate_edit_runs(runs, width * height)
+            output_pixels = np.rint(source_pixels * 255.0).astype(np.uint8)
+            edited_cells = self._apply_edit_runs(
+                output_pixels,
+                width,
+                height,
+                normalized_runs,
+                metadata,
+            )
+            staged_yaml, staged_pgm = self._stage_occupancy_pair(
+                transaction,
+                safe_name,
+                output_pixels,
+                resolution=metadata["resolution"],
+                origin=tuple(metadata["origin"]),
+                occupied_thresh=metadata["occupied_thresh"],
+                free_thresh=metadata["free_thresh"],
+                negate=metadata["negate"],
+            )
+
+            with self._lock:
+                if (
+                    self._regular_signature(record.path) != yaml_signature
+                    or self._regular_signature(record.auxiliary_path) != pgm_signature
+                ):
+                    raise SavedMapMutationError("2D map changed while applying edits")
+                self._ensure_targets_absent(targets)
+                created = self._publish_occupancy_pair(
+                    record.root,
+                    safe_name,
+                    staged_yaml,
+                    staged_pgm,
+                    published,
+                )
+        except SavedMapError:
+            rolled_back = self._rollback_mutation({}, published)
+            if rolled_back:
+                self._cleanup_transaction(transaction_root, transaction)
+            else:
+                raise SavedMapMutationError(
+                    "edited map save failed and requires manual recovery"
+                )
+            raise
+        except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
+            rolled_back = self._rollback_mutation({}, published)
+            if rolled_back:
+                self._cleanup_transaction(transaction_root, transaction)
+            else:
+                raise SavedMapMutationError(
+                    "edited map save failed and requires manual recovery"
+                ) from exc
+            raise SavedMapMutationError("edited map could not be saved safely") from exc
+        else:
+            self._cleanup_transaction(transaction_root, transaction)
+            public = created.public()
+            public["edit"] = {
+                "source_revision": source_revision,
+                "run_count": len(normalized_runs),
+                "edited_cells": edited_cells,
+            }
+            return public
+
     @staticmethod
     def validate_map_name(name: str) -> str:
         if not isinstance(name, str) or not MAP_NAME_RE.fullmatch(name):
@@ -399,6 +739,508 @@ class SavedMapCatalog:
                 "map name must be 1-64 ASCII letters, numbers, underscores or hyphens"
             )
         return name
+
+    @staticmethod
+    def _finite_parameter(value: object, label: str, low: float, high: float) -> float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise SavedMapFormatError(f"{label} must be a finite number")
+        normalized = float(value)
+        if not np.isfinite(normalized):
+            raise SavedMapFormatError(f"{label} must be a finite number")
+        if normalized < low or normalized > high:
+            raise SavedMapFormatError(f"{label} must be between {low:g} and {high:g}")
+        return normalized
+
+    @staticmethod
+    def _operation_cancelled(callback: Optional[Callable[[], bool]]) -> bool:
+        if callback is None:
+            return False
+        try:
+            return bool(callback())
+        except Exception:
+            # A broken lifecycle callback cannot authorize publication.
+            return True
+
+    @classmethod
+    def _conversion_parameters(
+        cls,
+        *,
+        z_min: object,
+        z_max: object,
+        resolution: object,
+        noise_radius: object,
+        min_neighbors: object,
+        background: object,
+    ) -> Dict[str, Any]:
+        lower = cls._finite_parameter(z_min, "z_min", -PCD_Z_LIMIT_M, PCD_Z_LIMIT_M)
+        upper = cls._finite_parameter(z_max, "z_max", -PCD_Z_LIMIT_M, PCD_Z_LIMIT_M)
+        if lower >= upper:
+            raise SavedMapFormatError("z_min must be less than z_max")
+        cell_size = cls._finite_parameter(
+            resolution,
+            "resolution",
+            MIN_MAP_RESOLUTION_M,
+            MAX_MAP_RESOLUTION_M,
+        )
+        radius = cls._finite_parameter(
+            noise_radius,
+            "noise_radius",
+            MIN_NOISE_RADIUS_M,
+            MAX_NOISE_RADIUS_M,
+        )
+        if (
+            isinstance(min_neighbors, bool)
+            or not isinstance(min_neighbors, int)
+            or min_neighbors < 1
+            or min_neighbors > MAX_NOISE_NEIGHBORS
+        ):
+            raise SavedMapFormatError(
+                f"min_neighbors must be an integer from 1 to {MAX_NOISE_NEIGHBORS}"
+            )
+        if not isinstance(background, str) or background not in BACKGROUND_MODES:
+            raise SavedMapFormatError("background must be 'unknown' or 'free'")
+        return {
+            "z_min": lower,
+            "z_max": upper,
+            "resolution": cell_size,
+            "noise_radius": radius,
+            "min_neighbors": min_neighbors,
+            "background": background,
+        }
+
+    @staticmethod
+    def _occupancy_targets(root: Path, name: str) -> tuple[Path, Path]:
+        return root / f"{name}.yaml", root / f"{name}.pgm"
+
+    @staticmethod
+    def _stat_signature(current: os.stat_result) -> tuple[int, int, int, int]:
+        if not stat.S_ISREG(current.st_mode):
+            raise SavedMapReadOnly("saved map artifact is not a regular file")
+        return current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns
+
+    @classmethod
+    def _regular_signature(cls, path: Path) -> tuple[int, int, int, int]:
+        return cls._stat_signature(path.lstat())
+
+    @classmethod
+    def _signature_revision(cls, paths: Iterable[Path]) -> str:
+        digest = hashlib.sha256()
+        for path in paths:
+            signature = cls._regular_signature(path)
+            digest.update((":".join(str(value) for value in signature) + "\n").encode("ascii"))
+        return digest.hexdigest()
+
+    def _copy_regular_snapshot(
+        self,
+        source: Path,
+        target: Path,
+        expected: tuple[int, int, int, int],
+    ) -> None:
+        """Copy one bounded regular file while detecting replacement races."""
+
+        source_flags = os.O_RDONLY
+        target_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            source_flags |= os.O_NOFOLLOW
+            target_flags |= os.O_NOFOLLOW
+        source_fd = -1
+        target_fd = -1
+        try:
+            source_fd = os.open(source, source_flags)
+            before = self._stat_signature(os.fstat(source_fd))
+            if before != expected:
+                raise SavedMapMutationError("saved map changed before its snapshot")
+            if before[2] <= 0 or before[2] > self.max_file_bytes:
+                raise SavedMapFormatError("saved map snapshot exceeds the configured limit")
+            target_fd = os.open(target, target_flags, 0o600)
+            target_stat = self._stat_signature(os.fstat(target_fd))
+            if target_stat[:2] == before[:2]:
+                raise SavedMapMutationError("saved map snapshot must be an independent copy")
+
+            copied = 0
+            while copied < before[2]:
+                chunk = os.read(source_fd, min(1024 * 1024, before[2] - copied))
+                if not chunk:
+                    raise SavedMapMutationError("saved map changed while being copied")
+                view = memoryview(chunk)
+                while view:
+                    written = os.write(target_fd, view)
+                    if written <= 0:
+                        raise SavedMapMutationError("saved map snapshot could not be written")
+                    view = view[written:]
+                copied += len(chunk)
+            if os.read(source_fd, 1):
+                raise SavedMapMutationError("saved map grew while being copied")
+            os.fsync(target_fd)
+            after = self._stat_signature(os.fstat(source_fd))
+            snapshot = self._stat_signature(os.fstat(target_fd))
+            if after != expected or snapshot[2] != expected[2]:
+                raise SavedMapMutationError("saved map changed while taking its snapshot")
+        except SavedMapError:
+            raise
+        except OSError as exc:
+            raise SavedMapMutationError("saved map snapshot could not be created") from exc
+        finally:
+            if target_fd >= 0:
+                os.close(target_fd)
+            if source_fd >= 0:
+                os.close(source_fd)
+
+    def _pcd_xyz(self, path: Path) -> tuple[np.ndarray, int]:
+        header = self._read_pcd_header(path)
+        if header["data"] != "binary":
+            raise SavedMapFormatError("only binary PCD data can be converted")
+        if header["points"] > self.max_full_view_points:
+            raise SavedMapPointLimitError(
+                "PCD conversion exceeds the configured point limit of "
+                f"{self.max_full_view_points}"
+            )
+        scalar_types = {
+            ("F", 4): "<f4", ("F", 8): "<f8",
+            ("I", 1): "i1", ("I", 2): "<i2", ("I", 4): "<i4",
+            ("U", 1): "u1", ("U", 2): "<u2", ("U", 4): "<u4",
+        }
+        names: list[str] = []
+        formats: list[str] = []
+        offsets: list[int] = []
+        point_step = 0
+        for name, size, kind, count in zip(
+            header["fields"], header["sizes"], header["types"], header["counts"]
+        ):
+            scalar = scalar_types.get((kind, size))
+            if scalar is None or count != 1:
+                raise SavedMapFormatError(
+                    f"unsupported PCD field: {name} {kind}{size}x{count}"
+                )
+            names.append(name)
+            formats.append(scalar)
+            offsets.append(point_step)
+            point_step += size
+        expected_size = header["data_offset"] + header["points"] * point_step
+        if expected_size > path.stat().st_size:
+            raise SavedMapFormatError("PCD payload is truncated")
+        dtype = np.dtype(
+            {
+                "names": names,
+                "formats": formats,
+                "offsets": offsets,
+                "itemsize": point_step,
+            }
+        )
+        records = np.memmap(
+            path,
+            mode="r",
+            dtype=dtype,
+            offset=header["data_offset"],
+            shape=(header["points"],),
+        )
+        points = np.empty((header["points"], 3), dtype=np.float32)
+        points[:, 0] = records["x"]
+        points[:, 1] = records["y"]
+        points[:, 2] = records["z"]
+        return points, header["points"]
+
+    def _project_xy_occupancy(
+        self,
+        points: np.ndarray,
+        parameters: Dict[str, Any],
+    ) -> tuple[np.ndarray, Dict[str, Any]]:
+        finite = np.isfinite(points).all(axis=1)
+        height_slice = finite & (points[:, 2] >= parameters["z_min"]) & (
+            points[:, 2] <= parameters["z_max"]
+        )
+        xy = points[height_slice, :2].astype(np.float64, copy=True)
+        z_slice_points = int(len(xy))
+        if not z_slice_points:
+            raise SavedMapFormatError("no finite PCD points remain inside the z range")
+
+        radius = parameters["noise_radius"]
+        xy_min = np.min(xy, axis=0)
+        normalized = (xy - xy_min) / radius
+        if not np.isfinite(normalized).all():
+            raise SavedMapFormatError("projected PCD bounds are not finite")
+        max_bin = np.max(normalized, axis=0)
+        integer_limit = np.iinfo(np.int64).max
+        if np.any(max_bin > integer_limit - 2):
+            raise SavedMapFormatError("projected PCD span is too large")
+        bins = np.floor(normalized).astype(np.int64)
+        span_y = int(np.max(bins[:, 1])) + 1
+        max_x_bin = int(np.max(bins[:, 0]))
+        if span_y <= 0 or max_x_bin > integer_limit // span_y:
+            raise SavedMapFormatError("projected PCD density grid is too large")
+        keys = bins[:, 0] * span_y + bins[:, 1]
+        unique_keys, inverse, counts = np.unique(
+            keys,
+            return_inverse=True,
+            return_counts=True,
+        )
+        unique_x = unique_keys // span_y
+        unique_y = unique_keys % span_y
+        density = np.zeros(len(unique_keys), dtype=np.int64)
+        for x_offset in (-1, 0, 1):
+            for y_offset in (-1, 0, 1):
+                neighbor_x = unique_x + x_offset
+                neighbor_y = unique_y + y_offset
+                valid = (
+                    (neighbor_x >= 0)
+                    & (neighbor_x <= max_x_bin)
+                    & (neighbor_y >= 0)
+                    & (neighbor_y < span_y)
+                )
+                neighbor_keys = neighbor_x[valid] * span_y + neighbor_y[valid]
+                positions = np.searchsorted(unique_keys, neighbor_keys)
+                matched = positions < len(unique_keys)
+                matched[matched] &= unique_keys[positions[matched]] == neighbor_keys[matched]
+                valid_indexes = np.flatnonzero(valid)[matched]
+                density[valid_indexes] += counts[positions[matched]]
+        keep = density[inverse] >= parameters["min_neighbors"]
+        selected = xy[keep]
+        selected_points = int(len(selected))
+        if not selected_points:
+            raise SavedMapFormatError(
+                "no PCD points remain after the projected XY density filter"
+            )
+
+        selected_min = np.min(selected, axis=0)
+        selected_max = np.max(selected, axis=0)
+        resolution = parameters["resolution"]
+        width = int(np.floor((selected_max[0] - selected_min[0]) / resolution)) + 1
+        height = int(np.floor((selected_max[1] - selected_min[1]) / resolution)) + 1
+        if (
+            width <= 0
+            or height <= 0
+            or width > self.max_grid_cells
+            or height > self.max_grid_cells
+            or width * height > self.max_grid_cells
+        ):
+            raise SavedMapFormatError(
+                "converted occupancy grid exceeds the configured limit of "
+                f"{self.max_grid_cells} cells"
+            )
+
+        x_indexes = np.floor((selected[:, 0] - selected_min[0]) / resolution).astype(
+            np.int64
+        )
+        y_indexes = np.floor((selected[:, 1] - selected_min[1]) / resolution).astype(
+            np.int64
+        )
+        np.clip(x_indexes, 0, width - 1, out=x_indexes)
+        np.clip(y_indexes, 0, height - 1, out=y_indexes)
+        occupied_cells = int(np.unique(y_indexes * width + x_indexes).size)
+        values = self._occupancy_pixel_values(
+            {
+                "occupied_thresh": 0.65,
+                "free_thresh": 0.196,
+                "negate": 0,
+            }
+        )
+        background_value = values[-1] if parameters["background"] == "unknown" else values[0]
+        pixels = np.full((height, width), background_value, dtype=np.uint8)
+        pixels[height - 1 - y_indexes, x_indexes] = values[100]
+        return pixels, {
+            "z_slice_points": z_slice_points,
+            "selected_points": selected_points,
+            "occupied_cells": occupied_cells,
+            "width": width,
+            "height": height,
+            "origin_x": float(selected_min[0]),
+            "origin_y": float(selected_min[1]),
+        }
+
+    @staticmethod
+    def _write_exclusive(path: Path, content: bytes) -> None:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = os.open(path, flags, 0o600)
+        try:
+            with os.fdopen(descriptor, "wb", closefd=False) as stream:
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+        finally:
+            os.close(descriptor)
+
+    def _stage_occupancy_pair(
+        self,
+        transaction: Path,
+        name: str,
+        pixels: np.ndarray,
+        *,
+        resolution: float,
+        origin: tuple[float, float, float],
+        occupied_thresh: float,
+        free_thresh: float,
+        negate: int = 0,
+    ) -> tuple[Path, Path]:
+        image = np.asarray(pixels, dtype=np.uint8)
+        if image.ndim != 2:
+            raise SavedMapFormatError("occupancy image must be two-dimensional")
+        height, width = image.shape
+        if width <= 0 or height <= 0 or width * height > self.max_grid_cells:
+            raise SavedMapFormatError("occupancy image exceeds the configured grid limit")
+        if len(origin) != 3 or not all(np.isfinite(value) for value in origin):
+            raise SavedMapFormatError("occupancy origin must contain three finite values")
+        if not np.isfinite(resolution) or resolution <= 0:
+            raise SavedMapFormatError("occupancy resolution must be positive")
+        if not (0 <= free_thresh < occupied_thresh <= 1) or negate not in {0, 1}:
+            raise SavedMapFormatError("occupancy thresholds are invalid")
+
+        staged_yaml = transaction / f"{name}.yaml"
+        staged_pgm = transaction / f"{name}.pgm"
+        pgm = (
+            f"P5\n# Robot Scope occupancy map\n{width} {height}\n255\n".encode("ascii")
+            + np.ascontiguousarray(image).tobytes()
+        )
+        yaml = (
+            f"image: {name}.pgm\n"
+            "mode: trinary\n"
+            f"resolution: {resolution:.12g}\n"
+            f"origin: [{origin[0]:.12g}, {origin[1]:.12g}, {origin[2]:.12g}]\n"
+            f"negate: {negate}\n"
+            f"occupied_thresh: {occupied_thresh:.12g}\n"
+            f"free_thresh: {free_thresh:.12g}\n"
+        ).encode("utf-8")
+        if len(pgm) > self.max_file_bytes or len(yaml) > self.max_file_bytes:
+            raise SavedMapFormatError("converted map exceeds the configured file limit")
+        self._write_exclusive(staged_pgm, pgm)
+        self._write_exclusive(staged_yaml, yaml)
+        parsed = self._read_map_yaml(staged_yaml)
+        staged_width, staged_height, _ = self._read_pgm(staged_pgm, pixels=False)
+        if (
+            parsed["image"] != staged_pgm.name
+            or staged_width != width
+            or staged_height != height
+        ):
+            raise SavedMapMutationError("staged occupancy pair did not pass validation")
+        return staged_yaml, staged_pgm
+
+    def _publish_occupancy_pair(
+        self,
+        root: Path,
+        name: str,
+        staged_yaml: Path,
+        staged_pgm: Path,
+        published: Dict[Path, tuple[int, int]],
+    ) -> SavedMapRecord:
+        target_yaml, target_pgm = self._occupancy_targets(root, name)
+        self._ensure_targets_absent((target_yaml, target_pgm))
+        # Publish the image first.  The catalog discovers the logical map only
+        # after its YAML is visible, and the caller can roll back either link.
+        published[target_pgm] = self._publish_link(staged_pgm, target_pgm)
+        published[target_yaml] = self._publish_link(staged_yaml, target_yaml)
+        created = self._record_for(root, target_yaml)
+        if created is None or not created.manageable:
+            raise SavedMapMutationError("new occupancy map did not pass validation")
+        self._validate_record(created)
+        return created
+
+    def _validate_edit_runs(
+        self,
+        runs: Iterable[Dict[str, Any]],
+        cells: int,
+    ) -> list[tuple[int, int, int]]:
+        if isinstance(runs, (str, bytes, dict)):
+            raise SavedMapFormatError("runs must be a list")
+        try:
+            items = list(runs)
+        except TypeError as exc:
+            raise SavedMapFormatError("runs must be a list") from exc
+        if not items or len(items) > MAX_EDIT_RUNS:
+            raise SavedMapFormatError(f"runs must contain 1 to {MAX_EDIT_RUNS} entries")
+        normalized: list[tuple[int, int, int]] = []
+        previous_end = 0
+        edited_cells = 0
+        for item in items:
+            if not isinstance(item, dict) or set(item) != {"start", "length", "value"}:
+                raise SavedMapFormatError("each edit run requires start, length and value")
+            start, length, value = item["start"], item["length"], item["value"]
+            if (
+                isinstance(start, bool)
+                or not isinstance(start, int)
+                or isinstance(length, bool)
+                or not isinstance(length, int)
+                or start < 0
+                or length <= 0
+            ):
+                raise SavedMapFormatError("edit run start and length must be positive integers")
+            if isinstance(value, bool) or not isinstance(value, int) or value not in {-1, 0, 100}:
+                raise SavedMapFormatError("edit run value must be -1, 0 or 100")
+            end = start + length
+            if start < previous_end or end > cells:
+                raise SavedMapFormatError("edit runs must be sorted, non-overlapping and in bounds")
+            edited_cells += length
+            if edited_cells > self.max_edited_cells:
+                raise SavedMapFormatError(
+                    "edit runs exceed the configured limit of "
+                    f"{self.max_edited_cells} cells"
+                )
+            normalized.append((start, length, value))
+            previous_end = end
+        return normalized
+
+    @staticmethod
+    def _occupancy_pixel_values(metadata: Dict[str, Any]) -> Dict[int, int]:
+        free = float(metadata["free_thresh"])
+        occupied = float(metadata["occupied_thresh"])
+        negate = int(metadata.get("negate", 0))
+        raw = np.arange(256, dtype=np.float64)
+        probability = raw / 255.0 if negate else 1.0 - raw / 255.0
+        groups = {
+            0: np.flatnonzero(probability < free),
+            -1: np.flatnonzero((probability >= free) & (probability <= occupied)),
+            100: np.flatnonzero(probability > occupied),
+        }
+        if any(not len(group) for group in groups.values()):
+            raise SavedMapFormatError("map thresholds cannot encode all occupancy values")
+        targets = {0: 0.0, -1: (free + occupied) / 2.0, 100: 1.0}
+        return {
+            value: int(group[np.argmin(np.abs(probability[group] - targets[value]))])
+            for value, group in groups.items()
+        }
+
+    def _apply_edit_runs(
+        self,
+        pixels: np.ndarray,
+        width: int,
+        height: int,
+        runs: Iterable[tuple[int, int, int]],
+        metadata: Dict[str, Any],
+    ) -> int:
+        values = self._occupancy_pixel_values(metadata)
+        flat = pixels.reshape(-1)
+        changed = 0
+        for start, length, value in runs:
+            indexes = np.arange(start, start + length, dtype=np.int64)
+            ros_y = indexes // width
+            image_indexes = (height - 1 - ros_y) * width + indexes % width
+            changed += int(np.count_nonzero(flat[image_indexes] != values[value]))
+            flat[image_indexes] = values[value]
+        return changed
+
+    @staticmethod
+    def _pixels_to_occupancy(pixels: np.ndarray, metadata: Dict[str, Any]) -> np.ndarray:
+        occupancy_probability = pixels if metadata["negate"] else 1.0 - pixels
+        height, width = pixels.shape
+        grid = np.full((height, width), -1, dtype=np.int16)
+        grid[occupancy_probability > metadata["occupied_thresh"]] = 100
+        grid[occupancy_probability < metadata["free_thresh"]] = 0
+        return np.flipud(grid)
+
+    def _occupancy_to_pixels(
+        self,
+        occupancy: np.ndarray,
+        metadata: Dict[str, Any],
+    ) -> np.ndarray:
+        grid = np.asarray(occupancy)
+        if grid.ndim != 2 or not np.isin(grid, (-1, 0, 100)).all():
+            raise SavedMapFormatError("occupancy data may contain only -1, 0 or 100")
+        values = self._occupancy_pixel_values(metadata)
+        image_grid = np.flipud(grid)
+        pixels = np.empty(image_grid.shape, dtype=np.uint8)
+        for value, pixel in values.items():
+            pixels[image_grid == value] = pixel
+        return pixels
 
     def _require_manageable(self, record: SavedMapRecord) -> None:
         if not record.manageable or record.root not in self.managed_roots:
@@ -421,6 +1263,17 @@ class SavedMapCatalog:
             raise
         except (OSError, ValueError, TypeError, UnicodeError) as exc:
             raise SavedMapReadOnly("saved map is no longer safely manageable") from exc
+
+    @staticmethod
+    def _require_editable_record(record: SavedMapRecord) -> None:
+        if not bool(record.details.get("editable", False)):
+            reason = str(
+                record.details.get(
+                    "edit_reason",
+                    "saved occupancy map is not editable",
+                )
+            )
+            raise SavedMapFormatError(reason)
 
     def _auxiliary_has_other_reference(self, record: SavedMapRecord) -> bool:
         if record.auxiliary_path is None:
@@ -696,24 +1549,44 @@ class SavedMapCatalog:
             image_stat = auxiliary.stat()
             if image_stat.st_size <= 0 or image_stat.st_size > self.max_file_bytes:
                 return None
-            width, height, _ = self._read_pgm(auxiliary, pixels=False)
+            pgm_magic, width, height, pgm_maximum = self._read_pgm_header(auxiliary)
             kind, fmt = "occupancy2d", "map-server-pgm"
-            details = {
-                "width": width,
-                "height": height,
-                "resolution": metadata["resolution"],
-                "origin": metadata["origin"],
-                "frame_id": "map",
-                "image_file_name": auxiliary.name,
-            }
-            stat_size = stat.st_size + image_stat.st_size
-            stat_mtime = max(stat.st_mtime_ns, image_stat.st_mtime_ns)
             manageable = bool(
                 manageable
                 and Path(image_reference).name == image_reference
                 and auxiliary.parent == resolved.parent
                 and not auxiliary_candidate.is_symlink()
             )
+            editable = bool(
+                manageable
+                and metadata["mode"] == "trinary"
+                and pgm_magic == "P5"
+                and pgm_maximum == 255
+            )
+            if not manageable:
+                edit_reason = "saved map is read-only"
+            elif metadata["mode"] != "trinary":
+                edit_reason = "only absent/trinary map mode is editable"
+            elif pgm_magic != "P5":
+                edit_reason = "only binary P5 occupancy images are editable"
+            elif pgm_maximum != 255:
+                edit_reason = "only 8-bit maxval=255 occupancy images are editable"
+            else:
+                edit_reason = None
+            details = {
+                "width": width,
+                "height": height,
+                "resolution": metadata["resolution"],
+                "origin": metadata["origin"],
+                "mode": metadata["mode"],
+                "frame_id": "map",
+                "image_file_name": auxiliary.name,
+                "editable": editable,
+            }
+            if edit_reason:
+                details["edit_reason"] = edit_reason
+            stat_size = stat.st_size + image_stat.st_size
+            stat_mtime = max(stat.st_mtime_ns, image_stat.st_mtime_ns)
             return SavedMapRecord(
                 map_id=self._opaque_id(kind, resolved),
                 name=resolved.stem,
@@ -722,6 +1595,7 @@ class SavedMapCatalog:
                 path=resolved,
                 root=root,
                 modified_ns=stat_mtime,
+                revision=self._signature_revision((resolved, auxiliary)),
                 size_bytes=stat_size,
                 details=details,
                 manageable=manageable,
@@ -735,6 +1609,7 @@ class SavedMapCatalog:
             path=resolved,
             root=root,
             modified_ns=stat.st_mtime_ns,
+            revision=self._signature_revision((resolved,)),
             size_bytes=stat.st_size,
             details=details,
             manageable=manageable,
@@ -960,9 +1835,20 @@ class SavedMapCatalog:
             occupied = float(values.get("occupied_thresh", "0.65"))
             free = float(values.get("free_thresh", "0.196"))
             negate = int(values.get("negate", "0"))
+            mode = values.get("mode", "trinary").strip().strip("'\"").lower()
         except (KeyError, ValueError, SyntaxError, TypeError) as exc:
             raise SavedMapFormatError("invalid map YAML metadata") from exc
-        if len(origin) != 3 or resolution <= 0 or not (0 <= free < occupied <= 1):
+        if (
+            len(origin) != 3
+            or not all(np.isfinite(value) for value in origin)
+            or not np.isfinite(resolution)
+            or resolution <= 0
+            or not np.isfinite(free)
+            or not np.isfinite(occupied)
+            or not (0 <= free < occupied <= 1)
+            or negate not in {0, 1}
+            or mode not in {"trinary", "scale", "raw"}
+        ):
             raise SavedMapFormatError("invalid map YAML ranges")
         image = values["image"].strip().strip("'\"")
         if not image or "\x00" in image:
@@ -974,7 +1860,50 @@ class SavedMapCatalog:
             "occupied_thresh": occupied,
             "free_thresh": free,
             "negate": negate,
+            "mode": mode,
         }
+
+    def _read_pgm_header(self, path: Path) -> tuple[str, int, int, int]:
+        size = path.stat().st_size
+        if size <= 0 or size > self.max_file_bytes:
+            raise SavedMapFormatError("PGM exceeds the configured limit")
+        with path.open("rb") as stream:
+            content = stream.read(min(size, 64 * 1024))
+        position = 0
+
+        def token() -> bytes:
+            nonlocal position
+            while position < len(content):
+                if content[position] == 35:
+                    end = content.find(b"\n", position)
+                    position = len(content) if end < 0 else end + 1
+                elif chr(content[position]).isspace():
+                    position += 1
+                else:
+                    break
+            start = position
+            while position < len(content) and not chr(content[position]).isspace():
+                position += 1
+            if start == position:
+                raise SavedMapFormatError("truncated PGM header")
+            return content[start:position]
+
+        magic = token()
+        try:
+            width, height, maximum = int(token()), int(token()), int(token())
+        except ValueError as exc:
+            raise SavedMapFormatError("invalid PGM header") from exc
+        if magic not in {b"P2", b"P5"}:
+            raise SavedMapFormatError("only P2 and P5 PGM maps are supported")
+        if (
+            width <= 0
+            or height <= 0
+            or width * height > self.max_grid_cells
+            or maximum <= 0
+            or maximum > 65_535
+        ):
+            raise SavedMapFormatError("invalid PGM dimensions")
+        return magic.decode("ascii"), width, height, maximum
 
     def _read_pgm(self, path: Path, *, pixels: bool) -> tuple[int, int, Optional[np.ndarray]]:
         content = path.read_bytes()
@@ -1005,7 +1934,13 @@ class SavedMapCatalog:
         except ValueError as exc:
             raise SavedMapFormatError("invalid PGM header") from exc
         cells = width * height
-        if width <= 0 or height <= 0 or cells > self.max_grid_cells or maximum <= 0:
+        if (
+            width <= 0
+            or height <= 0
+            or cells > self.max_grid_cells
+            or maximum <= 0
+            or maximum > 65_535
+        ):
             raise SavedMapFormatError("invalid PGM dimensions")
         if not pixels:
             return width, height, None

@@ -11,7 +11,6 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, Literal
-from urllib.parse import urlsplit
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -48,10 +47,12 @@ from .mapping_jobs import (
     SaveCommandSpec,
     SaveResultError,
 )
+from .http_security import is_same_origin
 from .ros_agent import RosAgent
 from .saved_maps import (
     SavedMapCatalog,
     SavedMapConflict,
+    SavedMapError,
     SavedMapFormatError,
     SavedMapInvalidName,
     SavedMapMutationError,
@@ -104,6 +105,28 @@ class CloudPointLimitRequest(StrictRequest):
 
 class SavedMapRenameRequest(StrictRequest):
     name: str
+
+
+class SavedMapConvert2DRequest(StrictRequest):
+    name: str
+    z_min: float = Field(strict=True, ge=-20.0, le=20.0)
+    z_max: float = Field(strict=True, ge=-20.0, le=20.0)
+    resolution: float = Field(strict=True, ge=0.01, le=1.0)
+    noise_radius: float = Field(default=0.1, strict=True, ge=0.01, le=2.0)
+    min_neighbors: int = Field(default=10, strict=True, ge=1, le=1_000)
+    background: Literal["unknown", "free"] = "unknown"
+
+
+class SavedMapEditRun(StrictRequest):
+    start: int = Field(strict=True, ge=0)
+    length: int = Field(strict=True, ge=1)
+    value: int = Field(strict=True)
+
+
+class SavedMapEditedCopyRequest(StrictRequest):
+    name: str
+    source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    runs: list[SavedMapEditRun] = Field(min_length=1, max_length=10_000)
 
 
 class ControlArmRequest(StrictRequest):
@@ -172,23 +195,18 @@ def mapping_jobs() -> MappingJobManager:
 def require_same_origin(request: Request) -> None:
     """Reject browser control mutations that did not originate at this host."""
 
-    origin = request.headers.get("origin", "")
-    host = request.headers.get("host", "")
-    try:
-        origin_host = urlsplit(origin).netloc
-    except ValueError:
-        origin_host = ""
-    if not origin_host or not host or origin_host.lower() != host.lower():
-        raise HTTPException(status_code=403, detail="control requests must be same-origin")
+    if not is_same_origin(
+        request.headers.get("origin", ""),
+        request.headers.get("host", ""),
+    ):
+        raise HTTPException(status_code=403, detail="mutation requests must be same-origin")
 
 
 def websocket_same_origin(websocket: WebSocket) -> bool:
-    origin = websocket.headers.get("origin", "")
-    host = websocket.headers.get("host", "")
-    try:
-        return bool(host) and urlsplit(origin).netloc.lower() == host.lower()
-    except ValueError:
-        return False
+    return is_same_origin(
+        websocket.headers.get("origin", ""),
+        websocket.headers.get("host", ""),
+    )
 
 
 def control_error(exc: ControlError) -> HTTPException:
@@ -713,8 +731,9 @@ async def mapping_control(since_log_seq: int = 0) -> Dict[str, Any]:
 
 
 @app.post("/api/v1/mapping/start")
-async def mapping_start() -> Dict[str, Any]:
+async def mapping_start(request: Request) -> Dict[str, Any]:
     global MAPPING_TASK
+    require_same_origin(request)
     if MAPPING_TASK is not None and not MAPPING_TASK.done():
         raise HTTPException(status_code=409, detail="a map save is in progress")
     try:
@@ -724,7 +743,8 @@ async def mapping_start() -> Dict[str, Any]:
 
 
 @app.post("/api/v1/mapping/stop")
-async def mapping_stop() -> Dict[str, Any]:
+async def mapping_stop(request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
     if MAPPING_TASK is not None and not MAPPING_TASK.done():
         raise HTTPException(status_code=409, detail="map save must finish before mapping can stop")
     try:
@@ -745,16 +765,17 @@ async def run_map_save(name: str, kind: str) -> None:
 
 
 @app.post("/api/v1/mapping/save", status_code=202)
-async def mapping_save(request: MapSaveRequest) -> Dict[str, Any]:
+async def mapping_save(body: MapSaveRequest, request: Request) -> Dict[str, Any]:
     global MAPPING_TASK
+    require_same_origin(request)
     manager = mapping_jobs()
     if MAPPING_TASK is not None and not MAPPING_TASK.done():
         raise HTTPException(status_code=409, detail="another map save is already in progress")
     try:
-        name = manager.validate_map_name(request.name)
+        name = manager.validate_map_name(body.name)
     except MappingJobError as exc:
         raise mapping_error(exc) from exc
-    kind = "pointcloud3d_2d" if request.create_2d else "pointcloud3d"
+    kind = "pointcloud3d_2d" if body.create_2d else "pointcloud3d"
     if kind not in manager.allowed_save_kinds:
         raise HTTPException(status_code=503, detail="requested map save recipe is unavailable")
     MAPPING_TASK = asyncio.create_task(run_map_save(name, kind), name=f"map-save-{name}")
@@ -766,6 +787,139 @@ async def saved_map_list() -> Dict[str, Any]:
     return await asyncio.to_thread(saved_maps().list_snapshot)
 
 
+async def run_saved_pcd_conversion(
+    manager: MappingJobManager,
+    catalog: SavedMapCatalog,
+    job_id: str,
+    map_id: str,
+    expected_revision: str,
+    request: SavedMapConvert2DRequest,
+) -> None:
+    parameters = request.model_dump(exclude={"name"})
+
+    def convert() -> Dict[str, Any]:
+        return catalog.convert_pcd_to_2d(
+            map_id,
+            request.name,
+            expected_revision=expected_revision,
+            cancelled=lambda: manager.local_operation_cancelled(job_id),
+            publication_guard=lambda: manager.local_publication_guard(job_id),
+            **parameters,
+        )
+
+    try:
+        await asyncio.to_thread(
+            manager.run_reserved_local_operation,
+            job_id,
+            convert,
+        )
+    except (MappingJobError, SavedMapError):
+        # The manager records the bounded failure for mapping/control polling.
+        return
+    except Exception:
+        LOGGER.exception("unexpected saved PCD conversion failure")
+
+
+@app.post("/api/v1/saved-maps/{map_id}/convert-2d", status_code=202)
+async def convert_saved_pcd_to_2d(
+    map_id: str,
+    body: SavedMapConvert2DRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    global MAPPING_TASK
+    require_same_origin(request)
+    if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        raise HTTPException(status_code=409, detail="another map operation is already in progress")
+    manager = mapping_jobs()
+    catalog = saved_maps()
+    parameters = body.model_dump(exclude={"name"})
+    try:
+        validated = catalog.validate_pcd_conversion(
+            map_id,
+            body.name,
+            **parameters,
+        )
+    except (
+        SavedMapNotFound,
+        SavedMapInvalidName,
+        SavedMapReadOnly,
+        SavedMapConflict,
+        SavedMapFormatError,
+        SavedMapPointLimitError,
+    ) as exc:
+        raise saved_map_error(exc) from exc
+    try:
+        reservation = manager.reserve_local_operation("pcd_to_2d", body.name)
+    except MappingJobError as exc:
+        raise mapping_error(exc) from exc
+    operation = reservation["operation"]
+    job_id = str(operation["job_id"])
+    source_revision = str(validated["source"]["revision"])
+    conversion_coroutine = run_saved_pcd_conversion(
+        manager,
+        catalog,
+        job_id,
+        map_id,
+        source_revision,
+        body,
+    )
+    try:
+        MAPPING_TASK = asyncio.create_task(
+            conversion_coroutine,
+            name=f"pcd-to-2d-{job_id}",
+        )
+    except Exception as exc:
+        conversion_coroutine.close()
+        manager.fail_reserved_local_operation(
+            job_id,
+            "map conversion worker could not be scheduled",
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="map conversion worker could not be scheduled",
+        ) from exc
+    return {
+        "accepted": True,
+        "job_id": job_id,
+        "map_name": body.name,
+        "kind": "pcd_to_2d",
+        "operation": operation,
+        "source": validated["source"],
+        "parameters": validated["parameters"],
+        "filter": "projected_xy_density",
+    }
+
+
+@app.post("/api/v1/saved-maps/{map_id}/edited-copy")
+async def save_edited_map_copy(
+    map_id: str,
+    body: SavedMapEditedCopyRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        raise HTTPException(status_code=409, detail="map operation must finish before editing")
+    runs = [run.model_dump() for run in body.runs]
+    try:
+        metadata = await asyncio.to_thread(
+            saved_maps().save_edited_copy,
+            map_id,
+            body.name,
+            body.source_revision,
+            runs,
+        )
+    except (
+        SavedMapNotFound,
+        SavedMapInvalidName,
+        SavedMapReadOnly,
+        SavedMapConflict,
+        SavedMapFormatError,
+        SavedMapMutationError,
+    ) as exc:
+        raise saved_map_error(exc) from exc
+    return {"map": metadata}
+
+
 @app.get("/api/v1/saved-maps/{map_id}")
 async def saved_map_metadata(map_id: str) -> Dict[str, Any]:
     try:
@@ -775,11 +929,16 @@ async def saved_map_metadata(map_id: str) -> Dict[str, Any]:
 
 
 @app.patch("/api/v1/saved-maps/{map_id}")
-async def rename_saved_map(map_id: str, request: SavedMapRenameRequest) -> Dict[str, Any]:
+async def rename_saved_map(
+    map_id: str,
+    body: SavedMapRenameRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    require_same_origin(request)
     if MAPPING_TASK is not None and not MAPPING_TASK.done():
         raise HTTPException(status_code=409, detail="map save must finish before a map can be renamed")
     try:
-        metadata = await asyncio.to_thread(saved_maps().rename, map_id, request.name)
+        metadata = await asyncio.to_thread(saved_maps().rename, map_id, body.name)
     except (
         SavedMapNotFound,
         SavedMapInvalidName,
@@ -792,7 +951,8 @@ async def rename_saved_map(map_id: str, request: SavedMapRenameRequest) -> Dict[
 
 
 @app.delete("/api/v1/saved-maps/{map_id}")
-async def delete_saved_map(map_id: str) -> Dict[str, Any]:
+async def delete_saved_map(map_id: str, request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
     if MAPPING_TASK is not None and not MAPPING_TASK.done():
         raise HTTPException(status_code=409, detail="map save must finish before a map can be deleted")
     try:
@@ -817,7 +977,7 @@ async def saved_map_data(map_id: str, max_points: str = "all") -> Response:
     return Response(
         content=content,
         media_type="application/json",
-        headers={"Cache-Control": "private, max-age=30"},
+        headers={"Cache-Control": "private, no-cache"},
     )
 
 
@@ -901,8 +1061,22 @@ def main() -> None:
     profile_base = Path(args.profile).expanduser().resolve().parent if args.profile else Path.cwd()
     project_dir = Path(__file__).resolve().parents[1]
     save_script = project_dir / "scripts" / "save_hesai_map_humble.sh"
-    mapping_output_dir = Path(args.mapping_output_dir).expanduser()
-    MAPPING_JOBS = MappingJobManager.for_robot_scope(
+    requested_output_dir = Path(args.mapping_output_dir).expanduser()
+    requested_output_dir.mkdir(parents=True, exist_ok=True)
+    if requested_output_dir.is_symlink() or not requested_output_dir.is_dir():
+        raise RuntimeError("mapping output directory must be a real directory")
+    mapping_output_dir = requested_output_dir.resolve(strict=True)
+
+    # Establish the catalog limit first, then give that exact per-artifact
+    # limit to every saver recipe.  A successfully published file can therefore
+    # never disappear merely because the catalog applies a smaller size bound.
+    catalog = SavedMapCatalog.from_profile(
+        AGENT.profile,
+        base_dir=profile_base,
+        managed_roots=[mapping_output_dir],
+    )
+    map_file_limit = catalog.max_file_bytes
+    manager = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
         output_dir=mapping_output_dir,
         save_commands={
@@ -912,7 +1086,7 @@ def main() -> None:
                 cwd=project_dir,
                 timeout_seconds=35,
                 min_result_bytes=128,
-                max_result_bytes=1024 * 1024 * 1024,
+                max_result_bytes=map_file_limit,
             ),
             "pointcloud3d_2d": SaveCommandSpec(
                 (str(save_script), "{output_prefix}", "pcd-and-2d"),
@@ -920,7 +1094,7 @@ def main() -> None:
                 cwd=project_dir,
                 timeout_seconds=90,
                 min_result_bytes=4,
-                max_result_bytes=1024 * 1024 * 1024,
+                max_result_bytes=map_file_limit,
             ),
         },
         # Existing classroom sessions may have been started in a terminal.
@@ -928,11 +1102,8 @@ def main() -> None:
         # out safely, while stop only affects dashboard-owned process groups.
         require_pipeline_for_save=False,
     )
-    SAVED_MAPS = SavedMapCatalog.from_profile(
-        AGENT.profile,
-        base_dir=profile_base,
-        managed_roots=[MAPPING_JOBS.output_dir],
-    )
+    SAVED_MAPS = catalog
+    MAPPING_JOBS = manager
     uvicorn.run(
         app,
         host=args.host,

@@ -24,6 +24,8 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 - 저장 PCD를 미리보기 포인트 수 또는 ALL로 표시
 - Hesai + XT16 bridge + FAST-LIO 매핑 시작·중지
 - 현재 Laser_map을 PCD 또는 PCD + 2D 지도 묶음으로 안전하게 저장
+- 저장 PCD를 높이 범위·해상도·2D 투영 점 밀도로 새 PGM/YAML 지도에 변환
+- 저장 2D 지도를 브러시로 정리하고 원본을 보존한 새 복사본으로 저장
 - 저장 지도 선택, 이름 변경, 삭제와 2D/3D 보기
 - 버튼으로 여는 단일 제어 세션과 별도 ROS 2 명령 워치독
 - 키보드, 화면 패드 또는 표준 Gamepad를 선택하는 Go2 주행 제어
@@ -325,9 +327,42 @@ Robot Scope -> live view + PCD/PGM/YAML save
 - PCD 단일 파일 또는 YAML + PGM 묶음 삭제
 - 읽기 전용 경로와 번들 데모 데이터 보호
 
+관리 가능한 PCD를 선택하면 Saved Maps에서 바로 새 2D 지도를 만들 수 있습니다.
+기본 시작값은 수업 자료와 같은 `z_min=-0.2 m`, `z_max=0.8 m`,
+`resolution=0.05 m`, `noise_radius=0.1 m`, `min_neighbors=10`입니다. 서버의 자동
+노이즈 처리는 PCL의 3D RadiusOutlierRemoval과 같은 구현이 아니라, 높이 슬라이스 뒤
+XY에 투영한 점 밀도 필터입니다. 화면에도 **자동 점 노이즈 필터(2D 투영)** 로
+표시합니다.
+
+배경은 기본적으로 `unknown`입니다. 점이 관측된 셀만 장애물로 만들고 나머지를 미관측
+영역으로 두므로 내비게이션에 더 안전합니다. 수업 자료의 PGM처럼 경계 상자 전체를
+자유공간으로 채우려면 `free`를 명시적으로 선택할 수 있지만, 그 범위가 실제로 모두
+스캔된 자유공간임을 확인한 경우에만 사용하세요.
+
+2D 편집기는 Free, Unknown, Occupied 브러시를 제공합니다. 저장할 때는 현재 원본의
+opaque 64자리 revision과 최대 10,000개의 정렬된 RLE run만 전송하며, 기본 최대
+2,000,000개 셀까지만 바꿀 수 있습니다. 원본 PCD/PGM/YAML은 덮어쓰지 않고 새 이름의
+PGM+YAML 쌍을 만듭니다. 입력은 독립된 제한 크기 스냅샷으로 복사되고, 원본 교체 경합,
+출력 이름 충돌 또는 두 파일 중 하나의 게시 실패가 감지되면 새 출력 쌍을 롤백합니다.
+웹 브러시 편집은 관리 허용 폴더의 `mode: trinary`(또는 mode 생략) YAML과
+`P5`, `maxval=255` PGM 쌍에만 활성화됩니다. 읽기 전용 지도, ASCII P2, 16-bit PGM,
+`scale` 또는 `raw` mode는 볼 수는 있지만 원본 픽셀 의미를 안전하게 보존할 수 없어
+편집 버튼을 비활성화합니다.
+
+PCD 변환 요청은 202를 반환하기 전에 단일 작업 lease와 고유 `job_id`를 예약합니다.
+브라우저는 같은 `job_id`의 상태만 추적하며, preflight에서 읽은 source revision이 실제
+worker 시작 전 바뀌거나 서버 종료 신호가 publish 전에 도착하면 결과 파일을 게시하지
+않고 해당 작업을 실패 상태로 기록합니다.
+
 전체 PCD 보기는 기본 2,000,000점까지 허용됩니다. 사용자 지정 요청은 기본
 1,000,000점까지이며 config/go2.json 또는 config/generic.json의 saved_maps에서
-상한을 조정할 수 있습니다.
+상한을 조정할 수 있습니다. PCD→2D 변환도 기본 2,000,000점, 출력 지도는 기본
+16,000,000셀 상한을 공유합니다.
+
+매핑 시작·중지·저장과 저장 지도 생성·편집·이름 변경·삭제 요청은 브라우저의
+same-origin 검사를 통과해야 합니다.
+Robot Scope는 인증 없는 신뢰 LAN 실습 배포를 전제로 하므로 8088 포트를 인터넷에 직접
+노출하지 마세요.
 
 ## 카메라
 
@@ -433,6 +468,8 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 | GET /api/v1/saved-maps | 저장 지도 목록 |
 | GET /api/v1/saved-maps/{id}/data | 저장 지도 렌더링 데이터 |
 | PATCH/DELETE /api/v1/saved-maps/{id} | 지도 이름 변경과 삭제 |
+| POST /api/v1/saved-maps/{id}/convert-2d | 저장 PCD를 새 PGM+YAML로 비동기 변환 |
+| POST /api/v1/saved-maps/{id}/edited-copy | RLE 브러시 편집을 새 2D 지도 복사본으로 저장 |
 | POST /api/v1/mapping/start | 새 매핑 세션 시작 |
 | POST /api/v1/mapping/stop | 매핑 세션 중지 |
 | POST /api/v1/mapping/save | 현재 지도 저장 |

@@ -19,11 +19,12 @@ import threading
 import time
 import uuid
 from collections import deque
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Iterable, Mapping, Optional, Sequence
+from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence
 
 
 MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
@@ -189,6 +190,8 @@ class MappingJobManager:
         self._save_active = False
         self._save_process: Optional[subprocess.Popen[str]] = None
         self._save_pgid: Optional[int] = None
+        self._local_operation_token: Optional[str] = None
+        self._local_operation_started = False
         self._pipeline: dict[str, Any] = {
             "state": "idle",
             "job_id": None,
@@ -207,6 +210,7 @@ class MappingJobManager:
             "finished_at": None,
             "exit_code": None,
             "files": [],
+            "details": {},
             "error": None,
         }
 
@@ -281,7 +285,11 @@ class MappingJobManager:
             oldest = self._logs[0]["seq"] if self._logs else self._seq + 1
             return {
                 "pipeline": dict(self._pipeline),
-                "operation": {**self._operation, "files": list(self._operation["files"])},
+                "operation": {
+                    **self._operation,
+                    "files": list(self._operation["files"]),
+                    "details": dict(self._operation.get("details", {})),
+                },
                 "allowed_save_kinds": list(self.allowed_save_kinds),
                 "logs": logs,
                 "log_cursor": self._seq,
@@ -404,6 +412,7 @@ class MappingJobManager:
                 "finished_at": None,
                 "exit_code": None,
                 "files": [],
+                "details": {},
                 "error": None,
             }
             self._append_log_locked("save", f"saving {kind} map as {safe_name}")
@@ -448,6 +457,7 @@ class MappingJobManager:
                     finished_at=_utc_now(),
                     exit_code=exit_code,
                     files=[path.name for path in published],
+                    details={},
                     error=None,
                 )
                 self._append_log_locked(
@@ -465,6 +475,7 @@ class MappingJobManager:
                     finished_at=_utc_now(),
                     exit_code=process.poll() if process is not None else None,
                     files=[],
+                    details={},
                     error=message,
                 )
                 self._append_log_locked("save", message)
@@ -482,6 +493,194 @@ class MappingJobManager:
             except OSError:
                 pass
 
+    def run_local_operation(
+        self,
+        kind: str,
+        map_name: str,
+        worker: Callable[[], Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Reserve and run one bounded shell-free operation synchronously."""
+
+        reservation = self.reserve_local_operation(kind, map_name)
+        job_id = str(reservation["operation"]["job_id"])
+        return self.run_reserved_local_operation(job_id, worker)
+
+    def reserve_local_operation(self, kind: str, map_name: str) -> dict[str, Any]:
+        """Atomically reserve the shared job lease before an HTTP 202 response.
+
+        The returned snapshot already contains the stable job ID.  A caller
+        must pass that exact ID to :meth:`run_reserved_local_operation`; wrong,
+        concurrent, or replayed IDs cannot execute or mutate the reservation.
+        """
+
+        safe_name = self.validate_map_name(map_name)
+        if not isinstance(kind, str) or not KIND_RE.fullmatch(kind):
+            raise MappingJobError("local map operation kind is invalid")
+
+        with self._lock:
+            if self._closing:
+                raise MappingJobError("mapping manager is shutting down")
+            if self._save_active:
+                raise JobBusyError("another map operation is already in progress")
+            if self._pipeline["state"] == "stopping":
+                raise JobBusyError("mapping pipeline is stopping")
+            token = uuid.uuid4().hex
+            self._save_active = True
+            self._local_operation_token = token
+            self._local_operation_started = False
+            self._operation = {
+                "state": "saving",
+                "job_id": token,
+                "kind": kind,
+                "map_name": safe_name,
+                "started_at": _utc_now(),
+                "finished_at": None,
+                "exit_code": None,
+                "files": [],
+                "details": {},
+                "error": None,
+            }
+            self._append_log_locked("save", f"running {kind} as {safe_name}")
+            return self.snapshot()
+
+    def run_reserved_local_operation(
+        self,
+        job_id: str,
+        worker: Callable[[], Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Execute the callable belonging to one exact local reservation.
+
+        The callable owns its filesystem transaction.  Only JSON-safe details
+        and portable output filenames are copied into the public operation
+        snapshot; paths and caller-supplied commands are never accepted.
+        """
+
+        with self._lock:
+            if (
+                not isinstance(job_id, str)
+                or not re.fullmatch(r"[0-9a-f]{32}", job_id)
+                or self._local_operation_token != job_id
+                or not self._save_active
+                or self._operation.get("job_id") != job_id
+                or self._operation.get("state") != "saving"
+            ):
+                raise MappingJobError("local map operation reservation is invalid or expired")
+            if self._local_operation_started:
+                raise JobBusyError("local map operation is already running")
+            self._local_operation_started = True
+
+        try:
+            if not callable(worker):
+                raise MappingJobError("local map operation worker is invalid")
+            result = worker()
+            if not isinstance(result, Mapping):
+                raise SaveResultError("local map operation returned an invalid result")
+            raw_files = result.get("files", [])
+            raw_details = result.get("details", {})
+            if not isinstance(raw_files, (list, tuple)) or not all(
+                isinstance(value, str)
+                and value
+                and len(value) <= 128
+                and not value.startswith(".")
+                and Path(value).name == value
+                for value in raw_files
+            ):
+                raise SaveResultError("local map operation returned unsafe filenames")
+            if not isinstance(raw_details, Mapping):
+                raise SaveResultError("local map operation returned invalid details")
+            try:
+                serialized = json.dumps(
+                    dict(raw_details),
+                    allow_nan=False,
+                    separators=(",", ":"),
+                )
+            except (TypeError, ValueError) as exc:
+                raise SaveResultError("local map operation details are not JSON-safe") from exc
+            if len(serialized.encode("utf-8")) > 64 * 1024:
+                raise SaveResultError("local map operation details exceed the configured limit")
+            details = json.loads(serialized)
+            files = list(raw_files)
+            with self._lock:
+                self._operation.update(
+                    state="succeeded",
+                    finished_at=_utc_now(),
+                    exit_code=0,
+                    files=files,
+                    details=details,
+                    error=None,
+                )
+                self._append_log_locked("save", f"created {', '.join(files)}")
+            return self.snapshot()
+        except Exception as exc:
+            message = str(exc).strip()[:240] or "local map operation failed"
+            with self._lock:
+                self._operation.update(
+                    state="failed",
+                    finished_at=_utc_now(),
+                    exit_code=None,
+                    files=[],
+                    details={},
+                    error=message,
+                )
+                self._append_log_locked("save", message)
+            raise
+        finally:
+            with self._lock:
+                if self._local_operation_token == job_id:
+                    self._save_active = False
+                    self._local_operation_token = None
+                    self._local_operation_started = False
+
+    def fail_reserved_local_operation(self, job_id: str, message: str) -> dict[str, Any]:
+        """Fail and release a reservation whose worker could not be scheduled."""
+
+        clean = str(message).strip()[:240] or "local map operation could not be scheduled"
+        with self._lock:
+            if (
+                self._local_operation_token != job_id
+                or not self._save_active
+                or self._local_operation_started
+                or self._operation.get("job_id") != job_id
+                or self._operation.get("state") != "saving"
+            ):
+                raise MappingJobError("local map operation reservation is invalid or expired")
+            self._operation.update(
+                state="failed",
+                finished_at=_utc_now(),
+                exit_code=None,
+                files=[],
+                details={},
+                error=clean,
+            )
+            self._append_log_locked("save", clean)
+            self._save_active = False
+            self._local_operation_token = None
+            self._local_operation_started = False
+            return self.snapshot()
+
+    def local_operation_cancelled(self, job_id: str) -> bool:
+        """Return true when a reserved worker must not publish new artifacts."""
+
+        with self._lock:
+            return self._local_operation_cancelled_locked(job_id)
+
+    @contextmanager
+    def local_publication_guard(self, job_id: str) -> Iterator[bool]:
+        """Serialize final artifact publication against manager shutdown."""
+
+        with self._lock:
+            yield not self._local_operation_cancelled_locked(job_id)
+
+    def _local_operation_cancelled_locked(self, job_id: str) -> bool:
+        return bool(
+            self._closing
+            or self._local_operation_token != job_id
+            or not self._save_active
+            or not self._local_operation_started
+            or self._operation.get("job_id") != job_id
+            or self._operation.get("state") != "saving"
+        )
+
     @staticmethod
     def validate_map_name(name: str) -> str:
         if not isinstance(name, str) or not MAP_NAME_RE.fullmatch(name):
@@ -495,6 +694,18 @@ class MappingJobManager:
 
         with self._lock:
             self._closing = True
+            if self._local_operation_token and not self._local_operation_started:
+                self._operation.update(
+                    state="failed",
+                    finished_at=_utc_now(),
+                    exit_code=None,
+                    files=[],
+                    details={},
+                    error="local map operation cancelled during shutdown",
+                )
+                self._append_log_locked("save", self._operation["error"])
+                self._save_active = False
+                self._local_operation_token = None
         deadline = time.monotonic() + self.stop_grace_seconds * 2 + 1.0
         while time.monotonic() < deadline:
             with self._lock:

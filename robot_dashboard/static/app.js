@@ -90,6 +90,32 @@ const ui = {
   savedMapRenameButton: $('#savedMapRenameButton'),
   savedMapDeleteButton: $('#savedMapDeleteButton'),
   savedMapManageNote: $('#savedMapManageNote'),
+  mapConvertState: $('#mapConvertState'),
+  mapConvertSource: $('#mapConvertSource'),
+  mapConvertName: $('#mapConvertName'),
+  mapConvertZMin: $('#mapConvertZMin'),
+  mapConvertZMax: $('#mapConvertZMax'),
+  mapConvertResolution: $('#mapConvertResolution'),
+  mapConvertRadius: $('#mapConvertRadius'),
+  mapConvertNeighbors: $('#mapConvertNeighbors'),
+  mapConvertBackground: $('#mapConvertBackground'),
+  mapConvertStart: $('#mapConvertStart'),
+  mapConvertProgress: $('#mapConvertProgress'),
+  mapConvertProgressLabel: $('#mapConvertProgressLabel'),
+  mapConvertMessage: $('#mapConvertMessage'),
+  mapEditorState: $('#mapEditorState'),
+  mapEditorCanvas: $('#mapEditorCanvas'),
+  mapEditorEmpty: $('#mapEditorEmpty'),
+  mapEditorBrushSize: $('#mapEditorBrushSize'),
+  mapEditorBrushOutput: $('#mapEditorBrushOutput'),
+  mapEditorUndo: $('#mapEditorUndo'),
+  mapEditorRedo: $('#mapEditorRedo'),
+  mapEditorReset: $('#mapEditorReset'),
+  mapEditorSource: $('#mapEditorSource'),
+  mapEditorStats: $('#mapEditorStats'),
+  mapEditorSaveName: $('#mapEditorSaveName'),
+  mapEditorSave: $('#mapEditorSave'),
+  mapEditorMessage: $('#mapEditorMessage'),
   liveCloudTopic: $('#liveCloudTopic'),
   liveCloudStatus: $('#liveCloudStatus'),
   liveOdomTopic: $('#liveOdomTopic'),
@@ -202,6 +228,21 @@ let selectedSavedMapId = '';
 let selectedSavedMapMeta = null;
 const savedMapDataCache = new Map();
 const savedMapLoadPromises = new Map();
+let savedMapSelectionGeneration = 0;
+const mapEditorEngine = window.RobotMapEditor;
+const MAP_CONVERSION_TRACKING_TIMEOUT_MS = 15 * 60 * 1000;
+let mapConversionPending = null;
+let mapConversionCompleting = false;
+let mapConversionNameDirty = false;
+let mapConversionSourceFingerprint = '';
+let mapConversionFeedback = null;
+let mapEditorSession = null;
+let mapEditorTool = 'brush';
+let mapEditorCellValue = 100;
+let mapEditorBusy = false;
+let mapEditorRenderFrame = 0;
+let mapEditorFeedback = null;
+let mapEditorUnavailableReason = '편집할 저장 2D 지도를 선택하세요.';
 let activePage = 'overview';
 let activeMapView = null;
 let mapViewPreference = 'cloud';
@@ -235,6 +276,7 @@ let mappingControlSnapshot = null;
 let mappingLogCursor = 0;
 let mappingLogLines = [];
 let handledMappingOperation = '';
+let mappingControlRequestGeneration = 0;
 const controlInput = window.RobotControlInput;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
@@ -562,7 +604,15 @@ function pageFromHash() {
 
 function activatePage(page, updateHash = false) {
   const previousPage = activePage;
-  activePage = Object.hasOwn(PAGE_META, page) ? page : 'overview';
+  const requestedPage = Object.hasOwn(PAGE_META, page) ? page : 'overview';
+  if (previousPage === 'maps' && requestedPage !== 'maps' && editorHasUnsavedChanges()) {
+    if (!confirmDiscardMapEditor('저장하지 않은 2D 지도 편집을 버리고 화면을 이동할까요?')) {
+      history.replaceState(null, '', '#maps');
+      return;
+    }
+    detachMapEditor('편집할 저장 2D 지도를 선택하세요.');
+  }
+  activePage = requestedPage;
   document.querySelectorAll('[data-page]').forEach((element) => {
     const active = element.dataset.page === activePage;
     element.hidden = !active;
@@ -589,6 +639,7 @@ function activatePage(page, updateHash = false) {
     } else if (activePage === 'maps') {
       savedScene3d?.resize();
       redrawSavedMap();
+      drawMapEditor();
     }
   });
 }
@@ -706,9 +757,10 @@ function normalizePointLimit(value) {
   return number;
 }
 
-function pointBudgetCacheKey(mapId, limit = savedPointLimit, kind = 'pointcloud3d') {
-  if (kind === 'occupancy2d') return `${mapId}:grid`;
-  return `${mapId}:${limit == null ? 'all' : limit}`;
+function pointBudgetCacheKey(mapId, limit = savedPointLimit, kind = 'pointcloud3d', revision = '') {
+  const version = revision || 'legacy';
+  if (kind === 'occupancy2d') return `${mapId}:${version}:grid`;
+  return `${mapId}:${version}:${limit == null ? 'all' : limit}`;
 }
 
 function savedPointDataUrl(meta) {
@@ -1074,7 +1126,9 @@ function updateSavedMapOverview() {
   ui.savedMapList.innerHTML = entries.length ? entries.map((entry) => {
     const grid = entry.kind === 'occupancy2d';
     const count = grid ? `${entry.width || '—'}×${entry.height || '—'}` : `${Number(entry.point_count || 0).toLocaleString()} pts`;
-    return `<button class="saved-map-item${selectedSavedMapId === entry.id ? ' is-active' : ''}" type="button" data-saved-map-id="${escapeHtml(entry.id)}"><i>${grid ? '▦' : '◌'}</i><span><strong>${escapeHtml(entry.name || 'Saved map')}</strong><small>${escapeHtml(entry.file_name || (grid ? '2D occupancy' : '3D point cloud'))}</small></span><b>${escapeHtml(count)}</b></button>`;
+    const fileLabel = entry.file_name || (grid ? '2D occupancy' : '3D point cloud');
+    const editorLabel = grid && (!entry.manageable || entry.editable !== true) ? `${fileLabel} · 편집 불가` : fileLabel;
+    return `<button class="saved-map-item${selectedSavedMapId === entry.id ? ' is-active' : ''}" type="button" data-saved-map-id="${escapeHtml(entry.id)}"><i>${grid ? '▦' : '◌'}</i><span><strong>${escapeHtml(entry.name || 'Saved map')}</strong><small>${escapeHtml(editorLabel)}</small></span><b>${escapeHtml(count)}</b></button>`;
   }).join('') : '<div class="sensor-placeholder">저장 지도가 없습니다.</div>';
 
   const showingGrid = selectedSavedMapMeta?.kind === 'occupancy2d';
@@ -1108,25 +1162,656 @@ function updateSavedMapOverview() {
   }
   updateSavedPointBudgetAvailability();
   updateSavedMapManagement();
+  syncMapConversionPanel();
 }
 
 function updateSavedMapManagement() {
   const manageable = Boolean(selectedSavedMapMeta?.manageable && selectedSavedMapId !== '__fallback_cloud');
-  const enabled = manageable && !savedMapMutationBusy;
+  const editorDirty = Boolean(mapEditorSession?.changedCount);
+  const operationBusy = Boolean(mapConversionPending || mapConversionCompleting || mapEditorBusy);
+  const enabled = manageable && !savedMapMutationBusy && !editorDirty && !operationBusy;
   if (document.activeElement !== ui.savedMapNameInput) {
     ui.savedMapNameInput.value = selectedSavedMapMeta?.name || '';
   }
   ui.savedMapNameInput.disabled = !enabled;
   ui.savedMapRenameButton.disabled = !enabled;
   ui.savedMapDeleteButton.disabled = !enabled;
-  ui.savedMapList.setAttribute('aria-busy', savedMapMutationBusy ? 'true' : 'false');
+  const listBusy = savedMapMutationBusy || mapEditorBusy || Boolean(mapConversionPending || mapConversionCompleting);
+  ui.savedMapList.setAttribute('aria-busy', listBusy ? 'true' : 'false');
   ui.savedMapList.querySelectorAll('button').forEach((button) => {
-    button.disabled = savedMapMutationBusy;
+    button.disabled = listBusy;
   });
-  if (!selectedSavedMapMeta) ui.savedMapManageNote.textContent = '관리할 지도를 선택하세요.';
+  if (editorDirty) ui.savedMapManageNote.textContent = '편집 중에는 이름 변경·삭제가 잠깁니다. 복사본 저장 또는 RESET 후 진행하세요.';
+  else if (operationBusy) ui.savedMapManageNote.textContent = '지도 작업이 끝난 뒤 이름 변경·삭제할 수 있습니다.';
+  else if (!selectedSavedMapMeta) ui.savedMapManageNote.textContent = '관리할 지도를 선택하세요.';
   else if (!manageable) ui.savedMapManageNote.textContent = '번들 데모 또는 읽기 전용 지도는 변경할 수 없습니다.';
   else if (selectedSavedMapMeta.kind === 'occupancy2d') ui.savedMapManageNote.textContent = '이름 변경·삭제 시 YAML과 연결된 PGM을 함께 처리합니다.';
   else ui.savedMapManageNote.textContent = '선택한 저장 지도 파일의 이름을 변경하거나 삭제합니다.';
+}
+
+function validSavedMapName(value) {
+  return /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(String(value || ''));
+}
+
+function suggestedDerivedMapName(source, suffix) {
+  const base = String(source?.name || source?.file_name || 'map').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_-]+/g, '_');
+  const normalized = /^[A-Za-z0-9]/.test(base) ? base : `map_${base}`;
+  return `${normalized.slice(0, Math.max(1, 64 - suffix.length))}${suffix}`;
+}
+
+function conversionCloudMaps() {
+  return savedMapCatalog.filter((entry) => entry.kind === 'pointcloud3d' && entry.manageable && entry.format === 'pcd-binary');
+}
+
+function renderMapConversionFeedback(kind, label, message, progress = 0) {
+  setStatePill(ui.mapConvertState, kind, label);
+  ui.mapConvertMessage.textContent = message;
+  ui.mapConvertMessage.classList.toggle('is-error', kind === 'error');
+  ui.mapConvertProgress.value = Math.max(0, Math.min(1, Number(progress) || 0));
+  ui.mapConvertProgressLabel.textContent = `${Math.round(ui.mapConvertProgress.value * 100)}%`;
+}
+
+function setMapConversionFeedback(kind, label, message, progress = 0) {
+  mapConversionFeedback = { kind, label, message, progress };
+  renderMapConversionFeedback(kind, label, message, progress);
+}
+
+function syncMapConversionPanel() {
+  const clouds = conversionCloudMaps();
+  const fingerprint = clouds.map((entry) => `${entry.id}\u0000${entry.name}`).join('\u0001');
+  if (fingerprint !== mapConversionSourceFingerprint) {
+    const previous = ui.mapConvertSource.value;
+    mapConversionSourceFingerprint = fingerprint;
+    ui.mapConvertSource.innerHTML = clouds.length
+      ? clouds.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name || entry.file_name || 'Saved PCD')}</option>`).join('')
+      : '<option value="">저장된 PCD 없음</option>';
+    const selectedCloud = selectedSavedMapMeta?.kind === 'pointcloud3d' ? selectedSavedMapId : '';
+    ui.mapConvertSource.value = clouds.some((entry) => entry.id === previous)
+      ? previous
+      : clouds.some((entry) => entry.id === selectedCloud) ? selectedCloud : clouds[0]?.id || '';
+  }
+  const source = clouds.find((entry) => entry.id === ui.mapConvertSource.value);
+  if (!mapConversionNameDirty && document.activeElement !== ui.mapConvertName) {
+    ui.mapConvertName.value = source ? suggestedDerivedMapName(source, '_2d') : '';
+  }
+  const busy = Boolean(mapConversionPending || mapConversionCompleting);
+  const editorDirty = Boolean(mapEditorSession?.changedCount);
+  const controls = [ui.mapConvertSource, ui.mapConvertName, ui.mapConvertZMin, ui.mapConvertZMax, ui.mapConvertResolution, ui.mapConvertRadius, ui.mapConvertNeighbors, ui.mapConvertBackground];
+  controls.forEach((control) => { control.disabled = busy; });
+  ui.mapConvertStart.disabled = busy || !source || editorDirty || !validSavedMapName(ui.mapConvertName.value.trim());
+  if (busy) return;
+  if (mapConversionFeedback) {
+    renderMapConversionFeedback(mapConversionFeedback.kind, mapConversionFeedback.label, mapConversionFeedback.message, mapConversionFeedback.progress);
+  } else if (!source) {
+    renderMapConversionFeedback('waiting', 'NO PCD', '변환할 저장 PCD가 없습니다.', 0);
+  } else if (editorDirty) {
+    renderMapConversionFeedback('waiting', 'EDIT UNSAVED', '2D 편집 내용을 복사본으로 저장하거나 RESET한 뒤 변환하세요.', 0);
+  } else if (ui.mapConvertBackground.value === 'free') {
+    renderMapConversionFeedback(
+      'waiting',
+      'FREE BOUNDS',
+      '주의: FREE는 PCD 경계 사각형의 미관측 영역까지 자유공간으로 처리합니다 (legacy/PDF 호환).',
+      0,
+    );
+  } else {
+    renderMapConversionFeedback('waiting', 'IDLE', '높이 슬라이스와 노이즈 필터를 적용해 PGM·YAML 복사본을 생성합니다.', 0);
+  }
+}
+
+function conversionNumber(input, label, minimum, maximum) {
+  const raw = String(input.value || '').trim();
+  const value = Number(raw);
+  if (!raw || !Number.isFinite(value) || value < minimum || value > maximum) {
+    throw new Error(`${label} 값은 ${minimum}~${maximum} 범위여야 합니다.`);
+  }
+  return value;
+}
+
+async function startSavedMapConversion() {
+  if (mapConversionPending || mapConversionCompleting || mapEditorSession?.changedCount) return;
+  const source = conversionCloudMaps().find((entry) => entry.id === ui.mapConvertSource.value);
+  if (!source) { showToast('변환할 저장 PCD를 선택하세요.', true); return; }
+  const name = ui.mapConvertName.value.trim();
+  if (!validSavedMapName(name)) { showToast('출력 이름은 영문·숫자로 시작하고 영문·숫자·_·-만 사용할 수 있습니다.', true); return; }
+  try {
+    const zMin = conversionNumber(ui.mapConvertZMin, 'thre_z_min', -20, 20);
+    const zMax = conversionNumber(ui.mapConvertZMax, 'thre_z_max', -20, 20);
+    const resolution = conversionNumber(ui.mapConvertResolution, 'resolution', 0.01, 1);
+    const noiseRadius = conversionNumber(ui.mapConvertRadius, 'radius', 0.01, 2);
+    const minNeighbors = conversionNumber(ui.mapConvertNeighbors, 'min neighbors', 1, 1000);
+    const background = ui.mapConvertBackground.value === 'free' ? 'free' : 'unknown';
+    if (zMin >= zMax) throw new Error('thre_z_min은 thre_z_max보다 작아야 합니다.');
+    if (!Number.isInteger(minNeighbors)) throw new Error('min neighbors는 정수여야 합니다.');
+    mapConversionFeedback = null;
+    const pending = { sourceId: source.id, name, jobId: '', trackingStartedAt: 0 };
+    mapConversionPending = pending;
+    setStatePill(ui.mapConvertState, 'waiting', 'STARTING');
+    ui.mapConvertProgress.removeAttribute('value');
+    ui.mapConvertProgressLabel.textContent = 'START';
+    ui.mapConvertMessage.classList.remove('is-error');
+    ui.mapConvertMessage.textContent = `${source.name || source.file_name} 변환 작업을 시작하고 있습니다.`;
+    syncMapConversionPanel();
+    syncMapEditorUi();
+    const response = await api(`/api/v1/saved-maps/${encodeURIComponent(source.id)}/convert-2d`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        z_min: zMin,
+        z_max: zMax,
+        resolution,
+        noise_radius: noiseRadius,
+        min_neighbors: minNeighbors,
+        background,
+      }),
+    });
+    const operation = response.operation || response;
+    const operationJobId = String(operation?.job_id || '').trim();
+    const responseJobId = String(response?.job_id || '').trim();
+    if (operationJobId && responseJobId && operationJobId !== responseJobId) {
+      throw new Error('서버 변환 작업 job_id가 서로 일치하지 않습니다.');
+    }
+    const jobId = operationJobId || responseJobId;
+    if (!/^[0-9a-f]{32}$/.test(jobId)) throw new Error('서버가 유효한 변환 작업 job_id를 반환하지 않았습니다. 백엔드 버전을 확인하세요.');
+    pending.jobId = jobId;
+    pending.trackingStartedAt = Date.now();
+    mappingControlRequestGeneration += 1;
+    renderMapConversionOperation({ ...operation, job_id: jobId });
+    await refreshMappingControl();
+  } catch (error) {
+    mapConversionPending = null;
+    setMapConversionFeedback('error', 'START FAILED', `2D 변환 시작 실패: ${error.message}`, 0);
+    syncMapEditorUi();
+  }
+}
+
+function mapConversionMatches(operation) {
+  if (!mapConversionPending?.jobId || !operation?.job_id) return false;
+  return String(operation.job_id) === mapConversionPending.jobId;
+}
+
+function normalizedOperationProgress(operation) {
+  const raw = Number(operation.progress ?? operation.progress_ratio ?? operation.progress_percent);
+  if (!Number.isFinite(raw)) return null;
+  return Math.max(0, Math.min(1, raw > 1 ? raw / 100 : raw));
+}
+
+function mapConversionTrackingExpired() {
+  const startedAt = Number(mapConversionPending?.trackingStartedAt);
+  return Boolean(
+    mapConversionPending?.jobId &&
+    Number.isFinite(startedAt) &&
+    startedAt > 0 &&
+    Date.now() - startedAt >= MAP_CONVERSION_TRACKING_TIMEOUT_MS
+  );
+}
+
+function failMapConversionTracking(message) {
+  if (!mapConversionPending) return;
+  mapConversionPending = null;
+  setMapConversionFeedback('error', 'TRACKING LOST', message, 0);
+  syncMapEditorUi();
+}
+
+function renderMapConversionOperation(operation) {
+  if (!mapConversionPending?.jobId || mapConversionCompleting) return;
+  if (!mapConversionMatches(operation)) {
+    failMapConversionTracking('서버 작업 snapshot이 기대한 job_id와 다르거나 idle로 변경됐습니다. 변환 추적을 중단했으므로 매핑 로그에서 실제 결과를 확인하세요.');
+    return;
+  }
+  const state = String(operation.state || '').toLowerCase();
+  if (['succeeded', 'failed'].includes(state)) {
+    if (operation.job_id) handledMappingOperation = `${operation.job_id}:${state}`;
+    if (state === 'succeeded') completeSavedMapConversion(operation);
+    else {
+      mapConversionPending = null;
+      setMapConversionFeedback('error', 'CONVERT FAILED', operation.error || 'PCD 2D 변환에 실패했습니다.', 0);
+      syncMapEditorUi();
+    }
+    return;
+  }
+  if (mapConversionTrackingExpired()) {
+    failMapConversionTracking('15분 동안 변환 완료를 확인하지 못해 추적을 중단했습니다. 서버 작업은 계속될 수 있으므로 매핑 로그와 Saved Maps를 확인하세요.');
+    return;
+  }
+  const progress = normalizedOperationProgress(operation);
+  setStatePill(ui.mapConvertState, 'waiting', state ? state.toUpperCase() : 'WORKING');
+  if (progress == null) {
+    ui.mapConvertProgress.removeAttribute('value');
+    ui.mapConvertProgressLabel.textContent = 'WORKING';
+  } else {
+    ui.mapConvertProgress.value = progress;
+    ui.mapConvertProgressLabel.textContent = `${Math.round(progress * 100)}%`;
+  }
+  ui.mapConvertMessage.classList.remove('is-error');
+  ui.mapConvertMessage.textContent = operation.message || `${mapConversionPending.name} PGM·YAML을 생성하고 검증하고 있습니다.`;
+}
+
+async function completeSavedMapConversion(operation) {
+  if (mapConversionCompleting || !mapConversionPending) return;
+  mapConversionCompleting = true;
+  setStatePill(ui.mapConvertState, 'waiting', 'INDEXING');
+  ui.mapConvertProgress.value = 1;
+  ui.mapConvertProgressLabel.textContent = '100%';
+  ui.mapConvertMessage.textContent = '변환 결과를 Saved Maps 목록에 반영하고 있습니다.';
+  try {
+    await refreshSavedMaps();
+    const resultId = String(
+      operation.details?.result_map_id || operation.result_map_id || operation.map_id || '',
+    );
+    const result = savedMapCatalog.find((entry) => entry.id === resultId);
+    if (!result) throw new Error('완료된 2D 지도를 목록에서 찾지 못했습니다. 새로고침 후 확인하세요.');
+    mapConversionPending = null;
+    const loaded = await selectSavedMap(result.id, false, true);
+    if (!loaded) throw new Error('변환 지도는 생성됐지만 대시보드에서 선택하지 못했습니다.');
+    mapConversionNameDirty = false;
+    setMapConversionFeedback('ok', 'CONVERTED', `${result.name} 2D 지도를 생성하고 선택했습니다.`, 1);
+    showToast(`${result.name} 2D 지도를 생성했습니다.`);
+  } catch (error) {
+    mapConversionPending = null;
+    setMapConversionFeedback('error', 'RESULT FAILED', error.message, 0);
+  } finally {
+    mapConversionCompleting = false;
+    syncMapEditorUi();
+  }
+}
+
+function mapEditorRevision(snapshot) {
+  return typeof snapshot?.revision === 'string' && /^[0-9a-f]{64}$/.test(snapshot.revision)
+    ? snapshot.revision
+    : null;
+}
+
+function mapEditorColor(value) {
+  if (value === 100) return [7, 10, 9];
+  if (value === 0) return [242, 246, 244];
+  return [126, 137, 133];
+}
+
+function buildMapEditorSourceCanvas(session) {
+  const canvas = document.createElement('canvas');
+  canvas.width = session.width;
+  canvas.height = session.height;
+  const context = canvas.getContext('2d');
+  const image = context.createImageData(session.width, session.height);
+  for (let index = 0; index < session.cells.length; index += 1) {
+    const x = index % session.width;
+    const y = Math.floor(index / session.width);
+    const output = ((session.height - 1 - y) * session.width + x) * 4;
+    const color = mapEditorColor(session.cells[index]);
+    image.data[output] = color[0];
+    image.data[output + 1] = color[1];
+    image.data[output + 2] = color[2];
+    image.data[output + 3] = 255;
+  }
+  context.putImageData(image, 0, 0);
+  session.sourceCanvas = canvas;
+  session.sourceContext = context;
+}
+
+function updateMapEditorSourcePixels(changes) {
+  const session = mapEditorSession;
+  if (!session?.sourceContext) return;
+  for (const change of changes) {
+    const x = change.index % session.width;
+    const y = Math.floor(change.index / session.width);
+    const color = mapEditorColor(session.cells[change.index]);
+    session.sourceContext.fillStyle = `rgb(${color.join(',')})`;
+    session.sourceContext.fillRect(x, session.height - 1 - y, 1, 1);
+  }
+}
+
+function drawMapEditor() {
+  mapEditorRenderFrame = 0;
+  const canvas = ui.mapEditorCanvas;
+  const { width, height } = resizeCanvas(canvas);
+  const context = canvas.getContext('2d');
+  context.fillStyle = '#06100e';
+  context.fillRect(0, 0, width, height);
+  const session = mapEditorSession;
+  if (!session?.sourceCanvas) return;
+  const scale = Math.min(width / session.width, height / session.height) * .94;
+  const drawWidth = session.width * scale;
+  const drawHeight = session.height * scale;
+  const left = (width - drawWidth) / 2;
+  const top = (height - drawHeight) / 2;
+  context.imageSmoothingEnabled = false;
+  context.drawImage(session.sourceCanvas, left, top, drawWidth, drawHeight);
+  context.strokeStyle = 'rgba(93,222,216,.48)';
+  context.lineWidth = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+  context.strokeRect(left, top, drawWidth, drawHeight);
+  session.layout = { left, top, drawWidth, drawHeight, scale, canvasWidth: width, canvasHeight: height };
+}
+
+function scheduleMapEditorDraw() {
+  if (mapEditorRenderFrame) return;
+  mapEditorRenderFrame = requestAnimationFrame(drawMapEditor);
+}
+
+function setMapEditorFeedback(message, error = false) {
+  mapEditorFeedback = { message, error };
+  ui.mapEditorMessage.textContent = message;
+  ui.mapEditorMessage.classList.toggle('is-error', error);
+}
+
+function syncMapEditorUi() {
+  const session = mapEditorSession;
+  const available = Boolean(session);
+  const locked = mapEditorBusy || Boolean(mapConversionPending || mapConversionCompleting);
+  const interactive = available && !locked;
+  ui.mapEditorEmpty.hidden = available;
+  if (!available) ui.mapEditorEmpty.textContent = mapEditorUnavailableReason;
+  ui.mapEditorCanvas.classList.toggle('is-erasing', mapEditorTool === 'eraser');
+  document.querySelectorAll('[data-map-editor-tool]').forEach((button) => {
+    const active = button.dataset.mapEditorTool === mapEditorTool;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.disabled = !interactive;
+  });
+  document.querySelectorAll('[data-map-editor-value]').forEach((button) => {
+    const active = Number(button.dataset.mapEditorValue) === mapEditorCellValue;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.disabled = !interactive || mapEditorTool === 'eraser';
+  });
+  ui.mapEditorBrushSize.disabled = !interactive;
+  ui.mapEditorUndo.disabled = !interactive || !session?.undo.length;
+  ui.mapEditorRedo.disabled = !interactive || !session?.redo.length;
+  ui.mapEditorReset.disabled = !interactive || !session?.changedCount;
+  ui.mapEditorSaveName.disabled = !interactive;
+  ui.mapEditorSave.disabled = !interactive || !session?.changedCount || session?.sourceStale || !validSavedMapName(ui.mapEditorSaveName.value.trim());
+  ui.mapEditorSource.textContent = available ? `SOURCE ${session.sourceName}` : 'SOURCE —';
+  ui.mapEditorStats.textContent = available
+    ? `변경 ${session.changedCount.toLocaleString()} cells · ${session.width}×${session.height}`
+    : '변경 0 cells';
+  ui.mapEditorBrushOutput.textContent = `${ui.mapEditorBrushSize.value} cells`;
+  if (mapEditorBusy) setStatePill(ui.mapEditorState, 'waiting', 'SAVING COPY');
+  else if (session?.sourceStale) setStatePill(ui.mapEditorState, 'error', 'SOURCE CHANGED');
+  else if (available && session.changedCount) setStatePill(ui.mapEditorState, 'waiting', 'EDITING');
+  else if (available) setStatePill(ui.mapEditorState, 'ok', 'READY');
+  else setStatePill(ui.mapEditorState, 'waiting', 'NO MAP');
+  if (!mapEditorFeedback) {
+    ui.mapEditorMessage.classList.remove('is-error');
+    ui.mapEditorMessage.textContent = available
+      ? '검정=장애물, 흰색=빈 공간, 회색=미확인입니다. ERASER는 원본 셀 값을 복원합니다.'
+      : mapEditorUnavailableReason;
+  }
+  updateSavedMapManagement();
+  syncMapConversionPanel();
+}
+
+function detachMapEditor(reason = '편집할 저장 2D 지도를 선택하세요.') {
+  mapEditorSession = null;
+  mapEditorFeedback = null;
+  mapEditorUnavailableReason = reason;
+  if (mapEditorRenderFrame) cancelAnimationFrame(mapEditorRenderFrame);
+  mapEditorRenderFrame = 0;
+  drawMapEditor();
+  syncMapEditorUi();
+}
+
+function initializeMapEditor(meta, snapshot) {
+  if (meta?.manageable !== true) {
+    detachMapEditor('이 점유 지도는 읽기 전용이므로 웹 편집 복사본을 생성할 수 없습니다.');
+    return false;
+  }
+  if (meta?.editable !== true) {
+    detachMapEditor(
+      meta?.editable === false
+        ? '이 점유 지도는 웹 편집을 지원하지 않습니다. P5 8-bit trinary YAML·PGM 지도만 안전하게 편집할 수 있습니다.'
+        : '서버가 이 지도의 편집 가능 여부를 제공하지 않습니다. 안전을 위해 편집을 비활성화했습니다.',
+    );
+    return false;
+  }
+  if (!mapEditorEngine) {
+    detachMapEditor('2D 편집 모듈을 불러오지 못했습니다. 페이지를 새로고침하세요.');
+    return false;
+  }
+  const revision = mapEditorRevision(snapshot);
+  if (!revision) {
+    detachMapEditor('이 지도 응답에는 안전 편집용 revision 문자열이 없습니다. 서버 업데이트 후 다시 불러오세요.');
+    return false;
+  }
+  if (mapEditorSession?.sourceId === meta.id) {
+    if (mapEditorSession.revision === revision) return true;
+    if (mapEditorSession.changedCount) {
+      mapEditorSession.sourceStale = true;
+      setMapEditorFeedback('편집 중 원본 revision이 변경되었습니다. 현재 편집은 유지되지만 저장하지 말고 새로 선택해 확인하세요.', true);
+      syncMapEditorUi();
+      return false;
+    }
+  }
+  try {
+    const cells = mapEditorEngine.decodeGrid(snapshot.data_b64, snapshot.width, snapshot.height);
+    const session = {
+      sourceId: meta.id,
+      sourceName: meta.name || snapshot.name || 'Saved 2D map',
+      revision,
+      sourceStale: false,
+      width: Number(snapshot.width),
+      height: Number(snapshot.height),
+      original: cells.slice(),
+      cells,
+      changedCount: 0,
+      undo: [],
+      redo: [],
+      stroke: null,
+      layout: null,
+      sourceCanvas: null,
+      sourceContext: null,
+    };
+    buildMapEditorSourceCanvas(session);
+    mapEditorSession = session;
+    mapEditorFeedback = null;
+    mapEditorUnavailableReason = '';
+    ui.mapEditorSaveName.value = suggestedDerivedMapName(meta, '_edited');
+    drawMapEditor();
+    syncMapEditorUi();
+    return true;
+  } catch (error) {
+    detachMapEditor(`2D 지도 편집 준비 실패: ${error.message}`);
+    return false;
+  }
+}
+
+function mapEditorCellFromPointer(event) {
+  const session = mapEditorSession;
+  const layout = session?.layout;
+  if (!session || !layout) return null;
+  const bounds = ui.mapEditorCanvas.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return null;
+  const x = (event.clientX - bounds.left) * (layout.canvasWidth / bounds.width);
+  const y = (event.clientY - bounds.top) * (layout.canvasHeight / bounds.height);
+  if (x < layout.left || y < layout.top || x >= layout.left + layout.drawWidth || y >= layout.top + layout.drawHeight) return null;
+  return {
+    x: Math.max(0, Math.min(session.width - 1, Math.floor((x - layout.left) / layout.scale))),
+    y: Math.max(0, Math.min(session.height - 1, session.height - 1 - Math.floor((y - layout.top) / layout.scale))),
+  };
+}
+
+function recordMapEditorChanges(changes) {
+  const session = mapEditorSession;
+  if (!session || !changes.length) return;
+  for (const change of changes) {
+    if (session.stroke && !session.stroke.before.has(change.index)) session.stroke.before.set(change.index, change.before);
+    const original = session.original[change.index];
+    const wasChanged = change.before !== original;
+    const isChanged = change.after !== original;
+    if (wasChanged !== isChanged) session.changedCount += isChanged ? 1 : -1;
+  }
+  updateMapEditorSourcePixels(changes);
+  scheduleMapEditorDraw();
+  mapEditorFeedback = null;
+  syncMapEditorUi();
+}
+
+function paintMapEditorCell(cell) {
+  const session = mapEditorSession;
+  if (!session || !cell) return;
+  const size = Number(ui.mapEditorBrushSize.value) || 1;
+  const value = mapEditorTool === 'eraser'
+    ? (index) => session.original[index]
+    : mapEditorCellValue;
+  const changes = mapEditorEngine.paintCircle(session.cells, session.width, session.height, cell.x, cell.y, size, value);
+  recordMapEditorChanges(changes);
+}
+
+function beginMapEditorStroke(event) {
+  if (event.button !== 0 || !mapEditorSession || mapEditorBusy || mapConversionPending || mapConversionCompleting) return;
+  const cell = mapEditorCellFromPointer(event);
+  if (!cell) return;
+  event.preventDefault();
+  try { ui.mapEditorCanvas.setPointerCapture(event.pointerId); } catch (_) {}
+  mapEditorSession.stroke = { pointerId: event.pointerId, before: new Map(), last: cell };
+  paintMapEditorCell(cell);
+}
+
+function moveMapEditorStroke(event) {
+  const stroke = mapEditorSession?.stroke;
+  if (!stroke || stroke.pointerId !== event.pointerId) return;
+  const cell = mapEditorCellFromPointer(event);
+  if (!cell) return;
+  event.preventDefault();
+  const spacing = Math.max(1, Math.floor((Number(ui.mapEditorBrushSize.value) || 1) / 3));
+  for (const point of mapEditorEngine.interpolateCells(stroke.last, cell, spacing)) paintMapEditorCell(point);
+  stroke.last = cell;
+}
+
+function finishMapEditorStroke(event) {
+  const session = mapEditorSession;
+  const stroke = session?.stroke;
+  if (!stroke || stroke.pointerId !== event.pointerId) return;
+  session.stroke = null;
+  const patch = [];
+  for (const [index, before] of stroke.before) {
+    const after = session.cells[index];
+    if (before !== after) patch.push({ index, before, after });
+  }
+  if (patch.length) {
+    session.undo.push(patch);
+    if (session.undo.length > 30) session.undo.shift();
+    session.redo = [];
+  }
+  try { ui.mapEditorCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
+  syncMapEditorUi();
+}
+
+function applyMapEditorPatch(patch, direction) {
+  const session = mapEditorSession;
+  if (!session) return;
+  const changes = [];
+  for (const item of patch) {
+    const before = session.cells[item.index];
+    const after = direction === 'undo' ? item.before : item.after;
+    if (before === after) continue;
+    const original = session.original[item.index];
+    const wasChanged = before !== original;
+    const isChanged = after !== original;
+    if (wasChanged !== isChanged) session.changedCount += isChanged ? 1 : -1;
+    session.cells[item.index] = after;
+    changes.push({ index: item.index, before, after });
+  }
+  updateMapEditorSourcePixels(changes);
+  scheduleMapEditorDraw();
+  mapEditorFeedback = null;
+}
+
+function undoMapEditor() {
+  const session = mapEditorSession;
+  if (!session || mapEditorBusy || !session.undo.length) return;
+  const patch = session.undo.pop();
+  applyMapEditorPatch(patch, 'undo');
+  session.redo.push(patch);
+  syncMapEditorUi();
+}
+
+function redoMapEditor() {
+  const session = mapEditorSession;
+  if (!session || mapEditorBusy || !session.redo.length) return;
+  const patch = session.redo.pop();
+  applyMapEditorPatch(patch, 'redo');
+  session.undo.push(patch);
+  syncMapEditorUi();
+}
+
+async function resetMapEditor() {
+  const session = mapEditorSession;
+  if (!session || mapEditorBusy || !session.changedCount) return;
+  const reloadChangedSource = session.sourceStale;
+  const sourceId = session.sourceId;
+  const patch = [];
+  for (let index = 0; index < session.cells.length; index += 1) {
+    if (session.cells[index] !== session.original[index]) {
+      patch.push({ index, before: session.cells[index], after: session.original[index] });
+    }
+  }
+  applyMapEditorPatch(patch, 'redo');
+  session.undo.push(patch);
+  if (session.undo.length > 30) session.undo.shift();
+  session.redo = [];
+  syncMapEditorUi();
+  if (reloadChangedSource) {
+    setMapEditorFeedback('편집을 취소했습니다. 변경된 원본 revision을 다시 불러오고 있습니다.');
+    clearSavedMapCache(sourceId);
+    const loaded = await selectSavedMap(sourceId, false);
+    if (!loaded) setMapEditorFeedback('변경된 원본 지도를 다시 불러오지 못했습니다. 목록을 새로고침한 뒤 다시 선택하세요.', true);
+  }
+}
+
+function editorHasUnsavedChanges() {
+  return Boolean(mapEditorSession?.changedCount);
+}
+
+function confirmDiscardMapEditor(message = '저장하지 않은 2D 지도 편집을 버릴까요?') {
+  return !editorHasUnsavedChanges() || window.confirm(message);
+}
+
+async function saveMapEditorCopy() {
+  const session = mapEditorSession;
+  if (!session || mapEditorBusy || !session.changedCount) return;
+  if (session.sourceStale) {
+    showToast('원본 지도가 변경됐습니다. RESET해 새 revision을 불러온 뒤 다시 편집하세요.', true);
+    return;
+  }
+  const name = ui.mapEditorSaveName.value.trim();
+  if (!validSavedMapName(name)) { showToast('복사본 이름은 영문·숫자로 시작하고 영문·숫자·_·-만 사용할 수 있습니다.', true); return; }
+  const runs = mapEditorEngine.diffRuns(session.original, session.cells);
+  if (!runs.length) { showToast('저장할 변경 사항이 없습니다.'); return; }
+  mapEditorBusy = true;
+  setMapEditorFeedback(`${runs.length.toLocaleString()}개 변경 run을 새 복사본으로 저장하고 있습니다.`);
+  syncMapEditorUi();
+  let createdCopy = null;
+  try {
+    const response = await api(`/api/v1/saved-maps/${encodeURIComponent(session.sourceId)}/edited-copy`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        source_revision: session.revision,
+        runs,
+      }),
+    });
+    const result = response.map || response;
+    if (!result?.id) throw new Error('서버가 새 지도 ID를 반환하지 않았습니다.');
+    createdCopy = result;
+    savedMapSelectionGeneration += 1;
+    detachMapEditor('편집 복사본을 저장했습니다. 새 지도를 불러오고 있습니다.');
+    if (!savedMapCatalog.some((entry) => entry.id === result.id)) {
+      savedMapCatalog = [...savedMapCatalog, result];
+    }
+    const loaded = await selectSavedMap(result.id, false, true);
+    if (!loaded) throw new Error('복사본은 저장됐지만 대시보드에서 다시 불러오지 못했습니다.');
+    setMapEditorFeedback(`${result.name || name} 복사본을 저장하고 선택했습니다.`);
+    showToast(`${result.name || name} 편집 복사본을 저장했습니다.`);
+  } catch (error) {
+    setMapEditorFeedback(
+      createdCopy
+        ? `${createdCopy.name || name} 복사본은 저장됐지만 대시보드 재로드에 실패했습니다: ${error.message}`
+        : `편집 복사본 저장 실패: ${error.message}`,
+      true,
+    );
+  } finally {
+    mapEditorBusy = false;
+    syncMapEditorUi();
+  }
 }
 
 function compactValue(value) {
@@ -1465,7 +2150,7 @@ function renderMappingControl() {
     : '[Robot Scope] mapping console ready';
   ui.mappingLog.scrollTop = ui.mappingLog.scrollHeight;
 
-  if (operation.job_id && ['succeeded', 'failed'].includes(operation.state)) {
+  if (operation.kind !== 'pcd_to_2d' && operation.job_id && ['succeeded', 'failed'].includes(operation.state) && !mapConversionMatches(operation)) {
     const key = `${operation.job_id}:${operation.state}`;
     if (handledMappingOperation !== key) {
       handledMappingOperation = key;
@@ -1479,11 +2164,14 @@ function renderMappingControl() {
       }
     }
   }
+  renderMapConversionOperation(operation);
 }
 
 async function refreshMappingControl() {
+  const requestGeneration = mappingControlRequestGeneration;
   try {
     const payload = await api(`/api/v1/mapping/control?since_log_seq=${mappingLogCursor}`);
+    if (requestGeneration !== mappingControlRequestGeneration) return;
     if (payload.logs_truncated) mappingLogLines = [];
     for (const entry of payload.logs || []) {
       const time = entry.at ? new Date(entry.at).toLocaleTimeString('ko-KR', { hour12: false }) : '--:--:--';
@@ -1494,6 +2182,10 @@ async function refreshMappingControl() {
     mappingControlSnapshot = payload;
     renderMappingControl();
   } catch (error) {
+    if (requestGeneration !== mappingControlRequestGeneration) return;
+    if (mapConversionTrackingExpired()) {
+      failMapConversionTracking('15분 동안 변환 상태를 확인하지 못해 추적을 중단했습니다. 서버가 다시 연결되면 매핑 로그와 Saved Maps를 확인하세요.');
+    }
     ui.mappingStartButton.disabled = ui.mappingSaveButton.disabled = ui.mappingStopButton.disabled = true;
     setStatePill(ui.mappingControlState, 'error', 'UNAVAILABLE');
     ui.mappingOperationMessage.textContent = `매핑 제어를 사용할 수 없습니다: ${error.message}`;
@@ -1626,11 +2318,25 @@ async function refreshSavedMaps() {
     const maps = Array.isArray(payload.maps) ? payload.maps : [];
     savedMapCatalog = maps;
     const preserved = maps.find((entry) => entry.id === selectedSavedMapId);
+    if (editorHasUnsavedChanges() && mapEditorSession?.sourceId === selectedSavedMapId &&
+        (!preserved || preserved.revision !== mapEditorSession.revision)) {
+      mapEditorSession.sourceStale = true;
+      if (preserved) selectedSavedMapMeta = preserved;
+      setMapEditorFeedback(
+        preserved
+          ? '자동 새로고침에서 원본 revision 변경을 감지했습니다. 편집 내용은 유지했습니다. RESET 후 지도를 다시 선택하세요.'
+          : '편집 중인 원본이 목록에서 사라졌습니다. 현재 변경은 유지되지만 새 복사본 저장은 실패할 수 있습니다.',
+        true,
+      );
+      updateSavedMapOverview();
+      syncMapEditorUi();
+      return;
+    }
     const keepFallback = selectedSavedMapId === '__fallback_cloud' && offlineCloudSnapshot &&
       !maps.some((entry) => entry.kind === 'pointcloud3d');
     const next = keepFallback ? null : (preserved || maps[0] || null);
     if (preserved) selectedSavedMapMeta = preserved;
-    if (next && (next.id !== selectedSavedMapId || !savedMapDataCache.has(pointBudgetCacheKey(next.id, savedPointLimit, next.kind)))) {
+    if (next && (next.id !== selectedSavedMapId || !savedMapDataCache.has(pointBudgetCacheKey(next.id, savedPointLimit, next.kind, next.revision)))) {
       await selectSavedMap(next.id, false);
       return;
     }
@@ -1651,7 +2357,12 @@ async function refreshSavedMaps() {
 }
 
 async function selectSavedMap(mapId, notify = true, rethrow = false) {
+  const switchingEditorSource = Boolean(mapEditorSession && mapEditorSession.sourceId !== mapId);
+  if (switchingEditorSource && editorHasUnsavedChanges() && !mapEditorBusy &&
+      !confirmDiscardMapEditor('저장하지 않은 2D 편집을 버리고 다른 지도를 선택할까요?')) return false;
   if (mapId === '__fallback_cloud') {
+    savedMapSelectionGeneration += 1;
+    if (switchingEditorSource) detachMapEditor('번들 3D 데모 지도는 2D 편집할 수 없습니다.');
     selectedSavedMapId = mapId;
     selectedSavedMapMeta = savedMapCatalog.find((entry) => entry.id === mapId) || {
       id: mapId, name: offlineCloudSnapshot?.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
@@ -1665,6 +2376,14 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
   }
   const meta = savedMapCatalog.find((entry) => entry.id === mapId);
   if (!meta) return;
+  const loadGeneration = ++savedMapSelectionGeneration;
+  const expectedRevision = String(meta.revision || '');
+  const loadIsCurrent = () => (
+    loadGeneration === savedMapSelectionGeneration &&
+    selectedSavedMapId === meta.id &&
+    String(selectedSavedMapMeta?.revision || '') === expectedRevision
+  );
+  if (switchingEditorSource) detachMapEditor(meta.kind === 'occupancy2d' ? '2D 지도 데이터를 불러오고 있습니다.' : '편집하려면 저장된 2D 지도를 선택하세요.');
   selectedSavedMapId = meta.id;
   selectedSavedMapMeta = meta;
   savedMapViewPreference = meta.kind === 'occupancy2d' ? 'occupancy' : 'cloud';
@@ -1673,7 +2392,7 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
   else offlineCloudSnapshot = null;
   updateSavedMapOverview();
   try {
-    const cacheKey = pointBudgetCacheKey(meta.id, savedPointLimit, meta.kind);
+    const cacheKey = pointBudgetCacheKey(meta.id, savedPointLimit, meta.kind, meta.revision);
     let payload = savedMapDataCache.get(cacheKey);
     if (!payload) {
       let pending = savedMapLoadPromises.get(cacheKey);
@@ -1686,19 +2405,33 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
       } finally {
         if (savedMapLoadPromises.get(cacheKey) === pending) savedMapLoadPromises.delete(cacheKey);
       }
+      if (!loadIsCurrent()) return false;
+      if (expectedRevision && String(payload?.revision || '') !== expectedRevision) {
+        throw new Error('지도를 불러오는 동안 revision이 변경됐습니다. 목록을 새로고침한 뒤 다시 선택하세요.');
+      }
       savedMapDataCache.set(cacheKey, payload);
       while (savedMapDataCache.size > 2) {
         savedMapDataCache.delete(savedMapDataCache.keys().next().value);
       }
     }
-    if (selectedSavedMapId !== meta.id) return;
-    if (meta.kind === 'occupancy2d') savedOccupancySnapshot = payload;
-    else offlineCloudSnapshot = { ...payload, offline_snapshot: true };
+    if (!loadIsCurrent()) return false;
+    if (expectedRevision && String(payload?.revision || '') !== expectedRevision) {
+      savedMapDataCache.delete(cacheKey);
+      throw new Error('캐시된 지도 revision이 현재 목록과 다릅니다. 지도를 다시 선택하세요.');
+    }
+    if (meta.kind === 'occupancy2d') {
+      savedOccupancySnapshot = payload;
+      initializeMapEditor(meta, payload);
+    } else {
+      offlineCloudSnapshot = { ...payload, offline_snapshot: true };
+      if (!mapEditorSession || mapEditorSession.sourceId !== meta.id) detachMapEditor('편집하려면 저장된 2D 지도를 선택하세요.');
+    }
     updateSavedMapOverview();
     if (activePage === 'maps') redrawSavedMap();
     if (notify) showToast(`${meta.name || '저장 지도'}를 불러왔습니다.`);
     return true;
   } catch (error) {
+    if (!loadIsCurrent()) return false;
     setStatePill(ui.savedMappingState, 'error', 'LOAD FAILED');
     if (notify) showToast(`저장 지도 로드 실패: ${error.message}`, true);
     if (rethrow) throw error;
@@ -1716,7 +2449,7 @@ function clearSavedMapCache(mapId) {
 }
 
 async function renameSelectedSavedMap() {
-  if (savedMapMutationBusy || !selectedSavedMapMeta?.manageable) return;
+  if (savedMapMutationBusy || editorHasUnsavedChanges() || mapConversionPending || mapEditorBusy || !selectedSavedMapMeta?.manageable) return;
   const name = ui.savedMapNameInput.value.trim();
   if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name)) {
     showToast('지도 이름은 영문·숫자로 시작하고 영문·숫자·_·-만 사용할 수 있습니다.', true);
@@ -1750,7 +2483,7 @@ async function renameSelectedSavedMap() {
 }
 
 async function deleteSelectedSavedMap() {
-  if (savedMapMutationBusy || !selectedSavedMapMeta?.manageable) return;
+  if (savedMapMutationBusy || editorHasUnsavedChanges() || mapConversionPending || mapEditorBusy || !selectedSavedMapMeta?.manageable) return;
   const selected = selectedSavedMapMeta;
   const paired = selected.kind === 'occupancy2d' ? ' (YAML과 PGM 모두)' : '';
   if (!window.confirm(`${selected.name}${paired}을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
@@ -3549,6 +4282,40 @@ ui.savedMapList.addEventListener('click', (event) => {
 ui.savedMapRenameButton.addEventListener('click', renameSelectedSavedMap);
 ui.savedMapDeleteButton.addEventListener('click', deleteSelectedSavedMap);
 ui.savedMapNameInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') renameSelectedSavedMap(); });
+ui.mapConvertSource.addEventListener('change', () => {
+  mapConversionNameDirty = false;
+  mapConversionFeedback = null;
+  syncMapConversionPanel();
+});
+ui.mapConvertName.addEventListener('input', () => {
+  mapConversionNameDirty = true;
+  mapConversionFeedback = null;
+  syncMapConversionPanel();
+});
+[ui.mapConvertZMin, ui.mapConvertZMax, ui.mapConvertResolution, ui.mapConvertRadius, ui.mapConvertNeighbors].forEach((input) => {
+  input.addEventListener('input', () => { mapConversionFeedback = null; syncMapConversionPanel(); });
+});
+ui.mapConvertBackground.addEventListener('change', () => {
+  mapConversionFeedback = null;
+  syncMapConversionPanel();
+});
+ui.mapConvertStart.addEventListener('click', startSavedMapConversion);
+document.querySelectorAll('[data-map-editor-tool]').forEach((button) => {
+  button.addEventListener('click', () => { mapEditorTool = button.dataset.mapEditorTool === 'eraser' ? 'eraser' : 'brush'; syncMapEditorUi(); });
+});
+document.querySelectorAll('[data-map-editor-value]').forEach((button) => {
+  button.addEventListener('click', () => { mapEditorCellValue = Number(button.dataset.mapEditorValue); mapEditorTool = 'brush'; syncMapEditorUi(); });
+});
+ui.mapEditorBrushSize.addEventListener('input', syncMapEditorUi);
+ui.mapEditorUndo.addEventListener('click', undoMapEditor);
+ui.mapEditorRedo.addEventListener('click', redoMapEditor);
+ui.mapEditorReset.addEventListener('click', resetMapEditor);
+ui.mapEditorSaveName.addEventListener('input', syncMapEditorUi);
+ui.mapEditorSaveName.addEventListener('keydown', (event) => { if (event.key === 'Enter') saveMapEditorCopy(); });
+ui.mapEditorSave.addEventListener('click', saveMapEditorCopy);
+ui.mapEditorCanvas.addEventListener('pointerdown', beginMapEditorStroke);
+ui.mapEditorCanvas.addEventListener('pointermove', moveMapEditorStroke);
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => ui.mapEditorCanvas.addEventListener(name, finishMapEditorStroke));
 ui.topicSearch.addEventListener('input', renderTopics);
 ui.categoryFilter.addEventListener('change', renderTopics);
 ui.cameraCaptureButton.addEventListener('click', captureCameraFrame);
@@ -3595,10 +4362,15 @@ window.addEventListener('pagehide', () => {
   if (controlLeaseId) failSafeDisarm('page_hidden');
   discardCameraRecordingForPageHide();
 });
+window.addEventListener('beforeunload', (event) => {
+  if (!editorHasUnsavedChanges()) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
   if (activePage === 'mapping') redrawActiveMap();
-  if (activePage === 'maps') redrawSavedMap();
+  if (activePage === 'maps') { redrawSavedMap(); drawMapEditor(); }
 });
 
 startClock();
@@ -3607,6 +4379,8 @@ bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();
 renderControlCommand();
+syncMapConversionPanel();
+syncMapEditorUi();
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
 initializeRobotProfiles();

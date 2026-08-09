@@ -17,6 +17,7 @@ from robot_dashboard.mapping_jobs import (
     SaveCommandSpec,
     SaveResultError,
 )
+from robot_dashboard.saved_maps import SavedMapCatalog
 
 
 PIPELINE_PROGRAM = r"""
@@ -280,6 +281,52 @@ class MappingJobManagerTests(unittest.TestCase):
             self.assertEqual(manager.snapshot()["operation"]["state"], "failed")
             self.assertEqual(list(self.maps.glob(f"{name}.*")), [])
 
+    def test_saver_and_catalog_share_the_exact_file_limit_boundary(self):
+        catalog = SavedMapCatalog(
+            [self.maps],
+            managed_roots=[self.maps],
+            max_file_bytes=1_024,
+        )
+        writer = self._script(
+            "bounded_pcd.py",
+            "from pathlib import Path\n"
+            "import struct,sys\n"
+            "prefix=Path(sys.argv[1]); target=int(sys.argv[2])\n"
+            "header=(\"# .PCD v0.7\\nVERSION 0.7\\nFIELDS x y z intensity\\n\"\n"
+            "        \"SIZE 4 4 4 4\\nTYPE F F F F\\nCOUNT 1 1 1 1\\n\"\n"
+            "        \"WIDTH 1\\nHEIGHT 1\\nPOINTS 1\\nDATA binary\\n\").encode('ascii')\n"
+            "content=header+struct.pack('<ffff',1,2,3,4)\n"
+            "prefix.with_name(prefix.name+'.pcd').write_bytes(content+b'\\0'*(target-len(content)))\n",
+        )
+        commands = {
+            "exact": SaveCommandSpec(
+                (sys.executable, str(writer), "{output_prefix}", "1024"),
+                (".pcd",),
+                cwd=self.root,
+                max_result_bytes=catalog.max_file_bytes,
+            ),
+            "over": SaveCommandSpec(
+                (sys.executable, str(writer), "{output_prefix}", "1025"),
+                (".pcd",),
+                cwd=self.root,
+                max_result_bytes=catalog.max_file_bytes,
+            ),
+        }
+        manager = self.manager(save_commands=commands, require_pipeline=False)
+
+        saved = manager.save_map("at_limit", "exact")
+        self.assertEqual(commands["exact"].max_result_bytes, catalog.max_file_bytes)
+        self.assertEqual((self.maps / "at_limit.pcd").stat().st_size, 1_024)
+        self.assertEqual(saved["operation"]["state"], "succeeded")
+        self.assertIn(
+            "at_limit.pcd",
+            [item["file_name"] for item in catalog.list_snapshot()["maps"]],
+        )
+
+        with self.assertRaisesRegex(SaveResultError, "exceeds the configured limit"):
+            manager.save_map("over_limit", "over")
+        self.assertFalse((self.maps / "over_limit.pcd").exists())
+
     def test_only_one_save_can_run_at_a_time(self):
         slow_script = self._script(
             "slow_save.py",
@@ -374,6 +421,229 @@ class MappingJobManagerTests(unittest.TestCase):
         self.assertLessEqual(len(snapshot["logs"]), 10)
         self.assertTrue(snapshot["logs_truncated"])
         self.assertEqual(snapshot["logs"][-1]["seq"], snapshot["log_cursor"])
+
+    def test_local_operation_reuses_single_job_state_and_exposes_safe_details(self):
+        manager = self.manager(require_pipeline=False)
+        with mock.patch.object(manager, "_spawn") as spawn:
+            snapshot = manager.run_local_operation(
+                "pcd_to_2d",
+                "converted_room",
+                lambda: {
+                    "files": ["converted_room.yaml", "converted_room.pgm"],
+                    "details": {
+                        "result_map_id": "a" * 24,
+                        "selected_points": 123,
+                        "occupied_cells": 45,
+                        "width": 20,
+                        "height": 10,
+                    },
+                },
+            )
+
+        spawn.assert_not_called()
+        operation = snapshot["operation"]
+        self.assertEqual(operation["state"], "succeeded")
+        self.assertEqual(operation["kind"], "pcd_to_2d")
+        self.assertEqual(
+            operation["files"],
+            ["converted_room.yaml", "converted_room.pgm"],
+        )
+        self.assertEqual(operation["details"]["result_map_id"], "a" * 24)
+        self.assertEqual(operation["details"]["selected_points"], 123)
+
+    def test_local_operation_failure_remains_in_operation_snapshot(self):
+        manager = self.manager(require_pipeline=False)
+
+        def fail():
+            raise RuntimeError("projected filter left no points")
+
+        with self.assertRaisesRegex(RuntimeError, "left no points"):
+            manager.run_local_operation("pcd_to_2d", "failed_room", fail)
+
+        operation = manager.snapshot()["operation"]
+        self.assertEqual(operation["state"], "failed")
+        self.assertEqual(operation["kind"], "pcd_to_2d")
+        self.assertEqual(operation["files"], [])
+        self.assertEqual(operation["details"], {})
+        self.assertIn("left no points", operation["error"])
+
+    def test_local_operation_holds_the_same_single_job_lease(self):
+        manager = self.manager(require_pipeline=False)
+        entered = threading.Event()
+        release = threading.Event()
+        results = []
+
+        def worker():
+            entered.set()
+            release.wait(timeout=2)
+            return {"files": ["first.yaml", "first.pgm"], "details": {}}
+
+        thread = threading.Thread(
+            target=lambda: results.append(
+                manager.run_local_operation("pcd_to_2d", "first", worker)
+            ),
+            daemon=True,
+        )
+        thread.start()
+        self.assertTrue(entered.wait(timeout=1))
+        with self.assertRaises(JobBusyError):
+            manager.run_local_operation(
+                "pcd_to_2d",
+                "second",
+                lambda: {"files": [], "details": {}},
+            )
+        with self.assertRaises(JobBusyError):
+            manager.start_mapping()
+        release.set()
+        thread.join(timeout=2)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(results[0]["operation"]["state"], "succeeded")
+
+    def test_local_reservation_exists_before_worker_and_has_stable_job_id(self):
+        manager = self.manager(require_pipeline=False)
+        reservation = manager.reserve_local_operation("pcd_to_2d", "reserved")
+        operation = reservation["operation"]
+        job_id = operation["job_id"]
+
+        self.assertRegex(job_id, r"^[0-9a-f]{32}$")
+        self.assertEqual(operation["state"], "saving")
+        self.assertEqual(operation["map_name"], "reserved")
+        self.assertEqual(manager.snapshot()["operation"]["job_id"], job_id)
+
+        completed = manager.run_reserved_local_operation(
+            job_id,
+            lambda: {
+                "files": ["reserved.yaml", "reserved.pgm"],
+                "details": {"result_map_id": "b" * 24},
+            },
+        )
+        self.assertEqual(completed["operation"]["job_id"], job_id)
+        self.assertEqual(completed["operation"]["state"], "succeeded")
+
+    def test_reservation_preflight_rejects_busy_stopping_and_closing(self):
+        manager = self.manager(require_pipeline=False)
+        first = manager.reserve_local_operation("pcd_to_2d", "first")
+        first_id = first["operation"]["job_id"]
+        with self.assertRaises(JobBusyError):
+            manager.reserve_local_operation("pcd_to_2d", "second")
+        self.assertEqual(manager.snapshot()["operation"]["job_id"], first_id)
+        manager.run_reserved_local_operation(
+            first_id,
+            lambda: {"files": ["first.yaml", "first.pgm"], "details": {}},
+        )
+
+        with manager._lock:
+            manager._pipeline["state"] = "stopping"
+        with self.assertRaises(JobBusyError):
+            manager.reserve_local_operation("pcd_to_2d", "stopping")
+        with manager._lock:
+            manager._pipeline["state"] = "idle"
+        manager.close()
+        with self.assertRaises(MappingJobError):
+            manager.reserve_local_operation("pcd_to_2d", "closing")
+
+    def test_reserved_worker_failure_is_recorded_under_reserved_job_id(self):
+        manager = self.manager(require_pipeline=False)
+        reservation = manager.reserve_local_operation("pcd_to_2d", "failed_reserved")
+        job_id = reservation["operation"]["job_id"]
+
+        def fail():
+            raise RuntimeError("source revision changed")
+
+        with self.assertRaisesRegex(RuntimeError, "revision changed"):
+            manager.run_reserved_local_operation(job_id, fail)
+        operation = manager.snapshot()["operation"]
+        self.assertEqual(operation["job_id"], job_id)
+        self.assertEqual(operation["state"], "failed")
+        self.assertIn("revision changed", operation["error"])
+
+    def test_unscheduled_reservation_is_failed_and_releases_the_job_lease(self):
+        manager = self.manager(require_pipeline=False)
+        reservation = manager.reserve_local_operation("pcd_to_2d", "unscheduled")
+        job_id = reservation["operation"]["job_id"]
+        failed = manager.fail_reserved_local_operation(job_id, "worker scheduling failed")
+        self.assertEqual(failed["operation"]["job_id"], job_id)
+        self.assertEqual(failed["operation"]["state"], "failed")
+        self.assertIn("scheduling failed", failed["operation"]["error"])
+        replacement = manager.reserve_local_operation("pcd_to_2d", "replacement")
+        replacement_id = replacement["operation"]["job_id"]
+        self.assertNotEqual(replacement_id, job_id)
+        manager.run_reserved_local_operation(
+            replacement_id,
+            lambda: {"files": ["replacement.yaml", "replacement.pgm"], "details": {}},
+        )
+
+    def test_wrong_concurrent_and_replayed_reservation_ids_cannot_execute(self):
+        manager = self.manager(require_pipeline=False)
+        reservation = manager.reserve_local_operation("pcd_to_2d", "once")
+        job_id = reservation["operation"]["job_id"]
+        calls = []
+        with self.assertRaises(MappingJobError):
+            manager.run_reserved_local_operation("0" * 32, lambda: calls.append("wrong"))
+        self.assertEqual(calls, [])
+        self.assertEqual(manager.snapshot()["operation"]["job_id"], job_id)
+
+        entered = threading.Event()
+        release = threading.Event()
+
+        def worker():
+            entered.set()
+            release.wait(timeout=2)
+            calls.append("right")
+            return {"files": ["once.yaml", "once.pgm"], "details": {}}
+
+        thread = threading.Thread(
+            target=lambda: manager.run_reserved_local_operation(job_id, worker),
+            daemon=True,
+        )
+        thread.start()
+        self.assertTrue(entered.wait(timeout=1))
+        with self.assertRaises(JobBusyError):
+            manager.run_reserved_local_operation(job_id, lambda: calls.append("concurrent"))
+        release.set()
+        thread.join(timeout=2)
+        self.assertEqual(calls, ["right"])
+        succeeded = manager.snapshot()["operation"].copy()
+        with self.assertRaises(MappingJobError):
+            manager.run_reserved_local_operation(job_id, lambda: calls.append("replay"))
+        self.assertEqual(manager.snapshot()["operation"], succeeded)
+        self.assertEqual(calls, ["right"])
+
+    def test_shutdown_signal_reaches_running_local_worker_before_publication(self):
+        manager = self.manager(require_pipeline=False)
+        reservation = manager.reserve_local_operation("pcd_to_2d", "shutdown_guard")
+        job_id = reservation["operation"]["job_id"]
+        entered = threading.Event()
+        errors = []
+
+        def worker():
+            entered.set()
+            self.assertIsNotNone(
+                wait_until(lambda: manager.local_operation_cancelled(job_id), timeout=2)
+            )
+            raise RuntimeError("cancelled before publication")
+
+        def run_worker():
+            try:
+                manager.run_reserved_local_operation(job_id, worker)
+            except RuntimeError as exc:
+                errors.append(exc)
+
+        worker_thread = threading.Thread(target=run_worker, daemon=True)
+        worker_thread.start()
+        self.assertTrue(entered.wait(timeout=1))
+        close_thread = threading.Thread(target=manager.close, daemon=True)
+        close_thread.start()
+        worker_thread.join(timeout=3)
+        close_thread.join(timeout=3)
+
+        self.assertFalse(worker_thread.is_alive())
+        self.assertFalse(close_thread.is_alive())
+        self.assertTrue(errors)
+        operation = manager.snapshot()["operation"]
+        self.assertEqual(operation["job_id"], job_id)
+        self.assertEqual(operation["state"], "failed")
+        self.assertIn("before publication", operation["error"])
 
     def test_command_specs_reject_relative_executables_and_unknown_templates(self):
         with self.assertRaises(ValueError):

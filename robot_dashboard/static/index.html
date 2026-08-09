@@ -177,6 +177,72 @@
             </div>
           </aside>
         </section>
+
+        <section class="saved-tools-grid">
+          <article class="panel map-conversion-panel">
+            <div class="panel-header compact">
+              <div><div class="eyebrow">PCD2PGM · PDF 09</div><h2>3D PCD → 2D map</h2></div>
+              <div class="panel-state waiting" id="mapConvertState"><span></span>IDLE</div>
+            </div>
+            <div class="map-conversion-body">
+              <label><span>선택 PCD</span><select id="mapConvertSource"><option value="">저장된 PCD 없음</option></select></label>
+              <label><span>출력 이름</span><input id="mapConvertName" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name_2d"></label>
+              <div class="map-conversion-parameters">
+                <label><span>thre_z_min (m)</span><input id="mapConvertZMin" type="number" min="-20" max="20" step="0.05" value="-0.2"></label>
+                <label><span>thre_z_max (m)</span><input id="mapConvertZMax" type="number" min="-20" max="20" step="0.05" value="0.8"></label>
+                <label><span>resolution (m)</span><input id="mapConvertResolution" type="number" min="0.01" max="1" step="0.01" value="0.05"></label>
+              </div>
+              <p class="map-conversion-help">z=0은 XT16 LiDAR 높이 기준입니다. min은 아래쪽, max는 위쪽 슬라이스 경계이며 기본값 -0.2~0.8 m에서 결과를 보며 조정하세요.</p>
+              <details class="map-conversion-advanced">
+                <summary>Advanced · 자동 점 노이즈 필터 (2D 투영)</summary>
+                <div>
+                  <label><span>radius (m)</span><input id="mapConvertRadius" type="number" min="0.01" max="2" step="0.01" value="0.1"></label>
+                  <label><span>min neighbors</span><input id="mapConvertNeighbors" type="number" min="1" max="1000" step="1" value="10"></label>
+                  <label><span>background</span><select id="mapConvertBackground"><option value="unknown" selected>UNKNOWN · 안전 기본</option><option value="free">FREE · 경계 전체 자유공간</option></select></label>
+                </div>
+                <p class="map-conversion-filter-note">XY 2D 투영 점 밀도 필터입니다. 수업에서 사용한 PCL 3D RadiusOutlierRemoval와 동일한 알고리즘이 아닙니다.</p>
+              </details>
+              <button id="mapConvertStart" class="map-primary-action" type="button" disabled>2D 변환 실행</button>
+              <div class="map-operation-progress">
+                <progress id="mapConvertProgress" max="1" value="0"></progress>
+                <strong id="mapConvertProgressLabel">READY</strong>
+              </div>
+              <p id="mapConvertMessage" class="map-tool-message" aria-live="polite">저장된 PCD를 선택하면 높이 슬라이스로 2D 점유 지도를 생성합니다.</p>
+            </div>
+          </article>
+
+          <article class="panel map-editor-panel">
+            <div class="panel-header compact">
+              <div><div class="eyebrow">NON-DESTRUCTIVE CLEANUP</div><h2>2D map noise editor</h2></div>
+              <div class="panel-state waiting" id="mapEditorState"><span></span>NO MAP</div>
+            </div>
+            <div class="map-editor-toolbar" aria-label="2D 지도 편집 도구">
+              <div class="map-editor-tool-group" role="group" aria-label="편집 모드">
+                <button type="button" data-map-editor-tool="brush" class="is-active" aria-pressed="true">BRUSH</button>
+                <button type="button" data-map-editor-tool="eraser" aria-pressed="false">ERASER · 원본 복원</button>
+              </div>
+              <div class="map-editor-value-group" role="group" aria-label="브러시 셀 값">
+                <button type="button" data-map-editor-value="100" class="cell-obstacle is-active" aria-pressed="true"><i></i>장애물</button>
+                <button type="button" data-map-editor-value="0" class="cell-free" aria-pressed="false"><i></i>빈 공간</button>
+                <button type="button" data-map-editor-value="-1" class="cell-unknown" aria-pressed="false"><i></i>미확인</button>
+              </div>
+              <label class="map-editor-brush-size"><span>BRUSH <output id="mapEditorBrushOutput">5 cells</output></span><input id="mapEditorBrushSize" type="range" min="1" max="30" step="1" value="5"></label>
+              <div class="map-editor-history">
+                <button id="mapEditorUndo" type="button" disabled>UNDO</button><button id="mapEditorRedo" type="button" disabled>REDO</button><button id="mapEditorReset" type="button" disabled>RESET</button>
+              </div>
+            </div>
+            <div class="map-editor-stage">
+              <canvas id="mapEditorCanvas" aria-label="저장된 2D 점유 지도 수동 편집기"></canvas>
+              <div class="map-editor-empty" id="mapEditorEmpty">편집할 저장 2D 지도를 선택하세요.</div>
+            </div>
+            <div class="map-editor-save-row">
+              <div><strong id="mapEditorSource">SOURCE —</strong><small id="mapEditorStats">변경 0 cells</small></div>
+              <label><span>복사본 이름</span><input id="mapEditorSaveName" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name_edited"></label>
+              <button id="mapEditorSave" class="map-primary-action" type="button" disabled>SAVE AS COPY</button>
+            </div>
+            <p id="mapEditorMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM은 변경하지 않습니다. 편집 결과는 새 지도 복사본으로만 저장됩니다.</p>
+          </article>
+        </section>
       </section>
 
       <section class="page-view" data-page="sensors" hidden>
@@ -355,6 +421,7 @@
   <script src="/static/scene3d.js" defer></script>
   <script src="/static/go2_official_model.js" defer></script>
   <script src="/static/control_input.js" defer></script>
+  <script src="/static/map_editor.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>
