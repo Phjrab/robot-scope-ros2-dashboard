@@ -242,6 +242,51 @@ class ControlManagerTests(unittest.TestCase):
         with self.assertRaises(LeaseInvalid):
             manager.heartbeat(token, BINDING, 2)
 
+    def test_zero_axis_deadman_stream_and_heartbeats_stay_armed(self):
+        manager, token = self.leased()
+        frame_clock = ClientFrameClock(100_000.0, 200_000.0)
+        seq = -1
+
+        # Reproduce Shift-only input for three seconds. The browser sends a
+        # heartbeat instead of a twist once per second; the manager's 50 ms
+        # tick may keep forwarding the most recent zero drive during that one
+        # skipped frame without extending the browser command deadline.
+        for step in range(1, 61):
+            self.clock.advance(0.05)
+            if step % 5 == 0:
+                manager.set_readiness(bridge_ready=True, lowstate_ready=True)
+            seq += 1
+            client_time_ms = 100_000.0 + step * 50.0
+            server_time_ms = 200_010.0 + step * 50.0
+            frame_age_s = max(
+                0.0,
+                frame_clock.validate(client_time_ms, server_time_ms) / 1_000.0,
+            )
+            if step % 20 == 0:
+                manager.heartbeat(token, BINDING, seq)
+            else:
+                manager.submit_drive(
+                    token,
+                    BINDING,
+                    seq,
+                    vx=0.0,
+                    vy=0.0,
+                    wz=0.0,
+                    deadman=True,
+                    client_age_s=frame_age_s,
+                )
+            outputs = manager.tick()
+            self.assertTrue(manager.snapshot()["lease"]["active"])
+            drives = [output for output in outputs if output["type"] == "drive"]
+            self.assertEqual(len(drives), 1)
+            self.assertEqual(drives[0]["velocity"], {"vx": 0.0, "vy": 0.0, "wz": 0.0})
+
+        # A real frame loss still fails closed at the unchanged 200 ms limit.
+        self.clock.advance(0.20)
+        manager.set_readiness(bridge_ready=True, lowstate_ready=True)
+        self.assertEqual(manager.tick()[-1]["reason"], "command_timeout")
+        self.assertFalse(manager.snapshot()["lease"]["active"])
+
     def test_lease_expires_without_heartbeat_and_stops(self):
         manager, token = self.leased()
         self.drive(manager, token)

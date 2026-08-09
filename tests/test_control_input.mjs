@@ -49,6 +49,27 @@ test('opposite keyboard and pointer directions cancel', () => {
   });
 });
 
+test('Shift-only is a held zero-axis deadman, not a drive frame', () => {
+  const shiftOnly = input.keyboardCommand(keys('ShiftLeft'));
+  assert.deepEqual(shiftOnly, {
+    source: 'keyboard', deadman: true, linear_x: 0, linear_y: 0, angular_z: 0,
+  });
+  assert.equal(input.controlFrameIntent(shiftOnly), 'idle');
+  assert.equal(input.controlFrameIntent(shiftOnly, { heartbeatDue: true }), 'heartbeat');
+  assert.equal(input.controlFrameIntent(shiftOnly, { motionActive: true }), 'stop');
+  const moving = input.keyboardCommand(keys('ShiftLeft', 'KeyW'));
+  assert.equal(input.controlFrameIntent(moving), 'drive');
+  assert.equal(input.controlFrameIntent(moving, { heartbeatDue: true }), 'heartbeat');
+  assert.equal(input.controlFrameIntent(shiftOnly, { motionActive: true, heartbeatDue: true }), 'stop');
+});
+
+test('only releasing the final Shift ends the keyboard deadman hold', () => {
+  assert.equal(input.deadmanReleaseEndsHold(keys('ShiftLeft'), 'KeyW'), false);
+  assert.equal(input.deadmanReleaseEndsHold(keys('ShiftRight'), 'ShiftLeft'), false);
+  assert.equal(input.deadmanReleaseEndsHold(keys(), 'ShiftLeft'), true);
+  assert.equal(input.deadmanReleaseEndsHold(keys(), 'KeyW'), false);
+});
+
 test('deadzone removes drift and rescales usable gamepad travel', () => {
   assert.equal(input.applyDeadzone(0.1, 0.12), 0);
   assert.equal(input.applyDeadzone(-0.12, 0.12), 0);
@@ -160,4 +181,32 @@ test('late messages from an old control socket cannot touch a replacement lease'
   assert.ok(handler.indexOf(guard) < handler.indexOf('JSON.parse(event.data)'), 'session guard must run before payload handling');
   assert.ok(handler.indexOf(guard) < handler.indexOf("payload.type === 'error'"), 'old errors must be ignored');
   assert.ok(handler.indexOf(guard) < handler.indexOf("payload.type === 'bound'"), 'old bound frames must be ignored');
+});
+
+test('keyboard repeats are idempotent and direction keyup stops without disarming', () => {
+  const downStart = appSource.indexOf('function handleControlKeyDown(event)');
+  const upStart = appSource.indexOf('function handleControlKeyUp(event)');
+  const upEnd = appSource.indexOf('\nfunction releaseControlPointer(event)', upStart);
+  const downHandler = appSource.slice(downStart, upStart);
+  const upHandler = appSource.slice(upStart, upEnd);
+  assert.match(downHandler, /event\.repeat && controlPressedKeys\.has\(event\.code\)/);
+  assert.match(upHandler, /deadmanReleaseEndsHold\(controlPressedKeys, event\.code\)/);
+  assert.match(upHandler, /keyboard_deadman_released/);
+  assert.match(upHandler, /else \{[\s\S]{0,180}controlTick\(\)/);
+  assert.doesNotMatch(upHandler, /keyboard_key_released/);
+});
+
+test('screen direction release also stops without releasing a held deadman', () => {
+  const start = appSource.indexOf('function releaseControlPointer(event)');
+  const end = appSource.indexOf('\nfunction bindControlPointerButtons()', start);
+  const handler = appSource.slice(start, end);
+  assert.match(handler, /wasDeadman && controlDeadmanPointers\.size === 0 && !keyboardDeadman/);
+  assert.match(handler, /pointer_deadman_released/);
+  assert.match(handler, /else \{\s*controlTick\(\)/);
+  assert.doesNotMatch(handler, /pointer_direction_released/);
+});
+
+test('ARM clears button focus while window blur remains fail-safe', () => {
+  assert.match(appSource, /controlUi\.arm\.blur\(\)/);
+  assert.match(appSource, /window\.addEventListener\('blur',[\s\S]{0,180}failSafeDisarm\('window_blurred'\)/);
 });

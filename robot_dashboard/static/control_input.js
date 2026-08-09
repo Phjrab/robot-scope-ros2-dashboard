@@ -102,6 +102,30 @@
     return isMovementCode(code) || isDeadmanCode(code);
   }
 
+  function deadmanReleaseEndsHold(keysAfterRelease, releasedCode) {
+    return isDeadmanCode(releasedCode)
+      && !DEADMAN_CODES.some((code) => codePressed(keysAfterRelease, code));
+  }
+
+  function hasMotionIntent(command) {
+    if (!command?.deadman) return false;
+    return ['linear_x', 'linear_y', 'angular_z']
+      .some((axis) => Math.abs(finiteNumber(command[axis])) > 0);
+  }
+
+  function controlFrameIntent(command, { motionActive = false, heartbeatDue = false } = {}) {
+    const hasMotion = hasMotionIntent(command);
+    // A released direction must stop immediately, even when the periodic
+    // lease heartbeat happens to be due on the same 50 ms tick.
+    if (!hasMotion && motionActive) return 'stop';
+    // Drive frames deliberately do not extend the lease heartbeat. Keep the
+    // one-second heartbeat cadence while driving so a long key hold cannot
+    // expire the otherwise healthy two-second lease.
+    if (heartbeatDue) return 'heartbeat';
+    if (hasMotion) return 'drive';
+    return 'idle';
+  }
+
   return Object.freeze({
     MOVEMENT_CODES,
     DEADMAN_CODES,
@@ -116,5 +140,8 @@
     isMovementCode,
     isDeadmanCode,
     isControlCode,
+    deadmanReleaseEndsHold,
+    hasMotionIntent,
+    controlFrameIntent,
   });
 }));

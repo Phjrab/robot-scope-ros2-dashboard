@@ -96,6 +96,37 @@ class Go2BridgeCoreTests(unittest.TestCase):
                 transport_age_s=0.201,
             )
 
+    def test_zero_axis_deadman_stream_stays_fresh_until_frames_stop(self):
+        self.tick()  # consume the bridge's startup StopMove
+        for seq in range(1, 61):
+            self.now += 0.05
+            self.core.accept(
+                self.command(
+                    seq=seq,
+                    deadman=True,
+                    linear_x=0.0,
+                    linear_y=0.0,
+                    angular_z=0.0,
+                ),
+                now=self.now,
+                transport_age_s=0.01,
+            )
+            requests = self.tick()
+            self.assertEqual([request.api_id for request in requests], [API_MOVE])
+            self.assertEqual(requests[0].parameter, '{"x":0.0,"y":0.0,"z":0.0}')
+
+        snapshot = self.core.snapshot(
+            now=self.now,
+            lowstate_age_s=0.01,
+            lowstate_publishers=1,
+            sport_subscribers=1,
+        )
+        self.assertTrue(snapshot["ready"])
+        self.assertEqual(snapshot["state"], "idle")
+
+        # Zero velocity does not weaken the independent bridge watchdog.
+        self.assertEqual(self.tick(0.201)[-1].api_id, API_STOP_MOVE)
+
     def test_bridge_rechecks_hard_limits_and_telemetry(self):
         self.core.accept(
             self.command(

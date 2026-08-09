@@ -256,6 +256,7 @@ let controlActionAckTimer = null;
 let pendingControlActionId = '';
 let controlSpeedInitialized = false;
 let controlHadDeadman = false;
+let controlMotionFrameActive = false;
 let controlLastCommand = null;
 let selectedGamepadIndex = '';
 let gamepadEstopPressed = false;
@@ -3102,6 +3103,7 @@ function resetControlInputs() {
   controlPointerDirections.clear();
   controlDeadmanPointers.clear();
   controlHadDeadman = false;
+  controlMotionFrameActive = false;
   document.querySelectorAll('.keyboard-guide kbd.is-pressed, .touch-dpad button.is-pressed').forEach((element) => element.classList.remove('is-pressed'));
   controlLastCommand = controlInput.zeroCommand(controlLeaseSource || controlUi.inputSource.value);
   renderControlCommand(controlLastCommand);
@@ -3165,6 +3167,7 @@ async function armControl() {
     controlLeaseSource = source;
     controlSequence = -1;
     resetControlInputs();
+    controlUi.arm.blur();
     applyControlSnapshot(extractControlSnapshot(response));
     connectControlSocket();
     renderControlStatus();
@@ -3224,7 +3227,21 @@ function controlTick() {
   controlLastCommand = scaled;
   renderControlCommand(scaled);
   if (controlSocketBound && controlSocket?.readyState === WebSocket.OPEN) {
-    if (Date.now() - lastControlHeartbeatAt >= 1000) {
+    const frameIntent = controlInput.controlFrameIntent(raw, {
+      motionActive: controlMotionFrameActive,
+      heartbeatDue: Date.now() - lastControlHeartbeatAt >= 1000,
+    });
+    if (frameIntent === 'stop') {
+      const stopped = controlSocketSend({
+        type: 'twist', lease_id: controlLeaseId, seq: ++controlSequence,
+        source: controlLeaseSource, deadman: false,
+        linear_x: 0, linear_y: 0, angular_z: 0,
+        speed_scale: speedScale, client_time_ms: Date.now(),
+      });
+      if (stopped) controlMotionFrameActive = false;
+      return;
+    }
+    if (frameIntent === 'heartbeat') {
       const heartbeatSent = controlSocketSend({
         type: 'heartbeat', lease_id: controlLeaseId, seq: ++controlSequence,
         client_time_ms: Date.now(),
@@ -3232,13 +3249,14 @@ function controlTick() {
       if (heartbeatSent) lastControlHeartbeatAt = Date.now();
       return;
     }
-    if (!raw.deadman && !controlHadDeadman) return;
-    controlSocketSend({
+    if (frameIntent !== 'drive') return;
+    const driven = controlSocketSend({
       type: 'twist', lease_id: controlLeaseId, seq: ++controlSequence,
       source: controlLeaseSource, deadman: raw.deadman,
       linear_x: raw.linear_x, linear_y: raw.linear_y, angular_z: raw.angular_z,
       speed_scale: speedScale, client_time_ms: Date.now(),
     });
+    if (driven) controlMotionFrameActive = true;
   }
 }
 
@@ -3355,6 +3373,7 @@ function updateKeyboardGuide() {
 function handleControlKeyDown(event) {
   if (activePage !== 'controls' || controlLeaseSource !== 'keyboard' || !controlLeaseId || isFormControlTarget(event.target) || !controlInput.isControlCode(event.code)) return;
   event.preventDefault();
+  if (event.repeat && controlPressedKeys.has(event.code)) return;
   controlPressedKeys.add(event.code);
   updateKeyboardGuide();
 }
@@ -3364,7 +3383,13 @@ function handleControlKeyUp(event) {
   controlPressedKeys.delete(event.code);
   updateKeyboardGuide();
   if (controlLeaseId && controlLeaseSource === 'keyboard') {
-    failSafeDisarm('keyboard_key_released', { notify: true });
+    if (controlInput.deadmanReleaseEndsHold(controlPressedKeys, event.code)) {
+      failSafeDisarm('keyboard_deadman_released', { notify: true });
+    } else {
+      // Direction release while Shift remains held is a normal stop, not a
+      // lease release. Run immediately instead of waiting for the 50 ms tick.
+      controlTick();
+    }
   }
 }
 
@@ -3374,7 +3399,12 @@ function releaseControlPointer(event) {
   const wasDeadman = controlDeadmanPointers.delete(event.pointerId);
   button.classList.remove('is-pressed');
   if ((wasDirection || wasDeadman) && controlLeaseId) {
-    failSafeDisarm(wasDeadman ? 'pointer_deadman_released' : 'pointer_direction_released', { notify: true });
+    const keyboardDeadman = controlInput.keyboardCommand(controlPressedKeys).deadman;
+    if (wasDeadman && controlDeadmanPointers.size === 0 && !keyboardDeadman) {
+      failSafeDisarm('pointer_deadman_released', { notify: true });
+    } else {
+      controlTick();
+    }
   }
 }
 
