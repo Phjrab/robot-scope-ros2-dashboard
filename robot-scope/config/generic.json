@@ -5,7 +5,10 @@
     "directories": ["../robot_dashboard/static/data"],
     "max_files": 50,
     "max_depth": 2,
-    "preview_points": 10000
+    "preview_points": 10000,
+    "max_requested_points": 1000000,
+    "max_full_view_points": 2000000,
+    "cloud_radius_limit_m": 10000
   },
   "preferred_topics": {
     "camera": [

@@ -1,8 +1,9 @@
-"""Read-only catalog and preview loader for maps saved on the robot host.
+"""Catalog, preview loader, and bounded manager for maps on the robot host.
 
 Only files discovered below profile-configured roots receive an opaque ID.  API
 callers never supply a path, which keeps traversal and accidental arbitrary-file
-reads out of the HTTP surface.
+access out of the HTTP surface.  Rename and delete are additionally restricted
+to explicit managed roots; other catalog roots remain read-only.
 """
 
 from __future__ import annotations
@@ -12,6 +13,11 @@ import base64
 import hashlib
 import json
 import os
+import re
+import shutil
+import stat
+import threading
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +38,29 @@ class SavedMapFormatError(SavedMapError):
     """Raised when a configured file is not a supported map snapshot."""
 
 
+class SavedMapPointLimitError(SavedMapError):
+    """Raised when a point-cloud response limit is invalid or unsafe."""
+
+
+class SavedMapMutationError(SavedMapError):
+    """Base class for a saved-map mutation that could not be completed safely."""
+
+
+class SavedMapInvalidName(SavedMapMutationError):
+    """Raised when a requested map name is not a safe portable filename."""
+
+
+class SavedMapReadOnly(SavedMapMutationError):
+    """Raised when a catalog record is outside the explicit managed roots."""
+
+
+class SavedMapConflict(SavedMapMutationError):
+    """Raised when a rename target already exists."""
+
+
+MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+
+
 @dataclass(frozen=True)
 class SavedMapRecord:
     map_id: str
@@ -43,6 +72,7 @@ class SavedMapRecord:
     modified_ns: int
     size_bytes: int
     details: Dict[str, Any]
+    manageable: bool = False
     auxiliary_path: Optional[Path] = None
 
     def public(self) -> Dict[str, Any]:
@@ -58,6 +88,7 @@ class SavedMapRecord:
             "file_name": self.path.name,
             "modified_at": modified,
             "size_bytes": self.size_bytes,
+            "manageable": self.manageable,
             "data_url": f"/api/v1/saved-maps/{self.map_id}/data",
         }
         result.update(self.details)
@@ -71,10 +102,13 @@ class SavedMapCatalog:
         self,
         roots: Iterable[Path],
         *,
+        managed_roots: Iterable[Path] = (),
         max_files: int = 100,
         max_depth: int = 3,
         max_file_bytes: int = 256 * 1024 * 1024,
         preview_points: int = 10_000,
+        max_requested_points: int = 1_000_000,
+        max_full_view_points: int = 2_000_000,
         cloud_radius_limit_m: float = 500.0,
         max_grid_cells: int = 16_000_000,
     ) -> None:
@@ -87,12 +121,33 @@ class SavedMapCatalog:
             if root.is_dir() and root not in resolved_roots:
                 resolved_roots.append(root)
         self.roots = tuple(resolved_roots)
+        resolved_managed_roots = []
+        for value in managed_roots:
+            raw_root = value.expanduser()
+            if raw_root.is_symlink():
+                continue
+            try:
+                root = raw_root.resolve(strict=True)
+            except OSError:
+                continue
+            if root in self.roots and root.is_dir() and root not in resolved_managed_roots:
+                resolved_managed_roots.append(root)
+        self.managed_roots = tuple(resolved_managed_roots)
         self.max_files = max(1, min(int(max_files), 2_000))
         self.max_depth = max(0, min(int(max_depth), 10))
         self.max_file_bytes = max(1024, min(int(max_file_bytes), 2 * 1024**3))
         self.preview_points = max(100, min(int(preview_points), 50_000))
+        self.max_requested_points = max(
+            1,
+            min(int(max_requested_points), 5_000_000),
+        )
+        self.max_full_view_points = max(
+            1,
+            min(int(max_full_view_points), 5_000_000),
+        )
         self.cloud_radius_limit_m = max(5.0, min(float(cloud_radius_limit_m), 10_000.0))
         self.max_grid_cells = max(1_000, min(int(max_grid_cells), 64_000_000))
+        self._lock = threading.RLock()
 
     @classmethod
     def from_profile(
@@ -100,6 +155,7 @@ class SavedMapCatalog:
         profile: Dict[str, Any],
         *,
         base_dir: Optional[Path] = None,
+        managed_roots: Iterable[Path] = (),
     ) -> "SavedMapCatalog":
         settings = profile.get("saved_maps", {}) if isinstance(profile, dict) else {}
         if not isinstance(settings, dict) or settings.get("enabled", True) is False:
@@ -115,10 +171,13 @@ class SavedMapCatalog:
                 roots.append(expanded if expanded.is_absolute() else base / expanded)
         return cls(
             roots,
+            managed_roots=managed_roots,
             max_files=settings.get("max_files", 100),
             max_depth=settings.get("max_depth", 3),
             max_file_bytes=settings.get("max_file_bytes", 256 * 1024 * 1024),
             preview_points=settings.get("preview_points", 10_000),
+            max_requested_points=settings.get("max_requested_points", 1_000_000),
+            max_full_view_points=settings.get("max_full_view_points", 2_000_000),
             cloud_radius_limit_m=settings.get(
                 "cloud_radius_limit_m",
                 profile.get("cloud_radius_limit_m", 500.0),
@@ -131,31 +190,424 @@ class SavedMapCatalog:
         return bool(self.roots)
 
     def list_snapshot(self) -> Dict[str, Any]:
-        records = self._scan()
-        return {
-            "enabled": self.enabled,
-            "count": len(records),
-            "maps": [record.public() for record in records],
-        }
+        with self._lock:
+            records = self._scan()
+            return {
+                "enabled": self.enabled,
+                "count": len(records),
+                "maps": [record.public() for record in records],
+            }
 
     def metadata(self, map_id: str) -> Dict[str, Any]:
-        return self._find(map_id).public()
+        with self._lock:
+            return self._find(map_id).public()
 
-    def data(self, map_id: str) -> Dict[str, Any]:
-        record = self._find(map_id)
+    def data(
+        self,
+        map_id: str,
+        max_points: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Return normalized map data.
+
+        ``max_points=None`` requests every usable saved point.  A positive
+        integer requests an evenly distributed subset no larger than that
+        value.  Occupancy maps do not use the point-cloud response limit.
+        """
+
+        with self._lock:
+            record = self._find(map_id)
+            try:
+                self._validate_record(record)
+                if record.format == "pcd-binary":
+                    return self._pcd_snapshot(
+                        record,
+                        self._point_limit(max_points),
+                    )
+                if record.format == "robot-scope-json":
+                    return self._json_snapshot(
+                        record,
+                        self._point_limit(max_points),
+                    )
+                if record.format == "map-server-pgm":
+                    return self._occupancy_snapshot(record)
+                raise SavedMapFormatError(f"unsupported saved map format: {record.format}")
+            except SavedMapError:
+                raise
+            except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
+                raise SavedMapFormatError("saved map data could not be read") from exc
+
+    def _point_limit(self, max_points: Optional[int]) -> Optional[int]:
+        if max_points is None:
+            return None
+        if isinstance(max_points, bool) or not isinstance(max_points, int):
+            raise SavedMapPointLimitError("max_points must be a positive integer or null")
+        if max_points <= 0:
+            raise SavedMapPointLimitError("max_points must be a positive integer or null")
+        if max_points > self.max_requested_points:
+            raise SavedMapPointLimitError(
+                f"max_points exceeds the configured limit of {self.max_requested_points}"
+            )
+        return max_points
+
+    def rename(self, map_id: str, new_name: str) -> Dict[str, Any]:
+        """Rename one managed map without allowing a target to be replaced.
+
+        An occupancy map is a logical YAML/PGM pair.  Both files are published
+        under the new stem and the YAML image reference is rewritten before the
+        old pair is removed.  Hidden hard-link backups make ordinary I/O
+        failures rollback-safe without copying a potentially large PCD.
+        """
+
+        safe_name = self.validate_map_name(new_name)
+        with self._lock:
+            record = self._find(map_id)
+            self._require_manageable(record)
+            if safe_name == record.name:
+                return record.public()
+
+            target_primary = record.path.with_name(f"{safe_name}{record.path.suffix}")
+            target_auxiliary = (
+                record.auxiliary_path.with_name(
+                    f"{safe_name}{record.auxiliary_path.suffix}"
+                )
+                if record.auxiliary_path is not None
+                else None
+            )
+            targets = [target_primary]
+            if target_auxiliary is not None:
+                targets.append(target_auxiliary)
+            self._ensure_targets_absent(targets)
+
+            shared_auxiliary = (
+                record.auxiliary_path is not None
+                and self._auxiliary_has_other_reference(record)
+            )
+            sources = [record.path]
+            if record.auxiliary_path is not None:
+                sources.append(record.auxiliary_path)
+            remove_sources = [record.path]
+            if record.auxiliary_path is not None and not shared_auxiliary:
+                remove_sources.append(record.auxiliary_path)
+
+            transaction_root, transaction = self._create_transaction(record.root)
+            backups: Dict[Path, Path] = {}
+            source_identities: Dict[Path, tuple[int, int]] = {}
+            published: Dict[Path, tuple[int, int]] = {}
+            try:
+                backups, source_identities = self._backup_sources(transaction, sources)
+                if target_auxiliary is None:
+                    published[target_primary] = self._publish_link(
+                        record.path,
+                        target_primary,
+                    )
+                else:
+                    staged_yaml = self._stage_renamed_yaml(
+                        record,
+                        transaction,
+                        target_auxiliary.name,
+                    )
+                    published[target_auxiliary] = self._publish_link(
+                        record.auxiliary_path,
+                        target_auxiliary,
+                    )
+                    published[target_primary] = self._publish_link(
+                        staged_yaml,
+                        target_primary,
+                    )
+
+                renamed = self._record_for(record.root, target_primary)
+                if renamed is None or not renamed.manageable:
+                    raise SavedMapMutationError("renamed map did not pass validation")
+                self._validate_record(renamed)
+                for source in remove_sources:
+                    self._unlink_verified(source, source_identities[source])
+            except SavedMapError:
+                rolled_back = self._rollback_mutation(backups, published)
+                if rolled_back:
+                    self._cleanup_transaction(transaction_root, transaction)
+                else:
+                    raise SavedMapMutationError(
+                        "saved map rename failed and requires manual recovery"
+                    )
+                raise
+            except (OSError, ValueError, TypeError, UnicodeError) as exc:
+                rolled_back = self._rollback_mutation(backups, published)
+                if rolled_back:
+                    self._cleanup_transaction(transaction_root, transaction)
+                else:
+                    raise SavedMapMutationError(
+                        "saved map rename failed and requires manual recovery"
+                    ) from exc
+                raise SavedMapMutationError("saved map could not be renamed safely") from exc
+
+            self._cleanup_transaction(transaction_root, transaction)
+            return renamed.public()
+
+    def delete(self, map_id: str) -> Dict[str, Any]:
+        """Delete one managed logical map, rolling back a partial pair removal."""
+
+        with self._lock:
+            record = self._find(map_id)
+            self._require_manageable(record)
+            shared_auxiliary = (
+                record.auxiliary_path is not None
+                and self._auxiliary_has_other_reference(record)
+            )
+            sources = [record.path]
+            if record.auxiliary_path is not None and not shared_auxiliary:
+                sources.append(record.auxiliary_path)
+
+            transaction_root, transaction = self._create_transaction(record.root)
+            backups: Dict[Path, Path] = {}
+            source_identities: Dict[Path, tuple[int, int]] = {}
+            try:
+                backups, source_identities = self._backup_sources(transaction, sources)
+                for source in sources:
+                    self._unlink_verified(source, source_identities[source])
+            except SavedMapError:
+                rolled_back = self._rollback_mutation(backups, {})
+                if rolled_back:
+                    self._cleanup_transaction(transaction_root, transaction)
+                else:
+                    raise SavedMapMutationError(
+                        "saved map delete failed and requires manual recovery"
+                    )
+                raise
+            except OSError as exc:
+                rolled_back = self._rollback_mutation(backups, {})
+                if rolled_back:
+                    self._cleanup_transaction(transaction_root, transaction)
+                else:
+                    raise SavedMapMutationError(
+                        "saved map delete failed and requires manual recovery"
+                    ) from exc
+                raise SavedMapMutationError("saved map could not be deleted safely") from exc
+
+            self._cleanup_transaction(transaction_root, transaction)
+            return {
+                "deleted": True,
+                "id": record.map_id,
+                "name": record.name,
+                "kind": record.kind,
+                "files": [path.name for path in sources],
+            }
+
+    @staticmethod
+    def validate_map_name(name: str) -> str:
+        if not isinstance(name, str) or not MAP_NAME_RE.fullmatch(name):
+            raise SavedMapInvalidName(
+                "map name must be 1-64 ASCII letters, numbers, underscores or hyphens"
+            )
+        return name
+
+    def _require_manageable(self, record: SavedMapRecord) -> None:
+        if not record.manageable or record.root not in self.managed_roots:
+            raise SavedMapReadOnly("saved map is read-only")
         try:
             self._validate_record(record)
-            if record.format == "pcd-binary":
-                return self._pcd_snapshot(record)
-            if record.format == "robot-scope-json":
-                return self._json_snapshot(record)
-            if record.format == "map-server-pgm":
-                return self._occupancy_snapshot(record)
-            raise SavedMapFormatError(f"unsupported saved map format: {record.format}")
+            self._regular_identity(record.path)
+            if record.auxiliary_path is not None:
+                self._regular_identity(record.auxiliary_path)
+                metadata = self._read_map_yaml(record.path)
+                image = metadata["image"]
+                if (
+                    Path(image).name != image
+                    or record.auxiliary_path.parent != record.path.parent
+                    or (record.path.parent / image).resolve(strict=True)
+                    != record.auxiliary_path
+                ):
+                    raise SavedMapReadOnly("saved map pair is read-only")
         except SavedMapError:
             raise
-        except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
-            raise SavedMapFormatError("saved map data could not be read") from exc
+        except (OSError, ValueError, TypeError, UnicodeError) as exc:
+            raise SavedMapReadOnly("saved map is no longer safely manageable") from exc
+
+    def _auxiliary_has_other_reference(self, record: SavedMapRecord) -> bool:
+        if record.auxiliary_path is None:
+            return False
+        return any(
+            candidate.path != record.path
+            and candidate.auxiliary_path == record.auxiliary_path
+            for candidate in self._scan(apply_limit=False)
+        )
+
+    @staticmethod
+    def _ensure_targets_absent(targets: Iterable[Path]) -> None:
+        for target in targets:
+            if os.path.lexists(target):
+                raise SavedMapConflict("a map with the requested name already exists")
+
+    @staticmethod
+    def _regular_identity(path: Path) -> tuple[int, int]:
+        current = path.lstat()
+        if not stat.S_ISREG(current.st_mode):
+            raise SavedMapReadOnly("saved map artifact is not a regular file")
+        return current.st_dev, current.st_ino
+
+    def _create_transaction(self, root: Path) -> tuple[Path, Path]:
+        transaction_root = root / ".robot_scope_transactions"
+        try:
+            transaction_root.mkdir(mode=0o700, exist_ok=True)
+            if (
+                transaction_root.is_symlink()
+                or not transaction_root.is_dir()
+                or transaction_root.resolve(strict=True).parent != root
+            ):
+                raise SavedMapMutationError("saved map transaction directory is unsafe")
+            transaction = transaction_root / uuid.uuid4().hex
+            transaction.mkdir(mode=0o700, exist_ok=False)
+        except SavedMapError:
+            raise
+        except OSError as exc:
+            raise SavedMapMutationError("saved map transaction could not be created") from exc
+        return transaction_root, transaction
+
+    def _backup_sources(
+        self,
+        transaction: Path,
+        sources: Iterable[Path],
+    ) -> tuple[Dict[Path, Path], Dict[Path, tuple[int, int]]]:
+        backups: Dict[Path, Path] = {}
+        identities: Dict[Path, tuple[int, int]] = {}
+        for index, source in enumerate(sources):
+            identity = self._regular_identity(source)
+            backup = transaction / f"source-{index}{source.suffix}"
+            try:
+                os.link(source, backup, follow_symlinks=False)
+            except OSError as exc:
+                raise SavedMapMutationError("saved map backup could not be created") from exc
+            if self._regular_identity(backup) != identity:
+                raise SavedMapMutationError("saved map changed while creating its backup")
+            backups[source] = backup
+            identities[source] = identity
+        return backups, identities
+
+    @staticmethod
+    def _publish_link(source: Path, target: Path) -> tuple[int, int]:
+        source_stat = source.lstat()
+        if not stat.S_ISREG(source_stat.st_mode):
+            raise SavedMapReadOnly("saved map artifact is not a regular file")
+        source_identity = source_stat.st_dev, source_stat.st_ino
+        try:
+            os.link(source, target, follow_symlinks=False)
+        except FileExistsError as exc:
+            raise SavedMapConflict("a map with the requested name already exists") from exc
+        except OSError as exc:
+            raise SavedMapMutationError("renamed map could not be published") from exc
+        try:
+            current = target.lstat()
+            target_identity = current.st_dev, current.st_ino
+            if not stat.S_ISREG(current.st_mode) or target_identity != source_identity:
+                raise SavedMapMutationError("renamed map target changed during publication")
+            return target_identity
+        except OSError as exc:
+            # A concurrent actor may have removed the new name.  Never remove a
+            # replacement whose inode is not the hard link created above.
+            try:
+                current = target.lstat()
+                if (current.st_dev, current.st_ino) == source_identity:
+                    target.unlink()
+            except OSError:
+                pass
+            raise SavedMapMutationError("renamed map target could not be verified") from exc
+
+    def _stage_renamed_yaml(
+        self,
+        record: SavedMapRecord,
+        transaction: Path,
+        image_name: str,
+    ) -> Path:
+        try:
+            rewritten = self._rewrite_yaml_image(
+                record.path.read_text(encoding="utf-8"),
+                image_name,
+            )
+            staged = transaction / f"renamed{record.path.suffix}"
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+            if hasattr(os, "O_NOFOLLOW"):
+                flags |= os.O_NOFOLLOW
+            descriptor = os.open(
+                staged,
+                flags,
+                stat.S_IMODE(record.path.stat().st_mode),
+            )
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+                stream.write(rewritten)
+                stream.flush()
+                os.fsync(stream.fileno())
+            if self._read_map_yaml(staged)["image"] != image_name:
+                raise SavedMapMutationError("renamed map YAML image reference is invalid")
+            return staged
+        except SavedMapError:
+            raise
+        except (OSError, ValueError, TypeError, UnicodeError) as exc:
+            raise SavedMapMutationError("renamed map YAML could not be prepared") from exc
+
+    @staticmethod
+    def _rewrite_yaml_image(content: str, image_name: str) -> str:
+        lines = content.splitlines(keepends=True)
+        rewritten: list[str] = []
+        replacements = 0
+        image_line = re.compile(
+            r"^(?P<prefix>\s*image\s*:\s*)(?P<value>[^#\r\n]*?)"
+            r"(?P<suffix>\s*(?:#.*)?)(?P<ending>\r?\n)?$"
+        )
+        for line in lines:
+            match = image_line.match(line)
+            if match is None:
+                rewritten.append(line)
+                continue
+            replacements += 1
+            rewritten.append(
+                f"{match.group('prefix')}{image_name}"
+                f"{match.group('suffix')}{match.group('ending') or ''}"
+            )
+        if replacements != 1:
+            raise SavedMapMutationError("map YAML must contain exactly one image field")
+        return "".join(rewritten)
+
+    def _unlink_verified(self, path: Path, identity: tuple[int, int]) -> None:
+        if self._regular_identity(path) != identity:
+            raise SavedMapMutationError("saved map changed during the operation")
+        os.unlink(path)
+
+    def _rollback_mutation(
+        self,
+        backups: Dict[Path, Path],
+        published: Dict[Path, tuple[int, int]],
+    ) -> bool:
+        complete = True
+        for source, backup in backups.items():
+            try:
+                backup_identity = self._regular_identity(backup)
+                if os.path.lexists(source):
+                    if self._regular_identity(source) != backup_identity:
+                        complete = False
+                else:
+                    os.link(backup, source, follow_symlinks=False)
+                    if self._regular_identity(source) != backup_identity:
+                        complete = False
+            except (OSError, SavedMapError):
+                complete = False
+        for target, identity in reversed(tuple(published.items())):
+            try:
+                if not os.path.lexists(target):
+                    continue
+                if self._regular_identity(target) != identity:
+                    complete = False
+                    continue
+                os.unlink(target)
+            except (OSError, SavedMapError):
+                complete = False
+        return complete
+
+    @staticmethod
+    def _cleanup_transaction(transaction_root: Path, transaction: Path) -> None:
+        shutil.rmtree(transaction, ignore_errors=True)
+        try:
+            transaction_root.rmdir()
+        except OSError:
+            pass
 
     def _find(self, map_id: str) -> SavedMapRecord:
         if not isinstance(map_id, str) or len(map_id) != 24:
@@ -165,7 +617,7 @@ class SavedMapCatalog:
             raise SavedMapNotFound("saved map not found")
         return record
 
-    def _scan(self) -> list[SavedMapRecord]:
+    def _scan(self, *, apply_limit: bool = True) -> list[SavedMapRecord]:
         records: list[SavedMapRecord] = []
         for root in self.roots:
             for path in self._iter_candidates(root):
@@ -183,7 +635,7 @@ class SavedMapCatalog:
                 if record is not None:
                     records.append(record)
         records.sort(key=lambda record: (-record.modified_ns, record.name.lower(), record.map_id))
-        return records[: self.max_files]
+        return records[: self.max_files] if apply_limit else records
 
     def _iter_candidates(self, root: Path) -> Iterable[Path]:
         for current, directories, files in os.walk(root, followlinks=False):
@@ -211,6 +663,7 @@ class SavedMapCatalog:
         suffix = resolved.suffix.lower()
         details: Dict[str, Any]
         auxiliary: Optional[Path] = None
+        manageable = root in self.managed_roots
         if suffix == ".pcd":
             header = self._read_pcd_header(resolved)
             if header["data"] != "binary":
@@ -235,7 +688,9 @@ class SavedMapCatalog:
                 details["bounds"] = payload["bounds"]
         else:
             metadata = self._read_map_yaml(resolved)
-            auxiliary = self._contained_file(root, resolved.parent / metadata["image"])
+            image_reference = metadata["image"]
+            auxiliary_candidate = resolved.parent / image_reference
+            auxiliary = self._contained_file(root, auxiliary_candidate)
             if auxiliary.suffix.lower() != ".pgm":
                 return None
             image_stat = auxiliary.stat()
@@ -253,29 +708,37 @@ class SavedMapCatalog:
             }
             stat_size = stat.st_size + image_stat.st_size
             stat_mtime = max(stat.st_mtime_ns, image_stat.st_mtime_ns)
+            manageable = bool(
+                manageable
+                and Path(image_reference).name == image_reference
+                and auxiliary.parent == resolved.parent
+                and not auxiliary_candidate.is_symlink()
+            )
             return SavedMapRecord(
-                self._opaque_id(kind, resolved),
-                resolved.stem,
-                kind,
-                fmt,
-                resolved,
-                root,
-                stat_mtime,
-                stat_size,
-                details,
-                auxiliary,
+                map_id=self._opaque_id(kind, resolved),
+                name=resolved.stem,
+                kind=kind,
+                format=fmt,
+                path=resolved,
+                root=root,
+                modified_ns=stat_mtime,
+                size_bytes=stat_size,
+                details=details,
+                manageable=manageable,
+                auxiliary_path=auxiliary,
             )
         return SavedMapRecord(
-            self._opaque_id(kind, resolved),
-            resolved.stem,
-            kind,
-            fmt,
-            resolved,
-            root,
-            stat.st_mtime_ns,
-            stat.st_size,
-            details,
-            auxiliary,
+            map_id=self._opaque_id(kind, resolved),
+            name=resolved.stem,
+            kind=kind,
+            format=fmt,
+            path=resolved,
+            root=root,
+            modified_ns=stat.st_mtime_ns,
+            size_bytes=stat.st_size,
+            details=details,
+            manageable=manageable,
+            auxiliary_path=auxiliary,
         )
 
     @staticmethod
@@ -285,6 +748,12 @@ class SavedMapCatalog:
 
     @staticmethod
     def _contained_file(root: Path, path: Path) -> Path:
+        try:
+            candidate_stat = path.lstat()
+        except OSError as exc:
+            raise SavedMapFormatError("map path is not a regular file") from exc
+        if not stat.S_ISREG(candidate_stat.st_mode):
+            raise SavedMapFormatError("map path is not a regular file")
         resolved = path.resolve(strict=True)
         try:
             resolved.relative_to(root)
@@ -351,8 +820,17 @@ class SavedMapCatalog:
             "data_offset": consumed,
         }
 
-    def _pcd_snapshot(self, record: SavedMapRecord) -> Dict[str, Any]:
+    def _pcd_snapshot(
+        self,
+        record: SavedMapRecord,
+        max_points: Optional[int],
+    ) -> Dict[str, Any]:
         header = self._read_pcd_header(record.path)
+        if max_points is None and header["points"] > self.max_full_view_points:
+            raise SavedMapPointLimitError(
+                "saved point cloud exceeds the configured full-view limit of "
+                f"{self.max_full_view_points} points"
+            )
         scalar_types = {
             ("F", 4): "<f4", ("F", 8): "<f8",
             ("I", 1): "i1", ("I", 2): "<i2", ("I", 4): "<i4",
@@ -381,17 +859,48 @@ class SavedMapCatalog:
             offset=header["data_offset"],
             shape=(header["points"],),
         )
-        sample_count = min(header["points"], max(self.preview_points * 4, self.preview_points))
-        indexes = np.linspace(0, header["points"] - 1, sample_count, dtype=np.int64)
-        points = np.column_stack((records["x"][indexes], records["y"][indexes], records["z"][indexes]))
-        return self._cloud_payload(record, points, header["points"], "camera_init")
+        if max_points is None:
+            points = np.column_stack((records["x"], records["y"], records["z"]))
+        else:
+            sample_count = min(header["points"], max_points * 4)
+            indexes = np.linspace(
+                0,
+                header["points"] - 1,
+                sample_count,
+                dtype=np.int64,
+            )
+            points = np.column_stack(
+                (records["x"][indexes], records["y"][indexes], records["z"][indexes])
+            )
+        return self._cloud_payload(
+            record,
+            points,
+            header["points"],
+            "camera_init",
+            max_points,
+        )
 
-    def _json_snapshot(self, record: SavedMapRecord) -> Dict[str, Any]:
+    def _json_snapshot(
+        self,
+        record: SavedMapRecord,
+        max_points: Optional[int],
+    ) -> Dict[str, Any]:
         source = self._read_json(record.path)
         raw = np.asarray(source["points"], dtype=np.float64).reshape((-1, 3))
+        if max_points is None and len(raw) > self.max_full_view_points:
+            raise SavedMapPointLimitError(
+                "saved point cloud exceeds the configured full-view limit of "
+                f"{self.max_full_view_points} points"
+            )
         frame_id = str(source.get("frame_id", ""))
         source_count = int(source.get("source_points", len(raw)))
-        payload = self._cloud_payload(record, raw, source_count, frame_id)
+        payload = self._cloud_payload(
+            record,
+            raw,
+            source_count,
+            frame_id,
+            max_points,
+        )
         payload["topic"] = str(source.get("topic", "/saved/map"))
         return payload
 
@@ -401,6 +910,7 @@ class SavedMapCatalog:
         points: np.ndarray,
         source_count: int,
         frame_id: str,
+        max_points: Optional[int],
     ) -> Dict[str, Any]:
         finite = points[np.isfinite(points).all(axis=1)]
         if not len(finite):
@@ -410,8 +920,8 @@ class SavedMapCatalog:
         finite = finite[distances <= self.cloud_radius_limit_m]
         if not len(finite):
             raise SavedMapFormatError("saved point cloud is outside the configured radius")
-        if len(finite) > self.preview_points:
-            indexes = np.linspace(0, len(finite) - 1, self.preview_points, dtype=np.int64)
+        if max_points is not None and len(finite) > max_points:
+            indexes = np.linspace(0, len(finite) - 1, max_points, dtype=np.int64)
             finite = finite[indexes]
         finite = np.round(finite.astype(np.float64, copy=False), 4)
         return {

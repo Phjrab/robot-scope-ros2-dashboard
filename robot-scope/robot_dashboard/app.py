@@ -26,7 +26,16 @@ from .mapping_jobs import (
     SaveResultError,
 )
 from .ros_agent import RosAgent
-from .saved_maps import SavedMapCatalog, SavedMapFormatError, SavedMapNotFound
+from .saved_maps import (
+    SavedMapCatalog,
+    SavedMapConflict,
+    SavedMapFormatError,
+    SavedMapInvalidName,
+    SavedMapMutationError,
+    SavedMapNotFound,
+    SavedMapPointLimitError,
+    SavedMapReadOnly,
+)
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -52,6 +61,14 @@ class RobotTarget(BaseModel):
 class MapSaveRequest(BaseModel):
     name: str
     create_2d: bool = True
+
+
+class CloudPointLimitRequest(BaseModel):
+    max_points: int | None
+
+
+class SavedMapRenameRequest(BaseModel):
+    name: str
 
 
 @asynccontextmanager
@@ -109,6 +126,43 @@ def mapping_error(exc: MappingJobError) -> HTTPException:
     return HTTPException(status_code=500, detail=str(exc))
 
 
+def saved_map_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, SavedMapNotFound):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, SavedMapInvalidName):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, SavedMapReadOnly):
+        return HTTPException(status_code=403, detail=str(exc))
+    if isinstance(exc, SavedMapConflict):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, SavedMapFormatError):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, SavedMapPointLimitError):
+        return HTTPException(status_code=413, detail=str(exc))
+    if isinstance(exc, SavedMapMutationError):
+        return HTTPException(status_code=500, detail=str(exc))
+    return HTTPException(status_code=500, detail="saved map operation failed")
+
+
+def parse_saved_point_limit(value: str) -> int | None:
+    normalized = value.strip().lower()
+    if normalized == "all":
+        return None
+    try:
+        limit = int(normalized)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="max_points must be 'all' or an integer from 1,000 to 1,000,000",
+        ) from exc
+    if limit < 1_000 or limit > 1_000_000:
+        raise HTTPException(
+            status_code=422,
+            detail="max_points must be 'all' or an integer from 1,000 to 1,000,000",
+        )
+    return limit
+
+
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
@@ -152,11 +206,15 @@ async def set_robot(target: RobotTarget) -> Dict[str, Any]:
     return {"robot_ip": value}
 
 
-def cached_json_response(key: str, payload: Dict[str, Any]) -> Response:
+def encode_json(payload: Dict[str, Any]) -> bytes:
+    return json.dumps(payload, separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+async def cached_json_response(key: str, payload: Dict[str, Any]) -> Response:
     seq = int(payload.get("seq", 0))
     cached = JSON_CACHE.get(key)
     if cached is None or cached[0] != seq:
-        cached = (seq, json.dumps(payload, separators=(",", ":"), allow_nan=False).encode("utf-8"))
+        cached = (seq, await asyncio.to_thread(encode_json, payload))
         JSON_CACHE[key] = cached
     return Response(content=cached[1], media_type="application/json", headers={"Cache-Control": "no-store"})
 
@@ -166,7 +224,22 @@ async def pointcloud(since: int = -1) -> Response:
     snapshot = await asyncio.to_thread(agent().pointcloud_snapshot)
     if int(snapshot.get("seq", 0)) == since:
         return Response(status_code=204)
-    return cached_json_response("pointcloud", snapshot)
+    return await cached_json_response("pointcloud", snapshot)
+
+
+@app.get("/api/v1/pointcloud/settings")
+async def pointcloud_settings() -> Dict[str, Any]:
+    return await asyncio.to_thread(agent().cloud_point_settings)
+
+
+@app.post("/api/v1/pointcloud/settings")
+async def set_pointcloud_settings(request: CloudPointLimitRequest) -> Dict[str, Any]:
+    try:
+        settings = await asyncio.to_thread(agent().set_cloud_max_points, request.max_points)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    JSON_CACHE.pop("pointcloud", None)
+    return settings
 
 
 @app.get("/api/v1/map")
@@ -174,7 +247,7 @@ async def occupancy_map(since: int = -1) -> Response:
     snapshot = await asyncio.to_thread(agent().map_snapshot)
     if int(snapshot.get("seq", 0)) == since:
         return Response(status_code=204)
-    return cached_json_response("map", snapshot)
+    return await cached_json_response("map", snapshot)
 
 
 @app.get("/api/v1/joints")
@@ -251,18 +324,49 @@ async def saved_map_metadata(map_id: str) -> Dict[str, Any]:
     try:
         return await asyncio.to_thread(saved_maps().metadata, map_id)
     except SavedMapNotFound as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise saved_map_error(exc) from exc
+
+
+@app.patch("/api/v1/saved-maps/{map_id}")
+async def rename_saved_map(map_id: str, request: SavedMapRenameRequest) -> Dict[str, Any]:
+    if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        raise HTTPException(status_code=409, detail="map save must finish before a map can be renamed")
+    try:
+        metadata = await asyncio.to_thread(saved_maps().rename, map_id, request.name)
+    except (
+        SavedMapNotFound,
+        SavedMapInvalidName,
+        SavedMapReadOnly,
+        SavedMapConflict,
+        SavedMapMutationError,
+    ) as exc:
+        raise saved_map_error(exc) from exc
+    return {"map": metadata}
+
+
+@app.delete("/api/v1/saved-maps/{map_id}")
+async def delete_saved_map(map_id: str) -> Dict[str, Any]:
+    if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        raise HTTPException(status_code=409, detail="map save must finish before a map can be deleted")
+    try:
+        result = await asyncio.to_thread(saved_maps().delete, map_id)
+    except (
+        SavedMapNotFound,
+        SavedMapReadOnly,
+        SavedMapMutationError,
+    ) as exc:
+        raise saved_map_error(exc) from exc
+    return {"deleted": result}
 
 
 @app.get("/api/v1/saved-maps/{map_id}/data")
-async def saved_map_data(map_id: str) -> Response:
+async def saved_map_data(map_id: str, max_points: str = "all") -> Response:
+    point_limit = parse_saved_point_limit(max_points)
     try:
-        payload = await asyncio.to_thread(saved_maps().data, map_id)
-    except SavedMapNotFound as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except SavedMapFormatError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    content = json.dumps(payload, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        payload = await asyncio.to_thread(saved_maps().data, map_id, point_limit)
+    except (SavedMapNotFound, SavedMapFormatError, SavedMapPointLimitError) as exc:
+        raise saved_map_error(exc) from exc
+    content = await asyncio.to_thread(encode_json, payload)
     return Response(
         content=content,
         media_type="application/json",
@@ -348,12 +452,12 @@ def main() -> None:
         cloud_max_points=args.cloud_max_points,
     )
     profile_base = Path(args.profile).expanduser().resolve().parent if args.profile else Path.cwd()
-    SAVED_MAPS = SavedMapCatalog.from_profile(AGENT.profile, base_dir=profile_base)
     project_dir = Path(__file__).resolve().parents[1]
     save_script = project_dir / "scripts" / "save_hesai_map_humble.sh"
+    mapping_output_dir = Path(args.mapping_output_dir).expanduser()
     MAPPING_JOBS = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
-        output_dir=Path(args.mapping_output_dir).expanduser(),
+        output_dir=mapping_output_dir,
         save_commands={
             "pointcloud3d": SaveCommandSpec(
                 (str(save_script), "{output_prefix}", "pcd"),
@@ -376,6 +480,11 @@ def main() -> None:
         # The one-shot saver still requires a fresh /Laser_map and will time
         # out safely, while stop only affects dashboard-owned process groups.
         require_pipeline_for_save=False,
+    )
+    SAVED_MAPS = SavedMapCatalog.from_profile(
+        AGENT.profile,
+        base_dir=profile_base,
+        managed_roots=[MAPPING_JOBS.output_dir],
     )
     uvicorn.run(
         app,

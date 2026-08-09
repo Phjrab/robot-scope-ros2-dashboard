@@ -75,14 +75,17 @@ class RateMeter:
 class RosAgent:
     """A single-process, read-only bridge between ROS 2 and the web API."""
 
+    MIN_CLOUD_POINTS = 1_000
+    MAX_CUSTOM_CLOUD_POINTS = 1_000_000
+
     def __init__(
         self,
         robot_ip: str = "",
         profile_path: Optional[str] = None,
-        cloud_max_points: int = 18000,
+        cloud_max_points: Optional[int] = 18000,
     ) -> None:
         self.robot_ip = self._valid_ip(robot_ip)
-        self.cloud_max_points = max(1000, min(int(cloud_max_points), 50000))
+        self.cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
         self.profile = self._load_profile(profile_path)
         self.cloud_radius_limit = max(
             5.0,
@@ -192,6 +195,42 @@ class RosAgent:
             return str(ipaddress.ip_address(value))
         except ValueError:
             return ""
+
+    @classmethod
+    def _normalize_cloud_max_points(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        limit = int(value)
+        if limit < cls.MIN_CLOUD_POINTS or limit > cls.MAX_CUSTOM_CLOUD_POINTS:
+            raise ValueError(
+                f"max_points must be between {cls.MIN_CLOUD_POINTS} and "
+                f"{cls.MAX_CUSTOM_CLOUD_POINTS}, or null for all points"
+            )
+        return limit
+
+    def cloud_point_settings(self) -> Dict[str, Any]:
+        with self._lock:
+            limit = self.cloud_max_points
+            source_points = int(self._cloud.get("source_points", 0))
+            sent_points = int(self._cloud.get("sent_points", 0))
+        return {
+            "max_points": limit,
+            "all_points": limit is None,
+            "min_points": self.MIN_CLOUD_POINTS,
+            "max_custom_points": self.MAX_CUSTOM_CLOUD_POINTS,
+            "source_points": source_points,
+            "sent_points": sent_points,
+        }
+
+    def set_cloud_max_points(self, value: Optional[int]) -> Dict[str, Any]:
+        limit = self._normalize_cloud_max_points(value)
+        with self._lock:
+            if limit != self.cloud_max_points:
+                self.cloud_max_points = limit
+                self._reset_cloud_locked(self._sources.get("pointcloud", ""))
+            else:
+                self._last_cloud_processed = 0.0
+        return self.cloud_point_settings()
 
     @staticmethod
     def _load_profile(path: Optional[str]) -> Dict[str, Any]:
@@ -732,12 +771,13 @@ class RosAgent:
         with self._lock:
             if topic != self._sources.get("pointcloud", ""):
                 return
+            point_limit = self.cloud_max_points
         self._tick(topic, now)
         if now - self._last_cloud_processed < 0.35:
             return
         self._last_cloud_processed = now
         try:
-            array, source_points = extract_xyz(message, self.cloud_max_points)
+            array, source_points = extract_xyz(message, point_limit)
             array = reject_spatial_outliers(array, self.cloud_radius_limit)
             if not len(array):
                 return

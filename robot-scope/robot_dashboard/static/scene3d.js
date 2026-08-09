@@ -30,6 +30,11 @@
     return Number.isFinite(number) ? number : fallback;
   }
 
+  function normalizedPointLimit(value, fallback = 10000) {
+    if (value == null || value === 'all' || value === Infinity) return Infinity;
+    return clamp(Math.floor(finite(value, fallback)), 100, 5_000_000);
+  }
+
   function add(a, b) {
     return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
   }
@@ -97,9 +102,13 @@
   }
 
   function coordinateMedian(points, coordinate) {
-    const values = new Array(Math.floor(points.length / 3));
-    for (let index = coordinate, output = 0; index < points.length; index += 3, output += 1) {
-      values[output] = points[index];
+    const available = Math.floor(points.length / 3);
+    const sampleCount = Math.min(available, 10001);
+    const values = new Array(sampleCount);
+    const stride = sampleCount ? available / sampleCount : 1;
+    for (let output = 0; output < sampleCount; output += 1) {
+      const source = Math.min(available - 1, Math.floor(output * stride));
+      values[output] = points[source * 3 + coordinate];
     }
     values.sort((a, b) => a - b);
     const middle = Math.floor(values.length / 2);
@@ -140,7 +149,7 @@
       this.canvas = canvas;
       this.ctx = context;
       this.options = {
-        maxPoints: clamp(Math.floor(finite(options.maxPoints, 10000)), 100, 10000),
+        maxPoints: normalizedPointLimit(options.maxPoints, 10000),
         fov: clamp(finite(options.fov, 48), 24, 90) * DEG,
         minDistance: Math.max(finite(options.minDistance, 0.35), 0.05),
         maxDistance: Math.max(finite(options.maxDistance, 2000), 10),
@@ -169,7 +178,7 @@
         pitch: this.camera.pitch,
       };
       this.cloud = {
-        points: new Float64Array(0),
+        points: new Float32Array(0),
         bounds: null,
         frameId: '',
         sourcePoints: 0,
@@ -194,6 +203,11 @@
       this._raf = 0;
       this._drag = null;
       this._basis = null;
+      this._staticCanvas = global.document?.createElement?.('canvas') || null;
+      this._staticCtx = this._staticCanvas?.getContext?.('2d', { alpha: false }) || null;
+      this._staticDirty = true;
+      this._interactivePreview = false;
+      this._interactionTimer = 0;
       this._controlDisposers = [];
       this._controlElements = {};
       this.cameraMode = 'world';
@@ -244,7 +258,7 @@
       }
 
       const wanted = Math.min(available, limit);
-      const sampled = new Float64Array(wanted * 3);
+      const sampled = new Float32Array(wanted * 3);
       let written = 0;
       const stride = wanted > 0 ? available / wanted : 1;
 
@@ -267,7 +281,7 @@
       }
 
       const finitePoints = written === wanted ? sampled : sampled.slice(0, written * 3);
-      let points = new Float64Array(0);
+      let points = new Float32Array(0);
       let bounds = null;
       let medians = null;
       let rejectedPoints = 0;
@@ -279,7 +293,7 @@
           coordinateMedian(finitePoints, 2),
         ];
         const radiusSquared = this.options.maxCloudRadius * this.options.maxCloudRadius;
-        const filtered = new Float64Array(written * 3);
+        const filtered = finitePoints;
         let accepted = 0;
         let minX = Infinity, minY = Infinity, minZ = Infinity;
         let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -326,6 +340,7 @@
         usedAdvertisedBounds,
         robotPoseInFrame: normalizedPose(cloud?.robot_pose_in_frame || cloud?.robotPoseInFrame),
       };
+      this._invalidateStatic();
 
       const shouldFit = options.fit === true ||
         (options.fit !== false && !this._hasFittedCloud && written > 0 && this.options.autoFitOnFirstCloud);
@@ -347,19 +362,39 @@
 
     clearPointCloud() {
       this.cloud = {
-        points: new Float64Array(0), bounds: null, frameId: '', sourcePoints: 0, stamp: null,
+        points: new Float32Array(0), bounds: null, frameId: '', sourcePoints: 0, stamp: null,
         medians: null, rejectedPoints: 0, usedAdvertisedBounds: false, robotPoseInFrame: null,
       };
       this._hasFittedCloud = false;
+      this._invalidateStatic();
       this.render();
+    }
+
+    setPointLimit(value) {
+      this.options.maxPoints = normalizedPointLimit(value, this.options.maxPoints);
+      this._invalidateStatic();
+      return this.options.maxPoints;
     }
 
     setRobotPose(value) {
       this.robotPose = normalizedPose(value);
       if (this.cameraMode === 'follow' && this.robotPose) {
         const alpha = 0.16;
-        this.camera.target[0] += (this.robotPose.x - this.camera.target[0]) * alpha;
-        this.camera.target[1] += (this.robotPose.y - this.camera.target[1]) * alpha;
+        const moveX = (this.robotPose.x - this.camera.target[0]) * alpha;
+        const moveY = (this.robotPose.y - this.camera.target[1]) * alpha;
+        if (Math.abs(moveX) + Math.abs(moveY) > 0.0001) {
+          this.camera.target[0] += moveX;
+          this.camera.target[1] += moveY;
+          this._interactivePreview = true;
+          if (this._interactionTimer) global.clearTimeout?.(this._interactionTimer);
+          this._interactionTimer = global.setTimeout?.(() => {
+            this._interactionTimer = 0;
+            this._interactivePreview = false;
+            this._invalidateStatic();
+            this.render();
+          }, 180) || 0;
+          this._invalidateStatic();
+        }
       }
       this.render();
       return Boolean(this.robotPose);
@@ -372,6 +407,7 @@
         control.textContent = this.cameraMode === 'follow' ? 'FOLLOW' : 'WORLD';
         control.setAttribute('aria-pressed', this.cameraMode === 'follow' ? 'true' : 'false');
       }
+      this._invalidateStatic();
       this.render();
       return this.cameraMode;
     }
@@ -445,6 +481,7 @@
     setGroundZ(z) {
       if (Number.isFinite(Number(z))) {
         this.options.groundZ = Number(z);
+        this._invalidateStatic();
         this.render();
       }
     }
@@ -463,6 +500,7 @@
         this.camera.distance = clamp(radius / Math.tan(this.options.fov / 2) * 1.18, this.options.minDistance, this.options.maxDistance);
       }
       this._saveHome();
+      this._invalidateStatic();
       if (render) this.render();
     }
 
@@ -476,6 +514,7 @@
       this.camera.pitch = 33 * DEG;
       this._saveHome();
       this._updateControlState('reset');
+      this._invalidateStatic();
       this.render();
     }
 
@@ -484,6 +523,7 @@
       this.camera.yaw = -90 * DEG;
       this.camera.pitch = 88 * DEG;
       this._updateControlState('top');
+      this._invalidateStatic();
       this.render();
     }
 
@@ -492,6 +532,7 @@
       this.camera.yaw = 0;
       this.camera.pitch = 8 * DEG;
       this._updateControlState('front');
+      this._invalidateStatic();
       this.render();
     }
 
@@ -543,6 +584,7 @@
       if (this.canvas.width !== pixelWidth || this.canvas.height !== pixelHeight) {
         this.canvas.width = pixelWidth;
         this.canvas.height = pixelHeight;
+        this._invalidateStatic();
       }
       this.render();
     }
@@ -565,6 +607,7 @@
       this._destroyed = true;
       const cancel = global.cancelAnimationFrame || global.clearTimeout;
       if (this._raf) cancel?.(this._raf);
+      if (this._interactionTimer) global.clearTimeout?.(this._interactionTimer);
       this._raf = 0;
       this.unbindControls();
       this._resizeObserver?.disconnect();
@@ -604,6 +647,7 @@
         y: event.clientY,
         mode: pan ? 'pan' : 'orbit',
       };
+      this._interactivePreview = true;
       this.canvas.setPointerCapture?.(event.pointerId);
       this.canvas.style.cursor = pan ? 'move' : 'grabbing';
       event.preventDefault();
@@ -627,6 +671,7 @@
         );
       }
       this._updateControlState('');
+      this._invalidateStatic();
       this.render();
       event.preventDefault();
     }
@@ -635,14 +680,26 @@
       if (!this._drag || this._drag.id !== event.pointerId) return;
       this.canvas.releasePointerCapture?.(event.pointerId);
       this._drag = null;
+      this._interactivePreview = false;
       this.canvas.style.cursor = 'grab';
+      this._invalidateStatic();
+      this.render();
     }
 
     _onWheel(event) {
+      this._interactivePreview = true;
       const factor = Math.exp(clamp(event.deltaY, -240, 240) * 0.0018);
       this.camera.distance = clamp(this.camera.distance * factor, this.options.minDistance, this.options.maxDistance);
       this._updateControlState('');
+      this._invalidateStatic();
       this.render();
+      if (this._interactionTimer) global.clearTimeout?.(this._interactionTimer);
+      this._interactionTimer = global.setTimeout?.(() => {
+        this._interactionTimer = 0;
+        this._interactivePreview = false;
+        this._invalidateStatic();
+        this.render();
+      }, 140) || 0;
       event.preventDefault();
     }
 
@@ -678,24 +735,66 @@
       };
     }
 
-    _draw() {
-      this.resizeIfNeeded();
-      const ctx = this.ctx;
-      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      ctx.clearRect(0, 0, this.width, this.height);
+    _invalidateStatic() {
+      this._staticDirty = true;
+      this._basis = null;
+    }
+
+    _fillBackground(ctx) {
       const background = ctx.createLinearGradient(0, 0, 0, this.height);
       background.addColorStop(0, '#06110f');
       background.addColorStop(0.58, this.options.background);
       background.addColorStop(1, '#020706');
       ctx.fillStyle = background;
       ctx.fillRect(0, 0, this.width, this.height);
+    }
 
+    _rebuildStaticLayer() {
+      if (!this._staticCanvas || !this._staticCtx) return false;
+      const pixelWidth = Math.max(1, Math.round(this.width * this.dpr));
+      const pixelHeight = Math.max(1, Math.round(this.height * this.dpr));
+      if (this._staticCanvas.width !== pixelWidth || this._staticCanvas.height !== pixelHeight) {
+        this._staticCanvas.width = pixelWidth;
+        this._staticCanvas.height = pixelHeight;
+      }
+      const mainContext = this.ctx;
+      const ctx = this._staticCtx;
+      this.ctx = ctx;
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      ctx.clearRect(0, 0, this.width, this.height);
+      this._fillBackground(ctx);
       this._basis = null;
       this._cameraBasis();
       this._drawGrid();
       this._drawPointCloud();
-      if (this.trailVisible) this._drawTrail();
       this._drawWorldAxes();
+      this.ctx = mainContext;
+      this._staticDirty = false;
+      return true;
+    }
+
+    _draw() {
+      this.resizeIfNeeded();
+      const ctx = this.ctx;
+      const cached = this._staticCtx && (!this._staticDirty || this._rebuildStaticLayer());
+      if (cached) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.drawImage(this._staticCanvas, 0, 0);
+      } else {
+        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        ctx.clearRect(0, 0, this.width, this.height);
+        this._fillBackground(ctx);
+        this._basis = null;
+        this._cameraBasis();
+        this._drawGrid();
+        this._drawPointCloud();
+        this._drawWorldAxes();
+      }
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      this._basis = null;
+      this._cameraBasis();
+      if (this.trailVisible) this._drawTrail();
       if (this.robotVisible) this._drawRobot();
       this._drawHud();
     }
@@ -712,6 +811,7 @@
         this.dpr = dpr;
         this.canvas.width = Math.round(width * dpr);
         this.canvas.height = Math.round(height * dpr);
+        this._invalidateStatic();
       }
     }
 
@@ -753,13 +853,16 @@
       const spanZ = Math.max((bounds?.max?.[2] ?? 1) - minZ, 0.15);
       const bins = Array.from({ length: 14 }, () => []);
 
-      for (let index = 0; index < points.length; index += 3) {
+      const available = Math.floor(points.length / 3);
+      const previewLimit = this._interactivePreview ? 20000 : available;
+      const stride = Math.max(1, Math.ceil(available / Math.max(1, previewLimit)));
+      for (let index = 0; index < points.length; index += 3 * stride) {
         const projected = this._project([points[index], points[index + 1], points[index + 2]]);
         if (!projected || projected.x < -4 || projected.x > this.width + 4 || projected.y < -4 || projected.y > this.height + 4) continue;
         const heightRatio = clamp((points[index + 2] - minZ) / spanZ, 0, 1);
         const bin = Math.min(bins.length - 1, Math.floor(heightRatio * bins.length));
         const size = clamp(this.options.pointSize * projected.scale, 1, 4.2);
-        bins[bin].push(projected.x, projected.y, size, projected.depth);
+        bins[bin].push(projected.x, projected.y, size);
       }
 
       ctx.save();
@@ -770,7 +873,7 @@
         const hue = 181 - ratio * 135;
         ctx.fillStyle = `hsla(${hue}, 82%, ${58 + ratio * 10}%, .76)`;
         ctx.beginPath();
-        for (let pointIndex = 0; pointIndex < values.length; pointIndex += 4) {
+        for (let pointIndex = 0; pointIndex < values.length; pointIndex += 3) {
           const x = values[pointIndex];
           const y = values[pointIndex + 1];
           const size = values[pointIndex + 2];

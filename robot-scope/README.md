@@ -46,6 +46,8 @@ Robot Scope agent (각 로봇의 Jetson)
 - Odometry quaternion 전체 자세와 IMU yaw delta를 이용한 30 FPS 최단각 보간
 - Overview / Live Mapping / Saved Maps / Sensors / ROS Graph 메뉴 분리
 - 실시간 LiDAR와 저장된 PCD·map_server 2D 지도를 서로 독립적으로 표시
+- 실시간 점군은 10K~250K·사용자 지정·`ALL SESSION`, 저장 PCD는 기본 `ALL` 또는 사용자 지정 포인트 수로 표시
+- 저장 지도 이름 변경과 삭제(PGM·YAML 쌍 안전 처리, 실제 매핑 출력 폴더만 허용)
 - 대시보드에서 Hesai+FAST-LIO 새 세션 시작, 3D PCD 저장, 선택적 2D PGM+YAML 변환
 - Hesai `/lidar_points` publisher를 `XT16 ONLINE`으로 표시
 - 로봇 IP ping, ROS 배포판·Domain·RMW 표시
@@ -95,7 +97,7 @@ sudo apt install gstreamer1.0-tools gstreamer1.0-plugins-good \
 | 역할 | 기본 선택 |
 |---|---|
 | 카메라 | 자동 구독 끔; 필요 시 `/frontvideostream` 선택 |
-| 실시간 3D 매핑 | FAST-LIO 실행 시 `/cloud_registered`; 브라우저에서 최대 30,000점 누적 |
+| 실시간 3D 매핑 | FAST-LIO 실행 시 `/cloud_registered`; 화면에서 포인트 예산 또는 `ALL SESSION` 선택 |
 | Go2 내장 LiDAR 대체 | `/utlidar/cloud_deskewed` (`odom` frame) |
 | 위치 추정 | `/Odometry` |
 | 2D 맵 | `/map` |
@@ -119,7 +121,9 @@ cd ~/robot-scope
 | 저장된 2D 지도 | `/map` | 971×677, 0.05 m/cell |
 
 FAST-LIO가 켜지면 화면은 같은 `camera_init` 좌표계인 `/cloud_registered`와
-`/Odometry`로 자동 전환합니다. 등록된 스캔은 브라우저에서 제한된 크기로 누적하고,
+`/Odometry`로 자동 전환합니다. 등록된 스캔은 브라우저에서 선택한 포인트 수까지 누적하며,
+`ALL SESSION`은 현재 브라우저 세션에 들어온 모든 유효 점을 누적합니다. 이 옵션은
+긴 세션에서 메모리와 렌더링 부하가 커질 수 있으므로 확인 후 적용됩니다.
 실제 저장은 전체 `/Laser_map`을 사용합니다. `Live Mapping`의 `VIEW`는
 `LIVE 3D`, `LIVE 2D`, `AUTO` 중에서 고릅니다. 3D 장면은 드래그로 회전,
 Shift/오른쪽 드래그로 이동, 휠로 확대하며 `ISO`, `TOP`, `FRONT` 버튼으로
@@ -143,9 +147,14 @@ Shift/오른쪽 드래그로 이동, 휠로 확대하며 `ISO`, `TOP`, `FRONT` �
 
 `Live Mapping`은 현재 들어오는 데이터만 표시하며, 로봇이나 LiDAR가 꺼져 있으면
 `LIVE DATA WAITING`을 표시합니다. 과거 지도는 `Saved Maps`에서 별도로 선택합니다.
-에이전트는 `config/go2.json`에 지정된 디렉터리를 읽기 전용으로 탐색해 binary PCD,
+에이전트는 `config/go2.json`에 지정된 디렉터리만 탐색해 binary PCD,
 Robot Scope JSON, map_server YAML+PGM을 목록으로 제공합니다. 공개 저장소처럼 지도
 파일이 없는 환경에서는 실제 공간 정보가 없는 데모 점군을 브라우저에서 생성합니다.
+`Saved Maps`의 `POINTS` 기본값은 `ALL`이며, 10K~250K 또는 최대 1,000,000점의
+사용자 지정값으로 빠르게 미리 볼 수도 있습니다. 전체 보기는 기본 2,000,000점까지
+보호되며 이 상한은 프로필에서 바꿀 수 있습니다. 대시보드에서 만든 출력 폴더의 지도는
+이름 변경·삭제할 수 있습니다. PCD는 단일 파일로, 2D 지도는 YAML과 연결된 PGM을
+한 묶음으로 처리하며, 번들 데모와 다른 읽기 전용 경로는 관리할 수 없습니다.
 새 PCD 스냅샷은 다음처럼 정적 JSON으로 만들 수도 있습니다.
 
 ```bash
@@ -176,9 +185,9 @@ Go2 프로필은 지도 처리 성능을 보호하기 위해 카메라를 자동
 - `/frontvideostream`을 고대역폭 지도 토픽과 함께 상시 디코딩하면 대시보드의
   CPU·메모리가 급증했습니다. Go2 프로필에서는 카메라 자동 구독을 끄고 지도와
   센서를 우선합니다.
-- `/Laser_map`은 계속 커지는 누적 지도입니다. 에이전트는 전체 배열을 복사하지
-  않고 실시간 표시는 더 작은 `/cloud_registered`를 샘플링합니다. 브라우저는
-  등록 스캔을 최대 30,000점까지 누적하고 장면 렌더링은 10,000점으로 제한합니다.
+- `/Laser_map`은 계속 커지는 누적 지도입니다. 기본 실시간 표시는 더 작은
+  `/cloud_registered`를 사용하며 화면의 `POINTS`에서 처리량을 조절합니다.
+  `ALL SESSION`은 긴 세션에서 메모리를 계속 사용하므로 필요할 때만 선택합니다.
 - 원시 `/velodyne_points`(`hesai_lidar`)와 `/Odometry`(`camera_init`)를 직접
   겹치면 로봇과 점군 위치가 어긋납니다. 자동 소스 선택은 publisher가 사라진
   stale 선택을 버리고 `/cloud_registered + /Odometry` world-frame pair로 승격합니다.
@@ -235,13 +244,15 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 - `GET /api/v1/topics`: 발견한 ROS 토픽
 - `GET/POST /api/v1/sources`: 표시 소스 조회·변경
 - `GET /api/v1/pointcloud`: 다운샘플된 최신 점군
+- `GET/POST /api/v1/pointcloud/settings`: 실시간 포인트 예산 조회·변경(`null`은 전체)
 - `GET /api/v1/map`: 최신 OccupancyGrid
 - `GET /api/v1/joints`: 정규화된 Go2 12축 관절과 몸통 RPY
 - `GET /api/v1/pose`: 선택된 Odometry의 freshness-aware pose
 - `GET /api/v1/mapping/control`: 매핑 프로세스·저장 작업·제한된 로그
 - `POST /api/v1/mapping/start|stop|save`: 허용된 매핑 작업
 - `GET /api/v1/saved-maps`: 허용된 디렉터리의 저장 지도 목록
-- `GET /api/v1/saved-maps/{id}/data`: 선택한 PCD 또는 2D 지도의 렌더링 데이터
+- `GET /api/v1/saved-maps/{id}/data?max_points=all|N`: 선택한 PCD 또는 2D 지도의 렌더링 데이터
+- `PATCH /api/v1/saved-maps/{id}` / `DELETE /api/v1/saved-maps/{id}`: 관리 허용 지도 이름 변경·삭제
 - `WS /api/v1/ws/camera`: 카메라 바이너리 스트림
 - `WS /api/v1/ws/joints`: 최대 50 Hz 관절 상태 스트림
 - `WS /api/v1/ws/pose`: 최대 50 Hz compact pose 스트림
@@ -250,9 +261,11 @@ Jetson에서 `realsense2_camera`와 Robot Scope 에이전트를 실행해야 합
 ## 운영 원칙과 다음 단계
 
 - Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구독을 중복시킵니다.
-- Go2 실행 스크립트는 웹 표시용 PointCloud를 최대 10,000점, 약 3 Hz로 제한합니다. 원본 SLAM 토픽은
-  변경하지 않습니다.
+- Go2 실행 스크립트의 초기 웹 표시값은 10,000점, 약 3 Hz이며 대시보드에서
+  1,000~1,000,000점 또는 전체로 바꿀 수 있습니다. 원본 SLAM 토픽은 변경하지 않습니다.
 - 인터넷이나 공용망에 노출하기 전에는 토큰 인증과 TLS를 추가해야 합니다.
+- 현재 지도 이름 변경·삭제 API도 별도 인증이 없으므로 신뢰된 실습 LAN에서만
+  사용하고, 여러 사용자가 접속하는 환경에서는 인증을 먼저 추가해야 합니다.
 - 다음 후보: TF 트리, rosbag 녹화, 다중 로봇 목록, RealSense depth 컬러맵.
 
 ## 라이선스

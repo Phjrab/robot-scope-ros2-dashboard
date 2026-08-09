@@ -83,6 +83,8 @@
             <div class="map-legend">
               <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span><span><i class="legend-trail"></i>TRAIL</span>
               <label class="map-view-select"><span>VIEW</span><select id="mapViewMode"><option value="cloud" selected>LIVE 3D</option><option value="occupancy">LIVE 2D</option><option value="auto">AUTO</option></select></label>
+              <label class="map-view-select"><span>POINTS</span><select id="livePointBudget"><option value="10000" selected>10K</option><option value="30000">30K</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all">ALL SESSION</option><option value="custom">CUSTOM</option></select></label>
+              <span class="point-budget-custom is-hidden" id="livePointCustomWrap"><input id="livePointCustom" type="number" min="1000" max="1000000" step="1000" value="10000" aria-label="실시간 표시 포인트 수"><button id="livePointApply" type="button">SET</button></span>
               <label class="overlay-toggle"><input id="mapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
             </div>
             <div class="map-meta"><span id="mapFrame">FRAME —</span><span id="mapPoints">0 POINTS</span></div>
@@ -151,6 +153,8 @@
               <div class="map-legend">
                 <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>GO2</span>
                 <label class="map-view-select"><span>VIEW</span><select id="savedMapViewMode"><option value="cloud" selected>SAVED 3D</option><option value="occupancy">SAVED 2D</option></select></label>
+                <label class="map-view-select"><span>POINTS</span><select id="savedPointBudget"><option value="10000">10K</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all" selected>ALL ≤2M</option><option value="custom">CUSTOM</option></select></label>
+                <span class="point-budget-custom is-hidden" id="savedPointCustomWrap"><input id="savedPointCustom" type="number" min="1000" max="1000000" step="1000" value="100000" aria-label="저장 지도 표시 포인트 수"><button id="savedPointApply" type="button">SET</button></span>
                 <label class="overlay-toggle"><input id="savedMapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
               </div>
               <div class="map-meta"><span id="savedMapFrame">FRAME —</span><span id="savedMapPoints">0 POINTS</span></div>
@@ -162,6 +166,12 @@
             <div class="saved-map-detail">
               <span>SELECTED</span><strong id="savedMapTitle">—</strong>
               <dl><div><dt>Source</dt><dd id="savedMapSource">—</dd></div><div><dt>Frame</dt><dd id="savedMapDetailFrame">—</dd></div><div><dt>Points</dt><dd id="savedMapDetailPoints">—</dd></div><div><dt>Bounds</dt><dd id="savedMapBounds">—</dd></div></dl>
+              <div class="saved-map-management">
+                <label for="savedMapNameInput">지도 이름</label>
+                <div><input id="savedMapNameInput" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name"><button id="savedMapRenameButton" type="button">이름 변경</button></div>
+                <button id="savedMapDeleteButton" class="danger" type="button">선택 지도 삭제</button>
+                <small id="savedMapManageNote">실제 저장 폴더의 지도만 관리할 수 있습니다.</small>
+              </div>
             </div>
           </aside>
         </section>

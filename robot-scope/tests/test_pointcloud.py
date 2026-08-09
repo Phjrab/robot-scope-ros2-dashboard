@@ -7,6 +7,19 @@ from robot_dashboard.pointcloud import extract_xyz, reject_spatial_outliers
 
 
 class PointCloudTests(unittest.TestCase):
+    @staticmethod
+    def message(points):
+        values = np.asarray(points, dtype="<f4")
+        fields = [
+            SimpleNamespace(name="x", offset=0, datatype=7),
+            SimpleNamespace(name="y", offset=4, datatype=7),
+            SimpleNamespace(name="z", offset=8, datatype=7),
+        ]
+        return SimpleNamespace(
+            width=len(points), height=1, point_step=12, row_step=len(points) * 12,
+            fields=fields, is_bigendian=False, data=values.tobytes(),
+        )
+
     def test_extract_xyz_is_bounded_and_filters_nan(self):
         values = np.zeros(12, dtype={
             "names": ["x", "y", "z", "ring"],
@@ -49,6 +62,19 @@ class PointCloudTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "row_step"):
             extract_xyz(message, max_points=2)
+
+    def test_extract_xyz_none_returns_every_finite_point(self):
+        message = self.message(
+            [(float(index), float(index + 1), float(index + 2)) for index in range(7)]
+        )
+        xyz, source_points = extract_xyz(message, max_points=None)
+        self.assertEqual(source_points, 7)
+        self.assertEqual(len(xyz), 7)
+        self.assertEqual(xyz[-1].tolist(), [6.0, 7.0, 8.0])
+
+    def test_extract_xyz_rejects_non_positive_limit(self):
+        with self.assertRaisesRegex(ValueError, "positive"):
+            extract_xyz(self.message([(0.0, 0.0, 0.0)]), max_points=0)
 
     def test_reject_spatial_outliers_removes_power_down_spike(self):
         room = np.column_stack((

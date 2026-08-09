@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
@@ -20,11 +20,12 @@ _POINT_FIELD_DTYPES = {
 }
 
 
-def extract_xyz(message: Any, max_points: int) -> Tuple[np.ndarray, int]:
-    """Return at most ``max_points`` finite XYZ rows and the source point count.
+def extract_xyz(message: Any, max_points: Optional[int]) -> Tuple[np.ndarray, int]:
+    """Return finite XYZ rows and the source point count.
 
-    Unlike ``sensor_msgs_py.read_points()``, this samples before materializing an
-    accumulated map, which keeps a growing ``/Laser_map`` bounded in memory.
+    A positive ``max_points`` samples before materializing an accumulated map,
+    which keeps a growing ``/Laser_map`` bounded in memory. ``None`` explicitly
+    requests every point in the current PointCloud2 message.
     """
 
     width = int(getattr(message, "width", 0))
@@ -72,9 +73,15 @@ def extract_xyz(message: Any, max_points: int) -> Tuple[np.ndarray, int]:
         buffer=payload,
         strides=(row_step, point_step),
     )
-    stride = max(1, int(math.ceil(source_points / max(1, int(max_points)))))
-    indexes = np.arange(0, source_points, stride, dtype=np.int64)
-    sampled = cloud[indexes // width, indexes % width]
+    if max_points is None:
+        sampled = cloud.reshape(-1)
+    else:
+        limit = int(max_points)
+        if limit < 1:
+            raise ValueError("max_points must be positive or None")
+        stride = max(1, int(math.ceil(source_points / limit)))
+        indexes = np.arange(0, source_points, stride, dtype=np.int64)
+        sampled = cloud[indexes // width, indexes % width]
     xyz = np.column_stack((sampled["x"], sampled["y"], sampled["z"])).astype(np.float32, copy=False)
     return xyz[np.isfinite(xyz).all(axis=1)], source_points
 

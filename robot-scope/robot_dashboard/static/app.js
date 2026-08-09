@@ -38,6 +38,10 @@ const ui = {
   sceneFrontButton: $('#sceneFrontButton'),
   sceneFollowButton: $('#sceneFollowButton'),
   mapViewMode: $('#mapViewMode'),
+  livePointBudget: $('#livePointBudget'),
+  livePointCustomWrap: $('#livePointCustomWrap'),
+  livePointCustom: $('#livePointCustom'),
+  livePointApply: $('#livePointApply'),
   mapOverlayToggle: $('#mapOverlayToggle'),
   mappingState: $('#mappingState'),
   liveModelState: $('#liveModelState'),
@@ -51,6 +55,10 @@ const ui = {
   savedSceneTopButton: $('#savedSceneTopButton'),
   savedSceneFrontButton: $('#savedSceneFrontButton'),
   savedMapViewMode: $('#savedMapViewMode'),
+  savedPointBudget: $('#savedPointBudget'),
+  savedPointCustomWrap: $('#savedPointCustomWrap'),
+  savedPointCustom: $('#savedPointCustom'),
+  savedPointApply: $('#savedPointApply'),
   savedMapOverlayToggle: $('#savedMapOverlayToggle'),
   savedMappingState: $('#savedMappingState'),
   savedModelState: $('#savedModelState'),
@@ -63,6 +71,10 @@ const ui = {
   savedMapDetailFrame: $('#savedMapDetailFrame'),
   savedMapDetailPoints: $('#savedMapDetailPoints'),
   savedMapBounds: $('#savedMapBounds'),
+  savedMapNameInput: $('#savedMapNameInput'),
+  savedMapRenameButton: $('#savedMapRenameButton'),
+  savedMapDeleteButton: $('#savedMapDeleteButton'),
+  savedMapManageNote: $('#savedMapManageNote'),
   liveCloudTopic: $('#liveCloudTopic'),
   liveCloudStatus: $('#liveCloudStatus'),
   liveOdomTopic: $('#liveOdomTopic'),
@@ -103,6 +115,8 @@ let cameraHasKey = false;
 let cameraFrames = 0;
 let cameraFrameWindow = [];
 let cloudSeq = -1;
+let pointcloudRequestInFlight = false;
+let pointcloudRequestGeneration = 0;
 let mapSeq = -1;
 let toastTimer = null;
 let currentPose = null;
@@ -115,6 +129,11 @@ let lastPoseSignature = '';
 let poseTrail = [];
 let lastCloudSnapshot = null;
 let liveCloudAccumulator = null;
+let livePointLimit = 10000;
+let savedPointLimit = null;
+let livePointBudgetBusy = false;
+let savedPointBudgetBusy = false;
+let savedMapMutationBusy = false;
 let offlineCloudSnapshot = null;
 let lastMapSnapshot = null;
 let savedOccupancySnapshot = null;
@@ -122,6 +141,7 @@ let savedMapCatalog = [];
 let selectedSavedMapId = '';
 let selectedSavedMapMeta = null;
 const savedMapDataCache = new Map();
+const savedMapLoadPromises = new Map();
 let activePage = 'overview';
 let activeMapView = null;
 let mapViewPreference = 'cloud';
@@ -166,8 +186,8 @@ if (scene3d) {
 
 const savedScene3d = window.RobotScene3D && ui.savedSceneCanvas
   ? new window.RobotScene3D(ui.savedSceneCanvas, {
-      maxPoints: 10000,
-      maxCloudRadius: 150,
+      maxPoints: null,
+      maxCloudRadius: 1000000,
       pointSize: 0.05,
       autoFitOnFirstCloud: true,
     })
@@ -331,6 +351,166 @@ function cloudPointCount(cloud) {
   return Number(cloud?.sent_points || (cloud?.points?.length ? Math.floor(cloud.points.length / 3) : 0));
 }
 
+function cloudPointSummary(cloud) {
+  const shown = cloudPointCount(cloud);
+  const source = Math.max(shown, Number(cloud?.source_points || shown));
+  return shown < source
+    ? `${shown.toLocaleString()} / ${source.toLocaleString()}`
+    : shown.toLocaleString();
+}
+
+function normalizePointLimit(value) {
+  if (value == null || value === 'all') return null;
+  const number = Math.floor(Number(value));
+  if (!Number.isFinite(number) || number < 1000 || number > 1000000) {
+    throw new Error('포인트 수는 1,000~1,000,000 사이여야 합니다.');
+  }
+  return number;
+}
+
+function pointBudgetCacheKey(mapId, limit = savedPointLimit, kind = 'pointcloud3d') {
+  if (kind === 'occupancy2d') return `${mapId}:grid`;
+  return `${mapId}:${limit == null ? 'all' : limit}`;
+}
+
+function savedPointDataUrl(meta) {
+  const base = meta.data_url || `/api/v1/saved-maps/${encodeURIComponent(meta.id)}/data`;
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}max_points=${savedPointLimit == null ? 'all' : encodeURIComponent(savedPointLimit)}`;
+}
+
+function storedPointLimit(key) {
+  try {
+    const value = localStorage.getItem(key);
+    if (value == null) return undefined;
+    return normalizePointLimit(value);
+  } catch (_) {
+    return undefined;
+  }
+}
+
+function rememberPointLimit(key, value) {
+  try { localStorage.setItem(key, value == null ? 'all' : String(value)); } catch (_) {}
+}
+
+function syncPointBudgetControl(select, wrapper, input, value) {
+  const option = value == null ? 'all' : String(value);
+  const known = Array.from(select.options).some((item) => item.value === option);
+  select.value = known ? option : 'custom';
+  wrapper.classList.toggle('is-hidden', select.value !== 'custom');
+  if (value != null) input.value = String(value);
+}
+
+function updateSavedPointBudgetAvailability() {
+  const disabled = savedPointBudgetBusy || selectedSavedMapMeta?.kind !== 'pointcloud3d';
+  ui.savedPointBudget.disabled = disabled;
+  ui.savedPointCustom.disabled = disabled;
+  ui.savedPointApply.disabled = disabled;
+  ui.savedPointCustomWrap.classList.toggle(
+    'is-hidden',
+    disabled || ui.savedPointBudget.value !== 'custom',
+  );
+}
+
+async function applyLivePointLimit(value, notify = true) {
+  if (livePointBudgetBusy) return;
+  let limit;
+  try {
+    limit = normalizePointLimit(value);
+  } catch (error) {
+    syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
+    if (notify) showToast(`포인트 설정 실패: ${error.message}`, true);
+    return;
+  }
+  livePointBudgetBusy = true;
+  ui.livePointBudget.disabled = ui.livePointCustom.disabled = ui.livePointApply.disabled = true;
+  try {
+    const settings = await api('/api/v1/pointcloud/settings', {
+      method: 'POST',
+      body: JSON.stringify({ max_points: limit }),
+    });
+    livePointLimit = settings.all_points ? null : Number(settings.max_points);
+    rememberPointLimit('robotScope.livePointLimit', livePointLimit);
+    syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
+    scene3d?.setPointLimit?.(livePointLimit);
+    resetLiveCloudAccumulator();
+    lastCloudSnapshot = null;
+    pointcloudRequestGeneration += 1;
+    cloudSeq = -1;
+    sceneCloudDataKey = '';
+    sceneCloudSourceKey = '';
+    await refreshPointcloud();
+    if (notify) showToast(livePointLimit == null ? '실시간 점군을 ALL SESSION으로 표시합니다.' : `실시간 점군 표시량을 ${livePointLimit.toLocaleString()}점으로 설정했습니다.`);
+  } catch (error) {
+    syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
+    if (notify) showToast(`포인트 설정 실패: ${error.message}`, true);
+  } finally {
+    livePointBudgetBusy = false;
+    ui.livePointBudget.disabled = ui.livePointCustom.disabled = ui.livePointApply.disabled = false;
+  }
+}
+
+async function applySavedPointLimit(value, notify = true) {
+  if (savedPointBudgetBusy) return;
+  let limit;
+  try {
+    limit = normalizePointLimit(value);
+  } catch (error) {
+    syncPointBudgetControl(ui.savedPointBudget, ui.savedPointCustomWrap, ui.savedPointCustom, savedPointLimit);
+    if (notify) showToast(`포인트 설정 실패: ${error.message}`, true);
+    return;
+  }
+  const previousLimit = savedPointLimit;
+  savedPointBudgetBusy = true;
+  ui.savedPointBudget.disabled = ui.savedPointCustom.disabled = ui.savedPointApply.disabled = true;
+  try {
+    savedPointLimit = limit;
+    syncPointBudgetControl(ui.savedPointBudget, ui.savedPointCustomWrap, ui.savedPointCustom, savedPointLimit);
+    savedScene3d?.setPointLimit?.(savedPointLimit);
+    savedSceneCloudDataKey = '';
+    savedSceneCloudSourceKey = '';
+    if (selectedSavedMapMeta?.kind === 'pointcloud3d' && selectedSavedMapId !== '__fallback_cloud') {
+      clearSavedMapCache(selectedSavedMapId);
+      offlineCloudSnapshot = null;
+      const loaded = await selectSavedMap(selectedSavedMapId, false, true);
+      if (!loaded) throw new Error('선택한 포인트 수로 지도를 불러오지 못했습니다.');
+    } else {
+      redrawSavedMap();
+    }
+    rememberPointLimit('robotScope.savedPointLimit', savedPointLimit);
+    if (notify) showToast(savedPointLimit == null ? '저장 지도의 모든 포인트를 표시합니다.' : `저장 지도 표시량을 ${savedPointLimit.toLocaleString()}점으로 설정했습니다.`);
+  } catch (error) {
+    savedPointLimit = previousLimit;
+    savedScene3d?.setPointLimit?.(savedPointLimit);
+    syncPointBudgetControl(ui.savedPointBudget, ui.savedPointCustomWrap, ui.savedPointCustom, savedPointLimit);
+    if (selectedSavedMapMeta?.kind === 'pointcloud3d' && selectedSavedMapId !== '__fallback_cloud') {
+      await selectSavedMap(selectedSavedMapId, false);
+    }
+    if (notify) showToast(`포인트 설정 실패: ${error.message}`, true);
+  } finally {
+    savedPointBudgetBusy = false;
+    updateSavedPointBudgetAvailability();
+  }
+}
+
+async function initializePointBudgets() {
+  const savedStored = storedPointLimit('robotScope.savedPointLimit');
+  savedPointLimit = savedStored === undefined ? null : savedStored;
+  syncPointBudgetControl(ui.savedPointBudget, ui.savedPointCustomWrap, ui.savedPointCustom, savedPointLimit);
+  savedScene3d?.setPointLimit?.(savedPointLimit);
+  try {
+    const settings = await api('/api/v1/pointcloud/settings');
+    const stored = storedPointLimit('robotScope.livePointLimit');
+    if (stored !== undefined && stored !== settings.max_points) {
+      await applyLivePointLimit(stored, false);
+      return;
+    }
+    livePointLimit = settings.all_points ? null : Number(settings.max_points);
+  } catch (_) {}
+  syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
+  scene3d?.setPointLimit?.(livePointLimit);
+}
+
 function resetLiveCloudAccumulator() {
   liveCloudAccumulator = null;
 }
@@ -344,34 +524,62 @@ function accumulateRegisteredCloud(cloud) {
   if (liveCloudAccumulator?.key === key && liveCloudAccumulator.lastSeq === cloud.seq) {
     return liveCloudAccumulator.payload;
   }
-  const previous = liveCloudAccumulator?.key === key ? liveCloudAccumulator.payload?.points || [] : [];
-  const combined = previous.concat(Array.from(cloud.points));
-  const available = Math.floor(combined.length / 3);
-  const limit = 30000;
-  let points = combined;
-  if (available > limit) {
-    points = new Array(limit * 3);
-    const stride = available / limit;
-    for (let index = 0; index < limit; index += 1) {
-      const source = Math.min(available - 1, Math.floor(index * stride)) * 3;
-      points[index * 3] = combined[source];
-      points[index * 3 + 1] = combined[source + 1];
-      points[index * 3 + 2] = combined[source + 2];
-    }
+  let accumulator = liveCloudAccumulator?.key === key ? liveCloudAccumulator : null;
+  const incoming = cloud.points;
+  const required = (accumulator?.length || 0) + incoming.length;
+  if (!accumulator) {
+    const initial = Math.max(required, Math.min((livePointLimit || Math.floor(required / 3)) * 3, 262144));
+    accumulator = {
+      key,
+      buffer: new Float32Array(Math.max(initial, 3)),
+      length: 0,
+      totalObservedPoints: 0,
+      bounds: null,
+    };
+  } else if (required > accumulator.buffer.length) {
+    let capacity = Math.max(accumulator.buffer.length, 3);
+    while (capacity < required) capacity *= 2;
+    const grown = new Float32Array(capacity);
+    grown.set(accumulator.buffer.subarray(0, accumulator.length));
+    accumulator.buffer = grown;
   }
-  const oldBounds = liveCloudAccumulator?.key === key ? liveCloudAccumulator.payload?.bounds : null;
+  accumulator.buffer.set(incoming, accumulator.length);
+  accumulator.length += incoming.length;
+  accumulator.totalObservedPoints += Number(cloud.source_points ?? cloudPointCount(cloud));
+
+  let available = Math.floor(accumulator.length / 3);
+  if (livePointLimit != null && available > livePointLimit) {
+    const sampled = new Float32Array(livePointLimit * 3);
+    const stride = available / livePointLimit;
+    for (let index = 0; index < livePointLimit; index += 1) {
+      const source = Math.min(available - 1, Math.floor(index * stride)) * 3;
+      sampled[index * 3] = accumulator.buffer[source];
+      sampled[index * 3 + 1] = accumulator.buffer[source + 1];
+      sampled[index * 3 + 2] = accumulator.buffer[source + 2];
+    }
+    accumulator.buffer = sampled;
+    accumulator.length = sampled.length;
+    available = livePointLimit;
+  }
+  const points = accumulator.buffer.subarray(0, accumulator.length);
+  const oldBounds = accumulator.bounds;
   const bounds = oldBounds?.min && cloud.bounds?.min ? {
     min: oldBounds.min.map((value, index) => Math.min(Number(value), Number(cloud.bounds.min[index]))),
     max: oldBounds.max.map((value, index) => Math.max(Number(value), Number(cloud.bounds.max[index]))),
   } : cloud.bounds;
+  accumulator.bounds = bounds;
   const payload = {
     ...cloud,
     points,
     bounds,
-    sent_points: Math.floor(points.length / 3),
+    sent_points: available,
+    source_points: Math.max(available, accumulator.totalObservedPoints),
+    frame_source_points: Number(cloud.source_points || cloudPointCount(cloud)),
     accumulated_registered_scans: true,
   };
-  liveCloudAccumulator = { key, lastSeq: cloud.seq, payload };
+  accumulator.lastSeq = cloud.seq;
+  accumulator.payload = payload;
+  liveCloudAccumulator = accumulator;
   return payload;
 }
 
@@ -450,7 +658,8 @@ function updateOverview(state) {
   } else {
     ui.mapFrame.textContent = `FRAME ${cloud.frame_id || liveCloud?.frame_id || '—'}`;
     const displayPoints = liveCloud?.accumulated_registered_scans ? cloudPointCount(liveCloud) : Number(cloud.sent_points || cloudPointCount(liveCloud));
-    ui.mapPoints.textContent = `${displayPoints.toLocaleString()} POINTS${liveCloud?.accumulated_registered_scans ? ' · ACCUMULATED' : ''}`;
+    const pointLabel = liveCloud ? cloudPointSummary(liveCloud) : displayPoints.toLocaleString();
+    ui.mapPoints.textContent = `${pointLabel} POINTS${liveCloud?.accumulated_registered_scans ? ' · ACCUMULATED' : ''}`;
     const mappingLabels = { mapping: 'WORLD FRAME · LIVE', cloud_only: 'CLOUD LIVE', waiting: 'LIVE DATA WAITING', stale: 'LIVE DATA STALE' };
     const label = frameMismatch ? 'SENSOR FRAME · EXTRINSIC' : (mappingLabels[mapping.state] || 'CLOUD LIVE');
     setStatePill(ui.mappingState, liveCloud ? (frameMismatch ? 'waiting' : (mapping.state || 'cloud_only')) : 'waiting', liveCloud ? label : 'LIVE DATA WAITING');
@@ -508,10 +717,10 @@ function updateSavedMapOverview() {
     ui.savedMapTitle.textContent = selectedSavedMapMeta?.name || (demo ? 'Public demo cloud' : selected.name || 'Saved point cloud');
     ui.savedMapSource.textContent = selectedSavedMapMeta?.file_name || selected.topic || '/saved/map';
     ui.savedMapDetailFrame.textContent = selected.frame_id || '—';
-    ui.savedMapDetailPoints.textContent = `${cloudPointCount(selected).toLocaleString()} points`;
+    ui.savedMapDetailPoints.textContent = `${cloudPointSummary(selected)} points`;
     ui.savedMapBounds.textContent = formatBounds(selected.bounds);
     ui.savedMapFrame.textContent = `FRAME ${selected.frame_id || '—'}`;
-    ui.savedMapPoints.textContent = `${cloudPointCount(selected).toLocaleString()} POINTS · ${demo ? 'DEMO' : 'SAVED'}`;
+    ui.savedMapPoints.textContent = `${cloudPointSummary(selected)} POINTS · ${demo ? 'DEMO' : 'SAVED'}`;
     setStatePill(ui.savedMappingState, 'saved', demo ? 'DEMO 3D MAP' : 'SAVED 3D MAP');
   } else {
     ui.savedMapTitle.textContent = selectedSavedMapMeta?.name || '—';
@@ -521,6 +730,27 @@ function updateSavedMapOverview() {
     ui.savedMapBounds.textContent = '—';
     setStatePill(ui.savedMappingState, entries.length ? 'waiting' : 'waiting', entries.length ? 'LOADING MAP' : 'NO SAVED MAP');
   }
+  updateSavedPointBudgetAvailability();
+  updateSavedMapManagement();
+}
+
+function updateSavedMapManagement() {
+  const manageable = Boolean(selectedSavedMapMeta?.manageable && selectedSavedMapId !== '__fallback_cloud');
+  const enabled = manageable && !savedMapMutationBusy;
+  if (document.activeElement !== ui.savedMapNameInput) {
+    ui.savedMapNameInput.value = selectedSavedMapMeta?.name || '';
+  }
+  ui.savedMapNameInput.disabled = !enabled;
+  ui.savedMapRenameButton.disabled = !enabled;
+  ui.savedMapDeleteButton.disabled = !enabled;
+  ui.savedMapList.setAttribute('aria-busy', savedMapMutationBusy ? 'true' : 'false');
+  ui.savedMapList.querySelectorAll('button').forEach((button) => {
+    button.disabled = savedMapMutationBusy;
+  });
+  if (!selectedSavedMapMeta) ui.savedMapManageNote.textContent = '관리할 지도를 선택하세요.';
+  else if (!manageable) ui.savedMapManageNote.textContent = '번들 데모 또는 읽기 전용 지도는 변경할 수 없습니다.';
+  else if (selectedSavedMapMeta.kind === 'occupancy2d') ui.savedMapManageNote.textContent = '이름 변경·삭제 시 YAML과 연결된 PGM을 함께 처리합니다.';
+  else ui.savedMapManageNote.textContent = '선택한 저장 지도 파일의 이름을 변경하거나 삭제합니다.';
 }
 
 function compactValue(value) {
@@ -962,17 +1192,24 @@ function resizeCanvas(canvas) {
 }
 
 async function refreshPointcloud() {
+  if (pointcloudRequestInFlight) return;
+  pointcloudRequestInFlight = true;
+  const generation = pointcloudRequestGeneration;
   try {
     const cloud = await latestApi('/api/v1/pointcloud', cloudSeq);
+    if (generation !== pointcloudRequestGeneration) return;
     if (!cloud?.seq || !cloud.points?.length) {
       if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
       return;
     }
+    if (Number(cloud.seq) <= Number(cloudSeq)) return;
     cloudSeq = cloud.seq;
     lastCloudSnapshot = accumulateRegisteredCloud(cloud);
     if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
   } catch (_) {
     if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(null);
+  } finally {
+    pointcloudRequestInFlight = false;
   }
 }
 
@@ -1001,9 +1238,11 @@ async function refreshSavedMaps() {
     const maps = Array.isArray(payload.maps) ? payload.maps : [];
     savedMapCatalog = maps;
     const preserved = maps.find((entry) => entry.id === selectedSavedMapId);
-    const next = preserved || maps[0] || null;
+    const keepFallback = selectedSavedMapId === '__fallback_cloud' && offlineCloudSnapshot &&
+      !maps.some((entry) => entry.kind === 'pointcloud3d');
+    const next = keepFallback ? null : (preserved || maps[0] || null);
     if (preserved) selectedSavedMapMeta = preserved;
-    if (next && (next.id !== selectedSavedMapId || !savedMapDataCache.has(next.id))) {
+    if (next && (next.id !== selectedSavedMapId || !savedMapDataCache.has(pointBudgetCacheKey(next.id, savedPointLimit, next.kind)))) {
       await selectSavedMap(next.id, false);
       return;
     }
@@ -1023,7 +1262,7 @@ async function refreshSavedMaps() {
   }
 }
 
-async function selectSavedMap(mapId, notify = true) {
+async function selectSavedMap(mapId, notify = true, rethrow = false) {
   if (mapId === '__fallback_cloud') {
     selectedSavedMapId = mapId;
     selectedSavedMapMeta = savedMapCatalog.find((entry) => entry.id === mapId) || {
@@ -1034,7 +1273,7 @@ async function selectSavedMap(mapId, notify = true) {
     ui.savedMapViewMode.value = 'cloud';
     updateSavedMapOverview();
     if (activePage === 'maps') redrawSavedMap();
-    return;
+    return true;
   }
   const meta = savedMapCatalog.find((entry) => entry.id === mapId);
   if (!meta) return;
@@ -1046,10 +1285,23 @@ async function selectSavedMap(mapId, notify = true) {
   else offlineCloudSnapshot = null;
   updateSavedMapOverview();
   try {
-    let payload = savedMapDataCache.get(meta.id);
+    const cacheKey = pointBudgetCacheKey(meta.id, savedPointLimit, meta.kind);
+    let payload = savedMapDataCache.get(cacheKey);
     if (!payload) {
-      payload = await api(meta.data_url || `/api/v1/saved-maps/${encodeURIComponent(meta.id)}/data`);
-      savedMapDataCache.set(meta.id, payload);
+      let pending = savedMapLoadPromises.get(cacheKey);
+      if (!pending) {
+        pending = api(meta.kind === 'pointcloud3d' ? savedPointDataUrl(meta) : (meta.data_url || `/api/v1/saved-maps/${encodeURIComponent(meta.id)}/data`));
+        savedMapLoadPromises.set(cacheKey, pending);
+      }
+      try {
+        payload = await pending;
+      } finally {
+        if (savedMapLoadPromises.get(cacheKey) === pending) savedMapLoadPromises.delete(cacheKey);
+      }
+      savedMapDataCache.set(cacheKey, payload);
+      while (savedMapDataCache.size > 2) {
+        savedMapDataCache.delete(savedMapDataCache.keys().next().value);
+      }
     }
     if (selectedSavedMapId !== meta.id) return;
     if (meta.kind === 'occupancy2d') savedOccupancySnapshot = payload;
@@ -1057,9 +1309,80 @@ async function selectSavedMap(mapId, notify = true) {
     updateSavedMapOverview();
     if (activePage === 'maps') redrawSavedMap();
     if (notify) showToast(`${meta.name || '저장 지도'}를 불러왔습니다.`);
+    return true;
   } catch (error) {
     setStatePill(ui.savedMappingState, 'error', 'LOAD FAILED');
     if (notify) showToast(`저장 지도 로드 실패: ${error.message}`, true);
+    if (rethrow) throw error;
+    return false;
+  }
+}
+
+function clearSavedMapCache(mapId) {
+  for (const key of savedMapDataCache.keys()) {
+    if (key.startsWith(`${mapId}:`)) savedMapDataCache.delete(key);
+  }
+  for (const key of savedMapLoadPromises.keys()) {
+    if (key.startsWith(`${mapId}:`)) savedMapLoadPromises.delete(key);
+  }
+}
+
+async function renameSelectedSavedMap() {
+  if (savedMapMutationBusy || !selectedSavedMapMeta?.manageable) return;
+  const name = ui.savedMapNameInput.value.trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name)) {
+    showToast('지도 이름은 영문·숫자로 시작하고 영문·숫자·_·-만 사용할 수 있습니다.', true);
+    return;
+  }
+  if (name === selectedSavedMapMeta.name) {
+    showToast('현재 이름과 같습니다.');
+    return;
+  }
+  const previousId = selectedSavedMapId;
+  savedMapMutationBusy = true;
+  updateSavedMapManagement();
+  try {
+    const result = await api(`/api/v1/saved-maps/${encodeURIComponent(previousId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    });
+    clearSavedMapCache(previousId);
+    selectedSavedMapId = result.map.id;
+    selectedSavedMapMeta = result.map;
+    if (result.map.kind === 'pointcloud3d') offlineCloudSnapshot = null;
+    else savedOccupancySnapshot = null;
+    await refreshSavedMaps();
+    showToast(`${result.map.name}으로 이름을 변경했습니다.`);
+  } catch (error) {
+    showToast(`이름 변경 실패: ${error.message}`, true);
+  } finally {
+    savedMapMutationBusy = false;
+    updateSavedMapManagement();
+  }
+}
+
+async function deleteSelectedSavedMap() {
+  if (savedMapMutationBusy || !selectedSavedMapMeta?.manageable) return;
+  const selected = selectedSavedMapMeta;
+  const paired = selected.kind === 'occupancy2d' ? ' (YAML과 PGM 모두)' : '';
+  if (!window.confirm(`${selected.name}${paired}을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
+  const previousId = selectedSavedMapId;
+  savedMapMutationBusy = true;
+  updateSavedMapManagement();
+  try {
+    await api(`/api/v1/saved-maps/${encodeURIComponent(previousId)}`, { method: 'DELETE' });
+    clearSavedMapCache(previousId);
+    if (selected.kind === 'pointcloud3d') offlineCloudSnapshot = null;
+    else savedOccupancySnapshot = null;
+    selectedSavedMapId = '';
+    selectedSavedMapMeta = null;
+    await refreshSavedMaps();
+    showToast(`${selected.name} 지도를 삭제했습니다.`);
+  } catch (error) {
+    showToast(`지도 삭제 실패: ${error.message}`, true);
+  } finally {
+    savedMapMutationBusy = false;
+    updateSavedMapManagement();
   }
 }
 
@@ -1130,7 +1453,7 @@ function drawSavedPointcloud() {
     savedScene3d.setStatus({ online: null, lidarOnline: null, snapshot: true, message: '저장된 3D 지도가 없습니다' });
     return;
   }
-  const sourceKey = `saved:${selectedCloud.topic || selectedCloud.frame_id || 'cloud'}`;
+  const sourceKey = `saved:${selectedSavedMapId || selectedCloud.map_id || 'fallback'}:${selectedCloud.topic || selectedCloud.frame_id || 'cloud'}`;
   const dataKey = `${sourceKey}:${selectedCloud.seq ?? cloudPointCount(selectedCloud)}`;
   if (dataKey !== savedSceneCloudDataKey) {
     savedScene3d.setPointCloud(selectedCloud, { fit: sourceKey !== savedSceneCloudSourceKey });
@@ -1251,6 +1574,10 @@ function chooseSavedMapView(mode) {
   const candidate = savedMapCatalog.find((entry) => entry.kind === kind);
   if (candidate) {
     selectSavedMap(candidate.id);
+    return;
+  }
+  if (mode === 'cloud' && offlineCloudSnapshot) {
+    selectSavedMap('__fallback_cloud');
     return;
   }
   savedMapViewPreference = mode === 'occupancy' && savedOccupancySnapshot ? 'occupancy' : 'cloud';
@@ -1566,6 +1893,7 @@ ui.cloudSource.addEventListener('change', () => {
   if (ui.cloudSource.value) chooseMapView('cloud');
   resetLiveCloudAccumulator();
   lastCloudSnapshot = null;
+  pointcloudRequestGeneration += 1;
   cloudSeq = -1;
   selectSource('pointcloud', ui.cloudSource.value);
 });
@@ -1576,19 +1904,49 @@ ui.mapSource.addEventListener('change', () => {
   selectSource('occupancy_grid', ui.mapSource.value);
 });
 ui.mapViewMode.addEventListener('change', () => chooseMapView(ui.mapViewMode.value));
+ui.livePointBudget.addEventListener('change', async () => {
+  const value = ui.livePointBudget.value;
+  ui.livePointCustomWrap.classList.toggle('is-hidden', value !== 'custom');
+  if (value === 'custom') {
+    ui.livePointCustom.focus();
+    return;
+  }
+  if (value === 'all' && !window.confirm('ALL SESSION은 브라우저 세션 동안 수신한 모든 점을 누적하므로 메모리와 렌더링 부하가 커질 수 있습니다. 계속할까요?')) {
+    syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
+    return;
+  }
+  await applyLivePointLimit(value);
+});
+ui.livePointApply.addEventListener('click', () => applyLivePointLimit(ui.livePointCustom.value));
+ui.livePointCustom.addEventListener('keydown', (event) => { if (event.key === 'Enter') applyLivePointLimit(ui.livePointCustom.value); });
 ui.mapOverlayToggle.addEventListener('change', () => {
   mapOverlayVisible = ui.mapOverlayToggle.checked;
   redrawActiveMap();
 });
 ui.savedMapViewMode.addEventListener('change', () => chooseSavedMapView(ui.savedMapViewMode.value));
+ui.savedPointBudget.addEventListener('change', async () => {
+  const value = ui.savedPointBudget.value;
+  ui.savedPointCustomWrap.classList.toggle('is-hidden', value !== 'custom');
+  if (value === 'custom') {
+    ui.savedPointCustom.focus();
+    return;
+  }
+  await applySavedPointLimit(value);
+});
+ui.savedPointApply.addEventListener('click', () => applySavedPointLimit(ui.savedPointCustom.value));
+ui.savedPointCustom.addEventListener('keydown', (event) => { if (event.key === 'Enter') applySavedPointLimit(ui.savedPointCustom.value); });
 ui.savedMapOverlayToggle.addEventListener('change', () => {
   savedMapOverlayVisible = ui.savedMapOverlayToggle.checked;
   redrawSavedMap();
 });
 ui.savedMapList.addEventListener('click', (event) => {
+  if (savedMapMutationBusy) return;
   const button = event.target.closest('[data-saved-map-id]');
   if (button) selectSavedMap(button.dataset.savedMapId);
 });
+ui.savedMapRenameButton.addEventListener('click', renameSelectedSavedMap);
+ui.savedMapDeleteButton.addEventListener('click', deleteSelectedSavedMap);
+ui.savedMapNameInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') renameSelectedSavedMap(); });
 ui.topicSearch.addEventListener('input', renderTopics);
 ui.categoryFilter.addEventListener('change', renderTopics);
 window.addEventListener('hashchange', () => activatePage(pageFromHash()));
@@ -1605,11 +1963,12 @@ connectCamera();
 connectJoints();
 connectPose();
 requestAnimationFrame(animateRobot);
-loadOfflinePointcloud().then(refreshSavedMaps);
+const pointBudgetReady = initializePointBudgets();
+pointBudgetReady.then(() => loadOfflinePointcloud().then(refreshSavedMaps));
 refreshState();
 refreshTopics();
 refreshSources();
-refreshPointcloud();
+pointBudgetReady.then(refreshPointcloud);
 refreshMap();
 refreshMappingControl();
 setInterval(refreshState, 1000);

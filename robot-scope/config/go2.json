@@ -21,6 +21,9 @@
     "max_depth": 2,
     "max_file_bytes": 268435456,
     "preview_points": 10000,
+    "max_requested_points": 1000000,
+    "max_full_view_points": 2000000,
+    "cloud_radius_limit_m": 10000,
     "max_grid_cells": 16000000
   },
   "preferred_topics": {
