@@ -14,13 +14,10 @@ from robot_dashboard.control import (
     LeaseBindingError,
     LeaseBusy,
     LeaseInvalid,
-    PinInvalid,
-    PinRateLimited,
     SequenceError,
 )
 
 
-PIN = "4826"
 BINDING = "websocket-session-a"
 
 
@@ -48,10 +45,7 @@ class ControlManagerTests(unittest.TestCase):
                 "angular_slew_rps2": 1.5,
             },
         }
-        self.env = {
-            "ROBOT_SCOPE_CONTROL_ENABLED": "true",
-            "ROBOT_SCOPE_CONTROL_PIN_SHA256": ControlManager.pin_sha256(PIN),
-        }
+        self.env = {"ROBOT_SCOPE_CONTROL_ENABLED": "true"}
 
     def manager(self, *, profile=None, env=None):
         return ControlManager(
@@ -68,7 +62,7 @@ class ControlManagerTests(unittest.TestCase):
 
     def leased(self, input_source="keyboard"):
         manager = self.ready_manager()
-        result = manager.acquire_lease(PIN, input_source)
+        result = manager.acquire_lease(input_source)
         token = result["token"]
         manager.bind_lease(token, BINDING)
         return manager, token
@@ -90,39 +84,24 @@ class ControlManagerTests(unittest.TestCase):
         self.assertFalse(manager.snapshot()["enabled"])
         self.assertFalse(manager.snapshot()["configured"])
         with self.assertRaises(ControlDisabled):
-            manager.acquire_lease(PIN, "keyboard")
+            manager.acquire_lease("keyboard")
 
         env_off = dict(self.env, ROBOT_SCOPE_CONTROL_ENABLED="false")
         manager = self.manager(env=env_off)
         self.assertFalse(manager.snapshot()["enabled"])
 
-        env_without_pin = {"ROBOT_SCOPE_CONTROL_ENABLED": "true"}
-        manager = self.manager(env=env_without_pin)
+        manager = self.manager(env={"ROBOT_SCOPE_CONTROL_ENABLED": "true"})
         self.assertTrue(manager.snapshot()["enabled"])
-        self.assertFalse(manager.snapshot()["configured"])
-        with self.assertRaises(ControlDisabled):
-            manager.acquire_lease(PIN, "keyboard")
-
-    def test_pin_hash_and_five_failures_per_sixty_seconds(self):
-        manager = self.ready_manager()
-        for _ in range(5):
-            with self.assertRaises(PinInvalid):
-                manager.verify_pin("wrong")
-        with self.assertRaises(PinRateLimited):
-            manager.verify_pin(PIN)
-
-        self.clock.advance(59.999)
-        with self.assertRaises(PinRateLimited):
-            manager.verify_pin(PIN)
-        self.clock.advance(0.001)
-        self.assertTrue(manager.verify_pin(PIN))
+        self.assertTrue(manager.snapshot()["configured"])
+        manager.set_readiness(bridge_ready=True, lowstate_ready=True)
+        self.assertTrue(manager.acquire_lease("keyboard")["lease"]["active"])
 
     def test_only_one_bound_lease_is_allowed(self):
         manager = self.ready_manager()
-        lease = manager.acquire_lease(PIN, "gamepad")
+        lease = manager.acquire_lease("gamepad")
         token = lease["token"]
         with self.assertRaises(LeaseBusy):
-            manager.acquire_lease(PIN, "keyboard")
+            manager.acquire_lease("keyboard")
         self.assertEqual(manager.bind_lease(token, BINDING)["input_source"], "gamepad")
         self.assertTrue(manager.bind_lease(token, BINDING)["bound"])
         with self.assertRaises(LeaseBindingError):
@@ -140,7 +119,7 @@ class ControlManagerTests(unittest.TestCase):
 
     def test_lease_must_be_bound_before_commands(self):
         manager = self.ready_manager()
-        token = manager.acquire_lease(PIN, "keyboard")["token"]
+        token = manager.acquire_lease("keyboard")["token"]
         with self.assertRaises(LeaseBindingError):
             manager.heartbeat(token, BINDING, 0)
 
@@ -274,6 +253,33 @@ class ControlManagerTests(unittest.TestCase):
         with self.assertRaises(LeaseInvalid):
             manager.heartbeat(token, BINDING, 1)
 
+    def test_unbound_lease_has_four_second_bind_ttl_and_bind_resets_heartbeat(self):
+        manager = self.ready_manager()
+        token = manager.acquire_lease("keyboard")["token"]
+
+        # The old shared 2 s timeout could expire a lease while the browser was
+        # still completing the server's allowed 3 s WebSocket bind handshake.
+        self.clock.advance(2.001)
+        manager.set_readiness(bridge_ready=True, lowstate_ready=True)
+        bound = manager.bind_lease(token, BINDING)
+        self.assertTrue(bound["active"])
+        self.assertEqual(bound["heartbeat_age_s"], 0.0)
+
+        self.clock.advance(1.999)
+        self.assertTrue(manager.snapshot()["lease"]["active"])
+        self.clock.advance(0.001)
+        self.assertFalse(manager.snapshot()["lease"]["active"])
+        self.assertEqual(manager.drain_outputs()[-1]["reason"], "lease_expired")
+
+    def test_unbound_lease_expires_at_bind_ttl_boundary(self):
+        manager = self.ready_manager()
+        manager.acquire_lease("keyboard")
+        self.clock.advance(3.999)
+        self.assertTrue(manager.snapshot()["lease"]["active"])
+        self.clock.advance(0.001)
+        self.assertFalse(manager.snapshot()["lease"]["active"])
+        self.assertEqual(manager.drain_outputs()[-1]["reason"], "lease_expired")
+
     def test_readiness_loss_revokes_lease_and_stops(self):
         manager, token = self.leased()
         self.drive(manager, token)
@@ -284,7 +290,7 @@ class ControlManagerTests(unittest.TestCase):
         self.assertFalse(manager.snapshot()["lease"]["active"])
 
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
-        token = manager.acquire_lease(PIN, "keyboard")["token"]
+        token = manager.acquire_lease("keyboard")["token"]
         manager.bind_lease(token, BINDING)
         self.clock.advance(0.501)
         output = manager.tick()
@@ -301,37 +307,35 @@ class ControlManagerTests(unittest.TestCase):
         with self.assertRaises(EmergencyStopLatched):
             self.drive(manager, token, seq=1)
         with self.assertRaises(EmergencyStopLatched):
-            manager.acquire_lease(PIN, "keyboard")
+            manager.acquire_lease("keyboard")
 
-    def test_estop_clear_requires_pin_confirm_freshness_and_new_lease(self):
+    def test_estop_clear_requires_confirm_freshness_and_new_lease(self):
         manager, old_token = self.leased()
         manager.emergency_stop()
         with self.assertRaises(CommandValidationError):
-            manager.clear_emergency_stop(PIN, confirm=False)
-        with self.assertRaises(PinInvalid):
-            manager.clear_emergency_stop("wrong", confirm=True)
+            manager.clear_emergency_stop(confirm=False)
         manager.note_lowstate(False)
         with self.assertRaises(ControlNotReady):
-            manager.clear_emergency_stop(PIN, confirm=True)
+            manager.clear_emergency_stop(confirm=True)
 
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
-        cleared = manager.clear_emergency_stop(PIN, confirm=True)
+        cleared = manager.clear_emergency_stop(confirm=True)
         self.assertFalse(cleared["estop"]["latched"])
         self.assertFalse(cleared["lease"]["active"])
         with self.assertRaises(LeaseInvalid):
             manager.bind_lease(old_token, BINDING)
-        new_token = manager.acquire_lease(PIN, "keyboard")["token"]
+        new_token = manager.acquire_lease("keyboard")["token"]
         self.assertNotEqual(new_token, "")
 
     def test_duplicate_estop_clear_does_not_revoke_a_new_lease(self):
         manager, _ = self.leased()
         manager.emergency_stop()
-        manager.clear_emergency_stop(PIN, confirm=True)
-        token = manager.acquire_lease(PIN, "keyboard")["token"]
+        manager.clear_emergency_stop(confirm=True)
+        token = manager.acquire_lease("keyboard")["token"]
         manager.bind_lease(token, BINDING)
         self.drive(manager, token, seq=0)
 
-        duplicate = manager.clear_emergency_stop("wrong", confirm=True)
+        duplicate = manager.clear_emergency_stop(confirm=True)
         self.assertTrue(duplicate["lease"]["active"])
         self.assertEqual(duplicate["lease"]["last_seq"], 0)
         self.assertFalse(duplicate["estop"]["latched"])
@@ -400,10 +404,10 @@ class ControlManagerTests(unittest.TestCase):
         self.assertEqual(snapshot["action_guard"]["action"], "hello")
         self.assertFalse(snapshot["ready"])
         with self.assertRaises(ControlNotReady):
-            manager.acquire_lease(PIN, "keyboard")
+            manager.acquire_lease("keyboard")
         self.clock.advance(8.0)
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
-        new_lease = manager.acquire_lease(PIN, "keyboard")
+        new_lease = manager.acquire_lease("keyboard")
         self.assertTrue(new_lease["lease"]["active"])
 
     def test_snapshot_is_json_safe_and_never_exposes_token_or_binding(self):
@@ -446,7 +450,7 @@ class ControlManagerTests(unittest.TestCase):
         }
         manager = self.manager(profile=profile)
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
-        token = manager.acquire_lease(PIN, "keyboard")["token"]
+        token = manager.acquire_lease("keyboard")["token"]
         manager.bind_lease(token, BINDING)
         snapshot = manager.snapshot()
         self.assertEqual(snapshot["limits"]["vx_mps"], 0.30)
@@ -459,7 +463,7 @@ class ControlManagerTests(unittest.TestCase):
 
     def test_unbound_lease_can_be_released_before_websocket_connects(self):
         manager = self.ready_manager()
-        token = manager.acquire_lease(PIN, "keyboard")["token"]
+        token = manager.acquire_lease("keyboard")["token"]
         manager.release_lease(token)
         self.assertFalse(manager.snapshot()["lease"]["active"])
 

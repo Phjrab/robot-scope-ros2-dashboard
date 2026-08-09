@@ -2,11 +2,24 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const require = createRequire(import.meta.url);
 const input = require('../robot_dashboard/static/control_input.js');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
+
+function loadBackpressureDecision() {
+  const match = appSource.match(/function controlBackpressureDecision\([\s\S]+?\n\}/);
+  assert.ok(match, 'controlBackpressureDecision must exist');
+  const context = {
+    CONTROL_SOCKET_MAX_BUFFER_BYTES: 4096,
+    CONTROL_SOCKET_BACKPRESSURE_GRACE_MS: 100,
+    Number,
+  };
+  vm.runInNewContext(`${match[0]}; this.decision = controlBackpressureDecision;`, context);
+  return context.decision;
+}
 
 function keys(...codes) {
   return new Set(codes);
@@ -82,9 +95,19 @@ test('browser control frames carry fresh client timestamps and reject queued wri
   assert.match(appSource, /type: 'action',[\s\S]{0,220}client_time_ms: Date\.now\(\)/);
   assert.match(appSource, /type: 'release',[^\n]+client_time_ms: Date\.now\(\)/);
   assert.match(appSource, /bufferedAmount/);
-  assert.match(appSource, /queuedBytes !== 0/);
+  assert.match(appSource, /CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100/);
+  assert.match(appSource, /controlBackpressureDecision\(queuedBytes, controlBackpressureSince, Date\.now\(\)\)/);
   assert.match(appSource, /if \(payload\.type === 'bound'\) \{\s*controlSocketBound = true/);
   assert.match(appSource, /if \(controlSocketBound && controlSocket\?\.readyState === WebSocket\.OPEN\)/);
+});
+
+test('small WebSocket backpressure skips frames briefly, then fails closed', () => {
+  const decision = loadBackpressureDecision();
+  assert.deepEqual({ ...decision(0, 900, 1000) }, { action: 'send', sinceMs: null });
+  assert.deepEqual({ ...decision(16, null, 1000) }, { action: 'skip', sinceMs: 1000 });
+  assert.deepEqual({ ...decision(16, 1000, 1099) }, { action: 'skip', sinceMs: 1000 });
+  assert.deepEqual({ ...decision(16, 1000, 1100) }, { action: 'disarm', sinceMs: 1000 });
+  assert.deepEqual({ ...decision(4097, null, 1000) }, { action: 'disarm', sinceMs: null });
 });
 
 test('accepted one-shot action discards the local lease without zero or release', () => {
@@ -104,4 +127,37 @@ test('dashboard stop copy does not present software control as a physical E-stop
   assert.match(indexSource, /물리 E-stop 아님/);
   assert.match(indexSource, /물리 비상정지 장치를 대신하지 않습니다/);
   assert.doesNotMatch(indexSource, /SOFTWARE E-STOP|Emergency stop|E-STOP CLEAR/);
+});
+
+test('control arming and software-stop clearing are explicit PIN-free button flows', () => {
+  assert.doesNotMatch(indexSource, /controlPin|estopClearPin|제어 PIN|해제 PIN/);
+  assert.doesNotMatch(appSource, /controlUi\.(?:pin|clearPin)/);
+  assert.match(appSource, /body: JSON\.stringify\(\{ input_source: source \}\)/);
+  assert.match(appSource, /body: JSON\.stringify\(\{ confirmed: true \}\)/);
+});
+
+test('an inactive control poll started before ARM cannot revoke the new lease', () => {
+  const start = appSource.indexOf('async function refreshControlSnapshot()');
+  const end = appSource.indexOf('\nfunction selectedControlGamepad()', start);
+  assert.ok(start >= 0 && end > start, 'refreshControlSnapshot must exist');
+  const refresh = appSource.slice(start, end);
+  assert.match(refresh, /const armGenerationAtRequest = controlArmGeneration/);
+  assert.match(refresh, /const leaseAtRequest = controlLeaseId/);
+  assert.match(refresh, /armGenerationAtRequest !== controlArmGeneration \|\| leaseAtRequest !== controlLeaseId/);
+  assert.ok(
+    refresh.indexOf('armGenerationAtRequest !== controlArmGeneration') < refresh.indexOf('applyControlSnapshot(snapshot)'),
+    'stale polls must be rejected before their snapshot is applied',
+  );
+});
+
+test('late messages from an old control socket cannot touch a replacement lease', () => {
+  const start = appSource.indexOf('socket.onmessage = (event) => {');
+  const end = appSource.indexOf('\n  socket.onerror =', start);
+  assert.ok(start >= 0 && end > start, 'control socket message handler must exist');
+  const handler = appSource.slice(start, end);
+  const guard = 'if (controlSocket !== socket || controlLeaseId !== leaseAtConnect) return;';
+  assert.match(handler, /controlSocket !== socket \|\| controlLeaseId !== leaseAtConnect/);
+  assert.ok(handler.indexOf(guard) < handler.indexOf('JSON.parse(event.data)'), 'session guard must run before payload handling');
+  assert.ok(handler.indexOf(guard) < handler.indexOf("payload.type === 'error'"), 'old errors must be ignored');
+  assert.ok(handler.indexOf(guard) < handler.indexOf("payload.type === 'bound'"), 'old bound frames must be ignored');
 });

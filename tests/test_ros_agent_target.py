@@ -87,7 +87,6 @@ class RobotTargetSafetyTests(unittest.TestCase):
         profile = {"name": "Unitree Go2", "control": {"enabled": True}}
         environ = {
             "ROBOT_SCOPE_CONTROL_ENABLED": "true",
-            "ROBOT_SCOPE_CONTROL_PIN_SHA256": ControlManager.pin_sha256("4826"),
         }
         self.manager = ControlManager(
             profile,
@@ -98,7 +97,7 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.agent._control_manager = self.manager
 
     def test_target_change_revokes_lease_and_non_go2_blocks_all_enabling_mutators(self):
-        lease = self.agent.control_acquire("4826", "keyboard")["token"]
+        lease = self.agent.control_acquire("keyboard")["token"]
         self.agent.control_bind(lease, "target-test-websocket")
 
         selected = self.agent.set_robot_target(
@@ -120,12 +119,12 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertFalse(snapshot["enabled"])
         self.assertEqual(snapshot["actions"], [])
         calls = (
-            lambda: self.agent.control_acquire("4826", "keyboard"),
+            lambda: self.agent.control_acquire("keyboard"),
             lambda: self.agent.control_bind("invalid", "binding"),
             lambda: self.agent.control_heartbeat("invalid", "binding", 1),
             lambda: self.agent.control_drive("invalid", "binding", 1, vx=0, vy=0, wz=0),
             lambda: self.agent.control_action("invalid", "binding", 1, "hello", confirm=True),
-            lambda: self.agent.control_clear_estop("4826", confirm=True),
+            lambda: self.agent.control_clear_estop(confirm=True),
         )
         for call in calls:
             with self.subTest(call=call):
@@ -146,10 +145,10 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertTrue(returned_control["restart_required"])
         self.assertFalse(returned_control["target_supported"])
         with self.assertRaises(ControlDisabled):
-            self.agent.control_acquire("4826", "keyboard")
+            self.agent.control_acquire("keyboard")
 
     def test_same_target_metadata_refresh_does_not_revoke_lease(self):
-        lease = self.agent.control_acquire("4826", "keyboard")["token"]
+        lease = self.agent.control_acquire("keyboard")["token"]
         self.agent.control_bind(lease, "target-test-websocket")
         selected = self.agent.set_robot_target(
             "192.168.123.161",
@@ -176,7 +175,7 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertFalse(snapshot["target_matches_startup"])
         self.assertTrue(snapshot["restart_required"])
         with self.assertRaises(ControlDisabled):
-            self.agent.control_acquire("4826", "keyboard")
+            self.agent.control_acquire("keyboard")
 
     def test_generic_startup_can_never_enable_go2_control_by_runtime_selection(self):
         generic = RosAgent(
@@ -191,7 +190,7 @@ class RobotTargetSafetyTests(unittest.TestCase):
         snapshot = generic.control_snapshot()
         self.assertFalse(snapshot["target_supported"])
         with self.assertRaises(ControlDisabled):
-            generic.control_acquire("4826", "keyboard")
+            generic.control_acquire("keyboard")
 
     def test_generic_observation_can_switch_turtlebot_and_so101_without_restart(self):
         generic = RosAgent(

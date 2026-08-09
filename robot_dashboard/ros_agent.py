@@ -860,11 +860,11 @@ class RosAgent:
         )
         return snapshot
 
-    def control_acquire(self, pin: str, input_source: str) -> Dict[str, Any]:
+    def control_acquire(self, input_source: str) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
                 self._ensure_go2_control_target()
-                return self._control_manager.acquire_lease(pin, input_source)
+                return self._control_manager.acquire_lease(input_source)
             finally:
                 self._flush_control_outputs()
 
@@ -944,16 +944,11 @@ class RosAgent:
             finally:
                 self._flush_control_outputs()
 
-    def control_clear_estop(
-        self,
-        pin: str,
-        *,
-        confirm: bool = False,
-    ) -> Dict[str, Any]:
+    def control_clear_estop(self, *, confirm: bool = False) -> Dict[str, Any]:
         with self._control_operation_lock:
             try:
                 self._ensure_go2_control_target()
-                return self._control_manager.clear_emergency_stop(pin, confirm=confirm)
+                return self._control_manager.clear_emergency_stop(confirm=confirm)
             finally:
                 self._flush_control_outputs()
 

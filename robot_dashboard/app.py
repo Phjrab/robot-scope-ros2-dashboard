@@ -30,8 +30,6 @@ from .control import (
     LeaseBindingError,
     LeaseBusy,
     LeaseInvalid,
-    PinInvalid,
-    PinRateLimited,
     SequenceError,
 )
 from .discovery import (
@@ -109,7 +107,6 @@ class SavedMapRenameRequest(StrictRequest):
 
 
 class ControlArmRequest(StrictRequest):
-    pin: str = Field(min_length=1, max_length=128)
     input_source: Literal["keyboard", "gamepad"]
 
 
@@ -122,7 +119,6 @@ class ControlStopRequest(StrictRequest):
 
 
 class ControlClearEstopRequest(StrictRequest):
-    pin: str = Field(min_length=1, max_length=128)
     confirmed: bool
 
 
@@ -196,10 +192,6 @@ def websocket_same_origin(websocket: WebSocket) -> bool:
 
 
 def control_error(exc: ControlError) -> HTTPException:
-    if isinstance(exc, PinInvalid):
-        return HTTPException(status_code=401, detail=str(exc))
-    if isinstance(exc, PinRateLimited):
-        return HTTPException(status_code=429, detail=str(exc))
     if isinstance(exc, (LeaseBusy, LeaseBindingError, SequenceError, LeaseInvalid)):
         return HTTPException(status_code=409, detail=str(exc))
     if isinstance(exc, CommandValidationError):
@@ -244,7 +236,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     elif not enabled:
         state = "서버 시작 설정에서 제어가 비활성화되어 있습니다."
     elif not configured:
-        state = "제어 PIN 또는 브리지 키가 설정되지 않았습니다."
+        state = "제어 브리지 키 또는 ROS 전송이 설정되지 않았습니다."
     elif estop_latched:
         state = "대시보드 SOFTWARE STOP이 잠겨 있습니다."
     elif action_guard.get("active"):
@@ -281,6 +273,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "max_angular_z": float(limits.get("wz_rps", limits.get("max_angular_z", 0.0))),
             "default_speed_scale": float(limits.get("default_speed_scale", 0.35)),
             "command_timeout_s": float(limits.get("command_timeout_s", 0.20)),
+            "bind_timeout_s": float(limits.get("bind_timeout_s", 4.0)),
         },
         "command": snapshot.get(
             "command",
@@ -489,7 +482,7 @@ async def control_status() -> Dict[str, Any]:
 async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, Any]:
     require_same_origin(request)
     try:
-        result = agent().control_acquire(body.pin, body.input_source)
+        result = agent().control_acquire(body.input_source)
     except ControlError as exc:
         raise control_error(exc) from exc
     return {
@@ -531,7 +524,7 @@ async def control_clear_estop(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     try:
-        agent().control_clear_estop(body.pin, confirm=body.confirmed)
+        agent().control_clear_estop(confirm=body.confirmed)
     except ControlError as exc:
         raise control_error(exc) from exc
     return {"control": control_view(agent().control_snapshot())}

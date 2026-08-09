@@ -39,7 +39,7 @@
 
       <section class="side-section read-only-note">
         <span class="lock-icon">◇</span>
-        <div><strong>CONTROL SAFETY</strong><p>조작은 매번 PIN으로 ARM해야 합니다. 데드맨을 놓거나 화면을 벗어나면 즉시 해제됩니다.</p></div>
+        <div><strong>CONTROL SAFETY</strong><p>ARM 버튼으로 제어 권한을 얻습니다. 데드맨을 놓거나 화면을 벗어나면 즉시 해제됩니다.</p></div>
       </section>
     </aside>
 
@@ -233,7 +233,6 @@
                 <div class="control-form-grid">
                   <label><span>입력 장치</span><select id="controlInputSource"><option value="keyboard">키보드 + 화면 버튼</option><option value="gamepad">게임패드</option></select></label>
                   <label id="gamepadDeviceWrap" class="is-hidden"><span>게임패드</span><select id="gamepadDevice"><option value="">연결된 장치 없음</option></select></label>
-                  <label><span>제어 PIN</span><input id="controlPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 입력" aria-describedby="controlArmHelp"></label>
                 </div>
                 <div class="control-device-line"><span class="device-indicator" id="controlDeviceIndicator"></span><strong id="controlDeviceStatus">키보드 입력 준비</strong><small id="controlArmHelp">ARM 후에도 Shift 또는 LB 데드맨을 계속 누르고 있어야 움직입니다.</small></div>
                 <div class="control-arm-actions">
@@ -288,8 +287,7 @@
               <div class="panel-header compact"><div><div class="eyebrow danger-text">SOFTWARE SAFETY COMMAND</div><h2>Dashboard stop</h2></div></div>
               <div class="estop-body">
                 <button id="softwareEstopButton" class="software-estop" type="button"><span>DASHBOARD</span><strong>SOFTWARE<br>STOP</strong><small>물리 E-stop 아님 · ARM 불필요</small></button>
-                <p>대시보드 소프트웨어 정지는 통신 가능한 제어 경로에만 래치됩니다. 물리 비상정지 장치를 대신하지 않습니다. 안전 확인 후 PIN과 체크로 해제하세요.</p>
-                <label class="estop-pin"><span>해제 PIN</span><input id="estopClearPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 입력"></label>
+                <p>대시보드 소프트웨어 정지는 통신 가능한 제어 경로에만 래치됩니다. 물리 비상정지 장치를 대신하지 않습니다. 로봇 주변의 안전을 확인한 뒤 체크하고 해제하세요.</p>
                 <label class="estop-confirm"><input id="estopClearConfirm" type="checkbox"><span>로봇 주변이 안전하고 움직임이 멈춘 것을 확인했습니다.</span></label>
                 <button id="estopClearButton" class="estop-clear-button" type="button" disabled>SOFTWARE STOP CLEAR</button>
               </div>

@@ -6,7 +6,6 @@ produces small output envelopes which a ROS-specific bridge can publish.
 
 from __future__ import annotations
 
-import hashlib
 import hmac
 import math
 import os
@@ -31,14 +30,6 @@ class ControlNotReady(ControlError):
 
 
 class ControlClosed(ControlError):
-    pass
-
-
-class PinInvalid(ControlError):
-    pass
-
-
-class PinRateLimited(ControlError):
     pass
 
 
@@ -246,20 +237,19 @@ class ControlManager:
     """Validate one control lease and emit ROS-agnostic command envelopes.
 
     The constructor is deliberately fail-closed.  Both the selected profile and
-    the process environment must opt in, and a SHA-256 PIN digest must be set in
-    ``ROBOT_SCOPE_CONTROL_PIN_SHA256``.  Callers should use one monotonically
+    the process environment must opt in.  Callers should use one monotonically
     increasing sequence number across heartbeat, drive, and action messages.
     """
 
     ENV_ENABLED = "ROBOT_SCOPE_CONTROL_ENABLED"
-    ENV_PIN_SHA256 = "ROBOT_SCOPE_CONTROL_PIN_SHA256"
-
-    PIN_ATTEMPTS = 5
-    PIN_WINDOW_S = 60.0
     # The ROS watchdog runs every 50 ms.  Expiring the browser intent after
     # 200 ms leaves one watchdog cycle to dispatch StopMove near 250 ms.
     COMMAND_TIMEOUT_S = 0.20
     LEASE_HEARTBEAT_S = 2.0
+    # An unbound lease cannot issue commands.  Give the browser enough time to
+    # complete its WebSocket handshake, then switch to the shorter heartbeat
+    # timeout as soon as the lease is bound.
+    LEASE_BIND_S = 4.0
 
     VX_LIMIT = 0.30
     VY_LIMIT = 0.20
@@ -289,9 +279,7 @@ class ControlManager:
         self._profile_enabled = control.get("enabled") is True
         self._startup_enabled = _truthy(env.get(self.ENV_ENABLED, ""))
         self._enabled = self._profile_enabled and self._startup_enabled
-        digest = str(env.get(self.ENV_PIN_SHA256, "")).strip().lower()
-        self._pin_digest = digest if len(digest) == 64 and self._is_hex(digest) else ""
-        self._configured = self._enabled and bool(self._pin_digest)
+        self._configured = self._enabled
 
         self._vx_limit = _bounded_float(
             control.get("max_linear_x"), default=self.VX_LIMIT, low=0.01, high=self.VX_LIMIT
@@ -319,6 +307,12 @@ class ControlManager:
             default=self.LEASE_HEARTBEAT_S,
             low=0.5,
             high=self.LEASE_HEARTBEAT_S,
+        )
+        self._lease_bind_s = _bounded_float(
+            control.get("bind_timeout_s"),
+            default=self.LEASE_BIND_S,
+            low=2.5,
+            high=5.0,
         )
 
         self._bridge_stale_s = _bounded_float(
@@ -361,7 +355,6 @@ class ControlManager:
         else:
             self._allowed_actions = dict(SAFE_ACTIONS)
 
-        self._pin_failures: deque[float] = deque()
         self._lease: dict[str, Any] | None = None
         self._bridge_seen: float | None = None
         self._lowstate_seen: float | None = None
@@ -377,20 +370,6 @@ class ControlManager:
         self._last_tick: float | None = None
         self._motion_active = False
         self._stop_emitted = True
-
-    @staticmethod
-    def _is_hex(value: str) -> bool:
-        try:
-            int(value, 16)
-        except ValueError:
-            return False
-        return True
-
-    @staticmethod
-    def pin_sha256(pin: str) -> str:
-        """Return the digest administrators place in the startup environment."""
-
-        return hashlib.sha256(str(pin).encode("utf-8")).hexdigest()
 
     def _now(self) -> float:
         value = float(self._clock())
@@ -452,25 +431,7 @@ class ControlManager:
             if not bridge_ready or not lowstate_ready:
                 self._fail_closed("readiness_lost")
 
-    def _prune_pin_failures(self, now: float) -> None:
-        while self._pin_failures and now - self._pin_failures[0] >= self.PIN_WINDOW_S:
-            self._pin_failures.popleft()
-
-    def verify_pin(self, pin: str) -> bool:
-        with self._lock:
-            self._ensure_configured()
-            now = self._now()
-            self._prune_pin_failures(now)
-            if len(self._pin_failures) >= self.PIN_ATTEMPTS:
-                raise PinRateLimited("too many invalid PIN attempts; try again later")
-            candidate = hashlib.sha256(str(pin).encode("utf-8")).hexdigest()
-            if not hmac.compare_digest(candidate, self._pin_digest):
-                self._pin_failures.append(now)
-                raise PinInvalid("invalid control PIN")
-            self._pin_failures.clear()
-            return True
-
-    def acquire_lease(self, pin: str, input_source: str) -> dict[str, Any]:
+    def acquire_lease(self, input_source: str) -> dict[str, Any]:
         with self._lock:
             self._ensure_configured()
             now = self._now()
@@ -489,7 +450,6 @@ class ControlManager:
                 raise CommandValidationError("input_source must be keyboard or gamepad")
             if self._lease is not None:
                 raise LeaseBusy("another controller already owns the robot")
-            self.verify_pin(pin)
             token = self._token_factory()
             if not isinstance(token, str) or len(token) < 16:
                 raise RuntimeError("token factory returned an unsafe token")
@@ -515,6 +475,10 @@ class ControlManager:
             current = lease["binding"]
             if current is None:
                 lease["binding"] = value
+                # The acquisition-to-WebSocket handshake uses the longer,
+                # non-commanding bind TTL.  Start the normal heartbeat window
+                # only after this session has been authenticated and bound.
+                lease["heartbeat_at"] = now
             elif not hmac.compare_digest(current, value):
                 raise LeaseBindingError("lease is bound to another session")
             return self._lease_public(now)
@@ -723,7 +687,12 @@ class ControlManager:
     def _expire_if_needed(self, now: float) -> bool:
         if self._lease is None:
             return False
-        if now - self._lease["heartbeat_at"] < self._lease_heartbeat_s:
+        timeout_s = (
+            self._lease_bind_s
+            if self._lease["binding"] is None
+            else self._lease_heartbeat_s
+        )
+        if now - self._lease["heartbeat_at"] < timeout_s:
             return False
         self._lease = None
         self._drive = None
@@ -763,7 +732,7 @@ class ControlManager:
             return self._lease_public(now)
 
     def emergency_stop(self, reason: str = "operator_estop") -> dict[str, Any]:
-        """Latch the dashboard software stop without requiring a lease or PIN."""
+        """Latch the dashboard software stop without requiring a lease."""
 
         with self._lock:
             self._ensure_open()
@@ -778,16 +747,15 @@ class ControlManager:
             self._emit_stop("emergency_stop", now, force=True)
             return self.snapshot()
 
-    def clear_emergency_stop(self, pin: str, *, confirm: bool) -> dict[str, Any]:
+    def clear_emergency_stop(self, *, confirm: bool) -> dict[str, Any]:
         with self._lock:
             self._ensure_configured()
             # A delayed duplicate clear must not revoke a newly acquired lease.
-            # Treat it as an idempotent no-op before PIN/rate-limit mutation.
+            # Treat it as an idempotent no-op before readiness mutation.
             if not self._estop_latched:
                 return self.snapshot()
             if confirm is not True:
                 raise CommandValidationError("clearing dashboard stop requires explicit confirmation")
-            self.verify_pin(pin)
             now = self._now()
             if not self._ready_at(now):
                 raise ControlNotReady("bridge and lowstate must both be fresh")
@@ -929,6 +897,7 @@ class ControlManager:
                     "speed_scale": [self.MIN_SPEED_SCALE, self.MAX_SPEED_SCALE],
                     "command_timeout_s": self._command_timeout_s,
                     "heartbeat_timeout_s": self._lease_heartbeat_s,
+                    "bind_timeout_s": self._lease_bind_s,
                 },
                 "input_sources": sorted(INPUT_SOURCES),
                 "actions": [
@@ -977,7 +946,5 @@ __all__ = [
     "LeaseBindingError",
     "LeaseBusy",
     "LeaseInvalid",
-    "PinInvalid",
-    "PinRateLimited",
     "SequenceError",
 ]

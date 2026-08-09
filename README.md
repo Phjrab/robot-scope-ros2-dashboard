@@ -25,7 +25,7 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 - Hesai + XT16 bridge + FAST-LIO 매핑 시작·중지
 - 현재 Laser_map을 PCD 또는 PCD + 2D 지도 묶음으로 안전하게 저장
 - 저장 지도 선택, 이름 변경, 삭제와 2D/3D 보기
-- PIN으로 잠그는 단일 제어 세션과 별도 ROS 2 명령 워치독
+- 버튼으로 여는 단일 제어 세션과 별도 ROS 2 명령 워치독
 - 키보드, 화면 패드 또는 표준 Gamepad를 선택하는 Go2 주행 제어
 - 서버 allowlist에 등록된 Go2 자세·제스처·보행 모드 실행
 - Overview, Live Mapping, Saved Maps, Sensors, ROS Graph, Controls, Settings 메뉴
@@ -118,23 +118,20 @@ ROBOT_SCOPE_ROBOT_IP 환경 변수로 바꿀 수 있습니다.
 #### Go2 제어 기능 활성화
 
 제어는 기본적으로 비활성화됩니다. 대시보드와 독립 워치독 브리지 두 프로세스가 같은
-서버 전용 환경 파일을 읽어야 활성화됩니다. 로그인·sudo 비밀번호와 다른 제어 PIN을
-선택하고 실제 값은 Git에 커밋하지 않습니다.
+서버 전용 환경 파일을 읽어야 활성화됩니다. 로컬 프로세스 사이에서만 쓰는 무작위
+브리지 키를 만들고 실제 값은 Git에 커밋하지 않습니다.
 
 ~~~bash
 mkdir -p "$HOME/.config/robot-scope"
 chmod 700 "$HOME/.config/robot-scope"
 
-# 아래 YOUR_CONTROL_PIN을 별도의 제어 PIN으로 바꿉니다.
-python3 -c 'from robot_dashboard.control import ControlManager; print(ControlManager.pin_sha256("YOUR_CONTROL_PIN"))'
 openssl rand -hex 32
 ~~~
 
-출력된 두 값을 사용해 `~/.config/robot-scope/control.env`를 만들고 권한을 제한합니다.
+출력된 값을 사용해 `~/.config/robot-scope/control.env`를 만들고 권한을 제한합니다.
 
 ~~~dotenv
 ROBOT_SCOPE_CONTROL_ENABLED=1
-ROBOT_SCOPE_CONTROL_PIN_SHA256=64자리_PIN_SHA256
 ROBOT_SCOPE_CONTROL_BRIDGE_KEY=64자리_무작위_브리지_키
 ~~~
 
@@ -242,12 +239,12 @@ SLAM 원본 토픽과 실제 저장 데이터는 줄이지 않습니다.
 
 ### Robot Controls
 
-Controls는 Go2 프로필에서만 사용할 수 있으며, 서버 시작 설정과 PIN, 독립 제어
+Controls는 Go2 프로필에서만 사용할 수 있으며, 서버 시작 설정, 독립 제어
 브리지, 최신 `/lowstate`, `/api/sport/request` 구독자가 모두 확인되어야 ARM할 수
 있습니다. 한 번에 브라우저 하나만 제어 권한을 가집니다.
 
 1. 로봇 주변을 비우고 평평한 바닥인지 확인합니다. 물리 리모컨을 손에 듭니다.
-2. Controls에서 Keyboard 또는 Gamepad를 선택하고 전용 제어 PIN으로 ARM합니다.
+2. Controls에서 Keyboard 또는 Gamepad를 선택하고 ARM 버튼을 누릅니다.
 3. 데드맨을 누르는 동안에만 주행 입력을 보냅니다.
 4. 데드맨 해제, 창 전환, 페이지 이탈, 장치 연결 해제 또는 통신 중단 시 제로 명령과
    StopMove를 보내고 자동 DISARM합니다. 다시 움직이려면 재ARM해야 합니다.
@@ -262,7 +259,9 @@ Controls는 Go2 프로필에서만 사용할 수 있으며, 서버 시작 설정
 슬라이더는 이 상한 안에서만 비율을 낮추거나 올립니다. 브라우저 입력은 200 ms가 지나면
 만료되며, 별도 ROS 2 브리지의 다음 50 ms 주기에 StopMove를 보내도록 설계했습니다.
 WebSocket에 송신 backlog가 생기거나 200 ms 넘게 지연된 프레임이 도착해도 세션을
-폐기하여 예전 데드맨 명령을 재생하지 않습니다.
+폐기하여 예전 데드맨 명령을 재생하지 않습니다. ARM 직후 아직 명령을 낼 수 없는
+미바인딩 lease에는 WebSocket 연결용 4초 제한을 적용하고, 바인딩이 끝난 시점부터 기존
+2초 heartbeat 제한을 새로 계산합니다.
 
 Go2 모션과 모드는 데드맨을 놓은 정지 상태에서만 실행할 수 있으며 모든 항목은 버튼을
 두 번 눌러 확인합니다. 한 번이라도 주행에 사용한 ARM 세션에서는 안전 해제 후 다시
@@ -412,7 +411,6 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 - ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot | so-101
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
-- ROBOT_SCOPE_CONTROL_PIN_SHA256: UI 제어 PIN의 SHA-256, 원문 PIN 저장 금지
 - ROBOT_SCOPE_CONTROL_BRIDGE_KEY: 두 로컬 프로세스 사이 서명용 32바이트 이상 비밀키
 
 ## 주요 API
@@ -436,10 +434,10 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 | POST /api/v1/mapping/stop | 매핑 세션 중지 |
 | POST /api/v1/mapping/save | 현재 지도 저장 |
 | GET /api/v1/control | 제어 준비, lease, 브리지와 허용 모션 상태 |
-| POST /api/v1/control/arm | PIN 확인 후 단일 제어 lease 발급 |
+| POST /api/v1/control/arm | 버튼 요청으로 단일 제어 lease 발급 |
 | POST /api/v1/control/disarm | 제로 명령과 제어 lease 반납 |
 | POST /api/v1/control/stop | lease와 무관한 대시보드 SOFTWARE STOP 래치 |
-| POST /api/v1/control/estop/clear | PIN과 명시적 확인으로 대시보드 정지 해제 |
+| POST /api/v1/control/estop/clear | 명시적 확인으로 대시보드 정지 해제 |
 | WS /api/v1/ws/camera | 카메라 스트림 |
 | WS /api/v1/ws/joints | Go2 관절 스트림 |
 | WS /api/v1/ws/pose | 로봇 자세 스트림 |
@@ -472,8 +470,9 @@ requirements.txt    Python 웹 의존성
 
 ## 보안과 데이터 주의사항
 
-- 제어 ARM과 대시보드 정지 해제에는 별도 PIN이 필요하지만 전체 HTTP API의 로그인·TLS는
-  없습니다. 신뢰된 실습 LAN에서만 실행합니다.
+- 제어 ARM과 대시보드 정지 해제는 PIN 없이 버튼으로 동작하며 전체 HTTP API에도
+  로그인·TLS가 없습니다. 반드시 접근이 통제된 신뢰 LAN에서만 실행하고 8088 포트를
+  인터넷이나 불특정 공용망에 노출하지 않습니다.
 - 제어 변경 요청과 WebSocket은 same-origin으로 제한되고, 명령은 단일 lease, 증가
   sequence, HMAC 서명, 브리지별 epoch, 200 ms 프레임 age, 단일 로봇 graph,
   LowState freshness와 이중 watchdog을 통과해야 합니다.

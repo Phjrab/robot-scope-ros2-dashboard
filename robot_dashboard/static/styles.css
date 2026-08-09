@@ -454,9 +454,9 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .control-drive-body { display:grid; }
 .control-arm-panel, .teleop-console { padding:20px; border-bottom:1px solid var(--line); }
 .control-arm-panel h3, .teleop-console h3 { margin:0; color:#c6d9d2; font-size:11px; font-weight:650; }
-.control-form-grid { display:grid; grid-template-columns:minmax(150px,.8fr) minmax(150px,1fr) minmax(150px,.8fr); gap:10px; margin-top:15px; }
-.control-form-grid label > span, .estop-pin > span { display:block; margin-bottom:7px; color:#91a59f; font-size:9px; }
-.control-form-grid input, .control-form-grid select { min-height:40px; }
+.control-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:15px; }
+.control-form-grid label > span { display:block; margin-bottom:7px; color:#91a59f; font-size:9px; }
+.control-form-grid select { min-height:40px; }
 .control-device-line { min-height:30px; display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-top:11px; color:#8fa49d; }
 .device-indicator { width:7px; height:7px; flex:0 0 auto; border-radius:50%; background:var(--amber); box-shadow:0 0 9px rgba(255,198,109,.5); }
 .device-indicator.is-ok { background:var(--green); box-shadow:0 0 9px rgba(125,240,182,.6); }
@@ -519,7 +519,6 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .software-estop:hover { filter:brightness(1.08); }.software-estop:active { transform:scale(.97); }
 .software-estop > span { font-size:8px; font-weight:900; letter-spacing:.22em; }.software-estop > strong { margin-top:7px; font-size:21px; line-height:1.05; }.software-estop > small { margin-top:10px; font-size:7px; }
 .estop-body > p { margin:15px 2px; color:#788b85; font-size:8px; line-height:1.6; }
-.estop-pin { display:block; }
 .estop-confirm { display:flex; align-items:flex-start; gap:8px; margin:11px 0; padding:10px; color:#a9bdb6; border:1px solid var(--line); border-radius:9px; background:rgba(5,15,13,.5); font-size:8px; line-height:1.45; cursor:pointer; }
 .estop-confirm input { width:14px; height:14px; flex:0 0 auto; margin:0; accent-color:var(--danger); }
 .estop-clear-button { width:100%; color:#ffb6b9; border:1px solid rgba(255,122,127,.34); background:rgba(255,122,127,.06); }
