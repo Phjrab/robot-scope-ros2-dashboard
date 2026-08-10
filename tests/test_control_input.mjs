@@ -172,7 +172,8 @@ test('an inactive control poll started before ARM cannot revoke the new lease', 
 });
 
 test('late messages from an old control socket cannot touch a replacement lease', () => {
-  const start = appSource.indexOf('socket.onmessage = (event) => {');
+  const controlSocketStart = appSource.indexOf('function connectControlSocket(');
+  const start = appSource.indexOf('socket.onmessage = (event) => {', controlSocketStart);
   const end = appSource.indexOf('\n  socket.onerror =', start);
   assert.ok(start >= 0 && end > start, 'control socket message handler must exist');
   const handler = appSource.slice(start, end);

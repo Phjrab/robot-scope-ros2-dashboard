@@ -132,6 +132,19 @@
     return { min, max };
   }
 
+  function boundedAdvertisedBounds(advertised, maxRadius) {
+    const advertisedMin = advertised?.min;
+    const advertisedMax = advertised?.max;
+    if (advertisedMin?.length < 3 || advertisedMax?.length < 3) return null;
+    const min = advertisedMin.slice(0, 3).map(Number);
+    const max = advertisedMax.slice(0, 3).map(Number);
+    if (![...min, ...max].every(Number.isFinite)) return null;
+    for (let axis = 0; axis < 3; axis += 1) {
+      if (min[axis] > max[axis] || max[axis] - min[axis] > maxRadius * 2.01) return null;
+    }
+    return { min, max };
+  }
+
   function resolveElement(value) {
     if (!value) return null;
     if (typeof value === 'string') return global.document?.querySelector(value) || null;
@@ -263,6 +276,56 @@
       }
 
       const wanted = Math.min(available, limit);
+      const prevalidated = cloud?.prevalidated === true && !nested && input instanceof Float32Array;
+      if (prevalidated) {
+        let points;
+        if (wanted === available) {
+          points = input.subarray(0, wanted * 3);
+        } else {
+          points = new Float32Array(wanted * 3);
+          const trustedStride = wanted > 0 ? available / wanted : 1;
+          for (let outputIndex = 0; outputIndex < wanted; outputIndex += 1) {
+            const sourceIndex = Math.min(available - 1, Math.floor(outputIndex * trustedStride)) * 3;
+            points[outputIndex * 3] = input[sourceIndex];
+            points[outputIndex * 3 + 1] = input[sourceIndex + 1];
+            points[outputIndex * 3 + 2] = input[sourceIndex + 2];
+          }
+        }
+        const advertisedBounds = boundedAdvertisedBounds(cloud?.bounds, this.options.maxCloudRadius);
+        let bounds = advertisedBounds;
+        if (!bounds && points.length) {
+          let minX = Infinity, minY = Infinity, minZ = Infinity;
+          let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+          for (let index = 0; index < points.length; index += 3) {
+            const x = points[index];
+            const y = points[index + 1];
+            const z = points[index + 2];
+            minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
+            maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
+          }
+          bounds = { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
+        }
+        this.cloud = {
+          points,
+          bounds,
+          frameId: String(cloud?.frame_id || cloud?.frameId || ''),
+          sourcePoints: Math.max(0, Math.floor(finite(cloud?.source_points, available))),
+          stamp: cloud?.stamp_ns ?? cloud?.stamp ?? null,
+          medians: null,
+          rejectedPoints: 0,
+          usedAdvertisedBounds: Boolean(advertisedBounds),
+          robotPoseInFrame: normalizedPose(cloud?.robot_pose_in_frame || cloud?.robotPoseInFrame),
+        };
+        this._invalidateStatic();
+        const shouldFit = options.fit === true ||
+          (options.fit !== false && !this._hasFittedCloud && wanted > 0 && this.options.autoFitOnFirstCloud);
+        if (shouldFit) {
+          this.fitToPointCloud(false);
+          this._hasFittedCloud = true;
+        }
+        this.render();
+        return Math.floor(points.length / 3);
+      }
       const sampled = new Float32Array(wanted * 3);
       let written = 0;
       const stride = wanted > 0 ? available / wanted : 1;

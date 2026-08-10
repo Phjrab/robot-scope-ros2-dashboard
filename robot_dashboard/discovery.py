@@ -72,10 +72,13 @@ ROBOT_TYPES: Dict[str, Dict[str, Any]] = {
         "hostname_hints": ("turtlebot", "turtlebot3", "tb3", "burger", "waffle"),
         "model": {
             "kind": "robot-model-lite",
-            "asset_url": "/static/assets/turtlebot/generic-turtlebot-lite.json",
-            "urdf_url": "/static/assets/turtlebot/generic-turtlebot.urdf",
-            "label": "Generic TurtleBot reference model",
-            "fidelity": "generic-approximation",
+            "asset_url": "/static/assets/turtlebot/turtlebot3-burger-official-lite.json",
+            "urdf_url": (
+                "/static/assets/turtlebot/source/turtlebot3_description/urdf/"
+                "turtlebot3_burger.urdf"
+            ),
+            "label": "Official ROBOTIS TurtleBot3 Burger model",
+            "fidelity": "official-derived",
         },
     },
     "so-101": {
@@ -92,10 +95,10 @@ ROBOT_TYPES: Dict[str, Dict[str, Any]] = {
         "hostname_hints": ("so101", "so-101", "lerobot"),
         "model": {
             "kind": "robot-model-lite",
-            "asset_url": "/static/assets/so101/generic-so101-lite.json",
-            "urdf_url": "/static/assets/so101/generic-so101.urdf",
-            "label": "Generic SO-101 reference model",
-            "fidelity": "generic-approximation",
+            "asset_url": "/static/assets/so101/so101-official-lite.json",
+            "urdf_url": "/static/assets/so101/source/SO101/so101_new_calib.urdf",
+            "label": "Official TheRobotStudio SO-101 model",
+            "fidelity": "official-derived",
         },
     },
 }

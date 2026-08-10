@@ -52,6 +52,39 @@ class HttpSecurityTests(unittest.TestCase):
         )
         self.assertEqual([argument.arg for argument in function.args.args], ["body", "request"])
 
+    def test_streaming_mutations_and_websockets_are_same_origin(self):
+        source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        functions = {
+            node.name: node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        settings = functions["set_pointcloud_settings"]
+        self.assertEqual(
+            [argument.arg for argument in settings.args.args],
+            ["body", "request"],
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "require_same_origin"
+                for node in ast.walk(settings)
+            )
+        )
+        for name in ("pointcloud_stream", "camera_stream"):
+            function = functions[name]
+            self.assertTrue(
+                any(
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "websocket_same_origin"
+                    for node in ast.walk(function)
+                ),
+                f"{name} must reject cross-origin WebSockets",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

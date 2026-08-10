@@ -1,12 +1,13 @@
 import importlib.util
 import os
+import struct
 import sys
 import threading
 import time
 import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 if importlib.util.find_spec("rclpy") is None:
@@ -316,6 +317,48 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(after["data"], before["data"])
         self.assertEqual(after["source"], "go2_multicast")
         self.assertEqual(self.agent._metrics["/frontvideostream"].samples, 1)
+
+    def test_direct_camera_runs_only_between_first_open_and_last_close(self):
+        self.agent._direct_camera.start = Mock(return_value=True)
+        self.agent._direct_camera.stop = Mock()
+        self.agent._camera_accepting_demand = True
+        with self.agent._lock:
+            self.agent._camera["data"] = b"stale-jpeg"
+            self.agent._camera["format"] = "jpeg"
+
+        self.assertEqual(self.agent.camera_stream_open()["consumers"], 1)
+        self.assertEqual(self.agent.camera_snapshot()["data"], b"")
+        self.assertEqual(self.agent.camera_stream_open()["consumers"], 2)
+        self.agent._direct_camera.start.assert_called_once_with()
+
+        self.assertEqual(self.agent.camera_stream_close()["consumers"], 1)
+        self.agent._direct_camera.stop.assert_not_called()
+        self.assertEqual(self.agent.camera_stream_close()["consumers"], 0)
+        self.agent._direct_camera.stop.assert_called_once_with()
+
+        # Duplicate disconnects are idempotent, and shutdown rejects new work.
+        self.assertEqual(self.agent.camera_stream_close()["consumers"], 0)
+        self.agent._direct_camera.stop.assert_called_once_with()
+        self.agent._camera_accepting_demand = False
+        self.assertFalse(self.agent.camera_stream_open()["accepted"])
+
+    def test_pointcloud_stream_epoch_and_bandwidth_budget_are_bounded(self):
+        with self.agent._lock:
+            self.agent._cloud.update(
+                {
+                    "seq": 9,
+                    "points_bytes": struct.pack("<3f", 1.0, 2.0, 3.0),
+                    "sent_points": 1,
+                }
+            )
+        binary = self.agent.pointcloud_binary_snapshot()
+        legacy = self.agent.pointcloud_snapshot()
+        self.assertTrue(binary["stream_id"])
+        self.assertEqual(binary["stream_id"], legacy["stream_id"])
+        self.assertEqual(legacy["points"], [1.0, 2.0, 3.0])
+        self.assertAlmostEqual(self.agent._pointcloud_frame_interval(30_000), 0.10)
+        self.assertAlmostEqual(self.agent._pointcloud_frame_interval(100_000), 0.3)
+        self.assertAlmostEqual(self.agent._pointcloud_frame_interval(None), 3.0)
 
     def test_old_ping_result_cannot_poison_new_target_cache(self):
         started = threading.Event()

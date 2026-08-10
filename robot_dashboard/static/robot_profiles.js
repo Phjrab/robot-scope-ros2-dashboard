@@ -26,10 +26,10 @@
       description: 'ROS 2 이동 로봇 플랫폼',
       model: Object.freeze({
         kind: 'robot-model-lite',
-        asset_url: '/static/assets/turtlebot/generic-turtlebot-lite.json',
-        urdf_url: '/static/assets/turtlebot/generic-turtlebot.urdf',
-        label: 'TurtleBot URDF approximation',
-        fidelity: 'generic-approximation',
+        asset_url: '/static/assets/turtlebot/turtlebot3-burger-official-lite.json',
+        urdf_url: '/static/assets/turtlebot/source/turtlebot3_description/urdf/turtlebot3_burger.urdf',
+        label: 'Official TurtleBot3 Burger URDF',
+        fidelity: 'official-derived',
       }),
     }),
     Object.freeze({
@@ -38,10 +38,10 @@
       description: 'SO-101 로봇 암',
       model: Object.freeze({
         kind: 'robot-model-lite',
-        asset_url: '/static/assets/so101/generic-so101-lite.json',
-        urdf_url: '/static/assets/so101/generic-so101.urdf',
-        label: 'SO-101 URDF approximation',
-        fidelity: 'generic-approximation',
+        asset_url: '/static/assets/so101/so101-official-lite.json',
+        urdf_url: '/static/assets/so101/source/SO101/so101_new_calib.urdf',
+        label: 'Official SO-101 URDF',
+        fidelity: 'official-derived',
       }),
     }),
   ]);

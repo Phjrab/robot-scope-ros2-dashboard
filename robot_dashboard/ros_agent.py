@@ -154,6 +154,10 @@ class RosAgent:
             5.0,
             min(float(self.profile.get("cloud_radius_limit_m", 500.0)), 10_000.0),
         )
+        self._cloud_frame_interval_s = max(
+            0.10,
+            min(float(self.profile.get("pointcloud_frame_interval_s", 0.18)), 1.0),
+        )
 
         # Browser input is validated and statefully gated by the pure-Python
         # manager.  This process only transports its already-bounded outputs to
@@ -392,15 +396,27 @@ class RosAgent:
             restart_initial_s=direct_camera_profile.get("restart_initial_s", 0.5),
             restart_max_s=direct_camera_profile.get("restart_max_s", 8.0),
         )
+        # The direct Go2 H.264 receiver is comparatively expensive (software
+        # decode + JPEG relay).  Keep it stopped unless at least one camera
+        # WebSocket is actively viewing it.  The separate lock makes the
+        # first-open/last-close transition atomic across concurrent clients.
+        self._camera_demand_lock = threading.RLock()
+        self._camera_consumers = 0
+        self._camera_accepting_demand = False
 
         self._cloud: Dict[str, Any] = {
             "seq": 0,
-            "points": [],
+            "points_bytes": b"",
             "source_points": 0,
             "frame_id": "",
             "bounds": None,
             "updated": 0.0,
         }
+        # Browser clients use this non-secret epoch to distinguish a dashboard
+        # restart from an out-of-order frame.  ROS sequence counters restart at
+        # zero with the process; without an epoch a long-lived tab could reject
+        # every frame from the new process indefinitely.
+        self._cloud_stream_id = secrets.token_urlsafe(12)
         self._last_cloud_processed = 0.0
 
         self._map: Dict[str, Any] = {
@@ -464,7 +480,16 @@ class RosAgent:
             "max_custom_points": self.MAX_CUSTOM_CLOUD_POINTS,
             "source_points": source_points,
             "sent_points": sent_points,
+            "frame_interval_s": self._pointcloud_frame_interval(limit),
+            "transport": "binary_websocket",
         }
+
+    def _pointcloud_frame_interval(self, point_limit: Optional[int]) -> float:
+        """Target at most ~4 MB/s of packed XYZ data per browser client."""
+
+        effective_points = self.MAX_CUSTOM_CLOUD_POINTS if point_limit is None else point_limit
+        byte_budget_interval = (effective_points * 12) / 4_000_000.0
+        return min(3.0, max(self._cloud_frame_interval_s, byte_budget_interval))
 
     def set_cloud_max_points(self, value: Optional[int]) -> Dict[str, Any]:
         limit = self._normalize_cloud_max_points(value)
@@ -488,10 +513,59 @@ class RosAgent:
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
             return
-        self._direct_camera.start()
+        with self._camera_demand_lock:
+            self._camera_accepting_demand = True
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._run, name="robot-scope-ros", daemon=True)
         self._thread.start()
+
+    def camera_stream_open(self) -> Dict[str, Any]:
+        """Register one browser camera viewer and start the receiver on demand."""
+
+        with self._camera_demand_lock:
+            if not self._camera_accepting_demand:
+                return {"accepted": False, "consumers": self._camera_consumers}
+            self._camera_consumers += 1
+            if self._camera_consumers == 1:
+                self._clear_camera_frame()
+                try:
+                    self._direct_camera.start()
+                except Exception:
+                    self._camera_consumers -= 1
+                    raise
+            return {"accepted": True, "consumers": self._camera_consumers}
+
+    def camera_stream_close(self) -> Dict[str, Any]:
+        """Release one camera viewer and stop decode after the final viewer."""
+
+        with self._camera_demand_lock:
+            had_consumer = self._camera_consumers > 0
+            if self._camera_consumers > 0:
+                self._camera_consumers -= 1
+            if had_consumer and self._camera_consumers == 0:
+                self._direct_camera.stop()
+                self._clear_camera_frame()
+            return {"consumers": self._camera_consumers}
+
+    def _clear_camera_frame(self) -> None:
+        """Drop a previous viewer's frame so a new viewer never sees stale JPEG."""
+
+        with self._lock:
+            self._camera = {
+                "seq": int(self._camera.get("seq", 0)) + 1,
+                "format": "none",
+                "data": b"",
+                "stamp_us": 0,
+                "key": False,
+                "width": 0,
+                "height": 0,
+                "encoding": "",
+                "source": "none",
+                "transport": "",
+                "state": "waiting",
+                "fps": None,
+                "age_s": None,
+            }
 
     def stop(self) -> None:
         # Publish the manager's final signed stop while the ROS node and
@@ -500,7 +574,10 @@ class RosAgent:
         self.navigation_deactivate("agent_stop")
         self.shutdown_control()
         self._stop_event.set()
-        self._direct_camera.stop()
+        with self._camera_demand_lock:
+            self._camera_accepting_demand = False
+            self._camera_consumers = 0
+            self._direct_camera.stop()
         self._camera_decoder.stop()
         executor = self._executor
         if executor:
@@ -2525,7 +2602,7 @@ class RosAgent:
     def _reset_cloud_locked(self, topic: str) -> None:
         self._cloud = {
             "seq": int(self._cloud.get("seq", 0)) + 1,
-            "points": [],
+            "points_bytes": b"",
             "sent_points": 0,
             "source_points": 0,
             "frame_id": "",
@@ -2995,23 +3072,29 @@ class RosAgent:
             if topic != self._sources.get("pointcloud", ""):
                 return
             point_limit = self.cloud_max_points
+            frame_interval = self._pointcloud_frame_interval(point_limit)
         self._tick(topic, now)
-        if now - self._last_cloud_processed < 0.35:
+        if now - self._last_cloud_processed < frame_interval:
             return
         self._last_cloud_processed = now
         try:
-            array, source_points = extract_xyz(message, point_limit)
+            # "ALL SESSION" is a browser-side reservoir.  A single ROS frame
+            # remains capped at one million samples so one malformed or very
+            # large /Laser_map message cannot create an unbounded WS payload.
+            extraction_limit = self.MAX_CUSTOM_CLOUD_POINTS if point_limit is None else point_limit
+            array, source_points = extract_xyz(message, extraction_limit)
             array = reject_spatial_outliers(array, self.cloud_radius_limit)
             if not len(array):
                 return
             mins = [float(value) for value in np.min(array, axis=0)]
             maxs = [float(value) for value in np.max(array, axis=0)]
+            packed_points = np.ascontiguousarray(array, dtype="<f4").reshape(-1).tobytes()
             with self._lock:
                 if topic != self._sources.get("pointcloud", ""):
                     return
                 self._cloud = {
                     "seq": self._cloud["seq"] + 1,
-                    "points": array.reshape(-1).tolist(),
+                    "points_bytes": packed_points,
                     "sent_points": int(array.shape[0]),
                     "source_points": source_points,
                     "frame_id": str(getattr(getattr(message, "header", None), "frame_id", "")),
@@ -3473,7 +3556,11 @@ class RosAgent:
                 # source without adding a non-ROS URI to /api/v1/sources, whose
                 # POST validation remains strictly tied to the ROS graph.
                 sources["camera"] = str(camera_meta.get("topic", ""))
-            cloud_meta = {key: value for key, value in self._cloud.items() if key != "points"}
+            cloud_meta = {
+                key: value
+                for key, value in self._cloud.items()
+                if key not in {"points", "points_bytes"}
+            }
             map_meta = {key: value for key, value in self._map.items() if key != "data_b64"}
             robot_joints = self._joint_snapshot_locked(time.monotonic())
             robot_pose = self._pose_snapshot_locked(time.monotonic())
@@ -3513,7 +3600,21 @@ class RosAgent:
 
     def pointcloud_snapshot(self) -> Dict[str, Any]:
         with self._lock:
-            return dict(self._cloud)
+            snapshot = {
+                key: value for key, value in self._cloud.items() if key != "points_bytes"
+            }
+            point_bytes = self._cloud.get("points_bytes", b"")
+            snapshot["stream_id"] = self._cloud_stream_id
+        snapshot["points"] = np.frombuffer(point_bytes, dtype="<f4").tolist()
+        return snapshot
+
+    def pointcloud_binary_snapshot(self) -> Dict[str, Any]:
+        """Return immutable packed points plus small JSON-safe metadata."""
+
+        with self._lock:
+            snapshot = dict(self._cloud)
+            snapshot["stream_id"] = self._cloud_stream_id
+            return snapshot
 
     def map_snapshot(self) -> Dict[str, Any]:
         with self._lock:

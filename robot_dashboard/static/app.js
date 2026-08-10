@@ -55,6 +55,7 @@ const ui = {
   cameraRecordButton: $('#cameraRecordButton'),
   cameraStopRecordButton: $('#cameraStopRecordButton'),
   sceneCanvas: $('#sceneCanvas'),
+  liveMap2dCanvas: $('#liveMap2dCanvas'),
   mapCanvas: $('#mapCanvas'),
   mapGridOverlay: $('#mapGridOverlay'),
   sceneControls: $('#sceneControls'),
@@ -62,6 +63,11 @@ const ui = {
   sceneTopButton: $('#sceneTopButton'),
   sceneFrontButton: $('#sceneFrontButton'),
   sceneFollowButton: $('#sceneFollowButton'),
+  liveMap2dControls: $('#liveMap2dControls'),
+  liveMap2dFitButton: $('#liveMap2dFitButton'),
+  liveMap2dAutoFitButton: $('#liveMap2dAutoFitButton'),
+  liveMap2dFollowButton: $('#liveMap2dFollowButton'),
+  liveProjectionLegend: $('#liveProjectionLegend'),
   mapViewMode: $('#mapViewMode'),
   livePointBudget: $('#livePointBudget'),
   livePointCustomWrap: $('#livePointCustomWrap'),
@@ -250,6 +256,8 @@ let latestState = null;
 let latestTopics = [];
 let sourceFingerprint = '';
 let cameraSocket = null;
+let cameraSocketGeneration = 0;
+let cameraReconnectTimer = 0;
 let jointSocket = null;
 let poseSocket = null;
 let cameraMeta = null;
@@ -265,6 +273,14 @@ let cameraImageDecodeQueue = null;
 let cloudSeq = -1;
 let pointcloudRequestInFlight = false;
 let pointcloudRequestGeneration = 0;
+let pointcloudSocket = null;
+let pointcloudSocketGeneration = 0;
+let pointcloudPendingFrame = null;
+let pointcloudFrameScheduled = false;
+let pointcloudReconnectTimer = 0;
+let pointcloudLastFrameAt = 0;
+let pointcloudBinaryHttpAvailable = true;
+let pointcloudStreamId = '';
 let mapSeq = -1;
 let toastTimer = null;
 let currentPose = null;
@@ -276,7 +292,9 @@ let poseImuAnchor = null;
 let lastPoseSignature = '';
 let poseTrail = [];
 let lastCloudSnapshot = null;
-let liveCloudAccumulator = null;
+const liveCloudReservoir = window.RobotPointCloudStream?.RegisteredCloudReservoir
+  ? new window.RobotPointCloudStream.RegisteredCloudReservoir(1000000)
+  : null;
 let livePointLimit = 10000;
 let savedPointLimit = null;
 let livePointBudgetBusy = false;
@@ -313,6 +331,8 @@ let mapOverlayVisible = true;
 let savedMapOverlayVisible = true;
 let sceneCloudDataKey = '';
 let sceneCloudSourceKey = '';
+let liveMap2dDataKey = '';
+let liveMap2dSourceKey = '';
 let savedSceneCloudDataKey = '';
 let savedSceneCloudSourceKey = '';
 let liveSceneHadCloud = false;
@@ -411,6 +431,22 @@ if (scene3d) {
     follow: ui.sceneFollowButton,
   });
   scene3d.setStatus({ online: false, lidarOnline: false, snapshot: false, message: '실시간 LiDAR 신호를 기다리고 있습니다' });
+}
+
+const liveMap2d = window.RobotLiveMap2D?.LiveMap2DRenderer && ui.liveMap2dCanvas
+  ? new window.RobotLiveMap2D.LiveMap2DRenderer(ui.liveMap2dCanvas, {
+      resolution: 0.08,
+      maxCells: 50000,
+      maxPixelRatio: 2,
+    })
+  : null;
+
+if (liveMap2d) {
+  liveMap2d.bindControls({
+    fit: ui.liveMap2dFitButton,
+    autoFit: ui.liveMap2dAutoFitButton,
+    follow: ui.liveMap2dFollowButton,
+  });
 }
 
 const savedScene3d = window.RobotScene3D && ui.savedSceneCanvas
@@ -808,9 +844,12 @@ function activatePage(page, updateHash = false) {
   if (previousPage === 'sensors' && activePage !== 'sensors' && cameraRecording) {
     stopCameraRecording(cameraRecordingCleanupPolicy('sensors_page_left'));
   }
+  syncPointcloudTransport();
+  syncCameraTransport();
   requestAnimationFrame(() => {
     if (activePage === 'mapping') {
       scene3d?.resize();
+      liveMap2d?.resize();
       redrawActiveMap();
     } else if (activePage === 'maps') {
       savedScene3d?.resize();
@@ -1222,6 +1261,8 @@ async function applyLivePointLimit(value, notify = true) {
     cloudSeq = -1;
     sceneCloudDataKey = '';
     sceneCloudSourceKey = '';
+    liveMap2dDataKey = '';
+    liveMap2dSourceKey = '';
     await refreshPointcloud();
     if (notify) showToast(livePointLimit == null ? '실시간 점군을 ALL SESSION으로 표시합니다.' : `실시간 점군 표시량을 ${livePointLimit.toLocaleString()}점으로 설정했습니다.`);
   } catch (error) {
@@ -1295,7 +1336,7 @@ async function initializePointBudgets() {
 }
 
 function resetLiveCloudAccumulator() {
-  liveCloudAccumulator = null;
+  liveCloudReservoir?.reset();
 }
 
 function resetLiveRobotSessionView() {
@@ -1306,11 +1347,16 @@ function resetLiveRobotSessionView() {
   poseTrail = [];
   sceneCloudDataKey = '';
   sceneCloudSourceKey = '';
+  liveMap2dDataKey = '';
+  liveMap2dSourceKey = '';
   liveSceneHadCloud = false;
   clearLivePose();
   scene3d?.clearPointCloud();
   scene3d?.clearTrail();
   scene3d?.setRobotPose(null);
+  liveMap2d?.clearPointCloud();
+  liveMap2d?.setTrail([]);
+  liveMap2d?.setPose(null);
   navigationScene3d?.resetRobotJointPositions?.();
   navigationScene3d?.setRobotPose(null);
   navigationModelPanelKey = '';
@@ -1322,67 +1368,7 @@ function accumulateRegisteredCloud(cloud) {
     resetLiveCloudAccumulator();
     return cloud;
   }
-  const key = `${cloud.topic}:${cloud.frame_id || ''}`;
-  if (liveCloudAccumulator?.key === key && liveCloudAccumulator.lastSeq === cloud.seq) {
-    return liveCloudAccumulator.payload;
-  }
-  let accumulator = liveCloudAccumulator?.key === key ? liveCloudAccumulator : null;
-  const incoming = cloud.points;
-  const required = (accumulator?.length || 0) + incoming.length;
-  if (!accumulator) {
-    const initial = Math.max(required, Math.min((livePointLimit || Math.floor(required / 3)) * 3, 262144));
-    accumulator = {
-      key,
-      buffer: new Float32Array(Math.max(initial, 3)),
-      length: 0,
-      totalObservedPoints: 0,
-      bounds: null,
-    };
-  } else if (required > accumulator.buffer.length) {
-    let capacity = Math.max(accumulator.buffer.length, 3);
-    while (capacity < required) capacity *= 2;
-    const grown = new Float32Array(capacity);
-    grown.set(accumulator.buffer.subarray(0, accumulator.length));
-    accumulator.buffer = grown;
-  }
-  accumulator.buffer.set(incoming, accumulator.length);
-  accumulator.length += incoming.length;
-  accumulator.totalObservedPoints += Number(cloud.source_points ?? cloudPointCount(cloud));
-
-  let available = Math.floor(accumulator.length / 3);
-  if (livePointLimit != null && available > livePointLimit) {
-    const sampled = new Float32Array(livePointLimit * 3);
-    const stride = available / livePointLimit;
-    for (let index = 0; index < livePointLimit; index += 1) {
-      const source = Math.min(available - 1, Math.floor(index * stride)) * 3;
-      sampled[index * 3] = accumulator.buffer[source];
-      sampled[index * 3 + 1] = accumulator.buffer[source + 1];
-      sampled[index * 3 + 2] = accumulator.buffer[source + 2];
-    }
-    accumulator.buffer = sampled;
-    accumulator.length = sampled.length;
-    available = livePointLimit;
-  }
-  const points = accumulator.buffer.subarray(0, accumulator.length);
-  const oldBounds = accumulator.bounds;
-  const bounds = oldBounds?.min && cloud.bounds?.min ? {
-    min: oldBounds.min.map((value, index) => Math.min(Number(value), Number(cloud.bounds.min[index]))),
-    max: oldBounds.max.map((value, index) => Math.max(Number(value), Number(cloud.bounds.max[index]))),
-  } : cloud.bounds;
-  accumulator.bounds = bounds;
-  const payload = {
-    ...cloud,
-    points,
-    bounds,
-    sent_points: available,
-    source_points: Math.max(available, accumulator.totalObservedPoints),
-    frame_source_points: Number(cloud.source_points || cloudPointCount(cloud)),
-    accumulated_registered_scans: true,
-  };
-  accumulator.lastSeq = cloud.seq;
-  accumulator.payload = payload;
-  liveCloudAccumulator = accumulator;
-  return payload;
+  return liveCloudReservoir?.ingest(cloud, livePointLimit) || cloud;
 }
 
 function buildDemoPointcloud() {
@@ -1441,6 +1427,7 @@ function updateOverview(state) {
   const cameraFps = camera.fps ?? directCamera.fps ?? cameraTopic?.hz;
   const cameraAge = camera.age_s ?? directCamera.age_s ?? cameraTopic?.age_s;
   const reportedCameraState = camera.state || directCamera.state || cameraTopic?.state || 'waiting';
+  const cameraOnDemand = Boolean(directCamera.configured && reportedCameraState === 'stopped' && activePage !== 'sensors');
   const reportedCameraLive = camera.live ?? directCamera.live ?? (reportedCameraState === 'ok');
   const cameraLive = Boolean(reportedCameraLive) && (cameraAge == null || Number(cameraAge) <= 3);
   ui.cameraMetric.textContent = formatHz(cameraFps);
@@ -1453,7 +1440,11 @@ function updateOverview(state) {
   const cameraFormat = camera.format && camera.format !== 'none' ? camera.format.toUpperCase() : '';
   const cameraDimensions = cameraWidth && cameraHeight ? `${cameraWidth}×${cameraHeight}` : '';
   ui.cameraCodecLabel.textContent = [cameraFormat, cameraDimensions, cameraTransport].filter(Boolean).join(' · ') || '—';
-  setStatePill(ui.cameraState, cameraLive ? 'ok' : reportedCameraState, cameraLive ? 'LIVE' : String(reportedCameraState).toUpperCase());
+  setStatePill(
+    ui.cameraState,
+    cameraLive ? 'ok' : cameraOnDemand ? 'waiting' : reportedCameraState,
+    cameraLive ? 'LIVE' : cameraOnDemand ? 'ON DEMAND' : String(reportedCameraState).toUpperCase(),
+  );
   syncCameraFrameFreshness();
 
   const hesaiTopic = latestTopics.find((topic) => topic.name === '/lidar_points');
@@ -1476,7 +1467,8 @@ function updateOverview(state) {
   ui.liveMapTopic.textContent = gridSource || 'NO SOURCE';
   ui.liveMapStatus.textContent = gridTopic?.state === 'ok' ? (gridTopic.hz == null ? 'static ready' : `live · ${formatHz(gridTopic.hz)}`) : (gridTopic?.state || 'waiting');
 
-  if (desiredMapView() === 'occupancy') {
+  const liveView = desiredMapView();
+  if (liveView === 'occupancy') {
     ui.mapFrame.textContent = `FRAME ${grid.frame_id || '—'}`;
     ui.mapPoints.textContent = grid.width && grid.height ? `${grid.width}×${grid.height} CELLS` : '0 CELLS';
     setStatePill(ui.mappingState, gridTopic?.state || 'waiting', gridTopic?.state === 'ok' && state.health?.robot_online ? 'LIVE 2D MAP' : 'LIVE DATA WAITING');
@@ -1484,9 +1476,12 @@ function updateOverview(state) {
     ui.mapFrame.textContent = `FRAME ${cloud.frame_id || liveCloud?.frame_id || '—'}`;
     const displayPoints = liveCloud?.accumulated_registered_scans ? cloudPointCount(liveCloud) : Number(cloud.sent_points || cloudPointCount(liveCloud));
     const pointLabel = liveCloud ? cloudPointSummary(liveCloud) : displayPoints.toLocaleString();
-    ui.mapPoints.textContent = `${pointLabel} POINTS${liveCloud?.accumulated_registered_scans ? ' · ACCUMULATED' : ''}`;
+    const projectionCells = liveView === 'projection' ? Number(liveMap2d?.snapshot?.().cellCount || 0) : 0;
+    ui.mapPoints.textContent = `${pointLabel} POINTS${projectionCells ? ` · ${projectionCells.toLocaleString()} CELLS` : ''}${liveCloud?.accumulated_registered_scans ? ' · ACCUMULATED' : ''}`;
     const mappingLabels = { mapping: 'WORLD FRAME · LIVE', cloud_only: 'CLOUD LIVE', waiting: 'LIVE DATA WAITING', stale: 'LIVE DATA STALE' };
-    const label = frameMismatch ? 'SENSOR FRAME · EXTRINSIC' : (mappingLabels[mapping.state] || 'CLOUD LIVE');
+    const label = liveView === 'projection'
+      ? (frameMismatch ? '2D PROJECTION · SENSOR FRAME' : 'LIVE 2D · POINT PROJECTION')
+      : frameMismatch ? 'SENSOR FRAME · EXTRINSIC' : (mappingLabels[mapping.state] || 'CLOUD LIVE');
     setStatePill(ui.mappingState, liveCloud ? (frameMismatch ? 'waiting' : (mapping.state || 'cloud_only')) : 'waiting', liveCloud ? label : 'LIVE DATA WAITING');
   }
   ui.lidarSub.title = ui.lidarSub.textContent;
@@ -1500,6 +1495,10 @@ function updateOverview(state) {
   updateOdometry(state.sensors || [], odomSource);
   updateSavedMapOverview();
   ui.lastUpdated.textContent = `Last update ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`;
+  // AUTO may switch between a real OccupancyGrid and point projection as ROS
+  // sources appear or disappear.  Keep the binary cloud transport aligned
+  // with that decision without waiting for a page navigation event.
+  syncPointcloudTransport();
 }
 
 function formatBounds(bounds) {
@@ -2350,7 +2349,10 @@ function clearLivePose() {
   currentPose = null;
   poseImuAnchor = null;
   ui.posX.textContent = ui.posY.textContent = ui.posZ.textContent = ui.speed.textContent = '—';
-  if (activePage === 'mapping') scene3d?.setRobotPose(null);
+  if (activePage === 'mapping') {
+    scene3d?.setRobotPose(null);
+    liveMap2d?.setPose(null);
+  }
 }
 
 function animateRobot(timestamp) {
@@ -2390,6 +2392,9 @@ function animateRobot(timestamp) {
   if (activePage === 'mapping' && desiredMapView() === 'cloud') {
     if (robotRuntimeDataCompatible && renderedJointPositions) scene3d?.setRobotJointPositions?.(renderedJointPositions);
     scene3d?.setRobotPose(robotRuntimeDataCompatible && poseLive ? currentPose : null);
+  } else if (activePage === 'mapping' && desiredMapView() === 'projection') {
+    liveMap2d?.setPose(robotRuntimeDataCompatible && poseLive ? currentPose : null);
+    liveMap2d?.setTrail(robotRuntimeDataCompatible ? poseTrail : []);
   } else if (activePage === 'navigation' && robotRuntimeDataCompatible && robotModelsReady && !robotModelsFailed && selectedRobotType === 'go2' && jointLive && renderedJointPositions) {
     navigationScene3d?.setRobotJointPositions?.(renderedJointPositions);
   }
@@ -2601,13 +2606,11 @@ async function startMappingSession() {
   try {
     if (active) await api('/api/v1/mapping/stop', { method: 'POST', body: '{}' });
     await api('/api/v1/mapping/start', { method: 'POST', body: '{}' });
-    resetLiveCloudAccumulator();
-    lastCloudSnapshot = null;
-    cloudSeq = -1;
+    resetPointcloudStream(pointcloudStreamId);
     poseTrail = [];
-    sceneCloudDataKey = '';
-    sceneCloudSourceKey = '';
     scene3d?.clearTrail();
+    liveMap2d?.setTrail([]);
+    liveMap2d?.setPose(null);
     showToast(active ? '새 매핑 세션을 시작했습니다.' : 'Hesai + FAST-LIO 시작을 요청했습니다.');
   } catch (error) {
     showToast(`매핑 시작 실패: ${error.message}`, true);
@@ -2670,23 +2673,140 @@ function resizeCanvas(canvas) {
   return { width, height, ratio };
 }
 
+function pointcloudTransportWanted() {
+  return activePage === 'mapping' && !document.hidden && desiredMapView() !== 'occupancy';
+}
+
+function resetPointcloudStream(streamId = '') {
+  pointcloudStreamId = String(streamId || '');
+  cloudSeq = -1;
+  pointcloudLastFrameAt = 0;
+  lastCloudSnapshot = null;
+  resetLiveCloudAccumulator();
+  sceneCloudDataKey = '';
+  sceneCloudSourceKey = '';
+  liveMap2dDataKey = '';
+  liveMap2dSourceKey = '';
+  scene3d?.clearPointCloud();
+  liveMap2d?.clearPointCloud();
+}
+
+function applyPointcloudSnapshot(cloud) {
+  const sequence = Number(cloud?.seq);
+  if (!Number.isSafeInteger(sequence) || sequence <= 0 || !cloud.points?.length) return false;
+  const incomingStreamId = String(cloud.stream_id || '');
+  const streamChanged = Boolean(incomingStreamId && pointcloudStreamId && incomingStreamId !== pointcloudStreamId);
+  const legacySequenceRollback = !incomingStreamId && cloudSeq >= 0 && sequence < Number(cloudSeq);
+  if (streamChanged || legacySequenceRollback) resetPointcloudStream(incomingStreamId);
+  if (incomingStreamId && !pointcloudStreamId) pointcloudStreamId = incomingStreamId;
+  if (sequence <= Number(cloudSeq)) return false;
+  cloudSeq = sequence;
+  pointcloudLastFrameAt = Date.now();
+  lastCloudSnapshot = accumulateRegisteredCloud(cloud);
+  if (activePage === 'mapping') {
+    const view = desiredMapView();
+    if (view === 'cloud') drawPointcloud(lastCloudSnapshot);
+    else if (view === 'projection') drawLivePointProjection(lastCloudSnapshot);
+  }
+  return true;
+}
+
+function drainPointcloudFrame() {
+  pointcloudFrameScheduled = false;
+  const pending = pointcloudPendingFrame;
+  pointcloudPendingFrame = null;
+  if (pending && pending.generation === pointcloudSocketGeneration && pointcloudTransportWanted()) {
+    try {
+      applyPointcloudSnapshot(window.RobotPointCloudStream.decodeFrame(pending.buffer));
+    } catch (error) {
+      console.warn('point-cloud stream:', error);
+    }
+  }
+  if (pointcloudPendingFrame && !pointcloudFrameScheduled) {
+    pointcloudFrameScheduled = true;
+    requestAnimationFrame(drainPointcloudFrame);
+  }
+}
+
+function queuePointcloudFrame(buffer, generation) {
+  pointcloudPendingFrame = { buffer, generation };
+  if (pointcloudFrameScheduled) return;
+  pointcloudFrameScheduled = true;
+  requestAnimationFrame(drainPointcloudFrame);
+}
+
+function disconnectPointcloud() {
+  pointcloudRequestGeneration += 1;
+  pointcloudSocketGeneration += 1;
+  clearTimeout(pointcloudReconnectTimer);
+  pointcloudReconnectTimer = 0;
+  pointcloudPendingFrame = null;
+  const socket = pointcloudSocket;
+  pointcloudSocket = null;
+  if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) socket.close(1000, 'mapping view inactive');
+}
+
+function connectPointcloud() {
+  if (!pointcloudTransportWanted() || !window.RobotPointCloudStream?.decodeFrame) return;
+  if (pointcloudSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(pointcloudSocket.readyState)) return;
+  const generation = ++pointcloudSocketGeneration;
+  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/pointcloud`);
+  pointcloudSocket = socket;
+  socket.binaryType = 'arraybuffer';
+  socket.onmessage = (event) => {
+    if (pointcloudSocket !== socket || generation !== pointcloudSocketGeneration || !(event.data instanceof ArrayBuffer)) return;
+    queuePointcloudFrame(event.data, generation);
+  };
+  socket.onclose = () => {
+    if (pointcloudSocket !== socket || generation !== pointcloudSocketGeneration) return;
+    pointcloudSocket = null;
+    if (pointcloudTransportWanted()) {
+      pointcloudReconnectTimer = setTimeout(() => {
+        pointcloudReconnectTimer = 0;
+        connectPointcloud();
+      }, 1200);
+    }
+  };
+  socket.onerror = () => socket.close();
+}
+
+function syncPointcloudTransport() {
+  if (pointcloudTransportWanted()) connectPointcloud();
+  else disconnectPointcloud();
+}
+
+async function latestBinaryPointcloud(seq) {
+  const response = await fetch(`/api/v1/pointcloud.bin?since=${encodeURIComponent(seq)}`, { cache: 'no-store' });
+  if (response.status === 204) return null;
+  if (response.status === 404 || response.status === 415) {
+    pointcloudBinaryHttpAvailable = false;
+    return latestApi('/api/v1/pointcloud', seq);
+  }
+  if (!response.ok) throw new Error(String(response.status));
+  return window.RobotPointCloudStream.decodeFrame(await response.arrayBuffer());
+}
+
 async function refreshPointcloud() {
+  if (!pointcloudTransportWanted()) return;
+  if (pointcloudSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(pointcloudSocket.readyState)) return;
   if (pointcloudRequestInFlight) return;
   pointcloudRequestInFlight = true;
   const generation = pointcloudRequestGeneration;
   try {
-    const cloud = await latestApi('/api/v1/pointcloud', cloudSeq);
+    const cloud = pointcloudBinaryHttpAvailable && window.RobotPointCloudStream?.decodeFrame
+      ? await latestBinaryPointcloud(cloudSeq)
+      : await latestApi('/api/v1/pointcloud', cloudSeq);
     if (generation !== pointcloudRequestGeneration) return;
     if (!cloud?.seq || !cloud.points?.length) {
       if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
+      else if (activePage === 'mapping' && desiredMapView() === 'projection') drawLivePointProjection(lastCloudSnapshot);
       return;
     }
-    if (Number(cloud.seq) <= Number(cloudSeq)) return;
-    cloudSeq = cloud.seq;
-    lastCloudSnapshot = accumulateRegisteredCloud(cloud);
-    if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
+    applyPointcloudSnapshot(cloud);
   } catch (_) {
     if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(null);
+    else if (activePage === 'mapping' && desiredMapView() === 'projection') drawLivePointProjection(null);
   } finally {
     pointcloudRequestInFlight = false;
   }
@@ -2908,12 +3028,18 @@ async function deleteSelectedSavedMap() {
 }
 
 function setMapLayerVisibility(mode) {
-  const cloudMode = mode !== 'occupancy';
+  const cloudMode = mode === 'cloud';
+  const projectionMode = mode === 'projection';
+  const occupancyMode = mode === 'occupancy';
   ui.sceneCanvas?.classList.toggle('is-hidden', !cloudMode);
-  ui.mapCanvas?.classList.toggle('is-hidden', cloudMode);
-  ui.mapGridOverlay?.classList.toggle('is-hidden', cloudMode);
+  ui.liveMap2dCanvas?.classList.toggle('is-hidden', !projectionMode);
+  ui.mapCanvas?.classList.toggle('is-hidden', !occupancyMode);
+  ui.mapGridOverlay?.classList.toggle('is-hidden', !occupancyMode);
   ui.sceneControls?.classList.toggle('is-hidden', !cloudMode);
+  ui.liveMap2dControls?.classList.toggle('is-hidden', !projectionMode);
+  ui.liveProjectionLegend?.classList.toggle('is-hidden', !projectionMode);
   if (cloudMode) scene3d?.resize();
+  if (projectionMode) liveMap2d?.resize();
 }
 
 function setSavedMapLayerVisibility(mode) {
@@ -2973,6 +3099,29 @@ function drawPointcloud(cloud) {
   });
 }
 
+function drawLivePointProjection(cloud) {
+  const selectedCloud = liveSceneCloud(cloud);
+  setMapLayerVisibility('projection');
+  activeMapView = 'projection';
+  if (!liveMap2d) return;
+  liveMap2d.setOverlayVisible(mapOverlayVisible && robotRuntimeDataCompatible);
+  liveMap2d.setPose(robotRuntimeDataCompatible && poseLive ? currentPose : null);
+  liveMap2d.setTrail(robotRuntimeDataCompatible ? poseTrail : []);
+  if (!selectedCloud?.points?.length) {
+    if (liveMap2dDataKey) liveMap2d.clearPointCloud();
+    liveMap2dDataKey = '';
+    liveMap2dSourceKey = '';
+    return;
+  }
+  const sourceKey = `live:${selectedCloud.topic || selectedCloud.frame_id || 'cloud'}`;
+  const dataKey = `${sourceKey}:${selectedCloud.seq ?? selectedCloud.stamp_ns ?? cloudPointCount(selectedCloud)}`;
+  if (dataKey !== liveMap2dDataKey) {
+    liveMap2d.setPointCloud(selectedCloud, { fit: sourceKey !== liveMap2dSourceKey });
+    liveMap2dDataKey = dataKey;
+    liveMap2dSourceKey = sourceKey;
+  }
+}
+
 function drawSavedPointcloud() {
   const selectedCloud = savedSceneCloud();
   setSavedMapLayerVisibility('cloud');
@@ -3004,6 +3153,7 @@ async function refreshMap() {
     mapSeq = map.seq;
     lastMapSnapshot = map;
     if (activePage === 'mapping' && desiredMapView() === 'occupancy') drawOccupancyMap(map, false);
+    syncPointcloudTransport();
   } catch (_) {}
 }
 
@@ -3987,6 +4137,7 @@ function redrawActiveMap() {
   const desired = desiredMapView();
   setMapLayerVisibility(desired);
   if (desired === 'occupancy' && lastMapSnapshot) drawOccupancyMap(lastMapSnapshot, false);
+  else if (desired === 'projection') drawLivePointProjection(lastCloudSnapshot);
   else if (desired === 'cloud') drawPointcloud(lastCloudSnapshot);
 }
 
@@ -4002,19 +4153,28 @@ function redrawSavedMap() {
 }
 
 function desiredMapView() {
-  const liveGridReady = Boolean(latestState?.health?.robot_online && latestState?.sources?.occupancy_grid && lastMapSnapshot);
+  // A latched ROS OccupancyGrid is valid independently of the ICMP link KPI.
+  // Requiring ping here made a perfectly usable map disappear during brief
+  // network-health probe failures.
+  const liveGridReady = Boolean(latestState?.sources?.occupancy_grid && lastMapSnapshot?.data_b64);
+  const liveCloudReady = Boolean(liveSceneCloud());
   if (mapViewPreference === 'occupancy') {
-    return liveGridReady ? 'occupancy' : 'cloud';
+    return liveGridReady ? 'occupancy' : 'projection';
   }
+  if (mapViewPreference === 'projection') return 'projection';
   if (mapViewPreference === 'cloud') return 'cloud';
-  return liveGridReady ? 'occupancy' : 'cloud';
+  return liveGridReady ? 'occupancy' : liveCloudReady ? 'projection' : 'cloud';
 }
 
 function chooseMapView(mode) {
-  mapViewPreference = mode;
-  ui.mapViewMode.value = mode;
+  mapViewPreference = ['cloud', 'projection', 'occupancy', 'auto'].includes(mode) ? mode : 'cloud';
+  ui.mapViewMode.value = mapViewPreference;
   redrawActiveMap();
+  syncPointcloudTransport();
   if (latestState) updateOverview(latestState);
+  if (mapViewPreference === 'occupancy' && desiredMapView() === 'projection') {
+    showToast('ROS OccupancyGrid가 없어 동일한 라이브 점군의 2D 투영으로 표시합니다.');
+  }
 }
 
 function chooseSavedMapView(mode) {
@@ -4748,16 +4908,48 @@ function connectPose() {
   poseSocket.onerror = () => poseSocket.close();
 }
 
+function cameraTransportWanted() {
+  return activePage === 'sensors' && !document.hidden;
+}
+
+function disconnectCamera() {
+  cameraSocketGeneration += 1;
+  clearTimeout(cameraReconnectTimer);
+  cameraReconnectTimer = 0;
+  const socket = cameraSocket;
+  cameraSocket = null;
+  if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) {
+    socket.close(1000, 'camera view inactive');
+  }
+  resetCameraImageDecodeQueue();
+  if (videoDecoder && videoDecoder.state !== 'closed') {
+    try { videoDecoder.close(); } catch (_) {}
+  }
+  videoDecoder = null;
+  cameraHasKey = false;
+  cameraMeta = null;
+  cameraLastFrameAt = 0;
+  syncCameraFrameFreshness();
+}
+
 function connectCamera() {
-  if (cameraSocket) cameraSocket.close();
+  if (!cameraTransportWanted()) return;
+  if (cameraSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(cameraSocket.readyState)) return;
+  const generation = ++cameraSocketGeneration;
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  cameraSocket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/camera`);
-  cameraSocket.binaryType = 'arraybuffer';
-  cameraSocket.onmessage = (event) => {
+  const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/camera`);
+  cameraSocket = socket;
+  socket.binaryType = 'arraybuffer';
+  socket.onmessage = (event) => {
+    if (cameraSocket !== socket || generation !== cameraSocketGeneration || !cameraTransportWanted()) return;
     if (typeof event.data === 'string') {
-      const metadata = JSON.parse(event.data);
-      noteCameraSource(metadata.topic || metadata.source || metadata.stream_url || metadata.transport);
-      cameraMeta = metadata;
+      try {
+        const metadata = JSON.parse(event.data);
+        noteCameraSource(metadata.topic || metadata.source || metadata.stream_url || metadata.transport);
+        cameraMeta = metadata;
+      } catch (error) {
+        console.warn('camera metadata:', error);
+      }
       return;
     }
     if (!cameraMeta) return;
@@ -4783,8 +4975,22 @@ function connectCamera() {
       if (metadata.format === 'h264') resetDecoder();
     }
   };
-  cameraSocket.onclose = () => setTimeout(connectCamera, 1800);
-  cameraSocket.onerror = () => cameraSocket.close();
+  socket.onclose = () => {
+    if (cameraSocket !== socket || generation !== cameraSocketGeneration) return;
+    cameraSocket = null;
+    if (cameraTransportWanted()) {
+      cameraReconnectTimer = setTimeout(() => {
+        cameraReconnectTimer = 0;
+        connectCamera();
+      }, 1800);
+    }
+  };
+  socket.onerror = () => socket.close();
+}
+
+function syncCameraTransport() {
+  if (cameraTransportWanted()) connectCamera();
+  else disconnectCamera();
 }
 
 function controlReady(snapshot = controlSnapshot) {
@@ -5580,7 +5786,7 @@ ui.livePointBudget.addEventListener('change', async () => {
     ui.livePointCustom.focus();
     return;
   }
-  if (value === 'all' && !window.confirm('ALL SESSION은 브라우저 세션 동안 수신한 모든 점을 누적하므로 메모리와 렌더링 부하가 커질 수 있습니다. 계속할까요?')) {
+  if (value === 'all' && !window.confirm('ALL SESSION은 브라우저 세션 동안 최대 1,000,000점을 reservoir로 누적하므로 메모리와 렌더링 부하가 커질 수 있습니다. 계속할까요?')) {
     syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
     return;
   }
@@ -5706,14 +5912,19 @@ window.addEventListener('blur', () => {
   if (controlLeaseId) failSafeDisarm('window_blurred');
 });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) return;
-  if (controlArmBusy) invalidatePendingArm();
-  if (controlLeaseId) failSafeDisarm('document_hidden');
-  if (cameraRecording) stopCameraRecording(cameraRecordingCleanupPolicy('visibility_hidden'));
+  if (document.hidden) {
+    if (controlArmBusy) invalidatePendingArm();
+    if (controlLeaseId) failSafeDisarm('document_hidden');
+    if (cameraRecording) stopCameraRecording(cameraRecordingCleanupPolicy('visibility_hidden'));
+  }
+  syncPointcloudTransport();
+  syncCameraTransport();
 });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('page_hidden');
+  disconnectPointcloud();
+  disconnectCamera();
   discardCameraRecordingForPageHide();
 });
 window.addEventListener('beforeunload', (event) => {
@@ -5746,7 +5957,6 @@ renderServiceLifecycle();
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
 initializeRobotProfiles();
-connectCamera();
 connectJoints();
 connectPose();
 requestAnimationFrame(animateRobot);
@@ -5755,7 +5965,11 @@ pointBudgetReady.then(() => loadOfflinePointcloud().then(refreshSavedMaps));
 refreshState();
 refreshTopics();
 refreshSources();
-pointBudgetReady.then(refreshPointcloud);
+pointBudgetReady.then(() => {
+  syncPointcloudTransport();
+  syncCameraTransport();
+  refreshPointcloud();
+});
 refreshMap();
 refreshMappingControl();
 refreshNavigation();

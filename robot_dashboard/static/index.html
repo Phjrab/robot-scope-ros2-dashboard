@@ -79,17 +79,24 @@
           </div>
           <div class="map-stage live-map-stage">
             <canvas id="sceneCanvas" class="map-layer" aria-label="실시간 Go2 및 LiDAR 3D 장면"></canvas>
+            <canvas id="liveMap2dCanvas" class="map-layer is-hidden" aria-label="실시간 LiDAR 포인트클라우드의 상단 2D 투영"></canvas>
             <canvas id="mapCanvas" class="map-layer is-hidden" aria-label="실시간 2D 점유 지도"></canvas>
             <div class="map-grid-overlay is-hidden" id="mapGridOverlay"></div>
             <div class="scene-controls" id="sceneControls" aria-label="실시간 3D 시점 제어">
               <button id="sceneResetButton" type="button">ISO</button><button id="sceneTopButton" type="button">TOP</button><button id="sceneFrontButton" type="button">FRONT</button><button id="sceneFollowButton" type="button" aria-pressed="false" title="지도 고정/로봇 추적 전환">WORLD</button>
             </div>
+            <div class="scene-controls live-map2d-controls is-hidden" id="liveMap2dControls" aria-label="Live Mapping 2D 투영 시점 제어">
+              <button id="liveMap2dFitButton" type="button" title="현재 수신한 전체 점군을 화면에 맞춥니다">FIT</button><button id="liveMap2dAutoFitButton" type="button" aria-pressed="true" title="점군 범위가 변할 때 자동으로 화면을 맞춥니다">AUTO FIT</button><button id="liveMap2dFollowButton" type="button" aria-pressed="false" title="지도 고정/로봇 추적 전환">WORLD</button>
+            </div>
             <div class="map-legend">
               <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span><span><i class="legend-trail"></i>TRAIL</span>
-              <label class="map-view-select"><span>VIEW</span><select id="mapViewMode"><option value="cloud" selected>LIVE 3D</option><option value="occupancy">LIVE 2D</option><option value="auto">AUTO</option></select></label>
-              <label class="map-view-select"><span>POINTS</span><select id="livePointBudget"><option value="10000" selected>10K</option><option value="30000">30K</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all">ALL SESSION</option><option value="custom">CUSTOM</option></select></label>
+              <label class="map-view-select"><span>VIEW</span><select id="mapViewMode"><option value="cloud" selected>LIVE 3D</option><option value="projection">LIVE 2D · POINTS</option><option value="occupancy">ROS 2D · GRID</option><option value="auto">AUTO</option></select></label>
+              <label class="map-view-select"><span>POINTS</span><select id="livePointBudget"><option value="10000" selected>10K · SMOOTH</option><option value="30000">30K · BALANCED</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all">ALL SESSION · MAX 1M</option><option value="custom">CUSTOM</option></select></label>
               <span class="point-budget-custom is-hidden" id="livePointCustomWrap"><input id="livePointCustom" type="number" min="1000" max="1000000" step="1000" value="10000" aria-label="실시간 표시 포인트 수"><button id="livePointApply" type="button">SET</button></span>
               <label class="overlay-toggle"><input id="mapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+            </div>
+            <div class="live-projection-legend is-hidden" id="liveProjectionLegend" aria-label="실시간 2D 포인트 투영 범례">
+              <strong>LIVE POINT PROJECTION</strong><span>현재 3D 프레임을 상단에서 투영 · Saved Maps와 별도</span><i><b class="projection-low"></b>낮은 점</i><i><b class="projection-high"></b>높은 점</i><small>드래그 이동 · 휠 확대/축소</small>
             </div>
             <div class="map-meta"><span id="mapFrame">FRAME —</span><span id="mapPoints">0 POINTS</span></div>
           </div>
@@ -557,7 +564,9 @@
 
   <div class="toast" id="toast"></div>
   <script src="/static/robot_profiles.js" defer></script>
+  <script src="/static/pointcloud_stream.js" defer></script>
   <script src="/static/scene3d.js" defer></script>
+  <script src="/static/live_map2d.js" defer></script>
   <script src="/static/go2_official_model.js" defer></script>
   <script src="/static/control_input.js" defer></script>
   <script src="/static/map_editor.js" defer></script>

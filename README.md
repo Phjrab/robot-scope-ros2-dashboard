@@ -16,9 +16,10 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 - JPEG, CompressedImage, raw Image와 Go2 직접 RTP/H.264 카메라 표시
 - 표시 중인 카메라 화면 PNG/JPEG 캡처와 브라우저 WebM/MP4 녹화
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
+- 같은 라이브 점군을 추가 전송 없이 위에서 투영하는 2D 매핑 화면
 - Settings에서 Go2, TurtleBot, SO-101 유형 선택과 제한된 로컬 네트워크 자동 검색
 - 발견 후보의 IP, hostname, 인터페이스와 응답 지연을 확인한 뒤 연결 대상 선택
-- 유형별 3D 모델 자동 전환: 공식 기반 Go2와 포함된 TurtleBot/SO-101 URDF 근사 모델
+- 유형별 3D 모델 자동 전환: 공식 기반 Go2, TurtleBot3 Burger, SO-101 경량 모델
 - Go2 12축 다리 관절, 몸통 자세와 이동 궤적 표시
 - 실시간 점군 포인트 수를 10K~250K, 사용자 지정 또는 ALL SESSION으로 선택
 - 저장 PCD를 미리보기 포인트 수 또는 ALL로 표시
@@ -200,13 +201,15 @@ Settings의 Connection에서 다음 표시 유형을 선택할 수 있습니다.
 | 유형 | 검색 대상 | 3D 모델 | 현재 제어 범위 |
 |---|---|---|---|
 | Unitree Go2 | Go2 본체와 전용 유선망 | Unitree 공식 URDF 기반 경량 모델 | 안전 설정을 마친 경우 주행·허용 모션 |
-| TurtleBot | 같은 LAN의 TurtleBot ROS 2 컴퓨터 | 저장소에 포함된 범용 URDF 근사 모델 | 관측·센서·지도 표시 |
-| SO-101 | 팔이 USB/serial로 연결된 ROS 2 컨트롤러 호스트 | 저장소에 포함된 범용 URDF 근사 모델 | 관측·센서·지도 표시 |
+| TurtleBot | 같은 LAN의 TurtleBot ROS 2 컴퓨터 | ROBOTIS 공식 TurtleBot3 Burger URDF/STL 기반 | 관측·센서·지도 표시 |
+| SO-101 | 팔이 USB/serial로 연결된 ROS 2 컨트롤러 호스트 | LeRobot이 참조하는 TheRobotStudio 공식 SO-101 URDF/STL 기반 | 관측·센서·지도 표시 |
 
-TurtleBot과 SO-101 모델은 제조사 공식 치수·충돌 모델이 아니며 대시보드에서 유형을
-구분하기 위한 primitive-only 시각화입니다. 현재 기본 URDF 자세로 표시되고, 각 로봇의
-실시간 joint topic 매핑은 포함하지 않습니다. 시뮬레이션, 충돌 검사, 제어 또는 제작
-치수로 사용하지 마세요.
+TurtleBot은 ROBOTIS `turtlebot3_description`의 Burger 모델, SO-101은 LeRobot 공식
+문서가 안내하는 TheRobotStudio `Simulation/SO101` 모델을 고정된 upstream commit에서
+가져옵니다. 원본 URDF와 visual STL은 바이트 그대로 포함하며, 브라우저는 그 표면을
+결정론적으로 경량화한 JSON을 표시합니다. 현재 기본 URDF 자세로 표시되고 각 로봇의
+실시간 joint topic 매핑은 포함하지 않습니다. 경량 파생물은 시뮬레이션, 충돌 검사,
+제어 또는 제작 치수로 사용하지 마세요.
 
 ## 대시보드 사용 방법
 
@@ -237,7 +240,10 @@ Jetson과 로봇 연결 상태, ROS 배포판, RMW, Domain ID, 센서 요약과 
 
 ### Live Mapping
 
-실시간 3D 점군, 2D OccupancyGrid, Go2 모델과 이동 궤적을 확인합니다.
+실시간 3D 점군, 같은 점군의 2D 상단 투영, ROS OccupancyGrid, Go2 모델과 이동
+궤적을 확인합니다. VIEW에서 `LIVE 3D`, `LIVE 2D · POINTS`, `ROS 2D · GRID`,
+`AUTO`를 선택할 수 있습니다. 포인트 투영은 별도 API를 호출하지 않고 현재 3D 프레임을
+희소 XY 셀로 바꾸며, 실제 OccupancyGrid나 저장된 2D 지도는 아닙니다.
 
 - 마우스 드래그: 3D 장면 회전
 - Shift 또는 오른쪽 드래그: 장면 이동
@@ -248,9 +254,23 @@ Jetson과 로봇 연결 상태, ROS 배포판, RMW, Domain ID, 센서 요약과 
 - ROBOT: 로봇 모델과 궤적 표시 전환
 - POINTS: 실시간 표시 포인트 예산 선택
 
-ALL SESSION은 현재 브라우저 세션에 들어온 모든 유효 점을 누적합니다. 긴 세션은
-브라우저 메모리와 렌더링 부하가 커질 수 있습니다. 이 설정은 화면 표시만 바꾸며
-SLAM 원본 토픽과 실제 저장 데이터는 줄이지 않습니다.
+ALL SESSION은 현재 브라우저 세션의 유효 점을 최대 1,000,000점 reservoir로 누적합니다.
+긴 세션은 브라우저 메모리와 렌더링 부하가 커질 수 있습니다. 이 설정은 화면 표시만
+바꾸며 SLAM 원본 토픽과 실제 저장 데이터는 줄이지 않습니다.
+
+실시간 점군은 JSON 배열 대신 little-endian float32 XYZ 바이너리 WebSocket으로
+전송합니다. 매핑 화면을 볼 때만 연결하고 최신 프레임 하나만 유지하므로 느린 클라이언트가
+오래된 프레임을 쌓지 않습니다. 기본 10K는 가장 부드러운 표시, 30K는 화질과 지연의
+균형값입니다. Go2 프로필의 10K/30K는 소스가 허용하면 최대 약 10fps를 목표로 하며,
+서버는 프레임당 최대 1,000,000점과 클라이언트당 약 4 MB/s 목표로 큰 프레임의 전송
+간격을 자동으로 늘려 Wi-Fi 포화를 막습니다. WebSocket을 사용할 수 없을 때만 binary HTTP,
+그마저 지원하지 않는 구버전 서버에서는 기존 JSON API로 순차 fallback합니다.
+
+현재 Jetson의 Wi-Fi는 신호 세기보다 RTT jitter와 절전 때문에 순간 지연이 생길 수
+있습니다. 앱 최적화를 먼저 적용한 뒤에도 안정성이 더 필요하면 대시보드용 별도
+USB-Ethernet NIC 또는 검증된 스위치를 사용하세요. `eno1`은 Go2·Hesai의
+`192.168.123.0/24`와 카메라 multicast에 쓰이므로 Mac 접속용 LAN이 그 포트를 대체하면
+안 됩니다. Wi-Fi 절전 해제는 호스트 전원 정책 변경이므로 현장 승인 후 별도로 적용합니다.
 
 ### Robot Controls
 
@@ -464,7 +484,9 @@ export ROBOT_SCOPE_CAMERA_INTERFACE=enx0123456789ab
 Go2 프로필의 ROS 카메라 자동 구독은 계속 꺼져 있습니다. 직접 카메라가 설정된 동안
 `/frontvideostream`은 영상 소스로 사용되지 않으므로, 대용량 Unitree 영상 메시지로
 인한 DDS 병목이 센서·제어 경로에 영향을 주지 않습니다. Sensors 화면에는 직접 수신
-상태, FPS, 해상도와 인터페이스가 표시됩니다.
+상태, FPS, 해상도와 인터페이스가 표시됩니다. GStreamer 수신·디코딩과 카메라
+WebSocket은 Sensors 화면을 실제로 보는 클라이언트가 있을 때만 실행되고 마지막
+클라이언트가 떠나면 멈추므로 Live Mapping의 대역폭과 CPU를 경쟁하지 않습니다.
 
 영상이 표시되면 Sensors 화면에서 PNG/JPEG `화면 캡처` 또는 `녹화 시작`을 누릅니다.
 파일은 Jetson에 쌓이지 않고 현재 브라우저의 다운로드 폴더에 저장됩니다. 녹화 형식은
@@ -597,6 +619,7 @@ sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
 | POST /api/v1/robots/discover | 선택 유형의 제한된 로컬 네트워크 검색 |
 | POST /api/v1/robot | 현재 로봇 유형, IP와 hostname 선택 |
 | GET /api/v1/pointcloud | 최신 실시간 점군 |
+| GET /api/v1/pointcloud.bin | packed float32 최신 실시간 점군 |
 | GET/POST /api/v1/pointcloud/settings | 실시간 포인트 예산 |
 | GET /api/v1/map | 최신 OccupancyGrid |
 | GET /api/v1/saved-maps | 저장 지도 목록 |
@@ -624,6 +647,7 @@ sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
 | POST /api/v1/system/service/restart | 확인·관리 토큰·idle preflight 후 dashboard만 재시작 |
 | POST /api/v1/system/service/stop | 확인·관리 토큰·idle preflight 후 dashboard만 중지 |
 | WS /api/v1/ws/camera | 카메라 스트림 |
+| WS /api/v1/ws/pointcloud | 최신 프레임 우선 binary 점군 스트림 |
 | WS /api/v1/ws/joints | Go2 관절 스트림 |
 | WS /api/v1/ws/pose | 로봇 자세 스트림 |
 | WS /api/v1/ws/control | 순서 보장된 주행·heartbeat·허용 모션 명령 |
@@ -679,8 +703,10 @@ requirements.txt    Python 웹 의존성
 
 ## 라이선스
 
-Robot Scope 코드와 저장소에서 직접 작성한 TurtleBot/SO-101 primitive-only URDF는
-MIT License로 배포합니다. 포함된 Go2 경량 모델은 Unitree Robotics의 unitree_ros
-robots/go2_description에서 변환했으며, BSD 3-Clause 원문과 변환 내역은
-robot_dashboard/static/assets/go2에 보존합니다. 각 모델의 출처·정확도 안내는
-robot_dashboard/static/assets 아래 README와 catalog에 기록합니다.
+Robot Scope 코드는 MIT License로 배포합니다. 포함된 Go2 경량 모델은 Unitree
+Robotics의 `unitree_ros/robots/go2_description`에서 변환했으며 BSD 3-Clause 원문과
+변환 내역을 보존합니다. TurtleBot3 Burger 원본과 경량 파생물은 ROBOTIS
+`turtlebot3`의 Apache-2.0, SO-101 원본과 경량 파생물은 TheRobotStudio
+`SO-ARM100`의 Apache-2.0을 따릅니다. 각 모델의 고정 commit, SHA-256 manifest,
+라이선스와 변환 내역은 `robot_dashboard/static/assets` 아래 README와 catalog에
+기록합니다.

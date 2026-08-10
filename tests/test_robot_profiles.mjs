@@ -31,6 +31,12 @@ test('fallback catalog provides selectable Go2, TurtleBot and SO-101 model asset
   const values = profiles.normalizeTypes(null);
   assert.deepEqual(values.map((value) => value.id), ['go2', 'turtlebot', 'so-101']);
   assert.ok(values.every((value) => value.model.asset_url.startsWith('/static/assets/')));
+  const turtlebot = values.find((value) => value.id === 'turtlebot');
+  const so101 = values.find((value) => value.id === 'so-101');
+  assert.equal(turtlebot.model.asset_url, '/static/assets/turtlebot/turtlebot3-burger-official-lite.json');
+  assert.equal(turtlebot.model.fidelity, 'official-derived');
+  assert.equal(so101.model.asset_url, '/static/assets/so101/so101-official-lite.json');
+  assert.equal(so101.model.fidelity, 'official-derived');
 });
 
 test('network discovery removes invalid and duplicate candidates then ranks confidence and latency', () => {
@@ -98,7 +104,7 @@ test('model renderer accepts the official Go2 and generic robot-model-lite schem
 
 test('a transient model fetch failure can be retried without reloading the page', async () => {
   let fetchCount = 0;
-  const asset = JSON.parse(readFileSync(new URL('../robot_dashboard/static/assets/turtlebot/generic-turtlebot-lite.json', import.meta.url), 'utf8'));
+  const asset = JSON.parse(readFileSync(new URL('../robot_dashboard/static/assets/turtlebot/turtlebot3-burger-official-lite.json', import.meta.url), 'utf8'));
   class FakeScene {
     _drawRobot() {}
     render() {}

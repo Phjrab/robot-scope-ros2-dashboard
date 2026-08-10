@@ -1,0 +1,15 @@
+{
+  "schema": "robot-scope.upstream-asset-manifest",
+  "version": 1,
+  "repository": "https://github.com/ROBOTIS-GIT/turtlebot3",
+  "commit": "90a68bd2e3c61c12966779da89d8eeaec82730e9",
+  "license": "Apache-2.0",
+  "files": {
+    "LICENSE.txt": "f9946796a8a5bd5981565142fa42e3b0cc36aef6f80e86beaf5905b3c0fef1b5",
+    "source/turtlebot3_description/meshes/bases/burger_base.stl": "7d7f3329a437b43bbcbbec59f9a2d1df1d88b59c3882c543d979baf73670f025",
+    "source/turtlebot3_description/meshes/sensors/lds.stl": "98f0bd7046159f83caab9509293112ef13534368535669124b91b5114c3132f6",
+    "source/turtlebot3_description/meshes/wheels/left_tire.stl": "578c9452ee51c2f71e5e6723b503d784e58a6ac317fa53ee308e645f204c8d6a",
+    "source/turtlebot3_description/meshes/wheels/right_tire.stl": "407aaf271ba7051c6186b220e1dc36b2a6eca688fced66a3347f49747b684596",
+    "source/turtlebot3_description/urdf/turtlebot3_burger.urdf": "bc453d08d6a3f2da1530201a15807edafffa5158c291dc40f5edb19ae35ca603"
+  }
+}

@@ -14,23 +14,23 @@
     },
     "turtlebot": {
       "type": "turtlebot",
-      "label": "TurtleBot (generic approximation)",
+      "label": "ROBOTIS TurtleBot3 Burger",
       "renderer": "triangle-skeleton",
       "asset_schema": "robot-scope.robot-model-lite",
-      "asset_url": "/static/assets/turtlebot/generic-turtlebot-lite.json",
-      "urdf_url": "/static/assets/turtlebot/generic-turtlebot.urdf",
-      "fidelity": "generic-approximation",
-      "notice": "Generic TurtleBot-class dashboard visualization; not a particular TurtleBot variant or a dimensionally accurate model."
+      "asset_url": "/static/assets/turtlebot/turtlebot3-burger-official-lite.json",
+      "urdf_url": "/static/assets/turtlebot/source/turtlebot3_description/urdf/turtlebot3_burger.urdf",
+      "fidelity": "official-derived",
+      "notice": "Lightweight visualization derived from the pinned official ROBOTIS TurtleBot3 Burger URDF and STL model."
     },
     "so-101": {
       "type": "so-101",
-      "label": "SO-101 (generic approximation)",
+      "label": "TheRobotStudio SO-101",
       "renderer": "triangle-skeleton",
       "asset_schema": "robot-scope.robot-model-lite",
-      "asset_url": "/static/assets/so101/generic-so101-lite.json",
-      "urdf_url": "/static/assets/so101/generic-so101.urdf",
-      "fidelity": "generic-approximation",
-      "notice": "Generic SO-101-class dashboard visualization; not an official or dimensionally accurate kinematic model."
+      "asset_url": "/static/assets/so101/so101-official-lite.json",
+      "urdf_url": "/static/assets/so101/source/SO101/so101_new_calib.urdf",
+      "fidelity": "official-derived",
+      "notice": "Lightweight visualization derived from the pinned TheRobotStudio SO-101 URDF and STL model referenced by LeRobot."
     }
   }
 }

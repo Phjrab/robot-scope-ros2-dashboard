@@ -80,8 +80,14 @@ class DiscoveryMetadataTests(unittest.TestCase):
         )
         self.assertEqual(
             types[1]["model"]["urdf_url"],
-            "/static/assets/turtlebot/generic-turtlebot.urdf",
+            "/static/assets/turtlebot/source/turtlebot3_description/urdf/turtlebot3_burger.urdf",
         )
+        self.assertEqual(types[1]["model"]["fidelity"], "official-derived")
+        self.assertEqual(
+            types[2]["model"]["urdf_url"],
+            "/static/assets/so101/source/SO101/so101_new_calib.urdf",
+        )
+        self.assertEqual(types[2]["model"]["fidelity"], "official-derived")
         self.assertEqual(types[2]["connection_kind"], "controller_host")
         self.assertIn("컨트롤러", types[2]["notice"])
         for item in types:

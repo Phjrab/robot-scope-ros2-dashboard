@@ -57,6 +57,7 @@ from .navigation_jobs import (
     NavigationUnavailable,
 )
 from .http_security import is_same_origin
+from .pointcloud_stream import PointCloudFrameError, encode_pointcloud_frame
 from .ros_agent import RosAgent
 from .service_lifecycle import (
     ADMIN_TOKEN_HEADER,
@@ -79,6 +80,7 @@ from .saved_maps import (
     SavedMapPointLimitError,
     SavedMapReadOnly,
 )
+from .websocket_stream import stream_until_disconnect
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -91,6 +93,8 @@ SERVICE_LIFECYCLE: ServiceLifecycleManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
 PIPELINE_COORDINATION_LOCK = asyncio.Lock()
 JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
+POINTCLOUD_BINARY_CACHE: tuple[int, bytes, bytes] | None = None
+POINTCLOUD_BINARY_LOCK = asyncio.Lock()
 CONTROL_BINDINGS: Dict[str, str] = {}
 ROBOT_DISCOVERY = LocalRobotDiscovery()
 
@@ -881,12 +885,43 @@ async def cached_json_response(key: str, payload: Dict[str, Any]) -> Response:
     return Response(content=cached[1], media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
+async def cached_pointcloud_binary_frame(snapshot: Dict[str, Any]) -> bytes:
+    global POINTCLOUD_BINARY_CACHE
+    seq = int(snapshot.get("seq", 0))
+    point_bytes = snapshot.get("points_bytes", b"")
+    cached = POINTCLOUD_BINARY_CACHE
+    if cached is not None and cached[0] == seq and cached[1] is point_bytes:
+        return cached[2]
+    async with POINTCLOUD_BINARY_LOCK:
+        cached = POINTCLOUD_BINARY_CACHE
+        if cached is not None and cached[0] == seq and cached[1] is point_bytes:
+            return cached[2]
+        metadata = {key: value for key, value in snapshot.items() if key != "points_bytes"}
+        frame = await asyncio.to_thread(encode_pointcloud_frame, metadata, point_bytes)
+        POINTCLOUD_BINARY_CACHE = (seq, point_bytes, frame)
+        return frame
+
+
 @app.get("/api/v1/pointcloud")
 async def pointcloud(since: int = -1) -> Response:
+    metadata = await asyncio.to_thread(agent().pointcloud_binary_snapshot)
+    if int(metadata.get("seq", 0)) == since:
+        return Response(status_code=204)
     snapshot = await asyncio.to_thread(agent().pointcloud_snapshot)
+    return await cached_json_response("pointcloud", snapshot)
+
+
+@app.get("/api/v1/pointcloud.bin")
+async def pointcloud_binary(since: int = -1) -> Response:
+    snapshot = await asyncio.to_thread(agent().pointcloud_binary_snapshot)
     if int(snapshot.get("seq", 0)) == since:
         return Response(status_code=204)
-    return await cached_json_response("pointcloud", snapshot)
+    frame = await cached_pointcloud_binary_frame(snapshot)
+    return Response(
+        content=frame,
+        media_type="application/vnd.robot-scope.pointcloud",
+        headers={"Cache-Control": "no-store", "X-Robot-Scope-Stream": "pointcloud-v1"},
+    )
 
 
 @app.get("/api/v1/pointcloud/settings")
@@ -895,9 +930,13 @@ async def pointcloud_settings() -> Dict[str, Any]:
 
 
 @app.post("/api/v1/pointcloud/settings")
-async def set_pointcloud_settings(request: CloudPointLimitRequest) -> Dict[str, Any]:
+async def set_pointcloud_settings(
+    body: CloudPointLimitRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    require_same_origin(request)
     try:
-        settings = await asyncio.to_thread(agent().set_cloud_max_points, request.max_points)
+        settings = await asyncio.to_thread(agent().set_cloud_max_points, body.max_points)
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     JSON_CACHE.pop("pointcloud", None)
@@ -1694,22 +1733,57 @@ async def saved_map_data(map_id: str, max_points: str = "all") -> Response:
     )
 
 
-@app.websocket("/api/v1/ws/camera")
-async def camera_stream(websocket: WebSocket) -> None:
+@app.websocket("/api/v1/ws/pointcloud")
+async def pointcloud_stream(websocket: WebSocket) -> None:
+    if not websocket_same_origin(websocket):
+        await websocket.close(code=4403, reason="same-origin point-cloud WebSocket required")
+        return
     await websocket.accept()
     last_seq = -1
+
+    async def send_next() -> None:
+        nonlocal last_seq
+        snapshot = agent().pointcloud_binary_snapshot()
+        seq = int(snapshot.get("seq", 0))
+        if seq != last_seq and snapshot.get("points_bytes"):
+            await websocket.send_bytes(await cached_pointcloud_binary_frame(snapshot))
+            last_seq = seq
+
     try:
-        while True:
-            snapshot = agent().camera_snapshot()
-            seq = int(snapshot.get("seq", 0))
-            if seq and seq != last_seq and snapshot.get("data"):
-                metadata = {key: value for key, value in snapshot.items() if key != "data"}
-                await websocket.send_text(json.dumps(metadata, separators=(",", ":")))
-                await websocket.send_bytes(snapshot["data"])
-                last_seq = seq
-            await asyncio.sleep(0.02)
+        await stream_until_disconnect(websocket, send_next)
+    except (WebSocketDisconnect, RuntimeError, PointCloudFrameError):
+        return
+
+
+@app.websocket("/api/v1/ws/camera")
+async def camera_stream(websocket: WebSocket) -> None:
+    if not websocket_same_origin(websocket):
+        await websocket.close(code=4403, reason="same-origin camera WebSocket required")
+        return
+    await websocket.accept()
+    runtime_agent = agent()
+    opened = await asyncio.to_thread(runtime_agent.camera_stream_open)
+    if not opened.get("accepted", False):
+        await websocket.close(code=1012, reason="camera relay is shutting down")
+        return
+    last_seq = -1
+
+    async def send_next() -> None:
+        nonlocal last_seq
+        snapshot = runtime_agent.camera_snapshot()
+        seq = int(snapshot.get("seq", 0))
+        if seq and seq != last_seq and snapshot.get("data"):
+            metadata = {key: value for key, value in snapshot.items() if key != "data"}
+            await websocket.send_text(json.dumps(metadata, separators=(",", ":")))
+            await websocket.send_bytes(snapshot["data"])
+            last_seq = seq
+
+    try:
+        await stream_until_disconnect(websocket, send_next)
     except (WebSocketDisconnect, RuntimeError):
         return
+    finally:
+        await asyncio.to_thread(runtime_agent.camera_stream_close)
 
 
 @app.websocket("/api/v1/ws/joints")
