@@ -237,7 +237,11 @@ def _make_capture_socket(config: RelayConfig) -> socket.socket:
     try:
         capture = socket.socket(af_packet, socket.SOCK_DGRAM, protocol)
         capture.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
-        capture.bind((config.interface, protocol))
+        # socket(2) expects network order, while Python's AF_PACKET bind tuple
+        # converts the Ethernet protocol number and therefore expects host
+        # order.  Passing htons() to both silently captures no live IPv4 on
+        # Python 3.8/Linux.
+        capture.bind((config.interface, ETH_P_IP))
         capture.settimeout(SOCKET_TIMEOUT_S)
         return capture
     except (OSError, ValueError) as exc:

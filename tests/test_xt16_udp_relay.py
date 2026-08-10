@@ -314,6 +314,24 @@ class ProcessContractTests(unittest.TestCase):
                 relay._make_capture_socket(relay.RelayConfig())
         fake_socket.close.assert_called_once_with()
 
+    def test_capture_constructor_and_bind_use_required_protocol_byte_orders(self):
+        fake_socket = mock.Mock()
+        with (
+            mock.patch.object(relay.sys, "platform", "linux"),
+            mock.patch.object(relay.socket, "AF_PACKET", 17, create=True),
+            mock.patch.object(
+                relay.socket, "socket", return_value=fake_socket
+            ) as constructor,
+        ):
+            capture = relay._make_capture_socket(relay.RelayConfig())
+        self.assertIs(capture, fake_socket)
+        constructor.assert_called_once_with(
+            17, socket.SOCK_DGRAM, socket.htons(relay.ETH_P_IP)
+        )
+        fake_socket.bind.assert_called_once_with(
+            (relay.CAPTURE_INTERFACE, relay.ETH_P_IP)
+        )
+
     def test_source_uses_sendto_without_udp_port_reuse_or_shells(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("sender.sendto(", source)
