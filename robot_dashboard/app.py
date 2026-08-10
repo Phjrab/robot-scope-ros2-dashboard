@@ -815,7 +815,8 @@ async def sources() -> Dict[str, Any]:
 
 
 @app.post("/api/v1/sources")
-async def select_sources(selection: SourceSelection) -> Dict[str, Any]:
+async def select_sources(selection: SourceSelection, request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
     values = selection.model_dump(exclude_none=True)
     try:
         return await asyncio.to_thread(agent().set_sources, values)
@@ -1845,6 +1846,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--robot-ip", default="")
     parser.add_argument("--profile", default="")
     parser.add_argument("--cloud-max-points", type=int, default=18000)
+    parser.add_argument(
+        "--source-selection-state",
+        default="~/.local/state/robot-scope/source-selection.json",
+    )
     parser.add_argument("--mapping-output-dir", default="~/ws/go2_3d/maps")
     parser.add_argument(
         "--navigation-runtime-dir",
@@ -1860,6 +1865,7 @@ def main() -> None:
         robot_ip=args.robot_ip,
         profile_path=args.profile or None,
         cloud_max_points=args.cloud_max_points,
+        source_selection_path=args.source_selection_state or None,
     )
     profile_base = Path(args.profile).expanduser().resolve().parent if args.profile else Path.cwd()
     project_dir = Path(__file__).resolve().parents[1]

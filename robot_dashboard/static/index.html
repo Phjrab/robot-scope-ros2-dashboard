@@ -78,6 +78,7 @@
             <div class="panel-header-status">
               <div class="lidar-source-identity mapping-source-identity" role="status" aria-live="polite" aria-label="현재 LiDAR 소스">
                 <span class="lidar-sensor-badge generic" id="mappingLidarSensorBadge">LIDAR NOT SELECTED</span>
+                <span class="lidar-source-pin is-hidden" id="mappingLidarPin">PINNED</span>
                 <code class="lidar-source-topic" id="mappingLidarTopic">NO POINTCLOUD TOPIC</code>
                 <span class="lidar-source-stage" id="mappingLidarStage">단계 미확인</span>
                 <span class="lidar-source-freshness waiting" id="mappingLidarFreshness">WAITING</span>
@@ -536,6 +537,7 @@
               <label class="lidar-source-picker"><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select>
                 <div class="lidar-source-identity settings-source-identity" role="status" aria-live="polite" aria-label="선택한 LiDAR 소스">
                   <span class="lidar-sensor-badge generic" id="cloudSourceSensorBadge">LIDAR NOT SELECTED</span>
+                  <span class="lidar-source-pin is-hidden" id="cloudSourcePin">PINNED</span>
                   <code class="lidar-source-topic" id="cloudSourceTopicLabel">NO POINTCLOUD TOPIC</code>
                   <span class="lidar-source-stage" id="cloudSourceStageLabel">단계 미확인</span>
                   <span class="lidar-source-freshness waiting" id="cloudSourceFreshness">WAITING</span>

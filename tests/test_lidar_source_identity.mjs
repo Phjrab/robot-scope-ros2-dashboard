@@ -67,8 +67,8 @@ test('freshness vocabulary is limited to LIVE, WAITING and STALE', () => {
 
 test('settings and Live Mapping always expose sensor, topic, stage and freshness readouts', () => {
   for (const id of [
-    'cloudSourceSensorBadge', 'cloudSourceTopicLabel', 'cloudSourceStageLabel', 'cloudSourceFreshness',
-    'mappingLidarSensorBadge', 'mappingLidarTopic', 'mappingLidarStage', 'mappingLidarFreshness',
+    'cloudSourceSensorBadge', 'cloudSourcePin', 'cloudSourceTopicLabel', 'cloudSourceStageLabel', 'cloudSourceFreshness',
+    'mappingLidarSensorBadge', 'mappingLidarPin', 'mappingLidarTopic', 'mappingLidarStage', 'mappingLidarFreshness',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
   assert.match(indexSource, /id="cloudSourceFreshness">WAITING<\/span>/);
   assert.match(indexSource, /id="mappingLidarFreshness">WAITING<\/span>/);
@@ -77,4 +77,57 @@ test('settings and Live Mapping always expose sensor, topic, stage and freshness
   assert.match(appSource, /renderLidarSourceIdentity\('STALE'\)/);
   assert.match(stylesSource, /\.lidar-source-freshness\.live/);
   assert.match(stylesSource, /\.lidar-source-freshness\.stale/);
+  assert.match(stylesSource, /\.lidar-source-pin\.default-pin/);
+});
+
+const pinStart = appSource.indexOf('function lidarSourcePinInfo(');
+const freshnessEnd = appSource.indexOf('\nfunction renderLidarSourceReadout(', pinStart);
+assert.ok(pinStart >= 0 && freshnessEnd > pinStart, 'pin and freshness implementation must be extractable');
+const pinAndFreshnessSource = appSource.slice(pinStart, freshnessEnd);
+
+function sourceReadout(topic, catalogEntry, selection, latestState, latestTopics) {
+  return new Function(
+    'LidarSourceIdentity', 'pointcloudSelection', 'lastCloudSnapshot', 'pointcloudLastFrameAt',
+    'latestState', 'latestTopics', 'topic', 'catalogEntry',
+    `function pointcloudTransportWanted() { return true; }\n${pinAndFreshnessSource}\nreturn { pin: lidarSourcePinInfo(topic, catalogEntry), freshness: lidarSourceFreshness(topic, catalogEntry) };`,
+  )(
+    identity, selection, { topic, offline_snapshot: false }, 1,
+    latestState, latestTopics, topic, catalogEntry,
+  );
+}
+
+test('profile and operator LiDAR pins receive explicit badges', () => {
+  const catalogEntry = { metadata: { pinned: true, publishers: 0, selection_origin: 'profile_default' } };
+  const defaultPin = sourceReadout(
+    '/velodyne_points', catalogEntry,
+    { mode: 'pinned', requested: '/velodyne_points', origin: 'profile_default' },
+    {}, [],
+  ).pin;
+  assert.equal(defaultPin.label, 'DEFAULT PIN');
+  assert.equal(defaultPin.defaultPin, true);
+
+  const userPin = sourceReadout(
+    '/velodyne_points', catalogEntry,
+    { mode: 'pinned', requested: '/velodyne_points', origin: 'user' },
+    {}, [],
+  ).pin;
+  assert.equal(userPin.label, 'PINNED');
+  assert.equal(userPin.defaultPin, false);
+});
+
+test('publisher-zero XT16 pin stays selected and reports WAITING instead of cached STALE', () => {
+  const readout = sourceReadout(
+    '/velodyne_points',
+    { metadata: { pinned: true, publishers: 0, state: 'waiting', selection_origin: 'profile_default' } },
+    { mode: 'pinned', requested: '/velodyne_points', origin: 'profile_default', fail_closed: true },
+    {
+      sources: { pointcloud: '/velodyne_points' },
+      cloud: { state: 'stale' },
+      mapping: { cloud: { state: 'stale' } },
+    },
+    [{ name: '/velodyne_points', publishers: 0, state: 'stale', age_s: 30 }],
+  );
+  assert.equal(identity.describe('/velodyne_points').sensorLabel, 'HESAI XT16');
+  assert.equal(readout.pin.label, 'DEFAULT PIN');
+  assert.equal(readout.freshness, 'WAITING');
 });

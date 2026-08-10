@@ -81,5 +81,26 @@
     "pointcloud": ["/cloud_registered", "/Laser_map", "/velodyne_points", "/lidar_points", "/utlidar/cloud_deskewed", "/uslam/cloud_map", "/utlidar/cloud", "/utlidar/cloud_base", "/utlidar/grid_map"],
     "odometry": ["/Odometry", "/uslam/frontend/odom", "/utlidar/robot_odom", "/lio_sam_ros2/mapping/odometry"],
     "occupancy_grid": ["/map"]
+  },
+  "source_selection": {
+    "pointcloud": {
+      "default": "/velodyne_points",
+      "persistent": true,
+      "fail_closed": true,
+      "allowed_offline": [
+        "/lidar_points",
+        "/velodyne_points",
+        "/cloud_registered",
+        "/Laser_map",
+        "/utlidar/cloud",
+        "/utlidar/cloud_deskewed",
+        "/utlidar/cloud_base",
+        "/utlidar/grid_map",
+        "/utlidar/height_map",
+        "/utlidar/range_map",
+        "/utlidar/voxel_map",
+        "/uslam/cloud_map"
+      ]
+    }
   }
 }

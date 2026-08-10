@@ -52,6 +52,30 @@ class HttpSecurityTests(unittest.TestCase):
         )
         self.assertEqual([argument.arg for argument in function.args.args], ["body", "request"])
 
+    def test_source_selection_mutation_requires_same_origin(self):
+        source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.AsyncFunctionDef) and node.name == "select_sources"
+        )
+        self.assertEqual(
+            [argument.arg for argument in function.args.args],
+            ["selection", "request"],
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "require_same_origin"
+                and len(node.args) == 1
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "request"
+                for node in ast.walk(function)
+            )
+        )
+
     def test_streaming_mutations_and_websockets_are_same_origin(self):
         source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
         tree = ast.parse(source_path.read_text(encoding="utf-8"))

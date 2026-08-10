@@ -11,7 +11,9 @@ import os
 import platform
 import secrets
 import socket
+import stat
 import subprocess
+import tempfile
 import threading
 import time
 from collections import deque
@@ -104,6 +106,10 @@ POINTCLOUD_STAGE_LABELS = {
     "map": "SLAM map",
     "unknown": "PointCloud",
 }
+
+SOURCE_CATEGORIES = ("camera", "pointcloud", "odometry", "occupancy_grid")
+SOURCE_SELECTION_STATE_VERSION = 1
+SOURCE_SELECTION_STATE_MAX_BYTES = 16 * 1024
 
 
 def pointcloud_source_metadata(topic: str) -> Dict[str, str]:
@@ -199,6 +205,7 @@ class RosAgent:
         robot_ip: str = "",
         profile_path: Optional[str] = None,
         cloud_max_points: Optional[int] = 18000,
+        source_selection_path: Optional[str] = None,
     ) -> None:
         self.robot_ip = self._valid_ip(robot_ip)
         self.cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
@@ -405,6 +412,16 @@ class RosAgent:
             "occupancy_grid": "",
         }
         self._requested_sources: Dict[str, str] = dict(self._sources)
+        self._source_selection_path = self._normalize_source_selection_path(
+            source_selection_path
+        )
+        self._source_selection_policies = self._source_policies_from_profile()
+        self._source_selection_overrides = self._load_source_selection_overrides()
+        self._source_pins: set[str] = set()
+        self._source_selection_origins: Dict[str, str] = {
+            category: "auto" for category in SOURCE_CATEGORIES
+        }
+        self._apply_startup_source_selection()
 
         self._camera: Dict[str, Any] = {
             "seq": 0,
@@ -574,6 +591,234 @@ class RosAgent:
             return json.loads(Path(path).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return {}
+
+    @staticmethod
+    def _normalize_source_selection_path(value: Optional[str]) -> Optional[Path]:
+        if value is None or not str(value).strip():
+            return None
+        path = Path(str(value)).expanduser()
+        return path if path.is_absolute() else Path.cwd() / path
+
+    @staticmethod
+    def _valid_source_name(value: object) -> bool:
+        if not isinstance(value, str) or not 1 <= len(value) <= 255:
+            return False
+        if not value.startswith("/") or value.endswith("/") or "//" in value:
+            return False
+        return all(character.isalnum() or character in "_~/" for character in value)
+
+    def _source_profile_scope(self) -> Dict[str, str]:
+        return {
+            "robot_type": str(self.profile.get("robot_type", "")),
+            "name": str(self.profile.get("name", "Generic ROS 2")),
+        }
+
+    def _source_policies_from_profile(self) -> Dict[str, Dict[str, Any]]:
+        raw = self.profile.get("source_selection", {}) if self.profile else {}
+        if raw is None:
+            return {}
+        if not isinstance(raw, dict):
+            raise ValueError("source_selection profile setting must be an object")
+        unknown = set(raw) - set(SOURCE_CATEGORIES)
+        if unknown:
+            raise ValueError(
+                f"unknown source_selection categories: {', '.join(sorted(unknown))}"
+            )
+        policies: Dict[str, Dict[str, Any]] = {}
+        for category, value in raw.items():
+            if not isinstance(value, dict):
+                raise ValueError(f"source_selection.{category} must be an object")
+            persistent = value.get("persistent", False)
+            fail_closed = value.get("fail_closed", False)
+            if not isinstance(persistent, bool) or not isinstance(fail_closed, bool):
+                raise ValueError(
+                    f"source_selection.{category} flags must be booleans"
+                )
+            allowed = value.get("allowed_offline", [])
+            if not isinstance(allowed, list) or any(
+                not self._valid_source_name(topic) for topic in allowed
+            ):
+                raise ValueError(
+                    f"source_selection.{category}.allowed_offline must contain ROS topics"
+                )
+            if len(set(allowed)) != len(allowed):
+                raise ValueError(
+                    f"source_selection.{category}.allowed_offline contains duplicates"
+                )
+            default = value.get("default", "")
+            if default and not self._valid_source_name(default):
+                raise ValueError(
+                    f"source_selection.{category}.default must be a ROS topic"
+                )
+            if default and default not in allowed:
+                raise ValueError(
+                    f"source_selection.{category}.default must be allowed offline"
+                )
+            if default and not fail_closed:
+                raise ValueError(
+                    f"source_selection.{category}.default requires fail_closed"
+                )
+            policies[category] = {
+                "persistent": persistent,
+                "fail_closed": fail_closed,
+                "allowed_offline": frozenset(allowed),
+                "default": default,
+            }
+        return policies
+
+    def _validate_source_state_file(self, path: Path) -> os.stat_result:
+        try:
+            result = path.lstat()
+        except FileNotFoundError:
+            raise
+        if stat.S_ISLNK(result.st_mode) or not stat.S_ISREG(result.st_mode):
+            raise ValueError("source selection state must be a regular file")
+        if result.st_uid != os.geteuid():
+            raise ValueError("source selection state must be owned by the service user")
+        if stat.S_IMODE(result.st_mode) != 0o600:
+            raise ValueError("source selection state permissions must be 0600")
+        if result.st_size > SOURCE_SELECTION_STATE_MAX_BYTES:
+            raise ValueError("source selection state exceeds the size limit")
+        return result
+
+    def _load_source_selection_overrides(self) -> Dict[str, Dict[str, str]]:
+        path = self._source_selection_path
+        if path is None:
+            return {}
+        try:
+            expected = self._validate_source_state_file(path)
+        except FileNotFoundError:
+            return {}
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        try:
+            descriptor = os.open(path, flags)
+        except OSError as exc:
+            raise ValueError(f"cannot open source selection state: {exc}") from exc
+        try:
+            actual = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(actual.st_mode)
+                or actual.st_dev != expected.st_dev
+                or actual.st_ino != expected.st_ino
+            ):
+                raise ValueError("source selection state changed while opening")
+            payload = os.read(descriptor, SOURCE_SELECTION_STATE_MAX_BYTES + 1)
+        finally:
+            os.close(descriptor)
+        if len(payload) > SOURCE_SELECTION_STATE_MAX_BYTES:
+            raise ValueError("source selection state exceeds the size limit")
+        try:
+            document = json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("source selection state is not valid JSON") from exc
+        if not isinstance(document, dict):
+            raise ValueError("source selection state must be an object")
+        if document.get("version") != SOURCE_SELECTION_STATE_VERSION:
+            raise ValueError("unsupported source selection state version")
+        if document.get("profile") != self._source_profile_scope():
+            return {}
+        selections = document.get("selections", {})
+        if not isinstance(selections, dict):
+            raise ValueError("source selection state selections must be an object")
+        overrides: Dict[str, Dict[str, str]] = {}
+        for category, entry in selections.items():
+            policy = self._source_selection_policies.get(category)
+            if not policy or not policy["persistent"]:
+                continue
+            if not isinstance(entry, dict):
+                raise ValueError(f"persisted {category} selection must be an object")
+            mode = entry.get("mode")
+            topic = entry.get("topic")
+            if mode != "pinned" or not self._valid_source_name(topic):
+                raise ValueError(f"persisted {category} selection is invalid")
+            if topic not in policy["allowed_offline"]:
+                raise ValueError(
+                    f"persisted {category} selection is not allowed by this profile"
+                )
+            overrides[category] = {"mode": "pinned", "topic": str(topic)}
+        return overrides
+
+    def _apply_startup_source_selection(self) -> None:
+        for category, policy in self._source_selection_policies.items():
+            override = self._source_selection_overrides.get(category)
+            if override:
+                topic = override["topic"]
+                self._requested_sources[category] = topic
+                self._sources[category] = topic
+                if policy["fail_closed"]:
+                    self._source_pins.add(category)
+                self._source_selection_origins[category] = "persisted"
+                continue
+            default = str(policy.get("default", ""))
+            if default:
+                self._requested_sources[category] = default
+                self._sources[category] = default
+                self._source_pins.add(category)
+                self._source_selection_origins[category] = "profile_default"
+
+    def _write_source_selection_overrides(
+        self,
+        overrides: Dict[str, Dict[str, str]],
+    ) -> None:
+        path = self._source_selection_path
+        if path is None:
+            return
+        document = {
+            "version": SOURCE_SELECTION_STATE_VERSION,
+            "profile": self._source_profile_scope(),
+            "selections": overrides,
+        }
+        payload = (
+            json.dumps(document, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+            + "\n"
+        ).encode("utf-8")
+        if len(payload) > SOURCE_SELECTION_STATE_MAX_BYTES:
+            raise ValueError("source selection state exceeds the size limit")
+        parent = path.parent
+        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        parent_stat = parent.lstat()
+        if stat.S_ISLNK(parent_stat.st_mode) or not stat.S_ISDIR(parent_stat.st_mode):
+            raise ValueError("source selection state directory must be a real directory")
+        try:
+            self._validate_source_state_file(path)
+        except FileNotFoundError:
+            pass
+        descriptor = -1
+        temporary = ""
+        try:
+            descriptor, temporary = tempfile.mkstemp(
+                prefix=f".{path.name}.",
+                dir=parent,
+            )
+            os.fchmod(descriptor, 0o600)
+            with os.fdopen(descriptor, "wb") as handle:
+                descriptor = -1
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path)
+            temporary = ""
+            os.chmod(path, 0o600, follow_symlinks=False)
+            directory_flags = os.O_RDONLY
+            if hasattr(os, "O_DIRECTORY"):
+                directory_flags |= os.O_DIRECTORY
+            directory_fd = os.open(parent, directory_flags)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError as exc:
+            raise ValueError(f"cannot persist source selection: {exc}") from exc
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+            if temporary:
+                try:
+                    os.unlink(temporary)
+                except FileNotFoundError:
+                    pass
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -2626,7 +2871,13 @@ class RosAgent:
         for category in self._sources:
             requested = self._requested_sources.get(category, "")
             previous = self._sources.get(category, "")
-            if category in disabled and not requested:
+            # A fail-closed pin describes operator intent, not current graph
+            # availability.  Keep the exact topic selected while its driver or
+            # mapping pipeline restarts so another physical LiDAR cannot become
+            # active silently.
+            if category in self._source_pins and requested:
+                chosen = requested
+            elif category in disabled and not requested:
                 chosen = ""
             else:
                 candidates = [
@@ -2635,11 +2886,9 @@ class RosAgent:
                     if item.get("category") == category and item.get("publishers", 0) > 0
                 ]
                 ordered = list(preferences.get(category, []))
-                # A user choice is sticky while it is live.  If its publisher
-                # disappears we temporarily fail over, then restore it when it
-                # returns.  Automatic choices are never copied into the manual
-                # override, so a newly available world-frame mapping topic can
-                # supersede a raw LiDAR topic on the next graph refresh.
+                # Categories without a fail-closed profile retain their legacy
+                # temporary-failover behavior.  Automatic choices are never
+                # copied into the manual request.
                 chosen = requested if requested in candidates else ""
                 if not chosen:
                     chosen = next((name for name in ordered if name in candidates), "")
@@ -3220,8 +3469,12 @@ class RosAgent:
             with self._lock:
                 self._last_error = f"map {topic}: {exc}"
 
-    def set_sources(self, values: Dict[str, str]) -> Dict[str, str]:
+    def set_sources(self, values: Dict[str, str]) -> Dict[str, Any]:
         with self._lock:
+            requested = dict(self._requested_sources)
+            origins = dict(self._source_selection_origins)
+            pins = set(self._source_pins)
+            overrides = copy.deepcopy(self._source_selection_overrides)
             for category in self._requested_sources:
                 candidate = values.get(category)
                 if candidate is None:
@@ -3232,18 +3485,66 @@ class RosAgent:
                     raise ValueError(
                         "Go2 direct camera is active; ROS camera selection is locked"
                     )
-                if candidate and candidate not in self._graph:
+                policy = self._source_selection_policies.get(category)
+                item = self._graph.get(candidate) if candidate else None
+                allowed_offline = bool(
+                    candidate
+                    and policy
+                    and candidate in policy["allowed_offline"]
+                )
+                if candidate and item is None and not allowed_offline:
                     raise ValueError(f"unknown ROS topic: {candidate}")
-                if candidate and self._graph[candidate].get("category") != category:
+                if candidate and item is not None and item.get("category") != category:
                     raise ValueError(f"{candidate} is not a {category} topic")
-                previous = self._sources.get(category, "")
-                self._requested_sources[category] = candidate
-                self._sources[category] = candidate
-                if candidate != previous:
-                    if category == "odometry":
-                        self._reset_pose_locked(candidate)
-                    elif category == "pointcloud":
-                        self._reset_cloud_locked(candidate)
+                if (
+                    candidate
+                    and policy
+                    and policy["persistent"]
+                    and policy["fail_closed"]
+                    and candidate not in policy["allowed_offline"]
+                ):
+                    raise ValueError(
+                        f"{candidate} is not allowed for persistent {category} selection"
+                    )
+
+                if not policy:
+                    requested[category] = candidate
+                    origins[category] = "user" if candidate else "auto"
+                    pins.discard(category)
+                    continue
+
+                if candidate:
+                    requested[category] = candidate
+                    origins[category] = "user"
+                    if policy["fail_closed"]:
+                        pins.add(category)
+                    else:
+                        pins.discard(category)
+                    if policy["persistent"]:
+                        overrides[category] = {
+                            "mode": "pinned",
+                            "topic": candidate,
+                        }
+                else:
+                    # Empty means "remove my override".  A configured default
+                    # is then restored; it is deliberately not an AUTO escape
+                    # hatch from a profile's fail-closed sensor policy.
+                    overrides.pop(category, None)
+                    default = str(policy.get("default", ""))
+                    requested[category] = default
+                    origins[category] = "profile_default" if default else "auto"
+                    if default and policy["fail_closed"]:
+                        pins.add(category)
+                    else:
+                        pins.discard(category)
+
+            if overrides != self._source_selection_overrides:
+                self._write_source_selection_overrides(overrides)
+            self._source_selection_overrides = overrides
+            self._requested_sources = requested
+            self._source_selection_origins = origins
+            self._source_pins = pins
+            self._pick_default_sources_locked()
         return self.sources_snapshot()
 
     def _robot_pose_in_cloud_frame(self, frame_id: str) -> Optional[Dict[str, Any]]:
@@ -3491,7 +3792,18 @@ class RosAgent:
         sample_state = str(metric.get("state", "waiting"))
         samples = max(0, int(metric.get("samples", 0) or 0))
         available = publishers > 0
+        if not available:
+            # Retained metrics may be stale after a publisher disappears.  The
+            # selected source is intentionally waiting for that exact publisher,
+            # rather than reporting a stale frame as an alternate live source.
+            sample_state = "waiting"
         live = available and samples > 0 and sample_state == "ok"
+        policy = self._source_selection_policies.get("pointcloud", {})
+        pinned = bool(
+            "pointcloud" in self._source_pins
+            and self._requested_sources.get("pointcloud") == topic
+            and self._sources.get("pointcloud") == topic
+        )
         return {
             # Keep the original option contract for older dashboard clients.
             "topic": topic,
@@ -3506,6 +3818,13 @@ class RosAgent:
             "live": live,
             "state": sample_state,
             "sample_state": sample_state,
+            "pinned": pinned,
+            "selection_origin": (
+                self._source_selection_origins.get("pointcloud", "auto")
+                if pinned
+                else ""
+            ),
+            "configured": topic in policy.get("allowed_offline", ()),
         }
 
     def sources_snapshot(self) -> Dict[str, Any]:
@@ -3519,11 +3838,45 @@ class RosAgent:
                     else:
                         option = {"topic": name, "type": item.get("type", "")}
                     options[category].append(option)
+            pinned_pointcloud = self._requested_sources.get("pointcloud", "")
+            if (
+                "pointcloud" in self._source_pins
+                and pinned_pointcloud
+                and self._sources.get("pointcloud") == pinned_pointcloud
+                and not any(
+                    item["topic"] == pinned_pointcloud
+                    for item in options["pointcloud"]
+                )
+            ):
+                pinned_item = self._graph.get(
+                    pinned_pointcloud,
+                    {
+                        "type": "sensor_msgs/msg/PointCloud2",
+                        "category": "pointcloud",
+                        "publishers": 0,
+                    },
+                )
+                options["pointcloud"].append(
+                    self._pointcloud_source_descriptor_locked(
+                        pinned_pointcloud,
+                        pinned_item,
+                    )
+                )
             for values in options.values():
                 values.sort(key=lambda item: item["topic"])
             selected = dict(self._sources)
             selected_pointcloud = selected.get("pointcloud", "")
             selected_pointcloud_item = self._graph.get(selected_pointcloud, {})
+            if (
+                selected_pointcloud
+                and not selected_pointcloud_item
+                and "pointcloud" in self._source_pins
+            ):
+                selected_pointcloud_item = {
+                    "type": "sensor_msgs/msg/PointCloud2",
+                    "category": "pointcloud",
+                    "publishers": 0,
+                }
             selected_pointcloud_descriptor = (
                 self._pointcloud_source_descriptor_locked(
                     selected_pointcloud,
@@ -3544,6 +3897,22 @@ class RosAgent:
                 ]
                 selected["camera"] = uri
                 locked["camera"] = True
+            selection: Dict[str, Dict[str, Any]] = {}
+            for category in SOURCE_CATEGORIES:
+                policy = self._source_selection_policies.get(category, {})
+                pinned = bool(
+                    category in self._source_pins
+                    and self._requested_sources.get(category)
+                    and self._sources.get(category)
+                    == self._requested_sources.get(category)
+                )
+                selection[category] = {
+                    "mode": "pinned" if pinned else "auto",
+                    "requested": self._requested_sources.get(category, ""),
+                    "origin": self._source_selection_origins.get(category, "auto"),
+                    "persistent": bool(policy.get("persistent", False)),
+                    "fail_closed": bool(policy.get("fail_closed", False)),
+                }
             return {
                 "selected": selected,
                 "selected_descriptors": {
@@ -3551,6 +3920,7 @@ class RosAgent:
                 },
                 "options": options,
                 "locked": locked,
+                "selection": selection,
             }
 
     def _metric_snapshot(self, topic: str, category: str) -> Dict[str, Any]:

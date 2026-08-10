@@ -194,6 +194,7 @@ const ui = {
   cameraSource: $('#cameraSource'),
   cloudSource: $('#cloudSource'),
   cloudSourceSensorBadge: $('#cloudSourceSensorBadge'),
+  cloudSourcePin: $('#cloudSourcePin'),
   cloudSourceTopicLabel: $('#cloudSourceTopicLabel'),
   cloudSourceStageLabel: $('#cloudSourceStageLabel'),
   cloudSourceFreshness: $('#cloudSourceFreshness'),
@@ -244,6 +245,7 @@ const ui = {
   mapOverlayToggle: $('#mapOverlayToggle'),
   mappingState: $('#mappingState'),
   mappingLidarSensorBadge: $('#mappingLidarSensorBadge'),
+  mappingLidarPin: $('#mappingLidarPin'),
   mappingLidarTopic: $('#mappingLidarTopic'),
   mappingLidarStage: $('#mappingLidarStage'),
   mappingLidarFreshness: $('#mappingLidarFreshness'),
@@ -429,6 +431,7 @@ let latestTopics = [];
 let sourceFingerprint = '';
 let pointcloudSourceCatalog = new Map();
 let pointcloudSourcesLoaded = false;
+let pointcloudSelection = {};
 let cameraSocket = null;
 let cameraSocketGeneration = 0;
 let cameraReconnectTimer = 0;
@@ -2695,9 +2698,35 @@ function selectedPointcloudTopic() {
   return LidarSourceIdentity.topicOf(latestState?.sources?.pointcloud);
 }
 
+function lidarSourcePinInfo(topic, catalogEntry, selection = pointcloudSelection) {
+  if (!topic) return { pinned: false, label: '', defaultPin: false, title: '' };
+  const metadata = catalogEntry?.metadata || {};
+  const requested = LidarSourceIdentity.topicOf(selection?.requested);
+  const contractPinned = selection?.mode === 'pinned' && requested === topic;
+  const descriptorPinned = metadata.pinned === true;
+  if (!contractPinned && !descriptorPinned) {
+    return { pinned: false, label: '', defaultPin: false, title: '' };
+  }
+  const origin = String(contractPinned ? selection?.origin || '' : metadata.selection_origin || '');
+  const defaultPin = origin === 'profile_default';
+  return {
+    pinned: true,
+    label: defaultPin ? 'DEFAULT PIN' : 'PINNED',
+    defaultPin,
+    title: defaultPin
+      ? '프로필 기본 LiDAR로 고정됨 · 퍼블리셔가 없어도 다른 센서로 자동 전환하지 않습니다.'
+      : '선택한 LiDAR로 고정됨 · 퍼블리셔가 없어도 다른 센서로 자동 전환하지 않습니다.',
+  };
+}
+
 function lidarSourceFreshness(topic, catalogEntry, forceStatus = '') {
   if (forceStatus) return forceStatus;
   if (!topic) return 'WAITING';
+  const pinInfo = lidarSourcePinInfo(topic, catalogEntry);
+  const configuredPublishers = catalogEntry?.metadata?.publishers;
+  if (pinInfo.pinned && configuredPublishers != null && Number(configuredPublishers) === 0) {
+    return 'WAITING';
+  }
   const frameTopic = LidarSourceIdentity.topicOf(lastCloudSnapshot);
   const frameAge = pointcloudLastFrameAt ? Date.now() - pointcloudLastFrameAt : null;
   if (pointcloudTransportWanted() && !lastCloudSnapshot?.offline_snapshot && frameTopic === topic && frameAge != null) {
@@ -2720,14 +2749,17 @@ function lidarSourceFreshness(topic, catalogEntry, forceStatus = '') {
   return 'WAITING';
 }
 
-function renderLidarSourceReadout(elements, identity, freshness) {
-  if (!elements.sensor || !elements.topic || !elements.stage || !elements.freshness) return;
+function renderLidarSourceReadout(elements, identity, freshness, pinInfo) {
+  if (!elements.sensor || !elements.pin || !elements.topic || !elements.stage || !elements.freshness) return;
   const sensorClass = identity.sensorId === 'go2_builtin_lidar'
     ? 'go2'
     : identity.sensorId === 'hesai_xt16' ? 'hesai' : 'generic';
   elements.sensor.className = `lidar-sensor-badge ${sensorClass}`;
   elements.sensor.textContent = identity.sensorLabel;
   elements.sensor.dataset.sensorId = identity.sensorId;
+  elements.pin.className = `lidar-source-pin${pinInfo.defaultPin ? ' default-pin' : ''}${pinInfo.pinned ? '' : ' is-hidden'}`;
+  elements.pin.textContent = pinInfo.label || 'PINNED';
+  elements.pin.title = pinInfo.title;
   elements.topic.textContent = identity.topic || 'NO POINTCLOUD TOPIC';
   elements.topic.title = identity.topic || '선택된 PointCloud 토픽이 없습니다.';
   elements.stage.textContent = identity.stageLabel;
@@ -2756,18 +2788,21 @@ function renderLidarSourceIdentity(forceStatus = '') {
   );
   const identity = LidarSourceIdentity.describe(topic, metadata);
   const freshness = lidarSourceFreshness(topic, catalogEntry, forceStatus);
+  const pinInfo = lidarSourcePinInfo(topic, catalogEntry);
   renderLidarSourceReadout({
     sensor: ui.cloudSourceSensorBadge,
+    pin: ui.cloudSourcePin,
     topic: ui.cloudSourceTopicLabel,
     stage: ui.cloudSourceStageLabel,
     freshness: ui.cloudSourceFreshness,
-  }, identity, freshness);
+  }, identity, freshness, pinInfo);
   renderLidarSourceReadout({
     sensor: ui.mappingLidarSensorBadge,
+    pin: ui.mappingLidarPin,
     topic: ui.mappingLidarTopic,
     stage: ui.mappingLidarStage,
     freshness: ui.mappingLidarFreshness,
-  }, identity, freshness);
+  }, identity, freshness, pinInfo);
   ui.lidarSub.textContent = `${identity.sensorLabel} · ${identity.stageLabel} · ${identity.topic || 'NO SOURCE'}`;
   ui.lidarSub.title = ui.lidarSub.textContent;
 }
@@ -2778,6 +2813,7 @@ async function refreshSources() {
     const fingerprint = JSON.stringify(payload);
     if (fingerprint === sourceFingerprint) return;
     sourceFingerprint = fingerprint;
+    pointcloudSelection = payload.selection?.pointcloud || {};
     fillSourceSelect(ui.cameraSource, payload.options.camera, payload.selected.camera, '카메라 없음');
     ui.cameraSource.disabled = Boolean(payload.locked?.camera);
     ui.cameraSource.title = payload.locked?.camera
@@ -2823,15 +2859,26 @@ function generatedMapName() {
 }
 
 function hasFreshLaserMap() {
+  const pipelineState = String(mappingControlSnapshot?.pipeline?.state || 'idle');
+  // A previous graph sample can remain cached for a few refresh ticks while a
+  // new FAST-LIO process group is still starting (or being torn down).  Never
+  // let that stale sample authorize a save across a session boundary.
+  if (pipelineState === 'starting' || pipelineState === 'stopping') return false;
   const topic = latestTopics.find((item) => item.name === '/Laser_map');
   if (topic?.state === 'ok') return true;
+  const hasPublisher = Number(topic?.publishers || 0) > 0;
+  if (!hasPublisher) return false;
+  // The dashboard-owned launcher does not report RUNNING until it has
+  // observed a non-empty /Laser_map after validating every XT16, bridge and
+  // FAST-LIO gate.  That readiness must not depend on the pointcloud chosen
+  // purely for visualization (for example /velodyne_points).
+  if (pipelineState === 'running') return true;
   // The live renderer deliberately subscribes to the much smaller
   // /cloud_registered stream.  /Laser_map is therefore not metered by the
   // dashboard, even though FAST-LIO is publishing it.  A live registered scan,
   // matching FAST-LIO odometry, and a Laser_map publisher together are a safe
   // readiness signal; the saver still waits for and validates an actual map.
-  return Number(topic?.publishers || 0) > 0 &&
-    latestState?.sources?.pointcloud === '/cloud_registered' &&
+  return latestState?.sources?.pointcloud === '/cloud_registered' &&
     latestState?.sources?.odometry === '/Odometry' &&
     latestState?.mapping?.cloud?.state === 'ok' &&
     latestState?.mapping?.odometry?.state === 'ok';

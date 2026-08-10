@@ -395,9 +395,12 @@ Settings의 `LiDAR / 3D 맵` 목록은 장치별로 `GO2 BUILT-IN LIDAR`와
 LiDAR이고, `/lidar_points`는 XT16 원본, `/velodyne_points`는 변환 점군,
 `/cloud_registered`와 `/Laser_map`은 XT16을 입력으로 쓰는 FAST-LIO 결과입니다.
 Settings와 Live Mapping 헤더에는 현재 선택한 장치·토픽·처리 단계와
-`LIVE/WAITING/STALE` 상태가 함께 표시됩니다. publisher가 없는 센서는 선택 목록에
-나타나지 않으며, 이미 선택된 소스가 중단되면 오프라인 상태로 남아 원인을 확인할 수
-있습니다.
+`LIVE/WAITING/STALE` 상태가 함께 표시됩니다. Go2 프로필의 기본 소스는
+`/velodyne_points`로 고정되며, 사용자가 명시적으로 고른 허용 소스는
+`~/.local/state/robot-scope/source-selection.json`에 0600 권한으로 저장됩니다.
+선택한 XT16 publisher가 재시작 중 사라져도 내장 LiDAR로 전환하지 않고 해당 항목을
+`WAITING`으로 유지합니다. 빈 소스를 POST하면 사용자 override를 삭제하고 Go2 프로필의
+기본 `/velodyne_points` 고정으로 돌아갑니다.
 
 대시보드의 새 맵 시작 버튼은 저장소 안의 고정된 스크립트만 실행합니다.
 
