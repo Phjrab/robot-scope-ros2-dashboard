@@ -338,10 +338,10 @@ class MappingJobManager:
         with self._lock:
             self._pipeline_process = process
             self._pipeline_pgid = pgid
-            self._pipeline.update(state="running", pid=process.pid)
+            self._pipeline.update(pid=process.pid)
             self._append_log_locked(
                 "pipeline",
-                f"pipeline process group started (pid {process.pid})",
+                f"pipeline readiness launcher started (pid {process.pid})",
             )
 
         self._start_reader(process, "pipeline")
@@ -771,6 +771,60 @@ class MappingJobManager:
         pgid: int,
     ) -> None:
         exit_code = process.wait()
+
+        with self._lock:
+            if token != self._pipeline_token or self._pipeline["state"] == "stopped":
+                return
+            if self._stop_requested or self._pipeline["state"] == "stopping":
+                return
+
+        if exit_code != 0:
+            # A failed launcher may have spawned children before a readiness
+            # gate rejected the pipeline.  Stop the complete manager-owned
+            # process group before publishing the terminal failed state.
+            if self._group_alive(pgid):
+                self._terminate_group(process, pgid)
+            with self._lock:
+                if token != self._pipeline_token or self._pipeline["state"] == "stopped":
+                    return
+                if self._stop_requested or self._pipeline["state"] == "stopping":
+                    return
+                self._pipeline_process = None
+                self._pipeline_pgid = None
+                self._pipeline.update(
+                    state="failed",
+                    stopped_at=_utc_now(),
+                    exit_code=exit_code,
+                    error=f"mapping readiness launcher exited with status {exit_code}",
+                )
+                self._append_log_locked("pipeline", self._pipeline["error"])
+            return
+
+        if not self._group_alive(pgid):
+            with self._lock:
+                if token != self._pipeline_token or self._pipeline["state"] == "stopped":
+                    return
+                if self._stop_requested or self._pipeline["state"] == "stopping":
+                    return
+                self._pipeline_process = None
+                self._pipeline_pgid = None
+                self._pipeline.update(
+                    state="failed",
+                    stopped_at=_utc_now(),
+                    exit_code=exit_code,
+                    error="mapping readiness passed but no pipeline processes survived",
+                )
+                self._append_log_locked("pipeline", self._pipeline["error"])
+            return
+
+        with self._lock:
+            if token != self._pipeline_token or self._pipeline["state"] == "stopped":
+                return
+            if self._stop_requested or self._pipeline["state"] == "stopping":
+                return
+            self._pipeline.update(state="running", exit_code=None, error=None)
+            self._append_log_locked("pipeline", "mapping pipeline readiness verified")
+
         while self._group_alive(pgid):
             with self._lock:
                 if token != self._pipeline_token or self._pipeline["state"] == "stopped":

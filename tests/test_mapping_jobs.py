@@ -32,14 +32,6 @@ child = subprocess.Popen([
     "import signal,sys,time; signal.signal(signal.SIGINT, lambda *_: sys.exit(0)); print('child-ready', flush=True); time.sleep(120)",
 ])
 print(f"pipeline-ready child={child.pid}", flush=True)
-
-def stop(*_):
-    print("pipeline-sigint", flush=True)
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, stop)
-while True:
-    time.sleep(0.1)
 """
 
 
@@ -145,7 +137,7 @@ class MappingJobManagerTests(unittest.TestCase):
 
     def start_ready(self, manager):
         snapshot = manager.start_mapping()
-        self.assertEqual(snapshot["pipeline"]["state"], "running")
+        self.assertEqual(snapshot["pipeline"]["state"], "starting")
         ready = wait_until(
             lambda: next(
                 (
@@ -157,6 +149,9 @@ class MappingJobManagerTests(unittest.TestCase):
             )
         )
         self.assertIsNotNone(ready)
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
         return int(ready["message"].split("child=", 1)[1])
 
     def test_start_is_singleton_and_stop_terminates_the_process_group(self):
@@ -197,11 +192,93 @@ class MappingJobManagerTests(unittest.TestCase):
         self.assertIsNotNone(wait_until(pid_file.exists))
         child_pid = int(pid_file.read_text())
         self.assertIsNotNone(wait_until(lambda: process_exists(child_pid)))
-        time.sleep(0.15)
-        self.assertEqual(manager.snapshot()["pipeline"]["state"], "running")
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
 
         manager.stop_mapping()
         self.assertIsNotNone(wait_until(lambda: not process_exists(child_pid)))
+
+    def test_nonzero_readiness_launcher_cleans_its_complete_process_group(self):
+        pid_file = self.root / "failed-child.pid"
+        launcher = self._script(
+            "failed_launcher.py",
+            "from pathlib import Path\n"
+            "import subprocess,sys\n"
+            f"pid_file=Path({str(pid_file)!r})\n"
+            "child=subprocess.Popen([sys.executable, '-c', "
+            "'import signal,sys,time; signal.signal(signal.SIGINT, lambda *_: sys.exit(0)); time.sleep(120)'])\n"
+            "pid_file.write_text(str(child.pid))\n"
+            "print('raw readiness failed', flush=True)\n"
+            "sys.exit(7)\n",
+        )
+        manager = MappingJobManager(
+            project_dir=self.root,
+            output_dir=self.maps,
+            start_command=CommandSpec((sys.executable, str(launcher)), cwd=self.root),
+            save_commands={},
+            stop_grace_seconds=0.2,
+        )
+        self.managers.append(manager)
+
+        started = manager.start_mapping()
+        self.assertEqual(started["pipeline"]["state"], "starting")
+        self.assertIsNotNone(wait_until(pid_file.exists))
+        child_pid = int(pid_file.read_text())
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "failed")
+        )
+        self.assertIsNotNone(wait_until(lambda: not process_exists(child_pid)))
+        failed = manager.snapshot()["pipeline"]
+        self.assertEqual(failed["exit_code"], 7)
+        self.assertIn("readiness launcher", failed["error"])
+
+    def test_stop_during_readiness_start_cannot_transition_back_to_running(self):
+        pid_file = self.root / "starting-child.pid"
+        launcher = self._script(
+            "slow_launcher.py",
+            "from pathlib import Path\n"
+            "import signal,subprocess,sys,time\n"
+            "signal.signal(signal.SIGINT, lambda *_: sys.exit(130))\n"
+            f"pid_file=Path({str(pid_file)!r})\n"
+            "child=subprocess.Popen([sys.executable, '-c', "
+            "'import signal,sys,time; signal.signal(signal.SIGINT, lambda *_: sys.exit(0)); time.sleep(120)'])\n"
+            "pid_file.write_text(str(child.pid))\n"
+            "time.sleep(120)\n",
+        )
+        manager = MappingJobManager(
+            project_dir=self.root,
+            output_dir=self.maps,
+            start_command=CommandSpec((sys.executable, str(launcher)), cwd=self.root),
+            save_commands={},
+            stop_grace_seconds=0.2,
+        )
+        self.managers.append(manager)
+
+        self.assertEqual(manager.start_mapping()["pipeline"]["state"], "starting")
+        self.assertIsNotNone(wait_until(pid_file.exists))
+        child_pid = int(pid_file.read_text())
+        stopped = manager.stop_mapping()
+        self.assertEqual(stopped["pipeline"]["state"], "stopped")
+        self.assertIsNotNone(wait_until(lambda: not process_exists(child_pid)))
+        time.sleep(0.1)
+        self.assertEqual(manager.snapshot()["pipeline"]["state"], "stopped")
+
+    def test_successful_launcher_without_surviving_pipeline_fails_closed(self):
+        launcher = self._script("empty_launcher.py", "print('done', flush=True)\n")
+        manager = MappingJobManager(
+            project_dir=self.root,
+            output_dir=self.maps,
+            start_command=CommandSpec((sys.executable, str(launcher)), cwd=self.root),
+            save_commands={},
+            stop_grace_seconds=0.2,
+        )
+        self.managers.append(manager)
+        manager.start_mapping()
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "failed")
+        )
+        self.assertIn("no pipeline processes", manager.snapshot()["pipeline"]["error"])
 
     def test_all_processes_are_spawned_without_a_shell(self):
         manager = self.manager()

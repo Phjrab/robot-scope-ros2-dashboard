@@ -121,6 +121,8 @@ class NavigationAppContractTests(unittest.TestCase):
         source = ast.unparse(node)
         self.assertIn("mapping_pipeline_state()", source)
         self.assertIn("mapping_jobs().start_mapping", source)
+        self.assertIn("shared_pipeline_state != 'running'", source)
+        self.assertIn("still verifying sensor readiness", source)
         self.assertNotIn("stop_mapping", source)
         self.assertLess(source.index("navigation_activate"), source.index("manager.start"))
         self.assertIn("navigation_start_failed", source)

@@ -1265,9 +1265,21 @@ async def navigation_start(
         shared_pipeline_state = mapping_pipeline_state()
         if shared_pipeline_state in {"idle", "failed"}:
             try:
-                await asyncio.to_thread(mapping_jobs().start_mapping)
+                shared_start = await asyncio.to_thread(mapping_jobs().start_mapping)
             except MappingJobError as exc:
                 raise mapping_error(exc) from exc
+            shared_pipeline_state = str(
+                (shared_start.get("pipeline") or {}).get("state", "failed")
+            )
+            if shared_pipeline_state != "running":
+                # The fail-closed mapping launcher remains in ``starting``
+                # while it verifies fresh raw, bridge and FAST-LIO output.
+                # Never activate Nav2 against process existence alone; the
+                # client can retry once the mapping status becomes running.
+                raise HTTPException(
+                    status_code=409,
+                    detail="localization pipeline is still verifying sensor readiness",
+                )
         elif shared_pipeline_state != "running":
             raise HTTPException(
                 status_code=409,

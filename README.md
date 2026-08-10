@@ -332,6 +332,64 @@ FAST-LIO -> /cloud_registered + /Laser_map + /Odometry
 Robot Scope -> live view + PCD/PGM/YAML save
 ~~~
 
+#### XT16 목적지를 유지하는 단방향 UDP 복제
+
+XT16의 목적지를 로봇 탑재 Jetson `192.168.123.18`로 유지하면서 Robot Scope
+Jetson `192.168.123.99`에서도 매핑해야 하는 현재 실습 배선에는
+`scripts/xt16_udp_relay.py`를 `.18`에서 실행할 수 있습니다. 릴레이는 센서 설정을
+변경하거나 UDP 2368을 bind하지 않습니다. `eth0`의 비promiscuous Linux packet
+socket으로 기존 수신 패킷을 수동 관측하고, 아래 실측 계약을 모두 만족하는 payload만
+일반 UDP `sendto()`로 `.99:2368`에 복제합니다.
+
+| 항목 | 고정값 |
+|---|---|
+| 캡처 인터페이스 | `eth0` |
+| 원본 경로 | `192.168.123.20:10000` → `192.168.123.18:2368` |
+| 복제 목적지 | `192.168.123.99:2368` |
+| XT16 UDP payload | 568 bytes, `eeff06010000100801040201` 헤더 |
+
+IP 옵션·fragment, 다른 packet type/IP/port, 길이가 다른 UDP, 다른 XT16 헤더는 모두
+거부됩니다. 허용값은 환경 변수나 실행 인자로 완화할 수 없습니다. 5초마다 전달 수,
+고정 분류별 거부 수, UDP sequence 유실·중복·역순과 전송 오류를 한 줄로 기록합니다.
+종료 시에도 최종 통계를 남깁니다.
+
+일반 UDP 복제이므로 `.99`에서 보이는 패킷 source는 `.18`의 임시 UDP port입니다.
+현재 Hesai driver는 `device_udp_src_port: 0`으로 이 경로가 검증되어 있습니다. driver에서
+`device_ip_address: 192.168.123.20`처럼 원본 source IP만 강제하면 복제 패킷을 버리므로,
+배포 전 해당 필터가 비어 있거나 `.18`을 허용하는지 확인해야 합니다. 성공 판정은 relay
+counter만으로 하지 않고 `.99`에서 `/lidar_points`가 새 데이터 약 10 Hz를 유지하는지
+확인합니다.
+
+예제 unit은 `unitree` 사용자에게 packet capture에 필요한 `CAP_NET_RAW` 하나만 주며,
+root 실행을 사용하지 않습니다. capability가 사용자가 교체할 수 있는 저장소 파일에
+적용되지 않도록 실행본은 root 소유 전용 경로에 먼저 복사합니다.
+
+~~~bash
+sudo install -d -o root -g root -m 0755 /usr/local/libexec/robot-scope
+sudo install -o root -g root -m 0755 scripts/xt16_udp_relay.py \
+  /usr/local/libexec/robot-scope/xt16_udp_relay.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-xt16-relay.service.example \
+  /etc/systemd/system/robot-scope-xt16-relay.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now robot-scope-xt16-relay.service
+~~~
+
+부팅 시 `network-online.target`보다 `eth0`의 `.18` 주소 준비가 늦어도 service는 2초
+간격으로 계속 재시도합니다. 유한 start limit으로 포기하지 않으므로 별도의 수동
+`reset-failed` 없이 인터페이스가 준비되는 즉시 자동 시작됩니다.
+
+롤백은 센서나 ROS 설정을 되돌릴 필요 없이 service만 중지·비활성화합니다.
+
+~~~bash
+sudo systemctl disable --now robot-scope-xt16-relay.service
+sudo rm -f /etc/systemd/system/robot-scope-xt16-relay.service
+sudo rm -f /usr/local/libexec/robot-scope/xt16_udp_relay.py
+sudo rmdir --ignore-fail-on-non-empty /usr/local/libexec/robot-scope
+sudo systemctl daemon-reload
+sudo systemctl reset-failed robot-scope-xt16-relay.service
+~~~
+
 Settings의 `LiDAR / 3D 맵` 목록은 장치별로 `GO2 BUILT-IN LIDAR`와
 `HESAI XT16`을 나눠 보여 줍니다. `/utlidar/*`의 허용된 토픽은 Go2 내장
 LiDAR이고, `/lidar_points`는 XT16 원본, `/velodyne_points`는 변환 점군,

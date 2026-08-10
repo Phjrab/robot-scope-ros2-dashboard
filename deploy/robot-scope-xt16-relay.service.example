@@ -1,0 +1,51 @@
+[Unit]
+Description=Robot Scope passive XT16 UDP relay
+Wants=network-online.target
+After=network-online.target
+# A cold boot can expose network-online before eth0 owns .18.  Disable the
+# finite start limit so the bounded two-second service retry keeps recovering.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/
+ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/xt16_udp_relay.py
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=3
+
+# AF_PACKET capture needs only CAP_NET_RAW.  The process never binds UDP 2368,
+# enters promiscuous mode, invokes a shell, or changes the XT16 configuration.
+CapabilityBoundingSet=CAP_NET_RAW
+AmbientCapabilities=CAP_NET_RAW
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_PACKET AF_INET
+
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+LimitNOFILE=64
+
+[Install]
+WantedBy=multi-user.target
