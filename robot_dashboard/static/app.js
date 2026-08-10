@@ -1,5 +1,169 @@
 const $ = (selector) => document.querySelector(selector);
 
+// LiDAR identity is intentionally resolved from backend metadata first and a
+// small exact-topic allowlist second.  Do not infer a physical sensor from a
+// fragment such as "deskewed": /utlidar/cloud_deskewed is the Go2 sensor.
+const LidarSourceIdentity = (() => {
+  const TOPIC_ALLOWLIST = Object.freeze({
+    '/utlidar/cloud': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'raw' }),
+    '/utlidar/cloud_deskewed': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'deskewed' }),
+    '/utlidar/cloud_base': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'base_frame' }),
+    '/utlidar/grid_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'local_map' }),
+    '/utlidar/height_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'height_map' }),
+    '/utlidar/range_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'range_map' }),
+    '/utlidar/voxel_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'voxel_map' }),
+    '/uslam/cloud_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'map' }),
+    '/lidar_points': Object.freeze({ sensorId: 'hesai_xt16', stage: 'raw' }),
+    '/velodyne_points': Object.freeze({ sensorId: 'hesai_xt16', stage: 'converted' }),
+    '/cloud_registered': Object.freeze({ sensorId: 'hesai_xt16', stage: 'registered' }),
+    '/Laser_map': Object.freeze({ sensorId: 'hesai_xt16', stage: 'map' }),
+  });
+
+  const SENSOR_LABELS = Object.freeze({
+    go2_builtin_lidar: 'GO2 BUILT-IN LIDAR',
+    hesai_xt16: 'HESAI XT16',
+    generic_pointcloud: 'GENERIC POINTCLOUD',
+  });
+
+  const STAGE_DETAILS = Object.freeze({
+    raw: 'RAW',
+    converted: 'CONVERTED',
+    deskewed: 'DESKEWED',
+    base_frame: 'BASE FRAME',
+    registered: 'REGISTERED',
+    local_map: 'LOCAL MAP',
+    height_map: 'HEIGHT MAP',
+    range_map: 'RANGE MAP',
+    voxel_map: 'VOXEL MAP',
+    map: 'MAP',
+    sensor_output: 'SENSOR OUTPUT',
+    slam_output: 'SLAM OUTPUT',
+    unknown: 'UNKNOWN',
+  });
+
+  function text(value) {
+    return value == null ? '' : String(value).trim();
+  }
+
+  function topicOf(value) {
+    if (typeof value === 'string') return value.trim();
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+    return text(value.topic || value.name || value.value);
+  }
+
+  function flattenMetadata(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const nested = [value.metadata, value.source_metadata, value.identity, value.lidar_metadata]
+      .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry));
+    return Object.assign({}, ...nested, value);
+  }
+
+  function first(metadata, keys) {
+    for (const key of keys) {
+      const value = text(metadata?.[key]);
+      if (value) return value;
+    }
+    return '';
+  }
+
+  function canonicalSensor(sensorId, sensorLabel) {
+    const id = text(sensorId).toLowerCase().replace(/[\s-]+/g, '_');
+    const token = `${id} ${text(sensorLabel).toLowerCase()}`;
+    if (/(hesai|xt\s*-?\s*16|pandar)/.test(token)) return 'hesai_xt16';
+    if (/(go2|unitree|utlidar|built[\s_-]*in)/.test(token)) return 'go2_builtin_lidar';
+    if (id) return id;
+    return 'generic_pointcloud';
+  }
+
+  function canonicalStage(value) {
+    const token = text(value).toLowerCase().replace(/[\s-]+/g, '_');
+    if (!token) return '';
+    if (token === 'raw' || token === 'original' || token === 'raw_points') return 'raw';
+    if (token.includes('deskew')) return 'deskewed';
+    if (token.includes('base_frame') || token === 'base') return 'base_frame';
+    if (token.includes('convert') || token.includes('correct') || token.includes('calibrat')) return 'converted';
+    if (token.includes('register') || token.includes('fast_lio') || token === 'fastlio') return 'registered';
+    if (token.includes('local_map')) return 'local_map';
+    if (token === 'map' || token.includes('slam_map')) return 'map';
+    if (token === 'sensor_output') return 'sensor_output';
+    if (token === 'slam_output') return 'slam_output';
+    if (token === 'unknown' || token === 'pointcloud') return 'unknown';
+    return token;
+  }
+
+  function stagePrefix(stage, sensorId) {
+    if (stage === 'raw') return '원본';
+    if (['converted', 'deskewed', 'base_frame'].includes(stage)) return '보정';
+    if (stage === 'registered' || (stage === 'map' && sensorId === 'hesai_xt16')) return 'FAST-LIO';
+    if (['map', 'local_map', 'slam_output'].includes(stage)) return 'SLAM';
+    if (['height_map', 'range_map', 'voxel_map'].includes(stage)) return '센서 맵';
+    if (stage === 'sensor_output') return '센서 출력';
+    return '단계 미확인';
+  }
+
+  function stageLabel(stage, sensorId, backendLabel = '') {
+    const prefix = stagePrefix(stage, sensorId);
+    if (stage === 'unknown' && !backendLabel) return prefix;
+    const detail = text(backendLabel) || STAGE_DETAILS[stage] || stage.replace(/_/g, ' ');
+    return `${prefix} · ${detail.toUpperCase()}`;
+  }
+
+  function normalizeReportedStatus(value) {
+    const token = text(value).toLowerCase();
+    if (['ok', 'live', 'online', 'fresh', 'active', 'streaming'].includes(token)) return 'LIVE';
+    if (['stale', 'timeout', 'timed_out', 'expired'].includes(token)) return 'STALE';
+    if (token) return 'WAITING';
+    return '';
+  }
+
+  function describe(value, extraMetadata = {}) {
+    const topic = topicOf(value) || topicOf(extraMetadata);
+    const metadata = Object.assign({}, flattenMetadata(value), flattenMetadata(extraMetadata));
+    const fallback = TOPIC_ALLOWLIST[topic] || { sensorId: 'generic_pointcloud', stage: 'unknown' };
+    const backendSensorId = first(metadata, ['sensor_id', 'lidar_sensor_id', 'sensor_family', 'lidar_model']);
+    const backendSensorLabel = first(metadata, ['sensor_label', 'lidar_sensor_label', 'sensor_name', 'lidar_model_label']);
+    const hasBackendSensor = Boolean(backendSensorId || backendSensorLabel);
+    const sensorId = hasBackendSensor
+      ? canonicalSensor(backendSensorId, backendSensorLabel)
+      : fallback.sensorId;
+    const sensorLabel = !topic && !hasBackendSensor
+      ? 'LIDAR NOT SELECTED'
+      : SENSOR_LABELS[sensorId]
+        || (backendSensorLabel ? backendSensorLabel.toUpperCase() : sensorId.replace(/_/g, ' ').toUpperCase());
+    const backendStage = first(metadata, ['pipeline_stage', 'processing_stage', 'cloud_stage', 'stage']);
+    const stage = backendStage ? canonicalStage(backendStage) : fallback.stage;
+    const backendStageLabel = first(metadata, ['pipeline_stage_label', 'processing_stage_label', 'cloud_stage_label', 'stage_label']);
+    const reportedStatus = normalizeReportedStatus(first(metadata, ['freshness', 'live_state', 'status', 'state']));
+    return {
+      topic,
+      sensorId,
+      sensorLabel,
+      stage,
+      stageLabel: stageLabel(stage, sensorId, backendStageLabel),
+      reportedStatus,
+      metadataPresent: Boolean(backendSensorId || backendSensorLabel || backendStage || backendStageLabel),
+    };
+  }
+
+  function groupLabel(identity) {
+    if (identity.sensorId === 'go2_builtin_lidar') return 'GO2 BUILT-IN LIDAR';
+    if (identity.sensorId === 'hesai_xt16') return 'HESAI XT16';
+    return identity.sensorLabel || 'OTHER POINTCLOUD';
+  }
+
+  return {
+    TOPIC_ALLOWLIST,
+    describe,
+    flattenMetadata,
+    groupLabel,
+    normalizeReportedStatus,
+    topicOf,
+  };
+})();
+
+// Exposed for the lightweight Node contract test and browser diagnostics.
+window.RobotLidarSourceIdentity = LidarSourceIdentity;
+
 const ui = {
   connectionChip: $('#connectionChip'),
   connectionLabel: $('#connectionLabel'),
@@ -29,6 +193,10 @@ const ui = {
   batterySub: $('#batterySub'),
   cameraSource: $('#cameraSource'),
   cloudSource: $('#cloudSource'),
+  cloudSourceSensorBadge: $('#cloudSourceSensorBadge'),
+  cloudSourceTopicLabel: $('#cloudSourceTopicLabel'),
+  cloudSourceStageLabel: $('#cloudSourceStageLabel'),
+  cloudSourceFreshness: $('#cloudSourceFreshness'),
   odomSource: $('#odomSource'),
   mapSource: $('#mapSource'),
   serviceLifecycleState: $('#serviceLifecycleState'),
@@ -75,6 +243,10 @@ const ui = {
   livePointApply: $('#livePointApply'),
   mapOverlayToggle: $('#mapOverlayToggle'),
   mappingState: $('#mappingState'),
+  mappingLidarSensorBadge: $('#mappingLidarSensorBadge'),
+  mappingLidarTopic: $('#mappingLidarTopic'),
+  mappingLidarStage: $('#mappingLidarStage'),
+  mappingLidarFreshness: $('#mappingLidarFreshness'),
   liveModelState: $('#liveModelState'),
   mapFrame: $('#mapFrame'),
   mapPoints: $('#mapPoints'),
@@ -255,6 +427,8 @@ const controlUi = {
 let latestState = null;
 let latestTopics = [];
 let sourceFingerprint = '';
+let pointcloudSourceCatalog = new Map();
+let pointcloudSourcesLoaded = false;
 let cameraSocket = null;
 let cameraSocketGeneration = 0;
 let cameraReconnectTimer = 0;
@@ -1447,8 +1621,6 @@ function updateOverview(state) {
   );
   syncCameraFrameFreshness();
 
-  const hesaiTopic = latestTopics.find((topic) => topic.name === '/lidar_points');
-  const hesaiOnline = Number(hesaiTopic?.publishers || 0) > 0;
   const cloudMetric = mapping.cloud || {};
   const liveCloud = liveSceneCloud();
   const cloudTopic = latestTopics.find((topic) => topic.name === cloudSource);
@@ -1459,7 +1631,6 @@ function updateOverview(state) {
   const frameMismatch = Boolean(cloudFrame && poseFrame && cloudFrame !== poseFrame);
 
   ui.lidarMetric.textContent = liveCloud ? formatHz(cloudMetric.hz ?? cloudTopic?.hz) : 'OFFLINE';
-  ui.lidarSub.textContent = `${hesaiOnline ? 'XT16 ONLINE · ' : ''}${cloudSource || 'No live cloud topic'}`;
   ui.liveCloudTopic.textContent = cloudSource || 'NO SOURCE';
   ui.liveCloudStatus.textContent = liveCloud ? `live · ${formatHz(cloudMetric.hz ?? cloudTopic?.hz)} · ${cloudFrame || 'no frame'}` : (cloudTopic?.state || 'waiting');
   ui.liveOdomTopic.textContent = odomSource || 'NO SOURCE';
@@ -1484,7 +1655,7 @@ function updateOverview(state) {
       : frameMismatch ? 'SENSOR FRAME · EXTRINSIC' : (mappingLabels[mapping.state] || 'CLOUD LIVE');
     setStatePill(ui.mappingState, liveCloud ? (frameMismatch ? 'waiting' : (mapping.state || 'cloud_only')) : 'waiting', liveCloud ? label : 'LIVE DATA WAITING');
   }
-  ui.lidarSub.title = ui.lidarSub.textContent;
+  renderLidarSourceIdentity();
 
   const battery = (state.sensors || []).find((sensor) => sensor.values?.battery_soc != null || sensor.category === 'battery');
   const soc = battery?.values?.battery_soc ?? (battery?.values?.percentage != null ? battery.values.percentage * 100 : null);
@@ -2435,7 +2606,170 @@ function fillSourceSelect(select, options, selected, emptyLabel) {
     .concat((options || []).map((item) => `<option value="${escapeHtml(item.topic)}">${escapeHtml(item.topic)}</option>`))
     .join('');
   select.innerHTML = html;
-  select.value = selected || '';
+  select.value = LidarSourceIdentity.topicOf(selected);
+}
+
+function pointcloudMetadataForTopic(index, topic) {
+  if (!index || !topic) return {};
+  if (Array.isArray(index)) {
+    const match = index.find((entry) => LidarSourceIdentity.topicOf(entry) === topic);
+    return LidarSourceIdentity.flattenMetadata(match);
+  }
+  if (typeof index !== 'object') return {};
+  return LidarSourceIdentity.flattenMetadata(index[topic] || index.topics?.[topic]);
+}
+
+function pointcloudMetadataIndex(payload) {
+  return payload?.pointcloud_metadata
+    || payload?.source_metadata?.pointcloud
+    || payload?.metadata?.pointcloud
+    || payload?.metadata?.sources?.pointcloud
+    || {};
+}
+
+function fillPointcloudSourceSelect(select, options, selected, metadataIndex = {}) {
+  const selectedTopic = LidarSourceIdentity.topicOf(selected);
+  const entries = new Map();
+  for (const item of options || []) {
+    const topic = LidarSourceIdentity.topicOf(item);
+    if (!topic) continue;
+    const metadata = Object.assign(
+      {},
+      LidarSourceIdentity.flattenMetadata(item),
+      pointcloudMetadataForTopic(metadataIndex, topic),
+    );
+    entries.set(topic, { topic, metadata, identity: LidarSourceIdentity.describe(topic, metadata) });
+  }
+  if (selectedTopic && !entries.has(selectedTopic)) {
+    const metadata = Object.assign(
+      {},
+      LidarSourceIdentity.flattenMetadata(selected),
+      pointcloudMetadataForTopic(metadataIndex, selectedTopic),
+    );
+    entries.set(selectedTopic, {
+      topic: selectedTopic,
+      metadata,
+      identity: LidarSourceIdentity.describe(selectedTopic, metadata),
+    });
+  }
+  pointcloudSourceCatalog = entries;
+  pointcloudSourcesLoaded = true;
+
+  const emptyOption = document.createElement('option');
+  emptyOption.value = '';
+  emptyOption.textContent = 'PointCloud 없음';
+  select.replaceChildren(emptyOption);
+
+  const grouped = new Map();
+  for (const entry of entries.values()) {
+    const label = LidarSourceIdentity.groupLabel(entry.identity);
+    if (!grouped.has(label)) grouped.set(label, []);
+    grouped.get(label).push(entry);
+  }
+  const groupOrder = ['GO2 BUILT-IN LIDAR', 'HESAI XT16'];
+  const sortedGroups = Array.from(grouped.entries()).sort(([left], [right]) => {
+    const leftRank = groupOrder.includes(left) ? groupOrder.indexOf(left) : groupOrder.length;
+    const rightRank = groupOrder.includes(right) ? groupOrder.indexOf(right) : groupOrder.length;
+    return leftRank - rightRank || left.localeCompare(right);
+  });
+  for (const [label, groupEntries] of sortedGroups) {
+    const group = document.createElement('optgroup');
+    group.label = label;
+    for (const entry of groupEntries) {
+      const option = document.createElement('option');
+      option.value = entry.topic;
+      option.textContent = `${entry.identity.stageLabel} · ${entry.topic}`;
+      option.title = `${entry.identity.sensorLabel} · ${entry.identity.stageLabel} · ${entry.topic}`;
+      option.dataset.sensorId = entry.identity.sensorId;
+      option.dataset.pipelineStage = entry.identity.stage;
+      group.append(option);
+    }
+    select.append(group);
+  }
+  select.value = selectedTopic;
+  renderLidarSourceIdentity();
+}
+
+function selectedPointcloudTopic() {
+  if (pointcloudSourcesLoaded) return LidarSourceIdentity.topicOf(ui.cloudSource.value);
+  return LidarSourceIdentity.topicOf(latestState?.sources?.pointcloud);
+}
+
+function lidarSourceFreshness(topic, catalogEntry, forceStatus = '') {
+  if (forceStatus) return forceStatus;
+  if (!topic) return 'WAITING';
+  const frameTopic = LidarSourceIdentity.topicOf(lastCloudSnapshot);
+  const frameAge = pointcloudLastFrameAt ? Date.now() - pointcloudLastFrameAt : null;
+  if (pointcloudTransportWanted() && !lastCloudSnapshot?.offline_snapshot && frameTopic === topic && frameAge != null) {
+    return frameAge <= 5000 ? 'LIVE' : 'STALE';
+  }
+  const stateTopic = LidarSourceIdentity.topicOf(latestState?.sources?.pointcloud);
+  const currentStateMatches = stateTopic === topic;
+  const topicMetric = latestTopics.find((entry) => entry.name === topic);
+  const statusCandidates = currentStateMatches
+    ? [latestState?.cloud?.state, latestState?.mapping?.cloud?.state, topicMetric?.state, catalogEntry?.identity?.reportedStatus]
+    : [topicMetric?.state, catalogEntry?.identity?.reportedStatus];
+  for (const status of statusCandidates) {
+    const normalized = status === 'LIVE' || status === 'WAITING' || status === 'STALE'
+      ? status
+      : LidarSourceIdentity.normalizeReportedStatus(status);
+    if (normalized) return normalized;
+  }
+  const age = Number(topicMetric?.age_s);
+  if (topicMetric?.age_s != null && Number.isFinite(age) && age > 5) return 'STALE';
+  return 'WAITING';
+}
+
+function renderLidarSourceReadout(elements, identity, freshness) {
+  if (!elements.sensor || !elements.topic || !elements.stage || !elements.freshness) return;
+  const sensorClass = identity.sensorId === 'go2_builtin_lidar'
+    ? 'go2'
+    : identity.sensorId === 'hesai_xt16' ? 'hesai' : 'generic';
+  elements.sensor.className = `lidar-sensor-badge ${sensorClass}`;
+  elements.sensor.textContent = identity.sensorLabel;
+  elements.sensor.dataset.sensorId = identity.sensorId;
+  elements.topic.textContent = identity.topic || 'NO POINTCLOUD TOPIC';
+  elements.topic.title = identity.topic || '선택된 PointCloud 토픽이 없습니다.';
+  elements.stage.textContent = identity.stageLabel;
+  elements.stage.dataset.pipelineStage = identity.stage;
+  elements.freshness.className = `lidar-source-freshness ${freshness.toLowerCase()}`;
+  elements.freshness.textContent = freshness;
+}
+
+function renderLidarSourceIdentity(forceStatus = '') {
+  const topic = selectedPointcloudTopic();
+  const catalogEntry = pointcloudSourceCatalog.get(topic);
+  const topicMetric = latestTopics.find((entry) => entry.name === topic);
+  const stateTopic = LidarSourceIdentity.topicOf(latestState?.sources?.pointcloud);
+  const runtimeMetadata = stateTopic === topic
+    ? Object.assign(
+      {},
+      LidarSourceIdentity.flattenMetadata(latestState?.mapping?.cloud),
+      LidarSourceIdentity.flattenMetadata(latestState?.cloud),
+    )
+    : {};
+  const metadata = Object.assign(
+    {},
+    catalogEntry?.metadata || {},
+    LidarSourceIdentity.flattenMetadata(topicMetric),
+    runtimeMetadata,
+  );
+  const identity = LidarSourceIdentity.describe(topic, metadata);
+  const freshness = lidarSourceFreshness(topic, catalogEntry, forceStatus);
+  renderLidarSourceReadout({
+    sensor: ui.cloudSourceSensorBadge,
+    topic: ui.cloudSourceTopicLabel,
+    stage: ui.cloudSourceStageLabel,
+    freshness: ui.cloudSourceFreshness,
+  }, identity, freshness);
+  renderLidarSourceReadout({
+    sensor: ui.mappingLidarSensorBadge,
+    topic: ui.mappingLidarTopic,
+    stage: ui.mappingLidarStage,
+    freshness: ui.mappingLidarFreshness,
+  }, identity, freshness);
+  ui.lidarSub.textContent = `${identity.sensorLabel} · ${identity.stageLabel} · ${identity.topic || 'NO SOURCE'}`;
+  ui.lidarSub.title = ui.lidarSub.textContent;
 }
 
 async function refreshSources() {
@@ -2449,7 +2783,12 @@ async function refreshSources() {
     ui.cameraSource.title = payload.locked?.camera
       ? 'Go2 직접 멀티캐스트 카메라는 실행 프로필에서 고정됩니다.'
       : '';
-    fillSourceSelect(ui.cloudSource, payload.options.pointcloud, payload.selected.pointcloud, 'PointCloud 없음');
+    fillPointcloudSourceSelect(
+      ui.cloudSource,
+      payload.options.pointcloud,
+      payload.selected_descriptors?.pointcloud || payload.selected.pointcloud,
+      pointcloudMetadataIndex(payload),
+    );
     fillSourceSelect(ui.odomSource, payload.options.odometry, payload.selected.odometry, 'Odometry 없음');
     fillSourceSelect(ui.mapSource, payload.options.occupancy_grid, payload.selected.occupancy_grid, '2D 맵 없음');
   } catch (error) { console.warn(error); }
@@ -2472,6 +2811,7 @@ async function refreshState() {
   } catch (error) {
     ui.connectionChip.className = 'connection-chip error';
     ui.connectionLabel.textContent = '에이전트 연결 끊김';
+    renderLidarSourceIdentity('STALE');
     if (scene3d) scene3d.setStatus({ online: false, lidarOnline: false, message: '에이전트 연결이 끊겼습니다' });
   }
 }
@@ -2703,6 +3043,7 @@ function applyPointcloudSnapshot(cloud) {
   cloudSeq = sequence;
   pointcloudLastFrameAt = Date.now();
   lastCloudSnapshot = accumulateRegisteredCloud(cloud);
+  renderLidarSourceIdentity();
   if (activePage === 'mapping') {
     const view = desiredMapView();
     if (view === 'cloud') drawPointcloud(lastCloudSnapshot);
@@ -5766,6 +6107,7 @@ ui.cloudSource.addEventListener('change', () => {
   lastCloudSnapshot = null;
   pointcloudRequestGeneration += 1;
   cloudSeq = -1;
+  renderLidarSourceIdentity('WAITING');
   selectSource('pointcloud', ui.cloudSource.value);
 });
 ui.odomSource.addEventListener('change', () => selectSource('odometry', ui.odomSource.value));

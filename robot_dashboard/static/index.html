@@ -75,7 +75,15 @@
         <article class="panel mapping-panel">
           <div class="panel-header">
             <div><div class="eyebrow">LIVE SPATIAL</div><h2>LiDAR mapping</h2></div>
-            <div class="panel-header-status"><div class="model-state" id="liveModelState">ROBOT MODEL · LOADING</div><div class="panel-state waiting" id="mappingState"><span></span>WAITING</div></div>
+            <div class="panel-header-status">
+              <div class="lidar-source-identity mapping-source-identity" role="status" aria-live="polite" aria-label="현재 LiDAR 소스">
+                <span class="lidar-sensor-badge generic" id="mappingLidarSensorBadge">LIDAR NOT SELECTED</span>
+                <code class="lidar-source-topic" id="mappingLidarTopic">NO POINTCLOUD TOPIC</code>
+                <span class="lidar-source-stage" id="mappingLidarStage">단계 미확인</span>
+                <span class="lidar-source-freshness waiting" id="mappingLidarFreshness">WAITING</span>
+              </div>
+              <div class="model-state" id="liveModelState">ROBOT MODEL · LOADING</div><div class="panel-state waiting" id="mappingState"><span></span>WAITING</div>
+            </div>
           </div>
           <div class="map-stage live-map-stage">
             <canvas id="sceneCanvas" class="map-layer" aria-label="실시간 Go2 및 LiDAR 3D 장면"></canvas>
@@ -525,7 +533,14 @@
             <div class="panel-header"><div><div class="eyebrow">DATA SOURCES</div><h2>Topic selection</h2></div><span class="muted">AUTO DISCOVERY</span></div>
             <div class="settings-card-body source-settings-grid">
               <label><span>카메라</span><select id="cameraSource"><option value="">탐색 중…</option></select></label>
-              <label><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select></label>
+              <label class="lidar-source-picker"><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select>
+                <div class="lidar-source-identity settings-source-identity" role="status" aria-live="polite" aria-label="선택한 LiDAR 소스">
+                  <span class="lidar-sensor-badge generic" id="cloudSourceSensorBadge">LIDAR NOT SELECTED</span>
+                  <code class="lidar-source-topic" id="cloudSourceTopicLabel">NO POINTCLOUD TOPIC</code>
+                  <span class="lidar-source-stage" id="cloudSourceStageLabel">단계 미확인</span>
+                  <span class="lidar-source-freshness waiting" id="cloudSourceFreshness">WAITING</span>
+                </div>
+              </label>
               <label><span>Odometry</span><select id="odomSource"><option value="">탐색 중…</option></select></label>
               <label><span>2D 맵</span><select id="mapSource"><option value="">없음</option></select></label>
             </div>

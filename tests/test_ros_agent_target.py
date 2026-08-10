@@ -39,7 +39,7 @@ if importlib.util.find_spec("rclpy") is None:
     sys.modules.update(stubs)
 
 from robot_dashboard.control import ControlDisabled, ControlManager
-from robot_dashboard.ros_agent import RateMeter, RosAgent
+from robot_dashboard.ros_agent import RateMeter, RosAgent, pointcloud_source_metadata
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -341,6 +341,132 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.agent._direct_camera.stop.assert_called_once_with()
         self.agent._camera_accepting_demand = False
         self.assertFalse(self.agent.camera_stream_open()["accepted"])
+
+    def test_pointcloud_source_identity_uses_only_fixed_vendor_topic_rules(self):
+        cases = {
+            "/utlidar/cloud": ("go2_builtin_lidar", "raw"),
+            "/utlidar/cloud_deskewed": ("go2_builtin_lidar", "deskewed"),
+            "/utlidar/cloud_base": ("go2_builtin_lidar", "base_frame"),
+            "/utlidar/grid_map": ("go2_builtin_lidar", "local_map"),
+            "/utlidar/height_map": ("go2_builtin_lidar", "height_map"),
+            "/utlidar/range_map": ("go2_builtin_lidar", "range_map"),
+            "/utlidar/voxel_map": ("go2_builtin_lidar", "voxel_map"),
+            "/uslam/cloud_map": ("go2_builtin_lidar", "map"),
+            "/lidar_points": ("hesai_xt16", "raw"),
+            "/velodyne_points": ("hesai_xt16", "converted"),
+            "/cloud_registered": ("hesai_xt16", "registered"),
+            "/Laser_map": ("hesai_xt16", "map"),
+            "/utlidar/vendor_extension": ("generic_pointcloud", "unknown"),
+            "/uslam/vendor_extension": ("generic_pointcloud", "unknown"),
+            "/utlidar_fake/cloud": ("generic_pointcloud", "unknown"),
+            "/laser_map": ("generic_pointcloud", "unknown"),
+            "/camera/depth/points": ("generic_pointcloud", "unknown"),
+        }
+        for topic, expected in cases.items():
+            with self.subTest(topic=topic):
+                metadata = pointcloud_source_metadata(topic)
+                self.assertEqual(
+                    (metadata["sensor_id"], metadata["pipeline_stage"]),
+                    expected,
+                )
+                self.assertIn(topic, metadata["display_label"])
+                self.assertTrue(metadata["sensor_label"])
+                self.assertTrue(metadata["pipeline_stage_label"])
+
+    def test_pointcloud_source_options_expose_publisher_and_sample_state(self):
+        point_type = "sensor_msgs/msg/PointCloud2"
+        with self.agent._lock:
+            self.agent._graph = {
+                "/cloud_registered": {
+                    "name": "/cloud_registered",
+                    "type": point_type,
+                    "category": "pointcloud",
+                    "publishers": 2,
+                },
+                "/utlidar/cloud": {
+                    "name": "/utlidar/cloud",
+                    "type": point_type,
+                    "category": "pointcloud",
+                    "publishers": 1,
+                },
+                "/custom_cloud": {
+                    "name": "/custom_cloud",
+                    "type": point_type,
+                    "category": "pointcloud",
+                    "publishers": 1,
+                },
+                "/offline_cloud": {
+                    "name": "/offline_cloud",
+                    "type": point_type,
+                    "category": "pointcloud",
+                    "publishers": 0,
+                },
+            }
+            self.agent._sources["pointcloud"] = "/cloud_registered"
+            live_meter = RateMeter()
+            live_meter.tick(time.monotonic() - 0.05)
+            live_meter.tick(time.monotonic())
+            stale_meter = RateMeter()
+            stale_meter.tick(time.monotonic() - 8.0)
+            self.agent._metrics = {
+                "/cloud_registered": live_meter,
+                "/custom_cloud": stale_meter,
+            }
+
+        sources = self.agent.sources_snapshot()
+        options = {
+            descriptor["topic"]: descriptor
+            for descriptor in sources["options"]["pointcloud"]
+        }
+        self.assertEqual(
+            set(options),
+            {"/cloud_registered", "/utlidar/cloud", "/custom_cloud"},
+        )
+
+        selected = sources["selected_descriptors"]["pointcloud"]
+        self.assertEqual(sources["selected"]["pointcloud"], "/cloud_registered")
+        self.assertEqual(selected, options["/cloud_registered"])
+        self.assertEqual(selected["type"], point_type)
+        self.assertEqual(selected["sensor_id"], "hesai_xt16")
+        self.assertEqual(selected["pipeline_stage"], "registered")
+        self.assertEqual(selected["publishers"], 2)
+        self.assertEqual(selected["samples"], 2)
+        self.assertTrue(selected["available"])
+        self.assertTrue(selected["live"])
+        self.assertEqual(selected["state"], "ok")
+        self.assertEqual(selected["sample_state"], "ok")
+        self.assertIsNotNone(selected["hz"])
+
+        onboard = options["/utlidar/cloud"]
+        self.assertEqual(onboard["sensor_id"], "go2_builtin_lidar")
+        self.assertTrue(onboard["available"])
+        self.assertFalse(onboard["live"])
+        self.assertEqual(onboard["state"], "waiting")
+
+        generic = options["/custom_cloud"]
+        self.assertEqual(generic["sensor_id"], "generic_pointcloud")
+        self.assertEqual(generic["publishers"], 1)
+        self.assertEqual(generic["samples"], 1)
+        self.assertTrue(generic["available"])
+        self.assertFalse(generic["live"])
+        self.assertEqual(generic["state"], "stale")
+
+        # Publisher-free graph entries remain unavailable for selection, but an
+        # already selected descriptor still reports the real offline state.
+        with self.agent._lock:
+            self.agent._sources["pointcloud"] = "/offline_cloud"
+        offline_sources = self.agent.sources_snapshot()
+        offline = offline_sources["selected_descriptors"]["pointcloud"]
+        self.assertNotIn(
+            "/offline_cloud",
+            {item["topic"] for item in offline_sources["options"]["pointcloud"]},
+        )
+        self.assertEqual(offline["type"], point_type)
+        self.assertFalse(offline["available"])
+        self.assertFalse(offline["live"])
+        self.assertEqual(offline["publishers"], 0)
+        self.assertEqual(offline["samples"], 0)
+        self.assertEqual(offline["state"], "waiting")
 
     def test_pointcloud_stream_epoch_and_bandwidth_budget_are_bounded(self):
         with self.agent._lock:

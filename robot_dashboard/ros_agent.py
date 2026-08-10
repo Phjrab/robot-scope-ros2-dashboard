@@ -70,6 +70,71 @@ CAMERA_TYPES = {
     "unitree_go/msg/Go2FrontVideoData",
 }
 
+# Source identity is deliberately derived from a small, fixed topic allowlist.
+# ROS graph names are untrusted display metadata; a similar-looking vendor or
+# user topic must never be presented as a known physical LiDAR.
+HESAI_XT16_POINTCLOUD_STAGES = {
+    "/lidar_points": "raw",
+    "/velodyne_points": "converted",
+    "/cloud_registered": "registered",
+    "/Laser_map": "map",
+}
+GO2_UTLIDAR_POINTCLOUD_STAGES = {
+    "/utlidar/cloud": "raw",
+    "/utlidar/cloud_deskewed": "deskewed",
+    "/utlidar/cloud_base": "base_frame",
+    "/utlidar/grid_map": "local_map",
+    "/utlidar/height_map": "height_map",
+    "/utlidar/range_map": "range_map",
+    "/utlidar/voxel_map": "voxel_map",
+}
+GO2_USLAM_POINTCLOUD_STAGES = {
+    "/uslam/cloud_map": "map",
+}
+POINTCLOUD_STAGE_LABELS = {
+    "raw": "Raw points",
+    "converted": "Converted points",
+    "deskewed": "Deskewed points",
+    "base_frame": "Base-frame points",
+    "registered": "Registered cloud",
+    "local_map": "Local map",
+    "height_map": "Height map",
+    "range_map": "Range map",
+    "voxel_map": "Voxel map",
+    "map": "SLAM map",
+    "unknown": "PointCloud",
+}
+
+
+def pointcloud_source_metadata(topic: str) -> Dict[str, str]:
+    """Return allowlisted LiDAR identity and processing-stage metadata."""
+
+    normalized = str(topic or "")
+    if normalized in HESAI_XT16_POINTCLOUD_STAGES:
+        sensor_id = "hesai_xt16"
+        sensor_label = "Hesai XT16"
+        stage = HESAI_XT16_POINTCLOUD_STAGES[normalized]
+    elif normalized in GO2_UTLIDAR_POINTCLOUD_STAGES:
+        sensor_id = "go2_builtin_lidar"
+        sensor_label = "Go2 Built-in LiDAR"
+        stage = GO2_UTLIDAR_POINTCLOUD_STAGES[normalized]
+    elif normalized in GO2_USLAM_POINTCLOUD_STAGES:
+        sensor_id = "go2_builtin_lidar"
+        sensor_label = "Go2 Built-in LiDAR"
+        stage = GO2_USLAM_POINTCLOUD_STAGES[normalized]
+    else:
+        sensor_id = "generic_pointcloud"
+        sensor_label = "Generic PointCloud"
+        stage = "unknown"
+    stage_label = POINTCLOUD_STAGE_LABELS[stage]
+    return {
+        "sensor_id": sensor_id,
+        "sensor_label": sensor_label,
+        "pipeline_stage": stage,
+        "pipeline_stage_label": stage_label,
+        "display_label": f"{sensor_label} · {stage_label} · {normalized}",
+    }
+
 CONTROL_COMMAND_TOPIC = "/robot_scope/control/command"
 CONTROL_STATUS_TOPIC = "/robot_scope/control/status"
 # Nav2 is remapped to this private ingress.  A random/global /cmd_vel publisher
@@ -3413,16 +3478,60 @@ class RosAgent:
                 },
             }
 
+    def _pointcloud_source_descriptor_locked(
+        self,
+        topic: str,
+        item: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Describe one PointCloud source without trusting its ROS topic name."""
+
+        identity = pointcloud_source_metadata(topic)
+        publishers = max(0, int(item.get("publishers", 0) or 0))
+        metric = self._metric_snapshot(topic, "pointcloud")
+        sample_state = str(metric.get("state", "waiting"))
+        samples = max(0, int(metric.get("samples", 0) or 0))
+        available = publishers > 0
+        live = available and samples > 0 and sample_state == "ok"
+        return {
+            # Keep the original option contract for older dashboard clients.
+            "topic": topic,
+            "type": str(item.get("type", "")),
+            **identity,
+            "publishers": publishers,
+            "samples": samples,
+            "hz": metric.get("hz"),
+            "jitter_ms": metric.get("jitter_ms"),
+            "age_s": metric.get("age_s"),
+            "available": available,
+            "live": live,
+            "state": sample_state,
+            "sample_state": sample_state,
+        }
+
     def sources_snapshot(self) -> Dict[str, Any]:
         with self._lock:
-            options: Dict[str, List[Dict[str, str]]] = {key: [] for key in self._sources}
+            options: Dict[str, List[Dict[str, Any]]] = {key: [] for key in self._sources}
             for name, item in self._graph.items():
                 category = item.get("category")
                 if category in options and item.get("publishers", 0) > 0:
-                    options[category].append({"topic": name, "type": item.get("type", "")})
+                    if category == "pointcloud":
+                        option = self._pointcloud_source_descriptor_locked(name, item)
+                    else:
+                        option = {"topic": name, "type": item.get("type", "")}
+                    options[category].append(option)
             for values in options.values():
                 values.sort(key=lambda item: item["topic"])
             selected = dict(self._sources)
+            selected_pointcloud = selected.get("pointcloud", "")
+            selected_pointcloud_item = self._graph.get(selected_pointcloud, {})
+            selected_pointcloud_descriptor = (
+                self._pointcloud_source_descriptor_locked(
+                    selected_pointcloud,
+                    selected_pointcloud_item,
+                )
+                if selected_pointcloud
+                else None
+            )
             locked: Dict[str, bool] = {}
             direct_camera = self._direct_camera.status()
             if direct_camera.get("enabled") and direct_camera.get("configured"):
@@ -3437,6 +3546,9 @@ class RosAgent:
                 locked["camera"] = True
             return {
                 "selected": selected,
+                "selected_descriptors": {
+                    "pointcloud": selected_pointcloud_descriptor,
+                },
                 "options": options,
                 "locked": locked,
             }
