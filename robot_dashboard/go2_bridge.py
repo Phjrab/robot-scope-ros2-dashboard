@@ -54,6 +54,52 @@ class BridgeCommandError(ValueError):
     """Raised when the dashboard sends an unsafe bridge command."""
 
 
+BARE_DDS_NODE_NAME = "_CREATED_BY_BARE_DDS_APP_"
+
+
+def classify_sport_request_publishers(
+    endpoints: Any,
+    *,
+    own_node_name: str,
+    own_node_namespace: str,
+) -> dict[str, int]:
+    """Classify Unitree request writers without treating robot DDS as ROS nodes.
+
+    Go2 firmware exposes several request-capable CycloneDDS endpoints without
+    ROS node metadata.  They all appear as ``_CREATED_BY_BARE_DDS_APP_`` in a
+    ROS graph, so the total publisher count cannot establish exclusive bridge
+    ownership.  Named publishers remain attributable and therefore fail the
+    control gate unless the endpoint belongs to this bridge instance.
+
+    An endpoint with incomplete metadata is deliberately classified as a
+    foreign named publisher rather than trusted as Unitree firmware.
+    """
+
+    own = 0
+    foreign_named = 0
+    bare_unitree = 0
+    total = 0
+    for endpoint in endpoints:
+        total += 1
+        node_name = getattr(endpoint, "node_name", None)
+        node_namespace = getattr(endpoint, "node_namespace", None)
+        if node_name == own_node_name and node_namespace == own_node_namespace:
+            own += 1
+        elif (
+            node_name == BARE_DDS_NODE_NAME
+            and node_namespace == BARE_DDS_NODE_NAME
+        ):
+            bare_unitree += 1
+        else:
+            foreign_named += 1
+    return {
+        "sport_publishers": total,
+        "own_sport_publishers": own,
+        "foreign_named_sport_publishers": foreign_named,
+        "bare_unitree_sport_publishers": bare_unitree,
+    }
+
+
 @dataclass(frozen=True)
 class SportRequest:
     api_id: int
@@ -78,6 +124,7 @@ class Go2BridgeCore:
         command_timeout_s: float = HARD_MAX_COMMAND_TIMEOUT_S,
         telemetry_timeout_s: float = 0.50,
         source_timeout_s: float = 2.0,
+        expected_bare_sport_publishers: int = 0,
     ) -> None:
         self.max_linear_x = self._bounded_limit(
             max_linear_x, self.HARD_MAX_LINEAR_X
@@ -99,6 +146,15 @@ class Go2BridgeCore:
             0.20, min(float(telemetry_timeout_s), 1.0)
         )
         self.source_timeout_s = max(0.5, min(float(source_timeout_s), 5.0))
+        if (
+            isinstance(expected_bare_sport_publishers, bool)
+            or not isinstance(expected_bare_sport_publishers, int)
+            or not 0 <= expected_bare_sport_publishers <= 64
+        ):
+            raise ValueError(
+                "expected_bare_sport_publishers must be an integer from 0 to 64"
+            )
+        self.expected_bare_sport_publishers = expected_bare_sport_publishers
         # A new, unpredictable epoch is created for every bridge process.  A
         # signed command from an earlier process can therefore never be
         # replayed into this instance, even if its timestamp is still fresh.
@@ -130,6 +186,39 @@ class Go2BridgeCore:
         if not math.isfinite(number) or number <= 0:
             raise ValueError("control limit must be a positive finite number")
         return min(number, ceiling)
+
+    def _graph_ready(
+        self,
+        *,
+        lowstate_publishers: Any,
+        sport_subscribers: Any,
+        sport_publishers: Any,
+        own_sport_publishers: Any,
+        foreign_named_sport_publishers: Any,
+        bare_unitree_sport_publishers: Any,
+    ) -> bool:
+        counts = (
+            lowstate_publishers,
+            sport_subscribers,
+            sport_publishers,
+            own_sport_publishers,
+            foreign_named_sport_publishers,
+            bare_unitree_sport_publishers,
+        )
+        if any(type(value) is not int or value < 0 for value in counts):
+            return False
+        return (
+            lowstate_publishers == 1
+            and sport_subscribers == 1
+            and own_sport_publishers == 1
+            and foreign_named_sport_publishers == 0
+            and bare_unitree_sport_publishers
+            == self.expected_bare_sport_publishers
+            and sport_publishers
+            == own_sport_publishers
+            + foreign_named_sport_publishers
+            + bare_unitree_sport_publishers
+        )
 
     @staticmethod
     def _source(payload: Mapping[str, Any]) -> str:
@@ -273,6 +362,9 @@ class Go2BridgeCore:
         sport_subscribers: int,
         sport_publishers: int,
         lowstate_publishers: int = 1,
+        own_sport_publishers: int = 1,
+        foreign_named_sport_publishers: int = 0,
+        bare_unitree_sport_publishers: int = 0,
     ) -> list[SportRequest]:
         now = float(now)
         telemetry_fresh = (
@@ -282,9 +374,14 @@ class Go2BridgeCore:
         )
         ready = (
             telemetry_fresh
-            and int(lowstate_publishers) == 1
-            and int(sport_subscribers) == 1
-            and int(sport_publishers) == 1
+            and self._graph_ready(
+                lowstate_publishers=lowstate_publishers,
+                sport_subscribers=sport_subscribers,
+                sport_publishers=sport_publishers,
+                own_sport_publishers=own_sport_publishers,
+                foreign_named_sport_publishers=foreign_named_sport_publishers,
+                bare_unitree_sport_publishers=bare_unitree_sport_publishers,
+            )
         )
         requests: list[SportRequest] = []
 
@@ -350,6 +447,9 @@ class Go2BridgeCore:
         sport_subscribers: int,
         sport_publishers: int,
         lowstate_publishers: int = 1,
+        own_sport_publishers: int = 1,
+        foreign_named_sport_publishers: int = 0,
+        bare_unitree_sport_publishers: int = 0,
     ) -> dict[str, Any]:
         telemetry_fresh = (
             lowstate_age_s is not None
@@ -358,9 +458,14 @@ class Go2BridgeCore:
         )
         ready = (
             telemetry_fresh
-            and int(lowstate_publishers) == 1
-            and int(sport_subscribers) == 1
-            and int(sport_publishers) == 1
+            and self._graph_ready(
+                lowstate_publishers=lowstate_publishers,
+                sport_subscribers=sport_subscribers,
+                sport_publishers=sport_publishers,
+                own_sport_publishers=own_sport_publishers,
+                foreign_named_sport_publishers=foreign_named_sport_publishers,
+                bare_unitree_sport_publishers=bare_unitree_sport_publishers,
+            )
         )
         command_age = None if not self._last_drive else max(0.0, now - self._last_drive)
         action_remaining = max(0.0, self._action_hold_until - now)
@@ -383,6 +488,14 @@ class Go2BridgeCore:
             "lowstate_publishers": max(0, int(lowstate_publishers)),
             "sport_subscribers": max(0, int(sport_subscribers)),
             "sport_publishers": max(0, int(sport_publishers)),
+            "own_sport_publishers": max(0, int(own_sport_publishers)),
+            "foreign_named_sport_publishers": max(
+                0, int(foreign_named_sport_publishers)
+            ),
+            "bare_unitree_sport_publishers": max(
+                0, int(bare_unitree_sport_publishers)
+            ),
+            "expected_bare_sport_publishers": self.expected_bare_sport_publishers,
             "command_age_ms": (
                 None if command_age is None else round(command_age * 1_000)
             ),

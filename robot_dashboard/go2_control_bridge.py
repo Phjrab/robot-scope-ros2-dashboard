@@ -14,6 +14,7 @@ import json
 import os
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -34,7 +35,13 @@ from .control_protocol import (
     encode_signed,
     shared_key,
 )
-from .go2_bridge import API_STOP_MOVE, BridgeCommandError, Go2BridgeCore, SportRequest
+from .go2_bridge import (
+    API_STOP_MOVE,
+    BridgeCommandError,
+    Go2BridgeCore,
+    SportRequest,
+    classify_sport_request_publishers,
+)
 
 
 COMMAND_TOPIC = "/robot_scope/control/command"
@@ -59,11 +66,18 @@ class Go2ControlBridge(Node):
             command_timeout_s=control.get("bridge_command_timeout_s", 0.20),
             telemetry_timeout_s=control.get("telemetry_timeout_s", 0.50),
             source_timeout_s=control.get("lease_timeout_s", 2.0),
+            expected_bare_sport_publishers=control.get(
+                "expected_bare_sport_publishers", 0
+            ),
         )
         self._callback_group = MutuallyExclusiveCallbackGroup()
         self._last_lowstate = 0.0
         self._last_status = 0.0
         self._closing = False
+        # ROS callbacks run in executor threads while signal-driven shutdown
+        # runs in the main thread. Serialize every core mutation and sport
+        # publish so no in-flight MOVE can appear after the final StopMove.
+        self._operation_lock = threading.RLock()
 
         reliable = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -111,15 +125,23 @@ class Go2ControlBridge(Node):
             callback_group=self._callback_group,
         )
         self.get_logger().info(
-            f"Go2 control watchdog ready; waiting for exactly one {self._lowstate_topic} publisher, sport publisher, and sport subscriber"
+            "Go2 control watchdog ready; waiting for exactly one "
+            f"{self._lowstate_topic} publisher, one bridge-owned sport publisher, "
+            "no foreign named sport publishers, "
+            f"{self._core.expected_bare_sport_publishers} trusted bare Unitree "
+            "sport publishers, and one sport subscriber"
         )
 
     def _lowstate_callback(self, _: LowState) -> None:
         self._last_lowstate = time.monotonic()
 
     def _command_callback(self, message: String) -> None:
-        if self._closing:
-            return
+        with self._operation_lock:
+            if self._closing:
+                return
+            self._accept_command(message)
+
+    def _accept_command(self, message: String) -> None:
         now = time.monotonic()
         try:
             payload = decode_signed(message.data, self._key, max_age_s=1.5)
@@ -137,7 +159,9 @@ class Go2ControlBridge(Node):
             self._core.force_stop(f"rejected command: {exc}")
             self.get_logger().warning(str(exc))
 
-    def _environment(self, now: float) -> tuple[float | None, int, int, int]:
+    def _environment(
+        self, now: float
+    ) -> tuple[float | None, int, int, int, int, int, int]:
         lowstate_age = (
             None if self._last_lowstate <= 0 else max(0.0, now - self._last_lowstate)
         )
@@ -145,8 +169,20 @@ class Go2ControlBridge(Node):
         # two different global LowState topics into a false single-robot view.
         lowstate_publishers = self.count_publishers(self._lowstate_topic)
         subscribers = self.count_subscribers(SPORT_REQUEST_TOPIC)
-        publishers = self.count_publishers(SPORT_REQUEST_TOPIC)
-        return lowstate_age, lowstate_publishers, subscribers, publishers
+        publisher_counts = classify_sport_request_publishers(
+            self.get_publishers_info_by_topic(SPORT_REQUEST_TOPIC),
+            own_node_name=self.get_name(),
+            own_node_namespace=self.get_namespace(),
+        )
+        return (
+            lowstate_age,
+            lowstate_publishers,
+            subscribers,
+            publisher_counts["sport_publishers"],
+            publisher_counts["own_sport_publishers"],
+            publisher_counts["foreign_named_sport_publishers"],
+            publisher_counts["bare_unitree_sport_publishers"],
+        )
 
     def _publish_request(self, request: SportRequest) -> None:
         message = Request()
@@ -161,6 +197,9 @@ class Go2ControlBridge(Node):
         lowstate_publishers: int,
         sport_subscribers: int,
         sport_publishers: int,
+        own_sport_publishers: int,
+        foreign_named_sport_publishers: int,
+        bare_unitree_sport_publishers: int,
     ) -> None:
         snapshot = self._core.snapshot(
             now=now,
@@ -168,6 +207,9 @@ class Go2ControlBridge(Node):
             lowstate_publishers=lowstate_publishers,
             sport_subscribers=sport_subscribers,
             sport_publishers=sport_publishers,
+            own_sport_publishers=own_sport_publishers,
+            foreign_named_sport_publishers=foreign_named_sport_publishers,
+            bare_unitree_sport_publishers=bare_unitree_sport_publishers,
         )
         snapshot.update(
             {
@@ -183,12 +225,21 @@ class Go2ControlBridge(Node):
         self._status_publisher.publish(message)
 
     def _tick(self) -> None:
+        with self._operation_lock:
+            if self._closing:
+                return
+            self._tick_locked()
+
+    def _tick_locked(self) -> None:
         now = time.monotonic()
         (
             lowstate_age,
             lowstate_publishers,
             sport_subscribers,
             sport_publishers,
+            own_sport_publishers,
+            foreign_named_sport_publishers,
+            bare_unitree_sport_publishers,
         ) = self._environment(now)
         for request in self._core.tick(
             now=now,
@@ -196,6 +247,9 @@ class Go2ControlBridge(Node):
             lowstate_publishers=lowstate_publishers,
             sport_subscribers=sport_subscribers,
             sport_publishers=sport_publishers,
+            own_sport_publishers=own_sport_publishers,
+            foreign_named_sport_publishers=foreign_named_sport_publishers,
+            bare_unitree_sport_publishers=bare_unitree_sport_publishers,
         ):
             self._publish_request(request)
         if now - self._last_status >= 0.25:
@@ -205,20 +259,29 @@ class Go2ControlBridge(Node):
                 lowstate_publishers,
                 sport_subscribers,
                 sport_publishers,
+                own_sport_publishers,
+                foreign_named_sport_publishers,
+                bare_unitree_sport_publishers,
             )
             self._last_status = now
 
     def stop_safely(self) -> None:
-        if self._closing:
-            return
-        self._closing = True
-        self._core.force_stop("bridge shutdown")
-        for _ in range(3):
-            try:
-                self._publish_request(SportRequest(API_STOP_MOVE, "", "shutdown"))
-            except Exception as exc:
-                self.get_logger().error(f"StopMove publish failed during shutdown: {exc}")
-            time.sleep(0.04)
+        with self._operation_lock:
+            if self._closing:
+                return
+            self._closing = True
+            self._timer.cancel()
+            self._core.force_stop("bridge shutdown")
+            for _ in range(3):
+                try:
+                    self._publish_request(
+                        SportRequest(API_STOP_MOVE, "", "shutdown")
+                    )
+                except Exception as exc:
+                    self.get_logger().error(
+                        f"StopMove publish failed during shutdown: {exc}"
+                    )
+                time.sleep(0.04)
 
 
 def load_profile(path: str) -> dict[str, Any]:

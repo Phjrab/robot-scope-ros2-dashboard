@@ -1,6 +1,7 @@
 import ast
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from robot_dashboard.control import ACTION_GUARD_S, SAFE_ACTIONS
 from robot_dashboard.go2_bridge import (
@@ -10,6 +11,7 @@ from robot_dashboard.go2_bridge import (
     Go2BridgeCore,
     SAFE_ACTION_API_IDS,
     SAFE_ACTION_GUARD_S,
+    classify_sport_request_publishers,
 )
 
 
@@ -64,6 +66,27 @@ class Go2BridgeCoreTests(unittest.TestCase):
         rendered = ast.unparse(main)
         self.assertIn("signal_handler_options=SignalHandlerOptions.NO", rendered)
         self.assertLess(rendered.index("node.stop_safely()"), rendered.index("rclpy.shutdown()"))
+
+        bridge = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Go2ControlBridge"
+        )
+        methods = {
+            node.name: ast.unparse(node)
+            for node in bridge.body
+            if isinstance(node, ast.FunctionDef)
+        }
+        for method in ("_command_callback", "_tick", "stop_safely"):
+            self.assertIn("with self._operation_lock", methods[method])
+        self.assertLess(
+            methods["stop_safely"].index("self._closing = True"),
+            methods["stop_safely"].index("self._publish_request"),
+        )
+        self.assertLess(
+            methods["stop_safely"].index("self._timer.cancel()"),
+            methods["stop_safely"].index("self._publish_request"),
+        )
 
     def test_startup_and_watchdog_publish_stop(self):
         requests = self.tick()
@@ -271,6 +294,93 @@ class Go2BridgeCoreTests(unittest.TestCase):
                 )
                 self.assertNotIn(API_MOVE, [request.api_id for request in requests])
                 self.assertEqual(requests[-1].api_id, API_STOP_MOVE)
+
+    def test_go2_bare_dds_baseline_does_not_hide_named_competitors(self):
+        core = Go2BridgeCore(expected_bare_sport_publishers=9)
+        ready = core.snapshot(
+            now=self.now,
+            lowstate_age_s=0.01,
+            lowstate_publishers=1,
+            sport_subscribers=1,
+            sport_publishers=10,
+            own_sport_publishers=1,
+            foreign_named_sport_publishers=0,
+            bare_unitree_sport_publishers=9,
+        )
+        self.assertTrue(ready["ready"])
+        self.assertEqual(ready["sport_publishers"], 10)
+        self.assertEqual(ready["own_sport_publishers"], 1)
+        self.assertEqual(ready["bare_unitree_sport_publishers"], 9)
+        self.assertEqual(ready["expected_bare_sport_publishers"], 9)
+
+        for values in (
+            {
+                "sport_publishers": 11,
+                "own_sport_publishers": 1,
+                "foreign_named_sport_publishers": 1,
+                "bare_unitree_sport_publishers": 9,
+            },
+            {
+                "sport_publishers": 9,
+                "own_sport_publishers": 0,
+                "foreign_named_sport_publishers": 0,
+                "bare_unitree_sport_publishers": 9,
+            },
+            {
+                "sport_publishers": 9,
+                "own_sport_publishers": 1,
+                "foreign_named_sport_publishers": 0,
+                "bare_unitree_sport_publishers": 8,
+            },
+            {
+                "sport_publishers": 9,
+                "own_sport_publishers": 1,
+                "foreign_named_sport_publishers": 0,
+                "bare_unitree_sport_publishers": 9,
+            },
+        ):
+            with self.subTest(values=values):
+                self.assertFalse(
+                    core.snapshot(
+                        now=self.now,
+                        lowstate_age_s=0.01,
+                        lowstate_publishers=1,
+                        sport_subscribers=1,
+                        **values,
+                    )["ready"]
+                )
+
+    def test_sport_publisher_endpoint_classification_fails_unknown_named_closed(self):
+        bare = SimpleNamespace(
+            node_name="_CREATED_BY_BARE_DDS_APP_",
+            node_namespace="_CREATED_BY_BARE_DDS_APP_",
+        )
+        own = SimpleNamespace(
+            node_name="robot_scope_go2_control_bridge",
+            node_namespace="/",
+        )
+        foreign = SimpleNamespace(node_name="test_teleop", node_namespace="/")
+        incomplete = SimpleNamespace(node_name=None, node_namespace=None)
+        counts = classify_sport_request_publishers(
+            [*([bare] * 9), own, foreign, incomplete],
+            own_node_name="robot_scope_go2_control_bridge",
+            own_node_namespace="/",
+        )
+        self.assertEqual(
+            counts,
+            {
+                "sport_publishers": 12,
+                "own_sport_publishers": 1,
+                "foreign_named_sport_publishers": 2,
+                "bare_unitree_sport_publishers": 9,
+            },
+        )
+
+    def test_expected_bare_sport_publisher_count_is_strictly_validated(self):
+        for invalid in (True, -1, 65, 9.0, "9"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    Go2BridgeCore(expected_bare_sport_publishers=invalid)
 
     def test_allowlisted_action_stops_first(self):
         self.tick()

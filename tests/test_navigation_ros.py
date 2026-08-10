@@ -106,37 +106,83 @@ class NavigationControlTests(unittest.TestCase):
         with self.assertRaises(LeaseBusy):
             manager.acquire_lease("keyboard")
 
-    def test_bridge_status_requires_single_sport_request_publisher(self):
+    def test_bridge_status_requires_owned_publisher_and_trusted_bare_baseline(self):
         payload = {
             "type": "bridge_status",
             "ready": True,
             "sport_subscribers": 1,
-            "sport_publishers": 1,
+            "sport_publishers": 10,
+            "own_sport_publishers": 1,
+            "foreign_named_sport_publishers": 0,
+            "bare_unitree_sport_publishers": 9,
+            "expected_bare_sport_publishers": 9,
             "lowstate_publishers": 1,
             "bridge_epoch": "e" * 32,
             "lowstate_age_ms": 10.0,
         }
         self.assertEqual(
-            RosAgent._control_status_readiness(payload, lowstate_timeout_s=0.5)[:2],
+            RosAgent._control_status_readiness(
+                payload,
+                lowstate_timeout_s=0.5,
+                expected_bare_sport_publishers=9,
+            )[:2],
             (True, True),
         )
-        for invalid in (None, True, 0, 2):
+        for field, value in (
+            ("own_sport_publishers", 0),
+            ("own_sport_publishers", 2),
+            ("foreign_named_sport_publishers", 1),
+            ("bare_unitree_sport_publishers", 8),
+        ):
             candidate = dict(payload)
-            if invalid is None:
-                candidate.pop("sport_publishers")
-            else:
-                candidate["sport_publishers"] = invalid
-            if invalid in (0, 2):
-                self.assertFalse(
-                    RosAgent._control_status_readiness(
-                        candidate, lowstate_timeout_s=0.5
-                    )[0]
-                )
-            else:
+            candidate[field] = value
+            candidate["sport_publishers"] = (
+                candidate["own_sport_publishers"]
+                + candidate["foreign_named_sport_publishers"]
+                + candidate["bare_unitree_sport_publishers"]
+            )
+            self.assertFalse(
+                RosAgent._control_status_readiness(
+                    candidate,
+                    lowstate_timeout_s=0.5,
+                    expected_bare_sport_publishers=9,
+                )[0]
+            )
+
+        for field in (
+            "sport_publishers",
+            "own_sport_publishers",
+            "foreign_named_sport_publishers",
+            "bare_unitree_sport_publishers",
+            "expected_bare_sport_publishers",
+        ):
+            for invalid in (None, True, -1, 65):
+                candidate = dict(payload)
+                if invalid is None:
+                    candidate.pop(field)
+                else:
+                    candidate[field] = invalid
                 with self.assertRaises(ControlProtocolError):
                     RosAgent._control_status_readiness(
-                        candidate, lowstate_timeout_s=0.5
+                        candidate,
+                        lowstate_timeout_s=0.5,
+                        expected_bare_sport_publishers=9,
                     )
+
+        inconsistent = dict(payload, sport_publishers=9)
+        with self.assertRaisesRegex(ControlProtocolError, "inconsistent"):
+            RosAgent._control_status_readiness(
+                inconsistent,
+                lowstate_timeout_s=0.5,
+                expected_bare_sport_publishers=9,
+            )
+
+        with self.assertRaisesRegex(ControlProtocolError, "does not match profile"):
+            RosAgent._control_status_readiness(
+                payload,
+                lowstate_timeout_s=0.5,
+                expected_bare_sport_publishers=8,
+            )
 
     def test_navigation_reserves_same_lease_as_manual_control(self):
         with patch.dict(

@@ -174,6 +174,21 @@ class RosAgent:
             low=0.20,
             high=2.0,
         )
+        expected_bare_sport_publishers = control_profile.get(
+            "expected_bare_sport_publishers", 0
+        )
+        if (
+            isinstance(expected_bare_sport_publishers, bool)
+            or not isinstance(expected_bare_sport_publishers, int)
+            or not 0 <= expected_bare_sport_publishers <= 64
+        ):
+            raise ValueError(
+                "control.expected_bare_sport_publishers must be an integer "
+                "from 0 to 64"
+            )
+        self._control_expected_bare_sport_publishers = (
+            expected_bare_sport_publishers
+        )
         try:
             self._control_bridge_key: Optional[bytes] = shared_key(
                 os.environ.get("ROBOT_SCOPE_CONTROL_BRIDGE_KEY", "")
@@ -1882,6 +1897,7 @@ class RosAgent:
         payload: Dict[str, Any],
         *,
         lowstate_timeout_s: float,
+        expected_bare_sport_publishers: int = 0,
     ) -> Tuple[bool, bool, str]:
         """Validate the bridge health fields after signature verification."""
 
@@ -1898,9 +1914,38 @@ class RosAgent:
             isinstance(sport_publishers, bool)
             or not isinstance(sport_publishers, int)
             or sport_publishers < 0
-            or sport_publishers > 16
+            or sport_publishers > 128
         ):
             raise ControlProtocolError("sport request publisher count is invalid")
+        publisher_fields = {
+            "own_sport_publishers": 16,
+            "foreign_named_sport_publishers": 16,
+            "bare_unitree_sport_publishers": 64,
+            "expected_bare_sport_publishers": 64,
+        }
+        publisher_counts: Dict[str, int] = {}
+        for field, upper_bound in publisher_fields.items():
+            value = payload.get(field)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < 0
+                or value > upper_bound
+            ):
+                raise ControlProtocolError(f"{field} is invalid")
+            publisher_counts[field] = value
+        if publisher_counts["expected_bare_sport_publishers"] != int(
+            expected_bare_sport_publishers
+        ):
+            raise ControlProtocolError(
+                "bridge bare sport publisher expectation does not match profile"
+            )
+        if sport_publishers != (
+            publisher_counts["own_sport_publishers"]
+            + publisher_counts["foreign_named_sport_publishers"]
+            + publisher_counts["bare_unitree_sport_publishers"]
+        ):
+            raise ControlProtocolError("sport request publisher counts are inconsistent")
         publishers = payload.get("lowstate_publishers")
         if isinstance(publishers, bool) or not isinstance(publishers, int):
             raise ControlProtocolError("LowState publisher count is invalid")
@@ -1925,7 +1970,10 @@ class RosAgent:
         bridge_ready = (
             reported_ready
             and subscribers == 1
-            and sport_publishers == 1
+            and publisher_counts["own_sport_publishers"] == 1
+            and publisher_counts["foreign_named_sport_publishers"] == 0
+            and publisher_counts["bare_unitree_sport_publishers"]
+            == expected_bare_sport_publishers
             and publishers == 1
         )
         return bridge_ready, lowstate_ready, bridge_epoch
@@ -1944,6 +1992,9 @@ class RosAgent:
             bridge_ready, lowstate_ready, bridge_epoch = self._control_status_readiness(
                 payload,
                 lowstate_timeout_s=self._control_lowstate_timeout_s,
+                expected_bare_sport_publishers=(
+                    self._control_expected_bare_sport_publishers
+                ),
             )
         except (ControlProtocolError, TypeError, ValueError) as exc:
             self._set_control_unready(f"rejected bridge status: {exc}")

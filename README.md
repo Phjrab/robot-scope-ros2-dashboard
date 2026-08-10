@@ -168,10 +168,15 @@ set +a
 
 Go2 전용 이더넷과 config/go2.json의 `control.lowstate_topic`(기본 `/lowstate`)이
 없으면 브리지는 제어 준비 상태가 되지 않으며 ARM을 거부합니다. 선택한 LowState
-publisher와 `/api/sport/request` subscriber도 각각 정확히 하나만 허용합니다. 전역
-Unitree 토픽은 IP로 로봇 한 대를 식별하지 못하므로 제어할 Go2만 있는 포인트투포인트
-이더넷과 전용 DDS domain/interface를 사용해야 합니다. 대시보드의 지도·센서 조회
-기능은 계속 사용할 수 있습니다.
+publisher와 `/api/sport/request` subscriber는 각각 정확히 하나만 허용합니다.
+`/api/sport/request` publisher는 브리지 소유 endpoint가 정확히 하나이고 다른 이름의
+ROS publisher가 없어야 합니다. Go2 펌웨어의 bare-DDS request endpoint는 ROS node로
+식별되지 않으므로 `control.expected_bare_sport_publishers`에 읽기 전용 점검으로 확인한
+개수를 고정하고, 개수가 달라지면 fail-closed 합니다. 펌웨어 변경 후에는 이 값을
+자동으로 완화하지 말고 ROS graph를 다시 점검해야 합니다. 전역 Unitree 토픽은 IP로
+로봇 한 대를 식별하지 못하므로 제어할 Go2만 있는 포인트투포인트 이더넷과 전용 DDS
+domain/interface를 사용해야 합니다. 대시보드의 지도·센서 조회 기능은 계속 사용할 수
+있습니다.
 
 ### 다른 ROS 2 로봇
 
@@ -495,6 +500,21 @@ sudo systemctl enable --now robot-scope-control-bridge robot-scope
 Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구독과 매핑 상태
 관리뿐 아니라 단일 제어 lease를 중복시킵니다. 실제 제어 환경 파일은 0600 권한으로
 유지하며 두 서비스가 동일한 파일을 읽게 합니다.
+
+Jetson 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 전용 랜선보다
+먼저 완료될 수 있습니다. 서비스 예제는 이 순서를 다음과 같이 안전하게 처리합니다.
+
+- 대시보드는 먼저 offline viewer로 시작하므로 Saved Maps와 진단 화면을 계속 사용할
+  수 있습니다. `eno1`의 carrier와 정확한 `192.168.123.99/24`가 준비되면 기존
+  Uvicorn 프로세스를 정상 종료하고 CycloneDDS를 전용 인터페이스로 다시 초기화합니다.
+- 제어 브리지 서비스는 즉시 active 상태가 되지만 main supervisor가 같은 조건을
+  기다리며 ROS participant나 publisher를 만들지 않습니다. 따라서 부팅 target을
+  막거나 재시도를 소진하지 않으며, 조건이 맞지 않는 동안에는 제어 명령을 발행할 수
+  없습니다.
+
+인터페이스 이름이나 고정 주소를 바꾼 배포에서는 두 unit의
+`ROBOT_SCOPE_GO2_INTERFACE`, `ROBOT_SCOPE_GO2_INTERFACE_CIDR`를 함께 수정합니다.
+변경 후에는 `systemctl daemon-reload`가 필요합니다.
 
 ## 설정
 
