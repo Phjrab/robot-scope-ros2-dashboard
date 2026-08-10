@@ -26,11 +26,7 @@ PARAMS_FILE="$(realpath -e -- "$PARAMS_INPUT")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
 
-source /opt/ros/humble/setup.bash
-if [[ -f "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash" ]]; then
-  source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
-fi
-source "$HOME/setup_go2_ros2_humble.sh"
+source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
 cd "$PROJECT_DIR"
 
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"

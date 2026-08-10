@@ -25,22 +25,35 @@ class HumbleMapScriptTests(unittest.TestCase):
             for index, line in enumerate(self.lines)
             if line.strip().startswith("source ")
         ]
-        self.assertGreaterEqual(len(source_indexes), 5)
+        self.assertGreaterEqual(len(source_indexes), 1)
         for source_index in source_indexes:
             previous = max(index for index in toggles if index < source_index)
             following = min(index for index in toggles if index > source_index)
             self.assertEqual(toggles[previous], "set +u")
             self.assertEqual(toggles[following], "set -u")
 
-    def test_job_ros_names_cannot_start_with_a_digit(self):
-        self.assertIn('JOB_TOKEN="job_$(', self.script)
-        self.assertIn('MAP_TOPIC="/robot_scope/conversion/${JOB_TOKEN}/map"', self.script)
+    def test_repository_owned_saver_and_converter_are_fixed(self):
+        self.assertIn('SAVE_SCRIPT="$PROJECT_DIR/scripts/save_map.py"', self.script)
+        self.assertIn(
+            'CONVERTER_SCRIPT="$PROJECT_DIR/scripts/convert_pcd_to_occupancy.py"',
+            self.script,
+        )
+        self.assertNotIn("$HOME/ws/go2_3d/save_map.py", self.script)
+        self.assertIn(
+            'source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"',
+            self.script,
+        )
 
-    def test_long_running_ros_nodes_are_started_without_ros2_run_wrappers(self):
-        self.assertIn('"$PCD2PGM_EXEC" --ros-args', self.script)
-        self.assertIn('35s "$MAP_SAVER_EXEC"', self.script)
-        self.assertNotIn("ros2 run pcd2pgm", self.script)
-        self.assertNotIn("ros2 run nav2_map_server", self.script)
+    def test_2d_conversion_has_no_external_ros_node_dependency(self):
+        self.assertIn('"$PYTHON_BIN" "$CONVERTER_SCRIPT"', self.script)
+        for forbidden in (
+            "pcd2pgm",
+            "map_saver_cli",
+            "ros2 pkg prefix",
+            "ros2 run",
+            "ROS_LOCALHOST_ONLY",
+        ):
+            self.assertNotIn(forbidden, self.script)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,12 @@ PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
 PORT="${ROBOT_SCOPE_PORT:-8088}"
 ROBOT_IP="${ROBOT_SCOPE_ROBOT_IP:-192.168.123.161}"
 CLOUD_MAX_POINTS="${ROBOT_SCOPE_CLOUD_MAX_POINTS:-10000}"
+WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
+MAPS_DIR="${ROBOT_SCOPE_MAPS_DIR:-$WORKSPACE_ROOT/ws/go2_3d/maps}"
+if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" || "$MAPS_DIR" != /* ]]; then
+  echo "[Robot Scope] workspace and maps paths must be absolute and safe" >&2
+  exit 2
+fi
 
 # rclpy, DDS and JSON encoding use several native threads.  Limiting glibc
 # arenas prevents large PointCloud messages from leaving hundreds of MiB in
@@ -13,10 +19,9 @@ CLOUD_MAX_POINTS="${ROBOT_SCOPE_CLOUD_MAX_POINTS:-10000}"
 export MALLOC_ARENA_MAX="${ROBOT_SCOPE_MALLOC_ARENA_MAX:-2}"
 export MALLOC_TRIM_THRESHOLD_="${ROBOT_SCOPE_MALLOC_TRIM_THRESHOLD:-131072}"
 
-source /opt/ros/humble/setup.bash
-if [[ -f "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash" ]]; then
-  source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
-fi
+# The offline viewer still needs the system ROS Python modules even when the
+# Unitree overlay or dedicated cable is unavailable.
+source "${ROBOT_SCOPE_ROS_SETUP:-/opt/ros/humble/setup.bash}"
 
 # Publish the startup DDS decision to the health API.  ICMP reachability can
 # recover after a cable is connected, but an rclpy participant created in the
@@ -24,8 +29,9 @@ fi
 export ROBOT_SCOPE_DDS_MODE="offline_viewer"
 export ROBOT_SCOPE_DDS_INTERFACE_READY="0"
 unset ROBOT_SCOPE_DDS_INTERFACE
-if [[ -f "$HOME/setup_go2_ros2_humble.sh" ]]; then
-  if ! source "$HOME/setup_go2_ros2_humble.sh"; then
+GO2_SETUP="$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
+if [[ -f "$GO2_SETUP" ]]; then
+  if ! source "$GO2_SETUP"; then
     # Keep the observability UI available while the dedicated Go2 cable is
     # disconnected. CycloneDDS auto-selects an active interface; reconnecting
     # the cable and restarting restores the dedicated-interface profile.
@@ -36,7 +42,7 @@ if [[ -f "$HOME/setup_go2_ros2_humble.sh" ]]; then
   else
     export ROBOT_SCOPE_DDS_MODE="go2_interface"
     export ROBOT_SCOPE_DDS_INTERFACE_READY="1"
-    ROBOT_SCOPE_DDS_INTERFACE="$(ip -o -4 addr show 2>/dev/null | awk '$4 ~ /^192\.168\.123\./ {print $2; exit}')"
+    ROBOT_SCOPE_DDS_INTERFACE="$ROBOT_SCOPE_GO2_INTERFACE"
     export ROBOT_SCOPE_DDS_INTERFACE
   fi
 else
@@ -54,4 +60,5 @@ exec "$PYTHON_BIN" -m robot_dashboard.app \
   --port "$PORT" \
   --robot-ip "$ROBOT_IP" \
   --cloud-max-points "$CLOUD_MAX_POINTS" \
+  --mapping-output-dir "$MAPS_DIR" \
   --profile "$PROJECT_DIR/config/go2.json"

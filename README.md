@@ -5,9 +5,30 @@ Robot Scope는 ROS 2 로봇의 연결 상태, 센서, 카메라, 위치 추정, 
 Hesai + FAST-LIO 매핑 파이프라인을 시작하고, 현재 지도를 3D PCD와 선택적 2D
 PGM/YAML 형식으로 저장할 수도 있습니다.
 
-Unitree Go2 + Jetson Orin Nano + ROS 2 Humble 환경을 기본 지원하며, 표준
-sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로필을
-사용할 수 있습니다.
+Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree Go2 + XT16
+전체 경로의 검증 플랫폼은 Jetson Orin Nano이지만 Jetson 전용 애플리케이션은 아닙니다.
+표준 sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로필을 사용할
+수 있습니다.
+
+전체 Go2 + XT16 경로는 Ubuntu 22.04, ROS 2 Humble, Jetson Orin Nano
+(`arm64`)에서 검증했습니다. 웹/Generic 계층은 Ubuntu 22.04의 `x86_64`와 `arm64`를
+지원하지만, 제조사 ROS driver와 SDK의 아키텍처 호환성은 별도로 확인해야 합니다.
+
+## 설치 및 운영 문서
+
+| 문서 | 내용 |
+|---|---|
+| [설치](docs/INSTALL.md) | `observer`, `go2`, `go2-control`, `go2-xt16`, `go2-nav` 모드와 스모크 테스트 |
+| [의존성](docs/DEPENDENCIES.md) | 외부 ROS workspace, pin/라이선스 기록과 미포함 구성 요소 |
+| [토폴로지](docs/TOPOLOGY.md) | 단일/두 호스트 배선, 서비스 역할과 관리망 분리 |
+| [문제 해결](docs/TROUBLESHOOTING.md) | DDS, XT16, 저장, 카메라, 제어와 Nav 진단 순서 |
+| [업데이트/롤백](docs/UPDATE_ROLLBACK.md) | 지도·상태 보존, fast-forward update와 안전 롤백 |
+| [Third-party notices](THIRD_PARTY_NOTICES.md) | 포함된 공식 robot model의 출처와 라이선스 |
+
+처음 설치하는 사용자는 가장 작은 `observer` 모드에서 시작해 필요한 하드웨어 기능만
+단계적으로 추가하세요. XT16 bridge, Laser map saver와 PCD→2D converter는 저장소에
+포함되지만 제조사 driver, Livox SDK2와 FAST-LIO workspace는 별도 설치가 필요합니다.
+자세한 pinned revision은 [의존성 manifest](docs/DEPENDENCIES.md)를 확인하세요.
 
 ## 주요 기능
 
@@ -41,7 +62,7 @@ sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로
 ## 구성
 
 ~~~text
-Web browser  <-- HTTP + WebSocket -->  Robot Scope agent on Jetson
+Web browser  <-- HTTP + WebSocket -->  Robot Scope agent on Ubuntu ROS host
                                            |
 Robot sensors / ROS 2 DDS  ----------------+
 Go2 camera / RTP multicast 230.1.1.1:1720 -+
@@ -55,7 +76,7 @@ Go2 camera / RTP multicast 230.1.1.1:1720 -+
 ~~~
 
 ROS 2 DDS는 일반 TCP 서비스처럼 로봇 IP 하나에 접속하는 방식이 아닙니다.
-센서가 연결된 Jetson에서 Robot Scope를 실행하고 브라우저로 Jetson의 8088
+센서가 연결된 Ubuntu ROS host에서 Robot Scope를 실행하고 브라우저로 그 host의 8088
 포트에 접속합니다. Settings에서 고른 IP는 네트워크 생존 확인과 대시보드의 현재
 대상·모델 선택에 사용됩니다. 실행 중인 DDS 인터페이스, domain, ROS workspace와
 토픽 규칙을 자동으로 바꾸지는 않습니다. 다른 네트워크나 ROS 프로필로 전환했다면
@@ -65,8 +86,9 @@ ROS 2 DDS는 일반 TCP 서비스처럼 로봇 IP 하나에 접속하는 방식�
 
 | 항목 | 환경 |
 |---|---|
-| 컴퓨터 | Jetson Orin Nano |
+| 검증 컴퓨터 | Jetson Orin Nano (필수 장비 아님) |
 | 운영체제 | Ubuntu 22.04 |
+| 아키텍처 | Jetson Orin Nano arm64 전체 경로 검증; x86_64/arm64 웹·Generic 지원 |
 | ROS | ROS 2 Humble |
 | DDS | Cyclone DDS |
 | 로봇 | Unitree Go2 |
@@ -79,7 +101,27 @@ ROS 2 Humble에 맞춰져 있습니다.
 
 ## 빠른 설치
 
-Jetson에서 저장소를 clone하고 ROS 패키지를 볼 수 있도록 system site packages를
+새 호스트에는 [설치 가이드](docs/INSTALL.md)의 mode별 절차를 권장합니다. 설치 helper와
+하드웨어를 변경하지 않는 doctor는 다음 이름을 사용합니다.
+
+~~~bash
+./scripts/install_ubuntu.sh --mode observer \
+  --install-system-packages --install-service          # read-only dry-run
+./scripts/install_ubuntu.sh --mode observer --apply \
+  --install-system-packages --install-service          # explicit install
+python3 scripts/robot_scope_doctor.py --mode observer
+~~~
+
+Installer는 target 사용자로 실행하며 root로 직접 실행하지 않습니다. `--apply`와
+`--install-system-packages` 또는 `--install-service` opt-in을 함께 지정한 경우에만 해당
+APT/systemd 작업에 sudo를 사용합니다. 설치한 unit은 enable하되 즉시 시작하지 않습니다.
+설치 중에는 분리된 로봇 NIC를 경고로 허용하지만, 서비스 시작 전 별도 `doctor` 명령은
+NIC와 고정 주소를 다시 엄격하게 검사합니다.
+
+아래 명령은 Python 웹 계층의 수동 최소 설치입니다. Go2, XT16, 제어와 Nav2 전체 기능은
+외부 의존성과 호스트별 설정이 추가로 필요합니다.
+
+Ubuntu ROS host에서 저장소를 clone하고 ROS 패키지를 볼 수 있도록 system site packages를
 포함한 가상환경을 만듭니다.
 
 ~~~bash
@@ -90,7 +132,7 @@ python3 -m venv --system-site-packages .venv
 chmod +x scripts/*.sh scripts/check_pcd_bounds.py
 ~~~
 
-Navigation 화면까지 사용할 Jetson에는 ROS 2 Humble Nav2가 설치되어 있어야 합니다.
+Navigation 화면까지 사용할 Ubuntu ROS host에는 ROS 2 Humble Nav2가 설치되어 있어야 합니다.
 별도의 `pointcloud_to_laserscan` 패키지는 사용하지 않으며, 저장소의 제한된 runtime이
 XT16 `PointCloud2`를 `/scan`으로 변환합니다.
 
@@ -108,7 +150,7 @@ sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
 
 1. /opt/ros/humble/setup.bash
 2. 사용 가능한 Unitree Cyclone DDS workspace
-3. ~/setup_go2_ros2_humble.sh
+3. 저장소의 `scripts/setup_go2_ros2_humble.sh`
 4. config/go2.json
 
 전용 이더넷이 빠져 있으면 대시보드는 offline viewer 모드로 계속 실행됩니다.
@@ -216,13 +258,13 @@ TurtleBot은 ROBOTIS `turtlebot3_description`의 Burger 모델, SO-101은 LeRobo
 ### Settings: 로봇 찾기와 모델 선택
 
 1. Connection에서 Go2, TurtleBot 또는 SO-101을 선택합니다.
-2. 대시보드가 Jetson의 활성 사설 IPv4 인터페이스를 기준으로 자동 검색합니다.
+2. 대시보드가 ROS host의 활성 사설 IPv4 인터페이스를 기준으로 자동 검색합니다.
 3. 후보의 IP와 hostname을 확인하고 원하는 항목을 선택합니다. 찾지 못하면 IP를 직접
    입력할 수 있습니다.
 4. 연결을 누르면 현재 대상과 실시간·저장 지도 화면의 3D 모델이 함께 바뀝니다.
 
 검색은 브라우저가 임의 subnet이나 probe 대상을 지정하지 못하게 제한되어 있습니다.
-Jetson에 직접 연결된 RFC1918 또는 link-local IPv4 중 한 인터페이스의 최대 /24만
+ROS host에 직접 연결된 RFC1918 또는 link-local IPv4 중 한 인터페이스의 최대 /24만
 검색하며, 최대 256개 주소·32개 worker로 제한합니다. 능동 ping 단계는 최대 12초,
 hostname 해석 단계는 최대 4초이며 결과를 잠시 캐시합니다.
 낮은 신뢰도의 후보는 선택한 유형으로 확인된 장비가 아니라 같은 LAN에서 ping에
@@ -235,7 +277,7 @@ hostname 해석 단계는 최대 4초이며 결과를 잠시 캐시합니다.
 
 ### Overview
 
-Jetson과 로봇 연결 상태, ROS 배포판, RMW, Domain ID, 센서 요약과 현재 선택한
+ROS host와 로봇 연결 상태, ROS 배포판, RMW, Domain ID, 센서 요약과 현재 선택한
 토픽을 확인합니다.
 
 ### Live Mapping
@@ -266,7 +308,7 @@ ALL SESSION은 현재 브라우저 세션의 유효 점을 최대 1,000,000점 r
 간격을 자동으로 늘려 Wi-Fi 포화를 막습니다. WebSocket을 사용할 수 없을 때만 binary HTTP,
 그마저 지원하지 않는 구버전 서버에서는 기존 JSON API로 순차 fallback합니다.
 
-현재 Jetson의 Wi-Fi는 신호 세기보다 RTT jitter와 절전 때문에 순간 지연이 생길 수
+현재 검증 host의 Wi-Fi는 신호 세기보다 RTT jitter와 절전 때문에 순간 지연이 생길 수
 있습니다. 앱 최적화를 먼저 적용한 뒤에도 안정성이 더 필요하면 대시보드용 별도
 USB-Ethernet NIC 또는 검증된 스위치를 사용하세요. `eno1`은 Go2·Hesai의
 `192.168.123.0/24`와 카메라 multicast에 쓰이므로 Mac 접속용 LAN이 그 포트를 대체하면
@@ -414,7 +456,7 @@ Settings와 Live Mapping 헤더에는 현재 선택한 장치·토픽·처리 �
 |---|---|
 | Hesai driver | ~/ws/hesai_ws |
 | Unitree ROS 2 | ~/unitree_ros2 |
-| XT16 bridge와 map saver | ~/ws/go2_3d |
+| XT16 bridge와 map saver | 이 저장소의 scripts 디렉터리 |
 | FAST-LIO | ~/ws/fastlio_ws |
 | 저장 지도 | ~/ws/go2_3d/maps |
 
@@ -585,6 +627,11 @@ deploy의 두 서비스 예제는 기본적으로 `jetson_orin_nano` 사용자�
 사용하면 두 값을 먼저 수정한 뒤 systemd에 등록합니다. 제어를 사용하지 않으면
 대시보드 서비스만 등록합니다.
 
+일반 호스트 설정은 installer가 만드는 mode-0600
+`~/.config/robot-scope/robot-scope.env`, 제어 secret은 별도 mode-0600 `control.env`에
+둡니다. Service example은 일반 설정을 먼저, 제어 secret을 다음에 읽습니다. 두 파일을
+Git에 커밋하지 않습니다.
+
 ~~~bash
 sudo cp deploy/robot-scope.service.example /etc/systemd/system/robot-scope.service
 sudo cp deploy/robot-scope-control-bridge.service.example \
@@ -597,7 +644,7 @@ Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구�
 관리뿐 아니라 단일 제어 lease를 중복시킵니다. 실제 제어 환경 파일은 0600 권한으로
 유지하며 두 서비스가 동일한 파일을 읽게 합니다.
 
-Jetson 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 전용 랜선보다
+Ubuntu host 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 전용 랜선보다
 먼저 완료될 수 있습니다. 서비스 예제는 이 순서를 다음과 같이 안전하게 처리합니다.
 
 - 대시보드는 먼저 offline viewer로 시작하므로 Saved Maps와 진단 화면을 계속 사용할
@@ -670,6 +717,8 @@ sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
 - ROBOT_SCOPE_ROBOT_IP: 네트워크 생존 확인 대상
 - ROBOT_SCOPE_CAMERA_INTERFACE: Go2 영상 멀티캐스트를 받을 allowlist 유선 인터페이스
 - ROBOT_SCOPE_OVERLAY: Generic 프로필에서 불러올 ROS workspace setup 파일
+- ROBOT_SCOPE_WORKSPACE_ROOT: 외부 ROS workspace 공통 root, custom 값은 절대 경로만 허용
+- ROBOT_SCOPE_LIVOX_SDK_PREFIX: Livox SDK2 private prefix, custom 값은 절대 경로만 허용
 - ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot | so-101
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
@@ -742,6 +791,7 @@ node --check robot_dashboard/static/scene3d.js
 ~~~text
 config/             Go2, Generic, TurtleBot, SO-101 시작 프로필
 deploy/             systemd 서비스 예제
+docs/               설치, 의존성, 토폴로지, 진단과 업데이트 문서
 robot_dashboard/    FastAPI 에이전트, 로컬 검색, 제어 워치독, 모델 asset과 웹 UI
 scripts/            실행, 제어 브리지, 매핑, 저장과 모델 생성 도구
 tests/              지도, 안전 제어, 작업, 직렬화와 asset 테스트
@@ -780,3 +830,8 @@ Robotics의 `unitree_ros/robots/go2_description`에서 변환했으며 BSD 3-Cla
 `SO-ARM100`의 Apache-2.0을 따릅니다. 각 모델의 고정 commit, SHA-256 manifest,
 라이선스와 변환 내역은 `robot_dashboard/static/assets` 아래 README와 catalog에
 기록합니다.
+
+한 곳에서 확인할 수 있는 재배포 고지는
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)에 정리되어 있습니다. 저장소에
+포함되지 않은 ROS workspace나 현장별 추가 artifact를 설치 이미지에 함께 넣는 경우에는
+각 외부 구성 요소의 라이선스와 NOTICE 의무를 별도로 확인해야 합니다.

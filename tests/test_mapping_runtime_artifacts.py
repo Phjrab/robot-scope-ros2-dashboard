@@ -1,0 +1,364 @@
+import importlib.util
+import json
+import os
+import stat
+import struct
+import subprocess
+import sys
+import tempfile
+import types
+import unittest
+from pathlib import Path
+
+import numpy as np
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_script(name: str, relative: str):
+    path = ROOT / relative
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+bridge = load_script("repository_xt16_fastlio_bridge", "scripts/xt16_fastlio_bridge.py")
+saver = load_script("repository_save_map", "scripts/save_map.py")
+converter = load_script(
+    "repository_convert_pcd_to_occupancy",
+    "scripts/convert_pcd_to_occupancy.py",
+)
+readiness = load_script("repository_xt16_readiness", "scripts/check_xt16_lidar_ready.py")
+
+
+def field(name, offset, datatype, count=1):
+    return types.SimpleNamespace(
+        name=name,
+        offset=offset,
+        datatype=datatype,
+        count=count,
+    )
+
+
+def raw_cloud(width=4_000, *, duration=0.1, point_step=32):
+    dtype = np.dtype(
+        {
+            "names": ["x", "y", "z", "intensity", "ring", "timestamp"],
+            "formats": ["<f4", "<f4", "<f4", "<f4", "<u2", "<f8"],
+            "offsets": [0, 4, 8, 12, 16, 18],
+            "itemsize": point_step,
+        }
+    )
+    values = np.zeros(width, dtype=dtype)
+    values["x"] = np.linspace(0.0, 4.0, width, dtype=np.float32)
+    values["y"] = 1.0
+    values["z"] = 0.2
+    values["intensity"] = 7.0
+    values["ring"] = np.arange(width, dtype=np.uint16) % 16
+    values["timestamp"] = np.linspace(1_000.0, 1_000.0 + duration, width)
+    return types.SimpleNamespace(
+        header=types.SimpleNamespace(frame_id="hesai_lidar"),
+        width=width,
+        height=1,
+        fields=[field(*contract) for contract in bridge.RAW_FIELDS],
+        is_bigendian=False,
+        point_step=point_step,
+        row_step=width * point_step,
+        data=values.tobytes(),
+    )
+
+
+def laser_map(rows=2, width=12, padding=8, *, include_intensity=True):
+    point_step = 16
+    row_step = width * point_step + padding
+    payload = bytearray(row_step * rows)
+    names = ["x", "y", "z"] + (["intensity"] if include_intensity else [])
+    formats = ["<f4"] * len(names)
+    offsets = [0, 4, 8] + ([12] if include_intensity else [])
+    dtype = np.dtype(
+        {"names": names, "formats": formats, "offsets": offsets, "itemsize": point_step}
+    )
+    for row in range(rows):
+        values = np.ndarray(
+            shape=(width,),
+            dtype=dtype,
+            buffer=payload,
+            offset=row * row_step,
+        )
+        values["x"] = np.arange(width, dtype=np.float32) * 0.02
+        values["y"] = row * 0.02
+        values["z"] = 0.1
+        if include_intensity:
+            values["intensity"] = 3.0
+    first = np.ndarray(shape=(width,), dtype=dtype, buffer=payload, offset=0)
+    first["x"][0] = np.nan
+    return types.SimpleNamespace(
+        header=types.SimpleNamespace(frame_id="camera_init"),
+        width=width,
+        height=rows,
+        fields=[
+            field("x", 0, saver.FLOAT32),
+            field("y", 4, saver.FLOAT32),
+            field("z", 8, saver.FLOAT32),
+        ]
+        + ([field("intensity", 12, saver.FLOAT32)] if include_intensity else []),
+        is_bigendian=False,
+        point_step=point_step,
+        row_step=row_step,
+        data=payload,
+    )
+
+
+class Xt16BridgeArtifactTests(unittest.TestCase):
+    def test_conversion_matches_readiness_layout_and_decimates_to_bounded_output(self):
+        clock = bridge.ClockOffsetTracker()
+        converted = bridge.convert_xt16_cloud(
+            raw_cloud(),
+            received_s=1_001.0,
+            clock=clock,
+        )
+        self.assertEqual(converted.width, 1_000)
+        self.assertEqual(converted.frame_id, "hesai_lidar")
+        self.assertEqual(len(converted.data), converted.width * bridge.OUTPUT_POINT_STEP)
+        self.assertEqual(
+            bridge.OUTPUT_FIELDS,
+            tuple(
+                (item.name, item.offset, item.datatype, item.count)
+                for item in readiness.VELODYNE_FIELDS
+            ),
+        )
+        output = np.frombuffer(converted.data, dtype=bridge.OUTPUT_DTYPE)
+        self.assertAlmostEqual(float(output["time"][0]), 0.0, places=6)
+        self.assertGreater(float(output["time"][-1]), 0.09)
+        self.assertTrue(np.isfinite(output["x"]).all())
+        self.assertEqual(set(np.unique(output["ring"])), set(range(0, 16, 4)))
+        self.assertEqual(converted.stamp_sec, 1_000)
+        self.assertGreater(converted.stamp_nanosec, 890_000_000)
+
+    def test_malformed_layout_scan_duration_and_nonfinite_points_fail_closed(self):
+        wrong = raw_cloud()
+        wrong.fields[-1] = field("timestamp", 20, bridge.FLOAT64)
+        with self.assertRaisesRegex(bridge.BridgeContractError, "timestamp"):
+            bridge.convert_xt16_cloud(
+                wrong,
+                received_s=1_001.0,
+                clock=bridge.ClockOffsetTracker(),
+            )
+        with self.assertRaisesRegex(bridge.BridgeContractError, "duration"):
+            bridge.convert_xt16_cloud(
+                raw_cloud(duration=1.0),
+                received_s=1_002.0,
+                clock=bridge.ClockOffsetTracker(),
+            )
+        too_small = raw_cloud(width=3_999)
+        with self.assertRaisesRegex(bridge.BridgeContractError, "4000"):
+            bridge.convert_xt16_cloud(
+                too_small,
+                received_s=1_001.0,
+                clock=bridge.ClockOffsetTracker(),
+            )
+
+    def test_lowstate_imu_is_finite_normalized_and_reordered(self):
+        message = types.SimpleNamespace(
+            imu_state=types.SimpleNamespace(
+                quaternion=[2.0, 0.0, 0.0, 0.0],
+                gyroscope=[1.0, 2.0, 3.0],
+                accelerometer=[4.0, 5.0, 6.0],
+            )
+        )
+        # A norm of two is deliberately rejected instead of forwarding
+        # malformed orientation metadata into the mapping process.
+        with self.assertRaisesRegex(bridge.BridgeContractError, "quaternion norm"):
+            bridge.extract_imu_sample(message)
+        message.imu_state.quaternion = [1.0, 0.1, 0.2, 0.3]
+        sample = bridge.extract_imu_sample(message)
+        self.assertAlmostEqual(sum(value * value for value in sample.orientation_xyzw), 1.0)
+        self.assertEqual(sample.angular_velocity_xyz, (1.0, 2.0, 3.0))
+        del message.imu_state.gyroscope
+        with self.assertRaisesRegex(bridge.BridgeContractError, "gyroscope"):
+            bridge.extract_imu_sample(message)
+
+    def test_bridge_has_only_fixed_observation_and_mapping_topics(self):
+        topics = {
+            bridge.RAW_TOPIC,
+            bridge.LOWSTATE_TOPIC,
+            bridge.OUTPUT_CLOUD_TOPIC,
+            bridge.OUTPUT_IMU_TOPIC,
+        }
+        self.assertEqual(
+            topics,
+            {"/lidar_points", "/lowstate", "/velodyne_points", "/imu/body"},
+        )
+        source = (ROOT / "scripts/xt16_fastlio_bridge.py").read_text(encoding="utf-8")
+        for forbidden in ("/cmd_vel", "sport/request", "create_client(", "create_service("):
+            self.assertNotIn(forbidden, source)
+        self.assertIn("rclpy.init(args=[])", source)
+
+
+class MapRuntimeArtifactTests(unittest.TestCase):
+    def test_laser_map_encoder_handles_row_padding_and_optional_intensity(self):
+        with_intensity = saver.pointcloud_to_pcd(laser_map())
+        self.assertEqual(with_intensity.points, 23)
+        records = np.frombuffer(with_intensity.payload, dtype=saver.PCD_DTYPE)
+        self.assertTrue(np.isfinite(records["x"]).all())
+        self.assertTrue(np.all(records["intensity"] == 3.0))
+
+        without_intensity = saver.pointcloud_to_pcd(laser_map(include_intensity=False))
+        records = np.frombuffer(without_intensity.payload, dtype=saver.PCD_DTYPE)
+        self.assertTrue(np.all(records["intensity"] == 0.0))
+
+    def test_atomic_pcd_writer_refuses_existing_or_symlink_outputs(self):
+        snapshot = saver.pointcloud_to_pcd(laser_map())
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "map.pcd"
+            saver.write_pcd_exclusive(output, snapshot)
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            with self.assertRaisesRegex(saver.MapCaptureError, "already exists"):
+                saver.write_pcd_exclusive(output, snapshot)
+            linked = root / "linked.pcd"
+            linked.symlink_to(output)
+            with self.assertRaisesRegex(saver.MapCaptureError, "already exists"):
+                saver.write_pcd_exclusive(linked, snapshot)
+
+    def test_repository_converter_creates_a_valid_local_yaml_pgm_pair(self):
+        dtype = saver.PCD_DTYPE
+        points = np.zeros(40, dtype=dtype)
+        points["x"] = np.tile(np.arange(10, dtype=np.float32) * 0.01, 4)
+        points["y"] = np.repeat(np.arange(4, dtype=np.float32) * 0.01, 10)
+        points["z"] = 0.1
+        snapshot = saver.PcdSnapshot(
+            header=(
+                b"# .PCD v0.7\nVERSION 0.7\nFIELDS x y z intensity\n"
+                b"SIZE 4 4 4 4\nTYPE F F F F\nCOUNT 1 1 1 1\n"
+                b"WIDTH 40\nHEIGHT 1\nVIEWPOINT 0 0 0 1 0 0 0\n"
+                b"POINTS 40\nDATA binary\n"
+            ),
+            payload=points.tobytes(),
+            points=40,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            prefix = Path(temporary) / "room"
+            saver.write_pcd_exclusive(prefix.with_suffix(".pcd"), snapshot)
+            result = converter.convert_staged_pcd(prefix)
+            self.assertEqual(set(result["files"]), {"room.yaml", "room.pgm"})
+            yaml_text = prefix.with_suffix(".yaml").read_text(encoding="utf-8")
+            self.assertIn("image: room.pgm", yaml_text)
+            self.assertIn("mode: trinary", yaml_text)
+            self.assertTrue(prefix.with_suffix(".pgm").read_bytes().startswith(b"P5\n"))
+
+    def test_malformed_or_oversized_map_layout_is_rejected(self):
+        message = laser_map()
+        message.data = message.data[:-1]
+        with self.assertRaisesRegex(saver.MapCaptureError, "payload length"):
+            saver.pointcloud_to_pcd(message)
+        message = laser_map()
+        message.width = saver.MAX_POINTS + 1
+        with self.assertRaisesRegex(saver.MapCaptureError, "2000000"):
+            saver.pointcloud_to_pcd(message)
+        message = laser_map()
+        message.width = 1
+        message.height = saver.MAX_ROWS + 1
+        message.point_step = 16
+        message.row_step = 16
+        message.data = bytes(message.row_step * message.height)
+        with self.assertRaisesRegex(saver.MapCaptureError, "4096-row"):
+            saver.pointcloud_to_pcd(message)
+
+    def test_mapping_scripts_help_without_ros_and_shells_are_valid(self):
+        for relative in (
+            "scripts/xt16_fastlio_bridge.py",
+            "scripts/save_map.py",
+            "scripts/convert_pcd_to_occupancy.py",
+        ):
+            result = subprocess.run(
+                [sys.executable, str(ROOT / relative), "--help"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertIn("usage:", result.stdout.lower())
+        for relative in (
+            "scripts/run_xt16_bridge_humble.sh",
+            "scripts/run_hesai_driver_humble.sh",
+            "scripts/run_hesai_fastlio_humble.sh",
+            "scripts/save_hesai_map_humble.sh",
+            "scripts/start_hesai_mapping_humble.sh",
+        ):
+            subprocess.run(["bash", "-n", str(ROOT / relative)], check=True)
+        saver_source = (ROOT / "scripts/save_map.py").read_text(encoding="utf-8")
+        self.assertIn("rclpy.init(args=[])", saver_source)
+
+
+class MappingConfigurationArtifactTests(unittest.TestCase):
+    def test_repo_configs_preserve_the_verified_fixed_topic_contract(self):
+        hesai = yaml.safe_load((ROOT / "config/hesai_xt16.yaml").read_text(encoding="utf-8"))
+        entry = hesai["lidar"][0]
+        udp = entry["driver"]["lidar_udp_type"]
+        ros = entry["ros"]
+        self.assertEqual(udp["device_ip_address"], "192.168.123.20")
+        self.assertEqual(udp["udp_port"], 2368)
+        self.assertEqual(entry["driver"]["device_udp_src_port"], 0)
+        self.assertEqual(ros["ros_send_point_cloud_topic"], "/lidar_points")
+        self.assertTrue(ros["send_point_cloud_ros"])
+
+        fastlio = yaml.safe_load(
+            (ROOT / "config/fastlio_xt16.yaml").read_text(encoding="utf-8")
+        )["/**"]["ros__parameters"]
+        self.assertEqual(fastlio["common"]["lid_topic"], "/velodyne_points")
+        self.assertEqual(fastlio["common"]["imu_topic"], "/imu/body")
+        self.assertEqual(fastlio["preprocess"]["lidar_type"], 2)
+        self.assertTrue(fastlio["publish"]["map_en"])
+        self.assertFalse(fastlio["pcd_save"]["pcd_save_en"])
+
+    def test_runners_use_only_repository_owned_custom_files(self):
+        bridge_runner = (ROOT / "scripts/run_xt16_bridge_humble.sh").read_text()
+        driver_runner = (ROOT / "scripts/run_hesai_driver_humble.sh").read_text()
+        fastlio_runner = (ROOT / "scripts/run_hesai_fastlio_humble.sh").read_text()
+        self.assertIn("$PROJECT_DIR/scripts/xt16_fastlio_bridge.py", bridge_runner)
+        self.assertIn("$PROJECT_DIR/config/hesai_xt16.yaml", driver_runner)
+        self.assertIn('config_path:="$FASTLIO_CONFIG_PATH"', fastlio_runner)
+        self.assertIn('FASTLIO_CONFIG_FILE="fastlio_xt16.yaml"', fastlio_runner)
+        self.assertIn("ROBOT_SCOPE_GO2_INTERFACE", fastlio_runner)
+        self.assertIn("ROBOT_SCOPE_GO2_INTERFACE_CIDR", fastlio_runner)
+        self.assertIn("ROBOT_SCOPE_LIVOX_SDK_PREFIX", fastlio_runner)
+        self.assertIn("liblivox_lidar_sdk_shared.so", fastlio_runner)
+        self.assertNotIn("$4 ~ /^192\\.168\\.123\\./", fastlio_runner)
+        combined = bridge_runner + driver_runner + fastlio_runner
+        self.assertNotIn("~/ws/go2_3d", combined)
+        self.assertNotIn("src/FAST_LIO/config/xt16.yaml", combined)
+
+    def test_dependency_manifest_pins_the_verified_upstream_revisions(self):
+        manifest = json.loads(
+            (ROOT / "config/ros_dependencies_humble.json").read_text(encoding="utf-8")
+        )
+        repositories = manifest["repositories"]
+        revisions = {
+            "unitree_ros2": "668d1ec5a05d1c38d3306bdca7d59f2ba3581a88",
+            "hesai_ros2": "e7e112f0809f0eed5e3c81c55a1a0376474db234",
+            "livox_sdk2": "08f523c930b2f0ba1e98a6afaa8d7476bf479908",
+            "livox_ros_driver2": "4a1def929e5b59c7a8122d19fce6efba581ce9f7",
+            "fast_lio": "2fffc570a25d0df172720bac034fbdb6a13d2162",
+        }
+        for name, revision in revisions.items():
+            self.assertEqual(repositories[name]["commit"], revision)
+        self.assertEqual(
+            repositories["hesai_ros2"]["submodule_commit"],
+            "9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168",
+        )
+        self.assertEqual(manifest["ros_distro"], "humble")
+        for name in revisions:
+            item = repositories[name]
+            self.assertTrue(item["url"].startswith("https://github.com/"))
+            self.assertRegex(item["commit"], r"^[0-9a-f]{40}$")
+            self.assertIn("go2-xt16", item["modes"])
+
+
+if __name__ == "__main__":
+    unittest.main()

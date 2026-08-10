@@ -351,8 +351,11 @@ class Go2SystemdExampleTests(unittest.TestCase):
         )
         self.assertIn("ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_dashboard_supervisor.py", unit)
         self.assertNotIn("robot-scope-control-bridge.service", unit)
-        self.assertIn("ROBOT_SCOPE_GO2_INTERFACE=eno1", unit)
-        self.assertIn("ROBOT_SCOPE_GO2_INTERFACE_CIDR=192.168.123.99/24", unit)
+        self.assertIn(
+            "EnvironmentFile=-/home/jetson_orin_nano/.config/robot-scope/robot-scope.env",
+            unit,
+        )
+        self.assertNotIn("Environment=ROBOT_SCOPE_GO2_INTERFACE=", unit)
         self.assertIn("KillMode=mixed", unit)
 
     def test_bridge_waits_in_its_main_process_without_blocking_boot_target(self):
@@ -367,6 +370,11 @@ class Go2SystemdExampleTests(unittest.TestCase):
         self.assertNotIn("TimeoutStartSec=infinity", unit)
         self.assertIn("KillMode=control-group", unit)
         self.assertIn("StartLimitBurst=5", unit)
+        self.assertIn(
+            "EnvironmentFile=/home/jetson_orin_nano/.config/robot-scope/robot-scope.env",
+            unit,
+        )
+        self.assertNotIn("Environment=ROBOT_SCOPE_GO2_INTERFACE=", unit)
 
 
 class Go2ControlBridgeSupervisorTests(unittest.TestCase):

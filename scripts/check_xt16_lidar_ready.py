@@ -38,7 +38,7 @@ class FieldContract:
     count: int = 1
 
 
-# Keep these layouts in lock-step with ~/ws/go2_3d/xt16_fastlio_bridge.py.
+# Keep these layouts in lock-step with scripts/xt16_fastlio_bridge.py.
 XT16_FIELDS = (
     FieldContract("x", 0, FLOAT32),
     FieldContract("y", 4, FLOAT32),

@@ -7,6 +7,7 @@ After=network-online.target
 Type=simple
 User=jetson_orin_nano
 WorkingDirectory=/home/jetson_orin_nano/robot-scope
+EnvironmentFile=-/home/jetson_orin_nano/.config/robot-scope/robot-scope.env
 EnvironmentFile=-/home/jetson_orin_nano/.config/robot-scope/control.env
 ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_dashboard_supervisor.py
 Restart=on-failure
@@ -14,8 +15,6 @@ RestartSec=3
 KillMode=mixed
 Environment=HOME=/home/jetson_orin_nano
 Environment=PYTHONUNBUFFERED=1
-Environment=ROBOT_SCOPE_GO2_INTERFACE=eno1
-Environment=ROBOT_SCOPE_GO2_INTERFACE_CIDR=192.168.123.99/24
 
 [Install]
 WantedBy=multi-user.target

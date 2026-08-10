@@ -64,7 +64,6 @@
   },
   "saved_maps": {
     "directories": [
-      "~/ws/go2_3d/maps",
       "../robot_dashboard/static/data"
     ],
     "max_files": 100,

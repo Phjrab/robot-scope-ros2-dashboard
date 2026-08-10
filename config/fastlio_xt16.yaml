@@ -1,0 +1,54 @@
+# Repository-owned parameters verified with FAST_LIO ros2 revision
+# 2fffc570a25d0df172720bac034fbdb6a13d2162.  Input topics and frames are
+# produced only by scripts/xt16_fastlio_bridge.py.
+/**:
+  ros__parameters:
+    feature_extract_enable: false
+    point_filter_num: 1
+    max_iteration: 3
+    filter_size_surf: 0.5
+    filter_size_map: 0.5
+    cube_side_length: 1000.0
+    runtime_pos_log_enable: false
+    map_file_path: "./xt16_map.pcd"
+
+    common:
+      lid_topic: /velodyne_points
+      imu_topic: /imu/body
+      time_sync_en: false
+      time_offset_lidar_to_imu: 0.0
+
+    preprocess:
+      lidar_type: 2
+      scan_line: 16
+      timestamp_unit: 0
+      blind: 0.5
+      scan_rate: 10
+
+    mapping:
+      acc_cov: 0.5
+      gyr_cov: 0.3
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+      fov_degree: 360.0
+      det_range: 120.0
+      extrinsic_est_en: true
+      extrinsic_T: [0.25, 0.0, 0.0]
+      extrinsic_R: [0.0, -1.0, 0.0,
+                    1.0,  0.0, 0.0,
+                    0.0,  0.0, 1.0]
+
+    publish:
+      path_en: true
+      effect_map_en: false
+      map_en: true
+      scan_publish_en: true
+      dense_publish_en: false
+      scan_bodyframe_pub_en: true
+
+    # Robot Scope captures a fresh /Laser_map with scripts/save_map.py.  Keep
+    # FAST-LIO's independent exit-time PCD writer disabled to avoid duplicate,
+    # unbounded outputs outside the dashboard's private staging directory.
+    pcd_save:
+      pcd_save_en: false
+      interval: -1

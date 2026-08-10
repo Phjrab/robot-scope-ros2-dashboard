@@ -369,6 +369,24 @@ class SavedMapCatalogTests(unittest.TestCase):
         )
         self.assertEqual(catalog.list_snapshot()["count"], 1)
 
+    def test_profile_additional_managed_root_is_catalogued(self):
+        profile_dir = self.root / "config"
+        output_dir = self.root / "custom-workspace" / "maps"
+        profile_dir.mkdir()
+        output_dir.mkdir(parents=True)
+        (output_dir / "portable.json").write_text(
+            '{"points":[0,0,0]}', encoding="utf-8"
+        )
+        catalog = SavedMapCatalog.from_profile(
+            {"saved_maps": {"directories": []}},
+            base_dir=profile_dir,
+            additional_roots=[output_dir],
+            managed_roots=[output_dir],
+        )
+        maps = catalog.list_snapshot()["maps"]
+        self.assertEqual([item["file_name"] for item in maps], ["portable.json"])
+        self.assertTrue(maps[0]["manageable"])
+
     def test_only_explicit_managed_roots_are_mutable(self):
         read_only = self.catalog.list_snapshot()["maps"]
         managed = self.managed_catalog.list_snapshot()["maps"]

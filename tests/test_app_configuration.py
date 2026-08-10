@@ -13,6 +13,9 @@ class AppConfigurationTests(unittest.TestCase):
 
         self.assertLess(output_ready, catalog_ready)
         self.assertLess(catalog_ready, manager_ready)
+        catalog_block = source[catalog_ready:manager_ready]
+        self.assertIn("additional_roots=[mapping_output_dir]", catalog_block)
+        self.assertIn("managed_roots=[mapping_output_dir]", catalog_block)
         self.assertIn("map_file_limit = catalog.max_file_bytes", source)
         self.assertEqual(source.count("max_result_bytes=map_file_limit"), 2)
         self.assertNotIn("max_result_bytes=1024 * 1024 * 1024", source)

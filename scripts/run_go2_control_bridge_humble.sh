@@ -13,9 +13,7 @@ if [[ "${#ROBOT_SCOPE_CONTROL_BRIDGE_KEY}" -lt 32 ]]; then
   exit 2
 fi
 
-source /opt/ros/humble/setup.bash
-source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
-source "$HOME/setup_go2_ros2_humble.sh"
+source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
 
 PYTHON_BIN="python3"
 if [[ -x "$PROJECT_DIR/.venv/bin/python" ]]; then

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-XT16_BRIDGE="${XT16_BRIDGE:-$HOME/ws/go2_3d/xt16_fastlio_bridge.py}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
+XT16_BRIDGE="$PROJECT_DIR/scripts/xt16_fastlio_bridge.py"
+[[ -f "$XT16_BRIDGE" ]] || { echo "[Robot Scope] repository XT16 bridge is missing" >&2; exit 1; }
 
-source /opt/ros/humble/setup.bash
-source "$HOME/unitree_ros2/cyclonedds_ws/install/setup.bash"
-source "$HOME/setup_go2_ros2_humble.sh"
+source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
 
-exec python3 "$XT16_BRIDGE"
+exec /usr/bin/python3 "$XT16_BRIDGE"

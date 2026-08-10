@@ -302,6 +302,7 @@ class SavedMapCatalog:
         profile: Dict[str, Any],
         *,
         base_dir: Optional[Path] = None,
+        additional_roots: Iterable[Path] = (),
         managed_roots: Iterable[Path] = (),
     ) -> "SavedMapCatalog":
         settings = profile.get("saved_maps", {}) if isinstance(profile, dict) else {}
@@ -316,6 +317,7 @@ class SavedMapCatalog:
                     continue
                 expanded = Path(os.path.expandvars(raw)).expanduser()
                 roots.append(expanded if expanded.is_absolute() else base / expanded)
+        roots.extend(additional_roots)
         return cls(
             roots,
             managed_roots=managed_roots,

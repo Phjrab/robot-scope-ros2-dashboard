@@ -300,6 +300,23 @@ class RobotTargetSafetyTests(unittest.TestCase):
         )
         self.assertTrue(accepted["locked"]["camera"])
 
+    def test_direct_camera_accepts_exact_trusted_go2_host_interface(self):
+        with patch.dict(
+            os.environ,
+            {
+                "ROBOT_SCOPE_GO2_INTERFACE": "enp4s0",
+                "ROBOT_SCOPE_CAMERA_INTERFACE": "enp4s0",
+            },
+            clear=False,
+        ):
+            agent = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        self.assertEqual(agent._direct_camera.interface, "enp4s0")
+        self.assertIn("enp4s0", agent._direct_camera.allowed_interfaces)
+        self.assertTrue(agent._direct_camera.configured)
+
     def test_direct_camera_exclusively_ignores_legacy_ros_camera_callbacks(self):
         self.agent._direct_camera._publish_jpeg(b"\xff\xd8direct\xff\xd9")
         before = self.agent.camera_snapshot()

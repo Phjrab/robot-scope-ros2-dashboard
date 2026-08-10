@@ -2,15 +2,19 @@
 set -eo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
-LOG_DIR="${ROBOT_SCOPE_MAPPING_LOG_DIR:-$HOME/ws/go2_3d}"
+PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
+WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
+LOG_DIR="${ROBOT_SCOPE_MAPPING_LOG_DIR:-$WORKSPACE_ROOT/ws/go2_3d}"
+if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" || "$LOG_DIR" != /* ]]; then
+  echo "[Robot Scope] workspace and mapping log paths must be absolute and safe" >&2
+  exit 2
+fi
 mkdir -p "$LOG_DIR"
 
 # Fail before leaving detached ROS children behind when the robot/LiDAR cable
 # is not ready.  This helper only selects the already-configured interface; it
 # never adds addresses or invokes sudo from the dashboard.
-source /opt/ros/humble/setup.bash
-source "$HOME/setup_go2_ros2_humble.sh"
+source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
 
 STARTED_PIDS=()
 STARTED_IDENTITIES=()

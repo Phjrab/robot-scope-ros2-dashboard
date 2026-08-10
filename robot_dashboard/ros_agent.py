@@ -458,6 +458,17 @@ class RosAgent:
             if isinstance(allowed_interfaces_value, list)
             else []
         )
+        # The profile protects the camera transport from HTTP-selected network
+        # devices. A host installer may use a different predictable NIC name
+        # than the reference ``eno1``. Treat the trusted server environment as
+        # an additional exact allowlist entry only when camera and Go2 DDS use
+        # the same interface; arbitrary runtime source selection remains
+        # impossible.
+        configured_go2_interface = os.environ.get(
+            "ROBOT_SCOPE_GO2_INTERFACE", ""
+        ).strip()
+        if runtime_interface and runtime_interface == configured_go2_interface:
+            allowed_interfaces.append(runtime_interface)
         self._direct_camera = Go2MulticastCamera(
             self._direct_camera_callback,
             enabled=(

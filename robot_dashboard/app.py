@@ -1882,6 +1882,7 @@ def main() -> None:
     catalog = SavedMapCatalog.from_profile(
         AGENT.profile,
         base_dir=profile_base,
+        additional_roots=[mapping_output_dir],
         managed_roots=[mapping_output_dir],
     )
     map_file_limit = catalog.max_file_bytes
