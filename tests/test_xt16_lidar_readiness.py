@@ -74,6 +74,34 @@ def publisher(
     )
 
 
+def laser_map(*, width=0, include_fields=True, data=None):
+    point_step = 16 if width or include_fields else 0
+    row_step = width * point_step
+    fields = (
+        [
+            field("x", 0, readiness.FLOAT32),
+            field("y", 4, readiness.FLOAT32),
+            field("z", 8, readiness.FLOAT32),
+            field("intensity", 12, readiness.FLOAT32),
+        ]
+        if include_fields
+        else []
+    )
+    return SimpleNamespace(
+        width=width,
+        height=1,
+        fields=fields,
+        is_bigendian=False,
+        point_step=point_step,
+        row_step=row_step,
+        data=bytes(row_step) if data is None else data,
+        header=SimpleNamespace(
+            frame_id="camera_init",
+            stamp=SimpleNamespace(sec=1_000, nanosec=0),
+        ),
+    )
+
+
 class Xt16ReadinessCoreTests(unittest.TestCase):
     def test_exact_bridge_layout_frame_and_payload_are_accepted(self):
         message = raw_cloud(width=64_000)
@@ -189,6 +217,49 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
         fastlio = readiness.StageState("fastlio")
         self.assertEqual(set(fastlio.gates), {"/Odometry", "/Laser_map"})
         self.assertFalse(fastlio.ready)
+
+    def test_empty_laser_map_is_safe_but_never_ticks_the_readiness_gate(self):
+        gate = readiness.StageState("fastlio").gates["/Laser_map"]
+        for index in range(10):
+            message = laser_map(include_fields=index % 2 == 0)
+            message.header.stamp.nanosec = index
+            self.assertFalse(
+                readiness.observe_laser_map(
+                    gate,
+                    message,
+                    received_at=10.0 + index * 0.1,
+                    publisher=(1,),
+                )
+            )
+        self.assertFalse(gate.ready)
+        self.assertEqual(gate.total_frames, 0)
+
+    def test_first_nonempty_laser_map_must_keep_the_strict_xyz_schema(self):
+        gate = readiness.StageState("fastlio").gates["/Laser_map"]
+        with self.assertRaisesRegex(readiness.ReadinessError, "missing.*x"):
+            readiness.observe_laser_map(
+                gate,
+                laser_map(width=1, include_fields=False),
+                received_at=10.0,
+                publisher=(1,),
+            )
+        self.assertFalse(gate.ready)
+        self.assertEqual(gate.total_frames, 0)
+
+        self.assertTrue(
+            readiness.observe_laser_map(
+                gate,
+                laser_map(width=1),
+                received_at=10.1,
+                publisher=(1,),
+            )
+        )
+        self.assertTrue(gate.ready)
+
+    def test_malformed_empty_laser_map_is_still_rejected(self):
+        message = laser_map(data=b"unexpected")
+        with self.assertRaisesRegex(readiness.ReadinessError, "unexpected data"):
+            readiness.validate_laser_map(message)
 
 
 class Xt16ReadinessLauncherContractTests(unittest.TestCase):

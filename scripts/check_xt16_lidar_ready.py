@@ -207,6 +207,25 @@ def validate_laser_map(message: Any) -> int:
     header = _header(message)
     if not str(getattr(header, "frame_id", "")):
         raise ReadinessError("/Laser_map frame_id is empty")
+    header_stamp_seconds(message)
+    width = _integer(getattr(message, "width", None), "width")
+    height = _integer(getattr(message, "height", None), "height")
+    point_step = _integer(getattr(message, "point_step", None), "point_step")
+    row_step = _integer(getattr(message, "row_step", None), "row_step")
+    if width < 0 or height < 0 or width > 10_000_000 or height > 4_096:
+        raise ReadinessError("/Laser_map dimensions are outside the supported range")
+    if point_step < 0 or point_step > 4_096 or row_step < 0 or row_step > 512 * 1024 * 1024:
+        raise ReadinessError("/Laser_map byte layout is outside the supported range")
+    try:
+        data_length = len(getattr(message, "data", None))
+    except (TypeError, AttributeError) as exc:
+        raise ReadinessError("PointCloud2 data is missing") from exc
+    if data_length > 512 * 1024 * 1024:
+        raise ReadinessError("/Laser_map data exceeds the supported range")
+    if width * height == 0:
+        if data_length != 0:
+            raise ReadinessError("empty /Laser_map placeholder contains unexpected data")
+        return 0
     return _cloud_layout(
         message,
         fields_contract=(
@@ -218,6 +237,26 @@ def validate_laser_map(message: Any) -> int:
         minimum_points=1,
         maximum_points=10_000_000,
         exact_row_layout=False,
+    )
+
+
+def observe_laser_map(
+    gate: "FreshSequenceGate",
+    message: Any,
+    *,
+    received_at: float,
+    publisher: Hashable,
+) -> bool:
+    """Ignore a safe startup placeholder until FAST-LIO publishes real map data."""
+
+    points = validate_laser_map(message)
+    if points == 0:
+        return False
+    return gate.observe(
+        stamp=header_stamp_seconds(message),
+        received_at=received_at,
+        publisher=publisher,
+        item_count=points,
     )
 
 
@@ -553,12 +592,12 @@ def wait_for_ros_stage(
 
         def on_laser_map(self, message: Any) -> None:
             try:
-                points = validate_laser_map(message)
-                state.gates["/Laser_map"].observe(
-                    stamp=header_stamp_seconds(message),
+                identity = self.identity("/Laser_map", POINTCLOUD_TYPE)
+                observe_laser_map(
+                    state.gates["/Laser_map"],
+                    message,
                     received_at=monotonic(),
-                    publisher=self.identity("/Laser_map", POINTCLOUD_TYPE),
-                    item_count=points,
+                    publisher=identity,
                 )
             except ReadinessError as exc:
                 self.fail(exc)
