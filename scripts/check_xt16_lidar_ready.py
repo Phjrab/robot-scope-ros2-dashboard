@@ -472,13 +472,13 @@ def wait_for_ros_stage(
                 reliability=ReliabilityPolicy.BEST_EFFORT,
                 durability=DurabilityPolicy.VOLATILE,
             )
-            self.subscriptions = []
+            self._readiness_subscriptions = []
             if options.stage == "raw":
-                self.subscriptions.append(
+                self._readiness_subscriptions.append(
                     self.create_subscription(PointCloud2, "/lidar_points", self.on_raw, qos)
                 )
             elif options.stage == "bridge":
-                self.subscriptions.extend(
+                self._readiness_subscriptions.extend(
                     (
                         self.create_subscription(
                             PointCloud2, "/velodyne_points", self.on_velodyne, qos
@@ -487,7 +487,7 @@ def wait_for_ros_stage(
                     )
                 )
             else:
-                self.subscriptions.extend(
+                self._readiness_subscriptions.extend(
                     (
                         self.create_subscription(Odometry, "/Odometry", self.on_odometry, qos),
                         self.create_subscription(

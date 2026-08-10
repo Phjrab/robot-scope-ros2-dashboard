@@ -194,6 +194,7 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
 class Xt16ReadinessLauncherContractTests(unittest.TestCase):
     def setUp(self):
         self.script = START_SCRIPT.read_text(encoding="utf-8")
+        self.helper_source = HELPER.read_text(encoding="utf-8")
 
     def test_scripts_have_valid_syntax_and_helper_help_needs_no_ros(self):
         subprocess.run(["bash", "-n", str(START_SCRIPT)], check=True)
@@ -207,6 +208,10 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
         self.assertIn("raw", result.stdout)
         self.assertIn("bridge", result.stdout)
         self.assertIn("fastlio", result.stdout)
+
+    def test_ros_node_does_not_assign_the_read_only_subscriptions_property(self):
+        self.assertNotIn("self.subscriptions =", self.helper_source)
+        self.assertIn("self._readiness_subscriptions =", self.helper_source)
 
     def test_each_readiness_gate_follows_its_producer_before_commit(self):
         driver = self.script.index('start_once "hesai_ros_driver_node"')
