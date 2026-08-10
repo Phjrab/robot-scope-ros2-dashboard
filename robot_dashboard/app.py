@@ -58,6 +58,16 @@ from .navigation_jobs import (
 )
 from .http_security import is_same_origin
 from .ros_agent import RosAgent
+from .service_lifecycle import (
+    ADMIN_TOKEN_HEADER,
+    ServiceLifecycleBlocked,
+    ServiceLifecycleBusy,
+    ServiceLifecycleConfirmationRequired,
+    ServiceLifecycleError,
+    ServiceLifecycleManager,
+    ServiceLifecycleUnavailable,
+    collect_service_lifecycle_blockers,
+)
 from .saved_maps import (
     SavedMapCatalog,
     SavedMapConflict,
@@ -77,6 +87,7 @@ AGENT: RosAgent | None = None
 SAVED_MAPS: SavedMapCatalog | None = None
 MAPPING_JOBS: MappingJobManager | None = None
 NAVIGATION_JOBS: NavigationJobManager | None = None
+SERVICE_LIFECYCLE: ServiceLifecycleManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
 PIPELINE_COORDINATION_LOCK = asyncio.Lock()
 JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
@@ -195,6 +206,10 @@ class NavigationClearCostmapsRequest(StrictRequest):
     scope: Literal["both"]
 
 
+class ServiceLifecycleRequest(StrictRequest):
+    confirmed: bool = Field(strict=True)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if AGENT is None:
@@ -203,6 +218,10 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
+        # A lifecycle request that has not reached its fixed systemctl command
+        # must never fire during an unrelated application shutdown.
+        if SERVICE_LIFECYCLE is not None:
+            SERVICE_LIFECYCLE.close()
         # Close the navigation velocity gate and signed motion lease before
         # waiting on either process manager.
         if NAVIGATION_JOBS is not None:
@@ -256,6 +275,15 @@ def navigation_jobs() -> NavigationJobManager:
     return NAVIGATION_JOBS
 
 
+def service_lifecycle() -> ServiceLifecycleManager:
+    if SERVICE_LIFECYCLE is None:
+        raise HTTPException(
+            status_code=503,
+            detail="service lifecycle control is not configured",
+        )
+    return SERVICE_LIFECYCLE
+
+
 def require_same_origin(request: Request) -> None:
     """Reject browser control mutations that did not originate at this host."""
 
@@ -264,6 +292,17 @@ def require_same_origin(request: Request) -> None:
         request.headers.get("host", ""),
     ):
         raise HTTPException(status_code=403, detail="mutation requests must be same-origin")
+
+
+def require_service_admin(request: Request) -> None:
+    """Authenticate a service mutation without retaining or logging its token."""
+
+    supplied = request.headers.get(ADMIN_TOKEN_HEADER, "")
+    if not service_lifecycle().authenticate(supplied):
+        raise HTTPException(
+            status_code=403,
+            detail="service administration is not authorized",
+        )
 
 
 def websocket_same_origin(websocket: WebSocket) -> bool:
@@ -338,6 +377,80 @@ def mapping_pipeline_state() -> str:
     snapshot = MAPPING_JOBS.snapshot()
     state = str((snapshot.get("pipeline") or {}).get("state", "failed"))
     return state if state in {"idle", "starting", "running", "stopping", "failed"} else "failed"
+
+
+def service_lifecycle_blockers() -> list[str]:
+    """Fail closed while robot work could be interrupted by this service."""
+
+    control: Dict[str, Any] | None = None
+    navigation_runtime: Dict[str, Any] | None = None
+    navigation_snapshot: Dict[str, Any] | None = None
+    mapping_snapshot: Dict[str, Any] | None = None
+    current_agent = AGENT
+    if current_agent is not None:
+        try:
+            control = current_agent.control_snapshot()
+        except Exception:
+            control = None
+
+        try:
+            navigation_runtime = current_agent.navigation_runtime_snapshot()
+        except Exception:
+            navigation_runtime = None
+
+    if NAVIGATION_JOBS is not None:
+        try:
+            navigation_snapshot = NAVIGATION_JOBS.snapshot()
+        except Exception:
+            navigation_snapshot = None
+
+    if MAPPING_JOBS is not None:
+        try:
+            mapping_snapshot = MAPPING_JOBS.snapshot()
+        except Exception:
+            mapping_snapshot = None
+
+    task = MAPPING_TASK
+    try:
+        mapping_task_active = bool(task is not None and not task.done())
+    except Exception:
+        mapping_task_active = True
+    return collect_service_lifecycle_blockers(
+        control=control,
+        navigation_runtime=navigation_runtime,
+        navigation_jobs=navigation_snapshot,
+        mapping_jobs=mapping_snapshot,
+        mapping_task_active=mapping_task_active,
+    )
+
+
+def service_lifecycle_error(exc: ServiceLifecycleError) -> HTTPException:
+    if isinstance(exc, ServiceLifecycleBlocked):
+        return HTTPException(
+            status_code=409,
+            detail={
+                "code": "service_lifecycle_blocked",
+                "blockers": list(exc.blockers),
+            },
+        )
+    if isinstance(exc, ServiceLifecycleBusy):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, ServiceLifecycleConfirmationRequired):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, ServiceLifecycleUnavailable):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(status_code=500, detail="service lifecycle operation failed")
+
+
+def require_service_lifecycle_idle() -> None:
+    """Prevent new robot work during the response grace before service stop."""
+
+    manager = SERVICE_LIFECYCLE
+    if manager is not None and manager.is_busy():
+        raise HTTPException(
+            status_code=409,
+            detail="a dashboard service lifecycle operation is pending",
+        )
 
 
 def navigation_active() -> bool:
@@ -638,6 +751,45 @@ async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/api/v1/system/service")
+async def service_lifecycle_status() -> Dict[str, Any]:
+    return await asyncio.to_thread(service_lifecycle().snapshot)
+
+
+@app.post("/api/v1/system/service/restart", status_code=202)
+async def service_lifecycle_restart(
+    request: Request,
+    body: ServiceLifecycleRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    require_service_admin(request)
+    async with PIPELINE_COORDINATION_LOCK:
+        try:
+            return await asyncio.to_thread(
+                service_lifecycle().schedule_restart,
+                confirmed=body.confirmed,
+            )
+        except ServiceLifecycleError as exc:
+            raise service_lifecycle_error(exc) from exc
+
+
+@app.post("/api/v1/system/service/stop", status_code=202)
+async def service_lifecycle_stop(
+    request: Request,
+    body: ServiceLifecycleRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    require_service_admin(request)
+    async with PIPELINE_COORDINATION_LOCK:
+        try:
+            return await asyncio.to_thread(
+                service_lifecycle().schedule_stop,
+                confirmed=body.confirmed,
+            )
+        except ServiceLifecycleError as exc:
+            raise service_lifecycle_error(exc) from exc
+
+
 @app.get("/api/v1/health")
 async def health() -> Dict[str, Any]:
     return await asyncio.to_thread(agent().health_snapshot)
@@ -778,10 +930,12 @@ async def control_status() -> Dict[str, Any]:
 @app.post("/api/v1/control/arm")
 async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, Any]:
     require_same_origin(request)
-    try:
-        result = agent().control_acquire(body.input_source)
-    except ControlError as exc:
-        raise control_error(exc) from exc
+    async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
+        try:
+            result = agent().control_acquire(body.input_source)
+        except ControlError as exc:
+            raise control_error(exc) from exc
     return {
         "lease_id": result["token"],
         "control": control_view(agent().control_snapshot()),
@@ -1039,6 +1193,7 @@ async def navigation_start(
     require_same_origin(request)
     manager = navigation_jobs()
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         mapping_busy, _ = mapping_activity()
         if mapping_busy:
             raise HTTPException(
@@ -1153,6 +1308,7 @@ async def navigation_initial_pose(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         mapping_busy, _ = mapping_activity()
         if mapping_busy:
             raise HTTPException(status_code=409, detail="mapping is active")
@@ -1197,6 +1353,7 @@ async def navigation_goal(
             detail="confirmed=true is required before sending a navigation goal",
         )
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         mapping_busy, _ = mapping_activity()
         if mapping_busy:
             raise HTTPException(status_code=409, detail="mapping is active")
@@ -1271,6 +1428,7 @@ async def mapping_start(request: Request) -> Dict[str, Any]:
     global MAPPING_TASK
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before mapping can start")
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
             raise HTTPException(status_code=409, detail="a map save is in progress")
@@ -1309,6 +1467,7 @@ async def mapping_save(body: MapSaveRequest, request: Request) -> Dict[str, Any]
     global MAPPING_TASK
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before a map can be saved")
         manager = mapping_jobs()
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
@@ -1371,6 +1530,7 @@ async def convert_saved_pcd_to_2d(
     global MAPPING_TASK
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before converting a map")
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
             raise HTTPException(status_code=409, detail="another map operation is already in progress")
@@ -1442,6 +1602,7 @@ async def save_edited_map_copy(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before editing a map")
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
             raise HTTPException(status_code=409, detail="map operation must finish before editing")
@@ -1482,6 +1643,7 @@ async def rename_saved_map(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before a map can be renamed")
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
             raise HTTPException(status_code=409, detail="map save must finish before a map can be renamed")
@@ -1502,6 +1664,7 @@ async def rename_saved_map(
 async def delete_saved_map(map_id: str, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before a map can be deleted")
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
             raise HTTPException(status_code=409, detail="map save must finish before a map can be deleted")
@@ -1605,7 +1768,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    global AGENT, SAVED_MAPS, MAPPING_JOBS, NAVIGATION_JOBS
+    global AGENT, SAVED_MAPS, MAPPING_JOBS, NAVIGATION_JOBS, SERVICE_LIFECYCLE
     args = parse_args()
     AGENT = RosAgent(
         robot_ip=args.robot_ip,
@@ -1669,6 +1832,9 @@ def main() -> None:
         runtime_dir=Path(args.navigation_runtime_dir),
         map_snapshotter=catalog.snapshot_navigation_map,
         on_terminal=navigation_terminal,
+    )
+    SERVICE_LIFECYCLE = ServiceLifecycleManager.from_environment(
+        blocker_provider=service_lifecycle_blockers,
     )
     uvicorn.run(
         app,

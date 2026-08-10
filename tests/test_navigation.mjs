@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 const navigation = require('../robot_dashboard/static/navigation.js');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
 function tuned(overrides = {}) {
   return { ...navigation.TUNED_VALUES, ...overrides };
@@ -151,6 +152,8 @@ test('dashboard exposes a dedicated navigation route and strict API endpoints', 
     'navigationGoalPoseTool', 'navigationPoseSend', 'navigationStartButton',
     'navigationStopButton', 'navigationCancelGoal', 'navigationClearCostmaps',
     'navigationPreset', 'navigationParameterReset', 'navigationParameterApply',
+    'navigationRobotCanvas', 'navigationModelState', 'navigationModelLabel',
+    'navigationRobotResetButton', 'navigationRobotTopButton', 'navigationRobotFrontButton',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
   for (const endpoint of [
     '/api/v1/navigation', '/api/v1/navigation/parameters', '/api/v1/navigation/start',
@@ -158,6 +161,49 @@ test('dashboard exposes a dedicated navigation route and strict API endpoints', 
     '/api/v1/navigation/cancel', '/api/v1/navigation/clear-costmaps',
   ]) assert.ok(appSource.includes(endpoint), `missing ${endpoint}`);
   assert.doesNotMatch(appSource, /navigation[^\n]{0,120}(?:file_path|yaml_path|launch_path)/i);
+});
+
+test('navigation keeps the 2D map and selected robot 3D preview in separate stages', () => {
+  const sectionStart = indexSource.indexOf('data-page="navigation"');
+  const sectionEnd = indexSource.indexOf('data-page="settings"', sectionStart);
+  const section = indexSource.slice(sectionStart, sectionEnd);
+  assert.equal((section.match(/id="navigationMapCanvas"/g) || []).length, 1);
+  assert.equal((section.match(/id="navigationRobotCanvas"/g) || []).length, 1);
+  const mapStage = section.slice(section.indexOf('class="navigation-map-stage"'), section.indexOf('class="navigation-pose-toolbar"'));
+  const robotStage = section.slice(section.indexOf('class="navigation-robot-stage"'), section.indexOf('class="navigation-robot-summary"'));
+  assert.match(mapStage, /id="navigationMapCanvas"/);
+  assert.doesNotMatch(mapStage, /id="navigationRobotCanvas"/);
+  assert.match(robotStage, /id="navigationRobotCanvas"/);
+  assert.doesNotMatch(robotStage, /id="navigationMapCanvas"/);
+});
+
+test('navigation 3D preview reuses profile assets and gates every live joint path', () => {
+  assert.match(appSource, /const navigationScene3d = window\.RobotScene3D/);
+  assert.match(appSource, /const navigationScene3d[\s\S]{0,360}initialDistance: 3/);
+  assert.match(appSource, /renderer: navigationScene3d, poseOrigin: 'ground', adaptiveScale: true/);
+  assert.doesNotMatch(appSource, /renderers\.length !== 2/);
+  assert.match(appSource, /renderers\.map\(\(\{ renderer \}\) => renderer\.loadOfficialRobotModel\(assetUrl\)\)/);
+  assert.match(appSource, /const liveJoints = compatible && robotModelsReady && !robotModelsFailed && profile\.id === 'go2' && jointLive/);
+  assert.match(appSource, /online: compatible \? online : null/);
+  assert.match(appSource, /activePage === 'navigation' && robotRuntimeDataCompatible && robotModelsReady && !robotModelsFailed && selectedRobotType === 'go2' && jointLive && renderedJointPositions/);
+  assert.match(appSource, /navigationScene3d\?\.resetRobotJointPositions\?\.\(\)/);
+  assert.match(appSource, /navigationScene3d\?\.setRobotPose\(null\)/);
+  assert.match(appSource, /navigationApiAvailable === true && typeof navigationSnapshot\?\.robot_online === 'boolean'/);
+  assert.doesNotMatch(appSource, /navigationRobotOnline\(\)[\s\S]{0,260}latestState\?\.health\?\.robot_online/);
+});
+
+test('controls and navigation help text is readable and model preview is mobile-safe', () => {
+  assert.match(stylesSource, /\[data-page="controls"\] p,\s*\[data-page="controls"\] small \{ font-size:13px/);
+  assert.match(stylesSource, /\[data-page="navigation"\] p,\s*\[data-page="navigation"\] small \{ font-size:13px/);
+  assert.match(stylesSource, /\.navigation-robot-summary p \{[^}]*font-size:14px/);
+  assert.match(stylesSource, /\[data-page="navigation"\] \.navigation-safety-banner p,[\s\S]*?font-size:14px/);
+  const tabletStart = stylesSource.indexOf('@media (max-width: 800px)');
+  const phoneStart = stylesSource.indexOf('@media (max-width: 520px)');
+  const tablet = stylesSource.slice(tabletStart, phoneStart);
+  const phone = stylesSource.slice(phoneStart);
+  assert.match(tablet, /\.navigation-robot-stage \{ height:360px; \}/);
+  assert.match(phone, /\.navigation-robot-stage \{ height:300px; \}/);
+  assert.match(phone, /\.navigation-robot-summary \{ grid-template-columns:1fr;/);
 });
 
 test('navigation start and poses carry opaque map revisions while parameters use PATCH', () => {

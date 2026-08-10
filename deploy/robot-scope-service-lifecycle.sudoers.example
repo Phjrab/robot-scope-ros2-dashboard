@@ -1,0 +1,8 @@
+# Install as /etc/sudoers.d/robot-scope-service-lifecycle with owner root:root
+# and mode 0440. Validate with visudo -cf before enabling the dashboard API.
+# Do not add wildcards, daemon-reload, reboot, poweroff, or another unit.
+Cmnd_Alias ROBOT_SCOPE_SERVICE_LIFECYCLE = \
+    /usr/bin/systemctl --no-block restart robot-scope.service, \
+    /usr/bin/systemctl --no-block stop robot-scope.service
+
+jetson_orin_nano ALL=(root) NOPASSWD: ROBOT_SCOPE_SERVICE_LIFECYCLE

@@ -385,6 +385,10 @@ opaque map ID와 64자리 map/parameter revision만 전송합니다. 서버는 �
 덮어쓰지 않는 private snapshot을 만든 뒤 저장소의 고정 launcher와 생성된 Humble
 parameter YAML만 `shell=False` process group으로 실행합니다.
 
+같은 화면의 별도 3D 패널은 Settings에서 선택한 Go2, TurtleBot 또는 SO-101 모델을
+표시합니다. Go2 관절 데이터는 선택 프로필과 runtime이 일치하고 최신 샘플이 있을 때만
+반영하며, Navigation의 map 좌표 위치와 다른 telemetry 자세를 섞지 않습니다.
+
 내비게이션 시작 시 Hesai + XT16 bridge + FAST-LIO가 이미 대시보드 소유 process로
 실행 중이면 그대로 공유합니다. 파이프라인이 idle/failed 상태면 동일한 allowlisted
 매핑 시작 경로를 자동 실행한 뒤 Nav2를 시작합니다. 이 shared pipeline이
@@ -516,6 +520,54 @@ Jetson 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 �
 `ROBOT_SCOPE_GO2_INTERFACE`, `ROBOT_SCOPE_GO2_INTERFACE_CIDR`를 함께 수정합니다.
 변경 후에는 `systemctl daemon-reload`가 필요합니다.
 
+### 대시보드 서비스 재시작·중지 권한
+
+Settings에서 대시보드 자체를 재시작하거나 중지하는 기능은 기본적으로 꺼져 있습니다.
+운영체제 재부팅·종료 권한은 제공하지 않으며, root로 실행되는 저장소 스크립트도
+허용하지 않습니다. 대신 sudoers에는 root 소유 `/usr/bin/systemctl`의 다음 두 argv만
+정확히 허용합니다.
+
+~~~text
+/usr/bin/systemctl --no-block restart robot-scope.service
+/usr/bin/systemctl --no-block stop robot-scope.service
+~~~
+
+Jetson에서 예제 문법을 먼저 검사한 뒤 root 소유 0440 파일로 설치합니다. 사용자명이나
+unit 이름을 바꾸면 예제와 앱의 고정 allowlist를 함께 검토해야 하며 wildcard를 넣으면
+안 됩니다.
+
+~~~bash
+sudo visudo -cf deploy/robot-scope-service-lifecycle.sudoers.example
+sudo install -o root -g root -m 0440 \
+  deploy/robot-scope-service-lifecycle.sudoers.example \
+  /etc/sudoers.d/robot-scope-service-lifecycle
+sudo visudo -cf /etc/sudoers.d/robot-scope-service-lifecycle
+~~~
+
+16자 이상의 임의 관리 토큰을 별도로 보관하고 SHA-256만 0600 `control.env`에 넣습니다.
+원문 토큰을 환경 파일·Git·shell history에 저장하지 않습니다. `openssl rand -hex 32`로
+원문을 한 번 생성해 안전한 암호 관리 도구에 보관한 뒤, 다음 no-echo 입력으로 64자리
+SHA-256을 계산할 수 있습니다.
+
+~~~bash
+python3 -c 'import getpass,hashlib; print(hashlib.sha256(getpass.getpass("Admin token: ").encode()).hexdigest())'
+~~~
+
+~~~dotenv
+ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED=1
+ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256=<64자리-SHA-256>
+~~~
+
+초기 설정 반영은 SSH에서 기존 방식으로 `robot-scope.service`를 한 번 재시작합니다.
+이후 웹 요청은 same-origin, `confirmed=true`, 매번 입력하는 관리 토큰과 idle preflight를
+모두 통과해야 합니다. 수동 제어 lease, 모션 안전 구간, SOFTWARE STOP 래치, 활성
+navigation/goal, 실행 중인 매핑 pipeline·저장·변환이 하나라도 있으면 HTTP 409로
+거부됩니다. 요청 접수 후에도 고정 명령을 보내기 직전에 같은 상태를 다시 확인합니다.
+
+재시작은 새 dashboard instance가 올라오면 상태가 초기화되고, 중지는 API 자체가
+사라지는 것이 정상입니다. 기능을 끄려면 `control.env`의 enable 값을 `0`으로 바꾸고
+sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
+
 ## 설정
 
 - config/go2.json: Go2 토픽 우선순위, 장착 오프셋, 저장 지도 폴더와 포인트 상한
@@ -530,6 +582,8 @@ Jetson 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 �
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
 - ROBOT_SCOPE_CONTROL_BRIDGE_KEY: 두 로컬 프로세스 사이 서명용 32바이트 이상 비밀키
+- ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED: `1`일 때만 서비스 관리 API opt-in
+- ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256: 매 요청 관리 토큰의 SHA-256, 원문 저장 금지
 
 ## 주요 API
 
@@ -566,6 +620,9 @@ Jetson 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 �
 | POST /api/v1/control/disarm | 제로 명령과 제어 lease 반납 |
 | POST /api/v1/control/stop | lease와 무관한 대시보드 SOFTWARE STOP 래치 |
 | POST /api/v1/control/estop/clear | 명시적 확인으로 대시보드 정지 해제 |
+| GET /api/v1/system/service | dashboard service 관리 가능 여부, blocker와 최근 작업 상태 |
+| POST /api/v1/system/service/restart | 확인·관리 토큰·idle preflight 후 dashboard만 재시작 |
+| POST /api/v1/system/service/stop | 확인·관리 토큰·idle preflight 후 dashboard만 중지 |
 | WS /api/v1/ws/camera | 카메라 스트림 |
 | WS /api/v1/ws/joints | Go2 관절 스트림 |
 | WS /api/v1/ws/pose | 로봇 자세 스트림 |
@@ -610,6 +667,10 @@ requirements.txt    Python 웹 의존성
 - 첫 실기 검증은 다리를 안전하게 띄우거나 제조사 권장 시험 자세에서 수행하고,
   브리지 강제 종료·네트워크 단절 때 Go2 펌웨어가 Move를 자체 만료시키는지 확인합니다.
 - 같은 네트워크의 사용자는 관리 허용 지도 이름 변경·삭제 API를 호출할 수 있습니다.
+- 서비스 재시작·중지는 same-origin만으로 인증하지 않고 별도 관리 토큰도 요구합니다.
+  하지만 기본 HTTP에서는 토큰이 암호화되지 않으므로 반드시 도청 위험이 없는 신뢰
+  유선 LAN에서만 사용하고, 범위가 넓은 네트워크에서는 TLS reverse proxy와 접근 제어를
+  먼저 구성합니다.
 - 네트워크 검색 API도 same-origin으로 제한하고, 서버가 직접 확인한 로컬 인터페이스의
   최대 /24만 검색합니다. 검색 결과는 장비 유형을 보증하지 않으므로 선택 전에 확인합니다.
 - 인터넷이나 공용망에 노출하기 전 토큰 인증, TLS와 접근 제어를 추가해야 합니다.

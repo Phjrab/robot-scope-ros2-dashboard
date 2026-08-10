@@ -447,6 +447,23 @@
           </aside>
         </section>
 
+        <article class="panel navigation-robot-panel">
+          <div class="panel-header">
+            <div><div class="eyebrow">SELECTED ROBOT · 3D</div><h2>Robot model preview</h2></div>
+            <div class="panel-state waiting" id="navigationModelState"><span></span>LOADING</div>
+          </div>
+          <div class="navigation-robot-stage">
+            <canvas id="navigationRobotCanvas" aria-label="현재 선택한 로봇의 대화형 3D 모델"></canvas>
+            <div class="scene-controls" id="navigationRobotControls" aria-label="Navigation 로봇 모델 3D 시점 제어">
+              <button id="navigationRobotResetButton" type="button">ISO</button><button id="navigationRobotTopButton" type="button">TOP</button><button id="navigationRobotFrontButton" type="button">FRONT</button>
+            </div>
+          </div>
+          <div class="navigation-robot-summary">
+            <strong id="navigationModelLabel">선택한 로봇 모델 준비 중</strong>
+            <p id="navigationModelNote">Settings에서 선택한 로봇 유형의 3D asset을 불러오고 있습니다.</p>
+          </div>
+        </article>
+
         <article class="panel navigation-parameters-panel">
           <div class="panel-header">
             <div><div class="eyebrow">PDF 11 · TUNED PROFILE</div><h2>Navigation parameters</h2></div>
@@ -504,6 +521,31 @@
               <label><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select></label>
               <label><span>Odometry</span><select id="odomSource"><option value="">탐색 중…</option></select></label>
               <label><span>2D 맵</span><select id="mapSource"><option value="">없음</option></select></label>
+            </div>
+          </article>
+          <article class="panel settings-panel service-lifecycle-panel">
+            <div class="panel-header">
+              <div><div class="eyebrow">DASHBOARD SERVICE</div><h2>Restart or stop</h2></div>
+              <div class="panel-state waiting" id="serviceLifecycleState"><span></span>CHECKING</div>
+            </div>
+            <div class="service-lifecycle-body">
+              <div class="service-lifecycle-status">
+                <div><span>SERVICE</span><strong id="serviceLifecycleName">robot-scope.service</strong></div>
+                <div><span>INSTANCE</span><strong id="serviceLifecycleInstance">—</strong></div>
+                <div><span>PRIVILEGE</span><strong id="serviceLifecyclePrivilege">—</strong></div>
+                <div><span>OPERATION</span><strong id="serviceLifecycleOperation">IDLE</strong></div>
+              </div>
+              <div class="service-lifecycle-actions">
+                <p class="service-lifecycle-warning"><strong>대시보드 서비스만 제어합니다.</strong> Jetson 전원 종료·재부팅 기능이 아닙니다. 중지하면 SSH 또는 systemd로 서비스를 다시 시작할 때까지 이 페이지에 접속할 수 없습니다.</p>
+                <label class="field-label" for="serviceAdminToken">관리 키</label>
+                <input id="serviceAdminToken" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="이 작업에만 사용하고 즉시 지웁니다">
+                <label class="service-lifecycle-confirm"><input id="serviceLifecycleConfirm" type="checkbox"><span>현재 제어·자율주행·매핑이 모두 정지했으며 연결이 끊길 수 있음을 확인했습니다.</span></label>
+                <div class="service-lifecycle-buttons">
+                  <button id="serviceRestartButton" class="service-restart-button" type="button" disabled>RESTART DASHBOARD</button>
+                  <button id="serviceStopButton" class="service-stop-button" type="button" disabled>STOP DASHBOARD</button>
+                </div>
+                <p id="serviceLifecycleMessage" class="service-lifecycle-message" role="status" aria-live="polite">서버 관리 상태를 확인하고 있습니다.</p>
+              </div>
             </div>
           </article>
         </section>

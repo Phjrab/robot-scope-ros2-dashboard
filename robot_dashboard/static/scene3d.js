@@ -161,13 +161,18 @@
         showTrail: options.showTrail !== false,
         background: options.background || '#040a09',
       };
+      const initialDistance = clamp(
+        finite(options.initialDistance, 8),
+        this.options.minDistance,
+        this.options.maxDistance,
+      );
 
       this.width = 1;
       this.height = 1;
       this.dpr = 1;
       this.camera = {
         target: [0, 0, 0.2],
-        distance: 8,
+        distance: initialDistance,
         yaw: 45 * DEG,
         pitch: 33 * DEG,
       };

@@ -31,6 +31,16 @@ const ui = {
   cloudSource: $('#cloudSource'),
   odomSource: $('#odomSource'),
   mapSource: $('#mapSource'),
+  serviceLifecycleState: $('#serviceLifecycleState'),
+  serviceLifecycleName: $('#serviceLifecycleName'),
+  serviceLifecycleInstance: $('#serviceLifecycleInstance'),
+  serviceLifecyclePrivilege: $('#serviceLifecyclePrivilege'),
+  serviceLifecycleOperation: $('#serviceLifecycleOperation'),
+  serviceAdminToken: $('#serviceAdminToken'),
+  serviceLifecycleConfirm: $('#serviceLifecycleConfirm'),
+  serviceRestartButton: $('#serviceRestartButton'),
+  serviceStopButton: $('#serviceStopButton'),
+  serviceLifecycleMessage: $('#serviceLifecycleMessage'),
   cameraCanvas: $('#cameraCanvas'),
   cameraEmpty: $('#cameraEmpty'),
   cameraEmptyText: $('#cameraEmptyText'),
@@ -150,6 +160,14 @@ const ui = {
   navigationGoalMessage: $('#navigationGoalMessage'),
   navigationCancelGoal: $('#navigationCancelGoal'),
   navigationClearCostmaps: $('#navigationClearCostmaps'),
+  navigationModelState: $('#navigationModelState'),
+  navigationRobotCanvas: $('#navigationRobotCanvas'),
+  navigationRobotControls: $('#navigationRobotControls'),
+  navigationRobotResetButton: $('#navigationRobotResetButton'),
+  navigationRobotTopButton: $('#navigationRobotTopButton'),
+  navigationRobotFrontButton: $('#navigationRobotFrontButton'),
+  navigationModelLabel: $('#navigationModelLabel'),
+  navigationModelNote: $('#navigationModelNote'),
   navigationParameterState: $('#navigationParameterState'),
   navigationPreset: $('#navigationPreset'),
   navigationPresetLoad: $('#navigationPresetLoad'),
@@ -311,6 +329,7 @@ let robotDiscoveryGeneration = 0;
 let robotDiscoveryController = null;
 let robotConnectionBusy = false;
 let robotRuntimeDataCompatible = true;
+let navigationModelPanelKey = '';
 let jointLive = false;
 let lastJointAt = 0;
 let latestBodyRpy = null;
@@ -341,6 +360,10 @@ let navigationMapTool = '';
 let navigationStagedPose = null;
 let navigationPointer = null;
 let navigationRenderFrame = 0;
+let serviceLifecycleSnapshot = null;
+let serviceLifecycleBusy = false;
+let serviceLifecycleRequestGeneration = 0;
+let serviceLifecycleExpected = null;
 const controlInput = window.RobotControlInput;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
@@ -408,6 +431,31 @@ if (savedScene3d) {
   savedScene3d.setStatus({ online: null, lidarOnline: null, snapshot: true, message: '저장 지도를 불러오는 중입니다' });
 }
 
+const navigationScene3d = window.RobotScene3D && ui.navigationRobotCanvas
+  ? new window.RobotScene3D(ui.navigationRobotCanvas, {
+      maxPoints: 100,
+      maxCloudRadius: 20,
+      autoFitOnFirstCloud: false,
+      showTrail: false,
+      initialDistance: 3,
+    })
+  : null;
+
+if (navigationScene3d) {
+  navigationScene3d.bindControls({
+    reset: ui.navigationRobotResetButton,
+    top: ui.navigationRobotTopButton,
+    front: ui.navigationRobotFrontButton,
+  });
+  navigationScene3d.setRobotPose(null);
+  navigationScene3d.setStatus({
+    online: null,
+    lidarOnline: null,
+    snapshot: false,
+    message: '선택한 로봇의 3D 모델을 준비하고 있습니다',
+  });
+}
+
 function activeRobotProfile() {
   const profiles = robotTypes.length ? robotTypes : (window.RobotProfiles?.normalizeTypes?.([]) || []);
   return profiles.find((profile) => profile.id === selectedRobotType) || profiles[0] || null;
@@ -442,24 +490,87 @@ function updateLiveModelBadge() {
   else if (!robotModelsReady) ui.liveModelState.textContent = `${label} · LOADING`;
   else if (jointLive) ui.liveModelState.textContent = `${label} · JOINTS LIVE`;
   else ui.liveModelState.textContent = `${label} · READY`;
+  updateNavigationModelPanel();
+}
+
+function navigationRobotOnline() {
+  if (navigationApiAvailable === true && typeof navigationSnapshot?.robot_online === 'boolean') {
+    return navigationSnapshot.robot_online;
+  }
+  return null;
+}
+
+function updateNavigationModelPanel({ force = false } = {}) {
+  const profile = activeRobotProfile();
+  if (!profile || !ui.navigationModelState || !ui.navigationModelLabel || !ui.navigationModelNote) return;
+  const online = navigationRobotOnline();
+  const compatible = robotRuntimeDataCompatible;
+  const liveJoints = compatible && robotModelsReady && !robotModelsFailed && profile.id === 'go2' && jointLive;
+  const panelKey = [
+    profile.id,
+    compatible ? 'compatible' : 'restart',
+    robotModelsReady ? 'ready' : robotModelsFailed ? 'fallback' : 'loading',
+    liveJoints ? 'joints' : 'static',
+    online == null ? 'unknown' : online ? 'online' : 'offline',
+  ].join(':');
+  if (!force && navigationModelPanelKey === panelKey) return;
+  navigationModelPanelKey = panelKey;
+
+  ui.navigationModelLabel.textContent = `${profile.model?.label || profile.label} · ${modelFidelityNote(profile)}`;
+  if (!compatible) {
+    setStatePill(ui.navigationModelState, 'waiting', 'RESTART REQUIRED');
+    ui.navigationModelNote.textContent = `${profile.label} 선택 모델의 정적 미리보기입니다. ROS 프로필을 다시 시작하기 전에는 기존 로봇의 관절·자세 데이터를 적용하지 않습니다.`;
+  } else if (robotModelsFailed) {
+    setStatePill(ui.navigationModelState, 'waiting', 'FALLBACK');
+    ui.navigationModelNote.textContent = `${profile.label} asset을 불러오지 못해 안전한 대체 모델을 표시합니다. 실시간 관절 데이터는 공식 모델이 준비될 때까지 적용하지 않습니다.`;
+  } else if (!robotModelsReady) {
+    setStatePill(ui.navigationModelState, 'waiting', 'LOADING');
+    ui.navigationModelNote.textContent = `${profile.label}에 선택된 3D asset을 불러오고 있습니다.`;
+  } else if (liveJoints) {
+    setStatePill(ui.navigationModelState, 'ok', 'JOINTS LIVE');
+    ui.navigationModelNote.textContent = `${profile.label} 모델에 현재 로봇의 관절 상태를 반영하고 있습니다. 이 패널은 모델 확인용이며 지도 좌표는 위의 2D map canvas를 사용합니다.`;
+  } else {
+    setStatePill(ui.navigationModelState, 'ok', 'MODEL READY');
+    ui.navigationModelNote.textContent = `${profile.label} 선택 모델의 정적 미리보기입니다. 로봇 관절 토픽이 정상이고 runtime 프로필이 일치하면 움직임이 자동으로 반영됩니다.`;
+  }
+
+  navigationScene3d?.setRobotVisible(true);
+  navigationScene3d?.setRobotPose(null);
+  if (!liveJoints) navigationScene3d?.resetRobotJointPositions?.();
+  else if (renderedJointPositions) navigationScene3d?.setRobotJointPositions?.(renderedJointPositions);
+  navigationScene3d?.setStatus({
+    online: compatible ? online : null,
+    lidarOnline: null,
+    snapshot: false,
+    message: !compatible
+      ? 'ROS PROFILE RESTART REQUIRED · STATIC PREVIEW'
+      : robotModelsFailed
+        ? 'MODEL ASSET FALLBACK PREVIEW'
+        : `${profile.label} 3D MODEL PREVIEW`,
+  });
 }
 
 async function applyRobotModel(profile = activeRobotProfile()) {
   if (!profile) return;
   const generation = ++robotModelLoadGeneration;
   const assetUrl = String(profile.model?.asset_url || '').trim();
-  const renderers = [scene3d, savedScene3d].filter(Boolean);
+  const renderers = [
+    { renderer: scene3d, poseOrigin: 'base', adaptiveScale: false },
+    { renderer: savedScene3d, poseOrigin: 'ground', adaptiveScale: true },
+    { renderer: navigationScene3d, poseOrigin: 'ground', adaptiveScale: true },
+  ].filter((entry) => Boolean(entry.renderer));
   robotModelsReady = false;
   robotModelsFailed = false;
-  renderers.forEach((renderer, index) => {
+  navigationModelPanelKey = '';
+  renderers.forEach(({ renderer, poseOrigin, adaptiveScale }) => {
     renderer._robotModelLabel = profile.label;
     renderer._robotModelType = profile.id;
     renderer.resetRobotJointPositions?.();
     renderer.configureOfficialRobot?.({
       enabled: Boolean(assetUrl),
       assetUrl,
-      poseOrigin: index === 0 ? 'base' : 'ground',
-      adaptiveScale: index !== 0,
+      poseOrigin,
+      adaptiveScale,
       scale: 1,
     });
   });
@@ -474,10 +585,10 @@ async function applyRobotModel(profile = activeRobotProfile()) {
   ui.savedModelState.classList.remove('ready', 'fallback');
   updateLiveModelBadge();
   try {
-    if (!assetUrl || renderers.length !== 2 || renderers.some((renderer) => typeof renderer.loadOfficialRobotModel !== 'function')) {
+    if (!assetUrl || !renderers.length || renderers.some(({ renderer }) => typeof renderer.loadOfficialRobotModel !== 'function')) {
       throw new Error('robot model renderer or asset is unavailable');
     }
-    await Promise.all(renderers.map((renderer) => renderer.loadOfficialRobotModel(assetUrl)));
+    await Promise.all(renderers.map(({ renderer }) => renderer.loadOfficialRobotModel(assetUrl)));
     if (generation !== robotModelLoadGeneration) return;
     robotModelsReady = true;
     ui.savedModelState.textContent = modelBadgeLabel(profile);
@@ -706,8 +817,12 @@ function activatePage(page, updateHash = false) {
       redrawSavedMap();
       drawMapEditor();
     } else if (activePage === 'navigation') {
+      navigationScene3d?.resize();
+      updateNavigationModelPanel({ force: true });
       drawNavigationMap();
       refreshNavigationParameters();
+    } else if (activePage === 'settings') {
+      refreshServiceLifecycle();
     }
   });
 }
@@ -745,6 +860,214 @@ async function latestApi(path, seq) {
 function setStatePill(element, state, label) {
   element.className = `panel-state ${state === 'ok' || state === 'mapping' || state === 'cloud_only' || state === 'grid_live' || state === 'saved' ? 'ok' : state === 'stale' || state === 'error' ? 'error' : 'waiting'}`;
   element.innerHTML = `<span></span>${label || state.toUpperCase()}`;
+}
+
+const SERVICE_LIFECYCLE_ACTIVE_STATES = new Set(['scheduled', 'dispatching', 'queued']);
+const SERVICE_LIFECYCLE_BLOCKER_LABELS = {
+  control_status_unavailable: '제어 상태 확인 불가',
+  manual_control_active: '수동 제어 ARM 활성',
+  control_lease_active: '로봇 제어 lease 활성',
+  robot_action_active: 'Go2 모션 실행 중',
+  software_stop_latched: 'DASHBOARD SOFTWARE STOP 잠김',
+  navigation_status_unavailable: 'Nav2 상태 확인 불가',
+  navigation_active: 'Nav2 자율주행 활성',
+  mapping_status_unavailable: '매핑 상태 확인 불가',
+  mapping_pipeline_active: 'LiDAR 매핑 파이프라인 활성',
+  mapping_operation_active: '지도 저장·변환 작업 중',
+  lifecycle_preflight_unavailable: '서버 사전 점검 실패',
+};
+
+function serviceLifecycleTokenReady() {
+  const length = ui.serviceAdminToken?.value?.length || 0;
+  return length >= 16 && length <= 256;
+}
+
+function serviceLifecycleOperationActive(snapshot = serviceLifecycleSnapshot) {
+  return SERVICE_LIFECYCLE_ACTIVE_STATES.has(String(snapshot?.operation?.state || ''));
+}
+
+function serviceLifecycleBlockerText(blockers) {
+  return (Array.isArray(blockers) ? blockers : [])
+    .map((value) => SERVICE_LIFECYCLE_BLOCKER_LABELS[value] || String(value).replaceAll('_', ' '))
+    .join(' · ');
+}
+
+function serviceLifecycleErrorText(error) {
+  if (error?.status === 403) return '관리 키 또는 요청 출처를 확인하세요.';
+  if (error?.status === 409) return '활성 작업이 있어 요청이 차단되었습니다. 상태를 새로 확인하세요.';
+  if (error?.status === 503) return '서버 관리 기능 또는 sudo 권한이 준비되지 않았습니다.';
+  if (error?.status === 422) return '확인 값이 올바르지 않습니다.';
+  return `서버 관리 요청 실패: ${error?.message || '연결 오류'}`;
+}
+
+function renderServiceLifecycle() {
+  if (!ui.serviceLifecycleState) return;
+  const snapshot = serviceLifecycleSnapshot;
+  const expected = serviceLifecycleExpected;
+  const operation = snapshot?.operation || null;
+  const operationState = String(operation?.state || 'idle');
+  const operationAction = String(operation?.action || '');
+  const blockers = Array.isArray(snapshot?.blockers) ? snapshot.blockers : [];
+  const expectedLabel = expected?.action === 'stop' ? 'STOPPING' : 'RESTARTING';
+
+  ui.serviceLifecycleName.textContent = snapshot?.service || 'robot-scope.service';
+  ui.serviceLifecycleInstance.textContent = snapshot?.instance_id
+    ? String(snapshot.instance_id).slice(0, 12)
+    : '—';
+  ui.serviceLifecyclePrivilege.textContent = String(snapshot?.privilege?.last_result || 'unknown').toUpperCase();
+  ui.serviceLifecycleOperation.textContent = operationAction
+    ? `${operationAction.toUpperCase()} · ${operationState.toUpperCase()}`
+    : 'IDLE';
+
+  let state = 'waiting';
+  let label = 'CHECKING';
+  let message = '서버 관리 상태를 확인하고 있습니다.';
+  let messageClass = '';
+  if (expected) {
+    label = expectedLabel;
+    message = expected.action === 'stop'
+      ? '대시보드 중지를 요청했습니다. 연결 종료는 정상 동작입니다.'
+      : '대시보드가 재시작되는 동안 연결이 잠시 끊길 수 있습니다.';
+  } else if (!snapshot) {
+    state = 'error';
+    label = 'UNAVAILABLE';
+    message = '서버 관리 상태를 불러오지 못했습니다.';
+    messageClass = 'error';
+  } else if (operationState === 'failed' || operationState === 'blocked' || operationState === 'cancelled') {
+    state = 'error';
+    label = operationState.toUpperCase();
+    message = `최근 ${operationAction || 'service'} 요청 실패: ${operation?.error || operationState}`;
+    messageClass = 'error';
+  } else if (!snapshot.enabled) {
+    label = 'DISABLED';
+    message = '관리 기능은 기본 비활성입니다. Jetson 환경 파일에서 명시적으로 활성화해야 합니다.';
+  } else if (!snapshot.configured) {
+    label = 'SETUP REQUIRED';
+    message = '관리 키 해시가 구성되지 않아 restart/stop을 사용할 수 없습니다.';
+  } else if (!snapshot.privilege?.runner_available) {
+    state = 'error';
+    label = 'RUNNER MISSING';
+    message = 'sudo 또는 systemctl 실행 파일을 확인할 수 없습니다.';
+    messageClass = 'error';
+  } else if (serviceLifecycleOperationActive(snapshot)) {
+    label = operationAction === 'stop' ? 'STOPPING' : 'RESTARTING';
+    message = '요청을 systemd에 전달하고 있습니다. 반복해서 누르지 마세요.';
+  } else if (blockers.length) {
+    label = 'BLOCKED';
+    message = `먼저 정지해야 할 작업: ${serviceLifecycleBlockerText(blockers)}`;
+  } else if (snapshot.can_restart && snapshot.can_stop) {
+    state = 'ok';
+    label = 'READY';
+    message = '관리 키와 확인 체크 후 대시보드 서비스만 재시작하거나 중지할 수 있습니다.';
+    messageClass = 'ok';
+  }
+  setStatePill(ui.serviceLifecycleState, state, label);
+  ui.serviceLifecycleMessage.textContent = message;
+  ui.serviceLifecycleMessage.className = `service-lifecycle-message${messageClass ? ` ${messageClass}` : ''}`;
+
+  const locallyConfirmed = Boolean(ui.serviceLifecycleConfirm.checked && serviceLifecycleTokenReady());
+  const locked = serviceLifecycleBusy || Boolean(expected) || serviceLifecycleOperationActive(snapshot);
+  ui.serviceAdminToken.disabled = locked || !snapshot?.enabled || !snapshot?.configured;
+  ui.serviceLifecycleConfirm.disabled = locked || !snapshot?.enabled || !snapshot?.configured;
+  ui.serviceRestartButton.disabled = locked || !snapshot?.can_restart || !locallyConfirmed;
+  ui.serviceStopButton.disabled = locked || !snapshot?.can_stop || !locallyConfirmed;
+}
+
+function serviceLifecycleTransitionOutcome(expected, snapshot) {
+  if (!expected || !snapshot) return { state: 'pending' };
+  const instanceChanged = Boolean(
+    expected.instanceId
+    && snapshot.instance_id
+    && snapshot.instance_id !== expected.instanceId
+  );
+  if (instanceChanged) return { state: 'complete' };
+  const operation = snapshot.operation;
+  const sameOperation = Boolean(expected.operationId && operation?.id === expected.operationId);
+  if (sameOperation && ['failed', 'blocked', 'cancelled'].includes(String(operation?.state || ''))) {
+    return { state: 'failed', error: operation?.error || operation?.state };
+  }
+  return { state: 'pending' };
+}
+
+function completeExpectedServiceTransition(snapshot) {
+  const expected = serviceLifecycleExpected;
+  const outcome = serviceLifecycleTransitionOutcome(expected, snapshot);
+  if (outcome.state === 'complete') {
+    const action = expected.action;
+    serviceLifecycleExpected = null;
+    showToast(action === 'restart' ? '대시보드가 새 인스턴스로 재시작되었습니다.' : '대시보드 서비스가 다시 시작되었습니다.');
+  } else if (outcome.state === 'failed') {
+    serviceLifecycleExpected = null;
+    showToast(`서버 요청 실패: ${outcome.error}`, true);
+  }
+}
+
+async function refreshServiceLifecycle(force = false) {
+  if (!force && activePage !== 'settings' && !serviceLifecycleExpected) return;
+  const generation = ++serviceLifecycleRequestGeneration;
+  try {
+    const snapshot = await api('/api/v1/system/service');
+    if (generation !== serviceLifecycleRequestGeneration) return;
+    serviceLifecycleSnapshot = snapshot;
+    completeExpectedServiceTransition(snapshot);
+  } catch (error) {
+    if (generation !== serviceLifecycleRequestGeneration) return;
+    serviceLifecycleSnapshot = null;
+    if (serviceLifecycleExpected) {
+      const elapsed = Date.now() - serviceLifecycleExpected.startedAt;
+      if (elapsed > 90_000) {
+        serviceLifecycleExpected = null;
+        showToast('서비스 전환을 90초 안에 확인하지 못했습니다.', true);
+      }
+    } else if (force) {
+      showToast(serviceLifecycleErrorText(error), true);
+    }
+  }
+  renderServiceLifecycle();
+}
+
+async function requestServiceLifecycle(action) {
+  if (serviceLifecycleBusy || serviceLifecycleExpected || !['restart', 'stop'].includes(action)) return;
+  const token = ui.serviceAdminToken.value;
+  ui.serviceAdminToken.value = '';
+  renderServiceLifecycle();
+  if (token.length < 16 || token.length > 256 || !ui.serviceLifecycleConfirm.checked) {
+    showToast('관리 키와 연결 중단 확인 체크가 필요합니다.', true);
+    return;
+  }
+  const warning = action === 'stop'
+    ? '대시보드 서비스를 중지하면 SSH 또는 systemd로 다시 시작할 때까지 접속할 수 없습니다. 정말 중지할까요?'
+    : '대시보드 연결이 잠시 끊기며 진행 중이던 화면 상태는 초기화됩니다. 지금 재시작할까요?';
+  if (!window.confirm(warning)) return;
+
+  serviceLifecycleBusy = true;
+  serviceLifecycleRequestGeneration += 1;
+  serviceLifecycleExpected = {
+    action,
+    instanceId: serviceLifecycleSnapshot?.instance_id || '',
+    operationId: '',
+    startedAt: Date.now(),
+  };
+  ui.serviceLifecycleConfirm.checked = false;
+  renderServiceLifecycle();
+  try {
+    const snapshot = await api(`/api/v1/system/service/${action}`, {
+      method: 'POST',
+      headers: { 'X-Robot-Scope-Admin-Token': token },
+      body: JSON.stringify({ confirmed: true }),
+    });
+    serviceLifecycleSnapshot = snapshot;
+    if (serviceLifecycleExpected?.action === action) {
+      serviceLifecycleExpected.operationId = String(snapshot?.operation?.id || '');
+    }
+    showToast(action === 'stop' ? '대시보드 중지 요청을 접수했습니다.' : '대시보드 재시작 요청을 접수했습니다.');
+  } catch (error) {
+    if (error?.status) serviceLifecycleExpected = null;
+    showToast(error?.status ? serviceLifecycleErrorText(error) : '요청 결과를 확인할 수 없습니다. 서비스 상태를 다시 확인합니다.', true);
+  } finally {
+    serviceLifecycleBusy = false;
+    renderServiceLifecycle();
+  }
 }
 
 function formatHz(value) {
@@ -988,6 +1311,10 @@ function resetLiveRobotSessionView() {
   scene3d?.clearPointCloud();
   scene3d?.clearTrail();
   scene3d?.setRobotPose(null);
+  navigationScene3d?.resetRobotJointPositions?.();
+  navigationScene3d?.setRobotPose(null);
+  navigationModelPanelKey = '';
+  updateNavigationModelPanel();
 }
 
 function accumulateRegisteredCloud(cloud) {
@@ -2063,6 +2390,8 @@ function animateRobot(timestamp) {
   if (activePage === 'mapping' && desiredMapView() === 'cloud') {
     if (robotRuntimeDataCompatible && renderedJointPositions) scene3d?.setRobotJointPositions?.(renderedJointPositions);
     scene3d?.setRobotPose(robotRuntimeDataCompatible && poseLive ? currentPose : null);
+  } else if (activePage === 'navigation' && robotRuntimeDataCompatible && robotModelsReady && !robotModelsFailed && selectedRobotType === 'go2' && jointLive && renderedJointPositions) {
+    navigationScene3d?.setRobotJointPositions?.(renderedJointPositions);
   }
 }
 
@@ -3174,6 +3503,7 @@ function renderNavigationStatus() {
   const goalActive = navigationEngine.goalActive(snapshot);
   const localizationState = String(snapshot.localization?.state || 'unknown').toLowerCase();
   const robotOnline = snapshot.robot_online === true;
+  updateNavigationModelPanel();
   const available = navigationApiAvailable === true && snapshot.available === true;
   const manualConflict = navigationManualControlConflict();
   const safety = snapshot.safety || {};
@@ -4350,7 +4680,10 @@ function renderRawImage(data, metadata) {
 
 function markJointsStale(force = false) {
   if (!force && Date.now() - lastJointAt <= 1200) return;
-  if (jointLive) scene3d?.resetRobotJointPositions?.();
+  if (jointLive || targetJointPositions || renderedJointPositions) {
+    scene3d?.resetRobotJointPositions?.();
+    navigationScene3d?.resetRobotJointPositions?.();
+  }
   jointLive = false;
   latestBodyRpy = null;
   targetJointPositions = null;
@@ -5213,7 +5546,7 @@ ui.robotIp.addEventListener('input', () => {
   });
 });
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot(), refreshNavigation(), refreshNavigationParameters(true)]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot(), refreshNavigation(), refreshNavigationParameters(true), refreshServiceLifecycle(true)]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
@@ -5235,6 +5568,10 @@ ui.mapSource.addEventListener('change', () => {
   mapSeq = -1;
   selectSource('occupancy_grid', ui.mapSource.value);
 });
+ui.serviceAdminToken.addEventListener('input', renderServiceLifecycle);
+ui.serviceLifecycleConfirm.addEventListener('change', renderServiceLifecycle);
+ui.serviceRestartButton.addEventListener('click', () => requestServiceLifecycle('restart'));
+ui.serviceStopButton.addEventListener('click', () => requestServiceLifecycle('stop'));
 ui.mapViewMode.addEventListener('change', () => chooseMapView(ui.mapViewMode.value));
 ui.livePointBudget.addEventListener('change', async () => {
   const value = ui.livePointBudget.value;
@@ -5388,7 +5725,10 @@ window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
   if (activePage === 'mapping') redrawActiveMap();
   if (activePage === 'maps') { redrawSavedMap(); drawMapEditor(); }
-  if (activePage === 'navigation') drawNavigationMap();
+  if (activePage === 'navigation') {
+    navigationScene3d?.resize();
+    drawNavigationMap();
+  }
 });
 
 startClock();
@@ -5402,6 +5742,7 @@ syncMapEditorUi();
 renderNavigationParameterGroups(navigationEngine?.TUNED_VALUES, true);
 renderNavigationPresetOptions();
 renderNavigationStatus();
+renderServiceLifecycle();
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
 initializeRobotProfiles();
@@ -5419,6 +5760,7 @@ refreshMap();
 refreshMappingControl();
 refreshNavigation();
 refreshNavigationParameters();
+refreshServiceLifecycle();
 setInterval(refreshState, 1000);
 setInterval(refreshPointcloud, 400);
 setInterval(refreshMap, 2000);
@@ -5427,6 +5769,7 @@ setInterval(refreshSources, 5000);
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
 setInterval(refreshNavigation, 1000);
+setInterval(refreshServiceLifecycle, 5000);
 setInterval(markJointsStale, 250);
 setInterval(syncCameraFrameFreshness, 500);
 setInterval(controlTick, 50);
