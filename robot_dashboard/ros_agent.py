@@ -217,6 +217,7 @@ class RosAgent:
         # changes observation/display metadata; it never retargets the bridge.
         self._startup_robot_type = self._robot_type
         self._startup_robot_ip = self.robot_ip
+        self._robot_target_connected = bool(self.robot_ip)
         self._target_restart_required = False
         self._robot_hostname = ""
         self._robot_model = (
@@ -2623,7 +2624,8 @@ class RosAgent:
     def _target_matches_startup(self) -> bool:
         with self._lock:
             return (
-                self._robot_type == self._startup_robot_type
+                self._robot_target_connected
+                and self._robot_type == self._startup_robot_type
                 and self.robot_ip == self._startup_robot_ip
             )
 
@@ -2632,6 +2634,7 @@ class RosAgent:
             return (
                 self._startup_robot_type == "go2"
                 and bool(self._startup_robot_ip)
+                and self._robot_target_connected
                 and self._robot_type == "go2"
                 and self.robot_ip == self._startup_robot_ip
                 and not self._target_restart_required
@@ -2639,6 +2642,8 @@ class RosAgent:
 
     def _control_target_reason(self) -> str:
         with self._lock:
+            if not self._robot_target_connected:
+                return "robot_target_disconnected"
             if self._target_restart_required:
                 return "runtime_target_changed_restart_required"
             if self._startup_robot_type != "go2":
@@ -3600,10 +3605,12 @@ class RosAgent:
     def robot_target_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             target_matches_startup = (
-                self._robot_type == self._startup_robot_type
+                self._robot_target_connected
+                and self._robot_type == self._startup_robot_type
                 and self.robot_ip == self._startup_robot_ip
             )
             return {
+                "connected": self._robot_target_connected,
                 "ip": self.robot_ip,
                 "hostname": self._robot_hostname,
                 "robot_type": self._robot_type,
@@ -3624,6 +3631,7 @@ class RosAgent:
                 "control_target_supported": (
                     self._startup_robot_type == "go2"
                     and bool(self._startup_robot_ip)
+                    and self._robot_target_connected
                     and target_matches_startup
                     and not self._target_restart_required
                 ),
@@ -3650,7 +3658,11 @@ class RosAgent:
         normalized_hostname = normalize_hostname(hostname)
         with self._control_operation_lock:
             with self._lock:
-                changed = valid != self.robot_ip or definition["id"] != self._robot_type
+                changed = (
+                    not self._robot_target_connected
+                    or valid != self.robot_ip
+                    or definition["id"] != self._robot_type
+                )
                 # Generic/TurtleBot/SO-101 profiles have no Go2 motion
                 # transport. Their target selection is observation/display
                 # metadata and can change live. Any transition touching Go2,
@@ -3670,6 +3682,7 @@ class RosAgent:
                         else definition["id"] == "go2"
                     )
                 self.robot_ip = valid
+                self._robot_target_connected = True
                 self._robot_type = definition["id"]
                 self._robot_hostname = normalized_hostname
                 self._robot_model = copy.deepcopy(definition["model"])
@@ -3677,6 +3690,34 @@ class RosAgent:
             # Snapshot while the operation lock still owns this mutation, so
             # concurrent direct API clients cannot make this request report a
             # later request's target.
+            snapshot = self.robot_target_snapshot()
+            snapshot["changed"] = changed
+        return snapshot
+
+    def disconnect_robot_target(self) -> Dict[str, Any]:
+        """Clear the selected display/control target without touching the NIC.
+
+        The ROS/DDS participant is fixed at process startup, so this operation
+        revokes Go2 motion and marks all target-specific UI data disconnected;
+        it does not reconfigure interfaces, stop system services or power off a
+        device. Reconnecting a Go2 target remains fail-closed until restart.
+        """
+
+        with self._control_operation_lock:
+            with self._lock:
+                changed = self._robot_target_connected or bool(self.robot_ip)
+                go2_involved = (
+                    self._startup_robot_type == "go2" or self._robot_type == "go2"
+                )
+            if changed and go2_involved:
+                self._stop_for_target_change_locked()
+            with self._lock:
+                self.robot_ip = ""
+                self._robot_hostname = ""
+                self._robot_target_connected = False
+                if changed and go2_involved:
+                    self._target_restart_required = True
+                self._network_cache = (0.0, False, None)
             snapshot = self.robot_target_snapshot()
             snapshot["changed"] = changed
         return snapshot
@@ -3699,6 +3740,7 @@ class RosAgent:
                 if changed:
                     self._target_restart_required = go2_involved
                 self.robot_ip = valid
+                self._robot_target_connected = True
                 self._network_cache = (0.0, False, None)
         return valid
 
@@ -3707,9 +3749,10 @@ class RosAgent:
         with self._lock:
             cached_at, online, latency = self._network_cache
             target_ip = self.robot_ip
+            target_connected = self._robot_target_connected
         if now - cached_at < 3.0:
             return online, latency
-        if not target_ip:
+        if not target_connected or not target_ip:
             return False, None
         started = time.monotonic()
         try:
@@ -3743,7 +3786,8 @@ class RosAgent:
                 robot_type_definition(self._robot_type) if self._robot_type else None
             )
             target_matches_startup = (
-                self._robot_type == self._startup_robot_type
+                self._robot_target_connected
+                and self._robot_type == self._startup_robot_type
                 and self.robot_ip == self._startup_robot_ip
             )
             return {
@@ -3758,6 +3802,7 @@ class RosAgent:
                 "ros_interface_ready": ros_transport["interface_ready"],
                 "ros_offline_viewer": ros_transport["offline_viewer"],
                 "robot_ip": self.robot_ip,
+                "robot_target_connected": self._robot_target_connected,
                 "robot_hostname": self._robot_hostname,
                 "robot_type": self._robot_type,
                 "robot_model": copy.deepcopy(self._robot_model),
@@ -3768,6 +3813,7 @@ class RosAgent:
                 "control_target_supported": (
                     self._startup_robot_type == "go2"
                     and bool(self._startup_robot_ip)
+                    and self._robot_target_connected
                     and target_matches_startup
                     and not self._target_restart_required
                 ),

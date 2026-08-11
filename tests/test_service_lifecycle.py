@@ -1,4 +1,3 @@
-import hashlib
 import json
 import subprocess
 import threading
@@ -17,10 +16,6 @@ from robot_dashboard.service_lifecycle import (
     ServiceLifecycleManager,
     ServiceLifecycleUnavailable,
 )
-
-
-TOKEN = "classroom-admin-token-0123456789abcdef"
-TOKEN_HASH = hashlib.sha256(TOKEN.encode("utf-8")).hexdigest()
 
 
 def wait_for_state(
@@ -44,7 +39,6 @@ class ServiceLifecycleManagerTests(unittest.TestCase):
     def manager(**overrides):
         options = {
             "enabled": True,
-            "admin_token_sha256": TOKEN_HASH,
             "executable_probe": lambda _path: True,
             "dispatch_delay_seconds": 0.25,
             "command_timeout_seconds": 0.5,
@@ -53,22 +47,11 @@ class ServiceLifecycleManagerTests(unittest.TestCase):
         options.update(overrides)
         return ServiceLifecycleManager(**options)
 
-    def test_authentication_is_bounded_constant_time_and_never_public(self):
+    def test_confirmation_mode_never_exposes_or_requires_credentials(self):
         manager = self.manager()
-        self.assertTrue(manager.authenticate(TOKEN))
-        self.assertFalse(manager.authenticate("wrong-admin-token-0123456789"))
-        self.assertFalse(manager.authenticate(""))
-        self.assertFalse(manager.authenticate("x" * 257))
-
         rendered = json.dumps(manager.snapshot(), sort_keys=True)
-        self.assertNotIn(TOKEN, rendered)
-        self.assertNotIn(TOKEN_HASH, rendered)
+        self.assertNotIn("token", rendered.casefold())
         self.assertTrue(manager.snapshot()["configured"])
-
-        empty_hash = hashlib.sha256(b"").hexdigest()
-        empty_manager = self.manager(admin_token_sha256=empty_hash)
-        self.assertFalse(empty_manager.configured)
-        self.assertFalse(empty_manager.authenticate(""))
 
     def test_only_two_fixed_shell_free_commands_can_be_dispatched(self):
         calls = []
@@ -96,7 +79,7 @@ class ServiceLifecycleManagerTests(unittest.TestCase):
             self.assertNotIn("reboot", command)
             self.assertNotIn("poweroff", command)
 
-    def test_confirmation_configuration_busy_and_blockers_fail_closed(self):
+    def test_confirmation_enablement_busy_and_blockers_fail_closed(self):
         manager = self.manager(command_runner=lambda command, timeout: None)
         with self.assertRaises(ServiceLifecycleConfirmationRequired):
             manager.schedule_restart(confirmed=False)
@@ -104,9 +87,6 @@ class ServiceLifecycleManagerTests(unittest.TestCase):
         disabled = self.manager(enabled=False)
         with self.assertRaises(ServiceLifecycleUnavailable):
             disabled.schedule_stop(confirmed=True)
-        unconfigured = self.manager(admin_token_sha256="")
-        with self.assertRaises(ServiceLifecycleUnavailable):
-            unconfigured.schedule_restart(confirmed=True)
 
         blocked = self.manager(blocker_provider=lambda: ["manual_control_active"])
         with self.assertRaises(ServiceLifecycleBlocked) as raised:
@@ -202,17 +182,15 @@ class ServiceLifecycleManagerTests(unittest.TestCase):
 
 
 class ServiceLifecycleEnvironmentTests(unittest.TestCase):
-    def test_environment_requires_both_explicit_opt_in_and_valid_hash(self):
-        disabled = ServiceLifecycleManager.from_environment(
-            {"ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256": TOKEN_HASH}
-        )
+    def test_environment_requires_only_explicit_opt_in(self):
+        disabled = ServiceLifecycleManager.from_environment({})
         self.assertFalse(disabled.snapshot()["enabled"])
 
-        missing_hash = ServiceLifecycleManager.from_environment(
+        enabled = ServiceLifecycleManager.from_environment(
             {"ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED": "1"}
         )
-        self.assertTrue(missing_hash.snapshot()["enabled"])
-        self.assertFalse(missing_hash.snapshot()["configured"])
+        self.assertTrue(enabled.snapshot()["enabled"])
+        self.assertTrue(enabled.snapshot()["configured"])
 
     def test_sudoers_example_allows_only_the_two_exact_dashboard_commands(self):
         root = Path(__file__).resolve().parents[1]

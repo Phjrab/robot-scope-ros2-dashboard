@@ -76,6 +76,30 @@ class HttpSecurityTests(unittest.TestCase):
             )
         )
 
+    def test_robot_target_disconnect_requires_same_origin(self):
+        source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.AsyncFunctionDef) and node.name == "disconnect_robot"
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "require_same_origin"
+                for node in ast.walk(function)
+            )
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Attribute)
+                and node.attr == "disconnect_robot_target"
+                for node in ast.walk(function)
+            )
+        )
+
     def test_streaming_mutations_and_websockets_are_same_origin(self):
         source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
         tree = ast.parse(source_path.read_text(encoding="utf-8"))

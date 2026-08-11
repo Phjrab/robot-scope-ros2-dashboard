@@ -181,12 +181,13 @@ Control은 다음 조건이 하나라도 사라지면 fail-closed 합니다.
 서비스 lifecycle은 기본 비활성이고 다음을 모두 요구합니다.
 
 - same-origin 요청
-- 16자 이상의 관리 토큰과 일치하는 SHA-256
+- Settings 확인 체크와 브라우저 확인 대화상자
+- strict `confirmed=true`
 - 정확한 sudoers allowlist
 - control, navigation, mapping과 저장 작업이 모두 idle
 
-관리 토큰은 HTTP 요청에 포함되므로 신뢰 LAN 밖에서는 사용하지 않습니다. 문제 해결을 위해
-sudoers에 wildcard, reboot 또는 다른 unit을 추가하지 마세요.
+별도 사용자 인증은 제공하지 않으므로 신뢰 LAN 밖에서는 활성화하지 않습니다. 문제 해결을
+위해 sudoers에 wildcard, reboot 또는 다른 unit을 추가하지 마세요.
 
 ## 지원 요청에 포함할 정보
 
@@ -197,5 +198,5 @@ sudoers에 wildcard, reboot 또는 다른 unit을 추가하지 마세요.
 - 토픽 이름, type, publisher 수와 freshness
 - 문제 발생 시각과 로봇/센서 전원 상태
 
-비밀번호, control bridge key, 관리 토큰, SSH 개인키, 전체 `.env`와 실제 경기장 지도는
+비밀번호, control bridge key, SSH 개인키, 전체 `.env`와 실제 경기장 지도는
 첨부하지 않습니다.

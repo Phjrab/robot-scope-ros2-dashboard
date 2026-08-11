@@ -519,8 +519,9 @@
                 <div class="robot-discovery-empty">로봇 유형을 선택하면 네트워크 검색을 시작합니다.</div>
               </div>
               <label class="field-label manual-ip-label" for="robotIp">선택한 IP 또는 직접 입력</label>
-              <div class="input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161"><button id="connectButton" type="button">연결</button></div>
-              <p class="connection-runtime-note">대상 선택은 IP 확인과 3D 모델을 바꿉니다. DDS 인터페이스·Domain·ROS workspace는 실행 중 자동 변경되지 않으므로, 네트워크나 유형이 달라지면 올바른 프로필로 대시보드를 다시 시작하세요.</p>
+              <div class="input-row connection-input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161"><button id="connectButton" type="button">연결</button><button id="disconnectButton" class="connection-disconnect-button" type="button" disabled>연결 해제</button></div>
+              <div class="connection-target-state"><span>현재 대상</span><strong id="connectedRobotTarget">연결 안 됨</strong></div>
+              <p class="connection-runtime-note">연결 해제는 선택 대상과 Go2 제어 권한을 안전하게 지우지만 물리 네트워크·ROS/DDS 프로세스·로봇 전원은 변경하지 않습니다. DDS 인터페이스·Domain·ROS workspace를 바꾸려면 올바른 프로필로 대시보드를 다시 시작하세요.</p>
               <div class="selected-model-note"><span>3D 모델</span><div><strong id="selectedRobotModel">선택한 유형에 맞춰 준비 중</strong><a id="selectedRobotUrdf" href="#" target="_blank" rel="noopener" hidden>URDF 보기</a></div></div>
               <div class="connection-detail settings-detail">
                 <div><span>Agent</span><strong id="agentHost">—</strong></div>
@@ -561,8 +562,6 @@
               </div>
               <div class="service-lifecycle-actions">
                 <p class="service-lifecycle-warning"><strong>대시보드 서비스만 제어합니다.</strong> Jetson 전원 종료·재부팅 기능이 아닙니다. 중지하면 SSH 또는 systemd로 서비스를 다시 시작할 때까지 이 페이지에 접속할 수 없습니다.</p>
-                <label class="field-label" for="serviceAdminToken">관리 키</label>
-                <input id="serviceAdminToken" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="이 작업에만 사용하고 즉시 지웁니다">
                 <label class="service-lifecycle-confirm"><input id="serviceLifecycleConfirm" type="checkbox"><span>현재 제어·자율주행·매핑이 모두 정지했으며 연결이 끊길 수 있음을 확인했습니다.</span></label>
                 <div class="service-lifecycle-buttons">
                   <button id="serviceRestartButton" class="service-restart-button" type="button" disabled>RESTART DASHBOARD</button>

@@ -97,6 +97,35 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.manager.set_readiness(bridge_ready=True, lowstate_ready=True)
         self.agent._control_manager = self.manager
 
+    def test_disconnect_is_idempotent_revokes_motion_and_clears_target_health(self):
+        lease = self.agent.control_acquire("keyboard")["token"]
+        self.agent.control_bind(lease, "target-disconnect-websocket")
+
+        disconnected = self.agent.disconnect_robot_target()
+        self.assertTrue(disconnected["changed"])
+        self.assertFalse(disconnected["connected"])
+        self.assertEqual(disconnected["ip"], "")
+        self.assertEqual(disconnected["hostname"], "")
+        self.assertTrue(disconnected["restart_required"])
+        self.assertEqual(disconnected["control_target_reason"], "robot_target_disconnected")
+        self.assertFalse(disconnected["control_target_supported"])
+        self.assertFalse(self.manager.snapshot()["lease"]["active"])
+        self.assertTrue(self.manager.snapshot()["estop"]["latched"])
+
+        health = self.agent.health_snapshot()
+        self.assertFalse(health["robot_target_connected"])
+        self.assertFalse(health["robot_online"])
+        self.assertEqual(health["robot_ip"], "")
+
+        duplicate = self.agent.disconnect_robot_target()
+        self.assertFalse(duplicate["changed"])
+
+        reselected = self.agent.set_robot_target("192.168.123.161", "go2", "")
+        self.assertTrue(reselected["connected"])
+        self.assertTrue(reselected["changed"])
+        self.assertTrue(reselected["restart_required"])
+        self.assertFalse(reselected["control_target_supported"])
+
     def test_target_change_revokes_lease_and_non_go2_blocks_all_enabling_mutators(self):
         lease = self.agent.control_acquire("keyboard")["token"]
         self.agent.control_bind(lease, "target-test-websocket")

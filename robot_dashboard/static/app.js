@@ -176,6 +176,8 @@ const ui = {
   selectedRobotUrdf: $('#selectedRobotUrdf'),
   robotIp: $('#robotIp'),
   connectButton: $('#connectButton'),
+  disconnectButton: $('#disconnectButton'),
+  connectedRobotTarget: $('#connectedRobotTarget'),
   agentHost: $('#agentHost'),
   rosRuntime: $('#rosRuntime'),
   rosDomain: $('#rosDomain'),
@@ -205,7 +207,6 @@ const ui = {
   serviceLifecycleInstance: $('#serviceLifecycleInstance'),
   serviceLifecyclePrivilege: $('#serviceLifecyclePrivilege'),
   serviceLifecycleOperation: $('#serviceLifecycleOperation'),
-  serviceAdminToken: $('#serviceAdminToken'),
   serviceLifecycleConfirm: $('#serviceLifecycleConfirm'),
   serviceRestartButton: $('#serviceRestartButton'),
   serviceStopButton: $('#serviceStopButton'),
@@ -525,6 +526,7 @@ let robotIpDirty = false;
 let robotDiscoveryGeneration = 0;
 let robotDiscoveryController = null;
 let robotConnectionBusy = false;
+let robotTargetConnected = false;
 let robotRuntimeDataCompatible = true;
 let navigationModelPanelKey = '';
 let jointLive = false;
@@ -1084,7 +1086,6 @@ const SERVICE_LIFECYCLE_BLOCKER_LABELS = {
   manual_control_active: '수동 제어 ARM 활성',
   control_lease_active: '로봇 제어 lease 활성',
   robot_action_active: 'Go2 모션 실행 중',
-  software_stop_latched: 'DASHBOARD SOFTWARE STOP 잠김',
   navigation_status_unavailable: 'Nav2 상태 확인 불가',
   navigation_active: 'Nav2 자율주행 활성',
   mapping_status_unavailable: '매핑 상태 확인 불가',
@@ -1092,11 +1093,6 @@ const SERVICE_LIFECYCLE_BLOCKER_LABELS = {
   mapping_operation_active: '지도 저장·변환 작업 중',
   lifecycle_preflight_unavailable: '서버 사전 점검 실패',
 };
-
-function serviceLifecycleTokenReady() {
-  const length = ui.serviceAdminToken?.value?.length || 0;
-  return length >= 16 && length <= 256;
-}
 
 function serviceLifecycleOperationActive(snapshot = serviceLifecycleSnapshot) {
   return SERVICE_LIFECYCLE_ACTIVE_STATES.has(String(snapshot?.operation?.state || ''));
@@ -1109,7 +1105,7 @@ function serviceLifecycleBlockerText(blockers) {
 }
 
 function serviceLifecycleErrorText(error) {
-  if (error?.status === 403) return '관리 키 또는 요청 출처를 확인하세요.';
+  if (error?.status === 403) return '요청 출처를 확인하세요.';
   if (error?.status === 409) return '활성 작업이 있어 요청이 차단되었습니다. 상태를 새로 확인하세요.';
   if (error?.status === 503) return '서버 관리 기능 또는 sudo 권한이 준비되지 않았습니다.';
   if (error?.status === 422) return '확인 값이 올바르지 않습니다.';
@@ -1157,9 +1153,6 @@ function renderServiceLifecycle() {
   } else if (!snapshot.enabled) {
     label = 'DISABLED';
     message = '관리 기능은 기본 비활성입니다. Jetson 환경 파일에서 명시적으로 활성화해야 합니다.';
-  } else if (!snapshot.configured) {
-    label = 'SETUP REQUIRED';
-    message = '관리 키 해시가 구성되지 않아 restart/stop을 사용할 수 없습니다.';
   } else if (!snapshot.privilege?.runner_available) {
     state = 'error';
     label = 'RUNNER MISSING';
@@ -1174,16 +1167,15 @@ function renderServiceLifecycle() {
   } else if (snapshot.can_restart && snapshot.can_stop) {
     state = 'ok';
     label = 'READY';
-    message = '관리 키와 확인 체크 후 대시보드 서비스만 재시작하거나 중지할 수 있습니다.';
+    message = '안전 확인 체크 후 대시보드 서비스만 재시작하거나 중지할 수 있습니다.';
     messageClass = 'ok';
   }
   setStatePill(ui.serviceLifecycleState, state, label);
   ui.serviceLifecycleMessage.textContent = message;
   ui.serviceLifecycleMessage.className = `service-lifecycle-message${messageClass ? ` ${messageClass}` : ''}`;
 
-  const locallyConfirmed = Boolean(ui.serviceLifecycleConfirm.checked && serviceLifecycleTokenReady());
+  const locallyConfirmed = Boolean(ui.serviceLifecycleConfirm.checked);
   const locked = serviceLifecycleBusy || Boolean(expected) || serviceLifecycleOperationActive(snapshot);
-  ui.serviceAdminToken.disabled = locked || !snapshot?.enabled || !snapshot?.configured;
   ui.serviceLifecycleConfirm.disabled = locked || !snapshot?.enabled || !snapshot?.configured;
   ui.serviceRestartButton.disabled = locked || !snapshot?.can_restart || !locallyConfirmed;
   ui.serviceStopButton.disabled = locked || !snapshot?.can_stop || !locallyConfirmed;
@@ -1244,11 +1236,8 @@ async function refreshServiceLifecycle(force = false) {
 
 async function requestServiceLifecycle(action) {
   if (serviceLifecycleBusy || serviceLifecycleExpected || !['restart', 'stop'].includes(action)) return;
-  const token = ui.serviceAdminToken.value;
-  ui.serviceAdminToken.value = '';
-  renderServiceLifecycle();
-  if (token.length < 16 || token.length > 256 || !ui.serviceLifecycleConfirm.checked) {
-    showToast('관리 키와 연결 중단 확인 체크가 필요합니다.', true);
+  if (!ui.serviceLifecycleConfirm.checked) {
+    showToast('연결 중단 확인 체크가 필요합니다.', true);
     return;
   }
   const warning = action === 'stop'
@@ -1269,7 +1258,6 @@ async function requestServiceLifecycle(action) {
   try {
     const snapshot = await api(`/api/v1/system/service/${action}`, {
       method: 'POST',
-      headers: { 'X-Robot-Scope-Admin-Token': token },
       body: JSON.stringify({ confirmed: true }),
     });
     serviceLifecycleSnapshot = snapshot;
@@ -1298,12 +1286,17 @@ function safeNumber(value, digits = 2) {
 function updateHealth(health) {
   const ready = Boolean(health.agent_ready);
   const online = Boolean(health.robot_online);
+  robotTargetConnected = health.robot_target_connected == null
+    ? Boolean(health.robot_ip)
+    : Boolean(health.robot_target_connected);
   const rosTransport = health.ros_transport || {};
   const rosInterfaceReady = rosTransport.interface_ready ?? health.ros_interface_ready;
   const offlineViewer = Boolean(rosTransport.offline_viewer ?? health.ros_offline_viewer);
   ui.connectionChip.className = `connection-chip ${ready && rosInterfaceReady === true && online ? 'ok' : ready ? 'waiting' : 'error'}`;
   ui.connectionLabel.textContent = !ready
     ? '에이전트 오류'
+    : !robotTargetConnected
+      ? '로봇 대상 연결 해제됨'
     : offlineViewer || rosInterfaceReady === false
       ? 'ROS/DDS 오프라인 뷰어'
       : rosInterfaceReady === true
@@ -1316,7 +1309,8 @@ function updateHealth(health) {
   ui.topicCount.textContent = health.topic_count ?? '—';
   ui.profileLabel.textContent = (health.profile || 'GENERIC ROS 2').toUpperCase();
   const healthRobotType = window.RobotProfiles?.robotTypeId?.(health.robot_type || health.profile_id);
-  const runtimeCompatible = !robotTypeDirty
+  const runtimeCompatible = robotTargetConnected
+    && !robotTypeDirty
     && !Boolean(health.restart_required || health.control_restart_required)
     && (!healthRobotType || healthRobotType === selectedRobotType);
   if (robotRuntimeDataCompatible && !runtimeCompatible) resetLiveRobotSessionView();
@@ -1325,7 +1319,11 @@ function updateHealth(health) {
   if (!robotTypeDirty && healthRobotType && healthRobotType !== selectedRobotType && robotTypes.some((profile) => profile.id === healthRobotType)) {
     activateRobotType(healthRobotType);
   }
-  if (!robotIpDirty && document.activeElement !== ui.robotIp && health.robot_ip) ui.robotIp.value = health.robot_ip;
+  if (!robotIpDirty && document.activeElement !== ui.robotIp) ui.robotIp.value = health.robot_ip || '';
+  ui.connectedRobotTarget.textContent = robotTargetConnected
+    ? `${health.robot_type || selectedRobotType || 'robot'} · ${health.robot_ip || 'IP 확인 중'}`
+    : '연결 안 됨';
+  ui.disconnectButton.disabled = robotConnectionBusy || !robotTargetConnected;
   ui.linkMetric.textContent = online ? (health.robot_latency_ms != null ? `${health.robot_latency_ms} ms` : 'ONLINE') : 'OFFLINE';
   ui.linkSub.textContent = health.robot_ip || 'IP not configured';
   if (health.last_error) console.warn('Robot Scope:', health.last_error);
@@ -6102,6 +6100,7 @@ async function setRobotIp() {
     const candidate = selectedRobotCandidate?.ip === ip ? selectedRobotCandidate : null;
     const payload = window.RobotProfiles.connectionPayload(activeRobotProfile(), candidate, ip);
     const response = await api('/api/v1/robot', { method: 'POST', body: JSON.stringify(payload) });
+    robotTargetConnected = response.robot?.connected !== false;
     if (response.robot?.changed) resetLiveRobotSessionView();
     robotRuntimeDataCompatible = !Boolean(response.robot?.restart_required)
       && (!response.robot_type || response.robot_type === selectedRobotType);
@@ -6118,7 +6117,41 @@ async function setRobotIp() {
   } finally {
     robotConnectionBusy = false;
     ui.connectButton.disabled = false;
+    ui.disconnectButton.disabled = !robotTargetConnected;
     ui.connectButton.textContent = '연결';
+  }
+}
+
+async function disconnectRobotTarget() {
+  if (robotConnectionBusy || !robotTargetConnected) return;
+  if (!window.confirm('현재 선택한 로봇 대상과 Go2 제어 권한을 해제할까요? 물리 네트워크와 로봇 전원은 변경되지 않습니다.')) return;
+  robotConnectionBusy = true;
+  ui.connectButton.disabled = true;
+  ui.disconnectButton.disabled = true;
+  ui.disconnectButton.textContent = '해제 중…';
+  try {
+    const response = await api('/api/v1/robot', { method: 'DELETE' });
+    robotTargetConnected = false;
+    robotRuntimeDataCompatible = false;
+    robotIpDirty = false;
+    selectedRobotCandidate = null;
+    ui.robotIp.value = '';
+    ui.connectedRobotTarget.textContent = '연결 안 됨';
+    resetLiveRobotSessionView();
+    clearRobotDiscovery('연결 대상이 해제되었습니다. 검색하거나 IP를 입력해 다시 연결할 수 있습니다.');
+    setDiscoveryStatus('연결 해제됨');
+    const restartNote = response.robot?.restart_required
+      ? ' Go2 DDS 제어를 다시 사용하려면 대상 연결 후 대시보드를 재시작하세요.'
+      : '';
+    showToast(`로봇 표시·제어 대상을 해제했습니다.${restartNote}`);
+    await refreshState();
+  } catch (error) {
+    showToast(`연결 해제 실패: ${error.message}`, true);
+  } finally {
+    robotConnectionBusy = false;
+    ui.connectButton.disabled = false;
+    ui.disconnectButton.disabled = !robotTargetConnected;
+    ui.disconnectButton.textContent = '연결 해제';
   }
 }
 
@@ -6128,6 +6161,7 @@ function startClock() {
 }
 
 $('#connectButton').addEventListener('click', setRobotIp);
+ui.disconnectButton.addEventListener('click', disconnectRobotTarget);
 ui.robotType.addEventListener('change', () => activateRobotType(ui.robotType.value, { discover: true, dirty: true }));
 ui.discoverRobotsButton.addEventListener('click', discoverRobots);
 ui.robotIp.addEventListener('input', () => {
@@ -6163,7 +6197,6 @@ ui.mapSource.addEventListener('change', () => {
   mapSeq = -1;
   selectSource('occupancy_grid', ui.mapSource.value);
 });
-ui.serviceAdminToken.addEventListener('input', renderServiceLifecycle);
 ui.serviceLifecycleConfirm.addEventListener('change', renderServiceLifecycle);
 ui.serviceRestartButton.addEventListener('click', () => requestServiceLifecycle('restart'));
 ui.serviceStopButton.addEventListener('click', () => requestServiceLifecycle('stop'));

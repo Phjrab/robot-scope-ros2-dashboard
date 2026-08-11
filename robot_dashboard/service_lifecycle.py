@@ -1,17 +1,14 @@
 """Fail-closed, allowlisted lifecycle control for the dashboard service.
 
 Only the two immutable ``systemctl`` argv entries below can be dispatched.
-Request authentication and same-origin enforcement belong to the HTTP layer;
-this manager owns bounded asynchronous execution, idle preflight rechecks and
-public status that never exposes credentials or command lines.
+Same-origin enforcement belongs to the HTTP layer; this manager owns explicit
+confirmation, bounded asynchronous execution, idle preflight rechecks and
+public status that never exposes command lines.
 """
 
 from __future__ import annotations
 
-import hashlib
 import os
-import re
-import secrets
 import subprocess
 import threading
 import uuid
@@ -22,11 +19,8 @@ from typing import Any, Callable, Mapping, Sequence
 
 
 SERVICE_NAME = "robot-scope.service"
-ADMIN_TOKEN_HEADER = "X-Robot-Scope-Admin-Token"
 SUDO_PATH = "/usr/bin/sudo"
 SYSTEMCTL_PATH = "/usr/bin/systemctl"
-TOKEN_HASH_RE = re.compile(r"^[0-9a-fA-F]{64}$")
-EMPTY_TOKEN_SHA256 = hashlib.sha256(b"").hexdigest()
 ACTIVE_STATES = frozenset({"scheduled", "dispatching", "queued"})
 COMMANDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
@@ -147,9 +141,9 @@ def collect_service_lifecycle_blockers(
         )
         if action_guard.get("active"):
             blockers.append("robot_action_active")
-        estop = control.get("estop") if isinstance(control.get("estop"), dict) else {}
-        if estop.get("latched") or control.get("estop_latched"):
-            blockers.append("software_stop_latched")
+        # A latched software stop has already revoked every lease and motion
+        # command. Restart never restores a lease, so the latch is a safe
+        # service-transition state rather than active robot work.
 
     if navigation_runtime is None:
         blockers.append("navigation_status_unavailable")
@@ -207,7 +201,6 @@ class ServiceLifecycleManager:
         self,
         *,
         enabled: bool,
-        admin_token_sha256: str = "",
         blocker_provider: BlockerProvider | None = None,
         command_runner: CommandRunner | None = None,
         executable_probe: ExecutableProbe | None = None,
@@ -222,14 +215,7 @@ class ServiceLifecycleManager:
         if not 0.5 <= float(transition_timeout_seconds) <= 30.0:
             raise ValueError("transition timeout must be between 0.5 and 30 seconds")
 
-        token_hash = str(admin_token_sha256 or "").strip().lower()
         self._enabled = bool(enabled)
-        self._token_hash = (
-            token_hash
-            if TOKEN_HASH_RE.fullmatch(token_hash)
-            and not secrets.compare_digest(token_hash, EMPTY_TOKEN_SHA256)
-            else ""
-        )
         self._blocker_provider = blocker_provider or (lambda: ())
         self._command_runner = command_runner or _default_command_runner
         probe = executable_probe or _default_executable_probe
@@ -254,26 +240,14 @@ class ServiceLifecycleManager:
         values = os.environ if environ is None else environ
         return cls(
             enabled=_enabled(values.get("ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED")),
-            admin_token_sha256=values.get(
-                "ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256", ""
-            ),
             blocker_provider=blocker_provider,
         )
 
     @property
     def configured(self) -> bool:
-        return bool(self._token_hash)
+        """Retain the public API field while confirmation replaces credentials."""
 
-    def authenticate(self, token: object) -> bool:
-        """Compare a bounded token digest without ever retaining the raw token."""
-
-        candidate = token if isinstance(token, str) else ""
-        if len(candidate) < 16 or len(candidate) > 256:
-            candidate = ""
-        supplied_hash = hashlib.sha256(candidate.encode("utf-8")).hexdigest()
-        expected_hash = self._token_hash or ("0" * 64)
-        matched = secrets.compare_digest(supplied_hash, expected_hash)
-        return bool(self._token_hash) and matched
+        return True
 
     def _blockers(self) -> list[str]:
         try:
@@ -338,7 +312,7 @@ class ServiceLifecycleManager:
             raise ServiceLifecycleBlocked(blockers)
 
         with self._lock:
-            if self._closed or not self._enabled or not self.configured:
+            if self._closed or not self._enabled:
                 raise ServiceLifecycleUnavailable(
                     "service lifecycle control is not configured"
                 )
@@ -476,7 +450,6 @@ class ServiceLifecycleManager:
 
 
 __all__ = [
-    "ADMIN_TOKEN_HEADER",
     "COMMANDS",
     "SERVICE_NAME",
     "collect_service_lifecycle_blockers",

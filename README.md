@@ -707,25 +707,19 @@ sudo mv /etc/sudoers.d/.robot-scope-service-lifecycle.new \
 sudo visudo -cf /etc/sudoers.d/robot-scope-service-lifecycle
 ~~~
 
-16자 이상의 임의 관리 토큰을 별도로 보관하고 SHA-256만 0600 `control.env`에 넣습니다.
-원문 토큰을 환경 파일·Git·shell history에 저장하지 않습니다. `openssl rand -hex 32`로
-원문을 한 번 생성해 안전한 암호 관리 도구에 보관한 뒤, 다음 no-echo 입력으로 64자리
-SHA-256을 계산할 수 있습니다.
-
-~~~bash
-python3 -c 'import getpass,hashlib; print(hashlib.sha256(getpass.getpass("Admin token: ").encode()).hexdigest())'
-~~~
-
 ~~~dotenv
 ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED=1
-ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256=<64자리-SHA-256>
 ~~~
 
 초기 설정 반영은 SSH에서 기존 방식으로 `robot-scope.service`를 한 번 재시작합니다.
-이후 웹 요청은 same-origin, `confirmed=true`, 매번 입력하는 관리 토큰과 idle preflight를
-모두 통과해야 합니다. 수동 제어 lease, 모션 안전 구간, SOFTWARE STOP 래치, 활성
+이후 웹 요청은 same-origin, Settings 확인 체크, 브라우저 확인 대화상자,
+`confirmed=true`, idle preflight를 모두 통과해야 합니다. 수동 제어 lease, 모션 안전 구간, 활성
 navigation/goal, 실행 중인 매핑 pipeline·저장·변환이 하나라도 있으면 HTTP 409로
 거부됩니다. 요청 접수 후에도 고정 명령을 보내기 직전에 같은 상태를 다시 확인합니다.
+SOFTWARE STOP 래치는 이미 모든 lease와 모션 명령을 폐기한 안전 정지 상태이므로 서비스
+재시작을 막지 않으며, 재시작 후에도 제어는 자동 ARM되지 않습니다.
+별도 관리 키를 요구하지 않으므로 이 기능은 신뢰할 수 있는 직접 LAN에서만 활성화하고,
+공유망에서는 방화벽·VPN 또는 TLS reverse proxy 접근 제어를 먼저 구성합니다.
 
 재시작은 새 dashboard instance가 올라오면 상태가 초기화되고, 중지는 API 자체가
 사라지는 것이 정상입니다. 기능을 끄려면 `control.env`의 enable 값을 `0`으로 바꾸고
@@ -789,7 +783,6 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
 - ROBOT_SCOPE_CONTROL_BRIDGE_KEY: 두 로컬 프로세스 사이 서명용 32바이트 이상 비밀키
 - ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED: `1`일 때만 서비스 관리 API opt-in
-- ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256: 매 요청 관리 토큰의 SHA-256, 원문 저장 금지
 
 ## 주요 API
 
@@ -827,9 +820,10 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | POST /api/v1/control/disarm | 제로 명령과 제어 lease 반납 |
 | POST /api/v1/control/stop | lease와 무관한 대시보드 SOFTWARE STOP 래치 |
 | POST /api/v1/control/estop/clear | 명시적 확인으로 대시보드 정지 해제 |
+| DELETE /api/v1/robot | 선택 대상과 Go2 제어 권한 해제(네트워크·전원은 유지) |
 | GET /api/v1/system/service | dashboard service 관리 가능 여부, blocker와 최근 작업 상태 |
-| POST /api/v1/system/service/restart | 확인·관리 토큰·idle preflight 후 dashboard만 재시작 |
-| POST /api/v1/system/service/stop | 확인·관리 토큰·idle preflight 후 dashboard만 중지 |
+| POST /api/v1/system/service/restart | 확인·idle preflight 후 dashboard만 재시작 |
+| POST /api/v1/system/service/stop | 확인·idle preflight 후 dashboard만 중지 |
 | WS /api/v1/ws/camera | 카메라 스트림 |
 | WS /api/v1/ws/pointcloud | 최신 프레임 우선 binary 점군 스트림 |
 | WS /api/v1/ws/joints | Go2 관절 스트림 |
@@ -876,10 +870,9 @@ requirements.txt    Python 웹 의존성
 - 첫 실기 검증은 다리를 안전하게 띄우거나 제조사 권장 시험 자세에서 수행하고,
   브리지 강제 종료·네트워크 단절 때 Go2 펌웨어가 Move를 자체 만료시키는지 확인합니다.
 - 같은 네트워크의 사용자는 관리 허용 지도 이름 변경·삭제 API를 호출할 수 있습니다.
-- 서비스 재시작·중지는 same-origin만으로 인증하지 않고 별도 관리 토큰도 요구합니다.
-  하지만 기본 HTTP에서는 토큰이 암호화되지 않으므로 반드시 도청 위험이 없는 신뢰
-  유선 LAN에서만 사용하고, 범위가 넓은 네트워크에서는 TLS reverse proxy와 접근 제어를
-  먼저 구성합니다.
+- 서비스 재시작·중지는 Settings의 확인 체크와 브라우저 확인, same-origin, 서버측 idle
+  재검사를 요구하지만 사용자 인증 기능은 아닙니다. 반드시 신뢰 LAN에서만 활성화하고,
+  범위가 넓은 네트워크에서는 TLS reverse proxy와 접근 제어를 먼저 구성합니다.
 - 네트워크 검색 API도 same-origin으로 제한하고, 서버가 직접 확인한 로컬 인터페이스의
   최대 /24만 검색합니다. 검색 결과는 장비 유형을 보증하지 않으므로 선택 전에 확인합니다.
 - 인터넷이나 공용망에 노출하기 전 토큰 인증, TLS와 접근 제어를 추가해야 합니다.

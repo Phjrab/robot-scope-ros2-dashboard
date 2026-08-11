@@ -31,20 +31,17 @@ def called_names(node) -> set[str]:
 
 
 class ServiceLifecycleAppContractTests(unittest.TestCase):
-    def test_mutations_require_same_origin_admin_token_and_lifecycle_manager(self):
+    def test_mutations_require_same_origin_confirmation_and_lifecycle_manager(self):
         for name in ("service_lifecycle_restart", "service_lifecycle_stop"):
             calls = called_names(function_node(name))
             self.assertIn("require_same_origin", calls)
-            self.assertIn("require_service_admin", calls)
             self.assertIn("service_lifecycle", calls)
+            self.assertNotIn("require_service_admin", calls)
 
-    def test_confirmation_field_is_strict_and_admin_header_is_hashed_elsewhere(self):
-        request_model = function_node("require_service_admin")
-        calls = called_names(request_model)
-        self.assertIn("get", calls)
-        self.assertIn("authenticate", calls)
-        self.assertNotIn("ROBOT_SCOPE_SERVICE_ADMIN_TOKEN_SHA256", ast.unparse(request_model))
-
+    def test_confirmation_field_is_strict_and_no_admin_auth_helper_remains(self):
+        with self.assertRaises(AssertionError):
+            function_node("require_service_admin")
+        self.assertNotIn("X-Robot-Scope-Admin-Token", APP_SOURCE)
         model = next(
             node
             for node in APP_TREE.body
@@ -143,7 +140,7 @@ class ServiceLifecycleBlockerTests(unittest.TestCase):
     def test_idle_system_has_no_blockers(self):
         self.assertEqual(self.blockers(), [])
 
-    def test_manual_lease_and_top_level_software_stop_are_blockers(self):
+    def test_manual_lease_blocks_but_latched_stop_is_safe_for_restart(self):
         blockers = self.blockers(
             control={
                 "lease": {"active": True, "input_source": "keyboard"},
@@ -153,9 +150,9 @@ class ServiceLifecycleBlockerTests(unittest.TestCase):
             }
         )
         self.assertIn("manual_control_active", blockers)
-        self.assertIn("software_stop_latched", blockers)
+        self.assertNotIn("software_stop_latched", blockers)
 
-    def test_nested_software_stop_and_one_shot_action_are_blockers(self):
+    def test_one_shot_action_blocks_but_nested_software_stop_does_not(self):
         blockers = self.blockers(
             control={
                 "lease": {"active": False, "input_source": None},
@@ -164,7 +161,7 @@ class ServiceLifecycleBlockerTests(unittest.TestCase):
             }
         )
         self.assertIn("robot_action_active", blockers)
-        self.assertIn("software_stop_latched", blockers)
+        self.assertNotIn("software_stop_latched", blockers)
 
     def test_navigation_lease_goal_and_pipeline_are_deduplicated(self):
         blockers = self.blockers(

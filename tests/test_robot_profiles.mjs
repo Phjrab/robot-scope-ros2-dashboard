@@ -65,13 +65,15 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(indexSource, /id="selectedRobotUrdf"/);
   assert.match(indexSource, /id="discoverRobotsButton"/);
   assert.match(indexSource, /id="robotDiscoveryResults"[^>]+role="group"/);
+  assert.match(indexSource, /id="disconnectButton"/);
+  assert.match(indexSource, /id="connectedRobotTarget"/);
   assert.match(appSource, /api\('\/api\/v1\/robots\/types'/);
   assert.match(appSource, /api\('\/api\/v1\/robots\/discover',[\s\S]{0,180}robot_type: selectedRobotType/);
   assert.match(appSource, /robotDiscoveryController\?\.abort\(\)/);
   assert.match(appSource, /RobotProfiles\.connectionPayload/);
   assert.match(appSource, /activateRobotType\(ui\.robotType\.value, \{ discover: true, dirty: true \}\)/);
   assert.match(appSource, /미확인 호스트/);
-  assert.match(indexSource, /DDS 인터페이스·Domain·ROS workspace는 실행 중 자동 변경되지 않으므로/);
+  assert.match(indexSource, /물리 네트워크·ROS\/DDS 프로세스·로봇 전원은 변경하지 않습니다/);
   assert.match(appSource, /범용 URDF 근사 모델 · 제조사 공식 모델 아님/);
   assert.match(indexSource, /id="controlProfileNotice"[^>]+hidden/);
   assert.match(appSource, /if \(selectedRobotType !== 'go2'\) return false/);
@@ -83,6 +85,9 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(appSource, /ROS\/DDS 오프라인 뷰어/);
   assert.match(appSource, /ROS\/DDS 인터페이스 준비/);
   assert.match(appSource, /if \(robotConnectionBusy\) return/);
+  assert.match(appSource, /api\('\/api\/v1\/robot', \{ method: 'DELETE' \}\)/);
+  assert.match(appSource, /robotTargetConnected = false/);
+  assert.match(appSource, /resetLiveRobotSessionView\(\)/);
 });
 
 test('sensor cards keep all observed streams and rank unknown categories last', () => {

@@ -61,7 +61,6 @@ from .http_security import is_same_origin
 from .pointcloud_stream import PointCloudFrameError, encode_pointcloud_frame
 from .ros_agent import RosAgent
 from .service_lifecycle import (
-    ADMIN_TOKEN_HEADER,
     ServiceLifecycleBlocked,
     ServiceLifecycleBusy,
     ServiceLifecycleConfirmationRequired,
@@ -305,17 +304,6 @@ def require_same_origin(request: Request) -> None:
         request.headers.get("host", ""),
     ):
         raise HTTPException(status_code=403, detail="mutation requests must be same-origin")
-
-
-def require_service_admin(request: Request) -> None:
-    """Authenticate a service mutation without retaining or logging its token."""
-
-    supplied = request.headers.get(ADMIN_TOKEN_HEADER, "")
-    if not service_lifecycle().authenticate(supplied):
-        raise HTTPException(
-            status_code=403,
-            detail="service administration is not authorized",
-        )
 
 
 def websocket_same_origin(websocket: WebSocket) -> bool:
@@ -775,7 +763,6 @@ async def service_lifecycle_restart(
     body: ServiceLifecycleRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    require_service_admin(request)
     async with PIPELINE_COORDINATION_LOCK:
         try:
             return await asyncio.to_thread(
@@ -792,7 +779,6 @@ async def service_lifecycle_stop(
     body: ServiceLifecycleRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    require_service_admin(request)
     async with PIPELINE_COORDINATION_LOCK:
         try:
             return await asyncio.to_thread(
@@ -880,6 +866,22 @@ async def set_robot(request: Request, target: RobotTarget) -> Dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except DiscoveryUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.delete("/api/v1/robot")
+async def disconnect_robot(request: Request) -> Dict[str, Any]:
+    """Forget the selected target and revoke its motion authorization."""
+
+    require_same_origin(request)
+    selected = await asyncio.to_thread(agent().disconnect_robot_target)
+    CONTROL_BINDINGS.clear()
+    return {
+        "robot": selected,
+        "robot_ip": "",
+        "robot_type": selected["robot_type"],
+        "hostname": "",
+        "model": selected["model"],
+    }
 
 
 def encode_json(payload: Dict[str, Any]) -> bytes:

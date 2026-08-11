@@ -20,7 +20,7 @@ function functionSource(name, nextName) {
 test('Settings exposes dashboard-only restart and stop controls with explicit warning', () => {
   for (const id of [
     'serviceLifecycleState', 'serviceLifecycleName', 'serviceLifecycleInstance',
-    'serviceLifecyclePrivilege', 'serviceLifecycleOperation', 'serviceAdminToken',
+    'serviceLifecyclePrivilege', 'serviceLifecycleOperation',
     'serviceLifecycleConfirm', 'serviceRestartButton', 'serviceStopButton',
     'serviceLifecycleMessage',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
@@ -30,15 +30,10 @@ test('Settings exposes dashboard-only restart and stop controls with explicit wa
   assert.doesNotMatch(indexSource, /POWER OFF JETSON|REBOOT JETSON/);
 });
 
-test('admin key is a transient password field and is never persisted', () => {
-  assert.match(indexSource, /id="serviceAdminToken"[^>]*type="password"[^>]*autocomplete="off"/);
+test('service lifecycle confirmation does not request or transmit an admin key', () => {
+  assert.doesNotMatch(indexSource, /serviceAdminToken|관리 키/);
   const request = functionSource('requestServiceLifecycle', 'formatHz');
-  assert.match(request, /const token = ui\.serviceAdminToken\.value;\s*ui\.serviceAdminToken\.value = '';/);
-  assert.doesNotMatch(request, /localStorage|sessionStorage|console\./);
-  assert.ok(
-    request.indexOf("ui.serviceAdminToken.value = ''") < request.indexOf('window.confirm'),
-    'the field must be cleared before confirmation and network dispatch',
-  );
+  assert.doesNotMatch(request, /serviceAdminToken|X-Robot-Scope-Admin-Token|token/);
 });
 
 test('restart and stop use only the fixed lifecycle API contract', () => {
@@ -46,20 +41,17 @@ test('restart and stop use only the fixed lifecycle API contract', () => {
   assert.match(appSource, /api\('\/api\/v1\/system\/service'\)/);
   assert.match(request, /api\(`\/api\/v1\/system\/service\/\$\{action\}`/);
   assert.match(request, /method: 'POST'/);
-  assert.match(request, /'X-Robot-Scope-Admin-Token': token/);
   assert.match(request, /JSON\.stringify\(\{ confirmed: true \}\)/);
   assert.match(request, /!\['restart', 'stop'\]\.includes\(action\)/);
   assert.doesNotMatch(request, /reboot|poweroff|shutdown|arbitrary|service_name/);
 });
 
-test('buttons require server readiness, a local acknowledgement and a bounded key', () => {
+test('buttons require server readiness and the local acknowledgement', () => {
   const render = functionSource('renderServiceLifecycle', 'completeExpectedServiceTransition');
-  assert.match(render, /ui\.serviceLifecycleConfirm\.checked && serviceLifecycleTokenReady\(\)/);
+  assert.match(render, /Boolean\(ui\.serviceLifecycleConfirm\.checked\)/);
   assert.match(render, /!snapshot\?\.can_restart \|\| !locallyConfirmed/);
   assert.match(render, /!snapshot\?\.can_stop \|\| !locallyConfirmed/);
   assert.match(render, /serviceLifecycleBusy \|\| Boolean\(expected\) \|\| serviceLifecycleOperationActive/);
-  const tokenReady = functionSource('serviceLifecycleTokenReady', 'serviceLifecycleOperationActive');
-  assert.match(tokenReady, /length >= 16 && length <= 256/);
 });
 
 test('restart treats a disconnect as expected and verifies a new server instance', () => {
