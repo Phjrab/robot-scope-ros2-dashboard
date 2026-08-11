@@ -11,9 +11,11 @@ from __future__ import annotations
 import argparse
 import fcntl
 import http.client
+import ipaddress
 import json
 import os
 import re
+import socket
 import stat
 import subprocess
 import sys
@@ -171,6 +173,41 @@ def _print_snapshot(snapshot: Mapping[str, str]) -> None:
     for key in STATUS_PROPERTIES:
         if key in snapshot:
             print(f"{key}={snapshot[key]}")
+
+
+def _dashboard_address() -> str:
+    """Return the management address used by SSH, with a local-route fallback."""
+
+    ssh_connection = os.environ.get("SSH_CONNECTION", "").split()
+    if len(ssh_connection) == 4:
+        try:
+            address = ipaddress.ip_address(ssh_connection[2])
+        except ValueError:
+            address = None
+        if address is not None and not address.is_unspecified:
+            return str(address)
+
+    # UDP connect selects a local source address without sending a datagram.
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 9))
+            candidate = probe.getsockname()[0]
+        address = ipaddress.ip_address(candidate)
+        if not address.is_unspecified:
+            return str(address)
+    except (OSError, ValueError):
+        pass
+    return "127.0.0.1"
+
+
+def _dashboard_url() -> str:
+    address = _dashboard_address()
+    host = f"[{address}]" if ":" in address else address
+    return f"http://{host}:{_status_port()}"
+
+
+def _print_dashboard_url() -> None:
+    print(f"[Robot Scope] dashboard URL: {_dashboard_url()}")
 
 
 def _idle_preflight() -> None:
@@ -358,6 +395,8 @@ def execute(action: str, *, dry_run: bool = False) -> int:
     if action == "status":
         snapshot = _snapshot()
         _print_snapshot(snapshot)
+        if snapshot.get("ActiveState") == "active":
+            _print_dashboard_url()
         return 0 if snapshot.get("ActiveState") == "active" else 3
     if action == "logs":
         try:
@@ -375,12 +414,14 @@ def execute(action: str, *, dry_run: bool = False) -> int:
             _wait_for_http_ready()
             print("[Robot Scope] dashboard is already active")
             _print_snapshot(before)
+            _print_dashboard_url()
             return 0
         if action == "start" and state == "activating":
             after = _wait_for_existing_start()
             _wait_for_http_ready()
             print("[Robot Scope] dashboard is active")
             _print_snapshot(after)
+            _print_dashboard_url()
             return 0
         if action == "stop" and state == "inactive":
             print("[Robot Scope] dashboard is already stopped")
@@ -403,6 +444,8 @@ def execute(action: str, *, dry_run: bool = False) -> int:
             _wait_for_http_ready()
             print("[Robot Scope] dashboard is active")
         _print_snapshot(after)
+        if action != "stop":
+            _print_dashboard_url()
         return 0
 
 

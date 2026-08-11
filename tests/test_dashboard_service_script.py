@@ -1,7 +1,9 @@
 import importlib.util
+import io
 import subprocess
 import sys
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -93,6 +95,31 @@ class DashboardServiceScriptTests(unittest.TestCase):
         ), patch.object(module.os, "close"):
             self.assertEqual(module._status_port(), 18088)
         self.assertTrue(module.os.O_NONBLOCK)
+
+    def test_dashboard_url_uses_the_server_address_from_ssh(self):
+        with patch.dict(
+            module.os.environ,
+            {"SSH_CONNECTION": "192.168.0.10 53122 192.168.0.26 22"},
+        ), patch.object(module, "_status_port", return_value=8088):
+            self.assertEqual(module._dashboard_url(), "http://192.168.0.26:8088")
+
+    def test_active_status_prints_the_dashboard_url(self):
+        active = {
+            "Id": module.SERVICE,
+            "LoadState": "loaded",
+            "ActiveState": "active",
+            "SubState": "running",
+            "InvocationID": "current",
+        }
+        output = io.StringIO()
+        with patch.object(module, "_snapshot", return_value=active), patch.object(
+            module, "_dashboard_url", return_value="http://192.168.0.26:8088"
+        ), redirect_stdout(output):
+            self.assertEqual(module.execute("status"), 0)
+        self.assertIn(
+            "[Robot Scope] dashboard URL: http://192.168.0.26:8088",
+            output.getvalue(),
+        )
 
     def test_restart_requires_new_invocation_before_success(self):
         old = {

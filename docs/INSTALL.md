@@ -355,6 +355,10 @@ robot-scope-dashboard stop
 ssh robot-scope-host robot-scope-dashboard restart
 ~~~
 
+`start`, `restart`와 실행 중인 `status`는 대시보드 HTTP 준비가 끝난 뒤 브라우저에서 열
+접속 주소를 터미널에 함께 출력합니다. SSH 세션에서는 해당 세션이 접속한 서버 IP를 우선
+사용하므로 관리망 주소가 바뀌어도 고정 IP를 스크립트에 넣을 필요가 없습니다.
+
 `robot-scope-host`는 관리 PC의 `~/.ssh/config`에 등록한 별칭입니다. 개인키, 비밀번호와
 유동 관리망 주소는 저장소에 넣지 않습니다. start/stop/restart 전에 제어·mapping·Nav가
 idle인지 확인하며, helper의 preflight가 blocker를 발견하면 변경 없이 종료합니다.

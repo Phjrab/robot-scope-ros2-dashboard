@@ -743,7 +743,10 @@ robot-scope-dashboard logs
 ~~~
 
 `start`와 `restart`는 새 systemd 실행 ID가 active가 될 때까지 확인하고, `stop`은 inactive를
-확인합니다. 60초 안에 전환되지 않으면 강제 종료나 재시도를 하지 않습니다. 실행 중인
+확인합니다. `start`, `restart`와 실행 중인 `status`는 준비 확인 후 현재 SSH가 접속한
+관리망 주소와 설정 포트를 조합한 브라우저 URL도 터미널에 출력합니다. 예:
+`[Robot Scope] dashboard URL: http://192.168.0.26:8088`. 60초 안에 전환되지 않으면
+강제 종료나 재시도를 하지 않습니다. 실행 중인
 제어 lease, 매핑, 저장, navigation 또는 안전 래치가 있으면 로컬 관리 API preflight가
 명령 전송을 거부합니다. 이 SSH 도구는 관리용 경로이므로 로봇 작업이 idle일 때 사용하며,
 control bridge·XT16 relay·ROS 작업·호스트 재부팅/종료는 건드리지 않습니다. 로봇 NIC가
