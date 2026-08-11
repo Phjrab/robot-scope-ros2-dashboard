@@ -14,6 +14,20 @@ ip -br -4 address
 ip route
 ~~~
 
+SSH operator helper를 설치한 호스트에서는 고정된 안전 속성과 최근 로그를 다음처럼 볼 수
+있습니다. `status`는 allowlist 속성만 출력하고, `logs`는 environment를 직접 조회하지 않는
+일반 journal 출력입니다. 로그를 타인에게 공유하기 전에는 비밀값과 운영 주소를 검토해
+마스킹합니다.
+
+~~~bash
+robot-scope-dashboard status
+robot-scope-dashboard logs
+~~~
+
+`start`, `stop`, `restart`가 blocker 또는 transition timeout으로 실패하면 즉시 반복하지
+말고 위 두 명령과 대시보드 작업 상태를 확인합니다. timeout은 systemd 작업이 아직 진행
+중일 수 있다는 뜻입니다.
+
 실제 설치 mode로 doctor를 한 번 더 실행합니다. 출력에는 토큰이나 키를 넣지 말고, 지원을
 요청할 때도 비밀값과 운영 주소를 제거합니다.
 

@@ -225,7 +225,7 @@ prefix 경로에 공백도 허용하지 않습니다.
 | `--dry-run` | 기본값. 파일과 서비스를 변경하지 않고 계획·진단만 수행 |
 | `--apply` | 확인된 사용자 영역 설치를 적용 |
 | `--install-system-packages` | `--apply`와 함께 공식 ROS apt source와 mode별 manifest 패키지 설치 |
-| `--install-service` | `--apply`와 함께 현재 사용자용 unit을 render/검증/설치/enable, 시작은 하지 않음 |
+| `--install-service` | `--apply`와 함께 현재 사용자용 unit을 render/검증/설치, enable/start는 하지 않음 |
 | `--project-dir DIR` | 명시적인 Robot Scope checkout 사용 |
 | `--config-dir DIR` / `--env-file FILE` | 호스트별 설정 위치 지정 |
 | `--os-release FILE` | 진단에 사용할 os-release 파일 지정; 일반 설치에서는 기본값 유지 |
@@ -312,7 +312,8 @@ Node.js가 없는 운영 호스트에서는 JavaScript 테스트를 생략할 �
 만드는 호스트와 CI에서는 반드시 실행합니다. doctor는 선택한 모드에 맞춰 다시 실행합니다.
 
 `--install-service`를 사용하지 않았다면 installer는 systemd unit을 설치하지 않습니다.
-사용한 경우에도 unit을 enable할 뿐 시작하지 않습니다. 먼저 foreground에서 가장 작은
+사용한 경우에도 unit을 enable/start하지 않으며 기존 enable 상태도 바꾸지 않습니다.
+먼저 foreground에서 가장 작은
 실행 경로를 확인합니다.
 
 ~~~bash
@@ -321,12 +322,14 @@ Node.js가 없는 운영 호스트에서는 JavaScript 테스트를 생략할 �
 
 Go2 host는 doctor가 통과한 뒤 `./scripts/run_go2_humble.sh`를 사용합니다. Installer의
 `--install-service`는 현재 사용자, checkout과 env 경로를 반영한 unit을 검증해 설치합니다.
-수동 자동 시작은 [README의 systemd 절차](../README.md#자동-시작)를 따르되 service
+수동 실행 또는 선택적 자동 시작은
+[README의 systemd 절차](../README.md#수동-실행과-선택적-자동-시작)를 따르되 service
 example의 `User`, `WorkingDirectory`, `EnvironmentFile`, `ExecStart`, `HOME`, NIC와
 CIDR을 현재 호스트와 일치시킵니다. 참조 장비 값을 그대로 복사하지 마세요.
 
-`--install-service`는 lifecycle sudoers와 로봇 탑재 XT16 relay service를 설치하지
-않습니다. 두 기능은 각각의 별도 최소권한 절차를 사용합니다. Installer는 service를
+`--install-service`는 root 소유 `/usr/local/bin/robot-scope-dashboard` 관리 helper도
+설치하지만 lifecycle sudoers와 로봇 탑재 XT16 relay service는 설치하지 않습니다.
+각 권한은 별도의 최소권한 절차를 사용합니다. Installer는 service를
 start/restart하거나 ARM·주행 명령을 보내지 않습니다.
 
 서비스를 설치했다면 상태와 로그를 확인합니다.
@@ -336,6 +339,28 @@ systemctl status robot-scope.service --no-pager
 journalctl -u robot-scope.service -n 100 --no-pager
 curl -fsS http://127.0.0.1:8088/api/v1/health
 ~~~
+
+SSH에서 고정 dashboard unit을 한 명령으로 관리하려면 README의
+[SSH 관리 절차](../README.md#ssh에서-한-명령으로-대시보드-시작종료)에 따라 기존 lifecycle
+exact-command sudoers를 설치합니다. 이후 관리 PC에서는 대화형 셸 또는 직접 SSH 명령을 사용할 수
+있습니다. `sudo -n`을 쓰므로 TTY나 암호 입력은 필요하지 않습니다.
+
+~~~bash
+ssh robot-scope-host
+robot-scope-dashboard status
+robot-scope-dashboard start
+robot-scope-dashboard stop
+
+# 동일한 동작을 관리 PC에서 한 줄로 실행
+ssh robot-scope-host robot-scope-dashboard restart
+~~~
+
+`robot-scope-host`는 관리 PC의 `~/.ssh/config`에 등록한 별칭입니다. 개인키, 비밀번호와
+유동 관리망 주소는 저장소에 넣지 않습니다. start/stop/restart 전에 제어·mapping·Nav가
+idle인지 확인하며, helper의 preflight가 blocker를 발견하면 변경 없이 종료합니다.
+`logs`가 권한 오류를 내는 일반 Ubuntu 계정은 관리자에게 `systemd-journal` 그룹 정책을
+검토받거나 기존 `sudo journalctl` 진단 절차를 사용합니다. Helper에 journal sudo 권한은
+추가하지 않습니다.
 
 `observer` 또는 로봇이 분리된 상태에서 `offline viewer`가 표시되는 것은 정상입니다.
 서비스가 켜졌다는 이유만으로 제어·매핑·내비게이션 준비가 끝난 것은 아닙니다.

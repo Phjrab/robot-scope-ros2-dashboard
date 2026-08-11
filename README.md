@@ -114,7 +114,8 @@ python3 scripts/robot_scope_doctor.py --mode observer
 
 Installer는 target 사용자로 실행하며 root로 직접 실행하지 않습니다. `--apply`와
 `--install-system-packages` 또는 `--install-service` opt-in을 함께 지정한 경우에만 해당
-APT/systemd 작업에 sudo를 사용합니다. 설치한 unit은 enable하되 즉시 시작하지 않습니다.
+APT/systemd 작업에 sudo를 사용합니다. 설치한 unit은 기본적으로 enable/start하지 않으며,
+사용자가 명시적으로 시작할 때만 실행됩니다. 기존 unit의 enable 상태도 임의로 바꾸지 않습니다.
 설치 중에는 분리된 로봇 NIC를 경고로 허용하지만, 서비스 시작 전 별도 `doctor` 명령은
 NIC와 고정 주소를 다시 엄격하게 검사합니다.
 
@@ -620,7 +621,7 @@ RealSense가 로봇 탑재 Jetson USB에 연결되어 있다면 같은 Jetson에
 realsense2_camera를 실행합니다. 표준 color, depth, points 토픽이 발견되면
 카메라와 PointCloud 소스 목록에서 선택할 수 있습니다.
 
-## 자동 시작
+## 수동 실행과 선택적 자동 시작
 
 deploy의 두 서비스 예제는 기본적으로 `jetson_orin_nano` 사용자의
 `/home/jetson_orin_nano/robot-scope` 설치를 가리킵니다. 다른 사용자명이나 경로를
@@ -637,14 +638,20 @@ sudo cp deploy/robot-scope.service.example /etc/systemd/system/robot-scope.servi
 sudo cp deploy/robot-scope-control-bridge.service.example \
   /etc/systemd/system/robot-scope-control-bridge.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now robot-scope-control-bridge robot-scope
+sudo systemctl start robot-scope.service
 ~~~
+
+공용 개발 호스트에서는 위처럼 unit을 disabled 상태로 두고 필요할 때만 시작합니다. 전용
+Robot Scope 호스트에서만 부팅 자동 시작이 필요할 경우, 준비 상태와 충돌 가능성을 검토한
+뒤 명시적으로 `sudo systemctl enable robot-scope.service`를 실행합니다. 제어 브리지는 별도
+서비스이므로 자동 시작이 정말 필요한 전용 제어 호스트에서만 따로 enable합니다.
 
 Uvicorn worker는 반드시 하나만 사용합니다. 여러 worker는 ROS 구독과 매핑 상태
 관리뿐 아니라 단일 제어 lease를 중복시킵니다. 실제 제어 환경 파일은 0600 권한으로
 유지하며 두 서비스가 동일한 파일을 읽게 합니다.
 
-Ubuntu host 부팅 시 Wi-Fi가 먼저 연결되면 `network-online.target`은 Go2 전용 랜선보다
+서비스를 명시적으로 enable한 Ubuntu host에서 부팅 시 Wi-Fi가 먼저 연결되면
+`network-online.target`은 Go2 전용 랜선보다
 먼저 완료될 수 있습니다. 서비스 예제는 이 순서를 다음과 같이 안전하게 처리합니다.
 
 - 대시보드는 먼저 offline viewer로 시작하므로 Saved Maps와 진단 화면을 계속 사용할
@@ -676,9 +683,11 @@ unit 이름을 바꾸면 예제와 앱의 고정 allowlist를 함께 검토해�
 안 됩니다.
 
 ~~~bash
-sudo visudo -cf deploy/robot-scope-service-lifecycle.sudoers.example
 sudo install -o root -g root -m 0440 \
   deploy/robot-scope-service-lifecycle.sudoers.example \
+  /etc/sudoers.d/.robot-scope-service-lifecycle.new
+sudo visudo -cf /etc/sudoers.d/.robot-scope-service-lifecycle.new
+sudo mv /etc/sudoers.d/.robot-scope-service-lifecycle.new \
   /etc/sudoers.d/robot-scope-service-lifecycle
 sudo visudo -cf /etc/sudoers.d/robot-scope-service-lifecycle
 ~~~
@@ -706,6 +715,44 @@ navigation/goal, 실행 중인 매핑 pipeline·저장·변환이 하나라도 �
 재시작은 새 dashboard instance가 올라오면 상태가 초기화되고, 중지는 API 자체가
 사라지는 것이 정상입니다. 기능을 끄려면 `control.env`의 enable 값을 `0`으로 바꾸고
 sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
+
+### SSH에서 한 명령으로 대시보드 시작·종료
+
+설치 프로그램에 `--install-service`를 지정하면 고정 unit만 다루는
+`/usr/local/bin/robot-scope-dashboard`도 root 소유 0755로 설치합니다. 기존 배포에는
+다음처럼 설치합니다.
+
+~~~bash
+sudo install -o root -g root -m 0755 \
+  scripts/robot_scope_dashboard_service.py \
+  /usr/local/bin/robot-scope-dashboard
+~~~
+
+비대화식 SSH 명령은 위의 기존 lifecycle sudoers 두 명령만 재사용합니다. `start`는 inactive
+unit에도 동작하는 exact `systemctl --no-block restart robot-scope.service`로 구현되며,
+helper 자체나 wildcard에는 sudo 권한을 주지 않습니다.
+
+설치 후 SSH 세션에서는 다음 명령만 입력하면 됩니다.
+
+~~~bash
+robot-scope-dashboard start
+robot-scope-dashboard stop
+robot-scope-dashboard restart
+robot-scope-dashboard status
+robot-scope-dashboard logs
+~~~
+
+`start`와 `restart`는 새 systemd 실행 ID가 active가 될 때까지 확인하고, `stop`은 inactive를
+확인합니다. 60초 안에 전환되지 않으면 강제 종료나 재시도를 하지 않습니다. 실행 중인
+제어 lease, 매핑, 저장, navigation 또는 안전 래치가 있으면 로컬 관리 API preflight가
+명령 전송을 거부합니다. 이 SSH 도구는 관리용 경로이므로 로봇 작업이 idle일 때 사용하며,
+control bridge·XT16 relay·ROS 작업·호스트 재부팅/종료는 건드리지 않습니다. 로봇 NIC가
+분리된 경우에도 offline viewer가 정상 실행되면 dashboard service 시작은 성공입니다.
+CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므로 명령이 끝날 때까지
+다른 사용자가 UI에서 새 제어·매핑·Nav 작업을 시작하면 안 됩니다.
+`ROBOT_SCOPE_PORT`를 기본 8088에서 바꾸면 installer가 같은 값을 root 소유 operator port
+설정에도 기록합니다. 기존 배포에서 포트만 수동 변경했다면 환경 파일을 확인한 뒤
+`install_ubuntu.sh --apply --install-service`로 helper 설정을 다시 설치합니다.
 
 ## 설정
 

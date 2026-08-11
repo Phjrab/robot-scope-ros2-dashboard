@@ -42,6 +42,7 @@ Options:
   --install-system-packages    with --apply, install manifest apt packages and
                                the checksum-verified official ROS apt source
   --install-service            with --apply, render/verify/install systemd units
+                               without enabling or starting them
   --skip-python-deps           do not invoke pip during --apply
   --json-doctor                emit the final doctor report as JSON
   -h, --help                   show this help
@@ -54,13 +55,16 @@ Mode contract:
   go2-nav      go2-control + go2-xt16 + Nav2 prerequisites.
 
 go2-control/go2-nav --apply explicitly configures the signed bridge (including
-a private key) but never starts a service, arms the robot, or sends motion.
+a private key) but never enables or starts a service, arms the robot, or sends
+motion.
 ROBOT_SCOPE_WORKSPACE_ROOT in robot-scope.env must be absolute; blank
 uses the target user's HOME for bootstrap, diagnostics, and runtime services.
 
 The systemd option never installs lifecycle sudoers or the robot-side XT16
-relay. The dashboard unit reads robot-scope.env and optional control.env; the
-control bridge unit (control/nav modes) requires both files.
+relay. It does install the fixed, root-owned robot-scope-dashboard SSH helper,
+but its exact-command sudoers policy remains a separate administrator step.
+The dashboard unit reads robot-scope.env and optional control.env; the control
+bridge unit (control/nav modes) requires both files.
 EOF
 }
 
@@ -79,7 +83,8 @@ cleanup_service_temp() {
   if [[ -n "$SERVICE_TEMP_DIR" && -d "$SERVICE_TEMP_DIR" ]]; then
     rm -f -- \
       "$SERVICE_TEMP_DIR/robot-scope.service" \
-      "$SERVICE_TEMP_DIR/robot-scope-control-bridge.service"
+      "$SERVICE_TEMP_DIR/robot-scope-control-bridge.service" \
+      "$SERVICE_TEMP_DIR/robot-scope-dashboard-operator.port"
     rmdir -- "$SERVICE_TEMP_DIR" 2>/dev/null || true
   fi
   if [[ -n "$APT_SOURCE_TEMP_DIR" && -d "$APT_SOURCE_TEMP_DIR" ]]; then
@@ -171,12 +176,16 @@ DOCTOR="$PROJECT_DIR/scripts/robot_scope_doctor.py"
 EXTERNAL_BOOTSTRAP="$PROJECT_DIR/scripts/bootstrap_ros_dependencies.sh"
 DEPENDENCY_MANIFEST="$PROJECT_DIR/config/ros_dependencies_humble.json"
 VENV_DIR="$PROJECT_DIR/.venv"
+OPERATOR_SOURCE="$PROJECT_DIR/scripts/robot_scope_dashboard_service.py"
 
 [[ -f "$REQUIREMENTS" ]] || die "requirements.txt is missing from the project"
 [[ -f "$ENV_TEMPLATE" ]] || die "deploy/robot-scope.env.example is missing"
 [[ -f "$DOCTOR" ]] || die "scripts/robot_scope_doctor.py is missing"
 [[ -x "$EXTERNAL_BOOTSTRAP" ]] || die "pinned dependency bootstrap is missing or not executable"
 [[ -f "$DEPENDENCY_MANIFEST" ]] || die "pinned dependency manifest is missing"
+if [[ "$INSTALL_SERVICE" -eq 1 ]]; then
+  [[ -x "$OPERATOR_SOURCE" ]] || die "dashboard SSH operator helper is missing or not executable"
+fi
 command -v python3 >/dev/null 2>&1 || die "python3 is required"
 
 literal_env_value() {
@@ -229,6 +238,15 @@ case "$LIVOX_SDK_PREFIX_VALUE" in
   *) die "ROBOT_SCOPE_LIVOX_SDK_PREFIX must be blank or absolute" ;;
 esac
 [[ -n "$LIVOX_SDK_PREFIX" && "$LIVOX_SDK_PREFIX" != "/" ]] || die "unsafe Livox SDK prefix"
+
+ROBOT_SCOPE_PORT_VALUE="$(literal_env_value ROBOT_SCOPE_PORT)"
+if [[ -z "$ROBOT_SCOPE_PORT_VALUE" ]]; then
+  ROBOT_SCOPE_PORT_VALUE="8088"
+fi
+[[ "$ROBOT_SCOPE_PORT_VALUE" =~ ^[1-9][0-9]{0,4}$ ]] || \
+  die "ROBOT_SCOPE_PORT must be an integer from 1 to 65535"
+((10#$ROBOT_SCOPE_PORT_VALUE <= 65535)) || \
+  die "ROBOT_SCOPE_PORT must be an integer from 1 to 65535"
 
 APT_PACKAGES=()
 while IFS= read -r package; do
@@ -406,8 +424,11 @@ if [[ "$ACTION" == "--dry-run" ]]; then
     fi
     print_command sudo install -o root -g root -m 0644 \
       generated.service /etc/systemd/system/
+    print_command sudo install -o root -g root -m 0755 \
+      "$OPERATOR_SOURCE" /usr/local/bin/robot-scope-dashboard
+    echo "[Robot Scope installer] would install root-owned operator port: $ROBOT_SCOPE_PORT_VALUE"
     print_command sudo systemctl daemon-reload
-    print_command sudo systemctl enable robot-scope.service
+    echo "[Robot Scope installer] would leave Robot Scope services disabled and stopped"
   else
     echo "[Robot Scope installer] systemd service installation is disabled"
   fi
@@ -507,7 +528,7 @@ safe_systemd_path() {
 
 install_services() {
   command -v sudo >/dev/null 2>&1 || die "sudo is required for systemd installation"
-  local service_user dashboard_exec
+  local service_user dashboard_exec operator_target operator_port_target
   service_user="$(id -un)"
   [[ "$service_user" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,63}$ ]] || \
     die "current username cannot be rendered safely into a systemd unit"
@@ -522,8 +543,26 @@ install_services() {
     dashboard_exec="$PROJECT_DIR/scripts/run_go2_dashboard_supervisor.py"
   fi
   [[ -x "$dashboard_exec" ]] || die "dashboard service executable is missing"
+  operator_target="/usr/local/bin/robot-scope-dashboard"
+  operator_port_target="/etc/robot-scope-dashboard-operator.port"
+  [[ -x "$OPERATOR_SOURCE" ]] || die "dashboard SSH operator helper is missing or not executable"
+  if [[ -e "$operator_target" || -L "$operator_target" ]]; then
+    [[ -f "$operator_target" && ! -L "$operator_target" ]] || \
+      die "refusing non-regular dashboard SSH operator helper: $operator_target"
+    [[ "$(stat -c '%u:%g:%a' -- "$operator_target" 2>/dev/null || true)" == "0:0:755" ]] || \
+      die "refusing unmanaged dashboard SSH operator helper: $operator_target"
+  fi
+  if [[ -e "$operator_port_target" || -L "$operator_port_target" ]]; then
+    [[ -f "$operator_port_target" && ! -L "$operator_port_target" ]] || \
+      die "refusing non-regular dashboard operator port config: $operator_port_target"
+    [[ "$(stat -c '%u:%g:%a' -- "$operator_port_target" 2>/dev/null || true)" == "0:0:644" ]] || \
+      die "refusing unmanaged dashboard operator port config: $operator_port_target"
+  fi
 
   SERVICE_TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/robot-scope-units.XXXXXX")"
+  local operator_port_source="$SERVICE_TEMP_DIR/robot-scope-dashboard-operator.port"
+  printf '%s\n' "$ROBOT_SCOPE_PORT_VALUE" > "$operator_port_source"
+  chmod 0644 -- "$operator_port_source"
   local dashboard_unit="$SERVICE_TEMP_DIR/robot-scope.service"
   {
     printf '%s\n' \
@@ -605,10 +644,13 @@ install_services() {
       sudo install -o root -g root -m 0644 -- "${units[$index]}" "$target"
     fi
   done
+  sudo install -o root -g root -m 0755 -- "$OPERATOR_SOURCE" "$operator_target"
+  sudo install -o root -g root -m 0644 -- "$operator_port_source" "$operator_port_target"
   sudo systemctl daemon-reload
-  sudo systemctl enable "${unit_names[@]}"
-  echo "[Robot Scope installer] installed and enabled: ${unit_names[*]}"
-  echo "[Robot Scope installer] services were not started; review settings, then start explicitly"
+  echo "[Robot Scope installer] installed without enabling: ${unit_names[*]}"
+  echo "[Robot Scope installer] installed SSH operator helper: $operator_target"
+  echo "[Robot Scope installer] operator sudoers remains a separate explicit admin step"
+  echo "[Robot Scope installer] existing enablement was unchanged; start explicitly when needed"
 }
 
 if [[ "$INSTALL_SERVICE" -eq 1 ]]; then

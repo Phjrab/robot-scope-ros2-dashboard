@@ -56,7 +56,7 @@ python3 -m unittest discover -s tests -v
 업데이트와 동시에 움직이지 말고, 필요할 때 별도 변경 기록과 검증 절차로 업데이트합니다.
 기존 배포에서 system package/service installer를 사용했다면 dry-run 검토 후 같은
 `--install-system-packages`, `--install-service` opt-in을 명시합니다. Unit을 다시 설치하고
-enable해도 installer가 service를 자동 start/restart하지는 않습니다.
+도 installer는 enable 상태를 바꾸거나 service를 자동 start/restart하지 않습니다.
 
 서비스 재시작 전에 release note와 diff에서 다음 항목을 확인합니다.
 
@@ -69,11 +69,16 @@ enable해도 installer가 service를 자동 start/restart하지는 않습니다.
 ## 재시작 후 스모크 테스트
 
 ~~~bash
-sudo systemctl restart robot-scope.service
-systemctl status robot-scope.service --no-pager
-journalctl -u robot-scope.service -n 100 --no-pager
+robot-scope-dashboard restart
+robot-scope-dashboard status
+robot-scope-dashboard logs
 curl -fsS http://127.0.0.1:8088/api/v1/health
 ~~~
+
+SSH operator helper 또는 lifecycle sudoers를 설치하지 않은 배포에서는 기존 exact
+`systemctl` 절차를 사용합니다.
+Helper는 새 systemd 실행 ID까지 확인하므로 `--no-block restart` 직후의 이전 active 상태를
+성공으로 오인하지 않습니다.
 
 Control bridge가 설치된 호스트는 dashboard와 동일한 bridge key를 읽는지 확인합니다. 로봇에
 명령을 보내기 전에 observer→sensor→mapping→control/navigation 순서로 readiness를

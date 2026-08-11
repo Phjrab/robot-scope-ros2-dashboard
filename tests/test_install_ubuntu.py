@@ -62,6 +62,11 @@ class InstallerFixture:
             self.project / "scripts" / "robot_scope_doctor.py",
             "#!/usr/bin/env python3\nimport sys\nprint('doctor:' + ' '.join(sys.argv[1:]))\nraise SystemExit(1)\n",
         )
+        shutil.copy2(
+            ROOT / "scripts" / "robot_scope_dashboard_service.py",
+            self.project / "scripts" / "robot_scope_dashboard_service.py",
+        )
+        (self.project / "scripts" / "robot_scope_dashboard_service.py").chmod(0o755)
 
     def run(self, *extra):
         return subprocess.run(
@@ -219,6 +224,8 @@ class UbuntuInstallerTests(unittest.TestCase):
                 "would render and verify robot-scope-control-bridge.service",
                 result.stdout,
             )
+            self.assertIn("/usr/local/bin/robot-scope-dashboard", result.stdout)
+            self.assertIn("would leave Robot Scope services disabled and stopped", result.stdout)
             self.assertIn("would generate private control secret file", result.stdout)
             self.assertFalse(marker.exists(), "dry-run executed sudo")
             self.assertFalse(fixture.config.exists())
@@ -258,8 +265,12 @@ class UbuntuInstallerTests(unittest.TestCase):
         self.assertIn('EnvironmentFile=-$CONTROL_ENV_FILE', source)
         self.assertIn('EnvironmentFile=$CONTROL_ENV_FILE', source)
         self.assertIn("sudo systemctl daemon-reload", source)
-        self.assertIn("sudo systemctl enable", source)
+        self.assertNotIn("sudo systemctl enable", source)
         self.assertIn("refusing to overwrite existing systemd unit", source)
+        self.assertIn("refusing unmanaged dashboard SSH operator helper", source)
+        self.assertIn("sudo install -o root -g root -m 0755", source)
+        self.assertIn("/usr/local/bin/robot-scope-dashboard", source)
+        self.assertIn("/etc/robot-scope-dashboard-operator.port", source)
         self.assertNotIn("curl |", source)
         self.assertNotIn("robot-scope-service-lifecycle.sudoers", source)
         self.assertNotIn("robot-scope-xt16-relay.service", source)
