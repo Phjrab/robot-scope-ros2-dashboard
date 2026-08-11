@@ -15,6 +15,13 @@
   --danger: #ff7a7f;
   --radius: 18px;
   --shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+  --type-micro: 9px;
+  --type-control: 11px;
+  --type-secondary: 13px;
+  --type-body: 14px;
+  --type-section: 15px;
+  --leading-secondary: 1.45;
+  --leading-body: 1.55;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -803,6 +810,302 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 [data-page="navigation"] .navigation-parameter-group header strong,
 [data-page="navigation"] .navigation-runtime-bindings strong { font-size:14px; }
 [data-page="navigation"] .navigation-safety-banner a { font-size:13px; }
+
+/* Unified dashboard type scale.  The Go2 modes & motions cards define the
+   hierarchy: micro label -> control -> secondary -> emphasis -> section. */
+.nav-item i,
+.live-clock span,
+.kpi-card span,
+.route-card > span,
+.lidar-sensor-badge,
+.lidar-source-pin,
+.lidar-source-topic,
+.lidar-source-stage,
+.lidar-source-freshness,
+.saved-map-detail > span,
+.mapping-job-summary span,
+.pipeline-list span,
+.sensor-card-head span,
+.pose-values span,
+th,
+.state-pill,
+.category-tag,
+.control-status-card > span,
+.control-action-card > span,
+.navigation-status-card span,
+.navigation-pose-readout span,
+.navigation-readiness span,
+.navigation-runtime-bindings span,
+footer { font-size:var(--type-micro); }
+
+.nav-item b,
+.field-label,
+select,
+.connection-detail span,
+.connection-detail strong,
+.route-card b,
+.panel-state,
+.topic-badge,
+.mapping-checkbox b,
+.mapping-action,
+.mapping-job-summary strong,
+.pipeline-list small,
+.saved-map-detail dt,
+.saved-map-detail dd,
+.saved-map-management > label,
+.saved-map-management input,
+.saved-map-management button,
+.map-conversion-body label > span,
+.map-editor-save-row label > span,
+.map-conversion-body input,
+.map-conversion-body select,
+.map-editor-save-row input,
+.map-conversion-advanced summary,
+.map-primary-action,
+.map-operation-progress strong,
+.map-editor-toolbar button,
+.map-editor-brush-size > span,
+.table-actions input,
+.table-actions select,
+.robot-type-row button,
+.robot-discovery-head,
+.robot-discovery-head strong,
+.robot-candidate > em,
+.connection-target-state span,
+.connection-target-state strong,
+.selected-model-note a,
+.source-settings-grid label > span,
+.service-lifecycle-buttons button,
+.control-form-grid label > span,
+.control-arm-button,
+.control-disarm-button,
+.estop-clear-button,
+.speed-scale-control > span,
+.keyboard-guide kbd small,
+.command-monitor small,
+.navigation-map-toolbar label > span,
+.navigation-parameter-toolbar label > span,
+.navigation-pipeline-actions button,
+.navigation-pose-actions button,
+.navigation-mission-actions button,
+.navigation-parameter-toolbar button,
+.navigation-pose-tools button,
+.navigation-goal-progress > div span,
+.navigation-parameter-field b,
+.navigation-parameter-field input,
+.navigation-parameter-field select { font-size:var(--type-control); }
+
+.nav-item small,
+.read-only-note p,
+.page-heading p,
+.kpi-card small,
+.route-card small,
+.muted,
+.empty-state small,
+.mapping-checkbox small,
+.mapping-safety-note,
+.mapping-operation-message,
+.saved-map-item small,
+.saved-map-management small,
+.map-conversion-help,
+.map-conversion-filter-note,
+.map-tool-message,
+.map-editor-empty,
+.map-editor-save-row > div small,
+.robot-type-note,
+.robot-discovery-empty,
+.robot-candidate small,
+.connection-runtime-note,
+.selected-model-note,
+.service-lifecycle-confirm,
+.service-lifecycle-message,
+.sensor-value,
+.sensor-placeholder,
+td,
+.toast,
+.control-status-card > small,
+.control-device-line small,
+.teleop-console-head p,
+.shift-key span,
+.gamepad-guide small,
+.touch-controller > p,
+.software-estop > small,
+.estop-body > p,
+.estop-confirm,
+.control-action-card > small,
+.control-action-empty,
+.navigation-status-card small,
+.navigation-map-empty small,
+.navigation-map-hint,
+.navigation-pose-readout small,
+.navigation-goal-progress > div small,
+.navigation-goal-progress p,
+.navigation-cleanup-note,
+.navigation-parameter-group header small,
+.navigation-parameter-field small,
+.navigation-runtime-bindings small { font-size:var(--type-secondary); line-height:var(--leading-secondary); }
+
+.read-only-note strong,
+.empty-state strong,
+.mapping-operation-message strong,
+.pipeline-list strong,
+.saved-map-item strong,
+.saved-map-detail > strong,
+.map-editor-save-row > div strong,
+.robot-candidate strong,
+.service-lifecycle-warning,
+.service-lifecycle-status strong,
+.sensor-card-head strong,
+.control-status-card > strong,
+.control-arm-panel h3,
+.teleop-console h3,
+.control-device-line strong,
+.gamepad-guide strong,
+.deadman-monitor strong,
+.control-profile-notice,
+.control-action-notice,
+.control-action-card > strong,
+.navigation-safety-banner strong,
+.navigation-safety-banner p,
+.navigation-status-card strong,
+.navigation-map-empty strong,
+.navigation-pose-readout strong,
+.navigation-readiness strong,
+.navigation-goal-progress > div strong,
+.navigation-parameter-group header strong,
+.navigation-runtime-bindings strong,
+.navigation-runtime-bindings p { font-size:var(--type-body); line-height:var(--leading-body); }
+
+.panel-header h2 { font-size:var(--type-section); }
+
+/* Buttons belong to the control tier; dense canvas HUD controls remain a
+   deliberate micro-size exception so they do not obscure sensor data. */
+.control-action-card button,
+.camera-media-actions select,
+.camera-media-actions button { font-size:var(--type-control); }
+
+.control-action-card > span { font-size:var(--type-micro); }
+.control-action-card > strong { font-size:var(--type-body); }
+.control-action-card > small { font-size:var(--type-secondary); }
+.control-action-notice { font-size:var(--type-body); }
+.control-actions-panel .muted { font-size:var(--type-secondary); }
+
+.mapping-log { font-size:var(--type-control); }
+.saved-map-item b { font-size:var(--type-micro); }
+.pose-values small { font-size:var(--type-control); }
+.service-lifecycle-status span { font-size:var(--type-control); }
+.service-lifecycle-warning { font-size:var(--type-body); }
+.service-lifecycle-confirm,
+.service-lifecycle-message { font-size:var(--type-secondary); }
+.camera-media-readout strong { font-size:var(--type-control); }
+.camera-media-readout small { font-size:var(--type-secondary); line-height:var(--leading-secondary); }
+.camera-media-actions label > span { font-size:var(--type-micro); }
+.touch-deadman small { font-size:var(--type-micro); }
+.command-monitor span { font-size:var(--type-micro); }
+.software-estop > span { font-size:var(--type-micro); }
+.control-profile-notice strong { font-size:var(--type-control); }
+.navigation-safety-banner a { font-size:var(--type-control); }
+.navigation-parameter-toolbar > span { font-size:var(--type-control); }
+
+/* Semantic role corrections take precedence over legacy component sizes. */
+body,
+input,
+select { font-size:var(--type-secondary); }
+
+.nav-item b,
+.field-label,
+.connection-detail span,
+.read-only-note p,
+.table-actions input,
+.table-actions select,
+.saved-map-detail dt,
+.saved-map-detail dd,
+.saved-map-management > label,
+.saved-map-management input,
+.map-conversion-body label > span,
+.map-editor-save-row label > span,
+.map-conversion-body input,
+.map-conversion-body select,
+.map-editor-save-row input,
+.robot-discovery-head,
+.source-settings-grid label > span,
+.control-form-grid label > span,
+.speed-scale-control > span,
+.navigation-map-toolbar label > span,
+.navigation-parameter-toolbar label > span { font-size:var(--type-secondary); line-height:var(--leading-secondary); }
+
+.nav-item small,
+.route-card b,
+.mapping-action,
+.saved-map-management button,
+.map-primary-action,
+.map-editor-toolbar button,
+.robot-type-row button,
+.service-lifecycle-buttons button,
+.control-arm-button,
+.control-disarm-button,
+.estop-clear-button,
+.control-action-card button,
+.navigation-pipeline-actions button,
+.navigation-pose-actions button,
+.navigation-mission-actions button,
+.navigation-parameter-toolbar button,
+.navigation-pose-tools button { font-size:var(--type-control); }
+
+.connection-detail strong,
+.mapping-checkbox b,
+.mapping-job-summary strong,
+.pipeline-list strong,
+.saved-map-item strong,
+.saved-map-detail > strong,
+.map-editor-save-row > div strong,
+.camera-media-readout strong,
+.camera-media-readout time,
+.sensor-card-head strong,
+.robot-candidate strong,
+.connection-target-state strong,
+.selected-model-note strong,
+.service-lifecycle-status strong,
+.navigation-parameter-field b { font-size:var(--type-body); line-height:var(--leading-body); }
+
+.panel-state,
+.topic-badge,
+.service-lifecycle-status span,
+.navigation-goal-progress > div span,
+.navigation-parameter-toolbar > span { font-size:var(--type-micro); }
+
+.pipeline-list small,
+.map-conversion-advanced summary,
+.map-editor-brush-size > span,
+.robot-candidate small,
+.connection-runtime-note,
+.connection-target-state span,
+.selected-model-note,
+.service-lifecycle-confirm,
+.service-lifecycle-message,
+.camera-media-readout small,
+.keyboard-guide kbd small,
+.shift-key span,
+.gamepad-guide strong,
+.gamepad-guide small,
+.touch-deadman small,
+.command-monitor small,
+.software-estop > small,
+.estop-body > p,
+.estop-confirm,
+.navigation-map-hint,
+.navigation-pose-readout small,
+.navigation-goal-progress > div small,
+.navigation-cleanup-note,
+.navigation-parameter-group header small,
+.navigation-parameter-field small,
+.navigation-runtime-bindings small { font-size:var(--type-secondary); line-height:var(--leading-secondary); }
+
+.navigation-parameter-field input,
+.navigation-parameter-field select { font-size:var(--type-control); }
+
+.route-card strong { font-size:20px; }
+footer { font-size:var(--type-control); }
 
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid rgba(93,222,216,.72); outline-offset:3px; }
 
