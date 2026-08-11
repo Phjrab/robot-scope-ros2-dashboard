@@ -99,6 +99,16 @@ CONTROL_BINDINGS: Dict[str, str] = {}
 ROBOT_DISCOVERY = LocalRobotDiscovery()
 
 
+class DashboardStaticFiles(StaticFiles):
+    """Prevent stale frontend code after an operator service restart."""
+
+    async def get_response(self, path: str, scope: Dict[str, Any]) -> Response:
+        response = await super().get_response(path, scope)
+        if path.endswith((".js", ".css")):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 class StrictRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -260,7 +270,7 @@ app = FastAPI(
     description="ROS 2 observability, allowlisted mapping, and fail-safe Go2 control",
     lifespan=lifespan,
 )
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", DashboardStaticFiles(directory=STATIC_DIR), name="static")
 
 
 def agent() -> RosAgent:
@@ -749,7 +759,10 @@ def parse_saved_point_limit(value: str) -> int | None:
 
 @app.get("/")
 async def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(
+        STATIC_DIR / "index.html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/v1/system/service")
