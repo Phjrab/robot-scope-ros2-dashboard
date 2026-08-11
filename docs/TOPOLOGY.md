@@ -141,5 +141,10 @@ Robot Scope          live view, mapping save, navigation sensor gate
 Navigation runtime   /scan + odom/base_link transforms
 ~~~
 
+Robot Scope가 Go2 전용 NIC에서 실행되는 동안 Hesai driver와 XT16 bridge는 persistent
+preview process group으로 유지됩니다. FAST-LIO는 별도 mapping process group이므로 매핑
+중지 후에도 `/lidar_points`와 `/velodyne_points`는 계속 관측할 수 있습니다. 전체 dashboard
+종료 시에는 두 process group을 모두 순서대로 정리합니다.
+
 Live Mapping에서 선택한 시각화 토픽과 저장용 `/Laser_map`은 역할이 다릅니다. XT16 표시
 소스를 고정한 경우 publisher가 잠시 사라져도 Go2 내장 LiDAR로 자동 전환하지 않습니다.

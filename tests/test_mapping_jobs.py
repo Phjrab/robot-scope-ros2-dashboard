@@ -35,6 +35,17 @@ print(f"pipeline-ready child={child.pid}", flush=True)
 """
 
 
+PREVIEW_PROGRAM = r"""
+import signal
+import sys
+import time
+
+signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+print("preview-ready", flush=True)
+time.sleep(120)
+"""
+
+
 PCD_SAVE_PROGRAM = r"""
 from pathlib import Path
 import struct
@@ -90,6 +101,7 @@ class MappingJobManagerTests(unittest.TestCase):
         self.maps = self.root / "maps"
         self.maps.mkdir()
         self.pipeline_script = self._script("pipeline.py", PIPELINE_PROGRAM)
+        self.preview_script = self._script("preview.py", PREVIEW_PROGRAM)
         self.pcd_script = self._script("save_pcd.py", PCD_SAVE_PROGRAM)
         self.occupancy_script = self._script("save_grid.py", OCCUPANCY_SAVE_PROGRAM)
         self.managers = []
@@ -104,7 +116,14 @@ class MappingJobManagerTests(unittest.TestCase):
         path.write_text(contents, encoding="utf-8")
         return path
 
-    def manager(self, *, log_capacity=50, save_commands=None, require_pipeline=True):
+    def manager(
+        self,
+        *,
+        log_capacity=50,
+        save_commands=None,
+        require_pipeline=True,
+        preview=False,
+    ):
         commands = save_commands or {
             "pointcloud3d": SaveCommandSpec(
                 (sys.executable, str(self.pcd_script), "{output_prefix}"),
@@ -127,6 +146,15 @@ class MappingJobManagerTests(unittest.TestCase):
                 cwd=self.root,
                 timeout_seconds=2,
             ),
+            preview_command=(
+                CommandSpec(
+                    (sys.executable, str(self.preview_script)),
+                    cwd=self.root,
+                    timeout_seconds=2,
+                )
+                if preview
+                else None
+            ),
             save_commands=commands,
             log_capacity=log_capacity,
             stop_grace_seconds=0.3,
@@ -134,6 +162,57 @@ class MappingJobManagerTests(unittest.TestCase):
         )
         self.managers.append(manager)
         return manager
+
+    def test_mapping_reuses_preview_and_stop_leaves_pointcloud_running(self):
+        manager = self.manager(preview=True)
+
+        started = manager.start_mapping()
+        self.assertEqual(started["preview"]["state"], "running")
+        preview_pid = int(started["preview"]["pid"])
+        self.assertTrue(process_exists(preview_pid))
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
+
+        stopped = manager.stop_mapping()
+        self.assertEqual(stopped["pipeline"]["state"], "stopped")
+        self.assertEqual(stopped["preview"]["state"], "running")
+        self.assertEqual(stopped["preview"]["pid"], preview_pid)
+        self.assertTrue(process_exists(preview_pid))
+
+        manager.close()
+        self.assertIsNotNone(wait_until(lambda: not process_exists(preview_pid)))
+        self.assertEqual(manager.snapshot()["preview"]["state"], "stopped")
+
+    def test_unexpected_preview_exit_fails_the_active_mapping_group(self):
+        failing_preview = self._script(
+            "failing_preview.py",
+            "import time\nprint('preview-started', flush=True)\ntime.sleep(0.3)\n",
+        )
+        manager = MappingJobManager(
+            project_dir=self.root,
+            output_dir=self.maps,
+            start_command=CommandSpec(
+                (sys.executable, str(self.pipeline_script)), cwd=self.root
+            ),
+            preview_command=CommandSpec(
+                (sys.executable, str(failing_preview)), cwd=self.root
+            ),
+            save_commands={},
+            stop_grace_seconds=0.2,
+        )
+        self.managers.append(manager)
+
+        manager.start_mapping()
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["preview"]["state"] == "failed")
+        )
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "failed")
+        )
 
     def start_ready(self, manager):
         snapshot = manager.start_mapping()

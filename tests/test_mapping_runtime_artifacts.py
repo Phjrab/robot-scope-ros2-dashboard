@@ -289,6 +289,7 @@ class MapRuntimeArtifactTests(unittest.TestCase):
             "scripts/run_hesai_driver_humble.sh",
             "scripts/run_hesai_fastlio_humble.sh",
             "scripts/save_hesai_map_humble.sh",
+            "scripts/start_xt16_preview_humble.sh",
             "scripts/start_hesai_mapping_humble.sh",
         ):
             subprocess.run(["bash", "-n", str(ROOT / relative)], check=True)
@@ -333,6 +334,17 @@ class MappingConfigurationArtifactTests(unittest.TestCase):
         combined = bridge_runner + driver_runner + fastlio_runner
         self.assertNotIn("~/ws/go2_3d", combined)
         self.assertNotIn("src/FAST_LIO/config/xt16.yaml", combined)
+
+        preview = (ROOT / "scripts/start_xt16_preview_humble.sh").read_text()
+        mapping = (ROOT / "scripts/start_hesai_mapping_humble.sh").read_text()
+        self.assertIn("run_hesai_driver_humble.sh", preview)
+        self.assertIn("run_xt16_bridge_humble.sh", preview)
+        self.assertNotIn("run_hesai_fastlio_humble.sh", preview)
+        self.assertNotIn('stop_existing "hesai_ros_driver_node"', mapping)
+        self.assertNotIn('stop_existing "xt16_fastlio_bridge.py"', mapping)
+        self.assertNotIn("run_hesai_driver_humble.sh", mapping)
+        self.assertNotIn("run_xt16_bridge_humble.sh", mapping)
+        self.assertIn("run_hesai_fastlio_humble.sh", mapping)
 
     def test_dependency_manifest_pins_the_verified_upstream_revisions(self):
         manifest = json.loads(

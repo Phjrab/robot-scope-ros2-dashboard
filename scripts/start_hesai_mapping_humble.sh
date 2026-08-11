@@ -180,17 +180,13 @@ start_once() {
   echo "[Robot Scope] started $label (pid $pid)"
 }
 
-# "새 맵 시작" is an explicit reset operation.  Stop only the fixed mapping
-# components owned by this Unix user, then build a fresh FAST-LIO accumulator.
+# "새 맵 시작" is an explicit accumulator reset.  The dashboard-owned Hesai
+# driver and XT16 bridge remain alive as the persistent raw preview; only the
+# fixed FAST-LIO process group belongs to this mapping launch.
 stop_existing "fastlio_mapping|ros2 launch fast_lio" "FAST-LIO"
-stop_existing "xt16_fastlio_bridge.py" "XT16 bridge"
-stop_existing "hesai_ros_driver_node" "Hesai driver"
 
-start_once "hesai_ros_driver_node" "Hesai driver" "$LOG_DIR/hesai_dashboard.log" "$PROJECT_DIR/scripts/run_hesai_driver_humble.sh"
-python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" \
-  --stage raw \
-  --timeout "${ROBOT_SCOPE_XT16_RAW_READY_TIMEOUT_SECONDS:-15}"
-start_once "xt16_fastlio_bridge.py" "XT16 bridge" "$LOG_DIR/xt16_bridge_dashboard.log" "$PROJECT_DIR/scripts/run_xt16_bridge_humble.sh"
+# Fresh converted clouds and Go2 IMU prove that both persistent preview
+# processes are alive and compatible before FAST-LIO can be started.
 python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" \
   --stage bridge \
   --timeout "${ROBOT_SCOPE_XT16_BRIDGE_READY_TIMEOUT_SECONDS:-15}"

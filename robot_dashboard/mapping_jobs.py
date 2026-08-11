@@ -138,11 +138,12 @@ def _inside(root: Path, candidate: Path) -> bool:
 
 
 class MappingJobManager:
-    """Manage one mapping pipeline and one bounded save operation at a time.
+    """Manage one sensor preview, mapping pipeline and bounded save at a time.
 
-    Public methods are thread-safe.  ``start_mapping`` is non-blocking,
-    ``stop_mapping`` waits for the process group to stop, and ``save_map`` waits
-    for the bounded save command and verified publication of its result.
+    The optional preview process owns only the Hesai driver and fixed XT16
+    conversion bridge.  It remains active while FAST-LIO mapping starts and
+    stops, so live point clouds do not depend on a mapping session.  Public
+    methods are thread-safe.
     """
 
     def __init__(
@@ -151,6 +152,7 @@ class MappingJobManager:
         project_dir: Path,
         output_dir: Path,
         start_command: CommandSpec,
+        preview_command: Optional[CommandSpec] = None,
         save_commands: Mapping[str, SaveCommandSpec],
         log_capacity: int = 300,
         stop_grace_seconds: float = 4.0,
@@ -165,6 +167,11 @@ class MappingJobManager:
             raise ValueError("output_dir must be a real directory")
 
         self.start_command = self._prepare_command(start_command)
+        self.preview_command = (
+            self._prepare_command(preview_command)
+            if preview_command is not None
+            else None
+        )
         prepared_saves: dict[str, SaveCommandSpec] = {}
         for kind, spec in save_commands.items():
             if not isinstance(kind, str) or not KIND_RE.fullmatch(kind):
@@ -187,6 +194,10 @@ class MappingJobManager:
         self._pipeline_token = ""
         self._stop_requested = False
         self._closing = False
+        self._preview_process: Optional[subprocess.Popen[str]] = None
+        self._preview_pgid: Optional[int] = None
+        self._preview_token = ""
+        self._preview_stop_requested = False
         self._save_active = False
         self._save_process: Optional[subprocess.Popen[str]] = None
         self._save_pgid: Optional[int] = None
@@ -194,6 +205,15 @@ class MappingJobManager:
         self._local_operation_started = False
         self._pipeline: dict[str, Any] = {
             "state": "idle",
+            "job_id": None,
+            "pid": None,
+            "started_at": None,
+            "stopped_at": None,
+            "exit_code": None,
+            "error": None,
+        }
+        self._preview: dict[str, Any] = {
+            "state": "idle" if self.preview_command is not None else "disabled",
             "job_id": None,
             "pid": None,
             "started_at": None,
@@ -221,16 +241,23 @@ class MappingJobManager:
         project_dir: Path,
         output_dir: Path,
         save_commands: Mapping[str, SaveCommandSpec],
+        enable_preview: bool = False,
         **kwargs: Any,
     ) -> "MappingJobManager":
         """Build a manager using the repository's allowlisted Humble launcher."""
 
         project = project_dir.expanduser().resolve(strict=True)
         launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
+        preview_launcher = project / "scripts" / "start_xt16_preview_humble.sh"
         return cls(
             project_dir=project,
             output_dir=output_dir,
             start_command=CommandSpec((str(launcher),), cwd=project, timeout_seconds=30),
+            preview_command=(
+                CommandSpec((str(preview_launcher),), cwd=project, timeout_seconds=30)
+                if enable_preview
+                else None
+            ),
             save_commands=save_commands,
             **kwargs,
         )
@@ -284,6 +311,7 @@ class MappingJobManager:
             logs = [dict(item) for item in self._logs if item["seq"] > requested]
             oldest = self._logs[0]["seq"] if self._logs else self._seq + 1
             return {
+                "preview": dict(self._preview),
                 "pipeline": dict(self._pipeline),
                 "operation": {
                     **self._operation,
@@ -296,8 +324,113 @@ class MappingJobManager:
                 "logs_truncated": bool(requested and requested < oldest - 1),
             }
 
+    def start_preview(self) -> dict[str, Any]:
+        """Start the fixed Hesai + XT16 conversion preview process group."""
+
+        command = self.preview_command
+        if command is None:
+            return self.snapshot()
+        with self._lock:
+            if self._closing:
+                raise MappingJobError("mapping manager is shutting down")
+            if self._preview["state"] in {"starting", "running", "stopping"}:
+                return self.snapshot()
+            token = uuid.uuid4().hex
+            self._preview_token = token
+            self._preview_stop_requested = False
+            self._preview = {
+                "state": "starting",
+                "job_id": token,
+                "pid": None,
+                "started_at": _utc_now(),
+                "stopped_at": None,
+                "exit_code": None,
+                "error": None,
+            }
+            self._append_log_locked(
+                "preview",
+                "starting persistent Hesai + XT16 point-cloud preview",
+            )
+
+        try:
+            process = self._spawn(command.argv, command.cwd)
+        except OSError as exc:
+            with self._lock:
+                self._preview.update(
+                    state="failed",
+                    stopped_at=_utc_now(),
+                    error=f"preview could not be started: {exc.strerror or type(exc).__name__}",
+                )
+                self._append_log_locked("preview", self._preview["error"])
+            raise MappingJobError("XT16 preview could not be started") from exc
+
+        pgid = process.pid
+        with self._lock:
+            if self._closing:
+                self._preview_stop_requested = True
+            self._preview_process = process
+            self._preview_pgid = pgid
+            self._preview.update(state="running", pid=process.pid)
+            self._append_log_locked(
+                "preview",
+                f"XT16 preview supervisor started (pid {process.pid})",
+            )
+
+        self._start_reader(process, "preview")
+        threading.Thread(
+            target=self._monitor_preview,
+            args=(token, process, pgid),
+            name="robot-scope-preview-monitor",
+            daemon=True,
+        ).start()
+        if self._closing:
+            self.stop_preview()
+        return self.snapshot()
+
+    def stop_preview(self) -> dict[str, Any]:
+        """Stop only the manager-owned sensor-preview process group."""
+
+        with self._lock:
+            if self._pipeline["state"] in {"starting", "running", "stopping"}:
+                raise JobBusyError("mapping must stop before the XT16 preview can stop")
+            if self._preview["state"] not in {"starting", "running", "stopping"}:
+                return self.snapshot()
+            process = self._preview_process
+            pgid = self._preview_pgid
+            self._preview_stop_requested = True
+            self._preview["state"] = "stopping"
+            self._append_log_locked("preview", "stopping XT16 preview process group")
+
+        if pgid is not None:
+            self._terminate_group(process, pgid)
+
+        exit_code = process.poll() if process is not None else None
+        with self._lock:
+            self._preview.update(
+                state="stopped",
+                stopped_at=_utc_now(),
+                exit_code=exit_code,
+                error=None,
+            )
+            self._preview_process = None
+            self._preview_pgid = None
+            self._append_log_locked("preview", "XT16 preview stopped")
+        return self.snapshot()
+
     def start_mapping(self) -> dict[str, Any]:
         """Start the allowlisted mapping pipeline in a new process group."""
+
+        with self._lock:
+            if self._closing:
+                raise MappingJobError("mapping manager is shutting down")
+            if self._save_active:
+                raise JobBusyError("a map save is in progress")
+            if self._pipeline["state"] in {"starting", "running", "stopping"}:
+                raise JobBusyError("mapping pipeline is already active")
+
+        # The mapping launcher now owns only FAST-LIO.  Ensure its fixed raw
+        # and converted point-cloud producers exist before readiness probing.
+        self.start_preview()
 
         with self._lock:
             if self._closing:
@@ -728,6 +861,17 @@ class MappingJobManager:
                 pgid = self._pipeline_pgid
             if pgid is not None:
                 self._terminate_group(process, pgid)
+        try:
+            self.stop_preview()
+        except JobBusyError:
+            # A concurrent pipeline monitor can take a short interval to
+            # publish its terminal state.  The complete process groups are
+            # still explicitly drained during application shutdown.
+            with self._lock:
+                preview_process = self._preview_process
+                preview_pgid = self._preview_pgid
+            if preview_pgid is not None:
+                self._terminate_group(preview_process, preview_pgid)
 
     @staticmethod
     def _spawn(argv: Sequence[str], cwd: Optional[Path]) -> subprocess.Popen[str]:
@@ -847,6 +991,42 @@ class MappingJobManager:
                 "pipeline",
                 "mapping pipeline stopped" if stopped else "mapping pipeline exited unexpectedly",
             )
+
+    def _monitor_preview(
+        self,
+        token: str,
+        process: subprocess.Popen[str],
+        pgid: int,
+    ) -> None:
+        exit_code = process.wait()
+        if self._group_alive(pgid):
+            self._terminate_group(process, pgid)
+
+        with self._lock:
+            if token != self._preview_token or self._preview["state"] == "stopped":
+                return
+            if self._preview_stop_requested or self._preview["state"] == "stopping":
+                return
+            self._preview_process = None
+            self._preview_pgid = None
+            self._preview.update(
+                state="failed",
+                stopped_at=_utc_now(),
+                exit_code=exit_code,
+                error=f"XT16 preview exited unexpectedly with status {exit_code}",
+            )
+            self._append_log_locked("preview", self._preview["error"])
+            pipeline_pgid = (
+                self._pipeline_pgid
+                if self._pipeline["state"] in {"starting", "running"}
+                else None
+            )
+            pipeline_process = self._pipeline_process
+
+        # FAST-LIO must not keep presenting a running mapping session after
+        # both of its fixed point-cloud producers disappear.
+        if pipeline_pgid is not None:
+            self._terminate_group(pipeline_process, pipeline_pgid)
 
     def _append_log(self, source: str, message: str) -> None:
         with self._lock:

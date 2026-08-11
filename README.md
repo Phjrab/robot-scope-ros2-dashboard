@@ -44,7 +44,8 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 - Go2 12축 다리 관절, 몸통 자세와 이동 궤적 표시
 - 실시간 점군 포인트 수를 10K~250K, 사용자 지정 또는 ALL SESSION으로 선택
 - 저장 PCD를 미리보기 포인트 수 또는 ALL로 표시
-- Hesai + XT16 bridge + FAST-LIO 매핑 시작·중지
+- 대시보드 실행 중 Hesai + XT16 원시 점군 미리보기
+- FAST-LIO 누적 매핑 시작·중지
 - 현재 Laser_map을 PCD 또는 PCD + 2D 지도 묶음으로 안전하게 저장
 - 저장 PCD를 높이 범위·해상도·2D 투영 점 밀도로 새 PGM/YAML 지도에 변환
 - 저장 2D 지도를 브러시로 정리하고 원본을 보존한 새 복사본으로 저장
@@ -375,6 +376,18 @@ FAST-LIO -> /cloud_registered + /Laser_map + /Odometry
 Robot Scope -> live view + PCD/PGM/YAML save
 ~~~
 
+Go2 전용 인터페이스로 대시보드가 시작되면 Hesai driver와 XT16 bridge는 별도
+미리보기 process group으로 실행됩니다. 따라서 매핑 세션이 `IDLE`이어도
+`/lidar_points`와 `/velodyne_points`를 볼 수 있습니다. `새 맵 시작`은 이 두 publisher를
+재사용해 FAST-LIO만 새 accumulator로 시작하고, `매핑 중지`는 FAST-LIO만 종료하므로
+원시·변환 점군 미리보기는 유지됩니다. 대시보드를 종료하면 미리보기 process group도
+함께 정리됩니다. 로봇 전용 NIC가 없는 offline viewer나 Generic 프로필에서는 미리보기를
+자동 실행하지 않습니다.
+
+FAST-LIO 없이 볼 수 있는 `/lidar_points`와 `/velodyne_points`는 센서 기준 현재 scan이며,
+지도 좌표로 누적된 결과가 아닙니다. `/cloud_registered`, `/Laser_map`, `/Odometry`와 지도
+저장은 FAST-LIO 매핑 세션이 실행 중일 때만 제공됩니다.
+
 #### XT16 목적지를 유지하는 단방향 UDP 복제
 
 XT16의 목적지를 로봇 탑재 Jetson `192.168.123.18`로 유지하면서 Robot Scope
@@ -445,9 +458,11 @@ Settings와 Live Mapping 헤더에는 현재 선택한 장치·토픽·처리 �
 `WAITING`으로 유지합니다. 빈 소스를 POST하면 사용자 override를 삭제하고 Go2 프로필의
 기본 `/velodyne_points` 고정으로 돌아갑니다.
 
-대시보드의 새 맵 시작 버튼은 저장소 안의 고정된 스크립트만 실행합니다.
+대시보드는 먼저 저장소의 고정 preview supervisor를 실행하고, 새 맵 시작 버튼은
+FAST-LIO 전용 고정 런처만 실행합니다.
 
 ~~~bash
+./scripts/start_xt16_preview_humble.sh
 ./scripts/start_hesai_mapping_humble.sh
 ~~~
 

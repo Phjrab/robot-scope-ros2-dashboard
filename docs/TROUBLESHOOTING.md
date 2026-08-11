@@ -102,6 +102,11 @@ ros2 topic hz /Odometry
 - 홈 디렉터리의 이전 prototype이 실행되고 있지 않은지 확인합니다.
 - FAST-LIO가 참조하는 `xt16.yaml`과 실제 bridge field layout을 함께 확인합니다.
 - `/Laser_map`은 publisher 존재만이 아니라 비어 있지 않은 새 sample이어야 합니다.
+- 매핑을 중지한 뒤에도 `/lidar_points`와 `/velodyne_points`는 정상적으로 계속 발행됩니다.
+  둘 다 사라졌다면 mapping start를 반복하기 전에 mapping control의 `preview` 상태와
+  `hesai_preview.log`, `xt16_preview_bridge.log`를 확인합니다.
+- `/velodyne_points`는 LIVE인데 `/Laser_map`만 없다면 원시 미리보기는 정상이고 FAST-LIO
+  매핑 세션만 중지된 상태일 수 있습니다.
 
 ## Live Mapping이 끊기거나 지연됨
 

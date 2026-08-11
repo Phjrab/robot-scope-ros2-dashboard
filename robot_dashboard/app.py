@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import secrets
 import time
 from contextlib import asynccontextmanager
@@ -219,6 +220,14 @@ async def lifespan(_: FastAPI):
     if AGENT is None:
         raise RuntimeError("ROS agent has not been configured")
     AGENT.start()
+    if MAPPING_JOBS is not None:
+        try:
+            await asyncio.to_thread(MAPPING_JOBS.start_preview)
+        except MappingJobError:
+            # Raw XT16 preview is optional observability.  Keep the dashboard
+            # available and expose WAITING/failed state when its fixed local
+            # dependencies are unavailable.
+            LOGGER.exception("XT16 point-cloud preview startup failed")
     try:
         yield
     finally:
@@ -1889,6 +1898,11 @@ def main() -> None:
     manager = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
         output_dir=mapping_output_dir,
+        enable_preview=bool(
+            isinstance(AGENT.profile.get("xt16_preview"), dict)
+            and AGENT.profile["xt16_preview"].get("enabled") is True
+            and os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"
+        ),
         save_commands={
             "pointcloud3d": SaveCommandSpec(
                 (str(save_script), "{output_prefix}", "pcd"),

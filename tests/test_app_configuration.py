@@ -20,6 +20,14 @@ class AppConfigurationTests(unittest.TestCase):
         self.assertEqual(source.count("max_result_bytes=map_file_limit"), 2)
         self.assertNotIn("max_result_bytes=1024 * 1024 * 1024", source)
 
+    def test_xt16_preview_requires_go2_profile_opt_in_and_ready_interface(self):
+        source = (
+            Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('AGENT.profile.get("xt16_preview")', source)
+        self.assertIn('os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"', source)
+        self.assertIn("MAPPING_JOBS.start_preview", source)
+
 
 if __name__ == "__main__":
     unittest.main()

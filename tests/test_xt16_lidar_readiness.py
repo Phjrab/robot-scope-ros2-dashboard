@@ -10,6 +10,7 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "scripts" / "check_xt16_lidar_ready.py"
 START_SCRIPT = ROOT / "scripts" / "start_hesai_mapping_humble.sh"
+PREVIEW_SCRIPT = ROOT / "scripts" / "start_xt16_preview_humble.sh"
 SPEC = importlib.util.spec_from_file_location("check_xt16_lidar_ready", HELPER)
 readiness = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = readiness
@@ -265,10 +266,12 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
 class Xt16ReadinessLauncherContractTests(unittest.TestCase):
     def setUp(self):
         self.script = START_SCRIPT.read_text(encoding="utf-8")
+        self.preview_script = PREVIEW_SCRIPT.read_text(encoding="utf-8")
         self.helper_source = HELPER.read_text(encoding="utf-8")
 
     def test_scripts_have_valid_syntax_and_helper_help_needs_no_ros(self):
         subprocess.run(["bash", "-n", str(START_SCRIPT)], check=True)
+        subprocess.run(["bash", "-n", str(PREVIEW_SCRIPT)], check=True)
         result = subprocess.run(
             [sys.executable, str(HELPER), "--help"],
             check=True,
@@ -285,19 +288,23 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
         self.assertIn("self._readiness_subscriptions =", self.helper_source)
 
     def test_each_readiness_gate_follows_its_producer_before_commit(self):
-        driver = self.script.index('start_once "hesai_ros_driver_node"')
-        raw = self.script.index("--stage raw")
-        bridge_process = self.script.index('start_once "xt16_fastlio_bridge.py"')
+        driver = self.preview_script.index("run_hesai_driver_humble.sh")
+        bridge_process = self.preview_script.index("run_xt16_bridge_humble.sh")
+        preview_ready = self.preview_script.index(
+            "XT16 preview running without FAST-LIO"
+        )
         bridge_gate = self.script.index("--stage bridge")
         fastlio_process = self.script.index('start_once "fastlio_mapping"')
         fastlio_gate = self.script.index("--stage fastlio")
         committed = self.script.index("PIPELINE_COMMITTED=1")
-        self.assertLess(driver, raw)
-        self.assertLess(raw, bridge_process)
-        self.assertLess(bridge_process, bridge_gate)
+        self.assertLess(driver, bridge_process)
+        self.assertLess(bridge_process, preview_ready)
         self.assertLess(bridge_gate, fastlio_process)
         self.assertLess(fastlio_process, fastlio_gate)
         self.assertLess(fastlio_gate, committed)
+        self.assertNotIn("run_hesai_driver_humble.sh", self.script)
+        self.assertNotIn("run_xt16_bridge_humble.sh", self.script)
+        self.assertNotIn("run_hesai_fastlio_humble.sh", self.preview_script)
 
     def test_failure_cleanup_targets_only_processes_started_by_this_launch(self):
         self.assertIn('STARTED_PIDS+=("$pid")', self.script)
