@@ -372,21 +372,82 @@ class RobotTargetSafetyTests(unittest.TestCase):
             self.agent._camera["data"] = b"stale-jpeg"
             self.agent._camera["format"] = "jpeg"
 
-        self.assertEqual(self.agent.camera_stream_open()["consumers"], 1)
+        first = self.agent.camera_stream_open()
+        self.assertEqual(first["consumers"], 1)
         self.assertEqual(self.agent.camera_snapshot()["data"], b"")
-        self.assertEqual(self.agent.camera_stream_open()["consumers"], 2)
+        second = self.agent.camera_stream_open()
+        self.assertEqual(second["consumers"], 2)
         self.agent._direct_camera.start.assert_called_once_with()
 
-        self.assertEqual(self.agent.camera_stream_close()["consumers"], 1)
+        self.assertEqual(
+            self.agent.camera_stream_close("go2_front", first["token"])["consumers"],
+            1,
+        )
         self.agent._direct_camera.stop.assert_not_called()
-        self.assertEqual(self.agent.camera_stream_close()["consumers"], 0)
+        self.assertEqual(
+            self.agent.camera_stream_close("go2_front", second["token"])["consumers"],
+            0,
+        )
         self.agent._direct_camera.stop.assert_called_once_with()
 
         # Duplicate disconnects are idempotent, and shutdown rejects new work.
-        self.assertEqual(self.agent.camera_stream_close()["consumers"], 0)
+        duplicate = self.agent.camera_stream_close("go2_front", second["token"])
+        self.assertEqual(duplicate["consumers"], 0)
+        self.assertFalse(duplicate["released"])
         self.agent._direct_camera.stop.assert_called_once_with()
         self.agent._camera_accepting_demand = False
         self.assertFalse(self.agent.camera_stream_open()["accepted"])
+
+    def test_camera_catalog_and_frames_are_isolated_per_fixed_source(self):
+        catalog = self.agent.cameras_snapshot()
+        self.assertEqual(catalog["max_active"], 2)
+        self.assertEqual(
+            [source["source_id"] for source in catalog["sources"]],
+            ["go2_front", "realsense_color"],
+        )
+        self.assertTrue(catalog["sources"][0]["configured"])
+        self.assertTrue(catalog["sources"][1]["configured"])
+        self.assertEqual(
+            catalog["sources"][0]["topic"], "go2-camera://230.1.1.1:1720"
+        )
+        self.assertEqual(
+            catalog["sources"][1]["topic"],
+            "http://192.168.123.18:8090/stream",
+        )
+        self.assertEqual(catalog["sources"][0]["width"], 1280)
+        self.assertEqual(catalog["sources"][0]["height"], 720)
+
+        self.agent._direct_camera._publish_jpeg(b"\xff\xd8go2\xff\xd9")
+        self.agent._remote_camera._publish_jpeg(b"\xff\xd8rs\xff\xd9")
+        go2 = self.agent.camera_snapshot("go2_front")
+        realsense = self.agent.camera_snapshot("realsense_color")
+        self.assertEqual(go2["data"], b"\xff\xd8go2\xff\xd9")
+        self.assertEqual(realsense["data"], b"\xff\xd8rs\xff\xd9")
+        self.assertEqual(go2["source_id"], "go2_front")
+        self.assertEqual(realsense["source_id"], "realsense_color")
+        self.assertNotEqual(go2["stream_id"], realsense["stream_id"])
+
+    def test_camera_tokens_are_source_bound_exactly_once_and_capped(self):
+        self.agent._direct_camera.start = Mock(return_value=True)
+        self.agent._direct_camera.stop = Mock()
+        self.agent._remote_camera.start = Mock(return_value=True)
+        self.agent._remote_camera.stop = Mock()
+        self.agent._camera_accepting_demand = True
+        opens = [self.agent.camera_stream_open("go2_front") for _ in range(4)]
+        limited = self.agent.camera_stream_open("go2_front")
+        remote = self.agent.camera_stream_open("realsense_color")
+        self.assertTrue(all(opened["accepted"] for opened in opens))
+        self.assertFalse(limited["accepted"])
+        self.assertEqual(limited["reason"], "camera_source_viewer_limit_reached")
+        self.assertTrue(remote["accepted"])
+
+        token = opens[0]["token"]
+        wrong_source = self.agent.camera_stream_close("realsense_color", token)
+        self.assertFalse(wrong_source["released"])
+        released = self.agent.camera_stream_close("go2_front", token)
+        self.assertTrue(released["released"])
+        duplicate = self.agent.camera_stream_close("go2_front", token)
+        self.assertFalse(duplicate["released"])
 
     def test_pointcloud_source_identity_uses_only_fixed_vendor_topic_rules(self):
         cases = {

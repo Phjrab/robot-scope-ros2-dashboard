@@ -104,6 +104,7 @@ test('camera freshness rejects frozen frames and stale backend metadata', () => 
   assert.equal(isFresh(1_000, { state: 'ok', age_s: 3.1 }, 2_000), false);
   assert.equal(isFresh(1_000, {}, 2_000), true);
   assert.match(appSource, /setInterval\(syncCameraFrameFreshness, 500\)/);
+  assert.match(appSource, /slot\.lastFrameAt \? 'stale'/);
   assert.match(appSource, /영상 신호가 3초 이상 멈춰 녹화를 종료하고 저장했습니다/);
   assert.match(appSource, /const wasFresh = cameraFrameAvailable\(\)/);
   assert.match(appSource, /if \(!cameraRecording && !wasFresh\)/);
@@ -178,6 +179,107 @@ test('source generation reset closes an old decoded bitmap without rendering it'
   assert.deepEqual({ ...queue.snapshot() }, { generation: 1, active: false, pending: 0 });
 });
 
+test('camera page supports single and dual layouts with persistent primary controls', () => {
+  for (const id of [
+    'cameraSingleMode',
+    'cameraDualMode',
+    'cameraPrimarySource',
+    'cameraViewGrid',
+    'cameraPrimarySlot',
+    'cameraSecondarySlot',
+    'cameraSecondaryCanvas',
+    'cameraCapacity',
+  ]) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.match(indexSource, /data-camera-slot="primary"/);
+  assert.match(indexSource, /data-camera-slot="secondary"/);
+  assert.match(indexSource, /캡처·녹화는 PRIMARY 화면만 사용/);
+  assert.match(stylesSource, /\.camera-view-grid\[data-view-mode="dual"\]\s*\{\s*grid-template-columns:repeat\(2/);
+  assert.match(stylesSource, /\.sensor-page-grid \.camera-panel\.is-dual-view\s*\{\s*grid-column:1\/-1/);
+  assert.match(appSource, /classList\.toggle\('is-dual-view', cameraViewMode === 'dual'\)/);
+  assert.match(appSource, /\$\{connectedSources\} CONNECTED · \$\{requestedSources\} REQUESTED/);
+  assert.match(stylesSource, /@media \(max-width: 800px\)[\s\S]*?\.camera-view-grid\[data-view-mode="dual"\]\s*\{\s*grid-template-columns:1fr/);
+});
+
+test('both slots keep source identity, topic, transport, state and fps visible', () => {
+  for (const prefix of ['cameraPrimary', 'cameraSecondary']) {
+    for (const suffix of ['Label', 'SourceId', 'State', 'Fps', 'Topic', 'Transport']) {
+      assert.match(indexSource, new RegExp(`id="${prefix}${suffix}"`));
+    }
+  }
+  assert.match(appSource, /slot\.sourceIdLabel\.textContent = slot\.sourceId \|\| 'NO SOURCE'/);
+  assert.match(appSource, /slot\.state\.textContent = state\.toUpperCase\(\)/);
+  assert.match(appSource, /slot\.fps\.textContent = formatCameraFps/);
+  assert.match(appSource, /slot\.topic\.textContent = `TOPIC \$\{topic\}`/);
+  assert.match(appSource, /slot\.transport\.textContent = `TRANSPORT \$\{transport\}`/);
+});
+
+test('camera catalog normalizes source_id aliases and clamps active streams to two', () => {
+  const normalize = extractedFunction(
+    'function normalizeCameraCatalog(payload)',
+    'function cameraSourceForId(',
+    'normalizeCameraCatalog',
+  );
+  const result = normalize({
+    max_active: 8,
+    sources: [
+      { source_id: 'go2_front', label: 'Go2 front', stream_id: 'multicast/front', live: true, fps: '29.5' },
+      { id: 'realsense_color', label: 'RealSense', transport: 'ros2', state: 'stale', available: true },
+      { id: 'go2_front', label: 'duplicate' },
+    ],
+  });
+  assert.equal(result.maxActive, 2);
+  assert.equal(result.sources.length, 2);
+  assert.equal(result.sources[0].id, 'go2_front');
+  assert.equal(result.sources[0].source_id, 'go2_front');
+  assert.equal(result.sources[0].topic, 'multicast/front');
+  assert.equal(result.sources[0].fps, 29.5);
+  assert.equal(result.sources[1].id, 'realsense_color');
+});
+
+test('each active slot has its own socket generation, reconnect timer and latest-frame queue', () => {
+  assert.match(appSource, /function createCameraSlotRuntime\(role, elements\)[\s\S]*?socketGeneration: 0,[\s\S]*?reconnectTimer: 0,[\s\S]*?imageDecodeQueue: null/);
+  assert.match(appSource, /const generation = \+\+slot\.socketGeneration/);
+  assert.match(appSource, /generation !== slot\.socketGeneration/);
+  assert.match(appSource, /slot\.reconnectTimer = setTimeout/);
+  assert.match(appSource, /getCameraSlotImageDecodeQueue\(slot\)\.enqueue/);
+  assert.match(appSource, /for \(const slot of Object\.values\(getCameraSlots\(\)\)\)/);
+});
+
+test('camera websocket identifies each requested source and reconnects only wanted slots', () => {
+  assert.match(appSource, /\/api\/v1\/ws\/camera\?source_id=\$\{encodeURIComponent\(sourceId\)\}/);
+  assert.match(appSource, /sourceId !== slot\.sourceId/);
+  assert.match(appSource, /slot\.role === 'secondary' && cameraViewMode !== 'dual'/);
+  assert.match(appSource, /cameraSlotTransportWanted\(slot\)/);
+});
+
+test('Safari JPEG fallback decodes an Image and always revokes its object URL', () => {
+  const start = appSource.indexOf('async function decodeCameraImageFrame(frame)');
+  const end = appSource.indexOf('function getCameraSlotImageDecodeQueue(', start);
+  assert.ok(start >= 0 && end > start);
+  const implementation = appSource.slice(start, end);
+  assert.match(implementation, /typeof window\.createImageBitmap === 'function'/);
+  assert.match(implementation, /const image = new window\.Image\(\)/);
+  assert.match(implementation, /await image\.decode\(\)/);
+  assert.match(implementation, /URL\.revokeObjectURL\(objectUrl\)/);
+});
+
+test('camera preferences and browser diagnostics are exposed without mutable sockets', () => {
+  assert.match(appSource, /CAMERA_PREFERENCE_KEY = 'robot-scope\.camera-view\.v1'/);
+  assert.match(appSource, /primarySourceId: cameraPrimarySourceId/);
+  assert.match(appSource, /window\.RobotScopeCameraStreams = Object\.freeze\(\{/);
+  assert.match(appSource, /socketGeneration: slot\.socketGeneration/);
+  assert.match(appSource, /queue: slot\.imageDecodeQueue\?\.snapshot\(\) \|\| null/);
+  assert.doesNotMatch(appSource, /RobotScopeCameraStreams[\s\S]{0,900}socket:\s*slot\.socket/);
+});
+
+test('camera catalog ignores stale overlapping poll responses', () => {
+  assert.match(appSource, /let cameraCatalogRequestGeneration = 0/);
+  assert.match(appSource, /const generation = \+\+cameraCatalogRequestGeneration/);
+  assert.match(appSource, /if \(generation !== cameraCatalogRequestGeneration\) return null/);
+});
+
 test('overview uses direct camera state, label, transport, interface and fps metadata', () => {
   const start = appSource.indexOf('function updateOverview(state)');
   const end = appSource.indexOf('function updateSensors(', start);
@@ -191,6 +293,9 @@ test('overview uses direct camera state, label, transport, interface and fps met
   assert.match(implementation, /camera\.transport \|\| directCamera\.transport/);
   assert.match(implementation, /camera\.interface \|\| directCamera\.interface/);
   assert.match(implementation, /cameraStatusMeta = \{ \.\.\.camera \}/);
+  assert.match(implementation, /if \(!cameraCatalog\.length\) cameraStatusMeta = \{ \.\.\.camera \}/);
+  assert.match(implementation, /cameraStatusMeta = \{ \.\.\.selectedMetadata \}/);
+  assert.match(implementation, /renderCameraSlotIdentity\(primarySlot\)/);
 });
 
 test('direct Go2 camera is shown as a locked non-ROS source in Settings', () => {

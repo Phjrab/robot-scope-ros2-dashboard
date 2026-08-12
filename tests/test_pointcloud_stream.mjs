@@ -93,6 +93,7 @@ test('mapping transport is page-aware, view-aware and resets on server epoch cha
 
 test('camera relay is requested only while the Sensors page is visible', () => {
   assert.match(appSource, /function cameraTransportWanted\(\)[\s\S]{0,120}activePage === 'sensors' && !document\.hidden/);
-  assert.match(appSource, /function disconnectCamera\(\)[\s\S]{0,500}cameraSocketGeneration \+= 1/);
+  assert.match(appSource, /function disconnectCameraSlot\(slot\)[\s\S]{0,160}slot\.socketGeneration \+= 1/);
+  assert.match(appSource, /function disconnectCamera\(\)[\s\S]{0,180}disconnectCameraSlot\(slot\)/);
   assert.doesNotMatch(appSource, /initializeRobotProfiles\(\);\s*connectCamera\(\)/);
 });

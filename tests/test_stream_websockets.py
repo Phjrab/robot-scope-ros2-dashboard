@@ -51,7 +51,8 @@ class StreamWebSocketTests(unittest.TestCase):
         camera = next(
             node
             for node in tree.body
-            if isinstance(node, ast.AsyncFunctionDef) and node.name == "camera_stream"
+            if isinstance(node, ast.AsyncFunctionDef)
+            and node.name == "_camera_stream_source"
         )
         calls = {
             node.func.id
@@ -65,6 +66,7 @@ class StreamWebSocketTests(unittest.TestCase):
         }
         self.assertIn("stream_until_disconnect", calls)
         self.assertIn("camera_stream_close", attributes)
+        self.assertIn("wait_for", attributes)
 
     def test_pointcloud_endpoint_uses_disconnect_helper(self):
         source = (

@@ -33,6 +33,8 @@ stash나 강제 checkout으로 숨기지 말고, 변경 내용을 호스트별 �
 - `ROBOT_SCOPE_MAPS_DIR`의 PCD/PGM/YAML
 - 현장별 Hesai/FAST-LIO config와 SHA-256 기록
 - 설치된 systemd unit과 sudoers 파일의 검증된 사본
+- `/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py`와
+  `/etc/systemd/system/robot-scope-realsense-camera.service`의 검증된 사본 및 enable 상태
 
 키와 토큰 백업은 암호 관리 도구나 접근 제한 저장소를 사용합니다. Git, issue, CI artifact에
 올리지 않습니다. 지도 백업은 원본을 덮어쓰지 않고 날짜가 있는 읽기 전용 snapshot으로
@@ -66,6 +68,31 @@ python3 -m unittest discover -s tests -v
 - navigation parameter schema 변경
 - systemd/sudoers 변경
 
+로봇 탑재 RealSense relay를 수동 설치한 배포는 Git checkout만 업데이트해도 root-owned
+실행 파일이 바뀌지 않습니다. `.18`에서 기존 자동 시작 정책과 실행 상태를 먼저 기록한 뒤,
+검증한 checkout의 두 파일을 다시 설치합니다. 이미 active라면 enable 상태를 바꾸지 않고
+restart해야 새 실행 파일이 적용됩니다. inactive였다면 업데이트만으로 임의 start하지
+않습니다.
+
+~~~bash
+systemctl is-enabled robot-scope-realsense-camera.service
+systemctl is-active robot-scope-realsense-camera.service
+sudo install -o root -g root -m 0755 scripts/realsense_mjpeg_relay.py \
+  /usr/local/libexec/robot-scope/realsense_mjpeg_relay.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-realsense-camera.service.example \
+  /etc/systemd/system/robot-scope-realsense-camera.service
+sudo systemctl daemon-reload
+# 업데이트 전 active였을 때만 실행
+sudo systemctl restart robot-scope-realsense-camera.service
+systemctl is-enabled robot-scope-realsense-camera.service
+systemctl is-active robot-scope-realsense-camera.service
+~~~
+
+`enable --now`는 restart 대체 명령이 아니며, 실행과 함께 다음 부팅의 자동 시작까지
+활성화합니다. 공용 개발 host의 manual-only 정책은 `disabled`를 유지하고 `systemctl start`로
+현재 세션만 시작합니다. 전용 relay host로 합의한 경우에만 `enable --now`를 사용합니다.
+
 ## 재시작 후 스모크 테스트
 
 ~~~bash
@@ -83,6 +110,11 @@ Helper는 새 systemd 실행 ID까지 확인하므로 `--no-block restart` 직�
 Control bridge가 설치된 호스트는 dashboard와 동일한 bridge key를 읽는지 확인합니다. 로봇에
 명령을 보내기 전에 observer→sensor→mapping→control/navigation 순서로 readiness를
 확인합니다.
+
+RealSense는 `.99` dashboard host에서 실제 `/stream`을 열어 완전한 JPEG 프레임을 확인한
+뒤 Sensors의 단일/2화면을 검증합니다. `/health`의 `idle`은 viewer가 없다는 뜻일 뿐,
+카메라 프레임 정상의 증거가 아닙니다. 정확한 curl/JPEG 검사 명령은
+[문제 해결의 카메라 절차](TROUBLESHOOTING.md#카메라-화면이-없음)를 사용합니다.
 
 ## 안전한 소스 롤백
 
@@ -122,11 +154,31 @@ sudoers는 설치 전에 `visudo -cf`로 문법을 검사하고 wildcard를 추�
 Dashboard lifecycle sudoers를 제거하면 웹의 restart/stop 기능만 비활성화되어야 합니다.
 운영체제 reboot/poweroff 권한을 롤백 편의 목적으로 추가하지 마세요.
 
+RealSense relay의 이전 버전으로 되돌릴 때는 백업한 script와 unit을 같은 root-owned 경로에
+복원하고 `daemon-reload`한 뒤, 롤백 전에 active였던 경우에만 restart합니다. 기능을 완전히
+제거하는 롤백은 `.18`에서 다음 exact 경로만 대상으로 수행합니다. 이 절차는 자동 시작
+symlink와 현재 프로세스를 함께 제거하며 Dashboard, XT16 relay와 지도에는 손대지 않습니다.
+
+~~~bash
+sudo systemctl disable --now robot-scope-realsense-camera.service
+sudo systemctl reset-failed robot-scope-realsense-camera.service
+sudo rm -f /etc/systemd/system/robot-scope-realsense-camera.service
+sudo rm -f /usr/local/libexec/robot-scope/realsense_mjpeg_relay.py
+sudo systemctl daemon-reload
+systemctl is-enabled robot-scope-realsense-camera.service
+systemctl is-active robot-scope-realsense-camera.service
+~~~
+
+마지막 두 명령은 제거 후 각각 `not-found`, `inactive`를 보고 비정상 종료 코드를 반환하는
+것이 예상됩니다. 다른 파일이 남아 있거나 다른 이름의 drop-in/unit이 서비스를 다시
+활성화하지 않는지도 `systemctl status`로 확인합니다.
+
 ## 롤백 완료 기준
 
 - doctor가 설치 mode의 필수 항목을 통과함
 - health API와 브라우저가 정상 응답함
 - 저장 지도 목록과 원본 파일 revision이 유지됨
 - Go2/XT16 source identity가 의도한 장치로 표시됨
+- RealSense 사용 배포는 `.99`에서 실제 JPEG를 받고 기대한 enable/active 상태가 유지됨
 - 로봇 없이 가능한 테스트가 모두 통과함
 - 현장 승인 후 제한된 실기 스모크 테스트가 통과함

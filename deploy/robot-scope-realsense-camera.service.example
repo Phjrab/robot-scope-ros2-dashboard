@@ -1,0 +1,49 @@
+[Unit]
+Description=Robot Scope on-demand RealSense color MJPEG relay
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+SupplementaryGroups=video
+WorkingDirectory=/
+Environment=GST_REGISTRY=/tmp/robot-scope-gstreamer-registry.bin
+ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/realsense_mjpeg_relay.py
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=5
+
+# The relay needs the allowlisted /dev/v4l/by-id camera and no capabilities.
+PrivateDevices=false
+NoNewPrivileges=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+UMask=0077
+PrivateTmp=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+LimitNOFILE=64
+
+[Install]
+WantedBy=multi-user.target

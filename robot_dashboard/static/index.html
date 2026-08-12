@@ -267,11 +267,36 @@
         <section class="sensor-page-grid">
           <article class="panel camera-panel">
             <div class="panel-header"><div><div class="eyebrow">VISION</div><h2>Camera stream</h2></div><div class="panel-state waiting" id="cameraState"><span></span>WAITING</div></div>
-            <div class="camera-stage"><canvas id="cameraCanvas" aria-label="현재 선택한 카메라 영상"></canvas><div class="empty-state" id="cameraEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraEmptyText">카메라 소스를 자동으로 찾고 있습니다.</small></div><div class="stream-overlay"><span id="cameraTopicLabel">NO SOURCE</span><span id="cameraCodecLabel">—</span></div></div>
+            <div class="camera-view-toolbar">
+              <div class="camera-view-toggle" role="group" aria-label="카메라 화면 배치">
+                <button id="cameraSingleMode" type="button" data-camera-view-mode="single" aria-pressed="true">1 화면</button>
+                <button id="cameraDualMode" type="button" data-camera-view-mode="dual" aria-pressed="false">2 화면</button>
+              </div>
+              <label class="camera-primary-picker"><span>PRIMARY CAMERA</span><select id="cameraPrimarySource" aria-label="기본 카메라 선택"><option value="">카메라 탐색 중…</option></select></label>
+              <div class="camera-view-capacity"><strong id="cameraCapacity">0 / 1 ACTIVE</strong><small>캡처·녹화는 PRIMARY 화면만 사용</small></div>
+            </div>
+            <div class="camera-view-grid" id="cameraViewGrid" data-view-mode="single">
+              <section class="camera-feed-slot is-primary" id="cameraPrimarySlot" data-camera-slot="primary" aria-label="기본 카메라 화면">
+                <header class="camera-feed-identity">
+                  <div><span>PRIMARY</span><strong id="cameraPrimaryLabel">카메라 탐색 중</strong><code id="cameraPrimarySourceId">NO SOURCE</code></div>
+                  <div class="camera-feed-health"><span id="cameraPrimaryState" data-state="waiting">WAITING</span><strong id="cameraPrimaryFps">— FPS</strong></div>
+                  <small id="cameraPrimaryTopic">TOPIC —</small><small id="cameraPrimaryTransport">TRANSPORT —</small>
+                </header>
+                <div class="camera-stage"><canvas id="cameraCanvas" aria-label="현재 선택한 기본 카메라 영상"></canvas><div class="empty-state" id="cameraEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraEmptyText">카메라 소스를 자동으로 찾고 있습니다.</small></div><div class="stream-overlay"><span id="cameraTopicLabel">NO SOURCE</span><span id="cameraCodecLabel">—</span></div></div>
+              </section>
+              <section class="camera-feed-slot is-secondary" id="cameraSecondarySlot" data-camera-slot="secondary" aria-label="보조 카메라 화면" hidden>
+                <header class="camera-feed-identity">
+                  <div><span>SECONDARY</span><strong id="cameraSecondaryLabel">카메라 탐색 중</strong><code id="cameraSecondarySourceId">NO SOURCE</code></div>
+                  <div class="camera-feed-health"><span id="cameraSecondaryState" data-state="waiting">WAITING</span><strong id="cameraSecondaryFps">— FPS</strong></div>
+                  <small id="cameraSecondaryTopic">TOPIC —</small><small id="cameraSecondaryTransport">TRANSPORT —</small>
+                </header>
+                <div class="camera-stage"><canvas id="cameraSecondaryCanvas" aria-label="보조 카메라 영상"></canvas><div class="empty-state" id="cameraSecondaryEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraSecondaryEmptyText">두 번째 카메라 신호를 기다리고 있습니다.</small></div><div class="stream-overlay"><span id="cameraSecondaryTopicLabel">NO SOURCE</span><span id="cameraSecondaryCodecLabel">—</span></div></div>
+              </section>
+            </div>
             <div class="camera-media-toolbar" aria-label="카메라 캡처 및 녹화">
               <div class="camera-media-readout">
                 <span class="camera-record-indicator" aria-hidden="true"></span>
-                <div><strong id="cameraMediaStatus" role="status" aria-live="polite">FRAME WAITING</strong><small id="cameraMediaHelp">영상이 표시되면 캡처와 녹화를 사용할 수 있습니다.</small></div>
+                <div><strong id="cameraMediaStatus" role="status" aria-live="polite">PRIMARY FRAME WAITING</strong><small id="cameraMediaHelp">PRIMARY 영상이 표시되면 캡처와 녹화를 사용할 수 있습니다.</small></div>
                 <time id="cameraRecordDuration" datetime="PT0S" aria-label="녹화 시간">00:00</time>
               </div>
               <div class="camera-media-actions">

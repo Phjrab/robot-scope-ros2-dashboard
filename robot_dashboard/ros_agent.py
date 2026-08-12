@@ -53,6 +53,7 @@ from .discovery import (
 )
 from .go2_multicast_camera import Go2MulticastCamera
 from .pointcloud import extract_xyz, reject_spatial_outliers
+from .remote_mjpeg_camera import RemoteMjpegCamera
 from .runtime_status import ros_transport_status
 from .serializers import (
     classify_type,
@@ -110,6 +111,10 @@ POINTCLOUD_STAGE_LABELS = {
 SOURCE_CATEGORIES = ("camera", "pointcloud", "odometry", "occupancy_grid")
 SOURCE_SELECTION_STATE_VERSION = 1
 SOURCE_SELECTION_STATE_MAX_BYTES = 16 * 1024
+CAMERA_SOURCE_IDS = ("go2_front", "realsense_color")
+MAX_ACTIVE_CAMERA_SOURCES = 2
+MAX_CAMERA_VIEWERS = 8
+MAX_CAMERA_VIEWERS_PER_SOURCE = 4
 
 
 def pointcloud_source_metadata(topic: str) -> Dict[str, str]:
@@ -439,6 +444,27 @@ class RosAgent:
             "fps": None,
             "age_s": None,
         }
+        self._camera_stream_ids: Dict[str, str] = {
+            source_id: secrets.token_urlsafe(12) for source_id in CAMERA_SOURCE_IDS
+        }
+        self._remote_camera_frame: Dict[str, Any] = {
+            "seq": 0,
+            "format": "none",
+            "data": b"",
+            "stamp_us": 0,
+            "key": False,
+            "width": 0,
+            "height": 0,
+            "encoding": "",
+            "source": "remote_mjpeg",
+            "source_id": "realsense_color",
+            "source_label": "RealSense color camera",
+            "transport": "http_mjpeg",
+            "state": "waiting",
+            "fps": None,
+            "age_s": None,
+            "updated": 0.0,
+        }
         self._h264_sps = b""
         self._h264_pps = b""
         self._h264_pending_stamp = 0
@@ -490,6 +516,35 @@ class RosAgent:
             restart_initial_s=direct_camera_profile.get("restart_initial_s", 0.5),
             restart_max_s=direct_camera_profile.get("restart_max_s", 8.0),
         )
+        remote_cameras_profile = self.profile.get("remote_cameras", {})
+        if not isinstance(remote_cameras_profile, dict):
+            remote_cameras_profile = {}
+        realsense_profile = remote_cameras_profile.get("realsense_color", {})
+        if not isinstance(realsense_profile, dict):
+            realsense_profile = {}
+        allowed_urls_value = realsense_profile.get("allowed_urls", [])
+        allowed_urls = (
+            [str(value) for value in allowed_urls_value]
+            if isinstance(allowed_urls_value, list)
+            else []
+        )
+        self._remote_camera = RemoteMjpegCamera(
+            self._remote_camera_callback,
+            enabled=(
+                self._startup_robot_type == "go2"
+                and bool(realsense_profile.get("enabled", False))
+            ),
+            url=str(realsense_profile.get("url", "")),
+            allowed_urls=allowed_urls,
+            source_id="realsense_color",
+            source_label=str(
+                realsense_profile.get("label", "RealSense color camera")
+            ),
+            stale_after_s=realsense_profile.get("stale_after_s", 3.0),
+            request_timeout_s=realsense_profile.get("request_timeout_s", 6.0),
+            restart_initial_s=realsense_profile.get("restart_initial_s", 0.5),
+            restart_max_s=realsense_profile.get("restart_max_s", 8.0),
+        )
         # The direct Go2 H.264 receiver is comparatively expensive (software
         # decode + JPEG relay).  Keep it stopped unless at least one camera
         # WebSocket is actively viewing it.  The separate lock makes the
@@ -497,6 +552,10 @@ class RosAgent:
         self._camera_demand_lock = threading.RLock()
         self._camera_consumers = 0
         self._camera_accepting_demand = False
+        self._camera_demand_tokens: Dict[str, set[str]] = {
+            source_id: set() for source_id in CAMERA_SOURCE_IDS
+        }
+        self._camera_token_sources: Dict[str, str] = {}
 
         self._cloud: Dict[str, Any] = {
             "seq": 0,
@@ -841,40 +900,155 @@ class RosAgent:
         self._thread = threading.Thread(target=self._run, name="robot-scope-ros", daemon=True)
         self._thread.start()
 
-    def camera_stream_open(self) -> Dict[str, Any]:
-        """Register one browser camera viewer and start the receiver on demand."""
+    @staticmethod
+    def _valid_camera_source_id(source_id: object) -> bool:
+        return isinstance(source_id, str) and source_id in CAMERA_SOURCE_IDS
 
+    def camera_stream_open(self, source_id: str = "go2_front") -> Dict[str, Any]:
+        """Acquire one opaque, exactly-once demand token for a fixed source."""
+
+        if not self._valid_camera_source_id(source_id):
+            return {
+                "accepted": False,
+                "reason": "camera_source_not_found",
+                "consumers": self._camera_consumers,
+            }
         with self._camera_demand_lock:
             if not self._camera_accepting_demand:
-                return {"accepted": False, "consumers": self._camera_consumers}
-            self._camera_consumers += 1
-            if self._camera_consumers == 1:
-                self._clear_camera_frame()
+                return {
+                    "accepted": False,
+                    "reason": "camera_relay_shutting_down",
+                    "consumers": self._camera_consumers,
+                }
+            if len(self._camera_token_sources) >= MAX_CAMERA_VIEWERS:
+                return {
+                    "accepted": False,
+                    "reason": "camera_viewer_limit_reached",
+                    "consumers": self._camera_consumers,
+                }
+            if len(self._camera_demand_tokens[source_id]) >= MAX_CAMERA_VIEWERS_PER_SOURCE:
+                return {
+                    "accepted": False,
+                    "reason": "camera_source_viewer_limit_reached",
+                    "consumers": self._camera_consumers,
+                }
+            active_sources = sum(
+                1 for source_tokens in self._camera_demand_tokens.values() if source_tokens
+            )
+            if (
+                not self._camera_demand_tokens[source_id]
+                and active_sources >= MAX_ACTIVE_CAMERA_SOURCES
+            ):
+                return {
+                    "accepted": False,
+                    "reason": "active_camera_source_limit_reached",
+                    "consumers": self._camera_consumers,
+                }
+            status = (
+                self._direct_camera.status()
+                if source_id == "go2_front"
+                else self._remote_camera.status()
+            )
+            # ``go2_front`` also names the original ROS camera stream when a
+            # profile has no direct multicast receiver.  Keep the legacy
+            # source-less WebSocket usable for generic ROS profiles.
+            if source_id != "go2_front" and not bool(status.get("configured", False)):
+                return {
+                    "accepted": False,
+                    "reason": "camera_source_unavailable",
+                    "consumers": self._camera_consumers,
+                }
+            token = secrets.token_urlsafe(24)
+            tokens = self._camera_demand_tokens[source_id]
+            first_for_source = not tokens
+            tokens.add(token)
+            self._camera_token_sources[token] = source_id
+            self._camera_consumers = len(self._camera_token_sources)
+            if first_for_source:
+                self._clear_camera_frame(source_id)
+                receiver = (
+                    self._direct_camera
+                    if source_id == "go2_front"
+                    else self._remote_camera
+                )
                 try:
-                    self._direct_camera.start()
+                    started = (
+                        receiver.start()
+                        if source_id != "go2_front" or self._direct_camera.configured
+                        else True
+                    )
                 except Exception:
-                    self._camera_consumers -= 1
+                    tokens.remove(token)
+                    self._camera_token_sources.pop(token, None)
+                    self._camera_consumers = len(self._camera_token_sources)
                     raise
-            return {"accepted": True, "consumers": self._camera_consumers}
+                if not started:
+                    tokens.remove(token)
+                    self._camera_token_sources.pop(token, None)
+                    self._camera_consumers = len(self._camera_token_sources)
+                    return {
+                        "accepted": False,
+                        "reason": "camera_source_unavailable",
+                        "consumers": self._camera_consumers,
+                    }
+            return {
+                "accepted": True,
+                "source_id": source_id,
+                "token": token,
+                "consumers": self._camera_consumers,
+                "source_viewers": len(tokens),
+            }
 
-    def camera_stream_close(self) -> Dict[str, Any]:
-        """Release one camera viewer and stop decode after the final viewer."""
+    def camera_stream_close(
+        self,
+        source_id: str = "go2_front",
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Release a demand token once; duplicate/foreign closes are no-ops."""
 
+        if not self._valid_camera_source_id(source_id):
+            return {"released": False, "consumers": self._camera_consumers}
         with self._camera_demand_lock:
-            had_consumer = self._camera_consumers > 0
-            if self._camera_consumers > 0:
-                self._camera_consumers -= 1
-            if had_consumer and self._camera_consumers == 0:
-                self._direct_camera.stop()
-                self._clear_camera_frame()
-            return {"consumers": self._camera_consumers}
+            tokens = self._camera_demand_tokens[source_id]
+            release_token = token
+            if (
+                not release_token
+                or self._camera_token_sources.get(release_token) != source_id
+                or release_token not in tokens
+            ):
+                return {
+                    "released": False,
+                    "consumers": len(self._camera_token_sources),
+                    "source_viewers": len(tokens),
+                }
+            tokens.remove(release_token)
+            self._camera_token_sources.pop(release_token, None)
+            self._camera_consumers = len(self._camera_token_sources)
+            if not tokens:
+                receiver = (
+                    self._direct_camera
+                    if source_id == "go2_front"
+                    else self._remote_camera
+                )
+                receiver.stop()
+                self._clear_camera_frame(source_id)
+            return {
+                "released": True,
+                "consumers": self._camera_consumers,
+                "source_viewers": len(tokens),
+            }
 
-    def _clear_camera_frame(self) -> None:
-        """Drop a previous viewer's frame so a new viewer never sees stale JPEG."""
+    def _clear_camera_frame(self, source_id: str = "go2_front") -> None:
+        """Drop only the selected source's frame between viewer sessions."""
 
         with self._lock:
-            self._camera = {
-                "seq": int(self._camera.get("seq", 0)) + 1,
+            target = (
+                self._camera
+                if source_id == "go2_front"
+                else self._remote_camera_frame
+            )
+            cleared = {
+                "seq": int(target.get("seq", 0)) + 1,
                 "format": "none",
                 "data": b"",
                 "stamp_us": 0,
@@ -882,12 +1056,27 @@ class RosAgent:
                 "width": 0,
                 "height": 0,
                 "encoding": "",
-                "source": "none",
-                "transport": "",
+                "source": "go2_multicast" if source_id == "go2_front" else "remote_mjpeg",
+                "source_id": source_id,
+                "source_label": (
+                    "Go2 front camera"
+                    if source_id == "go2_front"
+                    else "RealSense color camera"
+                ),
+                "transport": (
+                    "udp_multicast_rtp_h264"
+                    if source_id == "go2_front"
+                    else "http_mjpeg"
+                ),
                 "state": "waiting",
                 "fps": None,
                 "age_s": None,
+                "updated": 0.0,
             }
+            if source_id == "go2_front":
+                self._camera = cleared
+            else:
+                self._remote_camera_frame = cleared
 
     def stop(self) -> None:
         # Publish the manager's final signed stop while the ROS node and
@@ -899,7 +1088,11 @@ class RosAgent:
         with self._camera_demand_lock:
             self._camera_accepting_demand = False
             self._camera_consumers = 0
+            self._camera_token_sources.clear()
+            for tokens in self._camera_demand_tokens.values():
+                tokens.clear()
             self._direct_camera.stop()
+            self._remote_camera.stop()
         self._camera_decoder.stop()
         executor = self._executor
         if executor:
@@ -3339,6 +3532,7 @@ class RosAgent:
                 "seq": int(self._camera.get("seq", 0)) + 1,
                 "topic": str(status.get("uri", "go2-camera://230.1.1.1:1720")),
                 "source": "go2_multicast",
+                "source_id": "go2_front",
                 "source_label": str(status.get("source_label", "Go2 front camera")),
                 "transport": str(status.get("transport", "udp_multicast_rtp_h264")),
                 "interface": str(status.get("interface", "")),
@@ -3347,6 +3541,35 @@ class RosAgent:
                 "state": "ok",
                 "updated": now,
                 "decoder": "gstreamer",
+            }
+
+    def _remote_camera_callback(self, jpeg: bytes) -> None:
+        """Store a RealSense JPEG independently from the Go2 front stream."""
+
+        now = time.monotonic()
+        status = self._remote_camera.status()
+        with self._lock:
+            self._remote_camera_frame = {
+                "format": "jpeg",
+                "data": jpeg,
+                "stamp_us": int(time.time() * 1_000_000),
+                "key": True,
+                "width": 0,
+                "height": 0,
+                "encoding": "jpeg",
+                "seq": int(self._remote_camera_frame.get("seq", 0)) + 1,
+                "topic": str(status.get("uri", "")),
+                "source": "remote_mjpeg",
+                "source_id": "realsense_color",
+                "source_label": str(
+                    status.get("source_label", "RealSense color camera")
+                ),
+                "transport": "http_mjpeg",
+                "fps": status.get("fps"),
+                "age_s": status.get("age_s"),
+                "state": "ok",
+                "updated": now,
+                "decoder": "upstream_jpeg",
             }
 
     @staticmethod
@@ -4059,6 +4282,8 @@ class RosAgent:
 
     def _camera_snapshot_locked(self) -> Dict[str, Any]:
         snapshot = dict(self._camera)
+        snapshot["stream_id"] = self._camera_stream_ids["go2_front"]
+        snapshot["source_id"] = "go2_front"
         direct_status = self._direct_camera.status()
         snapshot["direct_camera"] = direct_status
         direct_active = bool(
@@ -4078,6 +4303,74 @@ class RosAgent:
                 }
             )
         return snapshot
+
+    def _remote_camera_snapshot_locked(self) -> Dict[str, Any]:
+        snapshot = dict(self._remote_camera_frame)
+        status = self._remote_camera.status()
+        snapshot.update(
+            {
+                "stream_id": self._camera_stream_ids["realsense_color"],
+                "source_id": "realsense_color",
+                "topic": status.get("uri", ""),
+                "source": status.get("source", "remote_mjpeg"),
+                "source_label": status.get(
+                    "source_label", "RealSense color camera"
+                ),
+                "transport": status.get("transport", "http_mjpeg"),
+                "state": status.get("state", "waiting"),
+                "fps": status.get("fps"),
+                "age_s": status.get("age_s"),
+            }
+        )
+        return snapshot
+
+    def cameras_snapshot(self) -> Dict[str, Any]:
+        """Return the fixed camera catalog without exposing demand tokens."""
+
+        with self._camera_demand_lock:
+            viewers = {
+                source_id: len(tokens)
+                for source_id, tokens in self._camera_demand_tokens.items()
+            }
+            total_viewers = len(self._camera_token_sources)
+        direct_status = self._direct_camera.status()
+        remote_status = self._remote_camera.status()
+        entries = []
+        for source_id, label, status in (
+            ("go2_front", "Go2 front camera", direct_status),
+            ("realsense_color", "RealSense color camera", remote_status),
+        ):
+            entry = {
+                "id": source_id,
+                "source_id": source_id,
+                "label": str(status.get("source_label", label)),
+                "enabled": bool(status.get("enabled", False)),
+                "configured": bool(status.get("configured", False)),
+                "available": bool(status.get("available", False)),
+                "state": str(status.get("state", "disabled")),
+                "live": bool(status.get("live", False)),
+                "format": "jpeg",
+                "encoding": "jpeg",
+                "transport": str(status.get("transport", "")),
+                "topic": str(status.get("uri", "")),
+                "uri": str(status.get("uri", "")),
+                "width": int(status.get("width", 0) or 0),
+                "height": int(status.get("height", 0) or 0),
+                "stream_id": self._camera_stream_ids[source_id],
+                "viewers": viewers[source_id],
+                "max_viewers": MAX_CAMERA_VIEWERS_PER_SOURCE,
+                "fps": status.get("fps"),
+                "age_s": status.get("age_s"),
+                "last_error": str(status.get("last_error", "")),
+            }
+            entries.append(entry)
+        return {
+            "sources": entries,
+            "max_active": MAX_ACTIVE_CAMERA_SOURCES,
+            "max_viewers": MAX_CAMERA_VIEWERS,
+            "active_sources": sum(1 for value in viewers.values() if value),
+            "viewers": total_viewers,
+        }
 
     def state_snapshot(self) -> Dict[str, Any]:
         with self._lock:
@@ -4133,9 +4426,13 @@ class RosAgent:
                 },
             }
 
-    def camera_snapshot(self) -> Dict[str, Any]:
+    def camera_snapshot(self, source_id: str = "go2_front") -> Dict[str, Any]:
         with self._lock:
-            return self._camera_snapshot_locked()
+            if source_id == "go2_front":
+                return self._camera_snapshot_locked()
+            if source_id == "realsense_color":
+                return self._remote_camera_snapshot_locked()
+            raise ValueError("camera source is not allowlisted")
 
     def pointcloud_snapshot(self) -> Dict[str, Any]:
         with self._lock:

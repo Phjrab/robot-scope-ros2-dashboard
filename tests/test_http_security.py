@@ -121,7 +121,7 @@ class HttpSecurityTests(unittest.TestCase):
                 for node in ast.walk(settings)
             )
         )
-        for name in ("pointcloud_stream", "camera_stream"):
+        for name in ("pointcloud_stream", "_camera_stream_source"):
             function = functions[name]
             self.assertTrue(
                 any(

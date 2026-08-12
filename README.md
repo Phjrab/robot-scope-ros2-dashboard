@@ -634,9 +634,96 @@ WebSocket은 Sensors 화면을 실제로 보는 클라이언트가 있을 때만
 실습실에서 사용한 Jetson, Go2, XT16의 주소와 Mac 인터넷 공유 시 주의사항은
 [`docs/lab-network.md`](docs/lab-network.md)에 날짜와 확인 상태별로 기록합니다.
 
-RealSense가 로봇 탑재 Jetson USB에 연결되어 있다면 같은 Jetson에서
-realsense2_camera를 실행합니다. 표준 color, depth, points 토픽이 발견되면
-카메라와 PointCloud 소스 목록에서 선택할 수 있습니다.
+### 로봇 탑재 Jetson의 RealSense 컬러 영상
+
+RealSense가 `unitree@192.168.123.18`의 USB에 연결된 참조 배선에서는 ROS 영상 토픽을
+로봇망 전체에 송출하지 않고, 그 Jetson에서 컬러 영상 전용 MJPEG relay를 실행합니다.
+Relay는 실제 D435i RGB 장치 계약인
+`/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0`가
+정확히 하나일 때만 `192.168.123.18:8090`에 bind합니다. 제공하는 경로는
+`/health`, `/stream`뿐입니다.
+영상 `/stream`은 고정 dashboard NIC `192.168.123.99`에서만 읽을 수 있고,
+`/health`도 relay 자신·loopback·dashboard host만 허용합니다.
+
+~~~text
+RealSense USB --> robot-side Jetson GStreamer --> fixed HTTP MJPEG :8090
+                                                   |
+Dashboard Jetson <---------------------------------+
+~~~
+
+640×480, 최대 15fps, JPEG 품질 72로 제한하며 최대 viewer는 4개입니다. 첫 viewer가
+연결될 때만 GStreamer producer가 시작되고 마지막 viewer가 떠난 3초 뒤 멈춥니다. 각
+viewer에는 누적 queue가 아닌 최신 프레임만 전달하므로 느린 연결이 전체 영상을 지연시키지
+않습니다. Dashboard의 단일/2화면 선택은 이 relay를 직접 브라우저에 공개하지 않고
+Dashboard host가 고정 `/stream`을 가져오는 구조입니다.
+
+로봇 탑재 Jetson에서 장치와 plugin을 먼저 확인하고 root 소유 경로에 설치합니다.
+
+~~~bash
+ls -l /dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0
+gst-inspect-1.0 nvjpegenc || gst-inspect-1.0 jpegenc
+sudo install -d -o root -g root -m 0755 /usr/local/libexec/robot-scope
+sudo install -o root -g root -m 0755 scripts/realsense_mjpeg_relay.py \
+  /usr/local/libexec/robot-scope/realsense_mjpeg_relay.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-realsense-camera.service.example \
+  /etc/systemd/system/robot-scope-realsense-camera.service
+sudo systemctl daemon-reload
+~~~
+
+설치만으로 시작 정책을 정하지는 않습니다. 다른 프로젝트도 사용하는 relay host라면 A를,
+Robot Scope 전용 relay host로 부팅할 때마다 준비해야 한다면 B를 하나만 선택합니다.
+`enable --now`는 현재 서비스를 시작하는 동시에 다음 부팅의 자동 시작도 활성화합니다.
+
+~~~bash
+# A. 수동 실행 전용: 다음 부팅에는 자동 시작하지 않음
+sudo systemctl disable --now robot-scope-realsense-camera.service
+sudo systemctl start robot-scope-realsense-camera.service
+
+# B. 전용 relay host: 지금 시작하고 다음 부팅부터 자동 시작
+sudo systemctl enable --now robot-scope-realsense-camera.service
+~~~
+
+이미 active인 서비스를 새 파일로 업데이트했다면 `enable --now`만으로 기존 프로세스가
+교체되지 않습니다. enable 상태를 바꾸지 말고 `daemon-reload` 뒤 명시적으로 restart합니다.
+그 다음 기대한 시작 정책과 현재 상태를 각각 확인합니다.
+
+~~~bash
+sudo systemctl restart robot-scope-realsense-camera.service
+systemctl is-enabled robot-scope-realsense-camera.service  # A: disabled, B: enabled
+systemctl is-active robot-scope-realsense-camera.service   # 시작 후: active
+curl -fsS http://192.168.123.18:8090/health
+~~~
+
+서비스는 `unitree` 사용자와 `video` 보조 그룹으로 실행하고 capability를 부여하지 않습니다.
+스크립트는 사용자 쓰기 가능한 경로에서 실행하지 마세요. 현재 구현은 컬러 영상 전용이며
+depth/point cloud는 relay하지 않습니다. `/health`의 `idle`은 viewer가 없다는 뜻일 뿐,
+장치에서 JPEG가 생성된다는 검증은 아닙니다. 실제 영상 검증은 고정 dashboard host
+`192.168.123.99`에서 `/stream`을 열어 완전한 JPEG 한 장 이상을 확인합니다.
+
+~~~bash
+relay_capture=/tmp/robot-scope-realsense-stream.mjpeg
+curl -fsS --max-time 5 http://192.168.123.18:8090/stream -o "$relay_capture"
+relay_curl_status=$?
+test "$relay_curl_status" -eq 0 -o "$relay_curl_status" -eq 28
+python3 - <<'PY'
+from pathlib import Path
+
+payload = Path("/tmp/robot-scope-realsense-stream.mjpeg").read_bytes()
+start = payload.find(b"\xff\xd8")
+end = payload.find(b"\xff\xd9", start + 2)
+if start < 0 or end < 0:
+    raise SystemExit("no complete JPEG frame received")
+print(f"complete JPEG frame: {end + 2 - start} bytes")
+PY
+rm -f "$relay_capture"
+curl -fsS http://127.0.0.1:8088/api/v1/cameras
+~~~
+
+지속 스트림을 5초 뒤 끊기 때문에 curl 종료 코드 28은 위 절차에서만 정상으로 허용합니다.
+그 뒤 Sensors에서 RealSense를 단일 화면으로 선택하고, 2화면 모드에서도 Go2와 동시에
+`LIVE`가 되는지 확인합니다. `/health`나 camera catalog만으로 프레임 정상을 판정하지 마세요.
+
 
 ## 수동 실행과 선택적 자동 시작
 
@@ -792,6 +879,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 |---|---|
 | GET /api/v1/health | 에이전트와 로봇 연결 상태 |
 | GET /api/v1/state | 센서, 카메라, 매핑 요약 |
+| GET /api/v1/cameras | Go2·RealSense 고정 카메라 catalog와 소스별 상태 |
 | GET /api/v1/topics | 발견한 ROS 토픽 |
 | GET/POST /api/v1/sources | 표시 소스 조회와 변경 |
 | GET /api/v1/robots/types | 지원 로봇 유형과 3D 모델 catalog |
@@ -826,7 +914,8 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | GET /api/v1/system/service | dashboard service 관리 가능 여부, blocker와 최근 작업 상태 |
 | POST /api/v1/system/service/restart | 확인·idle preflight 후 dashboard만 재시작 |
 | POST /api/v1/system/service/stop | 확인·idle preflight 후 dashboard만 중지 |
-| WS /api/v1/ws/camera | 카메라 스트림 |
+| WS /api/v1/ws/camera?source_id={id} | 선택한 고정 카메라 스트림 (`go2_front`, `realsense_color`) |
+| WS /api/v1/ws/cameras/{id} | 위와 같은 소스별 카메라 WebSocket 경로 |
 | WS /api/v1/ws/pointcloud | 최신 프레임 우선 binary 점군 스트림 |
 | WS /api/v1/ws/joints | Go2 관절 스트림 |
 | WS /api/v1/ws/pose | 로봇 자세 스트림 |

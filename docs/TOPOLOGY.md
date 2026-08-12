@@ -12,7 +12,7 @@ Robot Scope는 브라우저, dashboard/ROS 호스트, 로봇과 센서가 서로
 | Dashboard/ROS host | `robot-scope.service`, ROS subscriptions | 센서 DDS와 지도 파일에 직접 접근 |
 | Control host | `robot-scope-control-bridge.service` | 보통 dashboard host와 동일 |
 | Mapping/Nav host | Hesai driver, bridge, FAST-LIO, Nav2 | 보통 dashboard host와 동일 |
-| Optional relay host | `robot-scope-xt16-relay.service` | XT16이 원래 송신하는 수신 호스트에서만 실행 |
+| Optional relay host | XT16 relay, RealSense MJPEG relay | 해당 센서가 실제 연결된 호스트에서만 실행 |
 | Go2 | 제조사 DDS와 카메라 송신 | 전용 유선망 사용 |
 | XT16 | UDP point packets | 목적지는 현장 설정에 따름 |
 
@@ -25,13 +25,32 @@ Robot Scope는 브라우저, dashboard/ROS 호스트, 로봇과 센서가 서로
 |---|---|---|
 | Go2 `192.168.123.161` | 로봇 본체 | 제조사 DDS, camera multicast |
 | XT16 `192.168.123.20` | 외장 LiDAR | 원본 UDP packet 송신 |
-| `unitree@192.168.123.18` | 로봇 탑재 Jetson, 기존 XT16 수신/relay host | `robot-scope-xt16-relay.service`만 실행 |
+| `unitree@192.168.123.18` | 로봇 탑재 Jetson, 기존 XT16 수신/RealSense USB host | XT16 relay와 선택적 RealSense MJPEG relay만 실행 |
 | `192.168.123.99` | 외부 dashboard/mapping Jetson의 전용 NIC | Hesai driver, XT16 bridge, FAST-LIO, Robot Scope, 선택적 control/Nav2 |
 | 관리 PC/브라우저 | 별도 관리 LAN | `http://DASHBOARD_MANAGEMENT_IP:8088` 접속 |
 
 Relay host의 초기 암호는 저장소와 문서에 포함하지 않습니다. 최초 접속은 대화형으로만
 수행하고 [설치 가이드의 SSH 보안 설정](INSTALL.md#로봇-탑재-relay-host-최초-ssh-보안-설정)에
 따라 암호 변경과 공개키 전환을 완료하세요.
+
+RealSense 컬러 relay는
+`/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0`로
+식별한 RGB 장치 하나만 사용합니다. `.18:8090`의 `/health`는 relay 자신과 `.99`가,
+`/stream`은 `.99`만 읽을 수 있습니다. 일반 관리망이나 인터넷으로 route/NAT하지 마세요.
+브라우저는 대시보드의 같은 출처 WebSocket을 사용하며 robot-side relay에 직접 접속하지
+않습니다.
+
+~~~text
+D435i RGB by-id --> .18 GStreamer/MJPEG :8090 --> .99 Dashboard receiver
+                                                        |
+Browser management LAN <------ same-origin camera WS ---+
+~~~
+
+`robot-scope-realsense-camera.service`의 enable 상태는 배선이 아니라 운영 정책입니다. 공용
+개발 host에서는 disabled 상태로 필요할 때만 start하고, 전용 relay host에서 명시적으로
+`enable --now`한 경우에만 부팅 자동 시작을 사용합니다. `.99`에서 실제 `/stream` JPEG를
+받기 전에는 `/health`의 `idle`이나 Dashboard catalog만으로 영상 경로가 정상이라고 판정하지
+않습니다.
 
 ## 가장 단순한 단일 호스트 구성
 

@@ -97,6 +97,7 @@ POINTCLOUD_BINARY_CACHE: tuple[int, bytes, bytes] | None = None
 POINTCLOUD_BINARY_LOCK = asyncio.Lock()
 CONTROL_BINDINGS: Dict[str, str] = {}
 ROBOT_DISCOVERY = LocalRobotDiscovery()
+CAMERA_WS_SEND_TIMEOUT_S = 2.0
 
 
 class DashboardStaticFiles(StaticFiles):
@@ -820,6 +821,11 @@ async def topics() -> Dict[str, Any]:
 @app.get("/api/v1/sources")
 async def sources() -> Dict[str, Any]:
     return await asyncio.to_thread(agent().sources_snapshot)
+
+
+@app.get("/api/v1/cameras")
+async def cameras() -> Dict[str, Any]:
+    return await asyncio.to_thread(agent().cameras_snapshot)
 
 
 @app.post("/api/v1/sources")
@@ -1792,35 +1798,65 @@ async def pointcloud_stream(websocket: WebSocket) -> None:
         return
 
 
-@app.websocket("/api/v1/ws/camera")
-async def camera_stream(websocket: WebSocket) -> None:
+async def _camera_stream_source(websocket: WebSocket, source_id: str) -> None:
     if not websocket_same_origin(websocket):
         await websocket.close(code=4403, reason="same-origin camera WebSocket required")
         return
+    if source_id not in {"go2_front", "realsense_color"}:
+        await websocket.close(code=4404, reason="camera source is not allowlisted")
+        return
     await websocket.accept()
     runtime_agent = agent()
-    opened = await asyncio.to_thread(runtime_agent.camera_stream_open)
+    opened = await asyncio.to_thread(runtime_agent.camera_stream_open, source_id)
     if not opened.get("accepted", False):
-        await websocket.close(code=1012, reason="camera relay is shutting down")
+        reason = str(opened.get("reason", "camera source unavailable"))
+        code = 1013 if "limit" in reason else 1012
+        await websocket.close(code=code, reason=reason[:123])
         return
+    token = str(opened["token"])
     last_seq = -1
+    last_stream_id = ""
 
     async def send_next() -> None:
-        nonlocal last_seq
-        snapshot = runtime_agent.camera_snapshot()
+        nonlocal last_seq, last_stream_id
+        snapshot = runtime_agent.camera_snapshot(source_id)
         seq = int(snapshot.get("seq", 0))
-        if seq and seq != last_seq and snapshot.get("data"):
+        stream_id = str(snapshot.get("stream_id", ""))
+        if (
+            seq
+            and (stream_id != last_stream_id or seq != last_seq)
+            and snapshot.get("data")
+        ):
             metadata = {key: value for key, value in snapshot.items() if key != "data"}
-            await websocket.send_text(json.dumps(metadata, separators=(",", ":")))
-            await websocket.send_bytes(snapshot["data"])
+            await asyncio.wait_for(
+                websocket.send_text(json.dumps(metadata, separators=(",", ":"))),
+                timeout=CAMERA_WS_SEND_TIMEOUT_S,
+            )
+            await asyncio.wait_for(
+                websocket.send_bytes(snapshot["data"]),
+                timeout=CAMERA_WS_SEND_TIMEOUT_S,
+            )
             last_seq = seq
+            last_stream_id = stream_id
 
     try:
         await stream_until_disconnect(websocket, send_next)
-    except (WebSocketDisconnect, RuntimeError):
+    except (asyncio.TimeoutError, WebSocketDisconnect, RuntimeError):
         return
     finally:
-        await asyncio.to_thread(runtime_agent.camera_stream_close)
+        await asyncio.to_thread(runtime_agent.camera_stream_close, source_id, token)
+
+
+@app.websocket("/api/v1/ws/camera")
+async def camera_stream(websocket: WebSocket, source_id: str = "go2_front") -> None:
+    """Legacy route; omitted source id remains the Go2 front camera."""
+
+    await _camera_stream_source(websocket, source_id)
+
+
+@app.websocket("/api/v1/ws/cameras/{source_id}")
+async def camera_source_stream(websocket: WebSocket, source_id: str) -> None:
+    await _camera_stream_source(websocket, source_id)
 
 
 @app.websocket("/api/v1/ws/joints")

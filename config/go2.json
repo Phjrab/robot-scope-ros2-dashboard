@@ -17,6 +17,18 @@
     "restart_initial_s": 0.5,
     "restart_max_s": 8.0
   },
+  "remote_cameras": {
+    "realsense_color": {
+      "enabled": true,
+      "label": "RealSense color camera",
+      "url": "http://192.168.123.18:8090/stream",
+      "allowed_urls": ["http://192.168.123.18:8090/stream"],
+      "stale_after_s": 3.0,
+      "request_timeout_s": 6.0,
+      "restart_initial_s": 0.5,
+      "restart_max_s": 8.0
+    }
+  },
   "observed_topics": ["/lowstate", "/lf/lowstate", "/lf/sportmodestate", "/sportmodestate", "/joint_states", "/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
   "cloud_radius_limit_m": 150,
   "pointcloud_frame_interval_s": 0.10,

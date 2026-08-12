@@ -155,6 +155,50 @@ gst-inspect-1.0 avdec_h264
 - GStreamer good/bad/libav plugins가 설치되어 있는지 확인합니다.
 - multicast 경로가 관리 LAN으로 잘못 라우팅되지 않았는지 확인합니다.
 
+RealSense만 보이지 않으면 로봇 탑재 Jetson에서 다음을 확인합니다.
+
+~~~bash
+systemctl status robot-scope-realsense-camera.service --no-pager
+systemctl is-enabled robot-scope-realsense-camera.service
+systemctl is-active robot-scope-realsense-camera.service
+ls -l /dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0
+curl -fsS http://192.168.123.18:8090/health
+journalctl -u robot-scope-realsense-camera.service -n 80 --no-pager
+~~~
+
+위 D435i RGB by-id glob에 맞는 항목이 없거나 두 개 이상이면 relay는 안전하게 시작을
+거부합니다. USB 재연결 뒤에도 항목 수가 예상과 다르면 glob을 넓히지 말고 실제 모델의
+V4L2 인터페이스 역할을 확인하세요. `is-enabled`는 부팅 정책(`enabled` 자동 시작,
+`disabled` 수동 실행), `is-active`는 현재 프로세스 상태이므로 둘을 따로 판정합니다.
+
+`/health`가 `idle`인 것은 viewer가 없는 정상 상태일 수 있지만 JPEG 생성 검증은 아닙니다.
+다음 검사는 반드시 `/stream` 접근이 허용된 dashboard host `192.168.123.99`에서 실행합니다.
+
+~~~bash
+relay_capture=/tmp/robot-scope-realsense-stream.mjpeg
+curl -fsS --max-time 5 http://192.168.123.18:8090/stream -o "$relay_capture"
+relay_curl_status=$?
+test "$relay_curl_status" -eq 0 -o "$relay_curl_status" -eq 28
+python3 - <<'PY'
+from pathlib import Path
+
+payload = Path("/tmp/robot-scope-realsense-stream.mjpeg").read_bytes()
+start = payload.find(b"\xff\xd8")
+end = payload.find(b"\xff\xd9", start + 2)
+if start < 0 or end < 0:
+    raise SystemExit("no complete JPEG frame received")
+print(f"complete JPEG frame: {end + 2 - start} bytes")
+PY
+rm -f "$relay_capture"
+curl -fsS http://127.0.0.1:8088/api/v1/cameras
+~~~
+
+지속 스트림을 제한 시간에 끊은 curl 코드 28만 예외로 허용합니다. 완전한 JPEG를 받았는데도
+Dashboard에 프레임이 없으면 `.18:8090` TCP 경로는 통과한 것이므로 Sensors 화면을 연
+상태에서 Dashboard camera WebSocket, `realsense_color` 상태와 service 로그를 확인합니다.
+새 relay 파일을 설치했는데 PID나 동작이 그대로라면 `enable --now`를 반복하지 말고 enable
+상태를 보존한 채 `sudo systemctl restart robot-scope-realsense-camera.service`를 실행합니다.
+
 ## ARM 직후 DISARM됨
 
 Control은 다음 조건이 하나라도 사라지면 fail-closed 합니다.

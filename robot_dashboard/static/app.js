@@ -194,6 +194,30 @@ const ui = {
   batteryMetric: $('#batteryMetric'),
   batterySub: $('#batterySub'),
   cameraSource: $('#cameraSource'),
+  cameraSingleMode: $('#cameraSingleMode'),
+  cameraDualMode: $('#cameraDualMode'),
+  cameraPrimarySource: $('#cameraPrimarySource'),
+  cameraCapacity: $('#cameraCapacity'),
+  cameraViewGrid: $('#cameraViewGrid'),
+  cameraPrimarySlot: $('#cameraPrimarySlot'),
+  cameraPrimaryLabel: $('#cameraPrimaryLabel'),
+  cameraPrimarySourceId: $('#cameraPrimarySourceId'),
+  cameraPrimaryState: $('#cameraPrimaryState'),
+  cameraPrimaryFps: $('#cameraPrimaryFps'),
+  cameraPrimaryTopic: $('#cameraPrimaryTopic'),
+  cameraPrimaryTransport: $('#cameraPrimaryTransport'),
+  cameraSecondarySlot: $('#cameraSecondarySlot'),
+  cameraSecondaryCanvas: $('#cameraSecondaryCanvas'),
+  cameraSecondaryEmpty: $('#cameraSecondaryEmpty'),
+  cameraSecondaryEmptyText: $('#cameraSecondaryEmptyText'),
+  cameraSecondaryLabel: $('#cameraSecondaryLabel'),
+  cameraSecondarySourceId: $('#cameraSecondarySourceId'),
+  cameraSecondaryState: $('#cameraSecondaryState'),
+  cameraSecondaryFps: $('#cameraSecondaryFps'),
+  cameraSecondaryTopic: $('#cameraSecondaryTopic'),
+  cameraSecondaryTransport: $('#cameraSecondaryTransport'),
+  cameraSecondaryTopicLabel: $('#cameraSecondaryTopicLabel'),
+  cameraSecondaryCodecLabel: $('#cameraSecondaryCodecLabel'),
   cloudSource: $('#cloudSource'),
   cloudSourceSensorBadge: $('#cloudSourceSensorBadge'),
   cloudSourcePin: $('#cloudSourcePin'),
@@ -448,6 +472,13 @@ let cameraLastFrameAt = 0;
 let cameraActiveSourceKey = '';
 let cameraRecording = null;
 let cameraImageDecodeQueue = null;
+let cameraCatalog = [];
+let cameraCatalogRequestGeneration = 0;
+let cameraMaxActive = 1;
+let cameraViewMode = 'single';
+let cameraPrimarySourceId = '';
+let cameraSecondarySourceId = '';
+let cameraSlotRuntimes = null;
 let cloudSeq = -1;
 let pointcloudRequestInFlight = false;
 let pointcloudRequestGeneration = 0;
@@ -1591,11 +1622,11 @@ function updateOverview(state) {
   const cameraTopicName = camera.topic || cameraSource;
   const cameraTopic = latestTopics.find((topic) => topic.name === cameraTopicName);
   const cameraSourceKey = cameraTopicName || camera.source || directCamera.uri || '';
-  if (cameraSourceKey) noteCameraSource(cameraSourceKey);
+  if (cameraSourceKey && !cameraCatalog.length) noteCameraSource(cameraSourceKey);
   // /api/v1/state is also the liveness clock for the direct Go2 multicast
   // camera.  Merge it into the latest WS frame metadata so a frozen canvas
   // becomes stale even when no more WebSocket messages arrive.
-  cameraStatusMeta = { ...camera };
+  if (!cameraCatalog.length) cameraStatusMeta = { ...camera };
   const cameraLabel = camera.source_label || camera.topic || cameraSource || 'NO SOURCE';
   const cameraTransport = camera.transport || directCamera.transport || '';
   const cameraInterface = camera.interface || directCamera.interface || '';
@@ -1620,6 +1651,18 @@ function updateOverview(state) {
     cameraLive ? 'ok' : cameraOnDemand ? 'waiting' : reportedCameraState,
     cameraLive ? 'LIVE' : cameraOnDemand ? 'ON DEMAND' : String(reportedCameraState).toUpperCase(),
   );
+  if (cameraCatalog.length) {
+    const primarySlot = primaryCameraSlot();
+    const selectedCamera = cameraSourceForId(cameraPrimarySourceId) || {};
+    primarySlot.statusMeta = selectedCamera;
+    const selectedMetadata = cameraSlotMetadata(primarySlot);
+    cameraStatusMeta = { ...selectedMetadata };
+    const selectedLabel = selectedCamera.label || selectedCamera.id || 'NO SOURCE';
+    ui.cameraMetric.textContent = formatHz(selectedMetadata.fps ?? selectedCamera.fps);
+    ui.cameraSub.textContent = [selectedLabel, selectedMetadata.transport, selectedCamera.id].filter(Boolean).join(' · ');
+    ui.cameraSub.title = ui.cameraSub.textContent;
+    renderCameraSlotIdentity(primarySlot);
+  }
   syncCameraFrameFreshness();
 
   const cloudMetric = mapping.cloud || {};
@@ -4693,9 +4736,308 @@ function drawPoseLabel(ctx, anchor, viewport, unit) {
   }
 }
 
+const CAMERA_PREFERENCE_KEY = 'robot-scope.camera-view.v1';
 const CAMERA_FRAME_FRESH_MS = 3000;
 const CAMERA_RECORD_MAX_MS = 10 * 60 * 1000;
 const CAMERA_RECORD_MAX_BYTES = 256 * 1024 * 1024;
+
+function normalizeCameraCatalog(payload) {
+  const sources = Array.isArray(payload?.sources) ? payload.sources : [];
+  const normalized = [];
+  const seen = new Set();
+  for (const entry of sources) {
+    if (!entry || typeof entry !== 'object') continue;
+    const id = String(entry.id || entry.source_id || '').trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const state = String(entry.state || (entry.live ? 'live' : 'waiting')).trim().toLowerCase() || 'waiting';
+    const fps = entry.fps == null ? Number.NaN : Number(entry.fps);
+    const age = entry.age_s == null ? Number.NaN : Number(entry.age_s);
+    normalized.push({
+      ...entry,
+      id,
+      source_id: id,
+      label: String(entry.label || id),
+      topic: String(entry.topic || entry.stream_id || '—'),
+      transport: String(entry.transport || '—'),
+      state,
+      fps: Number.isFinite(fps) ? fps : null,
+      age_s: Number.isFinite(age) ? age : null,
+      width: Number(entry.width) || 0,
+      height: Number(entry.height) || 0,
+      available: entry.available != null
+        ? Boolean(entry.available)
+        : Boolean(entry.live || ['ok', 'live', 'ready', 'streaming', 'waiting', 'stale'].includes(state)),
+    });
+  }
+  const rawMaxActive = Number(payload?.max_active ?? payload?.max_viewers ?? 1);
+  const maxActive = Math.max(1, Math.min(2, Number.isFinite(rawMaxActive) ? Math.floor(rawMaxActive) : 1));
+  return { maxActive, sources: normalized };
+}
+
+function cameraSourceForId(sourceId) {
+  return cameraCatalog.find((source) => source.id === sourceId) || null;
+}
+
+function preferredCameraSource(sources, requestedId = '') {
+  if (requestedId && sources.some((source) => source.id === requestedId)) return requestedId;
+  return (sources.find((source) => source.available) || sources[0])?.id || '';
+}
+
+function secondaryCameraSource(sources, primaryId) {
+  return (sources.find((source) => source.id !== primaryId && source.available)
+    || sources.find((source) => source.id !== primaryId))?.id || '';
+}
+
+function loadCameraPreferences(storage = window.localStorage) {
+  try {
+    const parsed = JSON.parse(storage.getItem(CAMERA_PREFERENCE_KEY) || '{}');
+    return {
+      viewMode: parsed.viewMode === 'dual' ? 'dual' : 'single',
+      primarySourceId: typeof parsed.primarySourceId === 'string' ? parsed.primarySourceId : '',
+    };
+  } catch (_) {
+    return { viewMode: 'single', primarySourceId: '' };
+  }
+}
+
+function persistCameraPreferences(storage = window.localStorage) {
+  try {
+    storage.setItem(CAMERA_PREFERENCE_KEY, JSON.stringify({
+      viewMode: cameraViewMode,
+      primarySourceId: cameraPrimarySourceId,
+    }));
+  } catch (_) {
+    // Safari private browsing and locked-down kiosk profiles can reject storage.
+  }
+}
+
+function createCameraSlotRuntime(role, elements) {
+  return {
+    role,
+    ...elements,
+    sourceId: '',
+    socket: null,
+    socketGeneration: 0,
+    reconnectTimer: 0,
+    meta: null,
+    statusMeta: null,
+    lastFrameAt: 0,
+    activeSourceKey: '',
+    frames: 0,
+    frameWindow: [],
+    imageDecodeQueue: null,
+    videoDecoder: null,
+    hasKey: false,
+  };
+}
+
+function getCameraSlots() {
+  if (cameraSlotRuntimes) return cameraSlotRuntimes;
+  cameraSlotRuntimes = {
+    primary: createCameraSlotRuntime('primary', {
+      root: ui.cameraPrimarySlot,
+      canvas: ui.cameraCanvas,
+      empty: ui.cameraEmpty,
+      emptyText: ui.cameraEmptyText,
+      label: ui.cameraPrimaryLabel,
+      sourceIdLabel: ui.cameraPrimarySourceId,
+      state: ui.cameraPrimaryState,
+      fps: ui.cameraPrimaryFps,
+      topic: ui.cameraPrimaryTopic,
+      transport: ui.cameraPrimaryTransport,
+      topicOverlay: ui.cameraTopicLabel,
+      codecOverlay: ui.cameraCodecLabel,
+    }),
+    secondary: createCameraSlotRuntime('secondary', {
+      root: ui.cameraSecondarySlot,
+      canvas: ui.cameraSecondaryCanvas,
+      empty: ui.cameraSecondaryEmpty,
+      emptyText: ui.cameraSecondaryEmptyText,
+      label: ui.cameraSecondaryLabel,
+      sourceIdLabel: ui.cameraSecondarySourceId,
+      state: ui.cameraSecondaryState,
+      fps: ui.cameraSecondaryFps,
+      topic: ui.cameraSecondaryTopic,
+      transport: ui.cameraSecondaryTransport,
+      topicOverlay: ui.cameraSecondaryTopicLabel,
+      codecOverlay: ui.cameraSecondaryCodecLabel,
+    }),
+  };
+  return cameraSlotRuntimes;
+}
+
+function primaryCameraSlot() {
+  return getCameraSlots().primary;
+}
+
+function cameraSlotMetadata(slot) {
+  const source = cameraSourceForId(slot.sourceId) || {};
+  return { ...source, ...(slot.statusMeta || {}), ...(slot.meta || {}), id: slot.sourceId || source.id || '' };
+}
+
+function cameraSlotFrameAvailable(slot, now = Date.now()) {
+  return Boolean(
+    slot?.canvas?.width > 1
+    && slot?.canvas?.height > 1
+    && cameraFrameIsFresh(slot.lastFrameAt, cameraSlotMetadata(slot), now),
+  );
+}
+
+function formatCameraFps(value) {
+  const fps = Number(value);
+  return Number.isFinite(fps) && fps >= 0 ? `${fps.toFixed(fps >= 10 ? 1 : 2)} FPS` : '— FPS';
+}
+
+function renderCameraSlotIdentity(slot, now = Date.now()) {
+  const source = cameraSourceForId(slot.sourceId);
+  const metadata = cameraSlotMetadata(slot);
+  const fresh = cameraSlotFrameAvailable(slot, now);
+  const state = String(
+    fresh
+      ? 'live'
+      : (slot.lastFrameAt ? 'stale' : (metadata.state || (source?.available ? 'waiting' : 'unavailable'))),
+  ).toLowerCase();
+  const topic = String(metadata.topic || source?.topic || '—');
+  const transport = String(metadata.transport || source?.transport || '—');
+  const width = Number(metadata.width || source?.width || 0);
+  const height = Number(metadata.height || source?.height || 0);
+  const format = String(metadata.format || '').toUpperCase();
+  const dimensions = width && height ? `${width}×${height}` : '';
+  slot.label.textContent = source?.label || metadata.label || (slot.sourceId ? slot.sourceId : '카메라 없음');
+  slot.sourceIdLabel.textContent = slot.sourceId || 'NO SOURCE';
+  slot.sourceIdLabel.title = slot.sourceId || '';
+  slot.state.textContent = state.toUpperCase();
+  slot.state.dataset.state = state;
+  slot.fps.textContent = formatCameraFps(metadata.fps ?? source?.fps);
+  slot.topic.textContent = `TOPIC ${topic}`;
+  slot.topic.title = topic;
+  slot.transport.textContent = `TRANSPORT ${transport}`;
+  slot.transport.title = transport;
+  slot.topicOverlay.textContent = `${slot.sourceId || 'NO SOURCE'} · ${topic}`;
+  slot.codecOverlay.textContent = [format, dimensions, transport].filter(Boolean).join(' · ') || '—';
+  if (slot.role === 'primary') {
+    setStatePill(ui.cameraState, state, state === 'live' ? 'LIVE' : state.toUpperCase());
+  }
+}
+
+function renderCameraCatalogUi() {
+  const selected = cameraPrimarySourceId;
+  ui.cameraPrimarySource.innerHTML = '';
+  if (!cameraCatalog.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = '카메라 없음';
+    ui.cameraPrimarySource.appendChild(option);
+  } else {
+    for (const source of cameraCatalog) {
+      const option = document.createElement('option');
+      option.value = source.id;
+      option.textContent = `${source.label} · ${source.id}`;
+      option.disabled = !source.available;
+      ui.cameraPrimarySource.appendChild(option);
+    }
+  }
+  ui.cameraPrimarySource.value = selected;
+  ui.cameraPrimarySource.disabled = cameraCatalog.length < 2;
+  const dualAvailable = cameraMaxActive >= 2 && cameraCatalog.length >= 2;
+  ui.cameraDualMode.disabled = !dualAvailable;
+  if (!dualAvailable && cameraViewMode === 'dual') cameraViewMode = 'single';
+  ui.cameraSingleMode.setAttribute('aria-pressed', String(cameraViewMode === 'single'));
+  ui.cameraDualMode.setAttribute('aria-pressed', String(cameraViewMode === 'dual'));
+  ui.cameraViewGrid.dataset.viewMode = cameraViewMode;
+  ui.cameraViewGrid.closest('.camera-panel')?.classList.toggle('is-dual-view', cameraViewMode === 'dual');
+  ui.cameraSecondarySlot.hidden = cameraViewMode !== 'dual';
+  const visibleSlots = cameraViewMode === 'dual'
+    ? [getCameraSlots().primary, getCameraSlots().secondary]
+    : [getCameraSlots().primary];
+  const requestedSources = visibleSlots.filter((slot) => slot.sourceId).length;
+  const connectedSources = visibleSlots.filter(
+    (slot) => slot.socket?.readyState === WebSocket.OPEN,
+  ).length;
+  ui.cameraCapacity.textContent = `${connectedSources} CONNECTED · ${requestedSources} REQUESTED`;
+  renderCameraSlotIdentity(getCameraSlots().primary);
+  renderCameraSlotIdentity(getCameraSlots().secondary);
+}
+
+function setCameraSlotSource(role, sourceId, reason = '') {
+  const slot = getCameraSlots()[role];
+  const nextSourceId = String(sourceId || '');
+  if (slot.sourceId === nextSourceId) return false;
+  disconnectCameraSlot(slot);
+  slot.sourceId = nextSourceId;
+  slot.statusMeta = cameraSourceForId(nextSourceId);
+  if (role === 'primary') {
+    cameraPrimarySourceId = nextSourceId;
+    resetCameraRenderedFrame(nextSourceId, { reason: reason || '기본 카메라의 새 프레임을 기다리고 있습니다.' });
+  } else {
+    cameraSecondarySourceId = nextSourceId;
+    resetCameraSlotRenderedFrame(slot, nextSourceId, reason || '보조 카메라의 새 프레임을 기다리고 있습니다.');
+  }
+  return true;
+}
+
+function applyCameraCatalog(payload) {
+  const normalized = normalizeCameraCatalog(payload);
+  cameraCatalog = normalized.sources;
+  cameraMaxActive = normalized.maxActive;
+  const primaryId = preferredCameraSource(cameraCatalog, cameraPrimarySourceId);
+  const secondaryId = secondaryCameraSource(cameraCatalog, primaryId);
+  setCameraSlotSource('primary', primaryId);
+  setCameraSlotSource('secondary', secondaryId);
+  for (const slot of Object.values(getCameraSlots())) slot.statusMeta = cameraSourceForId(slot.sourceId);
+  renderCameraCatalogUi();
+  syncCameraTransport();
+  return normalized;
+}
+
+async function refreshCameraCatalog() {
+  const generation = ++cameraCatalogRequestGeneration;
+  try {
+    const payload = await api('/api/v1/cameras');
+    if (generation !== cameraCatalogRequestGeneration) return null;
+    return applyCameraCatalog(payload);
+  } catch (error) {
+    if (generation !== cameraCatalogRequestGeneration) return null;
+    if (!cameraCatalog.length) {
+      ui.cameraCapacity.textContent = 'CAMERA API WAITING';
+      ui.cameraEmptyText.textContent = `카메라 목록을 불러오지 못했습니다: ${error.message}`;
+    }
+    return null;
+  }
+}
+
+function setCameraViewMode(mode, { persist = true } = {}) {
+  const next = mode === 'dual' && cameraMaxActive >= 2 && cameraCatalog.length >= 2 ? 'dual' : 'single';
+  if (cameraViewMode === next) {
+    renderCameraCatalogUi();
+    syncCameraTransport();
+    return;
+  }
+  cameraViewMode = next;
+  renderCameraCatalogUi();
+  syncCameraTransport();
+  if (persist) persistCameraPreferences();
+}
+
+function selectPrimaryCamera(sourceId, { persist = true } = {}) {
+  const next = preferredCameraSource(cameraCatalog, sourceId);
+  if (!next || next === cameraPrimarySourceId) return;
+  const nextSecondary = secondaryCameraSource(cameraCatalog, next);
+  setCameraSlotSource('primary', next, '기본 카메라를 변경하여 새 프레임을 기다리고 있습니다.');
+  setCameraSlotSource('secondary', nextSecondary, '보조 카메라가 자동으로 변경되었습니다.');
+  renderCameraCatalogUi();
+  syncCameraTransport();
+  if (persist) persistCameraPreferences();
+}
+
+function initializeCameraStreams() {
+  const preferences = loadCameraPreferences();
+  cameraViewMode = preferences.viewMode;
+  cameraPrimarySourceId = preferences.primarySourceId;
+  getCameraSlots();
+  return refreshCameraCatalog();
+}
 
 function cameraFrameIsFresh(lastFrameAt, metadata = {}, now = Date.now(), maxAgeMs = CAMERA_FRAME_FRESH_MS) {
   const localAgeMs = Number(now) - Number(lastFrameAt || 0);
@@ -4755,43 +5097,83 @@ function createLatestCameraFrameQueue({ decode, render, close, onError = () => {
 }
 
 function getCameraImageDecodeQueue() {
-  if (cameraImageDecodeQueue) return cameraImageDecodeQueue;
-  cameraImageDecodeQueue = createLatestCameraFrameQueue({
-    decode: (frame) => createImageBitmap(new Blob(
-      [frame.data],
-      { type: frame.format === 'png' ? 'image/png' : 'image/jpeg' },
-    )),
-    render: (bitmap, frame) => renderCameraSourceFrame(
-      bitmap,
-      bitmap.width,
-      bitmap.height,
+  return getCameraSlotImageDecodeQueue(primaryCameraSlot());
+}
+
+async function decodeCameraImageFrame(frame) {
+  const blob = new Blob(
+    [frame.data],
+    { type: frame.format === 'png' ? 'image/png' : 'image/jpeg' },
+  );
+  if (typeof window.createImageBitmap === 'function') {
+    try {
+      const bitmap = await window.createImageBitmap(blob);
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        close: () => bitmap.close?.(),
+      };
+    } catch (_) {
+      // Some Safari releases expose createImageBitmap but reject camera JPEG
+      // blobs. Continue through the HTMLImageElement decoder in that case.
+    }
+  }
+
+  // Safari versions without createImageBitmap still decode JPEG reliably via
+  // HTMLImageElement. Object URLs live only until the frame has been drawn.
+  const objectUrl = URL.createObjectURL(blob);
+  const image = new window.Image();
+  image.decoding = 'async';
+  image.src = objectUrl;
+  try {
+    await image.decode();
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+  return {
+    source: image,
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+    close: () => URL.revokeObjectURL(objectUrl),
+  };
+}
+
+function getCameraSlotImageDecodeQueue(slot = primaryCameraSlot()) {
+  if (slot.imageDecodeQueue) return slot.imageDecodeQueue;
+  slot.imageDecodeQueue = createLatestCameraFrameQueue({
+    decode: decodeCameraImageFrame,
+    render: (decoded, frame) => renderCameraSourceFrame(
+      decoded.source,
+      decoded.width,
+      decoded.height,
       frame.sourceKey,
+      slot,
     ),
-    close: (bitmap) => bitmap.close(),
-    onError: (error) => console.warn('camera image decode:', error),
+    close: (decoded) => decoded.close(),
+    onError: (error) => console.warn(`${slot.role} camera image decode:`, error),
   });
-  return cameraImageDecodeQueue;
+  if (slot.role === 'primary') cameraImageDecodeQueue = slot.imageDecodeQueue;
+  return slot.imageDecodeQueue;
 }
 
-function resetCameraImageDecodeQueue() {
-  cameraImageDecodeQueue?.reset();
+function resetCameraImageDecodeQueue(slot = primaryCameraSlot()) {
+  slot.imageDecodeQueue?.reset();
+  if (slot.role === 'primary') cameraImageDecodeQueue = slot.imageDecodeQueue;
 }
 
-function enqueueCameraImageFrame(data, metadata) {
-  getCameraImageDecodeQueue().enqueue({
+function enqueueCameraImageFrame(data, metadata, slot = primaryCameraSlot()) {
+  getCameraSlotImageDecodeQueue(slot).enqueue({
     data,
-    format: metadata.format,
+    format: metadata.format || 'jpeg',
     seq: metadata.seq,
-    sourceKey: metadata.topic || metadata.source || metadata.stream_url || metadata.transport || cameraActiveSourceKey,
+    sourceKey: metadata.source_id || metadata.topic || metadata.source || metadata.stream_url || metadata.transport || slot.activeSourceKey,
   });
 }
 
 function cameraFrameAvailable(now = Date.now()) {
-  return Boolean(
-    ui.cameraCanvas.width > 1
-    && ui.cameraCanvas.height > 1
-    && cameraFrameIsFresh(cameraLastFrameAt, cameraStatusMeta || cameraMeta, now),
-  );
+  return cameraSlotFrameAvailable(primaryCameraSlot(), now);
 }
 
 function cameraRecordingSupported() {
@@ -4817,11 +5199,19 @@ function syncCameraMediaControls() {
 }
 
 function syncCameraFrameFreshness(now = Date.now()) {
+  const primary = primaryCameraSlot();
   const fresh = cameraFrameAvailable(now);
   syncCameraMediaControls();
-  if (fresh || !cameraLastFrameAt) return fresh;
+  for (const slot of Object.values(getCameraSlots())) {
+    renderCameraSlotIdentity(slot, now);
+    if (slot.role === 'secondary' && slot.lastFrameAt && !cameraSlotFrameAvailable(slot, now)) {
+      slot.empty.style.display = '';
+      slot.emptyText.textContent = `마지막 영상 프레임이 ${Math.max(0, (now - slot.lastFrameAt) / 1000).toFixed(1)}초 전입니다.`;
+    }
+  }
+  if (fresh || !primary.lastFrameAt) return fresh;
   const reportedState = String(cameraStatusMeta?.state || cameraMeta?.state || 'stale').toUpperCase();
-  const message = `마지막 영상 프레임이 ${Math.max(0, (now - cameraLastFrameAt) / 1000).toFixed(1)}초 전입니다. 새 프레임을 기다리고 있습니다.`;
+  const message = `PRIMARY 마지막 영상 프레임이 ${Math.max(0, (now - primary.lastFrameAt) / 1000).toFixed(1)}초 전입니다. 새 프레임을 기다리고 있습니다.`;
   if (cameraRecording) {
     if (!cameraRecording.stopping) {
       stopCameraRecording({ discard: false, reason: '영상 신호가 3초 이상 멈춰 녹화를 종료하고 저장했습니다.' });
@@ -4832,14 +5222,26 @@ function syncCameraFrameFreshness(now = Date.now()) {
   return false;
 }
 
+function markCameraSlotFrameRendered(slot, sourceKey = '') {
+  const wasFresh = cameraSlotFrameAvailable(slot);
+  if (sourceKey) slot.activeSourceKey = sourceKey;
+  slot.lastFrameAt = Date.now();
+  slot.frames += 1;
+  slot.frameWindow.push(performance.now());
+  while (slot.frameWindow.length && performance.now() - slot.frameWindow[0] > 1000) slot.frameWindow.shift();
+  slot.empty.style.display = 'none';
+  renderCameraSlotIdentity(slot);
+  return wasFresh;
+}
+
 function markCameraFrameRendered(sourceKey = '') {
+  const slot = primaryCameraSlot();
   const wasFresh = cameraFrameAvailable();
+  markCameraSlotFrameRendered(slot, sourceKey);
   if (sourceKey) cameraActiveSourceKey = sourceKey;
-  cameraLastFrameAt = Date.now();
-  cameraFrames += 1;
-  cameraFrameWindow.push(performance.now());
-  while (cameraFrameWindow.length && performance.now() - cameraFrameWindow[0] > 1000) cameraFrameWindow.shift();
-  ui.cameraEmpty.style.display = 'none';
+  cameraLastFrameAt = slot.lastFrameAt;
+  cameraFrames = slot.frames;
+  cameraFrameWindow = slot.frameWindow;
   if (!cameraRecording && !wasFresh) {
     const recorderNote = cameraRecordingSupported()
       ? '현재 표시 프레임을 캡처하거나 브라우저에서 녹화할 수 있습니다.'
@@ -4852,19 +5254,23 @@ function markCameraFrameRendered(sourceKey = '') {
 // Every camera transport ends here.  A direct Flask/MJPEG adapter can pass its
 // HTMLImageElement to this function and gets the same capture/record behavior
 // as the existing ROS/WebSocket H.264, JPEG, PNG and raw-image paths.
-function renderCameraSourceFrame(source, requestedWidth = 0, requestedHeight = 0, sourceKey = '') {
+function renderCameraSourceFrame(source, requestedWidth = 0, requestedHeight = 0, sourceKey = '', slot = primaryCameraSlot()) {
   const width = Number(requestedWidth || source?.displayWidth || source?.videoWidth || source?.naturalWidth || source?.width || 0);
   const height = Number(requestedHeight || source?.displayHeight || source?.videoHeight || source?.naturalHeight || source?.height || 0);
   if (!source || !Number.isFinite(width) || !Number.isFinite(height) || width < 2 || height < 2) {
     throw new Error('카메라 프레임 크기가 비어 있습니다.');
   }
-  const canvas = ui.cameraCanvas;
+  const canvas = slot.canvas;
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
   }
   canvas.getContext('2d').drawImage(source, 0, 0, width, height);
-  markCameraFrameRendered(sourceKey || cameraMeta?.topic || cameraActiveSourceKey);
+  if (slot.role === 'primary') {
+    markCameraFrameRendered(sourceKey || cameraMeta?.topic || cameraActiveSourceKey);
+  } else {
+    markCameraSlotFrameRendered(slot, sourceKey || slot.meta?.source_id || slot.meta?.topic || slot.activeSourceKey);
+  }
 }
 
 function cameraTimestamp() {
@@ -5111,6 +5517,25 @@ function discardCameraRecordingForPageHide() {
   return true;
 }
 
+function resetCameraSlotRenderedFrame(slot, nextSourceKey = '', reason = '') {
+  resetCameraImageDecodeQueue(slot);
+  if (slot.videoDecoder && slot.videoDecoder.state !== 'closed') {
+    try { slot.videoDecoder.close(); } catch (_) {}
+  }
+  slot.videoDecoder = null;
+  slot.hasKey = false;
+  slot.meta = null;
+  slot.lastFrameAt = 0;
+  slot.frames = 0;
+  slot.frameWindow = [];
+  slot.activeSourceKey = nextSourceKey;
+  slot.canvas.width = 1;
+  slot.canvas.height = 1;
+  slot.empty.style.display = '';
+  slot.emptyText.textContent = reason || '새 카메라 영상 신호를 기다리고 있습니다.';
+  renderCameraSlotIdentity(slot);
+}
+
 function resetCameraRenderedFrame(nextSourceKey = '', { discardRecording = false, reason = '' } = {}) {
   if (cameraRecording) {
     stopCameraRecording({
@@ -5119,25 +5544,19 @@ function resetCameraRenderedFrame(nextSourceKey = '', { discardRecording = false
       silent: discardRecording,
     });
   }
-  resetCameraImageDecodeQueue();
-  if (videoDecoder && videoDecoder.state !== 'closed') {
-    try { videoDecoder.close(); } catch (_) {}
-  }
+  const slot = primaryCameraSlot();
+  resetCameraSlotRenderedFrame(slot, nextSourceKey, reason);
   videoDecoder = null;
   cameraHasKey = false;
   cameraMeta = null;
   cameraStatusMeta = null;
   cameraLastFrameAt = 0;
   cameraFrames = 0;
-  cameraFrameWindow = [];
+  cameraFrameWindow = slot.frameWindow;
   cameraActiveSourceKey = nextSourceKey;
-  ui.cameraCanvas.width = 1;
-  ui.cameraCanvas.height = 1;
-  ui.cameraEmpty.style.display = '';
-  ui.cameraEmptyText.textContent = reason || '새 카메라 영상 신호를 기다리고 있습니다.';
   ui.cameraRecordDuration.textContent = '00:00';
   ui.cameraRecordDuration.dateTime = 'PT0S';
-  if (!cameraRecording) setCameraMediaMessage('FRAME WAITING', '영상이 표시되면 캡처와 녹화를 사용할 수 있습니다.');
+  if (!cameraRecording) setCameraMediaMessage('PRIMARY FRAME WAITING', 'PRIMARY 영상이 표시되면 캡처와 녹화를 사용할 수 있습니다.');
   syncCameraMediaControls();
 }
 
@@ -5154,7 +5573,7 @@ function noteCameraSource(sourceKey) {
 function initializeCameraMediaControls() {
   syncCameraMediaControls();
   if (!cameraRecordingSupported()) {
-    ui.cameraMediaHelp.textContent = '화면 캡처 가능 · 녹화는 canvas.captureStream 및 MediaRecorder 지원 브라우저가 필요합니다.';
+    ui.cameraMediaHelp.textContent = 'PRIMARY 화면 캡처 가능 · 녹화는 canvas.captureStream 및 MediaRecorder 지원 브라우저가 필요합니다.';
   }
 }
 
@@ -5164,43 +5583,48 @@ window.RobotScopeCameraFrame = Object.freeze({
   markRendered: markCameraFrameRendered,
 });
 
-function resetDecoder() {
-  if (videoDecoder && videoDecoder.state !== 'closed') {
-    try { videoDecoder.close(); } catch (_) {}
+function resetDecoder(slot = primaryCameraSlot()) {
+  if (slot.videoDecoder && slot.videoDecoder.state !== 'closed') {
+    try { slot.videoDecoder.close(); } catch (_) {}
   }
-  cameraHasKey = false;
+  slot.hasKey = false;
+  if (slot.role === 'primary') cameraHasKey = false;
   if (!('VideoDecoder' in window)) {
-    ui.cameraEmptyText.textContent = '이 브라우저는 H.264 WebCodecs를 지원하지 않습니다.';
+    slot.emptyText.textContent = '이 브라우저는 H.264 WebCodecs를 지원하지 않습니다.';
     return false;
   }
-  videoDecoder = new VideoDecoder({
-    output: renderVideoFrame,
+  slot.videoDecoder = new VideoDecoder({
+    output: (frame) => renderVideoFrame(frame, slot),
     error: (error) => {
-      console.warn('H264 decoder:', error);
-      cameraHasKey = false;
+      console.warn(`${slot.role} H264 decoder:`, error);
+      slot.hasKey = false;
+      if (slot.role === 'primary') cameraHasKey = false;
     },
   });
-  videoDecoder.configure({ codec: cameraMeta?.encoding || 'avc1.42E01E', optimizeForLatency: true });
+  slot.videoDecoder.configure({ codec: slot.meta?.encoding || 'avc1.42E01E', optimizeForLatency: true });
+  if (slot.role === 'primary') videoDecoder = slot.videoDecoder;
   return true;
 }
 
-function renderVideoFrame(frame) {
+function renderVideoFrame(frame, slot = primaryCameraSlot()) {
   try {
-    renderCameraSourceFrame(frame, frame.displayWidth, frame.displayHeight);
+    if (slot.role === 'primary') renderCameraSourceFrame(frame, frame.displayWidth, frame.displayHeight);
+    else renderCameraSourceFrame(frame, frame.displayWidth, frame.displayHeight, slot.activeSourceKey, slot);
   } finally {
     frame.close();
   }
 }
 
-function renderImageBlob(data, metadata) {
-  enqueueCameraImageFrame(data, metadata);
+function renderImageBlob(data, metadata, slot = primaryCameraSlot()) {
+  if (slot.role === 'primary') enqueueCameraImageFrame(data, metadata);
+  else enqueueCameraImageFrame(data, metadata, slot);
 }
 
-function renderRawImage(data, metadata) {
+function renderRawImage(data, metadata, slot = primaryCameraSlot()) {
   const { width, height, encoding, step } = metadata;
   if (!width || !height || !['rgb8', 'bgr8', 'rgba8', 'bgra8', 'mono8'].includes(encoding)) return;
   const source = new Uint8Array(data);
-  const canvas = ui.cameraCanvas;
+  const canvas = slot.canvas;
   canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext('2d');
   const image = ctx.createImageData(width, height);
@@ -5221,7 +5645,8 @@ function renderRawImage(data, metadata) {
     }
   }
   ctx.putImageData(image, 0, 0);
-  markCameraFrameRendered(cameraMeta?.topic || cameraActiveSourceKey);
+  if (slot.role === 'primary') markCameraFrameRendered(cameraMeta?.topic || cameraActiveSourceKey);
+  else markCameraSlotFrameRendered(slot, slot.meta?.source_id || slot.meta?.topic || slot.activeSourceKey);
 }
 
 function markJointsStale(force = false) {
@@ -5298,86 +5723,168 @@ function cameraTransportWanted() {
   return activePage === 'sensors' && !document.hidden;
 }
 
-function disconnectCamera() {
-  cameraSocketGeneration += 1;
-  clearTimeout(cameraReconnectTimer);
-  cameraReconnectTimer = 0;
-  const socket = cameraSocket;
-  cameraSocket = null;
+function cameraSlotTransportWanted(slot) {
+  if (!cameraTransportWanted() || !slot.sourceId) return false;
+  if (slot.role === 'secondary' && cameraViewMode !== 'dual') return false;
+  const source = cameraSourceForId(slot.sourceId);
+  return source?.available !== false;
+}
+
+function disconnectCameraSlot(slot) {
+  slot.socketGeneration += 1;
+  clearTimeout(slot.reconnectTimer);
+  slot.reconnectTimer = 0;
+  const socket = slot.socket;
+  slot.socket = null;
   if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) {
     socket.close(1000, 'camera view inactive');
   }
-  resetCameraImageDecodeQueue();
-  if (videoDecoder && videoDecoder.state !== 'closed') {
-    try { videoDecoder.close(); } catch (_) {}
+  resetCameraImageDecodeQueue(slot);
+  if (slot.videoDecoder && slot.videoDecoder.state !== 'closed') {
+    try { slot.videoDecoder.close(); } catch (_) {}
   }
-  videoDecoder = null;
-  cameraHasKey = false;
-  cameraMeta = null;
-  cameraLastFrameAt = 0;
+  slot.videoDecoder = null;
+  slot.hasKey = false;
+  slot.meta = null;
+  slot.lastFrameAt = 0;
+  slot.empty.style.display = '';
+  slot.emptyText.textContent = slot.sourceId ? '카메라 스트림 연결을 기다리고 있습니다.' : '선택된 카메라가 없습니다.';
+  if (slot.role === 'primary') {
+    cameraSocketGeneration = slot.socketGeneration;
+    cameraReconnectTimer = 0;
+    cameraSocket = null;
+    videoDecoder = null;
+    cameraHasKey = false;
+    cameraMeta = null;
+    cameraLastFrameAt = 0;
+  }
+  renderCameraSlotIdentity(slot);
+}
+
+function disconnectCamera() {
+  for (const slot of Object.values(getCameraSlots())) disconnectCameraSlot(slot);
   syncCameraFrameFreshness();
 }
 
-function connectCamera() {
-  if (!cameraTransportWanted()) return;
-  if (cameraSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(cameraSocket.readyState)) return;
-  const generation = ++cameraSocketGeneration;
+function connectCameraSlot(slot) {
+  if (!cameraSlotTransportWanted(slot)) return;
+  if (slot.socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(slot.socket.readyState)) return;
+  const generation = ++slot.socketGeneration;
+  const sourceId = slot.sourceId;
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/camera`);
-  cameraSocket = socket;
+  const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/camera?source_id=${encodeURIComponent(sourceId)}`);
+  slot.socket = socket;
+  if (slot.role === 'primary') {
+    cameraSocket = socket;
+    cameraSocketGeneration = generation;
+  }
   socket.binaryType = 'arraybuffer';
+  socket.onopen = () => {
+    if (slot.socket === socket && generation === slot.socketGeneration) renderCameraCatalogUi();
+  };
   socket.onmessage = (event) => {
-    if (cameraSocket !== socket || generation !== cameraSocketGeneration || !cameraTransportWanted()) return;
+    if (slot.socket !== socket || generation !== slot.socketGeneration || sourceId !== slot.sourceId || !cameraSlotTransportWanted(slot)) return;
     if (typeof event.data === 'string') {
       try {
         const metadata = JSON.parse(event.data);
-        noteCameraSource(metadata.topic || metadata.source || metadata.stream_url || metadata.transport);
-        cameraMeta = metadata;
+        const sourceKey = metadata.source_id || metadata.topic || metadata.source || metadata.stream_url || metadata.transport || sourceId;
+        if (slot.role === 'primary') {
+          if (!metadata.source_id) noteCameraSource(metadata.topic || metadata.source || metadata.stream_url || metadata.transport);
+          cameraMeta = metadata;
+          cameraActiveSourceKey = sourceKey;
+        }
+        slot.meta = { ...metadata, source_id: metadata.source_id || sourceId };
+        slot.activeSourceKey = sourceKey;
+        renderCameraSlotIdentity(slot);
       } catch (error) {
-        console.warn('camera metadata:', error);
+        console.warn(`${slot.role} camera metadata:`, error);
       }
       return;
     }
-    if (!cameraMeta) return;
-    const metadata = { ...cameraMeta };
+    if (!slot.meta) return;
+    const metadata = { format: 'jpeg', ...slot.meta };
     try {
       if (metadata.format === 'h264') {
-        if (!videoDecoder || videoDecoder.state === 'closed') if (!resetDecoder()) return;
-        if (metadata.key) cameraHasKey = true;
-        if (!cameraHasKey) return;
+        if (!slot.videoDecoder || slot.videoDecoder.state === 'closed') if (!resetDecoder(slot)) return;
+        if (metadata.key) slot.hasKey = true;
+        if (!slot.hasKey) return;
+        if (slot.role === 'primary') cameraHasKey = slot.hasKey;
         const chunk = new EncodedVideoChunk({
           type: metadata.key ? 'key' : 'delta',
           timestamp: Number(metadata.seq) * 33333,
           data: new Uint8Array(event.data),
         });
-        if (videoDecoder.decodeQueueSize < 4) videoDecoder.decode(chunk);
+        if (slot.videoDecoder.decodeQueueSize < 4) slot.videoDecoder.decode(chunk);
       } else if (metadata.format === 'jpeg' || metadata.format === 'png') {
-        renderImageBlob(event.data, metadata);
+        renderImageBlob(event.data, metadata, slot);
       } else if (metadata.format === 'raw') {
-        renderRawImage(event.data, metadata);
+        renderRawImage(event.data, metadata, slot);
       }
     } catch (error) {
-      console.warn('camera render:', error);
-      if (metadata.format === 'h264') resetDecoder();
+      console.warn(`${slot.role} camera render:`, error);
+      if (metadata.format === 'h264') resetDecoder(slot);
     }
   };
   socket.onclose = () => {
-    if (cameraSocket !== socket || generation !== cameraSocketGeneration) return;
-    cameraSocket = null;
-    if (cameraTransportWanted()) {
-      cameraReconnectTimer = setTimeout(() => {
-        cameraReconnectTimer = 0;
-        connectCamera();
+    if (slot.socket !== socket || generation !== slot.socketGeneration) return;
+    slot.socket = null;
+    if (slot.role === 'primary') cameraSocket = null;
+    resetCameraImageDecodeQueue(slot);
+    if (slot.videoDecoder && slot.videoDecoder.state !== 'closed') {
+      try { slot.videoDecoder.close(); } catch (_) {}
+    }
+    slot.videoDecoder = null;
+    slot.hasKey = false;
+    renderCameraCatalogUi();
+    if (cameraSlotTransportWanted(slot)) {
+      slot.reconnectTimer = setTimeout(() => {
+        slot.reconnectTimer = 0;
+        if (slot.role === 'primary') cameraReconnectTimer = 0;
+        connectCameraSlot(slot);
       }, 1800);
+      if (slot.role === 'primary') cameraReconnectTimer = slot.reconnectTimer;
     }
   };
   socket.onerror = () => socket.close();
 }
 
-function syncCameraTransport() {
-  if (cameraTransportWanted()) connectCamera();
-  else disconnectCamera();
+function connectCamera() {
+  for (const slot of Object.values(getCameraSlots())) connectCameraSlot(slot);
 }
+
+function syncCameraTransport() {
+  for (const slot of Object.values(getCameraSlots())) {
+    if (cameraSlotTransportWanted(slot)) connectCameraSlot(slot);
+    else if (slot.socket || slot.reconnectTimer) disconnectCameraSlot(slot);
+  }
+}
+
+// Read-only browser hooks make on-device stream diagnostics possible without
+// exposing mutable WebSocket or decoder objects to the console.
+window.RobotScopeCameraStreams = Object.freeze({
+  normalizeCatalog: normalizeCameraCatalog,
+  chooseSecondary: secondaryCameraSource,
+  createLatestFrameQueue: createLatestCameraFrameQueue,
+  refresh: refreshCameraCatalog,
+  selectPrimary: selectPrimaryCamera,
+  setViewMode: setCameraViewMode,
+  snapshot() {
+    const slots = Object.fromEntries(Object.entries(getCameraSlots()).map(([role, slot]) => [role, {
+      sourceId: slot.sourceId,
+      connected: slot.socket?.readyState === WebSocket.OPEN,
+      socketGeneration: slot.socketGeneration,
+      queue: slot.imageDecodeQueue?.snapshot() || null,
+      lastFrameAt: slot.lastFrameAt,
+      fresh: cameraSlotFrameAvailable(slot),
+    }]));
+    return {
+      viewMode: cameraViewMode,
+      maxActive: cameraMaxActive,
+      sources: cameraCatalog.map((source) => ({ ...source })),
+      slots,
+    };
+  },
+});
 
 function controlReady(snapshot = controlSnapshot) {
   if (selectedRobotType !== 'go2') return false;
@@ -6174,14 +6681,19 @@ ui.robotIp.addEventListener('input', () => {
   });
 });
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshMappingControl(), refreshControlSnapshot(), refreshNavigation(), refreshNavigationParameters(true), refreshServiceLifecycle(true)]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshCameraCatalog(), refreshMappingControl(), refreshControlSnapshot(), refreshNavigation(), refreshNavigationParameters(true), refreshServiceLifecycle(true)]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
 ui.cameraSource.addEventListener('change', () => {
-  resetCameraRenderedFrame(ui.cameraSource.value, { reason: '카메라 소스를 변경하여 새 프레임을 기다리고 있습니다.' });
+  if (!cameraCatalog.length) {
+    resetCameraRenderedFrame(ui.cameraSource.value, { reason: '카메라 소스를 변경하여 새 프레임을 기다리고 있습니다.' });
+  }
   selectSource('camera', ui.cameraSource.value);
 });
+ui.cameraSingleMode.addEventListener('click', () => setCameraViewMode('single'));
+ui.cameraDualMode.addEventListener('click', () => setCameraViewMode('dual'));
+ui.cameraPrimarySource.addEventListener('change', () => selectPrimaryCamera(ui.cameraPrimarySource.value));
 ui.cloudSource.addEventListener('change', () => {
   if (ui.cloudSource.value) chooseMapView('cloud');
   resetLiveCloudAccumulator();
@@ -6366,6 +6878,7 @@ window.addEventListener('resize', () => {
 
 startClock();
 initializeCameraMediaControls();
+initializeCameraStreams();
 bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();
@@ -6402,6 +6915,7 @@ setInterval(refreshPointcloud, 400);
 setInterval(refreshMap, 2000);
 setInterval(refreshTopics, 3500);
 setInterval(refreshSources, 5000);
+setInterval(refreshCameraCatalog, 5000);
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
 setInterval(refreshNavigation, 1000);
