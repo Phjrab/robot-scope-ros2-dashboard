@@ -101,8 +101,13 @@ def _plugin_available(name: str) -> bool:
 
 
 def gstreamer_command(device: str) -> tuple[str, ...]:
-    encoder = "nvjpegenc" if _plugin_available("nvjpegenc") else "jpegenc"
-    if encoder == "jpegenc" and not _plugin_available("jpegenc"):
+    # JetPack 5's nvjpegenc can discover successfully yet crash at runtime in
+    # a hardened service (NVMAP_IOC_GET_FD / NvRmStream failures).  At the
+    # bounded 640x480@15 profile, jpegenc is the reliable default and avoids
+    # relaxing the service sandbox.  Keep nvjpegenc only as an installation
+    # fallback for images that do not provide the software encoder.
+    encoder = "jpegenc" if _plugin_available("jpegenc") else "nvjpegenc"
+    if encoder == "nvjpegenc" and not _plugin_available("nvjpegenc"):
         raise RelaySetupError("neither nvjpegenc nor jpegenc is installed")
     return (
         "/usr/bin/gst-launch-1.0",

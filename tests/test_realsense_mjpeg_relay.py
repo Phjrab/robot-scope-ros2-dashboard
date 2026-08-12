@@ -61,15 +61,15 @@ class RealSenseRelayTests(unittest.TestCase):
         )
 
     @mock.patch.object(relay, "_plugin_available")
-    def test_pipeline_is_fixed_argv_and_prefers_nvjpeg(self, available):
-        available.side_effect = lambda name: name == "nvjpegenc"
+    def test_pipeline_is_fixed_argv_and_prefers_software_jpeg(self, available):
+        available.side_effect = lambda name: name == "jpegenc"
         command = relay.gstreamer_command("/dev/video6")
         self.assertIsInstance(command, tuple)
         self.assertEqual(command[0], "/usr/bin/gst-launch-1.0")
         self.assertIn("device=/dev/video6", command)
         self.assertIn("video/x-raw,format=YUY2,width=640,height=480,framerate=15/1", command)
         self.assertIn("video/x-raw,format=I420", command)
-        self.assertIn("nvjpegenc", command)
+        self.assertIn("jpegenc", command)
         self.assertIn("quality=72", command)
         self.assertNotIn("sh", command)
         self.assertNotIn("-c", command)
@@ -83,9 +83,9 @@ class RealSenseRelayTests(unittest.TestCase):
         )
 
     @mock.patch.object(relay, "_plugin_available")
-    def test_pipeline_falls_back_to_jpegenc(self, available):
-        available.side_effect = lambda name: name == "jpegenc"
-        self.assertIn("jpegenc", relay.gstreamer_command("/dev/video6"))
+    def test_pipeline_falls_back_to_nvjpeg_when_software_encoder_is_absent(self, available):
+        available.side_effect = lambda name: name == "nvjpegenc"
+        self.assertIn("nvjpegenc", relay.gstreamer_command("/dev/video6"))
 
     def test_device_resolution_requires_exactly_one_by_id_character_device(self):
         with mock.patch.object(relay.glob, "glob", return_value=[]):
