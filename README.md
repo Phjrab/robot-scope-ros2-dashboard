@@ -22,6 +22,7 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 | [의존성](docs/DEPENDENCIES.md) | 외부 ROS workspace, pin/라이선스 기록과 미포함 구성 요소 |
 | [토폴로지](docs/TOPOLOGY.md) | 단일/두 호스트 배선, 서비스 역할과 관리망 분리 |
 | [문제 해결](docs/TROUBLESHOOTING.md) | DDS, XT16, 저장, 카메라, 제어와 Nav 진단 순서 |
+| [AI 데이터셋](docs/AI_DATASET.md) | 듀얼 카메라 서버 수집, 저장 구조, 라벨링과 YOLO/UFLD 배포 판단 |
 | [업데이트/롤백](docs/UPDATE_ROLLBACK.md) | 지도·상태 보존, fast-forward update와 안전 롤백 |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | 포함된 공식 robot model의 출처와 라이선스 |
 
@@ -36,6 +37,7 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 - IMU, 배터리, 관절, GPS, 거리 센서와 odometry 요약
 - JPEG, CompressedImage, raw Image와 Go2 직접 RTP/H.264 카메라 표시
 - 표시 중인 카메라 화면 PNG/JPEG 캡처와 브라우저 WebM/MP4 녹화
+- Go2·RealSense·동시 선택형 서버 데이터셋 JPEG 수집과 웹 갤러리
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
 - 같은 라이브 점군을 추가 전송 없이 위에서 투영하는 2D 매핑 화면
 - Settings에서 Go2, TurtleBot, SO-101 유형 선택과 제한된 로컬 네트워크 자동 검색
@@ -724,6 +726,35 @@ curl -fsS http://127.0.0.1:8088/api/v1/cameras
 그 뒤 Sensors에서 RealSense를 단일 화면으로 선택하고, 2화면 모드에서도 Go2와 동시에
 `LIVE`가 되는지 확인합니다. `/health`나 camera catalog만으로 프레임 정상을 판정하지 마세요.
 
+### 주행 이미지 데이터셋 수집
+
+Sensors의 **Dataset Capture**는 브라우저의 1회 `화면 캡처`와 별개입니다. Go2,
+RealSense 또는 두 카메라를 선택해 `START SERVER CAPTURE`를 누르면 대시보드 서버가
+고정된 `runtime/datasets` 아래에 JPEG와 JSON metadata를 저장합니다. Controls나
+Navigation으로 이동하거나 브라우저를 닫아도 서버 수집은 계속되며, 끝날 때 반드시
+`STOP & FINALIZE`로 manifest를 마무리합니다. 수집 중에는 실수로 세션을 절단하지 않도록
+대시보드 서비스 restart/stop이 차단됩니다.
+
+`웹에서 폴더 열기`는 원격 Jetson의 OS 파일 관리자를 실행하지 않습니다. 같은 출처의
+대시보드 갤러리에서 한 페이지에 최대 24개 샘플을 보여 주고 `NEWER`·`OLDER`로 세션
+전체를 탐색합니다. 변경 없는 페이지는 10초 목록 갱신 때 JPEG를 다시 다운로드하지
+않습니다. 화면에는 대시보드 호스트의 실제 저장 경로도 표시됩니다. 저장 위치를
+바꿀 때는 HTTP 요청이 아니라 mode-0600 환경 파일에서 절대 경로만 지정합니다.
+
+~~~text
+ROBOT_SCOPE_DATASET_DIR=/absolute/path/to/robot-scope-datasets
+~~~
+
+기본 안전 한도는 세션당 20 GiB, 파일시스템 여유 공간 5 GiB, JPEG 하나당
+4 MiB입니다. 한도를 넘거나 여유 공간을 유지할 수 없으면 수집을 fail-closed로
+중지하고 화면에 오류를 표시합니다. 세션 한도와 여유 공간 기준은 Dataset Capture 상태에서
+확인할 수 있습니다. Custom 경로를 checkout 안에 두면 기본 `/runtime/` ignore가 적용되지
+않을 수 있으므로, Git 추적 대상 밖의 경로를 쓰거나 별도 ignore를 추가합니다.
+
+저장 직후 파일은 라벨 없는 원본 이미지입니다. YOLO detection에는 bounding box/class,
+UFLD에는 lane annotation을 별도로 작성해야 지도학습에 쓸 수 있습니다. 자세한 수집 구조,
+Jetson AI 사양과 권장 학습/추론 분리는 [AI 데이터셋 가이드](docs/AI_DATASET.md)를 봅니다.
+
 
 ## 수동 실행과 선택적 자동 시작
 
@@ -866,6 +897,8 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 - ROBOT_SCOPE_CAMERA_INTERFACE: Go2 영상 멀티캐스트를 받을 allowlist 유선 인터페이스
 - ROBOT_SCOPE_OVERLAY: Generic 프로필에서 불러올 ROS workspace setup 파일
 - ROBOT_SCOPE_WORKSPACE_ROOT: 외부 ROS workspace 공통 root, custom 값은 절대 경로만 허용
+- ROBOT_SCOPE_RUNTIME_DIR: Git에서 제외되는 상태·로그·데이터의 프로젝트 로컬 root
+- ROBOT_SCOPE_DATASET_DIR: 서버 카메라 데이터셋 저장 root, 기본 `runtime/datasets`
 - ROBOT_SCOPE_LIVOX_SDK_PREFIX: Livox SDK2 private prefix, custom 값은 절대 경로만 허용
 - ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot | so-101
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더
@@ -880,6 +913,12 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | GET /api/v1/health | 에이전트와 로봇 연결 상태 |
 | GET /api/v1/state | 센서, 카메라, 매핑 요약 |
 | GET /api/v1/cameras | Go2·RealSense 고정 카메라 catalog와 소스별 상태 |
+| GET /api/v1/datasets/capture | 서버 데이터셋 캡처와 디스크 상태 |
+| POST /api/v1/datasets/capture/start | 고정 카메라 선택과 저장률로 서버 캡처 시작 |
+| POST /api/v1/datasets/capture/stop | 일치하는 활성 세션을 중지하고 manifest 마무리 |
+| GET /api/v1/datasets | 완성·복구된 데이터셋 세션 목록 |
+| GET /api/v1/datasets/{id}?before={exclusive-index}&limit=24 | 세션의 최대 24개 샘플과 NEWER·OLDER cursor metadata |
+| GET /api/v1/datasets/{id}/samples/{index}/{source}.jpg | 저장된 고정 소스 JPEG 한 장 |
 | GET /api/v1/topics | 발견한 ROS 토픽 |
 | GET/POST /api/v1/sources | 표시 소스 조회와 변경 |
 | GET /api/v1/robots/types | 지원 로봇 유형과 3D 모델 catalog |
@@ -961,13 +1000,16 @@ requirements.txt    Python 웹 의존성
 - 첫 실기 검증은 다리를 안전하게 띄우거나 제조사 권장 시험 자세에서 수행하고,
   브리지 강제 종료·네트워크 단절 때 Go2 펌웨어가 Move를 자체 만료시키는지 확인합니다.
 - 같은 네트워크의 사용자는 관리 허용 지도 이름 변경·삭제 API를 호출할 수 있습니다.
+- 저장 데이터셋 JPEG와 메타데이터도 로그인 없이 같은 네트워크에서 조회할 수 있습니다.
+  얼굴·번호판·실내 정보가 포함될 수 있으므로 신뢰 LAN 밖에 노출하지 말고, 공유 전에
+  필요한 익명화와 접근 제어를 적용합니다.
 - 서비스 재시작·중지는 Settings의 확인 체크와 브라우저 확인, same-origin, 서버측 idle
   재검사를 요구하지만 사용자 인증 기능은 아닙니다. 반드시 신뢰 LAN에서만 활성화하고,
   범위가 넓은 네트워크에서는 TLS reverse proxy와 접근 제어를 먼저 구성합니다.
 - 네트워크 검색 API도 same-origin으로 제한하고, 서버가 직접 확인한 로컬 인터페이스의
   최대 /24만 검색합니다. 검색 결과는 장비 유형을 보증하지 않으므로 선택 전에 확인합니다.
 - 인터넷이나 공용망에 노출하기 전 토큰 인증, TLS와 접근 제어를 추가해야 합니다.
-- 비밀번호, SSH 키, 토큰, .env, rosbag, PCD와 생성 지도는 Git에 올리지 않습니다.
+- 비밀번호, SSH 키, 토큰, .env, rosbag, PCD, 생성 지도와 수집 데이터셋은 Git에 올리지 않습니다.
 - 지도 삭제는 되돌릴 수 없으므로 대상 이름과 파일 묶음을 확인한 뒤 실행합니다.
 
 ## 라이선스

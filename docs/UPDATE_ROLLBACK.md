@@ -9,8 +9,11 @@ Robot Scope 업데이트는 소스만 바꾸는 작업이 아닙니다. Python �
 1. 로봇을 안전하게 정지하고 물리 리모컨을 확보합니다.
 2. Controls를 DISARM하고 Navigation을 STOP합니다.
 3. 매핑 start/stop/save/convert 작업이 모두 끝났는지 확인합니다.
-4. 현재 commit, 설치 mode와 외부 dependency revision을 기록합니다.
-5. 환경 파일, 지도와 상태 파일을 저장소 밖의 접근 제한된 위치에 백업합니다.
+4. Dataset Capture가 실행 중이면 `STOP & FINALIZE`를 누르고 `COMPLETED`와
+   마지막 `manifest.json`을 확인합니다.
+5. 현재 commit, 설치 mode와 외부 dependency revision을 기록합니다.
+6. 환경 파일, 지도·상태 파일과 데이터셋을 checkout 밖의 접근 제한된 위치에
+   백업합니다.
 
 ~~~bash
 cd /path/to/robot-scope
@@ -30,6 +33,7 @@ stash나 강제 checkout으로 숨기지 말고, 변경 내용을 호스트별 �
 - `<project>/runtime/config/robot-scope.env`
 - `<project>/runtime/config/control.env`
 - `<project>/runtime/state/`
+- `ROBOT_SCOPE_DATASET_DIR` 전체; 빈 값이면 `<project>/runtime/datasets/`
 - `ROBOT_SCOPE_MAPS_DIR`의 PCD/PGM/YAML
 - 현장별 Hesai/FAST-LIO config와 SHA-256 기록
 - 설치된 systemd unit과 sudoers 파일의 검증된 사본
@@ -37,8 +41,9 @@ stash나 강제 checkout으로 숨기지 말고, 변경 내용을 호스트별 �
   `/etc/systemd/system/robot-scope-realsense-camera.service`의 검증된 사본 및 enable 상태
 
 키와 토큰 백업은 암호 관리 도구나 접근 제한 저장소를 사용합니다. Git, issue, CI artifact에
-올리지 않습니다. 지도 백업은 원본을 덮어쓰지 않고 날짜가 있는 읽기 전용 snapshot으로
-보관합니다.
+올리지 않습니다. 지도와 데이터셋 백업은 원본을 덮어쓰지 않고 날짜가 있는 읽기 전용
+snapshot으로 보관합니다. 데이터셋은 복사 전·후의 세션 수, `manifest.json`의
+`sample_count`, 전체 byte 크기를 비교하고 최소 한 장의 JPEG를 열어 검증합니다.
 
 ## Fast-forward 업데이트
 
@@ -146,6 +151,16 @@ Python requirements는 현재 호환 범위로 관리되어 exact lock이 아닙
 - source selection 상태를 복구하면 선택한 LiDAR가 현재 배선과 맞는지 확인합니다.
 - Navigation runtime의 임시 job/snapshot을 운영 지도 원본으로 사용하지 않습니다.
 
+## 데이터셋 복구
+
+데이터셋 복구는 대시보드 서비스를 중지하고 Dataset Capture가 비활성인 상태에서만
+수행합니다. 현재 `ROBOT_SCOPE_DATASET_DIR`을 덮어쓰지 말고 별도 임시 경로에 백업을
+복사한 뒤 세션 디렉터리와 manifest를 검증합니다. 검증한 세션만 고정
+`sessions/<session-id>/` 구조로 복사하고, 소유자와 권한을 서비스 사용자에 맞춥니다.
+서비스를 시작한 뒤 웹 갤러리의 세션 수·샘플 수가 manifest와 같고 최신·이전
+페이지의 JPEG가 열리는지 확인합니다. 손상된 manifest를 임의로 편집하거나 세션 ID를
+바꾸지 않습니다.
+
 ## systemd와 sudoers 롤백
 
 installer가 unit을 바꾼 경우 이전에 백업한 root-owned 사본과 diff를 먼저 확인합니다.
@@ -178,6 +193,7 @@ systemctl is-active robot-scope-realsense-camera.service
 - doctor가 설치 mode의 필수 항목을 통과함
 - health API와 브라우저가 정상 응답함
 - 저장 지도 목록과 원본 파일 revision이 유지됨
+- 데이터셋 세션·manifest·샘플 수가 유지되고 NEWER·OLDER 페이지의 JPEG가 열림
 - Go2/XT16 source identity가 의도한 장치로 표시됨
 - RealSense 사용 배포는 `.99`에서 실제 JPEG를 받고 기대한 enable/active 상태가 유지됨
 - 로봇 없이 가능한 테스트가 모두 통과함

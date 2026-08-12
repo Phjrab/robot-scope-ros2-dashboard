@@ -4302,6 +4302,15 @@ class RosAgent:
                     "age_s": direct_status.get("age_s"),
                 }
             )
+        else:
+            updated = float(snapshot.get("updated", 0.0) or 0.0)
+            snapshot["age_s"] = (
+                round(max(0.0, time.monotonic() - updated), 3) if updated else None
+            )
+            if snapshot.get("state") == "ok" and (
+                snapshot["age_s"] is None or snapshot["age_s"] > 2.0
+            ):
+                snapshot["state"] = "stale"
         return snapshot
 
     def _remote_camera_snapshot_locked(self) -> Dict[str, Any]:
@@ -4433,6 +4442,33 @@ class RosAgent:
             if source_id == "realsense_color":
                 return self._remote_camera_snapshot_locked()
             raise ValueError("camera source is not allowlisted")
+
+    def camera_snapshots(self, source_ids: Tuple[str, ...]) -> Dict[str, Dict[str, Any]]:
+        """Snapshot one or both fixed cameras under the same frame lock.
+
+        Dataset capture uses this method so a two-camera sample observes one
+        coherent point in the dashboard process.  The camera hardware is not
+        trigger-synchronised; callers must still enforce an explicit timestamp
+        skew bound before committing a pair.
+        """
+
+        if (
+            not isinstance(source_ids, tuple)
+            or not source_ids
+            or len(source_ids) > len(CAMERA_SOURCE_IDS)
+            or len(set(source_ids)) != len(source_ids)
+            or any(not self._valid_camera_source_id(source_id) for source_id in source_ids)
+        ):
+            raise ValueError("camera sources are not allowlisted")
+        with self._lock:
+            return {
+                source_id: (
+                    self._camera_snapshot_locked()
+                    if source_id == "go2_front"
+                    else self._remote_camera_snapshot_locked()
+                )
+                for source_id in source_ids
+            }
 
     def pointcloud_snapshot(self) -> Dict[str, Any]:
         with self._lock:

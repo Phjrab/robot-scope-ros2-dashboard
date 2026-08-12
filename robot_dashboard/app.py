@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import Any, Dict, Literal
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .control import (
     ClientFrameClock,
@@ -38,6 +38,16 @@ from .discovery import (
     LocalRobotDiscovery,
     UnknownRobotType,
     public_robot_types,
+)
+from .dataset_capture import (
+    CAMERA_SOURCE_IDS,
+    DatasetCaptureBusy,
+    DatasetCaptureConflict,
+    DatasetCaptureError,
+    DatasetCaptureManager,
+    DatasetCaptureNotFound,
+    DatasetCaptureUnavailable,
+    DatasetCaptureValidationError,
 )
 from .mapping_jobs import (
     InvalidMapName,
@@ -90,6 +100,7 @@ SAVED_MAPS: SavedMapCatalog | None = None
 MAPPING_JOBS: MappingJobManager | None = None
 NAVIGATION_JOBS: NavigationJobManager | None = None
 SERVICE_LIFECYCLE: ServiceLifecycleManager | None = None
+DATASET_CAPTURE: DatasetCaptureManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
 PIPELINE_COORDINATION_LOCK = asyncio.Lock()
 JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
@@ -225,6 +236,23 @@ class ServiceLifecycleRequest(StrictRequest):
     confirmed: bool = Field(strict=True)
 
 
+class DatasetCaptureStartRequest(StrictRequest):
+    sources: Literal["go2_front", "realsense_color", "both"]
+    capture_hz: float = Field(default=1.0, ge=0.2, le=5.0)
+    label: str = Field(default="", max_length=64)
+
+    @field_validator("capture_hz", mode="before")
+    @classmethod
+    def validate_capture_hz(cls, value: object) -> float:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError("capture_hz must be a number")
+        return float(value)
+
+
+class DatasetCaptureStopRequest(StrictRequest):
+    session_id: str = Field(pattern=r"^[0-9]{8}T[0-9]{6}Z_[0-9a-f]{32}$")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if AGENT is None:
@@ -255,6 +283,16 @@ async def lifespan(_: FastAPI):
             await asyncio.to_thread(NAVIGATION_JOBS.close)
         # Motion stop takes priority over potentially slow mapping cleanup.
         AGENT.shutdown_control()
+        # A server-side dataset session owns normal camera demand tokens and
+        # must flush its bounded writer before camera adapters are stopped.
+        # It deliberately runs only after every robot motion gate is closed.
+        if DATASET_CAPTURE is not None:
+            try:
+                await asyncio.to_thread(DATASET_CAPTURE.close)
+            except Exception:
+                # Dataset durability must never prevent the remaining robot
+                # process and ROS safety cleanup from running.
+                LOGGER.exception("dataset capture shutdown failed")
         if MAPPING_JOBS is not None:
             await asyncio.to_thread(MAPPING_JOBS.close)
         if MAPPING_TASK is not None and not MAPPING_TASK.done():
@@ -305,6 +343,15 @@ def service_lifecycle() -> ServiceLifecycleManager:
             detail="service lifecycle control is not configured",
         )
     return SERVICE_LIFECYCLE
+
+
+def dataset_capture() -> DatasetCaptureManager:
+    if DATASET_CAPTURE is None:
+        raise HTTPException(
+            status_code=503,
+            detail="dataset capture is not configured",
+        )
+    return DATASET_CAPTURE
 
 
 def require_same_origin(request: Request) -> None:
@@ -427,13 +474,34 @@ def service_lifecycle_blockers() -> list[str]:
         mapping_task_active = bool(task is not None and not task.done())
     except Exception:
         mapping_task_active = True
-    return collect_service_lifecycle_blockers(
+    blockers = collect_service_lifecycle_blockers(
         control=control,
         navigation_runtime=navigation_runtime,
         navigation_jobs=navigation_snapshot,
         mapping_jobs=mapping_snapshot,
         mapping_task_active=mapping_task_active,
     )
+    if DATASET_CAPTURE is not None:
+        try:
+            if DATASET_CAPTURE.is_active():
+                blockers.append("dataset_capture_active")
+        except Exception:
+            # A service transition must fail closed if capture state cannot be
+            # established; otherwise an active writer could be truncated.
+            blockers.append("dataset_capture_state_unknown")
+    return list(dict.fromkeys(blockers))
+
+
+def dataset_capture_error(exc: DatasetCaptureError) -> HTTPException:
+    if isinstance(exc, DatasetCaptureNotFound):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, (DatasetCaptureBusy, DatasetCaptureConflict)):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, DatasetCaptureValidationError):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, DatasetCaptureUnavailable):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(status_code=500, detail="dataset capture operation failed")
 
 
 def service_lifecycle_error(exc: ServiceLifecycleError) -> HTTPException:
@@ -826,6 +894,104 @@ async def sources() -> Dict[str, Any]:
 @app.get("/api/v1/cameras")
 async def cameras() -> Dict[str, Any]:
     return await asyncio.to_thread(agent().cameras_snapshot)
+
+
+@app.get("/api/v1/datasets/capture")
+async def dataset_capture_status() -> Dict[str, Any]:
+    return await asyncio.to_thread(dataset_capture().snapshot)
+
+
+@app.post("/api/v1/datasets/capture/start", status_code=202)
+async def dataset_capture_start(
+    body: DatasetCaptureStartRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    sources = (
+        CAMERA_SOURCE_IDS
+        if body.sources == "both"
+        else (body.sources,)
+    )
+    async with PIPELINE_COORDINATION_LOCK:
+        require_service_lifecycle_idle()
+        try:
+            return await asyncio.to_thread(
+                dataset_capture().start,
+                sources,
+                body.capture_hz,
+                body.label,
+            )
+        except DatasetCaptureError as exc:
+            raise dataset_capture_error(exc) from exc
+
+
+@app.post("/api/v1/datasets/capture/stop")
+async def dataset_capture_stop(
+    body: DatasetCaptureStopRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    async with PIPELINE_COORDINATION_LOCK:
+        try:
+            return await asyncio.to_thread(
+                dataset_capture().stop,
+                body.session_id,
+            )
+        except DatasetCaptureError as exc:
+            raise dataset_capture_error(exc) from exc
+
+
+@app.get("/api/v1/datasets")
+async def dataset_sessions() -> Dict[str, Any]:
+    try:
+        return await asyncio.to_thread(dataset_capture().list_sessions)
+    except DatasetCaptureError as exc:
+        raise dataset_capture_error(exc) from exc
+
+
+@app.get("/api/v1/datasets/{session_id}")
+async def dataset_session(
+    session_id: str,
+    before: int | None = Query(default=None, ge=1, le=100_000_000),
+    limit: int = Query(default=24, ge=1, le=48),
+) -> Dict[str, Any]:
+    try:
+        return await asyncio.to_thread(
+            dataset_capture().session_detail,
+            session_id,
+            before,
+            limit,
+        )
+    except DatasetCaptureError as exc:
+        raise dataset_capture_error(exc) from exc
+
+
+@app.get("/api/v1/datasets/{session_id}/samples/{sample_index}/{source_id}.jpg")
+async def dataset_image(
+    session_id: str,
+    sample_index: int,
+    source_id: str,
+) -> Response:
+    try:
+        payload = await asyncio.to_thread(
+            dataset_capture().read_image,
+            session_id,
+            sample_index,
+            source_id,
+        )
+    except DatasetCaptureError as exc:
+        raise dataset_capture_error(exc) from exc
+    return Response(
+        content=payload,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": (
+                f'inline; filename="{source_id}-{sample_index:08d}.jpg"'
+            ),
+        },
+    )
 
 
 @app.post("/api/v1/sources")
@@ -1912,6 +2078,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--mapping-output-dir", default="~/ws/go2_3d/maps")
     parser.add_argument(
+        "--dataset-output-dir",
+        default=str(Path(__file__).resolve().parents[1] / "runtime" / "datasets"),
+    )
+    parser.add_argument(
         "--navigation-runtime-dir",
         default="~/.local/state/robot-scope/navigation",
     )
@@ -1920,6 +2090,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     global AGENT, SAVED_MAPS, MAPPING_JOBS, NAVIGATION_JOBS, SERVICE_LIFECYCLE
+    global DATASET_CAPTURE
     args = parse_args()
     AGENT = RosAgent(
         robot_ip=args.robot_ip,
@@ -1979,6 +2150,14 @@ def main() -> None:
     )
     SAVED_MAPS = catalog
     MAPPING_JOBS = manager
+
+    DATASET_CAPTURE = DatasetCaptureManager(
+        Path(args.dataset_output_dir),
+        camera_open=AGENT.camera_stream_open,
+        camera_close=AGENT.camera_stream_close,
+        camera_snapshots=AGENT.camera_snapshots,
+        metadata_snapshot=AGENT.pose_snapshot,
+    )
 
     def navigation_terminal(reason: str) -> None:
         current = AGENT

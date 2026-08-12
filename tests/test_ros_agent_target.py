@@ -427,6 +427,17 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(realsense["source_id"], "realsense_color")
         self.assertNotEqual(go2["stream_id"], realsense["stream_id"])
 
+        paired = self.agent.camera_snapshots(("go2_front", "realsense_color"))
+        self.assertEqual(set(paired), {"go2_front", "realsense_color"})
+        self.assertEqual(paired["go2_front"]["data"], b"\xff\xd8go2\xff\xd9")
+        self.assertEqual(
+            paired["realsense_color"]["data"], b"\xff\xd8rs\xff\xd9"
+        )
+        with self.assertRaises(ValueError):
+            self.agent.camera_snapshots(("go2_front", "go2_front"))
+        with self.assertRaises(ValueError):
+            self.agent.camera_snapshots(("http://attacker.invalid/camera",))
+
     def test_camera_tokens_are_source_bound_exactly_once_and_capped(self):
         self.agent._direct_camera.start = Mock(return_value=True)
         self.agent._direct_camera.stop = Mock()

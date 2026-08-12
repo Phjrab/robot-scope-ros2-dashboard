@@ -1,4 +1,5 @@
 fastapi>=0.110,<1
+pydantic>=2,<3
 numpy>=1.24,<3
 PyYAML>=5.4,<7
 uvicorn>=0.27,<1

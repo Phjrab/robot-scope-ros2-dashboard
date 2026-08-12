@@ -17,6 +17,9 @@
       <span><strong>ROBOT SCOPE</strong><small>ROS 2 OBSERVABILITY AGENT</small></span>
     </a>
     <div class="top-actions">
+      <a class="dataset-global-status" id="datasetGlobalStatus" href="#sensors" hidden aria-label="서버 데이터셋 캡처 상태 보기">
+        <span class="dataset-capture-dot" aria-hidden="true"></span><strong>SERVER CAPTURE</strong><small id="datasetGlobalStatusText">00:00 · 0 saved</small>
+      </a>
       <button class="ghost-button" id="refreshButton" type="button">새로고침</button>
       <div class="connection-chip waiting" id="connectionChip">
         <span class="status-dot"></span><span id="connectionLabel">에이전트 확인 중</span>
@@ -310,6 +313,71 @@
           <article class="panel telemetry-panel">
             <div class="panel-header compact"><div><div class="eyebrow">TELEMETRY</div><h2>Robot sensors</h2></div><span class="muted" id="sensorCount">0 streams</span></div>
             <div class="sensor-grid" id="sensorGrid"><div class="sensor-placeholder">센서 데이터를 기다리고 있습니다.</div></div>
+          </article>
+          <article class="panel dataset-capture-panel">
+            <div class="panel-header compact">
+              <div><div class="eyebrow">SERVER DATASET</div><h2>Dataset capture</h2></div>
+              <div class="dataset-server-badge waiting" id="datasetCaptureState" role="status" aria-live="polite"><span></span>CHECKING</div>
+            </div>
+            <div class="dataset-capture-layout">
+              <section class="dataset-capture-controls" aria-labelledby="datasetCaptureControlsHeading">
+                <h3 id="datasetCaptureControlsHeading">주행 이미지 자동 저장</h3>
+                <fieldset class="dataset-source-picker" id="datasetSourcePicker">
+                  <legend>CAMERA SOURCE</legend>
+                  <label><input type="radio" name="datasetCameraSource" value="go2_front" checked><span>GO2</span><small>내장 전면 카메라</small></label>
+                  <label><input type="radio" name="datasetCameraSource" value="realsense_color"><span>REALSENSE</span><small>외장 컬러 카메라</small></label>
+                  <label><input type="radio" name="datasetCameraSource" value="both"><span>BOTH</span><small>두 카메라 쌍 저장</small></label>
+                </fieldset>
+                <div class="dataset-capture-fields">
+                  <label><span>CAPTURE RATE</span><div><input id="datasetCaptureHz" type="number" min="0.2" max="5" step="0.2" value="1" inputmode="decimal"><b>Hz</b></div></label>
+                  <label><span>SESSION LABEL · OPTIONAL</span><input id="datasetSessionLabel" type="text" maxlength="64" autocomplete="off" spellcheck="false" placeholder="예: corridor_run_01"></label>
+                </div>
+                <div class="dataset-capture-actions">
+                  <button id="datasetCaptureStart" class="dataset-start-button" type="button" disabled>START SERVER CAPTURE</button>
+                  <button id="datasetCaptureStop" class="dataset-stop-button" type="button" disabled>STOP &amp; FINALIZE</button>
+                </div>
+                <p class="dataset-persistence-note"><strong>SERVER-SIDE</strong> 브라우저를 닫거나 Controls 화면으로 이동해도 저장은 계속됩니다. 중지 버튼으로 세션을 안전하게 마무리하세요.</p>
+                <p class="dataset-label-note">현재 버전은 이미지별 분류 라벨·주석 기능을 제공하지 않습니다. 선택 입력은 세션을 구분하는 표시용 이름이며 이미지 파일명이나 저장 경로를 바꾸지 않습니다.</p>
+              </section>
+              <section class="dataset-capture-readout" aria-label="데이터셋 캡처 상태">
+                <div class="dataset-capture-summary">
+                  <div><span>ELAPSED</span><strong id="datasetCaptureElapsed">00:00</strong></div>
+                  <div><span>SAVED</span><strong id="datasetCaptureSaved">0</strong></div>
+                  <div><span>DROPPED</span><strong id="datasetCaptureDropped">0</strong></div>
+                  <div><span>WRITTEN</span><strong id="datasetCaptureBytes">0 B</strong></div>
+                  <div><span>DISK FREE</span><strong id="datasetCaptureFree">—</strong></div>
+                  <div><span>SESSION LIMIT</span><strong id="datasetCaptureQuota">—</strong></div>
+                  <div><span>FREE RESERVE</span><strong id="datasetCaptureReserve">—</strong></div>
+                  <div><span>SOURCES</span><strong id="datasetCaptureSources">—</strong></div>
+                </div>
+                <div class="dataset-output-path"><span>DASHBOARD HOST PATH</span><code id="datasetCapturePath">서버 저장 경로 확인 중…</code></div>
+                <p class="dataset-capture-message" id="datasetCaptureMessage" aria-live="polite">데이터셋 캡처 API를 확인하고 있습니다.</p>
+                <button id="datasetOpenFolder" class="dataset-folder-button" type="button" disabled>웹에서 폴더 열기</button>
+              </section>
+            </div>
+          </article>
+          <article class="panel dataset-library-panel" id="datasetLibraryPanel">
+            <div class="panel-header compact">
+              <div><div class="eyebrow">SAVED DATASETS</div><h2>Dataset folders</h2></div>
+              <div class="dataset-library-tools"><span class="muted" id="datasetSessionCount">0 sessions</span><button id="datasetRefreshFolders" type="button">새로고침</button></div>
+            </div>
+            <div class="dataset-library-layout">
+              <aside class="dataset-session-list" id="datasetSessionList" aria-label="저장 데이터셋 세션"><div class="dataset-library-empty">저장된 데이터셋 폴더를 찾고 있습니다.</div></aside>
+              <section class="dataset-gallery-view" aria-labelledby="datasetSelectedTitle">
+                <header class="dataset-gallery-heading">
+                  <div><span>SELECTED WEB FOLDER</span><strong id="datasetSelectedTitle">선택된 데이터셋 없음</strong><code id="datasetSelectedPath">—</code></div>
+                  <div><span>SAMPLES</span><strong id="datasetSelectedSamples">0</strong><small id="datasetSelectedMeta">세션을 선택하세요.</small></div>
+                </header>
+                <nav class="dataset-gallery-pagination" aria-label="데이터셋 샘플 페이지">
+                  <button id="datasetPageNewest" type="button" disabled>NEWEST</button>
+                  <button id="datasetPageNewer" type="button" disabled>NEWER</button>
+                  <span id="datasetPageStatus" role="status" aria-live="polite">최신 24개 샘플 미리보기</span>
+                  <button id="datasetPageOlder" type="button" disabled>OLDER</button>
+                </nav>
+                <div class="dataset-sample-gallery" id="datasetSampleGallery"><div class="dataset-library-empty">왼쪽에서 세션을 선택하면 저장 이미지를 웹에서 확인할 수 있습니다.</div></div>
+                <p class="dataset-browser-note">한 페이지에 최대 24개 샘플을 보여 주며 NEWER·OLDER로 세션 전체를 탐색합니다. Safari에서 원격 Jetson의 Finder·파일 앱 폴더를 직접 여는 기능은 제공하지 않습니다.</p>
+              </section>
+            </div>
           </article>
         </section>
       </section>
