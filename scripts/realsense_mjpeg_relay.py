@@ -30,6 +30,7 @@ WIDTH = 640
 HEIGHT = 480
 FPS = 15
 JPEG_QUALITY = 72
+PLUGIN_PROBE_TIMEOUT_S = 15.0
 MAX_JPEG_BYTES = 4 * 1024 * 1024
 MAX_VIEWERS = 4
 MAX_HTTP_CLIENTS = 8
@@ -86,7 +87,11 @@ def _plugin_available(name: str) -> bool:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            timeout=3.0,
+            # A hardened systemd service gets a private /tmp, so GStreamer may
+            # need to build its plugin registry on every cold start.  The
+            # Jetson Orin Nano needs more than three seconds for that first
+            # scan even though the requested encoder is installed.
+            timeout=PLUGIN_PROBE_TIMEOUT_S,
             check=False,
             shell=False,
         )

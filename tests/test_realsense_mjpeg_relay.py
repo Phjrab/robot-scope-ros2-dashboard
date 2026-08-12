@@ -51,6 +51,7 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(relay.DASHBOARD_HOST, "192.168.123.99")
         self.assertEqual((relay.WIDTH, relay.HEIGHT, relay.FPS), (640, 480, 15))
         self.assertEqual(relay.JPEG_QUALITY, 72)
+        self.assertEqual(relay.PLUGIN_PROBE_TIMEOUT_S, 15.0)
         self.assertEqual(relay.MAX_VIEWERS, 4)
         self.assertEqual(relay.MAX_HTTP_CLIENTS, 8)
         self.assertEqual(relay.MAX_JPEG_BYTES, 4 * 1024 * 1024)
@@ -72,6 +73,14 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIn("quality=72", command)
         self.assertNotIn("sh", command)
         self.assertNotIn("-c", command)
+
+    @mock.patch.object(relay.subprocess, "run")
+    def test_plugin_probe_allows_a_cold_private_registry_scan(self, run):
+        run.return_value.returncode = 0
+        self.assertTrue(relay._plugin_available("nvjpegenc"))
+        self.assertEqual(
+            run.call_args.kwargs["timeout"], relay.PLUGIN_PROBE_TIMEOUT_S
+        )
 
     @mock.patch.object(relay, "_plugin_available")
     def test_pipeline_falls_back_to_jpegenc(self, available):
