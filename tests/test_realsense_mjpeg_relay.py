@@ -285,6 +285,7 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIn("/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py", service)
         self.assertNotIn("AmbientCapabilities=", service)
         self.assertNotIn("MemoryDenyWriteExecute=true", service)
+        self.assertNotIn("ProtectClock=true", service)
 
 
 if __name__ == "__main__":

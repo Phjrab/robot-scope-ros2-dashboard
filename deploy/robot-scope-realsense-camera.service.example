@@ -28,7 +28,9 @@ PrivateTmp=true
 PrivateMounts=true
 ProtectSystem=strict
 ProtectHome=true
-ProtectClock=true
+# ProtectClock is intentionally omitted on systemd 245: it injects a
+# char-rtc DeviceAllow rule, which turns DevicePolicy=auto into a closed
+# device policy and blocks the allowlisted RealSense/NVIDIA device nodes.
 ProtectControlGroups=true
 ProtectHostname=true
 ProtectKernelLogs=true
