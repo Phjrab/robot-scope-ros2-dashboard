@@ -35,7 +35,9 @@ ProtectKernelLogs=true
 ProtectKernelModules=true
 ProtectKernelTunables=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
+# NVIDIA's nvjpegenc stack performs runtime relocations that are incompatible
+# with MemoryDenyWriteExecute on JetPack 5 / Ubuntu 20.04.  The service remains
+# non-root, capability-free, syscall-filtered, and executes a root-owned file.
 RemoveIPC=true
 RestrictNamespaces=true
 RestrictRealtime=true
