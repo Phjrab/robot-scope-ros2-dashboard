@@ -216,7 +216,7 @@ class ServiceLifecycleEnvironmentTests(unittest.TestCase):
         unit = (root / "deploy" / "robot-scope.service.example").read_text(
             encoding="utf-8"
         )
-        self.assertIn("EnvironmentFile=-/home/jetson_orin_nano/.config/robot-scope/control.env", unit)
+        self.assertIn("EnvironmentFile=-/home/jetson_orin_nano/project/robot-scope/runtime/config/control.env", unit)
         self.assertNotIn("ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED=0", unit)
 
 

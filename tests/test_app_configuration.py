@@ -3,6 +3,21 @@ from pathlib import Path
 
 
 class AppConfigurationTests(unittest.TestCase):
+    def test_runners_keep_runtime_data_in_real_project_local_paths(self):
+        root = Path(__file__).parents[1]
+        for name in ("run_go2_humble.sh", "run_generic.sh"):
+            source = (root / "scripts" / name).read_text(encoding="utf-8")
+            self.assertIn('RUNTIME_DIR="${ROBOT_SCOPE_RUNTIME_DIR:-$PROJECT_DIR/runtime}"', source)
+            self.assertIn('--source-selection-state "$SOURCE_SELECTION_STATE"', source)
+            self.assertIn('--navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR"', source)
+            self.assertIn('--mapping-output-dir "$MAPS_DIR"', source)
+            self.assertIn('ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"', source)
+            self.assertIn('export ROS_LOG_DIR', source)
+
+        ignore = (root / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("/runtime/", ignore)
+        self.assertIn("/workspaces/", ignore)
+
     def test_mapping_catalog_limit_is_the_single_saver_limit_source(self):
         source = (
             Path(__file__).parents[1] / "robot_dashboard" / "app.py"

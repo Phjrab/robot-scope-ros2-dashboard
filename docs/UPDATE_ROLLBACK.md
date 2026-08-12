@@ -27,9 +27,9 @@ stash나 강제 checkout으로 숨기지 말고, 변경 내용을 호스트별 �
 
 기본 경로는 설치에 따라 다를 수 있습니다.
 
-- `~/.config/robot-scope/robot-scope.env`
-- `~/.config/robot-scope/control.env`
-- `~/.local/state/robot-scope/`
+- `<project>/runtime/config/robot-scope.env`
+- `<project>/runtime/config/control.env`
+- `<project>/runtime/state/`
 - `ROBOT_SCOPE_MAPS_DIR`의 PCD/PGM/YAML
 - 현장별 Hesai/FAST-LIO config와 SHA-256 기록
 - 설치된 systemd unit과 sudoers 파일의 검증된 사본

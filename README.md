@@ -127,8 +127,10 @@ Ubuntu ROS host에서 저장소를 clone하고 ROS 패키지를 볼 수 있도�
 포함한 가상환경을 만듭니다.
 
 ~~~bash
-git clone https://github.com/Phjrab/robot-scope-ros2-dashboard.git robot-scope
-cd robot-scope
+mkdir -p "$HOME/project"
+git clone https://github.com/Phjrab/robot-scope-ros2-dashboard.git \
+  "$HOME/project/robot-scope"
+cd "$HOME/project/robot-scope"
 python3 -m venv --system-site-packages .venv
 .venv/bin/pip install -r requirements.txt
 chmod +x scripts/*.sh scripts/check_pcd_bounds.py
@@ -177,13 +179,13 @@ ROBOT_SCOPE_ROBOT_IP 환경 변수로 바꿀 수 있습니다.
 브리지 키를 만들고 실제 값은 Git에 커밋하지 않습니다.
 
 ~~~bash
-mkdir -p "$HOME/.config/robot-scope"
-chmod 700 "$HOME/.config/robot-scope"
+mkdir -p runtime/config
+chmod 700 runtime runtime/config
 
 openssl rand -hex 32
 ~~~
 
-출력된 값을 사용해 `~/.config/robot-scope/control.env`를 만들고 권한을 제한합니다.
+출력된 값을 사용해 `runtime/config/control.env`를 만들고 권한을 제한합니다.
 
 ~~~dotenv
 ROBOT_SCOPE_CONTROL_ENABLED=1
@@ -191,7 +193,7 @@ ROBOT_SCOPE_CONTROL_BRIDGE_KEY=64자리_무작위_브리지_키
 ~~~
 
 ~~~bash
-chmod 600 "$HOME/.config/robot-scope/control.env"
+chmod 600 runtime/config/control.env
 ~~~
 
 수동 실행은 터미널 두 개를 사용합니다. 환경 파일을 export한 뒤 브리지를 먼저,
@@ -199,14 +201,14 @@ chmod 600 "$HOME/.config/robot-scope/control.env"
 
 ~~~bash
 set -a
-source "$HOME/.config/robot-scope/control.env"
+source runtime/config/control.env
 set +a
 ./scripts/run_go2_control_bridge_humble.sh
 ~~~
 
 ~~~bash
 set -a
-source "$HOME/.config/robot-scope/control.env"
+source runtime/config/control.env
 set +a
 ./scripts/run_go2_humble.sh
 ~~~
@@ -639,14 +641,14 @@ realsense2_camera를 실행합니다. 표준 color, depth, points 토픽이 발�
 ## 수동 실행과 선택적 자동 시작
 
 deploy의 두 서비스 예제는 기본적으로 `jetson_orin_nano` 사용자의
-`/home/jetson_orin_nano/robot-scope` 설치를 가리킵니다. 다른 사용자명이나 경로를
+`/home/jetson_orin_nano/project/robot-scope` 설치를 가리킵니다. 다른 사용자명이나 경로를
 사용하면 두 값을 먼저 수정한 뒤 systemd에 등록합니다. 제어를 사용하지 않으면
 대시보드 서비스만 등록합니다.
 
-일반 호스트 설정은 installer가 만드는 mode-0600
-`~/.config/robot-scope/robot-scope.env`, 제어 secret은 별도 mode-0600 `control.env`에
-둡니다. Service example은 일반 설정을 먼저, 제어 secret을 다음에 읽습니다. 두 파일을
-Git에 커밋하지 않습니다.
+아래 project-local service example은 일반 호스트 설정을 mode-0600
+`runtime/config/robot-scope.env`, 제어 secret을 같은 프로젝트의 별도 mode-0600
+`runtime/config/control.env`에서 읽습니다. Portable installer가 기존 XDG config 경로를
+사용하도록 렌더한 설치는 그 경로를 계속 따릅니다. 두 파일은 모두 Git에 커밋하지 않습니다.
 
 ~~~bash
 sudo cp deploy/robot-scope.service.example /etc/systemd/system/robot-scope.service

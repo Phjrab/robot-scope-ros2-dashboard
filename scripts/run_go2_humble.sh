@@ -8,10 +8,21 @@ ROBOT_IP="${ROBOT_SCOPE_ROBOT_IP:-192.168.123.161}"
 CLOUD_MAX_POINTS="${ROBOT_SCOPE_CLOUD_MAX_POINTS:-10000}"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
 MAPS_DIR="${ROBOT_SCOPE_MAPS_DIR:-$WORKSPACE_ROOT/ws/go2_3d/maps}"
-if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" || "$MAPS_DIR" != /* ]]; then
+RUNTIME_DIR="${ROBOT_SCOPE_RUNTIME_DIR:-$PROJECT_DIR/runtime}"
+STATE_DIR="${ROBOT_SCOPE_STATE_DIR:-$RUNTIME_DIR/state}"
+SOURCE_SELECTION_STATE="${ROBOT_SCOPE_SOURCE_SELECTION_STATE:-$STATE_DIR/source-selection.json}"
+NAVIGATION_RUNTIME_DIR="${ROBOT_SCOPE_NAVIGATION_RUNTIME_DIR:-$STATE_DIR/navigation}"
+ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"
+if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
+  "$MAPS_DIR" != /* || "$RUNTIME_DIR" != /* || "$RUNTIME_DIR" == "/" ||
+  "$STATE_DIR" != /* || "$STATE_DIR" == "/" ||
+  "$SOURCE_SELECTION_STATE" != /* || "$NAVIGATION_RUNTIME_DIR" != /* ||
+  "$ROS_LOG_DIR" != /* || "$ROS_LOG_DIR" == "/" ]]; then
   echo "[Robot Scope] workspace and maps paths must be absolute and safe" >&2
   exit 2
 fi
+mkdir -p -- "$ROS_LOG_DIR"
+export ROS_LOG_DIR
 
 # rclpy, DDS and JSON encoding use several native threads.  Limiting glibc
 # arenas prevents large PointCloud messages from leaving hundreds of MiB in
@@ -61,4 +72,6 @@ exec "$PYTHON_BIN" -m robot_dashboard.app \
   --robot-ip "$ROBOT_IP" \
   --cloud-max-points "$CLOUD_MAX_POINTS" \
   --mapping-output-dir "$MAPS_DIR" \
+  --source-selection-state "$SOURCE_SELECTION_STATE" \
+  --navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR" \
   --profile "$PROJECT_DIR/config/go2.json"

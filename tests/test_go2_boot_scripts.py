@@ -349,10 +349,10 @@ class Go2SystemdExampleTests(unittest.TestCase):
         unit = (ROOT / "deploy" / "robot-scope.service.example").read_text(
             encoding="utf-8"
         )
-        self.assertIn("ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_dashboard_supervisor.py", unit)
+        self.assertIn("ExecStart=/home/jetson_orin_nano/project/robot-scope/scripts/run_go2_dashboard_supervisor.py", unit)
         self.assertNotIn("robot-scope-control-bridge.service", unit)
         self.assertIn(
-            "EnvironmentFile=-/home/jetson_orin_nano/.config/robot-scope/robot-scope.env",
+            "EnvironmentFile=-/home/jetson_orin_nano/project/robot-scope/runtime/config/robot-scope.env",
             unit,
         )
         self.assertNotIn("Environment=ROBOT_SCOPE_GO2_INTERFACE=", unit)
@@ -363,7 +363,7 @@ class Go2SystemdExampleTests(unittest.TestCase):
             ROOT / "deploy" / "robot-scope-control-bridge.service.example"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            "ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_control_bridge_supervisor.sh",
+            "ExecStart=/home/jetson_orin_nano/project/robot-scope/scripts/run_go2_control_bridge_supervisor.sh",
             unit,
         )
         self.assertNotIn("ExecStartPre=", unit)
@@ -371,7 +371,7 @@ class Go2SystemdExampleTests(unittest.TestCase):
         self.assertIn("KillMode=control-group", unit)
         self.assertIn("StartLimitBurst=5", unit)
         self.assertIn(
-            "EnvironmentFile=/home/jetson_orin_nano/.config/robot-scope/robot-scope.env",
+            "EnvironmentFile=/home/jetson_orin_nano/project/robot-scope/runtime/config/robot-scope.env",
             unit,
         )
         self.assertNotIn("Environment=ROBOT_SCOPE_GO2_INTERFACE=", unit)
