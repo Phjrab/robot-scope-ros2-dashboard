@@ -358,6 +358,16 @@ class RosAgent:
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0,
             NAVIGATION_CONTROLLER_ODOM_TOPIC: 0,
         }
+        # Motion-gating freshness is based only on each trusted callback's
+        # fully validated samples.  Keep these receipts separate from the
+        # generic topic metrics used by the observability UI: discovery or
+        # another consumer calling ``_tick`` must never open the motion gate.
+        self._navigation_validated_receipts: Dict[str, float] = {
+            "/scan": 0.0,
+            NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.0,
+            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.0,
+            NAVIGATION_LOCALIZATION_POSE_TOPIC: 0.0,
+        }
         self._navigation_token = ""
         self._navigation_binding = ""
         self._navigation_sequence = -1
@@ -1607,6 +1617,7 @@ class RosAgent:
     def _navigation_health_callback(self, topic: str, message: Any) -> None:
         """Count only structurally valid samples as fresh navigation input."""
 
+        observed_at = time.monotonic()
         try:
             if topic == "/scan":
                 frame_id = str(getattr(message.header, "frame_id", "")).lstrip("/")
@@ -1619,7 +1630,7 @@ class RosAgent:
                 NAVIGATION_FAST_LIO_ODOM_TOPIC,
                 NAVIGATION_CONTROLLER_ODOM_TOPIC,
             }:
-                self._navigation_validate_odom_stamp(topic, message)
+                stamp_ns = self._navigation_validate_odom_stamp(topic, message)
                 pose = message.pose.pose
                 twist = message.twist.twist
                 values = (
@@ -1661,16 +1672,39 @@ class RosAgent:
                     child = str(getattr(message, "child_frame_id", "")).lstrip("/")
                     if parent != "camera_init" or child != "body":
                         raise ValueError("unexpected FAST-LIO odometry frames")
+                if not self._navigation_commit_odom_stamp(
+                    topic,
+                    stamp_ns,
+                ):
+                    # The first controller sample, and the first sample after
+                    # an inactive robot-clock reset, establish only a new
+                    # baseline.  A later strict advance is required before the
+                    # stream can become fresh.
+                    return
+            with self._navigation_lock:
+                if topic in self._navigation_validated_receipts:
+                    self._navigation_validated_receipts[topic] = observed_at
         except (AttributeError, TypeError, ValueError, OverflowError) as exc:
             with self._navigation_lock:
+                if topic in self._navigation_validated_receipts:
+                    self._navigation_validated_receipts[topic] = 0.0
                 active = bool(self._navigation.get("active"))
             if active:
                 self.navigation_deactivate(f"invalid {topic} sample: {exc}")
             return
-        self._tick(topic, time.monotonic())
+        self._tick(topic, observed_at)
 
     def _navigation_validate_odom_stamp(self, topic: str, message: Any) -> int:
-        """Validate one real-clock odometry timestamp and reject reordering."""
+        """Validate timestamp shape and clock bounds without mutating state.
+
+        FAST-LIO is stamped from the dashboard host clock, so it must also be
+        close to that clock.  Unitree's controller odometry advances on the
+        robot clock and may carry a stable offset from the host after either
+        machine synchronizes time.  That stream is observed through a
+        best-effort KEEP_LAST(1) reader; strict stamp progression plus the
+        separate monotonic receipt-age watchdog proves liveness without
+        treating the robot clock as the host clock.
+        """
 
         if topic not in {
             NAVIGATION_FAST_LIO_ODOM_TOPIC,
@@ -1694,24 +1728,51 @@ class RosAgent:
         if stamp_ns <= 0:
             raise ValueError("odometry timestamp is zero")
 
-        node = self._node
-        if node is None:
-            raise ValueError("ROS clock is unavailable")
-        now_ns = node.get_clock().now().nanoseconds
-        if isinstance(now_ns, bool) or not isinstance(now_ns, int) or now_ns <= 0:
-            raise ValueError("ROS clock is invalid")
-        age_ns = now_ns - stamp_ns
-        if age_ns > int(NAVIGATION_ODOM_STAMP_MAX_AGE_S * 1_000_000_000):
-            raise ValueError("odometry timestamp is stale")
-        if age_ns < -int(NAVIGATION_ODOM_STAMP_MAX_FUTURE_S * 1_000_000_000):
-            raise ValueError("odometry timestamp is in the future")
+        if topic == NAVIGATION_FAST_LIO_ODOM_TOPIC:
+            node = self._node
+            if node is None:
+                raise ValueError("ROS clock is unavailable")
+            now_ns = node.get_clock().now().nanoseconds
+            if isinstance(now_ns, bool) or not isinstance(now_ns, int) or now_ns <= 0:
+                raise ValueError("ROS clock is invalid")
+            age_ns = now_ns - stamp_ns
+            if age_ns > int(NAVIGATION_ODOM_STAMP_MAX_AGE_S * 1_000_000_000):
+                raise ValueError("odometry timestamp is stale")
+            if age_ns < -int(NAVIGATION_ODOM_STAMP_MAX_FUTURE_S * 1_000_000_000):
+                raise ValueError("odometry timestamp is in the future")
+
+        return stamp_ns
+
+    def _navigation_commit_odom_stamp(
+        self,
+        topic: str,
+        stamp_ns: int,
+    ) -> bool:
+        """Commit a fully validated stamp and return whether it proves liveness."""
 
         with self._navigation_lock:
             previous_ns = int(self._navigation_odom_stamp_ns.get(topic, 0) or 0)
-            if previous_ns and stamp_ns < previous_ns:
-                raise ValueError("odometry timestamp moved backwards")
+            if not previous_ns:
+                self._navigation_odom_stamp_ns[topic] = stamp_ns
+                if topic == NAVIGATION_CONTROLLER_ODOM_TOPIC:
+                    self._navigation_validated_receipts[topic] = 0.0
+                    return False
+                return True
+
+            if stamp_ns <= previous_ns:
+                if topic == NAVIGATION_CONTROLLER_ODOM_TOPIC:
+                    self._navigation_validated_receipts[topic] = 0.0
+                    active = bool(self._navigation.get("active"))
+                    if not active and stamp_ns < previous_ns:
+                        # A stopped Unitree can reboot or reset its device
+                        # clock.  Re-prime while motion is disarmed, but do not
+                        # call this sample fresh; the next sample must advance.
+                        self._navigation_odom_stamp_ns[topic] = stamp_ns
+                        return False
+                raise ValueError("odometry timestamp did not increase")
+
             self._navigation_odom_stamp_ns[topic] = stamp_ns
-        return stamp_ns
+            return True
 
     def _navigation_runtime_health_callback(self, message: String) -> None:
         now = time.monotonic()
@@ -1803,6 +1864,10 @@ class RosAgent:
         except Exception:
             publishers = 0
         if publishers != 1:
+            with self._navigation_lock:
+                self._navigation_validated_receipts[
+                    NAVIGATION_LOCALIZATION_POSE_TOPIC
+                ] = 0.0
             self.navigation_deactivate(
                 f"expected one localization pose publisher, found {publishers}"
             )
@@ -1819,12 +1884,18 @@ class RosAgent:
             x, y, yaw = self._navigation_pose_values(x, y, yaw)
         except (AttributeError, TypeError, ValueError, CommandValidationError) as exc:
             with self._navigation_lock:
+                self._navigation_validated_receipts[
+                    NAVIGATION_LOCALIZATION_POSE_TOPIC
+                ] = 0.0
                 active = bool(self._navigation.get("active"))
             if active:
                 self.navigation_deactivate(f"invalid localization pose: {exc}")
             return
         self._tick(NAVIGATION_LOCALIZATION_POSE_TOPIC, now)
         with self._navigation_lock:
+            self._navigation_validated_receipts[
+                NAVIGATION_LOCALIZATION_POSE_TOPIC
+            ] = now
             if not self._navigation.get("active"):
                 return
             self._navigation["localization"] = {
@@ -1846,11 +1917,18 @@ class RosAgent:
         health["fresh"] = bool(age is not None and age <= 0.75)
         return health
 
-    def _navigation_recent(self, topic: str, now: float, maximum_age: float) -> bool:
-        with self._lock:
-            meter = self._metrics.get(topic)
-            last = meter.last if meter else None
-        return bool(last is not None and now - last <= maximum_age)
+    def _navigation_validated_recency(
+        self,
+        topic: str,
+        now: float,
+        maximum_age: float,
+    ) -> tuple[bool, Optional[float]]:
+        """Read only a safety-owned receipt populated by its fixed callback."""
+
+        with self._navigation_lock:
+            received = float(self._navigation_validated_receipts.get(topic, 0.0))
+        age = None if received <= 0.0 else max(0.0, now - received)
+        return bool(age is not None and age <= maximum_age), age
 
     def _navigation_source_count(self, topic: str) -> int:
         node = self._node
@@ -1880,11 +1958,11 @@ class RosAgent:
         required_topics = {
             "/scan": 0.75,
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.75,
+            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.75,
         }
         if require_localized:
             required_topics.update(
                 {
-                    NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.75,
                     NAVIGATION_LOCALIZATION_POSE_TOPIC: 1.0,
                     NAVIGATION_CMD_VEL_TOPIC: 0.25,
                 }
@@ -1894,9 +1972,17 @@ class RosAgent:
                 return f"expected one publisher for {topic}"
             # cmd_vel can remain silent while a controller is stopped; its
             # publisher uniqueness is the safety property, not sample rate.
-            if topic != NAVIGATION_CMD_VEL_TOPIC and not self._navigation_recent(
-                topic, now, maximum_age
-            ):
+            if topic in self._navigation_validated_receipts:
+                recent, _ = self._navigation_validated_recency(
+                    topic,
+                    now,
+                    maximum_age,
+                )
+            else:
+                # cmd_vel can legitimately remain silent while stopped; its
+                # unique publisher is the complete gate for this topic.
+                recent = topic == NAVIGATION_CMD_VEL_TOPIC
+            if not recent:
                 return f"navigation input {topic} is stale"
         return None
 
@@ -1910,8 +1996,13 @@ class RosAgent:
 
         with self._navigation_lock:
             health_received = self._navigation_runtime_health_received
+            controller_odom_received = self._navigation_validated_receipts[
+                NAVIGATION_CONTROLLER_ODOM_TOPIC
+            ]
         if ready_after > 0.0 and health_received < ready_after:
             return "navigation runtime health has not started for this session"
+        if ready_after > 0.0 and controller_odom_received < ready_after:
+            return "controller odometry has not advanced for this session"
         return self._navigation_sensor_interlock_reason(
             now,
             require_localized=False,
@@ -2455,24 +2546,31 @@ class RosAgent:
             except Exception:
                 clear_ready[service] = False
 
-        def recent(topic: str, maximum_age: float) -> tuple[bool, Optional[float]]:
-            with self._lock:
-                meter = self._metrics.get(topic)
-                last = meter.last if meter else None
-            age = None if last is None else max(0.0, now - last)
-            return bool(age is not None and age <= maximum_age), (
-                None if age is None else round(age, 3)
-            )
-
-        scan_fresh, scan_age = recent("/scan", 1.0)
-        fast_odom_fresh, fast_odom_age = recent(
-            NAVIGATION_FAST_LIO_ODOM_TOPIC, 1.0
+        scan_fresh, raw_scan_age = self._navigation_validated_recency(
+            "/scan", now, 1.0
         )
-        controller_odom_fresh, controller_odom_age = recent(
-            NAVIGATION_CONTROLLER_ODOM_TOPIC, 1.0
+        fast_odom_fresh, raw_fast_odom_age = self._navigation_validated_recency(
+            NAVIGATION_FAST_LIO_ODOM_TOPIC, now, 1.0
         )
-        localization_fresh, localization_age = recent(
-            NAVIGATION_LOCALIZATION_POSE_TOPIC, 1.5
+        controller_odom_fresh, raw_controller_odom_age = self._navigation_validated_recency(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC, now, 1.0
+        )
+        localization_fresh, raw_localization_age = self._navigation_validated_recency(
+            NAVIGATION_LOCALIZATION_POSE_TOPIC, now, 1.5
+        )
+        scan_age = None if raw_scan_age is None else round(raw_scan_age, 3)
+        fast_odom_age = (
+            None if raw_fast_odom_age is None else round(raw_fast_odom_age, 3)
+        )
+        controller_odom_age = (
+            None
+            if raw_controller_odom_age is None
+            else round(raw_controller_odom_age, 3)
+        )
+        localization_age = (
+            None
+            if raw_localization_age is None
+            else round(raw_localization_age, 3)
         )
         lease = control.get("lease", {})
         navigation_lease_active = bool(

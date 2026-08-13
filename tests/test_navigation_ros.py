@@ -102,6 +102,13 @@ class NavigationControlTests(unittest.TestCase):
     def seed_prelocalization_ready(agent):
         now = time.monotonic()
         agent._navigation_runtime_health_received = now
+        agent._navigation_validated_receipts.update(
+            {
+                "/scan": now,
+                NAVIGATION_FAST_LIO_ODOM_TOPIC: now,
+                NAVIGATION_CONTROLLER_ODOM_TOPIC: now,
+            }
+        )
         agent._navigation_runtime_health = {
             "ready": False,
             "cloud_fresh": True,
@@ -300,8 +307,10 @@ class NavigationControlTests(unittest.TestCase):
             "/amcl_pose",
         ):
             agent._tick(topic, now)
+            agent._navigation_validated_receipts[topic] = now
         # The scan is already outside the hard active-goal freshness window.
         agent._tick("/scan", now - 1.0)
+        agent._navigation_validated_receipts["/scan"] = now - 1.0
         with agent._navigation_lock:
             agent._navigation["goal"] = {
                 "state": "active",
@@ -475,6 +484,12 @@ class NavigationControlTests(unittest.TestCase):
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0,
             NAVIGATION_CONTROLLER_ODOM_TOPIC: 0,
         }
+        agent._navigation_validated_receipts = {
+            "/scan": 0.0,
+            NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.0,
+            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.0,
+            "/amcl_pose": 0.0,
+        }
         agent._navigation = {"active": active}
         agent._tick_events = []
         agent._deactivation_events = []
@@ -484,27 +499,242 @@ class NavigationControlTests(unittest.TestCase):
         )
         return agent
 
-    def test_controller_odometry_requires_current_nondecreasing_header_stamp(self):
+    def test_controller_odometry_accepts_an_advancing_robot_clock_offset(self):
         now_ns = 10_000_000_000
         agent = self.stamp_test_agent(now_ns)
-        first_stamp = now_ns - 100_000_000
+        first_stamp = 1_000_000_000
         agent._navigation_health_callback(
             NAVIGATION_CONTROLLER_ODOM_TOPIC,
             self.odometry_message(first_stamp),
         )
+        self.assertEqual(agent._tick_events, [])
+        self.assertEqual(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp + 10_000_000),
+        )
+        self.assertEqual(len(agent._tick_events), 1)
+        self.assertGreater(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+        self.assertEqual(agent._deactivation_events, [])
+
+    def test_controller_odometry_replay_closes_navigation(self):
+        now_ns = 10_000_000_000
+        agent = self.stamp_test_agent(now_ns)
+        first_stamp = 1_000_000_000
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp),
+        )
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp + 10_000_000),
+        )
         self.assertEqual(len(agent._tick_events), 1)
         self.assertEqual(agent._deactivation_events, [])
 
-        # A reordered message cannot refresh the receipt-age gate and actively
+        # A replay cannot refresh the receipt-age gate and actively
         # closes navigation instead of waiting for the watchdog timeout.
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp + 10_000_000),
+        )
+        self.assertEqual(len(agent._tick_events), 1)
+        self.assertEqual(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+        self.assertIn("did not increase", agent._deactivation_events[-1])
+
+    def test_active_controller_odometry_backward_stamp_closes_navigation(self):
+        agent = self.stamp_test_agent(10_000_000_000)
+        first_stamp = 1_000_000_000
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp),
+        )
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp + 10_000_000),
+        )
+
         agent._navigation_health_callback(
             NAVIGATION_CONTROLLER_ODOM_TOPIC,
             self.odometry_message(first_stamp - 1),
         )
-        self.assertEqual(len(agent._tick_events), 1)
-        self.assertIn("moved backwards", agent._deactivation_events[-1])
 
-    def test_odometry_stamp_rejects_zero_stale_and_future_samples(self):
+        self.assertEqual(len(agent._tick_events), 1)
+        self.assertEqual(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+        self.assertIn("did not increase", agent._deactivation_events[-1])
+
+    def test_inactive_controller_clock_reset_requires_a_new_advance(self):
+        agent = self.stamp_test_agent(10_000_000_000, active=False)
+        first_stamp = 5_000_000_000
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp),
+        )
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp + 10_000_000),
+        )
+        self.assertEqual(len(agent._tick_events), 1)
+        self.assertGreater(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+
+        reset_stamp = 100_000_000
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(reset_stamp),
+        )
+        self.assertEqual(len(agent._tick_events), 1)
+        self.assertEqual(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+        self.assertEqual(
+            agent._navigation_odom_stamp_ns[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            reset_stamp,
+        )
+        self.assertEqual(agent._deactivation_events, [])
+
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(reset_stamp + 1),
+        )
+        self.assertEqual(len(agent._tick_events), 2)
+        self.assertGreater(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+        self.assertEqual(agent._deactivation_events, [])
+
+    def test_invalid_controller_payload_does_not_commit_stamp_and_resets_receipt(self):
+        agent = self.stamp_test_agent(10_000_000_000, active=False)
+        first_stamp = 1_000_000_000
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp),
+        )
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(first_stamp + 1),
+        )
+        self.assertGreater(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+
+        invalid_stamp = first_stamp + 2
+        invalid = self.odometry_message(invalid_stamp)
+        invalid.twist.twist.linear.x = float("nan")
+        agent._navigation_health_callback(NAVIGATION_CONTROLLER_ODOM_TOPIC, invalid)
+
+        self.assertEqual(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+        self.assertEqual(
+            agent._navigation_odom_stamp_ns[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            first_stamp + 1,
+        )
+        # Because the invalid stamp was never committed, a corrected sample
+        # bearing that same stamp can prove the next strict advance.
+        agent._navigation_health_callback(
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self.odometry_message(invalid_stamp),
+        )
+        self.assertEqual(
+            agent._navigation_odom_stamp_ns[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            invalid_stamp,
+        )
+        self.assertGreater(
+            agent._navigation_validated_receipts[NAVIGATION_CONTROLLER_ODOM_TOPIC],
+            0.0,
+        )
+
+    def test_safety_freshness_cannot_be_opened_by_global_metrics(self):
+        with patch.dict(os.environ, {"ROBOT_SCOPE_CONTROL_ENABLED": "1"}, clear=True):
+            agent = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        now = time.monotonic()
+        agent._node = CountNode(1)
+        agent._navigation_runtime_health_received = now
+        agent._navigation_runtime_health = {
+            "ready": True,
+            "cloud_fresh": True,
+            "odom_fresh": True,
+            "localized": True,
+            "error": None,
+        }
+        trusted_topics = (
+            "/scan",
+            NAVIGATION_FAST_LIO_ODOM_TOPIC,
+            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            "/amcl_pose",
+        )
+        for topic in trusted_topics:
+            agent._tick(topic, now)
+
+        for missing in trusted_topics:
+            with self.subTest(missing=missing):
+                agent._navigation_validated_receipts.update(
+                    {topic: now for topic in trusted_topics}
+                )
+                agent._navigation_validated_receipts[missing] = 0.0
+                self.assertEqual(
+                    agent._navigation_sensor_interlock_reason(
+                        now,
+                        require_localized=True,
+                    ),
+                    f"navigation input {missing} is stale",
+                )
+
+    def test_prelocalization_requires_controller_advance_after_start_fence(self):
+        with patch.dict(os.environ, {"ROBOT_SCOPE_CONTROL_ENABLED": "1"}, clear=True):
+            agent = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        now = time.monotonic()
+        agent._node = CountNode(1)
+        agent._navigation_runtime_health_received = now
+        agent._navigation_runtime_health = {
+            "ready": False,
+            "cloud_fresh": True,
+            "odom_fresh": True,
+            "localized": False,
+            "error": None,
+        }
+        agent._tick("/scan", now)
+        agent._tick(NAVIGATION_FAST_LIO_ODOM_TOPIC, now)
+        agent._navigation_validated_receipts.update(
+            {
+                "/scan": now,
+                NAVIGATION_FAST_LIO_ODOM_TOPIC: now,
+                NAVIGATION_CONTROLLER_ODOM_TOPIC: now - 1.0,
+            }
+        )
+
+        result = agent.navigation_prelocalization_snapshot(ready_after=now - 0.5)
+
+        self.assertFalse(result["ready"])
+        self.assertIn("controller odometry", result["reason"])
+
+    def test_fast_lio_stamp_rejects_zero_stale_and_future_samples(self):
         now_ns = 20_000_000_000
         invalid_stamps = (
             0,
@@ -515,11 +745,49 @@ class NavigationControlTests(unittest.TestCase):
             with self.subTest(stamp_ns=stamp_ns):
                 agent = self.stamp_test_agent(now_ns)
                 agent._navigation_health_callback(
-                    NAVIGATION_CONTROLLER_ODOM_TOPIC,
+                    NAVIGATION_FAST_LIO_ODOM_TOPIC,
                     self.odometry_message(stamp_ns),
                 )
                 self.assertEqual(agent._tick_events, [])
                 self.assertEqual(len(agent._deactivation_events), 1)
+
+    def test_invalid_fast_lio_payload_does_not_commit_newer_host_stamp(self):
+        now_ns = 20_000_000_000
+        agent = self.stamp_test_agent(now_ns, active=False)
+        first_stamp = now_ns - 100_000_000
+        first = self.odometry_message(first_stamp)
+        first.header.frame_id = "camera_init"
+        first.child_frame_id = "body"
+        agent._navigation_health_callback(NAVIGATION_FAST_LIO_ODOM_TOPIC, first)
+        self.assertEqual(len(agent._tick_events), 1)
+
+        invalid_stamp = first_stamp + 1
+        invalid = self.odometry_message(invalid_stamp)
+        invalid.header.frame_id = "camera_init"
+        invalid.child_frame_id = "body"
+        invalid.pose.pose.position.x = float("inf")
+        agent._navigation_health_callback(NAVIGATION_FAST_LIO_ODOM_TOPIC, invalid)
+        self.assertEqual(
+            agent._navigation_odom_stamp_ns[NAVIGATION_FAST_LIO_ODOM_TOPIC],
+            first_stamp,
+        )
+        self.assertEqual(
+            agent._navigation_validated_receipts[NAVIGATION_FAST_LIO_ODOM_TOPIC],
+            0.0,
+        )
+
+        corrected = self.odometry_message(invalid_stamp)
+        corrected.header.frame_id = "camera_init"
+        corrected.child_frame_id = "body"
+        agent._navigation_health_callback(NAVIGATION_FAST_LIO_ODOM_TOPIC, corrected)
+        self.assertEqual(
+            agent._navigation_odom_stamp_ns[NAVIGATION_FAST_LIO_ODOM_TOPIC],
+            invalid_stamp,
+        )
+        self.assertGreater(
+            agent._navigation_validated_receipts[NAVIGATION_FAST_LIO_ODOM_TOPIC],
+            0.0,
+        )
 
 
 if __name__ == "__main__":
