@@ -574,8 +574,12 @@ def wait_for_ros_stage(
             super().__init__(f"robot_scope_{options.stage}_readiness")
             qos = QoSProfile(
                 history=HistoryPolicy.KEEP_LAST,
-                depth=10,
-                reliability=ReliabilityPolicy.BEST_EFFORT,
+                # All accepted publishers are required to offer reliable QoS.
+                # PointCloud2 samples are large enough to span many DDS
+                # fragments, so the probe also requests reliability while a
+                # depth of one prevents stale samples accumulating.
+                depth=1,
+                reliability=ReliabilityPolicy.RELIABLE,
                 durability=DurabilityPolicy.VOLATILE,
             )
             self._readiness_subscriptions = []

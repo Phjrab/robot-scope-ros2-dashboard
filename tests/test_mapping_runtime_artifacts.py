@@ -403,14 +403,19 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
             }
         raw = profiles["raw_cloud_qos"]
         output = profiles["output_qos"]
+        lowstate = profiles["lowstate_qos"]
         self.assertEqual(raw["depth"].id, "RAW_CLOUD_QOS_DEPTH")
         self.assertEqual(raw["history"].attr, "KEEP_LAST")
-        self.assertEqual(raw["reliability"].attr, "BEST_EFFORT")
+        self.assertEqual(raw["reliability"].attr, "RELIABLE")
         self.assertEqual(raw["durability"].attr, "VOLATILE")
         self.assertEqual(output["depth"].id, "OUTPUT_QOS_DEPTH")
         self.assertEqual(output["history"].attr, "KEEP_LAST")
         self.assertEqual(output["reliability"].attr, "RELIABLE")
         self.assertEqual(output["durability"].attr, "VOLATILE")
+        self.assertEqual(lowstate["history"].attr, "KEEP_LAST")
+        self.assertEqual(lowstate["depth"].value, 5)
+        self.assertEqual(lowstate["reliability"].attr, "BEST_EFFORT")
+        self.assertEqual(lowstate["durability"].attr, "VOLATILE")
         self.assertEqual(bridge.RAW_CLOUD_QOS_DEPTH, 1)
         self.assertEqual(bridge.OUTPUT_QOS_DEPTH, 5)
         raw_subscriptions = [

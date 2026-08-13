@@ -110,6 +110,22 @@ def laser_map(*, width=0, include_fields=True, data=None):
 
 
 class Xt16ReadinessCoreTests(unittest.TestCase):
+    def test_runtime_probe_uses_reliable_latest_only_qos(self):
+        source = HELPER.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        profiles = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "id", "") == "QoSProfile"
+        ]
+        self.assertEqual(len(profiles), 1)
+        keywords = {keyword.arg: keyword.value for keyword in profiles[0].keywords}
+        self.assertEqual(keywords["history"].attr, "KEEP_LAST")
+        self.assertEqual(keywords["depth"].value, 1)
+        self.assertEqual(keywords["reliability"].attr, "RELIABLE")
+        self.assertEqual(keywords["durability"].attr, "VOLATILE")
+
     def test_exact_bridge_layout_frame_and_payload_are_accepted(self):
         message = raw_cloud(width=64_000)
         self.assertEqual(readiness.validate_xt16_cloud(message), 64_000)

@@ -537,7 +537,11 @@ def run_ros_bridge() -> int:
     raw_cloud_qos = QoSProfile(
         history=HistoryPolicy.KEEP_LAST,
         depth=RAW_CLOUD_QOS_DEPTH,
-        reliability=ReliabilityPolicy.BEST_EFFORT,
+        # A raw XT16 cloud is roughly 2 MiB and is fragmented by DDS.  A
+        # best-effort reader can permanently starve after losing a fragment
+        # even while the reliable Hesai publisher remains healthy.  Keep only
+        # the newest completed sample, but let DDS retransmit its fragments.
+        reliability=ReliabilityPolicy.RELIABLE,
         durability=DurabilityPolicy.VOLATILE,
     )
     lowstate_qos = QoSProfile(
