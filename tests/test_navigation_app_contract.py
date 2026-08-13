@@ -60,6 +60,46 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertNotIn(("post", "/api/v1/navigation/goal/cancel"), routes)
         self.assertNotIn(("post", "/api/v1/navigation/costmaps/clear"), routes)
 
+    def test_navigation_progress_log_is_fixed_read_only_and_server_bounded(self):
+        tree_functions = functions(parsed_app())
+        node = tree_functions["navigation_logs"]
+        source = ast.unparse(node)
+        self.assertIn("navigation_jobs().progress_snapshot", source)
+        self.assertIn("after=after", source)
+        self.assertIn("limit=limit", source)
+        self.assertNotIn("require_same_origin", source)
+        self.assertNotIn("subprocess", source)
+        self.assertNotIn("shell", source)
+
+        defaults = node.args.defaults
+        self.assertEqual(len(defaults), 2)
+        after_keywords = {item.arg: item.value for item in defaults[0].keywords}
+        limit_keywords = {item.arg: item.value for item in defaults[1].keywords}
+        self.assertEqual(after_keywords["default"].value, 0)
+        self.assertEqual(after_keywords["ge"].value, 0)
+        self.assertEqual(after_keywords["le"].value, 9_007_199_254_740_991)
+        self.assertEqual(limit_keywords["default"].value, 80)
+        self.assertEqual(limit_keywords["ge"].value, 1)
+        self.assertEqual(limit_keywords["le"].value, 100)
+
+        routes = [
+            decorator.args[0].value
+            for decorator in node.decorator_list
+            if isinstance(decorator, ast.Call)
+            and isinstance(decorator.func, ast.Attribute)
+            and decorator.func.attr == "get"
+            and decorator.args
+            and isinstance(decorator.args[0], ast.Constant)
+        ]
+        self.assertEqual(routes, ["/api/v1/navigation/logs"])
+        self.assertIn("Cache-Control", source)
+        self.assertIn("no-store", source)
+
+    def test_stopped_shared_mapping_pipeline_is_idle_not_failed(self):
+        source = ast.unparse(functions(parsed_app())["mapping_pipeline_state"])
+        self.assertIn("if state == 'stopped'", source)
+        self.assertIn("return 'idle'", source)
+
     def test_every_navigation_mutation_is_same_origin_guarded(self):
         tree_functions = functions(parsed_app())
         mutations = (

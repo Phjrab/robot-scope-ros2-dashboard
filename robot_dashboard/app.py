@@ -464,6 +464,11 @@ def mapping_pipeline_state() -> str:
         return "unavailable"
     snapshot = MAPPING_JOBS.snapshot()
     state = str((snapshot.get("pipeline") or {}).get("state", "failed"))
+    # Older/external mapping managers report their clean terminal state as
+    # ``stopped``.  Navigation treats that as idle infrastructure, not a
+    # failed localization launch.
+    if state == "stopped":
+        return "idle"
     return state if state in {"idle", "starting", "running", "stopping", "failed"} else "failed"
 
 
@@ -1590,6 +1595,22 @@ async def control_stream(websocket: WebSocket) -> None:
 @app.get("/api/v1/navigation")
 async def navigation_status() -> Dict[str, Any]:
     return await asyncio.to_thread(navigation_view)
+
+
+@app.get("/api/v1/navigation/logs")
+async def navigation_logs(
+    response: Response,
+    after: int = Query(default=0, ge=0, le=9_007_199_254_740_991),
+    limit: int = Query(default=80, ge=1, le=100),
+) -> Dict[str, Any]:
+    """Return only the manager's bounded, redacted progress projection."""
+
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(
+        navigation_jobs().progress_snapshot,
+        after=after,
+        limit=limit,
+    )
 
 
 @app.get("/api/v1/navigation/parameters")

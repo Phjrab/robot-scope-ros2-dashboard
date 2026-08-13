@@ -17,6 +17,8 @@ from robot_dashboard.navigation_jobs import (
     PARAMETER_FIELDS,
     PARAMS_FILE_TOKEN,
     PRIVATE_CMD_VEL_TOPIC,
+    PUBLIC_LOG_MAX_ENTRIES,
+    PUBLIC_LOG_MESSAGE_CHARS,
     NavigationBusy,
     NavigationCommandSpec,
     NavigationConflict,
@@ -193,6 +195,8 @@ class NavigationJobManagerTests(unittest.TestCase):
         )
         stopped = self.manager.stop()
         self.assertEqual(stopped["pipeline"]["state"], "idle")
+        self.assertIsNone(stopped["pipeline"]["job_id"])
+        self.assertIsNone(stopped["pipeline"]["started_at"])
         self.assertFalse(job_dir.exists())
 
     def test_start_rejects_stale_parameter_revision_and_missing_prerequisites(self):
@@ -369,6 +373,193 @@ class NavigationJobManagerTests(unittest.TestCase):
 
         self.assertEqual(events, ["wait"])
         self.assertEqual(self.manager.snapshot()["pipeline"]["state"], "stopping")
+
+    def test_progress_log_is_structured_job_scoped_and_redacted(self):
+        token = "c" * 32
+        with self.manager._lock:
+            self.manager._pipeline_token = token
+            self.manager._pipeline = {
+                "state": "running",
+                "job_id": token,
+                "error": None,
+                "started_at": "2026-08-13T01:02:03+00:00",
+                "stopped_at": None,
+            }
+            self.manager._append_log_locked(
+                "pipeline", "navigation manager entered running phase"
+            )
+        self.manager._append_runtime_log(
+            token,
+            "\x1b[32m[INFO] [1750000000.123] [controller_server]: "
+            "loaded /home/jetson/private/map.yaml "
+            "bridge_key=top-secret "
+            "url=https://user:password@example.invalid/private "
+            f"revision={'d' * 64}\x1b[0m"
+        )
+        self.manager._append_runtime_log(
+            token,
+            "[WARN] [1750000000.456] [planner_server]: "
+            "command: [ros2, launch, private.yaml]"
+        )
+        self.manager._append_runtime_log(
+            token,
+            "[INFO] [bt_navigator]: lifecycle node is active"
+        )
+        self.manager._append_runtime_log(
+            token, "unstructured child output /root/private"
+        )
+        self.manager._append_runtime_log(
+            token,
+            "[INFO] [planner_server]: opened relative/private/map.pcd",
+        )
+        self.manager._append_runtime_log(
+            token,
+            "[INFO] [planner_server]: "
+            "ROBOT_SCOPE_CONTROL_BRIDGE_KEY top-secret-whitespace",
+        )
+        self.manager._append_runtime_log(
+            token,
+            '[INFO] [planner_server]: env={"TOKEN": "top-secret-json"}',
+        )
+        self.manager._append_runtime_log(
+            token,
+            '[INFO] [planner_server]: metadata {"private_key": "json-key-leak"}',
+        )
+
+        progress = self.manager.progress_snapshot(after=0, limit=10)
+        self.assertRegex(progress["stream_id"], r"^[0-9a-f]{32}$")
+        self.assertEqual(
+            progress["job"],
+            {
+                "id": token,
+                "phase": "running",
+                "started_at": "2026-08-13T01:02:03+00:00",
+            },
+        )
+        self.assertEqual(
+            progress["limits"],
+            {
+                "max_entries": PUBLIC_LOG_MAX_ENTRIES,
+                "max_message_chars": PUBLIC_LOG_MESSAGE_CHARS,
+            },
+        )
+        self.assertGreaterEqual(len(progress["entries"]), 4)
+        for entry in progress["entries"]:
+            self.assertEqual(
+                set(entry),
+                {"seq", "timestamp", "job_id", "phase", "source", "message"},
+            )
+            self.assertEqual(entry["job_id"], token)
+            self.assertEqual(entry["phase"], "running")
+            self.assertIn(entry["source"], {"manager", "runtime", "parameters"})
+            self.assertLessEqual(len(entry["message"]), PUBLIC_LOG_MESSAGE_CHARS)
+
+        rendered = json.dumps(progress, sort_keys=True)
+        for private_value in (
+            "/home/jetson/private/map.yaml",
+            "/root/private",
+            "top-secret",
+            "user:password",
+            "d" * 64,
+            "private.yaml",
+            "relative/private/map.pcd",
+            "top-secret-whitespace",
+            "top-secret-json",
+            "json-key-leak",
+            "\x1b",
+        ):
+            self.assertNotIn(private_value, rendered)
+        messages = [item["message"] for item in progress["entries"]]
+        self.assertTrue(any("INFO controller_server" in item for item in messages))
+        self.assertTrue(any("INFO bt_navigator" in item for item in messages))
+        self.assertTrue(any("runtime command detail withheld" in item for item in messages))
+        self.assertIn("runtime output received", messages)
+
+    def test_late_reader_output_cannot_cross_job_or_idle_identity(self):
+        old_token = "1" * 32
+        new_token = "2" * 32
+        with self.manager._lock:
+            self.manager._pipeline_token = old_token
+            self.manager._pipeline.update(state="running", job_id=old_token)
+        self.manager._append_runtime_log(
+            old_token, "[INFO] [old_node]: accepted current job output"
+        )
+        baseline = self.manager.progress_snapshot(after=0, limit=10)["latest_cursor"]
+
+        with self.manager._lock:
+            self.manager._pipeline.update(state="idle", job_id=None, started_at=None)
+        self.manager._append_runtime_log(
+            old_token, "[ERROR] [old_node]: buffered after stop"
+        )
+
+        with self.manager._lock:
+            self.manager._pipeline_token = new_token
+            self.manager._pipeline.update(state="starting", job_id=new_token)
+        self.manager._append_runtime_log(
+            old_token, "[ERROR] [old_node]: buffered after replacement"
+        )
+        self.manager._append_runtime_log(
+            new_token, "[INFO] [new_node]: accepted replacement output"
+        )
+
+        delta = self.manager.progress_snapshot(after=baseline, limit=10)
+        self.assertEqual(len(delta["entries"]), 1)
+        self.assertEqual(delta["entries"][0]["job_id"], new_token)
+        self.assertIn("accepted replacement output", delta["entries"][0]["message"])
+        rendered = json.dumps(delta)
+        self.assertNotIn("buffered after stop", rendered)
+        self.assertNotIn("buffered after replacement", rendered)
+
+    def test_progress_log_tail_increment_and_reset_are_strictly_bounded(self):
+        token = "e" * 32
+        with self.manager._lock:
+            self.manager._pipeline.update(state="starting", job_id=token)
+            for index in range(PUBLIC_LOG_MAX_ENTRIES + 25):
+                self.manager._append_log_locked("pipeline", f"safe progress {index}")
+
+        tail = self.manager.progress_snapshot(after=0, limit=7)
+        self.assertEqual(len(tail["entries"]), 7)
+        self.assertTrue(tail["truncated"])
+        self.assertFalse(tail["has_more"])
+        self.assertEqual(tail["cursor"], tail["latest_cursor"])
+        self.assertEqual(tail["entries"][-1]["message"], "safe progress 124")
+
+        first_seq = self.manager._logs[0]["seq"]
+        page = self.manager.progress_snapshot(after=first_seq, limit=9)
+        self.assertEqual(len(page["entries"]), 9)
+        self.assertTrue(page["has_more"])
+        self.assertEqual(page["cursor"], page["entries"][-1]["seq"])
+        next_page = self.manager.progress_snapshot(after=page["cursor"], limit=9)
+        self.assertGreater(next_page["entries"][0]["seq"], page["cursor"])
+
+        reset = self.manager.progress_snapshot(
+            after=tail["latest_cursor"] + 50,
+            limit=10,
+        )
+        self.assertTrue(reset["truncated"])
+        self.assertEqual(reset["entries"], [])
+        self.assertEqual(reset["cursor"], reset["latest_cursor"])
+        for invalid in (-1, 9_007_199_254_740_992, True, "1"):
+            with self.subTest(after=invalid), self.assertRaises(ValueError):
+                self.manager.progress_snapshot(after=invalid, limit=10)
+        for invalid in (0, PUBLIC_LOG_MAX_ENTRIES + 1, True, "10"):
+            with self.subTest(limit=invalid), self.assertRaises(ValueError):
+                self.manager.progress_snapshot(after=0, limit=invalid)
+
+    def test_parameter_event_has_no_stale_job_identity(self):
+        with self.manager._lock:
+            self.manager._pipeline.update(
+                state="idle",
+                job_id="f" * 32,
+                started_at="2026-08-13T01:02:03+00:00",
+            )
+            self.manager._append_log_locked("parameters", "parameters validated")
+        progress = self.manager.progress_snapshot(after=0, limit=10)
+        self.assertIsNone(progress["job"]["id"])
+        entry = progress["entries"][-1]
+        self.assertEqual(entry["source"], "parameters")
+        self.assertIsNone(entry["job_id"])
+        self.assertEqual(entry["phase"], "idle")
 
     def test_command_spec_rejects_shell_like_or_missing_tokens(self):
         executable = str(Path(sys.executable).resolve())

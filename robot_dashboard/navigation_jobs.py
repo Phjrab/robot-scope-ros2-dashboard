@@ -39,6 +39,13 @@ ALLOWED_COMMAND_TOKENS = frozenset({PARAMS_FILE_TOKEN, MAP_YAML_TOKEN})
 REVISION_RE = re.compile(r"^[0-9a-f]{64}$")
 MAP_ID_RE = re.compile(r"^[0-9a-f]{24}$")
 PRIVATE_CMD_VEL_TOPIC = "/robot_scope/nav/cmd_vel_raw"
+PUBLIC_LOG_DEFAULT_ENTRIES = 80
+PUBLIC_LOG_MAX_ENTRIES = 100
+PUBLIC_LOG_MESSAGE_CHARS = 320
+PUBLIC_LOG_INPUT_CHARS = 4096
+PUBLIC_LOG_MAX_CURSOR = 9_007_199_254_740_991
+PUBLIC_LOG_PHASES = frozenset({"idle", "starting", "running", "stopping", "failed"})
+PUBLIC_LOG_SOURCES = frozenset({"manager", "runtime", "parameters"})
 COSTMAP_MIN_OBSTACLE_HEIGHT = -1.0
 COSTMAP_MAX_OBSTACLE_HEIGHT = 3.0
 HUMBLE_BT_PLUGIN_LIBRARIES = (
@@ -90,6 +97,53 @@ HUMBLE_BT_PLUGIN_LIBRARIES = (
     "nav2_drive_on_heading_cancel_bt_node",
     "nav2_is_battery_charging_condition_bt_node",
 )
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
+_CONTROL_CHARACTER_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_WHITESPACE_RE = re.compile(r"\s+")
+_ROS_LOG_RE = re.compile(
+    r"^\[(DEBUG|INFO|WARN|WARNING|ERROR|FATAL)\]\s*"
+    r"(?:\[[0-9]{1,20}(?:\.[0-9]{1,12})?\]\s*)?"
+    r"\[([A-Za-z][A-Za-z0-9_.-]{0,63})\]:\s*(.*)$",
+    re.IGNORECASE,
+)
+_SECRET_ASSIGNMENT_RE = re.compile(
+    r"(?i)\b([A-Za-z0-9_]*(?:password|passwd|secret|token|api[_-]?key|"
+    r"private[_-]?key|credential|authorization|bridge[_-]?key)[A-Za-z0-9_]*)"
+    r"\b\s*(?:[:=]|\s)\s*"
+    r"(?:\"[^\"]*\"|'[^']*'|\S+)"
+)
+_JSON_SECRET_RE = re.compile(
+    r"(?i)([\"'][^\"']*(?:password|passwd|secret|token|api[_-]?key|"
+    r"private[_-]?key|credential|authorization|bridge[_-]?key)"
+    r"[^\"']*[\"']\s*:\s*)(?:\"[^\"]*\"|'[^']*'|[^,}\]\s]+)"
+)
+_ENV_DUMP_RE = re.compile(r"(?i)\benv(?:iron(?:ment)?)?\s*[:=]\s*[\[{].*$")
+_AUTH_VALUE_RE = re.compile(r"(?i)\b(?:Bearer|Basic)\s+\S+")
+_ENV_ASSIGNMENT_RE = re.compile(r"\b([A-Z][A-Z0-9_]{1,63})\s*=\s*\S+")
+_URL_RE = re.compile(r"(?i)\b(?:https?|file|ssh)://\S+")
+_WINDOWS_PATH_RE = re.compile(r"(?i)\b[A-Z]:[\\/][^\s'\"<>]+")
+_HOME_PATH_RE = re.compile(r"(?:^|(?<=\s))~[/\\][^\s'\"<>]+")
+_RELATIVE_PATH_RE = re.compile(
+    r"(?<![A-Za-z0-9_])(?:\.{1,2}[/\\]|[A-Za-z0-9_.-]+[/\\])"
+    r"[^\s'\"<>]+"
+)
+_ABSOLUTE_PATH_OR_TOPIC_RE = re.compile(r"(?<![A-Za-z0-9_])/(?:[^\s'\"<>]+)")
+_FILE_NAME_RE = re.compile(
+    r"(?i)(?<![A-Za-z0-9_.-])[^\s'\"<>/\\]+\."
+    r"(?:yaml|yml|pgm|pcd|json|py|sh|xml|db3|sqlite3|bag|log)"
+    r"(?![A-Za-z0-9_.-])"
+)
+_LONG_HEX_RE = re.compile(r"(?i)\b[0-9a-f]{24,}\b")
+_COMMAND_DETAIL_RE = re.compile(
+    r"(?i)(?:\bargv\b|\bcommand(?:\s+line)?\b|\bexec(?:ute|uting|uted)?\b)"
+    r"\s*(?:[:=]|\[)"
+)
+_INTERPRETER_COMMAND_RE = re.compile(
+    r"(?i)(?:^|\s)(?:ros2|python\d*(?:\.\d+)?|bash|sh)\s+"
+    r"(?:run|launch|-[A-Za-z]|[^\s]+)"
+)
+_CLI_ARGUMENT_RE = re.compile(r"(?<![A-Za-z0-9_])--[A-Za-z][A-Za-z0-9_-]*")
 
 
 class NavigationJobError(RuntimeError):
@@ -253,6 +307,61 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _public_log_message(message: object, *, runtime: bool) -> str:
+    """Return a single bounded diagnostic line safe for the browser.
+
+    Child stdout is not a trusted public interface.  Only standard ROS log
+    envelopes and the repository launcher's fixed prefix retain their payload;
+    every other child line becomes a generic event.  Even accepted payloads
+    are stripped of command details, credentials, URLs, filesystem-looking
+    values, opaque long hex values, ANSI sequences and control characters.
+    """
+
+    raw = _ANSI_ESCAPE_RE.sub("", str(message or "")[:PUBLIC_LOG_INPUT_CHARS])
+    raw = _CONTROL_CHARACTER_RE.sub("", raw).replace("\r", " ").replace("\n", " ")
+    raw = _WHITESPACE_RE.sub(" ", raw).strip()
+    if not raw:
+        return ""
+
+    prefix = ""
+    payload = raw
+    if runtime:
+        ros = _ROS_LOG_RE.fullmatch(raw)
+        if ros:
+            severity = ros.group(1).upper().replace("WARNING", "WARN")
+            logger_name = ros.group(2)[:64]
+            prefix = f"{severity} {logger_name}: "
+            payload = ros.group(3)
+        elif raw.startswith("[Robot Scope] "):
+            prefix = "Robot Scope: "
+            payload = raw[len("[Robot Scope] ") :]
+        else:
+            return "runtime output received"
+
+    if (
+        _COMMAND_DETAIL_RE.search(payload)
+        or _INTERPRETER_COMMAND_RE.search(payload)
+        or _CLI_ARGUMENT_RE.search(payload)
+    ):
+        return f"{prefix}runtime command detail withheld"[:PUBLIC_LOG_MESSAGE_CHARS]
+    payload = _ENV_DUMP_RE.sub("environment=[redacted]", payload)
+    payload = _JSON_SECRET_RE.sub(lambda match: f'{match.group(1)}"[redacted]"', payload)
+    payload = _SECRET_ASSIGNMENT_RE.sub(lambda match: f"{match.group(1)}=[redacted]", payload)
+    payload = _AUTH_VALUE_RE.sub("authorization=[redacted]", payload)
+    payload = _ENV_ASSIGNMENT_RE.sub(lambda match: f"{match.group(1)}=[redacted]", payload)
+    payload = _URL_RE.sub("[url]", payload)
+    payload = _WINDOWS_PATH_RE.sub("[path]", payload)
+    payload = _HOME_PATH_RE.sub(" [path]", payload)
+    payload = _RELATIVE_PATH_RE.sub("[path]", payload)
+    payload = _ABSOLUTE_PATH_OR_TOPIC_RE.sub("[path-or-topic]", payload)
+    payload = _FILE_NAME_RE.sub("[file]", payload)
+    payload = _LONG_HEX_RE.sub("[id]", payload)
+    payload = _WHITESPACE_RE.sub(" ", payload).strip()
+    if not payload:
+        payload = "diagnostic detail withheld"
+    return f"{prefix}{payload}"[:PUBLIC_LOG_MESSAGE_CHARS]
+
+
 def _parameter_revision(values: Mapping[str, Any]) -> str:
     encoded = json.dumps(
         {key: values[key] for key in PARAMETER_FIELDS},
@@ -325,6 +434,7 @@ class NavigationJobManager:
         self.jobs_dir = self.runtime_dir / "jobs"
         self._lock = threading.RLock()
         self._logs: deque[dict[str, Any]] = deque(maxlen=int(log_capacity))
+        self._log_stream_id = uuid.uuid4().hex
         self._seq = 0
         self._closing = False
         self._stop_requested = False
@@ -433,9 +543,10 @@ class NavigationJobManager:
         with self._lock:
             missing = self._missing_prerequisites_locked()
             available = not missing and self._parameter_error is None and not self._closing
-            requested = max(0, int(since_log_seq))
-            logs = [dict(item) for item in self._logs if item["seq"] > requested]
-            oldest = self._logs[0]["seq"] if self._logs else self._seq + 1
+            progress = self._progress_snapshot_locked(
+                after=max(0, int(since_log_seq)),
+                limit=PUBLIC_LOG_MAX_ENTRIES,
+            )
             return {
                 "seq": self._seq,
                 "available": available,
@@ -445,10 +556,83 @@ class NavigationJobManager:
                 "command_topic": PRIVATE_CMD_VEL_TOPIC,
                 "missing_prerequisites": missing,
                 "configuration_error": self._parameter_error,
-                "logs": logs,
-                "log_cursor": self._seq,
-                "logs_truncated": bool(requested and requested < oldest - 1),
+                # Compatibility fields retain the existing manager snapshot
+                # shape, but now contain only the bounded public projection.
+                "logs": progress["entries"],
+                "log_cursor": progress["cursor"],
+                "logs_truncated": progress["truncated"],
             }
+
+    def progress_snapshot(
+        self,
+        *,
+        after: int = 0,
+        limit: int = PUBLIC_LOG_DEFAULT_ENTRIES,
+    ) -> dict[str, Any]:
+        """Return a bounded read-only public navigation progress stream."""
+
+        if (
+            isinstance(after, bool)
+            or not isinstance(after, int)
+            or not 0 <= after <= PUBLIC_LOG_MAX_CURSOR
+        ):
+            raise ValueError("navigation log cursor is outside the supported range")
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= PUBLIC_LOG_MAX_ENTRIES
+        ):
+            raise ValueError(
+                f"navigation log limit must be from 1 to {PUBLIC_LOG_MAX_ENTRIES}"
+            )
+        with self._lock:
+            return self._progress_snapshot_locked(after=after, limit=limit)
+
+    def _progress_snapshot_locked(self, *, after: int, limit: int) -> dict[str, Any]:
+        entries = list(self._logs)
+        latest = self._seq
+        oldest_seq = entries[0]["seq"] if entries else latest + 1
+        truncated = bool(after > latest or (after > 0 and after < oldest_seq - 1))
+        if after == 0:
+            selected = entries[-limit:]
+            truncated = truncated or oldest_seq > 1 or len(entries) > limit
+            has_more = False
+        else:
+            candidates = [item for item in entries if item["seq"] > after]
+            selected = candidates[:limit]
+            has_more = len(candidates) > len(selected)
+        public_entries = [dict(item) for item in selected]
+        cursor = public_entries[-1]["seq"] if public_entries else latest
+
+        phase = str(self._pipeline.get("state", "failed"))
+        if phase not in PUBLIC_LOG_PHASES:
+            phase = "failed"
+        raw_job_id = self._pipeline.get("job_id")
+        job_id = (
+            str(raw_job_id)
+            if phase != "idle"
+            and isinstance(raw_job_id, str)
+            and re.fullmatch(r"[0-9a-f]{32}", raw_job_id)
+            else None
+        )
+        started_at = self._pipeline.get("started_at") if job_id else None
+        return {
+            "stream_id": self._log_stream_id,
+            "job": {
+                "id": job_id,
+                "phase": phase,
+                "started_at": started_at if isinstance(started_at, str) else None,
+            },
+            "entries": public_entries,
+            "cursor": cursor,
+            "latest_cursor": latest,
+            "truncated": truncated,
+            "has_more": has_more,
+            "limits": {
+                "max_entries": PUBLIC_LOG_MAX_ENTRIES,
+                "max_message_chars": PUBLIC_LOG_MESSAGE_CHARS,
+            },
+        }
 
     def parameters_snapshot(self) -> dict[str, Any]:
         with self._lock:
@@ -580,7 +764,7 @@ class NavigationJobManager:
                 self._pgid = pgid
                 self._job_dir = job_dir
                 self._map_snapshot = map_snapshot
-            self._start_reader(process)
+            self._start_reader(token, process)
             if self.startup_grace_seconds:
                 deadline = time.monotonic() + self.startup_grace_seconds
                 while time.monotonic() < deadline:
@@ -604,7 +788,9 @@ class NavigationJobManager:
                 self._terminate_group(process, process.pid)
             if job_dir is not None:
                 self._cleanup_job_dir(job_dir)
-            message = str(exc).strip()[:240] or "navigation pipeline could not be started"
+            message = _public_log_message(exc, runtime=False)[:240]
+            if not message:
+                message = "navigation pipeline could not be started"
             with self._lock:
                 if self._pipeline_token == token:
                     self._process = None
@@ -642,7 +828,9 @@ class NavigationJobManager:
             self._map_snapshot = None
             self._pipeline.update(
                 state="idle",
+                job_id=None,
                 error=None,
+                started_at=None,
                 stopped_at=_utc_now(),
             )
             self._append_log_locked("pipeline", "navigation pipeline stopped")
@@ -1332,13 +1520,16 @@ class NavigationJobManager:
             close_fds=True,
         )
 
-    def _start_reader(self, process: subprocess.Popen[str]) -> None:
+    def _start_reader(self, token: str, process: subprocess.Popen[str]) -> None:
         def read_output() -> None:
             if process.stdout is None:
                 return
             try:
-                for line in process.stdout:
-                    self._append_log("pipeline", line)
+                while True:
+                    line = process.stdout.readline(PUBLIC_LOG_INPUT_CHARS + 1)
+                    if not line:
+                        break
+                    self._append_runtime_log(token, line)
             finally:
                 process.stdout.close()
 
@@ -1463,22 +1654,56 @@ class NavigationJobManager:
             pass
 
     def _append_log(self, source: str, message: object) -> None:
-        clean = str(message).strip().replace("\x00", "")[:1000]
+        clean = _public_log_message(message, runtime=False)
         if not clean:
             return
         with self._lock:
             self._append_log_locked(source, clean)
 
-    def _append_log_locked(self, source: str, message: object) -> None:
-        clean = str(message).strip().replace("\x00", "")[:1000]
+    def _append_runtime_log(self, token: str, message: object) -> None:
+        clean = _public_log_message(message, runtime=True)
         if not clean:
             return
+        with self._lock:
+            # A pipe reader may drain buffered output after stop, or after a
+            # replacement process has already started.  Never attach that old
+            # output to idle state or to the replacement job identity.
+            if (
+                token != self._pipeline_token
+                or self._pipeline.get("job_id") != token
+                or self._pipeline.get("state") == "idle"
+            ):
+                return
+            self._append_public_log_locked("runtime", clean)
+
+    def _append_log_locked(self, source: str, message: object) -> None:
+        clean = _public_log_message(message, runtime=False)
+        if not clean:
+            return
+        public_source = "parameters" if source == "parameters" else "manager"
+        self._append_public_log_locked(public_source, clean)
+
+    def _append_public_log_locked(self, source: str, message: str) -> None:
+        public_source = source if source in PUBLIC_LOG_SOURCES else "manager"
+        phase = str(self._pipeline.get("state", "failed"))
+        if phase not in PUBLIC_LOG_PHASES:
+            phase = "failed"
+        raw_job_id = self._pipeline.get("job_id")
+        job_id = (
+            str(raw_job_id)
+            if public_source != "parameters"
+            and isinstance(raw_job_id, str)
+            and re.fullmatch(r"[0-9a-f]{32}", raw_job_id)
+            else None
+        )
         self._seq += 1
         self._logs.append(
             {
                 "seq": self._seq,
-                "time": _utc_now(),
-                "source": source,
-                "message": clean,
+                "timestamp": _utc_now(),
+                "job_id": job_id,
+                "phase": phase,
+                "source": public_source,
+                "message": str(message)[:PUBLIC_LOG_MESSAGE_CHARS],
             }
         )

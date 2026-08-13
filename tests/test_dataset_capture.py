@@ -413,6 +413,11 @@ class DatasetCaptureTests(unittest.TestCase):
             self.assertFalse((session / "samples" / "00000001").exists())
             self.assertEqual(manager.snapshot()["saved"], 0)
             self.assertEqual(cameras.closes, [("go2_front", "token-go2_front")])
+            # The writer publishes the terminal state before its final atomic
+            # manifest fsync.  Join it before TemporaryDirectory removes the
+            # session root so the full parallel test suite cannot race that
+            # final write.
+            manager.close()
 
     def test_corrupt_manifest_fields_are_bounded_in_catalog(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -865,6 +865,28 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .navigation-mission-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; padding:0 17px 12px; }
 .navigation-cleanup-note { margin:0; padding:0 17px 17px; color:#5f736c; font-size:7px; line-height:1.5; }
 
+.navigation-log-panel { min-width:0; margin-bottom:12px; }
+.navigation-log-header { gap:16px; }
+.navigation-log-tools { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+.navigation-log-tools label { min-height:36px; display:flex; align-items:center; gap:8px; padding:7px 10px; color:#87a098; border:1px solid var(--line); border-radius:9px; background:rgba(255,255,255,.02); font:750 8px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.06em; white-space:nowrap; cursor:pointer; }
+.navigation-log-tools input { width:15px; height:15px; margin:0; accent-color:var(--cyan); }
+.navigation-log-tools button { min-height:36px; padding:7px 11px; color:#94aaa2; border:1px solid var(--line-strong); border-radius:9px; background:rgba(255,255,255,.025); font-size:8px; font-weight:800; letter-spacing:.06em; }
+.navigation-log-tools button:hover:not(:disabled) { color:#082018; border-color:var(--cyan); background:var(--cyan); }
+.navigation-log-tools button:disabled { opacity:.34; cursor:not-allowed; }
+.navigation-log-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:var(--line); border-top:1px solid var(--line); }
+.navigation-log-summary > div { min-width:0; padding:11px 16px; background:rgba(6,18,15,.98); }
+.navigation-log-summary span, .navigation-log-summary strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.navigation-log-summary span { color:#667a73; font-size:7px; font-weight:800; letter-spacing:.12em; }
+.navigation-log-summary strong { margin-top:5px; color:var(--amber); font:750 9px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.navigation-log-summary strong[data-state="running"] { color:var(--green); }
+.navigation-log-summary strong[data-state="failed"], .navigation-log-summary strong[data-state="offline"] { color:var(--danger); }
+.navigation-log-terminal { position:relative; min-width:0; background:linear-gradient(180deg,rgba(2,10,8,.99),rgba(4,14,11,.99)); }
+.navigation-log-output { box-sizing:border-box; width:100%; height:240px; margin:0; padding:16px 18px; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-gutter:stable; color:#9fc8b9; background:transparent; font:500 12px/1.65 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; tab-size:2; user-select:text; }
+.navigation-log-empty { position:absolute; inset:0; display:grid; place-items:center; padding:18px; color:#61756e; font-size:12px; text-align:center; pointer-events:none; }
+.navigation-log-empty[hidden] { display:none; }
+.navigation-log-notice { min-height:0; margin:0; padding:11px 16px; color:#657a72; border-top:1px solid var(--line); background:rgba(5,16,13,.98); }
+.navigation-log-notice.is-error { color:#ff9fa4; }
+
 .navigation-robot-panel { margin-bottom:12px; }
 .navigation-robot-stage { position:relative; height:410px; overflow:hidden; background:radial-gradient(circle at 50% 42%,rgba(18,45,38,.72),rgba(3,11,9,.98)); }
 .navigation-robot-stage canvas { width:100%; height:100%; display:block; }
@@ -1290,6 +1312,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .control-bridge-service-actions { border-top:1px solid var(--line); border-left:0; }
   .navigation-status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .navigation-map-stage { height:460px; }
+  .navigation-log-header { align-items:stretch; flex-direction:column; }
+  .navigation-log-tools { justify-content:flex-start; }
   .navigation-robot-stage { height:360px; }
   .navigation-pose-toolbar { grid-template-columns:1fr; }
   .navigation-parameter-toolbar { grid-template-columns:1fr 1fr; }
@@ -1328,6 +1352,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .navigation-safety-banner { grid-template-columns:auto minmax(0,1fr); }
   .navigation-safety-banner a { grid-column:1/-1; text-align:center; }
   .navigation-status-grid, .navigation-parameter-fields, .navigation-runtime-bindings { grid-template-columns:1fr; }
+  .navigation-log-tools { display:grid; grid-template-columns:minmax(0,1fr) auto; }
+  .navigation-log-tools label { justify-content:center; }
+  .navigation-log-summary { grid-template-columns:1fr; }
+  .navigation-log-output { height:220px; padding:14px; font-size:11px; }
   .navigation-runtime-bindings p { grid-column:auto; }
   .navigation-map-toolbar { grid-template-columns:1fr; }
   .navigation-pipeline-actions, .navigation-pose-tools, .navigation-pose-actions { display:grid; grid-template-columns:1fr 1fr; }

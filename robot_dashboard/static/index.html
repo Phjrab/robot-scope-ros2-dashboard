@@ -580,6 +580,26 @@
           </aside>
         </section>
 
+        <article class="panel navigation-log-panel" aria-labelledby="navigationLogHeading">
+          <div class="panel-header compact navigation-log-header">
+            <div><div class="eyebrow">READ-ONLY · SANITIZED EVENTS</div><h2 id="navigationLogHeading">Navigation console</h2></div>
+            <div class="navigation-log-tools">
+              <label><input id="navigationLogAutoScroll" type="checkbox" checked><span>AUTO-SCROLL</span></label>
+              <button id="navigationLogClear" type="button" disabled>CLEAR VIEW</button>
+            </div>
+          </div>
+          <div class="navigation-log-summary" aria-label="Navigation 로그 현재 상태">
+            <div><span>PHASE</span><strong id="navigationLogPhase">IDLE</strong></div>
+            <div><span>STATE</span><strong id="navigationLogRuntimeState">WAITING</strong></div>
+            <div><span>LAST EVENT</span><strong id="navigationLogTimestamp">—</strong></div>
+          </div>
+          <div class="navigation-log-terminal">
+            <pre id="navigationLogOutput" class="navigation-log-output" role="log" aria-live="polite" aria-atomic="false" tabindex="0"></pre>
+            <div id="navigationLogEmpty" class="navigation-log-empty">서버 로그를 기다리고 있습니다.</div>
+          </div>
+          <p id="navigationLogNotice" class="navigation-log-notice">서버가 공개한 고정·정제 로그만 표시합니다. CLEAR VIEW는 이 브라우저 화면만 비웁니다.</p>
+        </article>
+
         <article class="panel navigation-robot-panel">
           <div class="panel-header">
             <div><div class="eyebrow">SELECTED ROBOT · 3D</div><h2>Robot model preview</h2></div>
