@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const require = createRequire(import.meta.url);
 const navigation = require('../robot_dashboard/static/navigation.js');
@@ -225,12 +226,48 @@ test('manual control and navigation are mutually exclusive without blocking clea
   assert.match(appSource, /controlUi\.arm\.disabled = [^;]+navigationActivityBlocksManualControl\(\)/);
   assert.match(appSource, /navigationStartButton\.disabled = [^;]+manualConflict/);
   assert.match(appSource, /const canStop = safety\.can_stop === true \|\| pipelineActive/);
-  assert.match(appSource, /navigationStopButton\.disabled = navigationOperationBusy \|\| !canStop/);
+  assert.match(appSource, /navigationStopButton\.disabled = \(navigationOperationBusy && navigationOperationKind !== 'start'\) \|\| !canStop/);
   assert.match(appSource, /navigationSnapshot\?\.safety\?\.can_stop === true \|\|\s*navigationEngine\?\.pipelineActive\(navigationSnapshot\)/);
   assert.match(appSource, /navigationCancelGoal\.disabled = [^;]+!goalActive/);
   assert.doesNotMatch(appSource, /navigationStopButton\.disabled = [^;]+robotOnline/);
   assert.doesNotMatch(appSource, /navigationCancelGoal\.disabled = [^;]+robotOnline/);
   assert.doesNotMatch(appSource, /async function stopNavigation\(\)[\s\S]{0,300}window\.confirm/);
+});
+
+test('background navigation startup phases are friendly and keep cleanup available', () => {
+  const constantsStart = appSource.indexOf('const NAVIGATION_STARTUP_PHASES');
+  const constantsEnd = appSource.indexOf('const NAVIGATION_LOG_LIMIT', constantsStart);
+  const functionStart = appSource.indexOf('function navigationStartupPresentation(');
+  const functionEnd = appSource.indexOf('\nfunction navigationBlockerMessage(', functionStart);
+  assert.ok(constantsStart >= 0 && constantsEnd > constantsStart && functionStart >= 0 && functionEnd > functionStart);
+  const context = {};
+  vm.runInNewContext(`
+    ${appSource.slice(constantsStart, constantsEnd)}
+    ${appSource.slice(functionStart, functionEnd)}
+    this.present = navigationStartupPresentation;
+  `, context);
+  const expected = {
+    starting_localization: 'STARTING LOCALIZATION',
+    waiting_localization: 'WAITING SENSOR',
+    starting_navigation: 'STARTING NAV2',
+    warming_navigation: 'WARMING',
+    activating: 'ACTIVATING',
+    active: 'RUNNING',
+    failed: 'FAILED',
+  };
+  for (const [phase, label] of Object.entries(expected)) {
+    const presentation = context.present({ localization_pipeline: { phase, pending: phase !== 'active' } });
+    assert.equal(presentation.label, label);
+  }
+  assert.equal(context.present({ localization_pipeline: { phase: 'failed', error: 'bounded failure' } }).message, 'bounded failure');
+  assert.equal(context.present({ localization_pipeline: { phase: 'unknown' } }), null);
+
+  assert.match(appSource, /navigationStartButton\.textContent = startupPending \? 'STARTING…' : 'START NAV2'/);
+  assert.match(appSource, /navigationStopButton\.textContent = startupPending \? 'STOP STARTUP' : 'STOP'/);
+  assert.match(appSource, /navigationOperationKind = path\.endsWith\('\/start'\) \? 'start'/);
+  assert.match(appSource, /finally \{[\s\S]{0,180}navigationOperationBusy = false;[\s\S]{0,180}void refreshNavigation\(\)/);
+  assert.match(appSource, /setInterval\(refreshNavigation, 1000\)/);
+  assert.doesNotMatch(appSource, /매핑을 중지한 뒤 Nav2를 시작하세요|Mapping 페이지/);
 });
 
 test('locked parameters and occupancy safety are enforced by the rendered controls', () => {

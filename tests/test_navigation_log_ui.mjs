@@ -111,13 +111,18 @@ test('stream changes and lost cursor continuity clear the local buffer and reque
 test('clear and auto-scroll stay client-only and Safari page lifecycle rejects stale work', () => {
   const clear = functionSource('clearNavigationLogView', 'invalidateNavigationLogRequests');
   const scroll = functionSource('scheduleNavigationLogScroll', 'renderNavigationLog');
+  const stickyStart = appSource.indexOf('function scheduleStickyLogScroll(');
+  const stickyEnd = appSource.indexOf('// LiDAR identity is intentionally resolved', stickyStart);
+  const stickyScroll = appSource.slice(stickyStart, stickyEnd);
   assert.match(clear, /navigationLogEntries = \[\]/);
   assert.match(clear, /navigationLogCursor = navigationLogLatestCursor/);
   assert.match(clear, /navigationLogRequestGeneration \+= 1/);
   assert.doesNotMatch(clear, /api\(|fetch\(|POST|DELETE/);
-  assert.match(scroll, /requestAnimationFrame/);
-  assert.match(scroll, /generation !== navigationLogRenderGeneration/);
-  assert.match(scroll, /activePage !== 'navigation'/);
+  assert.match(scroll, /scheduleStickyLogScroll/);
+  assert.match(scroll, /generation === navigationLogRenderGeneration/);
+  assert.match(scroll, /activePage === 'navigation'/);
+  assert.match(stickyScroll, /requestAnimationFrame/);
+  assert.match(stickyScroll, /Math\.abs\([\s\S]*?renderedScrollTop/);
   assert.match(appSource, /previousPage === 'navigation' && activePage !== 'navigation'[\s\S]*?invalidateNavigationLogRequests\(\)/);
   assert.match(appSource, /visibilitychange[\s\S]*?invalidateNavigationLogRequests\(\)/);
   assert.match(appSource, /pagehide[\s\S]*?invalidateNavigationLogRequests\(\)/);

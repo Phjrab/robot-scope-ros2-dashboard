@@ -457,6 +457,8 @@ input:focus, select:focus { border-color: rgba(125,240,182,.55); box-shadow: 0 0
 .scene-controls { position: absolute; z-index: 5; left: 12px; top: 45px; display: flex; gap: 5px; }
 .scene-controls button { min-width: 42px; padding: 6px 8px; color: #93aaa2; border: 1px solid rgba(156,201,190,.2); border-radius: 7px; background: rgba(4,14,12,.78); font: 700 7px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; backdrop-filter: blur(8px); }
 .scene-controls button:hover, .scene-controls button[aria-pressed="true"] { color: #d8fff0; border-color: rgba(125,240,182,.5); background: rgba(24,69,54,.82); }
+.scene-controls .scene-axes-toggle { min-width: 46px; border-color: rgba(110,183,255,.28); }
+.scene-controls .scene-axes-toggle[aria-pressed="true"] { border-color: rgba(110,183,255,.58); box-shadow: inset 2px 0 #ff737d, inset -2px 0 #6eb7ff; }
 .live-map2d-controls button:nth-child(2) { min-width: 58px; }
 .live-projection-legend { position:absolute; z-index:5; left:14px; bottom:35px; display:grid; grid-template-columns:auto auto; align-items:center; gap:5px 10px; max-width:min(430px,calc(100% - 28px)); padding:8px 10px; color:#8ca19b; border:1px solid rgba(93,222,216,.18); border-radius:8px; background:rgba(4,15,13,.78); box-shadow:0 8px 22px rgba(0,0,0,.22); backdrop-filter:blur(8px); font:600 7px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.05em; pointer-events:none; }
 .live-projection-legend strong { color:var(--cyan); letter-spacing:.1em; }

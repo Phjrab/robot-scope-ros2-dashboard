@@ -184,6 +184,46 @@ class MappingJobManagerTests(unittest.TestCase):
         self.assertIsNotNone(wait_until(lambda: not process_exists(preview_pid)))
         self.assertEqual(manager.snapshot()["preview"]["state"], "stopped")
 
+    def test_navigation_cleanup_requires_the_exact_active_mapping_job_id(self):
+        manager = self.manager()
+        started = manager.start_mapping()
+        job_id = started["pipeline"]["job_id"]
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
+
+        stopped, snapshot = manager.stop_mapping_if_job_id("0" * 32)
+        self.assertFalse(stopped)
+        self.assertEqual(snapshot["pipeline"]["job_id"], job_id)
+        self.assertEqual(snapshot["pipeline"]["state"], "running")
+
+        stopped, snapshot = manager.stop_mapping_if_job_id(job_id)
+        self.assertTrue(stopped)
+        self.assertEqual(snapshot["pipeline"]["state"], "stopped")
+
+    def test_stale_navigation_cleanup_does_not_stop_a_replacement_job(self):
+        manager = self.manager()
+        first = manager.start_mapping()["pipeline"]["job_id"]
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
+        manager.stop_mapping()
+        second = manager.start_mapping()["pipeline"]["job_id"]
+        self.assertNotEqual(first, second)
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
+
+        stopped, snapshot = manager.stop_mapping_if_job_id(first)
+        self.assertFalse(stopped)
+        self.assertEqual(snapshot["pipeline"]["job_id"], second)
+        self.assertEqual(snapshot["pipeline"]["state"], "running")
+
+    def test_navigation_cleanup_rejects_untrusted_job_id_shapes(self):
+        manager = self.manager()
+        with self.assertRaises(MappingJobError):
+            manager.stop_mapping_if_job_id("../operator-job")
+
     def test_unexpected_preview_exit_fails_the_active_mapping_group(self):
         failing_preview = self._script(
             "failing_preview.py",

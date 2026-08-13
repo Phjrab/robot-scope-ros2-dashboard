@@ -6,9 +6,10 @@
  *   scene.setPointCloud(cloud, { fit?: boolean });
  *   scene.setRobotPose({ x, y, z, yaw, frameId });
  *   scene.setTrail([{ x, y, z, yaw, frameId }, ...]);
+ *   scene.setAxesVisible(boolean); scene.toggleAxesVisible();
  *   scene.setStatus({ online, lidarOnline, message });
  *   scene.resetView(); scene.topView(); scene.frontView();
- *   scene.bindControls({ reset, top, front });
+ *   scene.bindControls({ reset, top, front, axes });
  *   scene.resize(); scene.render(); scene.destroy();
  *
  * `cloud` follows the dashboard PointCloud endpoint shape:
@@ -151,6 +152,35 @@
     return value;
   }
 
+  function browserStorage() {
+    try {
+      return global.localStorage || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function storedBoolean(storage, key, fallback) {
+    if (!storage || !key) return fallback;
+    try {
+      const value = storage.getItem(key);
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+    } catch (_) {
+      // Safari private browsing and locked-down kiosk profiles can reject storage.
+    }
+    return fallback;
+  }
+
+  function persistBoolean(storage, key, value) {
+    if (!storage || !key) return;
+    try {
+      storage.setItem(key, value ? 'true' : 'false');
+    } catch (_) {
+      // Rendering remains usable when preferences cannot be persisted.
+    }
+  }
+
   class RobotScene3D {
     constructor(canvas, options = {}) {
       if (!canvas || typeof canvas.getContext !== 'function') {
@@ -172,8 +202,13 @@
         autoFitOnFirstCloud: options.autoFitOnFirstCloud !== false,
         showRobot: options.showRobot !== false,
         showTrail: options.showTrail !== false,
+        showAxes: options.showAxes !== false,
         background: options.background || '#040a09',
       };
+      this._axesStorage = options.storage === undefined ? browserStorage() : options.storage;
+      this._axesStorageKey = typeof options.axesStorageKey === 'string'
+        ? options.axesStorageKey.trim().slice(0, 160)
+        : '';
       const initialDistance = clamp(
         finite(options.initialDistance, 8),
         this.options.minDistance,
@@ -210,6 +245,11 @@
       this.trail = [];
       this.robotVisible = this.options.showRobot;
       this.trailVisible = this.options.showTrail;
+      this.axesVisible = storedBoolean(
+        this._axesStorage,
+        this._axesStorageKey,
+        this.options.showAxes,
+      );
       this.status = {
         online: null,
         lidarOnline: null,
@@ -529,6 +569,25 @@
       this.render();
     }
 
+    setAxesVisible(visible, persist = true) {
+      this.axesVisible = Boolean(visible);
+      if (persist) {
+        persistBoolean(this._axesStorage, this._axesStorageKey, this.axesVisible);
+      }
+      const control = this._controlElements.axes;
+      if (control) {
+        control.setAttribute('aria-pressed', this.axesVisible ? 'true' : 'false');
+        control.title = this.axesVisible ? 'XYZ 축 숨기기' : 'XYZ 축 표시';
+      }
+      this._invalidateStatic();
+      this.render();
+      return this.axesVisible;
+    }
+
+    toggleAxesVisible() {
+      return this.setAxesVisible(!this.axesVisible);
+    }
+
     setStatus(value = {}) {
       if (typeof value === 'boolean') value = { online: value };
       if (Object.prototype.hasOwnProperty.call(value, 'online')) this.status.online = value.online == null ? null : Boolean(value.online);
@@ -621,6 +680,7 @@
         top: () => this.topView(),
         front: () => this.frontView(),
         follow: () => this.toggleCameraMode(),
+        axes: () => this.toggleAxesVisible(),
       };
       Object.entries(actions).forEach(([name, handler]) => {
         const element = resolveElement(controls[name]);
@@ -630,6 +690,7 @@
         this._controlDisposers.push(() => element.removeEventListener('click', handler));
       });
       this.setCameraMode(this.cameraMode);
+      this.setAxesVisible(this.axesVisible, false);
       return () => this.unbindControls();
     }
 
@@ -701,7 +762,11 @@
 
     _updateControlState(active) {
       Object.entries(this._controlElements).forEach(([name, element]) => {
-        const pressed = name === 'follow' ? this.cameraMode === 'follow' : name === active;
+        const pressed = name === 'follow'
+          ? this.cameraMode === 'follow'
+          : name === 'axes'
+            ? this.axesVisible
+            : name === active;
         element.setAttribute('aria-pressed', pressed ? 'true' : 'false');
       });
     }
@@ -835,7 +900,7 @@
       this._cameraBasis();
       this._drawGrid();
       this._drawPointCloud();
-      this._drawWorldAxes();
+      if (this.axesVisible) this._drawWorldAxes();
       this.ctx = mainContext;
       this._staticDirty = false;
       return true;
@@ -857,7 +922,7 @@
         this._cameraBasis();
         this._drawGrid();
         this._drawPointCloud();
-        this._drawWorldAxes();
+        if (this.axesVisible) this._drawWorldAxes();
       }
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       this._basis = null;

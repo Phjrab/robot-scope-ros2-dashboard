@@ -1,5 +1,50 @@
 const $ = (selector) => document.querySelector(selector);
 
+const LOG_SCROLL_BOTTOM_TOLERANCE_PX = 16;
+const stickyLogScrollGenerations = new WeakMap();
+
+function nonnegativeScrollMetric(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function captureStickyLogScroll(element, followEnabled = true) {
+  const scrollHeight = nonnegativeScrollMetric(element?.scrollHeight);
+  const clientHeight = nonnegativeScrollMetric(element?.clientHeight);
+  const maximumScrollTop = Math.max(0, scrollHeight - clientHeight);
+  const scrollTop = Math.min(maximumScrollTop, nonnegativeScrollMetric(element?.scrollTop));
+  return {
+    scrollTop,
+    follow: followEnabled === true && maximumScrollTop - scrollTop <= LOG_SCROLL_BOTTOM_TOLERANCE_PX,
+  };
+}
+
+function applyStickyLogScroll(element, snapshot, forceBottom = false) {
+  if (!element) return;
+  const maximumScrollTop = Math.max(
+    0,
+    nonnegativeScrollMetric(element.scrollHeight) - nonnegativeScrollMetric(element.clientHeight),
+  );
+  element.scrollTop = forceBottom || snapshot?.follow === true
+    ? maximumScrollTop
+    : Math.min(maximumScrollTop, nonnegativeScrollMetric(snapshot?.scrollTop));
+}
+
+function scheduleStickyLogScroll(element, snapshot, { forceBottom = false, shouldApply = null } = {}) {
+  if (!element) return;
+  const generation = (stickyLogScrollGenerations.get(element) || 0) + 1;
+  stickyLogScrollGenerations.set(element, generation);
+  // Reading after textContent was replaced captures any synchronous browser
+  // clamp.  If wheel, keyboard, scrollbar or touch scrolling changes this
+  // value before the animation frame, that user action wins.
+  const renderedScrollTop = nonnegativeScrollMetric(element.scrollTop);
+  requestAnimationFrame(() => {
+    if (stickyLogScrollGenerations.get(element) !== generation) return;
+    if (typeof shouldApply === 'function' && !shouldApply()) return;
+    if (Math.abs(nonnegativeScrollMetric(element.scrollTop) - renderedScrollTop) > 0.5) return;
+    applyStickyLogScroll(element, snapshot, forceBottom);
+  });
+}
+
 // LiDAR identity is intentionally resolved from backend metadata first and a
 // small exact-topic allowlist second.  Do not infer a physical sensor from a
 // fragment such as "deskewed": /utlidar/cloud_deskewed is the Go2 sensor.
@@ -411,6 +456,7 @@ const ui = {
   navigationRobotResetButton: $('#navigationRobotResetButton'),
   navigationRobotTopButton: $('#navigationRobotTopButton'),
   navigationRobotFrontButton: $('#navigationRobotFrontButton'),
+  navigationRobotAxesButton: $('#navigationRobotAxesButton'),
   navigationModelLabel: $('#navigationModelLabel'),
   navigationModelNote: $('#navigationModelNote'),
   navigationParameterState: $('#navigationParameterState'),
@@ -638,7 +684,18 @@ let navigationSnapshot = null;
 let navigationStatusBusy = false;
 let navigationStatusRequestGeneration = 0;
 let navigationOperationBusy = false;
+let navigationOperationKind = '';
 let navigationApiAvailable = null;
+const NAVIGATION_STARTUP_PHASES = Object.freeze({
+  starting_localization: Object.freeze({ label: 'STARTING LOCALIZATION', message: '위치추정용 XT16·FAST-LIO 파이프라인을 시작하고 있습니다.', tone: 'waiting' }),
+  waiting_localization: Object.freeze({ label: 'WAITING SENSOR', message: 'XT16·FAST-LIO 센서 데이터가 안정화되기를 기다리고 있습니다.', tone: 'waiting' }),
+  starting_navigation: Object.freeze({ label: 'STARTING NAV2', message: '위치추정 입력을 확인했습니다. Nav2 프로세스를 시작하고 있습니다.', tone: 'waiting' }),
+  warming_navigation: Object.freeze({ label: 'WARMING', message: 'Nav2가 scan·odometry·runtime health 안전 게이트를 확인하고 있습니다.', tone: 'waiting' }),
+  activating: Object.freeze({ label: 'ACTIVATING', message: '최종 안전 점검 후 Navigation 제어 권한을 활성화하고 있습니다.', tone: 'waiting' }),
+  active: Object.freeze({ label: 'RUNNING', message: 'Nav2가 실행 중입니다. 지도에서 초기 위치를 지정할 수 있습니다.', tone: 'ok' }),
+  stopping: Object.freeze({ label: 'STOPPING', message: '시작 작업과 Navigation 소유 리소스를 안전하게 정리하고 있습니다.', tone: 'waiting' }),
+  failed: Object.freeze({ label: 'FAILED', message: 'Navigation 시작에 실패했습니다. 아래 오류와 Navigation 로그를 확인하세요.', tone: 'error' }),
+});
 const NAVIGATION_LOG_LIMIT = 100;
 const NAVIGATION_LOG_MAX_LINES = 300;
 const NAVIGATION_LOG_PHASES = new Set(['idle', 'starting', 'running', 'stopping', 'failed']);
@@ -767,6 +824,7 @@ const navigationScene3d = window.RobotScene3D && ui.navigationRobotCanvas
       maxCloudRadius: 20,
       autoFitOnFirstCloud: false,
       showTrail: false,
+      axesStorageKey: 'robot-scope.navigation-model.axes.v1',
       initialDistance: 3,
     })
   : null;
@@ -776,6 +834,7 @@ if (navigationScene3d) {
     reset: ui.navigationRobotResetButton,
     top: ui.navigationRobotTopButton,
     front: ui.navigationRobotFrontButton,
+    axes: ui.navigationRobotAxesButton,
   });
   navigationScene3d.setRobotPose(null);
   navigationScene3d.setStatus({
@@ -3022,8 +3081,15 @@ function mappingPipelineActive() {
   return ['starting', 'running', 'stopping'].includes(mappingControlSnapshot?.pipeline?.state);
 }
 
+function scheduleMappingLogScroll(scrollSnapshot) {
+  scheduleStickyLogScroll(ui.mappingLog, scrollSnapshot, {
+    shouldApply: () => activePage === 'mapping',
+  });
+}
+
 function renderMappingControl() {
   if (!mappingControlSnapshot) return;
+  const logScrollSnapshot = captureStickyLogScroll(ui.mappingLog);
   const pipeline = mappingControlSnapshot.pipeline || {};
   const operation = mappingControlSnapshot.operation || {};
   const laserMapReady = hasFreshLaserMap();
@@ -3073,7 +3139,7 @@ function renderMappingControl() {
   ui.mappingLog.textContent = mappingLogLines.length
     ? mappingLogLines.join('\n')
     : '[Robot Scope] mapping console ready';
-  ui.mappingLog.scrollTop = ui.mappingLog.scrollHeight;
+  scheduleMappingLogScroll(logScrollSnapshot);
 
   if (operation.kind !== 'pcd_to_2d' && operation.job_id && ['succeeded', 'failed'].includes(operation.state) && !mapConversionMatches(operation)) {
     const key = `${operation.job_id}:${operation.state}`;
@@ -4145,12 +4211,33 @@ function navigationStatusCard(strong, note, state, label, message) {
   note.textContent = message;
 }
 
+function navigationStartupPresentation(snapshot) {
+  const dependency = snapshot?.localization_pipeline;
+  if (!dependency || typeof dependency !== 'object') return null;
+  const phase = String(dependency.phase || '').toLowerCase();
+  const presentation = NAVIGATION_STARTUP_PHASES[phase];
+  if (!presentation) return null;
+  const error = typeof dependency.error === 'string' ? dependency.error.trim().slice(0, 160) : '';
+  return {
+    phase,
+    label: presentation.label,
+    message: error || presentation.message,
+    tone: presentation.tone,
+    pending: dependency.pending === true,
+    ownedByNavigation: dependency.owned_by_navigation === true,
+  };
+}
+
 function navigationBlockerMessage(blocker) {
   const messages = {
     navigation_unavailable: 'Nav2 패키지 또는 허용된 launcher가 준비되지 않았습니다.',
     robot_offline: '로봇 연결이 없어 새 주행 명령을 보낼 수 없습니다.',
     manual_control_active: '수동 제어가 ARM되어 있습니다. Controls에서 먼저 DISARM하세요.',
-    mapping_active: '매핑 pipeline이 실행 중입니다. 매핑을 중지한 뒤 Nav2를 시작하세요.',
+    mapping_active: '공유 위치추정 파이프라인이 이미 실행 중입니다. Navigation이 이 센서 파이프라인을 재사용합니다.',
+    mapping_transition: '공유 위치추정 파이프라인이 전환 중입니다. 잠시 기다리거나 STOP으로 시작 작업을 정리하세요.',
+    mapping_operation_active: '지도 저장·변환 작업이 끝난 뒤 Nav2를 시작할 수 있습니다.',
+    navigation_transition: 'Navigation 시작 또는 중지 작업이 진행 중입니다.',
+    localization_pipeline_not_running: '공유 위치추정 센서 파이프라인을 준비하지 못했습니다. Navigation 로그를 확인하세요.',
     map_required: '정적 2D 지도를 선택하세요.',
     initial_pose_required: '지도에서 로봇의 초기 위치와 방향을 지정하세요.',
     localization_lost: '위치추정이 유실되었습니다. 초기 위치를 다시 지정하세요.',
@@ -4171,6 +4258,8 @@ function renderNavigationStatus() {
   const pipelineState = String(snapshot.pipeline?.state || 'idle').toLowerCase();
   const pipelineActive = navigationEngine.pipelineActive(snapshot);
   const pipelineRunning = pipelineState === 'running';
+  const startup = navigationStartupPresentation(snapshot);
+  const startupPending = startup?.pending === true;
   const goalState = String(snapshot.goal?.state || 'idle').toLowerCase();
   const goalActive = navigationEngine.goalActive(snapshot);
   const localizationState = String(snapshot.localization?.state || 'unknown').toLowerCase();
@@ -4181,7 +4270,7 @@ function renderNavigationStatus() {
   const safety = snapshot.safety || {};
   const blockers = Array.isArray(safety.blockers) ? safety.blockers : [];
   const firstBlocker = blockers[0];
-  const activeMapMismatch = pipelineActive && !navigationActiveMapMatchesSelection();
+  const activeMapMismatch = pipelineRunning && !navigationActiveMapMatchesSelection();
 
   ui.navigationSafetyBanner.className = 'navigation-safety-banner';
   ui.navigationControlLink.hidden = !manualConflict;
@@ -4205,6 +4294,14 @@ function renderNavigationStatus() {
     ui.navigationSafetyBanner.classList.add('is-offline');
     ui.navigationSafetyTitle.textContent = 'ROBOT OFFLINE';
     ui.navigationSafetyMessage.textContent = '새 시작·초기 위치·목표 명령은 잠겼습니다. STOP과 CANCEL은 작업 정리를 위해 유지됩니다.';
+  } else if (startup?.phase === 'failed') {
+    ui.navigationSafetyBanner.classList.add('is-error');
+    ui.navigationSafetyTitle.textContent = startup.label;
+    ui.navigationSafetyMessage.textContent = startup.message;
+  } else if (startupPending || ['starting_localization', 'waiting_localization', 'starting_navigation', 'warming_navigation', 'activating', 'stopping'].includes(startup?.phase)) {
+    ui.navigationSafetyBanner.classList.add('is-warning');
+    ui.navigationSafetyTitle.textContent = startup.label;
+    ui.navigationSafetyMessage.textContent = startup.message;
   } else if (pipelineState === 'failed') {
     ui.navigationSafetyBanner.classList.add('is-error');
     ui.navigationSafetyTitle.textContent = 'NAVIGATION FAILED';
@@ -4223,9 +4320,9 @@ function renderNavigationStatus() {
   navigationStatusCard(
     ui.navigationPipelineState,
     ui.navigationPipelineNote,
-    pipelineState === 'failed' ? 'error' : pipelineRunning ? 'ok' : 'waiting',
-    pipelineState.toUpperCase(),
-    snapshot.pipeline?.error || (snapshot.pipeline?.job_id ? `job ${String(snapshot.pipeline.job_id).slice(0, 8)}` : 'pipeline idle'),
+    startup?.tone || (pipelineState === 'failed' ? 'error' : pipelineRunning ? 'ok' : 'waiting'),
+    startup?.label || pipelineState.toUpperCase(),
+    startup?.message || snapshot.pipeline?.error || (snapshot.pipeline?.job_id ? `job ${String(snapshot.pipeline.job_id).slice(0, 8)}` : 'pipeline idle'),
   );
   navigationStatusCard(
     ui.navigationRobotState,
@@ -4239,7 +4336,7 @@ function renderNavigationStatus() {
     ui.navigationLocalizationNote,
     localizationState === 'localized' ? 'ok' : ['lost', 'error'].includes(localizationState) ? 'error' : 'waiting',
     localizationState.toUpperCase(),
-    localizationState === 'localized' ? 'map frame pose ready' : localizationState === 'lost' ? '초기 위치 재설정 필요' :
+    startupPending ? startup.message : localizationState === 'localized' ? 'map frame pose ready' : localizationState === 'lost' ? '초기 위치 재설정 필요' :
       pipelineActive ? '초기 위치 필요' : 'START NAV2 후 초기 위치 필요',
   );
   navigationStatusCard(
@@ -4250,7 +4347,8 @@ function renderNavigationStatus() {
     snapshot.goal?.error || (snapshot.goal?.goal_id ? `goal ${String(snapshot.goal.goal_id).slice(0, 8)}` : '목표 없음'),
   );
 
-  ui.navigationJobId.textContent = snapshot.pipeline?.job_id ? `JOB ${String(snapshot.pipeline.job_id).slice(0, 8)}` : 'JOB —';
+  const visibleJobId = snapshot.pipeline?.job_id || snapshot.localization_pipeline?.job_id;
+  ui.navigationJobId.textContent = visibleJobId ? `JOB ${String(visibleJobId).slice(0, 8)}` : 'JOB —';
   ui.navigationReadiness.querySelectorAll('[data-navigation-ready]').forEach((element) => {
     const key = element.dataset.navigationReady;
     const value = snapshot.readiness?.[key];
@@ -4294,7 +4392,9 @@ function renderNavigationStatus() {
     safety.can_start === true && !pipelineActive && !manualConflict;
   const canStop = safety.can_stop === true || pipelineActive;
   ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart;
-  ui.navigationStopButton.disabled = navigationOperationBusy || !canStop;
+  ui.navigationStartButton.textContent = startupPending ? 'STARTING…' : 'START NAV2';
+  ui.navigationStopButton.textContent = startupPending ? 'STOP STARTUP' : 'STOP';
+  ui.navigationStopButton.disabled = (navigationOperationBusy && navigationOperationKind !== 'start') || !canStop;
   ui.navigationCancelGoal.disabled = navigationOperationBusy || !goalActive;
   ui.navigationClearCostmaps.disabled = navigationOperationBusy || !pipelineRunning;
   ui.navigationMapSelect.disabled = navigationOperationBusy || pipelineActive;
@@ -4302,7 +4402,8 @@ function renderNavigationStatus() {
     ? '활성 지도 revision이 변경되었습니다. STOP 후 정적 지도를 다시 선택하세요.'
     : !mapReady
     ? 'Saved Maps의 2D 지도를 불러와야 위치를 지정할 수 있습니다.'
-    : !pipelineRunning ? 'Nav2를 시작하면 초기 위치와 목표 도구가 활성화됩니다.'
+    : startupPending ? startup.message
+    : !pipelineRunning ? 'START NAV2가 위치추정 센서와 Nav2를 순서대로 준비합니다.'
       : localizationState !== 'localized' ? 'INITIAL POSE를 선택하고 현재 로봇 위치에서 진행 방향으로 드래그하세요.'
         : 'GOAL POSE를 선택하고 목표 위치에서 도착 방향으로 드래그하세요.';
   if (navigationMapError || activeMapMismatch) setStatePill(ui.navigationMapState, 'error', 'MAP ERROR');
@@ -4342,21 +4443,22 @@ function navigationLogTimestampLabel(value, includeDate = false) {
   }
 }
 
-function scheduleNavigationLogScroll(previousScrollTop = 0) {
+function scheduleNavigationLogScroll(scrollSnapshot, { forceBottom = false } = {}) {
   const generation = ++navigationLogRenderGeneration;
-  requestAnimationFrame(() => {
-    if (generation !== navigationLogRenderGeneration || activePage !== 'navigation') return;
-    if (ui.navigationLogAutoScroll.checked) {
-      ui.navigationLogOutput.scrollTop = ui.navigationLogOutput.scrollHeight;
-    } else {
-      ui.navigationLogOutput.scrollTop = previousScrollTop;
-    }
+  scheduleStickyLogScroll(ui.navigationLogOutput, scrollSnapshot, {
+    forceBottom,
+    shouldApply: () => (
+      generation === navigationLogRenderGeneration && activePage === 'navigation'
+    ),
   });
 }
 
 function renderNavigationLog() {
   if (!ui.navigationLogOutput) return;
-  const previousScrollTop = ui.navigationLogOutput.scrollTop;
+  const logScrollSnapshot = captureStickyLogScroll(
+    ui.navigationLogOutput,
+    ui.navigationLogAutoScroll.checked,
+  );
   const lines = navigationLogEntries.map((entry) => (
     `[${navigationLogTimestampLabel(entry.timestamp)}] [${entry.phase.toUpperCase()}] [${entry.source.toUpperCase()}] ${entry.message}`
   ));
@@ -4392,7 +4494,7 @@ function renderNavigationLog() {
     ui.navigationLogNotice.textContent = '서버가 공개한 고정·정제 로그만 표시합니다. CLEAR VIEW는 이 브라우저 화면만 비웁니다.';
     ui.navigationLogNotice.classList.remove('is-error');
   }
-  scheduleNavigationLogScroll(previousScrollTop);
+  scheduleNavigationLogScroll(logScrollSnapshot);
 }
 
 function resetNavigationLogView(streamId = '') {
@@ -4544,6 +4646,7 @@ async function refreshNavigation() {
 async function runNavigationMutation(path, body, successMessage) {
   if (navigationOperationBusy) return null;
   navigationOperationBusy = true;
+  navigationOperationKind = path.endsWith('/start') ? 'start' : path.endsWith('/stop') ? 'stop' : 'command';
   navigationStatusRequestGeneration += 1;
   renderNavigationStatus();
   let response = null;
@@ -4557,8 +4660,9 @@ async function runNavigationMutation(path, body, successMessage) {
     return null;
   } finally {
     navigationOperationBusy = false;
+    navigationOperationKind = '';
     renderNavigationStatus();
-    refreshNavigation();
+    void refreshNavigation();
   }
 }
 
@@ -4575,7 +4679,7 @@ async function startNavigation() {
     map_id: navigationSelectedMapMeta.id,
     map_revision: navigationSelectedMapMeta.revision,
     parameters_revision: navigationParameterSnapshot.revision,
-  }, 'Nav2 시작을 요청했습니다.');
+  }, 'Navigation 시작 작업을 접수했습니다. 이 화면에서 센서·Nav2 준비 상태를 확인할 수 있습니다.');
 }
 
 async function stopNavigation() {
@@ -8025,7 +8129,13 @@ ui.navigationPoseSend.addEventListener('click', sendNavigationPose);
 ui.navigationCancelGoal.addEventListener('click', cancelNavigationGoal);
 ui.navigationClearCostmaps.addEventListener('click', clearNavigationCostmaps);
 ui.navigationLogAutoScroll.addEventListener('change', () => {
-  if (ui.navigationLogAutoScroll.checked) scheduleNavigationLogScroll(ui.navigationLogOutput.scrollTop);
+  navigationLogRenderGeneration += 1;
+  if (ui.navigationLogAutoScroll.checked) {
+    scheduleNavigationLogScroll(
+      captureStickyLogScroll(ui.navigationLogOutput, false),
+      { forceBottom: true },
+    );
+  }
 });
 ui.navigationLogClear.addEventListener('click', clearNavigationLogView);
 ui.navigationMapCanvas.addEventListener('pointerdown', beginNavigationPose);

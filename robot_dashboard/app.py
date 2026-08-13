@@ -7,7 +7,9 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -112,7 +114,21 @@ SERVICE_LIFECYCLE: ServiceLifecycleManager | None = None
 CONTROL_BRIDGE_LIFECYCLE: ControlBridgeLifecycleManager | None = None
 DATASET_CAPTURE: DatasetCaptureManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
+NAVIGATION_START_TASK: asyncio.Task[None] | None = None
 PIPELINE_COORDINATION_LOCK = asyncio.Lock()
+NAVIGATION_START_STATE_LOCK = threading.RLock()
+NAVIGATION_START_STATE: Dict[str, Any] = {
+    "seq": 0,
+    "token": None,
+    "phase": "idle",
+    "pending": False,
+    "cancel_requested": False,
+    "mapping_job_id": None,
+    "mapping_owned": False,
+    "navigation_job_id": None,
+    "terminal_cleanup": False,
+    "error": None,
+}
 JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
 POINTCLOUD_BINARY_CACHE: tuple[int, bytes, bytes] | None = None
 POINTCLOUD_BINARY_LOCK = asyncio.Lock()
@@ -122,6 +138,7 @@ CAMERA_WS_SEND_TIMEOUT_S = 2.0
 CONTROL_BRIDGE_STATUS_STALE_S = 0.75
 NAVIGATION_START_READY_TIMEOUT_S = 8.0
 NAVIGATION_START_READY_POLL_S = 0.05
+NAVIGATION_LOCALIZATION_READY_TIMEOUT_S = 75.0
 
 
 class DashboardStaticFiles(StaticFiles):
@@ -286,6 +303,18 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
+        startup_task = NAVIGATION_START_TASK
+        startup = _navigation_start_internal()
+        startup_token = startup.get("token")
+        if startup_task is not None and not startup_task.done():
+            request_navigation_start_cancel()
+            startup_task.cancel()
+            try:
+                await asyncio.shield(startup_task)
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                LOGGER.exception("navigation startup shutdown settlement failed")
         # A bridge transition must not begin after application shutdown starts.
         # Closing this observer never stops or starts the independently-owned
         # bridge service.
@@ -303,6 +332,12 @@ async def lifespan(_: FastAPI):
             except Exception:
                 LOGGER.exception("navigation shutdown stop failed")
             await asyncio.to_thread(NAVIGATION_JOBS.close)
+        if isinstance(startup_token, str):
+            cleanup_complete = await cleanup_navigation_localization_dependency(
+                startup_token
+            )
+            if cleanup_complete:
+                reset_navigation_start(startup_token)
         # Motion stop takes priority over potentially slow mapping cleanup.
         AGENT.shutdown_control()
         # A server-side dataset session owns normal camera demand tokens and
@@ -474,6 +509,221 @@ def mapping_pipeline_state() -> str:
     return state if state in {"idle", "starting", "running", "stopping", "failed"} else "failed"
 
 
+def navigation_start_state() -> Dict[str, Any]:
+    """Return the bounded public projection of the background START request."""
+
+    with NAVIGATION_START_STATE_LOCK:
+        state = dict(NAVIGATION_START_STATE)
+    state.pop("token", None)
+    return state
+
+
+def _navigation_start_internal() -> Dict[str, Any]:
+    with NAVIGATION_START_STATE_LOCK:
+        return dict(NAVIGATION_START_STATE)
+
+
+def begin_navigation_start() -> str:
+    """Reserve the single Nav/localization startup transaction."""
+
+    with NAVIGATION_START_STATE_LOCK:
+        if (
+            NAVIGATION_START_STATE.get("token") is not None
+            or
+            NAVIGATION_START_STATE.get("pending")
+            or NAVIGATION_START_STATE.get("phase") in {"active", "stopping"}
+            or NAVIGATION_START_STATE.get("mapping_owned")
+        ):
+            raise NavigationBusy("navigation is already active or starting")
+        token = secrets.token_hex(16)
+        NAVIGATION_START_STATE.update(
+            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            token=token,
+            phase="starting_localization",
+            pending=True,
+            cancel_requested=False,
+            mapping_job_id=None,
+            mapping_owned=False,
+            navigation_job_id=None,
+            terminal_cleanup=False,
+            error=None,
+        )
+        return token
+
+
+def update_navigation_start(
+    token: str,
+    phase: str,
+    *,
+    mapping_job_id: str | None = None,
+    mapping_owned: bool | None = None,
+    navigation_job_id: str | None = None,
+    error: str | None = None,
+) -> bool:
+    """Publish one token-fenced startup phase without exposing its token."""
+
+    allowed = {
+        "starting_localization",
+        "waiting_localization",
+        "starting_navigation",
+        "warming_navigation",
+        "activating",
+        "active",
+        "stopping",
+        "failed",
+        "idle",
+    }
+    if phase not in allowed:
+        raise ValueError("invalid navigation startup phase")
+    with NAVIGATION_START_STATE_LOCK:
+        if NAVIGATION_START_STATE.get("token") != token:
+            return False
+        updates: Dict[str, Any] = {
+            "seq": int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            "phase": phase,
+        }
+        if mapping_job_id is not None:
+            if (
+                not isinstance(mapping_job_id, str)
+                or re.fullmatch(r"[0-9a-f]{32}", mapping_job_id) is None
+            ):
+                raise ValueError("invalid localization dependency job_id")
+            updates["mapping_job_id"] = mapping_job_id
+        if mapping_owned is not None:
+            updates["mapping_owned"] = bool(mapping_owned)
+        if navigation_job_id is not None:
+            if (
+                not isinstance(navigation_job_id, str)
+                or re.fullmatch(r"[0-9a-f]{32}", navigation_job_id) is None
+            ):
+                raise ValueError("invalid navigation job_id")
+            updates["navigation_job_id"] = navigation_job_id
+        if error is not None:
+            updates["error"] = str(error)[:160]
+        NAVIGATION_START_STATE.update(updates)
+        return True
+
+
+def navigation_start_cancelled(token: str) -> bool:
+    with NAVIGATION_START_STATE_LOCK:
+        return bool(
+            NAVIGATION_START_STATE.get("token") != token
+            or NAVIGATION_START_STATE.get("cancel_requested")
+        )
+
+
+def request_navigation_start_cancel() -> str | None:
+    """Fence future startup phases before STOP performs process cleanup."""
+
+    with NAVIGATION_START_STATE_LOCK:
+        token = NAVIGATION_START_STATE.get("token")
+        if not isinstance(token, str):
+            return None
+        NAVIGATION_START_STATE.update(
+            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            phase="stopping",
+            cancel_requested=True,
+        )
+        return token
+
+
+def request_navigation_terminal_cancel(job_id: str) -> tuple[str, Dict[str, Any]] | None:
+    """Atomically fence only the startup that owns an exiting Nav job."""
+
+    if not isinstance(job_id, str) or re.fullmatch(r"[0-9a-f]{32}", job_id) is None:
+        return None
+    with NAVIGATION_START_STATE_LOCK:
+        token = NAVIGATION_START_STATE.get("token")
+        if (
+            not isinstance(token, str)
+            or NAVIGATION_START_STATE.get("navigation_job_id") != job_id
+        ):
+            return None
+        ownership = dict(NAVIGATION_START_STATE)
+        NAVIGATION_START_STATE.update(
+            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            phase="stopping",
+            cancel_requested=True,
+            terminal_cleanup=True,
+        )
+        return token, ownership
+
+
+def commit_navigation_start(token: str) -> bool:
+    """Commit only if STOP has not fenced the background transaction."""
+
+    with NAVIGATION_START_STATE_LOCK:
+        if (
+            NAVIGATION_START_STATE.get("token") != token
+            or NAVIGATION_START_STATE.get("cancel_requested")
+        ):
+            return False
+        NAVIGATION_START_STATE.update(
+            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            phase="active",
+            pending=False,
+            error=None,
+        )
+        return True
+
+
+def finish_navigation_start_failure(
+    token: str,
+    error: str,
+    *,
+    cleanup_complete: bool,
+    terminal_cleanup_owner: bool = False,
+) -> None:
+    """Publish bounded failure, retaining ownership only if cleanup failed."""
+
+    clean = " ".join(str(error).split())[:160] or "navigation startup failed"
+    with NAVIGATION_START_STATE_LOCK:
+        if NAVIGATION_START_STATE.get("token") != token:
+            return
+        if (
+            NAVIGATION_START_STATE.get("terminal_cleanup")
+            and not terminal_cleanup_owner
+        ):
+            return
+        NAVIGATION_START_STATE.update(
+            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            phase="failed",
+            pending=False,
+            error=clean,
+            terminal_cleanup=False,
+        )
+        if cleanup_complete:
+            NAVIGATION_START_STATE.update(
+                token=None,
+                cancel_requested=False,
+                mapping_job_id=None,
+                mapping_owned=False,
+                navigation_job_id=None,
+            )
+
+
+def reset_navigation_start(token: str | None) -> None:
+    """Clear one completed ownership record without touching a newer start."""
+
+    with NAVIGATION_START_STATE_LOCK:
+        if token is not None and NAVIGATION_START_STATE.get("token") != token:
+            return
+        if NAVIGATION_START_STATE.get("terminal_cleanup"):
+            return
+        NAVIGATION_START_STATE.update(
+            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            token=None,
+            phase="idle",
+            pending=False,
+            cancel_requested=False,
+            mapping_job_id=None,
+            mapping_owned=False,
+            navigation_job_id=None,
+            terminal_cleanup=False,
+            error=None,
+        )
+
+
 def service_lifecycle_blockers() -> list[str]:
     """Fail closed while robot work could be interrupted by this service."""
 
@@ -517,6 +767,9 @@ def service_lifecycle_blockers() -> list[str]:
         mapping_jobs=mapping_snapshot,
         mapping_task_active=mapping_task_active,
     )
+    startup = _navigation_start_internal()
+    if startup.get("pending") or startup.get("mapping_owned"):
+        blockers.append("navigation_start_pending")
     if DATASET_CAPTURE is not None:
         try:
             if DATASET_CAPTURE.is_active():
@@ -594,7 +847,7 @@ def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
         except Exception:
             dashboard_lifecycle_busy = None
 
-    return collect_control_bridge_lifecycle_blockers(
+    blockers = collect_control_bridge_lifecycle_blockers(
         control=control,
         navigation_runtime=navigation_runtime,
         navigation_jobs=navigation_snapshot,
@@ -603,6 +856,10 @@ def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
         dataset_capture_active=dataset_active,
         dashboard_service_lifecycle_busy=dashboard_lifecycle_busy,
     )
+    startup = _navigation_start_internal()
+    if startup.get("pending") or startup.get("mapping_owned"):
+        blockers.append("navigation_start_pending")
+    return list(dict.fromkeys(blockers))
 
 
 def signed_control_bridge_status_fresh() -> bool | None:
@@ -697,6 +954,12 @@ def require_service_lifecycle_idle() -> None:
 
 
 def navigation_active() -> bool:
+    startup = _navigation_start_internal()
+    startup_active = bool(
+        startup.get("pending")
+        or startup.get("mapping_owned")
+        or startup.get("phase") in {"active", "stopping"}
+    )
     manager_snapshot: Dict[str, Any] = {}
     manager_active = False
     if NAVIGATION_JOBS is not None:
@@ -715,7 +978,7 @@ def navigation_active() -> bool:
             # Mutation interlocks fail closed when ownership cannot be read.
             return True
     if AGENT is None:
-        return manager_active
+        return manager_active or startup_active
     try:
         runtime = AGENT.navigation_runtime_snapshot()
         goal = runtime.get("goal") if isinstance(runtime.get("goal"), dict) else {}
@@ -728,7 +991,7 @@ def navigation_active() -> bool:
             or goal.get("state") in {"pending", "active", "canceling"}
             or (lease.get("active") and lease.get("input_source") == "navigation")
         )
-        return manager_active or runtime_active
+        return manager_active or runtime_active or startup_active
     except Exception:
         return True
 
@@ -772,6 +1035,179 @@ async def wait_navigation_prelocalization_ready(
         reason = str(readiness.get("reason") or reason)[:160]
         await asyncio.sleep(NAVIGATION_START_READY_POLL_S)
     raise NavigationUnavailable(f"navigation startup timed out: {reason}")
+
+
+async def start_navigation_localization_dependency(
+    token: str,
+    *,
+    previous_job_id: str | None,
+) -> str:
+    """Start FAST-LIO and claim its exact job even if this task is cancelled."""
+
+    start_task = asyncio.create_task(
+        asyncio.to_thread(mapping_jobs().start_mapping),
+        name="navigation-localization-start",
+    )
+    snapshot: Dict[str, Any] | None = None
+    try:
+        snapshot = await asyncio.shield(start_task)
+    except asyncio.CancelledError:
+        try:
+            snapshot = await asyncio.shield(start_task)
+        except Exception:
+            snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
+        if snapshot is not None:
+            pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
+            job_id = pipeline.get("job_id")
+            if (
+                isinstance(job_id, str)
+                and re.fullmatch(r"[0-9a-f]{32}", job_id)
+                and job_id != previous_job_id
+            ):
+                update_navigation_start(
+                    token,
+                    "stopping",
+                    mapping_job_id=job_id,
+                    mapping_owned=True,
+                )
+        raise
+    except Exception:
+        # start_mapping() can publish a failed token before raising.  Capture
+        # that token so every partially launched process remains attributable
+        # to this transaction and can be compare-and-stopped.
+        snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
+        pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
+        job_id = pipeline.get("job_id")
+        if (
+            isinstance(job_id, str)
+            and re.fullmatch(r"[0-9a-f]{32}", job_id)
+            and job_id != previous_job_id
+        ):
+            update_navigation_start(
+                token,
+                "failed",
+                mapping_job_id=job_id,
+                mapping_owned=True,
+            )
+        raise
+
+    pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
+    job_id = pipeline.get("job_id")
+    if not isinstance(job_id, str) or re.fullmatch(r"[0-9a-f]{32}", job_id) is None:
+        raise NavigationUnavailable("localization pipeline did not publish an ownership token")
+    if job_id == previous_job_id:
+        raise NavigationUnavailable("localization pipeline reused a stale ownership token")
+    if not update_navigation_start(
+        token,
+        "waiting_localization",
+        mapping_job_id=job_id,
+        mapping_owned=True,
+    ):
+        raise NavigationConflict("navigation startup ownership expired")
+    return job_id
+
+
+async def wait_navigation_localization_dependency(token: str) -> None:
+    """Wait boundedly for the exact reserved FAST-LIO job to become ready."""
+
+    deadline = time.monotonic() + NAVIGATION_LOCALIZATION_READY_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if navigation_start_cancelled(token):
+            raise NavigationConflict("navigation startup was stopped")
+        ownership = _navigation_start_internal()
+        expected_job_id = ownership.get("mapping_job_id")
+        snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
+        pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
+        state = str(pipeline.get("state", "failed"))
+        if pipeline.get("job_id") != expected_job_id:
+            raise NavigationUnavailable("localization pipeline ownership changed during startup")
+        if state == "running":
+            return
+        if state not in {"starting", "stopping"}:
+            reason = " ".join(str(pipeline.get("error") or state).split())[:120]
+            raise NavigationUnavailable(f"localization pipeline failed: {reason}")
+        if state == "stopping":
+            raise NavigationConflict("localization pipeline was stopped during navigation startup")
+        await asyncio.sleep(NAVIGATION_START_READY_POLL_S)
+    raise NavigationUnavailable("localization pipeline readiness timed out")
+
+
+def cleanup_navigation_localization_dependency_sync(token: str) -> bool:
+    """Synchronously compare-and-stop one Nav-owned mapping dependency."""
+
+    ownership = _navigation_start_internal()
+    if ownership.get("token") != token or not ownership.get("mapping_owned"):
+        return True
+    job_id = ownership.get("mapping_job_id")
+    if not isinstance(job_id, str):
+        return False
+    try:
+        _, snapshot = mapping_jobs().stop_mapping_if_job_id(job_id)
+    except MappingJobError:
+        LOGGER.exception("navigation-owned localization cleanup failed")
+        return False
+    pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
+    # A different token means the owned job already ended or was replaced.
+    # It is deliberately never stopped by this stale transaction.
+    return bool(
+        pipeline.get("job_id") != job_id
+        or pipeline.get("state") not in {"starting", "running", "stopping"}
+    )
+
+
+async def cleanup_navigation_localization_dependency(token: str) -> bool:
+    """Stop only the exact mapping job auto-started by this Nav transaction."""
+
+    return await asyncio.to_thread(
+        cleanup_navigation_localization_dependency_sync,
+        token,
+    )
+
+
+async def rollback_navigation_transaction(
+    token: str,
+    manager: NavigationJobManager,
+    reason: str,
+) -> bool:
+    """Disarm Nav first, then compare-and-stop only its owned dependency."""
+
+    await rollback_navigation_start(manager, reason)
+    return await cleanup_navigation_localization_dependency(token)
+
+
+async def perform_navigation_stop_cleanup(token: str | None) -> None:
+    """Settle every STOP side effect even if the HTTP request is cancelled."""
+
+    try:
+        await asyncio.to_thread(
+            agent().navigation_deactivate,
+            reason="navigation_stop",
+        )
+    except Exception:
+        # Process cleanup remains available even if the robot transport is
+        # already offline.  The signed bridge also has its own watchdog.
+        LOGGER.exception("navigation stop could not reach the ROS agent")
+    manager_error: NavigationJobError | None = None
+    try:
+        await asyncio.to_thread(navigation_jobs().stop)
+    except NavigationJobError as exc:
+        manager_error = exc
+    cleanup_complete = True
+    if token is not None:
+        cleanup_complete = await cleanup_navigation_localization_dependency(token)
+    if cleanup_complete:
+        # The caller holds the coordination lock.  Token-fencing still keeps
+        # an idle STOP from clearing a retained failure or future ownership.
+        if token is not None:
+            reset_navigation_start(token)
+    elif token is not None:
+        finish_navigation_start_failure(
+            token,
+            "navigation stopped but localization cleanup must be retried",
+            cleanup_complete=False,
+        )
+    if manager_error is not None:
+        raise manager_error
 
 
 async def rollback_navigation_start(manager: NavigationJobManager, reason: str) -> None:
@@ -863,6 +1299,122 @@ async def run_navigation_activation(
         raise
 
 
+async def run_navigation_start_operation(
+    token: str,
+    manager: NavigationJobManager,
+    *,
+    map_id: str,
+    map_revision: str,
+    map_name: str,
+    parameters_revision: str,
+    start_localization: bool,
+    previous_mapping_job_id: str | None,
+) -> None:
+    """Complete the one-click Nav startup without holding the API mutex."""
+
+    global NAVIGATION_START_TASK
+    try:
+        if start_localization:
+            await start_navigation_localization_dependency(
+                token,
+                previous_job_id=previous_mapping_job_id,
+            )
+        if navigation_start_cancelled(token):
+            raise NavigationConflict("navigation startup was stopped")
+        update_navigation_start(token, "waiting_localization")
+        await wait_navigation_localization_dependency(token)
+
+        if navigation_start_cancelled(token):
+            raise NavigationConflict("navigation startup was stopped")
+        update_navigation_start(token, "starting_navigation")
+        start_fence = time.monotonic()
+        await run_navigation_manager_start(
+            manager,
+            map_id=map_id,
+            map_revision=map_revision,
+            parameters_revision=parameters_revision,
+        )
+
+        started = await asyncio.to_thread(manager.snapshot)
+        started_pipeline = (
+            started.get("pipeline")
+            if isinstance(started.get("pipeline"), dict)
+            else {}
+        )
+        navigation_job_id = started_pipeline.get("job_id")
+        if (
+            str(started_pipeline.get("state", "failed")) != "running"
+            or not isinstance(navigation_job_id, str)
+            or re.fullmatch(r"[0-9a-f]{32}", navigation_job_id) is None
+        ):
+            raise NavigationUnavailable(
+                "navigation pipeline did not publish an ownership token"
+            )
+        if not update_navigation_start(
+            token,
+            "warming_navigation",
+            navigation_job_id=navigation_job_id,
+        ):
+            raise NavigationConflict("navigation startup ownership expired")
+
+        if navigation_start_cancelled(token):
+            raise NavigationConflict("navigation startup was stopped")
+        await wait_navigation_prelocalization_ready(
+            manager,
+            ready_after=start_fence,
+        )
+        # Recheck both the exact dependency and non-mutating control gates
+        # immediately before the only operation that acquires motion.
+        await wait_navigation_localization_dependency(token)
+        latest = await asyncio.to_thread(manager.snapshot)
+        if str((latest.get("pipeline") or {}).get("state", "failed")) != "running":
+            raise NavigationUnavailable(
+                "navigation pipeline stopped before motion could be armed"
+            )
+        await asyncio.to_thread(agent().navigation_start_preflight)
+        if navigation_start_cancelled(token):
+            raise NavigationConflict("navigation startup was stopped")
+        update_navigation_start(token, "activating")
+        await run_navigation_activation(
+            manager,
+            map_id=map_id,
+            map_revision=map_revision,
+            map_name=map_name,
+            ready_after=start_fence,
+        )
+        if not commit_navigation_start(token):
+            raise NavigationConflict("navigation startup was stopped")
+    except asyncio.CancelledError:
+        cleanup_complete = await asyncio.shield(
+            rollback_navigation_transaction(
+                token,
+                manager,
+                "navigation_start_cancelled",
+            )
+        )
+        finish_navigation_start_failure(
+            token,
+            "navigation startup was stopped",
+            cleanup_complete=cleanup_complete,
+        )
+    except Exception as exc:
+        cleanup_complete = await rollback_navigation_transaction(
+            token,
+            manager,
+            "navigation_start_failed",
+        )
+        message = " ".join(str(exc).split())[:160] or "navigation startup failed"
+        finish_navigation_start_failure(
+            token,
+            message,
+            cleanup_complete=cleanup_complete,
+        )
+        LOGGER.warning("navigation background startup failed: %s", message)
+    finally:
+        if NAVIGATION_START_TASK is asyncio.current_task():
+            NAVIGATION_START_TASK = None
+
+
 def navigation_view() -> Dict[str, Any]:
     """Merge process ownership with ROS readiness into the stable UI contract."""
 
@@ -873,14 +1425,21 @@ def navigation_view() -> Dict[str, Any]:
         LOGGER.exception("navigation runtime snapshot failed")
         runtime = {}
 
+    startup = navigation_start_state()
+    startup_phase = str(startup.get("phase", "idle"))
+    startup_pending = bool(startup.get("pending", False))
     manager_pipeline = manager.get("pipeline") if isinstance(manager.get("pipeline"), dict) else {}
     pipeline_state = str(manager_pipeline.get("state", "failed"))
     if pipeline_state not in {"idle", "starting", "running", "stopping", "failed"}:
         pipeline_state = "failed"
+    if startup_pending and pipeline_state in {"idle", "failed"}:
+        pipeline_state = "starting"
+    elif startup_phase == "failed" and pipeline_state == "idle":
+        pipeline_state = "failed"
     pipeline = {
         "state": pipeline_state,
         "job_id": manager_pipeline.get("job_id"),
-        "error": manager_pipeline.get("error"),
+        "error": manager_pipeline.get("error") or startup.get("error"),
         "started_at": manager_pipeline.get("started_at"),
     }
 
@@ -906,6 +1465,16 @@ def navigation_view() -> Dict[str, Any]:
     robot_online = bool(runtime.get("robot_online", False))
     mapping_busy, mapping_blockers = mapping_activity()
     shared_mapping_state = mapping_pipeline_state()
+    if (
+        startup_pending
+        and startup.get("mapping_job_id")
+        and startup.get("mapping_job_id")
+        == (mapping_jobs().snapshot().get("pipeline") or {}).get("job_id")
+    ):
+        mapping_blockers = [
+            blocker for blocker in mapping_blockers if blocker != "mapping_transition"
+        ]
+        mapping_busy = bool(mapping_blockers)
 
     runtime_safety = runtime.get("safety") if isinstance(runtime.get("safety"), dict) else {}
     blockers = [
@@ -961,11 +1530,17 @@ def navigation_view() -> Dict[str, Any]:
         or runtime_goal_active
         or runtime.get("navigation_lease_active")
     )
+    startup_cleanup_required = bool(
+        startup_pending
+        or startup.get("mapping_owned")
+        or startup_phase in {"active", "stopping"}
+    )
     safety = {
         "can_start": bool(
             available
             and robot_online
             and not mapping_busy
+            and not startup_cleanup_required
             and pipeline_state in {"idle", "failed"}
             and runtime_safety.get("can_start", False)
         ),
@@ -979,11 +1554,19 @@ def navigation_view() -> Dict[str, Any]:
             and shared_mapping_state == "running"
             and runtime_safety.get("can_send_goal", False)
         ),
-        "can_stop": bool(manager_cleanup_required or runtime_cleanup_required),
+        "can_stop": bool(
+            manager_cleanup_required
+            or runtime_cleanup_required
+            or startup_cleanup_required
+        ),
         "blockers": blockers,
     }
     result: Dict[str, Any] = {
-        "seq": max(int(manager.get("seq", 0) or 0), int(runtime.get("seq", 0) or 0)),
+        "seq": max(
+            int(manager.get("seq", 0) or 0),
+            int(runtime.get("seq", 0) or 0),
+            int(startup.get("seq", 0) or 0),
+        ),
         "available": available,
         "robot_online": robot_online,
         "pipeline": pipeline,
@@ -999,7 +1582,15 @@ def navigation_view() -> Dict[str, Any]:
             "localization_odometry": "/Odometry",
             "command": "/robot_scope/nav/cmd_vel_raw",
         },
-        "localization_pipeline": {"state": shared_mapping_state, "shared": True},
+        "localization_pipeline": {
+            "state": shared_mapping_state,
+            "shared": True,
+            "phase": startup_phase,
+            "pending": startup_pending,
+            "owned_by_navigation": bool(startup.get("mapping_owned", False)),
+            "job_id": startup.get("mapping_job_id"),
+            "error": startup.get("error"),
+        },
     }
     deactivation_reason = runtime.get("deactivation_reason")
     if isinstance(deactivation_reason, str) and deactivation_reason:
@@ -1520,6 +2111,19 @@ async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, An
     require_same_origin(request)
     async with PIPELINE_COORDINATION_LOCK:
         require_service_lifecycle_idle()
+        startup = _navigation_start_internal()
+        if startup.get("pending") or startup.get("phase") in {
+            "starting_localization",
+            "waiting_localization",
+            "starting_navigation",
+            "warming_navigation",
+            "activating",
+            "stopping",
+        }:
+            raise HTTPException(
+                status_code=409,
+                detail="navigation startup must stop before manual control can arm",
+            )
         try:
             result = agent().control_acquire(body.input_source)
         except ControlError as exc:
@@ -1789,11 +2393,12 @@ async def update_navigation_parameters(
             raise navigation_error(exc) from exc
 
 
-@app.post("/api/v1/navigation/start")
+@app.post("/api/v1/navigation/start", status_code=202)
 async def navigation_start(
     request: Request,
     body: NavigationStartRequest,
 ) -> Dict[str, Any]:
+    global NAVIGATION_START_TASK
     require_same_origin(request)
     manager = navigation_jobs()
     async with PIPELINE_COORDINATION_LOCK:
@@ -1834,78 +2439,66 @@ async def navigation_start(
         except ControlError as exc:
             raise navigation_agent_error(exc) from exc
 
-        shared_pipeline_state = mapping_pipeline_state()
-        if shared_pipeline_state in {"idle", "failed"}:
-            try:
-                shared_start = await asyncio.to_thread(mapping_jobs().start_mapping)
-            except MappingJobError as exc:
-                raise mapping_error(exc) from exc
-            shared_pipeline_state = str(
-                (shared_start.get("pipeline") or {}).get("state", "failed")
-            )
-            if shared_pipeline_state != "running":
-                # The fail-closed mapping launcher remains in ``starting``
-                # while it verifies fresh raw, bridge and FAST-LIO output.
-                # Never activate Nav2 against process existence alone; the
-                # client can retry once the mapping status becomes running.
-                raise HTTPException(
-                    status_code=409,
-                    detail="localization pipeline is still verifying sensor readiness",
-                )
-        elif shared_pipeline_state != "running":
+        mapping_snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
+        mapping_pipeline = (
+            mapping_snapshot.get("pipeline")
+            if isinstance(mapping_snapshot.get("pipeline"), dict)
+            else {}
+        )
+        shared_pipeline_state = str(mapping_pipeline.get("state", "failed"))
+        if shared_pipeline_state == "stopped":
+            shared_pipeline_state = "idle"
+        if shared_pipeline_state not in {"idle", "failed", "running"}:
             raise HTTPException(
                 status_code=409,
                 detail="localization pipeline is changing state",
             )
-
-        start_fence = time.monotonic()
-        start_completed = False
+        existing_mapping_job_id = mapping_pipeline.get("job_id")
+        if shared_pipeline_state == "running" and (
+            not isinstance(existing_mapping_job_id, str)
+            or re.fullmatch(r"[0-9a-f]{32}", existing_mapping_job_id) is None
+        ):
+            raise HTTPException(
+                status_code=503,
+                detail="localization pipeline ownership is unavailable",
+            )
         try:
-            await run_navigation_manager_start(
-                manager,
-                map_id=source.map_id,
-                map_revision=source.revision,
-                parameters_revision=body.parameters_revision,
-            )
-            start_completed = True
-            await wait_navigation_prelocalization_ready(
-                manager,
-                ready_after=start_fence,
-            )
-            # The manager and non-mutating control preflight are rechecked
-            # immediately before the only operation that acquires motion.
-            latest = await asyncio.to_thread(manager.snapshot)
-            if str((latest.get("pipeline") or {}).get("state", "failed")) != "running":
-                raise NavigationUnavailable(
-                    "navigation pipeline stopped before motion could be armed"
-                )
-            await asyncio.to_thread(agent().navigation_start_preflight)
-            navigation = await run_navigation_activation(
-                manager,
-                map_id=source.map_id,
-                map_revision=source.revision,
-                map_name=source.name,
-                ready_after=start_fence,
-            )
-        except asyncio.CancelledError:
-            if start_completed:
-                await asyncio.shield(
-                    rollback_navigation_start(manager, "navigation_start_cancelled")
-                )
-            raise
+            token = begin_navigation_start()
         except NavigationJobError as exc:
-            if start_completed:
-                await rollback_navigation_start(manager, "navigation_start_failed")
             raise navigation_error(exc) from exc
-        except ControlError as exc:
-            if start_completed:
-                await rollback_navigation_start(manager, "navigation_start_failed")
-            raise navigation_agent_error(exc) from exc
+        if shared_pipeline_state == "running":
+            update_navigation_start(
+                token,
+                "waiting_localization",
+                mapping_job_id=existing_mapping_job_id,
+                mapping_owned=False,
+            )
+        try:
+            NAVIGATION_START_TASK = asyncio.create_task(
+                run_navigation_start_operation(
+                    token,
+                    manager,
+                    map_id=source.map_id,
+                    map_revision=source.revision,
+                    map_name=source.name,
+                    parameters_revision=body.parameters_revision,
+                    start_localization=shared_pipeline_state in {"idle", "failed"},
+                    previous_mapping_job_id=(
+                        existing_mapping_job_id
+                        if isinstance(existing_mapping_job_id, str)
+                        else None
+                    ),
+                ),
+                name="navigation-start-operation",
+            )
         except Exception:
-            if start_completed:
-                await rollback_navigation_start(manager, "navigation_start_failed")
+            reset_navigation_start(token)
             raise
-    return {"accepted": True, "navigation": navigation}
+    return {
+        "accepted": True,
+        "pending": True,
+        "navigation": await asyncio.to_thread(navigation_view),
+    }
 
 
 @app.post("/api/v1/navigation/stop")
@@ -1915,20 +2508,45 @@ async def navigation_stop(
 ) -> Dict[str, Any]:
     del body
     require_same_origin(request)
+    task: asyncio.Task[None] | None
     async with PIPELINE_COORDINATION_LOCK:
+        token = request_navigation_start_cancel()
+        task = NAVIGATION_START_TASK
+        if task is not None and not task.done():
+            task.cancel()
+        request_cancelled = False
+        if task is not None and not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                # Distinguish the background task's expected cancellation from
+                # a cancelled STOP request.  Always settle startup before the
+                # final idempotent cleanup below.
+                if not task.done():
+                    request_cancelled = True
+                    try:
+                        await asyncio.shield(task)
+                    except asyncio.CancelledError:
+                        pass
+            except Exception:
+                LOGGER.exception("navigation background stop settlement failed")
+
+        cleanup_task = asyncio.create_task(
+            perform_navigation_stop_cleanup(token),
+            name="navigation-stop-cleanup",
+        )
         try:
-            await asyncio.to_thread(
-                agent().navigation_deactivate,
-                reason="navigation_stop",
-            )
-        except Exception:
-            # Process cleanup remains available even if the robot transport is
-            # already offline.  The signed bridge also has its own watchdog.
-            LOGGER.exception("navigation stop could not reach the ROS agent")
-        try:
-            await asyncio.to_thread(navigation_jobs().stop)
+            await asyncio.shield(cleanup_task)
+        except asyncio.CancelledError:
+            request_cancelled = True
+            try:
+                await asyncio.shield(cleanup_task)
+            except NavigationJobError as exc:
+                raise navigation_error(exc) from exc
         except NavigationJobError as exc:
             raise navigation_error(exc) from exc
+        if request_cancelled:
+            raise asyncio.CancelledError
     return {"navigation": await asyncio.to_thread(navigation_view)}
 
 
@@ -2542,10 +3160,26 @@ def main() -> None:
         metadata_snapshot=AGENT.pose_snapshot,
     )
 
-    def navigation_terminal(reason: str) -> None:
+    def navigation_terminal(reason: str, job_id: str) -> None:
+        fenced = request_navigation_terminal_cancel(job_id)
+        if fenced is None:
+            return
+        token, ownership = fenced
         current = AGENT
         if current is not None:
-            current.navigation_deactivate(reason=reason)
+            try:
+                current.navigation_deactivate(reason=reason)
+            except Exception:
+                # A lost robot transport must not skip process ownership
+                # cleanup after an unexpected Nav2 exit.
+                LOGGER.exception("navigation terminal deactivation failed")
+        cleanup_complete = cleanup_navigation_localization_dependency_sync(token)
+        finish_navigation_start_failure(
+            token,
+            reason,
+            cleanup_complete=cleanup_complete,
+            terminal_cleanup_owner=True,
+        )
 
     NAVIGATION_JOBS = NavigationJobManager.for_go2_humble(
         project_dir=project_dir,

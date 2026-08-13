@@ -159,30 +159,106 @@ class NavigationAppContractTests(unittest.TestCase):
     def test_navigation_start_reuses_or_starts_shared_fastlio_pipeline(self):
         node = functions(parsed_app())["navigation_start"]
         source = ast.unparse(node)
-        self.assertIn("mapping_pipeline_state()", source)
-        self.assertIn("mapping_jobs().start_mapping", source)
-        self.assertIn("shared_pipeline_state != 'running'", source)
-        self.assertIn("still verifying sensor readiness", source)
-        self.assertNotIn("stop_mapping", source)
+        self.assertIn("mapping_jobs().snapshot", source)
+        self.assertIn("run_navigation_start_operation", source)
+        self.assertIn("start_localization=shared_pipeline_state in {'idle', 'failed'}", source)
+        self.assertIn("mapping_owned=False", source)
+        self.assertIn("status_code=202", source)
+        self.assertIn("'pending': True", source)
+        self.assertNotIn("wait_navigation_prelocalization_ready", source)
+        operation = ast.unparse(functions(parsed_app())["run_navigation_start_operation"])
         self.assertLess(
-            source.index("run_navigation_manager_start"),
-            source.index("run_navigation_activation"),
+            operation.index("run_navigation_manager_start"),
+            operation.index("run_navigation_activation"),
         )
         self.assertIn("navigation_start_preflight", source)
-        self.assertIn("wait_navigation_prelocalization_ready", source)
-        self.assertIn("rollback_navigation_start", source)
-        self.assertIn("asyncio.CancelledError", source)
-        self.assertIn("run_navigation_manager_start", source)
-        self.assertIn("run_navigation_activation", source)
-        self.assertIn("navigation_start_failed", source)
+        self.assertIn("wait_navigation_localization_dependency", operation)
+        self.assertIn("wait_navigation_prelocalization_ready", operation)
+        self.assertIn("rollback_navigation_transaction", operation)
+        self.assertIn("asyncio.CancelledError", operation)
+        self.assertIn("run_navigation_manager_start", operation)
+        self.assertIn("run_navigation_activation", operation)
         returns = [item for item in ast.walk(node) if isinstance(item, ast.Return)]
         self.assertTrue(returns)
-        self.assertFalse(
-            any(isinstance(item, ast.Await) for item in ast.walk(returns[-1].value))
-        )
         activation = ast.unparse(functions(parsed_app())["run_navigation_activation"])
         self.assertIn("await asyncio.to_thread(navigation_view)", activation)
         self.assertIn("rollback_navigation_start", activation)
+
+    def test_navigation_dependency_cleanup_is_exact_and_status_exposes_progress(self):
+        tree_functions = functions(parsed_app())
+        cleanup = ast.unparse(
+            tree_functions["cleanup_navigation_localization_dependency_sync"]
+        )
+        self.assertIn("stop_mapping_if_job_id", cleanup)
+        self.assertIn("mapping_owned", cleanup)
+        view = ast.unparse(tree_functions["navigation_view"])
+        self.assertIn("startup_cleanup_required", view)
+        self.assertIn("'phase': startup_phase", view)
+        self.assertIn("'pending': startup_pending", view)
+        self.assertIn("'owned_by_navigation'", view)
+        self.assertIn("startup_cleanup_required", view)
+
+    def test_stop_cancels_background_start_outside_the_coordination_lock(self):
+        source = ast.unparse(functions(parsed_app())["navigation_stop"])
+        self.assertIn("request_navigation_start_cancel", source)
+        self.assertIn("task.cancel()", source)
+        self.assertIn("await asyncio.shield(task)", source)
+        self.assertIn("perform_navigation_stop_cleanup", source)
+        cleanup = ast.unparse(
+            functions(parsed_app())["perform_navigation_stop_cleanup"]
+        )
+        self.assertIn("cleanup_navigation_localization_dependency", cleanup)
+
+    def test_manual_arm_blocks_every_navigation_start_transition(self):
+        node = functions(parsed_app())["control_arm"]
+        lock_context = next(
+            item
+            for item in ast.walk(node)
+            if isinstance(item, ast.AsyncWith)
+            and any(
+                isinstance(entry.context_expr, ast.Name)
+                and entry.context_expr.id == "PIPELINE_COORDINATION_LOCK"
+                for entry in item.items
+            )
+        )
+        source = ast.unparse(lock_context)
+        self.assertIn("_navigation_start_internal", source)
+        self.assertIn("startup.get('pending')", source)
+        self.assertIn("control_acquire", source)
+        self.assertLess(
+            source.index("_navigation_start_internal"),
+            source.index("control_acquire"),
+        )
+        for phase in (
+            "starting_localization",
+            "waiting_localization",
+            "starting_navigation",
+            "warming_navigation",
+            "activating",
+            "stopping",
+        ):
+            self.assertIn(repr(phase), source)
+
+    def test_terminal_deactivation_failure_cannot_skip_owned_mapping_cleanup(self):
+        main = functions(parsed_app())["main"]
+        terminal = next(
+            item
+            for item in main.body
+            if isinstance(item, ast.FunctionDef) and item.name == "navigation_terminal"
+        )
+        source = ast.unparse(terminal)
+        self.assertIn("except Exception", source)
+        self.assertIn("cleanup_navigation_localization_dependency_sync", source)
+        self.assertLess(
+            source.index("except Exception"),
+            source.index("cleanup_navigation_localization_dependency_sync"),
+        )
+
+    def test_shutdown_settles_start_task_then_exact_dependency_cleanup(self):
+        source = ast.unparse(functions(parsed_app())["lifespan"])
+        self.assertIn("startup_task.cancel()", source)
+        self.assertIn("await asyncio.shield(startup_task)", source)
+        self.assertIn("cleanup_navigation_localization_dependency", source)
 
     def test_navigation_cleanup_union_covers_manager_runtime_goal_and_lease(self):
         source = ast.unparse(functions(parsed_app())["navigation_active"])

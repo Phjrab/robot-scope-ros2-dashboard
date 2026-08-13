@@ -539,15 +539,25 @@ parameter YAML만 `shell=False` process group으로 실행합니다.
 
 같은 화면의 별도 3D 패널은 Settings에서 선택한 Go2, TurtleBot 또는 SO-101 모델을
 표시합니다. Go2 관절 데이터는 선택 프로필과 runtime이 일치하고 최신 샘플이 있을 때만
-반영하며, Navigation의 map 좌표 위치와 다른 telemetry 자세를 섞지 않습니다.
+반영하며, Navigation의 map 좌표 위치와 다른 telemetry 자세를 섞지 않습니다. `XYZ`
+버튼으로 좌표축만 표시하거나 숨길 수 있고 선택은 해당 브라우저에 저장됩니다.
+
+Mapping과 Navigation 콘솔은 사용자가 로그 맨 아래에 있을 때만 새 항목을 따라갑니다.
+과거 로그를 보기 위해 위로 스크롤하면 갱신 중에도 현재 위치를 보존하며, Navigation의
+`AUTO-SCROLL`을 다시 켜면 명시적으로 최신 줄로 이동합니다.
 
 내비게이션 시작 시 Hesai + XT16 bridge + FAST-LIO가 이미 대시보드 소유 process로
 실행 중이면 그대로 공유합니다. 파이프라인이 idle/failed 상태면 동일한 allowlisted
-매핑 시작 경로를 자동 실행한 뒤 Nav2를 시작합니다. 이 shared pipeline이
+매핑 시작 경로를 백그라운드에서 자동 실행하고 센서가 안정화된 뒤 Nav2를 이어서
+시작합니다. 사용자는 Live Mapping 화면으로 이동하거나 START를 다시 누를 필요가 없고,
+Navigation 패널에서 위치추정 준비, 센서 대기, Nav2 시작과 활성화 단계를 확인하고
+진행 중에도 `STOP STARTUP`으로 취소할 수 있습니다. 이 shared pipeline이
 `/velodyne_points`와 `/Odometry`를 공급하고 navigation runtime이 고정 `/scan`과
-`odom -> base_link` TF를 만듭니다. Navigation의 중지는 Nav2와 signed motion lease만
-정리하며 Hesai + FAST-LIO는 계속 실행하므로, 다시 매핑 화면에서 관측하거나 다음
-내비게이션 시작에 재사용할 수 있습니다.
+`odom -> base_link` TF를 만듭니다. Navigation이 직접 시작한 Hesai + FAST-LIO는
+Navigation STOP, 시작 실패 또는 대시보드 정상 종료 때 동일한 mapping job ID를 확인한
+후 함께 정리합니다. 반대로 사용자가 Live Mapping에서 먼저 시작한 파이프라인은
+Navigation이 재사용만 하며 STOP 때 종료하지 않으므로, 수동 매핑 작업을 침범하지
+않습니다.
 
 Nav2 controller 출력은 전역 `/cmd_vel`이 아니라 서버 고정
 `/robot_scope/nav/cmd_vel_raw`로 격리됩니다. RosAgent는 publisher가 정확히 하나이고
@@ -571,7 +581,8 @@ Navigation이 active인 동안 다음 요청은 409로 차단됩니다.
 
 1. Saved Maps에서 PCD를 2D로 변환하거나 관리 가능한 기존 2D 지도를 확인합니다.
 2. Navigation에서 지도를 선택하고 필요하면 안전 범위 안의 파라미터를 적용합니다.
-3. START로 공유 Hesai + FAST-LIO와 Nav2를 준비합니다.
+3. START를 한 번 눌러 공유 Hesai + FAST-LIO와 Nav2를 준비하고 같은 패널의 단계 표시를
+   확인합니다.
 4. 지도에서 `INITIAL POSE`를 드래그해 방향까지 지정하고 전송합니다.
 5. 모든 readiness가 초록색일 때 `GOAL POSE`를 지정하고 물리 리모컨을 손에 든 상태에서
    확인 후 전송합니다.
@@ -1004,8 +1015,8 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | POST /api/v1/mapping/save | 현재 지도 저장 |
 | GET /api/v1/navigation | Nav2 파이프라인, 센서, 위치추정과 목표 상태 |
 | GET/PATCH /api/v1/navigation/parameters | revision 기반 안전 파라미터 조회와 변경 |
-| POST /api/v1/navigation/start | 선택한 지도 revision으로 공유 파이프라인과 Nav2 시작 |
-| POST /api/v1/navigation/stop | signed motion gate를 닫고 Nav2 정지 |
+| POST /api/v1/navigation/start | 선택한 지도 revision으로 공유 파이프라인과 Nav2의 백그라운드 시작 예약(202) |
+| POST /api/v1/navigation/stop | 진행 중인 시작을 취소하거나 signed motion gate와 Nav2를 닫고 Nav 소유 파이프라인 정리 |
 | POST /api/v1/navigation/initial-pose | known-free 셀의 초기 위치·방향 지정 |
 | POST /api/v1/navigation/goal | 확인된 known-free 목표 전송 |
 | POST /api/v1/navigation/cancel | 현재 목표 취소와 즉시 정지 |

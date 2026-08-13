@@ -384,7 +384,7 @@ class NavigationJobManager:
         start_command: NavigationCommandSpec,
         map_snapshotter: Callable[[str, str, Path], NavigationMapSnapshot],
         prerequisites: Optional[Mapping[str, Path]] = None,
-        on_terminal: Optional[Callable[[str], None]] = None,
+        on_terminal: Optional[Callable[[str, str], None]] = None,
         stop_grace_seconds: float = 3.0,
         startup_grace_seconds: float = 0.15,
         max_parameter_bytes: int = 1024 * 1024,
@@ -462,7 +462,7 @@ class NavigationJobManager:
         project_dir: Path,
         runtime_dir: Path,
         map_snapshotter: Callable[[str, str, Path], NavigationMapSnapshot],
-        on_terminal: Optional[Callable[[str], None]] = None,
+        on_terminal: Optional[Callable[[str, str], None]] = None,
         **kwargs: Any,
     ) -> "NavigationJobManager":
         project = project_dir.expanduser().resolve(strict=True)
@@ -1541,7 +1541,7 @@ class NavigationJobManager:
 
     def _monitor(self, token: str, process: subprocess.Popen[str], pgid: int) -> None:
         exit_code = process.wait()
-        callback: Optional[Callable[[str], None]] = None
+        callback: Optional[Callable[[str, str], None]] = None
         reason = "pipeline_exit"
         job_dir: Optional[Path] = None
         with self._lock:
@@ -1573,7 +1573,7 @@ class NavigationJobManager:
         # Never wait indefinitely for the group to disappear on its own.
         if callback is not None:
             try:
-                callback(reason)
+                callback(reason, token)
             except Exception as exc:
                 self._append_log(
                     "pipeline",

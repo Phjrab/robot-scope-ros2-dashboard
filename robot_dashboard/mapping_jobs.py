@@ -489,11 +489,40 @@ class MappingJobManager:
     def stop_mapping(self) -> dict[str, Any]:
         """Gracefully stop the complete manager-owned mapping process group."""
 
+        _, snapshot = self._stop_mapping(expected_job_id=None)
+        return snapshot
+
+    def stop_mapping_if_job_id(self, job_id: str) -> tuple[bool, dict[str, Any]]:
+        """Stop only the exact still-active mapping job named by ``job_id``.
+
+        Navigation uses this compare-and-stop operation for a localization
+        pipeline that it started itself.  Checking the token and publishing
+        ``stopping`` happen under the manager lock, so a stale navigation
+        cleanup can never stop a replacement or operator-started pipeline.
+        """
+
+        if not isinstance(job_id, str) or not re.fullmatch(r"[0-9a-f]{32}", job_id):
+            raise MappingJobError("mapping cleanup job_id is invalid")
+        return self._stop_mapping(expected_job_id=job_id)
+
+    def _stop_mapping(
+        self,
+        *,
+        expected_job_id: Optional[str],
+    ) -> tuple[bool, dict[str, Any]]:
+        """Implement unconditional and token-fenced mapping cleanup."""
+
         with self._lock:
+            if (
+                expected_job_id is not None
+                and self._pipeline.get("job_id") != expected_job_id
+            ):
+                return False, self.snapshot()
             if self._save_active:
                 raise JobBusyError("map save must finish before mapping can stop")
             if self._pipeline["state"] not in {"starting", "running", "stopping"}:
-                return self.snapshot()
+                return False, self.snapshot()
+            token = self._pipeline_token
             process = self._pipeline_process
             pgid = self._pipeline_pgid
             self._stop_requested = True
@@ -505,6 +534,11 @@ class MappingJobManager:
 
         exit_code = process.poll() if process is not None else None
         with self._lock:
+            # No public start can replace a ``stopping`` job, but retain a
+            # second token fence so future manager changes cannot let stale
+            # cleanup publish terminal state for another process group.
+            if self._pipeline_token != token:
+                return False, self.snapshot()
             self._pipeline.update(
                 state="stopped",
                 stopped_at=_utc_now(),
@@ -514,7 +548,7 @@ class MappingJobManager:
             self._pipeline_process = None
             self._pipeline_pgid = None
             self._append_log_locked("pipeline", "mapping pipeline stopped")
-        return self.snapshot()
+        return True, self.snapshot()
 
     def save_map(self, name: str, kind: str) -> dict[str, Any]:
         """Run one allowlisted save recipe and publish only verified artifacts."""

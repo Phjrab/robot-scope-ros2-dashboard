@@ -262,10 +262,10 @@ class NavigationJobManagerTests(unittest.TestCase):
         reasons = []
         holder = {}
 
-        def terminal(reason):
+        def terminal(reason, job_id):
             # Calling back into snapshot would deadlock if invoked under lock.
             holder["manager"].snapshot()
-            reasons.append(reason)
+            reasons.append((reason, job_id))
             event.set()
 
         self.launcher = exiting
@@ -275,16 +275,17 @@ class NavigationJobManagerTests(unittest.TestCase):
             startup_grace_seconds=0.0,
         )
         holder["manager"] = self.manager
-        self.manager.start(
+        started = self.manager.start(
             map_id=MAP_ID,
             map_revision=MAP_REVISION,
             parameters_revision=self.manager.parameters_snapshot()["revision"],
         )
         self.assertTrue(event.wait(2.0))
-        self.assertEqual(reasons, ["pipeline_exit"])
+        expected_job_id = started["pipeline"]["job_id"]
+        self.assertEqual(reasons, [("pipeline_exit", expected_job_id)])
         self.assertEqual(self.manager.snapshot()["pipeline"]["state"], "failed")
         time.sleep(0.1)
-        self.assertEqual(reasons, ["pipeline_exit"])
+        self.assertEqual(reasons, [("pipeline_exit", expected_job_id)])
 
     def test_launcher_exit_closes_gate_before_terminating_surviving_group(self):
         events = []
@@ -299,10 +300,10 @@ class NavigationJobManagerTests(unittest.TestCase):
 
         process = ExitedProcess()
 
-        def terminal(reason):
+        def terminal(reason, job_id):
             # Re-entering the manager proves the callback is outside its lock.
             self.manager.snapshot()
-            events.append(f"callback:{reason}")
+            events.append(f"callback:{reason}:{job_id}")
 
         self.manager.on_terminal = terminal
         with self.manager._lock:
@@ -334,7 +335,7 @@ class NavigationJobManagerTests(unittest.TestCase):
             events,
             [
                 "wait",
-                "callback:pipeline_exit",
+                f"callback:pipeline_exit:{token}",
                 "terminate:True:4242",
                 "cleanup:True",
             ],
@@ -365,7 +366,9 @@ class NavigationJobManagerTests(unittest.TestCase):
                 "started_at": "now",
                 "stopped_at": None,
             }
-        self.manager.on_terminal = lambda reason: events.append(f"callback:{reason}")
+        self.manager.on_terminal = (
+            lambda reason, job_id: events.append(f"callback:{reason}:{job_id}")
+        )
         self.manager._group_alive = lambda pgid: events.append(f"alive:{pgid}") or True
         self.manager._terminate_group = lambda process, pgid: events.append("terminate")
 
