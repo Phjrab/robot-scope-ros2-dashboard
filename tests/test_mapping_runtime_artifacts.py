@@ -131,12 +131,34 @@ def laser_map(rows=2, width=12, padding=8, *, include_intensity=True):
     )
 
 
+def prime_clock(clock, *, next_scan_start, offset, monotonic_start=9.7):
+    """Feed three stable calibration scans, all of which must be rejected."""
+
+    case = unittest.TestCase()
+    for index in range(bridge.CLOCK_RELOCK_REQUIRED_SAMPLES):
+        scan_start = next_scan_start - 0.3 + index * 0.1
+        scan_end = scan_start + 0.1
+        with case.assertRaisesRegex(
+            bridge.BridgeContractError, "initial calibration"
+        ):
+            clock.stamp(
+                scan_start,
+                scan_end,
+                scan_end + offset,
+                monotonic_start + index * 0.1,
+            )
+    return clock
+
+
 class Xt16BridgeArtifactTests(unittest.TestCase):
     def test_conversion_matches_readiness_layout_and_decimates_to_bounded_output(self):
-        clock = bridge.ClockOffsetTracker()
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=1_000.0, offset=0.1
+        )
         converted = bridge.convert_xt16_cloud(
             raw_cloud(),
             received_s=1_000.2,
+            received_monotonic_s=10.0,
             clock=clock,
         )
         self.assertEqual(converted.width, 1_000)
@@ -182,7 +204,9 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
             )
 
     def test_sustained_callback_backlog_is_rejected_without_clock_rebase(self):
-        clock = bridge.ClockOffsetTracker()
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.1
+        )
         clock.stamp(100.0, 100.1, 1_000.2, 10.0)
         for index in range(1, 7):
             scan_start = 100.0 + index * 0.1
@@ -199,7 +223,9 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertAlmostEqual(clock.offset_s, 900.1)
 
     def test_wall_clock_step_relocks_only_after_stable_rejected_samples(self):
-        clock = bridge.ClockOffsetTracker()
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.1
+        )
         clock.stamp(100.0, 100.1, 1_000.2, 10.0)
         for index in range(1, bridge.CLOCK_RELOCK_REQUIRED_SAMPLES + 1):
             scan_start = 100.0 + index * 0.1
@@ -215,7 +241,9 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertAlmostEqual(seconds + nanoseconds * 1e-9, 1_001.5, places=6)
 
     def test_raw_clock_reset_requires_progress_and_full_window_stability(self):
-        clock = bridge.ClockOffsetTracker()
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.1
+        )
         clock.stamp(100.0, 100.1, 1_000.2, 10.0)
         for scan_end, offset in ((50.1, 950.1), (50.2, 950.119), (50.3, 950.138)):
             with self.assertRaises(bridge.BridgeContractError):
@@ -227,7 +255,9 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
                 )
         self.assertEqual(clock.relock_count, 0)
 
-        replay = bridge.ClockOffsetTracker()
+        replay = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.1
+        )
         replay.stamp(100.0, 100.1, 1_000.2, 10.0)
         for index in range(4):
             with self.assertRaises(bridge.BridgeContractError):
@@ -235,7 +265,9 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertEqual(replay.relock_count, 0)
 
     def test_raw_clock_reset_relocks_after_stable_progressing_samples(self):
-        clock = bridge.ClockOffsetTracker()
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.1
+        )
         clock.stamp(100.0, 100.1, 1_000.2, 10.0)
         for index in range(bridge.CLOCK_RELOCK_REQUIRED_SAMPLES):
             scan_end = 50.1 + index * 0.1
@@ -251,30 +283,109 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertAlmostEqual(seconds + nanoseconds * 1e-9, 1_000.4, places=6)
 
     def test_published_stamp_regression_is_rejected_without_mutating_offset(self):
-        clock = bridge.ClockOffsetTracker()
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.2
+        )
         clock.stamp(100.0, 100.1, 1_000.3, 10.0)
         trusted_offset = clock.offset_s
         with self.assertRaisesRegex(bridge.BridgeContractError, "did not increase"):
             clock.stamp(100.1, 100.2, 1_000.21, 10.1)
         self.assertEqual(clock.offset_s, trusted_offset)
 
-    def test_raw_header_absolute_age_bounds_initial_calibration(self):
+    def test_device_epoch_header_matches_payload_not_host_wall_clock(self):
         clock = bridge.ClockOffsetTracker()
-        with self.assertRaisesRegex(bridge.BridgeContractError, "header age 0.600s"):
+        for index in range(bridge.CLOCK_RELOCK_REQUIRED_SAMPLES):
+            scan_start = 100.0 + index * 0.1
+            with self.assertRaisesRegex(
+                bridge.BridgeContractError, "initial calibration"
+            ):
+                bridge.convert_xt16_cloud(
+                    raw_cloud(scan_start=scan_start, header_stamp=scan_start),
+                    received_s=1_000.2 + index * 0.1,
+                    received_monotonic_s=10.0 + index * 0.1,
+                    clock=clock,
+                )
+        converted = bridge.convert_xt16_cloud(
+            raw_cloud(scan_start=100.3, header_stamp=100.3),
+            received_s=1_000.5,
+            received_monotonic_s=10.3,
+            clock=clock,
+        )
+        self.assertEqual(converted.stamp_sec, 1_000)
+        self.assertGreater(converted.stamp_nanosec, 390_000_000)
+
+        with self.assertRaisesRegex(bridge.BridgeContractError, "device scan start"):
             bridge.convert_xt16_cloud(
-                raw_cloud(header_stamp=1_000.0),
-                received_s=1_000.6,
-                received_monotonic_s=10.0,
-                clock=clock,
-            )
-        self.assertIsNone(clock.offset_s)
-        with self.assertRaisesRegex(bridge.BridgeContractError, "future skew 0.200s"):
-            bridge.convert_xt16_cloud(
-                raw_cloud(header_stamp=1_000.2),
-                received_s=1_000.0,
-                received_monotonic_s=10.0,
+                raw_cloud(scan_start=200.0, header_stamp=201.0),
+                received_s=1_100.2,
+                received_monotonic_s=20.0,
                 clock=bridge.ClockOffsetTracker(),
             )
+
+    def test_initial_clock_window_rejects_outlier_before_first_publish(self):
+        clock = bridge.ClockOffsetTracker()
+        observations = (
+            (100.0, 1_000.7, 10.0),
+            (100.1, 1_000.3, 10.1),
+            (100.2, 1_000.4, 10.2),
+            (100.3, 1_000.5, 10.3),
+        )
+        for scan_start, received, monotonic in observations:
+            with self.assertRaisesRegex(
+                bridge.BridgeContractError, "initial calibration"
+            ):
+                clock.stamp(
+                    scan_start,
+                    scan_start + 0.1,
+                    received,
+                    monotonic,
+                )
+        self.assertAlmostEqual(clock.offset_s, 900.1)
+        seconds, nanoseconds = clock.stamp(100.4, 100.5, 1_000.6, 10.4)
+        self.assertAlmostEqual(seconds + nanoseconds * 1e-9, 1_000.5, places=6)
+
+    def test_initial_calibration_cloud_replay_is_never_first_publish(self):
+        clock = bridge.ClockOffsetTracker()
+        calibration = ()
+        for index in range(bridge.CLOCK_RELOCK_REQUIRED_SAMPLES):
+            scan_start = 100.0 + index * 0.1
+            calibration = (scan_start, scan_start + 0.1)
+            with self.assertRaisesRegex(
+                bridge.BridgeContractError, "initial calibration"
+            ):
+                clock.stamp(*calibration, 1_000.1 + index * 0.1, 10.0 + index * 0.1)
+
+        with self.assertRaisesRegex(
+            bridge.BridgeContractError, "device timestamp did not increase"
+        ):
+            clock.stamp(*calibration, 1_000.31, 10.31)
+        self.assertIsNone(clock._last_published_host_stamp_s)
+
+        seconds, nanoseconds = clock.stamp(100.3, 100.4, 1_000.4, 10.3)
+        self.assertAlmostEqual(seconds + nanoseconds * 1e-9, 1_000.3, places=6)
+        trusted_offset = clock.offset_s
+        with self.assertRaisesRegex(
+            bridge.BridgeContractError, "device timestamp did not increase"
+        ):
+            clock.stamp(100.3, 100.4, 1_000.41, 10.31)
+        self.assertEqual(clock.offset_s, trusted_offset)
+
+    def test_raw_reset_relock_requires_wall_and_monotonic_progress(self):
+        clock = prime_clock(
+            bridge.ClockOffsetTracker(), next_scan_start=100.0, offset=900.1
+        )
+        clock.stamp(100.0, 100.1, 1_000.2, 10.0)
+        for index in range(bridge.CLOCK_RELOCK_REQUIRED_SAMPLES + 1):
+            scan_end = 50.1 + index * 0.1
+            with self.assertRaises(bridge.BridgeContractError):
+                clock.stamp(
+                    scan_end - 0.1,
+                    scan_end,
+                    scan_end + 950.1,
+                    11.0 + index * 0.3,
+                )
+        self.assertEqual(clock.relock_count, 0)
+        self.assertAlmostEqual(clock.offset_s, 900.1)
 
     def test_raw_cloud_qos_is_latest_only_and_outputs_remain_reliable(self):
         source = (ROOT / "scripts/xt16_fastlio_bridge.py").read_text(encoding="utf-8")

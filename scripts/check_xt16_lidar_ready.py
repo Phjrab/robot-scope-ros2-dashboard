@@ -26,6 +26,7 @@ IMU_TYPE = "sensor_msgs/msg/Imu"
 ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
 MAX_HEADER_AGE_S = 0.50
 MAX_HEADER_FUTURE_S = 0.10
+RAW_HEADER_SCAN_START_TOLERANCE_S = 0.01
 
 
 class ReadinessError(ValueError):
@@ -402,10 +403,13 @@ class FreshSequenceGate:
         item_count: int = 0,
         host_now_s: float | None = None,
         header_age_s: float | None = None,
+        require_host_age: bool = True,
     ) -> bool:
         if not math.isfinite(float(stamp)) or not math.isfinite(received_at):
             raise ReadinessError("message stamp and arrival time must be finite")
-        if header_age_s is None:
+        if not require_host_age:
+            self.last_header_age_s = None
+        elif header_age_s is None:
             observed_host_s = float(stamp) if host_now_s is None else float(host_now_s)
             self.last_header_age_s = require_absolute_stamp_age(
                 float(stamp), host_now_s=observed_host_s, label="readiness"
@@ -456,23 +460,22 @@ class Xt16ReadinessGate(FreshSequenceGate):
         *,
         received_at: float,
         publisher: Hashable,
-        host_now_s: float | None = None,
     ) -> bool:
         points = validate_xt16_cloud(message)
-        observed_host_s = (
-            xt16_scan_timestamp(message) if host_now_s is None else float(host_now_s)
-        )
-        raw_header_age_s = require_absolute_stamp_age(
-            header_stamp_seconds(message),
-            host_now_s=observed_host_s,
-            label="/lidar_points",
-        )
+        payload_stamp = xt16_scan_timestamp(message)
+        if (
+            abs(header_stamp_seconds(message) - payload_stamp)
+            > RAW_HEADER_SCAN_START_TOLERANCE_S
+        ):
+            raise ReadinessError(
+                "/lidar_points header does not match the device scan start"
+            )
         return self.observe(
-            stamp=xt16_scan_timestamp(message),
+            stamp=payload_stamp,
             received_at=received_at,
             publisher=publisher,
             item_count=points,
-            header_age_s=raw_header_age_s,
+            require_host_age=False,
         )
 
 
@@ -621,7 +624,6 @@ def wait_for_ros_stage(
                     message,
                     received_at=monotonic(),
                     publisher=identity,
-                    host_now_s=wall_clock(),
                 )
             except ReadinessError as exc:
                 self.fail(exc)

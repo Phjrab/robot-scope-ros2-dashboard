@@ -48,8 +48,7 @@ CLOCK_RELOCK_MAX_SPREAD_S = 0.02
 CLOCK_STEP_MIN_DIVERGENCE_S = 0.10
 CONVERTED_CLOUD_MAX_AGE_S = 0.50
 CONVERTED_CLOUD_MAX_FUTURE_S = 0.05
-RAW_HEADER_MAX_AGE_S = 0.50
-RAW_HEADER_MAX_FUTURE_S = 0.10
+RAW_HEADER_SCAN_START_TOLERANCE_S = 0.01
 RAW_CLOUD_QOS_DEPTH = 1
 OUTPUT_QOS_DEPTH = 5
 
@@ -116,11 +115,12 @@ class ClockOffsetTracker:
         self.last_residual_s: float | None = None
         self.last_host_age_s: float | None = None
         self.relock_count = 0
-        self._relock_samples: list[tuple[float, float, float]] = []
+        self._relock_samples: list[tuple[float, float, float, float]] = []
         self._last_received_s: float | None = None
         self._last_monotonic_s: float | None = None
         self._last_scan_end_s: float | None = None
         self._last_published_host_stamp_s: float | None = None
+        self._initial_samples: list[tuple[float, float, float, float]] = []
 
     def _clear_relock(self) -> None:
         self._relock_samples.clear()
@@ -132,12 +132,53 @@ class ClockOffsetTracker:
         self._last_received_s = received_s
         self._last_monotonic_s = received_monotonic_s
 
+    def _calibrate_initial(
+        self,
+        instantaneous: float,
+        scan_end_s: float,
+        received_s: float,
+        monotonic_s: float,
+    ) -> None:
+        """Calibrate from several latest-only samples without publishing them."""
+
+        candidate = (instantaneous, scan_end_s, received_s, monotonic_s)
+        if self._initial_samples:
+            previous = self._initial_samples[-1]
+            offsets = [item[0] for item in self._initial_samples] + [instantaneous]
+            wall_delta = received_s - previous[2]
+            monotonic_delta = monotonic_s - previous[3]
+            stable = (
+                scan_end_s > previous[1]
+                and wall_delta > 0.0
+                and monotonic_delta > 0.0
+                and abs(wall_delta - monotonic_delta) < CLOCK_STEP_MIN_DIVERGENCE_S
+                and max(offsets) - min(offsets) <= CLOCK_RELOCK_MAX_SPREAD_S
+            )
+            self._initial_samples = (
+                self._initial_samples + [candidate] if stable else [candidate]
+            )
+        else:
+            self._initial_samples = [candidate]
+        self._remember_observation(scan_end_s, received_s, monotonic_s)
+        samples = len(self._initial_samples)
+        if samples >= CLOCK_RELOCK_REQUIRED_SAMPLES:
+            self.offset_s = min(item[0] for item in self._initial_samples)
+            self._initial_samples.clear()
+            raise BridgeContractError(
+                "cloud clock initial calibration completed; calibration cloud rejected"
+            )
+        raise BridgeContractError(
+            "cloud clock initial calibration "
+            f"sample {samples}/{CLOCK_RELOCK_REQUIRED_SAMPLES} rejected"
+        )
+
     def _reject_discontinuity(
         self,
         instantaneous: float,
         residual: float,
         scan_end_s: float,
         received_s: float,
+        monotonic_s: float,
         *,
         relock_eligible: bool,
     ) -> None:
@@ -148,13 +189,17 @@ class ClockOffsetTracker:
                 "sample rejected without clock rebase"
             )
 
-        candidate = (instantaneous, scan_end_s, received_s)
+        candidate = (instantaneous, scan_end_s, received_s, monotonic_s)
         if self._relock_samples:
             offsets = [item[0] for item in self._relock_samples] + [instantaneous]
             previous = self._relock_samples[-1]
+            wall_delta = received_s - previous[2]
+            monotonic_delta = monotonic_s - previous[3]
             stable = (
                 scan_end_s > previous[1]
-                and received_s > previous[2]
+                and wall_delta > 0.0
+                and monotonic_delta > 0.0
+                and abs(wall_delta - monotonic_delta) < CLOCK_STEP_MIN_DIVERGENCE_S
                 and max(offsets) - min(offsets) <= CLOCK_RELOCK_MAX_SPREAD_S
             )
             if not stable:
@@ -171,6 +216,7 @@ class ClockOffsetTracker:
             self.offset_s = min(item[0] for item in self._relock_samples)
             self.relock_count += 1
             self._clear_relock()
+            self._remember_observation(scan_end_s, received_s, monotonic_s)
             raise BridgeContractError(
                 "cloud clock residual discontinuity "
                 f"{residual:+.3f}s exceeded {CLOCK_RESIDUAL_LIMIT_S:.3f}s; "
@@ -199,15 +245,34 @@ class ClockOffsetTracker:
             raise BridgeContractError("cloud clocks are outside the supported range")
         instantaneous = received_s - scan_end_s
         if self.offset_s is None:
-            candidate_offset = instantaneous
+            self._calibrate_initial(
+                instantaneous,
+                scan_end_s,
+                received_s,
+                monotonic_s,
+            )
+            raise AssertionError("initial clock calibration must reject its input")
         else:
             residual = instantaneous - self.offset_s
             self.last_residual_s = residual
-            if abs(residual) > CLOCK_RESIDUAL_LIMIT_S:
-                raw_reset = (
-                    self._last_scan_end_s is not None
-                    and scan_end_s <= self._last_scan_end_s
+            raw_not_progressing = (
+                self._last_scan_end_s is not None
+                and scan_end_s <= self._last_scan_end_s
+            )
+            if raw_not_progressing:
+                if abs(residual) > CLOCK_RESIDUAL_LIMIT_S:
+                    self._reject_discontinuity(
+                        instantaneous,
+                        residual,
+                        scan_end_s,
+                        received_s,
+                        monotonic_s,
+                        relock_eligible=True,
+                    )
+                raise BridgeContractError(
+                    "raw cloud device timestamp did not increase; stale sample rejected"
                 )
+            if abs(residual) > CLOCK_RESIDUAL_LIMIT_S:
                 wall_step = False
                 if self._last_received_s is not None and self._last_monotonic_s is not None:
                     wall_step = abs(
@@ -219,7 +284,8 @@ class ClockOffsetTracker:
                     residual,
                     scan_end_s,
                     received_s,
-                    relock_eligible=raw_reset or wall_step,
+                    monotonic_s,
+                    relock_eligible=wall_step,
                 )
             self._clear_relock()
             candidate_offset = min(
@@ -348,18 +414,6 @@ def convert_xt16_cloud(
 ) -> ConvertedCloud:
     """Convert one exact Hesai cloud to the FAST-LIO Velodyne layout."""
 
-    header_age_s = received_s - _header_stamp_seconds(message)
-    if header_age_s > RAW_HEADER_MAX_AGE_S:
-        raise BridgeContractError(
-            f"raw cloud header age {header_age_s:.3f}s exceeds "
-            f"{RAW_HEADER_MAX_AGE_S:.3f}s"
-        )
-    if header_age_s < -RAW_HEADER_MAX_FUTURE_S:
-        raise BridgeContractError(
-            f"raw cloud header future skew {-header_age_s:.3f}s exceeds "
-            f"{RAW_HEADER_MAX_FUTURE_S:.3f}s"
-        )
-
     source = _raw_records(message)[::CLOUD_DECIMATION]
     timestamps = source["timestamp"].astype(np.float64, copy=False)
     finite = (
@@ -378,6 +432,14 @@ def convert_xt16_cloud(
     duration = scan_end - scan_start
     if not math.isfinite(duration) or duration < 0 or duration > MAX_SCAN_DURATION_S:
         raise BridgeContractError("XT16 scan duration is outside the supported range")
+    # The pinned Hesai driver stamps both the PointCloud2 header and every
+    # point in the sensor/device clock domain.  Compare those two sources for
+    # internal consistency; never compare either raw value to the host epoch.
+    header_stamp = _header_stamp_seconds(message)
+    if abs(header_stamp - scan_start) > RAW_HEADER_SCAN_START_TOLERANCE_S:
+        raise BridgeContractError(
+            "raw cloud header does not match the device scan start"
+        )
 
     output = np.zeros(len(source), dtype=OUTPUT_DTYPE)
     for name in ("x", "y", "z", "ring"):

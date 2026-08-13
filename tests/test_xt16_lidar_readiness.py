@@ -1,3 +1,4 @@
+import ast
 import importlib.util
 import struct
 import subprocess
@@ -211,28 +212,26 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
                 publisher=(1,),
                 host_now_s=1_000.0,
             )
-        with self.assertRaisesRegex(readiness.ReadinessError, r"/lidar_points.*0\.600s"):
-            gate = readiness.Xt16ReadinessGate()
-            gate.observe_cloud(
-                raw_cloud(stamp=1_000.0),
-                received_at=10.0,
-                publisher=(1,),
-                host_now_s=1_000.6,
-            )
 
     def test_raw_payload_clock_domain_is_not_compared_to_host_epoch(self):
         gate = readiness.Xt16ReadinessGate()
-        message = raw_cloud(stamp=50.0, header_stamp=1_000.0)
+        message = raw_cloud(stamp=50.0, header_stamp=50.0)
         self.assertFalse(
             gate.observe_cloud(
                 message,
                 received_at=10.0,
                 publisher=(1,),
-                host_now_s=1_000.1,
             )
         )
         self.assertAlmostEqual(gate.last_stamp, 50.0)
-        self.assertAlmostEqual(gate.last_header_age_s, 0.1)
+        self.assertIsNone(gate.last_header_age_s)
+
+        with self.assertRaisesRegex(readiness.ReadinessError, "device scan start"):
+            gate.observe_cloud(
+                raw_cloud(stamp=50.1, header_stamp=51.0),
+                received_at=10.1,
+                publisher=(1,),
+            )
 
     def test_stage_ready_requires_all_sources_fresh_at_one_common_time(self):
         state = readiness.StageState("bridge")
@@ -370,6 +369,17 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
     def test_ros_node_does_not_assign_the_read_only_subscriptions_property(self):
         self.assertNotIn("self.subscriptions =", self.helper_source)
         self.assertIn("self._readiness_subscriptions =", self.helper_source)
+
+    def test_raw_callback_never_compares_device_time_to_host_wall_clock(self):
+        tree = ast.parse(self.helper_source)
+        callback = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "on_raw"
+        )
+        names = {node.id for node in ast.walk(callback) if isinstance(node, ast.Name)}
+        self.assertNotIn("wall_clock", names)
+        self.assertNotIn("host_now_s", names)
 
     def test_final_verdict_rechecks_common_current_freshness(self):
         self.assertIn("final_ready = state.ready_at(final_now)", self.helper_source)
