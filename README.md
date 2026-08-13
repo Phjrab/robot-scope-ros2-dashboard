@@ -845,6 +845,68 @@ SOFTWARE STOP 래치는 이미 모든 lease와 모션 명령을 폐기한 안전
 사라지는 것이 정상입니다. 기능을 끄려면 `control.env`의 enable 값을 `0`으로 바꾸고
 sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
 
+### 대시보드에서 제어 브리지 시작·중지
+
+Controls 화면에서 `robot-scope-control-bridge.service`만 시작·중지하는 기능은 대시보드
+자체 lifecycle과 독립된 opt-in입니다. unit 이름, 임의 argv, shell, 환경 변수, force 또는
+restart를 HTTP 요청으로 전달할 수 없습니다. 먼저 위의 제어 브리지 unit을 설치한 뒤,
+다음 두 명령만 허용하는 별도 sudoers 예제를 검사·설치합니다.
+
+~~~text
+/usr/bin/systemctl --no-block start robot-scope-control-bridge.service
+/usr/bin/systemctl --no-block stop robot-scope-control-bridge.service
+~~~
+
+~~~bash
+sudo install -o root -g root -m 0440 \
+  deploy/robot-scope-control-bridge-lifecycle.sudoers.example \
+  /etc/sudoers.d/.robot-scope-control-bridge-lifecycle.new
+sudo visudo -cf /etc/sudoers.d/.robot-scope-control-bridge-lifecycle.new
+sudo mv /etc/sudoers.d/.robot-scope-control-bridge-lifecycle.new \
+  /etc/sudoers.d/robot-scope-control-bridge-lifecycle
+sudo visudo -cf /etc/sudoers.d/robot-scope-control-bridge-lifecycle
+~~~
+
+mode-0600 `runtime/config/control.env`에 별도 enable을 추가하고, 최초 한 번은 SSH에서
+대시보드만 재시작해 설정을 반영합니다. 이 값은 제어 기능의
+`ROBOT_SCOPE_CONTROL_ENABLED`나 대시보드 자체 lifecycle enable을 대신하지 않습니다.
+
+~~~dotenv
+ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED=1
+~~~
+
+이후 Controls 화면의 Bridge Service 카드에서 시작 또는 중지를 확인할 수 있습니다.
+GET 상태 조회는 읽기 전용이며, start/stop은 same-origin과 `confirmed=true`를 요구합니다.
+시작은 대시보드 제어 전송이 설정되고 현재 Go2가 시작 시 고정된 IP·프로필과 일치할 때만
+허용됩니다. 시작·중지 모두 수동 lease, one-shot 동작 안전 구간, navigation/goal 또는
+대시보드 자체 lifecycle이 활성 상태이면 HTTP 409로 거부되며 force 우회는 없습니다.
+Mapping과 Dataset Capture는 별도 프로세스·소유권이므로 브리지 lifecycle을 막지 않습니다.
+
+중지는 로봇이나 LowState가 offline이어도 실행할 수 있습니다. systemd가 inactive가 된
+뒤에도 마지막 인증된 브리지 상태가 0.75초 freshness 경계를 지나 stale될 때까지 화면은
+전환 중으로 유지됩니다. systemd unit 조회가 실패하거나 `LoadState=loaded`를 확인할 수
+없으면 start와 stop을 모두 fail-closed로 비활성화합니다. 대시보드 unit의 enable/disabled
+상태와 기존 Settings lifecycle은 이 기능으로 변경되지 않습니다. 제어 브리지 unit도 이
+API가 `start`와 `stop`만 실행하므로 `UnitFileState`를 바꾸지 않습니다. 다른 프로젝트와
+공유하는 Jetson에서는 다음 결과가 `disabled`인지 설치 전후로 확인하고 그대로 유지합니다.
+
+~~~bash
+systemctl is-enabled robot-scope-control-bridge.service  # expected: disabled
+~~~
+
+롤백은 먼저 `control.env` 값을 `0`으로 바꾸고 SSH에서 대시보드를 재시작한 다음,
+sudoers를 복구 가능한 위치로 이동합니다. 제어 브리지 unit 자체와 데이터는 삭제되지
+않습니다.
+
+~~~bash
+sudo mv /etc/sudoers.d/robot-scope-control-bridge-lifecycle \
+  /root/robot-scope-control-bridge-lifecycle.sudoers.backup
+sudo visudo -c
+~~~
+
+되돌리려면 백업을 원래 경로에 root:root 0440으로 다시 설치하고 `visudo -cf`로 검사한 뒤
+enable 값을 `1`로 복원하고 대시보드를 재시작합니다.
+
 ### SSH에서 한 명령으로 대시보드 시작·종료
 
 설치 프로그램에 `--install-service`를 지정하면 고정 unit만 다루는
@@ -905,6 +967,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
 - ROBOT_SCOPE_CONTROL_BRIDGE_KEY: 두 로컬 프로세스 사이 서명용 32바이트 이상 비밀키
 - ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED: `1`일 때만 서비스 관리 API opt-in
+- ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED: `1`일 때만 고정 제어 브리지 start/stop API opt-in
 
 ## 주요 API
 
@@ -919,6 +982,9 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | GET /api/v1/datasets | 완성·복구된 데이터셋 세션 목록 |
 | GET /api/v1/datasets/{id}?before={exclusive-index}&limit=24 | 세션의 최대 24개 샘플과 NEWER·OLDER cursor metadata |
 | GET /api/v1/datasets/{id}/samples/{index}/{source}.jpg | 저장된 고정 소스 JPEG 한 장 |
+| GET /api/v1/control/bridge-service | 고정 제어 브리지 systemd 상태와 안전 preflight |
+| POST /api/v1/control/bridge-service/start | 확인 후 고정 제어 브리지 unit 시작 |
+| POST /api/v1/control/bridge-service/stop | 확인 후 고정 제어 브리지 unit 안전 중지 |
 | GET /api/v1/topics | 발견한 ROS 토픽 |
 | GET/POST /api/v1/sources | 표시 소스 조회와 변경 |
 | GET /api/v1/robots/types | 지원 로봇 유형과 3D 모델 catalog |

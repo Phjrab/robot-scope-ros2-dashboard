@@ -398,6 +398,30 @@
           <article class="control-status-card estop" id="estopStatusCard"><span>DASHBOARD SOFTWARE STOP</span><strong id="controlEstopState">CLEAR</strong><small id="controlEstopNote">대시보드 정지 해제 상태</small></article>
         </section>
 
+        <article class="panel control-bridge-service-panel" aria-labelledby="controlBridgeServiceHeading">
+          <div class="panel-header compact">
+            <div><div class="eyebrow">SYSTEMD · FIXED SERVICE</div><h2 id="controlBridgeServiceHeading">Control bridge service</h2></div>
+            <div class="panel-state waiting" id="controlBridgeServiceState" role="status" aria-live="polite"><span></span>CHECKING</div>
+          </div>
+          <div class="control-bridge-service-body">
+            <div class="control-bridge-service-status" aria-label="제어 브리지 systemd 상태">
+              <div><span>SERVICE</span><strong id="controlBridgeServiceName">robot-scope-control-bridge.service</strong></div>
+              <div><span>ACTIVE</span><strong id="controlBridgeServiceActive">—</strong></div>
+              <div><span>SUB · LOAD</span><strong id="controlBridgeServiceSub">—</strong></div>
+              <div><span>OPERATION</span><strong id="controlBridgeServiceOperation">IDLE</strong></div>
+            </div>
+            <div class="control-bridge-service-actions">
+              <p class="control-bridge-service-warning"><strong>고정된 제어 브리지 서비스만 시작·중지합니다.</strong> 로봇 전원과 대시보드 서비스는 변경하지 않습니다.</p>
+              <label class="control-bridge-service-confirm"><input id="controlBridgeServiceConfirm" type="checkbox"><span>로봇이 멈췄고 주변이 안전하며 Control은 DISARM, Navigation은 STOP 상태임을 확인했습니다.</span></label>
+              <div class="control-bridge-service-buttons">
+                <button id="controlBridgeServiceStart" class="control-bridge-service-start" type="button" disabled>START BRIDGE</button>
+                <button id="controlBridgeServiceStop" class="control-bridge-service-stop" type="button" disabled>STOP BRIDGE</button>
+              </div>
+              <p id="controlBridgeServiceMessage" class="control-bridge-service-message" role="status" aria-live="polite">제어 브리지 서비스 상태를 확인하고 있습니다.</p>
+            </div>
+          </div>
+        </article>
+
         <section class="control-main-grid">
           <article class="panel control-drive-panel">
             <div class="panel-header">

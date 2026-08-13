@@ -676,6 +676,27 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .control-status-card.is-error, .control-status-card.estop.is-latched { border-color:rgba(255,122,127,.32); background:linear-gradient(145deg,rgba(60,20,22,.7),rgba(20,10,11,.9)); }
 .control-status-card.is-error > strong, .control-status-card.estop.is-latched > strong { color:var(--danger); }
 
+.control-bridge-service-panel { margin-bottom:12px; }
+.control-bridge-service-body { display:grid; grid-template-columns:minmax(320px,.9fr) minmax(380px,1.1fr); }
+.control-bridge-service-status { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; padding:1px 0 0 1px; background:var(--line); }
+.control-bridge-service-status > div { min-width:0; min-height:78px; display:grid; align-content:center; gap:7px; padding:14px 18px; background:rgba(8,22,19,.96); }
+.control-bridge-service-status span { color:#748a83; font:750 var(--type-control) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.09em; }
+.control-bridge-service-status strong { overflow:hidden; color:#c5d9d2; font:700 var(--type-body) ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow:ellipsis; white-space:nowrap; }
+.control-bridge-service-actions { padding:17px 20px 19px; border-left:1px solid var(--line); }
+.control-bridge-service-warning { margin:0 0 12px; color:#93a8a1; font-size:var(--type-body); line-height:var(--leading-body); }
+.control-bridge-service-warning strong { color:var(--amber); }
+.control-bridge-service-confirm { display:flex; align-items:flex-start; gap:10px; margin:11px 0 13px; color:#9cb1aa; font-size:var(--type-secondary); line-height:var(--leading-secondary); cursor:pointer; }
+.control-bridge-service-confirm input { width:16px; height:16px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--green); }
+.control-bridge-service-buttons { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.control-bridge-service-buttons button { min-height:42px; border-radius:10px; font-size:var(--type-control); font-weight:800; letter-spacing:.06em; }
+.control-bridge-service-start { color:#082018; border:1px solid var(--green); background:var(--green); }
+.control-bridge-service-stop { color:#ffd8da; border:1px solid rgba(255,122,127,.48); background:rgba(255,122,127,.09); }
+.control-bridge-service-buttons button:hover:not(:disabled) { filter:brightness(1.08); }
+.control-bridge-service-buttons button:disabled { opacity:.34; cursor:not-allowed; filter:none; }
+.control-bridge-service-message { min-height:21px; margin:10px 0 0; color:#789088; font-size:var(--type-secondary); line-height:var(--leading-secondary); }
+.control-bridge-service-message.error { color:var(--danger); }
+.control-bridge-service-message.ok { color:var(--green); }
+
 .control-main-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; align-items:start; gap:12px; margin-bottom:12px; }
 .control-drive-panel { min-width:0; }
 .control-drive-body { display:grid; }
@@ -1265,6 +1286,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .teleop-input-grid { grid-template-columns:1fr; }
   .command-monitor { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .control-action-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .control-bridge-service-body { grid-template-columns:1fr; }
+  .control-bridge-service-actions { border-top:1px solid var(--line); border-left:0; }
   .navigation-status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .navigation-map-stage { height:460px; }
   .navigation-robot-stage { height:360px; }
@@ -1292,6 +1315,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .control-status-grid, .control-action-grid { grid-template-columns:1fr; }
   .teleop-console-head { display:grid; }.speed-scale-control { width:100%; }
   .control-arm-actions { grid-template-columns:1fr; }
+  .control-bridge-service-status, .control-bridge-service-buttons { grid-template-columns:1fr; }
   .keyboard-guide kbd { width:61px; }
   .estop-body { display:block; }.software-estop { min-height:220px; }.estop-body > p { margin-top:15px; }
   .command-monitor { grid-template-columns:1fr 1fr; }

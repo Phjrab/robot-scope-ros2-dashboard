@@ -32,6 +32,15 @@ from .control import (
     LeaseInvalid,
     SequenceError,
 )
+from .control_bridge_lifecycle import (
+    ControlBridgeLifecycleBlocked,
+    ControlBridgeLifecycleBusy,
+    ControlBridgeLifecycleConfirmationRequired,
+    ControlBridgeLifecycleError,
+    ControlBridgeLifecycleManager,
+    ControlBridgeLifecycleUnavailable,
+    collect_control_bridge_lifecycle_blockers,
+)
 from .discovery import (
     DiscoveryBusy,
     DiscoveryUnavailable,
@@ -100,6 +109,7 @@ SAVED_MAPS: SavedMapCatalog | None = None
 MAPPING_JOBS: MappingJobManager | None = None
 NAVIGATION_JOBS: NavigationJobManager | None = None
 SERVICE_LIFECYCLE: ServiceLifecycleManager | None = None
+CONTROL_BRIDGE_LIFECYCLE: ControlBridgeLifecycleManager | None = None
 DATASET_CAPTURE: DatasetCaptureManager | None = None
 MAPPING_TASK: asyncio.Task[None] | None = None
 PIPELINE_COORDINATION_LOCK = asyncio.Lock()
@@ -109,6 +119,7 @@ POINTCLOUD_BINARY_LOCK = asyncio.Lock()
 CONTROL_BINDINGS: Dict[str, str] = {}
 ROBOT_DISCOVERY = LocalRobotDiscovery()
 CAMERA_WS_SEND_TIMEOUT_S = 2.0
+CONTROL_BRIDGE_STATUS_STALE_S = 0.75
 
 
 class DashboardStaticFiles(StaticFiles):
@@ -236,6 +247,10 @@ class ServiceLifecycleRequest(StrictRequest):
     confirmed: bool = Field(strict=True)
 
 
+class ControlBridgeLifecycleRequest(StrictRequest):
+    confirmed: bool = Field(strict=True)
+
+
 class DatasetCaptureStartRequest(StrictRequest):
     sources: Literal["go2_front", "realsense_color", "both"]
     capture_hz: float = Field(default=1.0, ge=0.2, le=5.0)
@@ -269,6 +284,11 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
+        # A bridge transition must not begin after application shutdown starts.
+        # Closing this observer never stops or starts the independently-owned
+        # bridge service.
+        if CONTROL_BRIDGE_LIFECYCLE is not None:
+            CONTROL_BRIDGE_LIFECYCLE.close()
         # A lifecycle request that has not reached its fixed systemctl command
         # must never fire during an unrelated application shutdown.
         if SERVICE_LIFECYCLE is not None:
@@ -343,6 +363,15 @@ def service_lifecycle() -> ServiceLifecycleManager:
             detail="service lifecycle control is not configured",
         )
     return SERVICE_LIFECYCLE
+
+
+def control_bridge_lifecycle() -> ControlBridgeLifecycleManager:
+    if CONTROL_BRIDGE_LIFECYCLE is None:
+        raise HTTPException(
+            status_code=503,
+            detail="control bridge service lifecycle is not configured",
+        )
+    return CONTROL_BRIDGE_LIFECYCLE
 
 
 def dataset_capture() -> DatasetCaptureManager:
@@ -489,7 +518,104 @@ def service_lifecycle_blockers() -> list[str]:
             # A service transition must fail closed if capture state cannot be
             # established; otherwise an active writer could be truncated.
             blockers.append("dataset_capture_state_unknown")
+    if CONTROL_BRIDGE_LIFECYCLE is None:
+        blockers.append("control_bridge_service_lifecycle_status_unavailable")
+    else:
+        try:
+            if CONTROL_BRIDGE_LIFECYCLE.is_busy():
+                blockers.append("control_bridge_service_transition")
+        except Exception:
+            # Dashboard restart/stop would destroy the bridge-transition
+            # observer.  Fail closed unless that observer is known idle.
+            blockers.append("control_bridge_service_lifecycle_status_unavailable")
     return list(dict.fromkeys(blockers))
+
+
+def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
+    """Collect action-specific interlocks for the local bridge unit.
+
+    This intentionally does not use robot reachability as a stop condition.
+    An offline robot is exactly when an operator may need the local bridge
+    cleanup path most; leases, actions and navigation still fail closed.
+    """
+
+    control: Dict[str, Any] | None = None
+    navigation_runtime: Dict[str, Any] | None = None
+    navigation_snapshot: Dict[str, Any] | None = None
+    mapping_snapshot: Dict[str, Any] | None = None
+    current_agent = AGENT
+    if current_agent is not None:
+        try:
+            control = current_agent.control_snapshot()
+        except Exception:
+            control = None
+        try:
+            navigation_runtime = current_agent.navigation_runtime_snapshot()
+        except Exception:
+            navigation_runtime = None
+
+    if NAVIGATION_JOBS is not None:
+        try:
+            navigation_snapshot = NAVIGATION_JOBS.snapshot()
+        except Exception:
+            navigation_snapshot = None
+    if MAPPING_JOBS is not None:
+        try:
+            mapping_snapshot = MAPPING_JOBS.snapshot()
+        except Exception:
+            mapping_snapshot = None
+
+    task = MAPPING_TASK
+    try:
+        mapping_task_active = bool(task is not None and not task.done())
+    except Exception:
+        mapping_task_active = True
+
+    if DATASET_CAPTURE is None:
+        dataset_active: bool | None = None
+    else:
+        try:
+            dataset_active = bool(DATASET_CAPTURE.is_active())
+        except Exception:
+            dataset_active = None
+
+    if SERVICE_LIFECYCLE is None:
+        dashboard_lifecycle_busy: bool | None = None
+    else:
+        try:
+            dashboard_lifecycle_busy = bool(SERVICE_LIFECYCLE.is_busy())
+        except Exception:
+            dashboard_lifecycle_busy = None
+
+    return collect_control_bridge_lifecycle_blockers(
+        control=control,
+        navigation_runtime=navigation_runtime,
+        navigation_jobs=navigation_snapshot,
+        mapping_jobs=mapping_snapshot,
+        mapping_task_active=mapping_task_active,
+        dataset_capture_active=dataset_active,
+        dashboard_service_lifecycle_busy=dashboard_lifecycle_busy,
+    )
+
+
+def signed_control_bridge_status_fresh() -> bool | None:
+    """Observe authenticated status until its fixed 0.75 s stale boundary."""
+
+    current_agent = AGENT
+    if current_agent is None:
+        return None
+    try:
+        snapshot = current_agent.control_snapshot()
+        bridge = snapshot.get("bridge") if isinstance(snapshot.get("bridge"), dict) else {}
+        age_value = bridge.get("status_age_s")
+        if bridge.get("authenticated") is not True or age_value is None:
+            return False
+        age = float(age_value)
+        return 0.0 <= age <= CONTROL_BRIDGE_STATUS_STALE_S
+    except (TypeError, ValueError):
+        return None
+    except Exception:
+        return None
 
 
 def dataset_capture_error(exc: DatasetCaptureError) -> HTTPException:
@@ -522,14 +648,44 @@ def service_lifecycle_error(exc: ServiceLifecycleError) -> HTTPException:
     return HTTPException(status_code=500, detail="service lifecycle operation failed")
 
 
+def control_bridge_lifecycle_error(
+    exc: ControlBridgeLifecycleError,
+) -> HTTPException:
+    if isinstance(exc, ControlBridgeLifecycleBlocked):
+        return HTTPException(
+            status_code=409,
+            detail={
+                "code": "control_bridge_service_blocked",
+                "action": exc.action,
+                "blockers": list(exc.blockers),
+            },
+        )
+    if isinstance(exc, ControlBridgeLifecycleBusy):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, ControlBridgeLifecycleConfirmationRequired):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, ControlBridgeLifecycleUnavailable):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(
+        status_code=500,
+        detail="control bridge service lifecycle operation failed",
+    )
+
+
 def require_service_lifecycle_idle() -> None:
-    """Prevent new robot work during the response grace before service stop."""
+    """Prevent new robot work during either local service transition."""
 
     manager = SERVICE_LIFECYCLE
     if manager is not None and manager.is_busy():
         raise HTTPException(
             status_code=409,
             detail="a dashboard service lifecycle operation is pending",
+        )
+    bridge_manager = CONTROL_BRIDGE_LIFECYCLE
+    if bridge_manager is not None and bridge_manager.is_busy():
+        raise HTTPException(
+            status_code=409,
+            detail="a control bridge service lifecycle operation is pending",
         )
 
 
@@ -869,6 +1025,43 @@ async def service_lifecycle_stop(
             )
         except ServiceLifecycleError as exc:
             raise service_lifecycle_error(exc) from exc
+
+
+@app.get("/api/v1/control/bridge-service")
+async def control_bridge_lifecycle_status() -> Dict[str, Any]:
+    return await asyncio.to_thread(control_bridge_lifecycle().snapshot)
+
+
+@app.post("/api/v1/control/bridge-service/start", status_code=202)
+async def control_bridge_lifecycle_start(
+    request: Request,
+    body: ControlBridgeLifecycleRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    async with PIPELINE_COORDINATION_LOCK:
+        try:
+            return await asyncio.to_thread(
+                control_bridge_lifecycle().schedule_start,
+                confirmed=body.confirmed,
+            )
+        except ControlBridgeLifecycleError as exc:
+            raise control_bridge_lifecycle_error(exc) from exc
+
+
+@app.post("/api/v1/control/bridge-service/stop", status_code=202)
+async def control_bridge_lifecycle_stop(
+    request: Request,
+    body: ControlBridgeLifecycleRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    async with PIPELINE_COORDINATION_LOCK:
+        try:
+            return await asyncio.to_thread(
+                control_bridge_lifecycle().schedule_stop,
+                confirmed=body.confirmed,
+            )
+        except ControlBridgeLifecycleError as exc:
+            raise control_bridge_lifecycle_error(exc) from exc
 
 
 @app.get("/api/v1/health")
@@ -2090,7 +2283,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     global AGENT, SAVED_MAPS, MAPPING_JOBS, NAVIGATION_JOBS, SERVICE_LIFECYCLE
-    global DATASET_CAPTURE
+    global CONTROL_BRIDGE_LIFECYCLE, DATASET_CAPTURE
     args = parse_args()
     AGENT = RosAgent(
         robot_ip=args.robot_ip,
@@ -2172,6 +2365,10 @@ def main() -> None:
     )
     SERVICE_LIFECYCLE = ServiceLifecycleManager.from_environment(
         blocker_provider=service_lifecycle_blockers,
+    )
+    CONTROL_BRIDGE_LIFECYCLE = ControlBridgeLifecycleManager.from_environment(
+        preflight_provider=control_bridge_lifecycle_preflight,
+        bridge_status_provider=signed_control_bridge_status_fresh,
     )
     uvicorn.run(
         app,

@@ -1,0 +1,9 @@
+# Install as /etc/sudoers.d/robot-scope-control-bridge-lifecycle with owner
+# root:root and mode 0440. Validate with visudo -cf before enabling the API.
+# These are the only privileged bridge commands the dashboard can execute.
+# Do not add wildcards, enable, disable, restart, daemon-reload or another unit.
+Cmnd_Alias ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE = \
+    /usr/bin/systemctl --no-block start robot-scope-control-bridge.service, \
+    /usr/bin/systemctl --no-block stop robot-scope-control-bridge.service
+
+jetson_orin_nano ALL=(root) NOPASSWD: ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE
