@@ -4292,8 +4292,9 @@ function renderNavigationStatus() {
   const parameterReady = Boolean(navigationParameterSnapshot?.revision);
   const canStart = available && robotOnline && mapReady && parameterReady &&
     safety.can_start === true && !pipelineActive && !manualConflict;
+  const canStop = safety.can_stop === true || pipelineActive;
   ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart;
-  ui.navigationStopButton.disabled = navigationOperationBusy || !pipelineActive;
+  ui.navigationStopButton.disabled = navigationOperationBusy || !canStop;
   ui.navigationCancelGoal.disabled = navigationOperationBusy || !goalActive;
   ui.navigationClearCostmaps.disabled = navigationOperationBusy || !pipelineRunning;
   ui.navigationMapSelect.disabled = navigationOperationBusy || pipelineActive;
@@ -4578,7 +4579,9 @@ async function startNavigation() {
 }
 
 async function stopNavigation() {
-  if (!navigationEngine?.pipelineActive(navigationSnapshot)) return;
+  const canStop = navigationSnapshot?.safety?.can_stop === true ||
+    navigationEngine?.pipelineActive(navigationSnapshot);
+  if (!canStop) return;
   discardNavigationPose();
   await runNavigationMutation('/api/v1/navigation/stop', {}, 'Nav2 중지를 요청했습니다.');
 }

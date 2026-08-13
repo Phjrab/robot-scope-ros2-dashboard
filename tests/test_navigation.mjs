@@ -224,7 +224,9 @@ test('manual control and navigation are mutually exclusive without blocking clea
   assert.match(appSource, /if \(navigationActivityBlocksManualControl\(\)\)/);
   assert.match(appSource, /controlUi\.arm\.disabled = [^;]+navigationActivityBlocksManualControl\(\)/);
   assert.match(appSource, /navigationStartButton\.disabled = [^;]+manualConflict/);
-  assert.match(appSource, /navigationStopButton\.disabled = [^;]+!pipelineActive/);
+  assert.match(appSource, /const canStop = safety\.can_stop === true \|\| pipelineActive/);
+  assert.match(appSource, /navigationStopButton\.disabled = navigationOperationBusy \|\| !canStop/);
+  assert.match(appSource, /navigationSnapshot\?\.safety\?\.can_stop === true \|\|\s*navigationEngine\?\.pipelineActive\(navigationSnapshot\)/);
   assert.match(appSource, /navigationCancelGoal\.disabled = [^;]+!goalActive/);
   assert.doesNotMatch(appSource, /navigationStopButton\.disabled = [^;]+robotOnline/);
   assert.doesNotMatch(appSource, /navigationCancelGoal\.disabled = [^;]+robotOnline/);

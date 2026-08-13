@@ -1,5 +1,7 @@
+import ast
 import importlib.util
 import json
+import math
 import os
 import stat
 import struct
@@ -45,7 +47,14 @@ def field(name, offset, datatype, count=1):
     )
 
 
-def raw_cloud(width=4_000, *, duration=0.1, point_step=32):
+def raw_cloud(
+    width=4_000,
+    *,
+    duration=0.1,
+    point_step=32,
+    scan_start=1_000.0,
+    header_stamp=None,
+):
     dtype = np.dtype(
         {
             "names": ["x", "y", "z", "intensity", "ring", "timestamp"],
@@ -60,9 +69,17 @@ def raw_cloud(width=4_000, *, duration=0.1, point_step=32):
     values["z"] = 0.2
     values["intensity"] = 7.0
     values["ring"] = np.arange(width, dtype=np.uint16) % 16
-    values["timestamp"] = np.linspace(1_000.0, 1_000.0 + duration, width)
+    values["timestamp"] = np.linspace(scan_start, scan_start + duration, width)
+    header_value = scan_start if header_stamp is None else float(header_stamp)
+    header_sec = int(math.floor(header_value))
     return types.SimpleNamespace(
-        header=types.SimpleNamespace(frame_id="hesai_lidar"),
+        header=types.SimpleNamespace(
+            frame_id="hesai_lidar",
+            stamp=types.SimpleNamespace(
+                sec=header_sec,
+                nanosec=int(round((header_value - header_sec) * 1_000_000_000)),
+            ),
+        ),
         width=width,
         height=1,
         fields=[field(*contract) for contract in bridge.RAW_FIELDS],
@@ -119,7 +136,7 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         clock = bridge.ClockOffsetTracker()
         converted = bridge.convert_xt16_cloud(
             raw_cloud(),
-            received_s=1_001.0,
+            received_s=1_000.2,
             clock=clock,
         )
         self.assertEqual(converted.width, 1_000)
@@ -138,7 +155,8 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertTrue(np.isfinite(output["x"]).all())
         self.assertEqual(set(np.unique(output["ring"])), set(range(0, 16, 4)))
         self.assertEqual(converted.stamp_sec, 1_000)
-        self.assertGreater(converted.stamp_nanosec, 890_000_000)
+        self.assertGreater(converted.stamp_nanosec, 90_000_000)
+        self.assertLess(converted.stamp_nanosec, 110_000_000)
 
     def test_malformed_layout_scan_duration_and_nonfinite_points_fail_closed(self):
         wrong = raw_cloud()
@@ -146,22 +164,155 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(bridge.BridgeContractError, "timestamp"):
             bridge.convert_xt16_cloud(
                 wrong,
-                received_s=1_001.0,
+                received_s=1_000.2,
                 clock=bridge.ClockOffsetTracker(),
             )
         with self.assertRaisesRegex(bridge.BridgeContractError, "duration"):
             bridge.convert_xt16_cloud(
                 raw_cloud(duration=1.0),
-                received_s=1_002.0,
+                received_s=1_000.2,
                 clock=bridge.ClockOffsetTracker(),
             )
         too_small = raw_cloud(width=3_999)
         with self.assertRaisesRegex(bridge.BridgeContractError, "4000"):
             bridge.convert_xt16_cloud(
                 too_small,
-                received_s=1_001.0,
+                received_s=1_000.2,
                 clock=bridge.ClockOffsetTracker(),
             )
+
+    def test_sustained_callback_backlog_is_rejected_without_clock_rebase(self):
+        clock = bridge.ClockOffsetTracker()
+        clock.stamp(100.0, 100.1, 1_000.2, 10.0)
+        for index in range(1, 7):
+            scan_start = 100.0 + index * 0.1
+            scan_end = scan_start + 0.1
+            received = scan_end + 900.5
+            with self.assertRaisesRegex(bridge.BridgeContractError, "backlog"):
+                clock.stamp(
+                    scan_start,
+                    scan_end,
+                    received,
+                    10.0 + (received - 1_000.2),
+                )
+        self.assertEqual(clock.relock_count, 0)
+        self.assertAlmostEqual(clock.offset_s, 900.1)
+
+    def test_wall_clock_step_relocks_only_after_stable_rejected_samples(self):
+        clock = bridge.ClockOffsetTracker()
+        clock.stamp(100.0, 100.1, 1_000.2, 10.0)
+        for index in range(1, bridge.CLOCK_RELOCK_REQUIRED_SAMPLES + 1):
+            scan_start = 100.0 + index * 0.1
+            with self.assertRaisesRegex(bridge.BridgeContractError, "relock"):
+                clock.stamp(
+                    scan_start,
+                    scan_start + 0.1,
+                    1_001.2 + index * 0.1,
+                    10.0 + index * 0.1,
+                )
+        self.assertEqual(clock.relock_count, 1)
+        seconds, nanoseconds = clock.stamp(100.4, 100.5, 1_001.6, 10.4)
+        self.assertAlmostEqual(seconds + nanoseconds * 1e-9, 1_001.5, places=6)
+
+    def test_raw_clock_reset_requires_progress_and_full_window_stability(self):
+        clock = bridge.ClockOffsetTracker()
+        clock.stamp(100.0, 100.1, 1_000.2, 10.0)
+        for scan_end, offset in ((50.1, 950.1), (50.2, 950.119), (50.3, 950.138)):
+            with self.assertRaises(bridge.BridgeContractError):
+                clock.stamp(
+                    scan_end - 0.1,
+                    scan_end,
+                    scan_end + offset,
+                    10.0 + (scan_end - 50.0),
+                )
+        self.assertEqual(clock.relock_count, 0)
+
+        replay = bridge.ClockOffsetTracker()
+        replay.stamp(100.0, 100.1, 1_000.2, 10.0)
+        for index in range(4):
+            with self.assertRaises(bridge.BridgeContractError):
+                replay.stamp(50.0, 50.1, 1_000.2 + index * 0.001, 11.0 + index * 0.001)
+        self.assertEqual(replay.relock_count, 0)
+
+    def test_raw_clock_reset_relocks_after_stable_progressing_samples(self):
+        clock = bridge.ClockOffsetTracker()
+        clock.stamp(100.0, 100.1, 1_000.2, 10.0)
+        for index in range(bridge.CLOCK_RELOCK_REQUIRED_SAMPLES):
+            scan_end = 50.1 + index * 0.1
+            with self.assertRaisesRegex(bridge.BridgeContractError, "relock"):
+                clock.stamp(
+                    scan_end - 0.1,
+                    scan_end,
+                    scan_end + 950.1,
+                    11.0 + index * 0.1,
+                )
+        self.assertEqual(clock.relock_count, 1)
+        seconds, nanoseconds = clock.stamp(50.3, 50.4, 1_000.5, 11.3)
+        self.assertAlmostEqual(seconds + nanoseconds * 1e-9, 1_000.4, places=6)
+
+    def test_published_stamp_regression_is_rejected_without_mutating_offset(self):
+        clock = bridge.ClockOffsetTracker()
+        clock.stamp(100.0, 100.1, 1_000.3, 10.0)
+        trusted_offset = clock.offset_s
+        with self.assertRaisesRegex(bridge.BridgeContractError, "did not increase"):
+            clock.stamp(100.1, 100.2, 1_000.21, 10.1)
+        self.assertEqual(clock.offset_s, trusted_offset)
+
+    def test_raw_header_absolute_age_bounds_initial_calibration(self):
+        clock = bridge.ClockOffsetTracker()
+        with self.assertRaisesRegex(bridge.BridgeContractError, "header age 0.600s"):
+            bridge.convert_xt16_cloud(
+                raw_cloud(header_stamp=1_000.0),
+                received_s=1_000.6,
+                received_monotonic_s=10.0,
+                clock=clock,
+            )
+        self.assertIsNone(clock.offset_s)
+        with self.assertRaisesRegex(bridge.BridgeContractError, "future skew 0.200s"):
+            bridge.convert_xt16_cloud(
+                raw_cloud(header_stamp=1_000.2),
+                received_s=1_000.0,
+                received_monotonic_s=10.0,
+                clock=bridge.ClockOffsetTracker(),
+            )
+
+    def test_raw_cloud_qos_is_latest_only_and_outputs_remain_reliable(self):
+        source = (ROOT / "scripts/xt16_fastlio_bridge.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        profiles = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            if not isinstance(node.targets[0], ast.Name) or not isinstance(node.value, ast.Call):
+                continue
+            if getattr(node.value.func, "id", "") != "QoSProfile":
+                continue
+            profiles[node.targets[0].id] = {
+                keyword.arg: keyword.value for keyword in node.value.keywords
+            }
+        raw = profiles["raw_cloud_qos"]
+        output = profiles["output_qos"]
+        self.assertEqual(raw["depth"].id, "RAW_CLOUD_QOS_DEPTH")
+        self.assertEqual(raw["history"].attr, "KEEP_LAST")
+        self.assertEqual(raw["reliability"].attr, "BEST_EFFORT")
+        self.assertEqual(raw["durability"].attr, "VOLATILE")
+        self.assertEqual(output["depth"].id, "OUTPUT_QOS_DEPTH")
+        self.assertEqual(output["history"].attr, "KEEP_LAST")
+        self.assertEqual(output["reliability"].attr, "RELIABLE")
+        self.assertEqual(output["durability"].attr, "VOLATILE")
+        self.assertEqual(bridge.RAW_CLOUD_QOS_DEPTH, 1)
+        self.assertEqual(bridge.OUTPUT_QOS_DEPTH, 5)
+        raw_subscriptions = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "attr", "") == "create_subscription"
+            and len(node.args) >= 4
+            and isinstance(node.args[1], ast.Name)
+            and node.args[1].id == "RAW_TOPIC"
+        ]
+        self.assertEqual(len(raw_subscriptions), 1)
+        self.assertEqual(raw_subscriptions[0].args[3].id, "raw_cloud_qos")
 
     def test_lowstate_imu_is_finite_normalized_and_reordered(self):
         message = types.SimpleNamespace(

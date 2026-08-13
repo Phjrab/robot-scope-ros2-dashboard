@@ -9,6 +9,7 @@ import json
 import math
 import os
 import platform
+import re
 import secrets
 import socket
 import stat
@@ -36,6 +37,8 @@ from .control import (
     ControlDisabled,
     ControlError,
     ControlManager,
+    ControlNotReady,
+    EmergencyStopLatched,
     LeaseBusy,
     LeaseInvalid,
 )
@@ -169,6 +172,26 @@ NAVIGATION_CLEAR_SERVICES = (
     "/global_costmap/clear_entirely_global_costmap",
     "/local_costmap/clear_entirely_local_costmap",
 )
+
+_NAVIGATION_REASON_SECRET_RE = re.compile(
+    r"(?i)\b([A-Za-z0-9_]*(?:password|passwd|secret|token|api[_-]?key|"
+    r"private[_-]?key|credential|authorization|bridge[_-]?key)[A-Za-z0-9_]*)"
+    r"\b\s*(?:[:=]|\s)\s*(?:\"[^\"]*\"|'[^']*'|\S+)"
+)
+_NAVIGATION_REASON_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_NAVIGATION_REASON_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def _public_navigation_reason(reason: object) -> str:
+    """Return one bounded internal reason without credentials/control bytes."""
+
+    value = _NAVIGATION_REASON_CONTROL_RE.sub(" ", str(reason or ""))
+    value = _NAVIGATION_REASON_WHITESPACE_RE.sub(" ", value).strip()
+    value = _NAVIGATION_REASON_SECRET_RE.sub(
+        lambda match: f"{match.group(1)}=[redacted]",
+        value,
+    )
+    return (value or "navigation stopped")[:160]
 
 
 class RateMeter:
@@ -349,6 +372,7 @@ class RosAgent:
             "active": False,
             "state": "inactive",
             "error": None,
+            "deactivation_reason": None,
             "map": None,
             "localization": {
                 "state": "uninitialized",
@@ -1368,8 +1392,9 @@ class RosAgent:
         map_id: str,
         map_revision: str,
         map_name: str = "",
+        ready_after: float = 0.0,
     ) -> Dict[str, Any]:
-        """Reserve the single motion lease for a pinned navigation map."""
+        """Arm a pinned map only after its runtime inputs are currently ready."""
 
         identifier = str(map_id).strip()
         revision = str(map_revision).strip().lower()
@@ -1377,16 +1402,24 @@ class RosAgent:
             raise CommandValidationError("navigation map id is invalid")
         if len(revision) != 64 or any(char not in "0123456789abcdef" for char in revision):
             raise CommandValidationError("navigation map revision is invalid")
+        if (
+            isinstance(ready_after, bool)
+            or not isinstance(ready_after, (int, float))
+            or not math.isfinite(float(ready_after))
+            or float(ready_after) < 0.0
+        ):
+            raise CommandValidationError("navigation readiness fence is invalid")
         with self._control_operation_lock:
-            self._ensure_go2_control_target()
-            with self._navigation_lock:
-                if not self._navigation_transport_configured_locked():
-                    raise ControlDisabled("Nav2 ROS transport is unavailable")
-                if self._navigation.get("active"):
-                    current = self._navigation.get("map") or {}
-                    if current.get("id") == identifier and current.get("revision") == revision:
-                        return self.navigation_runtime_snapshot()
-                    raise LeaseBusy("another navigation session already owns the robot")
+            self.navigation_start_preflight()
+            interlock = self._navigation_prelocalization_reason(
+                time.monotonic(),
+                ready_after=float(ready_after),
+            )
+            if interlock:
+                # This check occurs immediately before acquisition.  The Nav2
+                # process may run while sensors warm up, but it cannot reserve
+                # or retain the robot's motion lease during that interval.
+                raise ControlNotReady(interlock)
             acquired = self._control_manager.acquire_navigation_lease()
             token = str(acquired["token"])
             binding = f"robot-scope-navigation-{secrets.token_urlsafe(18)}"
@@ -1415,6 +1448,7 @@ class RosAgent:
                         "active": True,
                         "state": "armed",
                         "error": None,
+                        "deactivation_reason": None,
                         "map": {
                             "id": identifier,
                             "revision": revision,
@@ -1439,6 +1473,67 @@ class RosAgent:
             self._flush_control_outputs()
         return self.navigation_runtime_snapshot()
 
+    def navigation_start_preflight(self) -> Dict[str, Any]:
+        """Check whether navigation could reserve motion without doing so."""
+
+        with self._control_operation_lock:
+            self._ensure_go2_control_target()
+            with self._navigation_lock:
+                if not self._navigation_transport_configured_locked():
+                    raise ControlDisabled("Nav2 ROS transport is unavailable")
+                goal_state = str(
+                    (self._navigation.get("goal") or {}).get("state", "idle")
+                )
+                if (
+                    self._navigation.get("active")
+                    or self._navigation_token
+                    or self._navigation_binding
+                    or goal_state in {"pending", "active", "canceling"}
+                ):
+                    raise LeaseBusy("another navigation session already owns the robot")
+            control = self._control_manager.snapshot()
+            if not control.get("configured") or control.get("closed"):
+                raise ControlDisabled("robot control is not configured")
+            estop = control.get("estop") if isinstance(control.get("estop"), dict) else {}
+            if estop.get("latched"):
+                raise EmergencyStopLatched("dashboard software stop is latched")
+            action_guard = (
+                control.get("action_guard")
+                if isinstance(control.get("action_guard"), dict)
+                else {}
+            )
+            if action_guard.get("active"):
+                raise ControlNotReady("robot action safety window is active")
+            if not control.get("ready"):
+                raise ControlNotReady("bridge and lowstate must both be fresh")
+            lease = control.get("lease") if isinstance(control.get("lease"), dict) else {}
+            if lease.get("active"):
+                raise LeaseBusy("another controller already owns the robot")
+            return {"ready": True}
+
+    def navigation_prelocalization_snapshot(
+        self,
+        *,
+        ready_after: float = 0.0,
+    ) -> Dict[str, Any]:
+        """Observe the fixed runtime's fresh cloud/odom gate without arming."""
+
+        if (
+            isinstance(ready_after, bool)
+            or not isinstance(ready_after, (int, float))
+            or not math.isfinite(float(ready_after))
+            or float(ready_after) < 0.0
+        ):
+            raise CommandValidationError("navigation readiness fence is invalid")
+        reason = self._navigation_prelocalization_reason(
+            time.monotonic(),
+            ready_after=float(ready_after),
+        )
+        return {
+            "ready": reason is None,
+            "reason": None if reason is None else _public_navigation_reason(reason),
+        }
+
     def _navigation_cancel_handle(self, handle: Any) -> None:
         if handle is None:
             return
@@ -1453,6 +1548,8 @@ class RosAgent:
     ) -> Dict[str, Any]:
         """Close the Nav2 velocity gate and issue signed StopMove first."""
 
+        public_reason = _public_navigation_reason(reason)
+        normal_stop = reason in {"navigation_stop", "operator_stop"}
         with self._control_operation_lock:
             with self._navigation_lock:
                 token = self._navigation_token
@@ -1469,8 +1566,11 @@ class RosAgent:
                     {
                         "seq": int(self._navigation.get("seq", 0)) + 1,
                         "active": False,
-                        "state": "inactive" if reason in {"navigation_stop", "operator_stop"} else "stopped",
-                        "error": None if reason in {"navigation_stop", "operator_stop"} else str(reason)[:240],
+                        "state": "inactive" if normal_stop else "stopped",
+                        "error": None if normal_stop else public_reason,
+                        "deactivation_reason": public_reason,
+                        "map": None,
+                        "localization": {"state": "uninitialized", "pose": None},
                         "last_cmd_at": 0.0,
                         "last_cmd": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
                     }
@@ -1478,7 +1578,7 @@ class RosAgent:
                 goal = dict(self._navigation.get("goal") or {})
                 if goal.get("state") in {"pending", "active", "canceling"}:
                     goal["state"] = "canceled"
-                    goal["error"] = str(reason)[:160]
+                    goal["error"] = public_reason
                     self._navigation["goal"] = goal
             stop_published = False
             if token:
@@ -1492,7 +1592,7 @@ class RosAgent:
                     [
                         {
                             "type": "stop",
-                            "reason": str(reason)[:160] or "navigation stop",
+                            "reason": public_reason,
                             "velocity": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
                             "created_at": time.monotonic(),
                         }
@@ -1800,6 +1900,23 @@ class RosAgent:
                 return f"navigation input {topic} is stale"
         return None
 
+    def _navigation_prelocalization_reason(
+        self,
+        now: float,
+        *,
+        ready_after: float = 0.0,
+    ) -> Optional[str]:
+        """Require health emitted by this startup and currently fresh inputs."""
+
+        with self._navigation_lock:
+            health_received = self._navigation_runtime_health_received
+        if ready_after > 0.0 and health_received < ready_after:
+            return "navigation runtime health has not started for this session"
+        return self._navigation_sensor_interlock_reason(
+            now,
+            require_localized=False,
+        )
+
     def _navigation_issue_stop(self, reason: str) -> None:
         """Send a signed zero/StopMove independent of the current goal state."""
 
@@ -1874,12 +1991,14 @@ class RosAgent:
         lease = snapshot.get("lease", {})
         if not lease.get("active") or lease.get("input_source") != "navigation":
             return "navigation control lease was lost"
-        if goal_state in {"pending", "active", "canceling"}:
-            return self._navigation_sensor_interlock_reason(
-                now,
-                require_localized=True,
-            )
-        return None
+        # The internal lease remains motion-capable even before a goal is
+        # active.  Keep its minimum cloud/odom/scan gate live throughout the
+        # whole session, and strengthen it with localization/controller inputs
+        # while a goal could command motion.
+        return self._navigation_sensor_interlock_reason(
+            now,
+            require_localized=goal_state in {"pending", "active", "canceling"},
+        )
 
     def _navigation_submit_velocity(self, vx: float, vy: float, wz: float) -> None:
         with self._control_operation_lock:
@@ -2356,6 +2475,9 @@ class RosAgent:
             NAVIGATION_LOCALIZATION_POSE_TOPIC, 1.5
         )
         lease = control.get("lease", {})
+        navigation_lease_active = bool(
+            lease.get("active") and lease.get("input_source") == "navigation"
+        )
         bridge_ready = bool(control.get("ready"))
         target_supported = self._go2_control_target()
         manual_active = bool(
@@ -2418,6 +2540,14 @@ class RosAgent:
             and (snapshot.get("goal") or {}).get("state")
             not in {"pending", "active", "canceling"}
         )
+        goal_state = str((snapshot.get("goal") or {}).get("state", "idle"))
+        runtime_state = str(snapshot.get("state", "inactive"))
+        cleanup_required = bool(
+            active
+            or navigation_lease_active
+            or goal_state in {"pending", "active", "canceling"}
+            or runtime_state in {"arming", "armed", "stopping"}
+        )
         snapshot.update(
             {
                 "available": bool(configured and target_supported),
@@ -2467,6 +2597,8 @@ class RosAgent:
                     "blockers": blockers,
                 },
                 "manual_control_active": manual_active,
+                "navigation_lease_active": navigation_lease_active,
+                "cleanup_required": cleanup_required,
                 "runtime_health": runtime_health,
                 "bindings": {
                     "pointcloud": "/velodyne_points",

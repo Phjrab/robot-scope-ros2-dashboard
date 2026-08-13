@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import time
 from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
@@ -41,6 +42,16 @@ RAW_MIN_POINT_STEP = 26
 OUTPUT_POINT_STEP = 22
 MAX_SCAN_DURATION_S = 0.25
 CLOCK_OFFSET_RISE_PER_SCAN_S = 0.0001
+CLOCK_RESIDUAL_LIMIT_S = 0.25
+CLOCK_RELOCK_REQUIRED_SAMPLES = 3
+CLOCK_RELOCK_MAX_SPREAD_S = 0.02
+CLOCK_STEP_MIN_DIVERGENCE_S = 0.10
+CONVERTED_CLOUD_MAX_AGE_S = 0.50
+CONVERTED_CLOUD_MAX_FUTURE_S = 0.05
+RAW_HEADER_MAX_AGE_S = 0.50
+RAW_HEADER_MAX_FUTURE_S = 0.10
+RAW_CLOUD_QOS_DEPTH = 1
+OUTPUT_QOS_DEPTH = 5
 
 RAW_FIELDS = (
     ("x", 0, FLOAT32, 1),
@@ -91,27 +102,154 @@ class ImuSample:
 
 
 class ClockOffsetTracker:
-    """Track a low-jitter LiDAR-clock to host-clock offset."""
+    """Track a low-jitter LiDAR clock without hiding callback backlog.
+
+    A large residual can be either a clock discontinuity or a delayed DDS
+    callback.  The triggering cloud is therefore always rejected.  A new
+    offset is adopted only after several mutually consistent observations,
+    and the calibration clouds remain rejected; the next cloud must validate
+    against the new offset before it can be published.
+    """
 
     def __init__(self) -> None:
         self.offset_s: float | None = None
+        self.last_residual_s: float | None = None
+        self.last_host_age_s: float | None = None
+        self.relock_count = 0
+        self._relock_samples: list[tuple[float, float, float]] = []
+        self._last_received_s: float | None = None
+        self._last_monotonic_s: float | None = None
+        self._last_scan_end_s: float | None = None
+        self._last_published_host_stamp_s: float | None = None
 
-    def stamp(self, scan_start_s: float, scan_end_s: float, received_s: float) -> tuple[int, int]:
-        if not all(math.isfinite(value) for value in (scan_start_s, scan_end_s, received_s)):
+    def _clear_relock(self) -> None:
+        self._relock_samples.clear()
+
+    def _remember_observation(
+        self, scan_end_s: float, received_s: float, received_monotonic_s: float
+    ) -> None:
+        self._last_scan_end_s = scan_end_s
+        self._last_received_s = received_s
+        self._last_monotonic_s = received_monotonic_s
+
+    def _reject_discontinuity(
+        self,
+        instantaneous: float,
+        residual: float,
+        scan_end_s: float,
+        received_s: float,
+        *,
+        relock_eligible: bool,
+    ) -> None:
+        if not relock_eligible and not self._relock_samples:
+            raise BridgeContractError(
+                "cloud callback backlog residual "
+                f"{residual:+.3f}s exceeded {CLOCK_RESIDUAL_LIMIT_S:.3f}s; "
+                "sample rejected without clock rebase"
+            )
+
+        candidate = (instantaneous, scan_end_s, received_s)
+        if self._relock_samples:
+            offsets = [item[0] for item in self._relock_samples] + [instantaneous]
+            previous = self._relock_samples[-1]
+            stable = (
+                scan_end_s > previous[1]
+                and received_s > previous[2]
+                and max(offsets) - min(offsets) <= CLOCK_RELOCK_MAX_SPREAD_S
+            )
+            if not stable:
+                self._relock_samples = [candidate] if relock_eligible else []
+            else:
+                self._relock_samples.append(candidate)
+        elif relock_eligible:
+            self._relock_samples = [candidate]
+
+        samples = len(self._relock_samples)
+        if samples >= CLOCK_RELOCK_REQUIRED_SAMPLES:
+            # The minimum stable observation is least affected by callback
+            # scheduling delay.  Do not publish this calibration cloud.
+            self.offset_s = min(item[0] for item in self._relock_samples)
+            self.relock_count += 1
+            self._clear_relock()
+            raise BridgeContractError(
+                "cloud clock residual discontinuity "
+                f"{residual:+.3f}s exceeded {CLOCK_RESIDUAL_LIMIT_S:.3f}s; "
+                "stable offset relocked and calibration cloud rejected"
+            )
+        raise BridgeContractError(
+            "cloud clock residual discontinuity "
+            f"{residual:+.3f}s exceeded {CLOCK_RESIDUAL_LIMIT_S:.3f}s; "
+            f"relock sample {samples}/{CLOCK_RELOCK_REQUIRED_SAMPLES} rejected"
+        )
+
+    def stamp(
+        self,
+        scan_start_s: float,
+        scan_end_s: float,
+        received_s: float,
+        received_monotonic_s: float | None = None,
+    ) -> tuple[int, int]:
+        monotonic_s = received_s if received_monotonic_s is None else received_monotonic_s
+        if not all(
+            math.isfinite(value)
+            for value in (scan_start_s, scan_end_s, received_s, monotonic_s)
+        ):
             raise BridgeContractError("cloud clocks must be finite")
-        if scan_start_s <= 0 or scan_end_s < scan_start_s or received_s <= 0:
+        if scan_start_s <= 0 or scan_end_s < scan_start_s or received_s <= 0 or monotonic_s <= 0:
             raise BridgeContractError("cloud clocks are outside the supported range")
         instantaneous = received_s - scan_end_s
         if self.offset_s is None:
-            self.offset_s = instantaneous
+            candidate_offset = instantaneous
         else:
-            self.offset_s = min(
-                instantaneous,
-                self.offset_s + CLOCK_OFFSET_RISE_PER_SCAN_S,
+            residual = instantaneous - self.offset_s
+            self.last_residual_s = residual
+            if abs(residual) > CLOCK_RESIDUAL_LIMIT_S:
+                raw_reset = (
+                    self._last_scan_end_s is not None
+                    and scan_end_s <= self._last_scan_end_s
+                )
+                wall_step = False
+                if self._last_received_s is not None and self._last_monotonic_s is not None:
+                    wall_step = abs(
+                        (received_s - self._last_received_s)
+                        - (monotonic_s - self._last_monotonic_s)
+                    ) >= CLOCK_STEP_MIN_DIVERGENCE_S
+                self._reject_discontinuity(
+                    instantaneous,
+                    residual,
+                    scan_end_s,
+                    received_s,
+                    relock_eligible=raw_reset or wall_step,
+                )
+            self._clear_relock()
+            candidate_offset = min(
+                instantaneous, self.offset_s + CLOCK_OFFSET_RISE_PER_SCAN_S
             )
-        host_stamp = scan_start_s + self.offset_s
+        host_stamp = scan_start_s + candidate_offset
         if not math.isfinite(host_stamp) or host_stamp < 0:
             raise BridgeContractError("converted cloud stamp is outside the supported range")
+        host_age = received_s - host_stamp
+        self.last_host_age_s = host_age
+        if host_age > CONVERTED_CLOUD_MAX_AGE_S:
+            raise BridgeContractError(
+                f"converted cloud age {host_age:.3f}s exceeds "
+                f"{CONVERTED_CLOUD_MAX_AGE_S:.3f}s"
+            )
+        if host_age < -CONVERTED_CLOUD_MAX_FUTURE_S:
+            raise BridgeContractError(
+                f"converted cloud future skew {-host_age:.3f}s exceeds "
+                f"{CONVERTED_CLOUD_MAX_FUTURE_S:.3f}s"
+            )
+        if (
+            self._last_published_host_stamp_s is not None
+            and host_stamp <= self._last_published_host_stamp_s
+        ):
+            raise BridgeContractError(
+                "converted cloud timestamp did not increase; stale sample rejected"
+            )
+        self.offset_s = candidate_offset
+        self._last_published_host_stamp_s = host_stamp
+        self._remember_observation(scan_end_s, received_s, monotonic_s)
         seconds = math.floor(host_stamp)
         nanoseconds = int(round((host_stamp - seconds) * 1_000_000_000))
         if nanoseconds >= 1_000_000_000:
@@ -139,6 +277,18 @@ def _field_map(message: Any) -> dict[str, Any]:
         if not name or name in result:
             raise BridgeContractError("PointCloud2 fields are unnamed or duplicated")
         result[name] = field
+    return result
+
+
+def _header_stamp_seconds(message: Any) -> float:
+    stamp = getattr(getattr(message, "header", None), "stamp", None)
+    seconds = _integer(getattr(stamp, "sec", None), "header.stamp.sec")
+    nanoseconds = _integer(getattr(stamp, "nanosec", None), "header.stamp.nanosec")
+    if seconds < 0 or nanoseconds < 0 or nanoseconds >= 1_000_000_000:
+        raise BridgeContractError("raw cloud header timestamp is outside the supported range")
+    result = float(seconds) + float(nanoseconds) * 1e-9
+    if result <= 0.0:
+        raise BridgeContractError("raw cloud header timestamp must be positive")
     return result
 
 
@@ -193,9 +343,22 @@ def convert_xt16_cloud(
     message: Any,
     *,
     received_s: float,
+    received_monotonic_s: float | None = None,
     clock: ClockOffsetTracker,
 ) -> ConvertedCloud:
     """Convert one exact Hesai cloud to the FAST-LIO Velodyne layout."""
+
+    header_age_s = received_s - _header_stamp_seconds(message)
+    if header_age_s > RAW_HEADER_MAX_AGE_S:
+        raise BridgeContractError(
+            f"raw cloud header age {header_age_s:.3f}s exceeds "
+            f"{RAW_HEADER_MAX_AGE_S:.3f}s"
+        )
+    if header_age_s < -RAW_HEADER_MAX_FUTURE_S:
+        raise BridgeContractError(
+            f"raw cloud header future skew {-header_age_s:.3f}s exceeds "
+            f"{RAW_HEADER_MAX_FUTURE_S:.3f}s"
+        )
 
     source = _raw_records(message)[::CLOUD_DECIMATION]
     timestamps = source["timestamp"].astype(np.float64, copy=False)
@@ -222,7 +385,9 @@ def convert_xt16_cloud(
     intensity = source["intensity"].astype(np.float32, copy=False)
     output["intensity"] = np.where(np.isfinite(intensity), intensity, 0.0)
     output["time"] = (timestamps - scan_start).astype(np.float32)
-    stamp_sec, stamp_nanosec = clock.stamp(scan_start, scan_end, received_s)
+    stamp_sec, stamp_nanosec = clock.stamp(
+        scan_start, scan_end, received_s, received_monotonic_s
+    )
     return ConvertedCloud(
         data=output.tobytes(),
         width=len(output),
@@ -301,13 +466,19 @@ def run_ros_bridge() -> int:
         print(f"[Robot Scope] XT16 bridge cannot import ROS: {exc}", file=sys.stderr)
         return 2
 
-    reliable = QoSProfile(
+    output_qos = QoSProfile(
         history=HistoryPolicy.KEEP_LAST,
-        depth=5,
+        depth=OUTPUT_QOS_DEPTH,
         reliability=ReliabilityPolicy.RELIABLE,
         durability=DurabilityPolicy.VOLATILE,
     )
-    best_effort = QoSProfile(
+    raw_cloud_qos = QoSProfile(
+        history=HistoryPolicy.KEEP_LAST,
+        depth=RAW_CLOUD_QOS_DEPTH,
+        reliability=ReliabilityPolicy.BEST_EFFORT,
+        durability=DurabilityPolicy.VOLATILE,
+    )
+    lowstate_qos = QoSProfile(
         history=HistoryPolicy.KEEP_LAST,
         depth=5,
         reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -324,12 +495,12 @@ def run_ros_bridge() -> int:
             self._cloud_publisher = self.create_publisher(
                 PointCloud2,
                 OUTPUT_CLOUD_TOPIC,
-                reliable,
+                output_qos,
             )
             self._imu_publisher = self.create_publisher(
                 Imu,
                 OUTPUT_IMU_TOPIC,
-                reliable,
+                output_qos,
             )
             self._cloud_group = MutuallyExclusiveCallbackGroup()
             self._imu_group = ReentrantCallbackGroup()
@@ -338,14 +509,14 @@ def run_ros_bridge() -> int:
                     PointCloud2,
                     RAW_TOPIC,
                     self._on_cloud,
-                    reliable,
+                    raw_cloud_qos,
                     callback_group=self._cloud_group,
                 ),
                 self.create_subscription(
                     LowState,
                     LOWSTATE_TOPIC,
                     self._on_lowstate,
-                    best_effort,
+                    lowstate_qos,
                     callback_group=self._imu_group,
                 ),
             )
@@ -365,6 +536,7 @@ def run_ros_bridge() -> int:
                 converted = convert_xt16_cloud(
                     message,
                     received_s=self.get_clock().now().nanoseconds * 1e-9,
+                    received_monotonic_s=time.monotonic(),
                     clock=self._clock_offset,
                 )
             except BridgeContractError as exc:

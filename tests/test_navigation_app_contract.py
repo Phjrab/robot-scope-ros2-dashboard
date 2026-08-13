@@ -164,8 +164,36 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertIn("shared_pipeline_state != 'running'", source)
         self.assertIn("still verifying sensor readiness", source)
         self.assertNotIn("stop_mapping", source)
-        self.assertLess(source.index("navigation_activate"), source.index("manager.start"))
+        self.assertLess(
+            source.index("run_navigation_manager_start"),
+            source.index("run_navigation_activation"),
+        )
+        self.assertIn("navigation_start_preflight", source)
+        self.assertIn("wait_navigation_prelocalization_ready", source)
+        self.assertIn("rollback_navigation_start", source)
+        self.assertIn("asyncio.CancelledError", source)
+        self.assertIn("run_navigation_manager_start", source)
+        self.assertIn("run_navigation_activation", source)
         self.assertIn("navigation_start_failed", source)
+        returns = [item for item in ast.walk(node) if isinstance(item, ast.Return)]
+        self.assertTrue(returns)
+        self.assertFalse(
+            any(isinstance(item, ast.Await) for item in ast.walk(returns[-1].value))
+        )
+        activation = ast.unparse(functions(parsed_app())["run_navigation_activation"])
+        self.assertIn("await asyncio.to_thread(navigation_view)", activation)
+        self.assertIn("rollback_navigation_start", activation)
+
+    def test_navigation_cleanup_union_covers_manager_runtime_goal_and_lease(self):
+        source = ast.unparse(functions(parsed_app())["navigation_active"])
+        self.assertIn("pipeline.get('job_id')", source)
+        self.assertIn("runtime.get('cleanup_required')", source)
+        self.assertIn("goal.get('state')", source)
+        self.assertIn("lease.get('input_source') == 'navigation'", source)
+        view = ast.unparse(functions(parsed_app())["navigation_view"])
+        self.assertIn("manager_cleanup_required", view)
+        self.assertIn("runtime_cleanup_required", view)
+        self.assertIn("'can_stop'", view)
 
     def test_goal_requires_explicit_confirmation_and_pinned_free_pose(self):
         node = functions(parsed_app())["navigation_goal"]
@@ -191,6 +219,8 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertIn("'odometry': '/utlidar/robot_odom'", source)
         self.assertIn("'localization_odometry': '/Odometry'", source)
         self.assertIn("'command': '/robot_scope/nav/cmd_vel_raw'", source)
+        self.assertIn("deactivation_reason", source)
+        self.assertIn("deactivation_reason[:160]", source)
 
 
 if __name__ == "__main__":

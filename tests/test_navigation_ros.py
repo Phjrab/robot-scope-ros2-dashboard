@@ -41,6 +41,7 @@ if importlib.util.find_spec("rclpy") is None:
 from robot_dashboard.control import (
     CommandValidationError,
     ControlManager,
+    ControlNotReady,
     LeaseBusy,
 )
 from robot_dashboard.control_protocol import ControlProtocolError
@@ -52,6 +53,7 @@ from robot_dashboard.ros_agent import (
     NAVIGATION_ODOM_STAMP_MAX_AGE_S,
     NAVIGATION_ODOM_STAMP_MAX_FUTURE_S,
     RosAgent,
+    _public_navigation_reason,
 )
 
 
@@ -95,6 +97,21 @@ class NavigationControlTests(unittest.TestCase):
         )
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
         return manager
+
+    @staticmethod
+    def seed_prelocalization_ready(agent):
+        now = time.monotonic()
+        agent._navigation_runtime_health_received = now
+        agent._navigation_runtime_health = {
+            "ready": False,
+            "cloud_fresh": True,
+            "odom_fresh": True,
+            "localized": False,
+            "error": None,
+        }
+        agent._tick("/scan", now)
+        agent._tick(NAVIGATION_FAST_LIO_ODOM_TOPIC, now)
+        return now
 
     def test_internal_navigation_lease_does_not_widen_browser_sources(self):
         manager = self.manager()
@@ -196,7 +213,7 @@ class NavigationControlTests(unittest.TestCase):
             )
         manager = self.manager()
         agent._control_manager = manager
-        agent._node = CountNode()
+        agent._node = CountNode(1)
         agent._navigation_cmd_subscription = object()
         agent._navigation_health_subscriptions = {
             "/scan": object(),
@@ -213,11 +230,13 @@ class NavigationControlTests(unittest.TestCase):
         agent._navigation_clear_clients = {
             service: ReadyClient() for service in NAVIGATION_CLEAR_SERVICES
         }
+        ready_after = self.seed_prelocalization_ready(agent)
 
         result = agent.navigation_activate(
             map_id="opaque-map-id",
             map_revision="a" * 64,
             map_name="classroom",
+            ready_after=ready_after,
         )
         self.assertTrue(result["active"])
         self.assertEqual(manager.snapshot()["lease"]["input_source"], "navigation")
@@ -262,7 +281,10 @@ class NavigationControlTests(unittest.TestCase):
         agent._navigation_clear_clients = {
             service: ReadyClient() for service in NAVIGATION_CLEAR_SERVICES
         }
-        agent.navigation_activate(map_id="map", map_revision="b" * 64)
+        ready_after = self.seed_prelocalization_ready(agent)
+        agent.navigation_activate(
+            map_id="map", map_revision="b" * 64, ready_after=ready_after
+        )
         now = time.monotonic()
         agent._navigation_runtime_health_received = now
         agent._navigation_runtime_health = {
@@ -293,6 +315,111 @@ class NavigationControlTests(unittest.TestCase):
         self.assertFalse(agent._navigation["active"])
         self.assertFalse(manager.snapshot()["lease"]["active"])
         self.assertTrue(any(item.get("type") == "stop" for item in published))
+
+    def test_stale_prelocalization_never_acquires_navigation_lease(self):
+        with patch.dict(os.environ, {"ROBOT_SCOPE_CONTROL_ENABLED": "1"}, clear=True):
+            agent = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        manager = self.manager()
+        agent._control_manager = manager
+        agent._node = CountNode(1)
+        agent._navigation_cmd_subscription = object()
+        agent._navigation_health_subscriptions = {
+            "/scan": object(),
+            NAVIGATION_FAST_LIO_ODOM_TOPIC: object(),
+            NAVIGATION_CONTROLLER_ODOM_TOPIC: object(),
+            "/amcl_pose": object(),
+            NAVIGATION_RUNTIME_HEALTH_TOPIC: object(),
+        }
+        agent._navigation_initial_pose_publisher = object()
+        agent._navigation_pose_type = object()
+        agent._navigation_action_type = object()
+        agent._navigation_action_client = ReadyClient()
+        agent._navigation_clear_service_type = object()
+        agent._navigation_clear_clients = {
+            service: ReadyClient() for service in NAVIGATION_CLEAR_SERVICES
+        }
+
+        with self.assertRaises(ControlNotReady):
+            agent.navigation_activate(
+                map_id="map",
+                map_revision="c" * 64,
+                ready_after=time.monotonic(),
+            )
+
+        self.assertFalse(manager.snapshot()["lease"]["active"])
+        self.assertEqual(manager.drain_outputs(), [])
+
+    def test_unarmed_runtime_cannot_submit_nonzero_velocity(self):
+        agent = object.__new__(RosAgent)
+        agent._control_operation_lock = __import__("threading").RLock()
+        agent._navigation_lock = __import__("threading").RLock()
+        agent._navigation = {
+            "active": False,
+            "goal": {"state": "active"},
+        }
+        agent._navigation_token = ""
+        agent._navigation_binding = ""
+        submissions = []
+        agent._control_manager = types.SimpleNamespace(
+            submit_drive=lambda *args, **kwargs: submissions.append((args, kwargs))
+        )
+
+        agent._navigation_submit_velocity(0.2, 0.0, 0.0)
+
+        self.assertEqual(submissions, [])
+
+    def test_idle_navigation_lease_is_revoked_when_prelocalization_stales(self):
+        with patch.dict(os.environ, {"ROBOT_SCOPE_CONTROL_ENABLED": "1"}, clear=True):
+            agent = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        manager = self.manager()
+        agent._control_manager = manager
+        agent._node = CountNode(1)
+        agent._navigation_cmd_subscription = object()
+        agent._navigation_health_subscriptions = {
+            "/scan": object(),
+            NAVIGATION_FAST_LIO_ODOM_TOPIC: object(),
+            NAVIGATION_CONTROLLER_ODOM_TOPIC: object(),
+            "/amcl_pose": object(),
+            NAVIGATION_RUNTIME_HEALTH_TOPIC: object(),
+        }
+        agent._navigation_initial_pose_publisher = object()
+        agent._navigation_pose_type = object()
+        agent._navigation_action_type = object()
+        agent._navigation_action_client = ReadyClient()
+        agent._navigation_clear_service_type = object()
+        agent._navigation_clear_clients = {
+            service: ReadyClient() for service in NAVIGATION_CLEAR_SERVICES
+        }
+        ready_after = self.seed_prelocalization_ready(agent)
+        agent.navigation_activate(
+            map_id="map", map_revision="d" * 64, ready_after=ready_after
+        )
+        with agent._navigation_lock:
+            agent._navigation_runtime_health_received = time.monotonic() - 2.0
+
+        agent._control_tick()
+
+        self.assertFalse(agent._navigation["active"])
+        self.assertFalse(manager.snapshot()["lease"]["active"])
+        self.assertEqual(
+            agent._navigation["deactivation_reason"],
+            "navigation runtime health is stale",
+        )
+
+    def test_public_deactivation_reason_is_bounded_and_redacts_secrets(self):
+        reason = _public_navigation_reason(
+            "heartbeat failed\n bridge_token=super-secret-value " + "x" * 300
+        )
+        self.assertLessEqual(len(reason), 160)
+        self.assertNotIn("super-secret-value", reason)
+        self.assertNotIn("\n", reason)
+        self.assertIn("bridge_token=[redacted]", reason)
 
     def test_feedback_does_not_open_gate_before_goal_acceptance(self):
         agent = object.__new__(RosAgent)

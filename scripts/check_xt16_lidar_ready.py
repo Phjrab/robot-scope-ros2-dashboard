@@ -24,6 +24,8 @@ UINT16 = 4
 POINTCLOUD_TYPE = "sensor_msgs/msg/PointCloud2"
 IMU_TYPE = "sensor_msgs/msg/Imu"
 ODOMETRY_TYPE = "nav_msgs/msg/Odometry"
+MAX_HEADER_AGE_S = 0.50
+MAX_HEADER_FUTURE_S = 0.10
 
 
 class ReadinessError(ValueError):
@@ -91,6 +93,31 @@ def header_stamp_seconds(message: Any) -> float:
     if seconds < 0 or nanoseconds < 0 or nanoseconds >= 1_000_000_000:
         raise ReadinessError("header stamp is outside the supported range")
     return float(seconds) + float(nanoseconds) * 1e-9
+
+
+def require_absolute_stamp_age(
+    stamp: float,
+    *,
+    host_now_s: float,
+    label: str,
+    max_age_s: float = MAX_HEADER_AGE_S,
+    max_future_s: float = MAX_HEADER_FUTURE_S,
+) -> float:
+    """Reject stale/future epoch stamps and return their signed numeric age."""
+
+    if not all(math.isfinite(value) for value in (stamp, host_now_s)):
+        raise ReadinessError(f"{label} stamp age inputs are not finite")
+    age_s = host_now_s - stamp
+    if age_s > max_age_s:
+        raise ReadinessError(
+            f"{label} header age {age_s:.3f}s exceeds {max_age_s:.3f}s"
+        )
+    if age_s < -max_future_s:
+        raise ReadinessError(
+            f"{label} header age {age_s:.3f}s exceeds future skew "
+            f"{max_future_s:.3f}s"
+        )
+    return age_s
 
 
 def _cloud_layout(
@@ -246,6 +273,7 @@ def observe_laser_map(
     *,
     received_at: float,
     publisher: Hashable,
+    host_now_s: float | None = None,
 ) -> bool:
     """Ignore a safe startup placeholder until FAST-LIO publishes real map data."""
 
@@ -257,6 +285,7 @@ def observe_laser_map(
         received_at=received_at,
         publisher=publisher,
         item_count=points,
+        host_now_s=host_now_s,
     )
 
 
@@ -335,6 +364,7 @@ class FreshSequenceGate:
         self.last_publisher: Optional[Hashable] = None
         self.last_reset_reason: Optional[str] = None
         self.last_item_count = 0
+        self.last_header_age_s: Optional[float] = None
 
     @property
     def consecutive_frames(self) -> int:
@@ -370,9 +400,20 @@ class FreshSequenceGate:
         received_at: float,
         publisher: Hashable,
         item_count: int = 0,
+        host_now_s: float | None = None,
+        header_age_s: float | None = None,
     ) -> bool:
         if not math.isfinite(float(stamp)) or not math.isfinite(received_at):
             raise ReadinessError("message stamp and arrival time must be finite")
+        if header_age_s is None:
+            observed_host_s = float(stamp) if host_now_s is None else float(host_now_s)
+            self.last_header_age_s = require_absolute_stamp_age(
+                float(stamp), host_now_s=observed_host_s, label="readiness"
+            )
+        elif not math.isfinite(float(header_age_s)):
+            raise ReadinessError("message header age must be finite")
+        else:
+            self.last_header_age_s = float(header_age_s)
         self.total_frames += 1
         reset_reason: Optional[str] = None
         if self.last_publisher is not None and publisher != self.last_publisher:
@@ -395,6 +436,13 @@ class FreshSequenceGate:
         self.last_reset_reason = reset_reason
         return self.ready
 
+    def ready_at(self, now: float) -> bool:
+        return bool(
+            self.ready
+            and self.last_arrival is not None
+            and 0.0 <= now - self.last_arrival <= self.max_gap_seconds
+        )
+
 
 class Xt16ReadinessGate(FreshSequenceGate):
     """Validate raw clouds and require a sustained fresh scan rate."""
@@ -408,13 +456,23 @@ class Xt16ReadinessGate(FreshSequenceGate):
         *,
         received_at: float,
         publisher: Hashable,
+        host_now_s: float | None = None,
     ) -> bool:
         points = validate_xt16_cloud(message)
+        observed_host_s = (
+            xt16_scan_timestamp(message) if host_now_s is None else float(host_now_s)
+        )
+        raw_header_age_s = require_absolute_stamp_age(
+            header_stamp_seconds(message),
+            host_now_s=observed_host_s,
+            label="/lidar_points",
+        )
         return self.observe(
             stamp=xt16_scan_timestamp(message),
             received_at=received_at,
             publisher=publisher,
             item_count=points,
+            header_age_s=raw_header_age_s,
         )
 
 
@@ -456,9 +514,14 @@ class StageState:
     def ready(self) -> bool:
         return all(gate.ready for gate in self.gates.values())
 
-    def summary(self) -> str:
+    def ready_at(self, now: float) -> bool:
+        return all(gate.ready_at(now) for gate in self.gates.values())
+
+    def summary(self, now: float | None = None) -> str:
         return ", ".join(
-            f"{topic}={gate.consecutive_frames}/{gate.required_frames}"
+            f"{topic}={gate.consecutive_frames}/{gate.required_frames},"
+            f"header_age_s={gate.last_header_age_s if gate.last_header_age_s is not None else float('nan'):.3f},"
+            f"arrival_age_s={max(0.0, now - gate.last_arrival) if now is not None and gate.last_arrival is not None else float('nan'):.3f}"
             for topic, gate in self.gates.items()
         )
 
@@ -481,6 +544,7 @@ def wait_for_ros_stage(
     options: argparse.Namespace,
     *,
     monotonic: Callable[[], float] = time.monotonic,
+    wall_clock: Callable[[], float] = time.time,
 ) -> int:
     """Run one short-lived ROS stage probe; imports stay local for tests."""
 
@@ -553,7 +617,12 @@ def wait_for_ros_stage(
                 identity = self.identity("/lidar_points", POINTCLOUD_TYPE)
                 gate = state.gates["/lidar_points"]
                 assert isinstance(gate, Xt16ReadinessGate)
-                gate.observe_cloud(message, received_at=monotonic(), publisher=identity)
+                gate.observe_cloud(
+                    message,
+                    received_at=monotonic(),
+                    publisher=identity,
+                    host_now_s=wall_clock(),
+                )
             except ReadinessError as exc:
                 self.fail(exc)
 
@@ -565,6 +634,7 @@ def wait_for_ros_stage(
                     received_at=monotonic(),
                     publisher=self.identity("/velodyne_points", POINTCLOUD_TYPE),
                     item_count=points,
+                    host_now_s=wall_clock(),
                 )
             except ReadinessError as exc:
                 self.fail(exc)
@@ -576,6 +646,7 @@ def wait_for_ros_stage(
                     stamp=header_stamp_seconds(message),
                     received_at=monotonic(),
                     publisher=self.identity("/imu/body", IMU_TYPE),
+                    host_now_s=wall_clock(),
                 )
             except ReadinessError as exc:
                 self.fail(exc)
@@ -586,6 +657,7 @@ def wait_for_ros_stage(
                     stamp=header_stamp_seconds(message),
                     received_at=monotonic(),
                     publisher=self.identity("/Odometry", ODOMETRY_TYPE),
+                    host_now_s=wall_clock(),
                 )
             except ReadinessError as exc:
                 self.fail(exc)
@@ -598,6 +670,7 @@ def wait_for_ros_stage(
                     message,
                     received_at=monotonic(),
                     publisher=identity,
+                    host_now_s=wall_clock(),
                 )
             except ReadinessError as exc:
                 self.fail(exc)
@@ -607,7 +680,7 @@ def wait_for_ros_stage(
     try:
         node = ReadinessNode()
         deadline = monotonic() + options.timeout
-        while not state.ready and not fatal_error and monotonic() < deadline:
+        while not state.ready_at(monotonic()) and not fatal_error and monotonic() < deadline:
             rclpy.spin_once(node, timeout_sec=0.1)
         if fatal_error:
             print(
@@ -615,14 +688,19 @@ def wait_for_ros_stage(
                 file=sys.stderr,
             )
             return 3
-        if not state.ready:
+        final_now = monotonic()
+        final_ready = state.ready_at(final_now)
+        if not final_ready:
             print(
                 f"[Robot Scope] {options.stage} readiness timed out after "
-                f"{options.timeout:.1f}s ({state.summary()})",
+                f"{options.timeout:.1f}s ({state.summary(final_now)})",
                 file=sys.stderr,
             )
             return 4
-        print(f"[Robot Scope] {options.stage} readiness verified ({state.summary()})")
+        print(
+            f"[Robot Scope] {options.stage} readiness verified "
+            f"({state.summary(final_now)})"
+        )
         return 0
     except KeyboardInterrupt:
         return 130

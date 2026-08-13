@@ -120,6 +120,8 @@ CONTROL_BINDINGS: Dict[str, str] = {}
 ROBOT_DISCOVERY = LocalRobotDiscovery()
 CAMERA_WS_SEND_TIMEOUT_S = 2.0
 CONTROL_BRIDGE_STATUS_STALE_S = 0.75
+NAVIGATION_START_READY_TIMEOUT_S = 8.0
+NAVIGATION_START_READY_POLL_S = 0.05
 
 
 class DashboardStaticFiles(StaticFiles):
@@ -695,20 +697,40 @@ def require_service_lifecycle_idle() -> None:
 
 
 def navigation_active() -> bool:
-    manager_active = bool(
-        NAVIGATION_JOBS is not None and NAVIGATION_JOBS.is_active()
-    )
-    if manager_active or AGENT is None:
+    manager_snapshot: Dict[str, Any] = {}
+    manager_active = False
+    if NAVIGATION_JOBS is not None:
+        try:
+            manager_snapshot = NAVIGATION_JOBS.snapshot()
+            pipeline = (
+                manager_snapshot.get("pipeline")
+                if isinstance(manager_snapshot.get("pipeline"), dict)
+                else {}
+            )
+            manager_active = bool(
+                pipeline.get("state") in {"starting", "running", "stopping"}
+                or pipeline.get("job_id")
+            )
+        except Exception:
+            # Mutation interlocks fail closed when ownership cannot be read.
+            return True
+    if AGENT is None:
         return manager_active
     try:
-        # The ROS lease can remain active for a very short interval while an
-        # unexpected process-exit callback runs.  Include it in the mutation
-        # interlock so a pinned map cannot be changed during that handoff.
-        return bool(AGENT.navigation_runtime_snapshot().get("active", False))
+        runtime = AGENT.navigation_runtime_snapshot()
+        goal = runtime.get("goal") if isinstance(runtime.get("goal"), dict) else {}
+        control = AGENT.control_snapshot()
+        lease = control.get("lease") if isinstance(control.get("lease"), dict) else {}
+        runtime_active = bool(
+            runtime.get("active")
+            or runtime.get("cleanup_required")
+            or runtime.get("map")
+            or goal.get("state") in {"pending", "active", "canceling"}
+            or (lease.get("active") and lease.get("input_source") == "navigation")
+        )
+        return manager_active or runtime_active
     except Exception:
-        snapshot = NAVIGATION_JOBS.snapshot() if NAVIGATION_JOBS is not None else {}
-        pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
-        return bool(pipeline.get("state") == "failed" and pipeline.get("job_id"))
+        return True
 
 
 def require_navigation_idle(detail: str) -> None:
@@ -723,6 +745,122 @@ def require_navigation_runtime_capability(capability: str) -> None:
         raise NavigationUnavailable(
             f"navigation runtime safety gate {capability} is not ready"
         )
+
+
+async def wait_navigation_prelocalization_ready(
+    manager: NavigationJobManager,
+    *,
+    ready_after: float,
+) -> None:
+    """Wait boundedly for this Nav2 runtime's fresh cloud/odom projection."""
+
+    deadline = time.monotonic() + NAVIGATION_START_READY_TIMEOUT_S
+    reason = "navigation runtime inputs did not become ready"
+    while time.monotonic() < deadline:
+        pipeline = await asyncio.to_thread(manager.snapshot)
+        pipeline_state = str((pipeline.get("pipeline") or {}).get("state", "failed"))
+        if pipeline_state != "running":
+            raise NavigationUnavailable(
+                "navigation pipeline stopped while runtime inputs were warming up"
+            )
+        readiness = await asyncio.to_thread(
+            agent().navigation_prelocalization_snapshot,
+            ready_after=ready_after,
+        )
+        if readiness.get("ready") is True:
+            return
+        reason = str(readiness.get("reason") or reason)[:160]
+        await asyncio.sleep(NAVIGATION_START_READY_POLL_S)
+    raise NavigationUnavailable(f"navigation startup timed out: {reason}")
+
+
+async def rollback_navigation_start(manager: NavigationJobManager, reason: str) -> None:
+    """Best-effort both sides of a partially completed start transaction."""
+
+    try:
+        await asyncio.to_thread(agent().navigation_deactivate, reason=reason)
+    except Exception:
+        LOGGER.exception("navigation activation rollback failed")
+    try:
+        await asyncio.to_thread(manager.stop)
+    except Exception:
+        LOGGER.exception("navigation process rollback failed")
+
+
+async def run_navigation_manager_start(
+    manager: NavigationJobManager,
+    *,
+    map_id: str,
+    map_revision: str,
+    parameters_revision: str,
+) -> None:
+    """Run an uncancellable thread start and always settle it before cleanup."""
+
+    start_task = asyncio.create_task(
+        asyncio.to_thread(
+            manager.start,
+            map_id=map_id,
+            map_revision=map_revision,
+            parameters_revision=parameters_revision,
+        ),
+        name="navigation-manager-start",
+    )
+    try:
+        await asyncio.shield(start_task)
+    except asyncio.CancelledError:
+        try:
+            await asyncio.shield(start_task)
+        except Exception:
+            pass
+        await asyncio.shield(
+            rollback_navigation_start(manager, "navigation_start_cancelled")
+        )
+        raise
+    except Exception:
+        # start() can publish a failed job_id before raising.  Normalize that
+        # residual state and the ROS side even when no lease was acquired.
+        await rollback_navigation_start(manager, "navigation_start_failed")
+        raise
+
+
+async def run_navigation_activation(
+    manager: NavigationJobManager,
+    *,
+    map_id: str,
+    map_revision: str,
+    map_name: str,
+    ready_after: float,
+) -> Dict[str, Any]:
+    """Settle activation and response projection before any rollback."""
+
+    activation_task = asyncio.create_task(
+        asyncio.to_thread(
+            agent().navigation_activate,
+            map_id=map_id,
+            map_revision=map_revision,
+            map_name=map_name,
+            ready_after=ready_after,
+        ),
+        name="navigation-runtime-activate",
+    )
+    try:
+        await asyncio.shield(activation_task)
+        # The start is not committed to the caller until its stable public
+        # response exists.  Cancellation while projecting that response must
+        # therefore disarm and stop the just-created session too.
+        return await asyncio.to_thread(navigation_view)
+    except asyncio.CancelledError:
+        try:
+            await asyncio.shield(activation_task)
+        except Exception:
+            pass
+        await asyncio.shield(
+            rollback_navigation_start(manager, "navigation_start_cancelled")
+        )
+        raise
+    except Exception:
+        await rollback_navigation_start(manager, "navigation_start_failed")
+        raise
 
 
 def navigation_view() -> Dict[str, Any]:
@@ -811,6 +949,18 @@ def navigation_view() -> Dict[str, Any]:
         "error": goal.get("error"),
     }
     running = pipeline_state == "running" and manager_map is not None
+    runtime_goal_active = goal_state in {"pending", "active", "canceling"}
+    manager_cleanup_required = bool(
+        pipeline_state in {"starting", "running", "stopping"}
+        or manager_pipeline.get("job_id")
+    )
+    runtime_cleanup_required = bool(
+        runtime.get("active")
+        or runtime.get("cleanup_required")
+        or runtime.get("map")
+        or runtime_goal_active
+        or runtime.get("navigation_lease_active")
+    )
     safety = {
         "can_start": bool(
             available
@@ -829,6 +979,7 @@ def navigation_view() -> Dict[str, Any]:
             and shared_mapping_state == "running"
             and runtime_safety.get("can_send_goal", False)
         ),
+        "can_stop": bool(manager_cleanup_required or runtime_cleanup_required),
         "blockers": blockers,
     }
     result: Dict[str, Any] = {
@@ -850,6 +1001,9 @@ def navigation_view() -> Dict[str, Any]:
         },
         "localization_pipeline": {"state": shared_mapping_state, "shared": True},
     }
+    deactivation_reason = runtime.get("deactivation_reason")
+    if isinstance(deactivation_reason, str) and deactivation_reason:
+        result["deactivation_reason"] = deactivation_reason[:160]
     path = runtime.get("path")
     if isinstance(path, list):
         result["path"] = path
@@ -1673,6 +1827,13 @@ async def navigation_start(
         except SavedMapError as exc:
             raise saved_map_error(exc) from exc
 
+        # Reject a manual/foreign lease and every other control gate before a
+        # cold shared mapping launch can have any process side effect.
+        try:
+            await asyncio.to_thread(agent().navigation_start_preflight)
+        except ControlError as exc:
+            raise navigation_agent_error(exc) from exc
+
         shared_pipeline_state = mapping_pipeline_state()
         if shared_pipeline_state in {"idle", "failed"}:
             try:
@@ -1697,46 +1858,54 @@ async def navigation_start(
                 detail="localization pipeline is changing state",
             )
 
-        activated = False
+        start_fence = time.monotonic()
+        start_completed = False
         try:
-            await asyncio.to_thread(
-                agent().navigation_activate,
-                map_id=source.map_id,
-                map_revision=source.revision,
-                map_name=source.name,
-            )
-            activated = True
-            await asyncio.to_thread(
-                manager.start,
+            await run_navigation_manager_start(
+                manager,
                 map_id=source.map_id,
                 map_revision=source.revision,
                 parameters_revision=body.parameters_revision,
             )
-        except NavigationJobError as exc:
-            if activated:
-                await asyncio.to_thread(
-                    agent().navigation_deactivate,
-                    reason="navigation_start_failed",
+            start_completed = True
+            await wait_navigation_prelocalization_ready(
+                manager,
+                ready_after=start_fence,
+            )
+            # The manager and non-mutating control preflight are rechecked
+            # immediately before the only operation that acquires motion.
+            latest = await asyncio.to_thread(manager.snapshot)
+            if str((latest.get("pipeline") or {}).get("state", "failed")) != "running":
+                raise NavigationUnavailable(
+                    "navigation pipeline stopped before motion could be armed"
                 )
+            await asyncio.to_thread(agent().navigation_start_preflight)
+            navigation = await run_navigation_activation(
+                manager,
+                map_id=source.map_id,
+                map_revision=source.revision,
+                map_name=source.name,
+                ready_after=start_fence,
+            )
+        except asyncio.CancelledError:
+            if start_completed:
+                await asyncio.shield(
+                    rollback_navigation_start(manager, "navigation_start_cancelled")
+                )
+            raise
+        except NavigationJobError as exc:
+            if start_completed:
+                await rollback_navigation_start(manager, "navigation_start_failed")
             raise navigation_error(exc) from exc
         except ControlError as exc:
-            if activated:
-                await asyncio.to_thread(
-                    agent().navigation_deactivate,
-                    reason="navigation_start_failed",
-                )
+            if start_completed:
+                await rollback_navigation_start(manager, "navigation_start_failed")
             raise navigation_agent_error(exc) from exc
         except Exception:
-            if activated:
-                try:
-                    await asyncio.to_thread(
-                        agent().navigation_deactivate,
-                        reason="navigation_start_failed",
-                    )
-                except Exception:
-                    LOGGER.exception("navigation activation rollback failed")
+            if start_completed:
+                await rollback_navigation_start(manager, "navigation_start_failed")
             raise
-    return {"accepted": True, "navigation": await asyncio.to_thread(navigation_view)}
+    return {"accepted": True, "navigation": navigation}
 
 
 @app.post("/api/v1/navigation/stop")

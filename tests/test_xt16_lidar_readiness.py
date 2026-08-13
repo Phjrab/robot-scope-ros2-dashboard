@@ -27,7 +27,7 @@ def field(name, offset, datatype, count=1):
     )
 
 
-def raw_cloud(*, stamp=1_000.0, width=4_000, overrides=None):
+def raw_cloud(*, stamp=1_000.0, header_stamp=None, width=4_000, overrides=None):
     fields = [
         field("x", 0, readiness.FLOAT32),
         field("y", 4, readiness.FLOAT32),
@@ -43,6 +43,8 @@ def raw_cloud(*, stamp=1_000.0, width=4_000, overrides=None):
     data = bytearray(row_step)
     if width:
         struct.pack_into("<d", data, 18, stamp)
+    header_value = stamp if header_stamp is None else float(header_stamp)
+    header_seconds = int(header_value)
     return SimpleNamespace(
         width=width,
         height=1,
@@ -53,7 +55,10 @@ def raw_cloud(*, stamp=1_000.0, width=4_000, overrides=None):
         data=data,
         header=SimpleNamespace(
             frame_id="hesai_lidar",
-            stamp=SimpleNamespace(sec=int(stamp), nanosec=0),
+            stamp=SimpleNamespace(
+                sec=header_seconds,
+                nanosec=int(round((header_value - header_seconds) * 1_000_000_000)),
+            ),
         ),
     )
 
@@ -186,6 +191,85 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
         self.assertEqual(gate.consecutive_frames, 1)
         self.assertIn("gap", gate.last_reset_reason)
 
+    def test_absolute_header_age_and_future_skew_fail_closed_with_numeric_age(self):
+        gate = readiness.FreshSequenceGate(
+            required_frames=1,
+            max_gap_seconds=0.5,
+            minimum_rate_hz=0.0,
+        )
+        with self.assertRaisesRegex(readiness.ReadinessError, r"age 0\.600s"):
+            gate.observe(
+                stamp=1_000.0,
+                received_at=10.0,
+                publisher=(1,),
+                host_now_s=1_000.6,
+            )
+        with self.assertRaisesRegex(readiness.ReadinessError, r"age -0\.200s"):
+            gate.observe(
+                stamp=1_000.2,
+                received_at=10.0,
+                publisher=(1,),
+                host_now_s=1_000.0,
+            )
+        with self.assertRaisesRegex(readiness.ReadinessError, r"/lidar_points.*0\.600s"):
+            gate = readiness.Xt16ReadinessGate()
+            gate.observe_cloud(
+                raw_cloud(stamp=1_000.0),
+                received_at=10.0,
+                publisher=(1,),
+                host_now_s=1_000.6,
+            )
+
+    def test_raw_payload_clock_domain_is_not_compared_to_host_epoch(self):
+        gate = readiness.Xt16ReadinessGate()
+        message = raw_cloud(stamp=50.0, header_stamp=1_000.0)
+        self.assertFalse(
+            gate.observe_cloud(
+                message,
+                received_at=10.0,
+                publisher=(1,),
+                host_now_s=1_000.1,
+            )
+        )
+        self.assertAlmostEqual(gate.last_stamp, 50.0)
+        self.assertAlmostEqual(gate.last_header_age_s, 0.1)
+
+    def test_stage_ready_requires_all_sources_fresh_at_one_common_time(self):
+        state = readiness.StageState("bridge")
+        imu = state.gates["/imu/body"]
+        cloud = state.gates["/velodyne_points"]
+        for index in range(5):
+            stamp = 1_000.0 + index * 0.02
+            imu.observe(
+                stamp=stamp,
+                received_at=10.0 + index * 0.02,
+                publisher=(1,),
+                host_now_s=stamp,
+            )
+        for index in range(5):
+            stamp = 1_001.0 + index * 0.1
+            cloud.observe(
+                stamp=stamp,
+                received_at=10.5 + index * 0.1,
+                publisher=(2,),
+                host_now_s=stamp,
+            )
+        self.assertTrue(state.ready)
+        self.assertFalse(state.ready_at(10.9))
+        summary = state.summary(10.9)
+        self.assertRegex(summary, r"header_age_s=0\.000")
+        self.assertRegex(summary, r"arrival_age_s=0\.820")
+
+        for index in range(5):
+            stamp = 1_001.5 + index * 0.02
+            imu.observe(
+                stamp=stamp,
+                received_at=10.91 + index * 0.02,
+                publisher=(1,),
+                host_now_s=stamp,
+            )
+        self.assertTrue(state.ready_at(10.99))
+
     def test_exactly_one_reliable_volatile_pointcloud_publisher_is_required(self):
         kwargs = {
             "topic": "/lidar_points",
@@ -286,6 +370,10 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
     def test_ros_node_does_not_assign_the_read_only_subscriptions_property(self):
         self.assertNotIn("self.subscriptions =", self.helper_source)
         self.assertIn("self._readiness_subscriptions =", self.helper_source)
+
+    def test_final_verdict_rechecks_common_current_freshness(self):
+        self.assertIn("final_ready = state.ready_at(final_now)", self.helper_source)
+        self.assertIn("if not final_ready:", self.helper_source)
 
     def test_each_readiness_gate_follows_its_producer_before_commit(self):
         driver = self.preview_script.index("run_hesai_driver_humble.sh")
