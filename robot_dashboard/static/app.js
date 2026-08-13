@@ -547,6 +547,8 @@ const controlUi = {
 };
 
 let latestState = null;
+let stateRequestGeneration = 0;
+let overviewTelemetryAvailability = null;
 let latestTopics = [];
 let sourceFingerprint = '';
 let pointcloudSourceCatalog = new Map();
@@ -1466,6 +1468,46 @@ function safeNumber(value, digits = 2) {
   return Number.isFinite(number) ? number.toFixed(digits) : '—';
 }
 
+function overviewTelemetryLive(health) {
+  health = health || {};
+  const targetConnected = health.robot_target_connected == null
+    ? Boolean(health.robot_ip)
+    : Boolean(health.robot_target_connected);
+  return Boolean(health.agent_ready && targetConnected && health.robot_online);
+}
+
+function overviewUnavailableReason(health) {
+  health = health || {};
+  if (!health.agent_ready) return '에이전트 연결 끊김';
+  const targetConnected = health.robot_target_connected == null
+    ? Boolean(health.robot_ip)
+    : Boolean(health.robot_target_connected);
+  return targetConnected ? '로봇 오프라인' : '로봇 대상 연결 해제됨';
+}
+
+function renderOverviewUnavailable(reason, options) {
+  const label = String(reason || '연결 확인 불가');
+  const clearLive = options?.clearLive !== false;
+  const transition = overviewTelemetryAvailability !== false;
+  overviewTelemetryAvailability = false;
+  ui.linkMetric.textContent = 'OFFLINE';
+  ui.linkSub.textContent = label;
+  ui.cameraMetric.textContent = 'OFFLINE';
+  ui.cameraSub.textContent = label;
+  ui.cameraSub.title = label;
+  ui.lidarMetric.textContent = 'OFFLINE';
+  ui.lidarSub.textContent = label;
+  ui.lidarSub.title = label;
+  ui.batteryMetric.textContent = 'OFFLINE';
+  ui.batterySub.textContent = label;
+  cameraStatusMeta = null;
+  if (clearLive && transition) resetLiveRobotSessionView();
+}
+
+function invalidateStateRequests() {
+  stateRequestGeneration += 1;
+}
+
 function updateHealth(health) {
   const ready = Boolean(health.agent_ready);
   const online = Boolean(health.robot_online);
@@ -1480,6 +1522,8 @@ function updateHealth(health) {
     ? '에이전트 오류'
     : !robotTargetConnected
       ? '로봇 대상 연결 해제됨'
+    : !online
+      ? '로봇 오프라인'
     : offlineViewer || rosInterfaceReady === false
       ? 'ROS/DDS 오프라인 뷰어'
       : rosInterfaceReady === true
@@ -1492,12 +1536,12 @@ function updateHealth(health) {
   ui.topicCount.textContent = health.topic_count ?? '—';
   ui.profileLabel.textContent = (health.profile || 'GENERIC ROS 2').toUpperCase();
   const healthRobotType = window.RobotProfiles?.robotTypeId?.(health.robot_type || health.profile_id);
-  const runtimeCompatible = robotTargetConnected
+  const configurationCompatible = robotTargetConnected
     && !robotTypeDirty
     && !Boolean(health.restart_required || health.control_restart_required)
     && (!healthRobotType || healthRobotType === selectedRobotType);
-  if (robotRuntimeDataCompatible && !runtimeCompatible) resetLiveRobotSessionView();
-  robotRuntimeDataCompatible = runtimeCompatible;
+  if (robotRuntimeDataCompatible && !configurationCompatible) resetLiveRobotSessionView();
+  robotRuntimeDataCompatible = configurationCompatible && online;
   updateLiveModelBadge();
   if (!robotTypeDirty && healthRobotType && healthRobotType !== selectedRobotType && robotTypes.some((profile) => profile.id === healthRobotType)) {
     activateRobotType(healthRobotType);
@@ -1760,6 +1804,15 @@ function buildDemoPointcloud() {
 
 function updateOverview(state) {
   updateHealth(state.health);
+  if (!overviewTelemetryLive(state.health)) {
+    renderOverviewUnavailable(overviewUnavailableReason(state.health));
+    updateSensors(state.sensors || []);
+    updateSavedMapOverview();
+    ui.lastUpdated.textContent = `Last update ${new Date().toLocaleTimeString('ko-KR', { hour12: false })} · OFFLINE`;
+    syncPointcloudTransport();
+    return;
+  }
+  overviewTelemetryAvailability = true;
   applyJointSnapshot(state.robot_joints);
   const camera = state.camera || {};
   const cloud = state.cloud || {};
@@ -1788,7 +1841,7 @@ function updateOverview(state) {
   const cameraOnDemand = Boolean(directCamera.configured && reportedCameraState === 'stopped' && activePage !== 'sensors');
   const reportedCameraLive = camera.live ?? directCamera.live ?? (reportedCameraState === 'ok');
   const cameraLive = Boolean(reportedCameraLive) && (cameraAge == null || Number(cameraAge) <= 3);
-  ui.cameraMetric.textContent = formatHz(cameraFps);
+  ui.cameraMetric.textContent = cameraLive ? formatHz(cameraFps) : cameraOnDemand ? 'ON DEMAND' : 'OFFLINE';
   ui.cameraSub.textContent = [cameraLabel, cameraTransport, cameraInterface].filter(Boolean).join(' · ') || 'No camera source';
   ui.cameraSub.title = ui.cameraSub.textContent;
   ui.cameraTopicLabel.textContent = cameraLabel;
@@ -1807,10 +1860,18 @@ function updateOverview(state) {
     const primarySlot = primaryCameraSlot();
     const selectedCamera = cameraSourceForId(cameraPrimarySourceId) || {};
     primarySlot.statusMeta = selectedCamera;
-    const selectedMetadata = cameraSlotMetadata(primarySlot);
+    const selectedMetadata = { ...selectedCamera };
     cameraStatusMeta = { ...selectedMetadata };
     const selectedLabel = selectedCamera.label || selectedCamera.id || 'NO SOURCE';
-    ui.cameraMetric.textContent = formatHz(selectedMetadata.fps ?? selectedCamera.fps);
+    const selectedAge = Number(selectedMetadata.age_s);
+    const selectedState = String(selectedMetadata.state || '').toLowerCase();
+    const selectedLive = selectedMetadata.live === true
+      && (!selectedState || ['ok', 'live'].includes(selectedState))
+      && (selectedMetadata.age_s == null || (Number.isFinite(selectedAge) && selectedAge <= 3));
+    const selectedOnDemand = selectedState === 'stopped' && activePage !== 'sensors';
+    ui.cameraMetric.textContent = selectedLive
+      ? formatHz(selectedMetadata.fps)
+      : selectedOnDemand ? 'ON DEMAND' : 'OFFLINE';
     ui.cameraSub.textContent = [selectedLabel, selectedMetadata.transport, selectedCamera.id].filter(Boolean).join(' · ');
     ui.cameraSub.title = ui.cameraSub.textContent;
     renderCameraSlotIdentity(primarySlot);
@@ -1854,9 +1915,14 @@ function updateOverview(state) {
   renderLidarSourceIdentity();
 
   const battery = (state.sensors || []).find((sensor) => sensor.values?.battery_soc != null || sensor.category === 'battery');
+  const batteryAge = Number(battery?.age_s);
+  const batteryFresh = battery?.state === 'ok'
+    && (battery?.age_s == null || (Number.isFinite(batteryAge) && batteryAge >= 0));
   const soc = battery?.values?.battery_soc ?? (battery?.values?.percentage != null ? battery.values.percentage * 100 : null);
-  ui.batteryMetric.textContent = soc == null ? '—' : `${Math.round(soc)}%`;
-  ui.batterySub.textContent = battery ? `${safeNumber(battery.values.power_v ?? battery.values.voltage, 1)} V · ${formatHz(battery.hz)}` : '데이터 대기 중';
+  ui.batteryMetric.textContent = batteryFresh && soc != null ? `${Math.round(soc)}%` : '—';
+  ui.batterySub.textContent = batteryFresh
+    ? `${safeNumber(battery.values.power_v ?? battery.values.voltage, 1)} V · ${formatHz(battery.hz)}`
+    : battery ? '배터리 데이터 STALE' : '데이터 대기 중';
 
   updateSensors(state.sensors || []);
   updateOdometry(state.sensors || [], odomSource);
@@ -2962,6 +3028,15 @@ function renderLidarSourceReadout(elements, identity, freshness, pinInfo) {
 }
 
 function renderLidarSourceIdentity(forceStatus = '') {
+  const telemetryUnavailable = overviewTelemetryAvailability === false
+    || (latestState && !overviewTelemetryLive(latestState.health));
+  if (telemetryUnavailable) {
+    ui.lidarSub.textContent = latestState
+      ? overviewUnavailableReason(latestState.health)
+      : '에이전트 연결 끊김';
+    ui.lidarSub.title = ui.lidarSub.textContent;
+    return;
+  }
   const topic = selectedPointcloudTopic();
   const catalogEntry = pointcloudSourceCatalog.get(topic);
   const topicMetric = latestTopics.find((entry) => entry.name === topic);
@@ -3032,16 +3107,25 @@ async function selectSource(kind, value) {
 }
 
 async function refreshState() {
+  const generation = ++stateRequestGeneration;
   try {
-    latestState = await api('/api/v1/state');
-    updateOverview(latestState);
+    const state = await api('/api/v1/state');
+    if (generation !== stateRequestGeneration) return null;
+    latestState = state;
+    updateOverview(state);
     if (activePage === 'mapping') redrawActiveMap();
     if (activePage === 'maps') redrawSavedMap();
+    return state;
   } catch (error) {
+    if (generation !== stateRequestGeneration) return null;
+    latestState = null;
     ui.connectionChip.className = 'connection-chip error';
     ui.connectionLabel.textContent = '에이전트 연결 끊김';
+    renderOverviewUnavailable('에이전트 연결 끊김');
     renderLidarSourceIdentity('STALE');
+    ui.lastUpdated.textContent = `Last update failed · ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`;
     if (scene3d) scene3d.setStatus({ online: false, lidarOnline: false, message: '에이전트 연결이 끊겼습니다' });
+    return null;
   }
 }
 
@@ -7925,6 +8009,7 @@ function leaveControlPage(reason = 'controls_page_left') {
 
 async function setRobotIp() {
   if (robotConnectionBusy) return;
+  invalidateStateRequests();
   robotConnectionBusy = true;
   ui.connectButton.disabled = true;
   ui.connectButton.textContent = '확인 중…';
@@ -7947,6 +8032,7 @@ async function setRobotIp() {
     await refreshState();
   } catch (error) {
     showToast(`IP 변경 실패: ${error.message}`, true);
+    void refreshState();
   } finally {
     robotConnectionBusy = false;
     ui.connectButton.disabled = false;
@@ -7958,6 +8044,7 @@ async function setRobotIp() {
 async function disconnectRobotTarget() {
   if (robotConnectionBusy || !robotTargetConnected) return;
   if (!window.confirm('현재 선택한 로봇 대상과 Go2 제어 권한을 해제할까요? 물리 네트워크와 로봇 전원은 변경되지 않습니다.')) return;
+  invalidateStateRequests();
   robotConnectionBusy = true;
   ui.connectButton.disabled = true;
   ui.disconnectButton.disabled = true;
@@ -7971,6 +8058,8 @@ async function disconnectRobotTarget() {
     ui.robotIp.value = '';
     ui.connectedRobotTarget.textContent = '연결 안 됨';
     resetLiveRobotSessionView();
+    latestState = null;
+    renderOverviewUnavailable('로봇 대상 연결 해제됨', { clearLive: false });
     clearRobotDiscovery('연결 대상이 해제되었습니다. 검색하거나 IP를 입력해 다시 연결할 수 있습니다.');
     setDiscoveryStatus('연결 해제됨');
     const restartNote = response.robot?.restart_required
@@ -7980,6 +8069,7 @@ async function disconnectRobotTarget() {
     await refreshState();
   } catch (error) {
     showToast(`연결 해제 실패: ${error.message}`, true);
+    void refreshState();
   } finally {
     robotConnectionBusy = false;
     ui.connectButton.disabled = false;
