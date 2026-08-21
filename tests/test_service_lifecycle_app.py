@@ -14,6 +14,19 @@ SYSTEM_TREE = ast.parse(
         encoding="utf-8"
     )
 )
+MAPPING_TREE = ast.parse(
+    (ROOT / "robot_dashboard" / "application" / "mapping_coordinator.py").read_text(
+        encoding="utf-8"
+    )
+)
+NAVIGATION_TREE = ast.parse(
+    (
+        ROOT
+        / "robot_dashboard"
+        / "application"
+        / "navigation_coordinator.py"
+    ).read_text(encoding="utf-8")
+)
 MODELS_TREE = ast.parse(
     (ROOT / "robot_dashboard" / "api" / "models.py").read_text(encoding="utf-8")
 )
@@ -25,6 +38,25 @@ def function_node(name: str):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
                 return node
     raise AssertionError(f"function {name} was not found")
+
+
+def tree_function(tree, name: str):
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            return node
+    raise AssertionError(f"function {name} was not found")
+
+
+def class_function(tree, class_name: str, name: str):
+    owner = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == class_name
+    )
+    for node in owner.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            return node
+    raise AssertionError(f"function {class_name}.{name} was not found")
 
 
 def called_names(node) -> set[str]:
@@ -69,41 +101,10 @@ class ServiceLifecycleAppContractTests(unittest.TestCase):
         self.assertIs(keywords["strict"].value, True)
 
     def test_new_work_routes_are_gated_while_cleanup_routes_remain_available(self):
-        guarded = {
-            "control_arm",
-            "navigation_start",
-            "navigation_initial_pose",
-            "navigation_goal",
-            "mapping_start",
-            "mapping_save",
-            "convert_saved_pcd_to_2d",
-            "save_edited_map_copy",
-            "rename_saved_map",
-            "delete_saved_map",
-        }
-        for name in guarded:
-            self.assertIn(
-                "require_service_lifecycle_idle",
-                called_names(function_node(name)),
-                name,
-            )
-
-        cleanup = {
-            "control_disarm",
-            "control_stop",
-            "navigation_stop",
-            "navigation_cancel",
-            "navigation_clear_costmaps",
-            "mapping_stop",
-        }
-        for name in cleanup:
-            self.assertNotIn(
-                "require_service_lifecycle_idle",
-                called_names(function_node(name)),
-                name,
-            )
-
+        # Manual control remains an app-level operation and must reserve the
+        # same lock before checking the lifecycle gate and acquiring motion.
         control_arm = function_node("control_arm")
+        self.assertIn("require_service_lifecycle_idle", called_names(control_arm))
         critical_sections = [
             child for child in control_arm.body if isinstance(child, ast.AsyncWith)
         ]
@@ -111,6 +112,82 @@ class ServiceLifecycleAppContractTests(unittest.TestCase):
         critical_calls = called_names(critical_sections[0])
         self.assertIn("require_service_lifecycle_idle", critical_calls)
         self.assertIn("control_acquire", critical_calls)
+
+        # Mapping and navigation now own their application interlocks. Every
+        # new-work operation checks the injected lifecycle gate while holding
+        # the shared application coordination lock.
+        mapping_guarded = {
+            "start",
+            "save",
+            "convert_pcd_to_2d",
+            "save_edited_copy",
+            "rename",
+            "delete",
+        }
+        for name in mapping_guarded:
+            node = tree_function(MAPPING_TREE, name)
+            self.assertIn(
+                "_require_lifecycle_idle",
+                called_names(node),
+                name,
+            )
+            self.assertTrue(
+                any(
+                    isinstance(child, ast.AsyncWith)
+                    and any(
+                        isinstance(item.context_expr, ast.Attribute)
+                        and item.context_expr.attr == "_coordination_lock"
+                        for item in child.items
+                    )
+                    for child in ast.walk(node)
+                ),
+                name,
+            )
+
+        navigation_guarded = {"start", "set_initial_pose", "send_goal"}
+        for name in navigation_guarded:
+            node = class_function(NAVIGATION_TREE, "NavigationCoordinator", name)
+            self.assertIn("_require_lifecycle_idle", called_names(node), name)
+            self.assertTrue(
+                any(
+                    isinstance(child, ast.AsyncWith)
+                    and any(
+                        isinstance(item.context_expr, ast.Attribute)
+                        and item.context_expr.attr == "_coordination_lock"
+                        for item in child.items
+                    )
+                    for child in ast.walk(node)
+                ),
+                name,
+            )
+
+        app_cleanup = {
+            "control_disarm",
+            "control_stop",
+            "navigation_stop",
+            "navigation_cancel",
+            "navigation_clear_costmaps",
+            "mapping_stop",
+        }
+        for name in app_cleanup:
+            self.assertNotIn(
+                "require_service_lifecycle_idle",
+                called_names(function_node(name)),
+                name,
+            )
+
+        self.assertNotIn(
+            "_require_lifecycle_idle",
+            called_names(tree_function(MAPPING_TREE, "stop")),
+        )
+        for name in ("stop", "cancel_goal", "clear_costmaps"):
+            self.assertNotIn(
+                "_require_lifecycle_idle",
+                called_names(
+                    class_function(NAVIGATION_TREE, "NavigationCoordinator", name)
+                ),
+                name,
+            )
 
 
 class ServiceLifecycleBlockerTests(unittest.TestCase):

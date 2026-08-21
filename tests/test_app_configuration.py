@@ -43,7 +43,7 @@ class AppConfigurationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn('RUNTIME.agent.profile.get("xt16_preview")', source)
         self.assertIn('os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"', source)
-        self.assertIn("runtime.mapping_jobs.start_preview", source)
+        self.assertIn("runtime.mapping.start_preview", source)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import secrets
 import time
 from contextlib import asynccontextmanager
@@ -18,6 +17,17 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from .application.lifecycle_coordinator import (
+    LifecycleCoordinator,
+    LifecycleTransitionBusy,
+)
+from .application.mapping_coordinator import (
+    MappingCoordinator,
+    MappingCoordinatorConflict,
+    MappingCoordinatorError,
+    MappingCoordinatorUnavailable,
+)
+from .application.navigation_coordinator import NavigationCoordinator
 from .application.runtime import ApplicationRuntime
 from .api.routers.cameras import router as cameras_router
 from .api.routers.dataset import create_router as create_dataset_router
@@ -54,10 +64,6 @@ from .control import (
     LeaseInvalid,
     SequenceError,
 )
-from .control_bridge_lifecycle import (
-    ControlBridgeLifecycleManager,
-    collect_control_bridge_lifecycle_blockers,
-)
 from .dataset_capture import DatasetCaptureManager
 from .mapping_jobs import (
     InvalidMapName,
@@ -79,10 +85,6 @@ from .navigation_jobs import (
 )
 from .http_security import is_same_origin
 from .ros_agent import RosAgent
-from .service_lifecycle import (
-    ServiceLifecycleManager,
-    collect_service_lifecycle_blockers,
-)
 from .saved_maps import (
     SavedMapCatalog,
     SavedMapConflict,
@@ -99,10 +101,6 @@ from .saved_maps import (
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 LOGGER = logging.getLogger(__name__)
 RUNTIME = ApplicationRuntime()
-CONTROL_BRIDGE_STATUS_STALE_S = 0.75
-NAVIGATION_START_READY_TIMEOUT_S = 8.0
-NAVIGATION_START_READY_POLL_S = 0.05
-NAVIGATION_LOCALIZATION_READY_TIMEOUT_S = 75.0
 
 
 class DashboardStaticFiles(StaticFiles):
@@ -121,71 +119,44 @@ async def lifespan(fastapi: FastAPI):
     if runtime.agent is None:
         raise RuntimeError("ROS agent has not been configured")
     runtime.agent.start()
-    if runtime.mapping_jobs is not None:
+    if runtime.mapping is not None:
         try:
-            await asyncio.to_thread(runtime.mapping_jobs.start_preview)
+            await runtime.mapping.start_preview()
         except MappingJobError:
-            # Raw XT16 preview is optional observability.  Keep the dashboard
-            # available and expose WAITING/failed state when its fixed local
-            # dependencies are unavailable.
+            # Raw XT16 preview is optional observability. Keep the dashboard
+            # available and expose WAITING when fixed dependencies are absent.
             LOGGER.exception("XT16 point-cloud preview startup failed")
     try:
         yield
     finally:
-        startup_task = runtime.navigation_start_task
-        startup = _navigation_start_internal()
-        startup_token = startup.get("token")
-        if startup_task is not None and not startup_task.done():
-            request_navigation_start_cancel()
-            startup_task.cancel()
+        # Fence and settle any background START before lifecycle observers are
+        # closed, matching the original shutdown transaction boundary.
+        if runtime.navigation is not None:
             try:
-                await asyncio.shield(startup_task)
-            except asyncio.CancelledError:
-                pass
+                await runtime.navigation.settle_startup()
             except Exception:
                 LOGGER.exception("navigation startup shutdown settlement failed")
-        # A bridge transition must not begin after application shutdown starts.
-        # Closing this observer never stops or starts the independently-owned
-        # bridge service.
-        if runtime.control_bridge_lifecycle is not None:
-            runtime.control_bridge_lifecycle.close()
-        # A lifecycle request that has not reached its fixed systemctl command
-        # must never fire during an unrelated application shutdown.
-        if runtime.service_lifecycle is not None:
-            runtime.service_lifecycle.close()
-        # Close the navigation velocity gate and signed motion lease before
-        # waiting on either process manager.
-        if runtime.navigation_jobs is not None:
+        # Closing observers cannot start or stop either fixed service.
+        if runtime.lifecycle is not None:
+            runtime.lifecycle.close()
+        # Settle START, close navigation motion/process ownership, and clean
+        # only the exact localization job owned by the Nav transaction.
+        if runtime.navigation is not None:
             try:
-                runtime.agent.navigation_deactivate(reason="server_shutdown")
+                await runtime.navigation.close()
             except Exception:
-                LOGGER.exception("navigation shutdown stop failed")
-            await asyncio.to_thread(runtime.navigation_jobs.close)
-        if isinstance(startup_token, str):
-            cleanup_complete = await cleanup_navigation_localization_dependency(
-                startup_token
-            )
-            if cleanup_complete:
-                reset_navigation_start(startup_token)
-        # Motion stop takes priority over potentially slow mapping cleanup.
+                # Remaining motion cleanup must still run after manager errors.
+                LOGGER.exception("navigation coordinator shutdown failed")
+        # Motion stop takes priority over potentially slow storage/process work.
         runtime.agent.shutdown_control()
-        # A server-side dataset session owns normal camera demand tokens and
-        # must flush its bounded writer before camera adapters are stopped.
-        # It deliberately runs only after every robot motion gate is closed.
         if runtime.dataset_capture is not None:
             try:
                 await asyncio.to_thread(runtime.dataset_capture.close)
             except Exception:
-                # Dataset durability must never prevent the remaining robot
-                # process and ROS safety cleanup from running.
+                # Dataset durability must not skip the remaining ROS cleanup.
                 LOGGER.exception("dataset capture shutdown failed")
-        if runtime.mapping_jobs is not None:
-            await asyncio.to_thread(runtime.mapping_jobs.close)
-        if runtime.mapping_task is not None and not runtime.mapping_task.done():
-            try:
-                await asyncio.wait_for(asyncio.shield(runtime.mapping_task), timeout=2.0)
-            except (asyncio.TimeoutError, asyncio.CancelledError):
-                pass
+        if runtime.mapping is not None:
+            await runtime.mapping.close()
         runtime.agent.stop()
 
 
@@ -211,16 +182,25 @@ def saved_maps() -> SavedMapCatalog:
     return RUNTIME.saved_maps
 
 
-def mapping_jobs() -> MappingJobManager:
-    if RUNTIME.mapping_jobs is None:
+def mapping_coordinator() -> MappingCoordinator:
+    if RUNTIME.mapping is None:
         raise HTTPException(status_code=503, detail="mapping operations are not configured")
-    return RUNTIME.mapping_jobs
+    return RUNTIME.mapping
 
 
-def navigation_jobs() -> NavigationJobManager:
-    if RUNTIME.navigation_jobs is None:
+def navigation_coordinator() -> NavigationCoordinator:
+    if RUNTIME.navigation is None:
         raise HTTPException(status_code=503, detail="navigation is not configured")
-    return RUNTIME.navigation_jobs
+    return RUNTIME.navigation
+
+
+def lifecycle_coordinator() -> LifecycleCoordinator:
+    if RUNTIME.lifecycle is None:
+        raise HTTPException(
+            status_code=503,
+            detail="service lifecycle control is not configured",
+        )
+    return RUNTIME.lifecycle
 
 
 def require_same_origin(request: Request) -> None:
@@ -277,429 +257,50 @@ def navigation_agent_error(exc: ControlError) -> HTTPException:
 
 
 def mapping_activity() -> tuple[bool, list[str]]:
-    """Return operations/transitions that conflict with navigation.
+    """Compatibility projection delegated to the mapping coordinator."""
 
-    A running Hesai + FAST-LIO pipeline is shared sensor/localization
-    infrastructure for Nav2, not a conflict.  Only a map mutation/save or a
-    process transition is mutually exclusive with navigation startup.
-    """
-
-    blockers: list[str] = []
-    task = RUNTIME.mapping_task
-    if task is not None and not task.done():
-        blockers.append("mapping_operation_active")
-    if RUNTIME.mapping_jobs is not None:
-        snapshot = RUNTIME.mapping_jobs.snapshot()
-        pipeline_state = str((snapshot.get("pipeline") or {}).get("state", "idle"))
-        operation_state = str((snapshot.get("operation") or {}).get("state", "idle"))
-        if pipeline_state in {"starting", "stopping"}:
-            blockers.append("mapping_transition")
-        if operation_state in {"saving", "stopping"}:
-            blockers.append("mapping_operation_active")
-    return bool(blockers), list(dict.fromkeys(blockers))
+    return mapping_coordinator().activity()
 
 
 def mapping_pipeline_state() -> str:
-    if RUNTIME.mapping_jobs is None:
-        return "unavailable"
-    snapshot = RUNTIME.mapping_jobs.snapshot()
-    state = str((snapshot.get("pipeline") or {}).get("state", "failed"))
-    # Older/external mapping managers report their clean terminal state as
-    # ``stopped``.  Navigation treats that as idle infrastructure, not a
-    # failed localization launch.
-    if state == "stopped":
-        return "idle"
-    return state if state in {"idle", "starting", "running", "stopping", "failed"} else "failed"
+    """Compatibility projection delegated to the mapping coordinator."""
+
+    return mapping_coordinator().pipeline_state()
 
 
 def navigation_start_state() -> Dict[str, Any]:
-    """Return the bounded public projection of the background START request."""
+    """Compatibility projection delegated to the navigation coordinator."""
 
-    with RUNTIME.navigation_start_state_lock:
-        state = dict(RUNTIME.navigation_start)
-    state.pop("token", None)
-    return state
+    return navigation_coordinator().start_state()
 
 
 def _navigation_start_internal() -> Dict[str, Any]:
-    with RUNTIME.navigation_start_state_lock:
-        return dict(RUNTIME.navigation_start)
-
-
-def begin_navigation_start() -> str:
-    """Reserve the single Nav/localization startup transaction."""
-
-    with RUNTIME.navigation_start_state_lock:
-        if (
-            RUNTIME.navigation_start.get("token") is not None
-            or
-            RUNTIME.navigation_start.get("pending")
-            or RUNTIME.navigation_start.get("phase") in {"active", "stopping"}
-            or RUNTIME.navigation_start.get("mapping_owned")
-        ):
-            raise NavigationBusy("navigation is already active or starting")
-        token = secrets.token_hex(16)
-        RUNTIME.navigation_start.update(
-            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            token=token,
-            phase="starting_localization",
-            pending=True,
-            cancel_requested=False,
-            mapping_job_id=None,
-            mapping_owned=False,
-            navigation_job_id=None,
-            terminal_cleanup=False,
-            error=None,
-        )
-        return token
-
-
-def update_navigation_start(
-    token: str,
-    phase: str,
-    *,
-    mapping_job_id: str | None = None,
-    mapping_owned: bool | None = None,
-    navigation_job_id: str | None = None,
-    error: str | None = None,
-) -> bool:
-    """Publish one token-fenced startup phase without exposing its token."""
-
-    allowed = {
-        "starting_localization",
-        "waiting_localization",
-        "starting_navigation",
-        "warming_navigation",
-        "activating",
-        "active",
-        "stopping",
-        "failed",
-        "idle",
-    }
-    if phase not in allowed:
-        raise ValueError("invalid navigation startup phase")
-    with RUNTIME.navigation_start_state_lock:
-        if RUNTIME.navigation_start.get("token") != token:
-            return False
-        updates: Dict[str, Any] = {
-            "seq": int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            "phase": phase,
-        }
-        if mapping_job_id is not None:
-            if (
-                not isinstance(mapping_job_id, str)
-                or re.fullmatch(r"[0-9a-f]{32}", mapping_job_id) is None
-            ):
-                raise ValueError("invalid localization dependency job_id")
-            updates["mapping_job_id"] = mapping_job_id
-        if mapping_owned is not None:
-            updates["mapping_owned"] = bool(mapping_owned)
-        if navigation_job_id is not None:
-            if (
-                not isinstance(navigation_job_id, str)
-                or re.fullmatch(r"[0-9a-f]{32}", navigation_job_id) is None
-            ):
-                raise ValueError("invalid navigation job_id")
-            updates["navigation_job_id"] = navigation_job_id
-        if error is not None:
-            updates["error"] = str(error)[:160]
-        RUNTIME.navigation_start.update(updates)
-        return True
-
-
-def navigation_start_cancelled(token: str) -> bool:
-    with RUNTIME.navigation_start_state_lock:
-        return bool(
-            RUNTIME.navigation_start.get("token") != token
-            or RUNTIME.navigation_start.get("cancel_requested")
-        )
-
-
-def request_navigation_start_cancel() -> str | None:
-    """Fence future startup phases before STOP performs process cleanup."""
-
-    with RUNTIME.navigation_start_state_lock:
-        token = RUNTIME.navigation_start.get("token")
-        if not isinstance(token, str):
-            return None
-        RUNTIME.navigation_start.update(
-            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            phase="stopping",
-            cancel_requested=True,
-        )
-        return token
-
-
-def request_navigation_terminal_cancel(job_id: str) -> tuple[str, Dict[str, Any]] | None:
-    """Atomically fence only the startup that owns an exiting Nav job."""
-
-    if not isinstance(job_id, str) or re.fullmatch(r"[0-9a-f]{32}", job_id) is None:
-        return None
-    with RUNTIME.navigation_start_state_lock:
-        token = RUNTIME.navigation_start.get("token")
-        if (
-            not isinstance(token, str)
-            or RUNTIME.navigation_start.get("navigation_job_id") != job_id
-        ):
-            return None
-        ownership = dict(RUNTIME.navigation_start)
-        RUNTIME.navigation_start.update(
-            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            phase="stopping",
-            cancel_requested=True,
-            terminal_cleanup=True,
-        )
-        return token, ownership
-
-
-def commit_navigation_start(token: str) -> bool:
-    """Commit only if STOP has not fenced the background transaction."""
-
-    with RUNTIME.navigation_start_state_lock:
-        if (
-            RUNTIME.navigation_start.get("token") != token
-            or RUNTIME.navigation_start.get("cancel_requested")
-        ):
-            return False
-        RUNTIME.navigation_start.update(
-            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            phase="active",
-            pending=False,
-            error=None,
-        )
-        return True
-
-
-def finish_navigation_start_failure(
-    token: str,
-    error: str,
-    *,
-    cleanup_complete: bool,
-    terminal_cleanup_owner: bool = False,
-) -> None:
-    """Publish bounded failure, retaining ownership only if cleanup failed."""
-
-    clean = " ".join(str(error).split())[:160] or "navigation startup failed"
-    with RUNTIME.navigation_start_state_lock:
-        if RUNTIME.navigation_start.get("token") != token:
-            return
-        if (
-            RUNTIME.navigation_start.get("terminal_cleanup")
-            and not terminal_cleanup_owner
-        ):
-            return
-        RUNTIME.navigation_start.update(
-            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            phase="failed",
-            pending=False,
-            error=clean,
-            terminal_cleanup=False,
-        )
-        if cleanup_complete:
-            RUNTIME.navigation_start.update(
-                token=None,
-                cancel_requested=False,
-                mapping_job_id=None,
-                mapping_owned=False,
-                navigation_job_id=None,
-            )
-
-
-def reset_navigation_start(token: str | None) -> None:
-    """Clear one completed ownership record without touching a newer start."""
-
-    with RUNTIME.navigation_start_state_lock:
-        if token is not None and RUNTIME.navigation_start.get("token") != token:
-            return
-        if RUNTIME.navigation_start.get("terminal_cleanup"):
-            return
-        RUNTIME.navigation_start.update(
-            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
-            token=None,
-            phase="idle",
-            pending=False,
-            cancel_requested=False,
-            mapping_job_id=None,
-            mapping_owned=False,
-            navigation_job_id=None,
-            terminal_cleanup=False,
-            error=None,
-        )
+    return navigation_coordinator().internal_start_state()
 
 
 def service_lifecycle_blockers() -> list[str]:
-    """Fail closed while robot work could be interrupted by this service."""
+    """Compatibility projection delegated to the lifecycle coordinator."""
 
-    control: Dict[str, Any] | None = None
-    navigation_runtime: Dict[str, Any] | None = None
-    navigation_snapshot: Dict[str, Any] | None = None
-    mapping_snapshot: Dict[str, Any] | None = None
-    current_agent = RUNTIME.agent
-    if current_agent is not None:
-        try:
-            control = current_agent.control_snapshot()
-        except Exception:
-            control = None
-
-        try:
-            navigation_runtime = current_agent.navigation_runtime_snapshot()
-        except Exception:
-            navigation_runtime = None
-
-    if RUNTIME.navigation_jobs is not None:
-        try:
-            navigation_snapshot = RUNTIME.navigation_jobs.snapshot()
-        except Exception:
-            navigation_snapshot = None
-
-    if RUNTIME.mapping_jobs is not None:
-        try:
-            mapping_snapshot = RUNTIME.mapping_jobs.snapshot()
-        except Exception:
-            mapping_snapshot = None
-
-    task = RUNTIME.mapping_task
-    try:
-        mapping_task_active = bool(task is not None and not task.done())
-    except Exception:
-        mapping_task_active = True
-    blockers = collect_service_lifecycle_blockers(
-        control=control,
-        navigation_runtime=navigation_runtime,
-        navigation_jobs=navigation_snapshot,
-        mapping_jobs=mapping_snapshot,
-        mapping_task_active=mapping_task_active,
-    )
-    startup = _navigation_start_internal()
-    if startup.get("pending") or startup.get("mapping_owned"):
-        blockers.append("navigation_start_pending")
-    if RUNTIME.dataset_capture is not None:
-        try:
-            if RUNTIME.dataset_capture.is_active():
-                blockers.append("dataset_capture_active")
-        except Exception:
-            # A service transition must fail closed if capture state cannot be
-            # established; otherwise an active writer could be truncated.
-            blockers.append("dataset_capture_state_unknown")
-    if RUNTIME.control_bridge_lifecycle is None:
-        blockers.append("control_bridge_service_lifecycle_status_unavailable")
-    else:
-        try:
-            if RUNTIME.control_bridge_lifecycle.is_busy():
-                blockers.append("control_bridge_service_transition")
-        except Exception:
-            # Dashboard restart/stop would destroy the bridge-transition
-            # observer.  Fail closed unless that observer is known idle.
-            blockers.append("control_bridge_service_lifecycle_status_unavailable")
-    return list(dict.fromkeys(blockers))
+    return lifecycle_coordinator().service_blockers()
 
 
 def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
-    """Collect action-specific interlocks for the local bridge unit.
+    """Compatibility projection delegated to the lifecycle coordinator."""
 
-    This intentionally does not use robot reachability as a stop condition.
-    An offline robot is exactly when an operator may need the local bridge
-    cleanup path most; leases, actions and navigation still fail closed.
-    """
-
-    control: Dict[str, Any] | None = None
-    navigation_runtime: Dict[str, Any] | None = None
-    navigation_snapshot: Dict[str, Any] | None = None
-    mapping_snapshot: Dict[str, Any] | None = None
-    current_agent = RUNTIME.agent
-    if current_agent is not None:
-        try:
-            control = current_agent.control_snapshot()
-        except Exception:
-            control = None
-        try:
-            navigation_runtime = current_agent.navigation_runtime_snapshot()
-        except Exception:
-            navigation_runtime = None
-
-    if RUNTIME.navigation_jobs is not None:
-        try:
-            navigation_snapshot = RUNTIME.navigation_jobs.snapshot()
-        except Exception:
-            navigation_snapshot = None
-    if RUNTIME.mapping_jobs is not None:
-        try:
-            mapping_snapshot = RUNTIME.mapping_jobs.snapshot()
-        except Exception:
-            mapping_snapshot = None
-
-    task = RUNTIME.mapping_task
-    try:
-        mapping_task_active = bool(task is not None and not task.done())
-    except Exception:
-        mapping_task_active = True
-
-    if RUNTIME.dataset_capture is None:
-        dataset_active: bool | None = None
-    else:
-        try:
-            dataset_active = bool(RUNTIME.dataset_capture.is_active())
-        except Exception:
-            dataset_active = None
-
-    if RUNTIME.service_lifecycle is None:
-        dashboard_lifecycle_busy: bool | None = None
-    else:
-        try:
-            dashboard_lifecycle_busy = bool(RUNTIME.service_lifecycle.is_busy())
-        except Exception:
-            dashboard_lifecycle_busy = None
-
-    blockers = collect_control_bridge_lifecycle_blockers(
-        control=control,
-        navigation_runtime=navigation_runtime,
-        navigation_jobs=navigation_snapshot,
-        mapping_jobs=mapping_snapshot,
-        mapping_task_active=mapping_task_active,
-        dataset_capture_active=dataset_active,
-        dashboard_service_lifecycle_busy=dashboard_lifecycle_busy,
-    )
-    startup = _navigation_start_internal()
-    if startup.get("pending") or startup.get("mapping_owned"):
-        blockers.append("navigation_start_pending")
-    return list(dict.fromkeys(blockers))
+    return lifecycle_coordinator().control_bridge_preflight()
 
 
 def signed_control_bridge_status_fresh() -> bool | None:
-    """Observe authenticated status until its fixed 0.75 s stale boundary."""
-
-    current_agent = RUNTIME.agent
-    if current_agent is None:
-        return None
-    try:
-        snapshot = current_agent.control_snapshot()
-        bridge = snapshot.get("bridge") if isinstance(snapshot.get("bridge"), dict) else {}
-        age_value = bridge.get("status_age_s")
-        if bridge.get("authenticated") is not True or age_value is None:
-            return False
-        age = float(age_value)
-        return 0.0 <= age <= CONTROL_BRIDGE_STATUS_STALE_S
-    except (TypeError, ValueError):
-        return None
-    except Exception:
-        return None
+    return lifecycle_coordinator().signed_control_bridge_status_fresh()
 
 
 def require_service_lifecycle_idle() -> None:
-    """Prevent new robot work during either local service transition."""
+    """Translate the application lifecycle gate into the stable HTTP conflict."""
 
-    manager = RUNTIME.service_lifecycle
-    if manager is not None and manager.is_busy():
-        raise HTTPException(
-            status_code=409,
-            detail="a dashboard service lifecycle operation is pending",
-        )
-    bridge_manager = RUNTIME.control_bridge_lifecycle
-    if bridge_manager is not None and bridge_manager.is_busy():
-        raise HTTPException(
-            status_code=409,
-            detail="a control bridge service lifecycle operation is pending",
-        )
+    try:
+        lifecycle_coordinator().require_idle()
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 app.include_router(system_router)
@@ -710,46 +311,7 @@ app.include_router(create_dataset_router(require_service_lifecycle_idle))
 
 
 def navigation_active() -> bool:
-    startup = _navigation_start_internal()
-    startup_active = bool(
-        startup.get("pending")
-        or startup.get("mapping_owned")
-        or startup.get("phase") in {"active", "stopping"}
-    )
-    manager_snapshot: Dict[str, Any] = {}
-    manager_active = False
-    if RUNTIME.navigation_jobs is not None:
-        try:
-            manager_snapshot = RUNTIME.navigation_jobs.snapshot()
-            pipeline = (
-                manager_snapshot.get("pipeline")
-                if isinstance(manager_snapshot.get("pipeline"), dict)
-                else {}
-            )
-            manager_active = bool(
-                pipeline.get("state") in {"starting", "running", "stopping"}
-                or pipeline.get("job_id")
-            )
-        except Exception:
-            # Mutation interlocks fail closed when ownership cannot be read.
-            return True
-    if RUNTIME.agent is None:
-        return manager_active or startup_active
-    try:
-        runtime = RUNTIME.agent.navigation_runtime_snapshot()
-        goal = runtime.get("goal") if isinstance(runtime.get("goal"), dict) else {}
-        control = RUNTIME.agent.control_snapshot()
-        lease = control.get("lease") if isinstance(control.get("lease"), dict) else {}
-        runtime_active = bool(
-            runtime.get("active")
-            or runtime.get("cleanup_required")
-            or runtime.get("map")
-            or goal.get("state") in {"pending", "active", "canceling"}
-            or (lease.get("active") and lease.get("input_source") == "navigation")
-        )
-        return manager_active or runtime_active or startup_active
-    except Exception:
-        return True
+    return navigation_coordinator().is_active()
 
 
 def require_navigation_idle(detail: str) -> None:
@@ -757,603 +319,10 @@ def require_navigation_idle(detail: str) -> None:
         raise HTTPException(status_code=409, detail=detail)
 
 
-def require_navigation_runtime_capability(capability: str) -> None:
-    runtime = agent().navigation_runtime_snapshot()
-    safety = runtime.get("safety") if isinstance(runtime.get("safety"), dict) else {}
-    if safety.get(capability) is not True:
-        raise NavigationUnavailable(
-            f"navigation runtime safety gate {capability} is not ready"
-        )
-
-
-async def wait_navigation_prelocalization_ready(
-    manager: NavigationJobManager,
-    *,
-    ready_after: float,
-) -> None:
-    """Wait boundedly for this Nav2 runtime's fresh cloud/odom projection."""
-
-    deadline = time.monotonic() + NAVIGATION_START_READY_TIMEOUT_S
-    reason = "navigation runtime inputs did not become ready"
-    while time.monotonic() < deadline:
-        pipeline = await asyncio.to_thread(manager.snapshot)
-        pipeline_state = str((pipeline.get("pipeline") or {}).get("state", "failed"))
-        if pipeline_state != "running":
-            raise NavigationUnavailable(
-                "navigation pipeline stopped while runtime inputs were warming up"
-            )
-        readiness = await asyncio.to_thread(
-            agent().navigation_prelocalization_snapshot,
-            ready_after=ready_after,
-        )
-        if readiness.get("ready") is True:
-            return
-        reason = str(readiness.get("reason") or reason)[:160]
-        await asyncio.sleep(NAVIGATION_START_READY_POLL_S)
-    raise NavigationUnavailable(f"navigation startup timed out: {reason}")
-
-
-async def start_navigation_localization_dependency(
-    token: str,
-    *,
-    previous_job_id: str | None,
-) -> str:
-    """Start FAST-LIO and claim its exact job even if this task is cancelled."""
-
-    start_task = asyncio.create_task(
-        asyncio.to_thread(mapping_jobs().start_mapping),
-        name="navigation-localization-start",
-    )
-    snapshot: Dict[str, Any] | None = None
-    try:
-        snapshot = await asyncio.shield(start_task)
-    except asyncio.CancelledError:
-        try:
-            snapshot = await asyncio.shield(start_task)
-        except Exception:
-            snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
-        if snapshot is not None:
-            pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
-            job_id = pipeline.get("job_id")
-            if (
-                isinstance(job_id, str)
-                and re.fullmatch(r"[0-9a-f]{32}", job_id)
-                and job_id != previous_job_id
-            ):
-                update_navigation_start(
-                    token,
-                    "stopping",
-                    mapping_job_id=job_id,
-                    mapping_owned=True,
-                )
-        raise
-    except Exception:
-        # start_mapping() can publish a failed token before raising.  Capture
-        # that token so every partially launched process remains attributable
-        # to this transaction and can be compare-and-stopped.
-        snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
-        pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
-        job_id = pipeline.get("job_id")
-        if (
-            isinstance(job_id, str)
-            and re.fullmatch(r"[0-9a-f]{32}", job_id)
-            and job_id != previous_job_id
-        ):
-            update_navigation_start(
-                token,
-                "failed",
-                mapping_job_id=job_id,
-                mapping_owned=True,
-            )
-        raise
-
-    pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
-    job_id = pipeline.get("job_id")
-    if not isinstance(job_id, str) or re.fullmatch(r"[0-9a-f]{32}", job_id) is None:
-        raise NavigationUnavailable("localization pipeline did not publish an ownership token")
-    if job_id == previous_job_id:
-        raise NavigationUnavailable("localization pipeline reused a stale ownership token")
-    if not update_navigation_start(
-        token,
-        "waiting_localization",
-        mapping_job_id=job_id,
-        mapping_owned=True,
-    ):
-        raise NavigationConflict("navigation startup ownership expired")
-    return job_id
-
-
-async def wait_navigation_localization_dependency(token: str) -> None:
-    """Wait boundedly for the exact reserved FAST-LIO job to become ready."""
-
-    deadline = time.monotonic() + NAVIGATION_LOCALIZATION_READY_TIMEOUT_S
-    while time.monotonic() < deadline:
-        if navigation_start_cancelled(token):
-            raise NavigationConflict("navigation startup was stopped")
-        ownership = _navigation_start_internal()
-        expected_job_id = ownership.get("mapping_job_id")
-        snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
-        pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
-        state = str(pipeline.get("state", "failed"))
-        if pipeline.get("job_id") != expected_job_id:
-            raise NavigationUnavailable("localization pipeline ownership changed during startup")
-        if state == "running":
-            return
-        if state not in {"starting", "stopping"}:
-            reason = " ".join(str(pipeline.get("error") or state).split())[:120]
-            raise NavigationUnavailable(f"localization pipeline failed: {reason}")
-        if state == "stopping":
-            raise NavigationConflict("localization pipeline was stopped during navigation startup")
-        await asyncio.sleep(NAVIGATION_START_READY_POLL_S)
-    raise NavigationUnavailable("localization pipeline readiness timed out")
-
-
-def cleanup_navigation_localization_dependency_sync(token: str) -> bool:
-    """Synchronously compare-and-stop one Nav-owned mapping dependency."""
-
-    ownership = _navigation_start_internal()
-    if ownership.get("token") != token or not ownership.get("mapping_owned"):
-        return True
-    job_id = ownership.get("mapping_job_id")
-    if not isinstance(job_id, str):
-        return False
-    try:
-        _, snapshot = mapping_jobs().stop_mapping_if_job_id(job_id)
-    except MappingJobError:
-        LOGGER.exception("navigation-owned localization cleanup failed")
-        return False
-    pipeline = snapshot.get("pipeline") if isinstance(snapshot.get("pipeline"), dict) else {}
-    # A different token means the owned job already ended or was replaced.
-    # It is deliberately never stopped by this stale transaction.
-    return bool(
-        pipeline.get("job_id") != job_id
-        or pipeline.get("state") not in {"starting", "running", "stopping"}
-    )
-
-
-async def cleanup_navigation_localization_dependency(token: str) -> bool:
-    """Stop only the exact mapping job auto-started by this Nav transaction."""
-
-    return await asyncio.to_thread(
-        cleanup_navigation_localization_dependency_sync,
-        token,
-    )
-
-
-async def rollback_navigation_transaction(
-    token: str,
-    manager: NavigationJobManager,
-    reason: str,
-) -> bool:
-    """Disarm Nav first, then compare-and-stop only its owned dependency."""
-
-    await rollback_navigation_start(manager, reason)
-    return await cleanup_navigation_localization_dependency(token)
-
-
-async def perform_navigation_stop_cleanup(token: str | None) -> None:
-    """Settle every STOP side effect even if the HTTP request is cancelled."""
-
-    try:
-        await asyncio.to_thread(
-            agent().navigation_deactivate,
-            reason="navigation_stop",
-        )
-    except Exception:
-        # Process cleanup remains available even if the robot transport is
-        # already offline.  The signed bridge also has its own watchdog.
-        LOGGER.exception("navigation stop could not reach the ROS agent")
-    manager_error: NavigationJobError | None = None
-    try:
-        await asyncio.to_thread(navigation_jobs().stop)
-    except NavigationJobError as exc:
-        manager_error = exc
-    cleanup_complete = True
-    if token is not None:
-        cleanup_complete = await cleanup_navigation_localization_dependency(token)
-    if cleanup_complete:
-        # The caller holds the coordination lock.  Token-fencing still keeps
-        # an idle STOP from clearing a retained failure or future ownership.
-        if token is not None:
-            reset_navigation_start(token)
-    elif token is not None:
-        finish_navigation_start_failure(
-            token,
-            "navigation stopped but localization cleanup must be retried",
-            cleanup_complete=False,
-        )
-    if manager_error is not None:
-        raise manager_error
-
-
-async def rollback_navigation_start(manager: NavigationJobManager, reason: str) -> None:
-    """Best-effort both sides of a partially completed start transaction."""
-
-    try:
-        await asyncio.to_thread(agent().navigation_deactivate, reason=reason)
-    except Exception:
-        LOGGER.exception("navigation activation rollback failed")
-    try:
-        await asyncio.to_thread(manager.stop)
-    except Exception:
-        LOGGER.exception("navigation process rollback failed")
-
-
-async def run_navigation_manager_start(
-    manager: NavigationJobManager,
-    *,
-    map_id: str,
-    map_revision: str,
-    parameters_revision: str,
-) -> None:
-    """Run an uncancellable thread start and always settle it before cleanup."""
-
-    start_task = asyncio.create_task(
-        asyncio.to_thread(
-            manager.start,
-            map_id=map_id,
-            map_revision=map_revision,
-            parameters_revision=parameters_revision,
-        ),
-        name="navigation-manager-start",
-    )
-    try:
-        await asyncio.shield(start_task)
-    except asyncio.CancelledError:
-        try:
-            await asyncio.shield(start_task)
-        except Exception:
-            pass
-        await asyncio.shield(
-            rollback_navigation_start(manager, "navigation_start_cancelled")
-        )
-        raise
-    except Exception:
-        # start() can publish a failed job_id before raising.  Normalize that
-        # residual state and the ROS side even when no lease was acquired.
-        await rollback_navigation_start(manager, "navigation_start_failed")
-        raise
-
-
-async def run_navigation_activation(
-    manager: NavigationJobManager,
-    *,
-    map_id: str,
-    map_revision: str,
-    map_name: str,
-    ready_after: float,
-) -> Dict[str, Any]:
-    """Settle activation and response projection before any rollback."""
-
-    activation_task = asyncio.create_task(
-        asyncio.to_thread(
-            agent().navigation_activate,
-            map_id=map_id,
-            map_revision=map_revision,
-            map_name=map_name,
-            ready_after=ready_after,
-        ),
-        name="navigation-runtime-activate",
-    )
-    try:
-        await asyncio.shield(activation_task)
-        # The start is not committed to the caller until its stable public
-        # response exists.  Cancellation while projecting that response must
-        # therefore disarm and stop the just-created session too.
-        return await asyncio.to_thread(navigation_view)
-    except asyncio.CancelledError:
-        try:
-            await asyncio.shield(activation_task)
-        except Exception:
-            pass
-        await asyncio.shield(
-            rollback_navigation_start(manager, "navigation_start_cancelled")
-        )
-        raise
-    except Exception:
-        await rollback_navigation_start(manager, "navigation_start_failed")
-        raise
-
-
-async def run_navigation_start_operation(
-    token: str,
-    manager: NavigationJobManager,
-    *,
-    map_id: str,
-    map_revision: str,
-    map_name: str,
-    parameters_revision: str,
-    start_localization: bool,
-    previous_mapping_job_id: str | None,
-) -> None:
-    """Complete the one-click Nav startup without holding the API mutex."""
-
-    try:
-        if start_localization:
-            await start_navigation_localization_dependency(
-                token,
-                previous_job_id=previous_mapping_job_id,
-            )
-        if navigation_start_cancelled(token):
-            raise NavigationConflict("navigation startup was stopped")
-        update_navigation_start(token, "waiting_localization")
-        await wait_navigation_localization_dependency(token)
-
-        if navigation_start_cancelled(token):
-            raise NavigationConflict("navigation startup was stopped")
-        update_navigation_start(token, "starting_navigation")
-        start_fence = time.monotonic()
-        await run_navigation_manager_start(
-            manager,
-            map_id=map_id,
-            map_revision=map_revision,
-            parameters_revision=parameters_revision,
-        )
-
-        started = await asyncio.to_thread(manager.snapshot)
-        started_pipeline = (
-            started.get("pipeline")
-            if isinstance(started.get("pipeline"), dict)
-            else {}
-        )
-        navigation_job_id = started_pipeline.get("job_id")
-        if (
-            str(started_pipeline.get("state", "failed")) != "running"
-            or not isinstance(navigation_job_id, str)
-            or re.fullmatch(r"[0-9a-f]{32}", navigation_job_id) is None
-        ):
-            raise NavigationUnavailable(
-                "navigation pipeline did not publish an ownership token"
-            )
-        if not update_navigation_start(
-            token,
-            "warming_navigation",
-            navigation_job_id=navigation_job_id,
-        ):
-            raise NavigationConflict("navigation startup ownership expired")
-
-        if navigation_start_cancelled(token):
-            raise NavigationConflict("navigation startup was stopped")
-        await wait_navigation_prelocalization_ready(
-            manager,
-            ready_after=start_fence,
-        )
-        # Recheck both the exact dependency and non-mutating control gates
-        # immediately before the only operation that acquires motion.
-        await wait_navigation_localization_dependency(token)
-        latest = await asyncio.to_thread(manager.snapshot)
-        if str((latest.get("pipeline") or {}).get("state", "failed")) != "running":
-            raise NavigationUnavailable(
-                "navigation pipeline stopped before motion could be armed"
-            )
-        await asyncio.to_thread(agent().navigation_start_preflight)
-        if navigation_start_cancelled(token):
-            raise NavigationConflict("navigation startup was stopped")
-        update_navigation_start(token, "activating")
-        await run_navigation_activation(
-            manager,
-            map_id=map_id,
-            map_revision=map_revision,
-            map_name=map_name,
-            ready_after=start_fence,
-        )
-        if not commit_navigation_start(token):
-            raise NavigationConflict("navigation startup was stopped")
-    except asyncio.CancelledError:
-        cleanup_complete = await asyncio.shield(
-            rollback_navigation_transaction(
-                token,
-                manager,
-                "navigation_start_cancelled",
-            )
-        )
-        finish_navigation_start_failure(
-            token,
-            "navigation startup was stopped",
-            cleanup_complete=cleanup_complete,
-        )
-    except Exception as exc:
-        cleanup_complete = await rollback_navigation_transaction(
-            token,
-            manager,
-            "navigation_start_failed",
-        )
-        message = " ".join(str(exc).split())[:160] or "navigation startup failed"
-        finish_navigation_start_failure(
-            token,
-            message,
-            cleanup_complete=cleanup_complete,
-        )
-        LOGGER.warning("navigation background startup failed: %s", message)
-    finally:
-        if RUNTIME.navigation_start_task is asyncio.current_task():
-            RUNTIME.navigation_start_task = None
-
-
 def navigation_view() -> Dict[str, Any]:
-    """Merge process ownership with ROS readiness into the stable UI contract."""
+    """Compatibility projection delegated to the navigation coordinator."""
 
-    manager = navigation_jobs().snapshot()
-    try:
-        runtime = agent().navigation_runtime_snapshot()
-    except Exception:
-        LOGGER.exception("navigation runtime snapshot failed")
-        runtime = {}
-
-    startup = navigation_start_state()
-    startup_phase = str(startup.get("phase", "idle"))
-    startup_pending = bool(startup.get("pending", False))
-    manager_pipeline = manager.get("pipeline") if isinstance(manager.get("pipeline"), dict) else {}
-    pipeline_state = str(manager_pipeline.get("state", "failed"))
-    if pipeline_state not in {"idle", "starting", "running", "stopping", "failed"}:
-        pipeline_state = "failed"
-    if startup_pending and pipeline_state in {"idle", "failed"}:
-        pipeline_state = "starting"
-    elif startup_phase == "failed" and pipeline_state == "idle":
-        pipeline_state = "failed"
-    pipeline = {
-        "state": pipeline_state,
-        "job_id": manager_pipeline.get("job_id"),
-        "error": manager_pipeline.get("error") or startup.get("error"),
-        "started_at": manager_pipeline.get("started_at"),
-    }
-
-    runtime_readiness = runtime.get("readiness") if isinstance(runtime.get("readiness"), dict) else {}
-    readiness = {
-        key: bool(runtime_readiness.get(key, False))
-        for key in (
-            "map_server",
-            "localization",
-            "planner",
-            "controller",
-            "behavior",
-            "cmd_bridge",
-            "map",
-            "scan",
-            "odometry",
-            "tf",
-        )
-    }
-    manager_available = bool(manager.get("available", False))
-    runtime_available = bool(runtime.get("available", False))
-    available = manager_available and runtime_available
-    robot_online = bool(runtime.get("robot_online", False))
-    mapping_busy, mapping_blockers = mapping_activity()
-    shared_mapping_state = mapping_pipeline_state()
-    if (
-        startup_pending
-        and startup.get("mapping_job_id")
-        and startup.get("mapping_job_id")
-        == (mapping_jobs().snapshot().get("pipeline") or {}).get("job_id")
-    ):
-        mapping_blockers = [
-            blocker for blocker in mapping_blockers if blocker != "mapping_transition"
-        ]
-        mapping_busy = bool(mapping_blockers)
-
-    runtime_safety = runtime.get("safety") if isinstance(runtime.get("safety"), dict) else {}
-    blockers = [
-        str(item)
-        for item in runtime_safety.get("blockers", [])
-        if isinstance(item, str) and item
-    ]
-    blockers.extend(mapping_blockers)
-    if not manager_available or not runtime_available:
-        blockers.append("navigation_unavailable")
-    if not robot_online:
-        blockers.append("robot_offline")
-    if pipeline_state in {"starting", "stopping"}:
-        blockers.append("navigation_transition")
-    if pipeline_state == "running" and shared_mapping_state != "running":
-        blockers.append("localization_pipeline_not_running")
-    blockers = list(dict.fromkeys(blockers))
-
-    manager_map = manager.get("map") if isinstance(manager.get("map"), dict) else None
-    localization = runtime.get("localization") if isinstance(runtime.get("localization"), dict) else {}
-    localization_state = str(localization.get("state", "uninitialized"))
-    if localization_state not in {"uninitialized", "localizing", "localized", "lost"}:
-        localization_state = "lost"
-    localization_view = {
-        "state": localization_state,
-        "pose": localization.get("pose") if isinstance(localization.get("pose"), dict) else None,
-    }
-    goal = runtime.get("goal") if isinstance(runtime.get("goal"), dict) else {}
-    goal_state = str(goal.get("state", "idle"))
-    if goal_state not in {
-        "idle", "pending", "active", "canceling", "succeeded", "failed", "canceled"
-    }:
-        goal_state = "failed"
-    goal_view = {
-        "state": goal_state,
-        "goal_id": goal.get("goal_id"),
-        "pose": goal.get("pose") if isinstance(goal.get("pose"), dict) else None,
-        "distance_remaining": goal.get("distance_remaining"),
-        "navigation_time": goal.get("navigation_time"),
-        "recoveries": int(goal.get("recoveries", 0) or 0),
-        "error": goal.get("error"),
-    }
-    running = pipeline_state == "running" and manager_map is not None
-    runtime_goal_active = goal_state in {"pending", "active", "canceling"}
-    manager_cleanup_required = bool(
-        pipeline_state in {"starting", "running", "stopping"}
-        or manager_pipeline.get("job_id")
-    )
-    runtime_cleanup_required = bool(
-        runtime.get("active")
-        or runtime.get("cleanup_required")
-        or runtime.get("map")
-        or runtime_goal_active
-        or runtime.get("navigation_lease_active")
-    )
-    startup_cleanup_required = bool(
-        startup_pending
-        or startup.get("mapping_owned")
-        or startup_phase in {"active", "stopping"}
-    )
-    safety = {
-        "can_start": bool(
-            available
-            and robot_online
-            and not mapping_busy
-            and not startup_cleanup_required
-            and pipeline_state in {"idle", "failed"}
-            and runtime_safety.get("can_start", False)
-        ),
-        "can_set_initial_pose": bool(
-            running
-            and shared_mapping_state == "running"
-            and runtime_safety.get("can_set_initial_pose", False)
-        ),
-        "can_send_goal": bool(
-            running
-            and shared_mapping_state == "running"
-            and runtime_safety.get("can_send_goal", False)
-        ),
-        "can_stop": bool(
-            manager_cleanup_required
-            or runtime_cleanup_required
-            or startup_cleanup_required
-        ),
-        "blockers": blockers,
-    }
-    result: Dict[str, Any] = {
-        "seq": max(
-            int(manager.get("seq", 0) or 0),
-            int(runtime.get("seq", 0) or 0),
-            int(startup.get("seq", 0) or 0),
-        ),
-        "available": available,
-        "robot_online": robot_online,
-        "pipeline": pipeline,
-        "readiness": readiness,
-        "map": manager_map,
-        "localization": localization_view,
-        "goal": goal_view,
-        "safety": safety,
-        "command_topic": str(manager.get("command_topic", "/robot_scope/nav/cmd_vel_raw")),
-        "bindings": {
-            "scan": "/scan",
-            "odometry": "/utlidar/robot_odom",
-            "localization_odometry": "/Odometry",
-            "command": "/robot_scope/nav/cmd_vel_raw",
-        },
-        "localization_pipeline": {
-            "state": shared_mapping_state,
-            "shared": True,
-            "phase": startup_phase,
-            "pending": startup_pending,
-            "owned_by_navigation": bool(startup.get("mapping_owned", False)),
-            "job_id": startup.get("mapping_job_id"),
-            "error": startup.get("error"),
-        },
-    }
-    deactivation_reason = runtime.get("deactivation_reason")
-    if isinstance(deactivation_reason, str) and deactivation_reason:
-        result["deactivation_reason"] = deactivation_reason[:160]
-    path = runtime.get("path")
-    if isinstance(path, list):
-        result["path"] = path
-    return result
+    return navigation_coordinator().view()
 
 
 def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
@@ -1450,6 +419,14 @@ def mapping_error(exc: MappingJobError) -> HTTPException:
     return HTTPException(status_code=500, detail=str(exc))
 
 
+def mapping_coordination_error(exc: MappingCoordinatorError) -> HTTPException:
+    if isinstance(exc, MappingCoordinatorConflict):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, MappingCoordinatorUnavailable):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(status_code=500, detail="mapping coordination failed")
+
+
 def saved_map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, SavedMapNotFound):
         return HTTPException(status_code=404, detail=str(exc))
@@ -1506,15 +483,7 @@ async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, An
     require_same_origin(request)
     async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
-        startup = _navigation_start_internal()
-        if startup.get("pending") or startup.get("phase") in {
-            "starting_localization",
-            "waiting_localization",
-            "starting_navigation",
-            "warming_navigation",
-            "activating",
-            "stopping",
-        }:
+        if navigation_coordinator().manual_control_blocked():
             raise HTTPException(
                 status_code=409,
                 detail="navigation startup must stop before manual control can arm",
@@ -1747,7 +716,7 @@ async def control_stream(websocket: WebSocket) -> None:
 
 @app.get("/api/v1/navigation")
 async def navigation_status() -> Dict[str, Any]:
-    return await asyncio.to_thread(navigation_view)
+    return await asyncio.to_thread(navigation_coordinator().view)
 
 
 @app.get("/api/v1/navigation/logs")
@@ -1756,11 +725,11 @@ async def navigation_logs(
     after: int = Query(default=0, ge=0, le=9_007_199_254_740_991),
     limit: int = Query(default=80, ge=1, le=100),
 ) -> Dict[str, Any]:
-    """Return only the manager's bounded, redacted progress projection."""
+    """Return only the coordinator's bounded, redacted progress projection."""
 
     response.headers["Cache-Control"] = "no-store"
     return await asyncio.to_thread(
-        navigation_jobs().progress_snapshot,
+        navigation_coordinator().progress_snapshot,
         after=after,
         limit=limit,
     )
@@ -1768,7 +737,7 @@ async def navigation_logs(
 
 @app.get("/api/v1/navigation/parameters")
 async def navigation_parameters() -> Dict[str, Any]:
-    return await asyncio.to_thread(navigation_jobs().parameters_snapshot)
+    return await asyncio.to_thread(navigation_coordinator().parameters_snapshot)
 
 
 @app.patch("/api/v1/navigation/parameters")
@@ -1777,15 +746,13 @@ async def update_navigation_parameters(
     body: NavigationParameterPatchRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        try:
-            return await asyncio.to_thread(
-                navigation_jobs().update_parameters,
-                body.base_revision,
-                body.values,
-            )
-        except NavigationJobError as exc:
-            raise navigation_error(exc) from exc
+    try:
+        return await navigation_coordinator().update_parameters(
+            body.base_revision,
+            body.values,
+        )
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
 
 
 @app.post("/api/v1/navigation/start", status_code=202)
@@ -1794,105 +761,20 @@ async def navigation_start(
     body: NavigationStartRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    manager = navigation_jobs()
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        mapping_busy, _ = mapping_activity()
-        if mapping_busy:
-            raise HTTPException(
-                status_code=409,
-                detail="a mapping save, conversion, or pipeline transition is active",
-            )
-        preflight = await asyncio.to_thread(manager.snapshot)
-        pipeline_state = str((preflight.get("pipeline") or {}).get("state", "failed"))
-        if pipeline_state in {"starting", "running", "stopping"}:
-            raise HTTPException(status_code=409, detail="navigation is already active")
-        if not preflight.get("available"):
-            raise HTTPException(
-                status_code=503,
-                detail="navigation prerequisites are unavailable",
-            )
-        if body.parameters_revision != preflight.get("parameters_revision"):
-            raise HTTPException(
-                status_code=409,
-                detail="navigation parameters changed; reload before starting",
-            )
-        try:
-            source = await asyncio.to_thread(
-                saved_maps().resolve_navigation_map,
-                body.map_id,
-                body.map_revision,
-            )
-        except SavedMapError as exc:
-            raise saved_map_error(exc) from exc
-
-        # Reject a manual/foreign lease and every other control gate before a
-        # cold shared mapping launch can have any process side effect.
-        try:
-            await asyncio.to_thread(agent().navigation_start_preflight)
-        except ControlError as exc:
-            raise navigation_agent_error(exc) from exc
-
-        mapping_snapshot = await asyncio.to_thread(mapping_jobs().snapshot)
-        mapping_pipeline = (
-            mapping_snapshot.get("pipeline")
-            if isinstance(mapping_snapshot.get("pipeline"), dict)
-            else {}
+    try:
+        return await navigation_coordinator().start(
+            map_id=body.map_id,
+            map_revision=body.map_revision,
+            parameters_revision=body.parameters_revision,
         )
-        shared_pipeline_state = str(mapping_pipeline.get("state", "failed"))
-        if shared_pipeline_state == "stopped":
-            shared_pipeline_state = "idle"
-        if shared_pipeline_state not in {"idle", "failed", "running"}:
-            raise HTTPException(
-                status_code=409,
-                detail="localization pipeline is changing state",
-            )
-        existing_mapping_job_id = mapping_pipeline.get("job_id")
-        if shared_pipeline_state == "running" and (
-            not isinstance(existing_mapping_job_id, str)
-            or re.fullmatch(r"[0-9a-f]{32}", existing_mapping_job_id) is None
-        ):
-            raise HTTPException(
-                status_code=503,
-                detail="localization pipeline ownership is unavailable",
-            )
-        try:
-            token = begin_navigation_start()
-        except NavigationJobError as exc:
-            raise navigation_error(exc) from exc
-        if shared_pipeline_state == "running":
-            update_navigation_start(
-                token,
-                "waiting_localization",
-                mapping_job_id=existing_mapping_job_id,
-                mapping_owned=False,
-            )
-        try:
-            RUNTIME.navigation_start_task = asyncio.create_task(
-                run_navigation_start_operation(
-                    token,
-                    manager,
-                    map_id=source.map_id,
-                    map_revision=source.revision,
-                    map_name=source.name,
-                    parameters_revision=body.parameters_revision,
-                    start_localization=shared_pipeline_state in {"idle", "failed"},
-                    previous_mapping_job_id=(
-                        existing_mapping_job_id
-                        if isinstance(existing_mapping_job_id, str)
-                        else None
-                    ),
-                ),
-                name="navigation-start-operation",
-            )
-        except Exception:
-            reset_navigation_start(token)
-            raise
-    return {
-        "accepted": True,
-        "pending": True,
-        "navigation": await asyncio.to_thread(navigation_view),
-    }
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
+    except ControlError as exc:
+        raise navigation_agent_error(exc) from exc
 
 
 @app.post("/api/v1/navigation/stop")
@@ -1902,46 +784,10 @@ async def navigation_stop(
 ) -> Dict[str, Any]:
     del body
     require_same_origin(request)
-    task: asyncio.Task[None] | None
-    async with RUNTIME.pipeline_coordination_lock:
-        token = request_navigation_start_cancel()
-        task = RUNTIME.navigation_start_task
-        if task is not None and not task.done():
-            task.cancel()
-        request_cancelled = False
-        if task is not None and not task.done():
-            try:
-                await asyncio.shield(task)
-            except asyncio.CancelledError:
-                # Distinguish the background task's expected cancellation from
-                # a cancelled STOP request.  Always settle startup before the
-                # final idempotent cleanup below.
-                if not task.done():
-                    request_cancelled = True
-                    try:
-                        await asyncio.shield(task)
-                    except asyncio.CancelledError:
-                        pass
-            except Exception:
-                LOGGER.exception("navigation background stop settlement failed")
-
-        cleanup_task = asyncio.create_task(
-            perform_navigation_stop_cleanup(token),
-            name="navigation-stop-cleanup",
-        )
-        try:
-            await asyncio.shield(cleanup_task)
-        except asyncio.CancelledError:
-            request_cancelled = True
-            try:
-                await asyncio.shield(cleanup_task)
-            except NavigationJobError as exc:
-                raise navigation_error(exc) from exc
-        except NavigationJobError as exc:
-            raise navigation_error(exc) from exc
-        if request_cancelled:
-            raise asyncio.CancelledError
-    return {"navigation": await asyncio.to_thread(navigation_view)}
+    try:
+        return await navigation_coordinator().stop()
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
 
 
 @app.post("/api/v1/navigation/initial-pose")
@@ -1950,38 +796,18 @@ async def navigation_initial_pose(
     body: NavigationPoseRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        mapping_busy, _ = mapping_activity()
-        if mapping_busy:
-            raise HTTPException(status_code=409, detail="mapping is active")
-        if mapping_pipeline_state() != "running":
-            raise HTTPException(
-                status_code=409,
-                detail="shared Hesai + FAST-LIO localization pipeline is not running",
-            )
-        try:
-            await asyncio.to_thread(
-                require_navigation_runtime_capability,
-                "can_set_initial_pose",
-            )
-            pose = await asyncio.to_thread(
-                navigation_jobs().validate_active_pose,
-                map_id=body.map_id,
-                map_revision=body.map_revision,
-                **body.pose.model_dump(),
-            )
-            await asyncio.to_thread(
-                agent().navigation_set_initial_pose,
-                map_id=body.map_id,
-                map_revision=body.map_revision,
-                **pose,
-            )
-        except NavigationJobError as exc:
-            raise navigation_error(exc) from exc
-        except ControlError as exc:
-            raise navigation_agent_error(exc) from exc
-    return {"accepted": True, "navigation": await asyncio.to_thread(navigation_view)}
+    try:
+        return await navigation_coordinator().set_initial_pose(
+            map_id=body.map_id,
+            map_revision=body.map_revision,
+            **body.pose.model_dump(),
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
+    except ControlError as exc:
+        raise navigation_agent_error(exc) from exc
 
 
 @app.post("/api/v1/navigation/goal")
@@ -1990,43 +816,19 @@ async def navigation_goal(
     body: NavigationGoalRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    if body.confirmed is not True:
-        raise HTTPException(
-            status_code=422,
-            detail="confirmed=true is required before sending a navigation goal",
+    try:
+        return await navigation_coordinator().send_goal(
+            map_id=body.map_id,
+            map_revision=body.map_revision,
+            confirmed=body.confirmed,
+            **body.pose.model_dump(),
         )
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        mapping_busy, _ = mapping_activity()
-        if mapping_busy:
-            raise HTTPException(status_code=409, detail="mapping is active")
-        if mapping_pipeline_state() != "running":
-            raise HTTPException(
-                status_code=409,
-                detail="shared Hesai + FAST-LIO localization pipeline is not running",
-            )
-        try:
-            await asyncio.to_thread(
-                require_navigation_runtime_capability,
-                "can_send_goal",
-            )
-            pose = await asyncio.to_thread(
-                navigation_jobs().validate_active_pose,
-                map_id=body.map_id,
-                map_revision=body.map_revision,
-                **body.pose.model_dump(),
-            )
-            await asyncio.to_thread(
-                agent().navigation_send_goal,
-                map_id=body.map_id,
-                map_revision=body.map_revision,
-                **pose,
-            )
-        except NavigationJobError as exc:
-            raise navigation_error(exc) from exc
-        except ControlError as exc:
-            raise navigation_agent_error(exc) from exc
-    return {"accepted": True, "navigation": await asyncio.to_thread(navigation_view)}
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
+    except ControlError as exc:
+        raise navigation_agent_error(exc) from exc
 
 
 @app.post("/api/v1/navigation/cancel")
@@ -2036,13 +838,9 @@ async def navigation_cancel(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     try:
-        await asyncio.to_thread(
-            agent().navigation_cancel_goal,
-            goal_id=body.goal_id,
-        )
+        return await navigation_coordinator().cancel_goal(goal_id=body.goal_id)
     except ControlError as exc:
         raise navigation_agent_error(exc) from exc
-    return {"navigation": await asyncio.to_thread(navigation_view)}
 
 
 @app.post("/api/v1/navigation/clear-costmaps")
@@ -2052,114 +850,62 @@ async def navigation_clear_costmaps(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     try:
-        await asyncio.to_thread(
-            agent().navigation_clear_costmaps,
-            scope=body.scope,
-        )
+        return await navigation_coordinator().clear_costmaps(scope=body.scope)
     except ControlError as exc:
         raise navigation_agent_error(exc) from exc
-    return {"navigation": await asyncio.to_thread(navigation_view)}
 
 
 @app.get("/api/v1/mapping/control")
 async def mapping_control(since_log_seq: int = 0) -> Dict[str, Any]:
-    return await asyncio.to_thread(mapping_jobs().snapshot, since_log_seq=since_log_seq)
+    return await asyncio.to_thread(
+        mapping_coordinator().snapshot,
+        since_log_seq=since_log_seq,
+    )
 
 
 @app.post("/api/v1/mapping/start")
 async def mapping_start(request: Request) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        require_navigation_idle("navigation must stop before mapping can start")
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="a map save is in progress")
-        try:
-            return await asyncio.to_thread(mapping_jobs().start_mapping)
-        except MappingJobError as exc:
-            raise mapping_error(exc) from exc
+    try:
+        return await mapping_coordinator().start()
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except MappingJobError as exc:
+        raise mapping_error(exc) from exc
 
 
 @app.post("/api/v1/mapping/stop")
 async def mapping_stop(request: Request) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_navigation_idle("navigation must stop before the localization pipeline can stop")
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="map save must finish before mapping can stop")
-        try:
-            return await asyncio.to_thread(mapping_jobs().stop_mapping)
-        except MappingJobError as exc:
-            raise mapping_error(exc) from exc
-
-
-async def run_map_save(name: str, kind: str) -> None:
     try:
-        await asyncio.to_thread(mapping_jobs().save_map, name, kind)
-    except MappingJobError:
-        # Expected failures are recorded in the bounded operation snapshot and
-        # displayed by the mapping console on its next poll.
-        return
-    except Exception:
-        LOGGER.exception("unexpected map save failure")
+        return await mapping_coordinator().stop()
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except MappingJobError as exc:
+        raise mapping_error(exc) from exc
 
 
 @app.post("/api/v1/mapping/save", status_code=202)
 async def mapping_save(body: MapSaveRequest, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        require_navigation_idle("navigation must stop before a map can be saved")
-        manager = mapping_jobs()
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="another map save is already in progress")
-        try:
-            name = manager.validate_map_name(body.name)
-        except MappingJobError as exc:
-            raise mapping_error(exc) from exc
-        kind = "pointcloud3d_2d" if body.create_2d else "pointcloud3d"
-        if kind not in manager.allowed_save_kinds:
-            raise HTTPException(status_code=503, detail="requested map save recipe is unavailable")
-        RUNTIME.mapping_task = asyncio.create_task(run_map_save(name, kind), name=f"map-save-{name}")
-    return {"accepted": True, "map_name": name, "kind": kind}
+    try:
+        return await mapping_coordinator().save(
+            body.name,
+            create_2d=body.create_2d,
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except MappingJobError as exc:
+        raise mapping_error(exc) from exc
 
 
 @app.get("/api/v1/saved-maps")
 async def saved_map_list() -> Dict[str, Any]:
     return await asyncio.to_thread(saved_maps().list_snapshot)
-
-
-async def run_saved_pcd_conversion(
-    manager: MappingJobManager,
-    catalog: SavedMapCatalog,
-    job_id: str,
-    map_id: str,
-    expected_revision: str,
-    request: SavedMapConvert2DRequest,
-) -> None:
-    parameters = request.model_dump(exclude={"name"})
-
-    def convert() -> Dict[str, Any]:
-        return catalog.convert_pcd_to_2d(
-            map_id,
-            request.name,
-            expected_revision=expected_revision,
-            cancelled=lambda: manager.local_operation_cancelled(job_id),
-            publication_guard=lambda: manager.local_publication_guard(job_id),
-            **parameters,
-        )
-
-    try:
-        await asyncio.to_thread(
-            manager.run_reserved_local_operation,
-            job_id,
-            convert,
-        )
-    except (MappingJobError, SavedMapError):
-        # The manager records the bounded failure for mapping/control polling.
-        return
-    except Exception:
-        LOGGER.exception("unexpected saved PCD conversion failure")
 
 
 @app.post("/api/v1/saved-maps/{map_id}/convert-2d", status_code=202)
@@ -2169,69 +915,20 @@ async def convert_saved_pcd_to_2d(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        require_navigation_idle("navigation must stop before converting a map")
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="another map operation is already in progress")
-        manager = mapping_jobs()
-        catalog = saved_maps()
-        parameters = body.model_dump(exclude={"name"})
-        try:
-            validated = catalog.validate_pcd_conversion(
-                map_id,
-                body.name,
-                **parameters,
-            )
-        except (
-            SavedMapNotFound,
-            SavedMapInvalidName,
-            SavedMapReadOnly,
-            SavedMapConflict,
-            SavedMapFormatError,
-            SavedMapPointLimitError,
-        ) as exc:
-            raise saved_map_error(exc) from exc
-        try:
-            reservation = manager.reserve_local_operation("pcd_to_2d", body.name)
-        except MappingJobError as exc:
-            raise mapping_error(exc) from exc
-        operation = reservation["operation"]
-        job_id = str(operation["job_id"])
-        source_revision = str(validated["source"]["revision"])
-        conversion_coroutine = run_saved_pcd_conversion(
-            manager,
-            catalog,
-            job_id,
+    try:
+        return await mapping_coordinator().convert_pcd_to_2d(
             map_id,
-            source_revision,
-            body,
+            body.name,
+            body.model_dump(exclude={"name"}),
         )
-        try:
-            RUNTIME.mapping_task = asyncio.create_task(
-                conversion_coroutine,
-                name=f"pcd-to-2d-{job_id}",
-            )
-        except Exception as exc:
-            conversion_coroutine.close()
-            manager.fail_reserved_local_operation(
-                job_id,
-                "map conversion worker could not be scheduled",
-            )
-            raise HTTPException(
-                status_code=503,
-                detail="map conversion worker could not be scheduled",
-            ) from exc
-    return {
-        "accepted": True,
-        "job_id": job_id,
-        "map_name": body.name,
-        "kind": "pcd_to_2d",
-        "operation": operation,
-        "source": validated["source"],
-        "parameters": validated["parameters"],
-        "filter": "projected_xy_density",
-    }
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except MappingJobError as exc:
+        raise mapping_error(exc) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
 
 
 @app.post("/api/v1/saved-maps/{map_id}/edited-copy")
@@ -2241,29 +938,19 @@ async def save_edited_map_copy(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        require_navigation_idle("navigation must stop before editing a map")
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="map operation must finish before editing")
-        runs = [run.model_dump() for run in body.runs]
-        try:
-            metadata = await asyncio.to_thread(
-                saved_maps().save_edited_copy,
-                map_id,
-                body.name,
-                body.source_revision,
-                runs,
-            )
-        except (
-            SavedMapNotFound,
-            SavedMapInvalidName,
-            SavedMapReadOnly,
-            SavedMapConflict,
-            SavedMapFormatError,
-            SavedMapMutationError,
-        ) as exc:
-            raise saved_map_error(exc) from exc
+    try:
+        metadata = await mapping_coordinator().save_edited_copy(
+            map_id,
+            body.name,
+            body.source_revision,
+            [run.model_dump() for run in body.runs],
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
     return {"map": metadata}
 
 
@@ -2282,40 +969,28 @@ async def rename_saved_map(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        require_navigation_idle("navigation must stop before a map can be renamed")
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="map save must finish before a map can be renamed")
-        try:
-            metadata = await asyncio.to_thread(saved_maps().rename, map_id, body.name)
-        except (
-            SavedMapNotFound,
-            SavedMapInvalidName,
-            SavedMapReadOnly,
-            SavedMapConflict,
-            SavedMapMutationError,
-        ) as exc:
-            raise saved_map_error(exc) from exc
+    try:
+        metadata = await mapping_coordinator().rename(map_id, body.name)
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
     return {"map": metadata}
 
 
 @app.delete("/api/v1/saved-maps/{map_id}")
 async def delete_saved_map(map_id: str, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
-    async with RUNTIME.pipeline_coordination_lock:
-        require_service_lifecycle_idle()
-        require_navigation_idle("navigation must stop before a map can be deleted")
-        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
-            raise HTTPException(status_code=409, detail="map save must finish before a map can be deleted")
-        try:
-            result = await asyncio.to_thread(saved_maps().delete, map_id)
-        except (
-            SavedMapNotFound,
-            SavedMapReadOnly,
-            SavedMapMutationError,
-        ) as exc:
-            raise saved_map_error(exc) from exc
+    try:
+        result = await mapping_coordinator().delete(map_id)
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
     return {"deleted": result}
 
 
@@ -2366,7 +1041,11 @@ def main() -> None:
         cloud_max_points=args.cloud_max_points,
         source_selection_path=args.source_selection_state or None,
     )
-    profile_base = Path(args.profile).expanduser().resolve().parent if args.profile else Path.cwd()
+    profile_base = (
+        Path(args.profile).expanduser().resolve().parent
+        if args.profile
+        else Path.cwd()
+    )
     project_dir = Path(__file__).resolve().parents[1]
     save_script = project_dir / "scripts" / "save_hesai_map_humble.sh"
     requested_output_dir = Path(args.mapping_output_dir).expanduser()
@@ -2375,9 +1054,7 @@ def main() -> None:
         raise RuntimeError("mapping output directory must be a real directory")
     mapping_output_dir = requested_output_dir.resolve(strict=True)
 
-    # Establish the catalog limit first, then give that exact per-artifact
-    # limit to every saver recipe.  A successfully published file can therefore
-    # never disappear merely because the catalog applies a smaller size bound.
+    # Establish one exact catalog limit for every trusted saver recipe.
     catalog = SavedMapCatalog.from_profile(
         RUNTIME.agent.profile,
         base_dir=profile_base,
@@ -2385,7 +1062,7 @@ def main() -> None:
         managed_roots=[mapping_output_dir],
     )
     map_file_limit = catalog.max_file_bytes
-    manager = MappingJobManager.for_robot_scope(
+    mapping_manager = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
         output_dir=mapping_output_dir,
         enable_preview=bool(
@@ -2412,13 +1089,11 @@ def main() -> None:
             ),
         },
         # Existing classroom sessions may have been started in a terminal.
-        # The one-shot saver still requires a fresh /Laser_map and will time
-        # out safely, while stop only affects dashboard-owned process groups.
+        # The saver still requires a fresh /Laser_map; stop only affects
+        # dashboard-owned process groups.
         require_pipeline_for_save=False,
     )
     RUNTIME.saved_maps = catalog
-    RUNTIME.mapping_jobs = manager
-
     RUNTIME.dataset_capture = DatasetCaptureManager(
         Path(args.dataset_output_dir),
         camera_open=RUNTIME.agent.camera_stream_open,
@@ -2427,39 +1102,51 @@ def main() -> None:
         metadata_snapshot=RUNTIME.agent.pose_snapshot,
     )
 
-    def navigation_terminal(reason: str, job_id: str) -> None:
-        fenced = request_navigation_terminal_cancel(job_id)
-        if fenced is None:
-            return
-        token, ownership = fenced
-        current = RUNTIME.agent
-        if current is not None:
-            try:
-                current.navigation_deactivate(reason=reason)
-            except Exception:
-                # A lost robot transport must not skip process ownership
-                # cleanup after an unexpected Nav2 exit.
-                LOGGER.exception("navigation terminal deactivation failed")
-        cleanup_complete = cleanup_navigation_localization_dependency_sync(token)
-        finish_navigation_start_failure(
-            token,
-            reason,
-            cleanup_complete=cleanup_complete,
-            terminal_cleanup_owner=True,
-        )
+    def require_lifecycle_idle_application() -> None:
+        lifecycle = RUNTIME.lifecycle
+        if lifecycle is None:
+            raise RuntimeError("service lifecycle coordinator is not configured")
+        lifecycle.require_idle()
 
-    RUNTIME.navigation_jobs = NavigationJobManager.for_go2_humble(
+    def navigation_is_active() -> bool:
+        navigation = RUNTIME.navigation
+        # Mapping mutations fail closed until the navigation owner is wired.
+        return True if navigation is None else navigation.is_active()
+
+    RUNTIME.mapping = MappingCoordinator(
+        mapping_manager,
+        catalog,
+        coordination_lock=RUNTIME.pipeline_coordination_lock,
+        navigation_active=navigation_is_active,
+        require_lifecycle_idle=require_lifecycle_idle_application,
+        logger=LOGGER,
+    )
+    navigation_manager = NavigationJobManager.for_go2_humble(
         project_dir=project_dir,
         runtime_dir=Path(args.navigation_runtime_dir),
         map_snapshotter=catalog.snapshot_navigation_map,
-        on_terminal=navigation_terminal,
     )
-    RUNTIME.service_lifecycle = ServiceLifecycleManager.from_environment(
-        blocker_provider=service_lifecycle_blockers,
+    RUNTIME.navigation = NavigationCoordinator(
+        RUNTIME.agent,
+        navigation_manager,
+        RUNTIME.mapping,
+        catalog,
+        coordination_lock=RUNTIME.pipeline_coordination_lock,
+        require_lifecycle_idle=require_lifecycle_idle_application,
+        logger=LOGGER,
     )
-    RUNTIME.control_bridge_lifecycle = ControlBridgeLifecycleManager.from_environment(
-        preflight_provider=control_bridge_lifecycle_preflight,
-        bridge_status_provider=signed_control_bridge_status_fresh,
+    RUNTIME.lifecycle = LifecycleCoordinator.from_environment(
+        control_snapshot_provider=RUNTIME.agent.control_snapshot,
+        navigation_runtime_snapshot_provider=(
+            RUNTIME.agent.navigation_runtime_snapshot
+        ),
+        navigation_jobs_snapshot_provider=RUNTIME.navigation.jobs.snapshot,
+        mapping_jobs_snapshot_provider=RUNTIME.mapping.snapshot,
+        mapping_task_active_provider=RUNTIME.mapping.task_active,
+        navigation_start_snapshot_provider=(
+            RUNTIME.navigation.internal_start_state
+        ),
+        dataset_capture_active_provider=RUNTIME.dataset_capture.is_active,
     )
     uvicorn.run(
         app,
@@ -2469,7 +1156,6 @@ def main() -> None:
         access_log=False,
         timeout_graceful_shutdown=3,
     )
-
 
 if __name__ == "__main__":
     main()

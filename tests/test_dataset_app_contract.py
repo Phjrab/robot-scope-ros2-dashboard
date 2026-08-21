@@ -12,6 +12,12 @@ ROUTER_PATH = (
     / "dataset.py"
 )
 MODELS_PATH = Path(__file__).parents[1] / "robot_dashboard" / "api" / "models.py"
+LIFECYCLE_PATH = (
+    Path(__file__).parents[1]
+    / "robot_dashboard"
+    / "application"
+    / "lifecycle_coordinator.py"
+)
 
 
 class DatasetAppContractTests(unittest.TestCase):
@@ -22,6 +28,8 @@ class DatasetAppContractTests(unittest.TestCase):
         cls.router_source = ROUTER_PATH.read_text(encoding="utf-8")
         cls.router_tree = ast.parse(cls.router_source)
         cls.models_tree = ast.parse(MODELS_PATH.read_text(encoding="utf-8"))
+        cls.lifecycle_source = LIFECYCLE_PATH.read_text(encoding="utf-8")
+        cls.lifecycle_tree = ast.parse(cls.lifecycle_source)
         cls.functions = {
             node.name: node
             for node in cls.tree.body
@@ -30,6 +38,11 @@ class DatasetAppContractTests(unittest.TestCase):
         cls.router_functions = {
             node.name: node
             for node in ast.walk(cls.router_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        cls.lifecycle_functions = {
+            node.name: node
+            for node in ast.walk(cls.lifecycle_tree)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
 
@@ -83,7 +96,9 @@ class DatasetAppContractTests(unittest.TestCase):
         self.assertEqual(stop_fields, {"session_id"})
 
     def test_capture_is_a_fail_closed_lifecycle_blocker_and_shutdown_precedes_agent(self):
-        blockers = self.functions["service_lifecycle_blockers"]
+        wrapper = self.functions["service_lifecycle_blockers"]
+        self.assertTrue(self.calls_name(wrapper, "lifecycle_coordinator"))
+        blockers = self.lifecycle_functions["service_blockers"]
         constants = {
             node.value
             for node in ast.walk(blockers)
@@ -94,10 +109,14 @@ class DatasetAppContractTests(unittest.TestCase):
 
         lifespan = self.functions["lifespan"]
         segment = ast.get_source_segment(self.source, lifespan)
-        self.assertIn("runtime.dataset_capture.close", segment)
+        self.assertIn("runtime.lifecycle.close", segment)
         self.assertLess(
-            segment.index("navigation_deactivate"),
-            segment.index("runtime.dataset_capture.close"),
+            segment.index("runtime.lifecycle.close"),
+            segment.index("runtime.navigation.close"),
+        )
+        self.assertLess(
+            segment.index("runtime.navigation.close"),
+            segment.index("runtime.agent.shutdown_control()"),
         )
         self.assertLess(
             segment.index("runtime.agent.shutdown_control()"),
@@ -105,6 +124,10 @@ class DatasetAppContractTests(unittest.TestCase):
         )
         self.assertLess(
             segment.index("runtime.dataset_capture.close"),
+            segment.index("runtime.mapping.close"),
+        )
+        self.assertLess(
+            segment.index("runtime.mapping.close"),
             segment.index("runtime.agent.stop()"),
         )
 

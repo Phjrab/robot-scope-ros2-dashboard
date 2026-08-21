@@ -3,17 +3,37 @@ import unittest
 from pathlib import Path
 
 
-APP_PATH = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+ROOT = Path(__file__).parents[1]
+APP_PATH = ROOT / "robot_dashboard" / "app.py"
+NAVIGATION_COORDINATOR_PATH = (
+    ROOT / "robot_dashboard" / "application" / "navigation_coordinator.py"
+)
+MAPPING_COORDINATOR_PATH = (
+    ROOT / "robot_dashboard" / "application" / "mapping_coordinator.py"
+)
 
 
-def parsed_app():
-    return ast.parse(APP_PATH.read_text(encoding="utf-8"))
+def parsed(path):
+    return ast.parse(path.read_text(encoding="utf-8"))
 
 
 def functions(tree):
     return {
         node.name: node
         for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def class_functions(tree, class_name):
+    owner = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == class_name
+    )
+    return {
+        node.name: node
+        for node in owner.body
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
 
@@ -28,10 +48,22 @@ def calls_name(node, name):
 
 
 class NavigationAppContractTests(unittest.TestCase):
+    def setUp(self):
+        self.app_tree = parsed(APP_PATH)
+        self.app_functions = functions(self.app_tree)
+        self.navigation_tree = parsed(NAVIGATION_COORDINATOR_PATH)
+        self.navigation_methods = class_functions(
+            self.navigation_tree,
+            "NavigationCoordinator",
+        )
+        self.mapping_methods = class_functions(
+            parsed(MAPPING_COORDINATOR_PATH),
+            "MappingCoordinator",
+        )
+
     def test_exact_navigation_routes_are_declared(self):
-        tree = parsed_app()
         routes = set()
-        for node in tree.body:
+        for node in self.app_tree.body:
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             for decorator in node.decorator_list:
@@ -61,10 +93,9 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertNotIn(("post", "/api/v1/navigation/costmaps/clear"), routes)
 
     def test_navigation_progress_log_is_fixed_read_only_and_server_bounded(self):
-        tree_functions = functions(parsed_app())
-        node = tree_functions["navigation_logs"]
+        node = self.app_functions["navigation_logs"]
         source = ast.unparse(node)
-        self.assertIn("navigation_jobs().progress_snapshot", source)
+        self.assertIn("navigation_coordinator().progress_snapshot", source)
         self.assertIn("after=after", source)
         self.assertIn("limit=limit", source)
         self.assertNotIn("require_same_origin", source)
@@ -94,14 +125,15 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertEqual(routes, ["/api/v1/navigation/logs"])
         self.assertIn("Cache-Control", source)
         self.assertIn("no-store", source)
+        delegate = ast.unparse(self.navigation_methods["progress_snapshot"])
+        self.assertIn("self._jobs.progress_snapshot", delegate)
 
     def test_stopped_shared_mapping_pipeline_is_idle_not_failed(self):
-        source = ast.unparse(functions(parsed_app())["mapping_pipeline_state"])
+        source = ast.unparse(self.mapping_methods["pipeline_state"])
         self.assertIn("if state == 'stopped'", source)
         self.assertIn("return 'idle'", source)
 
     def test_every_navigation_mutation_is_same_origin_guarded(self):
-        tree_functions = functions(parsed_app())
         mutations = (
             "update_navigation_parameters",
             "navigation_start",
@@ -113,85 +145,92 @@ class NavigationAppContractTests(unittest.TestCase):
         )
         for name in mutations:
             with self.subTest(route=name):
-                node = tree_functions[name]
+                node = self.app_functions[name]
                 self.assertTrue(calls_name(node, "require_same_origin"))
                 self.assertIn("request", [argument.arg for argument in node.args.args])
 
     def test_both_pipeline_directions_use_one_coordination_lock(self):
-        tree_functions = functions(parsed_app())
-        lock_routes = (
-            "navigation_start",
-            "mapping_start",
-            "mapping_stop",
-            "mapping_save",
-            "convert_saved_pcd_to_2d",
-            "save_edited_map_copy",
-            "rename_saved_map",
-            "delete_saved_map",
-        )
-        for name in lock_routes:
-            node = tree_functions[name]
-            lock_contexts = [
-                item
-                for item in ast.walk(node)
-                if isinstance(item, ast.AsyncWith)
-                and any(
-                    isinstance(entry.context_expr, ast.Attribute)
-                    and entry.context_expr.attr == "pipeline_coordination_lock"
-                    for entry in item.items
-                )
-            ]
-            self.assertTrue(lock_contexts, f"{name} must use the pipeline coordination lock")
+        main_source = ast.unparse(self.app_functions["main"])
+        shared_argument = "coordination_lock=RUNTIME.pipeline_coordination_lock"
+        self.assertEqual(main_source.count(shared_argument), 2)
+        self.assertIn("RUNTIME.mapping = MappingCoordinator", main_source)
+        self.assertIn("RUNTIME.navigation = NavigationCoordinator", main_source)
+
         for name in (
-            "mapping_start",
-            "mapping_stop",
-            "mapping_save",
-            "convert_saved_pcd_to_2d",
-            "save_edited_map_copy",
-            "rename_saved_map",
-            "delete_saved_map",
+            "start",
+            "stop",
+            "set_initial_pose",
+            "send_goal",
+            "update_parameters",
         ):
-            self.assertTrue(
-                calls_name(tree_functions[name], "require_navigation_idle"),
-                f"{name} must reject an active pinned navigation map",
+            source = ast.unparse(self.navigation_methods[name])
+            self.assertIn(
+                "async with self._coordination_lock",
+                source,
+                f"NavigationCoordinator.{name} must use the shared lock",
+            )
+        for name in (
+            "start",
+            "stop",
+            "save",
+            "convert_pcd_to_2d",
+            "save_edited_copy",
+            "rename",
+            "delete",
+        ):
+            source = ast.unparse(self.mapping_methods[name])
+            self.assertIn(
+                "async with self._coordination_lock",
+                source,
+                f"MappingCoordinator.{name} must use the shared lock",
+            )
+            self.assertIn(
+                "self._require_navigation_idle",
+                source,
+                f"MappingCoordinator.{name} must reject active navigation",
             )
 
     def test_navigation_start_reuses_or_starts_shared_fastlio_pipeline(self):
-        node = functions(parsed_app())["navigation_start"]
-        source = ast.unparse(node)
-        self.assertIn("mapping_jobs().snapshot", source)
-        self.assertIn("run_navigation_start_operation", source)
-        self.assertIn("start_localization=shared_pipeline_state in {'idle', 'failed'}", source)
-        self.assertIn("mapping_owned=False", source)
-        self.assertIn("status_code=202", source)
-        self.assertIn("'pending': True", source)
-        self.assertNotIn("wait_navigation_prelocalization_ready", source)
-        operation = ast.unparse(functions(parsed_app())["run_navigation_start_operation"])
-        self.assertLess(
-            operation.index("run_navigation_manager_start"),
-            operation.index("run_navigation_activation"),
+        route = self.app_functions["navigation_start"]
+        route_source = ast.unparse(route)
+        self.assertIn("navigation_coordinator().start", route_source)
+        self.assertIn("status_code=202", route_source)
+        self.assertNotIn("wait_prelocalization_ready", route_source)
+
+        start = ast.unparse(self.navigation_methods["start"])
+        operation = ast.unparse(self.navigation_methods["_run_start_operation"])
+        self.assertIn("self._mapping.snapshot", start)
+        self.assertIn("self._run_start_operation", start)
+        self.assertIn(
+            "start_localization=shared_pipeline_state in {'idle', 'failed'}",
+            start,
         )
-        self.assertIn("navigation_start_preflight", source)
-        self.assertIn("wait_navigation_localization_dependency", operation)
-        self.assertIn("wait_navigation_prelocalization_ready", operation)
-        self.assertIn("rollback_navigation_transaction", operation)
+        self.assertIn("mapping_owned=False", start)
+        self.assertIn("'pending': True", start)
+        self.assertIn("self._agent.navigation_start_preflight", start)
+        self.assertLess(
+            operation.index("self.run_manager_start"),
+            operation.index("self.run_activation"),
+        )
+        self.assertIn("self.wait_localization_dependency", operation)
+        self.assertIn("self.wait_prelocalization_ready", operation)
+        self.assertIn("self.rollback_transaction", operation)
         self.assertIn("asyncio.CancelledError", operation)
-        self.assertIn("run_navigation_manager_start", operation)
-        self.assertIn("run_navigation_activation", operation)
-        returns = [item for item in ast.walk(node) if isinstance(item, ast.Return)]
+        self.assertIn("self.run_manager_start", operation)
+        self.assertIn("self.run_activation", operation)
+        returns = [item for item in ast.walk(route) if isinstance(item, ast.Return)]
         self.assertTrue(returns)
-        activation = ast.unparse(functions(parsed_app())["run_navigation_activation"])
-        self.assertIn("await asyncio.to_thread(navigation_view)", activation)
-        self.assertIn("rollback_navigation_start", activation)
+        activation = ast.unparse(self.navigation_methods["run_activation"])
+        self.assertIn("await asyncio.to_thread(self.view)", activation)
+        self.assertIn("self.rollback_start", activation)
 
     def test_navigation_dependency_cleanup_is_exact_and_status_exposes_progress(self):
-        tree_functions = functions(parsed_app())
         cleanup = ast.unparse(
-            tree_functions["cleanup_navigation_localization_dependency_sync"]
+            self.navigation_methods["cleanup_localization_dependency_sync"]
         )
         self.assertIn("stop_mapping_if_job_id", cleanup)
         self.assertIn("mapping_owned", cleanup)
-        view = ast.unparse(tree_functions["navigation_view"])
+        view = ast.unparse(self.navigation_methods["view"])
         self.assertIn("startup_cleanup_required", view)
         self.assertIn("'phase': startup_phase", view)
         self.assertIn("'pending': startup_pending", view)
@@ -199,18 +238,18 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertIn("startup_cleanup_required", view)
 
     def test_stop_cancels_background_start_outside_the_coordination_lock(self):
-        source = ast.unparse(functions(parsed_app())["navigation_stop"])
-        self.assertIn("request_navigation_start_cancel", source)
+        route = ast.unparse(self.app_functions["navigation_stop"])
+        self.assertIn("navigation_coordinator().stop", route)
+        source = ast.unparse(self.navigation_methods["stop"])
+        self.assertIn("self.request_start_cancel", source)
         self.assertIn("task.cancel()", source)
         self.assertIn("await asyncio.shield(task)", source)
-        self.assertIn("perform_navigation_stop_cleanup", source)
-        cleanup = ast.unparse(
-            functions(parsed_app())["perform_navigation_stop_cleanup"]
-        )
-        self.assertIn("cleanup_navigation_localization_dependency", cleanup)
+        self.assertIn("self._perform_stop_cleanup", source)
+        cleanup = ast.unparse(self.navigation_methods["_perform_stop_cleanup"])
+        self.assertIn("self.cleanup_localization_dependency", cleanup)
 
     def test_manual_arm_blocks_every_navigation_start_transition(self):
-        node = functions(parsed_app())["control_arm"]
+        node = self.app_functions["control_arm"]
         lock_context = next(
             item
             for item in ast.walk(node)
@@ -222,75 +261,108 @@ class NavigationAppContractTests(unittest.TestCase):
             )
         )
         source = ast.unparse(lock_context)
-        self.assertIn("_navigation_start_internal", source)
-        self.assertIn("startup.get('pending')", source)
+        self.assertIn("navigation_coordinator().manual_control_blocked", source)
         self.assertIn("control_acquire", source)
         self.assertLess(
-            source.index("_navigation_start_internal"),
+            source.index("navigation_coordinator().manual_control_blocked"),
             source.index("control_acquire"),
         )
-        for phase in (
+        expected_phases = {
             "starting_localization",
             "waiting_localization",
             "starting_navigation",
             "warming_navigation",
             "activating",
             "stopping",
-        ):
-            self.assertIn(repr(phase), source)
+        }
+        phase_assignment = next(
+            item
+            for item in self.navigation_tree.body
+            if isinstance(item, ast.Assign)
+            and any(
+                isinstance(target, ast.Name)
+                and target.id == "MANUAL_CONTROL_BLOCKING_PHASES"
+                for target in item.targets
+            )
+        )
+        actual_phases = {
+            item.value
+            for item in ast.walk(phase_assignment.value)
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+        }
+        self.assertEqual(actual_phases, expected_phases)
+        manual_guard = ast.unparse(self.navigation_methods["manual_control_blocked"])
+        self.assertIn("startup.get('pending')", manual_guard)
+        self.assertIn("MANUAL_CONTROL_BLOCKING_PHASES", manual_guard)
 
     def test_terminal_deactivation_failure_cannot_skip_owned_mapping_cleanup(self):
-        main = functions(parsed_app())["main"]
-        terminal = next(
-            item
-            for item in main.body
-            if isinstance(item, ast.FunctionDef) and item.name == "navigation_terminal"
-        )
-        source = ast.unparse(terminal)
+        source = ast.unparse(self.navigation_methods["handle_terminal"])
         self.assertIn("except Exception", source)
-        self.assertIn("cleanup_navigation_localization_dependency_sync", source)
+        self.assertIn("self.cleanup_localization_dependency_sync", source)
         self.assertLess(
             source.index("except Exception"),
-            source.index("cleanup_navigation_localization_dependency_sync"),
+            source.index("self.cleanup_localization_dependency_sync"),
         )
+        self.assertIn("self.request_terminal_cancel", source)
 
     def test_shutdown_settles_start_task_then_exact_dependency_cleanup(self):
-        source = ast.unparse(functions(parsed_app())["lifespan"])
-        self.assertIn("startup_task.cancel()", source)
-        self.assertIn("await asyncio.shield(startup_task)", source)
-        self.assertIn("cleanup_navigation_localization_dependency", source)
+        lifespan = ast.unparse(self.app_functions["lifespan"])
+        self.assertIn("await runtime.navigation.settle_startup()", lifespan)
+        self.assertIn("await runtime.navigation.close()", lifespan)
+        self.assertLess(
+            lifespan.index("await runtime.navigation.settle_startup()"),
+            lifespan.index("runtime.lifecycle.close()"),
+        )
+        self.assertLess(
+            lifespan.index("runtime.lifecycle.close()"),
+            lifespan.index("await runtime.navigation.close()"),
+        )
+        source = ast.unparse(self.navigation_methods["close"])
+        self.assertIn("await self.settle_startup()", source)
+        self.assertIn("self.cleanup_localization_dependency", source)
+        self.assertLess(source.index("self._jobs.close"), source.index("self.cleanup_localization_dependency"))
+        settlement = ast.unparse(self.navigation_methods["settle_startup"])
+        self.assertIn("self.request_start_cancel", settlement)
+        self.assertIn("task.cancel()", settlement)
+        self.assertIn("await asyncio.shield(task)", settlement)
 
     def test_navigation_cleanup_union_covers_manager_runtime_goal_and_lease(self):
-        source = ast.unparse(functions(parsed_app())["navigation_active"])
+        source = ast.unparse(self.navigation_methods["is_active"])
         self.assertIn("pipeline.get('job_id')", source)
         self.assertIn("runtime.get('cleanup_required')", source)
         self.assertIn("goal.get('state')", source)
         self.assertIn("lease.get('input_source') == 'navigation'", source)
-        view = ast.unparse(functions(parsed_app())["navigation_view"])
+        view = ast.unparse(self.navigation_methods["view"])
         self.assertIn("manager_cleanup_required", view)
         self.assertIn("runtime_cleanup_required", view)
         self.assertIn("'can_stop'", view)
 
     def test_goal_requires_explicit_confirmation_and_pinned_free_pose(self):
-        node = functions(parsed_app())["navigation_goal"]
-        source = ast.unparse(node)
-        self.assertIn("body.confirmed is not True", source)
-        self.assertIn("validate_active_pose", source)
-        self.assertIn("require_navigation_runtime_capability", source)
-        self.assertIn("mapping_pipeline_state() != 'running'", source)
-        self.assertIn("navigation_send_goal", source)
-        self.assertLess(source.index("validate_active_pose"), source.index("navigation_send_goal"))
+        route_source = ast.unparse(self.app_functions["navigation_goal"])
+        self.assertIn("confirmed=body.confirmed", route_source)
+        source = ast.unparse(self.navigation_methods["send_goal"])
+        self.assertIn("confirmed is not True", source)
+        self.assertIn("self._jobs.validate_active_pose", source)
+        self.assertIn("self.require_runtime_capability", source)
+        self.assertIn("self._mapping.pipeline_state() != 'running'", source)
+        self.assertIn("self._agent.navigation_send_goal", source)
+        self.assertLess(
+            source.index("self._jobs.validate_active_pose"),
+            source.index("self._agent.navigation_send_goal"),
+        )
 
     def test_initialization_wires_private_map_snapshot_and_terminal_stop(self):
-        source = ast.unparse(functions(parsed_app())["main"])
-        self.assertIn("RUNTIME.navigation_jobs", source)
+        source = ast.unparse(self.app_functions["main"])
+        self.assertIn("RUNTIME.navigation = NavigationCoordinator", source)
         self.assertIn("NavigationJobManager.for_go2_humble", source)
         self.assertIn("map_snapshotter=catalog.snapshot_navigation_map", source)
-        self.assertIn("on_terminal=navigation_terminal", source)
-        self.assertIn("navigation_deactivate(reason=reason)", source)
+        constructor = ast.unparse(self.navigation_methods["__init__"])
+        self.assertIn("navigation_jobs.on_terminal = self.handle_terminal", constructor)
+        terminal = ast.unparse(self.navigation_methods["handle_terminal"])
+        self.assertIn("self._agent.navigation_deactivate(reason=reason)", terminal)
 
     def test_status_exposes_fixed_private_bindings(self):
-        source = ast.unparse(functions(parsed_app())["navigation_view"])
+        source = ast.unparse(self.navigation_methods["view"])
         self.assertIn("'scan': '/scan'", source)
         self.assertIn("'odometry': '/utlidar/robot_odom'", source)
         self.assertIn("'localization_odometry': '/Odometry'", source)

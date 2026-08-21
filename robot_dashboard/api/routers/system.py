@@ -7,13 +7,13 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
 
+from ...application.lifecycle_coordinator import LifecycleCoordinator
 from ...application.runtime import ApplicationRuntime
 from ...control_bridge_lifecycle import (
     ControlBridgeLifecycleBlocked,
     ControlBridgeLifecycleBusy,
     ControlBridgeLifecycleConfirmationRequired,
     ControlBridgeLifecycleError,
-    ControlBridgeLifecycleManager,
     ControlBridgeLifecycleUnavailable,
 )
 from ...service_lifecycle import (
@@ -21,7 +21,6 @@ from ...service_lifecycle import (
     ServiceLifecycleBusy,
     ServiceLifecycleConfirmationRequired,
     ServiceLifecycleError,
-    ServiceLifecycleManager,
     ServiceLifecycleUnavailable,
 )
 from ..dependencies import require_component, require_same_origin, runtime_from_request
@@ -31,16 +30,16 @@ from ..models import ControlBridgeLifecycleRequest, ServiceLifecycleRequest
 router = APIRouter()
 
 
-def _service(runtime: ApplicationRuntime) -> ServiceLifecycleManager:
+def _service(runtime: ApplicationRuntime) -> LifecycleCoordinator:
     return require_component(
-        runtime.service_lifecycle,
+        runtime.lifecycle,
         "service lifecycle control is not configured",
     )
 
 
-def _bridge(runtime: ApplicationRuntime) -> ControlBridgeLifecycleManager:
+def _bridge(runtime: ApplicationRuntime) -> LifecycleCoordinator:
     return require_component(
-        runtime.control_bridge_lifecycle,
+        runtime.lifecycle,
         "control bridge service lifecycle is not configured",
     )
 
@@ -85,7 +84,7 @@ def _bridge_error(exc: ControlBridgeLifecycleError) -> HTTPException:
 @router.get("/api/v1/system/service")
 async def service_lifecycle_status(request: Request) -> Dict[str, Any]:
     runtime = runtime_from_request(request)
-    return await asyncio.to_thread(_service(runtime).snapshot)
+    return await asyncio.to_thread(_service(runtime).service_snapshot)
 
 
 @router.post("/api/v1/system/service/restart", status_code=202)
@@ -98,7 +97,7 @@ async def service_lifecycle_restart(
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
-                _service(runtime).schedule_restart,
+                _service(runtime).schedule_service_restart,
                 confirmed=body.confirmed,
             )
         except ServiceLifecycleError as exc:
@@ -115,7 +114,7 @@ async def service_lifecycle_stop(
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
-                _service(runtime).schedule_stop,
+                _service(runtime).schedule_service_stop,
                 confirmed=body.confirmed,
             )
         except ServiceLifecycleError as exc:
@@ -125,7 +124,7 @@ async def service_lifecycle_stop(
 @router.get("/api/v1/control/bridge-service")
 async def control_bridge_lifecycle_status(request: Request) -> Dict[str, Any]:
     runtime = runtime_from_request(request)
-    return await asyncio.to_thread(_bridge(runtime).snapshot)
+    return await asyncio.to_thread(_bridge(runtime).control_bridge_snapshot)
 
 
 @router.post("/api/v1/control/bridge-service/start", status_code=202)
@@ -138,7 +137,7 @@ async def control_bridge_lifecycle_start(
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
-                _bridge(runtime).schedule_start,
+                _bridge(runtime).schedule_control_bridge_start,
                 confirmed=body.confirmed,
             )
         except ControlBridgeLifecycleError as exc:
@@ -155,7 +154,7 @@ async def control_bridge_lifecycle_stop(
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
-                _bridge(runtime).schedule_stop,
+                _bridge(runtime).schedule_control_bridge_stop,
                 confirmed=body.confirmed,
             )
         except ControlBridgeLifecycleError as exc:

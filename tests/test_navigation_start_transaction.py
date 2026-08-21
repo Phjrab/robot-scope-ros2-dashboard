@@ -1,37 +1,8 @@
-import ast
 import asyncio
 import threading
 import unittest
-from pathlib import Path
 
-
-APP_PATH = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
-
-
-def load_transaction_functions():
-    tree = ast.parse(APP_PATH.read_text(encoding="utf-8"))
-    names = {
-        "rollback_navigation_start",
-        "run_navigation_manager_start",
-        "run_navigation_activation",
-    }
-    nodes = [
-        node
-        for node in tree.body
-        if isinstance(node, ast.AsyncFunctionDef) and node.name in names
-    ]
-    module = ast.Module(body=nodes, type_ignores=[])
-    namespace = {
-        "asyncio": asyncio,
-        "LOGGER": __import__("logging").getLogger(__name__),
-        "NavigationJobManager": object,
-        "Dict": dict,
-        "Any": object,
-        "agent": None,
-        "navigation_view": lambda: {},
-    }
-    exec(compile(ast.fix_missing_locations(module), str(APP_PATH), "exec"), namespace)
-    return namespace
+from robot_dashboard.application.navigation_coordinator import NavigationCoordinator
 
 
 class FakeAgent:
@@ -53,9 +24,24 @@ class FakeAgent:
             self.release.wait(timeout=2.0)
         self.active = True
 
+    def navigation_runtime_snapshot(self):
+        return {
+            "available": True,
+            "robot_online": True,
+            "active": self.active,
+            "readiness": {},
+            "safety": {},
+            "localization": {"state": "uninitialized"},
+            "goal": {"state": "idle"},
+        }
+
+    def control_snapshot(self):
+        return {"lease": {"active": False, "input_source": None}}
+
 
 class FakeManager:
     def __init__(self, *, fail=False):
+        self.on_terminal = None
         self.entered = threading.Event()
         self.release = threading.Event()
         self.fail = fail
@@ -73,24 +59,75 @@ class FakeManager:
             self.state = "failed"
             raise RuntimeError("start failed after publishing job")
         self.state = "running"
-        return {}
+        return self.snapshot()
 
     def stop(self):
         self.events.append("stop")
         self.state = "idle"
         self.job_id = None
 
+    def snapshot(self):
+        return {
+            "seq": 0,
+            "available": True,
+            "pipeline": {
+                "state": self.state,
+                "job_id": self.job_id,
+                "error": None,
+                "started_at": None,
+            },
+            "map": (
+                {"id": "a" * 24, "revision": "b" * 64}
+                if self.state == "running"
+                else None
+            ),
+            "command_topic": "/robot_scope/nav/cmd_vel_raw",
+        }
+
+
+class FakeMapping:
+    def activity(self):
+        return False, []
+
+    def pipeline_state(self):
+        return "running"
+
+    def snapshot(self, *, since_log_seq=0):
+        del since_log_seq
+        return {"pipeline": {"state": "running", "job_id": "m" * 32}}
+
+    def start_mapping(self):
+        return self.snapshot()
+
+    def stop_mapping_if_job_id(self, _job_id):
+        return False, self.snapshot()
+
+
+class FakeSavedMaps:
+    def resolve_navigation_map(self, _map_id, _revision):
+        raise AssertionError("map resolution is not used by these focused tests")
+
 
 class NavigationStartTransactionTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.functions = load_transaction_functions()
         self.agent = FakeAgent()
-        self.functions["agent"] = lambda: self.agent
+        self.manager = FakeManager()
+        self.coordinator = self.make_coordinator(self.manager)
+
+    def make_coordinator(self, manager):
+        return NavigationCoordinator(
+            self.agent,
+            manager,
+            FakeMapping(),
+            FakeSavedMaps(),
+            coordination_lock=asyncio.Lock(),
+            require_lifecycle_idle=lambda: None,
+        )
 
     async def test_cancel_waits_for_thread_then_rolls_back_both_sides(self):
-        manager = FakeManager()
+        manager = self.manager
         task = asyncio.create_task(
-            self.functions["run_navigation_manager_start"](
+            self.coordinator.run_manager_start(
                 manager,
                 map_id="a" * 24,
                 map_revision="b" * 64,
@@ -112,8 +149,9 @@ class NavigationStartTransactionTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_start_with_job_id_is_normalized_to_idle(self):
         manager = FakeManager(fail=True)
         manager.release.set()
+        coordinator = self.make_coordinator(manager)
         with self.assertRaisesRegex(RuntimeError, "start failed"):
-            await self.functions["run_navigation_manager_start"](
+            await coordinator.run_manager_start(
                 manager,
                 map_id="a" * 24,
                 map_revision="b" * 64,
@@ -125,12 +163,12 @@ class NavigationStartTransactionTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(("deactivate", "navigation_start_failed"), self.agent.events)
 
     async def test_cancel_waits_for_activation_then_releases_new_lease(self):
-        manager = FakeManager()
+        manager = self.manager
         manager.state = "running"
         manager.job_id = "f" * 32
         self.agent.block_activation = True
         task = asyncio.create_task(
-            self.functions["run_navigation_activation"](
+            self.coordinator.run_activation(
                 manager,
                 map_id="a" * 24,
                 map_revision="b" * 64,
@@ -154,7 +192,7 @@ class NavigationStartTransactionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_cancel_during_final_projection_rolls_back_active_session(self):
-        manager = FakeManager()
+        manager = self.manager
         manager.state = "running"
         manager.job_id = "f" * 32
         projection_entered = threading.Event()
@@ -165,9 +203,9 @@ class NavigationStartTransactionTests(unittest.IsolatedAsyncioTestCase):
             projection_release.wait(timeout=2.0)
             return {"pipeline": {"state": "running"}}
 
-        self.functions["navigation_view"] = blocked_projection
+        self.coordinator.view = blocked_projection
         task = asyncio.create_task(
-            self.functions["run_navigation_activation"](
+            self.coordinator.run_activation(
                 manager,
                 map_id="a" * 24,
                 map_revision="b" * 64,
