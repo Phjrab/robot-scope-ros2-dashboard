@@ -164,7 +164,7 @@ async def lifespan(fastapi: FastAPI):
 app = FastAPI(
     title="Robot Scope",
     version="0.2.0",
-    description="ROS 2 observability, allowlisted mapping, and fail-safe Go2 control",
+    description="ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard",
     lifespan=lifespan,
 )
 app.state.runtime = RUNTIME

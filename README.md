@@ -1,4 +1,4 @@
-# Robot Scope ROS 2 Autonomous Mobile Robot Control Panel
+# Robot Scope — ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard
 
 Robot Scope는 ROS 2 기반 모바일 로봇의 센서 관측, 매핑, 위치추정, 자율 주행,
 수동 원격 조작, 모션 안전과 런타임 운영을 한 브라우저에서 제공하는 웹 제어
@@ -18,6 +18,7 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 
 | 문서 | 내용 |
 |---|---|
+| [현재 아키텍처](docs/ARCHITECTURE.md) | subsystem 소유권, safety boundary, Phase 0 대비 구조와 남은 부채 |
 | [설치](docs/INSTALL.md) | `observer`, `go2`, `go2-control`, `go2-xt16`, `go2-nav` 모드와 스모크 테스트 |
 | [의존성](docs/DEPENDENCIES.md) | 외부 ROS workspace, pin/라이선스 기록과 미포함 구성 요소 |
 | [토폴로지](docs/TOPOLOGY.md) | 단일/두 호스트 배선, 서비스 역할과 관리망 분리 |
@@ -1072,14 +1073,23 @@ python3 -m pip_audit -r requirements.txt
 ## 프로젝트 구조
 
 ~~~text
-config/             Go2, Generic, TurtleBot 시작 프로필
-deploy/             systemd 서비스 예제
-docs/               설치, 의존성, 토폴로지, 진단과 업데이트 문서
-robot_dashboard/    FastAPI 에이전트, 로컬 검색, 제어 워치독, 모델 asset과 웹 UI
-scripts/            실행, 제어 브리지, 매핑, 저장과 모델 생성 도구
-tests/              지도, 안전 제어, 작업, 직렬화와 asset 테스트
-requirements.txt    Python 웹 의존성
+config/                         Go2, Generic, TurtleBot 시작 프로필
+deploy/                         고정 systemd·sudoers 예제
+docs/                           현재 아키텍처, 설치, 토폴로지와 운영 기록
+robot_dashboard/api/            FastAPI dependency, request model, domain router
+robot_dashboard/application/    runtime container와 mapping/navigation/lifecycle coordinator
+robot_dashboard/ros/            ROS runtime, 관측, control transport와 navigation gateway
+robot_dashboard/static/core/    공용 API·DOM·format·log-scroll ES module
+robot_dashboard/static/features/  기능별 브라우저 state/network/render 소유자
+robot_dashboard/*.py            안전 domain manager, adapter와 호환 facade
+scripts/                        실행, bridge, mapping, 저장과 검증 도구
+tests/                          unit, contract, architecture와 browser module 테스트
+requirements*.txt               runtime 및 분리된 contributor 품질 의존성
 ~~~
+
+현재 소유권과 Phase 0 대비 변경은 [아키텍처 문서](docs/ARCHITECTURE.md)를 기준으로
+확인합니다. `docs/ARCHITECTURE_PHASE*.md`는 각 단계 당시의 결정 기록이며 현재 구조를
+대체하지 않습니다.
 
 ## 보안과 데이터 주의사항
 
