@@ -37,7 +37,7 @@ test('fallback catalog provides selectable Go2 and TurtleBot model assets', () =
   const turtlebot = values.find((value) => value.id === 'turtlebot');
   assert.equal(turtlebot.model.asset_url, '/static/assets/turtlebot/turtlebot3-burger-official-lite.json');
   assert.equal(turtlebot.model.fidelity, 'official-derived');
-  assert.equal(values.find((value) => value.id === 'go2').capabilities.navigation, true);
+  assert.equal(values.find((value) => value.id === 'go2').capabilities.navigation, false);
   assert.equal(turtlebot.capabilities.navigation, false);
   assert.deepEqual(Object.keys(turtlebot.capabilities), profiles.CAPABILITY_NAMES);
 });
@@ -55,13 +55,13 @@ test('backend capability metadata is authoritative and missing entries fail clos
   assert.equal(profiles.profileSupports(go2, 'unknown'), false);
 });
 
-test('fallback capability metadata preserves Go2 control and TurtleBot observation boundaries', () => {
+test('fallback model catalog never grants product capabilities without the backend', () => {
   const [go2, turtlebot] = profiles.normalizeTypes(null);
-  assert.equal(profiles.profileSupports(go2, 'manual_control'), true);
-  assert.equal(profiles.profileSupports(go2, 'autonomous_control'), true);
-  assert.equal(profiles.profileSupports(turtlebot, 'camera'), true);
-  assert.equal(profiles.profileSupports(turtlebot, 'pointcloud'), true);
-  assert.equal(profiles.profileSupports(turtlebot, 'manual_control'), false);
+  for (const profile of [go2, turtlebot]) {
+    for (const capability of profiles.CAPABILITY_NAMES) {
+      assert.equal(profiles.profileSupports(profile, capability), false);
+    }
+  }
 });
 
 test('network discovery removes invalid and duplicate candidates then ranks confidence and latency', () => {

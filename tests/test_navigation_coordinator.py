@@ -144,6 +144,7 @@ class FakeNavigationJobs:
         self.parameters_revision = "c" * 64
         self.map = None
         self.seq = 3
+        self.pipeline_error = None
 
     def snapshot(self):
         if self.fail_snapshot:
@@ -154,7 +155,7 @@ class FakeNavigationJobs:
             "pipeline": {
                 "state": self.pipeline_state,
                 "job_id": self.job_id,
-                "error": None,
+                "error": self.pipeline_error,
                 "started_at": "2026-01-01T00:00:00Z" if self.job_id else None,
             },
             "map": self.map,
@@ -652,6 +653,37 @@ class NavigationCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             "/robot_scope/nav/cmd_vel_raw",
         )
         self.assertFalse(view["localization_pipeline"]["owned_by_navigation"])
+
+    async def test_view_redacts_navigation_runtime_and_startup_diagnostics(self):
+        private_path = "/private/robot-scope/navigation.yaml"
+        private_secret = "navigation-password-do-not-expose"
+        private_error = f"failed at {private_path} password={private_secret}"
+        token = self.coordinator.begin_start()
+        self.coordinator.finish_start_failure(
+            token,
+            private_error,
+            cleanup_complete=False,
+        )
+        self.jobs.pipeline_error = private_error
+        self.agent.runtime["goal"] = {
+            "state": "failed",
+            "recoveries": 0,
+            "error": private_error,
+        }
+        self.agent.runtime["deactivation_reason"] = private_error
+
+        view = self.coordinator.view()
+        public_values = (
+            view["pipeline"]["error"],
+            view["localization_pipeline"]["error"],
+            view["goal"]["error"],
+            view["deactivation_reason"],
+        )
+        for value in public_values:
+            self.assertTrue(value)
+            self.assertNotIn(private_path, value)
+            self.assertNotIn(private_secret, value)
+            self.assertLessEqual(len(value), 160)
 
     async def test_is_active_fails_closed_on_manager_or_runtime_snapshot_error(self):
         self.jobs.fail_snapshot = True

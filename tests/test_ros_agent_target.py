@@ -356,6 +356,33 @@ class RobotTargetSafetyTests(unittest.TestCase):
         )
         self.assertTrue(accepted["locked"]["camera"])
 
+    def test_direct_camera_errors_are_redacted_in_health_and_frame_metadata(self):
+        private_path = "/private/robot-scope/camera-pipeline.log"
+        private_secret = "camera-password-do-not-expose"
+        with self.agent._direct_camera._lock:
+            self.agent._direct_camera._last_error = (
+                f"failed at {private_path} password={private_secret}"
+            )
+        private_status = self.agent._direct_camera.status()
+        private_status["bridge_epoch"] = "camera-internal-generation"
+        self.agent._network_cache = (time.monotonic(), False, None)
+
+        with patch.object(
+            self.agent._direct_camera,
+            "status",
+            return_value=private_status,
+        ):
+            projections = (
+                self.agent.health_snapshot()["direct_camera"],
+                self.agent.camera_snapshot()["direct_camera"],
+            )
+        for projection in projections:
+            rendered = str(projection.get("last_error", ""))
+            self.assertTrue(rendered)
+            self.assertNotIn(private_path, rendered)
+            self.assertNotIn(private_secret, rendered)
+            self.assertNotIn("bridge_epoch", projection)
+
     def test_direct_camera_accepts_exact_trusted_go2_host_interface(self):
         with patch.dict(
             os.environ,
@@ -613,11 +640,18 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(offline["samples"], 0)
         self.assertEqual(offline["state"], "waiting")
 
+        topics = {item["name"]: item for item in self.agent.topics_snapshot()}
+        self.assertEqual(topics["/cloud_registered"]["sensor_id"], "hesai_xt16")
+        self.assertEqual(topics["/cloud_registered"]["pipeline_stage"], "registered")
+        self.assertEqual(topics["/custom_cloud"]["sensor_id"], "generic_pointcloud")
+        self.assertEqual(topics["/custom_cloud"]["pipeline_stage"], "unknown")
+
     def test_pointcloud_stream_epoch_and_bandwidth_budget_are_bounded(self):
         with self.agent._lock:
             self.agent._cloud.update(
                 {
                     "seq": 9,
+                    "topic": "/velodyne_points",
                     "points_bytes": struct.pack("<3f", 1.0, 2.0, 3.0),
                     "sent_points": 1,
                 }
@@ -627,6 +661,11 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertTrue(binary["stream_id"])
         self.assertEqual(binary["stream_id"], legacy["stream_id"])
         self.assertEqual(legacy["points"], [1.0, 2.0, 3.0])
+        self.assertEqual(binary["sensor_id"], "hesai_xt16")
+        self.assertEqual(binary["pipeline_stage"], "converted")
+        self.assertEqual(legacy["sensor_id"], "hesai_xt16")
+        state = self.agent.state_snapshot()
+        self.assertEqual(state["cloud"]["sensor_id"], "hesai_xt16")
         self.assertAlmostEqual(self.agent._pointcloud_frame_interval(30_000), 0.10)
         self.assertAlmostEqual(self.agent._pointcloud_frame_interval(100_000), 0.3)
         self.assertAlmostEqual(self.agent._pointcloud_frame_interval(None), 3.0)

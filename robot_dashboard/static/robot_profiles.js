@@ -18,10 +18,13 @@
     'autonomous_control',
   ]);
 
-  const OBSERVATION_CAPABILITIES = Object.freeze({
-    observability: true,
-    camera: true,
-    pointcloud: true,
+  // Local fallback metadata keeps model previews usable while the API is
+  // unavailable, but it must never grant product capabilities. The backend
+  // catalog is the sole browser authority for supported operations.
+  const UNAVAILABLE_CAPABILITIES = Object.freeze({
+    observability: false,
+    camera: false,
+    pointcloud: false,
     mapping: false,
     localization: false,
     navigation: false,
@@ -29,16 +32,12 @@
     autonomous_control: false,
   });
 
-  const GO2_CAPABILITIES = Object.freeze(
-    Object.fromEntries(CAPABILITY_NAMES.map((name) => [name, true])),
-  );
-
   const DEFAULT_TYPES = Object.freeze([
     Object.freeze({
       id: 'go2',
       label: 'Unitree Go2',
       description: 'Unitree Go2 사족보행 로봇',
-      capabilities: GO2_CAPABILITIES,
+      capabilities: UNAVAILABLE_CAPABILITIES,
       model: Object.freeze({
         kind: 'robot-model-lite',
         asset_url: '/static/assets/go2/go2-official-lite.json',
@@ -51,7 +50,7 @@
       id: 'turtlebot',
       label: 'TurtleBot',
       description: 'ROS 2 이동 로봇 플랫폼',
-      capabilities: OBSERVATION_CAPABILITIES,
+      capabilities: UNAVAILABLE_CAPABILITIES,
       model: Object.freeze({
         kind: 'robot-model-lite',
         asset_url: '/static/assets/turtlebot/turtlebot3-burger-official-lite.json',

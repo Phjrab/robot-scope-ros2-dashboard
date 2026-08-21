@@ -12,10 +12,10 @@ class StrictRequest(BaseModel):
 
 
 class SourceSelection(StrictRequest):
-    camera: str | None = None
-    pointcloud: str | None = None
-    odometry: str | None = None
-    occupancy_grid: str | None = None
+    camera: str | None = Field(default=None, max_length=255)
+    pointcloud: str | None = Field(default=None, max_length=255)
+    odometry: str | None = Field(default=None, max_length=255)
+    occupancy_grid: str | None = Field(default=None, max_length=255)
 
 
 class RobotTarget(StrictRequest):
@@ -76,7 +76,7 @@ class ControlStopRequest(StrictRequest):
 
 
 class ControlClearEstopRequest(StrictRequest):
-    confirmed: bool
+    confirmed: bool = Field(strict=True)
 
 
 class NavigationParameterPatchRequest(StrictRequest):

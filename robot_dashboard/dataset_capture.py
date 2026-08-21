@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import heapq
 import json
+import logging
 import os
 import queue
 import re
@@ -22,6 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
 
+
+LOGGER = logging.getLogger(__name__)
 
 CAMERA_SOURCE_IDS = ("go2_front", "realsense_color")
 ACTIVE_STATES = {"starting", "capturing", "stopping", "finalizing"}
@@ -439,14 +442,15 @@ class DatasetCaptureManager:
                 _fsync_directory(session_dir)
                 _fsync_directory(self.sessions_dir)
             except OSError as exc:
+                LOGGER.exception("dataset session directory creation failed")
                 self._state = "failed"
                 self._completed_at = _utc_now()
                 self._terminal_elapsed_s = max(
                     0.0, time.monotonic() - self._started_monotonic
                 )
-                self._last_error = str(exc)
+                self._last_error = "dataset session storage is unavailable"
                 self._message = "cannot create dataset session directory"
-                raise DatasetCaptureUnavailable(str(exc)) from exc
+                raise DatasetCaptureUnavailable(self._last_error) from exc
 
         opened: Dict[str, str] = {}
         writer_started = False
@@ -490,6 +494,8 @@ class DatasetCaptureManager:
                 raise
             return self.snapshot()
         except Exception as exc:
+            if not isinstance(exc, DatasetCaptureError):
+                LOGGER.exception("dataset capture startup failed")
             if not writer_started:
                 for source_id, token in opened.items():
                     try:
@@ -504,7 +510,11 @@ class DatasetCaptureManager:
                 if not writer_started:
                     self._tokens.clear()
                 self._state = "failed"
-                self._last_error = str(exc)
+                self._last_error = (
+                    str(exc)
+                    if isinstance(exc, DatasetCaptureError)
+                    else "dataset capture could not be started"
+                )
                 self._message = "dataset capture did not start"
                 self._completed_at = _utc_now()
                 self._terminal_elapsed_s = max(
@@ -516,7 +526,7 @@ class DatasetCaptureManager:
                 pass
             if isinstance(exc, DatasetCaptureError):
                 raise
-            raise DatasetCaptureUnavailable(str(exc)) from exc
+            raise DatasetCaptureUnavailable(self._last_error) from exc
 
     def _validated_bundle(self) -> Optional[Dict[str, Any]]:
         try:
@@ -723,7 +733,11 @@ class DatasetCaptureManager:
                         break
                     self._commit_bundle(bundle)
                 except Exception as exc:
-                    terminal_error = str(exc)
+                    if isinstance(exc, DatasetCaptureError):
+                        terminal_error = str(exc)
+                    else:
+                        LOGGER.exception("dataset sample commit failed")
+                        terminal_error = "dataset sample could not be written"
                     self._stop_event.set()
                     break
                 finally:
@@ -749,9 +763,10 @@ class DatasetCaptureManager:
             try:
                 self._write_manifest()
             except Exception as exc:
+                LOGGER.exception("dataset manifest finalization failed")
                 with self._lock:
                     self._state = "failed"
-                    self._last_error = f"cannot finalize dataset manifest: {exc}"
+                    self._last_error = "dataset manifest could not be finalized"
                     self._message = "dataset finalization failed"
             finally:
                 self._writer_done_event.set()

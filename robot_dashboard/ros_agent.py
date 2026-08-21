@@ -36,7 +36,8 @@ from .discovery import (
 )
 from .go2_multicast_camera import Go2MulticastCamera
 from .remote_mjpeg_camera import RemoteMjpegCamera
-from .ros.cameras import CAMERA_SOURCE_IDS, CameraHub
+from .public_diagnostics import public_diagnostic
+from .ros.cameras import CAMERA_SOURCE_IDS, CameraHub, public_camera_status
 from .ros.control_transport import (
     CONTROL_COMMAND_TOPIC,
     CONTROL_STATUS_TOPIC,
@@ -2016,7 +2017,7 @@ class RosAgent:
         ros_transport = ros_transport_status(
             require_go2_interface=self._startup_robot_type == "go2"
         )
-        direct_camera = self._direct_camera.status()
+        direct_camera = public_camera_status(self._direct_camera.status())
         with self._lock:
             selected_capabilities = capabilities_for_robot_type(self._robot_type)
             runtime_capabilities = capabilities_for_robot_type(self._startup_robot_type)
@@ -2059,7 +2060,7 @@ class RosAgent:
                 "robot_latency_ms": latency,
                 "uptime_s": round(time.monotonic() - self._started_at, 1),
                 "topic_count": len(self._graph),
-                "last_error": self._last_error,
+                "last_error": public_diagnostic(self._last_error),
                 "direct_camera": direct_camera,
                 # `profile` always names the actually running ROS profile.
                 # Runtime selection is display/observation metadata only.
@@ -2224,7 +2225,11 @@ class RosAgent:
         return self._graph_monitor.metric_snapshot(topic, category)
 
     def topics_snapshot(self) -> List[Dict[str, Any]]:
-        return self._graph_monitor.topics_snapshot(set(self._sources.values()))
+        topics = self._graph_monitor.topics_snapshot(set(self._sources.values()))
+        for item in topics:
+            if item.get("category") == "pointcloud":
+                item.update(pointcloud_source_metadata(str(item.get("name", ""))))
+        return topics
 
     def _joint_snapshot_locked(self, now: float) -> Dict[str, Any]:
         return self._telemetry_hub.joint_snapshot_locked(now)
@@ -2275,6 +2280,9 @@ class RosAgent:
                 for key, value in self._cloud.items()
                 if key not in {"points", "points_bytes"}
             }
+            cloud_topic = str(cloud_meta.get("topic") or sources.get("pointcloud", ""))
+            if cloud_topic:
+                cloud_meta.update(pointcloud_source_metadata(cloud_topic))
             map_meta = {key: value for key, value in self._map.items() if key != "data_b64"}
             robot_joints = self._joint_snapshot_locked(time.monotonic())
             robot_pose = self._pose_snapshot_locked(time.monotonic())
@@ -2328,11 +2336,19 @@ class RosAgent:
         return self._camera_hub.snapshots(source_ids)
 
     def pointcloud_snapshot(self) -> Dict[str, Any]:
-        return self._pointcloud_hub.json_snapshot()
+        snapshot = self._pointcloud_hub.json_snapshot()
+        topic = str(snapshot.get("topic", ""))
+        if topic:
+            snapshot.update(pointcloud_source_metadata(topic))
+        return snapshot
 
     def pointcloud_binary_snapshot(self) -> Dict[str, Any]:
         """Return immutable packed points plus small JSON-safe metadata."""
-        return self._pointcloud_hub.binary_snapshot()
+        snapshot = self._pointcloud_hub.binary_snapshot()
+        topic = str(snapshot.get("topic", ""))
+        if topic:
+            snapshot.update(pointcloud_source_metadata(topic))
+        return snapshot
 
     def map_snapshot(self) -> Dict[str, Any]:
         return self._telemetry_hub.map_snapshot()

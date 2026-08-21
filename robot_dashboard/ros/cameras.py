@@ -5,13 +5,61 @@ from __future__ import annotations
 import secrets
 import threading
 import time
+from collections.abc import Mapping
 from typing import Any, Callable, Dict, Optional, Tuple
+
+from ..public_diagnostics import public_diagnostic
 
 
 CAMERA_SOURCE_IDS = ("go2_front", "realsense_color")
 MAX_ACTIVE_CAMERA_SOURCES = 2
 MAX_CAMERA_VIEWERS = 8
 MAX_CAMERA_VIEWERS_PER_SOURCE = 4
+
+_PUBLIC_CAMERA_STATUS_FIELDS = frozenset(
+    {
+        "enabled",
+        "configured",
+        "available",
+        "state",
+        "live",
+        "source",
+        "source_id",
+        "source_label",
+        "transport",
+        "uri",
+        "multicast_address",
+        "port",
+        "interface",
+        "format",
+        "width",
+        "height",
+        "max_frame_bytes",
+        "fps_limit",
+        "startup_frame_timeout_s",
+        "frame_timeout_s",
+        "fps",
+        "frames",
+        "age_s",
+        "process_running",
+        "watchdog_running",
+        "restart_count",
+        "restart_in_s",
+        "oversize_frames",
+        "invalid_frames",
+        "last_error",
+    }
+)
+
+
+def public_camera_status(status: Mapping[str, Any]) -> Dict[str, Any]:
+    """Project one receiver status without leaking future internal fields."""
+
+    projected = {
+        key: value for key, value in status.items() if key in _PUBLIC_CAMERA_STATUS_FIELDS
+    }
+    projected["last_error"] = public_diagnostic(status.get("last_error", ""))
+    return projected
 
 
 class CameraHub:
@@ -449,7 +497,7 @@ class CameraHub:
         snapshot["stream_id"] = self.stream_ids["go2_front"]
         snapshot["source_id"] = "go2_front"
         status = self.direct_camera.status()
-        snapshot["direct_camera"] = status
+        snapshot["direct_camera"] = public_camera_status(status)
         if status.get("enabled") and status.get("configured"):
             snapshot.update(
                 {
@@ -523,7 +571,7 @@ class CameraHub:
                     "max_viewers": MAX_CAMERA_VIEWERS_PER_SOURCE,
                     "fps": status.get("fps"),
                     "age_s": status.get("age_s"),
-                    "last_error": str(status.get("last_error", "")),
+                    "last_error": public_diagnostic(status.get("last_error", "")),
                 }
             )
         return {

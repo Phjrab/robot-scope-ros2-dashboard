@@ -1,20 +1,6 @@
-// Resolve LiDAR identity from backend metadata first and an exact-topic
-// allowlist second. Never infer a physical sensor from topic fragments.
+// Resolve physical LiDAR identity only from backend metadata. Topic names are
+// display data, not browser-side authority for a sensor make or model.
 export const LidarSourceIdentity = (() => {
-  const TOPIC_ALLOWLIST = Object.freeze({
-    '/utlidar/cloud': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'raw' }),
-    '/utlidar/cloud_deskewed': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'deskewed' }),
-    '/utlidar/cloud_base': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'base_frame' }),
-    '/utlidar/grid_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'local_map' }),
-    '/utlidar/height_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'height_map' }),
-    '/utlidar/range_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'range_map' }),
-    '/utlidar/voxel_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'voxel_map' }),
-    '/uslam/cloud_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'map' }),
-    '/lidar_points': Object.freeze({ sensorId: 'hesai_xt16', stage: 'raw' }),
-    '/velodyne_points': Object.freeze({ sensorId: 'hesai_xt16', stage: 'converted' }),
-    '/cloud_registered': Object.freeze({ sensorId: 'hesai_xt16', stage: 'registered' }),
-    '/Laser_map': Object.freeze({ sensorId: 'hesai_xt16', stage: 'map' }),
-  });
   const SENSOR_LABELS = Object.freeze({
     go2_builtin_lidar: 'GO2 BUILT-IN LIDAR',
     hesai_xt16: 'HESAI XT16',
@@ -48,10 +34,10 @@ export const LidarSourceIdentity = (() => {
   }
   function canonicalSensor(sensorId, sensorLabel) {
     const id = text(sensorId).toLowerCase().replace(/[\s-]+/g, '_');
-    const token = `${id} ${text(sensorLabel).toLowerCase()}`;
-    if (/(hesai|xt\s*-?\s*16|pandar)/.test(token)) return 'hesai_xt16';
-    if (/(go2|unitree|utlidar|built[\s_-]*in)/.test(token)) return 'go2_builtin_lidar';
     if (id) return id;
+    const label = text(sensorLabel).toLowerCase();
+    if (label === 'hesai xt16') return 'hesai_xt16';
+    if (label === 'go2 built-in lidar') return 'go2_builtin_lidar';
     return 'generic_pointcloud';
   }
   function canonicalStage(value) {
@@ -94,17 +80,16 @@ export const LidarSourceIdentity = (() => {
   function describe(value, extraMetadata = {}) {
     const topic = topicOf(value) || topicOf(extraMetadata);
     const metadata = Object.assign({}, flattenMetadata(value), flattenMetadata(extraMetadata));
-    const fallback = TOPIC_ALLOWLIST[topic] || { sensorId: 'generic_pointcloud', stage: 'unknown' };
     const backendSensorId = first(metadata, ['sensor_id', 'lidar_sensor_id', 'sensor_family', 'lidar_model']);
     const backendSensorLabel = first(metadata, ['sensor_label', 'lidar_sensor_label', 'sensor_name', 'lidar_model_label']);
     const hasBackendSensor = Boolean(backendSensorId || backendSensorLabel);
-    const sensorId = hasBackendSensor ? canonicalSensor(backendSensorId, backendSensorLabel) : fallback.sensorId;
+    const sensorId = hasBackendSensor ? canonicalSensor(backendSensorId, backendSensorLabel) : 'generic_pointcloud';
     const sensorLabel = !topic && !hasBackendSensor
       ? 'LIDAR NOT SELECTED'
-      : SENSOR_LABELS[sensorId]
-        || (backendSensorLabel ? backendSensorLabel.toUpperCase() : sensorId.replace(/_/g, ' ').toUpperCase());
+      : (backendSensorLabel ? backendSensorLabel.toUpperCase() : SENSOR_LABELS[sensorId])
+        || sensorId.replace(/_/g, ' ').toUpperCase();
     const backendStage = first(metadata, ['pipeline_stage', 'processing_stage', 'cloud_stage', 'stage']);
-    const stage = backendStage ? canonicalStage(backendStage) : fallback.stage;
+    const stage = backendStage ? canonicalStage(backendStage) : 'unknown';
     const backendStageLabel = first(metadata, ['pipeline_stage_label', 'processing_stage_label', 'cloud_stage_label', 'stage_label']);
     const reportedStatus = normalizeReportedStatus(first(metadata, ['freshness', 'live_state', 'status', 'state']));
     return {
@@ -115,9 +100,7 @@ export const LidarSourceIdentity = (() => {
     };
   }
   function groupLabel(identity) {
-    if (identity.sensorId === 'go2_builtin_lidar') return 'GO2 BUILT-IN LIDAR';
-    if (identity.sensorId === 'hesai_xt16') return 'HESAI XT16';
     return identity.sensorLabel || 'OTHER POINTCLOUD';
   }
-  return { TOPIC_ALLOWLIST, describe, flattenMetadata, groupLabel, normalizeReportedStatus, topicOf };
+  return { describe, flattenMetadata, groupLabel, normalizeReportedStatus, topicOf };
 })();

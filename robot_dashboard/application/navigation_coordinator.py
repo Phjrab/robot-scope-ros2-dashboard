@@ -26,6 +26,7 @@ from ..navigation_jobs import (
     NavigationPoseError,
     NavigationUnavailable,
 )
+from ..public_diagnostics import public_diagnostic
 
 
 LOGGER = logging.getLogger(__name__)
@@ -57,6 +58,13 @@ MANUAL_CONTROL_BLOCKING_PHASES = frozenset(
         "stopping",
     }
 )
+
+
+def _public_navigation_diagnostic(value: object) -> str | None:
+    """Return one bounded navigation diagnostic for the browser contract."""
+
+    clean = public_diagnostic(value)
+    return clean[:160] if clean else None
 
 
 def navigation_start_state() -> dict[str, Any]:
@@ -342,7 +350,10 @@ class NavigationCoordinator:
                     raise ValueError("invalid navigation job_id")
                 updates["navigation_job_id"] = navigation_job_id
             if error is not None:
-                updates["error"] = str(error)[:160]
+                updates["error"] = (
+                    _public_navigation_diagnostic(error)
+                    or "navigation startup failed"
+                )
             self._start.update(updates)
             return True
 
@@ -418,7 +429,10 @@ class NavigationCoordinator:
     ) -> None:
         """Retain exact cleanup ownership whenever rollback is incomplete."""
 
-        clean = " ".join(str(error).split())[:160] or "navigation startup failed"
+        clean = (
+            _public_navigation_diagnostic(error)
+            or "navigation startup failed"
+        )
         with self._state_lock:
             if self._start.get("token") != token:
                 return
@@ -1190,7 +1204,10 @@ class NavigationCoordinator:
                 manager,
                 "navigation_start_failed",
             )
-            message = " ".join(str(exc).split())[:160] or "navigation startup failed"
+            message = (
+                _public_navigation_diagnostic(exc)
+                or "navigation startup failed"
+            )
             self.finish_start_failure(
                 token,
                 message,
@@ -1288,7 +1305,9 @@ class NavigationCoordinator:
         pipeline = {
             "state": pipeline_state,
             "job_id": manager_pipeline.get("job_id"),
-            "error": manager_pipeline.get("error") or startup.get("error"),
+            "error": _public_navigation_diagnostic(
+                manager_pipeline.get("error") or startup.get("error")
+            ),
             "started_at": manager_pipeline.get("started_at"),
         }
 
@@ -1399,7 +1418,7 @@ class NavigationCoordinator:
             "distance_remaining": goal.get("distance_remaining"),
             "navigation_time": goal.get("navigation_time"),
             "recoveries": int(goal.get("recoveries", 0) or 0),
-            "error": goal.get("error"),
+            "error": _public_navigation_diagnostic(goal.get("error")),
         }
         running = pipeline_state == "running" and manager_map is not None
         runtime_goal_active = goal_state in {"pending", "active", "canceling"}
@@ -1475,12 +1494,14 @@ class NavigationCoordinator:
                 "pending": startup_pending,
                 "owned_by_navigation": bool(startup.get("mapping_owned", False)),
                 "job_id": startup.get("mapping_job_id"),
-                "error": startup.get("error"),
+                "error": _public_navigation_diagnostic(startup.get("error")),
             },
         }
         deactivation_reason = runtime.get("deactivation_reason")
         if isinstance(deactivation_reason, str) and deactivation_reason:
-            result["deactivation_reason"] = deactivation_reason[:160]
+            public_reason = _public_navigation_diagnostic(deactivation_reason)
+            if public_reason:
+                result["deactivation_reason"] = public_reason
         path = runtime.get("path")
         if isinstance(path, list):
             result["path"] = path

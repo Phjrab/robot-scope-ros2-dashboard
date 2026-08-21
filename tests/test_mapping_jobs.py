@@ -21,6 +21,7 @@ from robot_dashboard.saved_maps import SavedMapCatalog
 
 
 PIPELINE_PROGRAM = r"""
+from pathlib import Path
 import signal
 import subprocess
 import sys
@@ -31,6 +32,7 @@ child = subprocess.Popen([
     "-c",
     "import signal,sys,time; signal.signal(signal.SIGINT, lambda *_: sys.exit(0)); print('child-ready', flush=True); time.sleep(120)",
 ])
+Path(__file__).with_name("pipeline-child.pid").write_text(str(child.pid))
 print(f"pipeline-ready child={child.pid}", flush=True)
 """
 
@@ -179,10 +181,47 @@ class MappingJobManagerTests(unittest.TestCase):
         self.assertEqual(stopped["preview"]["state"], "running")
         self.assertEqual(stopped["preview"]["pid"], preview_pid)
         self.assertTrue(process_exists(preview_pid))
+        public_logs = "\n".join(
+            str(item.get("message", "")) for item in stopped.get("logs", [])
+        )
+        self.assertNotIn(f"pid {preview_pid}", public_logs)
 
         manager.close()
         self.assertIsNotNone(wait_until(lambda: not process_exists(preview_pid)))
         self.assertEqual(manager.snapshot()["preview"]["state"], "stopped")
+
+    def test_child_output_is_bounded_and_redacted_before_browser_snapshot(self):
+        manager = self.manager()
+        manager._append_log(
+            "pipeline",
+            "\x1b[31m[INFO] [1750000000.123] [mapping_runtime]: "
+            "loaded /home/jetson/private/map.yaml "
+            "bridge_key=top-secret "
+            "url=https://user:password@example.invalid/private "
+            f"revision={'d' * 64}\x1b[0m",
+        )
+        manager._append_log(
+            "pipeline",
+            "[WARN] [mapping_runtime]: command: [ros2, launch, private.yaml]",
+        )
+        manager._append_log("pipeline", "unstructured /root/private output")
+
+        messages = [entry["message"] for entry in manager.snapshot()["logs"]]
+        rendered = "\n".join(messages)
+        for private_value in (
+            "/home/jetson/private/map.yaml",
+            "/root/private",
+            "top-secret",
+            "user:password",
+            "d" * 64,
+            "private.yaml",
+            "\x1b",
+        ):
+            self.assertNotIn(private_value, rendered)
+        self.assertTrue(any("INFO mapping_runtime" in item for item in messages))
+        self.assertTrue(any("runtime command detail withheld" in item for item in messages))
+        self.assertIn("runtime output received", messages)
+        self.assertTrue(all(len(item) <= 320 for item in messages))
 
     def test_navigation_cleanup_requires_the_exact_active_mapping_job_id(self):
         manager = self.manager()
@@ -257,21 +296,17 @@ class MappingJobManagerTests(unittest.TestCase):
     def start_ready(self, manager):
         snapshot = manager.start_mapping()
         self.assertEqual(snapshot["pipeline"]["state"], "starting")
-        ready = wait_until(
-            lambda: next(
-                (
-                    item
-                    for item in manager.snapshot()["logs"]
-                    if "pipeline-ready child=" in item["message"]
-                ),
-                None,
-            )
-        )
-        self.assertIsNotNone(ready)
+        child_pid_file = self.pipeline_script.with_name("pipeline-child.pid")
+        self.assertIsNotNone(wait_until(child_pid_file.exists))
         self.assertIsNotNone(
             wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
         )
-        return int(ready["message"].split("child=", 1)[1])
+        child_pid = int(child_pid_file.read_text())
+        self.assertNotIn(
+            str(child_pid),
+            "\n".join(entry["message"] for entry in manager.snapshot()["logs"]),
+        )
+        return child_pid
 
     def test_start_is_singleton_and_stop_terminates_the_process_group(self):
         manager = self.manager()

@@ -295,7 +295,7 @@ class SourceRegistry:
             finally:
                 os.close(directory_fd)
         except OSError as exc:
-            raise ValueError(f"cannot persist source selection: {exc}") from exc
+            raise ValueError("cannot persist source selection") from exc
         finally:
             if descriptor >= 0:
                 os.close(descriptor)

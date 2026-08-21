@@ -203,6 +203,9 @@ async def pointcloud_stream(websocket: WebSocket) -> None:
 
 @router.websocket("/api/v1/ws/joints")
 async def joint_stream(websocket: WebSocket) -> None:
+    if not websocket_same_origin(websocket):
+        await websocket.close(code=4403, reason="same-origin joint WebSocket required")
+        return
     current = _agent(runtime_from_websocket(websocket))
     await websocket.accept()
     last_signature: tuple[int, str] | None = None
@@ -222,6 +225,9 @@ async def joint_stream(websocket: WebSocket) -> None:
 
 @router.websocket("/api/v1/ws/pose")
 async def pose_stream(websocket: WebSocket) -> None:
+    if not websocket_same_origin(websocket):
+        await websocket.close(code=4403, reason="same-origin pose WebSocket required")
+        return
     current = _agent(runtime_from_websocket(websocket))
     await websocket.accept()
     last_signature: tuple[int, str, str] | None = None

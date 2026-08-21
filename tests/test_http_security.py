@@ -17,6 +17,18 @@ class HttpSecurityTests(unittest.TestCase):
             ("http://evil.example", "10.100.0.89:8088"),
             ("http://10.100.0.89:9090", "10.100.0.89:8088"),
             ("http://[invalid", "10.100.0.89:8088"),
+            ("ftp://robot.local:8088", "robot.local:8088"),
+            ("//robot.local:8088", "robot.local:8088"),
+            ("http://robot.local:8088/", "robot.local:8088"),
+            ("http://robot.local:8088?query", "robot.local:8088"),
+            ("http://robot.local:8088#fragment", "robot.local:8088"),
+            ("http://user@robot.local:8088", "user@robot.local:8088"),
+            ("http://robot.local:notaport", "robot.local:notaport"),
+            ("http://robot.local:99999", "robot.local:99999"),
+            ("http://robot.local:8088", "robot.local:8088/path"),
+            ("http://robot.local:8088\n", "robot.local:8088"),
+            ("http://robot.local:8088", "robot.local:8088\t"),
+            ("http://" + "a" * 510, "a" * 510),
         ):
             with self.subTest(origin=origin, host=host):
                 self.assertFalse(is_same_origin(origin, host))
@@ -137,7 +149,12 @@ class HttpSecurityTests(unittest.TestCase):
                 for node in ast.walk(settings)
             )
         )
-        for name in ("pointcloud_stream", "_camera_stream_source"):
+        for name in (
+            "pointcloud_stream",
+            "joint_stream",
+            "pose_stream",
+            "_camera_stream_source",
+        ):
             function = functions[name]
             self.assertTrue(
                 any(

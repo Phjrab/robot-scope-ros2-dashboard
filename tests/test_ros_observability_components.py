@@ -1,9 +1,11 @@
 import ast
+import tempfile
 import threading
 import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
@@ -133,6 +135,32 @@ class RosObservabilityComponentTests(unittest.TestCase):
             pointcloud_source_metadata("/lookalike_velodyne")["sensor_id"],
             "generic_pointcloud",
         )
+
+    def test_source_persistence_error_does_not_expose_state_path(self):
+        profile = {
+            "name": "Unitree Go2",
+            "robot_type": "go2",
+            "source_selection": {
+                "pointcloud": {
+                    "persistent": True,
+                    "fail_closed": True,
+                    "allowed_offline": ["/velodyne_points"],
+                    "default": "/velodyne_points",
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "private" / "sources.json"
+            registry = SourceRegistry(profile, path)
+            with patch(
+                "robot_dashboard.ros.sources.os.replace",
+                side_effect=OSError(f"cannot replace {path}"),
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, "^cannot persist source selection$"
+                ) as raised:
+                    registry.write_overrides({})
+            self.assertNotIn(str(path), str(raised.exception))
 
     def test_camera_hub_owns_source_bound_exactly_once_demand(self):
         lock = threading.RLock()

@@ -368,7 +368,7 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertIn("'localization_odometry': '/Odometry'", source)
         self.assertIn("'command': '/robot_scope/nav/cmd_vel_raw'", source)
         self.assertIn("deactivation_reason", source)
-        self.assertIn("deactivation_reason[:160]", source)
+        self.assertIn("_public_navigation_diagnostic", source)
 
 
 if __name__ == "__main__":

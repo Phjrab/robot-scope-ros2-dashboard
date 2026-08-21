@@ -29,6 +29,7 @@ from .application.mapping_coordinator import (
 )
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.runtime import ApplicationRuntime
+from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.routers.cameras import router as cameras_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
@@ -64,6 +65,7 @@ from .control import (
     LeaseInvalid,
     SequenceError,
 )
+from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
 from .mapping_jobs import (
     InvalidMapName,
@@ -83,7 +85,6 @@ from .navigation_jobs import (
     NavigationPoseError,
     NavigationUnavailable,
 )
-from .http_security import is_same_origin
 from .ros_agent import RosAgent
 from .saved_maps import (
     SavedMapCatalog,
@@ -170,6 +171,18 @@ app.state.runtime = RUNTIME
 app.mount("/static", DashboardStaticFiles(directory=STATIC_DIR), name="static")
 
 
+@app.middleware("http")
+async def api_response_security(request: Request, call_next: Any) -> Response:
+    """Keep operational API responses out of browser and intermediary caches."""
+
+    response = await call_next(request)
+    if request.url.path.startswith("/api/v1/"):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 def agent() -> RosAgent:
     if RUNTIME.agent is None:
         raise HTTPException(status_code=503, detail="ROS agent is not configured")
@@ -201,23 +214,6 @@ def lifecycle_coordinator() -> LifecycleCoordinator:
             detail="service lifecycle control is not configured",
         )
     return RUNTIME.lifecycle
-
-
-def require_same_origin(request: Request) -> None:
-    """Reject browser control mutations that did not originate at this host."""
-
-    if not is_same_origin(
-        request.headers.get("origin", ""),
-        request.headers.get("host", ""),
-    ):
-        raise HTTPException(status_code=403, detail="mutation requests must be same-origin")
-
-
-def websocket_same_origin(websocket: WebSocket) -> bool:
-    return is_same_origin(
-        websocket.headers.get("origin", ""),
-        websocket.headers.get("host", ""),
-    )
 
 
 def control_error(exc: ControlError) -> HTTPException:
@@ -330,7 +326,30 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
 
     limits = snapshot.get("limits", {})
     readiness = snapshot.get("readiness", {})
-    bridge = dict(snapshot.get("bridge", {}))
+    internal_bridge = dict(snapshot.get("bridge", {}))
+    bridge = {
+        key: internal_bridge[key]
+        for key in (
+            "state",
+            "ready",
+            "authenticated",
+            "connected",
+            "available",
+            "status_age_s",
+            "lowstate_age_ms",
+            "sport_subscribers",
+            "own_sport_publishers",
+            "foreign_named_sport_publishers",
+            "bare_unitree_sport_publishers",
+            "expected_bare_sport_publishers",
+            "total_sport_publishers",
+            "lowstate_publishers",
+        )
+        if key in internal_bridge
+    }
+    bridge["message"] = public_diagnostic(
+        internal_bridge.get("message", internal_bridge.get("last_error", ""))
+    )
     estop = snapshot.get("estop", {})
     lease = dict(snapshot.get("lease", {}))
     action_guard = dict(snapshot.get("action_guard", {}))
@@ -416,7 +435,7 @@ def mapping_error(exc: MappingJobError) -> HTTPException:
         return HTTPException(status_code=409, detail=str(exc))
     if isinstance(exc, SaveResultError):
         return HTTPException(status_code=422, detail=str(exc))
-    return HTTPException(status_code=500, detail=str(exc))
+    return HTTPException(status_code=500, detail="mapping operation failed")
 
 
 def mapping_coordination_error(exc: MappingCoordinatorError) -> HTTPException:
@@ -441,7 +460,7 @@ def saved_map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, SavedMapPointLimitError):
         return HTTPException(status_code=413, detail=str(exc))
     if isinstance(exc, SavedMapMutationError):
-        return HTTPException(status_code=500, detail=str(exc))
+        return HTTPException(status_code=500, detail="saved map mutation failed")
     return HTTPException(status_code=500, detail="saved map operation failed")
 
 

@@ -26,6 +26,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence
 
+from .public_diagnostics import public_diagnostic
+
 
 MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 KIND_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
@@ -373,7 +375,7 @@ class MappingJobManager:
             self._preview.update(state="running", pid=process.pid)
             self._append_log_locked(
                 "preview",
-                f"XT16 preview supervisor started (pid {process.pid})",
+                "XT16 preview supervisor started",
             )
 
         self._start_reader(process, "preview")
@@ -474,7 +476,7 @@ class MappingJobManager:
             self._pipeline.update(pid=process.pid)
             self._append_log_locked(
                 "pipeline",
-                f"pipeline readiness launcher started (pid {process.pid})",
+                "pipeline readiness launcher started",
             )
 
         self._start_reader(process, "pipeline")
@@ -779,7 +781,7 @@ class MappingJobManager:
                 self._append_log_locked("save", f"created {', '.join(files)}")
             return self.snapshot()
         except Exception as exc:
-            message = str(exc).strip()[:240] or "local map operation failed"
+            message = public_diagnostic(exc) or "local map operation failed"
             with self._lock:
                 self._operation.update(
                     state="failed",
@@ -801,7 +803,7 @@ class MappingJobManager:
     def fail_reserved_local_operation(self, job_id: str, message: str) -> dict[str, Any]:
         """Fail and release a reservation whose worker could not be scheduled."""
 
-        clean = str(message).strip()[:240] or "local map operation could not be scheduled"
+        clean = public_diagnostic(message) or "local map operation could not be scheduled"
         with self._lock:
             if (
                 self._local_operation_token != job_id
@@ -1063,8 +1065,11 @@ class MappingJobManager:
             self._terminate_group(pipeline_process, pipeline_pgid)
 
     def _append_log(self, source: str, message: str) -> None:
+        clean = public_diagnostic(message, runtime=True)
+        if not clean:
+            return
         with self._lock:
-            self._append_log_locked(source, message)
+            self._append_log_locked(source, clean)
 
     def _append_log_locked(self, source: str, message: str) -> None:
         clean = "".join(char for char in str(message).strip() if char == "\t" or ord(char) >= 32)

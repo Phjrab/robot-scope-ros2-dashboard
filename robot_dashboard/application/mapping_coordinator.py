@@ -19,6 +19,19 @@ from ..saved_maps import SavedMapCatalog, SavedMapError
 LOGGER = logging.getLogger(__name__)
 
 
+def _public_mapping_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """Remove process-local identifiers from the browser-facing projection."""
+
+    projected = dict(snapshot)
+    for key in ("preview", "pipeline"):
+        value = projected.get(key)
+        if isinstance(value, Mapping):
+            item = dict(value)
+            item.pop("pid", None)
+            projected[key] = item
+    return projected
+
+
 class MappingCoordinatorError(RuntimeError):
     """Base class for application-level mapping coordination failures."""
 
@@ -131,12 +144,14 @@ class MappingCoordinator:
     def snapshot(self, *, since_log_seq: int = 0) -> dict[str, Any]:
         """Expose a bounded manager snapshot through the application port."""
 
-        return self._manager.snapshot(since_log_seq=since_log_seq)
+        return _public_mapping_snapshot(
+            self._manager.snapshot(since_log_seq=since_log_seq)
+        )
 
     def start_mapping(self) -> dict[str, Any]:
         """Start trusted localization for an already-fenced Nav transaction."""
 
-        return self._manager.start_mapping()
+        return _public_mapping_snapshot(self._manager.start_mapping())
 
     def stop_mapping_if_job_id(
         self,
@@ -144,7 +159,8 @@ class MappingCoordinator:
     ) -> tuple[bool, dict[str, Any]]:
         """Compare-and-stop exactly one Nav-owned mapping process group."""
 
-        return self._manager.stop_mapping_if_job_id(job_id)
+        stopped, snapshot = self._manager.stop_mapping_if_job_id(job_id)
+        return stopped, _public_mapping_snapshot(snapshot)
 
     async def start(self) -> dict[str, Any]:
         async with self._coordination_lock:
@@ -153,7 +169,8 @@ class MappingCoordinator:
                 "navigation must stop before mapping can start"
             )
             self._require_task_idle("a map save is in progress")
-            return await asyncio.to_thread(self._manager.start_mapping)
+            snapshot = await asyncio.to_thread(self._manager.start_mapping)
+            return _public_mapping_snapshot(snapshot)
 
     async def stop(self) -> dict[str, Any]:
         async with self._coordination_lock:
@@ -161,7 +178,8 @@ class MappingCoordinator:
                 "navigation must stop before the localization pipeline can stop"
             )
             self._require_task_idle("map save must finish before mapping can stop")
-            return await asyncio.to_thread(self._manager.stop_mapping)
+            snapshot = await asyncio.to_thread(self._manager.stop_mapping)
+            return _public_mapping_snapshot(snapshot)
 
     async def save(self, name: str, *, create_2d: bool) -> dict[str, Any]:
         async with self._coordination_lock:
@@ -289,7 +307,8 @@ class MappingCoordinator:
     async def start_preview(self) -> dict[str, Any]:
         """Start only the manager's fixed optional observation preview."""
 
-        return await asyncio.to_thread(self._manager.start_preview)
+        snapshot = await asyncio.to_thread(self._manager.start_preview)
+        return _public_mapping_snapshot(snapshot)
 
     async def close(self, *, task_timeout: float = 2.0) -> None:
         """Close process ownership, then boundedly settle its async worker."""

@@ -147,6 +147,23 @@ class DatasetCaptureTests(unittest.TestCase):
             )
             self.assertEqual(manager.snapshot()["state"], "failed")
 
+    def test_storage_failure_does_not_expose_host_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            manager, _ = self.make_manager(temporary)
+            secret_path = str(Path(temporary) / "sessions")
+            manager.sessions_dir.rmdir()
+
+            with self.assertRaises(DatasetCaptureUnavailable) as raised:
+                manager.start(("go2_front",), 1.0, "")
+
+            self.assertEqual(str(raised.exception), "dataset session storage is unavailable")
+            self.assertEqual(
+                manager.snapshot()["last_error"],
+                "dataset session storage is unavailable",
+            )
+            self.assertNotIn(secret_path, str(raised.exception))
+            self.assertNotIn(secret_path, manager.snapshot()["last_error"])
+
     def test_stale_and_excessively_skewed_frames_fail_closed_and_release(self):
         for mode in ("stale", "skew"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:

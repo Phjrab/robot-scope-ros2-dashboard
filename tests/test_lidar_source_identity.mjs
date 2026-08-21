@@ -19,28 +19,32 @@ runInNewContext(
 );
 const identity = sandbox.identity;
 
-test('exact topic fallback never presents the Go2 deskewed cloud as XT16', () => {
+test('topic strings alone never assert a physical sensor or processing stage', () => {
   const deskewed = identity.describe('/utlidar/cloud_deskewed');
-  assert.equal(deskewed.sensorId, 'go2_builtin_lidar');
-  assert.equal(deskewed.sensorLabel, 'GO2 BUILT-IN LIDAR');
-  assert.equal(deskewed.stage, 'deskewed');
-  assert.match(deskewed.stageLabel, /^보정 · DESKEWED$/);
+  assert.equal(deskewed.sensorId, 'generic_pointcloud');
+  assert.equal(deskewed.sensorLabel, 'GENERIC POINTCLOUD');
+  assert.equal(deskewed.stage, 'unknown');
+  assert.equal(deskewed.stageLabel, '단계 미확인');
 
   const lookalike = identity.describe('/customer/cloud_deskewed');
   assert.equal(lookalike.sensorId, 'generic_pointcloud');
   assert.equal(lookalike.stage, 'unknown');
 
   const heightMap = identity.describe('/utlidar/height_map');
-  assert.equal(heightMap.sensorId, 'go2_builtin_lidar');
-  assert.equal(heightMap.stageLabel, '센서 맵 · HEIGHT MAP');
+  assert.equal(heightMap.sensorId, 'generic_pointcloud');
+  assert.equal(heightMap.stage, 'unknown');
 });
 
-test('allowlisted XT16 and FAST-LIO stages receive explicit labels', () => {
-  const raw = identity.describe('/lidar_points');
+test('backend metadata assigns XT16 and FAST-LIO stages', () => {
+  const raw = identity.describe('/lidar_points', {
+    sensor_id: 'hesai_xt16', sensor_label: 'Hesai XT16', pipeline_stage: 'raw',
+  });
   assert.equal(raw.sensorLabel, 'HESAI XT16');
   assert.equal(raw.stageLabel, '원본 · RAW');
 
-  const registered = identity.describe('/cloud_registered');
+  const registered = identity.describe('/cloud_registered', {
+    sensor_id: 'hesai_xt16', sensor_label: 'Hesai XT16', pipeline_stage: 'registered',
+  });
   assert.equal(registered.sensorLabel, 'HESAI XT16');
   assert.equal(registered.stage, 'registered');
   assert.equal(registered.stageLabel, 'FAST-LIO · REGISTERED');
@@ -49,12 +53,12 @@ test('allowlisted XT16 and FAST-LIO stages receive explicit labels', () => {
 test('backend source metadata takes precedence and preserves its processing label', () => {
   const described = identity.describe('/utlidar/cloud_deskewed', {
     sensor_id: 'hesai_xt16',
-    sensor_label: 'Hesai XT16',
+    sensor_label: 'Backend XT16 Label',
     pipeline_stage: 'registered',
     pipeline_stage_label: 'Registered cloud',
   });
   assert.equal(described.metadataPresent, true);
-  assert.equal(described.sensorLabel, 'HESAI XT16');
+  assert.equal(described.sensorLabel, 'BACKEND XT16 LABEL');
   assert.equal(described.stage, 'registered');
   assert.equal(described.stageLabel, 'FAST-LIO · REGISTERED CLOUD');
 });
@@ -128,7 +132,7 @@ test('publisher-zero XT16 pin stays selected and reports WAITING instead of cach
     },
     [{ name: '/velodyne_points', publishers: 0, state: 'stale', age_s: 30 }],
   );
-  assert.equal(identity.describe('/velodyne_points').sensorLabel, 'HESAI XT16');
+  assert.equal(identity.describe('/velodyne_points').sensorLabel, 'GENERIC POINTCLOUD');
   assert.equal(readout.pin.label, 'DEFAULT PIN');
   assert.equal(readout.freshness, 'WAITING');
 });

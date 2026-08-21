@@ -41,7 +41,12 @@ class FakeMappingManager:
     def snapshot(self, *, since_log_seq=0):
         self._record("snapshot", since_log_seq)
         return {
-            "pipeline": {"state": self.pipeline_state, "job_id": self.job_id},
+            "preview": {"state": "running", "pid": 4321},
+            "pipeline": {
+                "state": self.pipeline_state,
+                "job_id": self.job_id,
+                "pid": 8765,
+            },
             "operation": {"state": self.operation_state},
             "logs": [],
         }
@@ -109,7 +114,7 @@ class FakeMappingManager:
 
     def start_preview(self):
         self._record("start_preview")
-        return {"preview": {"state": "running"}}
+        return {"preview": {"state": "running", "pid": 4321}}
 
     def close(self):
         self._record("close")
@@ -179,7 +184,9 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
     async def test_start_uses_shared_lock_and_stop_remains_cleanup_available(self):
         self.assertIs(self.coordinator.coordination_lock, self.lock)
 
-        await self.coordinator.start()
+        started = await self.coordinator.start()
+        self.assertNotIn("pid", started["pipeline"])
+        self.assertNotIn("pid", started["preview"])
         start = next(call for call in self.manager.calls if call[0] == "start_mapping")
         self.assertIs(start[-1], True)
         self.assertEqual(self.lifecycle_calls, 1)
@@ -188,7 +195,9 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             raise AssertionError("STOP must not require lifecycle idle")
 
         self.coordinator._require_lifecycle_idle = unavailable_lifecycle
-        await self.coordinator.stop()
+        stopped = await self.coordinator.stop()
+        self.assertNotIn("pid", stopped["pipeline"])
+        self.assertNotIn("pid", stopped["preview"])
         stop = next(call for call in self.manager.calls if call[0] == "stop_mapping")
         self.assertIs(stop[-1], True)
 
@@ -350,6 +359,8 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
     async def test_nav_dependency_port_delegates_exact_job_identity(self):
         snapshot = self.coordinator.snapshot(since_log_seq=19)
         self.assertEqual(snapshot["pipeline"]["job_id"], "a" * 32)
+        self.assertNotIn("pid", snapshot["pipeline"])
+        self.assertNotIn("pid", snapshot["preview"])
         self.coordinator.start_mapping()
         stopped, _ = self.coordinator.stop_mapping_if_job_id("a" * 32)
         self.assertTrue(stopped)
@@ -361,6 +372,7 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
     async def test_preview_and_close_delegate_without_reimplementing_processes(self):
         preview = await self.coordinator.start_preview()
         self.assertEqual(preview["preview"]["state"], "running")
+        self.assertNotIn("pid", preview["preview"])
         await self.coordinator.close()
         self.assertTrue(any(call[0] == "close" for call in self.manager.calls))
 
