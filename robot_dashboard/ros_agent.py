@@ -31,6 +31,7 @@ from rosidl_runtime_py.utilities import get_message
 from std_msgs.msg import String
 
 from .camera_decoder import H264JpegDecoder
+from .capabilities import capabilities_for_robot_type
 from .control import (
     CommandValidationError,
     ControlClosed,
@@ -4057,6 +4058,8 @@ class RosAgent:
 
     def robot_target_snapshot(self) -> Dict[str, Any]:
         with self._lock:
+            selected_capabilities = capabilities_for_robot_type(self._robot_type)
+            runtime_capabilities = capabilities_for_robot_type(self._startup_robot_type)
             target_matches_startup = (
                 self._robot_target_connected
                 and self._robot_type == self._startup_robot_type
@@ -4075,7 +4078,9 @@ class RosAgent:
                         else self._startup_profile_name
                     ),
                     "startup_label": self._startup_profile_name,
+                    "capabilities": selected_capabilities,
                 },
+                "runtime_capabilities": runtime_capabilities,
                 "model": copy.deepcopy(self._robot_model),
                 "target_matches_startup": target_matches_startup,
                 "restart_required": self._target_restart_required,
@@ -4235,6 +4240,8 @@ class RosAgent:
         )
         direct_camera = self._direct_camera.status()
         with self._lock:
+            selected_capabilities = capabilities_for_robot_type(self._robot_type)
+            runtime_capabilities = capabilities_for_robot_type(self._startup_robot_type)
             runtime_profile = (
                 robot_type_definition(self._robot_type) if self._robot_type else None
             )
@@ -4282,10 +4289,12 @@ class RosAgent:
                 "runtime_profile": {
                     "id": self._startup_robot_type,
                     "label": self._startup_profile_name,
+                    "capabilities": runtime_capabilities,
                 },
                 "selected_profile": {
                     "id": self._robot_type,
                     "label": runtime_profile["label"] if runtime_profile else "Unselected",
+                    "capabilities": selected_capabilities,
                 },
             }
 

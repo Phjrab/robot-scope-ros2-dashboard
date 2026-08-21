@@ -7,11 +7,38 @@
 })(typeof window !== 'undefined' ? window : globalThis, function createRobotProfiles() {
   'use strict';
 
+  const CAPABILITY_NAMES = Object.freeze([
+    'observability',
+    'camera',
+    'pointcloud',
+    'mapping',
+    'localization',
+    'navigation',
+    'manual_control',
+    'autonomous_control',
+  ]);
+
+  const OBSERVATION_CAPABILITIES = Object.freeze({
+    observability: true,
+    camera: true,
+    pointcloud: true,
+    mapping: false,
+    localization: false,
+    navigation: false,
+    manual_control: false,
+    autonomous_control: false,
+  });
+
+  const GO2_CAPABILITIES = Object.freeze(
+    Object.fromEntries(CAPABILITY_NAMES.map((name) => [name, true])),
+  );
+
   const DEFAULT_TYPES = Object.freeze([
     Object.freeze({
       id: 'go2',
       label: 'Unitree Go2',
       description: 'Unitree Go2 사족보행 로봇',
+      capabilities: GO2_CAPABILITIES,
       model: Object.freeze({
         kind: 'robot-model-lite',
         asset_url: '/static/assets/go2/go2-official-lite.json',
@@ -24,6 +51,7 @@
       id: 'turtlebot',
       label: 'TurtleBot',
       description: 'ROS 2 이동 로봇 플랫폼',
+      capabilities: OBSERVATION_CAPABILITIES,
       model: Object.freeze({
         kind: 'robot-model-lite',
         asset_url: '/static/assets/turtlebot/turtlebot3-burger-official-lite.json',
@@ -59,6 +87,14 @@
     };
   }
 
+  function normalizeCapabilities(value, fallback = {}) {
+    const supplied = value && typeof value === 'object' && !Array.isArray(value);
+    const source = supplied ? value : fallback;
+    return Object.fromEntries(
+      CAPABILITY_NAMES.map((name) => [name, source?.[name] === true]),
+    );
+  }
+
   function normalizeType(value) {
     const candidate = typeof value === 'string' ? { id: value } : (value || {});
     const id = robotTypeId(candidate.id || candidate.type || candidate.key || candidate.profile);
@@ -69,8 +105,15 @@
       id,
       label: cleanText(candidate.label || candidate.name, fallback.label || id.toUpperCase()),
       description: cleanText(candidate.description, fallback.description || ''),
+      capabilities: normalizeCapabilities(candidate.capabilities, fallback.capabilities),
       model: normalizeModel(candidate.model || candidate.urdf, fallback.model || {}),
     };
+  }
+
+  function profileSupports(profile, capability) {
+    const name = cleanText(capability).toLowerCase();
+    if (!CAPABILITY_NAMES.includes(name)) return false;
+    return normalizeCapabilities(profile?.capabilities)[name];
   }
 
   function normalizeTypes(payload) {
@@ -139,10 +182,13 @@
   }
 
   return {
+    CAPABILITY_NAMES,
     DEFAULT_TYPES,
     robotTypeId,
     normalizeType,
     normalizeTypes,
+    normalizeCapabilities,
+    profileSupports,
     normalizeCandidate,
     normalizeDiscovery,
     connectionPayload,

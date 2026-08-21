@@ -864,9 +864,9 @@ function modelFidelityNote(profile = activeRobotProfile()) {
 }
 
 function updateControlProfileUx(profile = activeRobotProfile()) {
-  const go2 = profile?.id === 'go2';
-  if (controlUi.profileNotice) controlUi.profileNotice.hidden = go2;
-  if (controlUi.profileNoticeText && !go2) {
+  const manualControlSupported = window.RobotProfiles?.profileSupports?.(profile, 'manual_control') === true;
+  if (controlUi.profileNotice) controlUi.profileNotice.hidden = manualControlSupported;
+  if (controlUi.profileNoticeText && !manualControlSupported) {
     controlUi.profileNoticeText.textContent = `${profile?.label || '이 로봇'}은 현재 상태 확인·센서·3D 모델만 지원하며, 주행과 모션 명령은 Go2에서만 사용할 수 있습니다.`;
   }
   renderControlStatus();
@@ -7296,7 +7296,7 @@ async function requestControlBridgeService(action) {
 }
 
 function controlReady(snapshot = controlSnapshot) {
-  if (selectedRobotType !== 'go2') return false;
+  if (window.RobotProfiles?.profileSupports?.(activeRobotProfile(), 'manual_control') !== true) return false;
   const available = snapshot?.available ?? snapshot?.ready;
   return Boolean(snapshot?.enabled && snapshot?.configured && available);
 }
@@ -7339,12 +7339,13 @@ function normalizedBridgeState() {
 }
 
 function syncEstopClearButton() {
-  controlUi.clear.disabled = selectedRobotType !== 'go2' || controlEmergencyBusy || !controlEstopLatched() || !controlUi.clearConfirm.checked;
+  const manualControlSupported = window.RobotProfiles?.profileSupports?.(activeRobotProfile(), 'manual_control') === true;
+  controlUi.clear.disabled = !manualControlSupported || controlEmergencyBusy || !controlEstopLatched() || !controlUi.clearConfirm.checked;
 }
 
 function renderControlStatus() {
   const snapshot = controlSnapshot || {};
-  const go2Profile = selectedRobotType === 'go2';
+  const manualControlSupported = window.RobotProfiles?.profileSupports?.(activeRobotProfile(), 'manual_control') === true;
   const ready = controlReady(snapshot);
   const estopLatched = controlEstopLatched(snapshot);
   const serverLease = snapshot.lease || {};
@@ -7356,21 +7357,21 @@ function renderControlStatus() {
   const bridgeCard = controlUi.bridgeState.closest('.control-status-card');
 
   availabilityCard.classList.toggle('is-ok', ready);
-  availabilityCard.classList.toggle('is-error', !go2Profile || snapshot.enabled === false || snapshot.configured === false);
-  controlUi.availability.textContent = !go2Profile ? 'GO2 ONLY' : ready ? 'AVAILABLE' : snapshot.enabled === false ? 'DISABLED' : snapshot.configured === false ? 'NOT CONFIGURED' : 'UNAVAILABLE';
+  availabilityCard.classList.toggle('is-error', !manualControlSupported || snapshot.enabled === false || snapshot.configured === false);
+  controlUi.availability.textContent = !manualControlSupported ? 'UNSUPPORTED' : ready ? 'AVAILABLE' : snapshot.enabled === false ? 'DISABLED' : snapshot.configured === false ? 'NOT CONFIGURED' : 'UNAVAILABLE';
   controlUi.availabilityNote.textContent = navigationBlocking
     ? 'Nav2 실행 중 · STOP 후 수동 제어 가능'
-    : !go2Profile ? `${activeRobotProfile()?.label || '선택 로봇'} 제어는 아직 지원하지 않음` : snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
+    : !manualControlSupported ? `${activeRobotProfile()?.label || '선택 로봇'} 제어는 아직 지원하지 않음` : snapshot.state || (ready ? '제어 서버 준비 완료' : '서버 설정 또는 로봇 연결 확인');
 
   leaseCard.classList.toggle('is-ok', locallyArmed && serverLease.active !== false);
   leaseCard.classList.toggle('is-error', Boolean(serverLease.active && !locallyArmed));
   controlUi.leaseState.textContent = locallyArmed ? (serverLease.bound ? 'BOUND' : 'ARMED') : serverLease.active ? 'IN USE' : 'DISARMED';
   controlUi.leaseNote.textContent = locallyArmed ? `${controlLeaseSource.toUpperCase()} · 이 브라우저` : serverLease.active ? `${String(serverLease.source || serverLease.input_source || 'other').toUpperCase()} 제어 중` : '명령 권한 없음';
 
-  bridgeCard.classList.toggle('is-ok', go2Profile && bridgeReady);
+  bridgeCard.classList.toggle('is-ok', manualControlSupported && bridgeReady);
   bridgeCard.classList.toggle('is-error', ['error', 'offline', 'failed'].includes(bridgeState.toLowerCase()));
   controlUi.bridgeState.textContent = bridgeState.toUpperCase();
-  controlUi.bridgeNote.textContent = !go2Profile ? 'Go2 유형 선택 시에만 사용' : bridge.message || bridge.detail || (bridgeReady ? 'Go2 명령 브리지 준비' : 'Go2 연결 대기');
+  controlUi.bridgeNote.textContent = !manualControlSupported ? '수동 제어 지원 로봇에서만 사용' : bridge.message || bridge.detail || (bridgeReady ? 'Go2 명령 브리지 준비' : 'Go2 연결 대기');
 
   controlUi.estopStatusCard.classList.toggle('is-latched', estopLatched);
   controlUi.estopState.textContent = estopLatched ? 'LATCHED' : 'CLEAR';
@@ -7384,7 +7385,7 @@ function renderControlStatus() {
   controlUi.arm.disabled = controlArmBusy || controlDisarmBusy || locallyArmed || !ready || estopLatched || navigationActivityBlocksManualControl();
   controlUi.disarm.disabled = controlDisarmBusy || !locallyArmed;
   controlUi.inputSource.setAttribute('aria-disabled', locallyArmed ? 'true' : 'false');
-  controlUi.estop.disabled = controlEmergencyBusy || !go2Profile;
+  controlUi.estop.disabled = controlEmergencyBusy || !manualControlSupported;
   syncEstopClearButton();
   renderControlInputMode();
   renderControlActions();

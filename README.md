@@ -251,6 +251,16 @@ Settings의 Connection에서 다음 표시 유형을 선택할 수 있습니다.
 | Unitree Go2 | Go2 본체와 전용 유선망 | Unitree 공식 URDF 기반 경량 모델 | 안전 설정을 마친 경우 주행·허용 모션 |
 | TurtleBot | 같은 LAN의 TurtleBot ROS 2 컴퓨터 | ROBOTIS 공식 TurtleBot3 Burger URDF/STL 기반 | 관측·센서·지도 표시 |
 
+지원 범위는 고정된 capability metadata로도 제공합니다. Go2는 `observability`,
+`camera`, `pointcloud`, `mapping`, `localization`, `navigation`, `manual_control`,
+`autonomous_control`의 기준 구현입니다. 현재 TurtleBot과 Generic 프로필은
+`observability`, `camera`, `pointcloud`만 지원하며 나머지는 fail-closed입니다.
+이 값은 제품 지원 선언이며 현재 로봇 연결 상태나 센서 readiness를 뜻하지 않습니다.
+`GET /api/v1/robots/types`는 선택 가능한 유형의 선언을, health 응답의
+`runtime_profile.capabilities`와 `selected_profile.capabilities`는 실제 시작 프로필과
+화면에서 선택한 프로필을 구분해 반환합니다. 설정 파일이나 ROS graph는 capability를
+추가로 부여할 수 없습니다.
+
 TurtleBot은 ROBOTIS `turtlebot3_description`의 Burger 모델을 고정된 upstream commit에서
 가져옵니다. 원본 URDF와 visual STL은 바이트 그대로 포함하며, 브라우저는 그 표면을
 결정론적으로 경량화한 JSON을 표시합니다. 현재 기본 URDF 자세로 표시되고 각 로봇의

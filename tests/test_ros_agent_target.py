@@ -38,6 +38,7 @@ if importlib.util.find_spec("rclpy") is None:
     stubs["std_msgs.msg"].String = Dummy
     sys.modules.update(stubs)
 
+from robot_dashboard.capabilities import capabilities_for_robot_type
 from robot_dashboard.control import ControlDisabled, ControlManager
 from robot_dashboard.discovery import UnknownRobotType
 from robot_dashboard.ros_agent import RateMeter, RosAgent, pointcloud_source_metadata
@@ -252,6 +253,14 @@ class RobotTargetSafetyTests(unittest.TestCase):
         go2 = generic.set_robot_target("10.100.0.42", "go2", "go2-controller.local")
         self.assertTrue(go2["restart_required"])
         self.assertFalse(go2["control_target_supported"])
+        self.assertEqual(
+            go2["runtime_capabilities"],
+            capabilities_for_robot_type("generic"),
+        )
+        self.assertEqual(
+            go2["profile"]["capabilities"],
+            capabilities_for_robot_type("go2"),
+        )
         turtlebot = generic.set_robot_target("10.100.0.43", "turtlebot", "turtlebot3.local")
         self.assertFalse(turtlebot["restart_required"])
         self.assertFalse(turtlebot["control_target_supported"])
@@ -269,6 +278,14 @@ class RobotTargetSafetyTests(unittest.TestCase):
         health = turtlebot_agent.health_snapshot()
         self.assertEqual(health["runtime_profile"]["id"], "turtlebot")
         self.assertEqual(health["selected_profile"]["id"], "turtlebot")
+        self.assertEqual(
+            health["runtime_profile"]["capabilities"],
+            capabilities_for_robot_type("turtlebot"),
+        )
+        self.assertEqual(
+            health["selected_profile"]["capabilities"],
+            capabilities_for_robot_type("turtlebot"),
+        )
 
     def test_health_keeps_actual_startup_profile_separate_from_selection(self):
         self.agent.set_robot_target("10.100.0.42", "turtlebot", "turtlebot3.local")
@@ -277,6 +294,17 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(health["profile"], "Unitree Go2")
         self.assertEqual(health["runtime_profile"]["id"], "go2")
         self.assertEqual(health["selected_profile"]["id"], "turtlebot")
+        self.assertTrue(health["runtime_profile"]["capabilities"]["navigation"])
+        self.assertFalse(health["selected_profile"]["capabilities"]["navigation"])
+        target = self.agent.robot_target_snapshot()
+        self.assertEqual(
+            target["runtime_capabilities"],
+            capabilities_for_robot_type("go2"),
+        )
+        self.assertEqual(
+            target["profile"]["capabilities"],
+            capabilities_for_robot_type("turtlebot"),
+        )
 
     def test_health_keeps_ping_link_separate_from_missing_go2_dds_interface(self):
         self.agent._network_cache = (time.monotonic(), True, 1.2)

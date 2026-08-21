@@ -24,6 +24,7 @@ test('robot type catalog rejects unsupported product types', () => {
       id: profile.id,
       label: profile.label,
       description: profile.description,
+      capabilities: { ...profile.capabilities },
       model: { ...profile.model },
     })),
   ]);
@@ -36,6 +37,31 @@ test('fallback catalog provides selectable Go2 and TurtleBot model assets', () =
   const turtlebot = values.find((value) => value.id === 'turtlebot');
   assert.equal(turtlebot.model.asset_url, '/static/assets/turtlebot/turtlebot3-burger-official-lite.json');
   assert.equal(turtlebot.model.fidelity, 'official-derived');
+  assert.equal(values.find((value) => value.id === 'go2').capabilities.navigation, true);
+  assert.equal(turtlebot.capabilities.navigation, false);
+  assert.deepEqual(Object.keys(turtlebot.capabilities), profiles.CAPABILITY_NAMES);
+});
+
+test('backend capability metadata is authoritative and missing entries fail closed', () => {
+  const [go2] = profiles.normalizeTypes({
+    types: [{
+      id: 'go2',
+      capabilities: { observability: true, camera: true, manual_control: false },
+    }],
+  });
+  assert.equal(profiles.profileSupports(go2, 'observability'), true);
+  assert.equal(profiles.profileSupports(go2, 'manual_control'), false);
+  assert.equal(profiles.profileSupports(go2, 'navigation'), false);
+  assert.equal(profiles.profileSupports(go2, 'unknown'), false);
+});
+
+test('fallback capability metadata preserves Go2 control and TurtleBot observation boundaries', () => {
+  const [go2, turtlebot] = profiles.normalizeTypes(null);
+  assert.equal(profiles.profileSupports(go2, 'manual_control'), true);
+  assert.equal(profiles.profileSupports(go2, 'autonomous_control'), true);
+  assert.equal(profiles.profileSupports(turtlebot, 'camera'), true);
+  assert.equal(profiles.profileSupports(turtlebot, 'pointcloud'), true);
+  assert.equal(profiles.profileSupports(turtlebot, 'manual_control'), false);
 });
 
 test('network discovery removes invalid and duplicate candidates then ranks confidence and latency', () => {
@@ -75,7 +101,7 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(indexSource, /물리 네트워크·ROS\/DDS 프로세스·로봇 전원은 변경하지 않습니다/);
   assert.match(appSource, /범용 URDF 근사 모델 · 제조사 공식 모델 아님/);
   assert.match(indexSource, /id="controlProfileNotice"[^>]+hidden/);
-  assert.match(appSource, /if \(selectedRobotType !== 'go2'\) return false/);
+  assert.match(appSource, /profileSupports\?\.\(activeRobotProfile\(\), 'manual_control'\)/);
   assert.match(appSource, /function applyJointSnapshot\(snapshot\) \{\s*if \(!robotRuntimeDataCompatible \|\| selectedRobotType !== 'go2'\)/);
   assert.match(appSource, /function resetLiveRobotSessionView\(\)/);
   assert.match(appSource, /if \(response\.robot\?\.changed\) resetLiveRobotSessionView\(\)/);

@@ -4,6 +4,10 @@ import threading
 import unittest
 from pathlib import Path
 
+from robot_dashboard.capabilities import (
+    CAPABILITY_NAMES,
+    capabilities_for_robot_type,
+)
 from robot_dashboard.discovery import (
     DiscoveryBusy,
     LocalRobotDiscovery,
@@ -83,6 +87,12 @@ class DiscoveryMetadataTests(unittest.TestCase):
             "/static/assets/turtlebot/source/turtlebot3_description/urdf/turtlebot3_burger.urdf",
         )
         self.assertEqual(types[1]["model"]["fidelity"], "official-derived")
+        self.assertEqual(types[0]["capabilities"], capabilities_for_robot_type("go2"))
+        self.assertEqual(
+            types[1]["capabilities"],
+            capabilities_for_robot_type("turtlebot"),
+        )
+        self.assertEqual(tuple(types[0]["capabilities"]), CAPABILITY_NAMES)
         for item in types:
             self.assertNotIn("known_ips", item)
             self.assertNotIn("hostname_hints", item)
@@ -124,6 +134,10 @@ class DiscoveryMetadataTests(unittest.TestCase):
                 payload = json.loads((ROOT / "config" / filename).read_text(encoding="utf-8"))
                 self.assertEqual(payload["robot_type"], robot_type)
                 self.assertEqual(infer_robot_type(payload), robot_type)
+                self.assertEqual(
+                    set(capabilities_for_robot_type(robot_type)),
+                    set(CAPABILITY_NAMES),
+                )
                 if robot_type != "go2":
                     self.assertFalse(payload["control"]["enabled"])
 

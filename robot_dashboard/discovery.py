@@ -20,6 +20,8 @@ from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError, as_comp
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Iterable, Mapping, Sequence
 
+from .capabilities import capabilities_for_robot_type
+
 
 LOCAL_IPV4_RANGES = tuple(
     ipaddress.ip_network(value)
@@ -52,6 +54,7 @@ ROBOT_TYPES: Dict[str, Dict[str, Any]] = {
         "description": "Unitree Go2 본체와 전용 유선 네트워크를 탐색합니다.",
         "connection_kind": "robot",
         "profile_id": "go2",
+        "capabilities": capabilities_for_robot_type("go2"),
         "known_ips": ("192.168.123.161",),
         "hostname_hints": ("go2", "unitree"),
         "model": {
@@ -68,6 +71,7 @@ ROBOT_TYPES: Dict[str, Dict[str, Any]] = {
         "description": "같은 로컬 네트워크의 TurtleBot ROS 2 컴퓨터를 탐색합니다.",
         "connection_kind": "robot",
         "profile_id": "turtlebot",
+        "capabilities": capabilities_for_robot_type("turtlebot"),
         "known_ips": (),
         "hostname_hints": ("turtlebot", "turtlebot3", "tb3", "burger", "waffle"),
         "model": {
