@@ -5,19 +5,21 @@ import vm from 'node:vm';
 
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const bridgeSource = readFileSync(new URL('../robot_dashboard/static/features/control/bridge_service.js', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
 function functionSource(name, nextName) {
-  const plainStart = appSource.indexOf(`function ${name}(`);
-  const asyncStart = appSource.indexOf(`async function ${name}(`);
+  const plainStart = bridgeSource.indexOf(`function ${name}(`);
+  const asyncStart = bridgeSource.indexOf(`async function ${name}(`);
   const starts = [plainStart, asyncStart].filter((value) => value >= 0);
   const start = starts.length ? Math.min(...starts) : -1;
-  const plainEnd = appSource.indexOf(`\nfunction ${nextName}(`, start);
-  const asyncEnd = appSource.indexOf(`\nasync function ${nextName}(`, start);
-  const ends = [plainEnd, asyncEnd].filter((value) => value > start);
+  const plainEnd = bridgeSource.indexOf(`\nfunction ${nextName}(`, start);
+  const asyncEnd = bridgeSource.indexOf(`\nasync function ${nextName}(`, start);
+  const exportEnd = bridgeSource.indexOf(`\nexport function ${nextName}(`, start);
+  const ends = [plainEnd, asyncEnd, exportEnd].filter((value) => value > start);
   const end = ends.length ? Math.min(...ends) : -1;
   assert.ok(start >= 0 && end > start, `${name} source must exist`);
-  return appSource.slice(start, end);
+  return bridgeSource.slice(start, end);
 }
 
 test('Controls exposes a fixed bridge service panel with an explicit safety acknowledgement', () => {
@@ -35,8 +37,8 @@ test('Controls exposes a fixed bridge service panel with an explicit safety ackn
 });
 
 test('bridge start and stop use only the fixed API and strict confirmation body', () => {
-  const request = functionSource('requestControlBridgeService', 'controlReady');
-  assert.match(appSource, /api\('\/api\/v1\/control\/bridge-service'\)/);
+  const request = functionSource('requestControlBridgeService', 'initializeControlBridgeServiceFeature');
+  assert.match(bridgeSource, /api\('\/api\/v1\/control\/bridge-service'\)/);
   assert.match(request, /!\['start', 'stop'\]\.includes\(action\)/);
   assert.match(request, /api\(`\/api\/v1\/control\/bridge-service\/\$\{action\}`/);
   assert.match(request, /method: 'POST'/);
@@ -56,7 +58,7 @@ test('both controls require server permission and a fresh local acknowledgement'
 });
 
 function requestControlSource() {
-  return functionSource('requestControlBridgeService', 'controlReady');
+  return functionSource('requestControlBridgeService', 'initializeControlBridgeServiceFeature');
 }
 
 test('systemd RUNNING stays separate from the signed runtime BRIDGE readiness', () => {
@@ -123,9 +125,9 @@ test('poll generations and page lifecycle prevent stale Safari BFCache responses
       < request.indexOf('controlBridgeServiceExpected = {'),
     'a mutation must invalidate older GET responses before installing its expectation',
   );
-  assert.match(appSource, /window\.addEventListener\('pagehide',[\s\S]*?controlBridgeServiceRequestGeneration \+= 1/);
-  assert.match(appSource, /window\.addEventListener\('pageshow',[\s\S]*?refreshControlBridgeService\(true\)/);
-  assert.match(appSource, /setInterval\(refreshControlBridgeService, 1000\)/);
+  assert.match(bridgeSource, /window\.addEventListener\('pagehide',[\s\S]*?controlBridgeServiceRequestGeneration \+= 1/);
+  assert.match(bridgeSource, /window\.addEventListener\('pageshow',[\s\S]*?refreshControlBridgeService\(true\)/);
+  assert.match(bridgeSource, /setInterval\(refreshControlBridgeService, 1000\)/);
 });
 
 test('bridge service panel collapses safely on tablet and phone widths', () => {

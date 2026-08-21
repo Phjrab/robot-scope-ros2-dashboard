@@ -4,16 +4,17 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const identitySource = readFileSync(new URL('../robot_dashboard/static/features/sensors/lidar_identity.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
-const identityStart = appSource.indexOf('const LidarSourceIdentity = (() => {');
-const identityEndMarker = '\n})();\n\n// Exposed for the lightweight Node contract test';
-const identityEnd = appSource.indexOf(identityEndMarker, identityStart);
+const identityStart = identitySource.indexOf('export const LidarSourceIdentity = (() => {');
+const identityEndMarker = '\n})();';
+const identityEnd = identitySource.indexOf(identityEndMarker, identityStart);
 assert.ok(identityStart >= 0 && identityEnd > identityStart, 'LiDAR identity implementation must be extractable');
 const sandbox = {};
 runInNewContext(
-  `${appSource.slice(identityStart, identityEnd + '\n})();'.length)}\nglobalThis.identity = LidarSourceIdentity;`,
+  `${identitySource.slice(identityStart, identityEnd + '\n})();'.length).replace('export const', 'const')}\nglobalThis.identity = LidarSourceIdentity;`,
   sandbox,
 );
 const identity = sandbox.identity;

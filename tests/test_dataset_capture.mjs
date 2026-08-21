@@ -4,6 +4,7 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const serviceLifecycleSource = readFileSync(new URL('../robot_dashboard/static/features/settings/service_lifecycle.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
@@ -186,8 +187,8 @@ test('Safari page lifecycle never stops a server dataset session', () => {
 });
 
 test('active or unknown server capture is named in service lifecycle blockers', () => {
-  assert.match(appSource, /dataset_capture_active:\s*'서버 데이터셋 수집 중'/);
-  assert.match(appSource, /dataset_capture_state_unknown:\s*'데이터셋 수집 상태 확인 불가'/);
+  assert.match(serviceLifecycleSource, /dataset_capture_active:\s*'서버 데이터셋 수집 중'/);
+  assert.match(serviceLifecycleSource, /dataset_capture_state_unknown:\s*'데이터셋 수집 상태 확인 불가'/);
 });
 
 test('dataset capture and gallery collapse safely on narrow screens', () => {

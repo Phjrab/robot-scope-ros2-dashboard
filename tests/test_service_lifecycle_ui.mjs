@@ -5,16 +5,18 @@ import vm from 'node:vm';
 
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const lifecycleSource = readFileSync(new URL('../robot_dashboard/static/features/settings/service_lifecycle.js', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
 function functionSource(name, nextName) {
-  const start = appSource.indexOf(`function ${name}(`);
-  const plainEnd = nextName ? appSource.indexOf(`\nfunction ${nextName}(`, start) : -1;
-  const asyncEnd = nextName ? appSource.indexOf(`\nasync function ${nextName}(`, start) : -1;
-  const candidates = [plainEnd, asyncEnd].filter((value) => value > start);
+  const start = lifecycleSource.indexOf(`function ${name}(`);
+  const plainEnd = nextName ? lifecycleSource.indexOf(`\nfunction ${nextName}(`, start) : -1;
+  const asyncEnd = nextName ? lifecycleSource.indexOf(`\nasync function ${nextName}(`, start) : -1;
+  const exportEnd = nextName ? lifecycleSource.indexOf(`\nexport function ${nextName}(`, start) : -1;
+  const candidates = [plainEnd, asyncEnd, exportEnd].filter((value) => value > start);
   const end = candidates.length ? Math.min(...candidates) : -1;
   assert.ok(start >= 0 && end > start, `${name} source must exist`);
-  return appSource.slice(start, end);
+  return lifecycleSource.slice(start, end);
 }
 
 test('Settings exposes dashboard-only restart and stop controls with explicit warning', () => {
@@ -32,13 +34,13 @@ test('Settings exposes dashboard-only restart and stop controls with explicit wa
 
 test('service lifecycle confirmation does not request or transmit an admin key', () => {
   assert.doesNotMatch(indexSource, /serviceAdminToken|관리 키/);
-  const request = functionSource('requestServiceLifecycle', 'formatHz');
+  const request = functionSource('requestServiceLifecycle', 'initializeServiceLifecycleFeature');
   assert.doesNotMatch(request, /serviceAdminToken|X-Robot-Scope-Admin-Token|token/);
 });
 
 test('restart and stop use only the fixed lifecycle API contract', () => {
-  const request = functionSource('requestServiceLifecycle', 'formatHz');
-  assert.match(appSource, /api\('\/api\/v1\/system\/service'\)/);
+  const request = functionSource('requestServiceLifecycle', 'initializeServiceLifecycleFeature');
+  assert.match(lifecycleSource, /api\('\/api\/v1\/system\/service'\)/);
   assert.match(request, /api\(`\/api\/v1\/system\/service\/\$\{action\}`/);
   assert.match(request, /method: 'POST'/);
   assert.match(request, /JSON\.stringify\(\{ confirmed: true \}\)/);
@@ -60,7 +62,7 @@ test('restart treats a disconnect as expected and verifies a new server instance
   const refresh = functionSource('refreshServiceLifecycle', 'requestServiceLifecycle');
   assert.match(outcome, /snapshot\.instance_id !== expected\.instanceId/);
   assert.match(complete, /대시보드가 새 인스턴스로 재시작되었습니다/);
-  assert.match(refresh, /activePage !== 'settings' && !serviceLifecycleExpected/);
+  assert.match(refresh, /getActivePage\(\) !== 'settings' && !serviceLifecycleExpected/);
   assert.match(refresh, /elapsed > 90_000/);
   assert.match(refresh, /serviceLifecycleSnapshot = null/);
 });
@@ -83,7 +85,7 @@ test('a stale terminal poll cannot cancel a newly scheduled transition before it
     { ...context.outcome(bound, { instance_id: 'instance-new', operation: null }) },
     { state: 'complete' },
   );
-  const request = functionSource('requestServiceLifecycle', 'formatHz');
+  const request = functionSource('requestServiceLifecycle', 'initializeServiceLifecycleFeature');
   assert.ok(
     request.indexOf('serviceLifecycleRequestGeneration += 1') < request.indexOf('serviceLifecycleExpected = {'),
     'an in-flight GET must be invalidated before a new expectation is installed',

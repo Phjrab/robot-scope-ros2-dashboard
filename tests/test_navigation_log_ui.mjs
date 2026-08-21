@@ -5,21 +5,24 @@ import vm from 'node:vm';
 
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const logSource = readFileSync(new URL('../robot_dashboard/static/features/navigation/log_controller.js', import.meta.url), 'utf8');
+const scrollSource = readFileSync(new URL('../robot_dashboard/static/core/log_scroll.js', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
-function functionSource(name, nextName) {
+function functionSource(name, nextName, source = logSource) {
   const starts = [
-    appSource.indexOf(`function ${name}(`),
-    appSource.indexOf(`async function ${name}(`),
+    source.indexOf(`function ${name}(`),
+    source.indexOf(`async function ${name}(`),
   ].filter((value) => value >= 0);
   const start = starts.length ? Math.min(...starts) : -1;
   const ends = [
-    appSource.indexOf(`\nfunction ${nextName}(`, start),
-    appSource.indexOf(`\nasync function ${nextName}(`, start),
+    source.indexOf(`\nfunction ${nextName}(`, start),
+    source.indexOf(`\nasync function ${nextName}(`, start),
+    source.indexOf(`\nexport function ${nextName}(`, start),
   ].filter((value) => value > start);
   const end = ends.length ? Math.min(...ends) : -1;
   assert.ok(start >= 0 && end > start, `${name} source must exist`);
-  return appSource.slice(start, end);
+  return source.slice(start, end);
 }
 
 test('Navigation exposes a terminal-shaped read-only sanitized event view', () => {
@@ -40,9 +43,9 @@ test('Navigation exposes a terminal-shaped read-only sanitized event view', () =
 });
 
 test('log polling uses only the fixed bounded GET API and its own generation', () => {
-  const refresh = functionSource('refreshNavigationLogs', 'applyNavigationSnapshot');
+  const refresh = functionSource('refreshNavigationLogs', 'initializeNavigationLogFeature');
   assert.match(refresh, /api\(`\/api\/v1\/navigation\/logs\?after=\$\{requestedAfter\}&limit=\$\{NAVIGATION_LOG_LIMIT\}`\)/);
-  assert.match(appSource, /const NAVIGATION_LOG_LIMIT = 100/);
+  assert.match(logSource, /const NAVIGATION_LOG_LIMIT = 100/);
   assert.match(refresh, /const generation = \+\+navigationLogRequestGeneration/);
   assert.match(refresh, /generation !== navigationLogRequestGeneration/);
   assert.doesNotMatch(refresh, /navigationStatusRequestGeneration|method:\s*'POST'|body:|fetch\(/);
@@ -111,23 +114,22 @@ test('stream changes and lost cursor continuity clear the local buffer and reque
 test('clear and auto-scroll stay client-only and Safari page lifecycle rejects stale work', () => {
   const clear = functionSource('clearNavigationLogView', 'invalidateNavigationLogRequests');
   const scroll = functionSource('scheduleNavigationLogScroll', 'renderNavigationLog');
-  const stickyStart = appSource.indexOf('function scheduleStickyLogScroll(');
-  const stickyEnd = appSource.indexOf('// LiDAR identity is intentionally resolved', stickyStart);
-  const stickyScroll = appSource.slice(stickyStart, stickyEnd);
+  const stickyStart = scrollSource.indexOf('export function scheduleStickyLogScroll(');
+  const stickyScroll = scrollSource.slice(stickyStart);
   assert.match(clear, /navigationLogEntries = \[\]/);
   assert.match(clear, /navigationLogCursor = navigationLogLatestCursor/);
   assert.match(clear, /navigationLogRequestGeneration \+= 1/);
   assert.doesNotMatch(clear, /api\(|fetch\(|POST|DELETE/);
   assert.match(scroll, /scheduleStickyLogScroll/);
   assert.match(scroll, /generation === navigationLogRenderGeneration/);
-  assert.match(scroll, /activePage === 'navigation'/);
+  assert.match(scroll, /getActivePage\(\) === 'navigation'/);
   assert.match(stickyScroll, /requestAnimationFrame/);
   assert.match(stickyScroll, /Math\.abs\([\s\S]*?renderedScrollTop/);
-  assert.match(appSource, /previousPage === 'navigation' && activePage !== 'navigation'[\s\S]*?invalidateNavigationLogRequests\(\)/);
-  assert.match(appSource, /visibilitychange[\s\S]*?invalidateNavigationLogRequests\(\)/);
-  assert.match(appSource, /pagehide[\s\S]*?invalidateNavigationLogRequests\(\)/);
-  assert.match(appSource, /pageshow[\s\S]*?invalidateNavigationLogRequests\(\)[\s\S]*?refreshNavigationLogs\(true\)/);
-  assert.match(appSource, /setInterval\(refreshNavigationLogs, 1000\)/);
+  assert.match(logSource, /previousPage === 'navigation' && activePage !== 'navigation'[\s\S]*?invalidateNavigationLogRequests\(\)/);
+  assert.match(logSource, /visibilitychange[\s\S]*?invalidateNavigationLogRequests\(\)/);
+  assert.match(logSource, /pagehide[\s\S]*?invalidateNavigationLogRequests/);
+  assert.match(logSource, /pageshow[\s\S]*?invalidateNavigationLogRequests\(\)[\s\S]*?refreshNavigationLogs\(true\)/);
+  assert.match(logSource, /setInterval\(refreshNavigationLogs, 1000\)/);
 });
 
 test('console remains usable on Safari and narrow mobile layouts', () => {
@@ -137,7 +139,7 @@ test('console remains usable on Safari and narrow mobile layouts', () => {
 });
 
 test('idle readiness stays WAIT until a navigation pipeline is active', () => {
-  const render = functionSource('renderNavigationStatus', 'normalizeNavigationLogEntry');
+  const render = functionSource('renderNavigationStatus', 'applyNavigationSnapshot', appSource);
   assert.match(render, /const needsInitialPose = pipelineRunning && key === 'localization' && value === false/);
   assert.match(render, /const blocked = pipelineRunning && value === false && !needsInitialPose/);
   assert.match(render, /needsInitialPose \? 'NEED POSE' : blocked \? 'BLOCKED' : 'WAIT'/);

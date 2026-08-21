@@ -1,210 +1,11 @@
-const $ = (selector) => document.querySelector(selector);
-
-const LOG_SCROLL_BOTTOM_TOLERANCE_PX = 16;
-const stickyLogScrollGenerations = new WeakMap();
-
-function nonnegativeScrollMetric(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
-}
-
-function captureStickyLogScroll(element, followEnabled = true) {
-  const scrollHeight = nonnegativeScrollMetric(element?.scrollHeight);
-  const clientHeight = nonnegativeScrollMetric(element?.clientHeight);
-  const maximumScrollTop = Math.max(0, scrollHeight - clientHeight);
-  const scrollTop = Math.min(maximumScrollTop, nonnegativeScrollMetric(element?.scrollTop));
-  return {
-    scrollTop,
-    follow: followEnabled === true && maximumScrollTop - scrollTop <= LOG_SCROLL_BOTTOM_TOLERANCE_PX,
-  };
-}
-
-function applyStickyLogScroll(element, snapshot, forceBottom = false) {
-  if (!element) return;
-  const maximumScrollTop = Math.max(
-    0,
-    nonnegativeScrollMetric(element.scrollHeight) - nonnegativeScrollMetric(element.clientHeight),
-  );
-  element.scrollTop = forceBottom || snapshot?.follow === true
-    ? maximumScrollTop
-    : Math.min(maximumScrollTop, nonnegativeScrollMetric(snapshot?.scrollTop));
-}
-
-function scheduleStickyLogScroll(element, snapshot, { forceBottom = false, shouldApply = null } = {}) {
-  if (!element) return;
-  const generation = (stickyLogScrollGenerations.get(element) || 0) + 1;
-  stickyLogScrollGenerations.set(element, generation);
-  // Reading after textContent was replaced captures any synchronous browser
-  // clamp.  If wheel, keyboard, scrollbar or touch scrolling changes this
-  // value before the animation frame, that user action wins.
-  const renderedScrollTop = nonnegativeScrollMetric(element.scrollTop);
-  requestAnimationFrame(() => {
-    if (stickyLogScrollGenerations.get(element) !== generation) return;
-    if (typeof shouldApply === 'function' && !shouldApply()) return;
-    if (Math.abs(nonnegativeScrollMetric(element.scrollTop) - renderedScrollTop) > 0.5) return;
-    applyStickyLogScroll(element, snapshot, forceBottom);
-  });
-}
-
-// LiDAR identity is intentionally resolved from backend metadata first and a
-// small exact-topic allowlist second.  Do not infer a physical sensor from a
-// fragment such as "deskewed": /utlidar/cloud_deskewed is the Go2 sensor.
-const LidarSourceIdentity = (() => {
-  const TOPIC_ALLOWLIST = Object.freeze({
-    '/utlidar/cloud': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'raw' }),
-    '/utlidar/cloud_deskewed': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'deskewed' }),
-    '/utlidar/cloud_base': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'base_frame' }),
-    '/utlidar/grid_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'local_map' }),
-    '/utlidar/height_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'height_map' }),
-    '/utlidar/range_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'range_map' }),
-    '/utlidar/voxel_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'voxel_map' }),
-    '/uslam/cloud_map': Object.freeze({ sensorId: 'go2_builtin_lidar', stage: 'map' }),
-    '/lidar_points': Object.freeze({ sensorId: 'hesai_xt16', stage: 'raw' }),
-    '/velodyne_points': Object.freeze({ sensorId: 'hesai_xt16', stage: 'converted' }),
-    '/cloud_registered': Object.freeze({ sensorId: 'hesai_xt16', stage: 'registered' }),
-    '/Laser_map': Object.freeze({ sensorId: 'hesai_xt16', stage: 'map' }),
-  });
-
-  const SENSOR_LABELS = Object.freeze({
-    go2_builtin_lidar: 'GO2 BUILT-IN LIDAR',
-    hesai_xt16: 'HESAI XT16',
-    generic_pointcloud: 'GENERIC POINTCLOUD',
-  });
-
-  const STAGE_DETAILS = Object.freeze({
-    raw: 'RAW',
-    converted: 'CONVERTED',
-    deskewed: 'DESKEWED',
-    base_frame: 'BASE FRAME',
-    registered: 'REGISTERED',
-    local_map: 'LOCAL MAP',
-    height_map: 'HEIGHT MAP',
-    range_map: 'RANGE MAP',
-    voxel_map: 'VOXEL MAP',
-    map: 'MAP',
-    sensor_output: 'SENSOR OUTPUT',
-    slam_output: 'SLAM OUTPUT',
-    unknown: 'UNKNOWN',
-  });
-
-  function text(value) {
-    return value == null ? '' : String(value).trim();
-  }
-
-  function topicOf(value) {
-    if (typeof value === 'string') return value.trim();
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
-    return text(value.topic || value.name || value.value);
-  }
-
-  function flattenMetadata(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-    const nested = [value.metadata, value.source_metadata, value.identity, value.lidar_metadata]
-      .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry));
-    return Object.assign({}, ...nested, value);
-  }
-
-  function first(metadata, keys) {
-    for (const key of keys) {
-      const value = text(metadata?.[key]);
-      if (value) return value;
-    }
-    return '';
-  }
-
-  function canonicalSensor(sensorId, sensorLabel) {
-    const id = text(sensorId).toLowerCase().replace(/[\s-]+/g, '_');
-    const token = `${id} ${text(sensorLabel).toLowerCase()}`;
-    if (/(hesai|xt\s*-?\s*16|pandar)/.test(token)) return 'hesai_xt16';
-    if (/(go2|unitree|utlidar|built[\s_-]*in)/.test(token)) return 'go2_builtin_lidar';
-    if (id) return id;
-    return 'generic_pointcloud';
-  }
-
-  function canonicalStage(value) {
-    const token = text(value).toLowerCase().replace(/[\s-]+/g, '_');
-    if (!token) return '';
-    if (token === 'raw' || token === 'original' || token === 'raw_points') return 'raw';
-    if (token.includes('deskew')) return 'deskewed';
-    if (token.includes('base_frame') || token === 'base') return 'base_frame';
-    if (token.includes('convert') || token.includes('correct') || token.includes('calibrat')) return 'converted';
-    if (token.includes('register') || token.includes('fast_lio') || token === 'fastlio') return 'registered';
-    if (token.includes('local_map')) return 'local_map';
-    if (token === 'map' || token.includes('slam_map')) return 'map';
-    if (token === 'sensor_output') return 'sensor_output';
-    if (token === 'slam_output') return 'slam_output';
-    if (token === 'unknown' || token === 'pointcloud') return 'unknown';
-    return token;
-  }
-
-  function stagePrefix(stage, sensorId) {
-    if (stage === 'raw') return '원본';
-    if (['converted', 'deskewed', 'base_frame'].includes(stage)) return '보정';
-    if (stage === 'registered' || (stage === 'map' && sensorId === 'hesai_xt16')) return 'FAST-LIO';
-    if (['map', 'local_map', 'slam_output'].includes(stage)) return 'SLAM';
-    if (['height_map', 'range_map', 'voxel_map'].includes(stage)) return '센서 맵';
-    if (stage === 'sensor_output') return '센서 출력';
-    return '단계 미확인';
-  }
-
-  function stageLabel(stage, sensorId, backendLabel = '') {
-    const prefix = stagePrefix(stage, sensorId);
-    if (stage === 'unknown' && !backendLabel) return prefix;
-    const detail = text(backendLabel) || STAGE_DETAILS[stage] || stage.replace(/_/g, ' ');
-    return `${prefix} · ${detail.toUpperCase()}`;
-  }
-
-  function normalizeReportedStatus(value) {
-    const token = text(value).toLowerCase();
-    if (['ok', 'live', 'online', 'fresh', 'active', 'streaming'].includes(token)) return 'LIVE';
-    if (['stale', 'timeout', 'timed_out', 'expired'].includes(token)) return 'STALE';
-    if (token) return 'WAITING';
-    return '';
-  }
-
-  function describe(value, extraMetadata = {}) {
-    const topic = topicOf(value) || topicOf(extraMetadata);
-    const metadata = Object.assign({}, flattenMetadata(value), flattenMetadata(extraMetadata));
-    const fallback = TOPIC_ALLOWLIST[topic] || { sensorId: 'generic_pointcloud', stage: 'unknown' };
-    const backendSensorId = first(metadata, ['sensor_id', 'lidar_sensor_id', 'sensor_family', 'lidar_model']);
-    const backendSensorLabel = first(metadata, ['sensor_label', 'lidar_sensor_label', 'sensor_name', 'lidar_model_label']);
-    const hasBackendSensor = Boolean(backendSensorId || backendSensorLabel);
-    const sensorId = hasBackendSensor
-      ? canonicalSensor(backendSensorId, backendSensorLabel)
-      : fallback.sensorId;
-    const sensorLabel = !topic && !hasBackendSensor
-      ? 'LIDAR NOT SELECTED'
-      : SENSOR_LABELS[sensorId]
-        || (backendSensorLabel ? backendSensorLabel.toUpperCase() : sensorId.replace(/_/g, ' ').toUpperCase());
-    const backendStage = first(metadata, ['pipeline_stage', 'processing_stage', 'cloud_stage', 'stage']);
-    const stage = backendStage ? canonicalStage(backendStage) : fallback.stage;
-    const backendStageLabel = first(metadata, ['pipeline_stage_label', 'processing_stage_label', 'cloud_stage_label', 'stage_label']);
-    const reportedStatus = normalizeReportedStatus(first(metadata, ['freshness', 'live_state', 'status', 'state']));
-    return {
-      topic,
-      sensorId,
-      sensorLabel,
-      stage,
-      stageLabel: stageLabel(stage, sensorId, backendStageLabel),
-      reportedStatus,
-      metadataPresent: Boolean(backendSensorId || backendSensorLabel || backendStage || backendStageLabel),
-    };
-  }
-
-  function groupLabel(identity) {
-    if (identity.sensorId === 'go2_builtin_lidar') return 'GO2 BUILT-IN LIDAR';
-    if (identity.sensorId === 'hesai_xt16') return 'HESAI XT16';
-    return identity.sensorLabel || 'OTHER POINTCLOUD';
-  }
-
-  return {
-    TOPIC_ALLOWLIST,
-    describe,
-    flattenMetadata,
-    groupLabel,
-    normalizeReportedStatus,
-    topicOf,
-  };
-})();
+import { api, latestApi } from './core/api.js';
+import { $, setStatePill } from './core/dom.js';
+import { formatHz, safeNumber } from './core/format.js';
+import { captureStickyLogScroll, scheduleStickyLogScroll } from './core/log_scroll.js';
+import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
+import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
+import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
+import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 
 // Exposed for the lightweight Node contract test and browser diagnostics.
 window.RobotLidarSourceIdentity = LidarSourceIdentity;
@@ -698,22 +499,7 @@ const NAVIGATION_STARTUP_PHASES = Object.freeze({
   stopping: Object.freeze({ label: 'STOPPING', message: '시작 작업과 Navigation 소유 리소스를 안전하게 정리하고 있습니다.', tone: 'waiting' }),
   failed: Object.freeze({ label: 'FAILED', message: 'Navigation 시작에 실패했습니다. 아래 오류와 Navigation 로그를 확인하세요.', tone: 'error' }),
 });
-const NAVIGATION_LOG_LIMIT = 100;
-const NAVIGATION_LOG_MAX_LINES = 300;
-const NAVIGATION_LOG_PHASES = new Set(['idle', 'starting', 'running', 'stopping', 'failed']);
-const NAVIGATION_LOG_SOURCES = new Set(['manager', 'runtime', 'parameters']);
-let navigationLogEntries = [];
-let navigationLogCursor = 0;
-let navigationLogLatestCursor = 0;
-let navigationLogStreamId = '';
-let navigationLogInitialized = false;
-let navigationLogBusy = false;
-let navigationLogRequestGeneration = 0;
-let navigationLogRenderGeneration = 0;
-let navigationLogJob = null;
-let navigationLogError = false;
-let navigationLogTruncated = false;
-let navigationLogHasMore = false;
+let navigationLogFeature = null;
 let navigationParameterSnapshot = null;
 let navigationParameterDraft = null;
 let navigationParameterBusy = false;
@@ -728,15 +514,8 @@ let navigationMapTool = '';
 let navigationStagedPose = null;
 let navigationPointer = null;
 let navigationRenderFrame = 0;
-let serviceLifecycleSnapshot = null;
-let serviceLifecycleBusy = false;
-let serviceLifecycleRequestGeneration = 0;
-let serviceLifecycleExpected = null;
-let controlBridgeServiceSnapshot = null;
-let controlBridgeServiceBusy = false;
-let controlBridgeServiceRequestGeneration = 0;
-let controlBridgeServiceMutationGeneration = 0;
-let controlBridgeServiceExpected = null;
+let serviceLifecycleFeature = null;
+let controlBridgeServiceFeature = null;
 const controlInput = window.RobotControlInput;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
@@ -1196,7 +975,7 @@ function activatePage(page, updateHash = false) {
   if (updateHash && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
   if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
   if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();
-  if (previousPage === 'navigation' && activePage !== 'navigation') invalidateNavigationLogRequests();
+  navigationLogFeature?.onPageChange(previousPage, activePage);
   if (previousPage === 'sensors' && activePage !== 'sensors' && cameraRecording) {
     stopCameraRecording(cameraRecordingCleanupPolicy('sensors_page_left'));
   }
@@ -1220,10 +999,10 @@ function activatePage(page, updateHash = false) {
       updateNavigationModelPanel({ force: true });
       drawNavigationMap();
       refreshNavigationParameters();
-      refreshControlBridgeService();
-      refreshNavigationLogs(true);
+      controlBridgeServiceFeature?.refresh();
+      navigationLogFeature?.refresh(true);
     } else if (activePage === 'settings') {
-      refreshServiceLifecycle();
+      serviceLifecycleFeature?.refresh();
     }
   });
 }
@@ -1233,239 +1012,6 @@ function showToast(message, error = false) {
   ui.toast.className = `toast show${error ? ' error' : ''}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { ui.toast.className = 'toast'; }, 2800);
-}
-
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    let detail = `${response.status}`;
-    try { detail = (await response.json()).detail || detail; } catch (_) {}
-    const error = new Error(detail);
-    error.status = response.status;
-    throw error;
-  }
-  return response.json();
-}
-
-async function latestApi(path, seq) {
-  const response = await fetch(`${path}?since=${encodeURIComponent(seq)}`, { cache: 'no-store' });
-  if (response.status === 204) return null;
-  if (!response.ok) throw new Error(String(response.status));
-  return response.json();
-}
-
-function setStatePill(element, state, label) {
-  element.className = `panel-state ${state === 'ok' || state === 'mapping' || state === 'cloud_only' || state === 'grid_live' || state === 'saved' ? 'ok' : state === 'stale' || state === 'error' ? 'error' : 'waiting'}`;
-  element.innerHTML = `<span></span>${label || state.toUpperCase()}`;
-}
-
-const SERVICE_LIFECYCLE_ACTIVE_STATES = new Set(['scheduled', 'dispatching', 'queued']);
-const SERVICE_LIFECYCLE_BLOCKER_LABELS = {
-  control_status_unavailable: '제어 상태 확인 불가',
-  manual_control_active: '수동 제어 ARM 활성',
-  control_lease_active: '로봇 제어 lease 활성',
-  robot_action_active: 'Go2 모션 실행 중',
-  navigation_status_unavailable: 'Nav2 상태 확인 불가',
-  navigation_active: 'Nav2 자율주행 활성',
-  mapping_status_unavailable: '매핑 상태 확인 불가',
-  mapping_pipeline_active: 'LiDAR 매핑 파이프라인 활성',
-  mapping_operation_active: '지도 저장·변환 작업 중',
-  dataset_capture_active: '서버 데이터셋 수집 중',
-  dataset_capture_state_unknown: '데이터셋 수집 상태 확인 불가',
-  lifecycle_preflight_unavailable: '서버 사전 점검 실패',
-};
-
-function serviceLifecycleOperationActive(snapshot = serviceLifecycleSnapshot) {
-  return SERVICE_LIFECYCLE_ACTIVE_STATES.has(String(snapshot?.operation?.state || ''));
-}
-
-function serviceLifecycleBlockerText(blockers) {
-  return (Array.isArray(blockers) ? blockers : [])
-    .map((value) => SERVICE_LIFECYCLE_BLOCKER_LABELS[value] || String(value).replaceAll('_', ' '))
-    .join(' · ');
-}
-
-function serviceLifecycleErrorText(error) {
-  if (error?.status === 403) return '요청 출처를 확인하세요.';
-  if (error?.status === 409) return '활성 작업이 있어 요청이 차단되었습니다. 상태를 새로 확인하세요.';
-  if (error?.status === 503) return '서버 관리 기능 또는 sudo 권한이 준비되지 않았습니다.';
-  if (error?.status === 422) return '확인 값이 올바르지 않습니다.';
-  return `서버 관리 요청 실패: ${error?.message || '연결 오류'}`;
-}
-
-function renderServiceLifecycle() {
-  if (!ui.serviceLifecycleState) return;
-  const snapshot = serviceLifecycleSnapshot;
-  const expected = serviceLifecycleExpected;
-  const operation = snapshot?.operation || null;
-  const operationState = String(operation?.state || 'idle');
-  const operationAction = String(operation?.action || '');
-  const blockers = Array.isArray(snapshot?.blockers) ? snapshot.blockers : [];
-  const expectedLabel = expected?.action === 'stop' ? 'STOPPING' : 'RESTARTING';
-
-  ui.serviceLifecycleName.textContent = snapshot?.service || 'robot-scope.service';
-  ui.serviceLifecycleInstance.textContent = snapshot?.instance_id
-    ? String(snapshot.instance_id).slice(0, 12)
-    : '—';
-  ui.serviceLifecyclePrivilege.textContent = String(snapshot?.privilege?.last_result || 'unknown').toUpperCase();
-  ui.serviceLifecycleOperation.textContent = operationAction
-    ? `${operationAction.toUpperCase()} · ${operationState.toUpperCase()}`
-    : 'IDLE';
-
-  let state = 'waiting';
-  let label = 'CHECKING';
-  let message = '서버 관리 상태를 확인하고 있습니다.';
-  let messageClass = '';
-  if (expected) {
-    label = expectedLabel;
-    message = expected.action === 'stop'
-      ? '대시보드 중지를 요청했습니다. 연결 종료는 정상 동작입니다.'
-      : '대시보드가 재시작되는 동안 연결이 잠시 끊길 수 있습니다.';
-  } else if (!snapshot) {
-    state = 'error';
-    label = 'UNAVAILABLE';
-    message = '서버 관리 상태를 불러오지 못했습니다.';
-    messageClass = 'error';
-  } else if (operationState === 'failed' || operationState === 'blocked' || operationState === 'cancelled') {
-    state = 'error';
-    label = operationState.toUpperCase();
-    message = `최근 ${operationAction || 'service'} 요청 실패: ${operation?.error || operationState}`;
-    messageClass = 'error';
-  } else if (!snapshot.enabled) {
-    label = 'DISABLED';
-    message = '관리 기능은 기본 비활성입니다. Jetson 환경 파일에서 명시적으로 활성화해야 합니다.';
-  } else if (!snapshot.privilege?.runner_available) {
-    state = 'error';
-    label = 'RUNNER MISSING';
-    message = 'sudo 또는 systemctl 실행 파일을 확인할 수 없습니다.';
-    messageClass = 'error';
-  } else if (serviceLifecycleOperationActive(snapshot)) {
-    label = operationAction === 'stop' ? 'STOPPING' : 'RESTARTING';
-    message = '요청을 systemd에 전달하고 있습니다. 반복해서 누르지 마세요.';
-  } else if (blockers.length) {
-    label = 'BLOCKED';
-    message = `먼저 정지해야 할 작업: ${serviceLifecycleBlockerText(blockers)}`;
-  } else if (snapshot.can_restart && snapshot.can_stop) {
-    state = 'ok';
-    label = 'READY';
-    message = '안전 확인 체크 후 대시보드 서비스만 재시작하거나 중지할 수 있습니다.';
-    messageClass = 'ok';
-  }
-  setStatePill(ui.serviceLifecycleState, state, label);
-  ui.serviceLifecycleMessage.textContent = message;
-  ui.serviceLifecycleMessage.className = `service-lifecycle-message${messageClass ? ` ${messageClass}` : ''}`;
-
-  const locallyConfirmed = Boolean(ui.serviceLifecycleConfirm.checked);
-  const locked = serviceLifecycleBusy || Boolean(expected) || serviceLifecycleOperationActive(snapshot);
-  ui.serviceLifecycleConfirm.disabled = locked || !snapshot?.enabled || !snapshot?.configured;
-  ui.serviceRestartButton.disabled = locked || !snapshot?.can_restart || !locallyConfirmed;
-  ui.serviceStopButton.disabled = locked || !snapshot?.can_stop || !locallyConfirmed;
-}
-
-function serviceLifecycleTransitionOutcome(expected, snapshot) {
-  if (!expected || !snapshot) return { state: 'pending' };
-  const instanceChanged = Boolean(
-    expected.instanceId
-    && snapshot.instance_id
-    && snapshot.instance_id !== expected.instanceId
-  );
-  if (instanceChanged) return { state: 'complete' };
-  const operation = snapshot.operation;
-  const sameOperation = Boolean(expected.operationId && operation?.id === expected.operationId);
-  if (sameOperation && ['failed', 'blocked', 'cancelled'].includes(String(operation?.state || ''))) {
-    return { state: 'failed', error: operation?.error || operation?.state };
-  }
-  return { state: 'pending' };
-}
-
-function completeExpectedServiceTransition(snapshot) {
-  const expected = serviceLifecycleExpected;
-  const outcome = serviceLifecycleTransitionOutcome(expected, snapshot);
-  if (outcome.state === 'complete') {
-    const action = expected.action;
-    serviceLifecycleExpected = null;
-    showToast(action === 'restart' ? '대시보드가 새 인스턴스로 재시작되었습니다.' : '대시보드 서비스가 다시 시작되었습니다.');
-  } else if (outcome.state === 'failed') {
-    serviceLifecycleExpected = null;
-    showToast(`서버 요청 실패: ${outcome.error}`, true);
-  }
-}
-
-async function refreshServiceLifecycle(force = false) {
-  if (!force && activePage !== 'settings' && !serviceLifecycleExpected) return;
-  const generation = ++serviceLifecycleRequestGeneration;
-  try {
-    const snapshot = await api('/api/v1/system/service');
-    if (generation !== serviceLifecycleRequestGeneration) return;
-    serviceLifecycleSnapshot = snapshot;
-    completeExpectedServiceTransition(snapshot);
-  } catch (error) {
-    if (generation !== serviceLifecycleRequestGeneration) return;
-    serviceLifecycleSnapshot = null;
-    if (serviceLifecycleExpected) {
-      const elapsed = Date.now() - serviceLifecycleExpected.startedAt;
-      if (elapsed > 90_000) {
-        serviceLifecycleExpected = null;
-        showToast('서비스 전환을 90초 안에 확인하지 못했습니다.', true);
-      }
-    } else if (force) {
-      showToast(serviceLifecycleErrorText(error), true);
-    }
-  }
-  renderServiceLifecycle();
-}
-
-async function requestServiceLifecycle(action) {
-  if (serviceLifecycleBusy || serviceLifecycleExpected || !['restart', 'stop'].includes(action)) return;
-  if (!ui.serviceLifecycleConfirm.checked) {
-    showToast('연결 중단 확인 체크가 필요합니다.', true);
-    return;
-  }
-  const warning = action === 'stop'
-    ? '대시보드 서비스를 중지하면 SSH 또는 systemd로 다시 시작할 때까지 접속할 수 없습니다. 정말 중지할까요?'
-    : '대시보드 연결이 잠시 끊기며 진행 중이던 화면 상태는 초기화됩니다. 지금 재시작할까요?';
-  if (!window.confirm(warning)) return;
-
-  serviceLifecycleBusy = true;
-  serviceLifecycleRequestGeneration += 1;
-  serviceLifecycleExpected = {
-    action,
-    instanceId: serviceLifecycleSnapshot?.instance_id || '',
-    operationId: '',
-    startedAt: Date.now(),
-  };
-  ui.serviceLifecycleConfirm.checked = false;
-  renderServiceLifecycle();
-  try {
-    const snapshot = await api(`/api/v1/system/service/${action}`, {
-      method: 'POST',
-      body: JSON.stringify({ confirmed: true }),
-    });
-    serviceLifecycleSnapshot = snapshot;
-    if (serviceLifecycleExpected?.action === action) {
-      serviceLifecycleExpected.operationId = String(snapshot?.operation?.id || '');
-    }
-    showToast(action === 'stop' ? '대시보드 중지 요청을 접수했습니다.' : '대시보드 재시작 요청을 접수했습니다.');
-  } catch (error) {
-    if (error?.status) serviceLifecycleExpected = null;
-    showToast(error?.status ? serviceLifecycleErrorText(error) : '요청 결과를 확인할 수 없습니다. 서비스 상태를 다시 확인합니다.', true);
-  } finally {
-    serviceLifecycleBusy = false;
-    renderServiceLifecycle();
-  }
-}
-
-function formatHz(value) {
-  return value == null ? '—' : `${Number(value).toFixed(value >= 10 ? 1 : 2)} Hz`;
-}
-
-function safeNumber(value, digits = 2) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number.toFixed(digits) : '—';
 }
 
 function overviewTelemetryLive(health) {
@@ -4496,201 +4042,7 @@ function renderNavigationStatus() {
   renderNavigationPoseSelection();
   syncNavigationParameterControls();
   scheduleNavigationMapDraw();
-  renderNavigationLog();
-}
-
-function normalizeNavigationLogEntry(value) {
-  if (!value || typeof value !== 'object') return null;
-  const seq = Number(value.seq);
-  const phase = typeof value.phase === 'string' ? value.phase.toLowerCase() : '';
-  const source = typeof value.source === 'string' ? value.source.toLowerCase() : '';
-  const timestamp = typeof value.timestamp === 'string' ? value.timestamp : '';
-  if (!Number.isSafeInteger(seq) || seq <= 0) return null;
-  if (!NAVIGATION_LOG_PHASES.has(phase) || !NAVIGATION_LOG_SOURCES.has(source)) return null;
-  if (!timestamp || timestamp.length > 64 || !Number.isFinite(Date.parse(timestamp))) return null;
-  if (typeof value.message !== 'string') return null;
-  const message = value.message.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 320);
-  if (!message) return null;
-  return { seq, timestamp, phase, source, message };
-}
-
-function navigationLogTimestampLabel(value, includeDate = false) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return '—';
-  try {
-    const options = includeDate
-      ? { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }
-      : { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    return new Intl.DateTimeFormat('ko-KR', options).format(date);
-  } catch (_) {
-    return date.toISOString().slice(includeDate ? 5 : 11, 19).replace('T', ' ');
-  }
-}
-
-function scheduleNavigationLogScroll(scrollSnapshot, { forceBottom = false } = {}) {
-  const generation = ++navigationLogRenderGeneration;
-  scheduleStickyLogScroll(ui.navigationLogOutput, scrollSnapshot, {
-    forceBottom,
-    shouldApply: () => (
-      generation === navigationLogRenderGeneration && activePage === 'navigation'
-    ),
-  });
-}
-
-function renderNavigationLog() {
-  if (!ui.navigationLogOutput) return;
-  const logScrollSnapshot = captureStickyLogScroll(
-    ui.navigationLogOutput,
-    ui.navigationLogAutoScroll.checked,
-  );
-  const lines = navigationLogEntries.map((entry) => (
-    `[${navigationLogTimestampLabel(entry.timestamp)}] [${entry.phase.toUpperCase()}] [${entry.source.toUpperCase()}] ${entry.message}`
-  ));
-  ui.navigationLogOutput.textContent = lines.join('\n');
-  ui.navigationLogOutput.setAttribute('aria-busy', navigationLogBusy ? 'true' : 'false');
-  ui.navigationLogEmpty.hidden = lines.length > 0;
-  ui.navigationLogEmpty.textContent = navigationLogError
-    ? 'Navigation 로그 API에 연결할 수 없습니다.'
-    : navigationLogBusy ? '서버 로그를 불러오고 있습니다.' : '표시할 Navigation 로그가 없습니다.';
-  ui.navigationLogClear.disabled = lines.length === 0;
-
-  const lastEntry = navigationLogEntries[navigationLogEntries.length - 1] || null;
-  const phase = navigationLogJob?.phase || lastEntry?.phase || 'idle';
-  const reportedRuntimeState = String(navigationSnapshot?.pipeline?.state || '').toLowerCase();
-  const runtimeState = NAVIGATION_LOG_PHASES.has(reportedRuntimeState)
-    ? reportedRuntimeState : navigationApiAvailable === false ? 'offline' : 'waiting';
-  ui.navigationLogPhase.textContent = NAVIGATION_LOG_PHASES.has(phase) ? phase.toUpperCase() : 'IDLE';
-  ui.navigationLogRuntimeState.textContent = runtimeState.toUpperCase();
-  ui.navigationLogTimestamp.textContent = lastEntry ? navigationLogTimestampLabel(lastEntry.timestamp, true) : '—';
-  ui.navigationLogPhase.dataset.state = phase;
-  ui.navigationLogRuntimeState.dataset.state = runtimeState;
-
-  if (navigationLogError) {
-    ui.navigationLogNotice.textContent = '로그 상태를 불러오지 못했습니다. Navigation 상태와 제어 기능은 별도로 갱신됩니다.';
-    ui.navigationLogNotice.classList.add('is-error');
-  } else if (navigationLogHasMore) {
-    ui.navigationLogNotice.textContent = '남은 정제 로그를 다음 갱신에서 이어서 불러옵니다.';
-    ui.navigationLogNotice.classList.remove('is-error');
-  } else if (navigationLogTruncated) {
-    ui.navigationLogNotice.textContent = '서버 보존 범위보다 오래된 로그는 생략되었습니다. 최신 정제 로그만 표시합니다.';
-    ui.navigationLogNotice.classList.remove('is-error');
-  } else {
-    ui.navigationLogNotice.textContent = '서버가 공개한 고정·정제 로그만 표시합니다. CLEAR VIEW는 이 브라우저 화면만 비웁니다.';
-    ui.navigationLogNotice.classList.remove('is-error');
-  }
-  scheduleNavigationLogScroll(logScrollSnapshot);
-}
-
-function resetNavigationLogView(streamId = '') {
-  navigationLogEntries = [];
-  navigationLogCursor = 0;
-  navigationLogLatestCursor = 0;
-  navigationLogStreamId = streamId;
-  navigationLogInitialized = false;
-  navigationLogJob = null;
-  navigationLogTruncated = false;
-  navigationLogHasMore = false;
-}
-
-function applyNavigationLogPayload(payload, requestedAfter) {
-  if (!payload || typeof payload !== 'object') throw new Error('invalid navigation log response');
-  const streamId = typeof payload.stream_id === 'string' && /^[0-9a-f]{32}$/.test(payload.stream_id)
-    ? payload.stream_id : '';
-  const cursor = Number(payload.cursor);
-  const latestCursor = Number(payload.latest_cursor);
-  if (!streamId || !Number.isSafeInteger(cursor) || cursor < 0 ||
-      !Number.isSafeInteger(latestCursor) || latestCursor < 0 || cursor > latestCursor ||
-      !Array.isArray(payload.entries)) throw new Error('invalid navigation log response');
-
-  const streamChanged = Boolean(navigationLogStreamId && navigationLogStreamId !== streamId);
-  const cursorOutsideWindow = requestedAfter > 0 && requestedAfter > latestCursor;
-  const continuityLost = requestedAfter > 0 && payload.truncated === true;
-  if (streamChanged) resetNavigationLogView(streamId);
-  if ((streamChanged && requestedAfter > 0) || cursorOutsideWindow || continuityLost) {
-    resetNavigationLogView(streamId);
-    return { refetchTail: true };
-  }
-
-  const phase = typeof payload.job?.phase === 'string' ? payload.job.phase.toLowerCase() : '';
-  navigationLogJob = NAVIGATION_LOG_PHASES.has(phase)
-    ? { phase, startedAt: typeof payload.job?.started_at === 'string' ? payload.job.started_at : null }
-    : null;
-  if (payload.entries.length > NAVIGATION_LOG_LIMIT) throw new Error('invalid navigation log response');
-  const entries = payload.entries.map(normalizeNavigationLogEntry);
-  if (entries.some((entry) => !entry)) throw new Error('invalid navigation log response');
-  for (let index = 0; index < entries.length; index += 1) {
-    const entry = entries[index];
-    const previous = entries[index - 1];
-    if (entry.seq > latestCursor || (requestedAfter > 0 && entry.seq <= requestedAfter) ||
-        (previous && entry.seq <= previous.seq)) throw new Error('invalid navigation log response');
-  }
-  if (entries.length > 0 && entries[entries.length - 1].seq !== cursor) {
-    throw new Error('invalid navigation log response');
-  }
-  const merged = requestedAfter === 0 ? entries : navigationLogEntries.concat(entries);
-  const bySequence = new Map();
-  merged.forEach((entry) => bySequence.set(entry.seq, entry));
-  navigationLogEntries = [...bySequence.values()]
-    .sort((left, right) => left.seq - right.seq)
-    .slice(-NAVIGATION_LOG_MAX_LINES);
-  navigationLogStreamId = streamId;
-  navigationLogCursor = cursor;
-  navigationLogLatestCursor = latestCursor;
-  navigationLogInitialized = true;
-  navigationLogError = false;
-  navigationLogTruncated = payload.truncated === true;
-  navigationLogHasMore = payload.has_more === true && cursor < latestCursor;
-  return { refetchTail: false };
-}
-
-function clearNavigationLogView() {
-  navigationLogRequestGeneration += 1;
-  navigationLogRenderGeneration += 1;
-  navigationLogBusy = false;
-  navigationLogEntries = [];
-  navigationLogCursor = navigationLogLatestCursor;
-  navigationLogInitialized = Boolean(navigationLogStreamId);
-  navigationLogError = false;
-  navigationLogTruncated = false;
-  navigationLogHasMore = false;
-  renderNavigationLog();
-}
-
-function invalidateNavigationLogRequests() {
-  navigationLogRequestGeneration += 1;
-  navigationLogRenderGeneration += 1;
-  navigationLogBusy = false;
-}
-
-async function refreshNavigationLogs(force = false) {
-  if (activePage !== 'navigation' || document.hidden || navigationLogBusy) return;
-  navigationLogBusy = true;
-  navigationLogError = false;
-  const generation = ++navigationLogRequestGeneration;
-  let requestedAfter = navigationLogInitialized ? navigationLogCursor : 0;
-  let tailRefetched = requestedAfter === 0;
-  renderNavigationLog();
-  try {
-    while (true) {
-      const payload = await api(`/api/v1/navigation/logs?after=${requestedAfter}&limit=${NAVIGATION_LOG_LIMIT}`);
-      if (generation !== navigationLogRequestGeneration || activePage !== 'navigation' || document.hidden) return;
-      const result = applyNavigationLogPayload(payload, requestedAfter);
-      if (result.refetchTail && !tailRefetched) {
-        requestedAfter = 0;
-        tailRefetched = true;
-        continue;
-      }
-      break;
-    }
-  } catch (_) {
-    if (generation !== navigationLogRequestGeneration) return;
-    navigationLogError = true;
-  } finally {
-    if (generation === navigationLogRequestGeneration) {
-      navigationLogBusy = false;
-      renderNavigationLog();
-    }
-  }
+  navigationLogFeature?.render();
 }
 
 function applyNavigationSnapshot(payload) {
@@ -6994,307 +6346,6 @@ window.RobotScopeDatasetCapture = Object.freeze({
   },
 });
 
-const CONTROL_BRIDGE_SERVICE_ACTIVE_STATES = new Set(['scheduled', 'dispatching', 'waiting']);
-const CONTROL_BRIDGE_SERVICE_FAILED_STATES = new Set(['failed', 'blocked', 'cancelled']);
-const CONTROL_BRIDGE_SERVICE_TRANSITION_TIMEOUT_MS = 45_000;
-const CONTROL_BRIDGE_SERVICE_BLOCKER_LABELS = {
-  control_status_unavailable: '제어 상태 확인 불가',
-  manual_control_active: '수동 제어 ARM 활성',
-  control_lease_active: '로봇 제어 lease 활성',
-  robot_action_active: 'Go2 모션 실행 중',
-  control_not_configured: 'Go2 제어 전송 설정 미완료',
-  control_target_incompatible: '현재 로봇 대상과 시작 설정 불일치',
-  navigation_status_unavailable: 'Nav2 상태 확인 불가',
-  navigation_active: 'Nav2 자율주행 활성',
-  mapping_status_unavailable: '매핑 상태 확인 불가',
-  mapping_pipeline_active: 'LiDAR 매핑 파이프라인 활성',
-  mapping_operation_active: '지도 저장·변환 작업 중',
-  service_status_unavailable: 'systemd 상태 확인 불가',
-  dashboard_service_lifecycle_status_unavailable: '대시보드 서비스 전환 상태 확인 불가',
-  dashboard_service_lifecycle_active: '대시보드 서비스 재시작·중지 진행 중',
-  control_bridge_service_already_active: '제어 브리지 서비스가 이미 실행 중',
-  lifecycle_preflight_unavailable: '서버 사전 점검 실패',
-};
-const CONTROL_BRIDGE_SERVICE_ERROR_LABELS = {
-  preflight_blocked: '안전 사전점검에서 차단됨',
-  systemd_status_unavailable: 'systemd 상태 확인 불가',
-  dispatch_timeout: 'systemctl 요청 시간 초과',
-  dispatch_unavailable: 'systemctl 실행 불가',
-  dispatch_failed: 'systemctl 실행 실패',
-  dispatch_rejected: 'sudo 권한 또는 systemctl 요청 거부',
-  systemd_status_timeout: 'systemd 상태 확인 시간 초과',
-  service_transition_timeout: 'systemd 상태 전환 시간 초과',
-  bridge_status_timeout: '인증된 브리지 종료 상태 확인 시간 초과',
-  application_shutdown: '대시보드 종료로 요청 취소',
-};
-
-function controlBridgeServiceOperationActive(snapshot = controlBridgeServiceSnapshot) {
-  return CONTROL_BRIDGE_SERVICE_ACTIVE_STATES.has(String(snapshot?.operation?.state || ''));
-}
-
-function controlBridgeServiceBlockerText(blockers) {
-  return (Array.isArray(blockers) ? blockers : [])
-    .map((value) => CONTROL_BRIDGE_SERVICE_BLOCKER_LABELS[value] || String(value).replaceAll('_', ' '))
-    .join(' · ');
-}
-
-function controlBridgeServiceOperationErrorText(value) {
-  const key = String(value || 'unknown');
-  return CONTROL_BRIDGE_SERVICE_ERROR_LABELS[key] || key.replaceAll('_', ' ');
-}
-
-function controlBridgeServiceErrorText(error) {
-  if (error?.status === 403) return '같은 대시보드에서 보낸 요청인지 확인하세요.';
-  if (error?.status === 409) return '활성 작업 또는 다른 전환 요청 때문에 차단되었습니다. 상태를 다시 확인하세요.';
-  if (error?.status === 422) return '안전 확인 값이 올바르지 않습니다.';
-  if (error?.status === 503) return '제어 브리지 관리 기능, systemd 상태 또는 sudo 권한이 준비되지 않았습니다.';
-  return `제어 브리지 서비스 요청 실패: ${error?.message || '연결 오류'}`;
-}
-
-function controlBridgeServiceDesiredState(snapshot, action) {
-  const systemd = snapshot?.systemd || {};
-  if (!systemd.available || systemd.transitioning) return false;
-  if (action === 'start') return systemd.running === true;
-  return action === 'stop'
-    && systemd.running === false
-    && ['inactive', 'failed'].includes(String(systemd.active_state || '').toLowerCase());
-}
-
-function controlBridgeServiceTransitionOutcome(expected, snapshot) {
-  if (!expected || !snapshot || !expected.operationId) return { state: 'pending' };
-  const operation = snapshot.operation;
-  if (!operation || operation.id !== expected.operationId) return { state: 'pending' };
-  const operationState = String(operation.state || '');
-  if (CONTROL_BRIDGE_SERVICE_FAILED_STATES.has(operationState)) {
-    return { state: 'failed', error: operation.error || operationState };
-  }
-  if (operationState === 'succeeded' && controlBridgeServiceDesiredState(snapshot, expected.action)) {
-    return { state: 'complete' };
-  }
-  return { state: 'pending' };
-}
-
-function bindExpectedControlBridgeServiceOperation(snapshot) {
-  const expected = controlBridgeServiceExpected;
-  const operation = snapshot?.operation;
-  if (!expected || expected.operationId || !operation?.id || operation.action !== expected.action) return;
-  if (operation.id === expected.baselineOperationId) return;
-  const requestedAt = Date.parse(operation.requested_at || '');
-  if (!Number.isFinite(requestedAt) || requestedAt < expected.startedAt - 2_000) return;
-  expected.operationId = String(operation.id);
-}
-
-function completeExpectedControlBridgeServiceTransition(snapshot) {
-  bindExpectedControlBridgeServiceOperation(snapshot);
-  const expected = controlBridgeServiceExpected;
-  const outcome = controlBridgeServiceTransitionOutcome(expected, snapshot);
-  if (outcome.state === 'complete') {
-    const action = expected.action;
-    controlBridgeServiceExpected = null;
-    showToast(action === 'start' ? '제어 브리지 서비스가 실행 중입니다.' : '제어 브리지 서비스가 중지되었습니다.');
-    void refreshControlSnapshot();
-    void refreshNavigation();
-  } else if (outcome.state === 'failed') {
-    controlBridgeServiceExpected = null;
-    showToast(`제어 브리지 ${expected.action === 'start' ? '시작' : '중지'} 실패: ${controlBridgeServiceOperationErrorText(outcome.error)}`, true);
-  }
-}
-
-function renderControlBridgeService() {
-  if (!controlUi.bridgeServiceState) return;
-  const snapshot = controlBridgeServiceSnapshot;
-  const expected = controlBridgeServiceExpected;
-  const systemd = snapshot?.systemd || {};
-  const operation = snapshot?.operation || null;
-  const operationState = String(operation?.state || 'idle');
-  const operationAction = String(operation?.action || '');
-  const activeState = String(systemd.active_state || (systemd.running ? 'active' : 'unknown'));
-  const subState = String(systemd.sub_state || 'unknown');
-  const loadState = String(systemd.load_state || 'unknown');
-  const startBlockers = Array.isArray(snapshot?.blockers?.start) ? snapshot.blockers.start : [];
-  const stopBlockers = Array.isArray(snapshot?.blockers?.stop) ? snapshot.blockers.stop : [];
-  const relevantBlockers = systemd.running ? stopBlockers : startBlockers;
-  const transitionAction = expected?.action || (controlBridgeServiceOperationActive(snapshot) ? operationAction : '');
-
-  controlUi.bridgeServiceName.textContent = snapshot?.service || 'robot-scope-control-bridge.service';
-  controlUi.bridgeServiceActive.textContent = activeState.toUpperCase();
-  controlUi.bridgeServiceSub.textContent = `${subState.toUpperCase()} · ${loadState.toUpperCase()}`;
-  controlUi.bridgeServiceOperation.textContent = operationAction
-    ? `${operationAction.toUpperCase()} · ${operationState.toUpperCase()}`
-    : 'IDLE';
-
-  let state = 'waiting';
-  let label = 'CHECKING';
-  let message = '제어 브리지 서비스 상태를 확인하고 있습니다.';
-  let messageClass = '';
-  if (expected) {
-    label = expected.action === 'start' ? 'STARTING' : 'STOPPING';
-    message = expected.action === 'start'
-      ? 'systemd에 시작을 요청했습니다. 실제 명령 연결은 위 BRIDGE 상태에서 별도로 확인하세요.'
-      : 'systemd에 중지를 요청했습니다. 서비스 정지 상태를 확인하고 있습니다.';
-  } else if (!snapshot) {
-    state = 'error';
-    label = 'UNAVAILABLE';
-    message = '제어 브리지 서비스 상태를 불러오지 못했습니다.';
-    messageClass = 'error';
-  } else if (!snapshot.enabled) {
-    label = 'DISABLED';
-    message = 'Jetson 환경 설정에서 제어 브리지 관리 기능을 활성화해야 합니다.';
-  } else if (!snapshot.privilege?.runner_available) {
-    state = 'error';
-    label = 'RUNNER MISSING';
-    message = 'sudo 또는 systemctl 실행 환경을 확인할 수 없습니다.';
-    messageClass = 'error';
-  } else if (!snapshot.configured) {
-    state = 'error';
-    label = 'NOT CONFIGURED';
-    message = '고정 서비스 관리 설정을 확인하세요.';
-    messageClass = 'error';
-  } else if (!systemd.available) {
-    state = 'error';
-    label = 'STATUS ERROR';
-    message = `systemd 상태를 신뢰할 수 없습니다. load=${String(systemd.load_state || 'unknown')} · unit=${String(systemd.unit_file_state || 'unknown')}`;
-    messageClass = 'error';
-  } else if (controlBridgeServiceOperationActive(snapshot) || systemd.transitioning) {
-    label = transitionAction === 'stop' ? 'STOPPING' : 'STARTING';
-    message = 'systemd 상태 전환 중입니다. 완료될 때까지 버튼이 잠깁니다.';
-  } else if (CONTROL_BRIDGE_SERVICE_FAILED_STATES.has(operationState)) {
-    state = 'error';
-    label = operationState.toUpperCase();
-    if (operationState === 'blocked' && relevantBlockers.length) {
-      message = `요청 차단: ${controlBridgeServiceBlockerText(relevantBlockers)}`;
-    } else {
-      message = `최근 ${operationAction || 'service'} 요청 실패: ${controlBridgeServiceOperationErrorText(operation?.error || operationState)}`;
-    }
-    messageClass = 'error';
-  } else if (systemd.running) {
-    state = 'ok';
-    label = 'RUNNING';
-    message = stopBlockers.length
-      ? `서비스 실행 중 · 중지 차단: ${controlBridgeServiceBlockerText(stopBlockers)}`
-      : '서비스 실행 중입니다. 실제 명령 연결은 위 BRIDGE 상태에서 별도로 확인하세요.';
-    messageClass = stopBlockers.length ? '' : 'ok';
-  } else if (activeState.toLowerCase() === 'inactive') {
-    label = 'STOPPED';
-    message = startBlockers.length
-      ? `시작 차단: ${controlBridgeServiceBlockerText(startBlockers)}`
-      : '서비스가 중지되어 있습니다. 안전 확인 후 대시보드에서 시작할 수 있습니다.';
-  } else {
-    state = activeState.toLowerCase() === 'failed' ? 'error' : 'waiting';
-    label = activeState.toUpperCase();
-    message = relevantBlockers.length
-      ? `현재 작업 차단: ${controlBridgeServiceBlockerText(relevantBlockers)}`
-      : `systemd 상태: ${activeState}/${subState}`;
-    messageClass = state === 'error' ? 'error' : '';
-  }
-
-  setStatePill(controlUi.bridgeServiceState, state, label);
-  controlUi.bridgeServiceMessage.textContent = message;
-  controlUi.bridgeServiceMessage.className = `control-bridge-service-message${messageClass ? ` ${messageClass}` : ''}`;
-  const locallyConfirmed = Boolean(controlUi.bridgeServiceConfirm.checked);
-  const locked = controlBridgeServiceBusy
-    || Boolean(expected)
-    || controlBridgeServiceOperationActive(snapshot)
-    || Boolean(systemd.transitioning);
-  controlUi.bridgeServiceConfirm.disabled = locked
-    || !snapshot?.enabled
-    || !snapshot?.configured
-    || !systemd.available
-    || (!snapshot?.can_start && !snapshot?.can_stop);
-  controlUi.bridgeServiceStart.disabled = locked || !snapshot?.can_start || !locallyConfirmed;
-  controlUi.bridgeServiceStop.disabled = locked || !snapshot?.can_stop || !locallyConfirmed;
-  controlUi.bridgeServiceStart.textContent = transitionAction === 'start' ? 'STARTING…' : 'START BRIDGE';
-  controlUi.bridgeServiceStop.textContent = transitionAction === 'stop' ? 'STOPPING…' : 'STOP BRIDGE';
-  controlUi.bridgeServiceState.setAttribute('aria-busy', locked ? 'true' : 'false');
-}
-
-async function refreshControlBridgeService(force = false) {
-  if (!force && !['controls', 'navigation'].includes(activePage) && !controlBridgeServiceExpected) return;
-  const generation = ++controlBridgeServiceRequestGeneration;
-  try {
-    const snapshot = await api('/api/v1/control/bridge-service');
-    if (generation !== controlBridgeServiceRequestGeneration) return;
-    controlBridgeServiceSnapshot = snapshot;
-    completeExpectedControlBridgeServiceTransition(snapshot);
-    if (controlBridgeServiceExpected
-      && Date.now() - controlBridgeServiceExpected.startedAt > CONTROL_BRIDGE_SERVICE_TRANSITION_TIMEOUT_MS) {
-      controlBridgeServiceExpected = null;
-      showToast('제어 브리지 전환을 45초 안에 확인하지 못했습니다.', true);
-    }
-  } catch (error) {
-    if (generation !== controlBridgeServiceRequestGeneration) return;
-    if (controlBridgeServiceExpected) {
-      const elapsed = Date.now() - controlBridgeServiceExpected.startedAt;
-      if (elapsed > CONTROL_BRIDGE_SERVICE_TRANSITION_TIMEOUT_MS) {
-        controlBridgeServiceExpected = null;
-        showToast('제어 브리지 전환을 45초 안에 확인하지 못했습니다.', true);
-      }
-    } else {
-      controlBridgeServiceSnapshot = null;
-      if (force) showToast(controlBridgeServiceErrorText(error), true);
-    }
-  }
-  renderControlBridgeService();
-}
-
-async function requestControlBridgeService(action) {
-  if (controlBridgeServiceBusy || controlBridgeServiceExpected || !['start', 'stop'].includes(action)) return;
-  if (controlBridgeServiceSnapshot?.[`can_${action}`] !== true) {
-    showToast(`제어 브리지 ${action === 'start' ? '시작' : '중지'}가 현재 허용되지 않습니다.`, true);
-    void refreshControlBridgeService(true);
-    return;
-  }
-  if (!controlUi.bridgeServiceConfirm.checked) {
-    showToast('제어 브리지 안전 확인 체크가 필요합니다.', true);
-    return;
-  }
-  const warning = action === 'start'
-    ? '고정된 제어 브리지 서비스를 시작합니다. 실제 로봇 제어 전 BRIDGE READY를 확인하고 별도로 ARM해야 합니다. 시작할까요?'
-    : '제어 브리지 서비스를 중지하면 수동 제어와 Navigation 명령 경로가 끊깁니다. 중지할까요?';
-  if (!window.confirm(warning)) return;
-
-  controlBridgeServiceBusy = true;
-  controlBridgeServiceRequestGeneration += 1;
-  const mutationGeneration = ++controlBridgeServiceMutationGeneration;
-  controlBridgeServiceExpected = {
-    action,
-    operationId: '',
-    baselineOperationId: String(controlBridgeServiceSnapshot?.operation?.id || ''),
-    invocationId: String(controlBridgeServiceSnapshot?.systemd?.invocation_id || ''),
-    startedAt: Date.now(),
-  };
-  controlUi.bridgeServiceConfirm.checked = false;
-  renderControlBridgeService();
-  try {
-    const snapshot = await api(`/api/v1/control/bridge-service/${action}`, {
-      method: 'POST',
-      body: JSON.stringify({ confirmed: true }),
-    });
-    if (mutationGeneration !== controlBridgeServiceMutationGeneration || controlBridgeServiceExpected?.action !== action) return;
-    controlBridgeServiceSnapshot = snapshot;
-    if (snapshot?.operation?.action === action) {
-      controlBridgeServiceExpected.operationId = String(snapshot.operation.id || '');
-    }
-    showToast(`제어 브리지 ${action === 'start' ? '시작' : '중지'} 요청을 접수했습니다.`);
-    completeExpectedControlBridgeServiceTransition(snapshot);
-  } catch (error) {
-    if (mutationGeneration !== controlBridgeServiceMutationGeneration) return;
-    if (error?.status) controlBridgeServiceExpected = null;
-    showToast(
-      error?.status
-        ? controlBridgeServiceErrorText(error)
-        : '요청 결과를 확인할 수 없습니다. 제어 브리지 상태를 다시 확인합니다.',
-      true,
-    );
-  } finally {
-    if (mutationGeneration === controlBridgeServiceMutationGeneration) {
-      controlBridgeServiceBusy = false;
-      renderControlBridgeService();
-      void refreshControlBridgeService(true);
-    }
-  }
-}
-
 function controlReady(snapshot = controlSnapshot) {
   if (window.RobotProfiles?.profileSupports?.(activeRobotProfile(), 'manual_control') !== true) return false;
   const available = snapshot?.available ?? snapshot?.ready;
@@ -7997,7 +7048,7 @@ function bindControlPointerButtons() {
 function enterControlPage() {
   refreshControlGamepads();
   refreshControlSnapshot();
-  refreshControlBridgeService();
+  controlBridgeServiceFeature?.refresh();
   if (controlLeaseId) connectControlSocket();
 }
 
@@ -8098,7 +7149,7 @@ ui.robotIp.addEventListener('input', () => {
   });
 });
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshCameraCatalog(), refreshDatasetCapture(), refreshDatasetSessions({ preferredId: selectedDatasetSessionId, forceDetail: true }), refreshMappingControl(), refreshControlSnapshot(), refreshControlBridgeService(true), refreshNavigation(), refreshNavigationLogs(true), refreshNavigationParameters(true), refreshServiceLifecycle(true)]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshCameraCatalog(), refreshDatasetCapture(), refreshDatasetSessions({ preferredId: selectedDatasetSessionId, forceDetail: true }), refreshMappingControl(), refreshControlSnapshot(), controlBridgeServiceFeature?.refresh(true), refreshNavigation(), navigationLogFeature?.refresh(true), refreshNavigationParameters(true), serviceLifecycleFeature?.refresh(true)]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
@@ -8126,9 +7177,6 @@ ui.mapSource.addEventListener('change', () => {
   mapSeq = -1;
   selectSource('occupancy_grid', ui.mapSource.value);
 });
-ui.serviceLifecycleConfirm.addEventListener('change', renderServiceLifecycle);
-ui.serviceRestartButton.addEventListener('click', () => requestServiceLifecycle('restart'));
-ui.serviceStopButton.addEventListener('click', () => requestServiceLifecycle('stop'));
 ui.mapViewMode.addEventListener('change', () => chooseMapView(ui.mapViewMode.value));
 ui.livePointBudget.addEventListener('change', async () => {
   const value = ui.livePointBudget.value;
@@ -8219,16 +7267,6 @@ ui.navigationPoseDiscard.addEventListener('click', () => discardNavigationPose()
 ui.navigationPoseSend.addEventListener('click', sendNavigationPose);
 ui.navigationCancelGoal.addEventListener('click', cancelNavigationGoal);
 ui.navigationClearCostmaps.addEventListener('click', clearNavigationCostmaps);
-ui.navigationLogAutoScroll.addEventListener('change', () => {
-  navigationLogRenderGeneration += 1;
-  if (ui.navigationLogAutoScroll.checked) {
-    scheduleNavigationLogScroll(
-      captureStickyLogScroll(ui.navigationLogOutput, false),
-      { forceBottom: true },
-    );
-  }
-});
-ui.navigationLogClear.addEventListener('click', clearNavigationLogView);
 ui.navigationMapCanvas.addEventListener('pointerdown', beginNavigationPose);
 ui.navigationMapCanvas.addEventListener('pointermove', moveNavigationPose);
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => ui.navigationMapCanvas.addEventListener(name, finishNavigationPose));
@@ -8280,9 +7318,6 @@ controlUi.estop.addEventListener('click', () => triggerEmergencyStop('dashboard_
 controlUi.clearConfirm.addEventListener('change', syncEstopClearButton);
 controlUi.clear.addEventListener('click', clearEmergencyStop);
 controlUi.actions.addEventListener('click', handleControlActionClick);
-controlUi.bridgeServiceConfirm.addEventListener('change', renderControlBridgeService);
-controlUi.bridgeServiceStart.addEventListener('click', () => requestControlBridgeService('start'));
-controlUi.bridgeServiceStop.addEventListener('click', () => requestControlBridgeService('stop'));
 document.addEventListener('keydown', handleControlKeyDown);
 document.addEventListener('keyup', handleControlKeyUp);
 window.addEventListener('gamepadconnected', refreshControlGamepads);
@@ -8294,7 +7329,6 @@ window.addEventListener('blur', () => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) void refreshDatasetCapture();
   if (document.hidden) {
-    invalidateNavigationLogRequests();
     if (controlArmBusy) invalidatePendingArm();
     if (controlLeaseId) failSafeDisarm('document_hidden');
     if (cameraRecording) stopCameraRecording(cameraRecordingCleanupPolicy('visibility_hidden'));
@@ -8302,11 +7336,6 @@ document.addEventListener('visibilitychange', () => {
   syncPointcloudTransport();
   syncCameraTransport();
   if (!document.hidden && activePage === 'sensors') void refreshDatasetSessions({ preferredId: selectedDatasetSessionId });
-  if (!document.hidden && activePage === 'navigation') void refreshNavigationLogs(true);
-  if (!document.hidden && (['controls', 'navigation'].includes(activePage) || controlBridgeServiceExpected)) {
-    controlBridgeServiceRequestGeneration += 1;
-    void refreshControlBridgeService(true);
-  }
 });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
@@ -8314,16 +7343,8 @@ window.addEventListener('pagehide', () => {
   disconnectPointcloud();
   disconnectCamera();
   discardCameraRecordingForPageHide();
-  controlBridgeServiceRequestGeneration += 1;
-  invalidateNavigationLogRequests();
 });
 window.addEventListener('pageshow', () => {
-  controlBridgeServiceRequestGeneration += 1;
-  invalidateNavigationLogRequests();
-  if (['controls', 'navigation'].includes(activePage) || controlBridgeServiceExpected) {
-    void refreshControlBridgeService(true);
-  }
-  if (activePage === 'navigation') void refreshNavigationLogs(true);
 });
 window.addEventListener('beforeunload', (event) => {
   if (!editorHasUnsavedChanges()) return;
@@ -8352,10 +7373,22 @@ syncMapConversionPanel();
 syncMapEditorUi();
 renderNavigationParameterGroups(navigationEngine?.TUNED_VALUES, true);
 renderNavigationPresetOptions();
+navigationLogFeature = initializeNavigationLogFeature({
+  getActivePage: () => activePage,
+  getNavigationSnapshot: () => navigationSnapshot,
+  getNavigationApiAvailable: () => navigationApiAvailable,
+});
 renderNavigationStatus();
-renderNavigationLog();
-renderServiceLifecycle();
-renderControlBridgeService();
+serviceLifecycleFeature = initializeServiceLifecycleFeature({
+  showToast,
+  getActivePage: () => activePage,
+});
+controlBridgeServiceFeature = initializeControlBridgeServiceFeature({
+  showToast,
+  getActivePage: () => activePage,
+  refreshControl: refreshControlSnapshot,
+  refreshNavigation,
+});
 activatePage(pageFromHash(), true);
 ui.mappingSessionName.value = generatedMapName();
 initializeRobotProfiles();
@@ -8375,10 +7408,10 @@ pointBudgetReady.then(() => {
 refreshMap();
 refreshMappingControl();
 refreshNavigation();
-refreshNavigationLogs();
+navigationLogFeature.refresh();
 refreshNavigationParameters();
-refreshServiceLifecycle();
-refreshControlBridgeService();
+serviceLifecycleFeature.refresh();
+controlBridgeServiceFeature.refresh();
 refreshDatasetCapture();
 if (activePage === 'sensors') refreshDatasetSessions();
 setInterval(refreshState, 1000);
@@ -8395,9 +7428,6 @@ setInterval(() => {
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
 setInterval(refreshNavigation, 1000);
-setInterval(refreshNavigationLogs, 1000);
-setInterval(refreshControlBridgeService, 1000);
-setInterval(refreshServiceLifecycle, 5000);
 setInterval(markJointsStale, 250);
 setInterval(syncCameraFrameFreshness, 500);
 setInterval(controlTick, 50);

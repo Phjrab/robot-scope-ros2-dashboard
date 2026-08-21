@@ -4,10 +4,12 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
-const helperStart = appSource.indexOf('const LOG_SCROLL_BOTTOM_TOLERANCE_PX');
-const helperEnd = appSource.indexOf('// LiDAR identity is intentionally resolved', helperStart);
+const navigationLogSource = readFileSync(new URL('../robot_dashboard/static/features/navigation/log_controller.js', import.meta.url), 'utf8');
+const scrollSource = readFileSync(new URL('../robot_dashboard/static/core/log_scroll.js', import.meta.url), 'utf8');
+const helperStart = scrollSource.indexOf('export const LOG_SCROLL_BOTTOM_TOLERANCE_PX');
+const helperEnd = scrollSource.length;
 assert.ok(helperStart >= 0 && helperEnd > helperStart, 'sticky log scroll helpers must be extractable');
-const helperSource = appSource.slice(helperStart, helperEnd);
+const helperSource = scrollSource.slice(helperStart, helperEnd).replaceAll('export ', '');
 
 function createHarness() {
   const frames = [];
@@ -102,12 +104,12 @@ test('both terminal panels use the shared sticky contract without unconditional 
   assert.match(mappingSource, /scheduleMappingLogScroll\(logScrollSnapshot\)/);
   assert.doesNotMatch(mappingSource, /mappingLog\.scrollTop\s*=\s*ui\.mappingLog\.scrollHeight/);
 
-  const navigationStart = appSource.indexOf('function scheduleNavigationLogScroll(');
-  const navigationEnd = appSource.indexOf('\nfunction resetNavigationLogView(', navigationStart);
-  const navigationSource = appSource.slice(navigationStart, navigationEnd);
+  const navigationStart = navigationLogSource.indexOf('function scheduleNavigationLogScroll(');
+  const navigationEnd = navigationLogSource.indexOf('\nfunction resetNavigationLogView(', navigationStart);
+  const navigationSource = navigationLogSource.slice(navigationStart, navigationEnd);
   assert.match(navigationSource, /captureStickyLogScroll\([\s\S]*?navigationLogAutoScroll\.checked/);
   assert.match(navigationSource, /scheduleNavigationLogScroll\(logScrollSnapshot\)/);
   assert.doesNotMatch(navigationSource, /navigationLogOutput\.scrollTop\s*=\s*ui\.navigationLogOutput\.scrollHeight/);
 
-  assert.match(appSource, /navigationLogAutoScroll\.addEventListener\('change',[\s\S]*?forceBottom: true/);
+  assert.match(navigationLogSource, /navigationLogAutoScroll\?\.addEventListener\('change',[\s\S]*?forceBottom: true/);
 });

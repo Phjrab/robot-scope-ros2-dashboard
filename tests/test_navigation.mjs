@@ -236,7 +236,7 @@ test('manual control and navigation are mutually exclusive without blocking clea
 
 test('background navigation startup phases are friendly and keep cleanup available', () => {
   const constantsStart = appSource.indexOf('const NAVIGATION_STARTUP_PHASES');
-  const constantsEnd = appSource.indexOf('const NAVIGATION_LOG_LIMIT', constantsStart);
+  const constantsEnd = appSource.indexOf('let navigationLogFeature', constantsStart);
   const functionStart = appSource.indexOf('function navigationStartupPresentation(');
   const functionEnd = appSource.indexOf('\nfunction navigationBlockerMessage(', functionStart);
   assert.ok(constantsStart >= 0 && constantsEnd > constantsStart && functionStart >= 0 && functionEnd > functionStart);
