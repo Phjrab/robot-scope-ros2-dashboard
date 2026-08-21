@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import copy
 import ipaddress
 import json
@@ -12,16 +11,12 @@ import platform
 import re
 import secrets
 import socket
-import stat
 import subprocess
-import tempfile
 import threading
 import time
-from collections import deque
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import rclpy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
@@ -56,18 +51,22 @@ from .discovery import (
     robot_type_definition,
 )
 from .go2_multicast_camera import Go2MulticastCamera
-from .pointcloud import extract_xyz, reject_spatial_outliers
 from .remote_mjpeg_camera import RemoteMjpegCamera
+from .ros.cameras import CAMERA_SOURCE_IDS, CameraHub
+from .ros.graph import RosGraphMonitor
+from .ros.pointcloud import PointCloudHub
+from .ros.runtime import RosRuntime
+from .ros.sources import (
+    SOURCE_CATEGORIES,
+    SOURCE_SELECTION_STATE_MAX_BYTES,
+    SourceRegistry,
+    pointcloud_source_metadata,
+)
+from .ros.telemetry import RateMeter, TelemetryHub
 from .runtime_status import ros_transport_status
 from .serializers import (
     classify_type,
-    extract_odometry_pose,
-    extract_go2_imu_rpy,
-    extract_go2_joint_positions,
-    go2_joint_state_payload,
     is_observable_type,
-    odometry_pose_payload,
-    summarize_message,
 )
 
 
@@ -76,79 +75,6 @@ CAMERA_TYPES = {
     "sensor_msgs/msg/CompressedImage",
     "unitree_go/msg/Go2FrontVideoData",
 }
-
-# Source identity is deliberately derived from a small, fixed topic allowlist.
-# ROS graph names are untrusted display metadata; a similar-looking vendor or
-# user topic must never be presented as a known physical LiDAR.
-HESAI_XT16_POINTCLOUD_STAGES = {
-    "/lidar_points": "raw",
-    "/velodyne_points": "converted",
-    "/cloud_registered": "registered",
-    "/Laser_map": "map",
-}
-GO2_UTLIDAR_POINTCLOUD_STAGES = {
-    "/utlidar/cloud": "raw",
-    "/utlidar/cloud_deskewed": "deskewed",
-    "/utlidar/cloud_base": "base_frame",
-    "/utlidar/grid_map": "local_map",
-    "/utlidar/height_map": "height_map",
-    "/utlidar/range_map": "range_map",
-    "/utlidar/voxel_map": "voxel_map",
-}
-GO2_USLAM_POINTCLOUD_STAGES = {
-    "/uslam/cloud_map": "map",
-}
-POINTCLOUD_STAGE_LABELS = {
-    "raw": "Raw points",
-    "converted": "Converted points",
-    "deskewed": "Deskewed points",
-    "base_frame": "Base-frame points",
-    "registered": "Registered cloud",
-    "local_map": "Local map",
-    "height_map": "Height map",
-    "range_map": "Range map",
-    "voxel_map": "Voxel map",
-    "map": "SLAM map",
-    "unknown": "PointCloud",
-}
-
-SOURCE_CATEGORIES = ("camera", "pointcloud", "odometry", "occupancy_grid")
-SOURCE_SELECTION_STATE_VERSION = 1
-SOURCE_SELECTION_STATE_MAX_BYTES = 16 * 1024
-CAMERA_SOURCE_IDS = ("go2_front", "realsense_color")
-MAX_ACTIVE_CAMERA_SOURCES = 2
-MAX_CAMERA_VIEWERS = 8
-MAX_CAMERA_VIEWERS_PER_SOURCE = 4
-
-
-def pointcloud_source_metadata(topic: str) -> Dict[str, str]:
-    """Return allowlisted LiDAR identity and processing-stage metadata."""
-
-    normalized = str(topic or "")
-    if normalized in HESAI_XT16_POINTCLOUD_STAGES:
-        sensor_id = "hesai_xt16"
-        sensor_label = "Hesai XT16"
-        stage = HESAI_XT16_POINTCLOUD_STAGES[normalized]
-    elif normalized in GO2_UTLIDAR_POINTCLOUD_STAGES:
-        sensor_id = "go2_builtin_lidar"
-        sensor_label = "Go2 Built-in LiDAR"
-        stage = GO2_UTLIDAR_POINTCLOUD_STAGES[normalized]
-    elif normalized in GO2_USLAM_POINTCLOUD_STAGES:
-        sensor_id = "go2_builtin_lidar"
-        sensor_label = "Go2 Built-in LiDAR"
-        stage = GO2_USLAM_POINTCLOUD_STAGES[normalized]
-    else:
-        sensor_id = "generic_pointcloud"
-        sensor_label = "Generic PointCloud"
-        stage = "unknown"
-    stage_label = POINTCLOUD_STAGE_LABELS[stage]
-    return {
-        "sensor_id": sensor_id,
-        "sensor_label": sensor_label,
-        "pipeline_stage": stage,
-        "pipeline_stage_label": stage_label,
-        "display_label": f"{sensor_label} · {stage_label} · {normalized}",
-    }
 
 CONTROL_COMMAND_TOPIC = "/robot_scope/control/command"
 CONTROL_STATUS_TOPIC = "/robot_scope/control/status"
@@ -195,39 +121,11 @@ def _public_navigation_reason(reason: object) -> str:
     return (value or "navigation stopped")[:160]
 
 
-class RateMeter:
-    def __init__(self, maxlen: int = 180) -> None:
-        self.times: deque[float] = deque(maxlen=maxlen)
-        self.samples = 0
-
-    def tick(self, now: float) -> None:
-        self.times.append(now)
-        self.samples += 1
-
-    def hz(self) -> Optional[float]:
-        if len(self.times) < 2:
-            return None
-        elapsed = self.times[-1] - self.times[0]
-        if elapsed <= 0:
-            return None
-        return round((len(self.times) - 1) / elapsed, 2)
-
-    def jitter_ms(self) -> Optional[float]:
-        if len(self.times) < 4:
-            return None
-        intervals = np.diff(np.asarray(self.times, dtype=np.float64))
-        return round(float(np.std(intervals) * 1000.0), 2)
-
-    @property
-    def last(self) -> Optional[float]:
-        return self.times[-1] if self.times else None
-
-
 class RosAgent:
     """ROS observability agent with an isolated, signed control transport."""
 
-    MIN_CLOUD_POINTS = 1_000
-    MAX_CUSTOM_CLOUD_POINTS = 1_000_000
+    MIN_CLOUD_POINTS = PointCloudHub.MIN_CLOUD_POINTS
+    MAX_CUSTOM_CLOUD_POINTS = PointCloudHub.MAX_CUSTOM_CLOUD_POINTS
 
     def __init__(
         self,
@@ -237,7 +135,7 @@ class RosAgent:
         source_selection_path: Optional[str] = None,
     ) -> None:
         self.robot_ip = self._valid_ip(robot_ip)
-        self.cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
+        normalized_cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
         self.profile = self._load_profile(profile_path)
         self._startup_profile_name = str(self.profile.get("name", "Generic ROS 2"))
         self._robot_type = infer_robot_type(self.profile)
@@ -252,11 +150,11 @@ class RosAgent:
         self._robot_model = (
             robot_type_definition(self._robot_type)["model"] if self._robot_type else None
         )
-        self.cloud_radius_limit = max(
+        cloud_radius_limit = max(
             5.0,
             min(float(self.profile.get("cloud_radius_limit_m", 500.0)), 10_000.0),
         )
-        self._cloud_frame_interval_s = max(
+        cloud_frame_interval_s = max(
             0.10,
             min(float(self.profile.get("pointcloud_frame_interval_s", 0.18)), 1.0),
         )
@@ -309,16 +207,13 @@ class RosAgent:
         self._control_bridge_seq = -1
         self._control_bridge_epoch = ""
 
-        self._lock = threading.RLock()
+        self._ros_runtime = RosRuntime()
+        self._lock = self._ros_runtime.lock
         # Serializes every control state mutation with output publication.  A
         # terminal stop/release that has returned can therefore never be
         # followed by a drive output drained by an earlier timer tick.
         self._control_operation_lock = threading.RLock()
         self._control_transport_lock = threading.RLock()
-        self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
-        self._node: Optional[Node] = None
-        self._executor: Optional[MultiThreadedExecutor] = None
         self._control_callback_group: Optional[MutuallyExclusiveCallbackGroup] = None
         self._control_command_publisher: Any = None
         self._control_status_subscription: Any = None
@@ -402,109 +297,38 @@ class RosAgent:
             "last_cmd": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
             "clear_costmaps": {"state": "idle", "error": None},
         }
-        self._started_at = time.monotonic()
-        self._ready = False
-        self._last_error = ""
-
-        self._graph: Dict[str, Dict[str, Any]] = {}
-        self._metrics: Dict[str, RateMeter] = {}
-        self._summaries: Dict[str, Dict[str, Any]] = {}
-        self._summary_updated: Dict[str, float] = {}
-        self._subscriptions: Dict[str, Any] = {}
-        self._special_subscription_topics: Dict[str, str] = {}
-
-        self._joint_stale_after = max(
+        self._graph_monitor = RosGraphMonitor(self._lock)
+        joint_stale_after = max(
             0.2,
             min(float(self.profile.get("joint_state_stale_after_s", 1.0)), 10.0),
         )
-        self._joint_last_processed = 0.0
-        self._joints: Dict[str, Any] = {
-            "seq": 0,
-            "topic": "",
-            "type": "",
-            "position_rad": None,
-            "imu_rpy_rad": None,
-            "source_order": "",
-            "stamp_ns": 0,
-            "updated": 0.0,
-        }
-
-        self._pose_stale_after = max(
+        pose_stale_after = max(
             0.25,
             min(float(self.profile.get("odometry_stale_after_s", 1.5)), 10.0),
         )
-        self._pose_position_limit = max(
+        pose_position_limit = max(
             1.0,
             min(float(self.profile.get("pose_position_limit_m", 10_000.0)), 1_000_000.0),
         )
-        self._pose: Dict[str, Any] = {
-            "seq": 0,
-            "topic": "",
-            "type": "",
-            "pose": None,
-            "stamp_ns": 0,
-            "updated": 0.0,
-        }
-
-        self._sources: Dict[str, str] = {
-            "camera": "",
-            "pointcloud": "",
-            "odometry": "",
-            "occupancy_grid": "",
-        }
-        self._requested_sources: Dict[str, str] = dict(self._sources)
-        self._source_selection_path = self._normalize_source_selection_path(
-            source_selection_path
+        self._telemetry_hub = TelemetryHub(
+            self._lock,
+            joint_stale_after_s=joint_stale_after,
+            pose_stale_after_s=pose_stale_after,
+            pose_position_limit_m=pose_position_limit,
         )
-        self._source_selection_policies = self._source_policies_from_profile()
-        self._source_selection_overrides = self._load_source_selection_overrides()
-        self._source_pins: set[str] = set()
-        self._source_selection_origins: Dict[str, str] = {
-            category: "auto" for category in SOURCE_CATEGORIES
-        }
-        self._apply_startup_source_selection()
-
-        self._camera: Dict[str, Any] = {
-            "seq": 0,
-            "format": "none",
-            "data": b"",
-            "stamp_us": 0,
-            "key": False,
-            "width": 0,
-            "height": 0,
-            "encoding": "",
-            "source": "none",
-            "transport": "",
-            "state": "waiting",
-            "fps": None,
-            "age_s": None,
-        }
-        self._camera_stream_ids: Dict[str, str] = {
-            source_id: secrets.token_urlsafe(12) for source_id in CAMERA_SOURCE_IDS
-        }
-        self._remote_camera_frame: Dict[str, Any] = {
-            "seq": 0,
-            "format": "none",
-            "data": b"",
-            "stamp_us": 0,
-            "key": False,
-            "width": 0,
-            "height": 0,
-            "encoding": "",
-            "source": "remote_mjpeg",
-            "source_id": "realsense_color",
-            "source_label": "RealSense color camera",
-            "transport": "http_mjpeg",
-            "state": "waiting",
-            "fps": None,
-            "age_s": None,
-            "updated": 0.0,
-        }
-        self._h264_sps = b""
-        self._h264_pps = b""
-        self._h264_pending_stamp = 0
-        self._h264_pending = bytearray()
-        self._camera_decoder = H264JpegDecoder(self._decoded_camera_callback)
+        self._source_registry = SourceRegistry(self.profile, source_selection_path)
+        self._pointcloud_hub = PointCloudHub(
+            self._lock,
+            max_points=normalized_cloud_max_points,
+            radius_limit_m=cloud_radius_limit,
+            frame_interval_s=cloud_frame_interval_s,
+        )
+        self._camera_hub = CameraHub(
+            self._lock,
+            tick=self._tick,
+            selected_ros_topic=lambda: self._sources.get("camera", ""),
+        )
+        self._camera_decoder = H264JpegDecoder(self._camera_hub.decoded_callback)
         direct_camera_profile = self.profile.get("direct_camera", {})
         if not isinstance(direct_camera_profile, dict):
             direct_camera_profile = {}
@@ -532,7 +356,7 @@ class RosAgent:
         if runtime_interface and runtime_interface == configured_go2_interface:
             allowed_interfaces.append(runtime_interface)
         self._direct_camera = Go2MulticastCamera(
-            self._direct_camera_callback,
+            self._camera_hub.direct_callback,
             enabled=(
                 self._startup_robot_type == "go2"
                 and bool(direct_camera_profile.get("enabled", False))
@@ -564,7 +388,7 @@ class RosAgent:
             else []
         )
         self._remote_camera = RemoteMjpegCamera(
-            self._remote_camera_callback,
+            self._camera_hub.remote_callback,
             enabled=(
                 self._startup_robot_type == "go2"
                 and bool(realsense_profile.get("enabled", False))
@@ -580,44 +404,266 @@ class RosAgent:
             restart_initial_s=realsense_profile.get("restart_initial_s", 0.5),
             restart_max_s=realsense_profile.get("restart_max_s", 8.0),
         )
-        # The direct Go2 H.264 receiver is comparatively expensive (software
-        # decode + JPEG relay).  Keep it stopped unless at least one camera
-        # WebSocket is actively viewing it.  The separate lock makes the
-        # first-open/last-close transition atomic across concurrent clients.
-        self._camera_demand_lock = threading.RLock()
-        self._camera_consumers = 0
-        self._camera_accepting_demand = False
-        self._camera_demand_tokens: Dict[str, set[str]] = {
-            source_id: set() for source_id in CAMERA_SOURCE_IDS
-        }
-        self._camera_token_sources: Dict[str, str] = {}
-
-        self._cloud: Dict[str, Any] = {
-            "seq": 0,
-            "points_bytes": b"",
-            "source_points": 0,
-            "frame_id": "",
-            "bounds": None,
-            "updated": 0.0,
-        }
-        # Browser clients use this non-secret epoch to distinguish a dashboard
-        # restart from an out-of-order frame.  ROS sequence counters restart at
-        # zero with the process; without an epoch a long-lived tab could reject
-        # every frame from the new process indefinitely.
-        self._cloud_stream_id = secrets.token_urlsafe(12)
-        self._last_cloud_processed = 0.0
-
-        self._map: Dict[str, Any] = {
-            "seq": 0,
-            "width": 0,
-            "height": 0,
-            "resolution": 0.0,
-            "origin": [0.0, 0.0, 0.0],
-            "frame_id": "",
-            "data_b64": "",
-            "updated": 0.0,
-        }
+        self._camera_hub.attach(
+            self._direct_camera,
+            self._remote_camera,
+            self._camera_decoder,
+        )
         self._network_cache: Tuple[float, bool, Optional[float]] = (0.0, False, None)
+
+    # Compatibility properties keep the migration facade stable while the
+    # focused components own all observability-plane mutable state.
+    @property
+    def _stop_event(self) -> threading.Event:
+        return self._ros_runtime.stop_event
+
+    @property
+    def _thread(self) -> Optional[threading.Thread]:
+        return self._ros_runtime.thread
+
+    @_thread.setter
+    def _thread(self, value: Optional[threading.Thread]) -> None:
+        self._ros_runtime.thread = value
+
+    @property
+    def _node(self) -> Optional[Node]:
+        return self._ros_runtime.node
+
+    @_node.setter
+    def _node(self, value: Optional[Node]) -> None:
+        self._ros_runtime.node = value
+
+    @property
+    def _executor(self) -> Optional[MultiThreadedExecutor]:
+        return self._ros_runtime.executor
+
+    @_executor.setter
+    def _executor(self, value: Optional[MultiThreadedExecutor]) -> None:
+        self._ros_runtime.executor = value
+
+    @property
+    def _started_at(self) -> float:
+        return self._ros_runtime.started_at
+
+    @property
+    def _ready(self) -> bool:
+        return self._ros_runtime.ready
+
+    @_ready.setter
+    def _ready(self, value: bool) -> None:
+        self._ros_runtime.ready = bool(value)
+
+    @property
+    def _last_error(self) -> str:
+        return self._ros_runtime.last_error
+
+    @_last_error.setter
+    def _last_error(self, value: str) -> None:
+        self._ros_runtime.last_error = str(value)
+
+    @property
+    def _graph(self) -> Dict[str, Dict[str, Any]]:
+        return self._graph_monitor.graph
+
+    @_graph.setter
+    def _graph(self, value: Dict[str, Dict[str, Any]]) -> None:
+        self._graph_monitor.graph = value
+
+    @property
+    def _metrics(self) -> Dict[str, RateMeter]:
+        return self._graph_monitor.metrics
+
+    @_metrics.setter
+    def _metrics(self, value: Dict[str, RateMeter]) -> None:
+        self._graph_monitor.metrics = value
+
+    @property
+    def _subscriptions(self) -> Dict[str, Any]:
+        return self._graph_monitor.subscriptions
+
+    @property
+    def _special_subscription_topics(self) -> Dict[str, str]:
+        return self._graph_monitor.special_subscription_topics
+
+    @property
+    def _summaries(self) -> Dict[str, Dict[str, Any]]:
+        return self._telemetry_hub.summaries
+
+    @property
+    def _summary_updated(self) -> Dict[str, float]:
+        return self._telemetry_hub.summary_updated
+
+    @property
+    def _joints(self) -> Dict[str, Any]:
+        return self._telemetry_hub.joints
+
+    @_joints.setter
+    def _joints(self, value: Dict[str, Any]) -> None:
+        self._telemetry_hub.joints = value
+
+    @property
+    def _pose(self) -> Dict[str, Any]:
+        return self._telemetry_hub.pose
+
+    @_pose.setter
+    def _pose(self, value: Dict[str, Any]) -> None:
+        self._telemetry_hub.pose = value
+
+    @property
+    def _map(self) -> Dict[str, Any]:
+        return self._telemetry_hub.map
+
+    @_map.setter
+    def _map(self, value: Dict[str, Any]) -> None:
+        self._telemetry_hub.map = value
+
+    @property
+    def _joint_last_processed(self) -> float:
+        return self._telemetry_hub.joint_last_processed
+
+    @_joint_last_processed.setter
+    def _joint_last_processed(self, value: float) -> None:
+        self._telemetry_hub.joint_last_processed = value
+
+    @property
+    def _joint_stale_after(self) -> float:
+        return self._telemetry_hub.joint_stale_after_s
+
+    @property
+    def _pose_stale_after(self) -> float:
+        return self._telemetry_hub.pose_stale_after_s
+
+    @property
+    def _pose_position_limit(self) -> float:
+        return self._telemetry_hub.pose_position_limit_m
+
+    @property
+    def _sources(self) -> Dict[str, str]:
+        return self._source_registry.sources
+
+    @_sources.setter
+    def _sources(self, value: Dict[str, str]) -> None:
+        self._source_registry.sources = value
+
+    @property
+    def _requested_sources(self) -> Dict[str, str]:
+        return self._source_registry.requested_sources
+
+    @_requested_sources.setter
+    def _requested_sources(self, value: Dict[str, str]) -> None:
+        self._source_registry.requested_sources = value
+
+    @property
+    def _source_selection_path(self) -> Optional[Path]:
+        return self._source_registry.state_path
+
+    @property
+    def _source_selection_policies(self) -> Dict[str, Dict[str, Any]]:
+        return self._source_registry.policies
+
+    @property
+    def _source_selection_overrides(self) -> Dict[str, Dict[str, str]]:
+        return self._source_registry.overrides
+
+    @_source_selection_overrides.setter
+    def _source_selection_overrides(self, value: Dict[str, Dict[str, str]]) -> None:
+        self._source_registry.overrides = value
+
+    @property
+    def _source_pins(self) -> set[str]:
+        return self._source_registry.pins
+
+    @_source_pins.setter
+    def _source_pins(self, value: set[str]) -> None:
+        self._source_registry.pins = value
+
+    @property
+    def _source_selection_origins(self) -> Dict[str, str]:
+        return self._source_registry.origins
+
+    @_source_selection_origins.setter
+    def _source_selection_origins(self, value: Dict[str, str]) -> None:
+        self._source_registry.origins = value
+
+    @property
+    def cloud_max_points(self) -> Optional[int]:
+        return self._pointcloud_hub.max_points
+
+    @cloud_max_points.setter
+    def cloud_max_points(self, value: Optional[int]) -> None:
+        self._pointcloud_hub.max_points = value
+
+    @property
+    def cloud_radius_limit(self) -> float:
+        return self._pointcloud_hub.radius_limit_m
+
+    @property
+    def _cloud_frame_interval_s(self) -> float:
+        return self._pointcloud_hub.base_frame_interval_s
+
+    @property
+    def _cloud(self) -> Dict[str, Any]:
+        return self._pointcloud_hub.cloud
+
+    @_cloud.setter
+    def _cloud(self, value: Dict[str, Any]) -> None:
+        self._pointcloud_hub.cloud = value
+
+    @property
+    def _cloud_stream_id(self) -> str:
+        return self._pointcloud_hub.stream_id
+
+    @property
+    def _last_cloud_processed(self) -> float:
+        return self._pointcloud_hub.last_processed
+
+    @_last_cloud_processed.setter
+    def _last_cloud_processed(self, value: float) -> None:
+        self._pointcloud_hub.last_processed = value
+
+    @property
+    def _camera(self) -> Dict[str, Any]:
+        return self._camera_hub.camera
+
+    @_camera.setter
+    def _camera(self, value: Dict[str, Any]) -> None:
+        self._camera_hub.camera = value
+
+    @property
+    def _remote_camera_frame(self) -> Dict[str, Any]:
+        return self._camera_hub.remote_frame
+
+    @_remote_camera_frame.setter
+    def _remote_camera_frame(self, value: Dict[str, Any]) -> None:
+        self._camera_hub.remote_frame = value
+
+    @property
+    def _camera_stream_ids(self) -> Dict[str, str]:
+        return self._camera_hub.stream_ids
+
+    @property
+    def _camera_demand_lock(self) -> threading.RLock:
+        return self._camera_hub.demand_lock
+
+    @property
+    def _camera_accepting_demand(self) -> bool:
+        return self._camera_hub.accepting_demand
+
+    @_camera_accepting_demand.setter
+    def _camera_accepting_demand(self, value: bool) -> None:
+        self._camera_hub.accepting_demand = bool(value)
+
+    @property
+    def _camera_consumers(self) -> int:
+        return self._camera_hub.consumers
+
+    @property
+    def _camera_demand_tokens(self) -> Dict[str, set[str]]:
+        return self._camera_hub.demand_tokens
+
+    @property
+    def _camera_token_sources(self) -> Dict[str, str]:
+        return self._camera_hub.token_sources
 
     @staticmethod
     def _bounded_control_timeout(
@@ -646,48 +692,21 @@ class RosAgent:
 
     @classmethod
     def _normalize_cloud_max_points(cls, value: Optional[int]) -> Optional[int]:
-        if value is None:
-            return None
-        limit = int(value)
-        if limit < cls.MIN_CLOUD_POINTS or limit > cls.MAX_CUSTOM_CLOUD_POINTS:
-            raise ValueError(
-                f"max_points must be between {cls.MIN_CLOUD_POINTS} and "
-                f"{cls.MAX_CUSTOM_CLOUD_POINTS}, or null for all points"
-            )
-        return limit
+        return PointCloudHub.normalize_limit(value)
 
     def cloud_point_settings(self) -> Dict[str, Any]:
-        with self._lock:
-            limit = self.cloud_max_points
-            source_points = int(self._cloud.get("source_points", 0))
-            sent_points = int(self._cloud.get("sent_points", 0))
-        return {
-            "max_points": limit,
-            "all_points": limit is None,
-            "min_points": self.MIN_CLOUD_POINTS,
-            "max_custom_points": self.MAX_CUSTOM_CLOUD_POINTS,
-            "source_points": source_points,
-            "sent_points": sent_points,
-            "frame_interval_s": self._pointcloud_frame_interval(limit),
-            "transport": "binary_websocket",
-        }
+        return self._pointcloud_hub.settings()
 
     def _pointcloud_frame_interval(self, point_limit: Optional[int]) -> float:
         """Target at most ~4 MB/s of packed XYZ data per browser client."""
 
-        effective_points = self.MAX_CUSTOM_CLOUD_POINTS if point_limit is None else point_limit
-        byte_budget_interval = (effective_points * 12) / 4_000_000.0
-        return min(3.0, max(self._cloud_frame_interval_s, byte_budget_interval))
+        return self._pointcloud_hub.frame_interval(point_limit)
 
     def set_cloud_max_points(self, value: Optional[int]) -> Dict[str, Any]:
-        limit = self._normalize_cloud_max_points(value)
-        with self._lock:
-            if limit != self.cloud_max_points:
-                self.cloud_max_points = limit
-                self._reset_cloud_locked(self._sources.get("pointcloud", ""))
-            else:
-                self._last_cloud_processed = 0.0
-        return self.cloud_point_settings()
+        return self._pointcloud_hub.set_limit(
+            value,
+            self._sources.get("pointcloud", ""),
+        )
 
     @staticmethod
     def _load_profile(path: Optional[str]) -> Dict[str, Any]:
@@ -700,339 +719,45 @@ class RosAgent:
 
     @staticmethod
     def _normalize_source_selection_path(value: Optional[str]) -> Optional[Path]:
-        if value is None or not str(value).strip():
-            return None
-        path = Path(str(value)).expanduser()
-        return path if path.is_absolute() else Path.cwd() / path
+        return SourceRegistry.normalize_state_path(value)
 
     @staticmethod
     def _valid_source_name(value: object) -> bool:
-        if not isinstance(value, str) or not 1 <= len(value) <= 255:
-            return False
-        if not value.startswith("/") or value.endswith("/") or "//" in value:
-            return False
-        return all(character.isalnum() or character in "_~/" for character in value)
+        return SourceRegistry.valid_source_name(value)
 
     def _source_profile_scope(self) -> Dict[str, str]:
-        return {
-            "robot_type": str(self.profile.get("robot_type", "")),
-            "name": str(self.profile.get("name", "Generic ROS 2")),
-        }
+        return self._source_registry.profile_scope()
 
     def _source_policies_from_profile(self) -> Dict[str, Dict[str, Any]]:
-        raw = self.profile.get("source_selection", {}) if self.profile else {}
-        if raw is None:
-            return {}
-        if not isinstance(raw, dict):
-            raise ValueError("source_selection profile setting must be an object")
-        unknown = set(raw) - set(SOURCE_CATEGORIES)
-        if unknown:
-            raise ValueError(
-                f"unknown source_selection categories: {', '.join(sorted(unknown))}"
-            )
-        policies: Dict[str, Dict[str, Any]] = {}
-        for category, value in raw.items():
-            if not isinstance(value, dict):
-                raise ValueError(f"source_selection.{category} must be an object")
-            persistent = value.get("persistent", False)
-            fail_closed = value.get("fail_closed", False)
-            if not isinstance(persistent, bool) or not isinstance(fail_closed, bool):
-                raise ValueError(
-                    f"source_selection.{category} flags must be booleans"
-                )
-            allowed = value.get("allowed_offline", [])
-            if not isinstance(allowed, list) or any(
-                not self._valid_source_name(topic) for topic in allowed
-            ):
-                raise ValueError(
-                    f"source_selection.{category}.allowed_offline must contain ROS topics"
-                )
-            if len(set(allowed)) != len(allowed):
-                raise ValueError(
-                    f"source_selection.{category}.allowed_offline contains duplicates"
-                )
-            default = value.get("default", "")
-            if default and not self._valid_source_name(default):
-                raise ValueError(
-                    f"source_selection.{category}.default must be a ROS topic"
-                )
-            if default and default not in allowed:
-                raise ValueError(
-                    f"source_selection.{category}.default must be allowed offline"
-                )
-            if default and not fail_closed:
-                raise ValueError(
-                    f"source_selection.{category}.default requires fail_closed"
-                )
-            policies[category] = {
-                "persistent": persistent,
-                "fail_closed": fail_closed,
-                "allowed_offline": frozenset(allowed),
-                "default": default,
-            }
-        return policies
+        return self._source_registry.policies_from_profile()
 
     def _validate_source_state_file(self, path: Path) -> os.stat_result:
-        try:
-            result = path.lstat()
-        except FileNotFoundError:
-            raise
-        if stat.S_ISLNK(result.st_mode) or not stat.S_ISREG(result.st_mode):
-            raise ValueError("source selection state must be a regular file")
-        if result.st_uid != os.geteuid():
-            raise ValueError("source selection state must be owned by the service user")
-        if stat.S_IMODE(result.st_mode) != 0o600:
-            raise ValueError("source selection state permissions must be 0600")
-        if result.st_size > SOURCE_SELECTION_STATE_MAX_BYTES:
-            raise ValueError("source selection state exceeds the size limit")
-        return result
+        return SourceRegistry.validate_state_file(path)
 
     def _load_source_selection_overrides(self) -> Dict[str, Dict[str, str]]:
-        path = self._source_selection_path
-        if path is None:
-            return {}
-        try:
-            expected = self._validate_source_state_file(path)
-        except FileNotFoundError:
-            return {}
-        flags = os.O_RDONLY
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        try:
-            descriptor = os.open(path, flags)
-        except OSError as exc:
-            raise ValueError(f"cannot open source selection state: {exc}") from exc
-        try:
-            actual = os.fstat(descriptor)
-            if (
-                not stat.S_ISREG(actual.st_mode)
-                or actual.st_dev != expected.st_dev
-                or actual.st_ino != expected.st_ino
-            ):
-                raise ValueError("source selection state changed while opening")
-            payload = os.read(descriptor, SOURCE_SELECTION_STATE_MAX_BYTES + 1)
-        finally:
-            os.close(descriptor)
-        if len(payload) > SOURCE_SELECTION_STATE_MAX_BYTES:
-            raise ValueError("source selection state exceeds the size limit")
-        try:
-            document = json.loads(payload.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError("source selection state is not valid JSON") from exc
-        if not isinstance(document, dict):
-            raise ValueError("source selection state must be an object")
-        if document.get("version") != SOURCE_SELECTION_STATE_VERSION:
-            raise ValueError("unsupported source selection state version")
-        if document.get("profile") != self._source_profile_scope():
-            return {}
-        selections = document.get("selections", {})
-        if not isinstance(selections, dict):
-            raise ValueError("source selection state selections must be an object")
-        overrides: Dict[str, Dict[str, str]] = {}
-        for category, entry in selections.items():
-            policy = self._source_selection_policies.get(category)
-            if not policy or not policy["persistent"]:
-                continue
-            if not isinstance(entry, dict):
-                raise ValueError(f"persisted {category} selection must be an object")
-            mode = entry.get("mode")
-            topic = entry.get("topic")
-            if mode != "pinned" or not self._valid_source_name(topic):
-                raise ValueError(f"persisted {category} selection is invalid")
-            if topic not in policy["allowed_offline"]:
-                raise ValueError(
-                    f"persisted {category} selection is not allowed by this profile"
-                )
-            overrides[category] = {"mode": "pinned", "topic": str(topic)}
-        return overrides
+        return self._source_registry.load_overrides()
 
     def _apply_startup_source_selection(self) -> None:
-        for category, policy in self._source_selection_policies.items():
-            override = self._source_selection_overrides.get(category)
-            if override:
-                topic = override["topic"]
-                self._requested_sources[category] = topic
-                self._sources[category] = topic
-                if policy["fail_closed"]:
-                    self._source_pins.add(category)
-                self._source_selection_origins[category] = "persisted"
-                continue
-            default = str(policy.get("default", ""))
-            if default:
-                self._requested_sources[category] = default
-                self._sources[category] = default
-                self._source_pins.add(category)
-                self._source_selection_origins[category] = "profile_default"
+        self._source_registry.apply_startup_selection()
 
     def _write_source_selection_overrides(
         self,
         overrides: Dict[str, Dict[str, str]],
     ) -> None:
-        path = self._source_selection_path
-        if path is None:
-            return
-        document = {
-            "version": SOURCE_SELECTION_STATE_VERSION,
-            "profile": self._source_profile_scope(),
-            "selections": overrides,
-        }
-        payload = (
-            json.dumps(document, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
-            + "\n"
-        ).encode("utf-8")
-        if len(payload) > SOURCE_SELECTION_STATE_MAX_BYTES:
-            raise ValueError("source selection state exceeds the size limit")
-        parent = path.parent
-        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        parent_stat = parent.lstat()
-        if stat.S_ISLNK(parent_stat.st_mode) or not stat.S_ISDIR(parent_stat.st_mode):
-            raise ValueError("source selection state directory must be a real directory")
-        try:
-            self._validate_source_state_file(path)
-        except FileNotFoundError:
-            pass
-        descriptor = -1
-        temporary = ""
-        try:
-            descriptor, temporary = tempfile.mkstemp(
-                prefix=f".{path.name}.",
-                dir=parent,
-            )
-            os.fchmod(descriptor, 0o600)
-            with os.fdopen(descriptor, "wb") as handle:
-                descriptor = -1
-                handle.write(payload)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, path)
-            temporary = ""
-            os.chmod(path, 0o600, follow_symlinks=False)
-            directory_flags = os.O_RDONLY
-            if hasattr(os, "O_DIRECTORY"):
-                directory_flags |= os.O_DIRECTORY
-            directory_fd = os.open(parent, directory_flags)
-            try:
-                os.fsync(directory_fd)
-            finally:
-                os.close(directory_fd)
-        except OSError as exc:
-            raise ValueError(f"cannot persist source selection: {exc}") from exc
-        finally:
-            if descriptor >= 0:
-                os.close(descriptor)
-            if temporary:
-                try:
-                    os.unlink(temporary)
-                except FileNotFoundError:
-                    pass
+        self._source_registry.write_overrides(overrides)
 
     def start(self) -> None:
-        if self._thread and self._thread.is_alive():
-            return
         with self._camera_demand_lock:
             self._camera_accepting_demand = True
-        self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run, name="robot-scope-ros", daemon=True)
-        self._thread.start()
+        self._ros_runtime.start(self._run)
 
     @staticmethod
     def _valid_camera_source_id(source_id: object) -> bool:
-        return isinstance(source_id, str) and source_id in CAMERA_SOURCE_IDS
+        return CameraHub.valid_source_id(source_id)
 
     def camera_stream_open(self, source_id: str = "go2_front") -> Dict[str, Any]:
         """Acquire one opaque, exactly-once demand token for a fixed source."""
-
-        if not self._valid_camera_source_id(source_id):
-            return {
-                "accepted": False,
-                "reason": "camera_source_not_found",
-                "consumers": self._camera_consumers,
-            }
-        with self._camera_demand_lock:
-            if not self._camera_accepting_demand:
-                return {
-                    "accepted": False,
-                    "reason": "camera_relay_shutting_down",
-                    "consumers": self._camera_consumers,
-                }
-            if len(self._camera_token_sources) >= MAX_CAMERA_VIEWERS:
-                return {
-                    "accepted": False,
-                    "reason": "camera_viewer_limit_reached",
-                    "consumers": self._camera_consumers,
-                }
-            if len(self._camera_demand_tokens[source_id]) >= MAX_CAMERA_VIEWERS_PER_SOURCE:
-                return {
-                    "accepted": False,
-                    "reason": "camera_source_viewer_limit_reached",
-                    "consumers": self._camera_consumers,
-                }
-            active_sources = sum(
-                1 for source_tokens in self._camera_demand_tokens.values() if source_tokens
-            )
-            if (
-                not self._camera_demand_tokens[source_id]
-                and active_sources >= MAX_ACTIVE_CAMERA_SOURCES
-            ):
-                return {
-                    "accepted": False,
-                    "reason": "active_camera_source_limit_reached",
-                    "consumers": self._camera_consumers,
-                }
-            status = (
-                self._direct_camera.status()
-                if source_id == "go2_front"
-                else self._remote_camera.status()
-            )
-            # ``go2_front`` also names the original ROS camera stream when a
-            # profile has no direct multicast receiver.  Keep the legacy
-            # source-less WebSocket usable for generic ROS profiles.
-            if source_id != "go2_front" and not bool(status.get("configured", False)):
-                return {
-                    "accepted": False,
-                    "reason": "camera_source_unavailable",
-                    "consumers": self._camera_consumers,
-                }
-            token = secrets.token_urlsafe(24)
-            tokens = self._camera_demand_tokens[source_id]
-            first_for_source = not tokens
-            tokens.add(token)
-            self._camera_token_sources[token] = source_id
-            self._camera_consumers = len(self._camera_token_sources)
-            if first_for_source:
-                self._clear_camera_frame(source_id)
-                receiver = (
-                    self._direct_camera
-                    if source_id == "go2_front"
-                    else self._remote_camera
-                )
-                try:
-                    started = (
-                        receiver.start()
-                        if source_id != "go2_front" or self._direct_camera.configured
-                        else True
-                    )
-                except Exception:
-                    tokens.remove(token)
-                    self._camera_token_sources.pop(token, None)
-                    self._camera_consumers = len(self._camera_token_sources)
-                    raise
-                if not started:
-                    tokens.remove(token)
-                    self._camera_token_sources.pop(token, None)
-                    self._camera_consumers = len(self._camera_token_sources)
-                    return {
-                        "accepted": False,
-                        "reason": "camera_source_unavailable",
-                        "consumers": self._camera_consumers,
-                    }
-            return {
-                "accepted": True,
-                "source_id": source_id,
-                "token": token,
-                "consumers": self._camera_consumers,
-                "source_viewers": len(tokens),
-            }
+        return self._camera_hub.stream_open(source_id)
 
     def camera_stream_close(
         self,
@@ -1040,78 +765,11 @@ class RosAgent:
         token: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Release a demand token once; duplicate/foreign closes are no-ops."""
-
-        if not self._valid_camera_source_id(source_id):
-            return {"released": False, "consumers": self._camera_consumers}
-        with self._camera_demand_lock:
-            tokens = self._camera_demand_tokens[source_id]
-            release_token = token
-            if (
-                not release_token
-                or self._camera_token_sources.get(release_token) != source_id
-                or release_token not in tokens
-            ):
-                return {
-                    "released": False,
-                    "consumers": len(self._camera_token_sources),
-                    "source_viewers": len(tokens),
-                }
-            tokens.remove(release_token)
-            self._camera_token_sources.pop(release_token, None)
-            self._camera_consumers = len(self._camera_token_sources)
-            if not tokens:
-                receiver = (
-                    self._direct_camera
-                    if source_id == "go2_front"
-                    else self._remote_camera
-                )
-                receiver.stop()
-                self._clear_camera_frame(source_id)
-            return {
-                "released": True,
-                "consumers": self._camera_consumers,
-                "source_viewers": len(tokens),
-            }
+        return self._camera_hub.stream_close(source_id, token)
 
     def _clear_camera_frame(self, source_id: str = "go2_front") -> None:
         """Drop only the selected source's frame between viewer sessions."""
-
-        with self._lock:
-            target = (
-                self._camera
-                if source_id == "go2_front"
-                else self._remote_camera_frame
-            )
-            cleared = {
-                "seq": int(target.get("seq", 0)) + 1,
-                "format": "none",
-                "data": b"",
-                "stamp_us": 0,
-                "key": False,
-                "width": 0,
-                "height": 0,
-                "encoding": "",
-                "source": "go2_multicast" if source_id == "go2_front" else "remote_mjpeg",
-                "source_id": source_id,
-                "source_label": (
-                    "Go2 front camera"
-                    if source_id == "go2_front"
-                    else "RealSense color camera"
-                ),
-                "transport": (
-                    "udp_multicast_rtp_h264"
-                    if source_id == "go2_front"
-                    else "http_mjpeg"
-                ),
-                "state": "waiting",
-                "fps": None,
-                "age_s": None,
-                "updated": 0.0,
-            }
-            if source_id == "go2_front":
-                self._camera = cleared
-            else:
-                self._remote_camera_frame = cleared
+        self._camera_hub.clear_frame(source_id)
 
     def stop(self) -> None:
         # Publish the manager's final signed stop while the ROS node and
@@ -1119,24 +777,10 @@ class RosAgent:
         # as a second line of defence if transport is already unavailable.
         self.navigation_deactivate("agent_stop")
         self.shutdown_control()
-        self._stop_event.set()
-        with self._camera_demand_lock:
-            self._camera_accepting_demand = False
-            self._camera_consumers = 0
-            self._camera_token_sources.clear()
-            for tokens in self._camera_demand_tokens.values():
-                tokens.clear()
-            self._direct_camera.stop()
-            self._remote_camera.stop()
-        self._camera_decoder.stop()
-        executor = self._executor
-        if executor:
-            try:
-                executor.shutdown(timeout_sec=2.0)
-            except Exception:
-                pass
-        if self._thread:
-            self._thread.join(timeout=4.0)
+        self._ros_runtime.request_stop()
+        self._camera_hub.shutdown()
+        self._ros_runtime.shutdown_executor()
+        self._ros_runtime.join()
 
     def _run(self) -> None:
         try:
@@ -3281,20 +2925,7 @@ class RosAgent:
         if not node:
             return
         try:
-            discovered: Dict[str, Dict[str, Any]] = {}
-            for topic, types in node.get_topic_names_and_types():
-                if topic.startswith("/_"):
-                    continue
-                type_name = types[0] if len(types) == 1 else ""
-                discovered[topic] = {
-                    "name": topic,
-                    "types": list(types),
-                    "type": type_name,
-                    "category": classify_type(type_name) if type_name else "conflict",
-                    "publishers": node.count_publishers(topic),
-                    "subscribers": node.count_subscribers(topic),
-                    "supported": bool(type_name and (is_observable_type(type_name) or classify_type(type_name) in {"camera", "pointcloud", "occupancy_grid", "path"})),
-                }
+            discovered = self._graph_monitor.discover(node)
             with self._lock:
                 self._graph = discovered
                 self._pick_default_sources_locked()
@@ -3344,30 +2975,13 @@ class RosAgent:
                     self._reset_cloud_locked(chosen)
 
     def _reset_pose_locked(self, topic: str) -> None:
-        self._pose = {
-            "seq": int(self._pose.get("seq", 0)) + 1,
-            "topic": topic,
-            "type": str(self._graph.get(topic, {}).get("type", "")),
-            "pose": None,
-            "stamp_ns": 0,
-            "updated": 0.0,
-        }
+        self._telemetry_hub.reset_pose(
+            topic,
+            str(self._graph.get(topic, {}).get("type", "")),
+        )
 
     def _reset_cloud_locked(self, topic: str) -> None:
-        self._cloud = {
-            "seq": int(self._cloud.get("seq", 0)) + 1,
-            "points_bytes": b"",
-            "sent_points": 0,
-            "source_points": 0,
-            "frame_id": "",
-            "stamp_ns": 0,
-            "units": "m",
-            "bounds": None,
-            "topic": topic,
-            "robot_pose_in_frame": None,
-            "updated": 0.0,
-        }
-        self._last_cloud_processed = 0.0
+        self._pointcloud_hub.reset(topic)
 
     def _sync_special_subscriptions(self) -> None:
         for category in ("camera", "pointcloud", "occupancy_grid"):
@@ -3555,8 +3169,7 @@ class RosAgent:
                 pass
 
     def _tick(self, topic: str, now: float) -> None:
-        with self._lock:
-            self._metrics.setdefault(topic, RateMeter()).tick(now)
+        self._graph_monitor.tick(topic, now)
 
     def _summary_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
@@ -3566,43 +3179,18 @@ class RosAgent:
         self._store_summary(topic, type_name, message, now)
 
     def _update_pose(self, topic: str, type_name: str, message: Any, now: float) -> None:
-        with self._lock:
-            if topic != self._sources.get("odometry", ""):
-                return
-        pose = extract_odometry_pose(
-            message,
+        self._telemetry_hub.update_pose(
+            topic,
             type_name,
-            position_limit_m=self._pose_position_limit,
+            message,
+            now,
+            selected_topic=lambda: self._sources.get("odometry", ""),
+            stamp_ns=self._stamp_ns,
         )
-        if pose is None:
-            return
-        with self._lock:
-            if topic != self._sources.get("odometry", ""):
-                return
-            self._pose = {
-                "seq": int(self._pose.get("seq", 0)) + 1,
-                "topic": topic,
-                "type": type_name,
-                "pose": pose,
-                "stamp_ns": self._stamp_ns(message),
-                "updated": now,
-            }
 
     def _store_summary(self, topic: str, type_name: str, message: Any, now: float) -> None:
-        with self._lock:
-            last = self._summary_updated.get(topic, 0.0)
-        if now - last < 0.2:
-            return
         try:
-            summary = summarize_message(message, type_name)
-            with self._lock:
-                self._summaries[topic] = {
-                    "topic": topic,
-                    "type": type_name,
-                    "category": classify_type(type_name),
-                    "values": summary,
-                }
-                self._summary_updated[topic] = now
+            self._telemetry_hub.store_summary(topic, type_name, message, now)
         except Exception as exc:
             with self._lock:
                 self._last_error = f"summarize {topic}: {exc}"
@@ -3616,281 +3204,55 @@ class RosAgent:
                 return
         self._tick(topic, now)
         self._store_summary(topic, type_name, message, now)
-        # LowState is commonly 500 Hz.  A 50 Hz model stream is smooth while
-        # avoiding needless repeated list construction and lock contention.
-        if now - self._joint_last_processed < 0.02:
-            return
-        self._joint_last_processed = now
-        positions = extract_go2_joint_positions(message, type_name)
-        if positions is None:
-            return
-        imu_rpy = extract_go2_imu_rpy(message, type_name)
-        source_order = "named_joint_state" if type_name == "sensor_msgs/msg/JointState" else "unitree_lowstate"
-        with self._lock:
-            if topic != self._special_subscription_topics.get("joints", ""):
-                return
-            self._joints = {
-                "seq": self._joints["seq"] + 1,
-                "topic": topic,
-                "type": type_name,
-                "position_rad": positions,
-                "imu_rpy_rad": imu_rpy,
-                "source_order": source_order,
-                "stamp_ns": self._stamp_ns(message),
-                "updated": now,
-            }
+        self._telemetry_hub.update_joints(
+            topic,
+            type_name,
+            message,
+            now,
+            selected_topic=lambda: self._special_subscription_topics.get("joints", ""),
+            stamp_ns=self._stamp_ns,
+        )
 
     def _camera_callback(self, topic: str, type_name: str, message: Any) -> None:
-        now = time.monotonic()
-        self._tick(topic, now)
-        if self._direct_camera.configured:
-            # The Go2 profile deliberately uses the factory multicast feed as
-            # its sole camera transport.  A manually selected legacy ROS topic
-            # remains measurable in the graph but cannot race and overwrite the
-            # direct JPEG stream.
-            return
-        camera: Dict[str, Any]
-        if type_name.endswith("/Go2FrontVideoData"):
-            payload = bytes(getattr(message, "video720p", b""))
-            stamp = int(getattr(message, "time_frame", 0))
-            start = self._first_start_code(payload)
-            if 0 < start <= 16:
-                payload = payload[start:]
-            if not payload:
-                return
-            if self._h264_pending_stamp == 0:
-                self._h264_pending_stamp = stamp
-                self._h264_pending.extend(payload)
-                return
-            if stamp == self._h264_pending_stamp:
-                self._h264_pending.extend(payload)
-                if len(self._h264_pending) > 16 * 1024 * 1024:
-                    self._h264_pending.clear()
-                    self._h264_pending_stamp = 0
-                return
-            completed_stamp = self._h264_pending_stamp
-            completed = bytes(self._h264_pending)
-            self._h264_pending.clear()
-            self._h264_pending.extend(payload)
-            self._h264_pending_stamp = stamp
-            payload, key = self._prepare_h264(completed)
-            if self._camera_decoder.feed(payload):
-                return
-            camera = {
-                "format": "h264",
-                "data": payload,
-                "stamp_us": completed_stamp or int(time.time() * 1_000_000),
-                "key": key,
-                "width": 1280,
-                "height": 720,
-                "encoding": "avc1.42E01E",
-                "source": "ros_topic",
-                "transport": "ros2",
-                "state": "ok",
-            }
-        elif type_name == "sensor_msgs/msg/CompressedImage":
-            fmt = str(getattr(message, "format", "jpeg")).lower()
-            camera = {
-                "format": "jpeg" if "jpeg" in fmt or "jpg" in fmt else "png",
-                "data": bytes(getattr(message, "data", b"")),
-                "stamp_us": int(time.time() * 1_000_000),
-                "key": True,
-                "width": 0,
-                "height": 0,
-                "encoding": fmt,
-                "source": "ros_topic",
-                "transport": "ros2",
-                "state": "ok",
-            }
-        else:
-            camera = {
-                "format": "raw",
-                "data": bytes(getattr(message, "data", b"")),
-                "stamp_us": int(time.time() * 1_000_000),
-                "key": True,
-                "width": int(getattr(message, "width", 0)),
-                "height": int(getattr(message, "height", 0)),
-                "step": int(getattr(message, "step", 0)),
-                "encoding": str(getattr(message, "encoding", "")),
-                "source": "ros_topic",
-                "transport": "ros2",
-                "state": "ok",
-            }
-        if not camera["data"]:
-            return
-        with self._lock:
-            camera["seq"] = self._camera["seq"] + 1
-            camera["topic"] = topic
-            camera["updated"] = now
-            self._camera = camera
+        self._camera_hub.ros_callback(topic, type_name, message)
 
     def _decoded_camera_callback(self, jpeg: bytes) -> None:
-        if self._direct_camera.configured:
-            return
-        now = time.monotonic()
-        with self._lock:
-            self._camera = {
-                "format": "jpeg",
-                "data": jpeg,
-                "stamp_us": int(time.time() * 1_000_000),
-                "key": True,
-                "width": 640,
-                "height": 360,
-                "encoding": "jpeg",
-                "seq": self._camera["seq"] + 1,
-                "topic": self._sources.get("camera", "/frontvideostream"),
-                "updated": now,
-                "decoder": "gstreamer",
-                "source": "ros_topic",
-                "transport": "ros2",
-                "state": "ok",
-            }
+        self._camera_hub.decoded_callback(jpeg)
 
     def _direct_camera_callback(self, jpeg: bytes) -> None:
         """Store one JPEG decoded from the Go2's non-ROS RTP multicast."""
-
-        now = time.monotonic()
-        status = self._direct_camera.status()
-        with self._lock:
-            self._camera = {
-                "format": "jpeg",
-                "data": jpeg,
-                "stamp_us": int(time.time() * 1_000_000),
-                "key": True,
-                "width": int(status.get("width", 1280)),
-                "height": int(status.get("height", 720)),
-                "encoding": "jpeg",
-                "seq": int(self._camera.get("seq", 0)) + 1,
-                "topic": str(status.get("uri", "go2-camera://230.1.1.1:1720")),
-                "source": "go2_multicast",
-                "source_id": "go2_front",
-                "source_label": str(status.get("source_label", "Go2 front camera")),
-                "transport": str(status.get("transport", "udp_multicast_rtp_h264")),
-                "interface": str(status.get("interface", "")),
-                "fps": status.get("fps"),
-                "age_s": status.get("age_s"),
-                "state": "ok",
-                "updated": now,
-                "decoder": "gstreamer",
-            }
+        self._camera_hub.direct_callback(jpeg)
 
     def _remote_camera_callback(self, jpeg: bytes) -> None:
         """Store a RealSense JPEG independently from the Go2 front stream."""
-
-        now = time.monotonic()
-        status = self._remote_camera.status()
-        with self._lock:
-            self._remote_camera_frame = {
-                "format": "jpeg",
-                "data": jpeg,
-                "stamp_us": int(time.time() * 1_000_000),
-                "key": True,
-                "width": 0,
-                "height": 0,
-                "encoding": "jpeg",
-                "seq": int(self._remote_camera_frame.get("seq", 0)) + 1,
-                "topic": str(status.get("uri", "")),
-                "source": "remote_mjpeg",
-                "source_id": "realsense_color",
-                "source_label": str(
-                    status.get("source_label", "RealSense color camera")
-                ),
-                "transport": "http_mjpeg",
-                "fps": status.get("fps"),
-                "age_s": status.get("age_s"),
-                "state": "ok",
-                "updated": now,
-                "decoder": "upstream_jpeg",
-            }
+        self._camera_hub.remote_callback(jpeg)
 
     @staticmethod
     def _first_start_code(payload: bytes) -> int:
-        indexes = [index for index in (payload.find(b"\x00\x00\x00\x01"), payload.find(b"\x00\x00\x01")) if index >= 0]
-        return min(indexes) if indexes else -1
+        return CameraHub.first_start_code(payload)
 
     @staticmethod
     def _nal_units(payload: bytes) -> List[Tuple[int, int, int]]:
-        starts: List[Tuple[int, int]] = []
-        index = 0
-        while index < len(payload) - 3:
-            if payload[index : index + 4] == b"\x00\x00\x00\x01":
-                starts.append((index, 4))
-                index += 4
-            elif payload[index : index + 3] == b"\x00\x00\x01":
-                starts.append((index, 3))
-                index += 3
-            else:
-                index += 1
-        units: List[Tuple[int, int, int]] = []
-        for pos, (start, prefix) in enumerate(starts):
-            end = starts[pos + 1][0] if pos + 1 < len(starts) else len(payload)
-            header = start + prefix
-            if header < end:
-                units.append((payload[header] & 0x1F, start, end))
-        return units
+        return CameraHub.nal_units(payload)
 
     def _prepare_h264(self, payload: bytes) -> Tuple[bytes, bool]:
-        units = self._nal_units(payload)
-        if units:
-            payload = payload[units[0][1] :]
-            units = self._nal_units(payload)
-        present = {unit_type for unit_type, _, _ in units}
-        for unit_type, start, end in units:
-            if unit_type == 7:
-                self._h264_sps = payload[start:end]
-            elif unit_type == 8:
-                self._h264_pps = payload[start:end]
-        key = 5 in present
-        if key:
-            prefix = b""
-            if 7 not in present:
-                prefix += self._h264_sps
-            if 8 not in present:
-                prefix += self._h264_pps
-            payload = prefix + payload
-        return payload, key
+        return self._camera_hub.prepare_h264(payload)
 
     def _pointcloud_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
         with self._lock:
             if topic != self._sources.get("pointcloud", ""):
                 return
-            point_limit = self.cloud_max_points
-            frame_interval = self._pointcloud_frame_interval(point_limit)
         self._tick(topic, now)
-        if now - self._last_cloud_processed < frame_interval:
-            return
-        self._last_cloud_processed = now
         try:
-            # "ALL SESSION" is a browser-side reservoir.  A single ROS frame
-            # remains capped at one million samples so one malformed or very
-            # large /Laser_map message cannot create an unbounded WS payload.
-            extraction_limit = self.MAX_CUSTOM_CLOUD_POINTS if point_limit is None else point_limit
-            array, source_points = extract_xyz(message, extraction_limit)
-            array = reject_spatial_outliers(array, self.cloud_radius_limit)
-            if not len(array):
-                return
-            mins = [float(value) for value in np.min(array, axis=0)]
-            maxs = [float(value) for value in np.max(array, axis=0)]
-            packed_points = np.ascontiguousarray(array, dtype="<f4").reshape(-1).tobytes()
-            with self._lock:
-                if topic != self._sources.get("pointcloud", ""):
-                    return
-                self._cloud = {
-                    "seq": self._cloud["seq"] + 1,
-                    "points_bytes": packed_points,
-                    "sent_points": int(array.shape[0]),
-                    "source_points": source_points,
-                    "frame_id": str(getattr(getattr(message, "header", None), "frame_id", "")),
-                    "stamp_ns": self._stamp_ns(message),
-                    "units": "m",
-                    "bounds": {"min": mins, "max": maxs},
-                    "topic": topic,
-                    "robot_pose_in_frame": self._robot_pose_in_cloud_frame(
-                        str(getattr(getattr(message, "header", None), "frame_id", ""))
-                    ),
-                    "updated": now,
-                }
+            self._pointcloud_hub.process(
+                topic,
+                message,
+                now,
+                selected_topic=lambda: self._sources.get("pointcloud", ""),
+                stamp_ns=self._stamp_ns,
+                robot_pose_in_frame=self._robot_pose_in_cloud_frame,
+            )
         except Exception as exc:
             with self._lock:
                 self._last_error = f"pointcloud {topic}: {exc}"
@@ -3899,121 +3261,24 @@ class RosAgent:
         now = time.monotonic()
         self._tick(topic, now)
         try:
-            info = message.info
-            width = int(info.width)
-            height = int(info.height)
-            cells = width * height
-            if width <= 0 or height <= 0 or cells > 16_000_000 or len(message.data) != cells:
-                raise ValueError(f"invalid OccupancyGrid dimensions/data: {width}x{height}, {len(message.data)} cells")
-            origin = info.origin.position
-            orientation = info.origin.orientation
-            yaw = math.atan2(
-                2.0 * (orientation.w * orientation.z + orientation.x * orientation.y),
-                1.0 - 2.0 * (orientation.y * orientation.y + orientation.z * orientation.z),
+            self._telemetry_hub.update_map(
+                topic,
+                message,
+                now,
+                stamp_ns=self._stamp_ns,
             )
-            raw = bytes((int(value) & 0xFF for value in message.data))
-            with self._lock:
-                self._map = {
-                    "seq": self._map["seq"] + 1,
-                    "width": width,
-                    "height": height,
-                    "resolution": float(info.resolution),
-                    "origin": [float(origin.x), float(origin.y), float(yaw)],
-                    "origin_pose": {
-                        "position": {"x": float(origin.x), "y": float(origin.y), "z": float(origin.z)},
-                        "orientation": {
-                            "x": float(orientation.x), "y": float(orientation.y),
-                            "z": float(orientation.z), "w": float(orientation.w),
-                        },
-                        "yaw": float(yaw),
-                    },
-                    "frame_id": str(message.header.frame_id),
-                    "stamp_ns": self._stamp_ns(message),
-                    "data_b64": base64.b64encode(raw).decode("ascii"),
-                    "data_encoding": "int8-base64",
-                    "cell_order": "row-major; cell(0,0) at origin",
-                    "topic": topic,
-                    "updated": now,
-                }
         except Exception as exc:
             with self._lock:
                 self._last_error = f"map {topic}: {exc}"
 
     def set_sources(self, values: Dict[str, str]) -> Dict[str, Any]:
         with self._lock:
-            requested = dict(self._requested_sources)
-            origins = dict(self._source_selection_origins)
-            pins = set(self._source_pins)
-            overrides = copy.deepcopy(self._source_selection_overrides)
-            for category in self._requested_sources:
-                candidate = values.get(category)
-                if candidate is None:
-                    continue
-                if category == "camera" and self._direct_camera.configured:
-                    if candidate == self._direct_camera.source_uri:
-                        continue
-                    raise ValueError(
-                        "Go2 direct camera is active; ROS camera selection is locked"
-                    )
-                policy = self._source_selection_policies.get(category)
-                item = self._graph.get(candidate) if candidate else None
-                allowed_offline = bool(
-                    candidate
-                    and policy
-                    and candidate in policy["allowed_offline"]
-                )
-                if candidate and item is None and not allowed_offline:
-                    raise ValueError(f"unknown ROS topic: {candidate}")
-                if candidate and item is not None and item.get("category") != category:
-                    raise ValueError(f"{candidate} is not a {category} topic")
-                if (
-                    candidate
-                    and policy
-                    and policy["persistent"]
-                    and policy["fail_closed"]
-                    and candidate not in policy["allowed_offline"]
-                ):
-                    raise ValueError(
-                        f"{candidate} is not allowed for persistent {category} selection"
-                    )
-
-                if not policy:
-                    requested[category] = candidate
-                    origins[category] = "user" if candidate else "auto"
-                    pins.discard(category)
-                    continue
-
-                if candidate:
-                    requested[category] = candidate
-                    origins[category] = "user"
-                    if policy["fail_closed"]:
-                        pins.add(category)
-                    else:
-                        pins.discard(category)
-                    if policy["persistent"]:
-                        overrides[category] = {
-                            "mode": "pinned",
-                            "topic": candidate,
-                        }
-                else:
-                    # Empty means "remove my override".  A configured default
-                    # is then restored; it is deliberately not an AUTO escape
-                    # hatch from a profile's fail-closed sensor policy.
-                    overrides.pop(category, None)
-                    default = str(policy.get("default", ""))
-                    requested[category] = default
-                    origins[category] = "profile_default" if default else "auto"
-                    if default and policy["fail_closed"]:
-                        pins.add(category)
-                    else:
-                        pins.discard(category)
-
-            if overrides != self._source_selection_overrides:
-                self._write_source_selection_overrides(overrides)
-            self._source_selection_overrides = overrides
-            self._requested_sources = requested
-            self._source_selection_origins = origins
-            self._source_pins = pins
+            self._source_registry.apply_selection(
+                values,
+                self._graph,
+                direct_camera_configured=self._direct_camera.configured,
+                direct_camera_uri=self._direct_camera.source_uri,
+            )
             self._pick_default_sources_locked()
         return self.sources_snapshot()
 
@@ -4443,56 +3708,13 @@ class RosAgent:
             }
 
     def _metric_snapshot(self, topic: str, category: str) -> Dict[str, Any]:
-        now = time.monotonic()
-        meter = self._metrics.get(topic)
-        hz = meter.hz() if meter else None
-        age = round(now - meter.last, 3) if meter and meter.last is not None else None
-        # Some robot DDS bridges deliver otherwise high-rate topics in short bursts.
-        # Keep the UI from reporting a false disconnect between those bursts.
-        threshold = 3.0 if category in {"imu", "robot_state", "odometry"} else 5.0
-        if not meter or meter.last is None:
-            state = "waiting"
-        elif category == "occupancy_grid":
-            # Static map servers commonly publish once with TRANSIENT_LOCAL
-            # durability.  An old sample is still the current valid map.
-            state = "ok"
-        elif age is not None and age > threshold:
-            state = "stale"
-        else:
-            state = "ok"
-        return {
-            "hz": hz,
-            "jitter_ms": meter.jitter_ms() if meter else None,
-            "age_s": age,
-            "samples": meter.samples if meter else 0,
-            "state": state,
-        }
+        return self._graph_monitor.metric_snapshot(topic, category)
 
     def topics_snapshot(self) -> List[Dict[str, Any]]:
-        with self._lock:
-            result: List[Dict[str, Any]] = []
-            selected = set(self._sources.values())
-            for topic, item in self._graph.items():
-                row = dict(item)
-                row.update(self._metric_snapshot(topic, item.get("category", "")))
-                row["selected"] = topic in selected
-                result.append(row)
-            return sorted(result, key=lambda row: (row["category"], row["name"]))
+        return self._graph_monitor.topics_snapshot(set(self._sources.values()))
 
     def _joint_snapshot_locked(self, now: float) -> Dict[str, Any]:
-        joint_data = dict(self._joints)
-        return go2_joint_state_payload(
-            topic=str(joint_data.get("topic", "")),
-            type_name=str(joint_data.get("type", "")),
-            positions=joint_data.get("position_rad"),
-            updated_at=float(joint_data.get("updated", 0.0)),
-            now=now,
-            stale_after_s=self._joint_stale_after,
-            seq=int(joint_data.get("seq", 0)),
-            stamp_ns=int(joint_data.get("stamp_ns", 0)),
-            source_order=str(joint_data.get("source_order", "")),
-            imu_rpy_rad=joint_data.get("imu_rpy_rad"),
-        )
+        return self._telemetry_hub.joint_snapshot_locked(now)
 
     def joint_snapshot(self) -> Dict[str, Any]:
         """Return the small joint-only snapshot for a high-rate API/WS route."""
@@ -4501,17 +3723,7 @@ class RosAgent:
             return self._joint_snapshot_locked(time.monotonic())
 
     def _pose_snapshot_locked(self, now: float) -> Dict[str, Any]:
-        pose_data = dict(self._pose)
-        return odometry_pose_payload(
-            topic=str(pose_data.get("topic", "")),
-            type_name=str(pose_data.get("type", "")),
-            pose=pose_data.get("pose"),
-            updated_at=float(pose_data.get("updated", 0.0)),
-            now=now,
-            stale_after_s=self._pose_stale_after,
-            seq=int(pose_data.get("seq", 0)),
-            stamp_ns=int(pose_data.get("stamp_ns", 0)),
-        )
+        return self._telemetry_hub.pose_snapshot_locked(now)
 
     def pose_snapshot(self) -> Dict[str, Any]:
         """Return the selected world pose without the large state payload."""
@@ -4520,105 +3732,14 @@ class RosAgent:
             return self._pose_snapshot_locked(time.monotonic())
 
     def _camera_snapshot_locked(self) -> Dict[str, Any]:
-        snapshot = dict(self._camera)
-        snapshot["stream_id"] = self._camera_stream_ids["go2_front"]
-        snapshot["source_id"] = "go2_front"
-        direct_status = self._direct_camera.status()
-        snapshot["direct_camera"] = direct_status
-        direct_active = bool(
-            direct_status.get("enabled") and direct_status.get("configured")
-        )
-        if direct_active:
-            snapshot.update(
-                {
-                    "topic": direct_status.get("uri", "go2-camera://230.1.1.1:1720"),
-                    "source": direct_status.get("source", "go2_multicast"),
-                    "source_label": direct_status.get("source_label", "Go2 front camera"),
-                    "transport": direct_status.get("transport", "udp_multicast_rtp_h264"),
-                    "interface": direct_status.get("interface", ""),
-                    "state": direct_status.get("state", "waiting"),
-                    "fps": direct_status.get("fps"),
-                    "age_s": direct_status.get("age_s"),
-                }
-            )
-        else:
-            updated = float(snapshot.get("updated", 0.0) or 0.0)
-            snapshot["age_s"] = (
-                round(max(0.0, time.monotonic() - updated), 3) if updated else None
-            )
-            if snapshot.get("state") == "ok" and (
-                snapshot["age_s"] is None or snapshot["age_s"] > 2.0
-            ):
-                snapshot["state"] = "stale"
-        return snapshot
+        return self._camera_hub.camera_snapshot_locked()
 
     def _remote_camera_snapshot_locked(self) -> Dict[str, Any]:
-        snapshot = dict(self._remote_camera_frame)
-        status = self._remote_camera.status()
-        snapshot.update(
-            {
-                "stream_id": self._camera_stream_ids["realsense_color"],
-                "source_id": "realsense_color",
-                "topic": status.get("uri", ""),
-                "source": status.get("source", "remote_mjpeg"),
-                "source_label": status.get(
-                    "source_label", "RealSense color camera"
-                ),
-                "transport": status.get("transport", "http_mjpeg"),
-                "state": status.get("state", "waiting"),
-                "fps": status.get("fps"),
-                "age_s": status.get("age_s"),
-            }
-        )
-        return snapshot
+        return self._camera_hub.remote_snapshot_locked()
 
     def cameras_snapshot(self) -> Dict[str, Any]:
         """Return the fixed camera catalog without exposing demand tokens."""
-
-        with self._camera_demand_lock:
-            viewers = {
-                source_id: len(tokens)
-                for source_id, tokens in self._camera_demand_tokens.items()
-            }
-            total_viewers = len(self._camera_token_sources)
-        direct_status = self._direct_camera.status()
-        remote_status = self._remote_camera.status()
-        entries = []
-        for source_id, label, status in (
-            ("go2_front", "Go2 front camera", direct_status),
-            ("realsense_color", "RealSense color camera", remote_status),
-        ):
-            entry = {
-                "id": source_id,
-                "source_id": source_id,
-                "label": str(status.get("source_label", label)),
-                "enabled": bool(status.get("enabled", False)),
-                "configured": bool(status.get("configured", False)),
-                "available": bool(status.get("available", False)),
-                "state": str(status.get("state", "disabled")),
-                "live": bool(status.get("live", False)),
-                "format": "jpeg",
-                "encoding": "jpeg",
-                "transport": str(status.get("transport", "")),
-                "topic": str(status.get("uri", "")),
-                "uri": str(status.get("uri", "")),
-                "width": int(status.get("width", 0) or 0),
-                "height": int(status.get("height", 0) or 0),
-                "stream_id": self._camera_stream_ids[source_id],
-                "viewers": viewers[source_id],
-                "max_viewers": MAX_CAMERA_VIEWERS_PER_SOURCE,
-                "fps": status.get("fps"),
-                "age_s": status.get("age_s"),
-                "last_error": str(status.get("last_error", "")),
-            }
-            entries.append(entry)
-        return {
-            "sources": entries,
-            "max_active": MAX_ACTIVE_CAMERA_SOURCES,
-            "max_viewers": MAX_CAMERA_VIEWERS,
-            "active_sources": sum(1 for value in viewers.values() if value),
-            "viewers": total_viewers,
-        }
+        return self._camera_hub.catalog_snapshot()
 
     def state_snapshot(self) -> Dict[str, Any]:
         with self._lock:
@@ -4691,42 +3812,14 @@ class RosAgent:
         skew bound before committing a pair.
         """
 
-        if (
-            not isinstance(source_ids, tuple)
-            or not source_ids
-            or len(source_ids) > len(CAMERA_SOURCE_IDS)
-            or len(set(source_ids)) != len(source_ids)
-            or any(not self._valid_camera_source_id(source_id) for source_id in source_ids)
-        ):
-            raise ValueError("camera sources are not allowlisted")
-        with self._lock:
-            return {
-                source_id: (
-                    self._camera_snapshot_locked()
-                    if source_id == "go2_front"
-                    else self._remote_camera_snapshot_locked()
-                )
-                for source_id in source_ids
-            }
+        return self._camera_hub.snapshots(source_ids)
 
     def pointcloud_snapshot(self) -> Dict[str, Any]:
-        with self._lock:
-            snapshot = {
-                key: value for key, value in self._cloud.items() if key != "points_bytes"
-            }
-            point_bytes = self._cloud.get("points_bytes", b"")
-            snapshot["stream_id"] = self._cloud_stream_id
-        snapshot["points"] = np.frombuffer(point_bytes, dtype="<f4").tolist()
-        return snapshot
+        return self._pointcloud_hub.json_snapshot()
 
     def pointcloud_binary_snapshot(self) -> Dict[str, Any]:
         """Return immutable packed points plus small JSON-safe metadata."""
-
-        with self._lock:
-            snapshot = dict(self._cloud)
-            snapshot["stream_id"] = self._cloud_stream_id
-            return snapshot
+        return self._pointcloud_hub.binary_snapshot()
 
     def map_snapshot(self) -> Dict[str, Any]:
-        with self._lock:
-            return dict(self._map)
+        return self._telemetry_hub.map_snapshot()

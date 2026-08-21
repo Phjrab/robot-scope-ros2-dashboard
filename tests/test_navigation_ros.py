@@ -55,6 +55,7 @@ from robot_dashboard.ros_agent import (
     RosAgent,
     _public_navigation_reason,
 )
+from robot_dashboard.ros.runtime import RosRuntime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -478,6 +479,7 @@ class NavigationControlTests(unittest.TestCase):
 
     def stamp_test_agent(self, now_ns, *, active=True):
         agent = object.__new__(RosAgent)
+        agent._ros_runtime = RosRuntime()
         agent._node = FixedClockNode(now_ns)
         agent._navigation_lock = __import__("threading").RLock()
         agent._navigation_odom_stamp_ns = {

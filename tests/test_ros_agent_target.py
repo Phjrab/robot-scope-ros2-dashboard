@@ -42,6 +42,8 @@ from robot_dashboard.capabilities import capabilities_for_robot_type
 from robot_dashboard.control import ControlDisabled, ControlManager
 from robot_dashboard.discovery import UnknownRobotType
 from robot_dashboard.ros_agent import RateMeter, RosAgent, pointcloud_source_metadata
+from robot_dashboard.ros.graph import RosGraphMonitor
+from robot_dashboard.ros.runtime import RosRuntime
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +52,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class JointSourceSelectionTests(unittest.TestCase):
     def setUp(self):
         self.agent = object.__new__(RosAgent)
+        self.agent._ros_runtime = RosRuntime()
+        self.agent._lock = self.agent._ros_runtime.lock
+        self.agent._graph_monitor = RosGraphMonitor(self.agent._lock)
         self.agent._graph = {
             "/lowstate": {
                 "type": "unitree_go/msg/LowState",
