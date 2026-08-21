@@ -32,18 +32,6 @@
         fidelity: 'official-derived',
       }),
     }),
-    Object.freeze({
-      id: 'so-101',
-      label: 'SO-101',
-      description: 'SO-101 로봇 암',
-      model: Object.freeze({
-        kind: 'robot-model-lite',
-        asset_url: '/static/assets/so101/so101-official-lite.json',
-        urdf_url: '/static/assets/so101/source/SO101/so101_new_calib.urdf',
-        label: 'Official SO-101 URDF',
-        fidelity: 'official-derived',
-      }),
-    }),
   ]);
 
   function cleanText(value, fallback = '') {
@@ -75,7 +63,8 @@
     const candidate = typeof value === 'string' ? { id: value } : (value || {});
     const id = robotTypeId(candidate.id || candidate.type || candidate.key || candidate.profile);
     if (!id) return null;
-    const fallback = defaultType(id) || {};
+    const fallback = defaultType(id);
+    if (!fallback) return null;
     return {
       id,
       label: cleanText(candidate.label || candidate.name, fallback.label || id.toUpperCase()),

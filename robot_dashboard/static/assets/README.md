@@ -8,16 +8,15 @@ runtime dependency.
 |---|---|---|
 | `go2` | Unitree `unitree_ros` Go2 URDF/DAE | `official-derived` |
 | `turtlebot` | ROBOTIS TurtleBot3 Burger URDF/STL | `official-derived` |
-| `so-101` | TheRobotStudio SO-101 new-calibration URDF/STL | `official-derived` |
 
-For TurtleBot3 and SO-101, the upstream URDF and all visual STL files it
-references are stored unchanged below each model's `source/` directory. The
+For TurtleBot3, the upstream URDF and all visual STL files it references are
+stored unchanged below the model's `source/` directory. The
 browser downloads a deterministic lightweight JSON derivative instead of the
 multi-megabyte STL set. Upstream commit, file list, license path, and applied
 mesh transformations are embedded in each JSON asset and documented in the
 model-specific README.
 
-Rebuild both lightweight assets with:
+Rebuild the TurtleBot lightweight asset with:
 
 ```bash
 python3 scripts/build_official_robot_models.py

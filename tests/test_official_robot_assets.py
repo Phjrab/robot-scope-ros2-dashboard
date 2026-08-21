@@ -23,22 +23,6 @@ MODEL_CASES = {
         "required_joints": {"base_joint", "wheel_left_joint", "wheel_right_joint", "scan_joint"},
         "required_links": {"base_link", "wheel_left_link", "wheel_right_link", "base_scan"},
     },
-    "so-101": {
-        "directory": ASSETS / "so101",
-        "asset": "so101-official-lite.json",
-        "urdf": "source/SO101/so101_new_calib.urdf",
-        "repository": "https://github.com/TheRobotStudio/SO-ARM100",
-        "commit": "7629d2ad9853d10fb903093a33ef6114099d97e5",
-        "mesh_count": 13,
-        "required_joints": {
-            "shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex",
-            "wrist_roll", "gripper",
-        },
-        "required_links": {
-            "base_link", "shoulder_link", "upper_arm_link", "lower_arm_link",
-            "wrist_link", "gripper_link", "moving_jaw_so101_v1_link",
-        },
-    },
 }
 
 
@@ -68,7 +52,7 @@ class OfficialRobotAssetTests(unittest.TestCase):
     def test_catalog_selects_local_official_derived_assets(self):
         self.assertEqual(self.catalog["schema"], "robot-scope.robot-model-catalog")
         self.assertEqual(self.catalog["version"], 1)
-        self.assertEqual(set(self.catalog["models"]), {"go2", "turtlebot", "so-101"})
+        self.assertEqual(set(self.catalog["models"]), {"go2", "turtlebot"})
         for robot_type, case in MODEL_CASES.items():
             entry = self.catalog["models"][robot_type]
             self.assertEqual(entry["type"], robot_type)
@@ -178,11 +162,15 @@ class OfficialRobotAssetTests(unittest.TestCase):
                 self.assertEqual(output.read_bytes(), committed.read_bytes())
 
     def test_browser_derivatives_stay_lightweight(self):
-        limits = {"turtlebot": 64 * 1024, "so-101": 96 * 1024}
+        limits = {"turtlebot": 64 * 1024}
         for robot_type, case in MODEL_CASES.items():
             with self.subTest(robot_type=robot_type):
                 path = case["directory"] / case["asset"]
                 self.assertLess(path.stat().st_size, limits[robot_type])
+
+    def test_catalog_does_not_reference_removed_model_assets(self):
+        self.assertNotIn("so-101", self.catalog["models"])
+        self.assertFalse((ASSETS / "so101").exists())
 
 
 if __name__ == "__main__":

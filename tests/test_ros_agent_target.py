@@ -39,6 +39,7 @@ if importlib.util.find_spec("rclpy") is None:
     sys.modules.update(stubs)
 
 from robot_dashboard.control import ControlDisabled, ControlManager
+from robot_dashboard.discovery import UnknownRobotType
 from robot_dashboard.ros_agent import RateMeter, RosAgent, pointcloud_source_metadata
 
 
@@ -222,7 +223,7 @@ class RobotTargetSafetyTests(unittest.TestCase):
         with self.assertRaises(ControlDisabled):
             generic.control_acquire("keyboard")
 
-    def test_generic_observation_can_switch_turtlebot_and_so101_without_restart(self):
+    def test_generic_observation_can_switch_turtlebot_without_restart(self):
         generic = RosAgent(
             robot_ip="10.100.0.89",
             profile_path=str(ROOT / "config" / "generic.json"),
@@ -239,11 +240,8 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertFalse(turtlebot["control_target_supported"])
         self.assertFalse(self.manager.snapshot()["estop"]["latched"])
 
-        so101 = generic.set_robot_target("10.100.0.43", "so-101", "so101-controller.local")
-        self.assertTrue(so101["changed"])
-        self.assertFalse(so101["restart_required"])
-        self.assertFalse(so101["control_restart_required"])
-        self.assertFalse(self.manager.snapshot()["estop"]["latched"])
+        with self.assertRaises(UnknownRobotType):
+            generic.set_robot_target("10.100.0.43", "so-101", "arm-controller.local")
 
     def test_generic_go2_selection_requires_restart_but_non_go2_selection_clears_overlay(self):
         generic = RosAgent(
@@ -258,23 +256,19 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertFalse(turtlebot["restart_required"])
         self.assertFalse(turtlebot["control_target_supported"])
 
-    def test_explicit_non_go2_startup_profile_supports_live_observation_switch(self):
+    def test_explicit_non_go2_startup_profile_rejects_unsupported_live_target(self):
         turtlebot_agent = RosAgent(
             robot_ip="10.100.0.42",
             profile_path=str(ROOT / "config" / "turtlebot.json"),
         )
         turtlebot_agent._control_manager = self.manager
         self.assertEqual(turtlebot_agent.robot_target_snapshot()["robot_type"], "turtlebot")
-        selected = turtlebot_agent.set_robot_target(
-            "10.100.0.43",
-            "so-101",
-            "so101-controller.local",
-        )
-        self.assertFalse(selected["restart_required"])
+        with self.assertRaises(UnknownRobotType):
+            turtlebot_agent.set_robot_target("10.100.0.43", "so-101", "arm-controller.local")
         turtlebot_agent._network_cache = (float("inf"), False, None)
         health = turtlebot_agent.health_snapshot()
         self.assertEqual(health["runtime_profile"]["id"], "turtlebot")
-        self.assertEqual(health["selected_profile"]["id"], "so-101")
+        self.assertEqual(health["selected_profile"]["id"], "turtlebot")
 
     def test_health_keeps_actual_startup_profile_separate_from_selection(self):
         self.agent.set_robot_target("10.100.0.42", "turtlebot", "turtlebot3.local")

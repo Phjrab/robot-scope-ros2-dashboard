@@ -34,9 +34,6 @@ case "$PROFILE_NAME" in
   turtlebot)
     PROFILE_FILE="turtlebot.json"
     ;;
-  so-101|so101)
-    PROFILE_FILE="so101.json"
-    ;;
   *)
     echo "[Robot Scope] unsupported ROBOT_SCOPE_PROFILE: $PROFILE_NAME" >&2
     exit 64

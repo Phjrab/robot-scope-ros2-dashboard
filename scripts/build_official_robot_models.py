@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build browser-ready models from pinned official SO-101 and TurtleBot3 URDFs.
+"""Build browser-ready models from a pinned official TurtleBot3 URDF.
 
 The source URDF and every STL referenced by its visual geometry are committed
 under ``robot_dashboard/static/assets`` unchanged.  This builder converts those
@@ -67,37 +67,6 @@ MODEL_SPECS = {
             "left_tire": 450,
             "right_tire": 450,
             "lds": 700,
-        },
-        default_joint_positions={},
-    ),
-    "so-101": ModelSpec(
-        robot_type="so-101",
-        name="TheRobotStudio SO-101",
-        display_name="SO-101",
-        source_project="TheRobotStudio SO-ARM100 / Simulation/SO101",
-        repository="https://github.com/TheRobotStudio/SO-ARM100",
-        commit="7629d2ad9853d10fb903093a33ef6114099d97e5",
-        license_file="/static/assets/so101/LICENSE.txt",
-        manifest=ASSET_ROOT / "so101/upstream-manifest.json",
-        urdf=ASSET_ROOT / "so101/source/SO101/so101_new_calib.urdf",
-        package_root=ASSET_ROOT / "so101/source/SO101",
-        output=ASSET_ROOT / "so101/so101-official-lite.json",
-        approximate_size_m=(0.40, 0.40, 0.65),
-        base_height_m=0.0,
-        targets={
-            "base_motor_holder_so101_v1": 450,
-            "base_so101_v2": 250,
-            "motor_holder_so101_base_v1": 300,
-            "motor_holder_so101_wrist_v1": 300,
-            "moving_jaw_so101_v1": 350,
-            "rotation_pitch_so101_v1": 300,
-            "sts3215_03a_no_horn_v1": 250,
-            "sts3215_03a_v1": 300,
-            "under_arm_so101_v1": 450,
-            "upper_arm_so101_v1": 350,
-            "waveshare_mounting_plate_so101_v2": 120,
-            "wrist_roll_follower_so101_v1": 350,
-            "wrist_roll_pitch_so101_v2": 500,
         },
         default_joint_positions={},
     ),

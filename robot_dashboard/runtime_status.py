@@ -52,7 +52,7 @@ def ros_transport_status(
         interface_ready = False
     elif require_go2_interface:
         # Direct launches predating the wrapper markers are still diagnosable.
-        # Do not apply this inference to Generic/TurtleBot/SO-101 profiles.
+        # Do not apply this inference to Generic/TurtleBot profiles.
         interface_ready = dds_uri_configured and cyclonedds_configured
         mode = "go2_interface" if interface_ready else "offline_viewer"
 

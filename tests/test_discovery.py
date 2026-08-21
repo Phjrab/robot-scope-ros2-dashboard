@@ -71,9 +71,9 @@ class FixtureDiscovery(LocalRobotDiscovery):
 
 
 class DiscoveryMetadataTests(unittest.TestCase):
-    def test_catalog_has_stable_ids_models_and_controller_notice(self):
+    def test_catalog_has_stable_mobile_robot_ids_and_models(self):
         types = public_robot_types()
-        self.assertEqual([item["id"] for item in types], ["go2", "turtlebot", "so-101"])
+        self.assertEqual([item["id"] for item in types], ["go2", "turtlebot"])
         self.assertEqual(
             types[0]["model"]["asset_url"],
             "/static/assets/go2/go2-official-lite.json",
@@ -83,13 +83,6 @@ class DiscoveryMetadataTests(unittest.TestCase):
             "/static/assets/turtlebot/source/turtlebot3_description/urdf/turtlebot3_burger.urdf",
         )
         self.assertEqual(types[1]["model"]["fidelity"], "official-derived")
-        self.assertEqual(
-            types[2]["model"]["urdf_url"],
-            "/static/assets/so101/source/SO101/so101_new_calib.urdf",
-        )
-        self.assertEqual(types[2]["model"]["fidelity"], "official-derived")
-        self.assertEqual(types[2]["connection_kind"], "controller_host")
-        self.assertIn("컨트롤러", types[2]["notice"])
         for item in types:
             self.assertNotIn("known_ips", item)
             self.assertNotIn("hostname_hints", item)
@@ -97,6 +90,8 @@ class DiscoveryMetadataTests(unittest.TestCase):
     def test_unknown_type_and_untrusted_hostname_are_rejected(self):
         with self.assertRaises(UnknownRobotType):
             robot_type_definition("unsupported")
+        with self.assertRaises(UnknownRobotType):
+            robot_type_definition("so-101")
         self.assertEqual(normalize_hostname(" TurtleBot3.Local. "), "turtlebot3.local")
         for value in ("bad host", "<script>", "line\nbreak", "a" * 254):
             with self.subTest(value=value):
@@ -114,7 +109,7 @@ class DiscoveryMetadataTests(unittest.TestCase):
             infer_robot_type({"name": "misleading Unitree Go2", "robot_type": "turtlebot"}),
             "turtlebot",
         )
-        self.assertEqual(infer_robot_type({"name": "anything", "robot_type": "so101"}), "so-101")
+        self.assertEqual(infer_robot_type({"name": "anything", "robot_type": "so101"}), "")
         self.assertEqual(infer_robot_type({"name": "Unitree Go2", "robot_type": ""}), "")
         self.assertEqual(infer_robot_type({"name": "Unitree Go2", "robot_type": "invalid"}), "")
 
@@ -123,7 +118,6 @@ class DiscoveryMetadataTests(unittest.TestCase):
             "generic.json": "",
             "go2.json": "go2",
             "turtlebot.json": "turtlebot",
-            "so101.json": "so-101",
         }
         for filename, robot_type in expected.items():
             with self.subTest(filename=filename):
@@ -158,12 +152,10 @@ class DiscoveryScanTests(unittest.TestCase):
         self.assertTrue(0.0 <= candidate["confidence"] <= 1.0)
         self.assertNotIn("192.168.123.20", {item["ip"] for item in result["candidates"]})
 
-    def test_so101_candidates_are_explicitly_controller_hosts(self):
+    def test_unsupported_product_type_cannot_start_discovery(self):
         scanner = FixtureDiscovery()
-        result = scanner.discover("so-101")
-        self.assertEqual(result["connection_kind"], "controller_host")
-        candidate = next(item for item in result["candidates"] if item["ip"] == "10.100.0.42")
-        self.assertIn("팔 자체가 아니라", candidate["reason"])
+        with self.assertRaises(UnknownRobotType):
+            scanner.discover("so-101")
 
     def test_selection_must_stay_on_a_directly_attached_interface(self):
         scanner = FixtureDiscovery()

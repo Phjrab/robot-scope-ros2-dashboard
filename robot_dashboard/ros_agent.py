@@ -4116,7 +4116,7 @@ class RosAgent:
                     or valid != self.robot_ip
                     or definition["id"] != self._robot_type
                 )
-                # Generic/TurtleBot/SO-101 profiles have no Go2 motion
+                # Generic/TurtleBot profiles have no Go2 motion
                 # transport. Their target selection is observation/display
                 # metadata and can change live. Any transition touching Go2,
                 # or any change from a Go2 startup, remains fail-closed.

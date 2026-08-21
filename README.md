@@ -1,9 +1,9 @@
-# Robot Scope ROS 2 Dashboard
+# Robot Scope ROS 2 Autonomous Mobile Robot Control Panel
 
-Robot Scope는 ROS 2 로봇의 연결 상태, 센서, 카메라, 위치 추정, 3D LiDAR 점군과
-저장 지도를 한 브라우저에서 확인하는 웹 대시보드입니다. 대시보드에서 허용된
-Hesai + FAST-LIO 매핑 파이프라인을 시작하고, 현재 지도를 3D PCD와 선택적 2D
-PGM/YAML 형식으로 저장할 수도 있습니다.
+Robot Scope는 ROS 2 기반 모바일 로봇의 센서 관측, 매핑, 위치추정, 자율 주행,
+수동 원격 조작, 모션 안전과 런타임 운영을 한 브라우저에서 제공하는 웹 제어
+패널입니다. 대시보드에서 허용된 Hesai + FAST-LIO 매핑 파이프라인을 시작하고,
+현재 지도를 3D PCD와 선택적 2D PGM/YAML 형식으로 저장할 수도 있습니다.
 
 Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree Go2 + XT16
 전체 경로의 검증 플랫폼은 Jetson Orin Nano이지만 Jetson 전용 애플리케이션은 아닙니다.
@@ -40,9 +40,9 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 - Go2·RealSense·동시 선택형 서버 데이터셋 JPEG 수집과 웹 갤러리
 - RViz처럼 회전·이동·확대할 수 있는 3D PointCloud 장면
 - 같은 라이브 점군을 추가 전송 없이 위에서 투영하는 2D 매핑 화면
-- Settings에서 Go2, TurtleBot, SO-101 유형 선택과 제한된 로컬 네트워크 자동 검색
+- Settings에서 Go2와 TurtleBot 유형 선택 및 제한된 로컬 네트워크 자동 검색
 - 발견 후보의 IP, hostname, 인터페이스와 응답 지연을 확인한 뒤 연결 대상 선택
-- 유형별 3D 모델 자동 전환: 공식 기반 Go2, TurtleBot3 Burger, SO-101 경량 모델
+- 유형별 3D 모델 자동 전환: 공식 기반 Go2와 TurtleBot3 Burger 경량 모델
 - Go2 12축 다리 관절, 몸통 자세와 이동 궤적 표시
 - 실시간 점군 포인트 수를 10K~250K, 사용자 지정 또는 ALL SESSION으로 선택
 - 저장 PCD를 미리보기 포인트 수 또는 ALL로 표시
@@ -233,15 +233,15 @@ domain/interface를 사용해야 합니다. 대시보드의 지도·센서 조�
 export ROS_DISTRO=humble
 export ROBOT_SCOPE_ROBOT_IP=192.168.1.20
 export ROBOT_SCOPE_OVERLAY=$HOME/ros2_ws/install/setup.bash
-export ROBOT_SCOPE_PROFILE=turtlebot  # generic | turtlebot | so-101
+export ROBOT_SCOPE_PROFILE=turtlebot  # generic | turtlebot
 ./scripts/run_generic.sh
 ~~~
 
 Generic 프로필은 표준 sensor_msgs와 nav_msgs 타입을 기준으로 카메라, 점군,
 IMU, 배터리, 관절, GPS, 거리 센서, odometry와 OccupancyGrid를 분류합니다.
 표시할 토픽은 Settings의 Data Sources에서 변경할 수 있습니다.
-`ROBOT_SCOPE_PROFILE`은 위 세 값만 허용합니다. TurtleBot과 SO-101은 각각
-`config/turtlebot.json`, `config/so101.json`을 시작 프로필로 사용하며 Go2 제어는
+`ROBOT_SCOPE_PROFILE`은 `generic` 또는 `turtlebot`만 허용합니다. TurtleBot은
+`config/turtlebot.json`을 시작 프로필로 사용하며 Go2 제어는
 활성화하지 않습니다.
 
 Settings의 Connection에서 다음 표시 유형을 선택할 수 있습니다.
@@ -250,10 +250,8 @@ Settings의 Connection에서 다음 표시 유형을 선택할 수 있습니다.
 |---|---|---|---|
 | Unitree Go2 | Go2 본체와 전용 유선망 | Unitree 공식 URDF 기반 경량 모델 | 안전 설정을 마친 경우 주행·허용 모션 |
 | TurtleBot | 같은 LAN의 TurtleBot ROS 2 컴퓨터 | ROBOTIS 공식 TurtleBot3 Burger URDF/STL 기반 | 관측·센서·지도 표시 |
-| SO-101 | 팔이 USB/serial로 연결된 ROS 2 컨트롤러 호스트 | LeRobot이 참조하는 TheRobotStudio 공식 SO-101 URDF/STL 기반 | 관측·센서·지도 표시 |
 
-TurtleBot은 ROBOTIS `turtlebot3_description`의 Burger 모델, SO-101은 LeRobot 공식
-문서가 안내하는 TheRobotStudio `Simulation/SO101` 모델을 고정된 upstream commit에서
+TurtleBot은 ROBOTIS `turtlebot3_description`의 Burger 모델을 고정된 upstream commit에서
 가져옵니다. 원본 URDF와 visual STL은 바이트 그대로 포함하며, 브라우저는 그 표면을
 결정론적으로 경량화한 JSON을 표시합니다. 현재 기본 URDF 자세로 표시되고 각 로봇의
 실시간 joint topic 매핑은 포함하지 않습니다. 경량 파생물은 시뮬레이션, 충돌 검사,
@@ -263,7 +261,7 @@ TurtleBot은 ROBOTIS `turtlebot3_description`의 Burger 모델, SO-101은 LeRobo
 
 ### Settings: 로봇 찾기와 모델 선택
 
-1. Connection에서 Go2, TurtleBot 또는 SO-101을 선택합니다.
+1. Connection에서 Go2 또는 TurtleBot을 선택합니다.
 2. 대시보드가 ROS host의 활성 사설 IPv4 인터페이스를 기준으로 자동 검색합니다.
 3. 후보의 IP와 hostname을 확인하고 원하는 항목을 선택합니다. 찾지 못하면 IP를 직접
    입력할 수 있습니다.
@@ -537,7 +535,7 @@ opaque map ID와 64자리 map/parameter revision만 전송합니다. 서버는 �
 덮어쓰지 않는 private snapshot을 만든 뒤 저장소의 고정 launcher와 생성된 Humble
 parameter YAML만 `shell=False` process group으로 실행합니다.
 
-같은 화면의 별도 3D 패널은 Settings에서 선택한 Go2, TurtleBot 또는 SO-101 모델을
+같은 화면의 별도 3D 패널은 Settings에서 선택한 Go2 또는 TurtleBot 모델을
 표시합니다. Go2 관절 데이터는 선택 프로필과 runtime이 일치하고 최신 샘플이 있을 때만
 반영하며, Navigation의 map 좌표 위치와 다른 telemetry 자세를 섞지 않습니다. `XYZ`
 버튼으로 좌표축만 표시하거나 숨길 수 있고 선택은 해당 브라우저에 저장됩니다.
@@ -963,7 +961,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 
 - config/go2.json: Go2 토픽 우선순위, 장착 오프셋, 저장 지도 폴더와 포인트 상한
 - config/generic.json: 범용 ROS 2 토픽 우선순위와 저장 지도 설정
-- config/turtlebot.json, config/so101.json: 해당 유형의 관측 전용 시작 프로필
+- config/turtlebot.json: TurtleBot 관측 전용 시작 프로필
 - ROBOT_SCOPE_DIR: 프로젝트 루트 강제 지정
 - ROBOT_SCOPE_PORT: HTTP 포트, 기본 8088
 - ROBOT_SCOPE_ROBOT_IP: 네트워크 생존 확인 대상
@@ -973,7 +971,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 - ROBOT_SCOPE_RUNTIME_DIR: Git에서 제외되는 상태·로그·데이터의 프로젝트 로컬 root
 - ROBOT_SCOPE_DATASET_DIR: 서버 카메라 데이터셋 저장 root, 기본 `runtime/datasets`
 - ROBOT_SCOPE_LIVOX_SDK_PREFIX: Livox SDK2 private prefix, custom 값은 절대 경로만 허용
-- ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot | so-101
+- ROBOT_SCOPE_PROFILE: run_generic.sh의 허용 프로필, generic | turtlebot
 - ROBOT_SCOPE_MAPS_DIR: Go2 지도 저장 폴더
 - ROBOT_SCOPE_CONTROL_ENABLED: `1`일 때만 서버 측 Go2 제어 활성화
 - ROBOT_SCOPE_CONTROL_BRIDGE_KEY: 두 로컬 프로세스 사이 서명용 32바이트 이상 비밀키
@@ -1055,7 +1053,7 @@ node --check robot_dashboard/static/scene3d.js
 ## 프로젝트 구조
 
 ~~~text
-config/             Go2, Generic, TurtleBot, SO-101 시작 프로필
+config/             Go2, Generic, TurtleBot 시작 프로필
 deploy/             systemd 서비스 예제
 docs/               설치, 의존성, 토폴로지, 진단과 업데이트 문서
 robot_dashboard/    FastAPI 에이전트, 로컬 검색, 제어 워치독, 모델 asset과 웹 UI
@@ -1094,8 +1092,7 @@ requirements.txt    Python 웹 의존성
 Robot Scope 코드는 MIT License로 배포합니다. 포함된 Go2 경량 모델은 Unitree
 Robotics의 `unitree_ros/robots/go2_description`에서 변환했으며 BSD 3-Clause 원문과
 변환 내역을 보존합니다. TurtleBot3 Burger 원본과 경량 파생물은 ROBOTIS
-`turtlebot3`의 Apache-2.0, SO-101 원본과 경량 파생물은 TheRobotStudio
-`SO-ARM100`의 Apache-2.0을 따릅니다. 각 모델의 고정 commit, SHA-256 manifest,
+`turtlebot3`의 Apache-2.0을 따릅니다. 각 모델의 고정 commit, SHA-256 manifest,
 라이선스와 변환 내역은 `robot_dashboard/static/assets` 아래 README와 catalog에
 기록합니다.
 

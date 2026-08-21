@@ -10,7 +10,7 @@ const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', impor
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const rendererSource = readFileSync(new URL('../robot_dashboard/static/go2_official_model.js', import.meta.url), 'utf8');
 
-test('robot type catalog normalizes the backend contract and model metadata', () => {
+test('robot type catalog rejects unsupported product types', () => {
   const values = profiles.normalizeTypes({
     types: [{
       id: 'SO_101',
@@ -19,24 +19,23 @@ test('robot type catalog normalizes the backend contract and model metadata', ()
       model: { kind: 'robot-model-lite', asset_url: '/models/so101.json', urdf_url: '/models/so101.urdf', label: 'SO-101 URDF', fidelity: 'generic' },
     }],
   });
-  assert.deepEqual(values, [{
-    id: 'so-101',
-    label: 'SO-101 Lab Arm',
-    description: 'table arm',
-    model: { kind: 'robot-model-lite', asset_url: '/models/so101.json', urdf_url: '/models/so101.urdf', label: 'SO-101 URDF', fidelity: 'generic' },
-  }]);
+  assert.deepEqual(values, [
+    ...profiles.DEFAULT_TYPES.map((profile) => ({
+      id: profile.id,
+      label: profile.label,
+      description: profile.description,
+      model: { ...profile.model },
+    })),
+  ]);
 });
 
-test('fallback catalog provides selectable Go2, TurtleBot and SO-101 model assets', () => {
+test('fallback catalog provides selectable Go2 and TurtleBot model assets', () => {
   const values = profiles.normalizeTypes(null);
-  assert.deepEqual(values.map((value) => value.id), ['go2', 'turtlebot', 'so-101']);
+  assert.deepEqual(values.map((value) => value.id), ['go2', 'turtlebot']);
   assert.ok(values.every((value) => value.model.asset_url.startsWith('/static/assets/')));
   const turtlebot = values.find((value) => value.id === 'turtlebot');
-  const so101 = values.find((value) => value.id === 'so-101');
   assert.equal(turtlebot.model.asset_url, '/static/assets/turtlebot/turtlebot3-burger-official-lite.json');
   assert.equal(turtlebot.model.fidelity, 'official-derived');
-  assert.equal(so101.model.asset_url, '/static/assets/so101/so101-official-lite.json');
-  assert.equal(so101.model.fidelity, 'official-derived');
 });
 
 test('network discovery removes invalid and duplicate candidates then ranks confidence and latency', () => {

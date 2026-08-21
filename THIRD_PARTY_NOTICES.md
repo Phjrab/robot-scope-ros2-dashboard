@@ -25,19 +25,6 @@ terms.
 - [Pinned source manifest](robot_dashboard/static/assets/turtlebot/upstream-manifest.json)
 - [Provenance and modifications](robot_dashboard/static/assets/turtlebot/README.md)
 
-## TheRobotStudio SO-101 model
-
-- Upstream: `TheRobotStudio/SO-ARM100`, `Simulation/SO101`
-- Pinned commit: `7629d2ad9853d10fb903093a33ef6114099d97e5`
-- Bundled material: upstream URDF/STL files and a lightweight visual derivative
-- License: Apache License 2.0
-- [Full license](robot_dashboard/static/assets/so101/LICENSE.txt)
-- [Pinned source manifest](robot_dashboard/static/assets/so101/upstream-manifest.json)
-- [Provenance and modifications](robot_dashboard/static/assets/so101/README.md)
-
-The upstream project and product names are used only to identify compatibility
-and provenance. They do not imply endorsement of Robot Scope.
-
 ## External runtime components
 
 Unitree ROS 2, Hesai drivers, FAST-LIO, Livox SDK2, Livox message packages and

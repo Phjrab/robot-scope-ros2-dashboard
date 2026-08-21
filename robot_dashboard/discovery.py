@@ -81,26 +81,6 @@ ROBOT_TYPES: Dict[str, Dict[str, Any]] = {
             "fidelity": "official-derived",
         },
     },
-    "so-101": {
-        "id": "so-101",
-        "label": "SO-101",
-        "description": (
-            "SO-101은 일반적으로 USB/serial 장치입니다. 네트워크에서는 팔 자체가 아니라 "
-            "팔이 연결된 ROS 2 컨트롤러 호스트를 탐색합니다."
-        ),
-        "connection_kind": "controller_host",
-        "notice": "검색 결과의 IP와 hostname은 SO-101 팔이 연결된 ROS 컨트롤러 컴퓨터입니다.",
-        "profile_id": "so-101",
-        "known_ips": (),
-        "hostname_hints": ("so101", "so-101", "lerobot"),
-        "model": {
-            "kind": "robot-model-lite",
-            "asset_url": "/static/assets/so101/so101-official-lite.json",
-            "urdf_url": "/static/assets/so101/source/SO101/so101_new_calib.urdf",
-            "label": "Official TheRobotStudio SO-101 model",
-            "fidelity": "official-derived",
-        },
-    },
 }
 
 
@@ -168,7 +148,7 @@ def infer_robot_type(profile: Mapping[str, Any]) -> str:
 
     if "robot_type" in profile:
         explicit = str(profile.get("robot_type", "")).strip().lower().replace("_", "-")
-        aliases = {"so101": "so-101", "turtlebot3": "turtlebot", "generic": ""}
+        aliases = {"turtlebot3": "turtlebot", "generic": ""}
         explicit = aliases.get(explicit, explicit)
         return explicit if explicit in ROBOT_TYPES else ""
 
@@ -177,8 +157,6 @@ def infer_robot_type(profile: Mapping[str, Any]) -> str:
         return "go2"
     if "turtle" in name:
         return "turtlebot"
-    if "so-101" in name or "so101" in name:
-        return "so-101"
     return ""
 
 
@@ -523,8 +501,6 @@ class LocalRobotDiscovery:
             return 0.99, "제조사 기본 IP 주소와 일치합니다."
         lowered = hostname.lower()
         if lowered and any(hint in lowered for hint in definition.get("hostname_hints", ())):
-            if definition["id"] == "so-101":
-                return 0.85, "SO-101 명칭과 일치하는 ROS 컨트롤러 hostname입니다."
             return 0.85, "선택한 로봇 유형의 hostname 패턴과 일치합니다."
         if "mdns" in sources:
             reason = "mDNS로 발견된 같은 로컬 네트워크 호스트입니다."
@@ -535,8 +511,6 @@ class LocalRobotDiscovery:
         else:
             reason = "같은 로컬 네트워크에서 ping에 응답한 미확인 호스트입니다."
             confidence = 0.2
-        if definition["id"] == "so-101":
-            reason += " SO-101 팔 자체가 아니라 USB/serial 연결을 제공하는 컨트롤러 후보입니다."
         return confidence, reason
 
     def _scan(self, definition: Mapping[str, Any]) -> Dict[str, Any]:
