@@ -55,7 +55,7 @@ from robot_dashboard.ros_agent import (
     RosAgent,
     _public_navigation_reason,
 )
-from robot_dashboard.ros.runtime import RosRuntime
+from robot_dashboard.ros.navigation_gateway import NavigationRosGateway
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,6 +98,23 @@ class NavigationControlTests(unittest.TestCase):
         )
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
         return manager
+
+    @staticmethod
+    def gateway(control_manager=None, *, node=None, tick=None):
+        control_port = types.SimpleNamespace(
+            operation_lock=__import__("threading").RLock(),
+            manager=control_manager or types.SimpleNamespace(),
+            flush_outputs=lambda: None,
+            publish_outputs=lambda _outputs: None,
+            ensure_target=lambda: None,
+            go2_target=lambda: True,
+        )
+        return NavigationRosGateway(
+            control_port,
+            node_getter=lambda: node,
+            tick=tick or (lambda _topic, _observed: None),
+            graph_getter=lambda: {},
+        )
 
     @staticmethod
     def seed_prelocalization_ready(agent):
@@ -318,7 +335,9 @@ class NavigationControlTests(unittest.TestCase):
                 "goal_id": "goal-identifier-1234",
             }
         published = []
-        agent._publish_control_outputs = lambda outputs, **_: published.extend(outputs)
+        agent._control_transport.publish_outputs = (
+            lambda outputs, **_: published.extend(outputs)
+        )
 
         agent._control_tick()
 
@@ -363,21 +382,19 @@ class NavigationControlTests(unittest.TestCase):
         self.assertEqual(manager.drain_outputs(), [])
 
     def test_unarmed_runtime_cannot_submit_nonzero_velocity(self):
-        agent = object.__new__(RosAgent)
-        agent._control_operation_lock = __import__("threading").RLock()
-        agent._navigation_lock = __import__("threading").RLock()
+        submissions = []
+        manager = types.SimpleNamespace(
+            submit_drive=lambda *args, **kwargs: submissions.append((args, kwargs))
+        )
+        agent = self.gateway(manager)
         agent._navigation = {
             "active": False,
             "goal": {"state": "active"},
         }
         agent._navigation_token = ""
         agent._navigation_binding = ""
-        submissions = []
-        agent._control_manager = types.SimpleNamespace(
-            submit_drive=lambda *args, **kwargs: submissions.append((args, kwargs))
-        )
 
-        agent._navigation_submit_velocity(0.2, 0.0, 0.0)
+        agent.submit_velocity(0.2, 0.0, 0.0)
 
         self.assertEqual(submissions, [])
 
@@ -432,8 +449,7 @@ class NavigationControlTests(unittest.TestCase):
         self.assertIn("bridge_token=[redacted]", reason)
 
     def test_feedback_does_not_open_gate_before_goal_acceptance(self):
-        agent = object.__new__(RosAgent)
-        agent._navigation_lock = __import__("threading").RLock()
+        agent = self.gateway()
         agent._navigation_goal_generation = 7
         agent._navigation_goal_handle = None
         agent._navigation = {
@@ -478,10 +494,12 @@ class NavigationControlTests(unittest.TestCase):
         )
 
     def stamp_test_agent(self, now_ns, *, active=True):
-        agent = object.__new__(RosAgent)
-        agent._ros_runtime = RosRuntime()
-        agent._node = FixedClockNode(now_ns)
-        agent._navigation_lock = __import__("threading").RLock()
+        tick_events = []
+        node = FixedClockNode(now_ns)
+        agent = self.gateway(
+            node=node,
+            tick=lambda topic, observed: tick_events.append((topic, observed)),
+        )
         agent._navigation_odom_stamp_ns = {
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0,
             NAVIGATION_CONTROLLER_ODOM_TOPIC: 0,
@@ -493,10 +511,9 @@ class NavigationControlTests(unittest.TestCase):
             "/amcl_pose": 0.0,
         }
         agent._navigation = {"active": active}
-        agent._tick_events = []
+        agent._tick_events = tick_events
         agent._deactivation_events = []
-        agent._tick = lambda topic, observed: agent._tick_events.append((topic, observed))
-        agent.navigation_deactivate = (
+        agent.deactivate = (
             lambda reason: agent._deactivation_events.append(reason)
         )
         return agent

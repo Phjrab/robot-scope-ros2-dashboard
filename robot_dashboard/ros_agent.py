@@ -8,8 +8,6 @@ import json
 import math
 import os
 import platform
-import re
-import secrets
 import socket
 import subprocess
 import threading
@@ -18,7 +16,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import rclpy
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
@@ -28,21 +25,8 @@ from std_msgs.msg import String
 from .camera_decoder import H264JpegDecoder
 from .capabilities import capabilities_for_robot_type
 from .control import (
-    CommandValidationError,
-    ControlClosed,
     ControlDisabled,
-    ControlError,
-    ControlManager,
-    ControlNotReady,
-    EmergencyStopLatched,
     LeaseBusy,
-    LeaseInvalid,
-)
-from .control_protocol import (
-    ControlProtocolError,
-    decode_signed,
-    encode_signed,
-    shared_key,
 )
 from .discovery import (
     infer_robot_type,
@@ -53,7 +37,26 @@ from .discovery import (
 from .go2_multicast_camera import Go2MulticastCamera
 from .remote_mjpeg_camera import RemoteMjpegCamera
 from .ros.cameras import CAMERA_SOURCE_IDS, CameraHub
+from .ros.control_transport import (
+    CONTROL_COMMAND_TOPIC,
+    CONTROL_STATUS_TOPIC,
+    ControlTransport,
+)
 from .ros.graph import RosGraphMonitor
+from .ros.navigation_gateway import (
+    NAVIGATION_ACTION,
+    NAVIGATION_CLEAR_SERVICES,
+    NAVIGATION_CMD_VEL_TOPIC,
+    NAVIGATION_CONTROLLER_ODOM_TOPIC,
+    NAVIGATION_FAST_LIO_ODOM_TOPIC,
+    NAVIGATION_INITIAL_POSE_TOPIC,
+    NAVIGATION_LOCALIZATION_POSE_TOPIC,
+    NAVIGATION_ODOM_STAMP_MAX_AGE_S,
+    NAVIGATION_ODOM_STAMP_MAX_FUTURE_S,
+    NAVIGATION_RUNTIME_HEALTH_TOPIC,
+    NavigationRosGateway,
+    public_navigation_reason as _public_navigation_reason,
+)
 from .ros.pointcloud import PointCloudHub
 from .ros.runtime import RosRuntime
 from .ros.sources import (
@@ -75,50 +78,6 @@ CAMERA_TYPES = {
     "sensor_msgs/msg/CompressedImage",
     "unitree_go/msg/Go2FrontVideoData",
 }
-
-CONTROL_COMMAND_TOPIC = "/robot_scope/control/command"
-CONTROL_STATUS_TOPIC = "/robot_scope/control/status"
-# Nav2 is remapped to this private ingress.  A random/global /cmd_vel publisher
-# can therefore never acquire the autonomous gate accidentally.
-NAVIGATION_CMD_VEL_TOPIC = "/robot_scope/nav/cmd_vel_raw"
-NAVIGATION_INITIAL_POSE_TOPIC = "/initialpose"
-NAVIGATION_LOCALIZATION_POSE_TOPIC = "/amcl_pose"
-NAVIGATION_RUNTIME_HEALTH_TOPIC = "/robot_scope/nav/runtime_health"
-NAVIGATION_FAST_LIO_ODOM_TOPIC = "/Odometry"
-# PDF 11 deliberately uses the Go2's continuously available onboard odometry
-# for controller velocity feedback.  FAST-LIO odometry remains a separate,
-# fixed localization input to the trusted runtime sidecar.
-NAVIGATION_CONTROLLER_ODOM_TOPIC = "/utlidar/robot_odom"
-NAVIGATION_ACTION = "/navigate_to_pose"
-# Controller feedback and FAST-LIO run on the same real-time ROS clock as the
-# dashboard (use_sim_time is fixed false).  Permit moderate network/clock jitter
-# without accepting zero, replayed or substantially future-dated odometry.
-NAVIGATION_ODOM_STAMP_MAX_AGE_S = 1.5
-NAVIGATION_ODOM_STAMP_MAX_FUTURE_S = 0.5
-NAVIGATION_CLEAR_SERVICES = (
-    "/global_costmap/clear_entirely_global_costmap",
-    "/local_costmap/clear_entirely_local_costmap",
-)
-
-_NAVIGATION_REASON_SECRET_RE = re.compile(
-    r"(?i)\b([A-Za-z0-9_]*(?:password|passwd|secret|token|api[_-]?key|"
-    r"private[_-]?key|credential|authorization|bridge[_-]?key)[A-Za-z0-9_]*)"
-    r"\b\s*(?:[:=]|\s)\s*(?:\"[^\"]*\"|'[^']*'|\S+)"
-)
-_NAVIGATION_REASON_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
-_NAVIGATION_REASON_WHITESPACE_RE = re.compile(r"\s+")
-
-
-def _public_navigation_reason(reason: object) -> str:
-    """Return one bounded internal reason without credentials/control bytes."""
-
-    value = _NAVIGATION_REASON_CONTROL_RE.sub(" ", str(reason or ""))
-    value = _NAVIGATION_REASON_WHITESPACE_RE.sub(" ", value).strip()
-    value = _NAVIGATION_REASON_SECRET_RE.sub(
-        lambda match: f"{match.group(1)}=[redacted]",
-        value,
-    )
-    return (value or "navigation stopped")[:160]
 
 
 class RosAgent:
@@ -159,144 +118,8 @@ class RosAgent:
             min(float(self.profile.get("pointcloud_frame_interval_s", 0.18)), 1.0),
         )
 
-        # Browser input is validated and statefully gated by the pure-Python
-        # manager.  This process only transports its already-bounded outputs to
-        # the separately watchdog-protected Go2 bridge.
-        self._control_manager = ControlManager(self.profile)
-        control_profile = self.profile.get("control", {})
-        if not isinstance(control_profile, dict):
-            control_profile = {}
-        self._control_status_timeout_s = self._bounded_control_timeout(
-            control_profile.get("bridge_status_timeout_s"),
-            default=0.75,
-            low=0.25,
-            high=5.0,
-        )
-        self._control_lowstate_timeout_s = self._bounded_control_timeout(
-            control_profile.get("telemetry_timeout_s"),
-            default=0.50,
-            low=0.20,
-            high=2.0,
-        )
-        expected_bare_sport_publishers = control_profile.get(
-            "expected_bare_sport_publishers", 0
-        )
-        if (
-            isinstance(expected_bare_sport_publishers, bool)
-            or not isinstance(expected_bare_sport_publishers, int)
-            or not 0 <= expected_bare_sport_publishers <= 64
-        ):
-            raise ValueError(
-                "control.expected_bare_sport_publishers must be an integer "
-                "from 0 to 64"
-            )
-        self._control_expected_bare_sport_publishers = (
-            expected_bare_sport_publishers
-        )
-        try:
-            self._control_bridge_key: Optional[bytes] = shared_key(
-                os.environ.get("ROBOT_SCOPE_CONTROL_BRIDGE_KEY", "")
-            )
-            bridge_key_error = ""
-        except ControlProtocolError as exc:
-            self._control_bridge_key = None
-            bridge_key_error = str(exc)
-        self._control_source_id = (
-            f"robot-scope-agent-{os.getpid()}-{secrets.token_hex(8)}"
-        )
-        self._control_bridge_seq = -1
-        self._control_bridge_epoch = ""
-
         self._ros_runtime = RosRuntime()
         self._lock = self._ros_runtime.lock
-        # Serializes every control state mutation with output publication.  A
-        # terminal stop/release that has returned can therefore never be
-        # followed by a drive output drained by an earlier timer tick.
-        self._control_operation_lock = threading.RLock()
-        self._control_transport_lock = threading.RLock()
-        self._control_callback_group: Optional[MutuallyExclusiveCallbackGroup] = None
-        self._control_command_publisher: Any = None
-        self._control_status_subscription: Any = None
-        self._control_timer: Any = None
-        self._control_status_received = 0.0
-        self._control_status: Dict[str, Any] = {
-            "state": "not_configured" if bridge_key_error else "waiting",
-            "ready": False,
-            "connected": False,
-            "available": False,
-            "message": bridge_key_error or "signed Go2 bridge status waiting",
-        }
-        self._control_shutdown = False
-
-        # Nav2 never publishes Unitree requests directly.  While a navigation
-        # session is active it owns an internal ControlManager lease and feeds
-        # bounded /cmd_vel samples through the exact same signed watchdog
-        # transport used by keyboard/gamepad control.
-        self._navigation_lock = threading.RLock()
-        self._navigation_callback_group: Any = None
-        self._navigation_cmd_subscription: Any = None
-        self._navigation_health_subscriptions: Dict[str, Any] = {}
-        self._navigation_initial_pose_publisher: Any = None
-        self._navigation_pose_type: Any = None
-        self._navigation_action_type: Any = None
-        self._navigation_action_client: Any = None
-        self._navigation_clear_service_type: Any = None
-        self._navigation_clear_clients: Dict[str, Any] = {}
-        self._navigation_runtime_health_received = 0.0
-        self._navigation_runtime_health: Dict[str, Any] = {
-            "ready": False,
-            "cloud_fresh": False,
-            "odom_fresh": False,
-            "localized": False,
-            "error": "navigation runtime health waiting",
-        }
-        self._navigation_odom_stamp_ns: Dict[str, int] = {
-            NAVIGATION_FAST_LIO_ODOM_TOPIC: 0,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0,
-        }
-        # Motion-gating freshness is based only on each trusted callback's
-        # fully validated samples.  Keep these receipts separate from the
-        # generic topic metrics used by the observability UI: discovery or
-        # another consumer calling ``_tick`` must never open the motion gate.
-        self._navigation_validated_receipts: Dict[str, float] = {
-            "/scan": 0.0,
-            NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.0,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.0,
-            NAVIGATION_LOCALIZATION_POSE_TOPIC: 0.0,
-        }
-        self._navigation_token = ""
-        self._navigation_binding = ""
-        self._navigation_sequence = -1
-        self._navigation_last_heartbeat = 0.0
-        self._navigation_goal_handle: Any = None
-        self._navigation_goal_generation = 0
-        self._navigation_cancel_requested = False
-        self._navigation_clear_generation = 0
-        self._navigation_last_clear = 0.0
-        self._navigation: Dict[str, Any] = {
-            "seq": 0,
-            "active": False,
-            "state": "inactive",
-            "error": None,
-            "deactivation_reason": None,
-            "map": None,
-            "localization": {
-                "state": "uninitialized",
-                "pose": None,
-            },
-            "goal": {
-                "state": "idle",
-                "goal_id": None,
-                "pose": None,
-                "distance_remaining": None,
-                "navigation_time": None,
-                "recoveries": 0,
-                "error": None,
-            },
-            "last_cmd_at": 0.0,
-            "last_cmd": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
-            "clear_costmaps": {"state": "idle", "error": None},
-        }
         self._graph_monitor = RosGraphMonitor(self._lock)
         joint_stale_after = max(
             0.2,
@@ -409,10 +232,21 @@ class RosAgent:
             self._remote_camera,
             self._camera_decoder,
         )
+        self._control_transport = ControlTransport(
+            self.profile,
+            ensure_target=self._ensure_go2_control_target,
+            go2_target=self._go2_control_target,
+        )
+        self._navigation_gateway = NavigationRosGateway(
+            self._control_transport,
+            node_getter=lambda: self._node,
+            tick=self._tick,
+            graph_getter=lambda: self._graph,
+        )
         self._network_cache: Tuple[float, bool, Optional[float]] = (0.0, False, None)
 
     # Compatibility properties keep the migration facade stable while the
-    # focused components own all observability-plane mutable state.
+    # focused components own all control/navigation-plane mutable state.
     @property
     def _stop_event(self) -> threading.Event:
         return self._ros_runtime.stop_event
@@ -460,6 +294,269 @@ class RosAgent:
     @_last_error.setter
     def _last_error(self, value: str) -> None:
         self._ros_runtime.last_error = str(value)
+
+    # Phase 5 compatibility properties forward legacy private probes to the
+    # single control/navigation component owners. They never duplicate motion
+    # state, keys, leases, freshness receipts, or ROS handles.
+    @property
+    def _control_manager(self) -> Any:
+        return self._control_transport.manager
+
+    @_control_manager.setter
+    def _control_manager(self, value: Any) -> None:
+        self._control_transport.manager = value
+
+    @property
+    def _control_operation_lock(self) -> threading.RLock:
+        return self._control_transport.operation_lock
+
+    @property
+    def _control_transport_lock(self) -> threading.RLock:
+        return self._control_transport.transport_lock
+
+    @property
+    def _control_bridge_key(self) -> Optional[bytes]:
+        return self._control_transport.bridge_key
+
+    @_control_bridge_key.setter
+    def _control_bridge_key(self, value: Optional[bytes]) -> None:
+        self._control_transport.bridge_key = value
+
+    @property
+    def _control_bridge_epoch(self) -> str:
+        return self._control_transport.bridge_epoch
+
+    @_control_bridge_epoch.setter
+    def _control_bridge_epoch(self, value: str) -> None:
+        self._control_transport.bridge_epoch = str(value)
+
+    @property
+    def _control_bridge_seq(self) -> int:
+        return self._control_transport.bridge_seq
+
+    @_control_bridge_seq.setter
+    def _control_bridge_seq(self, value: int) -> None:
+        self._control_transport.bridge_seq = int(value)
+
+    @property
+    def _control_source_id(self) -> str:
+        return self._control_transport.source_id
+
+    @property
+    def _control_status_timeout_s(self) -> float:
+        return self._control_transport.status_timeout_s
+
+    @property
+    def _control_lowstate_timeout_s(self) -> float:
+        return self._control_transport.lowstate_timeout_s
+
+    @property
+    def _control_expected_bare_sport_publishers(self) -> int:
+        return self._control_transport.expected_bare_sport_publishers
+
+    @property
+    def _control_callback_group(self) -> Any:
+        return self._control_transport.callback_group
+
+    @_control_callback_group.setter
+    def _control_callback_group(self, value: Any) -> None:
+        self._control_transport.callback_group = value
+
+    @property
+    def _control_command_publisher(self) -> Any:
+        return self._control_transport.command_publisher
+
+    @_control_command_publisher.setter
+    def _control_command_publisher(self, value: Any) -> None:
+        self._control_transport.command_publisher = value
+
+    @property
+    def _control_status_subscription(self) -> Any:
+        return self._control_transport.status_subscription
+
+    @_control_status_subscription.setter
+    def _control_status_subscription(self, value: Any) -> None:
+        self._control_transport.status_subscription = value
+
+    @property
+    def _control_timer(self) -> Any:
+        return self._control_transport.timer
+
+    @_control_timer.setter
+    def _control_timer(self, value: Any) -> None:
+        self._control_transport.timer = value
+
+    @property
+    def _control_status_received(self) -> float:
+        return self._control_transport.status_received
+
+    @_control_status_received.setter
+    def _control_status_received(self, value: float) -> None:
+        self._control_transport.status_received = float(value)
+
+    @property
+    def _control_status(self) -> Dict[str, Any]:
+        return self._control_transport.status
+
+    @_control_status.setter
+    def _control_status(self, value: Dict[str, Any]) -> None:
+        self._control_transport.status = value
+
+    @property
+    def _control_shutdown(self) -> bool:
+        return self._control_transport.shutdown_started
+
+    @_control_shutdown.setter
+    def _control_shutdown(self, value: bool) -> None:
+        self._control_transport.shutdown_started = bool(value)
+
+    @property
+    def _navigation_lock(self) -> threading.RLock:
+        return self._navigation_gateway._navigation_lock
+
+    @property
+    def _navigation(self) -> Dict[str, Any]:
+        return self._navigation_gateway._navigation
+
+    @_navigation.setter
+    def _navigation(self, value: Dict[str, Any]) -> None:
+        self._navigation_gateway._navigation = value
+
+    @property
+    def _navigation_callback_group(self) -> Any:
+        return self._navigation_gateway._navigation_callback_group
+
+    @_navigation_callback_group.setter
+    def _navigation_callback_group(self, value: Any) -> None:
+        self._navigation_gateway._navigation_callback_group = value
+
+    @property
+    def _navigation_cmd_subscription(self) -> Any:
+        return self._navigation_gateway._navigation_cmd_subscription
+
+    @_navigation_cmd_subscription.setter
+    def _navigation_cmd_subscription(self, value: Any) -> None:
+        self._navigation_gateway._navigation_cmd_subscription = value
+
+    @property
+    def _navigation_health_subscriptions(self) -> Dict[str, Any]:
+        return self._navigation_gateway._navigation_health_subscriptions
+
+    @_navigation_health_subscriptions.setter
+    def _navigation_health_subscriptions(self, value: Dict[str, Any]) -> None:
+        self._navigation_gateway._navigation_health_subscriptions = value
+
+    @property
+    def _navigation_initial_pose_publisher(self) -> Any:
+        return self._navigation_gateway._navigation_initial_pose_publisher
+
+    @_navigation_initial_pose_publisher.setter
+    def _navigation_initial_pose_publisher(self, value: Any) -> None:
+        self._navigation_gateway._navigation_initial_pose_publisher = value
+
+    @property
+    def _navigation_pose_type(self) -> Any:
+        return self._navigation_gateway._navigation_pose_type
+
+    @_navigation_pose_type.setter
+    def _navigation_pose_type(self, value: Any) -> None:
+        self._navigation_gateway._navigation_pose_type = value
+
+    @property
+    def _navigation_action_type(self) -> Any:
+        return self._navigation_gateway._navigation_action_type
+
+    @_navigation_action_type.setter
+    def _navigation_action_type(self, value: Any) -> None:
+        self._navigation_gateway._navigation_action_type = value
+
+    @property
+    def _navigation_action_client(self) -> Any:
+        return self._navigation_gateway._navigation_action_client
+
+    @_navigation_action_client.setter
+    def _navigation_action_client(self, value: Any) -> None:
+        self._navigation_gateway._navigation_action_client = value
+
+    @property
+    def _navigation_clear_service_type(self) -> Any:
+        return self._navigation_gateway._navigation_clear_service_type
+
+    @_navigation_clear_service_type.setter
+    def _navigation_clear_service_type(self, value: Any) -> None:
+        self._navigation_gateway._navigation_clear_service_type = value
+
+    @property
+    def _navigation_clear_clients(self) -> Dict[str, Any]:
+        return self._navigation_gateway._navigation_clear_clients
+
+    @_navigation_clear_clients.setter
+    def _navigation_clear_clients(self, value: Dict[str, Any]) -> None:
+        self._navigation_gateway._navigation_clear_clients = value
+
+    @property
+    def _navigation_runtime_health_received(self) -> float:
+        return self._navigation_gateway._navigation_runtime_health_received
+
+    @_navigation_runtime_health_received.setter
+    def _navigation_runtime_health_received(self, value: float) -> None:
+        self._navigation_gateway._navigation_runtime_health_received = float(value)
+
+    @property
+    def _navigation_runtime_health(self) -> Dict[str, Any]:
+        return self._navigation_gateway._navigation_runtime_health
+
+    @_navigation_runtime_health.setter
+    def _navigation_runtime_health(self, value: Dict[str, Any]) -> None:
+        self._navigation_gateway._navigation_runtime_health = value
+
+    @property
+    def _navigation_odom_stamp_ns(self) -> Dict[str, int]:
+        return self._navigation_gateway._navigation_odom_stamp_ns
+
+    @_navigation_odom_stamp_ns.setter
+    def _navigation_odom_stamp_ns(self, value: Dict[str, int]) -> None:
+        self._navigation_gateway._navigation_odom_stamp_ns = value
+
+    @property
+    def _navigation_validated_receipts(self) -> Dict[str, float]:
+        return self._navigation_gateway._navigation_validated_receipts
+
+    @_navigation_validated_receipts.setter
+    def _navigation_validated_receipts(self, value: Dict[str, float]) -> None:
+        self._navigation_gateway._navigation_validated_receipts = value
+
+    @property
+    def _navigation_token(self) -> str:
+        return self._navigation_gateway._navigation_token
+
+    @_navigation_token.setter
+    def _navigation_token(self, value: str) -> None:
+        self._navigation_gateway._navigation_token = str(value)
+
+    @property
+    def _navigation_binding(self) -> str:
+        return self._navigation_gateway._navigation_binding
+
+    @_navigation_binding.setter
+    def _navigation_binding(self, value: str) -> None:
+        self._navigation_gateway._navigation_binding = str(value)
+
+    @property
+    def _navigation_goal_generation(self) -> int:
+        return self._navigation_gateway._navigation_goal_generation
+
+    @_navigation_goal_generation.setter
+    def _navigation_goal_generation(self, value: int) -> None:
+        self._navigation_gateway._navigation_goal_generation = int(value)
+
+    @property
+    def _navigation_goal_handle(self) -> Any:
+        return self._navigation_gateway._navigation_goal_handle
+
+    @_navigation_goal_handle.setter
+    def _navigation_goal_handle(self, value: Any) -> None:
+        self._navigation_gateway._navigation_goal_handle = value
 
     @property
     def _graph(self) -> Dict[str, Dict[str, Any]]:
@@ -673,13 +770,12 @@ class RosAgent:
         low: float,
         high: float,
     ) -> float:
-        try:
-            parsed = float(value)
-        except (TypeError, ValueError):
-            return default
-        if not math.isfinite(parsed):
-            return default
-        return max(low, min(parsed, high))
+        return ControlTransport.bounded_timeout(
+            value,
+            default=default,
+            low=low,
+            high=high,
+        )
 
     @staticmethod
     def _valid_ip(value: str) -> str:
@@ -818,228 +914,28 @@ class RosAgent:
                     pass
 
     def _setup_control_transport(self, node: Node) -> None:
-        """Create the signed dashboard-to-watchdog transport in one group."""
-
-        try:
-            callback_group = MutuallyExclusiveCallbackGroup()
-            reliable = QoSProfile(
-                history=HistoryPolicy.KEEP_LAST,
-                depth=10,
-                reliability=ReliabilityPolicy.RELIABLE,
-                durability=DurabilityPolicy.VOLATILE,
-            )
-            publisher = node.create_publisher(
-                String,
-                CONTROL_COMMAND_TOPIC,
-                reliable,
-                callback_group=callback_group,
-            )
-            subscription = node.create_subscription(
-                String,
-                CONTROL_STATUS_TOPIC,
-                self._control_status_callback,
-                reliable,
-                callback_group=callback_group,
-            )
-            timer = node.create_timer(
-                0.05,
-                self._control_tick,
-                callback_group=callback_group,
-            )
-            with self._control_transport_lock:
-                self._control_callback_group = callback_group
-                self._control_command_publisher = publisher
-                self._control_status_subscription = subscription
-                self._control_timer = timer
-        except Exception as exc:
-            self._set_control_unready(f"control ROS transport unavailable: {exc}")
+        self._control_transport.setup(node, self._control_tick)
 
     def _setup_navigation_transport(self, node: Node) -> None:
-        """Create fixed Nav2 ingress/action/service endpoints.
-
-        Message types are resolved only after the ROS environment has been
-        sourced.  A missing Nav2 installation leaves observation available but
-        autonomous driving unavailable; it never weakens manual control.
-        """
-
-        try:
-            from rclpy.action import ActionClient
-            from rosidl_runtime_py.utilities import get_action, get_service
-
-            callback_group = MutuallyExclusiveCallbackGroup()
-            reliable = QoSProfile(
-                history=HistoryPolicy.KEEP_LAST,
-                depth=10,
-                reliability=ReliabilityPolicy.RELIABLE,
-                durability=DurabilityPolicy.VOLATILE,
-            )
-            twist_type = get_message("geometry_msgs/msg/Twist")
-            pose_type = get_message("geometry_msgs/msg/PoseWithCovarianceStamped")
-            scan_type = get_message("sensor_msgs/msg/LaserScan")
-            odometry_type = get_message("nav_msgs/msg/Odometry")
-            action_type = get_action("nav2_msgs/action/NavigateToPose")
-            clear_type = get_service("nav2_msgs/srv/ClearEntireCostmap")
-            command_subscription = node.create_subscription(
-                twist_type,
-                NAVIGATION_CMD_VEL_TOPIC,
-                self._navigation_cmd_vel_callback,
-                reliable,
-                callback_group=callback_group,
-            )
-            health_subscriptions = {
-                "/scan": node.create_subscription(
-                    scan_type,
-                    "/scan",
-                    lambda message: self._navigation_health_callback("/scan", message),
-                    QoSProfile(
-                        history=HistoryPolicy.KEEP_LAST,
-                        depth=1,
-                        reliability=ReliabilityPolicy.BEST_EFFORT,
-                        durability=DurabilityPolicy.VOLATILE,
-                    ),
-                    callback_group=callback_group,
-                ),
-                NAVIGATION_FAST_LIO_ODOM_TOPIC: node.create_subscription(
-                    odometry_type,
-                    NAVIGATION_FAST_LIO_ODOM_TOPIC,
-                    lambda message: self._navigation_health_callback(
-                        NAVIGATION_FAST_LIO_ODOM_TOPIC, message
-                    ),
-                    QoSProfile(
-                        history=HistoryPolicy.KEEP_LAST,
-                        depth=1,
-                        reliability=ReliabilityPolicy.BEST_EFFORT,
-                        durability=DurabilityPolicy.VOLATILE,
-                    ),
-                    callback_group=callback_group,
-                ),
-                NAVIGATION_CONTROLLER_ODOM_TOPIC: node.create_subscription(
-                    odometry_type,
-                    NAVIGATION_CONTROLLER_ODOM_TOPIC,
-                    lambda message: self._navigation_health_callback(
-                        NAVIGATION_CONTROLLER_ODOM_TOPIC, message
-                    ),
-                    QoSProfile(
-                        history=HistoryPolicy.KEEP_LAST,
-                        depth=1,
-                        reliability=ReliabilityPolicy.BEST_EFFORT,
-                        durability=DurabilityPolicy.VOLATILE,
-                    ),
-                    callback_group=callback_group,
-                ),
-                NAVIGATION_LOCALIZATION_POSE_TOPIC: node.create_subscription(
-                    pose_type,
-                    NAVIGATION_LOCALIZATION_POSE_TOPIC,
-                    self._navigation_localization_callback,
-                    reliable,
-                    callback_group=callback_group,
-                ),
-                NAVIGATION_RUNTIME_HEALTH_TOPIC: node.create_subscription(
-                    String,
-                    NAVIGATION_RUNTIME_HEALTH_TOPIC,
-                    self._navigation_runtime_health_callback,
-                    QoSProfile(
-                        history=HistoryPolicy.KEEP_LAST,
-                        depth=1,
-                        reliability=ReliabilityPolicy.RELIABLE,
-                        durability=DurabilityPolicy.TRANSIENT_LOCAL,
-                    ),
-                    callback_group=callback_group,
-                ),
-            }
-            pose_publisher = node.create_publisher(
-                pose_type,
-                NAVIGATION_INITIAL_POSE_TOPIC,
-                reliable,
-                callback_group=callback_group,
-            )
-            action_client = ActionClient(
-                node,
-                action_type,
-                NAVIGATION_ACTION,
-                callback_group=callback_group,
-            )
-            clear_clients = {
-                service: node.create_client(
-                    clear_type,
-                    service,
-                    callback_group=callback_group,
-                )
-                for service in NAVIGATION_CLEAR_SERVICES
-            }
-            with self._navigation_lock:
-                self._navigation_callback_group = callback_group
-                self._navigation_cmd_subscription = command_subscription
-                self._navigation_health_subscriptions = health_subscriptions
-                self._navigation_initial_pose_publisher = pose_publisher
-                self._navigation_pose_type = pose_type
-                self._navigation_action_type = action_type
-                self._navigation_action_client = action_client
-                self._navigation_clear_service_type = clear_type
-                self._navigation_clear_clients = clear_clients
-                self._navigation["error"] = None
-                self._navigation["seq"] += 1
-        except Exception as exc:
-            with self._navigation_lock:
-                self._navigation["state"] = "unavailable"
-                self._navigation["error"] = f"Nav2 ROS transport unavailable: {exc}"[:240]
-                self._navigation["seq"] += 1
+        self._navigation_gateway.setup(node)
 
     @staticmethod
-    def _navigation_pose_values(x: object, y: object, yaw: object) -> tuple[float, float, float]:
-        values: list[float] = []
-        for label, value in (("x", x), ("y", y), ("yaw", yaw)):
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                raise CommandValidationError(f"navigation pose {label} must be numeric")
-            number = float(value)
-            if not math.isfinite(number):
-                raise CommandValidationError(f"navigation pose {label} must be finite")
-            values.append(number)
-        if abs(values[0]) > 10_000.0 or abs(values[1]) > 10_000.0:
-            raise CommandValidationError("navigation pose is outside the supported map bounds")
-        values[2] = math.atan2(math.sin(values[2]), math.cos(values[2]))
-        return values[0], values[1], values[2]
+    def _navigation_pose_values(
+        x: object,
+        y: object,
+        yaw: object,
+    ) -> tuple[float, float, float]:
+        return NavigationRosGateway.pose_values(x, y, yaw)
 
     @staticmethod
     def _duration_seconds(value: Any) -> Optional[float]:
-        if value is None:
-            return None
-        try:
-            seconds = int(getattr(value, "sec", 0))
-            nanoseconds = int(getattr(value, "nanosec", 0))
-            result = seconds + nanoseconds / 1_000_000_000.0
-            return round(max(0.0, result), 3)
-        except (TypeError, ValueError, OverflowError):
-            return None
+        return NavigationRosGateway._duration_seconds(value)
 
     def _new_stamped_pose(self, x: float, y: float, yaw: float) -> Any:
-        pose_type = self._navigation_pose_type
-        node = self._node
-        if pose_type is None or node is None:
-            raise ControlDisabled("Nav2 pose transport is unavailable")
-        message = pose_type()
-        message.header.frame_id = "map"
-        message.header.stamp = node.get_clock().now().to_msg()
-        message.pose.pose.position.x = x
-        message.pose.pose.position.y = y
-        message.pose.pose.position.z = 0.0
-        message.pose.pose.orientation.x = 0.0
-        message.pose.pose.orientation.y = 0.0
-        message.pose.pose.orientation.z = math.sin(yaw * 0.5)
-        message.pose.pose.orientation.w = math.cos(yaw * 0.5)
-        return message
+        return self._navigation_gateway._new_stamped_pose(x, y, yaw)
 
     def _navigation_transport_configured_locked(self) -> bool:
-        return bool(
-            self._navigation_cmd_subscription is not None
-            and len(self._navigation_health_subscriptions) == 5
-            and self._navigation_initial_pose_publisher is not None
-            and self._navigation_pose_type is not None
-            and self._navigation_action_type is not None
-            and self._navigation_action_client is not None
-            and self._navigation_clear_service_type is not None
-            and len(self._navigation_clear_clients) == len(NAVIGATION_CLEAR_SERVICES)
-        )
+        return self._navigation_gateway._navigation_transport_configured_locked()
 
     def navigation_activate(
         self,
@@ -1049,518 +945,64 @@ class RosAgent:
         map_name: str = "",
         ready_after: float = 0.0,
     ) -> Dict[str, Any]:
-        """Arm a pinned map only after its runtime inputs are currently ready."""
-
-        identifier = str(map_id).strip()
-        revision = str(map_revision).strip().lower()
-        if not identifier or len(identifier) > 256:
-            raise CommandValidationError("navigation map id is invalid")
-        if len(revision) != 64 or any(char not in "0123456789abcdef" for char in revision):
-            raise CommandValidationError("navigation map revision is invalid")
-        if (
-            isinstance(ready_after, bool)
-            or not isinstance(ready_after, (int, float))
-            or not math.isfinite(float(ready_after))
-            or float(ready_after) < 0.0
-        ):
-            raise CommandValidationError("navigation readiness fence is invalid")
-        with self._control_operation_lock:
-            self.navigation_start_preflight()
-            interlock = self._navigation_prelocalization_reason(
-                time.monotonic(),
-                ready_after=float(ready_after),
-            )
-            if interlock:
-                # This check occurs immediately before acquisition.  The Nav2
-                # process may run while sensors warm up, but it cannot reserve
-                # or retain the robot's motion lease during that interval.
-                raise ControlNotReady(interlock)
-            acquired = self._control_manager.acquire_navigation_lease()
-            token = str(acquired["token"])
-            binding = f"robot-scope-navigation-{secrets.token_urlsafe(18)}"
-            try:
-                self._control_manager.bind_lease(token, binding)
-            except Exception:
-                try:
-                    self._control_manager.release_lease(token)
-                except ControlError:
-                    pass
-                self._flush_control_outputs()
-                raise
-            now = time.monotonic()
-            with self._navigation_lock:
-                self._navigation_token = token
-                self._navigation_binding = binding
-                self._navigation_sequence = -1
-                self._navigation_last_heartbeat = now
-                self._navigation_goal_generation += 1
-                self._navigation_goal_handle = None
-                self._navigation_cancel_requested = False
-                self._navigation_last_clear = 0.0
-                self._navigation.update(
-                    {
-                        "seq": int(self._navigation.get("seq", 0)) + 1,
-                        "active": True,
-                        "state": "armed",
-                        "error": None,
-                        "deactivation_reason": None,
-                        "map": {
-                            "id": identifier,
-                            "revision": revision,
-                            "name": str(map_name)[:128],
-                            "frame_id": "map",
-                        },
-                        "localization": {"state": "uninitialized", "pose": None},
-                        "goal": {
-                            "state": "idle",
-                            "goal_id": None,
-                            "pose": None,
-                            "distance_remaining": None,
-                            "navigation_time": None,
-                            "recoveries": 0,
-                            "error": None,
-                        },
-                        "last_cmd_at": 0.0,
-                        "last_cmd": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
-                        "clear_costmaps": {"state": "idle", "error": None},
-                    }
-                )
-            self._flush_control_outputs()
-        return self.navigation_runtime_snapshot()
+        return self._navigation_gateway.activate(
+            map_id=map_id,
+            map_revision=map_revision,
+            map_name=map_name,
+            ready_after=ready_after,
+        )
 
     def navigation_start_preflight(self) -> Dict[str, Any]:
-        """Check whether navigation could reserve motion without doing so."""
-
-        with self._control_operation_lock:
-            self._ensure_go2_control_target()
-            with self._navigation_lock:
-                if not self._navigation_transport_configured_locked():
-                    raise ControlDisabled("Nav2 ROS transport is unavailable")
-                goal_state = str(
-                    (self._navigation.get("goal") or {}).get("state", "idle")
-                )
-                if (
-                    self._navigation.get("active")
-                    or self._navigation_token
-                    or self._navigation_binding
-                    or goal_state in {"pending", "active", "canceling"}
-                ):
-                    raise LeaseBusy("another navigation session already owns the robot")
-            control = self._control_manager.snapshot()
-            if not control.get("configured") or control.get("closed"):
-                raise ControlDisabled("robot control is not configured")
-            estop = control.get("estop") if isinstance(control.get("estop"), dict) else {}
-            if estop.get("latched"):
-                raise EmergencyStopLatched("dashboard software stop is latched")
-            action_guard = (
-                control.get("action_guard")
-                if isinstance(control.get("action_guard"), dict)
-                else {}
-            )
-            if action_guard.get("active"):
-                raise ControlNotReady("robot action safety window is active")
-            if not control.get("ready"):
-                raise ControlNotReady("bridge and lowstate must both be fresh")
-            lease = control.get("lease") if isinstance(control.get("lease"), dict) else {}
-            if lease.get("active"):
-                raise LeaseBusy("another controller already owns the robot")
-            return {"ready": True}
+        return self._navigation_gateway.start_preflight()
 
     def navigation_prelocalization_snapshot(
         self,
         *,
         ready_after: float = 0.0,
     ) -> Dict[str, Any]:
-        """Observe the fixed runtime's fresh cloud/odom gate without arming."""
-
-        if (
-            isinstance(ready_after, bool)
-            or not isinstance(ready_after, (int, float))
-            or not math.isfinite(float(ready_after))
-            or float(ready_after) < 0.0
-        ):
-            raise CommandValidationError("navigation readiness fence is invalid")
-        reason = self._navigation_prelocalization_reason(
-            time.monotonic(),
-            ready_after=float(ready_after),
+        return self._navigation_gateway.prelocalization_snapshot(
+            ready_after=ready_after
         )
-        return {
-            "ready": reason is None,
-            "reason": None if reason is None else _public_navigation_reason(reason),
-        }
 
     def _navigation_cancel_handle(self, handle: Any) -> None:
-        if handle is None:
-            return
-        try:
-            handle.cancel_goal_async()
-        except Exception:
-            pass
+        NavigationRosGateway._navigation_cancel_handle(handle)
 
     def navigation_deactivate(
         self,
         reason: str = "navigation_stop",
     ) -> Dict[str, Any]:
-        """Close the Nav2 velocity gate and issue signed StopMove first."""
-
-        public_reason = _public_navigation_reason(reason)
-        normal_stop = reason in {"navigation_stop", "operator_stop"}
-        with self._control_operation_lock:
-            with self._navigation_lock:
-                token = self._navigation_token
-                binding = self._navigation_binding
-                handle = self._navigation_goal_handle
-                was_active = bool(self._navigation.get("active"))
-                self._navigation_token = ""
-                self._navigation_binding = ""
-                self._navigation_goal_handle = None
-                self._navigation_cancel_requested = False
-                self._navigation_goal_generation += 1
-                self._navigation_clear_generation += 1
-                self._navigation.update(
-                    {
-                        "seq": int(self._navigation.get("seq", 0)) + 1,
-                        "active": False,
-                        "state": "inactive" if normal_stop else "stopped",
-                        "error": None if normal_stop else public_reason,
-                        "deactivation_reason": public_reason,
-                        "map": None,
-                        "localization": {"state": "uninitialized", "pose": None},
-                        "last_cmd_at": 0.0,
-                        "last_cmd": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
-                    }
-                )
-                goal = dict(self._navigation.get("goal") or {})
-                if goal.get("state") in {"pending", "active", "canceling"}:
-                    goal["state"] = "canceled"
-                    goal["error"] = public_reason
-                    self._navigation["goal"] = goal
-            stop_published = False
-            if token:
-                try:
-                    self._control_manager.release_lease(token, binding or None)
-                    stop_published = True
-                except (ControlError, ValueError):
-                    pass
-            if was_active and not stop_published:
-                self._publish_control_outputs(
-                    [
-                        {
-                            "type": "stop",
-                            "reason": public_reason,
-                            "velocity": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
-                            "created_at": time.monotonic(),
-                        }
-                    ]
-                )
-            self._flush_control_outputs()
-            # Stop crosses the signed transport before asynchronous Nav2
-            # cancellation can wait on a failed action server.
-            self._navigation_cancel_handle(handle)
-        return self.navigation_runtime_snapshot()
+        return self._navigation_gateway.deactivate(reason)
 
     def _navigation_health_callback(self, topic: str, message: Any) -> None:
-        """Count only structurally valid samples as fresh navigation input."""
-
-        observed_at = time.monotonic()
-        try:
-            if topic == "/scan":
-                frame_id = str(getattr(message.header, "frame_id", "")).lstrip("/")
-                if frame_id != "hesai_lidar":
-                    raise ValueError("unexpected scan frame")
-                ranges = getattr(message, "ranges", None)
-                if ranges is None or len(ranges) < 8:
-                    raise ValueError("scan contains too few ranges")
-            elif topic in {
-                NAVIGATION_FAST_LIO_ODOM_TOPIC,
-                NAVIGATION_CONTROLLER_ODOM_TOPIC,
-            }:
-                stamp_ns = self._navigation_validate_odom_stamp(topic, message)
-                pose = message.pose.pose
-                twist = message.twist.twist
-                values = (
-                    pose.position.x,
-                    pose.position.y,
-                    pose.position.z,
-                    pose.orientation.x,
-                    pose.orientation.y,
-                    pose.orientation.z,
-                    pose.orientation.w,
-                    twist.linear.x,
-                    twist.linear.y,
-                    twist.angular.z,
-                )
-                if not all(math.isfinite(float(value)) for value in values):
-                    raise ValueError("odometry contains non-finite values")
-                if (
-                    abs(float(pose.position.x)) > 10_000.0
-                    or abs(float(pose.position.y)) > 10_000.0
-                    or abs(float(pose.position.z)) > 100.0
-                ):
-                    raise ValueError("odometry pose is outside supported bounds")
-                quaternion_norm = math.sqrt(
-                    float(pose.orientation.x) ** 2
-                    + float(pose.orientation.y) ** 2
-                    + float(pose.orientation.z) ** 2
-                    + float(pose.orientation.w) ** 2
-                )
-                if quaternion_norm < 0.5 or quaternion_norm > 1.5:
-                    raise ValueError("odometry quaternion norm is invalid")
-                if (
-                    abs(float(twist.linear.x)) > 5.0
-                    or abs(float(twist.linear.y)) > 5.0
-                    or abs(float(twist.angular.z)) > 10.0
-                ):
-                    raise ValueError("odometry twist is physically implausible")
-                if topic == NAVIGATION_FAST_LIO_ODOM_TOPIC:
-                    parent = str(getattr(message.header, "frame_id", "")).lstrip("/")
-                    child = str(getattr(message, "child_frame_id", "")).lstrip("/")
-                    if parent != "camera_init" or child != "body":
-                        raise ValueError("unexpected FAST-LIO odometry frames")
-                if not self._navigation_commit_odom_stamp(
-                    topic,
-                    stamp_ns,
-                ):
-                    # The first controller sample, and the first sample after
-                    # an inactive robot-clock reset, establish only a new
-                    # baseline.  A later strict advance is required before the
-                    # stream can become fresh.
-                    return
-            with self._navigation_lock:
-                if topic in self._navigation_validated_receipts:
-                    self._navigation_validated_receipts[topic] = observed_at
-        except (AttributeError, TypeError, ValueError, OverflowError) as exc:
-            with self._navigation_lock:
-                if topic in self._navigation_validated_receipts:
-                    self._navigation_validated_receipts[topic] = 0.0
-                active = bool(self._navigation.get("active"))
-            if active:
-                self.navigation_deactivate(f"invalid {topic} sample: {exc}")
-            return
-        self._tick(topic, observed_at)
+        self._navigation_gateway._navigation_health_callback(topic, message)
 
     def _navigation_validate_odom_stamp(self, topic: str, message: Any) -> int:
-        """Validate timestamp shape and clock bounds without mutating state.
-
-        FAST-LIO is stamped from the dashboard host clock, so it must also be
-        close to that clock.  Unitree's controller odometry advances on the
-        robot clock and may carry a stable offset from the host after either
-        machine synchronizes time.  That stream is observed through a
-        best-effort KEEP_LAST(1) reader; strict stamp progression plus the
-        separate monotonic receipt-age watchdog proves liveness without
-        treating the robot clock as the host clock.
-        """
-
-        if topic not in {
-            NAVIGATION_FAST_LIO_ODOM_TOPIC,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC,
-        }:
-            raise ValueError("unexpected odometry topic")
-        stamp = message.header.stamp
-        seconds = stamp.sec
-        nanoseconds = stamp.nanosec
-        if (
-            isinstance(seconds, bool)
-            or not isinstance(seconds, int)
-            or isinstance(nanoseconds, bool)
-            or not isinstance(nanoseconds, int)
-            or seconds < 0
-            or nanoseconds < 0
-            or nanoseconds >= 1_000_000_000
-        ):
-            raise ValueError("odometry timestamp is malformed")
-        stamp_ns = seconds * 1_000_000_000 + nanoseconds
-        if stamp_ns <= 0:
-            raise ValueError("odometry timestamp is zero")
-
-        if topic == NAVIGATION_FAST_LIO_ODOM_TOPIC:
-            node = self._node
-            if node is None:
-                raise ValueError("ROS clock is unavailable")
-            now_ns = node.get_clock().now().nanoseconds
-            if isinstance(now_ns, bool) or not isinstance(now_ns, int) or now_ns <= 0:
-                raise ValueError("ROS clock is invalid")
-            age_ns = now_ns - stamp_ns
-            if age_ns > int(NAVIGATION_ODOM_STAMP_MAX_AGE_S * 1_000_000_000):
-                raise ValueError("odometry timestamp is stale")
-            if age_ns < -int(NAVIGATION_ODOM_STAMP_MAX_FUTURE_S * 1_000_000_000):
-                raise ValueError("odometry timestamp is in the future")
-
-        return stamp_ns
+        return self._navigation_gateway._navigation_validate_odom_stamp(
+            topic,
+            message,
+        )
 
     def _navigation_commit_odom_stamp(
         self,
         topic: str,
         stamp_ns: int,
     ) -> bool:
-        """Commit a fully validated stamp and return whether it proves liveness."""
-
-        with self._navigation_lock:
-            previous_ns = int(self._navigation_odom_stamp_ns.get(topic, 0) or 0)
-            if not previous_ns:
-                self._navigation_odom_stamp_ns[topic] = stamp_ns
-                if topic == NAVIGATION_CONTROLLER_ODOM_TOPIC:
-                    self._navigation_validated_receipts[topic] = 0.0
-                    return False
-                return True
-
-            if stamp_ns <= previous_ns:
-                if topic == NAVIGATION_CONTROLLER_ODOM_TOPIC:
-                    self._navigation_validated_receipts[topic] = 0.0
-                    active = bool(self._navigation.get("active"))
-                    if not active and stamp_ns < previous_ns:
-                        # A stopped Unitree can reboot or reset its device
-                        # clock.  Re-prime while motion is disarmed, but do not
-                        # call this sample fresh; the next sample must advance.
-                        self._navigation_odom_stamp_ns[topic] = stamp_ns
-                        return False
-                raise ValueError("odometry timestamp did not increase")
-
-            self._navigation_odom_stamp_ns[topic] = stamp_ns
-            return True
+        return self._navigation_gateway._navigation_commit_odom_stamp(
+            topic,
+            stamp_ns,
+        )
 
     def _navigation_runtime_health_callback(self, message: String) -> None:
-        now = time.monotonic()
-        try:
-            payload = json.loads(message.data)
-            if not isinstance(payload, dict):
-                raise ValueError("health payload must be an object")
-            if payload.get("schema") != "robot-scope.navigation-runtime-health.v1":
-                raise ValueError("health schema is invalid")
-            for key in ("ready", "cloud_fresh", "odom_fresh", "localized"):
-                if not isinstance(payload.get(key), bool):
-                    raise ValueError(f"health {key} flag is invalid")
-            if payload.get("cloud_topic") != "/velodyne_points":
-                raise ValueError("health cloud topic is invalid")
-            if payload.get("scan_topic") != "/scan":
-                raise ValueError("health scan topic is invalid")
-            if payload.get("odometry_topic") != "/Odometry":
-                raise ValueError("health odometry topic is invalid")
-            if payload.get("cloud_frame") != "hesai_lidar":
-                raise ValueError("health cloud frame is invalid")
-            counts = payload.get("publisher_counts")
-            if not isinstance(counts, dict):
-                raise ValueError("health publisher counts are invalid")
-            sanitized_counts: Dict[str, int] = {}
-            for topic in ("/velodyne_points", NAVIGATION_FAST_LIO_ODOM_TOPIC):
-                count = counts.get(topic)
-                if (
-                    isinstance(count, bool)
-                    or not isinstance(count, int)
-                    or count < 0
-                    or count > 16
-                ):
-                    raise ValueError(f"health publisher count for {topic} is invalid")
-                sanitized_counts[topic] = count
-            if payload.get("ready") and any(
-                count != 1 for count in sanitized_counts.values()
-            ):
-                raise ValueError("ready health has non-unique sensor sources")
-            input_points = int(payload.get("input_points", 0))
-            accepted_points = int(payload.get("accepted_points", 0))
-            if input_points < 0 or accepted_points < 0 or accepted_points > input_points:
-                raise ValueError("health point counts are invalid")
-            node = self._node
-            publishers = (
-                node.count_publishers(NAVIGATION_RUNTIME_HEALTH_TOPIC)
-                if node
-                else 0
-            )
-            if publishers != 1:
-                raise ValueError(
-                    f"expected one navigation runtime health publisher, found {publishers}"
-                )
-        except (AttributeError, json.JSONDecodeError, TypeError, ValueError) as exc:
-            with self._navigation_lock:
-                self._navigation_runtime_health_received = 0.0
-                self._navigation_runtime_health = {
-                    "ready": False,
-                    "cloud_fresh": False,
-                    "odom_fresh": False,
-                    "localized": False,
-                    "error": f"rejected navigation runtime health: {exc}"[:240],
-                }
-            return
-        sanitized = {
-            "ready": payload["ready"],
-            "cloud_fresh": payload["cloud_fresh"],
-            "odom_fresh": payload["odom_fresh"],
-            "localized": payload["localized"],
-            "publisher_counts": sanitized_counts,
-            "cloud_error": str(payload.get("cloud_error", ""))[:160],
-            "odom_error": str(payload.get("odom_error", ""))[:160],
-            "input_points": input_points,
-            "accepted_points": accepted_points,
-            "error": None,
-        }
-        with self._navigation_lock:
-            self._navigation_runtime_health_received = now
-            self._navigation_runtime_health = sanitized
+        self._navigation_gateway._navigation_runtime_health_callback(message)
 
     def _navigation_localization_callback(self, message: Any) -> None:
-        now = time.monotonic()
-        node = self._node
-        try:
-            publishers = (
-                node.count_publishers(NAVIGATION_LOCALIZATION_POSE_TOPIC)
-                if node
-                else 0
-            )
-        except Exception:
-            publishers = 0
-        if publishers != 1:
-            with self._navigation_lock:
-                self._navigation_validated_receipts[
-                    NAVIGATION_LOCALIZATION_POSE_TOPIC
-                ] = 0.0
-            self.navigation_deactivate(
-                f"expected one localization pose publisher, found {publishers}"
-            )
-            return
-        try:
-            pose = message.pose.pose
-            x = float(pose.position.x)
-            y = float(pose.position.y)
-            orientation = pose.orientation
-            yaw = math.atan2(
-                2.0 * (orientation.w * orientation.z + orientation.x * orientation.y),
-                1.0 - 2.0 * (orientation.y * orientation.y + orientation.z * orientation.z),
-            )
-            x, y, yaw = self._navigation_pose_values(x, y, yaw)
-        except (AttributeError, TypeError, ValueError, CommandValidationError) as exc:
-            with self._navigation_lock:
-                self._navigation_validated_receipts[
-                    NAVIGATION_LOCALIZATION_POSE_TOPIC
-                ] = 0.0
-                active = bool(self._navigation.get("active"))
-            if active:
-                self.navigation_deactivate(f"invalid localization pose: {exc}")
-            return
-        self._tick(NAVIGATION_LOCALIZATION_POSE_TOPIC, now)
-        with self._navigation_lock:
-            self._navigation_validated_receipts[
-                NAVIGATION_LOCALIZATION_POSE_TOPIC
-            ] = now
-            if not self._navigation.get("active"):
-                return
-            self._navigation["localization"] = {
-                "state": "localized",
-                "pose": {"x": x, "y": y, "yaw": yaw},
-            }
-            self._navigation["seq"] += 1
+        self._navigation_gateway._navigation_localization_callback(message)
 
     def _navigation_next_sequence_locked(self) -> int:
-        self._navigation_sequence += 1
-        return self._navigation_sequence
+        return self._navigation_gateway._navigation_next_sequence_locked()
 
     def _navigation_runtime_health_snapshot(self, now: float) -> Dict[str, Any]:
-        with self._navigation_lock:
-            health = copy.deepcopy(self._navigation_runtime_health)
-            received = self._navigation_runtime_health_received
-        age = None if received <= 0.0 else max(0.0, now - received)
-        health["age_s"] = None if age is None else round(age, 3)
-        health["fresh"] = bool(age is not None and age <= 0.75)
-        return health
+        return self._navigation_gateway._navigation_runtime_health_snapshot(now)
 
     def _navigation_validated_recency(
         self,
@@ -1568,19 +1010,14 @@ class RosAgent:
         now: float,
         maximum_age: float,
     ) -> tuple[bool, Optional[float]]:
-        """Read only a safety-owned receipt populated by its fixed callback."""
-
-        with self._navigation_lock:
-            received = float(self._navigation_validated_receipts.get(topic, 0.0))
-        age = None if received <= 0.0 else max(0.0, now - received)
-        return bool(age is not None and age <= maximum_age), age
+        return self._navigation_gateway._navigation_validated_recency(
+            topic,
+            now,
+            maximum_age,
+        )
 
     def _navigation_source_count(self, topic: str) -> int:
-        node = self._node
-        try:
-            return int(node.count_publishers(topic)) if node else 0
-        except Exception:
-            return 0
+        return self._navigation_gateway._navigation_source_count(topic)
 
     def _navigation_sensor_interlock_reason(
         self,
@@ -1588,48 +1025,10 @@ class RosAgent:
         *,
         require_localized: bool,
     ) -> Optional[str]:
-        """Return a fail-closed reason for the trusted navigation inputs."""
-
-        health = self._navigation_runtime_health_snapshot(now)
-        if not health.get("fresh"):
-            return "navigation runtime health is stale"
-        if not health.get("cloud_fresh") or not health.get("odom_fresh"):
-            return "navigation localization inputs are stale"
-        if require_localized and (
-            not health.get("ready") or not health.get("localized")
-        ):
-            return "navigation localization is not ready"
-
-        required_topics = {
-            "/scan": 0.75,
-            NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.75,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.75,
-        }
-        if require_localized:
-            required_topics.update(
-                {
-                    NAVIGATION_LOCALIZATION_POSE_TOPIC: 1.0,
-                    NAVIGATION_CMD_VEL_TOPIC: 0.25,
-                }
-            )
-        for topic, maximum_age in required_topics.items():
-            if self._navigation_source_count(topic) != 1:
-                return f"expected one publisher for {topic}"
-            # cmd_vel can remain silent while a controller is stopped; its
-            # publisher uniqueness is the safety property, not sample rate.
-            if topic in self._navigation_validated_receipts:
-                recent, _ = self._navigation_validated_recency(
-                    topic,
-                    now,
-                    maximum_age,
-                )
-            else:
-                # cmd_vel can legitimately remain silent while stopped; its
-                # unique publisher is the complete gate for this topic.
-                recent = topic == NAVIGATION_CMD_VEL_TOPIC
-            if not recent:
-                return f"navigation input {topic} is stale"
-        return None
+        return self._navigation_gateway._navigation_sensor_interlock_reason(
+            now,
+            require_localized=require_localized,
+        )
 
     def _navigation_prelocalization_reason(
         self,
@@ -1637,201 +1036,35 @@ class RosAgent:
         *,
         ready_after: float = 0.0,
     ) -> Optional[str]:
-        """Require health emitted by this startup and currently fresh inputs."""
-
-        with self._navigation_lock:
-            health_received = self._navigation_runtime_health_received
-            controller_odom_received = self._navigation_validated_receipts[
-                NAVIGATION_CONTROLLER_ODOM_TOPIC
-            ]
-        if ready_after > 0.0 and health_received < ready_after:
-            return "navigation runtime health has not started for this session"
-        if ready_after > 0.0 and controller_odom_received < ready_after:
-            return "controller odometry has not advanced for this session"
-        return self._navigation_sensor_interlock_reason(
+        return self._navigation_gateway._navigation_prelocalization_reason(
             now,
-            require_localized=False,
+            ready_after=ready_after,
         )
 
     def _navigation_issue_stop(self, reason: str) -> None:
-        """Send a signed zero/StopMove independent of the current goal state."""
-
-        with self._control_operation_lock:
-            with self._navigation_lock:
-                token = self._navigation_token
-                binding = self._navigation_binding
-                sequence = (
-                    self._navigation_next_sequence_locked()
-                    if token and binding
-                    else -1
-                )
-                self._navigation["last_cmd_at"] = 0.0
-                self._navigation["last_cmd"] = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
-                self._navigation["seq"] += 1
-            submitted = False
-            if token and binding:
-                try:
-                    self._control_manager.submit_drive(
-                        token,
-                        binding,
-                        sequence,
-                        vx=0.0,
-                        vy=0.0,
-                        wz=0.0,
-                        speed_scale=1.0,
-                        deadman=False,
-                        client_age_s=0.0,
-                    )
-                    submitted = True
-                except ControlError:
-                    pass
-            if not submitted:
-                self._publish_control_outputs(
-                    [
-                        {
-                            "type": "stop",
-                            "reason": str(reason)[:160] or "navigation stop",
-                            "velocity": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
-                            "created_at": time.monotonic(),
-                        }
-                    ]
-                )
-            self._flush_control_outputs()
+        self._navigation_gateway._navigation_issue_stop(reason)
 
     def _navigation_keepalive_locked(self, now: float) -> Optional[str]:
-        with self._navigation_lock:
-            if not self._navigation.get("active"):
-                return None
-            token = self._navigation_token
-            binding = self._navigation_binding
-            if not token or not binding:
-                return "navigation_lease_missing"
-            if now - self._navigation_last_heartbeat < 0.50:
-                return None
-            sequence = self._navigation_next_sequence_locked()
-        try:
-            self._control_manager.heartbeat(token, binding, sequence)
-        except ControlError as exc:
-            return f"navigation heartbeat failed: {exc}"
-        with self._navigation_lock:
-            if token == self._navigation_token:
-                self._navigation_last_heartbeat = now
-        return None
+        return self._navigation_gateway.keepalive_locked(now)
 
     def _navigation_reconcile_control_locked(self, now: float) -> Optional[str]:
-        with self._navigation_lock:
-            if not self._navigation.get("active"):
-                return None
-            goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
-        snapshot = self._control_manager.snapshot()
-        lease = snapshot.get("lease", {})
-        if not lease.get("active") or lease.get("input_source") != "navigation":
-            return "navigation control lease was lost"
-        # The internal lease remains motion-capable even before a goal is
-        # active.  Keep its minimum cloud/odom/scan gate live throughout the
-        # whole session, and strengthen it with localization/controller inputs
-        # while a goal could command motion.
-        return self._navigation_sensor_interlock_reason(
-            now,
-            require_localized=goal_state in {"pending", "active", "canceling"},
-        )
+        return self._navigation_gateway.reconcile_control_locked(now)
 
     def _navigation_submit_velocity(self, vx: float, vy: float, wz: float) -> None:
-        with self._control_operation_lock:
-            with self._navigation_lock:
-                if not self._navigation.get("active"):
-                    return
-                goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
-                token = self._navigation_token
-                binding = self._navigation_binding
-            snapshot = self._control_manager.snapshot()
-            limits = snapshot.get("limits", {})
-            vx_limit = max(0.01, float(limits.get("vx_mps", 0.30)))
-            vy_limit = max(0.01, float(limits.get("vy_mps", 0.20)))
-            wz_limit = max(0.05, float(limits.get("wz_rps", 0.50)))
-            bounded = {
-                "vx": max(-vx_limit, min(vx_limit, float(vx))),
-                "vy": max(-vy_limit, min(vy_limit, float(vy))),
-                "wz": max(-wz_limit, min(wz_limit, float(wz))),
-            }
-            deadman = any(abs(value) > 1e-4 for value in bounded.values())
-            if not deadman:
-                self._navigation_issue_stop("Nav2 requested zero velocity")
-                return
-            # A controller command may arrive while the action request is still
-            # pending.  Never allow non-zero motion until the server explicitly
-            # accepts the exact goal and all trusted sensor gates are fresh.
-            if goal_state != "active":
-                self._navigation_issue_stop("navigation goal is not active")
-                return
-            interlock = self._navigation_sensor_interlock_reason(
-                time.monotonic(),
-                require_localized=True,
-            )
-            if interlock:
-                self.navigation_deactivate(interlock)
-                return
-            try:
-                with self._navigation_lock:
-                    sequence = self._navigation_next_sequence_locked()
-                self._control_manager.submit_drive(
-                    token,
-                    binding,
-                    sequence,
-                    vx=bounded["vx"] / vx_limit,
-                    vy=bounded["vy"] / vy_limit,
-                    wz=bounded["wz"] / wz_limit,
-                    speed_scale=1.0,
-                    deadman=deadman,
-                    client_age_s=0.0,
-                )
-                now = time.monotonic()
-                with self._navigation_lock:
-                    if token == self._navigation_token:
-                        self._navigation["last_cmd_at"] = now
-                        self._navigation["last_cmd"] = bounded
-                        self._navigation["seq"] += 1
-                self._flush_control_outputs()
-            except ControlError as exc:
-                self.navigation_deactivate(f"navigation command rejected: {exc}")
+        self._navigation_gateway.submit_velocity(vx, vy, wz)
 
     def _navigation_cmd_vel_callback(self, message: Any) -> None:
-        try:
-            values = (
-                float(message.linear.x),
-                float(message.linear.y),
-                float(message.angular.z),
-            )
-            if not all(math.isfinite(value) for value in values):
-                raise ValueError("non-finite Nav2 velocity")
-        except (AttributeError, TypeError, ValueError):
-            self.navigation_deactivate("invalid Nav2 velocity")
-            return
-        node = self._node
-        try:
-            publishers = node.count_publishers(NAVIGATION_CMD_VEL_TOPIC) if node else 0
-        except Exception:
-            publishers = 0
-        if publishers != 1:
-            self.navigation_deactivate(
-                f"expected one Nav2 velocity publisher, found {publishers}"
-            )
-            return
-        self._navigation_submit_velocity(*values)
+        self._navigation_gateway._navigation_cmd_vel_callback(message)
 
     def _navigation_require_pinned_map_locked(
         self,
         map_id: str,
         map_revision: str,
     ) -> None:
-        if not self._navigation.get("active"):
-            raise ControlDisabled("navigation is not active")
-        active_map = self._navigation.get("map") or {}
-        if (
-            str(map_id) != str(active_map.get("id", ""))
-            or str(map_revision).lower() != str(active_map.get("revision", "")).lower()
-        ):
-            raise CommandValidationError("navigation map revision does not match the active session")
+        self._navigation_gateway._navigation_require_pinned_map_locked(
+            map_id,
+            map_revision,
+        )
 
     def navigation_set_initial_pose(
         self,
@@ -1842,35 +1075,13 @@ class RosAgent:
         y: object,
         yaw: object,
     ) -> Dict[str, Any]:
-        x_value, y_value, yaw_value = self._navigation_pose_values(x, y, yaw)
-        with self._control_operation_lock:
-            interlock = self._navigation_sensor_interlock_reason(
-                time.monotonic(),
-                require_localized=False,
-            )
-            if interlock:
-                raise ControlDisabled(interlock)
-            with self._navigation_lock:
-                self._navigation_require_pinned_map_locked(map_id, map_revision)
-                goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
-                if goal_state in {"pending", "active", "canceling"}:
-                    raise LeaseBusy("cancel the active goal before resetting localization")
-                publisher = self._navigation_initial_pose_publisher
-            if publisher is None:
-                raise ControlDisabled("initial-pose publisher is unavailable")
-            message = self._new_stamped_pose(x_value, y_value, yaw_value)
-            message.pose.covariance = [0.0] * 36
-            message.pose.covariance[0] = 0.25
-            message.pose.covariance[7] = 0.25
-            message.pose.covariance[35] = 0.06853891945200942
-            publisher.publish(message)
-            with self._navigation_lock:
-                self._navigation["localization"] = {
-                    "state": "localizing",
-                    "pose": {"x": x_value, "y": y_value, "yaw": yaw_value},
-                }
-                self._navigation["seq"] += 1
-        return self.navigation_runtime_snapshot()
+        return self._navigation_gateway.set_initial_pose(
+            map_id=map_id,
+            map_revision=map_revision,
+            x=x,
+            y=y,
+            yaw=yaw,
+        )
 
     def _navigation_feedback_callback(
         self,
@@ -1878,34 +1089,11 @@ class RosAgent:
         goal_id: str,
         message: Any,
     ) -> None:
-        feedback = getattr(message, "feedback", None)
-        with self._navigation_lock:
-            goal = dict(self._navigation.get("goal") or {})
-            if (
-                generation != self._navigation_goal_generation
-                or goal.get("goal_id") != goal_id
-                or goal.get("state") not in {"pending", "active"}
-            ):
-                return
-            try:
-                distance = float(getattr(feedback, "distance_remaining", float("nan")))
-                goal["distance_remaining"] = round(max(0.0, distance), 3) if math.isfinite(distance) else None
-            except (TypeError, ValueError):
-                goal["distance_remaining"] = None
-            goal["navigation_time"] = self._duration_seconds(
-                getattr(feedback, "navigation_time", None)
-            )
-            try:
-                goal["recoveries"] = max(0, int(getattr(feedback, "number_of_recoveries", 0)))
-            except (TypeError, ValueError):
-                goal["recoveries"] = 0
-            # Feedback can be scheduled before the goal-response callback.
-            # Keep the non-zero gate closed until an accepted handle for this
-            # exact generation has been stored.
-            if self._navigation_goal_handle is not None:
-                goal["state"] = "active"
-            self._navigation["goal"] = goal
-            self._navigation["seq"] += 1
+        self._navigation_gateway._navigation_feedback_callback(
+            generation,
+            goal_id,
+            message,
+        )
 
     def _navigation_goal_response_callback(
         self,
@@ -1913,54 +1101,11 @@ class RosAgent:
         goal_id: str,
         future: Any,
     ) -> None:
-        try:
-            handle = future.result()
-        except Exception as exc:
-            handle = None
-            error = f"NavigateToPose request failed: {exc}"[:200]
-        else:
-            error = "NavigateToPose goal was rejected"
-        with self._navigation_lock:
-            goal = dict(self._navigation.get("goal") or {})
-            stale = (
-                generation != self._navigation_goal_generation
-                or goal.get("goal_id") != goal_id
-            )
-            cancel_requested = self._navigation_cancel_requested
-            if not stale and handle is not None and bool(getattr(handle, "accepted", False)):
-                self._navigation_goal_handle = handle
-                goal["state"] = "canceling" if cancel_requested else "active"
-                self._navigation["goal"] = goal
-                self._navigation["seq"] += 1
-            elif not stale:
-                goal["state"] = "failed"
-                goal["error"] = error
-                self._navigation["goal"] = goal
-                self._navigation["seq"] += 1
-        if stale:
-            self._navigation_cancel_handle(handle)
-            return
-        if handle is None or not bool(getattr(handle, "accepted", False)):
-            self._navigation_issue_stop(error)
-            return
-        if cancel_requested:
-            self._navigation_cancel_handle(handle)
-        try:
-            result_future = handle.get_result_async()
-            result_future.add_done_callback(
-                lambda completed, g=generation, i=goal_id: self._navigation_result_callback(
-                    g, i, completed
-                )
-            )
-        except Exception as exc:
-            with self._navigation_lock:
-                goal = dict(self._navigation.get("goal") or {})
-                if generation == self._navigation_goal_generation and goal.get("goal_id") == goal_id:
-                    goal["state"] = "failed"
-                    goal["error"] = f"NavigateToPose result unavailable: {exc}"[:200]
-                    self._navigation["goal"] = goal
-                    self._navigation["seq"] += 1
-            self._navigation_issue_stop("NavigateToPose result unavailable")
+        self._navigation_gateway._navigation_goal_response_callback(
+            generation,
+            goal_id,
+            future,
+        )
 
     def _navigation_result_callback(
         self,
@@ -1968,26 +1113,11 @@ class RosAgent:
         goal_id: str,
         future: Any,
     ) -> None:
-        try:
-            wrapped = future.result()
-            status = int(getattr(wrapped, "status", 0))
-            error = None
-        except Exception as exc:
-            status = 0
-            error = f"NavigateToPose result failed: {exc}"[:200]
-        state = {4: "succeeded", 5: "canceled", 6: "failed"}.get(status, "failed")
-        with self._navigation_lock:
-            goal = dict(self._navigation.get("goal") or {})
-            if generation != self._navigation_goal_generation or goal.get("goal_id") != goal_id:
-                return
-            goal["state"] = state
-            goal["error"] = error if error else ("navigation aborted" if status == 6 else None)
-            self._navigation["goal"] = goal
-            self._navigation_goal_handle = None
-            self._navigation_cancel_requested = False
-            self._navigation["seq"] += 1
-        # Close the non-zero command gate immediately at every terminal state.
-        self._navigation_issue_stop(f"navigation goal {state}")
+        self._navigation_gateway._navigation_result_callback(
+            generation,
+            goal_id,
+            future,
+        )
 
     def navigation_send_goal(
         self,
@@ -1998,366 +1128,26 @@ class RosAgent:
         y: object,
         yaw: object,
     ) -> Dict[str, Any]:
-        x_value, y_value, yaw_value = self._navigation_pose_values(x, y, yaw)
-        with self._control_operation_lock:
-            interlock = self._navigation_sensor_interlock_reason(
-                time.monotonic(),
-                require_localized=True,
-            )
-            if interlock:
-                raise ControlDisabled(interlock)
-            with self._navigation_lock:
-                self._navigation_require_pinned_map_locked(map_id, map_revision)
-                if (self._navigation.get("localization") or {}).get("state") != "localized":
-                    raise ControlDisabled("a fresh localized pose is required before sending a goal")
-                current = self._navigation.get("goal") or {}
-                if current.get("state") in {"pending", "active", "canceling"}:
-                    raise LeaseBusy("another navigation goal is active")
-                client = self._navigation_action_client
-                if client is None or not client.server_is_ready():
-                    raise ControlDisabled("NavigateToPose action server is unavailable")
-                goal_id = secrets.token_hex(16)
-                self._navigation_goal_generation += 1
-                generation = self._navigation_goal_generation
-                self._navigation_cancel_requested = False
-                self._navigation_goal_handle = None
-                self._navigation["goal"] = {
-                    "state": "pending",
-                    "goal_id": goal_id,
-                    "pose": {"x": x_value, "y": y_value, "yaw": yaw_value},
-                    "distance_remaining": None,
-                    "navigation_time": None,
-                    "recoveries": 0,
-                    "error": None,
-                }
-                self._navigation["seq"] += 1
-                action_type = self._navigation_action_type
-            stamped = self._new_stamped_pose(x_value, y_value, yaw_value)
-            goal_message = action_type.Goal()
-            goal_message.pose.header = stamped.header
-            goal_message.pose.pose = stamped.pose.pose
-            try:
-                future = client.send_goal_async(
-                    goal_message,
-                    feedback_callback=lambda feedback, g=generation, i=goal_id: self._navigation_feedback_callback(
-                        g, i, feedback
-                    ),
-                )
-                future.add_done_callback(
-                    lambda completed, g=generation, i=goal_id: self._navigation_goal_response_callback(
-                        g, i, completed
-                    )
-                )
-            except Exception as exc:
-                with self._navigation_lock:
-                    goal = dict(self._navigation.get("goal") or {})
-                    if goal.get("goal_id") == goal_id:
-                        goal["state"] = "failed"
-                        goal["error"] = f"NavigateToPose request failed: {exc}"[:200]
-                        self._navigation["goal"] = goal
-                        self._navigation["seq"] += 1
-                self._navigation_issue_stop("NavigateToPose request failed")
-                raise ControlDisabled("NavigateToPose request could not be sent") from exc
-        return self.navigation_runtime_snapshot()
+        return self._navigation_gateway.send_goal(
+            map_id=map_id,
+            map_revision=map_revision,
+            x=x,
+            y=y,
+            yaw=yaw,
+        )
 
     def navigation_cancel_goal(self, *, goal_id: str) -> Dict[str, Any]:
-        identifier = str(goal_id).strip()
-        with self._control_operation_lock:
-            with self._navigation_lock:
-                goal = dict(self._navigation.get("goal") or {})
-                if not identifier or identifier != goal.get("goal_id"):
-                    raise CommandValidationError("goal id does not match the active navigation goal")
-                if goal.get("state") not in {"pending", "active", "canceling"}:
-                    return self.navigation_runtime_snapshot()
-                goal["state"] = "canceling"
-                self._navigation["goal"] = goal
-                self._navigation_cancel_requested = True
-                handle = self._navigation_goal_handle
-                token = self._navigation_token
-                binding = self._navigation_binding
-                sequence = self._navigation_next_sequence_locked() if token and binding else -1
-                self._navigation["seq"] += 1
-            # Stop first; cancellation acknowledgment can be delayed or lost.
-            if token and binding:
-                try:
-                    self._control_manager.submit_drive(
-                        token,
-                        binding,
-                        sequence,
-                        vx=0.0,
-                        vy=0.0,
-                        wz=0.0,
-                        speed_scale=1.0,
-                        deadman=False,
-                        client_age_s=0.0,
-                    )
-                except ControlError:
-                    pass
-            self._flush_control_outputs()
-            self._navigation_cancel_handle(handle)
-        return self.navigation_runtime_snapshot()
+        return self._navigation_gateway.cancel_goal(goal_id=goal_id)
 
-    def navigation_clear_costmaps(self, *, scope: str = "both") -> Dict[str, Any]:
-        normalized = str(scope).strip().lower()
-        if normalized not in {"both", "global", "local"}:
-            raise CommandValidationError("costmap scope must be both, global, or local")
-        with self._navigation_lock:
-            if not self._navigation.get("active"):
-                raise ControlDisabled("navigation is not active")
-            goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
-            if goal_state in {"pending", "active", "canceling"}:
-                raise LeaseBusy("stop the active goal before clearing costmaps")
-            now = time.monotonic()
-            if now - self._navigation_last_clear < 2.0:
-                raise LeaseBusy("wait before clearing costmaps again")
-            services = [
-                service
-                for service in NAVIGATION_CLEAR_SERVICES
-                if normalized == "both"
-                or (normalized == "global" and "global_costmap" in service)
-                or (normalized == "local" and "local_costmap" in service)
-            ]
-            clients = [(service, self._navigation_clear_clients.get(service)) for service in services]
-            if any(client is None or not client.service_is_ready() for _, client in clients):
-                raise ControlDisabled("requested costmap service is unavailable")
-            self._navigation["clear_costmaps"] = {"state": "running", "error": None}
-            self._navigation["seq"] += 1
-            self._navigation_last_clear = now
-            self._navigation_clear_generation += 1
-            generation = self._navigation_clear_generation
-            service_type = self._navigation_clear_service_type
-        pending = {service for service, _ in clients}
-        errors: list[str] = []
-
-        def completed(service: str, future: Any) -> None:
-            try:
-                future.result()
-            except Exception as exc:
-                errors.append(f"{service}: {exc}"[:180])
-            pending.discard(service)
-            if pending:
-                return
-            with self._navigation_lock:
-                if generation != self._navigation_clear_generation:
-                    return
-                self._navigation["clear_costmaps"] = {
-                    "state": "failed" if errors else "succeeded",
-                    "error": "; ".join(errors)[:240] if errors else None,
-                }
-                self._navigation["seq"] += 1
-
-        for service, client in clients:
-            future = client.call_async(service_type.Request())
-            future.add_done_callback(lambda done, name=service: completed(name, done))
-        return self.navigation_runtime_snapshot()
+    def navigation_clear_costmaps(
+        self,
+        *,
+        scope: str = "both",
+    ) -> Dict[str, Any]:
+        return self._navigation_gateway.clear_costmaps(scope=scope)
 
     def navigation_runtime_snapshot(self) -> Dict[str, Any]:
-        now = time.monotonic()
-        with self._control_operation_lock:
-            control = self._control_manager.snapshot()
-            with self._navigation_lock:
-                snapshot = copy.deepcopy(self._navigation)
-                configured = self._navigation_transport_configured_locked()
-                action_client = self._navigation_action_client
-                clear_clients = dict(self._navigation_clear_clients)
-        runtime_health = self._navigation_runtime_health_snapshot(now)
-        node = self._node
-        try:
-            cmd_publishers = node.count_publishers(NAVIGATION_CMD_VEL_TOPIC) if node else 0
-        except Exception:
-            cmd_publishers = 0
-        topic_publishers: Dict[str, int] = {}
-        for topic in (
-            "/scan",
-            NAVIGATION_FAST_LIO_ODOM_TOPIC,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC,
-            NAVIGATION_LOCALIZATION_POSE_TOPIC,
-            NAVIGATION_RUNTIME_HEALTH_TOPIC,
-        ):
-            try:
-                topic_publishers[topic] = node.count_publishers(topic) if node else 0
-            except Exception:
-                topic_publishers[topic] = 0
-        try:
-            action_ready = bool(action_client and action_client.server_is_ready())
-        except Exception:
-            action_ready = False
-        clear_ready = {}
-        for service in NAVIGATION_CLEAR_SERVICES:
-            try:
-                clear_ready[service] = bool(
-                    clear_clients.get(service) and clear_clients[service].service_is_ready()
-                )
-            except Exception:
-                clear_ready[service] = False
-
-        scan_fresh, raw_scan_age = self._navigation_validated_recency(
-            "/scan", now, 1.0
-        )
-        fast_odom_fresh, raw_fast_odom_age = self._navigation_validated_recency(
-            NAVIGATION_FAST_LIO_ODOM_TOPIC, now, 1.0
-        )
-        controller_odom_fresh, raw_controller_odom_age = self._navigation_validated_recency(
-            NAVIGATION_CONTROLLER_ODOM_TOPIC, now, 1.0
-        )
-        localization_fresh, raw_localization_age = self._navigation_validated_recency(
-            NAVIGATION_LOCALIZATION_POSE_TOPIC, now, 1.5
-        )
-        scan_age = None if raw_scan_age is None else round(raw_scan_age, 3)
-        fast_odom_age = (
-            None if raw_fast_odom_age is None else round(raw_fast_odom_age, 3)
-        )
-        controller_odom_age = (
-            None
-            if raw_controller_odom_age is None
-            else round(raw_controller_odom_age, 3)
-        )
-        localization_age = (
-            None
-            if raw_localization_age is None
-            else round(raw_localization_age, 3)
-        )
-        lease = control.get("lease", {})
-        navigation_lease_active = bool(
-            lease.get("active") and lease.get("input_source") == "navigation"
-        )
-        bridge_ready = bool(control.get("ready"))
-        target_supported = self._go2_control_target()
-        manual_active = bool(
-            lease.get("active") and lease.get("input_source") in {"keyboard", "gamepad"}
-        )
-        active = bool(snapshot.get("active"))
-        blockers: list[str] = []
-        if not configured:
-            blockers.append("navigation_transport_unavailable")
-        if not target_supported:
-            blockers.append("control_target_mismatch")
-        if not bridge_ready:
-            blockers.append("bridge_or_lowstate_unavailable")
-        if manual_active:
-            blockers.append("manual_control_active")
-        if active and cmd_publishers != 1:
-            blockers.append("cmd_vel_publisher_count")
-        localization_state = str((snapshot.get("localization") or {}).get("state", "uninitialized"))
-        can_start = configured and target_supported and bridge_ready and not manual_active and not active
-        scan_ready = scan_fresh and topic_publishers["/scan"] == 1
-        fast_odom_ready = (
-            fast_odom_fresh
-            and topic_publishers[NAVIGATION_FAST_LIO_ODOM_TOPIC] == 1
-        )
-        controller_odom_ready = (
-            controller_odom_fresh
-            and topic_publishers[NAVIGATION_CONTROLLER_ODOM_TOPIC] == 1
-        )
-        localization_ready = (
-            localization_fresh
-            and topic_publishers[NAVIGATION_LOCALIZATION_POSE_TOPIC] == 1
-        )
-        runtime_prelocalization_ready = bool(
-            runtime_health.get("fresh")
-            and runtime_health.get("cloud_fresh")
-            and runtime_health.get("odom_fresh")
-            and topic_publishers[NAVIGATION_RUNTIME_HEALTH_TOPIC] == 1
-        )
-        runtime_ready = bool(
-            runtime_prelocalization_ready
-            and runtime_health.get("ready")
-            and runtime_health.get("localized")
-        )
-        can_set_initial_pose = bool(
-            active
-            and scan_ready
-            and fast_odom_ready
-            and runtime_prelocalization_ready
-        )
-        can_send_goal = bool(
-            active
-            and action_ready
-            and cmd_publishers == 1
-            and scan_ready
-            and fast_odom_ready
-            and controller_odom_ready
-            and localization_ready
-            and runtime_ready
-            and localization_state == "localized"
-            and (snapshot.get("goal") or {}).get("state")
-            not in {"pending", "active", "canceling"}
-        )
-        goal_state = str((snapshot.get("goal") or {}).get("state", "idle"))
-        runtime_state = str(snapshot.get("state", "inactive"))
-        cleanup_required = bool(
-            active
-            or navigation_lease_active
-            or goal_state in {"pending", "active", "canceling"}
-            or runtime_state in {"arming", "armed", "stopping"}
-        )
-        snapshot.update(
-            {
-                "available": bool(configured and target_supported),
-                "robot_online": bridge_ready,
-                "command_topic": NAVIGATION_CMD_VEL_TOPIC,
-                "readiness": {
-                    "transport": configured,
-                    "map_server": bool(self._graph.get("/map", {}).get("publishers", 0)),
-                    "localization": localization_ready,
-                    "planner": bool(self._graph.get("/plan", {}).get("publishers", 0)),
-                    "controller": cmd_publishers == 1,
-                    "behavior": action_ready,
-                    "cmd_bridge": bridge_ready,
-                    "map": bool(self._graph.get("/map", {}).get("publishers", 0)),
-                    "scan": scan_ready,
-                    "odometry": fast_odom_ready and controller_odom_ready,
-                    "localization_odometry": fast_odom_ready,
-                    "controller_odometry": controller_odom_ready,
-                    "runtime_health": runtime_ready,
-                    "tf": bool(self._graph.get("/tf", {}).get("publishers", 0)),
-                    "action_server": action_ready,
-                    "costmap_services": clear_ready,
-                    "cmd_vel_publishers": cmd_publishers,
-                    "scan_publishers": topic_publishers["/scan"],
-                    "odometry_publishers": topic_publishers[
-                        NAVIGATION_FAST_LIO_ODOM_TOPIC
-                    ],
-                    "controller_odometry_publishers": topic_publishers[
-                        NAVIGATION_CONTROLLER_ODOM_TOPIC
-                    ],
-                    "runtime_health_publishers": topic_publishers[
-                        NAVIGATION_RUNTIME_HEALTH_TOPIC
-                    ],
-                    "localization_publishers": topic_publishers[
-                        NAVIGATION_LOCALIZATION_POSE_TOPIC
-                    ],
-                    "scan_age_s": scan_age,
-                    "odometry_age_s": fast_odom_age,
-                    "controller_odometry_age_s": controller_odom_age,
-                    "localization_age_s": localization_age,
-                    "runtime_health_age_s": runtime_health.get("age_s"),
-                },
-                "safety": {
-                    "can_start": can_start,
-                    "can_set_initial_pose": can_set_initial_pose,
-                    "can_send_goal": can_send_goal,
-                    "blockers": blockers,
-                },
-                "manual_control_active": manual_active,
-                "navigation_lease_active": navigation_lease_active,
-                "cleanup_required": cleanup_required,
-                "runtime_health": runtime_health,
-                "bindings": {
-                    "pointcloud": "/velodyne_points",
-                    "scan": "/scan",
-                    "localization_odometry": NAVIGATION_FAST_LIO_ODOM_TOPIC,
-                    "controller_odometry": NAVIGATION_CONTROLLER_ODOM_TOPIC,
-                    "localization_pose": NAVIGATION_LOCALIZATION_POSE_TOPIC,
-                    "command": NAVIGATION_CMD_VEL_TOPIC,
-                },
-            }
-        )
-        last_cmd_at = float(snapshot.pop("last_cmd_at", 0.0) or 0.0)
-        snapshot["command_age_s"] = (
-            None if last_cmd_at <= 0.0 else round(max(0.0, now - last_cmd_at), 3)
-        )
-        return snapshot
+        return self._navigation_gateway.runtime_snapshot()
 
     @staticmethod
     def _control_status_readiness(
@@ -2366,139 +1156,14 @@ class RosAgent:
         lowstate_timeout_s: float,
         expected_bare_sport_publishers: int = 0,
     ) -> Tuple[bool, bool, str]:
-        """Validate the bridge health fields after signature verification."""
-
-        if payload.get("type") != "bridge_status":
-            raise ControlProtocolError("unexpected bridge status type")
-        reported_ready = payload.get("ready")
-        if not isinstance(reported_ready, bool):
-            raise ControlProtocolError("bridge ready flag is invalid")
-        subscribers = payload.get("sport_subscribers")
-        if isinstance(subscribers, bool) or not isinstance(subscribers, int):
-            raise ControlProtocolError("bridge subscriber count is invalid")
-        sport_publishers = payload.get("sport_publishers")
-        if (
-            isinstance(sport_publishers, bool)
-            or not isinstance(sport_publishers, int)
-            or sport_publishers < 0
-            or sport_publishers > 128
-        ):
-            raise ControlProtocolError("sport request publisher count is invalid")
-        publisher_fields = {
-            "own_sport_publishers": 16,
-            "foreign_named_sport_publishers": 16,
-            "bare_unitree_sport_publishers": 64,
-            "expected_bare_sport_publishers": 64,
-        }
-        publisher_counts: Dict[str, int] = {}
-        for field, upper_bound in publisher_fields.items():
-            value = payload.get(field)
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, int)
-                or value < 0
-                or value > upper_bound
-            ):
-                raise ControlProtocolError(f"{field} is invalid")
-            publisher_counts[field] = value
-        if publisher_counts["expected_bare_sport_publishers"] != int(
-            expected_bare_sport_publishers
-        ):
-            raise ControlProtocolError(
-                "bridge bare sport publisher expectation does not match profile"
-            )
-        if sport_publishers != (
-            publisher_counts["own_sport_publishers"]
-            + publisher_counts["foreign_named_sport_publishers"]
-            + publisher_counts["bare_unitree_sport_publishers"]
-        ):
-            raise ControlProtocolError("sport request publisher counts are inconsistent")
-        publishers = payload.get("lowstate_publishers")
-        if isinstance(publishers, bool) or not isinstance(publishers, int):
-            raise ControlProtocolError("LowState publisher count is invalid")
-        bridge_epoch = payload.get("bridge_epoch")
-        if not isinstance(bridge_epoch, str) or not 16 <= len(bridge_epoch) <= 128:
-            raise ControlProtocolError("bridge epoch is invalid")
-        lowstate_age_ms = payload.get("lowstate_age_ms")
-        if (
-            isinstance(lowstate_age_ms, bool)
-            or not isinstance(lowstate_age_ms, (int, float))
-            or not math.isfinite(float(lowstate_age_ms))
-            or float(lowstate_age_ms) < 0.0
-        ):
-            lowstate_ready = False
-        else:
-            lowstate_ready = (
-                float(lowstate_age_ms) <= float(lowstate_timeout_s) * 1_000.0
-            )
-        # ``ready`` is calculated by the watchdog from both telemetry freshness
-        # and the presence of a Unitree sport-request subscriber.  Recheck the
-        # subscriber field instead of trusting a truthy status value alone.
-        bridge_ready = (
-            reported_ready
-            and subscribers == 1
-            and publisher_counts["own_sport_publishers"] == 1
-            and publisher_counts["foreign_named_sport_publishers"] == 0
-            and publisher_counts["bare_unitree_sport_publishers"]
-            == expected_bare_sport_publishers
-            and publishers == 1
+        return ControlTransport.status_readiness(
+            payload,
+            lowstate_timeout_s=lowstate_timeout_s,
+            expected_bare_sport_publishers=expected_bare_sport_publishers,
         )
-        return bridge_ready, lowstate_ready, bridge_epoch
 
     def _control_status_callback(self, message: String) -> None:
-        key = self._control_bridge_key
-        if key is None:
-            self._set_control_unready("signed bridge key is not configured")
-            return
-        try:
-            payload = decode_signed(
-                message.data,
-                key,
-                max_age_s=max(1.0, self._control_status_timeout_s * 2.0),
-            )
-            bridge_ready, lowstate_ready, bridge_epoch = self._control_status_readiness(
-                payload,
-                lowstate_timeout_s=self._control_lowstate_timeout_s,
-                expected_bare_sport_publishers=(
-                    self._control_expected_bare_sport_publishers
-                ),
-            )
-        except (ControlProtocolError, TypeError, ValueError) as exc:
-            self._set_control_unready(f"rejected bridge status: {exc}")
-            return
-
-        now = time.monotonic()
-        available = bridge_ready and lowstate_ready
-        status = dict(payload)
-        status.update(
-            {
-                "authenticated": True,
-                "connected": available,
-                "available": available,
-                "message": (
-                    "signed Go2 bridge ready"
-                    if available
-                    else str(payload.get("last_error") or "Go2 bridge is not ready")
-                ),
-            }
-        )
-        with self._control_operation_lock:
-            with self._control_transport_lock:
-                previous_epoch = self._control_bridge_epoch
-                self._control_bridge_epoch = bridge_epoch
-                self._control_status_received = now
-                self._control_status = status
-            if previous_epoch and previous_epoch != bridge_epoch:
-                # A restarted bridge rejects the old epoch.  Revoke any active
-                # browser lease and publish a new-epoch StopMove before readying.
-                self._set_control_readiness(
-                    bridge_ready=False,
-                    lowstate_ready=False,
-                )
-            self._set_control_readiness(
-                bridge_ready=bridge_ready,
-                lowstate_ready=lowstate_ready,
-            )
+        self._control_transport.status_callback(message)
 
     def _set_control_readiness(
         self,
@@ -2506,36 +1171,20 @@ class RosAgent:
         bridge_ready: bool,
         lowstate_ready: bool,
     ) -> None:
-        with self._control_operation_lock:
-            try:
-                self._control_manager.set_readiness(
-                    bridge_ready=bridge_ready,
-                    lowstate_ready=lowstate_ready,
-                )
-            except ControlClosed:
-                return
-            self._flush_control_outputs()
+        self._control_transport.set_readiness(
+            bridge_ready=bridge_ready,
+            lowstate_ready=lowstate_ready,
+        )
 
     def _set_control_unready(self, message: str) -> None:
-        with self._control_operation_lock:
-            with self._control_transport_lock:
-                self._control_status_received = 0.0
-                self._control_status = {
-                    "state": "error",
-                    "ready": False,
-                    "connected": False,
-                    "available": False,
-                    "authenticated": False,
-                    "message": str(message)[:240],
-                }
-            self._set_control_readiness(bridge_ready=False, lowstate_ready=False)
+        self._control_transport.set_unready(message)
 
     def _control_tick(self) -> None:
         with self._control_operation_lock:
             now = time.monotonic()
-            # Reconcile the autonomous sensor/lease gate before draining any
-            # queued drive.  A stale scan/odom/localization sample can therefore
-            # only produce a signed StopMove, never one final non-zero command.
+            # Preserve the safety-critical ordering: fail closed before any
+            # manager output can drain, publish, then recheck the autonomous
+            # lease and validated sensor gate once more.
             navigation_failure = self._navigation_reconcile_control_locked(now)
             if navigation_failure:
                 self.navigation_deactivate(navigation_failure)
@@ -2543,28 +1192,8 @@ class RosAgent:
                 navigation_failure = self._navigation_keepalive_locked(now)
                 if navigation_failure:
                     self.navigation_deactivate(navigation_failure)
-            with self._control_transport_lock:
-                status_received = self._control_status_received
-                stale = (
-                    status_received <= 0.0
-                    or now - status_received > self._control_status_timeout_s
-                )
-                if stale and status_received > 0.0:
-                    self._control_status = {
-                        **self._control_status,
-                        "state": "stale",
-                        "ready": False,
-                        "connected": False,
-                        "available": False,
-                        "message": "signed Go2 bridge status is stale",
-                    }
-                    self._control_status_received = 0.0
-            if stale:
-                self._set_control_readiness(bridge_ready=False, lowstate_ready=False)
-            try:
-                outputs = self._control_manager.tick()
-            except ControlClosed:
-                return
+            self._control_transport.update_staleness_locked(now)
+            outputs = self._control_transport.manager_tick_locked()
             self._publish_control_outputs(outputs)
             navigation_failure = self._navigation_reconcile_control_locked(now)
             if navigation_failure:
@@ -2578,50 +1207,12 @@ class RosAgent:
         sequence: int,
         bridge_epoch: str,
     ) -> Dict[str, Any]:
-        """Translate a manager output into the watchdog's narrow contract."""
-
-        kind = output.get("type")
-        envelope: Dict[str, Any] = {
-            "type": kind,
-            "source_id": source_id,
-            "seq": sequence,
-            "bridge_epoch": bridge_epoch,
-        }
-        if kind == "drive":
-            velocity = output.get("velocity")
-            if not isinstance(velocity, dict):
-                raise ValueError("drive output has no velocity")
-            values = {
-                "linear_x": velocity.get("vx"),
-                "linear_y": velocity.get("vy"),
-                "angular_z": velocity.get("wz"),
-            }
-            if any(
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(float(value))
-                for value in values.values()
-            ):
-                raise ValueError("drive output velocity is invalid")
-            envelope.update(
-                {
-                    "deadman": True,
-                    **{name: float(value) for name, value in values.items()},
-                }
-            )
-            return envelope
-        if kind == "stop":
-            envelope["reason"] = str(output.get("reason", "dashboard stop"))[:160]
-            return envelope
-        if kind == "action":
-            action_name = output.get("action")
-            if not isinstance(action_name, str) or not action_name:
-                raise ValueError("action output has no action name")
-            # The standalone bridge deliberately accepts the allowlisted action
-            # name, not the numeric API ID supplied by the browser manager.
-            envelope["action_id"] = action_name
-            return envelope
-        raise ValueError("unknown control manager output")
+        return ControlTransport.bridge_envelope(
+            output,
+            source_id=source_id,
+            sequence=sequence,
+            bridge_epoch=bridge_epoch,
+        )
 
     def _publish_control_outputs(
         self,
@@ -2629,65 +1220,13 @@ class RosAgent:
         *,
         allow_shutdown: bool = False,
     ) -> None:
-        if not outputs:
-            return
-        with self._control_transport_lock:
-            # A timer may have obtained drive outputs immediately before another
-            # thread closes the manager.  Once shutdown starts, only the final
-            # stop drained by ``shutdown_control`` may cross the transport.
-            if self._control_shutdown and not allow_shutdown:
-                return
-            publisher = self._control_command_publisher
-            key = self._control_bridge_key
-            bridge_epoch = self._control_bridge_epoch
-            if publisher is None or key is None or not bridge_epoch:
-                return
-            try:
-                for output in outputs:
-                    self._control_bridge_seq += 1
-                    envelope = self._control_bridge_envelope(
-                        output,
-                        source_id=self._control_source_id,
-                        sequence=self._control_bridge_seq,
-                        bridge_epoch=bridge_epoch,
-                    )
-                    message = String()
-                    message.data = encode_signed(envelope, key)
-                    publisher.publish(message)
-            except (ControlProtocolError, TypeError, ValueError) as exc:
-                self._control_status = {
-                    "state": "error",
-                    "ready": False,
-                    "connected": False,
-                    "available": False,
-                    "message": f"control command publish rejected: {exc}",
-                }
-                try:
-                    self._control_manager.set_readiness(
-                        bridge_ready=False,
-                        lowstate_ready=False,
-                    )
-                except ControlClosed:
-                    pass
-            except Exception as exc:
-                self._control_status = {
-                    "state": "error",
-                    "ready": False,
-                    "connected": False,
-                    "available": False,
-                    "message": f"control command transport failed: {exc}",
-                }
-                try:
-                    self._control_manager.set_readiness(
-                        bridge_ready=False,
-                        lowstate_ready=False,
-                    )
-                except ControlClosed:
-                    pass
+        self._control_transport.publish_outputs(
+            outputs,
+            allow_shutdown=allow_shutdown,
+        )
 
     def _flush_control_outputs(self) -> None:
-        with self._control_operation_lock:
-            self._publish_control_outputs(self._control_manager.drain_outputs())
+        self._control_transport.flush_outputs()
 
     def _target_matches_startup(self) -> bool:
         with self._lock:
@@ -2733,26 +1272,14 @@ class RosAgent:
 
     def control_snapshot(self) -> Dict[str, Any]:
         with self._control_operation_lock:
-            snapshot = self._control_manager.snapshot()
-            self._flush_control_outputs()
-            snapshot = self._control_manager.snapshot()
+            snapshot = self._control_transport.raw_snapshot()
+            bridge = snapshot.pop("bridge")
+            transport_configured = bool(snapshot.pop("transport_configured"))
             target_supported = self._go2_control_target()
             target_matches_startup = self._target_matches_startup()
             with self._lock:
                 restart_required = self._target_restart_required
             target_reason = self._control_target_reason()
-            with self._control_transport_lock:
-                bridge = dict(self._control_status)
-                received = self._control_status_received
-                transport_configured = bool(
-                    self._control_bridge_key is not None
-                    and self._control_command_publisher is not None
-                    and self._control_status_subscription is not None
-                    and self._control_timer is not None
-                )
-        bridge["status_age_s"] = (
-            None if received <= 0.0 else round(max(0.0, time.monotonic() - received), 3)
-        )
         if not target_supported:
             snapshot.update(
                 {
@@ -2909,16 +1436,7 @@ class RosAgent:
                 self._flush_control_outputs()
 
     def shutdown_control(self) -> None:
-        with self._control_operation_lock:
-            with self._control_transport_lock:
-                if self._control_shutdown:
-                    return
-                self._control_shutdown = True
-                self._control_manager.close()
-                # RLock permits the shared publisher path to allocate the final,
-                # independent bridge sequence while shutdown owns the transport.
-                outputs = self._control_manager.drain_outputs()
-                self._publish_control_outputs(outputs, allow_shutdown=True)
+        self._control_transport.shutdown()
 
     def _refresh_graph(self) -> None:
         node = self._node
@@ -3314,12 +1832,7 @@ class RosAgent:
 
     def _stop_for_target_change_locked(self) -> None:
         """Revoke any Go2 lease before an IP or robot type can change."""
-
-        try:
-            self._control_manager.emergency_stop("robot_target_changed")
-        except ControlClosed:
-            pass
-        self._flush_control_outputs()
+        self._control_transport.stop_for_target_change()
 
     def robot_target_snapshot(self) -> Dict[str, Any]:
         with self._lock:

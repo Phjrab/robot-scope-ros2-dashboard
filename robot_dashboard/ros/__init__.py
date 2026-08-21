@@ -1,1 +1,1 @@
-"""Focused ROS observability-plane components."""
+"""Focused ROS runtime, observability, control, and navigation components."""

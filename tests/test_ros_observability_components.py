@@ -245,7 +245,16 @@ class RosAgentFacadeArchitectureTests(unittest.TestCase):
         self.assertLess(len(source.splitlines()), 4_000)
 
     def test_observability_components_do_not_depend_on_control_or_navigation(self):
-        for path in ROS_ROOT.glob("*.py"):
+        observability_modules = (
+            "runtime.py",
+            "graph.py",
+            "sources.py",
+            "telemetry.py",
+            "cameras.py",
+            "pointcloud.py",
+        )
+        for filename in observability_modules:
+            path = ROS_ROOT / filename
             source = path.read_text(encoding="utf-8")
             self.assertNotIn("from ..control", source, path.name)
             self.assertNotIn("from ..navigation", source, path.name)
