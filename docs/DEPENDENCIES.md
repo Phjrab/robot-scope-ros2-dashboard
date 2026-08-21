@@ -28,6 +28,29 @@ workspace와 운영체제 패키지는 pinned revision의 지침 및 승인 기�
 기록되어 있습니다. 현재 범위 지정은 보안 패치 수용에는 유리하지만 byte-for-byte
 재현 가능한 lockfile은 아닙니다.
 
+## 품질 도구와 lock 전략
+
+`requirements-quality.txt`는 CI·기여자 전용 도구를 exact version으로 고정합니다.
+여기에는 Ruff, Mypy, Coverage, pip-audit만 포함하며 `rclpy`·ROS message package·현장
+workspace는 포함하지 않습니다. 따라서 Ubuntu 22.04 + Python 3.10 + ROS 2 Humble의
+`--system-site-packages` virtualenv에서 ROS Python 설치를 pip가 재해석하거나 교체하지
+않습니다.
+
+현재 운영 requirements에는 전역 lockfile을 추가하지 않습니다. ROS system package와
+arm64/x86_64 wheel은 host마다 조합이 달라, 한 lockfile이 Humble runtime을 재현한다는
+잘못된 보장을 할 수 있기 때문입니다. Release 재현이 필요한 경우에는 검증한 target에서
+다음을 함께 보관합니다.
+
+- Robot Scope commit과 `requirements.txt` SHA-256;
+- Python 3.10, Ubuntu 22.04, architecture와 ROS/RMW 기록;
+- target virtualenv의 `python -m pip freeze --all` 출력 또는 해당 host 전용 constraints;
+- `config/ros_dependencies_humble.json`의 external workspace pins 및 설치 결과.
+
+CI는 exact quality tool versions로 Ruff의 correctness 규칙, 제한된 pure-Python Mypy
+scope, 전체 dashboard JavaScript syntax, tracked-source secret scan, `pip check`,
+`pip-audit`, branch coverage가 적용된 기존 unit suite를 실행합니다. JavaScript는
+package manifest나 third-party dependency가 없으므로 `npm audit` 대상이 아닙니다.
+
 운영 release를 만들 때는 다음 정보를 함께 보관하는 것을 권장합니다.
 
 - Robot Scope tag와 commit SHA

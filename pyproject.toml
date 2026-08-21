@@ -1,0 +1,23 @@
+[tool.ruff]
+target-version = "py310"
+extend-exclude = [
+  ".venv",
+  "build",
+  "install",
+  "log",
+  "runtime",
+  "workspaces",
+]
+
+[tool.ruff.lint]
+# Start with correctness rules only.  Formatting and broad style migration are
+# intentionally outside the Phase 9 scope.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.coverage.run]
+branch = true
+source = ["robot_dashboard"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

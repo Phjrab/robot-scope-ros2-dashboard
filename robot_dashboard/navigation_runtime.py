@@ -501,7 +501,6 @@ def _message_stamp_is_fresh(node: Any, message: Any, timeout_s: float) -> bool:
 def _build_ros_runtime_node_class() -> type[Any]:
     """Import ROS lazily and construct the runtime Node class."""
 
-    import rclpy
     from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
     from nav_msgs.msg import Odometry
     from rclpy.node import Node

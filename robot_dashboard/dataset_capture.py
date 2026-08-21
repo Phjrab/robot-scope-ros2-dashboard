@@ -762,7 +762,7 @@ class DatasetCaptureManager:
                 )
             try:
                 self._write_manifest()
-            except Exception as exc:
+            except Exception:
                 LOGGER.exception("dataset manifest finalization failed")
                 with self._lock:
                     self._state = "failed"

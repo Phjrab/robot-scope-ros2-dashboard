@@ -1053,11 +1053,20 @@ ROS가 없는 개발 PC에서도 핵심 로직 테스트를 실행할 수 있습
 ~~~bash
 python3 -m unittest discover -s tests -v
 node --test tests/*.mjs
-node --check robot_dashboard/static/app.js
-node --check robot_dashboard/static/control_input.js
-node --check robot_dashboard/static/navigation.js
-node --check robot_dashboard/static/robot_profiles.js
-node --check robot_dashboard/static/scene3d.js
+node scripts/check_frontend_syntax.mjs
+~~~
+
+기여자와 CI는 별도 품질 도구를 설치해 아래 검사를 추가로 실행합니다. 이 파일은
+운영 ROS 의존성과 분리되어 있으므로 Jetson의 `rclpy` 또는 system-site-packages를
+pip로 대체하지 않습니다.
+
+~~~bash
+python3 -m pip install -r requirements-quality.txt
+python3 -m ruff check robot_dashboard scripts
+python3 -m mypy --config-file mypy.ini
+python3 scripts/check_repository_secrets.py
+python3 -m pip check
+python3 -m pip_audit -r requirements.txt
 ~~~
 
 ## 프로젝트 구조

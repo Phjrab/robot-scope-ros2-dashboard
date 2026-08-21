@@ -80,6 +80,29 @@ CAMERA_TYPES = {
     "unitree_go/msg/Go2FrontVideoData",
 }
 
+# Kept as explicit module exports while RosAgent remains the migration facade
+# for fixed control/navigation/source contracts.  The component modules own
+# implementation; callers and existing integrations may still import these
+# stable constants from this compatibility surface.
+__all__ = [
+    "CAMERA_SOURCE_IDS",
+    "CONTROL_COMMAND_TOPIC",
+    "CONTROL_STATUS_TOPIC",
+    "NAVIGATION_ACTION",
+    "NAVIGATION_CLEAR_SERVICES",
+    "NAVIGATION_CMD_VEL_TOPIC",
+    "NAVIGATION_CONTROLLER_ODOM_TOPIC",
+    "NAVIGATION_FAST_LIO_ODOM_TOPIC",
+    "NAVIGATION_INITIAL_POSE_TOPIC",
+    "NAVIGATION_LOCALIZATION_POSE_TOPIC",
+    "NAVIGATION_ODOM_STAMP_MAX_AGE_S",
+    "NAVIGATION_ODOM_STAMP_MAX_FUTURE_S",
+    "NAVIGATION_RUNTIME_HEALTH_TOPIC",
+    "SOURCE_SELECTION_STATE_MAX_BYTES",
+    "_public_navigation_reason",
+    "RosAgent",
+]
+
 
 class RosAgent:
     """ROS observability agent with an isolated, signed control transport."""

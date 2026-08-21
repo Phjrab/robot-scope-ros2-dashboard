@@ -189,6 +189,12 @@ def agent() -> RosAgent:
     return RUNTIME.agent
 
 
+def _encode_json(payload: Dict[str, Any]) -> bytes:
+    """Serialize one bounded server-owned response without NaN values."""
+
+    return json.dumps(payload, separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
 def saved_maps() -> SavedMapCatalog:
     if RUNTIME.saved_maps is None:
         raise HTTPException(status_code=503, detail="saved map catalog is not configured")
@@ -1020,7 +1026,7 @@ async def saved_map_data(map_id: str, max_points: str = "all") -> Response:
         payload = await asyncio.to_thread(saved_maps().data, map_id, point_limit)
     except (SavedMapNotFound, SavedMapFormatError, SavedMapPointLimitError) as exc:
         raise saved_map_error(exc) from exc
-    content = await asyncio.to_thread(encode_json, payload)
+    content = await asyncio.to_thread(_encode_json, payload)
     return Response(
         content=content,
         media_type="application/json",

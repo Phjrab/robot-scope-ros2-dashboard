@@ -417,7 +417,6 @@ class NavigationJobManager:
         return label
 
     def _prepare_command(self, spec: NavigationCommandSpec) -> NavigationCommandSpec:
-        executable = spec.argv[0]
         cwd = (spec.cwd or self.project_dir).expanduser().resolve(strict=True)
         if not cwd.is_dir():
             raise ValueError("navigation command cwd must be a directory")
