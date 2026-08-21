@@ -45,7 +45,11 @@ class StreamWebSocketTests(unittest.TestCase):
 
     def test_camera_endpoint_closes_consumer_after_stream_helper(self):
         source = (
-            Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+            Path(__file__).parents[1]
+            / "robot_dashboard"
+            / "api"
+            / "routers"
+            / "cameras.py"
         ).read_text(encoding="utf-8")
         tree = ast.parse(source)
         camera = next(
@@ -70,7 +74,11 @@ class StreamWebSocketTests(unittest.TestCase):
 
     def test_pointcloud_endpoint_uses_disconnect_helper(self):
         source = (
-            Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+            Path(__file__).parents[1]
+            / "robot_dashboard"
+            / "api"
+            / "routers"
+            / "telemetry.py"
         ).read_text(encoding="utf-8")
         tree = ast.parse(source)
         pointcloud = next(

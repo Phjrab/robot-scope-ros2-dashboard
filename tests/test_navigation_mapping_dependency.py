@@ -6,6 +6,7 @@ import secrets
 import threading
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 
 APP_PATH = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
@@ -90,17 +91,10 @@ def load_dependency_functions(manager):
             and node.name == "navigation_terminal"
         )
     )
-    namespace = {
-        "Any": object,
-        "Dict": dict,
-        "asyncio": asyncio,
-        "LOGGER": logging.getLogger(__name__),
-        "MappingJobError": FakeMappingError,
-        "NavigationBusy": FakeNavigationBusy,
-        "NavigationConflict": RuntimeError,
-        "NavigationUnavailable": RuntimeError,
-        "NAVIGATION_START_STATE_LOCK": threading.RLock(),
-        "NAVIGATION_START_STATE": {
+    runtime = SimpleNamespace(
+        agent=None,
+        navigation_start_state_lock=threading.RLock(),
+        navigation_start={
             "seq": 0,
             "token": None,
             "phase": "idle",
@@ -112,7 +106,17 @@ def load_dependency_functions(manager):
             "terminal_cleanup": False,
             "error": None,
         },
-        "AGENT": None,
+    )
+    namespace = {
+        "Any": object,
+        "Dict": dict,
+        "asyncio": asyncio,
+        "LOGGER": logging.getLogger(__name__),
+        "MappingJobError": FakeMappingError,
+        "NavigationBusy": FakeNavigationBusy,
+        "NavigationConflict": RuntimeError,
+        "NavigationUnavailable": RuntimeError,
+        "RUNTIME": runtime,
         "mapping_jobs": lambda: manager,
         "re": re,
         "secrets": secrets,
@@ -230,7 +234,7 @@ class NavigationMappingDependencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_terminal_agent_failure_still_cleans_the_exact_owned_mapping(self):
         failing_agent = FailingTerminalAgent()
-        self.functions["AGENT"] = failing_agent
+        self.functions["RUNTIME"].agent = failing_agent
         self.manager.state = "running"
         self.functions["update_navigation_start"](
             self.token,
@@ -253,7 +257,7 @@ class NavigationMappingDependencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stale_terminal_callback_cannot_cancel_replacement_start(self):
         failing_agent = FailingTerminalAgent()
-        self.functions["AGENT"] = failing_agent
+        self.functions["RUNTIME"].agent = failing_agent
         self.manager.state = "running"
         replacement_mapping_id = "c" * 32
         self.manager.job_id = replacement_mapping_id

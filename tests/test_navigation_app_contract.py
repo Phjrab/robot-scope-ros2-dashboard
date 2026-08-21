@@ -136,8 +136,8 @@ class NavigationAppContractTests(unittest.TestCase):
                 for item in ast.walk(node)
                 if isinstance(item, ast.AsyncWith)
                 and any(
-                    isinstance(entry.context_expr, ast.Name)
-                    and entry.context_expr.id == "PIPELINE_COORDINATION_LOCK"
+                    isinstance(entry.context_expr, ast.Attribute)
+                    and entry.context_expr.attr == "pipeline_coordination_lock"
                     for entry in item.items
                 )
             ]
@@ -216,8 +216,8 @@ class NavigationAppContractTests(unittest.TestCase):
             for item in ast.walk(node)
             if isinstance(item, ast.AsyncWith)
             and any(
-                isinstance(entry.context_expr, ast.Name)
-                and entry.context_expr.id == "PIPELINE_COORDINATION_LOCK"
+                isinstance(entry.context_expr, ast.Attribute)
+                and entry.context_expr.attr == "pipeline_coordination_lock"
                 for entry in item.items
             )
         )
@@ -283,7 +283,7 @@ class NavigationAppContractTests(unittest.TestCase):
 
     def test_initialization_wires_private_map_snapshot_and_terminal_stop(self):
         source = ast.unparse(functions(parsed_app())["main"])
-        self.assertIn("NAVIGATION_JOBS", source)
+        self.assertIn("RUNTIME.navigation_jobs", source)
         self.assertIn("NavigationJobManager.for_go2_humble", source)
         self.assertIn("map_snapshotter=catalog.snapshot_navigation_map", source)
         self.assertIn("on_terminal=navigation_terminal", source)

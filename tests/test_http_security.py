@@ -53,7 +53,13 @@ class HttpSecurityTests(unittest.TestCase):
         self.assertEqual([argument.arg for argument in function.args.args], ["body", "request"])
 
     def test_source_selection_mutation_requires_same_origin(self):
-        source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        source_path = (
+            Path(__file__).parents[1]
+            / "robot_dashboard"
+            / "api"
+            / "routers"
+            / "telemetry.py"
+        )
         tree = ast.parse(source_path.read_text(encoding="utf-8"))
         function = next(
             node
@@ -77,7 +83,13 @@ class HttpSecurityTests(unittest.TestCase):
         )
 
     def test_robot_target_disconnect_requires_same_origin(self):
-        source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        source_path = (
+            Path(__file__).parents[1]
+            / "robot_dashboard"
+            / "api"
+            / "routers"
+            / "discovery.py"
+        )
         tree = ast.parse(source_path.read_text(encoding="utf-8"))
         function = next(
             node
@@ -101,13 +113,17 @@ class HttpSecurityTests(unittest.TestCase):
         )
 
     def test_streaming_mutations_and_websockets_are_same_origin(self):
-        source_path = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
-        tree = ast.parse(source_path.read_text(encoding="utf-8"))
-        functions = {
-            node.name: node
-            for node in tree.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        }
+        router_root = Path(__file__).parents[1] / "robot_dashboard" / "api" / "routers"
+        functions = {}
+        for filename in ("telemetry.py", "cameras.py"):
+            tree = ast.parse((router_root / filename).read_text(encoding="utf-8"))
+            functions.update(
+                {
+                    node.name: node
+                    for node in tree.body
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                }
+            )
         settings = functions["set_pointcloud_settings"]
         self.assertEqual(
             [argument.arg for argument in settings.args.args],

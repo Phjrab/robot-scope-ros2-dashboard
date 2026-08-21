@@ -7,12 +7,19 @@ ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = ROOT / "robot_dashboard" / "app.py"
 APP_SOURCE = APP_PATH.read_text(encoding="utf-8")
 APP_TREE = ast.parse(APP_SOURCE)
+SYSTEM_PATH = ROOT / "robot_dashboard" / "api" / "routers" / "system.py"
+SYSTEM_SOURCE = SYSTEM_PATH.read_text(encoding="utf-8")
+SYSTEM_TREE = ast.parse(SYSTEM_SOURCE)
+MODELS_TREE = ast.parse(
+    (ROOT / "robot_dashboard" / "api" / "models.py").read_text(encoding="utf-8")
+)
 
 
 def function_node(name):
-    for node in APP_TREE.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
-            return node
+    for tree in (APP_TREE, SYSTEM_TREE):
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+                return node
     raise AssertionError(f"function {name} was not found")
 
 
@@ -44,7 +51,7 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
             calls = called_names(function_node(name))
             attributes = attribute_names(function_node(name))
             self.assertIn("require_same_origin", calls)
-            self.assertIn("control_bridge_lifecycle", calls)
+            self.assertIn("_bridge", calls)
             self.assertIn(method, attributes)
             self.assertNotIn("system", calls)
             self.assertNotIn("run", calls)
@@ -53,7 +60,7 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
     def test_confirmation_body_is_strict_and_has_no_service_or_force_field(self):
         model = next(
             node
-            for node in APP_TREE.body
+            for node in MODELS_TREE.body
             if isinstance(node, ast.ClassDef)
             and node.name == "ControlBridgeLifecycleRequest"
         )
@@ -73,10 +80,8 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
         helper = function_node("require_service_lifecycle_idle")
         calls = called_names(helper)
         self.assertIn("is_busy", calls)
-        names = {
-            node.id for node in ast.walk(helper) if isinstance(node, ast.Name)
-        }
-        self.assertIn("CONTROL_BRIDGE_LIFECYCLE", names)
+        attributes = attribute_names(helper)
+        self.assertIn("control_bridge_lifecycle", attributes)
 
         for guarded in ("control_arm", "navigation_start", "navigation_goal"):
             self.assertIn(
@@ -91,14 +96,14 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
 
     def test_dashboard_lifecycle_preflight_blocks_bridge_transition_fail_closed(self):
         node = function_node("service_lifecycle_blockers")
-        names = {child.id for child in ast.walk(node) if isinstance(child, ast.Name)}
+        attributes = attribute_names(node)
         strings = {
             child.value
             for child in ast.walk(node)
             if isinstance(child, ast.Constant) and isinstance(child.value, str)
         }
-        self.assertIn("CONTROL_BRIDGE_LIFECYCLE", names)
-        self.assertIn("is_busy", attribute_names(node))
+        self.assertIn("control_bridge_lifecycle", attributes)
+        self.assertIn("is_busy", attributes)
         self.assertIn("control_bridge_service_transition", strings)
         self.assertIn(
             "control_bridge_service_lifecycle_status_unavailable", strings
@@ -109,7 +114,7 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
         calls = called_names(status)
         self.assertIn("snapshot", attribute_names(status))
         self.assertNotIn("require_same_origin", calls)
-        self.assertEqual(len(status.args.args), 0)
+        self.assertEqual([argument.arg for argument in status.args.args], ["request"])
 
 
 if __name__ == "__main__":

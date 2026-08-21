@@ -4,6 +4,14 @@ from pathlib import Path
 
 
 SOURCE_PATH = Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+ROUTER_PATH = (
+    Path(__file__).parents[1]
+    / "robot_dashboard"
+    / "api"
+    / "routers"
+    / "dataset.py"
+)
+MODELS_PATH = Path(__file__).parents[1] / "robot_dashboard" / "api" / "models.py"
 
 
 class DatasetAppContractTests(unittest.TestCase):
@@ -11,9 +19,17 @@ class DatasetAppContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = SOURCE_PATH.read_text(encoding="utf-8")
         cls.tree = ast.parse(cls.source)
+        cls.router_source = ROUTER_PATH.read_text(encoding="utf-8")
+        cls.router_tree = ast.parse(cls.router_source)
+        cls.models_tree = ast.parse(MODELS_PATH.read_text(encoding="utf-8"))
         cls.functions = {
             node.name: node
             for node in cls.tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        cls.router_functions = {
+            node.name: node
+            for node in ast.walk(cls.router_tree)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
 
@@ -26,16 +42,16 @@ class DatasetAppContractTests(unittest.TestCase):
         )
 
     def test_start_and_stop_are_same_origin_and_serialized(self):
-        start = self.functions["dataset_capture_start"]
-        stop = self.functions["dataset_capture_stop"]
+        start = self.router_functions["dataset_capture_start"]
+        stop = self.router_functions["dataset_capture_stop"]
         for function in (start, stop):
             self.assertTrue(self.calls_name(function, "require_same_origin"))
             self.assertTrue(
                 any(
                     isinstance(node, ast.AsyncWith)
                     and any(
-                        isinstance(item.context_expr, ast.Name)
-                        and item.context_expr.id == "PIPELINE_COORDINATION_LOCK"
+                        isinstance(item.context_expr, ast.Attribute)
+                        and item.context_expr.attr == "pipeline_coordination_lock"
                         for item in node.items
                     )
                     for node in ast.walk(function)
@@ -44,7 +60,9 @@ class DatasetAppContractTests(unittest.TestCase):
         self.assertTrue(self.calls_name(start, "require_service_lifecycle_idle"))
 
         classes = {
-            node.name: node for node in self.tree.body if isinstance(node, ast.ClassDef)
+            node.name: node
+            for node in self.models_tree.body
+            if isinstance(node, ast.ClassDef)
         }
         for name in ("DatasetCaptureStartRequest", "DatasetCaptureStopRequest"):
             self.assertEqual(
@@ -76,24 +94,27 @@ class DatasetAppContractTests(unittest.TestCase):
 
         lifespan = self.functions["lifespan"]
         segment = ast.get_source_segment(self.source, lifespan)
-        self.assertIn("DATASET_CAPTURE.close", segment)
+        self.assertIn("runtime.dataset_capture.close", segment)
         self.assertLess(
             segment.index("navigation_deactivate"),
-            segment.index("DATASET_CAPTURE.close"),
+            segment.index("runtime.dataset_capture.close"),
         )
         self.assertLess(
-            segment.index("AGENT.shutdown_control()"),
-            segment.index("DATASET_CAPTURE.close"),
+            segment.index("runtime.agent.shutdown_control()"),
+            segment.index("runtime.dataset_capture.close"),
         )
-        self.assertLess(segment.index("DATASET_CAPTURE.close"), segment.index("AGENT.stop()"))
+        self.assertLess(
+            segment.index("runtime.dataset_capture.close"),
+            segment.index("runtime.agent.stop()"),
+        )
 
     def test_main_wires_fixed_camera_callbacks_and_dataset_path(self):
         main = self.functions["main"]
         segment = ast.get_source_segment(self.source, main)
         self.assertIn("DatasetCaptureManager", segment)
-        self.assertIn("camera_open=AGENT.camera_stream_open", segment)
-        self.assertIn("camera_close=AGENT.camera_stream_close", segment)
-        self.assertIn("camera_snapshots=AGENT.camera_snapshots", segment)
+        self.assertIn("camera_open=RUNTIME.agent.camera_stream_open", segment)
+        self.assertIn("camera_close=RUNTIME.agent.camera_stream_close", segment)
+        self.assertIn("camera_snapshots=RUNTIME.agent.camera_snapshots", segment)
         self.assertIn("Path(args.dataset_output_dir)", segment)
         self.assertIn('"--dataset-output-dir"', self.source)
 
@@ -107,7 +128,7 @@ class DatasetAppContractTests(unittest.TestCase):
             "/api/v1/datasets/{session_id}/samples/{sample_index}/{source_id}.jpg",
         }
         routes = set()
-        for node in self.tree.body:
+        for node in ast.walk(self.router_tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             for decorator in node.decorator_list:
@@ -120,7 +141,7 @@ class DatasetAppContractTests(unittest.TestCase):
                 ):
                     routes.add(decorator.args[0].value)
         self.assertTrue(expected.issubset(routes))
-        image = self.functions["dataset_image"]
+        image = self.router_functions["dataset_image"]
         constants = {
             node.value
             for node in ast.walk(image)

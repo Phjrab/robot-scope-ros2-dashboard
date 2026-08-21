@@ -9,18 +9,38 @@ import logging
 import os
 import re
 import secrets
-import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Literal
+from typing import Any, Dict
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
+from .application.runtime import ApplicationRuntime
+from .api.routers.cameras import router as cameras_router
+from .api.routers.dataset import create_router as create_dataset_router
+from .api.routers.discovery import router as discovery_router
+from .api.routers.system import router as system_router
+from .api.routers.telemetry import router as telemetry_router
+from .api.models import (
+    ControlArmRequest,
+    ControlClearEstopRequest,
+    ControlLeaseRequest,
+    ControlStopRequest,
+    MapSaveRequest,
+    NavigationCancelRequest,
+    NavigationClearCostmapsRequest,
+    NavigationGoalRequest,
+    NavigationParameterPatchRequest,
+    NavigationPoseRequest,
+    NavigationStartRequest,
+    NavigationStopRequest,
+    SavedMapConvert2DRequest,
+    SavedMapEditedCopyRequest,
+    SavedMapRenameRequest,
+)
 from .control import (
     ClientFrameClock,
     CommandValidationError,
@@ -35,31 +55,10 @@ from .control import (
     SequenceError,
 )
 from .control_bridge_lifecycle import (
-    ControlBridgeLifecycleBlocked,
-    ControlBridgeLifecycleBusy,
-    ControlBridgeLifecycleConfirmationRequired,
-    ControlBridgeLifecycleError,
     ControlBridgeLifecycleManager,
-    ControlBridgeLifecycleUnavailable,
     collect_control_bridge_lifecycle_blockers,
 )
-from .discovery import (
-    DiscoveryBusy,
-    DiscoveryUnavailable,
-    LocalRobotDiscovery,
-    UnknownRobotType,
-    public_robot_types,
-)
-from .dataset_capture import (
-    CAMERA_SOURCE_IDS,
-    DatasetCaptureBusy,
-    DatasetCaptureConflict,
-    DatasetCaptureError,
-    DatasetCaptureManager,
-    DatasetCaptureNotFound,
-    DatasetCaptureUnavailable,
-    DatasetCaptureValidationError,
-)
+from .dataset_capture import DatasetCaptureManager
 from .mapping_jobs import (
     InvalidMapName,
     JobBusyError,
@@ -79,15 +78,9 @@ from .navigation_jobs import (
     NavigationUnavailable,
 )
 from .http_security import is_same_origin
-from .pointcloud_stream import PointCloudFrameError, encode_pointcloud_frame
 from .ros_agent import RosAgent
 from .service_lifecycle import (
-    ServiceLifecycleBlocked,
-    ServiceLifecycleBusy,
-    ServiceLifecycleConfirmationRequired,
-    ServiceLifecycleError,
     ServiceLifecycleManager,
-    ServiceLifecycleUnavailable,
     collect_service_lifecycle_blockers,
 )
 from .saved_maps import (
@@ -101,40 +94,11 @@ from .saved_maps import (
     SavedMapPointLimitError,
     SavedMapReadOnly,
 )
-from .websocket_stream import stream_until_disconnect
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 LOGGER = logging.getLogger(__name__)
-AGENT: RosAgent | None = None
-SAVED_MAPS: SavedMapCatalog | None = None
-MAPPING_JOBS: MappingJobManager | None = None
-NAVIGATION_JOBS: NavigationJobManager | None = None
-SERVICE_LIFECYCLE: ServiceLifecycleManager | None = None
-CONTROL_BRIDGE_LIFECYCLE: ControlBridgeLifecycleManager | None = None
-DATASET_CAPTURE: DatasetCaptureManager | None = None
-MAPPING_TASK: asyncio.Task[None] | None = None
-NAVIGATION_START_TASK: asyncio.Task[None] | None = None
-PIPELINE_COORDINATION_LOCK = asyncio.Lock()
-NAVIGATION_START_STATE_LOCK = threading.RLock()
-NAVIGATION_START_STATE: Dict[str, Any] = {
-    "seq": 0,
-    "token": None,
-    "phase": "idle",
-    "pending": False,
-    "cancel_requested": False,
-    "mapping_job_id": None,
-    "mapping_owned": False,
-    "navigation_job_id": None,
-    "terminal_cleanup": False,
-    "error": None,
-}
-JSON_CACHE: Dict[str, tuple[int, bytes]] = {}
-POINTCLOUD_BINARY_CACHE: tuple[int, bytes, bytes] | None = None
-POINTCLOUD_BINARY_LOCK = asyncio.Lock()
-CONTROL_BINDINGS: Dict[str, str] = {}
-ROBOT_DISCOVERY = LocalRobotDiscovery()
-CAMERA_WS_SEND_TIMEOUT_S = 2.0
+RUNTIME = ApplicationRuntime()
 CONTROL_BRIDGE_STATUS_STALE_S = 0.75
 NAVIGATION_START_READY_TIMEOUT_S = 8.0
 NAVIGATION_START_READY_POLL_S = 0.05
@@ -151,150 +115,15 @@ class DashboardStaticFiles(StaticFiles):
         return response
 
 
-class StrictRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class SourceSelection(StrictRequest):
-    camera: str | None = None
-    pointcloud: str | None = None
-    odometry: str | None = None
-    occupancy_grid: str | None = None
-
-
-class RobotTarget(StrictRequest):
-    ip: str = Field(min_length=7, max_length=45)
-    robot_type: str = Field(min_length=2, max_length=32)
-    hostname: str | None = Field(default=None, max_length=253)
-
-
-class RobotDiscoveryRequest(StrictRequest):
-    robot_type: str = Field(min_length=2, max_length=32)
-
-
-class MapSaveRequest(StrictRequest):
-    name: str
-    create_2d: bool = True
-
-
-class CloudPointLimitRequest(StrictRequest):
-    max_points: int | None
-
-
-class SavedMapRenameRequest(StrictRequest):
-    name: str
-
-
-class SavedMapConvert2DRequest(StrictRequest):
-    name: str
-    z_min: float = Field(strict=True, ge=-20.0, le=20.0)
-    z_max: float = Field(strict=True, ge=-20.0, le=20.0)
-    resolution: float = Field(strict=True, ge=0.01, le=1.0)
-    noise_radius: float = Field(default=0.1, strict=True, ge=0.01, le=2.0)
-    min_neighbors: int = Field(default=10, strict=True, ge=1, le=1_000)
-    background: Literal["unknown", "free"] = "unknown"
-
-
-class SavedMapEditRun(StrictRequest):
-    start: int = Field(strict=True, ge=0)
-    length: int = Field(strict=True, ge=1)
-    value: int = Field(strict=True)
-
-
-class SavedMapEditedCopyRequest(StrictRequest):
-    name: str
-    source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-    runs: list[SavedMapEditRun] = Field(min_length=1, max_length=10_000)
-
-
-class ControlArmRequest(StrictRequest):
-    input_source: Literal["keyboard", "gamepad"]
-
-
-class ControlLeaseRequest(StrictRequest):
-    lease_id: str = Field(min_length=16, max_length=256)
-
-
-class ControlStopRequest(StrictRequest):
-    reason: str = Field(default="dashboard_button", min_length=1, max_length=128)
-
-
-class ControlClearEstopRequest(StrictRequest):
-    confirmed: bool
-
-
-class NavigationParameterPatchRequest(StrictRequest):
-    base_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-    values: Dict[str, Any] = Field(min_length=1, max_length=27)
-
-
-class NavigationStartRequest(StrictRequest):
-    map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
-    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-    parameters_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-
-
-class NavigationStopRequest(StrictRequest):
-    pass
-
-
-class NavigationPose(StrictRequest):
-    x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
-    y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
-    yaw: float = Field(strict=True, ge=-3.141592653589793, le=3.141592653589793)
-
-
-class NavigationPoseRequest(StrictRequest):
-    map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
-    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-    pose: NavigationPose
-
-
-class NavigationGoalRequest(NavigationPoseRequest):
-    confirmed: bool = Field(strict=True)
-
-
-class NavigationCancelRequest(StrictRequest):
-    goal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{16,128}$")
-
-
-class NavigationClearCostmapsRequest(StrictRequest):
-    scope: Literal["both"]
-
-
-class ServiceLifecycleRequest(StrictRequest):
-    confirmed: bool = Field(strict=True)
-
-
-class ControlBridgeLifecycleRequest(StrictRequest):
-    confirmed: bool = Field(strict=True)
-
-
-class DatasetCaptureStartRequest(StrictRequest):
-    sources: Literal["go2_front", "realsense_color", "both"]
-    capture_hz: float = Field(default=1.0, ge=0.2, le=5.0)
-    label: str = Field(default="", max_length=64)
-
-    @field_validator("capture_hz", mode="before")
-    @classmethod
-    def validate_capture_hz(cls, value: object) -> float:
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise ValueError("capture_hz must be a number")
-        return float(value)
-
-
-class DatasetCaptureStopRequest(StrictRequest):
-    session_id: str = Field(pattern=r"^[0-9]{8}T[0-9]{6}Z_[0-9a-f]{32}$")
-
-
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    if AGENT is None:
+async def lifespan(fastapi: FastAPI):
+    runtime = fastapi.state.runtime
+    if runtime.agent is None:
         raise RuntimeError("ROS agent has not been configured")
-    AGENT.start()
-    if MAPPING_JOBS is not None:
+    runtime.agent.start()
+    if runtime.mapping_jobs is not None:
         try:
-            await asyncio.to_thread(MAPPING_JOBS.start_preview)
+            await asyncio.to_thread(runtime.mapping_jobs.start_preview)
         except MappingJobError:
             # Raw XT16 preview is optional observability.  Keep the dashboard
             # available and expose WAITING/failed state when its fixed local
@@ -303,7 +132,7 @@ async def lifespan(_: FastAPI):
     try:
         yield
     finally:
-        startup_task = NAVIGATION_START_TASK
+        startup_task = runtime.navigation_start_task
         startup = _navigation_start_internal()
         startup_token = startup.get("token")
         if startup_task is not None and not startup_task.done():
@@ -318,20 +147,20 @@ async def lifespan(_: FastAPI):
         # A bridge transition must not begin after application shutdown starts.
         # Closing this observer never stops or starts the independently-owned
         # bridge service.
-        if CONTROL_BRIDGE_LIFECYCLE is not None:
-            CONTROL_BRIDGE_LIFECYCLE.close()
+        if runtime.control_bridge_lifecycle is not None:
+            runtime.control_bridge_lifecycle.close()
         # A lifecycle request that has not reached its fixed systemctl command
         # must never fire during an unrelated application shutdown.
-        if SERVICE_LIFECYCLE is not None:
-            SERVICE_LIFECYCLE.close()
+        if runtime.service_lifecycle is not None:
+            runtime.service_lifecycle.close()
         # Close the navigation velocity gate and signed motion lease before
         # waiting on either process manager.
-        if NAVIGATION_JOBS is not None:
+        if runtime.navigation_jobs is not None:
             try:
-                AGENT.navigation_deactivate(reason="server_shutdown")
+                runtime.agent.navigation_deactivate(reason="server_shutdown")
             except Exception:
                 LOGGER.exception("navigation shutdown stop failed")
-            await asyncio.to_thread(NAVIGATION_JOBS.close)
+            await asyncio.to_thread(runtime.navigation_jobs.close)
         if isinstance(startup_token, str):
             cleanup_complete = await cleanup_navigation_localization_dependency(
                 startup_token
@@ -339,25 +168,25 @@ async def lifespan(_: FastAPI):
             if cleanup_complete:
                 reset_navigation_start(startup_token)
         # Motion stop takes priority over potentially slow mapping cleanup.
-        AGENT.shutdown_control()
+        runtime.agent.shutdown_control()
         # A server-side dataset session owns normal camera demand tokens and
         # must flush its bounded writer before camera adapters are stopped.
         # It deliberately runs only after every robot motion gate is closed.
-        if DATASET_CAPTURE is not None:
+        if runtime.dataset_capture is not None:
             try:
-                await asyncio.to_thread(DATASET_CAPTURE.close)
+                await asyncio.to_thread(runtime.dataset_capture.close)
             except Exception:
                 # Dataset durability must never prevent the remaining robot
                 # process and ROS safety cleanup from running.
                 LOGGER.exception("dataset capture shutdown failed")
-        if MAPPING_JOBS is not None:
-            await asyncio.to_thread(MAPPING_JOBS.close)
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if runtime.mapping_jobs is not None:
+            await asyncio.to_thread(runtime.mapping_jobs.close)
+        if runtime.mapping_task is not None and not runtime.mapping_task.done():
             try:
-                await asyncio.wait_for(asyncio.shield(MAPPING_TASK), timeout=2.0)
+                await asyncio.wait_for(asyncio.shield(runtime.mapping_task), timeout=2.0)
             except (asyncio.TimeoutError, asyncio.CancelledError):
                 pass
-        AGENT.stop()
+        runtime.agent.stop()
 
 
 app = FastAPI(
@@ -366,58 +195,32 @@ app = FastAPI(
     description="ROS 2 observability, allowlisted mapping, and fail-safe Go2 control",
     lifespan=lifespan,
 )
+app.state.runtime = RUNTIME
 app.mount("/static", DashboardStaticFiles(directory=STATIC_DIR), name="static")
 
 
 def agent() -> RosAgent:
-    if AGENT is None:
+    if RUNTIME.agent is None:
         raise HTTPException(status_code=503, detail="ROS agent is not configured")
-    return AGENT
+    return RUNTIME.agent
 
 
 def saved_maps() -> SavedMapCatalog:
-    if SAVED_MAPS is None:
+    if RUNTIME.saved_maps is None:
         raise HTTPException(status_code=503, detail="saved map catalog is not configured")
-    return SAVED_MAPS
+    return RUNTIME.saved_maps
 
 
 def mapping_jobs() -> MappingJobManager:
-    if MAPPING_JOBS is None:
+    if RUNTIME.mapping_jobs is None:
         raise HTTPException(status_code=503, detail="mapping operations are not configured")
-    return MAPPING_JOBS
+    return RUNTIME.mapping_jobs
 
 
 def navigation_jobs() -> NavigationJobManager:
-    if NAVIGATION_JOBS is None:
+    if RUNTIME.navigation_jobs is None:
         raise HTTPException(status_code=503, detail="navigation is not configured")
-    return NAVIGATION_JOBS
-
-
-def service_lifecycle() -> ServiceLifecycleManager:
-    if SERVICE_LIFECYCLE is None:
-        raise HTTPException(
-            status_code=503,
-            detail="service lifecycle control is not configured",
-        )
-    return SERVICE_LIFECYCLE
-
-
-def control_bridge_lifecycle() -> ControlBridgeLifecycleManager:
-    if CONTROL_BRIDGE_LIFECYCLE is None:
-        raise HTTPException(
-            status_code=503,
-            detail="control bridge service lifecycle is not configured",
-        )
-    return CONTROL_BRIDGE_LIFECYCLE
-
-
-def dataset_capture() -> DatasetCaptureManager:
-    if DATASET_CAPTURE is None:
-        raise HTTPException(
-            status_code=503,
-            detail="dataset capture is not configured",
-        )
-    return DATASET_CAPTURE
+    return RUNTIME.navigation_jobs
 
 
 def require_same_origin(request: Request) -> None:
@@ -482,11 +285,11 @@ def mapping_activity() -> tuple[bool, list[str]]:
     """
 
     blockers: list[str] = []
-    task = MAPPING_TASK
+    task = RUNTIME.mapping_task
     if task is not None and not task.done():
         blockers.append("mapping_operation_active")
-    if MAPPING_JOBS is not None:
-        snapshot = MAPPING_JOBS.snapshot()
+    if RUNTIME.mapping_jobs is not None:
+        snapshot = RUNTIME.mapping_jobs.snapshot()
         pipeline_state = str((snapshot.get("pipeline") or {}).get("state", "idle"))
         operation_state = str((snapshot.get("operation") or {}).get("state", "idle"))
         if pipeline_state in {"starting", "stopping"}:
@@ -497,9 +300,9 @@ def mapping_activity() -> tuple[bool, list[str]]:
 
 
 def mapping_pipeline_state() -> str:
-    if MAPPING_JOBS is None:
+    if RUNTIME.mapping_jobs is None:
         return "unavailable"
-    snapshot = MAPPING_JOBS.snapshot()
+    snapshot = RUNTIME.mapping_jobs.snapshot()
     state = str((snapshot.get("pipeline") or {}).get("state", "failed"))
     # Older/external mapping managers report their clean terminal state as
     # ``stopped``.  Navigation treats that as idle infrastructure, not a
@@ -512,32 +315,32 @@ def mapping_pipeline_state() -> str:
 def navigation_start_state() -> Dict[str, Any]:
     """Return the bounded public projection of the background START request."""
 
-    with NAVIGATION_START_STATE_LOCK:
-        state = dict(NAVIGATION_START_STATE)
+    with RUNTIME.navigation_start_state_lock:
+        state = dict(RUNTIME.navigation_start)
     state.pop("token", None)
     return state
 
 
 def _navigation_start_internal() -> Dict[str, Any]:
-    with NAVIGATION_START_STATE_LOCK:
-        return dict(NAVIGATION_START_STATE)
+    with RUNTIME.navigation_start_state_lock:
+        return dict(RUNTIME.navigation_start)
 
 
 def begin_navigation_start() -> str:
     """Reserve the single Nav/localization startup transaction."""
 
-    with NAVIGATION_START_STATE_LOCK:
+    with RUNTIME.navigation_start_state_lock:
         if (
-            NAVIGATION_START_STATE.get("token") is not None
+            RUNTIME.navigation_start.get("token") is not None
             or
-            NAVIGATION_START_STATE.get("pending")
-            or NAVIGATION_START_STATE.get("phase") in {"active", "stopping"}
-            or NAVIGATION_START_STATE.get("mapping_owned")
+            RUNTIME.navigation_start.get("pending")
+            or RUNTIME.navigation_start.get("phase") in {"active", "stopping"}
+            or RUNTIME.navigation_start.get("mapping_owned")
         ):
             raise NavigationBusy("navigation is already active or starting")
         token = secrets.token_hex(16)
-        NAVIGATION_START_STATE.update(
-            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+        RUNTIME.navigation_start.update(
+            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             token=token,
             phase="starting_localization",
             pending=True,
@@ -575,11 +378,11 @@ def update_navigation_start(
     }
     if phase not in allowed:
         raise ValueError("invalid navigation startup phase")
-    with NAVIGATION_START_STATE_LOCK:
-        if NAVIGATION_START_STATE.get("token") != token:
+    with RUNTIME.navigation_start_state_lock:
+        if RUNTIME.navigation_start.get("token") != token:
             return False
         updates: Dict[str, Any] = {
-            "seq": int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+            "seq": int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             "phase": phase,
         }
         if mapping_job_id is not None:
@@ -600,27 +403,27 @@ def update_navigation_start(
             updates["navigation_job_id"] = navigation_job_id
         if error is not None:
             updates["error"] = str(error)[:160]
-        NAVIGATION_START_STATE.update(updates)
+        RUNTIME.navigation_start.update(updates)
         return True
 
 
 def navigation_start_cancelled(token: str) -> bool:
-    with NAVIGATION_START_STATE_LOCK:
+    with RUNTIME.navigation_start_state_lock:
         return bool(
-            NAVIGATION_START_STATE.get("token") != token
-            or NAVIGATION_START_STATE.get("cancel_requested")
+            RUNTIME.navigation_start.get("token") != token
+            or RUNTIME.navigation_start.get("cancel_requested")
         )
 
 
 def request_navigation_start_cancel() -> str | None:
     """Fence future startup phases before STOP performs process cleanup."""
 
-    with NAVIGATION_START_STATE_LOCK:
-        token = NAVIGATION_START_STATE.get("token")
+    with RUNTIME.navigation_start_state_lock:
+        token = RUNTIME.navigation_start.get("token")
         if not isinstance(token, str):
             return None
-        NAVIGATION_START_STATE.update(
-            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+        RUNTIME.navigation_start.update(
+            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             phase="stopping",
             cancel_requested=True,
         )
@@ -632,16 +435,16 @@ def request_navigation_terminal_cancel(job_id: str) -> tuple[str, Dict[str, Any]
 
     if not isinstance(job_id, str) or re.fullmatch(r"[0-9a-f]{32}", job_id) is None:
         return None
-    with NAVIGATION_START_STATE_LOCK:
-        token = NAVIGATION_START_STATE.get("token")
+    with RUNTIME.navigation_start_state_lock:
+        token = RUNTIME.navigation_start.get("token")
         if (
             not isinstance(token, str)
-            or NAVIGATION_START_STATE.get("navigation_job_id") != job_id
+            or RUNTIME.navigation_start.get("navigation_job_id") != job_id
         ):
             return None
-        ownership = dict(NAVIGATION_START_STATE)
-        NAVIGATION_START_STATE.update(
-            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+        ownership = dict(RUNTIME.navigation_start)
+        RUNTIME.navigation_start.update(
+            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             phase="stopping",
             cancel_requested=True,
             terminal_cleanup=True,
@@ -652,14 +455,14 @@ def request_navigation_terminal_cancel(job_id: str) -> tuple[str, Dict[str, Any]
 def commit_navigation_start(token: str) -> bool:
     """Commit only if STOP has not fenced the background transaction."""
 
-    with NAVIGATION_START_STATE_LOCK:
+    with RUNTIME.navigation_start_state_lock:
         if (
-            NAVIGATION_START_STATE.get("token") != token
-            or NAVIGATION_START_STATE.get("cancel_requested")
+            RUNTIME.navigation_start.get("token") != token
+            or RUNTIME.navigation_start.get("cancel_requested")
         ):
             return False
-        NAVIGATION_START_STATE.update(
-            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+        RUNTIME.navigation_start.update(
+            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             phase="active",
             pending=False,
             error=None,
@@ -677,23 +480,23 @@ def finish_navigation_start_failure(
     """Publish bounded failure, retaining ownership only if cleanup failed."""
 
     clean = " ".join(str(error).split())[:160] or "navigation startup failed"
-    with NAVIGATION_START_STATE_LOCK:
-        if NAVIGATION_START_STATE.get("token") != token:
+    with RUNTIME.navigation_start_state_lock:
+        if RUNTIME.navigation_start.get("token") != token:
             return
         if (
-            NAVIGATION_START_STATE.get("terminal_cleanup")
+            RUNTIME.navigation_start.get("terminal_cleanup")
             and not terminal_cleanup_owner
         ):
             return
-        NAVIGATION_START_STATE.update(
-            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+        RUNTIME.navigation_start.update(
+            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             phase="failed",
             pending=False,
             error=clean,
             terminal_cleanup=False,
         )
         if cleanup_complete:
-            NAVIGATION_START_STATE.update(
+            RUNTIME.navigation_start.update(
                 token=None,
                 cancel_requested=False,
                 mapping_job_id=None,
@@ -705,13 +508,13 @@ def finish_navigation_start_failure(
 def reset_navigation_start(token: str | None) -> None:
     """Clear one completed ownership record without touching a newer start."""
 
-    with NAVIGATION_START_STATE_LOCK:
-        if token is not None and NAVIGATION_START_STATE.get("token") != token:
+    with RUNTIME.navigation_start_state_lock:
+        if token is not None and RUNTIME.navigation_start.get("token") != token:
             return
-        if NAVIGATION_START_STATE.get("terminal_cleanup"):
+        if RUNTIME.navigation_start.get("terminal_cleanup"):
             return
-        NAVIGATION_START_STATE.update(
-            seq=int(NAVIGATION_START_STATE.get("seq", 0) or 0) + 1,
+        RUNTIME.navigation_start.update(
+            seq=int(RUNTIME.navigation_start.get("seq", 0) or 0) + 1,
             token=None,
             phase="idle",
             pending=False,
@@ -731,7 +534,7 @@ def service_lifecycle_blockers() -> list[str]:
     navigation_runtime: Dict[str, Any] | None = None
     navigation_snapshot: Dict[str, Any] | None = None
     mapping_snapshot: Dict[str, Any] | None = None
-    current_agent = AGENT
+    current_agent = RUNTIME.agent
     if current_agent is not None:
         try:
             control = current_agent.control_snapshot()
@@ -743,19 +546,19 @@ def service_lifecycle_blockers() -> list[str]:
         except Exception:
             navigation_runtime = None
 
-    if NAVIGATION_JOBS is not None:
+    if RUNTIME.navigation_jobs is not None:
         try:
-            navigation_snapshot = NAVIGATION_JOBS.snapshot()
+            navigation_snapshot = RUNTIME.navigation_jobs.snapshot()
         except Exception:
             navigation_snapshot = None
 
-    if MAPPING_JOBS is not None:
+    if RUNTIME.mapping_jobs is not None:
         try:
-            mapping_snapshot = MAPPING_JOBS.snapshot()
+            mapping_snapshot = RUNTIME.mapping_jobs.snapshot()
         except Exception:
             mapping_snapshot = None
 
-    task = MAPPING_TASK
+    task = RUNTIME.mapping_task
     try:
         mapping_task_active = bool(task is not None and not task.done())
     except Exception:
@@ -770,19 +573,19 @@ def service_lifecycle_blockers() -> list[str]:
     startup = _navigation_start_internal()
     if startup.get("pending") or startup.get("mapping_owned"):
         blockers.append("navigation_start_pending")
-    if DATASET_CAPTURE is not None:
+    if RUNTIME.dataset_capture is not None:
         try:
-            if DATASET_CAPTURE.is_active():
+            if RUNTIME.dataset_capture.is_active():
                 blockers.append("dataset_capture_active")
         except Exception:
             # A service transition must fail closed if capture state cannot be
             # established; otherwise an active writer could be truncated.
             blockers.append("dataset_capture_state_unknown")
-    if CONTROL_BRIDGE_LIFECYCLE is None:
+    if RUNTIME.control_bridge_lifecycle is None:
         blockers.append("control_bridge_service_lifecycle_status_unavailable")
     else:
         try:
-            if CONTROL_BRIDGE_LIFECYCLE.is_busy():
+            if RUNTIME.control_bridge_lifecycle.is_busy():
                 blockers.append("control_bridge_service_transition")
         except Exception:
             # Dashboard restart/stop would destroy the bridge-transition
@@ -803,7 +606,7 @@ def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
     navigation_runtime: Dict[str, Any] | None = None
     navigation_snapshot: Dict[str, Any] | None = None
     mapping_snapshot: Dict[str, Any] | None = None
-    current_agent = AGENT
+    current_agent = RUNTIME.agent
     if current_agent is not None:
         try:
             control = current_agent.control_snapshot()
@@ -814,36 +617,36 @@ def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
         except Exception:
             navigation_runtime = None
 
-    if NAVIGATION_JOBS is not None:
+    if RUNTIME.navigation_jobs is not None:
         try:
-            navigation_snapshot = NAVIGATION_JOBS.snapshot()
+            navigation_snapshot = RUNTIME.navigation_jobs.snapshot()
         except Exception:
             navigation_snapshot = None
-    if MAPPING_JOBS is not None:
+    if RUNTIME.mapping_jobs is not None:
         try:
-            mapping_snapshot = MAPPING_JOBS.snapshot()
+            mapping_snapshot = RUNTIME.mapping_jobs.snapshot()
         except Exception:
             mapping_snapshot = None
 
-    task = MAPPING_TASK
+    task = RUNTIME.mapping_task
     try:
         mapping_task_active = bool(task is not None and not task.done())
     except Exception:
         mapping_task_active = True
 
-    if DATASET_CAPTURE is None:
+    if RUNTIME.dataset_capture is None:
         dataset_active: bool | None = None
     else:
         try:
-            dataset_active = bool(DATASET_CAPTURE.is_active())
+            dataset_active = bool(RUNTIME.dataset_capture.is_active())
         except Exception:
             dataset_active = None
 
-    if SERVICE_LIFECYCLE is None:
+    if RUNTIME.service_lifecycle is None:
         dashboard_lifecycle_busy: bool | None = None
     else:
         try:
-            dashboard_lifecycle_busy = bool(SERVICE_LIFECYCLE.is_busy())
+            dashboard_lifecycle_busy = bool(RUNTIME.service_lifecycle.is_busy())
         except Exception:
             dashboard_lifecycle_busy = None
 
@@ -865,7 +668,7 @@ def control_bridge_lifecycle_preflight() -> Dict[str, list[str]]:
 def signed_control_bridge_status_fresh() -> bool | None:
     """Observe authenticated status until its fixed 0.75 s stale boundary."""
 
-    current_agent = AGENT
+    current_agent = RUNTIME.agent
     if current_agent is None:
         return None
     try:
@@ -882,75 +685,28 @@ def signed_control_bridge_status_fresh() -> bool | None:
         return None
 
 
-def dataset_capture_error(exc: DatasetCaptureError) -> HTTPException:
-    if isinstance(exc, DatasetCaptureNotFound):
-        return HTTPException(status_code=404, detail=str(exc))
-    if isinstance(exc, (DatasetCaptureBusy, DatasetCaptureConflict)):
-        return HTTPException(status_code=409, detail=str(exc))
-    if isinstance(exc, DatasetCaptureValidationError):
-        return HTTPException(status_code=422, detail=str(exc))
-    if isinstance(exc, DatasetCaptureUnavailable):
-        return HTTPException(status_code=503, detail=str(exc))
-    return HTTPException(status_code=500, detail="dataset capture operation failed")
-
-
-def service_lifecycle_error(exc: ServiceLifecycleError) -> HTTPException:
-    if isinstance(exc, ServiceLifecycleBlocked):
-        return HTTPException(
-            status_code=409,
-            detail={
-                "code": "service_lifecycle_blocked",
-                "blockers": list(exc.blockers),
-            },
-        )
-    if isinstance(exc, ServiceLifecycleBusy):
-        return HTTPException(status_code=409, detail=str(exc))
-    if isinstance(exc, ServiceLifecycleConfirmationRequired):
-        return HTTPException(status_code=422, detail=str(exc))
-    if isinstance(exc, ServiceLifecycleUnavailable):
-        return HTTPException(status_code=503, detail=str(exc))
-    return HTTPException(status_code=500, detail="service lifecycle operation failed")
-
-
-def control_bridge_lifecycle_error(
-    exc: ControlBridgeLifecycleError,
-) -> HTTPException:
-    if isinstance(exc, ControlBridgeLifecycleBlocked):
-        return HTTPException(
-            status_code=409,
-            detail={
-                "code": "control_bridge_service_blocked",
-                "action": exc.action,
-                "blockers": list(exc.blockers),
-            },
-        )
-    if isinstance(exc, ControlBridgeLifecycleBusy):
-        return HTTPException(status_code=409, detail=str(exc))
-    if isinstance(exc, ControlBridgeLifecycleConfirmationRequired):
-        return HTTPException(status_code=422, detail=str(exc))
-    if isinstance(exc, ControlBridgeLifecycleUnavailable):
-        return HTTPException(status_code=503, detail=str(exc))
-    return HTTPException(
-        status_code=500,
-        detail="control bridge service lifecycle operation failed",
-    )
-
-
 def require_service_lifecycle_idle() -> None:
     """Prevent new robot work during either local service transition."""
 
-    manager = SERVICE_LIFECYCLE
+    manager = RUNTIME.service_lifecycle
     if manager is not None and manager.is_busy():
         raise HTTPException(
             status_code=409,
             detail="a dashboard service lifecycle operation is pending",
         )
-    bridge_manager = CONTROL_BRIDGE_LIFECYCLE
+    bridge_manager = RUNTIME.control_bridge_lifecycle
     if bridge_manager is not None and bridge_manager.is_busy():
         raise HTTPException(
             status_code=409,
             detail="a control bridge service lifecycle operation is pending",
         )
+
+
+app.include_router(system_router)
+app.include_router(telemetry_router)
+app.include_router(cameras_router)
+app.include_router(discovery_router)
+app.include_router(create_dataset_router(require_service_lifecycle_idle))
 
 
 def navigation_active() -> bool:
@@ -962,9 +718,9 @@ def navigation_active() -> bool:
     )
     manager_snapshot: Dict[str, Any] = {}
     manager_active = False
-    if NAVIGATION_JOBS is not None:
+    if RUNTIME.navigation_jobs is not None:
         try:
-            manager_snapshot = NAVIGATION_JOBS.snapshot()
+            manager_snapshot = RUNTIME.navigation_jobs.snapshot()
             pipeline = (
                 manager_snapshot.get("pipeline")
                 if isinstance(manager_snapshot.get("pipeline"), dict)
@@ -977,12 +733,12 @@ def navigation_active() -> bool:
         except Exception:
             # Mutation interlocks fail closed when ownership cannot be read.
             return True
-    if AGENT is None:
+    if RUNTIME.agent is None:
         return manager_active or startup_active
     try:
-        runtime = AGENT.navigation_runtime_snapshot()
+        runtime = RUNTIME.agent.navigation_runtime_snapshot()
         goal = runtime.get("goal") if isinstance(runtime.get("goal"), dict) else {}
-        control = AGENT.control_snapshot()
+        control = RUNTIME.agent.control_snapshot()
         lease = control.get("lease") if isinstance(control.get("lease"), dict) else {}
         runtime_active = bool(
             runtime.get("active")
@@ -1312,7 +1068,6 @@ async def run_navigation_start_operation(
 ) -> None:
     """Complete the one-click Nav startup without holding the API mutex."""
 
-    global NAVIGATION_START_TASK
     try:
         if start_localization:
             await start_navigation_localization_dependency(
@@ -1411,8 +1166,8 @@ async def run_navigation_start_operation(
         )
         LOGGER.warning("navigation background startup failed: %s", message)
     finally:
-        if NAVIGATION_START_TASK is asyncio.current_task():
-            NAVIGATION_START_TASK = None
+        if RUNTIME.navigation_start_task is asyncio.current_task():
+            RUNTIME.navigation_start_task = None
 
 
 def navigation_view() -> Dict[str, Any]:
@@ -1740,366 +1495,6 @@ async def index() -> FileResponse:
     )
 
 
-@app.get("/api/v1/system/service")
-async def service_lifecycle_status() -> Dict[str, Any]:
-    return await asyncio.to_thread(service_lifecycle().snapshot)
-
-
-@app.post("/api/v1/system/service/restart", status_code=202)
-async def service_lifecycle_restart(
-    request: Request,
-    body: ServiceLifecycleRequest,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
-        try:
-            return await asyncio.to_thread(
-                service_lifecycle().schedule_restart,
-                confirmed=body.confirmed,
-            )
-        except ServiceLifecycleError as exc:
-            raise service_lifecycle_error(exc) from exc
-
-
-@app.post("/api/v1/system/service/stop", status_code=202)
-async def service_lifecycle_stop(
-    request: Request,
-    body: ServiceLifecycleRequest,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
-        try:
-            return await asyncio.to_thread(
-                service_lifecycle().schedule_stop,
-                confirmed=body.confirmed,
-            )
-        except ServiceLifecycleError as exc:
-            raise service_lifecycle_error(exc) from exc
-
-
-@app.get("/api/v1/control/bridge-service")
-async def control_bridge_lifecycle_status() -> Dict[str, Any]:
-    return await asyncio.to_thread(control_bridge_lifecycle().snapshot)
-
-
-@app.post("/api/v1/control/bridge-service/start", status_code=202)
-async def control_bridge_lifecycle_start(
-    request: Request,
-    body: ControlBridgeLifecycleRequest,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
-        try:
-            return await asyncio.to_thread(
-                control_bridge_lifecycle().schedule_start,
-                confirmed=body.confirmed,
-            )
-        except ControlBridgeLifecycleError as exc:
-            raise control_bridge_lifecycle_error(exc) from exc
-
-
-@app.post("/api/v1/control/bridge-service/stop", status_code=202)
-async def control_bridge_lifecycle_stop(
-    request: Request,
-    body: ControlBridgeLifecycleRequest,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
-        try:
-            return await asyncio.to_thread(
-                control_bridge_lifecycle().schedule_stop,
-                confirmed=body.confirmed,
-            )
-        except ControlBridgeLifecycleError as exc:
-            raise control_bridge_lifecycle_error(exc) from exc
-
-
-@app.get("/api/v1/health")
-async def health() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().health_snapshot)
-
-
-@app.get("/api/v1/state")
-async def state() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().state_snapshot)
-
-
-@app.get("/api/v1/topics")
-async def topics() -> Dict[str, Any]:
-    return {"topics": await asyncio.to_thread(agent().topics_snapshot)}
-
-
-@app.get("/api/v1/sources")
-async def sources() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().sources_snapshot)
-
-
-@app.get("/api/v1/cameras")
-async def cameras() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().cameras_snapshot)
-
-
-@app.get("/api/v1/datasets/capture")
-async def dataset_capture_status() -> Dict[str, Any]:
-    return await asyncio.to_thread(dataset_capture().snapshot)
-
-
-@app.post("/api/v1/datasets/capture/start", status_code=202)
-async def dataset_capture_start(
-    body: DatasetCaptureStartRequest,
-    request: Request,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    sources = (
-        CAMERA_SOURCE_IDS
-        if body.sources == "both"
-        else (body.sources,)
-    )
-    async with PIPELINE_COORDINATION_LOCK:
-        require_service_lifecycle_idle()
-        try:
-            return await asyncio.to_thread(
-                dataset_capture().start,
-                sources,
-                body.capture_hz,
-                body.label,
-            )
-        except DatasetCaptureError as exc:
-            raise dataset_capture_error(exc) from exc
-
-
-@app.post("/api/v1/datasets/capture/stop")
-async def dataset_capture_stop(
-    body: DatasetCaptureStopRequest,
-    request: Request,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
-        try:
-            return await asyncio.to_thread(
-                dataset_capture().stop,
-                body.session_id,
-            )
-        except DatasetCaptureError as exc:
-            raise dataset_capture_error(exc) from exc
-
-
-@app.get("/api/v1/datasets")
-async def dataset_sessions() -> Dict[str, Any]:
-    try:
-        return await asyncio.to_thread(dataset_capture().list_sessions)
-    except DatasetCaptureError as exc:
-        raise dataset_capture_error(exc) from exc
-
-
-@app.get("/api/v1/datasets/{session_id}")
-async def dataset_session(
-    session_id: str,
-    before: int | None = Query(default=None, ge=1, le=100_000_000),
-    limit: int = Query(default=24, ge=1, le=48),
-) -> Dict[str, Any]:
-    try:
-        return await asyncio.to_thread(
-            dataset_capture().session_detail,
-            session_id,
-            before,
-            limit,
-        )
-    except DatasetCaptureError as exc:
-        raise dataset_capture_error(exc) from exc
-
-
-@app.get("/api/v1/datasets/{session_id}/samples/{sample_index}/{source_id}.jpg")
-async def dataset_image(
-    session_id: str,
-    sample_index: int,
-    source_id: str,
-) -> Response:
-    try:
-        payload = await asyncio.to_thread(
-            dataset_capture().read_image,
-            session_id,
-            sample_index,
-            source_id,
-        )
-    except DatasetCaptureError as exc:
-        raise dataset_capture_error(exc) from exc
-    return Response(
-        content=payload,
-        media_type="image/jpeg",
-        headers={
-            "Cache-Control": "private, no-store",
-            "X-Content-Type-Options": "nosniff",
-            "Content-Disposition": (
-                f'inline; filename="{source_id}-{sample_index:08d}.jpg"'
-            ),
-        },
-    )
-
-
-@app.post("/api/v1/sources")
-async def select_sources(selection: SourceSelection, request: Request) -> Dict[str, Any]:
-    require_same_origin(request)
-    values = selection.model_dump(exclude_none=True)
-    try:
-        return await asyncio.to_thread(agent().set_sources, values)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-@app.get("/api/v1/robots/types")
-async def robot_types() -> Dict[str, Any]:
-    selected_type = AGENT.robot_target_snapshot()["robot_type"] if AGENT is not None else ""
-    return {"types": public_robot_types(), "selected_type": selected_type}
-
-
-@app.post("/api/v1/robots/discover")
-async def discover_robots(request: Request, body: RobotDiscoveryRequest) -> Dict[str, Any]:
-    require_same_origin(request)
-    try:
-        return await asyncio.to_thread(ROBOT_DISCOVERY.discover, body.robot_type)
-    except UnknownRobotType as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except DiscoveryBusy as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except DiscoveryUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-
-@app.post("/api/v1/robot")
-async def set_robot(request: Request, target: RobotTarget) -> Dict[str, Any]:
-    require_same_origin(request)
-    try:
-        await asyncio.to_thread(
-            ROBOT_DISCOVERY.validate_target,
-            target.robot_type,
-            target.ip,
-        )
-        selected = await asyncio.to_thread(
-            agent().set_robot_target,
-            target.ip,
-            target.robot_type,
-            target.hostname,
-        )
-        if selected.get("changed"):
-            CONTROL_BINDINGS.clear()
-        return {
-            "robot": selected,
-            "robot_ip": selected["ip"],
-            "robot_type": selected["robot_type"],
-            "hostname": selected["hostname"],
-            "model": selected["model"],
-        }
-    except (UnknownRobotType, ValueError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except DiscoveryUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
-
-@app.delete("/api/v1/robot")
-async def disconnect_robot(request: Request) -> Dict[str, Any]:
-    """Forget the selected target and revoke its motion authorization."""
-
-    require_same_origin(request)
-    selected = await asyncio.to_thread(agent().disconnect_robot_target)
-    CONTROL_BINDINGS.clear()
-    return {
-        "robot": selected,
-        "robot_ip": "",
-        "robot_type": selected["robot_type"],
-        "hostname": "",
-        "model": selected["model"],
-    }
-
-
-def encode_json(payload: Dict[str, Any]) -> bytes:
-    return json.dumps(payload, separators=(",", ":"), allow_nan=False).encode("utf-8")
-
-
-async def cached_json_response(key: str, payload: Dict[str, Any]) -> Response:
-    seq = int(payload.get("seq", 0))
-    cached = JSON_CACHE.get(key)
-    if cached is None or cached[0] != seq:
-        cached = (seq, await asyncio.to_thread(encode_json, payload))
-        JSON_CACHE[key] = cached
-    return Response(content=cached[1], media_type="application/json", headers={"Cache-Control": "no-store"})
-
-
-async def cached_pointcloud_binary_frame(snapshot: Dict[str, Any]) -> bytes:
-    global POINTCLOUD_BINARY_CACHE
-    seq = int(snapshot.get("seq", 0))
-    point_bytes = snapshot.get("points_bytes", b"")
-    cached = POINTCLOUD_BINARY_CACHE
-    if cached is not None and cached[0] == seq and cached[1] is point_bytes:
-        return cached[2]
-    async with POINTCLOUD_BINARY_LOCK:
-        cached = POINTCLOUD_BINARY_CACHE
-        if cached is not None and cached[0] == seq and cached[1] is point_bytes:
-            return cached[2]
-        metadata = {key: value for key, value in snapshot.items() if key != "points_bytes"}
-        frame = await asyncio.to_thread(encode_pointcloud_frame, metadata, point_bytes)
-        POINTCLOUD_BINARY_CACHE = (seq, point_bytes, frame)
-        return frame
-
-
-@app.get("/api/v1/pointcloud")
-async def pointcloud(since: int = -1) -> Response:
-    metadata = await asyncio.to_thread(agent().pointcloud_binary_snapshot)
-    if int(metadata.get("seq", 0)) == since:
-        return Response(status_code=204)
-    snapshot = await asyncio.to_thread(agent().pointcloud_snapshot)
-    return await cached_json_response("pointcloud", snapshot)
-
-
-@app.get("/api/v1/pointcloud.bin")
-async def pointcloud_binary(since: int = -1) -> Response:
-    snapshot = await asyncio.to_thread(agent().pointcloud_binary_snapshot)
-    if int(snapshot.get("seq", 0)) == since:
-        return Response(status_code=204)
-    frame = await cached_pointcloud_binary_frame(snapshot)
-    return Response(
-        content=frame,
-        media_type="application/vnd.robot-scope.pointcloud",
-        headers={"Cache-Control": "no-store", "X-Robot-Scope-Stream": "pointcloud-v1"},
-    )
-
-
-@app.get("/api/v1/pointcloud/settings")
-async def pointcloud_settings() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().cloud_point_settings)
-
-
-@app.post("/api/v1/pointcloud/settings")
-async def set_pointcloud_settings(
-    body: CloudPointLimitRequest,
-    request: Request,
-) -> Dict[str, Any]:
-    require_same_origin(request)
-    try:
-        settings = await asyncio.to_thread(agent().set_cloud_max_points, body.max_points)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    JSON_CACHE.pop("pointcloud", None)
-    return settings
-
-
-@app.get("/api/v1/map")
-async def occupancy_map(since: int = -1) -> Response:
-    snapshot = await asyncio.to_thread(agent().map_snapshot)
-    if int(snapshot.get("seq", 0)) == since:
-        return Response(status_code=204)
-    return await cached_json_response("map", snapshot)
-
-
-@app.get("/api/v1/joints")
-async def robot_joints() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().joint_snapshot)
-
-
-@app.get("/api/v1/pose")
-async def robot_pose() -> Dict[str, Any]:
-    return await asyncio.to_thread(agent().pose_snapshot)
-
 
 @app.get("/api/v1/control")
 async def control_status() -> Dict[str, Any]:
@@ -2109,7 +1504,7 @@ async def control_status() -> Dict[str, Any]:
 @app.post("/api/v1/control/arm")
 async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         startup = _navigation_start_internal()
         if startup.get("pending") or startup.get("phase") in {
@@ -2137,7 +1532,7 @@ async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, An
 @app.post("/api/v1/control/disarm")
 async def control_disarm(request: Request, body: ControlLeaseRequest) -> Dict[str, Any]:
     require_same_origin(request)
-    binding = CONTROL_BINDINGS.pop(body.lease_id, None)
+    binding = RUNTIME.control_bindings.pop(body.lease_id, None)
     try:
         agent().control_release(body.lease_id, binding)
     except LeaseInvalid:
@@ -2152,7 +1547,7 @@ async def control_disarm(request: Request, body: ControlLeaseRequest) -> Dict[st
 @app.post("/api/v1/control/stop")
 async def control_stop(request: Request, body: ControlStopRequest) -> Dict[str, Any]:
     require_same_origin(request)
-    CONTROL_BINDINGS.clear()
+    RUNTIME.control_bindings.clear()
     try:
         agent().control_estop(body.reason)
     except ControlError as exc:
@@ -2209,7 +1604,7 @@ async def control_stream(websocket: WebSocket) -> None:
         )
         lease_id = str(bind.get("lease_id", ""))
         agent().control_bind(lease_id, binding)
-        CONTROL_BINDINGS[lease_id] = binding
+        RUNTIME.control_bindings[lease_id] = binding
         await websocket.send_json(
             {
                 "type": "bound",
@@ -2298,7 +1693,7 @@ async def control_stream(websocket: WebSocket) -> None:
                 # One-shot actions consume the lease so guessed completion
                 # timers can never resume teleoperation over an active motion.
                 released = True
-                CONTROL_BINDINGS.pop(lease_id, None)
+                RUNTIME.control_bindings.pop(lease_id, None)
                 await websocket.close(code=1000)
                 return
             elif kind == "release":
@@ -2309,7 +1704,7 @@ async def control_stream(websocket: WebSocket) -> None:
                 )
                 agent().control_release(lease_id, binding)
                 released = True
-                CONTROL_BINDINGS.pop(lease_id, None)
+                RUNTIME.control_bindings.pop(lease_id, None)
                 await websocket.send_json(
                     {"type": "released", "control": control_view(agent().control_snapshot())}
                 )
@@ -2338,7 +1733,7 @@ async def control_stream(websocket: WebSocket) -> None:
             pass
     finally:
         if lease_id:
-            CONTROL_BINDINGS.pop(lease_id, None)
+            RUNTIME.control_bindings.pop(lease_id, None)
             if not released:
                 try:
                     agent().control_release(lease_id, binding)
@@ -2382,7 +1777,7 @@ async def update_navigation_parameters(
     body: NavigationParameterPatchRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
                 navigation_jobs().update_parameters,
@@ -2398,10 +1793,9 @@ async def navigation_start(
     request: Request,
     body: NavigationStartRequest,
 ) -> Dict[str, Any]:
-    global NAVIGATION_START_TASK
     require_same_origin(request)
     manager = navigation_jobs()
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         mapping_busy, _ = mapping_activity()
         if mapping_busy:
@@ -2474,7 +1868,7 @@ async def navigation_start(
                 mapping_owned=False,
             )
         try:
-            NAVIGATION_START_TASK = asyncio.create_task(
+            RUNTIME.navigation_start_task = asyncio.create_task(
                 run_navigation_start_operation(
                     token,
                     manager,
@@ -2509,9 +1903,9 @@ async def navigation_stop(
     del body
     require_same_origin(request)
     task: asyncio.Task[None] | None
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         token = request_navigation_start_cancel()
-        task = NAVIGATION_START_TASK
+        task = RUNTIME.navigation_start_task
         if task is not None and not task.done():
             task.cancel()
         request_cancelled = False
@@ -2556,7 +1950,7 @@ async def navigation_initial_pose(
     body: NavigationPoseRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         mapping_busy, _ = mapping_activity()
         if mapping_busy:
@@ -2601,7 +1995,7 @@ async def navigation_goal(
             status_code=422,
             detail="confirmed=true is required before sending a navigation goal",
         )
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         mapping_busy, _ = mapping_activity()
         if mapping_busy:
@@ -2674,12 +2068,11 @@ async def mapping_control(since_log_seq: int = 0) -> Dict[str, Any]:
 
 @app.post("/api/v1/mapping/start")
 async def mapping_start(request: Request) -> Dict[str, Any]:
-    global MAPPING_TASK
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before mapping can start")
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="a map save is in progress")
         try:
             return await asyncio.to_thread(mapping_jobs().start_mapping)
@@ -2690,9 +2083,9 @@ async def mapping_start(request: Request) -> Dict[str, Any]:
 @app.post("/api/v1/mapping/stop")
 async def mapping_stop(request: Request) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_navigation_idle("navigation must stop before the localization pipeline can stop")
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="map save must finish before mapping can stop")
         try:
             return await asyncio.to_thread(mapping_jobs().stop_mapping)
@@ -2713,13 +2106,12 @@ async def run_map_save(name: str, kind: str) -> None:
 
 @app.post("/api/v1/mapping/save", status_code=202)
 async def mapping_save(body: MapSaveRequest, request: Request) -> Dict[str, Any]:
-    global MAPPING_TASK
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before a map can be saved")
         manager = mapping_jobs()
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="another map save is already in progress")
         try:
             name = manager.validate_map_name(body.name)
@@ -2728,7 +2120,7 @@ async def mapping_save(body: MapSaveRequest, request: Request) -> Dict[str, Any]
         kind = "pointcloud3d_2d" if body.create_2d else "pointcloud3d"
         if kind not in manager.allowed_save_kinds:
             raise HTTPException(status_code=503, detail="requested map save recipe is unavailable")
-        MAPPING_TASK = asyncio.create_task(run_map_save(name, kind), name=f"map-save-{name}")
+        RUNTIME.mapping_task = asyncio.create_task(run_map_save(name, kind), name=f"map-save-{name}")
     return {"accepted": True, "map_name": name, "kind": kind}
 
 
@@ -2776,12 +2168,11 @@ async def convert_saved_pcd_to_2d(
     body: SavedMapConvert2DRequest,
     request: Request,
 ) -> Dict[str, Any]:
-    global MAPPING_TASK
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before converting a map")
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="another map operation is already in progress")
         manager = mapping_jobs()
         catalog = saved_maps()
@@ -2817,7 +2208,7 @@ async def convert_saved_pcd_to_2d(
             body,
         )
         try:
-            MAPPING_TASK = asyncio.create_task(
+            RUNTIME.mapping_task = asyncio.create_task(
                 conversion_coroutine,
                 name=f"pcd-to-2d-{job_id}",
             )
@@ -2850,10 +2241,10 @@ async def save_edited_map_copy(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before editing a map")
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="map operation must finish before editing")
         runs = [run.model_dump() for run in body.runs]
         try:
@@ -2891,10 +2282,10 @@ async def rename_saved_map(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before a map can be renamed")
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="map save must finish before a map can be renamed")
         try:
             metadata = await asyncio.to_thread(saved_maps().rename, map_id, body.name)
@@ -2912,10 +2303,10 @@ async def rename_saved_map(
 @app.delete("/api/v1/saved-maps/{map_id}")
 async def delete_saved_map(map_id: str, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
-    async with PIPELINE_COORDINATION_LOCK:
+    async with RUNTIME.pipeline_coordination_lock:
         require_service_lifecycle_idle()
         require_navigation_idle("navigation must stop before a map can be deleted")
-        if MAPPING_TASK is not None and not MAPPING_TASK.done():
+        if RUNTIME.mapping_task is not None and not RUNTIME.mapping_task.done():
             raise HTTPException(status_code=409, detail="map save must finish before a map can be deleted")
         try:
             result = await asyncio.to_thread(saved_maps().delete, map_id)
@@ -2943,128 +2334,6 @@ async def saved_map_data(map_id: str, max_points: str = "all") -> Response:
     )
 
 
-@app.websocket("/api/v1/ws/pointcloud")
-async def pointcloud_stream(websocket: WebSocket) -> None:
-    if not websocket_same_origin(websocket):
-        await websocket.close(code=4403, reason="same-origin point-cloud WebSocket required")
-        return
-    await websocket.accept()
-    last_seq = -1
-
-    async def send_next() -> None:
-        nonlocal last_seq
-        snapshot = agent().pointcloud_binary_snapshot()
-        seq = int(snapshot.get("seq", 0))
-        if seq != last_seq and snapshot.get("points_bytes"):
-            await websocket.send_bytes(await cached_pointcloud_binary_frame(snapshot))
-            last_seq = seq
-
-    try:
-        await stream_until_disconnect(websocket, send_next)
-    except (WebSocketDisconnect, RuntimeError, PointCloudFrameError):
-        return
-
-
-async def _camera_stream_source(websocket: WebSocket, source_id: str) -> None:
-    if not websocket_same_origin(websocket):
-        await websocket.close(code=4403, reason="same-origin camera WebSocket required")
-        return
-    if source_id not in {"go2_front", "realsense_color"}:
-        await websocket.close(code=4404, reason="camera source is not allowlisted")
-        return
-    await websocket.accept()
-    runtime_agent = agent()
-    opened = await asyncio.to_thread(runtime_agent.camera_stream_open, source_id)
-    if not opened.get("accepted", False):
-        reason = str(opened.get("reason", "camera source unavailable"))
-        code = 1013 if "limit" in reason else 1012
-        await websocket.close(code=code, reason=reason[:123])
-        return
-    token = str(opened["token"])
-    last_seq = -1
-    last_stream_id = ""
-
-    async def send_next() -> None:
-        nonlocal last_seq, last_stream_id
-        snapshot = runtime_agent.camera_snapshot(source_id)
-        seq = int(snapshot.get("seq", 0))
-        stream_id = str(snapshot.get("stream_id", ""))
-        if (
-            seq
-            and (stream_id != last_stream_id or seq != last_seq)
-            and snapshot.get("data")
-        ):
-            metadata = {key: value for key, value in snapshot.items() if key != "data"}
-            await asyncio.wait_for(
-                websocket.send_text(json.dumps(metadata, separators=(",", ":"))),
-                timeout=CAMERA_WS_SEND_TIMEOUT_S,
-            )
-            await asyncio.wait_for(
-                websocket.send_bytes(snapshot["data"]),
-                timeout=CAMERA_WS_SEND_TIMEOUT_S,
-            )
-            last_seq = seq
-            last_stream_id = stream_id
-
-    try:
-        await stream_until_disconnect(websocket, send_next)
-    except (asyncio.TimeoutError, WebSocketDisconnect, RuntimeError):
-        return
-    finally:
-        await asyncio.to_thread(runtime_agent.camera_stream_close, source_id, token)
-
-
-@app.websocket("/api/v1/ws/camera")
-async def camera_stream(websocket: WebSocket, source_id: str = "go2_front") -> None:
-    """Legacy route; omitted source id remains the Go2 front camera."""
-
-    await _camera_stream_source(websocket, source_id)
-
-
-@app.websocket("/api/v1/ws/cameras/{source_id}")
-async def camera_source_stream(websocket: WebSocket, source_id: str) -> None:
-    await _camera_stream_source(websocket, source_id)
-
-
-@app.websocket("/api/v1/ws/joints")
-async def joint_stream(websocket: WebSocket) -> None:
-    await websocket.accept()
-    last_signature: tuple[int, str] | None = None
-    try:
-        while True:
-            snapshot = agent().joint_snapshot()
-            signature = (int(snapshot.get("seq", 0)), str(snapshot.get("state", "waiting")))
-            if signature != last_signature:
-                await websocket.send_text(
-                    json.dumps(snapshot, separators=(",", ":"), allow_nan=False)
-                )
-                last_signature = signature
-            await asyncio.sleep(0.02)
-    except (WebSocketDisconnect, RuntimeError):
-        return
-
-
-@app.websocket("/api/v1/ws/pose")
-async def pose_stream(websocket: WebSocket) -> None:
-    await websocket.accept()
-    last_signature: tuple[int, str, str] | None = None
-    try:
-        while True:
-            snapshot = agent().pose_snapshot()
-            signature = (
-                int(snapshot.get("seq", 0)),
-                str(snapshot.get("state", "waiting")),
-                str(snapshot.get("topic", "")),
-            )
-            if signature != last_signature:
-                await websocket.send_text(
-                    json.dumps(snapshot, separators=(",", ":"), allow_nan=False)
-                )
-                last_signature = signature
-            await asyncio.sleep(0.02)
-    except (WebSocketDisconnect, RuntimeError):
-        return
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Robot Scope ROS 2 web agent")
@@ -3090,10 +2359,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    global AGENT, SAVED_MAPS, MAPPING_JOBS, NAVIGATION_JOBS, SERVICE_LIFECYCLE
-    global CONTROL_BRIDGE_LIFECYCLE, DATASET_CAPTURE
     args = parse_args()
-    AGENT = RosAgent(
+    RUNTIME.agent = RosAgent(
         robot_ip=args.robot_ip,
         profile_path=args.profile or None,
         cloud_max_points=args.cloud_max_points,
@@ -3112,7 +2379,7 @@ def main() -> None:
     # limit to every saver recipe.  A successfully published file can therefore
     # never disappear merely because the catalog applies a smaller size bound.
     catalog = SavedMapCatalog.from_profile(
-        AGENT.profile,
+        RUNTIME.agent.profile,
         base_dir=profile_base,
         additional_roots=[mapping_output_dir],
         managed_roots=[mapping_output_dir],
@@ -3122,8 +2389,8 @@ def main() -> None:
         project_dir=project_dir,
         output_dir=mapping_output_dir,
         enable_preview=bool(
-            isinstance(AGENT.profile.get("xt16_preview"), dict)
-            and AGENT.profile["xt16_preview"].get("enabled") is True
+            isinstance(RUNTIME.agent.profile.get("xt16_preview"), dict)
+            and RUNTIME.agent.profile["xt16_preview"].get("enabled") is True
             and os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"
         ),
         save_commands={
@@ -3149,15 +2416,15 @@ def main() -> None:
         # out safely, while stop only affects dashboard-owned process groups.
         require_pipeline_for_save=False,
     )
-    SAVED_MAPS = catalog
-    MAPPING_JOBS = manager
+    RUNTIME.saved_maps = catalog
+    RUNTIME.mapping_jobs = manager
 
-    DATASET_CAPTURE = DatasetCaptureManager(
+    RUNTIME.dataset_capture = DatasetCaptureManager(
         Path(args.dataset_output_dir),
-        camera_open=AGENT.camera_stream_open,
-        camera_close=AGENT.camera_stream_close,
-        camera_snapshots=AGENT.camera_snapshots,
-        metadata_snapshot=AGENT.pose_snapshot,
+        camera_open=RUNTIME.agent.camera_stream_open,
+        camera_close=RUNTIME.agent.camera_stream_close,
+        camera_snapshots=RUNTIME.agent.camera_snapshots,
+        metadata_snapshot=RUNTIME.agent.pose_snapshot,
     )
 
     def navigation_terminal(reason: str, job_id: str) -> None:
@@ -3165,7 +2432,7 @@ def main() -> None:
         if fenced is None:
             return
         token, ownership = fenced
-        current = AGENT
+        current = RUNTIME.agent
         if current is not None:
             try:
                 current.navigation_deactivate(reason=reason)
@@ -3181,16 +2448,16 @@ def main() -> None:
             terminal_cleanup_owner=True,
         )
 
-    NAVIGATION_JOBS = NavigationJobManager.for_go2_humble(
+    RUNTIME.navigation_jobs = NavigationJobManager.for_go2_humble(
         project_dir=project_dir,
         runtime_dir=Path(args.navigation_runtime_dir),
         map_snapshotter=catalog.snapshot_navigation_map,
         on_terminal=navigation_terminal,
     )
-    SERVICE_LIFECYCLE = ServiceLifecycleManager.from_environment(
+    RUNTIME.service_lifecycle = ServiceLifecycleManager.from_environment(
         blocker_provider=service_lifecycle_blockers,
     )
-    CONTROL_BRIDGE_LIFECYCLE = ControlBridgeLifecycleManager.from_environment(
+    RUNTIME.control_bridge_lifecycle = ControlBridgeLifecycleManager.from_environment(
         preflight_provider=control_bridge_lifecycle_preflight,
         bridge_status_provider=signed_control_bridge_status_fresh,
     )

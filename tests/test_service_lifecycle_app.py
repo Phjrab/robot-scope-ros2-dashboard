@@ -9,12 +9,21 @@ ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = ROOT / "robot_dashboard" / "app.py"
 APP_SOURCE = APP_PATH.read_text(encoding="utf-8")
 APP_TREE = ast.parse(APP_SOURCE)
+SYSTEM_TREE = ast.parse(
+    (ROOT / "robot_dashboard" / "api" / "routers" / "system.py").read_text(
+        encoding="utf-8"
+    )
+)
+MODELS_TREE = ast.parse(
+    (ROOT / "robot_dashboard" / "api" / "models.py").read_text(encoding="utf-8")
+)
 
 
 def function_node(name: str):
-    for node in APP_TREE.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
-            return node
+    for tree in (APP_TREE, SYSTEM_TREE):
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+                return node
     raise AssertionError(f"function {name} was not found")
 
 
@@ -35,7 +44,7 @@ class ServiceLifecycleAppContractTests(unittest.TestCase):
         for name in ("service_lifecycle_restart", "service_lifecycle_stop"):
             calls = called_names(function_node(name))
             self.assertIn("require_same_origin", calls)
-            self.assertIn("service_lifecycle", calls)
+            self.assertIn("_service", calls)
             self.assertNotIn("require_service_admin", calls)
 
     def test_confirmation_field_is_strict_and_no_admin_auth_helper_remains(self):
@@ -44,7 +53,7 @@ class ServiceLifecycleAppContractTests(unittest.TestCase):
         self.assertNotIn("X-Robot-Scope-Admin-Token", APP_SOURCE)
         model = next(
             node
-            for node in APP_TREE.body
+            for node in MODELS_TREE.body
             if isinstance(node, ast.ClassDef) and node.name == "ServiceLifecycleRequest"
         )
         confirmed = next(
