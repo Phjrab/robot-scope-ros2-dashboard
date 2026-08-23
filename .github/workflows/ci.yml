@@ -10,7 +10,7 @@ permissions:
 jobs:
   hardware-free-tests:
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -32,6 +32,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-quality.txt
+
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Audit JavaScript dependency resolution
+        run: npm audit --audit-level=high
 
       - name: Run Python static checks
         run: |
@@ -56,3 +62,9 @@ jobs:
 
       - name: Check JavaScript syntax
         run: node scripts/check_frontend_syntax.mjs
+
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run hardware-free browser E2E
+        run: npm run test:e2e:ci

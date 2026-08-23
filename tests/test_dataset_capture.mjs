@@ -1,20 +1,32 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { runInNewContext } from 'node:vm';
+import {
+  datasetCaptureCanStop,
+  datasetDetailUrl,
+  datasetImageUrl,
+  formatDatasetBytes,
+  normalizeDatasetCapture,
+  normalizeDatasetCatalog,
+  normalizeDatasetDetail,
+} from '../robot_dashboard/static/features/datasets/capture.js';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const datasetSource = readFileSync(new URL('../robot_dashboard/static/features/datasets/capture.js', import.meta.url), 'utf8');
 const serviceLifecycleSource = readFileSync(new URL('../robot_dashboard/static/features/settings/service_lifecycle.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
 function datasetHooks() {
-  const start = appSource.indexOf('const DATASET_CAPTURE_ACTIVE_STATES');
-  const end = appSource.indexOf('function controlReady(', start);
-  assert.ok(start >= 0 && end > start, 'dataset frontend implementation must exist');
-  const sandbox = { window: {}, console };
-  runInNewContext(`${appSource.slice(start, end)}\nthis.hooks = window.RobotScopeDatasetCapture;`, sandbox);
-  return sandbox.hooks;
+  return {
+    normalizeCapture: normalizeDatasetCapture,
+    normalizeCatalog: normalizeDatasetCatalog,
+    normalizeDetail: normalizeDatasetDetail,
+    formatBytes: formatDatasetBytes,
+    imageUrl: datasetImageUrl,
+    detailUrl: datasetDetailUrl,
+    canStop: datasetCaptureCanStop,
+  };
 }
 
 test('Sensors exposes a server-side dataset capture panel and compact global status', () => {
@@ -52,12 +64,12 @@ test('Sensors exposes a server-side dataset capture panel and compact global sta
 });
 
 test('dataset capture uses only the fixed same-origin API contract', () => {
-  assert.match(appSource, /api\('\/api\/v1\/datasets\/capture'\)/);
-  assert.match(appSource, /api\('\/api\/v1\/datasets\/capture\/start',\s*\{[\s\S]*?method: 'POST',[\s\S]*?body: JSON\.stringify\(body\)/);
-  assert.match(appSource, /const body = \{\s*sources: selectedDatasetSourceControl\(\),\s*capture_hz: captureHz,\s*label: ui\.datasetSessionLabel\.value\.trim\(\)/);
-  assert.match(appSource, /api\('\/api\/v1\/datasets\/capture\/stop',\s*\{[\s\S]*?body: JSON\.stringify\(\{ session_id: sessionId \}\)/);
-  assert.match(appSource, /api\('\/api\/v1\/datasets'\)/);
-  assert.doesNotMatch(appSource, /dataset[^\n]{0,80}(?:file:\/\/|xdg-open|open\s+-a)/i);
+  assert.match(datasetSource, /request\('\/api\/v1\/datasets\/capture'\)/);
+  assert.match(datasetSource, /request\('\/api\/v1\/datasets\/capture\/start',\s*\{[\s\S]*?method: 'POST', body: JSON\.stringify\(body\)/);
+  assert.match(datasetSource, /const body = \{\s*sources: selectedSourceControl\(\),\s*capture_hz: captureHz,\s*label: ui\.sessionLabel\.value\.trim\(\)/);
+  assert.match(datasetSource, /request\('\/api\/v1\/datasets\/capture\/stop',\s*\{[\s\S]*?body: JSON\.stringify\(\{ session_id: sessionId \}\)/);
+  assert.match(datasetSource, /request\('\/api\/v1\/datasets'\)/);
+  assert.doesNotMatch(datasetSource, /dataset[^\n]{0,80}(?:file:\/\/|xdg-open|open\s+-a)/i);
 });
 
 test('capture response normalization accepts fixed source counts and storage fields', () => {
@@ -139,21 +151,21 @@ test('saved dataset browser uses opaque IDs and the fixed image endpoint', () =>
   });
   assert.match(indexSource, /id="datasetSessionList"/);
   assert.match(indexSource, /id="datasetSampleGallery"/);
-  assert.match(appSource, /loading="lazy" decoding="async"/);
-  assert.match(appSource, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(datasetSource, /loading="lazy" decoding="async"/);
+  assert.match(datasetSource, /target="_blank" rel="noopener noreferrer"/);
 });
 
 test('dataset status and folder polls discard stale overlapping responses', () => {
-  assert.match(appSource, /const generation = \+\+datasetCapturePollGeneration/);
-  assert.match(appSource, /generation !== datasetCapturePollGeneration/);
-  assert.match(appSource, /const generation = \+\+datasetSessionsPollGeneration/);
-  assert.match(appSource, /generation !== datasetSessionsPollGeneration/);
-  assert.match(appSource, /const generation = \+\+datasetDetailPollGeneration/);
-  assert.match(appSource, /generation !== datasetDetailPollGeneration \|\| sessionId !== selectedDatasetSessionId/);
-  assert.match(appSource, /const newestPageChanged = selectedDatasetPageBefore == null && sampleCountChanged/);
-  assert.match(appSource, /selectionChanged \|\| !selectedDatasetDetail \|\| forceDetail \|\| newestPageChanged/);
-  assert.match(appSource, /if \(selectedDatasetGalleryKey === key\) return false/);
-  assert.doesNotMatch(appSource, /selectionChanged \|\| activePage === 'sensors'/);
+  assert.match(datasetSource, /const generation = \+\+capturePollGeneration/);
+  assert.match(datasetSource, /generation !== capturePollGeneration/);
+  assert.match(datasetSource, /const generation = \+\+sessionsPollGeneration/);
+  assert.match(datasetSource, /generation !== sessionsPollGeneration/);
+  assert.match(datasetSource, /const generation = \+\+detailPollGeneration/);
+  assert.match(datasetSource, /generation !== detailPollGeneration \|\| sessionId !== selectedSessionId/);
+  assert.match(datasetSource, /const newestPageChanged = selectedPageBefore == null && sampleCountChanged/);
+  assert.match(datasetSource, /selectionChanged \|\| !selectedDetail \|\| forceDetail \|\| newestPageChanged/);
+  assert.match(datasetSource, /if \(selectedGalleryKey === key\) return false/);
+  assert.doesNotMatch(datasetSource, /selectionChanged \|\| activePage === 'sensors'/);
 });
 
 test('failed but still-active capture remains stoppable for recovery', () => {
@@ -168,22 +180,31 @@ test('dataset pages expose bounded newest, newer and older navigation', () => {
   assert.match(indexSource, /id="datasetPageNewer"[^>]*>NEWER</);
   assert.match(indexSource, /id="datasetPageOlder"[^>]*>OLDER</);
   assert.match(indexSource, /최대 24개 샘플/);
-  assert.match(appSource, /navigateDatasetPage\('newest'\)/);
-  assert.match(appSource, /navigateDatasetPage\('newer'\)/);
-  assert.match(appSource, /navigateDatasetPage\('older'\)/);
+  assert.match(datasetSource, /navigatePage\('newest'\)/);
+  assert.match(datasetSource, /navigatePage\('newer'\)/);
+  assert.match(datasetSource, /navigatePage\('older'\)/);
   assert.match(stylesSource, /\.dataset-gallery-pagination\s*\{/);
 });
 
 test('Safari page lifecycle never stops a server dataset session', () => {
-  const visibilityStart = appSource.indexOf("document.addEventListener('visibilitychange'");
-  const pageHideStart = appSource.indexOf("window.addEventListener('pagehide'", visibilityStart);
-  const unloadStart = appSource.indexOf("window.addEventListener('beforeunload'", pageHideStart);
-  assert.ok(visibilityStart >= 0 && pageHideStart > visibilityStart && unloadStart > pageHideStart);
-  const lifecycle = appSource.slice(visibilityStart, unloadStart);
-  assert.match(lifecycle, /refreshDatasetCapture\(\)/);
-  assert.doesNotMatch(lifecycle, /stopDatasetCapture\(/);
-  assert.doesNotMatch(lifecycle, /sendBeacon/);
-  assert.match(appSource, /setInterval\(refreshDatasetCapture, 1500\)/);
+  assert.match(datasetSource, /document\.addEventListener\('visibilitychange'/);
+  assert.match(datasetSource, /capturePollTimer = window\.setInterval\(refreshCapture, 1_500\)/);
+  const deactivate = datasetSource.slice(datasetSource.indexOf('function deactivate()'), datasetSource.indexOf('function start()', datasetSource.indexOf('function deactivate()')));
+  assert.doesNotMatch(deactivate, /stopCapture|sendBeacon|\/capture\/stop/);
+  assert.match(deactivate, /clearInterval\(sessionsPollTimer\)/);
+  assert.match(appSource, /datasetFeature\?\.deactivate\(\)/);
+});
+
+test('dataset extraction owns lifecycle resources and materially reduces the application root', () => {
+  assert.match(datasetSource, /export function createDatasetFeature/);
+  assert.match(datasetSource, /new AbortController\(\)/);
+  assert.match(datasetSource, /function destroy\(\)/);
+  assert.match(datasetSource, /listeners\?\.abort\(\)/);
+  assert.match(datasetSource, /capturePollGeneration \+= 1/);
+  assert.match(datasetSource, /sessionsPollGeneration \+= 1/);
+  assert.match(datasetSource, /detailPollGeneration \+= 1/);
+  assert.match(appSource, /datasetFeature = createDatasetFeature\(\{ showToast \}\)/);
+  assert.ok(appSource.split('\n').length < 6900, 'app.js should shrink materially from the 7,435-line baseline');
 });
 
 test('active or unknown server capture is named in service lifecycle blockers', () => {

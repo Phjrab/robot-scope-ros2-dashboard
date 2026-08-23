@@ -6,6 +6,7 @@ import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
+import { createDatasetFeature } from './features/datasets/capture.js';
 
 // Exposed for the lightweight Node contract test and browser diagnostics.
 window.RobotLidarSourceIdentity = LidarSourceIdentity;
@@ -94,38 +95,6 @@ const ui = {
   cameraCaptureButton: $('#cameraCaptureButton'),
   cameraRecordButton: $('#cameraRecordButton'),
   cameraStopRecordButton: $('#cameraStopRecordButton'),
-  datasetGlobalStatus: $('#datasetGlobalStatus'),
-  datasetGlobalStatusText: $('#datasetGlobalStatusText'),
-  datasetCaptureState: $('#datasetCaptureState'),
-  datasetSourcePicker: $('#datasetSourcePicker'),
-  datasetCaptureHz: $('#datasetCaptureHz'),
-  datasetSessionLabel: $('#datasetSessionLabel'),
-  datasetCaptureStart: $('#datasetCaptureStart'),
-  datasetCaptureStop: $('#datasetCaptureStop'),
-  datasetCaptureElapsed: $('#datasetCaptureElapsed'),
-  datasetCaptureSaved: $('#datasetCaptureSaved'),
-  datasetCaptureDropped: $('#datasetCaptureDropped'),
-  datasetCaptureBytes: $('#datasetCaptureBytes'),
-  datasetCaptureFree: $('#datasetCaptureFree'),
-  datasetCaptureQuota: $('#datasetCaptureQuota'),
-  datasetCaptureReserve: $('#datasetCaptureReserve'),
-  datasetCaptureSources: $('#datasetCaptureSources'),
-  datasetCapturePath: $('#datasetCapturePath'),
-  datasetCaptureMessage: $('#datasetCaptureMessage'),
-  datasetOpenFolder: $('#datasetOpenFolder'),
-  datasetSessionCount: $('#datasetSessionCount'),
-  datasetRefreshFolders: $('#datasetRefreshFolders'),
-  datasetSessionList: $('#datasetSessionList'),
-  datasetLibraryPanel: $('#datasetLibraryPanel'),
-  datasetSelectedTitle: $('#datasetSelectedTitle'),
-  datasetSelectedPath: $('#datasetSelectedPath'),
-  datasetSelectedSamples: $('#datasetSelectedSamples'),
-  datasetSelectedMeta: $('#datasetSelectedMeta'),
-  datasetPageNewest: $('#datasetPageNewest'),
-  datasetPageNewer: $('#datasetPageNewer'),
-  datasetPageOlder: $('#datasetPageOlder'),
-  datasetPageStatus: $('#datasetPageStatus'),
-  datasetSampleGallery: $('#datasetSampleGallery'),
   sceneCanvas: $('#sceneCanvas'),
   liveMap2dCanvas: $('#liveMap2dCanvas'),
   mapCanvas: $('#mapCanvas'),
@@ -377,20 +346,6 @@ let cameraViewMode = 'single';
 let cameraPrimarySourceId = '';
 let cameraSecondarySourceId = '';
 let cameraSlotRuntimes = null;
-let datasetCaptureSnapshot = null;
-let datasetCaptureApiAvailable = false;
-let datasetCaptureBusy = false;
-let datasetCapturePollGeneration = 0;
-let datasetSessionsPollGeneration = 0;
-let datasetDetailPollGeneration = 0;
-let datasetSessions = [];
-let selectedDatasetSessionId = '';
-let selectedDatasetDetail = null;
-let selectedDatasetPageBefore = null;
-let selectedDatasetPageHistory = [];
-let selectedDatasetGalleryKey = '';
-let datasetDetailBusy = false;
-let datasetDetailError = '';
 let cloudSeq = -1;
 let pointcloudRequestInFlight = false;
 let pointcloudRequestGeneration = 0;
@@ -516,6 +471,7 @@ let navigationPointer = null;
 let navigationRenderFrame = 0;
 let serviceLifecycleFeature = null;
 let controlBridgeServiceFeature = null;
+let datasetFeature = null;
 const controlInput = window.RobotControlInput;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
@@ -976,12 +932,10 @@ function activatePage(page, updateHash = false) {
   if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
   if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();
   navigationLogFeature?.onPageChange(previousPage, activePage);
+  if (activePage === 'sensors') datasetFeature?.activate();
+  else datasetFeature?.deactivate();
   if (previousPage === 'sensors' && activePage !== 'sensors' && cameraRecording) {
     stopCameraRecording(cameraRecordingCleanupPolicy('sensors_page_left'));
-  }
-  if (activePage === 'sensors' && previousPage !== 'sensors') {
-    void refreshDatasetCapture();
-    void refreshDatasetSessions({ preferredId: selectedDatasetSessionId });
   }
   syncPointcloudTransport();
   syncCameraTransport();
@@ -5719,633 +5673,6 @@ window.RobotScopeCameraStreams = Object.freeze({
   },
 });
 
-const DATASET_CAPTURE_ACTIVE_STATES = Object.freeze(new Set([
-  'starting', 'capturing', 'running', 'stopping', 'finalizing',
-]));
-const DATASET_CAPTURE_STOPPABLE_STATES = Object.freeze(new Set([
-  'starting', 'capturing', 'running',
-]));
-const DATASET_CAMERA_SOURCE_IDS = Object.freeze(['go2_front', 'realsense_color']);
-const DATASET_PAGE_LIMIT = 24;
-
-function datasetObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-}
-
-function datasetNumericTotal(value) {
-  if (value == null) return 0;
-  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : 0;
-  if (typeof value !== 'object' || Array.isArray(value)) return 0;
-  return Object.values(value).reduce((total, entry) => total + datasetNumericTotal(entry), 0);
-}
-
-function datasetOptionalBytes(value) {
-  if (value == null) return null;
-  const number = Number(value);
-  return Number.isFinite(number) && number >= 0 ? number : null;
-}
-
-function datasetPositiveInteger(value) {
-  const number = Number(value);
-  return Number.isSafeInteger(number) && number > 0 ? number : null;
-}
-
-function normalizeDatasetSources(value) {
-  const entries = value === 'both'
-    ? DATASET_CAMERA_SOURCE_IDS
-    : Array.isArray(value) ? value : value ? [value] : [];
-  const normalized = [];
-  for (const entry of entries) {
-    const candidate = datasetObject(entry);
-    const id = String(candidate.source_id || candidate.id || entry || '').trim();
-    if (DATASET_CAMERA_SOURCE_IDS.includes(id) && !normalized.includes(id)) normalized.push(id);
-  }
-  return normalized;
-}
-
-function normalizeDatasetCapture(payload) {
-  const envelope = datasetObject(payload);
-  const capture = datasetObject(envelope.capture || envelope.status || envelope);
-  const session = datasetObject(capture.session);
-  const storage = datasetObject(capture.storage || envelope.storage);
-  const freeBytes = capture.free_bytes ?? storage.free_bytes ?? storage.available_bytes;
-  const sessionQuotaBytes = capture.session_quota_bytes
-    ?? storage.session_quota_bytes
-    ?? envelope.session_quota_bytes;
-  const minimumFreeBytes = capture.minimum_free_bytes
-    ?? storage.minimum_free_bytes
-    ?? envelope.minimum_free_bytes;
-  const state = String(capture.state || session.state || (capture.active ? 'capturing' : 'idle')).trim().toLowerCase() || 'idle';
-  const sessionId = String(capture.session_id || session.session_id || capture.id || session.id || '').trim();
-  const sources = normalizeDatasetSources(capture.sources || capture.source || session.sources || session.source);
-  const startedAt = String(capture.started_at || session.started_at || '');
-  const explicitElapsed = Number(capture.elapsed_s ?? session.elapsed_s);
-  return {
-    available: envelope.available !== false && capture.available !== false,
-    state,
-    active: capture.active != null ? Boolean(capture.active) : DATASET_CAPTURE_ACTIVE_STATES.has(state),
-    sessionId,
-    sources,
-    captureHz: Number(capture.capture_hz ?? session.capture_hz) || 0,
-    label: String(capture.label || session.label || ''),
-    startedAt,
-    elapsedS: Number.isFinite(explicitElapsed) && explicitElapsed >= 0 ? explicitElapsed : null,
-    saved: datasetNumericTotal(capture.saved ?? capture.saved_samples ?? capture.sample_count ?? session.saved ?? session.sample_count),
-    dropped: datasetNumericTotal(capture.dropped ?? capture.dropped_samples ?? capture.drop_counts ?? session.dropped),
-    bytes: datasetNumericTotal(capture.bytes_written ?? capture.written_bytes ?? capture.bytes ?? session.bytes_written ?? session.bytes),
-    freeBytes: freeBytes == null ? null : datasetNumericTotal(freeBytes),
-    sessionQuotaBytes: datasetOptionalBytes(sessionQuotaBytes),
-    minimumFreeBytes: datasetOptionalBytes(minimumFreeBytes),
-    path: String(capture.output_path || capture.path || session.output_path || session.path || storage.root || envelope.output_path || ''),
-    message: String(capture.message || session.message || ''),
-    error: String(capture.last_error || capture.error || session.last_error || session.error || ''),
-  };
-}
-
-function normalizeDatasetSession(entry) {
-  const value = datasetObject(entry);
-  const id = String(value.id || value.session_id || '').trim();
-  return {
-    ...value,
-    id,
-    label: String(value.label || value.name || id || 'Dataset session'),
-    state: String(value.state || 'complete').toLowerCase(),
-    sources: normalizeDatasetSources(value.sources || value.source),
-    sampleCount: datasetNumericTotal(value.sample_count ?? value.saved ?? value.samples_saved),
-    bytes: datasetNumericTotal(value.bytes ?? value.bytes_written),
-    path: String(value.output_path || value.path || ''),
-    startedAt: String(value.started_at || value.created_at || ''),
-    completedAt: String(value.completed_at || value.updated_at || ''),
-  };
-}
-
-function normalizeDatasetCatalog(payload) {
-  const envelope = datasetObject(payload);
-  const values = Array.isArray(payload)
-    ? payload
-    : Array.isArray(envelope.sessions) ? envelope.sessions
-      : Array.isArray(envelope.datasets) ? envelope.datasets
-        : Array.isArray(envelope.items) ? envelope.items : [];
-  return values.map(normalizeDatasetSession).filter((entry) => entry.id);
-}
-
-function normalizeDatasetDetail(payload, fallback = {}) {
-  const envelope = datasetObject(payload);
-  const raw = datasetObject(envelope.dataset || envelope.session || envelope);
-  const session = normalizeDatasetSession({ ...fallback, ...raw });
-  const values = Array.isArray(raw.samples)
-    ? raw.samples
-    : Array.isArray(envelope.samples) ? envelope.samples : [];
-  const samples = values.map((entry, position) => {
-    const value = datasetObject(entry);
-    const index = Number(value.index ?? value.sample_index ?? value.sequence ?? position);
-    return {
-      index: Number.isSafeInteger(index) && index >= 0 ? index : position,
-      sources: normalizeDatasetSources(value.sources || value.source_ids || value.source || session.sources),
-      capturedAt: String(value.captured_at || value.committed_at || value.timestamp || ''),
-    };
-  });
-  const rawPage = datasetObject(raw.page || envelope.page);
-  const requestedBefore = datasetPositiveInteger(rawPage.before);
-  const oldestIndex = datasetPositiveInteger(rawPage.oldest_index);
-  const newestIndex = datasetPositiveInteger(rawPage.newest_index);
-  const nextBefore = datasetPositiveInteger(rawPage.next_before);
-  const rawLimit = datasetPositiveInteger(rawPage.limit);
-  return {
-    ...session,
-    samples: samples.slice(0, DATASET_PAGE_LIMIT),
-    page: {
-      limit: Math.min(DATASET_PAGE_LIMIT, rawLimit || DATASET_PAGE_LIMIT),
-      before: requestedBefore,
-      oldestIndex,
-      newestIndex,
-      nextBefore,
-      hasOlder: Boolean(rawPage.has_older && nextBefore),
-    },
-  };
-}
-
-function datasetCaptureCanStop(snapshot) {
-  const value = datasetObject(snapshot);
-  return Boolean(
-    value.sessionId
-    && (value.active || DATASET_CAPTURE_STOPPABLE_STATES.has(String(value.state || ''))),
-  );
-}
-
-function formatDatasetBytes(value) {
-  const bytes = Number(value);
-  if (!Number.isFinite(bytes) || bytes < 0) return '—';
-  if (bytes < 1024) return `${Math.round(bytes)} B`;
-  const units = ['KiB', 'MiB', 'GiB', 'TiB'];
-  let amount = bytes;
-  let unit = 'B';
-  for (const candidate of units) {
-    amount /= 1024;
-    unit = candidate;
-    if (amount < 1024) break;
-  }
-  return `${amount.toFixed(amount >= 100 ? 0 : amount >= 10 ? 1 : 2)} ${unit}`;
-}
-
-function datasetElapsedSeconds(snapshot = datasetCaptureSnapshot, now = Date.now()) {
-  if (!snapshot) return 0;
-  const active = Boolean(snapshot.active || DATASET_CAPTURE_ACTIVE_STATES.has(snapshot.state));
-  if (snapshot.elapsedS != null) {
-    const updatedAt = Number(snapshot.receivedAt || now);
-    return Math.max(0, snapshot.elapsedS + (active ? Math.max(0, now - updatedAt) / 1000 : 0));
-  }
-  const startedAt = Date.parse(snapshot.startedAt || '');
-  return active && Number.isFinite(startedAt) ? Math.max(0, (now - startedAt) / 1000) : 0;
-}
-
-function formatDatasetDuration(seconds) {
-  const total = Math.max(0, Math.floor(Number(seconds) || 0));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const remaining = total % 60;
-  return hours
-    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`
-    : `${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`;
-}
-
-function datasetSourceLabel(sources) {
-  if (sources.includes('go2_front') && sources.includes('realsense_color')) return 'GO2 + REALSENSE';
-  if (sources.includes('go2_front')) return 'GO2';
-  if (sources.includes('realsense_color')) return 'REALSENSE';
-  return '—';
-}
-
-function setDatasetSourceControl(value, disabled) {
-  const selected = value === 'both' ? 'both' : DATASET_CAMERA_SOURCE_IDS.includes(value) ? value : 'go2_front';
-  ui.datasetSourcePicker.querySelectorAll('input[name="datasetCameraSource"]').forEach((input) => {
-    input.checked = input.value === selected;
-    input.disabled = disabled;
-    input.closest('label')?.classList.toggle('is-selected', input.checked);
-    input.closest('label')?.classList.toggle('is-disabled', disabled);
-  });
-}
-
-function selectedDatasetSourceControl() {
-  return ui.datasetSourcePicker.querySelector('input[name="datasetCameraSource"]:checked')?.value || 'go2_front';
-}
-
-function renderDatasetCapture(now = Date.now()) {
-  const snapshot = datasetCaptureSnapshot || normalizeDatasetCapture({ available: datasetCaptureApiAvailable });
-  const active = Boolean(snapshot.active || DATASET_CAPTURE_ACTIVE_STATES.has(snapshot.state));
-  const elapsed = formatDatasetDuration(datasetElapsedSeconds(snapshot, now));
-  const stateLabels = {
-    idle: 'READY', starting: 'STARTING', capturing: 'CAPTURING', running: 'CAPTURING',
-    stopping: 'FINALIZING', finalizing: 'FINALIZING', complete: 'COMPLETE', completed: 'COMPLETE',
-    failed: 'ERROR', error: 'ERROR', unavailable: 'UNAVAILABLE',
-  };
-  const stateClass = active
-    ? 'active'
-    : ['failed', 'error'].includes(snapshot.state) ? 'error'
-      : ['complete', 'completed'].includes(snapshot.state) ? 'complete'
-        : datasetCaptureApiAvailable ? 'ready' : 'unavailable';
-  ui.datasetCaptureState.className = `dataset-server-badge ${stateClass}`;
-  const stateDot = document.createElement('span');
-  ui.datasetCaptureState.replaceChildren(
-    stateDot,
-    document.createTextNode(stateLabels[snapshot.state] || String(snapshot.state || 'CHECKING').toUpperCase()),
-  );
-  ui.datasetCaptureElapsed.textContent = elapsed;
-  ui.datasetCaptureSaved.textContent = Math.floor(snapshot.saved).toLocaleString();
-  ui.datasetCaptureDropped.textContent = Math.floor(snapshot.dropped).toLocaleString();
-  ui.datasetCaptureBytes.textContent = formatDatasetBytes(snapshot.bytes);
-  ui.datasetCaptureFree.textContent = snapshot.freeBytes == null ? '—' : formatDatasetBytes(snapshot.freeBytes);
-  ui.datasetCaptureQuota.textContent = snapshot.sessionQuotaBytes == null ? '—' : formatDatasetBytes(snapshot.sessionQuotaBytes);
-  ui.datasetCaptureReserve.textContent = snapshot.minimumFreeBytes == null ? '—' : formatDatasetBytes(snapshot.minimumFreeBytes);
-  ui.datasetCaptureSources.textContent = datasetSourceLabel(snapshot.sources);
-  ui.datasetCapturePath.textContent = snapshot.path || '서버 저장 경로를 확인할 수 없습니다.';
-  ui.datasetCapturePath.title = snapshot.path || '';
-  const locked = active || datasetCaptureBusy;
-  const selectedValue = snapshot.sources.length > 1 ? 'both' : snapshot.sources[0];
-  setDatasetSourceControl(active && selectedValue ? selectedValue : selectedDatasetSourceControl(), locked);
-  ui.datasetCaptureHz.disabled = locked;
-  ui.datasetSessionLabel.disabled = locked;
-  if (active && snapshot.captureHz) ui.datasetCaptureHz.value = String(snapshot.captureHz);
-  if (active && snapshot.label) ui.datasetSessionLabel.value = snapshot.label;
-  ui.datasetCaptureStart.disabled = !datasetCaptureApiAvailable || active || datasetCaptureBusy;
-  ui.datasetCaptureStop.disabled = !datasetCaptureApiAvailable || datasetCaptureBusy
-    || !datasetCaptureCanStop(snapshot);
-  ui.datasetOpenFolder.disabled = !snapshot.sessionId && !selectedDatasetSessionId && !datasetSessions.length;
-  const defaultMessage = !datasetCaptureApiAvailable
-    ? '데이터셋 캡처 API를 기다리고 있습니다.'
-    : active
-      ? `${datasetSourceLabel(snapshot.sources)} · ${snapshot.captureHz || '—'} Hz로 dashboard host에 저장 중입니다.`
-      : '카메라와 저장 주기를 선택하면 dashboard host에서 캡처를 시작할 수 있습니다.';
-  ui.datasetCaptureMessage.textContent = snapshot.error || snapshot.message || defaultMessage;
-  ui.datasetCaptureMessage.classList.toggle('error', Boolean(snapshot.error));
-  ui.datasetGlobalStatus.hidden = !active;
-  ui.datasetGlobalStatusText.textContent = `${elapsed} · ${Math.floor(snapshot.saved).toLocaleString()} saved`;
-}
-
-async function refreshDatasetCapture() {
-  const generation = ++datasetCapturePollGeneration;
-  try {
-    const normalized = normalizeDatasetCapture(await api('/api/v1/datasets/capture'));
-    if (generation !== datasetCapturePollGeneration) return null;
-    const wasActive = Boolean(datasetCaptureSnapshot?.active);
-    const previousSession = datasetCaptureSnapshot?.sessionId || '';
-    datasetCaptureApiAvailable = normalized.available;
-    datasetCaptureSnapshot = { ...normalized, receivedAt: Date.now() };
-    renderDatasetCapture();
-    if ((wasActive && !normalized.active) || (normalized.sessionId && normalized.sessionId !== previousSession)) {
-      void refreshDatasetSessions({ preferredId: normalized.sessionId });
-    }
-    return datasetCaptureSnapshot;
-  } catch (error) {
-    if (generation !== datasetCapturePollGeneration) return null;
-    datasetCaptureApiAvailable = false;
-    datasetCaptureSnapshot = {
-      ...normalizeDatasetCapture({ available: false, state: 'unavailable', error: error.message }),
-      receivedAt: Date.now(),
-    };
-    renderDatasetCapture();
-    return null;
-  }
-}
-
-async function startDatasetCapture() {
-  if (datasetCaptureBusy || datasetCaptureSnapshot?.active) return;
-  const captureHz = Number(ui.datasetCaptureHz.value);
-  if (!Number.isFinite(captureHz) || captureHz < 0.2 || captureHz > 5) {
-    showToast('캡처 주기는 0.2 Hz에서 5 Hz 사이로 입력하세요.', true);
-    ui.datasetCaptureHz.focus();
-    return;
-  }
-  const body = {
-    sources: selectedDatasetSourceControl(),
-    capture_hz: captureHz,
-    label: ui.datasetSessionLabel.value.trim(),
-  };
-  datasetCaptureBusy = true;
-  renderDatasetCapture();
-  try {
-    const response = await api('/api/v1/datasets/capture/start', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-    const normalized = normalizeDatasetCapture(response);
-    if (normalized.sessionId || normalized.active) {
-      datasetCaptureApiAvailable = normalized.available;
-      datasetCaptureSnapshot = { ...normalized, receivedAt: Date.now() };
-    }
-    showToast('서버 데이터셋 캡처를 시작했습니다. 페이지를 이동해도 계속 저장됩니다.');
-    await refreshDatasetCapture();
-  } catch (error) {
-    showToast(`데이터셋 캡처 시작 실패: ${error.message}`, true);
-  } finally {
-    datasetCaptureBusy = false;
-    renderDatasetCapture();
-  }
-}
-
-async function stopDatasetCapture() {
-  const sessionId = datasetCaptureSnapshot?.sessionId || '';
-  if (datasetCaptureBusy || !sessionId) return;
-  datasetCaptureBusy = true;
-  renderDatasetCapture();
-  try {
-    await api('/api/v1/datasets/capture/stop', {
-      method: 'POST',
-      body: JSON.stringify({ session_id: sessionId }),
-    });
-    showToast('데이터셋 캡처 중지를 요청했습니다. 저장 파일을 마무리하고 있습니다.');
-    await refreshDatasetCapture();
-  } catch (error) {
-    showToast(`데이터셋 캡처 중지 실패: ${error.message}`, true);
-  } finally {
-    datasetCaptureBusy = false;
-    renderDatasetCapture();
-  }
-}
-
-function formatDatasetDate(value) {
-  const date = new Date(value || '');
-  if (!Number.isFinite(date.getTime())) return '시간 정보 없음';
-  return date.toLocaleString('ko-KR', { hour12: false });
-}
-
-function renderDatasetSessions() {
-  ui.datasetSessionCount.textContent = `${datasetSessions.length.toLocaleString()} sessions`;
-  if (!datasetSessions.length) {
-    ui.datasetSessionList.innerHTML = '<div class="dataset-library-empty">저장된 데이터셋 폴더가 없습니다.</div>';
-    if (!selectedDatasetSessionId) renderSelectedDataset();
-    return;
-  }
-  ui.datasetSessionList.innerHTML = datasetSessions.map((session) => `
-    <button class="dataset-session-item${session.id === selectedDatasetSessionId ? ' is-active' : ''}" type="button" data-dataset-session-id="${escapeHtml(session.id)}">
-      <strong title="${escapeHtml(session.label)}">${escapeHtml(session.label)}</strong>
-      <small>${escapeHtml(datasetSourceLabel(session.sources))} · ${escapeHtml(formatDatasetDate(session.startedAt))}</small>
-      <b>${Math.floor(session.sampleCount).toLocaleString()}</b>
-    </button>`).join('');
-}
-
-function datasetImageUrl(sessionId, sampleIndex, sourceId) {
-  return `/api/v1/datasets/${encodeURIComponent(sessionId)}/samples/${encodeURIComponent(sampleIndex)}/${encodeURIComponent(sourceId)}.jpg`;
-}
-
-function datasetDetailUrl(sessionId, before = null) {
-  const base = `/api/v1/datasets/${encodeURIComponent(sessionId)}`;
-  const cursor = datasetPositiveInteger(before);
-  return cursor
-    ? `${base}?before=${encodeURIComponent(cursor)}&limit=${DATASET_PAGE_LIMIT}`
-    : `${base}?limit=${DATASET_PAGE_LIMIT}`;
-}
-
-function datasetPageRange(detail) {
-  const indices = detail.samples
-    .map((sample) => datasetPositiveInteger(sample.index))
-    .filter((index) => index != null);
-  return {
-    oldest: detail.page.oldestIndex || (indices.length ? Math.min(...indices) : null),
-    newest: detail.page.newestIndex || (indices.length ? Math.max(...indices) : null),
-  };
-}
-
-function renderDatasetPagination(detail = selectedDatasetDetail) {
-  const current = detail && detail.id === selectedDatasetSessionId ? detail : null;
-  const page = current?.page;
-  const range = current ? datasetPageRange(current) : { oldest: null, newest: null };
-  const newestPage = !page?.before;
-  ui.datasetPageNewest.disabled = datasetDetailBusy || !current || newestPage;
-  ui.datasetPageNewer.disabled = datasetDetailBusy || !current || !selectedDatasetPageHistory.length;
-  ui.datasetPageOlder.disabled = datasetDetailBusy || !current || !page?.hasOlder || !page?.nextBefore;
-  if (datasetDetailBusy) {
-    ui.datasetPageStatus.textContent = '최대 24개 샘플을 불러오는 중…';
-  } else if (datasetDetailError) {
-    ui.datasetPageStatus.textContent = datasetDetailError;
-  } else if (range.oldest && range.newest) {
-    ui.datasetPageStatus.textContent = `#${range.oldest.toLocaleString()}–#${range.newest.toLocaleString()} · 최대 ${DATASET_PAGE_LIMIT}개/페이지`;
-  } else {
-    ui.datasetPageStatus.textContent = current ? '이 페이지에 표시할 샘플이 없습니다.' : '최신 24개 샘플 미리보기';
-  }
-}
-
-function replaceDatasetGallery(key, html) {
-  if (selectedDatasetGalleryKey === key) return false;
-  selectedDatasetGalleryKey = key;
-  ui.datasetSampleGallery.innerHTML = html;
-  return true;
-}
-
-function renderSelectedDataset() {
-  const detail = selectedDatasetDetail;
-  if (!detail || detail.id !== selectedDatasetSessionId) {
-    ui.datasetSelectedTitle.textContent = datasetDetailError
-      ? '데이터셋을 불러오지 못했습니다.'
-      : selectedDatasetSessionId ? '데이터셋 폴더 불러오는 중…' : '선택된 데이터셋 없음';
-    ui.datasetSelectedPath.textContent = '—';
-    ui.datasetSelectedSamples.textContent = '0';
-    ui.datasetSelectedMeta.textContent = datasetDetailError
-      || (selectedDatasetSessionId ? '세션 상세 정보를 요청하고 있습니다.' : '세션을 선택하세요.');
-    replaceDatasetGallery(
-      datasetDetailError ? `error:${selectedDatasetSessionId}:${datasetDetailError}` : `loading:${selectedDatasetSessionId}`,
-      `<div class="dataset-library-empty">${datasetDetailError ? '세션 상세 정보를 확인할 수 없습니다.' : '저장 이미지 목록을 기다리고 있습니다.'}</div>`,
-    );
-    renderDatasetPagination(null);
-    return;
-  }
-  ui.datasetSelectedTitle.textContent = detail.label;
-  ui.datasetSelectedPath.textContent = detail.path || '서버 경로 비공개';
-  ui.datasetSelectedPath.title = detail.path || '';
-  ui.datasetSelectedSamples.textContent = Math.floor(detail.sampleCount ?? detail.samples.length).toLocaleString();
-  ui.datasetSelectedMeta.textContent = datasetDetailError
-    || `${datasetSourceLabel(detail.sources)} · ${formatDatasetBytes(detail.bytes)} · ${String(detail.state || 'complete').toUpperCase()}`;
-  renderDatasetPagination(detail);
-  const cards = [];
-  const visibleSamples = [...detail.samples]
-    .sort((left, right) => right.index - left.index)
-    .slice(0, DATASET_PAGE_LIMIT);
-  for (const sample of visibleSamples) {
-    const sources = sample.sources.length ? sample.sources : detail.sources;
-    for (const sourceId of sources) {
-      const url = datasetImageUrl(detail.id, sample.index, sourceId);
-      cards.push(`<a class="dataset-sample-card" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="샘플 ${sample.index} ${escapeHtml(sourceId)} 원본 이미지 열기">
-        <img src="${escapeHtml(url)}" alt="샘플 ${sample.index} · ${escapeHtml(sourceId)}" loading="lazy" decoding="async">
-        <span><strong>#${sample.index}</strong><small>${escapeHtml(sourceId === 'go2_front' ? 'GO2' : 'REALSENSE')}</small></span>
-      </a>`);
-    }
-  }
-  const galleryKey = [
-    detail.id,
-    detail.page.before || 'newest',
-    ...visibleSamples.flatMap((sample) => [sample.index, ...sample.sources]),
-  ].join('|');
-  replaceDatasetGallery(
-    galleryKey,
-    cards.length
-      ? cards.join('')
-      : '<div class="dataset-library-empty">이 페이지에서 확인할 수 있는 이미지가 아직 없습니다.</div>',
-  );
-}
-
-async function refreshDatasetDetail(
-  sessionId = selectedDatasetSessionId,
-  { before = selectedDatasetPageBefore, history = selectedDatasetPageHistory } = {},
-) {
-  if (!sessionId) return null;
-  const requestedBefore = datasetPositiveInteger(before);
-  const requestedHistory = Array.isArray(history) ? [...history] : [];
-  const generation = ++datasetDetailPollGeneration;
-  datasetDetailBusy = true;
-  datasetDetailError = '';
-  renderSelectedDataset();
-  try {
-    const fallback = datasetSessions.find((entry) => entry.id === sessionId)
-      || (datasetCaptureSnapshot?.sessionId === sessionId ? {
-        id: sessionId,
-        label: datasetCaptureSnapshot.label || sessionId,
-        sources: datasetCaptureSnapshot.sources,
-        sample_count: datasetCaptureSnapshot.saved,
-        bytes: datasetCaptureSnapshot.bytes,
-        path: datasetCaptureSnapshot.path,
-        state: datasetCaptureSnapshot.state,
-      } : {});
-    const detail = normalizeDatasetDetail(
-      await api(datasetDetailUrl(sessionId, requestedBefore)),
-      fallback,
-    );
-    if (generation !== datasetDetailPollGeneration || sessionId !== selectedDatasetSessionId) return null;
-    if (requestedBefore && !detail.page.before) detail.page.before = requestedBefore;
-    selectedDatasetPageBefore = detail.page.before;
-    selectedDatasetPageHistory = requestedHistory;
-    selectedDatasetDetail = detail;
-    return detail;
-  } catch (error) {
-    if (generation !== datasetDetailPollGeneration || sessionId !== selectedDatasetSessionId) return null;
-    datasetDetailError = String(error.message || '세션 상세 정보를 확인할 수 없습니다.');
-    return null;
-  } finally {
-    if (generation === datasetDetailPollGeneration && sessionId === selectedDatasetSessionId) {
-      datasetDetailBusy = false;
-      renderSelectedDataset();
-    }
-  }
-}
-
-function selectDatasetSession(sessionId, { scroll = false } = {}) {
-  const nextId = String(sessionId || '');
-  if (!nextId) return;
-  selectedDatasetSessionId = nextId;
-  selectedDatasetDetail = null;
-  selectedDatasetPageBefore = null;
-  selectedDatasetPageHistory = [];
-  selectedDatasetGalleryKey = '';
-  datasetDetailBusy = false;
-  datasetDetailError = '';
-  datasetDetailPollGeneration += 1;
-  renderDatasetSessions();
-  renderSelectedDataset();
-  if (scroll) ui.datasetLibraryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  void refreshDatasetDetail(nextId, { before: null, history: [] });
-}
-
-async function navigateDatasetPage(direction) {
-  if (datasetDetailBusy || !selectedDatasetDetail || !selectedDatasetSessionId) return null;
-  if (direction === 'newest') {
-    return refreshDatasetDetail(selectedDatasetSessionId, { before: null, history: [] });
-  }
-  if (direction === 'newer') {
-    if (!selectedDatasetPageHistory.length) return null;
-    const history = [...selectedDatasetPageHistory];
-    const before = history.pop() ?? null;
-    return refreshDatasetDetail(selectedDatasetSessionId, { before, history });
-  }
-  if (direction === 'older') {
-    const before = selectedDatasetDetail.page.nextBefore;
-    if (!selectedDatasetDetail.page.hasOlder || !before) return null;
-    return refreshDatasetDetail(selectedDatasetSessionId, {
-      before,
-      history: [...selectedDatasetPageHistory, selectedDatasetPageBefore],
-    });
-  }
-  return null;
-}
-
-async function refreshDatasetSessions({ preferredId = '', forceDetail = false } = {}) {
-  const generation = ++datasetSessionsPollGeneration;
-  try {
-    const sessions = normalizeDatasetCatalog(await api('/api/v1/datasets'));
-    if (generation !== datasetSessionsPollGeneration) return null;
-    const previousSummary = datasetSessions.find((entry) => entry.id === selectedDatasetSessionId);
-    const previousSampleCount = previousSummary?.sampleCount ?? selectedDatasetDetail?.sampleCount ?? null;
-    datasetSessions = sessions;
-    const desired = preferredId || selectedDatasetSessionId;
-    const nextId = sessions.some((entry) => entry.id === desired)
-      ? desired
-      : sessions[0]?.id || (datasetCaptureSnapshot?.sessionId || '');
-    const selectionChanged = nextId !== selectedDatasetSessionId;
-    selectedDatasetSessionId = nextId;
-    const selectedSummary = sessions.find((entry) => entry.id === nextId);
-    const sampleCountChanged = previousSampleCount != null
-      && selectedSummary != null
-      && selectedSummary.sampleCount !== previousSampleCount;
-    if (selectionChanged) {
-      selectedDatasetDetail = null;
-      selectedDatasetPageBefore = null;
-      selectedDatasetPageHistory = [];
-      selectedDatasetGalleryKey = '';
-      datasetDetailError = '';
-    } else if (selectedDatasetDetail && selectedSummary) {
-      selectedDatasetDetail = {
-        ...selectedDatasetDetail,
-        ...selectedSummary,
-        samples: selectedDatasetDetail.samples,
-        page: selectedDatasetDetail.page,
-      };
-    }
-    renderDatasetSessions();
-    renderSelectedDataset();
-    const newestPageChanged = selectedDatasetPageBefore == null && sampleCountChanged;
-    if (nextId && (selectionChanged || !selectedDatasetDetail || forceDetail || newestPageChanged)) {
-      void refreshDatasetDetail(nextId, {
-        before: selectionChanged ? null : selectedDatasetPageBefore,
-        history: selectionChanged ? [] : selectedDatasetPageHistory,
-      });
-    }
-    renderDatasetCapture();
-    return sessions;
-  } catch (error) {
-    if (generation !== datasetSessionsPollGeneration) return null;
-    if (!datasetSessions.length) ui.datasetSessionList.innerHTML = `<div class="dataset-library-empty">데이터셋 폴더 목록을 불러오지 못했습니다: ${escapeHtml(error.message)}</div>`;
-    return null;
-  }
-}
-
-async function openDatasetWebFolder() {
-  const preferredId = datasetCaptureSnapshot?.sessionId || selectedDatasetSessionId;
-  await refreshDatasetSessions({ preferredId });
-  const nextId = preferredId || datasetSessions[0]?.id;
-  if (nextId) selectDatasetSession(nextId, { scroll: true });
-}
-
-function syncDatasetSourcePicker() {
-  setDatasetSourceControl(selectedDatasetSourceControl(), Boolean(datasetCaptureSnapshot?.active || datasetCaptureBusy));
-}
-
-window.RobotScopeDatasetCapture = Object.freeze({
-  normalizeCapture: normalizeDatasetCapture,
-  normalizeCatalog: normalizeDatasetCatalog,
-  normalizeDetail: normalizeDatasetDetail,
-  formatBytes: formatDatasetBytes,
-  imageUrl: datasetImageUrl,
-  detailUrl: datasetDetailUrl,
-  canStop: datasetCaptureCanStop,
-  refresh: refreshDatasetCapture,
-  snapshot() {
-    return {
-      capture: datasetCaptureSnapshot ? { ...datasetCaptureSnapshot } : null,
-      sessions: datasetSessions.map((entry) => ({ ...entry })),
-      selectedSessionId: selectedDatasetSessionId,
-      selectedPageBefore: selectedDatasetPageBefore,
-    };
-  },
-});
-
 function controlReady(snapshot = controlSnapshot) {
   if (window.RobotProfiles?.profileSupports?.(activeRobotProfile(), 'manual_control') !== true) return false;
   const available = snapshot?.available ?? snapshot?.ready;
@@ -7149,7 +6476,7 @@ ui.robotIp.addEventListener('input', () => {
   });
 });
 ui.robotIp.addEventListener('keydown', (event) => { if (event.key === 'Enter') setRobotIp(); });
-$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshCameraCatalog(), refreshDatasetCapture(), refreshDatasetSessions({ preferredId: selectedDatasetSessionId, forceDetail: true }), refreshMappingControl(), refreshControlSnapshot(), controlBridgeServiceFeature?.refresh(true), refreshNavigation(), navigationLogFeature?.refresh(true), refreshNavigationParameters(true), serviceLifecycleFeature?.refresh(true)]); showToast('대시보드를 갱신했습니다.'); });
+$('#refreshButton').addEventListener('click', async () => { await Promise.all([refreshState(), refreshTopics(), refreshSources(), refreshCameraCatalog(), datasetFeature?.refresh(), datasetFeature?.refreshSessions({ forceDetail: true }), refreshMappingControl(), refreshControlSnapshot(), controlBridgeServiceFeature?.refresh(true), refreshNavigation(), navigationLogFeature?.refresh(true), refreshNavigationParameters(true), serviceLifecycleFeature?.refresh(true)]); showToast('대시보드를 갱신했습니다.'); });
 ui.mappingStartButton.addEventListener('click', startMappingSession);
 ui.mappingSaveButton.addEventListener('click', saveMappingSession);
 ui.mappingStopButton.addEventListener('click', stopMappingSession);
@@ -7280,22 +6607,6 @@ ui.categoryFilter.addEventListener('change', renderTopics);
 ui.cameraCaptureButton.addEventListener('click', captureCameraFrame);
 ui.cameraRecordButton.addEventListener('click', startCameraRecording);
 ui.cameraStopRecordButton.addEventListener('click', () => stopCameraRecording());
-ui.datasetCaptureStart.addEventListener('click', startDatasetCapture);
-ui.datasetCaptureStop.addEventListener('click', stopDatasetCapture);
-ui.datasetOpenFolder.addEventListener('click', openDatasetWebFolder);
-ui.datasetRefreshFolders.addEventListener('click', () => refreshDatasetSessions({ preferredId: selectedDatasetSessionId, forceDetail: true }));
-ui.datasetSourcePicker.addEventListener('change', syncDatasetSourcePicker);
-ui.datasetCaptureHz.addEventListener('change', () => {
-  const value = Number(ui.datasetCaptureHz.value);
-  if (Number.isFinite(value)) ui.datasetCaptureHz.value = String(Math.min(5, Math.max(0.2, value)));
-});
-ui.datasetSessionList.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-dataset-session-id]');
-  if (button) selectDatasetSession(button.dataset.datasetSessionId);
-});
-ui.datasetPageNewest.addEventListener('click', () => navigateDatasetPage('newest'));
-ui.datasetPageNewer.addEventListener('click', () => navigateDatasetPage('newer'));
-ui.datasetPageOlder.addEventListener('click', () => navigateDatasetPage('older'));
 controlUi.arm.addEventListener('click', armControl);
 controlUi.disarm.addEventListener('click', () => failSafeDisarm('manual_disarm', { notify: true }));
 controlUi.inputSource.addEventListener('change', () => {
@@ -7327,7 +6638,6 @@ window.addEventListener('blur', () => {
   if (controlLeaseId) failSafeDisarm('window_blurred');
 });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) void refreshDatasetCapture();
   if (document.hidden) {
     if (controlArmBusy) invalidatePendingArm();
     if (controlLeaseId) failSafeDisarm('document_hidden');
@@ -7335,7 +6645,6 @@ document.addEventListener('visibilitychange', () => {
   }
   syncPointcloudTransport();
   syncCameraTransport();
-  if (!document.hidden && activePage === 'sensors') void refreshDatasetSessions({ preferredId: selectedDatasetSessionId });
 });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
@@ -7364,7 +6673,9 @@ window.addEventListener('resize', () => {
 startClock();
 initializeCameraMediaControls();
 initializeCameraStreams();
-renderDatasetCapture();
+datasetFeature = createDatasetFeature({ showToast });
+datasetFeature.start();
+window.RobotScopeDatasetCapture = datasetFeature;
 bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();
@@ -7412,19 +6723,12 @@ navigationLogFeature.refresh();
 refreshNavigationParameters();
 serviceLifecycleFeature.refresh();
 controlBridgeServiceFeature.refresh();
-refreshDatasetCapture();
-if (activePage === 'sensors') refreshDatasetSessions();
 setInterval(refreshState, 1000);
 setInterval(refreshPointcloud, 400);
 setInterval(refreshMap, 2000);
 setInterval(refreshTopics, 3500);
 setInterval(refreshSources, 5000);
 setInterval(refreshCameraCatalog, 5000);
-setInterval(refreshDatasetCapture, 1500);
-setInterval(() => renderDatasetCapture(), 1000);
-setInterval(() => {
-  if (activePage === 'sensors' && !document.hidden) refreshDatasetSessions({ preferredId: selectedDatasetSessionId });
-}, 10000);
 setInterval(refreshSavedMaps, 15000);
 setInterval(refreshMappingControl, 1000);
 setInterval(refreshNavigation, 1000);

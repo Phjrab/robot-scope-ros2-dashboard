@@ -2,7 +2,7 @@
 
 Robot Scope is a **ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard**.
 This document is the current architecture authority for
-the repository after the Phase 0–10 refactor. The per-phase architecture
+the repository after the Phase 0–12 refactor. The per-phase architecture
 documents remain historical design and verification records; when they
 describe an older ownership boundary, this document takes precedence.
 
@@ -25,11 +25,11 @@ The frozen Phase 0 implementation is commit
 `48617c69033995c82d5d58d6ba1abe9f7808d187`. The current comparison was made
 against the Phase 10 pre-change HEAD `17119dab7b58271ac3051fcd17e2ebc328e14801`.
 
-| Hotspot | Phase 0 | Phase 10 | Responsibility reduction |
+| Hotspot | Phase 0 | Phase 12 | Responsibility reduction |
 | --- | ---: | ---: | --- |
 | `robot_dashboard/app.py` | 3,208 lines | 1,186 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; 63.0% smaller. |
 | `robot_dashboard/ros_agent.py` | 4,723 lines | 2,377 lines | ROS runtime, observability, control transport and navigation gateway moved to focused components; 49.7% smaller. |
-| `robot_dashboard/static/app.js` | 8,404 lines | 7,435 lines | Shared API/DOM/format/log behavior and four vertical features moved to ES modules; 11.5% smaller. |
+| `robot_dashboard/static/app.js` | 8,404 lines | 6,739 lines | Shared utilities and five vertical features, including lifecycle-owned datasets, moved to ES modules; 19.8% smaller. |
 
 Line count is evidence, not the goal. The important change is the dependency
 and ownership direction:
@@ -125,10 +125,12 @@ not a line-count cleanup.
 The browser remains vanilla JavaScript with native ES modules and no bundler.
 The shared core owns same-origin/no-store API calls, DOM helpers, formatting
 and user-scroll-wins log behavior. Extracted features own LiDAR identity,
-navigation logs, control-bridge lifecycle and dashboard-service lifecycle.
-`app.js` composes those modules and still owns overview, camera media, mapping,
-saved-map editing, datasets and most manual/navigation UI state. This remaining
-size is known debt, not hidden completion.
+navigation logs, control-bridge lifecycle, dashboard-service lifecycle and the
+server-side dataset UI lifecycle. `app.js` composes those modules and still
+owns overview, camera media, mapping, saved-map editing and most
+manual/navigation UI state. The hardware-free browser contract is recorded in
+`docs/ARCHITECTURE_PHASE12.md`. This remaining size is known debt, not hidden
+completion.
 
 Backend responses are authoritative for capability grants, sensor identity,
 processing stage and freshness. Browser constants may format labels but may
@@ -304,16 +306,16 @@ Ruff, Mypy, coverage and dependency-audit CI scope remains the Phase 9 contract.
 ## Remaining debt and future milestones
 
 1. Continue frontend extraction one vertical feature at a time. `app.js` is
-   still the largest ownership hotspot; overview, cameras, mapping/maps,
-   datasets and main control/navigation UI state are the next candidates.
+   still the largest ownership hotspot; cameras, mapping/maps, overview and
+   main control/navigation UI state are the next candidates.
 2. Retire `RosAgent` private forwarding properties only after repository and
    external caller deprecation, with direct component tests retained. Do not
    duplicate state during migration.
 3. Expand strict typing only across isolated or ROS-stubbed boundaries. Do not
    replace Ubuntu/ROS system packages or hide control/navigation errors with
    broad ignores.
-4. Record a hardware-aware coverage baseline and add browser end-to-end tests
-   before introducing a percentage gate.
+4. Record a hardware-aware coverage baseline before introducing a percentage
+   gate. Hardware-free browser E2E now runs in CI from Phase 12 onward.
 5. Perform the deferred Jetson/ROS/hardware acceptance when the robot, XT16 and
    safe test area are available. Validate sensor timestamp domains, signed
    bridge readiness, fail-stop behavior, mapping publication and Nav2 startup

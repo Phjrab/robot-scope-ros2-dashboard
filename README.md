@@ -1067,6 +1067,16 @@ node --test tests/*.mjs
 node scripts/check_frontend_syntax.mjs
 ~~~
 
+실제 브라우저에서 프런트엔드 계약을 확인하는 테스트도 ROS와 로봇 없이 실행할 수
+있습니다. 고정된 메모리 내 fake backend만 사용하며, 운영 서비스나 센서 프로세스를
+시작하지 않습니다.
+
+~~~bash
+npm ci --ignore-scripts
+npx playwright install chromium
+npm run test:e2e
+~~~
+
 기여자와 CI는 별도 품질 도구를 설치해 아래 검사를 추가로 실행합니다. 이 파일은
 운영 ROS 의존성과 분리되어 있으므로 Jetson의 `rclpy` 또는 system-site-packages를
 pip로 대체하지 않습니다.
