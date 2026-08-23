@@ -41,6 +41,7 @@ from .api.models import (
     ControlLeaseRequest,
     ControlStopRequest,
     MapSaveRequest,
+    NavigationAnnotationGoalRequest,
     NavigationCancelRequest,
     NavigationClearCostmapsRequest,
     NavigationGoalRequest,
@@ -50,6 +51,7 @@ from .api.models import (
     NavigationStopRequest,
     SavedMapConvert2DRequest,
     SavedMapEditedCopyRequest,
+    SavedMapAnnotationsRequest,
     SavedMapRenameRequest,
 )
 from .control import (
@@ -892,6 +894,30 @@ async def navigation_goal(
         raise navigation_agent_error(exc) from exc
 
 
+@app.post("/api/v1/navigation/goal/annotation")
+async def navigation_annotation_goal(
+    request: Request,
+    body: NavigationAnnotationGoalRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    try:
+        return await navigation_coordinator().send_annotation_goal(
+            map_id=body.map_id,
+            map_revision=body.map_revision,
+            annotation_revision=body.annotation_revision,
+            annotation_id=body.annotation_id,
+            confirmed=body.confirmed,
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
+    except ControlError as exc:
+        raise navigation_agent_error(exc) from exc
+
+
 @app.post("/api/v1/navigation/cancel")
 async def navigation_cancel(
     request: Request,
@@ -1020,6 +1046,37 @@ async def saved_map_metadata(map_id: str) -> Dict[str, Any]:
     try:
         return await asyncio.to_thread(saved_maps().metadata, map_id)
     except SavedMapNotFound as exc:
+        raise saved_map_error(exc) from exc
+
+
+@app.get("/api/v1/saved-maps/{map_id}/annotations")
+async def saved_map_annotations(map_id: str) -> Dict[str, Any]:
+    try:
+        return await asyncio.to_thread(saved_maps().annotations, map_id)
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
+
+
+@app.patch("/api/v1/saved-maps/{map_id}/annotations")
+async def update_saved_map_annotations(
+    map_id: str,
+    body: SavedMapAnnotationsRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    try:
+        return await mapping_coordinator().update_annotations(
+            map_id,
+            body.map_revision,
+            body.base_annotation_revision,
+            [item.model_dump() for item in body.points],
+            [item.model_dump() for item in body.polygons],
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except MappingCoordinatorError as exc:
+        raise mapping_coordination_error(exc) from exc
+    except SavedMapError as exc:
         raise saved_map_error(exc) from exc
 
 

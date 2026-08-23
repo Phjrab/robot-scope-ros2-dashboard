@@ -84,6 +84,52 @@ test('an active map revision conflict blocks navigation pose and goal controls',
   await expect(page.locator('#navigationGoalPoseTool')).toBeDisabled();
 });
 
+test('map annotations use exact revisions and point goals reuse the Nav safety gate', async ({ page }) => {
+  const backend = await installDashboardBackend(page);
+  backend.state.navigation = {
+    ...backend.state.navigation,
+    pipeline: { state: 'running', job_id: 'f'.repeat(32), error: '' },
+    localization_pipeline: { state: 'running', phase: 'running', pending: false, owned_by_navigation: false, job_id: 'c'.repeat(32), error: '' },
+    map: { id: backend.mapId, revision: backend.mapRevision },
+    localization: { state: 'localized', pose: { x: 0.5, y: 0.5, yaw: 0 } },
+    goal: { state: 'idle', goal_id: null, message: '' },
+    readiness: { map_server: true, planner: true, controller: true, behavior: true, cmd_bridge: true, map: true, scan: true, odometry: true, tf: true, localization: true },
+    runtime_health: { localized: true },
+    safety: { can_start: false, can_stop: true, can_set_initial_pose: true, can_send_goal: true, blockers: [] },
+  };
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto('/#navigation');
+  await expect(page.locator('.map-annotation-item')).toHaveCount(1);
+  await expect(page.locator('.map-annotation-item')).toContainText('E2E Home');
+  await page.locator('.map-annotation-item button[data-action="goal"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/navigation/goal/annotation').length).toBe(1);
+  expect(backend.mutations('/api/v1/navigation/goal/annotation')[0].body).toEqual({
+    map_id: backend.mapId,
+    map_revision: backend.mapRevision,
+    annotation_revision: backend.annotationRevision,
+    annotation_id: backend.annotationId,
+    confirmed: true,
+  });
+});
+
+test('annotation edits are disabled during Nav2 and publish a full CAS document while idle', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'navigation');
+  await expect(page.locator('.map-annotation-item')).toHaveCount(1);
+  await page.locator('.map-annotation-item button[data-action="remove"]').click();
+  await expect(page.locator('#mapAnnotationSave')).toBeEnabled();
+  await page.locator('#mapAnnotationSave').click();
+  await expect.poll(() => backend.mutations(`/api/v1/saved-maps/${backend.mapId}/annotations`).length).toBe(1);
+  const body = backend.mutations(`/api/v1/saved-maps/${backend.mapId}/annotations`)[0].body;
+  expect(body).toEqual({
+    map_revision: backend.mapRevision,
+    base_annotation_revision: backend.annotationRevision,
+    points: [],
+    polygons: [],
+  });
+  await page.locator('#navigationStartButton').click();
+  await expect(page.locator('#mapAnnotationDraw')).toBeDisabled();
+});
+
 test('dataset start/finalize is lifecycle-owned and duplicate clicks do not duplicate mutations', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'sensors');
   await expect(page.locator('#datasetCaptureStart')).toBeEnabled();

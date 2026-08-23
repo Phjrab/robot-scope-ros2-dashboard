@@ -85,6 +85,7 @@ class NavigationAppContractTests(unittest.TestCase):
                 ("post", "/api/v1/navigation/stop"),
                 ("post", "/api/v1/navigation/initial-pose"),
                 ("post", "/api/v1/navigation/goal"),
+                ("post", "/api/v1/navigation/goal/annotation"),
                 ("post", "/api/v1/navigation/cancel"),
                 ("post", "/api/v1/navigation/clear-costmaps"),
             }.issubset(routes)
@@ -342,14 +343,28 @@ class NavigationAppContractTests(unittest.TestCase):
         self.assertIn("confirmed=body.confirmed", route_source)
         source = ast.unparse(self.navigation_methods["send_goal"])
         self.assertIn("confirmed is not True", source)
-        self.assertIn("self._jobs.validate_active_pose", source)
-        self.assertIn("self.require_runtime_capability", source)
-        self.assertIn("self._mapping.pipeline_state() != 'running'", source)
-        self.assertIn("self._agent.navigation_send_goal", source)
+        helper = ast.unparse(self.navigation_methods["_send_goal_locked"])
+        self.assertIn("self._jobs.validate_active_pose", helper)
+        self.assertIn("self.require_runtime_capability", helper)
+        self.assertIn("self._mapping.pipeline_state() != 'running'", helper)
+        self.assertIn("self._agent.navigation_send_goal", helper)
         self.assertLess(
-            source.index("self._jobs.validate_active_pose"),
-            source.index("self._agent.navigation_send_goal"),
+            helper.index("self._jobs.validate_active_pose"),
+            helper.index("self._agent.navigation_send_goal"),
         )
+
+        annotation_route = ast.unparse(
+            self.app_functions["navigation_annotation_goal"]
+        )
+        self.assertIn("require_same_origin", annotation_route)
+        self.assertIn("send_annotation_goal", annotation_route)
+        annotation = ast.unparse(
+            self.navigation_methods["send_annotation_goal"]
+        )
+        self.assertIn("confirmed is not True", annotation)
+        self.assertIn("self._saved_maps.resolve_annotation_goal", annotation)
+        self.assertIn("annotation_revision", annotation)
+        self.assertIn("await self._send_goal_locked", annotation)
 
     def test_initialization_wires_private_map_snapshot_and_terminal_stop(self):
         source = ast.unparse(self.app_functions["main"])

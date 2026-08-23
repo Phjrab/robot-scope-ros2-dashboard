@@ -2,7 +2,7 @@
 
 Robot Scope is a **ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard**.
 This document is the current architecture authority for
-the repository after the Phase 0–14 refactor. The per-phase architecture
+the repository after the Phase 0–15 refactor. The per-phase architecture
 documents remain historical design and verification records; when they
 describe an older ownership boundary, this document takes precedence.
 
@@ -25,11 +25,11 @@ The frozen Phase 0 implementation is commit
 `48617c69033995c82d5d58d6ba1abe9f7808d187`. The current comparison was made
 against the Phase 10 pre-change HEAD `17119dab7b58271ac3051fcd17e2ebc328e14801`.
 
-| Hotspot | Phase 0 | Phase 14 | Responsibility reduction |
+| Hotspot | Phase 0 | Phase 15 | Responsibility reduction |
 | --- | ---: | ---: | --- |
-| `robot_dashboard/app.py` | 3,208 lines | 1,251 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; diagnostics composition remains explicit; 61.0% smaller. |
+| `robot_dashboard/app.py` | 3,208 lines | 1,308 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; annotation transport remains thin; 59.2% smaller. |
 | `robot_dashboard/ros_agent.py` | 4,723 lines | 2,378 lines | ROS runtime, observability, control transport and navigation gateway moved to focused components; 49.6% smaller. |
-| `robot_dashboard/static/app.js` | 8,404 lines | 6,809 lines | Shared utilities and six vertical features, including lifecycle-owned datasets and diagnostics export, moved to ES modules; 19.0% smaller. |
+| `robot_dashboard/static/app.js` | 8,404 lines | 6,890 lines | Shared utilities and seven vertical features moved to focused modules, including the Phase 15 static-map annotation editor; 18.0% smaller. |
 
 Line count is evidence, not the goal. The important change is the dependency
 and ownership direction:
@@ -81,11 +81,13 @@ robot_dashboard/
 ├── ros_agent.py              compatibility facade and target orchestration
 ├── mapping_jobs.py           trusted mapping child-process manager
 ├── navigation_jobs.py        trusted Nav2 child-process manager
+├── map_annotations.py        pure revisioned map-operation schema/geometry
 ├── saved_maps.py             opaque-ID map filesystem boundary
 ├── dataset_capture.py        bounded server-side dataset writer
 └── static/
     ├── core/                 API, DOM, formatting and sticky-log utilities
     ├── features/             extracted feature-owned state and polling
+    ├── map_annotations.js    bounded annotation projection and editor state
     └── app.js                remaining UI composition and features
 ```
 
@@ -137,12 +139,12 @@ thresholds and read-only calibration assistant are specified in
 The browser remains vanilla JavaScript with native ES modules and no bundler.
 The shared core owns same-origin/no-store API calls, DOM helpers, formatting
 and user-scroll-wins log behavior. Extracted features own LiDAR identity,
-navigation logs, control-bridge lifecycle, dashboard-service lifecycle and the
-server-side dataset UI lifecycle. `app.js` composes those modules and still
-owns overview, camera media, mapping, saved-map editing and most
-manual/navigation UI state. The hardware-free browser contract is recorded in
-`docs/ARCHITECTURE_PHASE12.md`. This remaining size is known debt, not hidden
-completion.
+navigation logs, control-bridge lifecycle, dashboard-service lifecycle,
+server-side dataset UI lifecycle and the static-map annotation editor.
+`app.js` composes those modules and still owns overview, camera media, mapping,
+saved-map raster editing and most manual/navigation UI state. The hardware-free
+browser contract is recorded in `docs/ARCHITECTURE_PHASE12.md`. This remaining
+size is known debt, not hidden completion.
 
 Backend responses are authoritative for capability grants, sensor identity,
 processing stage and freshness. Browser constants may format labels but may

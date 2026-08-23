@@ -282,6 +282,33 @@ class MappingCoordinator:
                 list(runs),
             )
 
+    async def update_annotations(
+        self,
+        map_id: str,
+        map_revision: str,
+        base_annotation_revision: str,
+        points: Sequence[Mapping[str, Any]],
+        polygons: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Publish a full annotation document while map mutations are idle."""
+
+        async with self._coordination_lock:
+            self._require_lifecycle_idle()
+            self._require_navigation_idle(
+                "navigation must stop before map annotations can be changed"
+            )
+            self._require_task_idle(
+                "map operation must finish before annotations can be changed"
+            )
+            return await asyncio.to_thread(
+                self._catalog.update_annotations,
+                map_id,
+                map_revision,
+                base_annotation_revision,
+                list(points),
+                list(polygons),
+            )
+
     async def rename(self, map_id: str, name: str) -> dict[str, Any]:
         async with self._coordination_lock:
             self._require_lifecycle_idle()

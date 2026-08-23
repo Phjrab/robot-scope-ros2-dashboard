@@ -118,7 +118,7 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
             "require_service_lifecycle_idle",
             called_names(function_node("control_arm")),
         )
-        for guarded in ("start", "send_goal"):
+        for guarded in ("start", "_send_goal_locked"):
             self.assertIn(
                 "_require_lifecycle_idle",
                 called_names(
@@ -129,6 +129,16 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
                     )
                 ),
             )
+        self.assertIn(
+            "_send_goal_locked",
+            called_names(
+                class_function(
+                    NAVIGATION_TREE,
+                    "NavigationCoordinator",
+                    "send_goal",
+                )
+            ),
+        )
         for cleanup in ("control_disarm", "control_stop", "navigation_stop"):
             self.assertNotIn(
                 "require_service_lifecycle_idle",

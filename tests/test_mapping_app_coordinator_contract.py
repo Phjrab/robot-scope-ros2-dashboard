@@ -96,6 +96,8 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             ("post", "/api/v1/saved-maps/{map_id}/convert-2d"),
             ("post", "/api/v1/saved-maps/{map_id}/edited-copy"),
             ("get", "/api/v1/saved-maps/{map_id}"),
+            ("get", "/api/v1/saved-maps/{map_id}/annotations"),
+            ("patch", "/api/v1/saved-maps/{map_id}/annotations"),
             ("patch", "/api/v1/saved-maps/{map_id}"),
             ("delete", "/api/v1/saved-maps/{map_id}"),
             ("get", "/api/v1/saved-maps/{map_id}/data"),
@@ -128,6 +130,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             "save_edited_map_copy": "save_edited_copy",
             "rename_saved_map": "rename",
             "delete_saved_map": "delete",
+            "update_saved_map_annotations": "update_annotations",
         }
         forbidden_calls = {
             "create_task",
@@ -161,6 +164,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             "save_edited_map_copy",
             "rename_saved_map",
             "delete_saved_map",
+            "update_saved_map_annotations",
         }
         for name in new_work:
             source = ast.unparse(self.app_functions[name])
@@ -189,6 +193,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             "save_edited_copy",
             "rename",
             "delete",
+            "update_annotations",
         )
         for name in mutations:
             with self.subTest(method=name):

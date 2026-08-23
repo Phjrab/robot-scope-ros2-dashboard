@@ -534,6 +534,23 @@ PGM+YAML 쌍을 만듭니다. 입력은 독립된 제한 크기 스냅샷으로 
 `scale` 또는 `raw` mode는 볼 수는 있지만 원본 픽셀 의미를 안전하게 보존할 수 없어
 편집 버튼을 비활성화합니다.
 
+관리 가능한 2D 지도에는 원본 PGM/YAML을 바꾸지 않는 별도 annotation layer를 저장할
+수 있습니다. Navigation의 `POI, Home & safety zones` 패널에서 다음을 지도 위에
+그립니다.
+
+- POI, HOME, DOCK, INSPECTION POINT: known-free 셀의 위치와 도착 방향
+- KEEP OUT, SLOW, WAIT ZONE: 지도 경계 안의 3–64 꼭짓점 영역
+
+HOME은 지도마다 하나이며, DOCK은 충전 동작이 아니라 접근 위치 의미입니다. 주석은
+지도 ID/revision과 자체 annotation revision에 함께 고정되고, 저장 시 두 revision을
+검사한 뒤 private sidecar 파일로 원자 게시됩니다. 지도 이름 변경·삭제에도 같은
+sidecar가 rollback-safe하게 포함됩니다.
+
+현재 KEEP OUT·SLOW·WAIT 영역은 **표시와 향후 미션 선택용**입니다. Nav2 costmap이나
+속도 제어를 자동으로 바꾸지 않습니다. 저장된 point의 `GO`는 현재 지도와 annotation
+revision을 모두 재검사한 뒤 기존 known-free/robot-radius/Navigation readiness 목표
+경로를 그대로 사용합니다.
+
 PCD 변환 요청은 202를 반환하기 전에 단일 작업 lease와 고유 `job_id`를 예약합니다.
 브라우저는 같은 `job_id`의 상태만 추적하며, preflight에서 읽은 source revision이 실제
 worker 시작 전 바뀌거나 서버 종료 신호가 publish 전에 도착하면 결과 파일을 게시하지
@@ -615,7 +632,9 @@ Navigation이 active인 동안 다음 요청은 409로 차단됩니다.
 4. 지도에서 `INITIAL POSE`를 드래그해 방향까지 지정하고 전송합니다.
 5. 모든 readiness가 초록색일 때 `GOAL POSE`를 지정하고 물리 리모컨을 손에 든 상태에서
    확인 후 전송합니다.
-6. 이상 동작 시 먼저 CANCEL 또는 STOP을 누르고 물리 리모컨으로 정지합니다.
+6. 반복 목적지가 필요하면 Nav2를 STOP한 상태에서 지도 주석을 저장하고, 다시 시작한
+   뒤 저장된 POI/HOME/DOCK/INSPECTION POINT의 `GO`를 사용할 수 있습니다.
+7. 이상 동작 시 먼저 CANCEL 또는 STOP을 누르고 물리 리모컨으로 정지합니다.
 
 파라미터 변경은 Navigation이 정지된 상태에서만 저장되며 다음 START부터 적용됩니다.
 브라우저가 보내는 값은 27개 allowlist와 교차 조건을 다시 검사합니다. PDF의

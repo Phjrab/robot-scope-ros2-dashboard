@@ -63,6 +63,38 @@ class SavedMapEditedCopyRequest(StrictRequest):
     runs: list[SavedMapEditRun] = Field(min_length=1, max_length=10_000)
 
 
+class MapAnnotationPose(StrictRequest):
+    x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    yaw: float = Field(strict=True, ge=-3.141592653589793, le=3.141592653589793)
+
+
+class MapAnnotationVertex(StrictRequest):
+    x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+
+
+class MapPointAnnotation(StrictRequest):
+    id: str | None = Field(default=None, pattern=r"^[0-9a-f]{24}$")
+    type: Literal["POI", "HOME", "DOCK", "INSPECTION_POINT"]
+    name: str = Field(min_length=1, max_length=64)
+    pose: MapAnnotationPose
+
+
+class MapPolygonAnnotation(StrictRequest):
+    id: str | None = Field(default=None, pattern=r"^[0-9a-f]{24}$")
+    type: Literal["KEEP_OUT", "SLOW_ZONE", "WAIT_ZONE"]
+    name: str = Field(min_length=1, max_length=64)
+    vertices: list[MapAnnotationVertex] = Field(min_length=3, max_length=64)
+
+
+class SavedMapAnnotationsRequest(StrictRequest):
+    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    base_annotation_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    points: list[MapPointAnnotation] = Field(default_factory=list, max_length=64)
+    polygons: list[MapPolygonAnnotation] = Field(default_factory=list, max_length=32)
+
+
 class ControlArmRequest(StrictRequest):
     input_source: Literal["keyboard", "gamepad"]
 
@@ -107,6 +139,14 @@ class NavigationPoseRequest(StrictRequest):
 
 
 class NavigationGoalRequest(NavigationPoseRequest):
+    confirmed: bool = Field(strict=True)
+
+
+class NavigationAnnotationGoalRequest(StrictRequest):
+    map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    annotation_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    annotation_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     confirmed: bool = Field(strict=True)
 
 

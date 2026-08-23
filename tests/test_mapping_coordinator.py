@@ -153,6 +153,32 @@ class FakeSavedMapCatalog:
         self.calls.append(("delete", map_id))
         return {"id": map_id}
 
+    def update_annotations(
+        self,
+        map_id,
+        map_revision,
+        base_annotation_revision,
+        points,
+        polygons,
+    ):
+        self.calls.append(
+            (
+                "annotations",
+                map_id,
+                map_revision,
+                base_annotation_revision,
+                points,
+                polygons,
+            )
+        )
+        return {
+            "map_id": map_id,
+            "map_revision": map_revision,
+            "annotation_revision": "e" * 64,
+            "points": points,
+            "polygons": polygons,
+        }
+
 
 class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
@@ -354,6 +380,45 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         before = list(self.catalog.calls)
         with self.assertRaises(MappingCoordinatorConflict):
             await self.coordinator.rename("opaque-edited", "blocked")
+        self.assertEqual(self.catalog.calls, before)
+
+    async def test_annotation_update_uses_exact_revision_pins_and_shared_gates(self):
+        points = [{"id": None, "type": "HOME", "name": "Home", "x": 1.0, "y": 2.0, "yaw": 0.0}]
+        polygons = [{"id": None, "type": "WAIT_ZONE", "name": "Wait", "vertices": [{"x": 0.0, "y": 0.0}, {"x": 1.0, "y": 0.0}, {"x": 0.0, "y": 1.0}]}]
+        result = await self.coordinator.update_annotations(
+            "f" * 24,
+            "a" * 64,
+            "b" * 64,
+            points,
+            polygons,
+        )
+        self.assertEqual(result["annotation_revision"], "e" * 64)
+        self.assertEqual(
+            self.catalog.calls[-1],
+            (
+                "annotations",
+                "f" * 24,
+                "a" * 64,
+                "b" * 64,
+                points,
+                polygons,
+            ),
+        )
+        self.assertEqual(self.lifecycle_calls, 1)
+
+        self.navigation_is_active = True
+        before = list(self.catalog.calls)
+        with self.assertRaisesRegex(
+            MappingCoordinatorConflict,
+            "navigation must stop before map annotations can be changed",
+        ):
+            await self.coordinator.update_annotations(
+                "f" * 24,
+                "a" * 64,
+                "b" * 64,
+                [],
+                [],
+            )
         self.assertEqual(self.catalog.calls, before)
 
     async def test_nav_dependency_port_delegates_exact_job_identity(self):

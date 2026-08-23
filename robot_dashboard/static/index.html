@@ -553,6 +553,30 @@
                 <button id="navigationPoseSend" class="navigation-primary" type="button" disabled>SEND POSE</button>
               </div>
             </div>
+            <section class="map-annotation-panel" aria-labelledby="mapAnnotationHeading">
+              <div class="map-annotation-header">
+                <div><div class="eyebrow">REVISION-PINNED MAP OPERATIONS</div><h3 id="mapAnnotationHeading">POI, Home & safety zones</h3></div>
+                <div class="panel-state waiting" id="mapAnnotationState"><span></span>NO MAP</div>
+              </div>
+              <p class="map-annotation-note">주석은 원본 PGM/YAML과 분리해 저장됩니다. KEEP OUT·SLOW·WAIT 영역은 현재 표시·미션 선택용이며 Nav2 costmap을 자동 변경하지 않습니다.</p>
+              <div class="map-annotation-editor">
+                <label><span>종류</span><select id="mapAnnotationType">
+                  <option value="POI">POI</option><option value="HOME">HOME</option><option value="DOCK">DOCK</option><option value="INSPECTION_POINT">INSPECTION POINT</option>
+                  <option value="KEEP_OUT">KEEP OUT ZONE</option><option value="SLOW_ZONE">SLOW ZONE</option><option value="WAIT_ZONE">WAIT ZONE</option>
+                </select></label>
+                <label><span>이름</span><input id="mapAnnotationName" maxlength="64" placeholder="예: 출입구 점검" autocomplete="off"></label>
+                <div class="map-annotation-draw-actions">
+                  <button id="mapAnnotationDraw" type="button" disabled>DRAW POINT</button>
+                  <button id="mapAnnotationFinish" type="button" disabled>FINISH ZONE</button>
+                  <button id="mapAnnotationCancel" type="button" disabled>CANCEL DRAW</button>
+                </div>
+              </div>
+              <div class="map-annotation-list" id="mapAnnotationList"><div class="map-annotation-empty">선택한 지도에 저장된 주석이 없습니다.</div></div>
+              <div class="map-annotation-footer">
+                <span id="mapAnnotationMessage">저장된 2D 지도를 선택하세요.</span>
+                <div><button id="mapAnnotationDiscard" type="button" disabled>DISCARD CHANGES</button><button id="mapAnnotationSave" class="navigation-primary" type="button" disabled>SAVE ANNOTATIONS</button></div>
+              </div>
+            </section>
           </article>
 
           <aside class="panel navigation-mission-panel">
@@ -749,6 +773,7 @@
   <script src="/static/control_input.js" defer></script>
   <script src="/static/map_editor.js" defer></script>
   <script src="/static/navigation.js" defer></script>
+  <script src="/static/map_annotations.js" defer></script>
   <script src="/static/app.js" type="module"></script>
 </body>
 </html>

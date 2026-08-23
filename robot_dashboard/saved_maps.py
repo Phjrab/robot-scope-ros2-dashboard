@@ -26,6 +26,18 @@ from typing import Any, Callable, ContextManager, Dict, Iterable, Optional
 
 import numpy as np
 
+from .map_annotations import (
+    AnnotationGoal,
+    MAX_DOCUMENT_BYTES,
+    MapAnnotationConflict,
+    MapAnnotationError,
+    empty_annotation_document,
+    normalize_annotation_document,
+    parse_annotation_document,
+    resolve_annotation_goal,
+    serialized_annotation_document,
+)
+
 
 class SavedMapError(Exception):
     """Base class for expected saved-map failures."""
@@ -109,6 +121,10 @@ class SavedMapRecord:
             "data_url": f"/api/v1/saved-maps/{self.map_id}/data",
         }
         result.update(self.details)
+        if self.format == "map-server-pgm":
+            result["annotations_url"] = (
+                f"/api/v1/saved-maps/{self.map_id}/annotations"
+            )
         return result
 
 
@@ -236,6 +252,21 @@ class NavigationMapSnapshot:
                     return False
         return True
 
+    def contains(self, x: float, y: float) -> bool:
+        """Return true when a finite map-frame point lies inside the grid."""
+
+        if not all(math.isfinite(value) for value in (x, y)):
+            return False
+        ox, oy, origin_yaw = self.origin
+        dx, dy = x - ox, y - oy
+        cosine, sine = math.cos(origin_yaw), math.sin(origin_yaw)
+        local_x = cosine * dx + sine * dy
+        local_y = -sine * dx + cosine * dy
+        return bool(
+            0.0 <= local_x < self.width * self.resolution
+            and 0.0 <= local_y < self.height * self.resolution
+        )
+
 
 class SavedMapCatalog:
     """Discover and normalize saved maps under an explicit root allowlist."""
@@ -354,6 +385,88 @@ class SavedMapCatalog:
     def metadata(self, map_id: str) -> Dict[str, Any]:
         with self._lock:
             return self._find(map_id).public()
+
+    def annotations(self, map_id: str) -> Dict[str, Any]:
+        """Return one validated, revision-pinned annotation document."""
+
+        with self._lock:
+            record = self._annotation_record(map_id)
+            geometry = self._annotation_geometry(record)
+            return self._read_annotations(record, geometry)
+
+    def update_annotations(
+        self,
+        map_id: str,
+        map_revision: str,
+        base_annotation_revision: str,
+        points: Any,
+        polygons: Any,
+    ) -> Dict[str, Any]:
+        """Atomically publish a full annotation document using two CAS pins."""
+
+        if not isinstance(base_annotation_revision, str) or not REVISION_RE.fullmatch(
+            base_annotation_revision
+        ):
+            raise SavedMapConflict("annotation revision is invalid")
+        with self._lock:
+            record = self._annotation_record(map_id)
+            if record.revision != map_revision:
+                raise SavedMapConflict(
+                    "saved map changed; reload annotations before saving"
+                )
+            geometry = self._annotation_geometry(record)
+            current = self._read_annotations(record, geometry)
+            if current["annotation_revision"] != base_annotation_revision:
+                raise SavedMapConflict(
+                    "annotations changed; reload them before saving"
+                )
+            try:
+                document = normalize_annotation_document(
+                    map_id=record.map_id,
+                    map_revision=record.revision,
+                    points=points,
+                    polygons=polygons,
+                    geometry=geometry,
+                    exists=True,
+                )
+                encoded = serialized_annotation_document(document)
+            except MapAnnotationConflict as exc:
+                raise SavedMapConflict(str(exc)) from exc
+            except MapAnnotationError as exc:
+                raise SavedMapFormatError(str(exc)) from exc
+            self._publish_annotations(record, encoded)
+            # Re-read the published regular file and its content revision.
+            return self._read_annotations(record, geometry)
+
+    def resolve_annotation_goal(
+        self,
+        map_id: str,
+        map_revision: str,
+        annotation_revision: str,
+        annotation_id: str,
+    ) -> AnnotationGoal:
+        """Resolve one goal-capable point under exact map and document pins."""
+
+        if not isinstance(annotation_revision, str) or not REVISION_RE.fullmatch(
+            annotation_revision
+        ):
+            raise SavedMapConflict("annotation revision is invalid")
+        with self._lock:
+            record = self._annotation_record(map_id)
+            if record.revision != map_revision:
+                raise SavedMapConflict(
+                    "saved map changed; reload the annotation goal"
+                )
+            geometry = self._annotation_geometry(record)
+            document = self._read_annotations(record, geometry)
+            if document["annotation_revision"] != annotation_revision:
+                raise SavedMapConflict(
+                    "annotations changed; reload the annotation goal"
+                )
+            try:
+                return resolve_annotation_goal(document, annotation_id)
+            except MapAnnotationError as exc:
+                raise SavedMapFormatError(str(exc)) from exc
 
     def resolve_navigation_map(
         self,
@@ -564,6 +677,169 @@ class SavedMapCatalog:
             except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
                 raise SavedMapFormatError("saved map data could not be read") from exc
 
+    def _annotation_record(self, map_id: str) -> SavedMapRecord:
+        record = self._find(map_id)
+        self._require_manageable(record)
+        if record.format != "map-server-pgm" or record.auxiliary_path is None:
+            raise SavedMapFormatError(
+                "annotations require a managed 2D occupancy map"
+            )
+        self._require_editable_record(record)
+        return record
+
+    @staticmethod
+    def _annotation_path(record: SavedMapRecord) -> Path:
+        return record.path.with_name(f"{record.path.stem}.annotations.json")
+
+    def _annotation_geometry(self, record: SavedMapRecord) -> NavigationMapSnapshot:
+        metadata = self._read_map_yaml(record.path)
+        width, height, pixels = self._read_pgm(record.auxiliary_path, pixels=True)
+        if pixels is None or width * height > self.max_grid_cells:
+            raise SavedMapFormatError("annotation map geometry is unavailable")
+        occupancy = self._pixels_to_occupancy(pixels, metadata)
+        encoded = bytes(
+            255 if int(value) == -1 else int(value)
+            for value in occupancy.reshape(-1)
+        )
+        return NavigationMapSnapshot(
+            map_id=record.map_id,
+            revision=record.revision,
+            name=record.name,
+            frame_id=str(record.details.get("frame_id", "map")) or "map",
+            yaml_path=record.path,
+            image_path=record.auxiliary_path,
+            width=width,
+            height=height,
+            resolution=float(metadata["resolution"]),
+            origin=tuple(float(value) for value in metadata["origin"]),
+            occupancy=encoded,
+        )
+
+    def _read_annotations(
+        self,
+        record: SavedMapRecord,
+        geometry: NavigationMapSnapshot,
+    ) -> Dict[str, Any]:
+        path = self._annotation_path(record)
+        if not os.path.lexists(path):
+            return empty_annotation_document(record.map_id, record.revision)
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = -1
+        try:
+            descriptor = os.open(path, flags)
+            current = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(current.st_mode)
+                or current.st_uid != os.geteuid()
+                or stat.S_IMODE(current.st_mode) & 0o077
+                or current.st_size <= 0
+                or current.st_size > MAX_DOCUMENT_BYTES
+            ):
+                raise SavedMapReadOnly("annotation file is unsafe")
+            chunks: list[bytes] = []
+            remaining = current.st_size
+            while remaining:
+                chunk = os.read(descriptor, min(64 * 1024, remaining))
+                if not chunk:
+                    raise SavedMapFormatError("annotation file is truncated")
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            if os.read(descriptor, 1):
+                raise SavedMapFormatError("annotation file changed while reading")
+            payload = json.loads(b"".join(chunks).decode("utf-8"))
+            return parse_annotation_document(payload, geometry=geometry)
+        except SavedMapError:
+            raise
+        except MapAnnotationConflict as exc:
+            raise SavedMapConflict(str(exc)) from exc
+        except MapAnnotationError as exc:
+            raise SavedMapFormatError(str(exc)) from exc
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise SavedMapFormatError("annotation file could not be read safely") from exc
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+
+    def _publish_annotations(self, record: SavedMapRecord, encoded: bytes) -> None:
+        if len(encoded) <= 0 or len(encoded) > MAX_DOCUMENT_BYTES:
+            raise SavedMapFormatError("annotation document exceeds the size limit")
+        path = self._annotation_path(record)
+        target_signature: tuple[int, int, int, int] | None = None
+        if os.path.lexists(path):
+            try:
+                current = path.lstat()
+            except OSError as exc:
+                raise SavedMapMutationError(
+                    "annotation target could not be inspected"
+                ) from exc
+            if (
+                not stat.S_ISREG(current.st_mode)
+                or path.is_symlink()
+                or current.st_uid != os.geteuid()
+                or stat.S_IMODE(current.st_mode) & 0o077
+            ):
+                raise SavedMapReadOnly("annotation target is unsafe")
+            target_signature = self._stat_signature(current)
+        temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = -1
+        try:
+            descriptor = os.open(temporary, flags, 0o600)
+            view = memoryview(encoded)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise OSError("annotation write made no progress")
+                view = view[written:]
+            os.fsync(descriptor)
+            os.close(descriptor)
+            descriptor = -1
+            # The map pins are checked again immediately before publication.
+            current_record = self._record_for(record.root, record.path)
+            if (
+                current_record is None
+                or current_record.map_id != record.map_id
+                or current_record.revision != record.revision
+            ):
+                raise SavedMapConflict(
+                    "saved map changed before annotations were published"
+                )
+            if target_signature is None:
+                if os.path.lexists(path):
+                    raise SavedMapConflict(
+                        "annotations changed before they were published"
+                    )
+            elif (
+                not os.path.lexists(path)
+                or self._regular_signature(path) != target_signature
+            ):
+                raise SavedMapConflict(
+                    "annotations changed before they were published"
+                )
+            os.replace(temporary, path)
+            directory_fd = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except SavedMapError:
+            raise
+        except OSError as exc:
+            raise SavedMapMutationError(
+                "annotations could not be published atomically"
+            ) from exc
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
     def _point_limit(self, max_points: Optional[int]) -> Optional[int]:
         if max_points is None:
             return None
@@ -604,6 +880,22 @@ class SavedMapCatalog:
             targets = [target_primary]
             if target_auxiliary is not None:
                 targets.append(target_auxiliary)
+            annotation_document: Dict[str, Any] | None = None
+            source_annotation: Path | None = None
+            target_annotation: Path | None = None
+            annotation_geometry: NavigationMapSnapshot | None = None
+            if record.format == "map-server-pgm":
+                source_annotation = self._annotation_path(record)
+                if os.path.lexists(source_annotation):
+                    annotation_geometry = self._annotation_geometry(record)
+                    annotation_document = self._read_annotations(
+                        record,
+                        annotation_geometry,
+                    )
+                    target_annotation = target_primary.with_name(
+                        f"{target_primary.stem}.annotations.json"
+                    )
+                    targets.append(target_annotation)
             self._ensure_targets_absent(targets)
 
             shared_auxiliary = (
@@ -613,9 +905,13 @@ class SavedMapCatalog:
             sources = [record.path]
             if record.auxiliary_path is not None:
                 sources.append(record.auxiliary_path)
+            if source_annotation is not None and annotation_document is not None:
+                sources.append(source_annotation)
             remove_sources = [record.path]
             if record.auxiliary_path is not None and not shared_auxiliary:
                 remove_sources.append(record.auxiliary_path)
+            if source_annotation is not None and annotation_document is not None:
+                remove_sources.append(source_annotation)
 
             transaction_root, transaction = self._create_transaction(record.root)
             backups: Dict[Path, Path] = {}
@@ -634,6 +930,51 @@ class SavedMapCatalog:
                         transaction,
                         target_auxiliary.name,
                     )
+                    if (
+                        annotation_document is not None
+                        and annotation_geometry is not None
+                        and target_annotation is not None
+                    ):
+                        target_revision = self._signature_revision(
+                            (staged_yaml, record.auxiliary_path)
+                        )
+                        target_map_id = self._opaque_id(record.kind, target_primary)
+                        target_geometry = NavigationMapSnapshot(
+                            map_id=target_map_id,
+                            revision=target_revision,
+                            name=safe_name,
+                            frame_id=annotation_geometry.frame_id,
+                            yaml_path=staged_yaml,
+                            image_path=record.auxiliary_path,
+                            width=annotation_geometry.width,
+                            height=annotation_geometry.height,
+                            resolution=annotation_geometry.resolution,
+                            origin=annotation_geometry.origin,
+                            occupancy=annotation_geometry.occupancy,
+                        )
+                        try:
+                            migrated = normalize_annotation_document(
+                                map_id=target_map_id,
+                                map_revision=target_revision,
+                                points=annotation_document["points"],
+                                polygons=annotation_document["polygons"],
+                                geometry=target_geometry,
+                                exists=True,
+                            )
+                            staged_annotation = transaction / "renamed.annotations.json"
+                            self._write_exclusive(
+                                staged_annotation,
+                                serialized_annotation_document(migrated),
+                            )
+                        except MapAnnotationError as exc:
+                            raise SavedMapFormatError(str(exc)) from exc
+                        # Publish the sidecar first; it is undiscoverable until
+                        # the target YAML appears, so clients never see an
+                        # unpinned annotation document for the renamed map.
+                        published[target_annotation] = self._publish_link(
+                            staged_annotation,
+                            target_annotation,
+                        )
                     published[target_auxiliary] = self._publish_link(
                         record.auxiliary_path,
                         target_auxiliary,
@@ -647,6 +988,11 @@ class SavedMapCatalog:
                 if renamed is None or not renamed.manageable:
                     raise SavedMapMutationError("renamed map did not pass validation")
                 self._validate_record(renamed)
+                if annotation_document is not None:
+                    self._read_annotations(
+                        renamed,
+                        self._annotation_geometry(renamed),
+                    )
                 for source in remove_sources:
                     self._unlink_verified(source, source_identities[source])
             except SavedMapError:
@@ -684,6 +1030,13 @@ class SavedMapCatalog:
             sources = [record.path]
             if record.auxiliary_path is not None and not shared_auxiliary:
                 sources.append(record.auxiliary_path)
+            if record.format == "map-server-pgm":
+                annotation_path = self._annotation_path(record)
+                if os.path.lexists(annotation_path):
+                    # Validate pins, ownership, type and permissions before
+                    # adding the sidecar to the rollback-safe delete set.
+                    self._read_annotations(record, self._annotation_geometry(record))
+                    sources.append(annotation_path)
 
             transaction_root, transaction = self._create_transaction(record.root)
             backups: Dict[Path, Path] = {}
@@ -1801,7 +2154,11 @@ class SavedMapCatalog:
                 continue
             for name in files:
                 path = current_path / name
-                if name.startswith(".") or path.is_symlink():
+                if (
+                    name.startswith(".")
+                    or name.endswith(".annotations.json")
+                    or path.is_symlink()
+                ):
                     continue
                 if path.suffix.lower() in {".pcd", ".json", ".yaml", ".yml"}:
                     yield path

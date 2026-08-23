@@ -144,10 +144,32 @@ class ServiceLifecycleAppContractTests(unittest.TestCase):
                 name,
             )
 
-        navigation_guarded = {"start", "set_initial_pose", "send_goal"}
+        navigation_guarded = {"start", "set_initial_pose"}
         for name in navigation_guarded:
             node = class_function(NAVIGATION_TREE, "NavigationCoordinator", name)
             self.assertIn("_require_lifecycle_idle", called_names(node), name)
+            self.assertTrue(
+                any(
+                    isinstance(child, ast.AsyncWith)
+                    and any(
+                        isinstance(item.context_expr, ast.Attribute)
+                        and item.context_expr.attr == "_coordination_lock"
+                        for item in child.items
+                    )
+                    for child in ast.walk(node)
+                ),
+                name,
+            )
+
+        goal_safety = class_function(
+            NAVIGATION_TREE,
+            "NavigationCoordinator",
+            "_send_goal_locked",
+        )
+        self.assertIn("_require_lifecycle_idle", called_names(goal_safety))
+        for name in ("send_goal", "send_annotation_goal"):
+            node = class_function(NAVIGATION_TREE, "NavigationCoordinator", name)
+            self.assertIn("_send_goal_locked", called_names(node), name)
             self.assertTrue(
                 any(
                     isinstance(child, ast.AsyncWith)

@@ -204,6 +204,16 @@ const ui = {
   navigationPoseCoordinates: $('#navigationPoseCoordinates'),
   navigationPoseDiscard: $('#navigationPoseDiscard'),
   navigationPoseSend: $('#navigationPoseSend'),
+  mapAnnotationState: $('#mapAnnotationState'),
+  mapAnnotationType: $('#mapAnnotationType'),
+  mapAnnotationName: $('#mapAnnotationName'),
+  mapAnnotationDraw: $('#mapAnnotationDraw'),
+  mapAnnotationFinish: $('#mapAnnotationFinish'),
+  mapAnnotationCancel: $('#mapAnnotationCancel'),
+  mapAnnotationList: $('#mapAnnotationList'),
+  mapAnnotationMessage: $('#mapAnnotationMessage'),
+  mapAnnotationDiscard: $('#mapAnnotationDiscard'),
+  mapAnnotationSave: $('#mapAnnotationSave'),
   navigationJobId: $('#navigationJobId'),
   navigationReadiness: $('#navigationReadiness'),
   navigationGoalDistance: $('#navigationGoalDistance'),
@@ -474,10 +484,12 @@ let navigationMapTool = '';
 let navigationStagedPose = null;
 let navigationPointer = null;
 let navigationRenderFrame = 0;
+let mapAnnotationFeature = null;
 let serviceLifecycleFeature = null;
 let controlBridgeServiceFeature = null;
 let datasetFeature = null;
 const controlInput = window.RobotControlInput;
+const mapAnnotationEngine = window.RobotMapAnnotations;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
 let controlSnapshot = null;
@@ -3473,6 +3485,7 @@ async function syncNavigationMapOptions() {
     navigationMapCells = null;
     navigationMapLayout = null;
     navigationMapError = candidates.length ? '선택한 정적 지도를 찾을 수 없습니다.' : 'Saved Maps에 2D YAML·PGM 지도가 없습니다.';
+    resetMapAnnotations(navigationMapError);
     discardNavigationPose(false);
     drawNavigationMap();
     renderNavigationStatus();
@@ -3520,6 +3533,14 @@ function buildNavigationMapSource(map) {
   return { source, cells };
 }
 
+function resetMapAnnotations(message = '저장된 2D 지도를 선택하세요.') {
+  mapAnnotationFeature?.reset(message);
+}
+
+async function loadMapAnnotations(meta, mapGeneration) {
+  return mapAnnotationFeature?.load(meta, mapGeneration) || false;
+}
+
 async function loadNavigationMap(meta) {
   if (!meta || !navigationEngine) return false;
   const generation = ++navigationMapLoadGeneration;
@@ -3529,6 +3550,7 @@ async function loadNavigationMap(meta) {
   navigationMapCells = null;
   navigationMapLayout = null;
   navigationMapError = '';
+  resetMapAnnotations('지도 데이터를 불러오는 중입니다.');
   discardNavigationPose(false);
   ui.navigationMapSelect.value = meta.id;
   setStatePill(ui.navigationMapState, 'waiting', 'LOADING');
@@ -3546,6 +3568,7 @@ async function loadNavigationMap(meta) {
     navigationMapCells = decoded.cells;
     navigationMapSnapshot = payload;
     navigationMapError = '';
+    await loadMapAnnotations(meta, generation);
     drawNavigationMap();
     renderNavigationStatus();
     return true;
@@ -3621,6 +3644,7 @@ function drawNavigationMap() {
     context.strokeStyle = 'rgba(93,222,216,.34)';
     context.lineWidth = Math.max(1, ratio);
     context.strokeRect(layout.left, layout.top, layout.drawWidth, layout.drawHeight);
+    mapAnnotationFeature?.draw(context, layout, ratio);
 
     const path = Array.isArray(navigationSnapshot?.path) ? navigationSnapshot.path : [];
     const projectedPath = path.map((pose) => {
@@ -3723,6 +3747,7 @@ function selectNavigationTool(mode) {
     showToast(normalized === 'goal' ? '목표 전송 조건이 준비되지 않았습니다.' : '초기 위치 지정 조건이 준비되지 않았습니다.', true);
     return;
   }
+  mapAnnotationFeature?.cancelDrawing({ render: false });
   navigationMapTool = navigationMapTool === normalized ? '' : normalized;
   navigationStagedPose = null;
   renderNavigationPoseSelection();
@@ -3730,6 +3755,8 @@ function selectNavigationTool(mode) {
 }
 
 function beginNavigationPose(event) {
+  const canvasPoint = navigationCanvasPoint(event);
+  if (mapAnnotationFeature?.beginPointer(event, canvasPoint)) return;
   if (event.button !== 0 || !navigationMapTool || navigationOperationBusy || !navigationMapLayout) return;
   if (!navigationPoseToolAllowed(navigationMapTool)) return;
   const point = navigationCanvasPoint(event);
@@ -3773,6 +3800,7 @@ function updateNavigationStagedPose() {
 }
 
 function moveNavigationPose(event) {
+  if (mapAnnotationFeature?.movePointer(event, navigationCanvasPoint(event))) return;
   if (!navigationPointer || navigationPointer.id !== event.pointerId) return;
   const point = navigationCanvasPoint(event);
   if (!point) return;
@@ -3782,6 +3810,7 @@ function moveNavigationPose(event) {
 }
 
 function finishNavigationPose(event) {
+  if (mapAnnotationFeature?.finishPointer(event, navigationCanvasPoint(event))) return;
   if (!navigationPointer || navigationPointer.id !== event.pointerId) return;
   const point = navigationCanvasPoint(event);
   if (point) navigationPointer.end = point;
@@ -4051,18 +4080,21 @@ function renderNavigationStatus() {
   ui.navigationCancelGoal.disabled = navigationOperationBusy || !goalActive;
   ui.navigationClearCostmaps.disabled = navigationOperationBusy || !pipelineRunning;
   ui.navigationMapSelect.disabled = navigationOperationBusy || pipelineActive;
-  ui.navigationMapHint.textContent = activeMapMismatch
-    ? '활성 지도 revision이 변경되었습니다. STOP 후 정적 지도를 다시 선택하세요.'
-    : !mapReady
-    ? 'Saved Maps의 2D 지도를 불러와야 위치를 지정할 수 있습니다.'
-    : startupPending ? startup.message
-    : !pipelineRunning ? 'START NAV2가 위치추정 센서와 Nav2를 순서대로 준비합니다.'
-      : localizationState !== 'localized' ? 'INITIAL POSE를 선택하고 현재 로봇 위치에서 진행 방향으로 드래그하세요.'
-        : 'GOAL POSE를 선택하고 목표 위치에서 도착 방향으로 드래그하세요.';
+  if (!mapAnnotationFeature?.hasActiveTool()) {
+    ui.navigationMapHint.textContent = activeMapMismatch
+      ? '활성 지도 revision이 변경되었습니다. STOP 후 정적 지도를 다시 선택하세요.'
+      : !mapReady
+      ? 'Saved Maps의 2D 지도를 불러와야 위치를 지정할 수 있습니다.'
+      : startupPending ? startup.message
+      : !pipelineRunning ? 'START NAV2가 위치추정 센서와 Nav2를 순서대로 준비합니다.'
+        : localizationState !== 'localized' ? 'INITIAL POSE를 선택하고 현재 로봇 위치에서 진행 방향으로 드래그하세요.'
+          : 'GOAL POSE를 선택하고 목표 위치에서 도착 방향으로 드래그하세요.';
+  }
   if (navigationMapError || activeMapMismatch) setStatePill(ui.navigationMapState, 'error', 'MAP ERROR');
   else if (mapReady) setStatePill(ui.navigationMapState, 'ok', 'STATIC MAP');
   else setStatePill(ui.navigationMapState, 'waiting', 'NO MAP');
   renderNavigationPoseSelection();
+  mapAnnotationFeature?.render();
   syncNavigationParameterControls();
   scheduleNavigationMapDraw();
   navigationLogFeature?.render();
@@ -4126,6 +4158,10 @@ async function runNavigationMutation(path, body, successMessage) {
 }
 
 async function startNavigation() {
+  if (mapAnnotationFeature?.hasDirty() || mapAnnotationFeature?.hasActiveTool()) {
+    showToast('지도 주석을 저장하거나 DISCARD한 뒤 Nav2를 시작하세요.', true);
+    return;
+  }
   if (navigationManualControlConflict()) {
     showToast('Controls에서 수동 제어를 DISARM한 뒤 Nav2를 시작하세요.', true);
     return;
@@ -6651,9 +6687,54 @@ ui.mapEditorSave.addEventListener('click', saveMapEditorCopy);
 ui.mapEditorCanvas.addEventListener('pointerdown', beginMapEditorStroke);
 ui.mapEditorCanvas.addEventListener('pointermove', moveMapEditorStroke);
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => ui.mapEditorCanvas.addEventListener(name, finishMapEditorStroke));
+mapAnnotationFeature = mapAnnotationEngine?.createFeature({
+  ui: {
+    state: ui.mapAnnotationState,
+    type: ui.mapAnnotationType,
+    name: ui.mapAnnotationName,
+    draw: ui.mapAnnotationDraw,
+    finish: ui.mapAnnotationFinish,
+    cancel: ui.mapAnnotationCancel,
+    list: ui.mapAnnotationList,
+    message: ui.mapAnnotationMessage,
+    discard: ui.mapAnnotationDiscard,
+    save: ui.mapAnnotationSave,
+    canvas: ui.navigationMapCanvas,
+    hint: ui.navigationMapHint,
+  },
+  api,
+  showToast,
+  setStatePill,
+  navigationEngine,
+  context: () => ({
+    mapSnapshot: navigationMapSnapshot,
+    mapLayout: navigationMapLayout,
+    mapCells: navigationMapCells,
+    selectedMap: navigationSelectedMapMeta,
+    mapLoadGeneration: navigationMapLoadGeneration,
+    pipelineActive: navigationEngine?.pipelineActive(navigationSnapshot),
+    operationBusy: navigationOperationBusy,
+    goalAllowed: navigationPoseToolAllowed('goal'),
+  }),
+  drawPoseMarker: drawNavigationPoseMarker,
+  drawMap: drawNavigationMap,
+  renderNavigationStatus,
+  renderPoseSelection: renderNavigationPoseSelection,
+  discardNavigationPose,
+  clearNavigationTool: () => { navigationMapTool = ''; },
+  applyNavigationResponse: (response) => {
+    const snapshot = extractNavigationSnapshot(response);
+    if (snapshot) navigationSnapshot = snapshot;
+  },
+});
 ui.navigationMapSelect.addEventListener('change', () => {
   const selected = navigationMapCandidates().find((entry) => entry.id === ui.navigationMapSelect.value);
-  if (selected) loadNavigationMap(selected);
+  if (!selected) return;
+  if (mapAnnotationFeature?.hasDirty() && !window.confirm('저장하지 않은 지도 주석 변경을 버리고 다른 지도를 열까요?')) {
+    ui.navigationMapSelect.value = navigationSelectedMapMeta?.id || '';
+    return;
+  }
+  loadNavigationMap(selected);
 });
 ui.navigationStartButton.addEventListener('click', startNavigation);
 ui.navigationStopButton.addEventListener('click', stopNavigation);
@@ -6725,7 +6806,7 @@ window.addEventListener('pagehide', () => {
 window.addEventListener('pageshow', () => {
 });
 window.addEventListener('beforeunload', (event) => {
-  if (!editorHasUnsavedChanges()) return;
+  if (!editorHasUnsavedChanges() && !mapAnnotationFeature?.hasDirty()) return;
   event.preventDefault();
   event.returnValue = '';
 });

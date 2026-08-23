@@ -279,6 +279,31 @@ class FakeSavedMaps:
         self.calls.append((map_id, revision))
         return SimpleNamespace(map_id=map_id, revision=revision, name="classroom")
 
+    def resolve_annotation_goal(
+        self,
+        map_id,
+        map_revision,
+        annotation_revision,
+        annotation_id,
+    ):
+        self.calls.append(
+            (
+                "annotation_goal",
+                map_id,
+                map_revision,
+                annotation_revision,
+                annotation_id,
+            )
+        )
+        return SimpleNamespace(
+            annotation_id=annotation_id,
+            annotation_type="POI",
+            name="Inspection A",
+            x=3.0,
+            y=4.0,
+            yaw=0.5,
+        )
+
 
 class FakeLogger:
     def __init__(self):
@@ -629,6 +654,54 @@ class NavigationCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(pose_index, 0)
         self.assertGreater(goal_index, pose_index)
         self.assertEqual(self.lifecycle_calls, 2)
+
+    async def test_annotation_goal_resolves_exact_pins_then_uses_goal_safety_path(self):
+        self.mapping.state = "running"
+        self.jobs.pipeline_state = "running"
+        self.jobs.job_id = "b" * 32
+        self.jobs.map = {"id": "m" * 24, "revision": "r" * 64}
+
+        with self.assertRaises(NavigationPoseError):
+            await self.coordinator.send_annotation_goal(
+                map_id="m" * 24,
+                map_revision="r" * 64,
+                annotation_revision="a" * 64,
+                annotation_id="f" * 24,
+                confirmed=False,
+            )
+        self.assertEqual(self.catalog.calls, [])
+
+        result = await self.coordinator.send_annotation_goal(
+            map_id="m" * 24,
+            map_revision="r" * 64,
+            annotation_revision="a" * 64,
+            annotation_id="f" * 24,
+            confirmed=True,
+        )
+        self.assertEqual(
+            self.catalog.calls[-1],
+            (
+                "annotation_goal",
+                "m" * 24,
+                "r" * 64,
+                "a" * 64,
+                "f" * 24,
+            ),
+        )
+        self.assertEqual(result["annotation"], {
+            "id": "f" * 24,
+            "type": "POI",
+            "name": "Inspection A",
+        })
+        self.assertEqual(self.jobs.events[-1], ("validate_pose", "m" * 24))
+        goal = next(
+            event for event in reversed(self.agent.events)
+            if isinstance(event, tuple) and event[0] == "goal"
+        )
+        self.assertEqual(goal[1]["x"], 3.0)
+        self.assertEqual(goal[1]["y"], 4.0)
+        self.assertEqual(goal[1]["yaw"], 0.5)
+        self.assertEqual(self.lifecycle_calls, 1)
 
     async def test_view_preserves_cleanup_union_fixed_bindings_and_hides_token(self):
         token = self.coordinator.begin_start()

@@ -41,6 +41,7 @@ class OperatorEventTimelineTests(unittest.TestCase):
             ("POST", "/api/v1/navigation/stop"): "navigation_stop",
             ("POST", "/api/v1/navigation/initial-pose"): "initial_pose",
             ("POST", "/api/v1/navigation/goal"): "goal_send",
+            ("POST", "/api/v1/navigation/goal/annotation"): "annotation_goal_send",
             ("POST", "/api/v1/navigation/cancel"): "goal_cancel",
             ("POST", "/api/v1/navigation/clear-costmaps"): "costmap_clear",
             ("POST", "/api/v1/datasets/capture/start"): "dataset_start",
@@ -59,6 +60,16 @@ class OperatorEventTimelineTests(unittest.TestCase):
                 self.assertEqual(classified[1], {})
         self.assertIsNone(classify_http_event("POST", "/api/v1/mission/start"))
         self.assertIsNone(classify_http_event("GET", "/api/v1/navigation"))
+        classified = classify_http_event(
+            "PATCH", "/api/v1/saved-maps/0123456789abcdef01234567/annotations"
+        )
+        self.assertEqual(
+            classified,
+            (
+                "map_annotations_update",
+                {"map_id": "0123456789abcdef01234567"},
+            ),
+        )
 
     def test_fixed_http_catalog_records_only_bounded_identity_and_targets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

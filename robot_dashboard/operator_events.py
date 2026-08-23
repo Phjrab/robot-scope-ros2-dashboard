@@ -44,6 +44,7 @@ _HTTP_EVENTS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ("POST", re.compile(r"^/api/v1/navigation/stop$"), "navigation_stop"),
     ("POST", re.compile(r"^/api/v1/navigation/initial-pose$"), "initial_pose"),
     ("POST", re.compile(r"^/api/v1/navigation/goal$"), "goal_send"),
+    ("POST", re.compile(r"^/api/v1/navigation/goal/annotation$"), "annotation_goal_send"),
     ("POST", re.compile(r"^/api/v1/navigation/cancel$"), "goal_cancel"),
     ("POST", re.compile(r"^/api/v1/navigation/clear-costmaps$"), "costmap_clear"),
     ("POST", re.compile(r"^/api/v1/datasets/capture/start$"), "dataset_start"),
@@ -55,6 +56,7 @@ _HTTP_EVENTS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ("POST", re.compile(r"^/api/v1/system/diagnostics/export$"), "diagnostics_export"),
     ("POST", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/convert-2d$"), "map_convert"),
     ("POST", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/edited-copy$"), "map_edit"),
+    ("PATCH", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/annotations$"), "map_annotations_update"),
     ("PATCH", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})$"), "map_rename"),
     ("DELETE", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})$"), "map_delete"),
 )

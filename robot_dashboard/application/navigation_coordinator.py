@@ -202,6 +202,14 @@ class SavedMapsPort(Protocol):
 
     def resolve_navigation_map(self, map_id: str, revision: str) -> Any: ...
 
+    def resolve_annotation_goal(
+        self,
+        map_id: str,
+        map_revision: str,
+        annotation_revision: str,
+        annotation_id: str,
+    ) -> Any: ...
+
 
 class NavigationCoordinator:
     """Own the complete one-click localization/Nav2 application transaction.
@@ -755,36 +763,93 @@ class NavigationCoordinator:
                 "confirmed=true is required before sending a navigation goal"
             )
         async with self._coordination_lock:
-            self._require_lifecycle_idle()
-            mapping_busy, _ = self._mapping.activity()
-            if mapping_busy:
-                raise NavigationBusy("mapping is active")
-            if self._mapping.pipeline_state() != "running":
-                raise NavigationBusy(
-                    "shared Hesai + FAST-LIO localization pipeline is not running"
-                )
-            await asyncio.to_thread(
-                self.require_runtime_capability,
-                "can_send_goal",
-            )
-            pose = await asyncio.to_thread(
-                self._jobs.validate_active_pose,
+            await self._send_goal_locked(
                 map_id=map_id,
                 map_revision=map_revision,
                 x=x,
                 y=y,
                 yaw=yaw,
             )
-            await asyncio.to_thread(
-                self._agent.navigation_send_goal,
-                map_id=map_id,
-                map_revision=map_revision,
-                **pose,
-            )
         return {
             "accepted": True,
             "navigation": await asyncio.to_thread(self.view),
         }
+
+    async def send_annotation_goal(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        annotation_revision: str,
+        annotation_id: str,
+        confirmed: bool,
+    ) -> dict[str, Any]:
+        """Resolve a revision-pinned point then use the normal goal safety path."""
+
+        if confirmed is not True:
+            raise NavigationPoseError(
+                "confirmed=true is required before sending a navigation goal"
+            )
+        async with self._coordination_lock:
+            annotation = await asyncio.to_thread(
+                self._saved_maps.resolve_annotation_goal,
+                map_id,
+                map_revision,
+                annotation_revision,
+                annotation_id,
+            )
+            await self._send_goal_locked(
+                map_id=map_id,
+                map_revision=map_revision,
+                x=annotation.x,
+                y=annotation.y,
+                yaw=annotation.yaw,
+            )
+        return {
+            "accepted": True,
+            "annotation": {
+                "id": annotation.annotation_id,
+                "type": annotation.annotation_type,
+                "name": annotation.name,
+            },
+            "navigation": await asyncio.to_thread(self.view),
+        }
+
+    async def _send_goal_locked(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        x: object,
+        y: object,
+        yaw: object,
+    ) -> None:
+        self._require_lifecycle_idle()
+        mapping_busy, _ = self._mapping.activity()
+        if mapping_busy:
+            raise NavigationBusy("mapping is active")
+        if self._mapping.pipeline_state() != "running":
+            raise NavigationBusy(
+                "shared Hesai + FAST-LIO localization pipeline is not running"
+            )
+        await asyncio.to_thread(
+            self.require_runtime_capability,
+            "can_send_goal",
+        )
+        pose = await asyncio.to_thread(
+            self._jobs.validate_active_pose,
+            map_id=map_id,
+            map_revision=map_revision,
+            x=x,
+            y=y,
+            yaw=yaw,
+        )
+        await asyncio.to_thread(
+            self._agent.navigation_send_goal,
+            map_id=map_id,
+            map_revision=map_revision,
+            **pose,
+        )
 
     async def cancel_goal(self, *, goal_id: str) -> dict[str, Any]:
         await asyncio.to_thread(

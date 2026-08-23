@@ -5,6 +5,8 @@ const navigationContract = require('../../robot_dashboard/static/navigation.js')
 const MAP_ID = '0123456789abcdef01234567';
 const MAP_REVISION = 'a'.repeat(64);
 const PARAMETER_REVISION = 'b'.repeat(64);
+const ANNOTATION_REVISION = 'c'.repeat(64);
+const ANNOTATION_ID = 'd'.repeat(24);
 
 const tunedNavigationValues = { ...navigationContract.TUNED_VALUES };
 
@@ -61,6 +63,12 @@ export async function installDashboardBackend(page, options = {}) {
     online: options.online !== false,
     mapping: baseMapping(), navigation: baseNavigation(), control: baseControl(), dataset: baseDataset(),
     mapRevision: MAP_REVISION, serviceBlocked: Boolean(options.serviceBlocked),
+    annotations: {
+      schema_version: 1, map_id: MAP_ID, map_revision: MAP_REVISION,
+      annotation_revision: ANNOTATION_REVISION, revision: ANNOTATION_REVISION, exists: true,
+      points: [{ id: ANNOTATION_ID, type: 'HOME', name: 'E2E Home', pose: { x: 0.5, y: 0.5, yaw: 0 } }],
+      polygons: [],
+    },
     requests: [], wsConnections: { camera: 0, pointcloud: 0, joints: 0, pose: 0, control: 0 },
     wsCloses: { camera: 0, pointcloud: 0 },
   };
@@ -71,6 +79,8 @@ export async function installDashboardBackend(page, options = {}) {
     mapId: MAP_ID,
     mapRevision: MAP_REVISION,
     parameterRevision: PARAMETER_REVISION,
+    annotationRevision: ANNOTATION_REVISION,
+    annotationId: ANNOTATION_ID,
     on(path, handler) { handlers.set(path, handler); },
     mutations(path) { return state.requests.filter((entry) => entry.path === path); },
   };
@@ -144,11 +154,27 @@ export async function installDashboardBackend(page, options = {}) {
       format: 'map-server-pgm', file_name: 'e2e_static_map.yaml', frame_id: 'map',
       width: 4, height: 4, resolution: 0.25, origin: [0, 0, 0], manageable: true, editable: true,
       data_url: `/api/v1/saved-maps/${MAP_ID}/data`,
+      annotations_url: `/api/v1/saved-maps/${MAP_ID}/annotations`,
     }] });
     if (path === `/api/v1/saved-maps/${MAP_ID}/data`) return json(route, {
       id: MAP_ID, revision: state.mapRevision, name: 'e2e_static_map', frame_id: 'map',
       width: 4, height: 4, resolution: 0.25, origin: [0, 0, 0], data_b64: 'AAAAAAAAAAAAAAAAAAAAAA==',
     });
+    if (path === `/api/v1/saved-maps/${MAP_ID}/annotations`) {
+      if (method === 'PATCH') {
+        state.annotations = {
+          schema_version: 1,
+          map_id: MAP_ID,
+          map_revision: state.mapRevision,
+          annotation_revision: 'e'.repeat(64),
+          revision: 'e'.repeat(64),
+          exists: true,
+          points: (body?.points || []).map((point, index) => ({ ...point, id: point.id || String(index + 1).padStart(24, '0') })),
+          polygons: (body?.polygons || []).map((polygon, index) => ({ ...polygon, id: polygon.id || String(index + 65).padStart(24, '0') })),
+        };
+      }
+      return json(route, state.annotations);
+    }
     if (path === '/api/v1/mapping/control') return json(route, state.mapping);
     if (path === '/api/v1/mapping/start') {
       state.mapping = { ...baseMapping(), pipeline: { state: 'running', job_id: 'c'.repeat(32), error: '' } };
@@ -184,6 +210,17 @@ export async function installDashboardBackend(page, options = {}) {
     if (path === '/api/v1/navigation/cancel') {
       state.navigation.goal = { state: 'cancelled', goal_id: null, message: 'cancelled' };
       return json(route, state.navigation);
+    }
+    if (path === '/api/v1/navigation/goal/annotation') {
+      state.navigation.goal = {
+        state: 'active', goal_id: '2'.repeat(32), message: 'annotation goal',
+        pose: { x: 0.5, y: 0.5, yaw: 0 },
+      };
+      return json(route, {
+        accepted: true,
+        annotation: { id: body?.annotation_id, type: 'HOME', name: 'E2E Home' },
+        navigation: state.navigation,
+      });
     }
     if (path === '/api/v1/navigation/stop') {
       state.navigation = baseNavigation();
