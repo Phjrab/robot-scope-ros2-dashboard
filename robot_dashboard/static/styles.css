@@ -629,6 +629,10 @@ input:focus, select:focus { border-color: rgba(125,240,182,.55); box-shadow: 0 0
 .service-lifecycle-message { min-height:22px; margin:12px 0 0; color:#789088; font-size:12px; line-height:1.55; }
 .service-lifecycle-message.error { color:var(--danger); }
 .service-lifecycle-message.ok { color:var(--green); }
+.diagnostics-export-panel { grid-column:1/-1; }
+.diagnostics-export-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,.34fr); align-items:center; gap:20px; }
+.diagnostics-export-body .service-lifecycle-warning { margin-bottom:4px; }
+.diagnostics-export-body button { min-height:46px; border-radius:10px; font-size:11px; font-weight:800; letter-spacing:.06em; }
 .topics-panel { min-height: 620px; }
 .topics-panel .table-wrap { max-height: 610px; }
 
@@ -1324,6 +1328,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .navigation-parameter-group:last-child:nth-child(odd) { grid-column:auto; }
   .service-lifecycle-body { grid-template-columns:1fr; }
   .service-lifecycle-actions { border-top:1px solid var(--line); border-left:0; }
+  .diagnostics-export-body { grid-template-columns:1fr; }
   .mapping-panel .panel-header { align-items:stretch; flex-direction:column; }
   .mapping-panel .panel-header-status { width:100%; max-width:none; flex-basis:auto; }
   .mapping-source-identity { width:100%; flex-basis:100%; }

@@ -5,6 +5,15 @@ relay packet filter 또는 제어 graph gate를 무작정 완화하지 마세요
 
 ## 공통 진단 순서
 
+브라우저에 접속할 수 있다면 먼저 Settings의 **Export diagnostics**를 사용합니다. 이
+기능은 제어·매핑·Navigation·데이터셋을 중지하지 않고, 고정된 공개 상태와 최근 bounded
+event만 `robot-scope-diagnostics-<timestamp>.zip`으로 내려받습니다. 키, credential,
+Authorization, 전체 environment, raw child argv/output, 절대 경로와 raw ROS message는
+포함하지 않습니다. browser session ID는 요청 상관관계용이며 실제 사용자 신원이 아닙니다.
+
+ZIP 생성도 실패하거나 대시보드에 접속할 수 없을 때만 아래 읽기 전용 명령으로
+진행합니다.
+
 ~~~bash
 python3 scripts/robot_scope_doctor.py --mode observer
 systemctl status robot-scope.service --no-pager

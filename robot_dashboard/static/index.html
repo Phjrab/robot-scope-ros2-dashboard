@@ -708,6 +708,19 @@
               </div>
             </div>
           </article>
+          <article class="panel settings-panel diagnostics-export-panel">
+            <div class="panel-header">
+              <div><div class="eyebrow">REDACTED · SIZE-BOUNDED</div><h2>Export diagnostics</h2></div>
+              <div class="panel-state ok" id="diagnosticsExportState"><span></span>READY</div>
+            </div>
+            <div class="settings-card-body diagnostics-export-body">
+              <div>
+                <p class="service-lifecycle-warning"><strong>읽기 전용 진단 자료입니다.</strong> 제어·매핑·Nav2·데이터셋 작업을 중지하지 않으며 key, credential, 전체 환경, raw argv와 절대 경로는 포함하지 않습니다.</p>
+                <p id="diagnosticsExportMessage" class="service-lifecycle-message" role="status" aria-live="polite">로봇 작업을 중지하지 않고 redacted 진단 ZIP을 생성합니다.</p>
+              </div>
+              <button id="diagnosticsExportButton" class="service-restart-button" type="button">EXPORT DIAGNOSTICS ZIP</button>
+            </div>
+          </article>
         </section>
       </section>
 

@@ -137,6 +137,11 @@ class LifecycleRouterCoordinatorTests(unittest.TestCase):
                     "/api/v1/control/bridge-service/stop",
                     202,
                 ),
+                "export_diagnostics": (
+                    "post",
+                    "/api/v1/system/diagnostics/export",
+                    None,
+                ),
             },
         )
 

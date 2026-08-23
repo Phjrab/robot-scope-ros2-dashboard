@@ -132,6 +132,17 @@ test('service lifecycle blockers remain server-authoritative in the browser', as
   expect(backend.mutations('/api/v1/system/service/restart')).toHaveLength(0);
 });
 
+test('Settings exports one bounded diagnostics download without robot-work confirmation', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'settings');
+  await expect(page.locator('#diagnosticsExportButton')).toBeEnabled();
+  const download = page.waitForEvent('download');
+  await page.locator('#diagnosticsExportButton').dblclick();
+  const artifact = await download;
+  expect(artifact.suggestedFilename()).toBe('robot-scope-diagnostics-20260823T054500Z.zip');
+  await expect.poll(() => backend.mutations('/api/v1/system/diagnostics/export').length).toBe(1);
+  await expect(page.locator('#diagnosticsExportButton')).toBeEnabled();
+});
+
 test('cross-origin browser WebSocket handshakes are rejected before acceptance', async ({ page, request }) => {
   await page.goto('http://127.0.0.1:4174/');
   const outcome = await page.evaluate(() => new Promise((resolve) => {

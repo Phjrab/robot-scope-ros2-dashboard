@@ -67,6 +67,7 @@ from .control import (
 )
 from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
+from .diagnostics import DiagnosticsBundleService
 from .mapping_jobs import (
     InvalidMapName,
     JobBusyError,
@@ -84,6 +85,11 @@ from .navigation_jobs import (
     NavigationParameterError,
     NavigationPoseError,
     NavigationUnavailable,
+)
+from .operator_events import (
+    OperatorEventTimeline,
+    classify_http_event,
+    record_http_event,
 )
 from .ros_agent import RosAgent
 from .saved_maps import (
@@ -175,11 +181,41 @@ app.mount("/static", DashboardStaticFiles(directory=STATIC_DIR), name="static")
 async def api_response_security(request: Request, call_next: Any) -> Response:
     """Keep operational API responses out of browser and intermediary caches."""
 
-    response = await call_next(request)
+    tracked_operator_event = classify_http_event(request.method, request.url.path)
+    try:
+        response = await call_next(request)
+    except Exception:
+        if tracked_operator_event is not None:
+            try:
+                await asyncio.to_thread(
+                    record_http_event,
+                    getattr(request.app.state.runtime, "operator_events", None),
+                    method=request.method,
+                    path=request.url.path,
+                    headers=request.headers,
+                    status_code=500,
+                )
+            except Exception:
+                LOGGER.exception("operator event recording failed")
+        raise
     if request.url.path.startswith("/api/v1/"):
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
+    if tracked_operator_event is not None:
+        try:
+            await asyncio.to_thread(
+                record_http_event,
+                getattr(request.app.state.runtime, "operator_events", None),
+                method=request.method,
+                path=request.url.path,
+                headers=request.headers,
+                status_code=response.status_code,
+            )
+        except Exception:
+            # Event persistence cannot change a robot request result or make a
+            # cleanup route unavailable.
+            LOGGER.exception("operator event recording failed")
     return response
 
 
@@ -1055,6 +1091,12 @@ def parse_args() -> argparse.Namespace:
         "--navigation-runtime-dir",
         default="~/.local/state/robot-scope/navigation",
     )
+    parser.add_argument(
+        "--operator-event-dir",
+        default=str(
+            Path(__file__).resolve().parents[1] / "runtime" / "operator-events"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -1172,6 +1214,29 @@ def main() -> None:
             RUNTIME.navigation.internal_start_state
         ),
         dataset_capture_active_provider=RUNTIME.dataset_capture.is_active,
+    )
+    RUNTIME.operator_events = OperatorEventTimeline(
+        Path(args.operator_event_dir).expanduser()
+    )
+    RUNTIME.diagnostics = DiagnosticsBundleService(
+        project_dir=project_dir,
+        profile_provider=lambda: RUNTIME.agent.profile if RUNTIME.agent else {},
+        health_provider=RUNTIME.agent.health_snapshot,
+        topics_provider=RUNTIME.agent.topics_snapshot,
+        sources_provider=RUNTIME.agent.sources_snapshot,
+        control_provider=RUNTIME.agent.control_snapshot,
+        mapping_provider=RUNTIME.mapping.snapshot,
+        navigation_provider=RUNTIME.navigation.view,
+        navigation_events_provider=lambda: RUNTIME.navigation.progress_snapshot(
+            after=0,
+            limit=100,
+        ),
+        dataset_provider=RUNTIME.dataset_capture.snapshot,
+        operator_events=RUNTIME.operator_events,
+        disk_roots={
+            "mapping_storage": mapping_output_dir,
+            "dataset_storage": Path(args.dataset_output_dir).expanduser().resolve(),
+        },
     )
     uvicorn.run(
         app,

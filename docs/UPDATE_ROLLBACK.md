@@ -33,6 +33,7 @@ stash나 강제 checkout으로 숨기지 말고, 변경 내용을 호스트별 �
 - `<project>/runtime/config/robot-scope.env`
 - `<project>/runtime/config/control.env`
 - `<project>/runtime/state/`
+- `<project>/runtime/operator-events/` (bounded operator intent timeline)
 - `ROBOT_SCOPE_DATASET_DIR` 전체; 빈 값이면 `<project>/runtime/datasets/`
 - `ROBOT_SCOPE_MAPS_DIR`의 PCD/PGM/YAML
 - 현장별 Hesai/FAST-LIO config와 SHA-256 기록

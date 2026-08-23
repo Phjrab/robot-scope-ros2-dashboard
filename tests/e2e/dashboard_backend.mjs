@@ -212,6 +212,12 @@ export async function installDashboardBackend(page, options = {}) {
         blockers, can_restart: blockers.length === 0, can_stop: blockers.length === 0, operation: null,
       });
     }
+    if (path === '/api/v1/system/diagnostics/export') return route.fulfill({
+      status: 200,
+      contentType: 'application/zip',
+      headers: { 'Content-Disposition': 'attachment; filename="robot-scope-diagnostics-20260823T054500Z.zip"' },
+      body: Buffer.from('PK\u0003\u0004e2e-diagnostics'),
+    });
     if (path === '/api/v1/datasets/capture') return json(route, state.dataset);
     if (path === '/api/v1/datasets/capture/start') {
       state.dataset = { ...baseDataset(), state: 'capturing', active: true, session_id: 'session_e2e', sources: body?.sources === 'both' ? ['go2_front', 'realsense_color'] : [body?.sources || 'go2_front'], capture_hz: body?.capture_hz || 1, label: body?.label || '', output_path: '/srv/robot-scope/datasets/session_e2e' };

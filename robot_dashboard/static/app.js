@@ -7,6 +7,7 @@ import { initializeServiceLifecycleFeature } from './features/settings/service_l
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
+import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
 
 // Exposed for the lightweight Node contract test and browser diagnostics.
 window.RobotLidarSourceIdentity = LidarSourceIdentity;
@@ -6676,6 +6677,7 @@ initializeCameraStreams();
 datasetFeature = createDatasetFeature({ showToast });
 datasetFeature.start();
 window.RobotScopeDatasetCapture = datasetFeature;
+window.RobotScopeDiagnosticsExport = createDiagnosticsExportFeature({ showToast }).start();
 bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();

@@ -6,9 +6,11 @@ import asyncio
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 
 from ...application.lifecycle_coordinator import LifecycleCoordinator
 from ...application.runtime import ApplicationRuntime
+from ...diagnostics import DiagnosticsBundleService, DiagnosticsUnavailable
 from ...control_bridge_lifecycle import (
     ControlBridgeLifecycleBlocked,
     ControlBridgeLifecycleBusy,
@@ -28,6 +30,13 @@ from ..models import ControlBridgeLifecycleRequest, ServiceLifecycleRequest
 
 
 router = APIRouter()
+
+
+def _diagnostics(runtime: ApplicationRuntime) -> DiagnosticsBundleService:
+    return require_component(
+        runtime.diagnostics,
+        "diagnostics export is not configured",
+    )
 
 
 def _service(runtime: ApplicationRuntime) -> LifecycleCoordinator:
@@ -159,3 +168,27 @@ async def control_bridge_lifecycle_stop(
             )
         except ControlBridgeLifecycleError as exc:
             raise _bridge_error(exc) from exc
+
+
+@router.post("/api/v1/system/diagnostics/export")
+async def export_diagnostics(request: Request) -> Response:
+    """Build one read-only bundle without acquiring a robot-work lock."""
+
+    require_same_origin(request)
+    runtime = runtime_from_request(request)
+    try:
+        bundle = await asyncio.to_thread(_diagnostics(runtime).build)
+    except DiagnosticsUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="diagnostics bundle is unavailable",
+        ) from exc
+    return Response(
+        content=bundle.payload,
+        media_type="application/zip",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": f'attachment; filename="{bundle.filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

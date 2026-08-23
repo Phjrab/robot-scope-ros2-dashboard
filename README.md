@@ -58,6 +58,7 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 - 키보드, 화면 패드 또는 표준 Gamepad를 선택하는 Go2 주행 제어
 - 서버 allowlist에 등록된 Go2 자세·제스처·보행 모드 실행
 - Overview, Live Mapping, Saved Maps, Sensors, ROS Graph, Controls, Settings 메뉴
+- Settings에서 로봇 작업을 중지하지 않고 생성하는 redacted·size-bounded 진단 ZIP
 - Go2 전용 프로필과 범용 ROS 2 프로필
 
 저수준 모터 제어(`/lowcmd`), 임의 ROS 토픽/API와 shell 명령은 노출하지 않습니다.
@@ -1049,6 +1050,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | GET /api/v1/system/service | dashboard service 관리 가능 여부, blocker와 최근 작업 상태 |
 | POST /api/v1/system/service/restart | 확인·idle preflight 후 dashboard만 재시작 |
 | POST /api/v1/system/service/stop | 확인·idle preflight 후 dashboard만 중지 |
+| POST /api/v1/system/diagnostics/export | 로봇 작업 lock 없이 deterministic redacted 진단 ZIP 생성 |
 | WS /api/v1/ws/camera?source_id={id} | 선택한 고정 카메라 스트림 (`go2_front`, `realsense_color`) |
 | WS /api/v1/ws/cameras/{id} | 위와 같은 소스별 카메라 WebSocket 경로 |
 | WS /api/v1/ws/pointcloud | 최신 프레임 우선 binary 점군 스트림 |
@@ -1134,6 +1136,10 @@ requirements*.txt               runtime 및 분리된 contributor 품질 의존�
   최대 /24만 검색합니다. 검색 결과는 장비 유형을 보증하지 않으므로 선택 전에 확인합니다.
 - 인터넷이나 공용망에 노출하기 전 토큰 인증, TLS와 접근 제어를 추가해야 합니다.
 - 비밀번호, SSH 키, 토큰, .env, rosbag, PCD, 생성 지도와 수집 데이터셋은 Git에 올리지 않습니다.
+- Settings의 진단 ZIP은 지원 공유용 공개 projection이지만 사용자 인증 자료가 아닙니다.
+  내보내기 전후에도 신뢰 LAN 정책을 유지하고, browser session ID를 사람의 신원으로
+  해석하지 않습니다. 기록 범위와 제외 항목은
+  [Phase 13 계약](docs/ARCHITECTURE_PHASE13.md)을 따릅니다.
 - 지도 삭제는 되돌릴 수 없으므로 대상 이름과 파일 묶음을 확인한 뒤 실행합니다.
 
 ## 라이선스

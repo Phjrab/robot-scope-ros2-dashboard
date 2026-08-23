@@ -2,7 +2,7 @@
 
 Robot Scope is a **ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard**.
 This document is the current architecture authority for
-the repository after the Phase 0–12 refactor. The per-phase architecture
+the repository after the Phase 0–13 refactor. The per-phase architecture
 documents remain historical design and verification records; when they
 describe an older ownership boundary, this document takes precedence.
 
@@ -25,11 +25,11 @@ The frozen Phase 0 implementation is commit
 `48617c69033995c82d5d58d6ba1abe9f7808d187`. The current comparison was made
 against the Phase 10 pre-change HEAD `17119dab7b58271ac3051fcd17e2ebc328e14801`.
 
-| Hotspot | Phase 0 | Phase 12 | Responsibility reduction |
+| Hotspot | Phase 0 | Phase 13 | Responsibility reduction |
 | --- | ---: | ---: | --- |
-| `robot_dashboard/app.py` | 3,208 lines | 1,186 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; 63.0% smaller. |
+| `robot_dashboard/app.py` | 3,208 lines | 1,244 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; diagnostics composition remains explicit; 61.2% smaller. |
 | `robot_dashboard/ros_agent.py` | 4,723 lines | 2,377 lines | ROS runtime, observability, control transport and navigation gateway moved to focused components; 49.7% smaller. |
-| `robot_dashboard/static/app.js` | 8,404 lines | 6,739 lines | Shared utilities and five vertical features, including lifecycle-owned datasets, moved to ES modules; 19.8% smaller. |
+| `robot_dashboard/static/app.js` | 8,404 lines | 6,741 lines | Shared utilities and six vertical features, including lifecycle-owned datasets and diagnostics export, moved to ES modules; 19.8% smaller. |
 
 Line count is evidence, not the goal. The important change is the dependency
 and ownership direction:
@@ -75,6 +75,8 @@ robot_dashboard/
 │   ├── control_transport.py  signed bridge transport and ControlManager owner
 │   └── navigation_gateway.py fixed Nav2 ROS boundary and autonomous lease
 ├── app.py                    composition, lifespan, remaining thin routes
+├── diagnostics.py            deterministic bounded public ZIP projection
+├── operator_events.py        rotated browser-intent JSONL timeline
 ├── ros_agent.py              compatibility facade and target orchestration
 ├── mapping_jobs.py           trusted mapping child-process manager
 ├── navigation_jobs.py        trusted Nav2 child-process manager
@@ -90,7 +92,8 @@ robot_dashboard/
 
 `ApplicationRuntime` owns the agent, saved-map catalog, dataset manager, three
 coordinators, shared pipeline coordination lock, response caches, control
-bindings and local discovery. There is one module-level `RUNTIME` container,
+bindings, local discovery, one diagnostics service and one operator-event
+timeline. There is one module-level `RUNTIME` container,
 not separate manager/task globals. FastAPI handlers validate browser intent,
 look up the runtime, invoke a coordinator or bounded manager and translate
 domain errors to the existing HTTP contract.
@@ -149,6 +152,8 @@ not grant a capability or infer a physical sensor from a topic name.
 | Dataset sampler/writer threads | `DatasetCaptureManager` | Bounded queue/rate/size, quota and atomic finalization. |
 | Dashboard/bridge lifecycle workers | focused lifecycle managers | Fixed units/argv only; close observes and fences but never dispatches a new mutation. |
 | Camera workers/processes | fixed camera adapters | Source-bound demand tokens and bounded stale/close behavior. |
+| Operator intent JSONL | `OperatorEventTimeline` | Fixed mutation catalog; 256 KiB rotation, four-file retention, no request bodies or verified identity claim. |
+| Diagnostics ZIP | `DiagnosticsBundleService` | Read-only public projections, deterministic fixed entries and 2 MiB compressed limit. |
 
 Application shutdown preserves this high-level order: settle a pending
 navigation start, close lifecycle observers, deactivate/close navigation,
@@ -210,12 +215,20 @@ Discovery is limited to server-derived directly connected RFC1918/link-local
 networks with bounded subnet, host, worker and time budgets. Browser input
 cannot select an arbitrary subnet.
 
-All 29 HTTP mutations require the shared strict same-origin check. All six
+All 30 HTTP mutations require the shared strict same-origin check. All six
 browser WebSockets enforce the same origin before accept/runtime lookup.
 Requests expose bounded intent rather than paths, commands or arbitrary ROS
 names. Operational responses are no-store and public diagnostics are bounded
 and redacted. This is a trusted-LAN boundary, not authentication; internet
 exposure still requires external TLS and access control.
+
+Settings can export the deterministic bounded Phase 13 diagnostics bundle
+without taking the robot-work lock. It includes only allowlisted summaries and
+redacted transitions; it excludes credentials, environment, raw argv/output,
+absolute paths, IP addresses and raw ROS messages. The browser session and
+request sequence stored in the rotated operator-event timeline are correlation
+fields only and never establish a human identity. The full contract is in
+[ARCHITECTURE_PHASE13.md](ARCHITECTURE_PHASE13.md).
 
 ## SO-101 extraction and assets
 
@@ -252,7 +265,8 @@ are not vendored.
 - The current model catalog, bundled files and third-party notices agree.
 - [ARCHITECTURE_BASELINE.md](ARCHITECTURE_BASELINE.md) and
   `ARCHITECTURE_PHASE3.md` through
-  `ARCHITECTURE_PHASE9.md` are historical records, not competing current
+  `ARCHITECTURE_PHASE9.md`, `ARCHITECTURE_PHASE12.md` and
+  `ARCHITECTURE_PHASE13.md` are historical records, not competing current
   ownership specifications.
 
 No wrapper, module or asset was removed merely because it looked small or was
