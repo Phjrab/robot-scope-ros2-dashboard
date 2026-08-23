@@ -819,6 +819,24 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .navigation-status-card.is-error strong { color:var(--danger); }
 
 .navigation-main-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; align-items:start; gap:12px; margin-bottom:12px; }
+.navigation-health-grid { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(320px,.7fr); gap:12px; margin-bottom:12px; }
+.navigation-health-reason { margin:0; padding:11px 16px; color:#8fa49c; border-bottom:1px solid var(--line); font:700 8px ui-monospace,SFMono-Regular,Menlo,monospace; line-height:1.5; }
+.navigation-health-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--line); }
+.navigation-health-metrics > div { min-width:0; padding:13px 14px; background:rgba(7,20,17,.96); }
+.navigation-health-metrics span,.navigation-health-metrics strong,.navigation-health-metrics small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.navigation-health-metrics span { color:#6e837c; font-size:7px; font-weight:800; letter-spacing:.1em; }
+.navigation-health-metrics strong { margin-top:7px; color:var(--cyan); font:750 11px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.navigation-health-metrics small { margin-top:5px; color:#61756e; font-size:7px; }
+.navigation-calibration-list { max-height:320px; overflow:auto; }
+.navigation-calibration-list article { padding:11px 14px; border-bottom:1px solid var(--line); }
+.navigation-calibration-list article:last-child { border-bottom:0; }
+.navigation-calibration-list article > div { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.navigation-calibration-list strong { color:#c5d9d1; font:750 8px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.navigation-calibration-list span { color:var(--amber); font:800 7px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.navigation-calibration-list span.is-ok { color:var(--green); }
+.navigation-calibration-list span.is-mismatch { color:var(--danger); }
+.navigation-calibration-list p { margin:7px 0 4px; color:#83978f; font-size:8px; line-height:1.45; }
+.navigation-calibration-list small { display:block; color:#5f746c; font-size:7px; line-height:1.45; }
 .navigation-map-panel { min-width:0; }
 .navigation-map-toolbar { display:grid; grid-template-columns:minmax(220px,1fr) auto; align-items:end; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line); }
 .navigation-map-toolbar label > span, .navigation-parameter-toolbar label > span { display:block; margin-bottom:6px; color:#82978f; font-size:8px; font-weight:700; }
@@ -1281,7 +1299,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 @media (max-width: 1180px) {
   .kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .primary-grid, .secondary-grid, .saved-layout, .saved-tools-grid, .sensor-page-grid, .settings-grid, .mapping-control-layout, .control-main-grid, .navigation-main-grid { grid-template-columns: 1fr; }
+  .primary-grid, .secondary-grid, .saved-layout, .saved-tools-grid, .sensor-page-grid, .settings-grid, .mapping-control-layout, .control-main-grid, .navigation-main-grid, .navigation-health-grid { grid-template-columns: 1fr; }
   .mapping-session-form { border-right: 0; border-bottom: 1px solid var(--line); }
   .saved-library-panel { position: static; }
   .control-safety-column { grid-template-columns:1fr; }
@@ -1317,6 +1335,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .control-bridge-service-body { grid-template-columns:1fr; }
   .control-bridge-service-actions { border-top:1px solid var(--line); border-left:0; }
   .navigation-status-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .navigation-health-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .navigation-map-stage { height:460px; }
   .navigation-log-header { align-items:stretch; flex-direction:column; }
   .navigation-log-tools { justify-content:flex-start; }
@@ -1358,7 +1377,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .map-editor-toolbar { grid-template-columns:1fr; }
   .navigation-safety-banner { grid-template-columns:auto minmax(0,1fr); }
   .navigation-safety-banner a { grid-column:1/-1; text-align:center; }
-  .navigation-status-grid, .navigation-parameter-fields, .navigation-runtime-bindings { grid-template-columns:1fr; }
+  .navigation-status-grid, .navigation-health-metrics, .navigation-parameter-fields, .navigation-runtime-bindings { grid-template-columns:1fr; }
   .navigation-log-tools { display:grid; grid-template-columns:minmax(0,1fr) auto; }
   .navigation-log-tools label { justify-content:center; }
   .navigation-log-summary { grid-template-columns:1fr; }

@@ -164,6 +164,33 @@ test('dashboard exposes a dedicated navigation route and strict API endpoints', 
   assert.doesNotMatch(appSource, /navigation[^\n]{0,120}(?:file_path|yaml_path|launch_path)/i);
 });
 
+test('Navigation renders bounded localization health and a read-only calibration assistant', () => {
+  for (const id of [
+    'navigationHealthState', 'navigationHealthReason', 'navigationHealthMetrics',
+    'navigationCalibrationList',
+  ]) assert.match(indexSource, new RegExp(`id="${id}"`));
+  const panelStart = indexSource.indexOf('class="navigation-health-grid"');
+  const panelEnd = indexSource.indexOf('class="panel navigation-log-panel"', panelStart);
+  const panels = indexSource.slice(panelStart, panelEnd);
+  assert.match(panels, /BOUNDED TELEMETRY · NO SCORE/);
+  assert.match(panels, /READ-ONLY ASSISTANT/);
+  assert.doesNotMatch(panels, /<input|<select|contenteditable/);
+  const renderStart = appSource.indexOf('function renderNavigationHealth(');
+  const renderEnd = appSource.indexOf('\nfunction renderNavigationStatus(', renderStart);
+  const render = appSource.slice(renderStart, renderEnd);
+  assert.ok(renderStart >= 0 && renderEnd > renderStart);
+  assert.match(render, /textContent/);
+  assert.match(render, /replaceChildren/);
+  assert.doesNotMatch(render, /innerHTML|fetch\(|api\(|method:\s*['"](?:POST|PATCH|DELETE)/);
+  for (const metric of [
+    'cloud_frequency_hz', 'cloud_jitter_s', 'cloud_age_s', 'runtime_health_age_s',
+    'odometry_frequency_hz', 'odometry_age_s', 'tf_age_s',
+    'map_to_odom_age_s', 'odom_to_base_age_s', 'translation_jump_count',
+    'heading_jump_count', 'accepted_points', 'goal_progress_rate_mps',
+    'controller_stall_duration_s', 'costmap_clear_count',
+  ]) assert.ok(render.includes(metric), `missing localization metric ${metric}`);
+});
+
 test('navigation keeps the 2D map and selected robot 3D preview in separate stages', () => {
   const sectionStart = indexSource.indexOf('data-page="navigation"');
   const sectionEnd = indexSource.indexOf('data-page="settings"', sectionStart);

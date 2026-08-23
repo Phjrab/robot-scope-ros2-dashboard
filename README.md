@@ -579,6 +579,15 @@ Navigation STOP, 시작 실패 또는 대시보드 정상 종료 때 동일한 m
 Navigation이 재사용만 하며 STOP 때 종료하지 않으므로, 수동 매핑 작업을 침범하지
 않습니다.
 
+같은 Navigation 화면의 `Localization & TF health`는 PointCloud/odometry
+주파수·지터·age, 두 동적 TF age, FAST-LIO jump, scan point, 목표 진행률·정체 시간과
+costmap clear 횟수를 하나의 가짜 점수 없이 표시합니다. 상태는 `READY`, `DEGRADED`,
+`STALE`, `DISCONTINUITY`, `FRAME_MISMATCH`, `CALIBRATION_SUSPECTED`,
+`UNAVAILABLE` 중 하나이며 원인 코드와 `config/go2.json`의 임계값 근거를 함께
+보여줍니다. `READY`는 stale 이후 실제 cloud/odometry 시퀀스가 연속으로 전진해야
+복구됩니다. 옆의 Calibration Assistant는 frame, extrinsic, static TF, clock domain과
+3D 모델 방향을 읽기 전용으로 안내할 뿐 설정을 자동 변경하지 않습니다.
+
 Nav2 controller 출력은 전역 `/cmd_vel`이 아니라 서버 고정
 `/robot_scope/nav/cmd_vel_raw`로 격리됩니다. RosAgent는 publisher가 정확히 하나이고
 scan, FAST-LIO odometry, Go2 `/utlidar/robot_odom`, TF, 위치추정과 signed bridge가 모두

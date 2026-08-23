@@ -19,6 +19,11 @@ from ..control import (
     EmergencyStopLatched,
     LeaseBusy,
 )
+from ..localization_health import (
+    LocalizationHealthThresholds,
+    build_calibration_assistant,
+    classify_localization_health,
+)
 
 
 # Nav2 is remapped to this private ingress. A random/global /cmd_vel publisher
@@ -85,11 +90,14 @@ class NavigationRosGateway:
         node_getter: Callable[[], Any],
         tick: Callable[[str, float], None],
         graph_getter: Callable[[], Mapping[str, Mapping[str, Any]]],
+        profile: Mapping[str, Any] | None = None,
     ) -> None:
         self._control_port = control_port
         self._node_getter = node_getter
         self._tick = tick
         self._graph_getter = graph_getter
+        self._profile = dict(profile or {})
+        self._health_thresholds = LocalizationHealthThresholds.from_profile(profile)
 
         self._navigation_lock = threading.RLock()
         self._navigation_callback_group: Any = None
@@ -130,6 +138,19 @@ class NavigationRosGateway:
         self._navigation_cancel_requested = False
         self._navigation_clear_generation = 0
         self._navigation_last_clear = 0.0
+        self._navigation_clear_count = 0
+        self._navigation_fresh_sequence_count = 0
+        self._navigation_health_sequences = (0, 0)
+        self._navigation_clock_offsets_s: Dict[str, Optional[float]] = {
+            NAVIGATION_FAST_LIO_ODOM_TOPIC: None,
+            NAVIGATION_CONTROLLER_ODOM_TOPIC: None,
+        }
+        self._navigation_goal_progress = {
+            "last_distance": None,
+            "last_observed_at": 0.0,
+            "last_progress_at": 0.0,
+            "progress_rate_mps": None,
+        }
         self._navigation: Dict[str, Any] = {
             "seq": 0,
             "active": False,
@@ -146,6 +167,7 @@ class NavigationRosGateway:
                 "goal_id": None,
                 "pose": None,
                 "distance_remaining": None,
+                "initial_distance": None,
                 "navigation_time": None,
                 "recoveries": 0,
                 "error": None,
@@ -450,6 +472,7 @@ class NavigationRosGateway:
                             "goal_id": None,
                             "pose": None,
                             "distance_remaining": None,
+                            "initial_distance": None,
                             "navigation_time": None,
                             "recoveries": 0,
                             "error": None,
@@ -670,6 +693,16 @@ class NavigationRosGateway:
                     # The first controller sample, and the first sample after
                     # an inactive robot-clock reset, establish only a baseline.
                     return
+                node = self._node_getter()
+                now_ns = node.get_clock().now().nanoseconds if node else 0
+                if isinstance(now_ns, int) and not isinstance(now_ns, bool) and now_ns > 0:
+                    offset_s = (now_ns - stamp_ns) / 1_000_000_000.0
+                    if math.isfinite(offset_s):
+                        with self._navigation_lock:
+                            self._navigation_clock_offsets_s[topic] = round(
+                                max(-1_000_000_000.0, min(offset_s, 1_000_000_000.0)),
+                                6,
+                            )
             with self._navigation_lock:
                 if topic in self._navigation_validated_receipts:
                     self._navigation_validated_receipts[topic] = observed_at
@@ -757,6 +790,53 @@ class NavigationRosGateway:
             self._navigation_odom_stamp_ns[topic] = stamp_ns
             return True
 
+    @staticmethod
+    def _sanitize_runtime_frames(value: Any) -> Dict[str, str]:
+        expected = {
+            "cloud": "hesai_lidar",
+            "odometry_parent": "camera_init",
+            "odometry_child": "body",
+            "map_parent": "map",
+            "map_child": "odom",
+            "base_parent": "odom",
+            "base_child": "base_link",
+        }
+        if not isinstance(value, Mapping):
+            return {}
+        return {
+            key: str(value.get(key, ""))[:64]
+            for key in expected
+            if isinstance(value.get(key), str)
+        }
+
+    @staticmethod
+    def _sanitize_lidar_extrinsic(value: Any) -> Dict[str, Any]:
+        if not isinstance(value, Mapping):
+            return {}
+        parent = str(value.get("parent", ""))[:64]
+        child = str(value.get("child", ""))[:64]
+        result: Dict[str, Any] = {"parent": parent, "child": child}
+        for key in ("x", "y", "z", "yaw"):
+            try:
+                number = float(value.get(key))
+            except (TypeError, ValueError):
+                return {}
+            if not math.isfinite(number) or abs(number) > 10_000.0:
+                return {}
+            result[key] = round(number, 6)
+        return result
+
+    @staticmethod
+    def _sanitize_clock_domains(value: Any) -> Dict[str, str]:
+        if not isinstance(value, Mapping):
+            return {}
+        allowed = {"pointcloud", "localization_odometry"}
+        return {
+            key: str(value.get(key, ""))[:64]
+            for key in allowed
+            if isinstance(value.get(key), str)
+        }
+
     def _navigation_runtime_health_callback(self, message: Any) -> None:
         now = time.monotonic()
         try:
@@ -804,6 +884,37 @@ class NavigationRosGateway:
                 or accepted_points > input_points
             ):
                 raise ValueError("health point counts are invalid")
+            bounded_metrics: Dict[str, Any] = {}
+            for key, maximum in (
+                ("cloud_frequency_hz", 1_000.0),
+                ("cloud_jitter_s", 60.0),
+                ("cloud_age_s", 3_600.0),
+                ("odometry_frequency_hz", 2_000.0),
+                ("odometry_jitter_s", 60.0),
+                ("odometry_age_s", 3_600.0),
+                ("odom_to_base_age_s", 3_600.0),
+                ("map_to_odom_age_s", 3_600.0),
+                ("last_jump_age_s", 86_400.0),
+            ):
+                value = payload.get(key)
+                if value is None:
+                    bounded_metrics[key] = None
+                    continue
+                number = float(value)
+                if not math.isfinite(number) or number < 0.0 or number > maximum:
+                    raise ValueError(f"health {key} is invalid")
+                bounded_metrics[key] = round(number, 4)
+            bounded_integers: Dict[str, int] = {}
+            for key in (
+                "cloud_sequence",
+                "odometry_sequence",
+                "translation_jump_count",
+                "heading_jump_count",
+            ):
+                value = payload.get(key, 0)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > 2**53 - 1:
+                    raise ValueError(f"health {key} is invalid")
+                bounded_integers[key] = value
             node = self._node_getter()
             publishers = (
                 node.count_publishers(NAVIGATION_RUNTIME_HEALTH_TOPIC)
@@ -836,9 +947,41 @@ class NavigationRosGateway:
             "odom_error": str(payload.get("odom_error", ""))[:160],
             "input_points": input_points,
             "accepted_points": accepted_points,
+            **bounded_metrics,
+            **bounded_integers,
+            "last_jump_reason": public_navigation_reason(payload.get("last_jump_reason"))[:80] if payload.get("last_jump_reason") else "",
+            "frame_error": public_navigation_reason(payload.get("odom_frame_error", ""))[:160] if payload.get("odom_frame_error") else "",
+            "frames": self._sanitize_runtime_frames(payload.get("frames")),
+            "lidar_extrinsic": self._sanitize_lidar_extrinsic(payload.get("lidar_extrinsic")),
+            "clock_domains": self._sanitize_clock_domains(payload.get("clock_domains")),
             "error": None,
         }
         with self._navigation_lock:
+            if (
+                self._navigation_runtime_health_received > 0.0
+                and now - self._navigation_runtime_health_received
+                > self._health_thresholds.runtime_health_stale_s
+            ):
+                self._navigation_fresh_sequence_count = 0
+            sequences = (
+                bounded_integers["cloud_sequence"],
+                bounded_integers["odometry_sequence"],
+            )
+            previous_sequences = self._navigation_health_sequences
+            if (
+                payload["cloud_fresh"]
+                and payload["odom_fresh"]
+                and sequences[0] > previous_sequences[0]
+                and sequences[1] > previous_sequences[1]
+            ):
+                self._navigation_fresh_sequence_count = min(
+                    self._navigation_fresh_sequence_count + 1,
+                    self._health_thresholds.fresh_sequence_min,
+                )
+            elif not payload["cloud_fresh"] or not payload["odom_fresh"]:
+                self._navigation_fresh_sequence_count = 0
+            self._navigation_health_sequences = sequences
+            sanitized["fresh_sequence_count"] = self._navigation_fresh_sequence_count
             self._navigation_runtime_health_received = now
             self._navigation_runtime_health = sanitized
 
@@ -1247,6 +1390,7 @@ class NavigationRosGateway:
         message: Any,
     ) -> None:
         feedback = getattr(message, "feedback", None)
+        observed_at = time.monotonic()
         with self._navigation_lock:
             goal = dict(self._navigation.get("goal") or {})
             if (
@@ -1260,12 +1404,33 @@ class NavigationRosGateway:
                     getattr(feedback, "distance_remaining", float("nan"))
                 )
                 goal["distance_remaining"] = (
-                    round(max(0.0, distance), 3)
+                    round(min(20_000.0, max(0.0, distance)), 3)
                     if math.isfinite(distance)
                     else None
                 )
             except (TypeError, ValueError):
                 goal["distance_remaining"] = None
+            distance_remaining = goal.get("distance_remaining")
+            if isinstance(distance_remaining, (int, float)):
+                if goal.get("initial_distance") is None:
+                    goal["initial_distance"] = distance_remaining
+                progress = self._navigation_goal_progress
+                previous_distance = progress.get("last_distance")
+                previous_at = float(progress.get("last_observed_at", 0.0) or 0.0)
+                if isinstance(previous_distance, (int, float)) and previous_at > 0.0:
+                    elapsed = observed_at - previous_at
+                    delta = float(previous_distance) - float(distance_remaining)
+                    if elapsed > 0.0:
+                        progress["progress_rate_mps"] = round(
+                            max(-100.0, min(delta / elapsed, 100.0)),
+                            4,
+                        )
+                    if delta > 0.005:
+                        progress["last_progress_at"] = observed_at
+                else:
+                    progress["last_progress_at"] = observed_at
+                progress["last_distance"] = float(distance_remaining)
+                progress["last_observed_at"] = observed_at
             goal["navigation_time"] = self._duration_seconds(
                 getattr(feedback, "navigation_time", None)
             )
@@ -1425,9 +1590,16 @@ class NavigationRosGateway:
                     "goal_id": goal_id,
                     "pose": {"x": x_value, "y": y_value, "yaw": yaw_value},
                     "distance_remaining": None,
+                    "initial_distance": None,
                     "navigation_time": None,
                     "recoveries": 0,
                     "error": None,
+                }
+                self._navigation_goal_progress = {
+                    "last_distance": None,
+                    "last_observed_at": 0.0,
+                    "last_progress_at": time.monotonic(),
+                    "progress_rate_mps": None,
                 }
                 self._navigation["seq"] += 1
                 action_type = self._navigation_action_type
@@ -1568,6 +1740,11 @@ class NavigationRosGateway:
                     "state": "failed" if errors else "succeeded",
                     "error": "; ".join(errors)[:240] if errors else None,
                 }
+                if not errors:
+                    self._navigation_clear_count = min(
+                        self._navigation_clear_count + 1,
+                        2**53 - 1,
+                    )
                 self._navigation["seq"] += 1
 
         for service, client in clients:
@@ -1576,6 +1753,87 @@ class NavigationRosGateway:
                 lambda done, name=service: completed(name, done)
             )
         return self.runtime_snapshot()
+
+    def _localization_metrics(self, runtime_health: Mapping[str, Any], now: float) -> Dict[str, Any]:
+        with self._navigation_lock:
+            progress = dict(self._navigation_goal_progress)
+            goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
+            clear_count = self._navigation_clear_count
+            offsets = dict(self._navigation_clock_offsets_s)
+        last_progress_at = float(progress.get("last_progress_at", 0.0) or 0.0)
+        stall_duration = (
+            round(min(86_400.0, max(0.0, now - last_progress_at)), 3)
+            if goal_state == "active" and last_progress_at > 0.0
+            else 0.0
+        )
+        odom_tf_age = runtime_health.get("odom_to_base_age_s")
+        map_tf_age = runtime_health.get("map_to_odom_age_s")
+        finite_tf_ages = [
+            float(value)
+            for value in (odom_tf_age, map_tf_age)
+            if isinstance(value, (int, float)) and math.isfinite(float(value))
+        ]
+        extrinsic = runtime_health.get("lidar_extrinsic")
+        calibration_suspected = bool(
+            isinstance(extrinsic, Mapping)
+            and extrinsic
+            and (
+                extrinsic.get("parent") != "base_link"
+                or extrinsic.get("child") != "hesai_lidar"
+            )
+        )
+        return {
+            "cloud_frequency_hz": runtime_health.get("cloud_frequency_hz"),
+            "cloud_jitter_s": runtime_health.get("cloud_jitter_s"),
+            "cloud_age_s": runtime_health.get("cloud_age_s"),
+            "runtime_health_age_s": runtime_health.get("age_s"),
+            "odometry_frequency_hz": runtime_health.get("odometry_frequency_hz"),
+            "odometry_jitter_s": runtime_health.get("odometry_jitter_s"),
+            "odometry_age_s": runtime_health.get("odometry_age_s"),
+            "tf_age_s": round(max(finite_tf_ages), 4) if finite_tf_ages else None,
+            "map_to_odom_age_s": map_tf_age,
+            "odom_to_base_age_s": odom_tf_age,
+            "translation_jump_count": int(runtime_health.get("translation_jump_count", 0) or 0),
+            "heading_jump_count": int(runtime_health.get("heading_jump_count", 0) or 0),
+            "last_jump_reason": runtime_health.get("last_jump_reason") or "",
+            "last_jump_age_s": runtime_health.get("last_jump_age_s"),
+            "input_points": int(runtime_health.get("input_points", 0) or 0),
+            "accepted_points": int(runtime_health.get("accepted_points", 0) or 0),
+            "goal_remaining_distance_m": progress.get("last_distance"),
+            "goal_progress_rate_mps": progress.get("progress_rate_mps"),
+            "goal_active": goal_state == "active",
+            "controller_stall_duration_s": stall_duration,
+            "costmap_clear_count": clear_count,
+            "fresh_sequence_count": int(runtime_health.get("fresh_sequence_count", 0) or 0),
+            "frame_error": runtime_health.get("frame_error") or "",
+            "host_clock_offsets_s": {
+                "fast_lio": offsets.get(NAVIGATION_FAST_LIO_ODOM_TOPIC),
+                "controller": offsets.get(NAVIGATION_CONTROLLER_ODOM_TOPIC),
+            },
+            "calibration_suspected": calibration_suspected,
+            "calibration_reason": "LIDAR_EXTRINSIC_FRAME_MISMATCH" if calibration_suspected else None,
+        }
+
+    def _calibration_assistant(
+        self,
+        runtime_health: Mapping[str, Any],
+        topic_publishers: Mapping[str, int],
+        metrics: Mapping[str, Any],
+    ) -> Dict[str, Any]:
+        expected_model = self._profile.get("robot_pose_in_cloud_frames", {})
+        expected_model = expected_model.get("hesai_lidar") if isinstance(expected_model, Mapping) else None
+        try:
+            node = self._node_getter()
+            static_tf_publishers = int(node.count_publishers("/tf_static")) if node else 0
+        except Exception:
+            static_tf_publishers = 0
+        return build_calibration_assistant(
+            runtime_health,
+            static_tf_publishers=static_tf_publishers,
+            topic_publishers=topic_publishers,
+            metrics=metrics,
+            expected_model=expected_model,
+        )
 
     def runtime_snapshot(self) -> Dict[str, Any]:
         now = time.monotonic()
@@ -1675,6 +1933,20 @@ class NavigationRosGateway:
             and lease.get("input_source") in {"keyboard", "gamepad"}
         )
         active = bool(snapshot.get("active"))
+        localization_metrics = self._localization_metrics(runtime_health, now)
+        localization_health = classify_localization_health(
+            localization_metrics,
+            active=active,
+            localized=str((snapshot.get("localization") or {}).get("state", "")) == "localized",
+            thresholds=self._health_thresholds,
+        )
+        localization_health["metrics"] = localization_metrics
+        localization_health["thresholds"] = self._health_thresholds.public()
+        calibration_assistant = self._calibration_assistant(
+            runtime_health,
+            topic_publishers,
+            localization_metrics,
+        )
         blockers: list[str] = []
         if not configured:
             blockers.append("navigation_transport_unavailable")
@@ -1804,6 +2076,8 @@ class NavigationRosGateway:
                 "navigation_lease_active": navigation_lease_active,
                 "cleanup_required": cleanup_required,
                 "runtime_health": runtime_health,
+                "localization_health": localization_health,
+                "calibration_assistant": calibration_assistant,
                 "bindings": {
                     "pointcloud": "/velodyne_points",
                     "scan": "/scan",

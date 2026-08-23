@@ -580,6 +580,18 @@
           </aside>
         </section>
 
+        <section class="navigation-health-grid" aria-label="Localization 및 TF 상태">
+          <article class="panel navigation-health-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">BOUNDED TELEMETRY · NO SCORE</div><h2>Localization & TF health</h2></div><div class="panel-state waiting" id="navigationHealthState"><span></span>UNAVAILABLE</div></div>
+            <p class="navigation-health-reason" id="navigationHealthReason">Navigation runtime telemetry를 기다리고 있습니다.</p>
+            <div class="navigation-health-metrics" id="navigationHealthMetrics"><div class="sensor-placeholder">센서 및 TF 지표를 기다리고 있습니다.</div></div>
+          </article>
+          <article class="panel navigation-calibration-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">READ-ONLY ASSISTANT</div><h2>Calibration checks</h2></div><span class="muted">설정 변경 없음</span></div>
+            <div class="navigation-calibration-list" id="navigationCalibrationList"><div class="sensor-placeholder">고정 frame·clock·extrinsic 계약을 확인하고 있습니다.</div></div>
+          </article>
+        </section>
+
         <article class="panel navigation-log-panel" aria-labelledby="navigationLogHeading">
           <div class="panel-header compact navigation-log-header">
             <div><div class="eyebrow">READ-ONLY · SANITIZED EVENTS</div><h2 id="navigationLogHeading">Navigation console</h2></div>

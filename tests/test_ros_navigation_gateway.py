@@ -1,8 +1,10 @@
 import math
+import json
 import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from robot_dashboard.control import CommandValidationError
 from robot_dashboard.ros.navigation_gateway import (
@@ -115,6 +117,62 @@ def gateway(*, port=None, node=None, ticks=None):
 
 
 class NavigationRosGatewayTests(unittest.TestCase):
+    def test_runtime_health_tracks_only_advancing_fresh_sequences_and_bounds_metrics(self):
+        navigation = gateway()
+
+        def publish(sequence, *, fresh=True):
+            payload = {
+                "schema": "robot-scope.navigation-runtime-health.v1",
+                "ready": fresh,
+                "cloud_fresh": fresh,
+                "odom_fresh": fresh,
+                "localized": fresh,
+                "cloud_topic": "/velodyne_points",
+                "scan_topic": "/scan",
+                "odometry_topic": "/Odometry",
+                "cloud_frame": "hesai_lidar",
+                "publisher_counts": {"/velodyne_points": 1, "/Odometry": 1},
+                "input_points": 1000,
+                "accepted_points": 500,
+                "cloud_sequence": sequence,
+                "odometry_sequence": sequence,
+                "cloud_frequency_hz": 10.0,
+                "cloud_jitter_s": 0.01,
+                "cloud_age_s": 0.02,
+                "odometry_frequency_hz": 100.0,
+                "odometry_jitter_s": 0.005,
+                "odometry_age_s": 0.01,
+                "odom_to_base_age_s": 0.01,
+                "map_to_odom_age_s": 0.01,
+                "translation_jump_count": 0,
+                "heading_jump_count": 0,
+                "last_jump_age_s": None,
+                "frames": {"cloud": "hesai_lidar"},
+                "lidar_extrinsic": {"parent": "base_link", "child": "hesai_lidar", "x": 0.25, "y": 0, "z": 0, "yaw": 0},
+                "clock_domains": {"pointcloud": "host_ros_normalized"},
+            }
+            navigation._navigation_runtime_health_callback(
+                SimpleNamespace(data=json.dumps(payload))
+            )
+
+        publish(1)
+        publish(1)
+        self.assertEqual(navigation._navigation_runtime_health["fresh_sequence_count"], 1)
+        publish(2)
+        publish(3)
+        publish(4)
+        health = navigation._navigation_runtime_health
+        self.assertEqual(health["fresh_sequence_count"], 3)
+        self.assertEqual(health["cloud_frequency_hz"], 10.0)
+        self.assertEqual(health["accepted_points"], 500)
+        navigation._navigation_runtime_health_received = (
+            time.monotonic() - navigation._health_thresholds.runtime_health_stale_s - 0.1
+        )
+        publish(5)
+        self.assertEqual(navigation._navigation_runtime_health["fresh_sequence_count"], 1)
+        publish(6, fresh=False)
+        self.assertEqual(navigation._navigation_runtime_health["fresh_sequence_count"], 0)
+
     def test_instances_own_independent_navigation_state(self):
         first = gateway()
         second = gateway()

@@ -83,6 +83,15 @@ Robot Scope checkout and reports still use its fixed `runtime/reports` child.
 | Storage | Dataset free space exceeds its configured reserve plus one bounded manifest; configured dataset, map, mapping-log, ROS-log, and report directories are real, non-writable by group/others, and private where required |
 | Services | Both fixed systemd units are observed with load, enablement, active/sub-state, result, and restart count; no enable/start/stop occurs |
 
+The Localization row is paired with the Phase 14
+`navigation.localization_health` check. That row records the explicit state
+and reason plus bounded cloud/odometry rates and ages, TF age and advancing
+fresh-sequence count from `GET /api/v1/navigation`. `READY` is accepted only
+after distinct fresh cloud and odometry sequences; cached status cannot pass.
+Before the supervised initial-pose step, `INITIAL_POSE_REQUIRED` remains
+`BLOCKED`, not a false pass. See
+[ARCHITECTURE_PHASE14.md](ARCHITECTURE_PHASE14.md).
+
 Topic-rate thresholds are acceptance criteria, not runtime timeout changes:
 
 | Topic | Minimum rate | Maximum observed age | Maximum jitter |
@@ -213,7 +222,8 @@ unavailable, the following remain intentionally pending:
 
 - real Jetson Ubuntu/ROS/systemd identity report;
 - live Go2, signed bridge, LowState, sport graph, XT16, FAST-LIO, TF and Nav2
-  measurements;
+  measurements, including the Phase 14 localization-health and calibration
+  assistant observations;
 - every physical and fault-injection scenario in the fixed catalog.
 
 Those rows must be completed only after the user explicitly requests the later

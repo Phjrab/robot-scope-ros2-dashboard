@@ -1416,6 +1416,7 @@ class NavigationCoordinator:
             "goal_id": goal.get("goal_id"),
             "pose": goal.get("pose") if isinstance(goal.get("pose"), Mapping) else None,
             "distance_remaining": goal.get("distance_remaining"),
+            "initial_distance": goal.get("initial_distance"),
             "navigation_time": goal.get("navigation_time"),
             "recoveries": int(goal.get("recoveries", 0) or 0),
             "error": _public_navigation_diagnostic(goal.get("error")),
@@ -1497,6 +1498,12 @@ class NavigationCoordinator:
                 "error": _public_navigation_diagnostic(startup.get("error")),
             },
         }
+        health = runtime.get("localization_health")
+        if isinstance(health, Mapping):
+            result["localization_health"] = dict(health)
+        calibration = runtime.get("calibration_assistant")
+        if isinstance(calibration, Mapping):
+            result["calibration_assistant"] = dict(calibration)
         deactivation_reason = runtime.get("deactivation_reason")
         if isinstance(deactivation_reason, str) and deactivation_reason:
             public_reason = _public_navigation_diagnostic(deactivation_reason)

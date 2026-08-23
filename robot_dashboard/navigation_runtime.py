@@ -28,6 +28,7 @@ import math
 import signal
 import sys
 import time
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -49,6 +50,41 @@ POINT_FIELD_DTYPES: Mapping[int, str] = {
 
 class NavigationRuntimeError(ValueError):
     """Raised when an incoming sensor layout or transform is unsafe."""
+
+
+class BoundedRateWindow:
+    """Track recent arrival frequency/jitter without an unbounded history."""
+
+    def __init__(self, maximum_samples: int = 32) -> None:
+        if maximum_samples < 3 or maximum_samples > 256:
+            raise NavigationRuntimeError("rate window must contain 3 to 256 samples")
+        self._arrivals: deque[float] = deque(maxlen=maximum_samples)
+
+    def observe(self, observed_at: float) -> None:
+        value = _finite_number(observed_at, "arrival time")
+        if self._arrivals and value <= self._arrivals[-1]:
+            return
+        self._arrivals.append(value)
+
+    def snapshot(self, now: float) -> dict[str, float | int | None]:
+        current = _finite_number(now, "current time")
+        if not self._arrivals:
+            return {"frequency_hz": None, "jitter_s": None, "age_s": None, "samples": 0}
+        age = max(0.0, current - self._arrivals[-1])
+        if len(self._arrivals) < 2:
+            return {"frequency_hz": None, "jitter_s": None, "age_s": round(age, 4), "samples": len(self._arrivals)}
+        intervals = [
+            self._arrivals[index] - self._arrivals[index - 1]
+            for index in range(1, len(self._arrivals))
+        ]
+        mean = sum(intervals) / len(intervals)
+        variance = sum((interval - mean) ** 2 for interval in intervals) / len(intervals)
+        return {
+            "frequency_hz": round(1.0 / mean, 3) if mean > 0.0 else None,
+            "jitter_s": round(math.sqrt(variance), 4),
+            "age_s": round(age, 4),
+            "samples": len(self._arrivals),
+        }
 
 
 def _finite_number(value: Any, label: str) -> float:
@@ -545,6 +581,16 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._pose_covariance = [0.0] * 36
             self._last_scan_counts = (0, 0)
             self._last_scan_bins = 0
+            self._cloud_rate = BoundedRateWindow()
+            self._odom_rate = BoundedRateWindow()
+            self._cloud_sequence = 0
+            self._odom_sequence = 0
+            self._last_odom_tf_monotonic = 0.0
+            self._last_map_tf_monotonic = 0.0
+            self._translation_jump_count = 0
+            self._heading_jump_count = 0
+            self._last_jump_reason = ""
+            self._last_jump_monotonic = 0.0
 
             self._scan_publisher = self.create_publisher(
                 LaserScan, "/scan", qos_profile_sensor_data
@@ -660,7 +706,10 @@ def _build_ros_runtime_node_class() -> type[Any]:
             scan.range_max = self._geometry.range_max
             scan.ranges = projection.ranges.tolist()
             self._scan_publisher.publish(scan)
-            self._last_cloud_monotonic = time.monotonic()
+            observed_at = time.monotonic()
+            self._last_cloud_monotonic = observed_at
+            self._cloud_rate.observe(observed_at)
+            self._cloud_sequence += 1
             self._last_cloud_error = ""
 
         def _on_odometry(self, message: Any) -> None:
@@ -717,6 +766,12 @@ def _build_ros_runtime_node_class() -> type[Any]:
                         elapsed,
                     )
                     if discontinuity:
+                        if discontinuity == "odometry translation jumped":
+                            self._translation_jump_count += 1
+                        elif discontinuity == "odometry heading jumped":
+                            self._heading_jump_count += 1
+                        self._last_jump_reason = discontinuity
+                        self._last_jump_monotonic = now
                         self._last_odom_monotonic = 0.0
                         self._last_odom_error = discontinuity
                         self._odom_to_base = None
@@ -727,6 +782,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._odom_z = z_value
             self._odom_quaternion = yaw_to_quaternion(yaw)
             self._last_odom_monotonic = now
+            self._odom_rate.observe(now)
+            self._odom_sequence += 1
             self._last_odom_error = ""
             self._odom_frame_error = ""
             self._broadcast_dynamic_transforms()
@@ -803,6 +860,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             odom_tf.transform.rotation.z = qz
             odom_tf.transform.rotation.w = qw
             self._tf_broadcaster.sendTransform(odom_tf)
+            self._last_odom_tf_monotonic = time.monotonic()
 
             if self._map_to_odom is None:
                 return
@@ -819,6 +877,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             map_tf.transform.rotation.z = qz
             map_tf.transform.rotation.w = qw
             self._tf_broadcaster.sendTransform(map_tf)
+            self._last_map_tf_monotonic = time.monotonic()
 
             map_pose = self._map_to_odom.compose(self._odom_to_base)
             pose_message = PoseWithCovarianceStamped()
@@ -855,6 +914,24 @@ def _build_ros_runtime_node_class() -> type[Any]:
             if localized:
                 self._broadcast_dynamic_transforms()
             input_points, accepted_points = self._last_scan_counts
+            observed_at = time.monotonic()
+            cloud_rate = self._cloud_rate.snapshot(observed_at)
+            odom_rate = self._odom_rate.snapshot(observed_at)
+            odom_tf_age = (
+                None
+                if self._last_odom_tf_monotonic <= 0.0
+                else round(max(0.0, observed_at - self._last_odom_tf_monotonic), 4)
+            )
+            map_tf_age = (
+                None
+                if self._last_map_tf_monotonic <= 0.0
+                else round(max(0.0, observed_at - self._last_map_tf_monotonic), 4)
+            )
+            last_jump_age = (
+                None
+                if self._last_jump_monotonic <= 0.0
+                else round(max(0.0, observed_at - self._last_jump_monotonic), 4)
+            )
             payload = {
                 "schema": "robot-scope.navigation-runtime-health.v1",
                 "ready": bool(
@@ -871,6 +948,41 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "input_points": input_points,
                 "accepted_points": accepted_points,
                 "finite_scan_bins": self._last_scan_bins,
+                "cloud_sequence": self._cloud_sequence,
+                "odometry_sequence": self._odom_sequence,
+                "cloud_frequency_hz": cloud_rate["frequency_hz"],
+                "cloud_jitter_s": cloud_rate["jitter_s"],
+                "cloud_age_s": cloud_rate["age_s"],
+                "odometry_frequency_hz": odom_rate["frequency_hz"],
+                "odometry_jitter_s": odom_rate["jitter_s"],
+                "odometry_age_s": odom_rate["age_s"],
+                "odom_to_base_age_s": odom_tf_age,
+                "map_to_odom_age_s": map_tf_age,
+                "translation_jump_count": self._translation_jump_count,
+                "heading_jump_count": self._heading_jump_count,
+                "last_jump_reason": self._last_jump_reason,
+                "last_jump_age_s": last_jump_age,
+                "frames": {
+                    "cloud": self._options.cloud_frame,
+                    "odometry_parent": "camera_init",
+                    "odometry_child": "body",
+                    "map_parent": "map",
+                    "map_child": "odom",
+                    "base_parent": "odom",
+                    "base_child": "base_link",
+                },
+                "lidar_extrinsic": {
+                    "parent": "base_link",
+                    "child": self._options.cloud_frame,
+                    "x": self._options.lidar_x,
+                    "y": self._options.lidar_y,
+                    "z": self._options.lidar_z,
+                    "yaw": self._options.lidar_yaw,
+                },
+                "clock_domains": {
+                    "pointcloud": "host_ros_normalized",
+                    "localization_odometry": "host_ros",
+                },
                 "cloud_error": self._last_cloud_error if not cloud_fresh else "",
                 "odom_error": self._last_odom_error if not odom_fresh else "",
                 "odom_frame_error": self._odom_frame_error,

@@ -266,6 +266,7 @@ class RosAgent:
             node_getter=lambda: self._node,
             tick=self._tick,
             graph_getter=lambda: self._graph,
+            profile=self.profile,
         )
         self._network_cache: Tuple[float, bool, Optional[float]] = (0.0, False, None)
 

@@ -117,6 +117,18 @@ def healthy_responses():
         "/api/v1/navigation": {
             "pipeline": {"state": "running"},
             "readiness": {"scan": True, "odometry": True, "tf": True},
+            "localization_health": {
+                "state": "READY",
+                "reason_code": "HEALTHY",
+                "metrics": {
+                    "cloud_frequency_hz": 8.0,
+                    "cloud_age_s": 0.05,
+                    "odometry_frequency_hz": 20.0,
+                    "odometry_age_s": 0.02,
+                    "tf_age_s": 0.02,
+                    "fresh_sequence_count": 3,
+                },
+            },
         },
         "/api/v1/mapping/control": {"pipeline": {"state": "running"}},
         "/api/v1/datasets/capture": {

@@ -2,7 +2,7 @@
 
 Robot Scope is a **ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard**.
 This document is the current architecture authority for
-the repository after the Phase 0–13 refactor. The per-phase architecture
+the repository after the Phase 0–14 refactor. The per-phase architecture
 documents remain historical design and verification records; when they
 describe an older ownership boundary, this document takes precedence.
 
@@ -25,11 +25,11 @@ The frozen Phase 0 implementation is commit
 `48617c69033995c82d5d58d6ba1abe9f7808d187`. The current comparison was made
 against the Phase 10 pre-change HEAD `17119dab7b58271ac3051fcd17e2ebc328e14801`.
 
-| Hotspot | Phase 0 | Phase 13 | Responsibility reduction |
+| Hotspot | Phase 0 | Phase 14 | Responsibility reduction |
 | --- | ---: | ---: | --- |
-| `robot_dashboard/app.py` | 3,208 lines | 1,244 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; diagnostics composition remains explicit; 61.2% smaller. |
-| `robot_dashboard/ros_agent.py` | 4,723 lines | 2,377 lines | ROS runtime, observability, control transport and navigation gateway moved to focused components; 49.7% smaller. |
-| `robot_dashboard/static/app.js` | 8,404 lines | 6,741 lines | Shared utilities and six vertical features, including lifecycle-owned datasets and diagnostics export, moved to ES modules; 19.8% smaller. |
+| `robot_dashboard/app.py` | 3,208 lines | 1,251 lines | Runtime globals, extracted routers and mapping/navigation/lifecycle transactions moved to explicit owners; diagnostics composition remains explicit; 61.0% smaller. |
+| `robot_dashboard/ros_agent.py` | 4,723 lines | 2,378 lines | ROS runtime, observability, control transport and navigation gateway moved to focused components; 49.6% smaller. |
+| `robot_dashboard/static/app.js` | 8,404 lines | 6,809 lines | Shared utilities and six vertical features, including lifecycle-owned datasets and diagnostics export, moved to ES modules; 19.0% smaller. |
 
 Line count is evidence, not the goal. The important change is the dependency
 and ownership direction:
@@ -76,6 +76,7 @@ robot_dashboard/
 │   └── navigation_gateway.py fixed Nav2 ROS boundary and autonomous lease
 ├── app.py                    composition, lifespan, remaining thin routes
 ├── diagnostics.py            deterministic bounded public ZIP projection
+├── localization_health.py    bounded explainable localization classifier
 ├── operator_events.py        rotated browser-intent JSONL timeline
 ├── ros_agent.py              compatibility facade and target orchestration
 ├── mapping_jobs.py           trusted mapping child-process manager
@@ -122,6 +123,14 @@ intentionally: tests and existing integrations use them while all mutable
 truth lives in the extracted component. They must not become a second state
 owner. Future removal requires an explicit deprecation and caller inventory,
 not a line-count cleanup.
+
+The fixed navigation runtime publishes additive bounded rate, age, TF,
+discontinuity and frame telemetry. `NavigationRosGateway` validates and
+projects it through the observation-only classifier in
+`localization_health.py`. This classifier cannot arm control or replace the
+existing navigation freshness interlock. Its seven explicit states, profile
+thresholds and read-only calibration assistant are specified in
+[ARCHITECTURE_PHASE14.md](ARCHITECTURE_PHASE14.md).
 
 ### Frontend plane
 

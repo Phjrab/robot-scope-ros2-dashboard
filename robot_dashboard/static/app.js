@@ -213,6 +213,10 @@ const ui = {
   navigationGoalMessage: $('#navigationGoalMessage'),
   navigationCancelGoal: $('#navigationCancelGoal'),
   navigationClearCostmaps: $('#navigationClearCostmaps'),
+  navigationHealthState: $('#navigationHealthState'),
+  navigationHealthReason: $('#navigationHealthReason'),
+  navigationHealthMetrics: $('#navigationHealthMetrics'),
+  navigationCalibrationList: $('#navigationCalibrationList'),
   navigationLogPhase: $('#navigationLogPhase'),
   navigationLogRuntimeState: $('#navigationLogRuntimeState'),
   navigationLogTimestamp: $('#navigationLogTimestamp'),
@@ -3831,6 +3835,69 @@ function navigationBlockerMessage(blocker) {
   return messages[String(blocker || '')] || String(blocker || '').replaceAll('_', ' ');
 }
 
+function formatNavigationMetric(value, suffix = '', digits = 2) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${number.toFixed(digits)}${suffix}` : '—';
+}
+
+function renderNavigationHealth(snapshot) {
+  const health = snapshot?.localization_health;
+  const metrics = health?.metrics;
+  const state = String(health?.state || 'UNAVAILABLE').toUpperCase();
+  const tone = state === 'READY' ? 'ok' : ['STALE', 'DISCONTINUITY', 'FRAME_MISMATCH', 'CALIBRATION_SUSPECTED'].includes(state) ? 'error' : 'waiting';
+  setStatePill(ui.navigationHealthState, tone, state);
+  const reasonCode = String(health?.reason_code || 'TELEMETRY_UNAVAILABLE');
+  const basis = String(health?.threshold_basis || 'Navigation runtime telemetry를 기다리고 있습니다.');
+  ui.navigationHealthReason.textContent = `${reasonCode} · ${basis}`.slice(0, 240);
+
+  const rows = [
+    ['POINTCLOUD', formatNavigationMetric(metrics?.cloud_frequency_hz, ' Hz'), `jitter ${formatNavigationMetric(metrics?.cloud_jitter_s, ' s', 3)} · age ${formatNavigationMetric(metrics?.cloud_age_s, ' s', 3)} · health ${formatNavigationMetric(metrics?.runtime_health_age_s, ' s', 3)}`],
+    ['ODOMETRY', formatNavigationMetric(metrics?.odometry_frequency_hz, ' Hz'), `jitter ${formatNavigationMetric(metrics?.odometry_jitter_s, ' s', 3)} · age ${formatNavigationMetric(metrics?.odometry_age_s, ' s', 3)}`],
+    ['TF AGE', formatNavigationMetric(metrics?.tf_age_s, ' s', 3), `map→odom ${formatNavigationMetric(metrics?.map_to_odom_age_s, ' s', 3)} · odom→base ${formatNavigationMetric(metrics?.odom_to_base_age_s, ' s', 3)}`],
+    ['FAST-LIO JUMPS', `${Number(metrics?.translation_jump_count) || 0} / ${Number(metrics?.heading_jump_count) || 0}`, 'translation / heading'],
+    ['SCAN POINTS', `${Number(metrics?.accepted_points) || 0} / ${Number(metrics?.input_points) || 0}`, 'accepted / input'],
+    ['GOAL PROGRESS', formatNavigationMetric(metrics?.goal_progress_rate_mps, ' m/s', 3), `remaining ${formatNavigationMetric(metrics?.goal_remaining_distance_m, ' m')} · stall ${formatNavigationMetric(metrics?.controller_stall_duration_s, ' s')}`],
+    ['COSTMAP CLEARS', String(Number(metrics?.costmap_clear_count) || 0), `fresh sequence ${Number(metrics?.fresh_sequence_count) || 0}`],
+  ];
+  ui.navigationHealthMetrics.replaceChildren(...rows.map(([label, value, note]) => {
+    const row = document.createElement('div');
+    const span = document.createElement('span');
+    const strong = document.createElement('strong');
+    const small = document.createElement('small');
+    span.textContent = label;
+    strong.textContent = value;
+    small.textContent = note;
+    row.append(span, strong, small);
+    return row;
+  }));
+
+  const assistant = snapshot?.calibration_assistant;
+  const items = Array.isArray(assistant?.items) ? assistant.items.slice(0, 8) : [];
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'sensor-placeholder';
+    empty.textContent = '고정 frame·clock·extrinsic 계약을 확인하고 있습니다.';
+    ui.navigationCalibrationList.replaceChildren(empty);
+    return;
+  }
+  ui.navigationCalibrationList.replaceChildren(...items.map((entry) => {
+    const card = document.createElement('article');
+    const head = document.createElement('div');
+    const code = document.createElement('strong');
+    const status = document.createElement('span');
+    const summary = document.createElement('p');
+    const detail = document.createElement('small');
+    code.textContent = String(entry?.code || 'CHECK').slice(0, 64);
+    status.textContent = String(entry?.status || 'UNKNOWN').slice(0, 16);
+    status.className = `is-${String(entry?.status || 'unknown').toLowerCase()}`;
+    summary.textContent = String(entry?.suspected_cause || '').slice(0, 180);
+    detail.textContent = `${String(entry?.related_config_key || 'fixed runtime')} · ${String(entry?.safe_manual_verification || '')}`.slice(0, 280);
+    head.append(code, status);
+    card.append(head, summary, detail);
+    return card;
+  }));
+}
+
 function renderNavigationStatus() {
   if (!navigationEngine) {
     navigationApiAvailable = false;
@@ -3856,6 +3923,7 @@ function renderNavigationStatus() {
   const blockers = Array.isArray(safety.blockers) ? safety.blockers : [];
   const firstBlocker = blockers[0];
   const activeMapMismatch = pipelineRunning && !navigationActiveMapMatchesSelection();
+  renderNavigationHealth(snapshot);
 
   ui.navigationSafetyBanner.className = 'navigation-safety-banner';
   ui.navigationControlLink.hidden = !manualConflict;

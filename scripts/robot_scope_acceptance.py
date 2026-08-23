@@ -791,6 +791,43 @@ class AcceptanceRunner:
             ),
             safety_impact="Navigation must stay fail-closed when timestamp domains or transforms are invalid.",
         )
+        health = (
+            nav.get("localization_health")
+            if isinstance(nav.get("localization_health"), Mapping)
+            else {}
+        )
+        health_state = str(health.get("state", "UNAVAILABLE"))
+        reason_code = str(health.get("reason_code", "TELEMETRY_UNAVAILABLE"))
+        metrics = health.get("metrics") if isinstance(health.get("metrics"), Mapping) else {}
+        if state != "running":
+            health_status = "BLOCKED"
+            health_observed = "Navigation is idle, so localization health was not exercised."
+        elif health_state == "READY":
+            health_status = "PASS"
+            health_observed = "The bounded localization health model reports READY."
+        elif health_state == "DEGRADED" and reason_code == "INITIAL_POSE_REQUIRED":
+            health_status = "BLOCKED"
+            health_observed = "Navigation is waiting for the supervised initial-pose step."
+        else:
+            health_status = "FAIL"
+            health_observed = "The running localization health model reports a non-ready condition."
+        self.add(
+            "navigation.localization_health",
+            health_status,
+            "Bounded cloud, odometry, TF and progress telemetry satisfies the configured Phase 14 thresholds.",
+            health_observed,
+            evidence=(
+                f"health_state={health_state}",
+                f"reason_code={reason_code}",
+                f"cloud_hz={metrics.get('cloud_frequency_hz')}",
+                f"cloud_age_s={metrics.get('cloud_age_s')}",
+                f"odometry_hz={metrics.get('odometry_frequency_hz')}",
+                f"odometry_age_s={metrics.get('odometry_age_s')}",
+                f"tf_age_s={metrics.get('tf_age_s')}",
+                f"fresh_sequence_count={metrics.get('fresh_sequence_count')}",
+            ),
+            safety_impact="A cached or discontinuous localization stream must never be reported as READY.",
+        )
 
     def _collect_maps(self) -> None:
         payload = self._response("/api/v1/saved-maps")
