@@ -25,6 +25,7 @@ Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree G
 | [문제 해결](docs/TROUBLESHOOTING.md) | DDS, XT16, 저장, 카메라, 제어와 Nav 진단 순서 |
 | [AI 데이터셋](docs/AI_DATASET.md) | 듀얼 카메라 서버 수집, 저장 구조, 라벨링과 YOLO/UFLD 배포 판단 |
 | [업데이트/롤백](docs/UPDATE_ROLLBACK.md) | 지도·상태 보존, fast-forward update와 안전 롤백 |
+| [하드웨어 인수 검증](docs/HARDWARE_ACCEPTANCE.md) | 읽기 전용 Jetson/Go2/XT16 점검, 감독 시나리오와 fail-stop 보고서 |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | 포함된 공식 robot model의 출처와 라이선스 |
 
 처음 설치하는 사용자는 가장 작은 `observer` 모드에서 시작해 필요한 하드웨어 기능만
@@ -122,6 +123,15 @@ APT/systemd 작업에 sudo를 사용합니다. 설치한 unit은 기본적으로
 사용자가 명시적으로 시작할 때만 실행됩니다. 기존 unit의 enable 상태도 임의로 바꾸지 않습니다.
 설치 중에는 분리된 로봇 NIC를 경고로 허용하지만, 서비스 시작 전 별도 `doctor` 명령은
 NIC와 고정 주소를 다시 엄격하게 검사합니다.
+
+설치 후 실제 Jetson/Go2/XT16 인수 검증은 기본적으로 읽기 전용인 다음 도구로 기록합니다.
+물리 동작과 fault injection은 자동 실행되지 않으며, 별도 안전 확인을 모두 제공한 운영자의
+결과만 한 시나리오씩 기록합니다. 자세한 절차와 중단 조건은
+[하드웨어 인수 검증 문서](docs/HARDWARE_ACCEPTANCE.md)를 확인하세요.
+
+~~~bash
+python3 scripts/robot_scope_acceptance.py --mode go2-nav
+~~~
 
 아래 명령은 Python 웹 계층의 수동 최소 설치입니다. Go2, XT16, 제어와 Nav2 전체 기능은
 외부 의존성과 호스트별 설정이 추가로 필요합니다.
