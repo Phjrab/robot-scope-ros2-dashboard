@@ -306,7 +306,7 @@ The Phase 10 documentation audit covered the required operator documents:
 | --- | --- |
 | `README.md` | Product scope, supported profiles, API overview, test commands, security warning and current module layout. |
 | `docs/INSTALL.md` | Explicit install opt-ins, modes, service policy and side-effect-aware smoke tests. |
-| `docs/DEPENDENCIES.md` | ROS2 Humble/system-site-packages boundary, pinned external manifest and release-record strategy. |
+| `docs/DEPENDENCIES.md` | Supported ROS/system-site-packages boundary, distro-specific manifests and release-record strategy. |
 | `docs/TOPOLOGY.md` | Management/robot/sensor network roles and single/two-host reference paths. |
 | `docs/TROUBLESHOOTING.md` | Read-only-first diagnostics and fail-closed control/mapping/navigation recovery. |
 | `THIRD_PARTY_NOTICES.md` | Only shipped Go2/TurtleBot assets plus external runtime redistribution obligations. |

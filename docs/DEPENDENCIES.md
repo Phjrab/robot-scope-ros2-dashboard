@@ -6,13 +6,14 @@ Robot Scope 저장소만으로 웹 UI와 Generic 계층을 구성할 수 있지�
 
 ## 기본 운영체제 패키지
 
-Ubuntu 22.04에서 설치 모드에 따라 다음 범주가 필요합니다.
+Ubuntu 22.04/Humble 전체 경로와 Ubuntu 24.04/Jazzy `observer` 경로에서 설치 모드에
+따라 다음 범주가 필요합니다.
 
 | 범주 | 대표 패키지 | 적용 모드 |
 |---|---|---|
 | 기본 도구 | `git`, `python3`, `python3-venv`, `python3-pip`, `curl` | 전체 |
 | 네트워크/프로세스 | `iproute2`, `iputils-ping`, `procps`, `coreutils` | 전체 |
-| ROS | ROS 2 Humble, `rmw-cyclonedds-cpp` | 전체 |
+| ROS | ROS 2 Humble 또는 Jazzy, `rmw-cyclonedds-cpp` | 전체 |
 | 카메라 | GStreamer tools, good/bad/libav plugins | `go2` 이상 |
 | 내비게이션 | `ros-humble-navigation2`, `ros-humble-nav2-bringup` | `go2-nav` |
 | 개발 검증 | Node.js, Python test dependencies | contributor/CI |
@@ -32,7 +33,8 @@ workspace와 운영체제 패키지는 pinned revision의 지침 및 승인 기�
 
 `requirements-quality.txt`는 CI·기여자 전용 도구를 exact version으로 고정합니다.
 여기에는 Ruff, Mypy, Coverage, pip-audit만 포함하며 `rclpy`·ROS message package·현장
-workspace는 포함하지 않습니다. 따라서 Ubuntu 22.04 + Python 3.10 + ROS 2 Humble의
+workspace는 포함하지 않습니다. 따라서 Ubuntu 22.04/Python 3.10/Humble 또는
+Ubuntu 24.04/Python 3.12/Jazzy의
 `--system-site-packages` virtualenv에서 ROS Python 설치를 pip가 재해석하거나 교체하지
 않습니다.
 
@@ -42,9 +44,9 @@ arm64/x86_64 wheel은 host마다 조합이 달라, 한 lockfile이 Humble runtim
 다음을 함께 보관합니다.
 
 - Robot Scope commit과 `requirements.txt` SHA-256;
-- Python 3.10, Ubuntu 22.04, architecture와 ROS/RMW 기록;
+- Python, Ubuntu, architecture와 ROS/RMW의 실제 버전 기록;
 - target virtualenv의 `python -m pip freeze --all` 출력 또는 해당 host 전용 constraints;
-- `config/ros_dependencies_humble.json`의 external workspace pins 및 설치 결과.
+- 선택된 `config/ros_dependencies_<distro>.json`과 external workspace 설치 결과.
 
 CI는 exact quality tool versions로 Ruff의 correctness 규칙, 제한된 pure-Python Mypy
 scope, 전체 dashboard JavaScript syntax, tracked-source secret scan, `pip check`,
@@ -62,8 +64,10 @@ package manifest나 third-party dependency가 없으므로 `npm audit` 대상이
 ## 외부 구성 manifest
 
 외부 ROS 저장소의 설치 기준 URL, commit, 라이선스와 target은 단일 source of truth인
-`config/ros_dependencies_humble.json`에 고정되어 있습니다. Bootstrap은 이 manifest를
-따라야 하며 branch의 최신 HEAD로 임의 이동하면 안 됩니다. 현장별 비공개 artifact가
+Humble 하드웨어 경로는 `config/ros_dependencies_humble.json`에 고정되어 있습니다.
+Jazzy observer system package는 `config/ros_dependencies_jazzy.json`에 고정되며 외부
+vendor source를 선언하지 않습니다. Bootstrap은 선택된 manifest를 따라야 하며 branch의
+최신 HEAD로 임의 이동하면 안 됩니다. 현장별 비공개 artifact가
 추가되면 내부 artifact ID와 SHA-256을 별도 inventory에 기록합니다.
 
 아래 경로는 `ROBOT_SCOPE_WORKSPACE_ROOT`가 비어 있을 때의 기본값입니다. 일반

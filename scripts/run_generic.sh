@@ -5,7 +5,26 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
 PORT="${ROBOT_SCOPE_PORT:-8088}"
 ROBOT_IP="${ROBOT_SCOPE_ROBOT_IP:-}"
-ROS_DISTRO_NAME="${ROS_DISTRO:-humble}"
+ROS_DISTRO_NAME="${ROS_DISTRO:-}"
+if [[ -z "$ROS_DISTRO_NAME" ]]; then
+  OS_VERSION="$(awk -F= '$1 == "VERSION_ID" {value=$2; gsub(/^["'"'"']|["'"'"']$/, "", value); print value; exit}' /etc/os-release 2>/dev/null || true)"
+  case "$OS_VERSION" in
+    22.04) ROS_DISTRO_NAME="humble" ;;
+    24.04) ROS_DISTRO_NAME="jazzy" ;;
+    *)
+      echo "[Robot Scope] set ROS_DISTRO explicitly on unsupported Ubuntu releases" >&2
+      exit 2
+      ;;
+  esac
+fi
+case "$ROS_DISTRO_NAME" in
+  humble|jazzy) ;;
+  *)
+    echo "[Robot Scope] unsupported ROS_DISTRO: $ROS_DISTRO_NAME" >&2
+    exit 64
+    ;;
+esac
+ROS_SETUP="${ROBOT_SCOPE_ROS_SETUP:-/opt/ros/$ROS_DISTRO_NAME/setup.bash}"
 PROFILE_NAME="${ROBOT_SCOPE_PROFILE:-generic}"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$PROJECT_DIR/workspaces}"
 MAPS_DIR="${ROBOT_SCOPE_MAPS_DIR:-$WORKSPACE_ROOT/ws/go2_3d/maps}"
@@ -40,7 +59,11 @@ case "$PROFILE_NAME" in
     ;;
 esac
 
-source "/opt/ros/$ROS_DISTRO_NAME/setup.bash"
+if [[ ! -f "$ROS_SETUP" ]]; then
+  echo "[Robot Scope] ROS 2 $ROS_DISTRO_NAME setup is missing: $ROS_SETUP" >&2
+  exit 2
+fi
+source "$ROS_SETUP"
 if [[ -n "${ROBOT_SCOPE_OVERLAY:-}" ]]; then
   source "$ROBOT_SCOPE_OVERLAY"
 fi

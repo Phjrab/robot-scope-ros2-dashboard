@@ -1,7 +1,6 @@
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import tempfile
 import unittest
@@ -9,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "config" / "ros_dependencies_humble.json"
+JAZZY_MANIFEST = ROOT / "config" / "ros_dependencies_jazzy.json"
 SCRIPT = ROOT / "scripts" / "bootstrap_ros_dependencies.sh"
 
 
@@ -43,6 +43,16 @@ class RosDependencyManifestTests(unittest.TestCase):
     def test_fast_lio_copyleft_is_explicit(self) -> None:
         payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
         self.assertEqual(payload["repositories"]["fast_lio"]["license"], "GPL-2.0-only")
+
+    def test_jazzy_manifest_is_noble_observer_only(self) -> None:
+        payload = json.loads(JAZZY_MANIFEST.read_text(encoding="utf-8"))
+        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["ros_distro"], "jazzy")
+        self.assertEqual(payload["ubuntu_codename"], "noble")
+        self.assertEqual(payload["verified_reference"]["scope"], "observer-runtime")
+        self.assertEqual(payload["repositories"], {})
+        self.assertIn("ros-jazzy-ros-base", payload["apt_groups"]["ros"])
+        self.assertRegex(payload["ros_apt_source"]["sha256"], r"^[0-9a-f]{64}$")
 
     def test_livox_sdk_precedes_the_ros_driver_in_private_prefix(self) -> None:
         payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
@@ -86,6 +96,19 @@ class RosDependencyBootstrapTests(unittest.TestCase):
         observer_exit = source.index('if [[ "$MODE" == "observer" ]]')
         build_tool_checks = source.index('command -v colcon')
         self.assertLess(observer_exit, build_tool_checks)
+
+    def test_jazzy_manifest_allows_observer_but_rejects_vendor_modes(self) -> None:
+        observer = self.run_script(
+            "--mode", "observer", "--manifest", str(JAZZY_MANIFEST), "--dry-run"
+        )
+        self.assertEqual(observer.returncode, 0, observer.stderr)
+        self.assertIn("no vendor source dependencies", observer.stdout)
+
+        go2 = self.run_script(
+            "--mode", "go2", "--manifest", str(JAZZY_MANIFEST), "--dry-run"
+        )
+        self.assertEqual(go2.returncode, 2)
+        self.assertIn("supported only with ROS 2 Humble", go2.stderr)
 
     def test_colcon_setup_files_are_sourced_without_nounset(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")

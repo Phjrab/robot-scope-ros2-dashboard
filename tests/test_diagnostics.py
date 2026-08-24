@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import json
-import os
 import stat
 import tempfile
 import unittest
@@ -198,7 +197,13 @@ class OperatorEventTimelineTests(unittest.TestCase):
 
 
 class DiagnosticsBundleTests(unittest.TestCase):
-    def build_service(self, project: Path, timeline: OperatorEventTimeline) -> DiagnosticsBundleService:
+    def build_service(
+        self,
+        project: Path,
+        timeline: OperatorEventTimeline,
+        *,
+        ros_distro: str = "humble",
+    ) -> DiagnosticsBundleService:
         return DiagnosticsBundleService(
             project_dir=project,
             profile_provider=lambda: {
@@ -215,7 +220,7 @@ class DiagnosticsBundleTests(unittest.TestCase):
                 "robot_type": "go2",
                 "robot_ip": "192.168.123.161",
                 "hostname": "private-host",
-                "ros_distro": "humble",
+                "ros_distro": ros_distro,
                 "rmw": "rmw_cyclonedds_cpp",
                 "topic_count": 2,
                 "last_error": "password=hunter2 at /private/runtime/error.log",
@@ -417,6 +422,36 @@ class DiagnosticsBundleTests(unittest.TestCase):
             self.assertEqual(
                 changed_summary["profile"]["sha256"],
                 summary["profile"]["sha256"],
+            )
+
+    def test_dependency_manifest_follows_reported_ros_distro(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary).resolve()
+            config = project / "config"
+            config.mkdir()
+            (config / "ros_dependencies_jazzy.json").write_text(
+                json.dumps(
+                    {
+                        "repositories": {
+                            "jazzy_dependency": {
+                                "commit": "3" * 40,
+                                "license": "MIT",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            timeline = OperatorEventTimeline(project / "events")
+            payload = self.build_service(
+                project, timeline, ros_distro="jazzy"
+            ).build().payload
+            with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                versions = json.loads(archive.read("versions.json"))
+            self.assertEqual(versions["ros_distro"], "jazzy")
+            self.assertEqual(
+                versions["external_dependencies"],
+                {"jazzy_dependency": {"commit": "3" * 40, "license": "MIT"}},
             )
 
     def test_provider_failures_are_reported_with_one_fixed_public_error(self) -> None:

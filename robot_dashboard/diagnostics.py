@@ -476,14 +476,18 @@ class DiagnosticsBundleService:
             "selected_sources": _source_projection(sources),
             "acceptance_report": acceptance,
         }
+        ros_distro = _identifier(health.get("ros_distro"), default="unknown")
+        dependency_manifest = (
+            self._project_dir / "config" / f"ros_dependencies_{ros_distro}.json"
+        )
         versions = {
             "schema": DIAGNOSTICS_SCHEMA,
             "robot_scope": {"commit": commit, "tag": tag},
             "python": platform.python_version(),
-            "ros_distro": _identifier(health.get("ros_distro"), default="unknown"),
+            "ros_distro": ros_distro,
             "rmw": _identifier(health.get("rmw"), default="unknown"),
             "external_dependencies": _dependency_revisions(
-                self._project_dir / "config" / "ros_dependencies_humble.json"
+                dependency_manifest
             ),
         }
         operator_entries = self._operator_events.recent(DIAGNOSTICS_MAX_EVENT_LINES)

@@ -1,5 +1,4 @@
 import importlib.util
-import os
 import subprocess
 import sys
 import tempfile
@@ -69,6 +68,15 @@ class DoctorFixture:
         (self.ros_prefix / "setup.bash").write_text("", encoding="utf-8")
         self.os_release.write_text(
             'ID=ubuntu\nVERSION_ID="22.04"\nPRETTY_NAME="Ubuntu 22.04 LTS"\n',
+            encoding="utf-8",
+        )
+
+    def use_jazzy(self):
+        self.ros_prefix = self.base / "opt" / "ros" / "jazzy"
+        self.ros_prefix.mkdir(parents=True)
+        (self.ros_prefix / "setup.bash").write_text("", encoding="utf-8")
+        self.os_release.write_text(
+            'ID=ubuntu\nVERSION_ID="24.04"\nPRETTY_NAME="Ubuntu 24.04 LTS"\n',
             encoding="utf-8",
         )
 
@@ -147,6 +155,41 @@ class RobotScopeDoctorTests(unittest.TestCase):
                 any('source "$1"' in argument for argument in python_probe)
             )
             self.assertIn(str(fixture.ros_prefix / "setup.bash"), python_probe)
+
+    def test_jazzy_observer_is_supported_on_ubuntu_2404(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            fixture.use_jazzy()
+            doctor = fixture.make_doctor("observer")
+            checks = doctor.run()
+            by_id = {check.id: check for check in checks}
+            self.assertEqual(doctor.ros_distro, "jazzy")
+            self.assertEqual(by_id["platform.os"].status, "pass")
+            self.assertEqual(by_id["platform.ros_pair"].status, "pass")
+            self.assertEqual(by_id["core.ros_setup"].status, "pass")
+            self.assertEqual(doctor.exit_code, 0)
+
+    def test_jazzy_go2_mode_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            fixture.use_jazzy()
+            doctor = fixture.make_doctor("go2", allow_hardware_offline=True)
+            checks = doctor.run()
+            by_id = {check.id: check for check in checks}
+            self.assertEqual(by_id["platform.mode"].status, "fail")
+            self.assertIn("not supported", by_id["platform.mode"].summary)
+            self.assertEqual(doctor.exit_code, 1)
+
+    def test_mismatched_ros_distro_fails_platform_pair(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            doctor = fixture.make_doctor(
+                "observer", environment_updates={"ROS_DISTRO": "jazzy"}
+            )
+            checks = doctor.run()
+            pair = next(check for check in checks if check.id == "platform.ros_pair")
+            self.assertEqual(pair.status, "fail")
+            self.assertIn("expected=humble", pair.detail)
 
     def test_go2_checks_configured_interface_and_cyclonedds(self):
         with tempfile.TemporaryDirectory() as temporary:

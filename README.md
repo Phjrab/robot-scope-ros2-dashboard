@@ -5,14 +5,15 @@ Robot Scope는 ROS 2 기반 모바일 로봇의 센서 관측, 매핑, 위치추
 패널입니다. 대시보드에서 허용된 Hesai + FAST-LIO 매핑 파이프라인을 시작하고,
 현재 지도를 3D PCD와 선택적 2D PGM/YAML 형식으로 저장할 수도 있습니다.
 
-Ubuntu 22.04 ROS host + ROS 2 Humble 환경을 기본 지원합니다. Unitree Go2 + XT16
-전체 경로의 검증 플랫폼은 Jetson Orin Nano이지만 Jetson 전용 애플리케이션은 아닙니다.
-표준 sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로필을 사용할
-수 있습니다.
+Ubuntu 22.04 + ROS 2 Humble과 Ubuntu 24.04 + ROS 2 Jazzy를 지원합니다. Jazzy는
+현재 `observer`/Generic 웹 계층까지 검증했고, Unitree Go2 + XT16 전체 경로는
+Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 애플리케이션은
+아니며, 표준 sensor_msgs와 nav_msgs를 사용하는 다른 ROS 2 로봇에는 Generic 프로필을
+사용할 수 있습니다.
 
-전체 Go2 + XT16 경로는 Ubuntu 22.04, ROS 2 Humble, Jetson Orin Nano
-(`arm64`)에서 검증했습니다. 웹/Generic 계층은 Ubuntu 22.04의 `x86_64`와 `arm64`를
-지원하지만, 제조사 ROS driver와 SDK의 아키텍처 호환성은 별도로 확인해야 합니다.
+웹/Generic 계층은 Ubuntu 22.04/Humble과 Ubuntu 24.04/Jazzy의 `x86_64`와 `arm64`를
+지원합니다. Jazzy에서 `go2`, `go2-control`, `go2-xt16`, `go2-nav` 설치는 검증되지 않은
+제조사 workspace 조합을 만들지 않도록 installer와 doctor가 차단합니다.
 
 ## 설치 및 운영 문서
 
@@ -93,22 +94,25 @@ ROS 2 DDS는 일반 TCP 서비스처럼 로봇 IP 하나에 접속하는 방식�
 | 항목 | 환경 |
 |---|---|
 | 검증 컴퓨터 | Jetson Orin Nano (필수 장비 아님) |
-| 운영체제 | Ubuntu 22.04 |
+| 운영체제 | Ubuntu 22.04 (전체 경로), Ubuntu 24.04 (`observer`) |
 | 아키텍처 | Jetson Orin Nano arm64 전체 경로 검증; x86_64/arm64 웹·Generic 지원 |
-| ROS | ROS 2 Humble |
+| ROS | ROS 2 Humble (전체 경로), ROS 2 Jazzy (`observer`) |
 | DDS | Cyclone DDS |
 | 로봇 | Unitree Go2 |
 | 외장 LiDAR | Hesai PandarXT-16 |
 | SLAM | FAST-LIO ROS 2 |
 | 브라우저 주소 | http://JETSON_IP:8088 |
 
-자료가 ROS 2 Jazzy 기준이어도 이 프로젝트의 실행 스크립트와 검증 절차는
-ROS 2 Humble에 맞춰져 있습니다.
+Go2·XT16·제어·Nav 스크립트는 ROS 2 Humble 전용입니다. Ubuntu 24.04/Jazzy에서는
+Generic `observer` 실행 경로만 사용하세요.
 
 ## 빠른 설치
 
 새 호스트에는 [설치 가이드](docs/INSTALL.md)의 mode별 절차를 권장합니다. 설치 helper와
 하드웨어를 변경하지 않는 doctor는 다음 이름을 사용합니다.
+
+Installer는 `/etc/os-release`를 읽어 Ubuntu 22.04에서는 Humble, Ubuntu 24.04에서는
+Jazzy package manifest를 자동 선택합니다. Ubuntu 24.04에서는 `observer`만 허용합니다.
 
 ~~~bash
 ./scripts/install_ubuntu.sh --mode observer \
@@ -150,7 +154,7 @@ python3 -m venv --system-site-packages .venv
 chmod +x scripts/*.sh scripts/check_pcd_bounds.py
 ~~~
 
-Navigation 화면까지 사용할 Ubuntu ROS host에는 ROS 2 Humble Nav2가 설치되어 있어야 합니다.
+Navigation 화면까지 사용할 Ubuntu 22.04/Humble ROS host에는 Nav2가 설치되어 있어야 합니다.
 별도의 `pointcloud_to_laserscan` 패키지는 사용하지 않으며, 저장소의 제한된 runtime이
 XT16 `PointCloud2`를 `/scan`으로 변환합니다.
 
@@ -242,7 +246,7 @@ domain/interface를 사용해야 합니다. 대시보드의 지도·센서 조�
 ### 다른 ROS 2 로봇
 
 ~~~bash
-export ROS_DISTRO=humble
+export ROS_DISTRO=jazzy  # Ubuntu 24.04; use humble on Ubuntu 22.04
 export ROBOT_SCOPE_ROBOT_IP=192.168.1.20
 export ROBOT_SCOPE_OVERLAY=$HOME/ros2_ws/install/setup.bash
 export ROBOT_SCOPE_PROFILE=turtlebot  # generic | turtlebot

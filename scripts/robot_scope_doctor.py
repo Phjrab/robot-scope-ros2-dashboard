@@ -39,6 +39,11 @@ SUPPORTED_ARCHITECTURES = {
     "aarch64": "arm64",
     "arm64": "arm64",
 }
+SUPPORTED_PLATFORMS = {
+    ("ubuntu", "22.04"): ("humble", "jammy"),
+    ("ubuntu", "24.04"): ("jazzy", "noble"),
+}
+HUMBLE_ONLY_FEATURES = frozenset({"go2", "control", "xt16", "nav"})
 ENV_KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,127}$")
 INTERFACE_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,64}$")
 
@@ -150,7 +155,7 @@ class Doctor:
         allow_hardware_offline: bool = False,
         command_runner: CommandRunner = subprocess.run,
         which: Which = shutil.which,
-        ros_prefix: Path = Path("/opt/ros/humble"),
+        ros_prefix: Path | None = None,
     ) -> None:
         if mode not in MODES:
             raise ValueError(f"unsupported mode: {mode}")
@@ -171,10 +176,20 @@ class Doctor:
         self.environment = dict(file_values)
         self.environment.update(dict(environment if environment is not None else os.environ))
         self.os_release_file = os_release_file
+        self.release = parse_os_release(self.os_release_file)
+        platform_key = (
+            self.release.get("ID", "").casefold(),
+            self.release.get("VERSION_ID", ""),
+        )
+        expected = SUPPORTED_PLATFORMS.get(platform_key)
+        configured_distro = self.environment.get("ROS_DISTRO", "").strip().casefold()
+        self.ros_distro = configured_distro or (expected[0] if expected else "humble")
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,31}", self.ros_distro):
+            raise ValueError("ROS_DISTRO must be a lowercase ROS distribution name")
         self.architecture = architecture or platform.machine()
         self.command_runner = command_runner
         self.which = which
-        self.ros_prefix = ros_prefix
+        self.ros_prefix = ros_prefix or Path("/opt/ros") / self.ros_distro
         self.allow_hardware_offline = bool(allow_hardware_offline)
         self.home = Path(self.environment.get("HOME", str(Path.home())))
         if not self.home.is_absolute() or self.home == Path("/"):
@@ -267,22 +282,53 @@ class Doctor:
         return list(self.checks)
 
     def _check_platform(self) -> None:
-        release = parse_os_release(self.os_release_file)
-        if release.get("ID", "").casefold() == "ubuntu" and release.get("VERSION_ID") == "22.04":
+        release = self.release
+        platform_key = (
+            release.get("ID", "").casefold(),
+            release.get("VERSION_ID", ""),
+        )
+        expected = SUPPORTED_PLATFORMS.get(platform_key)
+        if expected is not None:
+            expected_distro, _codename = expected
             self.add(
                 "platform.os",
                 "pass",
-                "Ubuntu 22.04 detected",
-                detail=release.get("PRETTY_NAME", "Ubuntu 22.04"),
+                f"Ubuntu {platform_key[1]} detected",
+                detail=release.get("PRETTY_NAME", f"Ubuntu {platform_key[1]}"),
             )
+            if self.ros_distro == expected_distro:
+                self.add(
+                    "platform.ros_pair",
+                    "pass",
+                    f"ROS 2 {self.ros_distro.title()} matches this Ubuntu release",
+                )
+            else:
+                self.add(
+                    "platform.ros_pair",
+                    "fail",
+                    "ROS distribution does not match the Ubuntu release",
+                    detail=f"configured={self.ros_distro} expected={expected_distro}",
+                    remedy=f"Use ROS 2 {expected_distro.title()} on Ubuntu {platform_key[1]}.",
+                )
         else:
             detected = release.get("PRETTY_NAME") or "unknown operating system"
             self.add(
                 "platform.os",
                 "fail",
-                "Ubuntu 22.04 is required by the supported installer",
+                "unsupported Ubuntu release",
                 detail=detected,
-                remedy="Use an Ubuntu 22.04 ROS 2 host; Jetson is optional.",
+                remedy=(
+                    "Use Ubuntu 22.04 with ROS 2 Humble or Ubuntu 24.04 with "
+                    "ROS 2 Jazzy observer mode."
+                ),
+            )
+
+        if self.features & HUMBLE_ONLY_FEATURES and self.ros_distro != "humble":
+            self.add(
+                "platform.mode",
+                "fail",
+                f"{self.mode} is not supported on ROS 2 {self.ros_distro.title()}",
+                remedy="Use observer mode on Jazzy or Ubuntu 22.04/Humble for Go2 modes.",
             )
 
         normalized = normalized_architecture(self.architecture)
@@ -299,15 +345,18 @@ class Doctor:
                 "fail",
                 "unsupported CPU architecture",
                 detail=self.architecture,
-                remedy="Use an x86_64 or arm64 Ubuntu 22.04 host.",
+                remedy="Use an x86_64 or arm64 supported Ubuntu host.",
             )
 
     def _check_core(self) -> None:
         self.check_file(
             "core.ros_setup",
-            "ROS 2 Humble setup",
+            f"ROS 2 {self.ros_distro.title()} setup",
             self.ros_prefix / "setup.bash",
-            remedy="Install ROS 2 Humble before running the dashboard installer.",
+            remedy=(
+                f"Install ROS 2 {self.ros_distro.title()} before running the "
+                "dashboard installer."
+            ),
         )
         requirements = self.project_dir / "requirements.txt"
         self.check_file("core.requirements", "Python requirements file", requirements)
@@ -744,7 +793,10 @@ class Doctor:
                 f"Nav2 executable {relative.rsplit('/', 1)[-1]}",
                 executable,
                 executable=True,
-                remedy="Install ros-humble-navigation2 and ros-humble-nav2-bringup.",
+                remedy=(
+                    f"Install ros-{self.ros_distro}-navigation2 and "
+                    f"ros-{self.ros_distro}-nav2-bringup."
+                ),
             )
         self.check_file(
             "nav.parameters",
@@ -763,7 +815,7 @@ def build_parser() -> argparse.ArgumentParser:
         os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
     )
     parser = argparse.ArgumentParser(
-        description="Check a Robot Scope Ubuntu 22.04 installation without changing it."
+        description="Check a supported Robot Scope Ubuntu/ROS installation without changing it."
     )
     parser.add_argument("--mode", choices=MODES, default="observer")
     parser.add_argument("--project-dir", type=Path, default=project_default)
@@ -801,7 +853,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         payload = {
             "mode": doctor.mode,
             "features": sorted(doctor.features),
-            "supported_platform": "Ubuntu 22.04 x86_64/arm64",
+            "supported_platform": (
+                "Ubuntu 22.04/Humble (all modes); "
+                "Ubuntu 24.04/Jazzy (observer); x86_64/arm64"
+            ),
+            "ros_distro": doctor.ros_distro,
             "jetson_required": False,
             "checks": [asdict(check) for check in checks],
             "ok": doctor.exit_code == 0,
@@ -810,7 +866,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(
             f"Robot Scope doctor | mode={doctor.mode} | "
-            "platform=Ubuntu 22.04 x86_64/arm64 (Jetson optional)"
+            "platform=Ubuntu 22.04/Humble or Ubuntu 24.04/Jazzy "
+            "x86_64/arm64 (Jetson optional)"
         )
         for check in checks:
             requirement = "required" if check.required else "optional"

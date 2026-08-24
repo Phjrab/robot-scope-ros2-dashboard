@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Platform-neutral, noninteractive bootstrap for an existing Robot Scope clone.
+# Platform-aware, noninteractive bootstrap for an existing Robot Scope clone.
 # The default action is a read-only dry run. --apply is the mutation gate;
 # privileged package/service changes require a second, explicit opt-in.
 
@@ -25,7 +25,8 @@ usage() {
   cat <<'EOF'
 usage: install_ubuntu.sh [OPTIONS]
 
-Bootstrap Robot Scope on Ubuntu 22.04 x86_64 or arm64. Jetson is optional.
+Bootstrap Robot Scope on Ubuntu 22.04/Humble or Ubuntu 24.04/Jazzy.
+The Jazzy platform currently supports observer mode only. Jetson is optional.
 The default is a read-only dry run. Run this installer as the target user,
 never as root. Privileged actions use sudo only with an explicit opt-in.
 
@@ -174,7 +175,6 @@ REQUIREMENTS="$PROJECT_DIR/requirements.txt"
 ENV_TEMPLATE="$PROJECT_DIR/deploy/robot-scope.env.example"
 DOCTOR="$PROJECT_DIR/scripts/robot_scope_doctor.py"
 EXTERNAL_BOOTSTRAP="$PROJECT_DIR/scripts/bootstrap_ros_dependencies.sh"
-DEPENDENCY_MANIFEST="$PROJECT_DIR/config/ros_dependencies_humble.json"
 VENV_DIR="$PROJECT_DIR/.venv"
 OPERATOR_SOURCE="$PROJECT_DIR/scripts/robot_scope_dashboard_service.py"
 
@@ -182,11 +182,36 @@ OPERATOR_SOURCE="$PROJECT_DIR/scripts/robot_scope_dashboard_service.py"
 [[ -f "$ENV_TEMPLATE" ]] || die "deploy/robot-scope.env.example is missing"
 [[ -f "$DOCTOR" ]] || die "scripts/robot_scope_doctor.py is missing"
 [[ -x "$EXTERNAL_BOOTSTRAP" ]] || die "pinned dependency bootstrap is missing or not executable"
-[[ -f "$DEPENDENCY_MANIFEST" ]] || die "pinned dependency manifest is missing"
 if [[ "$INSTALL_SERVICE" -eq 1 ]]; then
   [[ -x "$OPERATOR_SOURCE" ]] || die "dashboard SSH operator helper is missing or not executable"
 fi
 command -v python3 >/dev/null 2>&1 || die "python3 is required"
+
+os_id="$(awk -F= '$1 == "ID" {value=$2; gsub(/^["'"'"']|["'"'"']$/, "", value); print tolower(value); exit}' "$OS_RELEASE_FILE" 2>/dev/null || true)"
+os_version="$(awk -F= '$1 == "VERSION_ID" {value=$2; gsub(/^["'"'"']|["'"'"']$/, "", value); print value; exit}' "$OS_RELEASE_FILE" 2>/dev/null || true)"
+case "$os_id:$os_version" in
+  ubuntu:22.04)
+    ROS_DISTRO_NAME="humble"
+    UBUNTU_CODENAME="jammy"
+    ;;
+  ubuntu:24.04)
+    ROS_DISTRO_NAME="jazzy"
+    UBUNTU_CODENAME="noble"
+    [[ "$MODE" == "observer" ]] || \
+      die "Ubuntu 24.04 / ROS 2 Jazzy currently supports observer mode only"
+    ;;
+  *)
+    ROS_DISTRO_NAME="${ROS_DISTRO:-humble}"
+    case "$ROS_DISTRO_NAME" in
+      humble) UBUNTU_CODENAME="jammy" ;;
+      jazzy) UBUNTU_CODENAME="noble" ;;
+      *) die "unsupported ROS_DISTRO for installation planning: $ROS_DISTRO_NAME" ;;
+    esac
+    ;;
+esac
+DEPENDENCY_MANIFEST="$PROJECT_DIR/config/ros_dependencies_${ROS_DISTRO_NAME}.json"
+[[ -f "$DEPENDENCY_MANIFEST" ]] || \
+  die "pinned dependency manifest is missing: $DEPENDENCY_MANIFEST"
 
 literal_env_value() {
   local key="$1"
@@ -251,7 +276,7 @@ fi
 APT_PACKAGES=()
 while IFS= read -r package; do
   [[ -n "$package" ]] && APT_PACKAGES+=("$package")
-done < <(python3 - "$DEPENDENCY_MANIFEST" "$MODE" <<'PY'
+done < <(python3 - "$DEPENDENCY_MANIFEST" "$MODE" "$ROS_DISTRO_NAME" "$UBUNTU_CODENAME" <<'PY'
 import json
 import pathlib
 import re
@@ -259,8 +284,12 @@ import sys
 
 manifest = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
 mode = sys.argv[2]
-if manifest.get("ros_distro") != "humble" or manifest.get("ubuntu_codename") != "jammy":
-    raise SystemExit("dependency manifest is not for ROS Humble on Ubuntu Jammy")
+ros_distro = sys.argv[3]
+ubuntu_codename = sys.argv[4]
+if manifest.get("ros_distro") != ros_distro or manifest.get("ubuntu_codename") != ubuntu_codename:
+    raise SystemExit(
+        f"dependency manifest does not match ROS {ros_distro} on Ubuntu {ubuntu_codename}"
+    )
 groups = ["base", "ros"]
 if mode != "observer":
     groups.append("camera")
@@ -284,13 +313,14 @@ PY
 ROS_APT_SOURCE=()
 while IFS= read -r value; do
   ROS_APT_SOURCE+=("$value")
-done < <(python3 - "$DEPENDENCY_MANIFEST" <<'PY'
+done < <(python3 - "$DEPENDENCY_MANIFEST" "$UBUNTU_CODENAME" <<'PY'
 import json
 import pathlib
 import re
 import sys
 
 source = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")).get("ros_apt_source", {})
+ubuntu_codename = sys.argv[2]
 version = source.get("version", "")
 url = source.get("url", "")
 sha256 = source.get("sha256", "")
@@ -298,6 +328,8 @@ if not isinstance(version, str) or not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,3}", 
     raise SystemExit("invalid ROS apt source version in dependency manifest")
 if not isinstance(url, str) or not url.startswith("https://github.com/ros-infrastructure/ros-apt-source/releases/"):
     raise SystemExit("invalid ROS apt source URL in dependency manifest")
+if not url.endswith(f".{ubuntu_codename}_all.deb"):
+    raise SystemExit(f"ROS apt source URL does not match Ubuntu {ubuntu_codename}")
 if not isinstance(sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", sha256):
     raise SystemExit("invalid ROS apt source SHA-256 in dependency manifest")
 print(version)
@@ -326,11 +358,11 @@ plan_system_packages() {
     ca-certificates curl gnupg lsb-release software-properties-common
   print_command sudo /usr/bin/add-apt-repository --yes universe
   print_command curl --fail --location --proto =https --tlsv1.2 \
-    --output "/tmp/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.jammy_all.deb" \
+    --output "/tmp/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.${UBUNTU_CODENAME}_all.deb" \
     "$ROS_APT_SOURCE_URL"
   echo "[Robot Scope installer] would verify ROS apt source SHA-256: $ROS_APT_SOURCE_SHA256"
   print_command sudo /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install --yes \
-    "/tmp/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.jammy_all.deb"
+    "/tmp/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.${UBUNTU_CODENAME}_all.deb"
   print_command sudo /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get update
   print_command sudo /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install --yes \
     "${APT_PACKAGES[@]}"
@@ -388,7 +420,8 @@ if [[ "$ACTION" == "--dry-run" ]]; then
   echo "[Robot Scope installer] environment=$ENV_FILE"
   echo "[Robot Scope installer] workspace-root=$WORKSPACE_ROOT"
   echo "[Robot Scope installer] livox-sdk-prefix=$LIVOX_SDK_PREFIX"
-  echo "[Robot Scope installer] supported=Ubuntu 22.04 x86_64/arm64; Jetson optional"
+  echo "[Robot Scope installer] platform=Ubuntu ${os_version:-unknown} / ROS 2 $ROS_DISTRO_NAME"
+  echo "[Robot Scope installer] supported=Ubuntu 22.04/Humble (all modes); Ubuntu 24.04/Jazzy (observer); x86_64/arm64"
   echo "[Robot Scope installer] Ubuntu package guidance: $(package_guidance)"
   if [[ "$INSTALL_SYSTEM_PACKAGES" -eq 1 ]]; then
     plan_system_packages
@@ -433,7 +466,8 @@ if [[ "$ACTION" == "--dry-run" ]]; then
     echo "[Robot Scope installer] systemd service installation is disabled"
   fi
   ROBOT_SCOPE_LIVOX_SDK_PREFIX="$LIVOX_SDK_PREFIX" \
-    "$EXTERNAL_BOOTSTRAP" --mode "$MODE" --dry-run --workspace-root "$WORKSPACE_ROOT"
+    "$EXTERNAL_BOOTSTRAP" --mode "$MODE" --manifest "$DEPENDENCY_MANIFEST" \
+      --dry-run --workspace-root "$WORKSPACE_ROOT"
   doctor_status=0
   ROBOT_SCOPE_WORKSPACE_ROOT="$WORKSPACE_ROOT" \
     ROBOT_SCOPE_LIVOX_SDK_PREFIX="$LIVOX_SDK_PREFIX" \
@@ -442,21 +476,29 @@ if [[ "$ACTION" == "--dry-run" ]]; then
   exit 0
 fi
 
-[[ "$(uname -s)" == "Linux" ]] || die "--apply is supported only on Ubuntu 22.04 Linux"
+[[ "$(uname -s)" == "Linux" ]] || die "--apply is supported only on Ubuntu Linux"
 [[ "$EUID" -ne 0 ]] || die "run --apply as the target non-root user, not root"
 case "$(uname -m)" in
   x86_64|amd64|aarch64|arm64) ;;
   *) die "--apply supports only x86_64 or arm64" ;;
 esac
 
-os_id="$(awk -F= '$1 == "ID" {value=$2; gsub(/^["'"'"']|["'"'"']$/, "", value); print tolower(value); exit}' "$OS_RELEASE_FILE" 2>/dev/null || true)"
-os_version="$(awk -F= '$1 == "VERSION_ID" {value=$2; gsub(/^["'"'"']|["'"'"']$/, "", value); print value; exit}' "$OS_RELEASE_FILE" 2>/dev/null || true)"
-[[ "$os_id" == "ubuntu" && "$os_version" == "22.04" ]] || die "--apply requires Ubuntu 22.04"
+if [[ "$OS_RELEASE_FILE" != "/etc/os-release" ]]; then
+  actual_os_id="$(awk -F= '$1 == "ID" {value=$2; gsub(/^"|"$/, "", value); print tolower(value); exit}' /etc/os-release 2>/dev/null || true)"
+  actual_os_version="$(awk -F= '$1 == "VERSION_ID" {value=$2; gsub(/^"|"$/, "", value); print value; exit}' /etc/os-release 2>/dev/null || true)"
+  [[ "$actual_os_id:$actual_os_version" == "$os_id:$os_version" ]] || \
+    die "--apply os-release override must match the running host"
+fi
+
+case "$os_id:$os_version:$ROS_DISTRO_NAME" in
+  ubuntu:22.04:humble|ubuntu:24.04:jazzy) ;;
+  *) die "--apply requires Ubuntu 22.04/Humble or Ubuntu 24.04/Jazzy" ;;
+esac
 
 if [[ "$INSTALL_SYSTEM_PACKAGES" -eq 1 ]]; then
   install_system_packages
-elif [[ ! -f /opt/ros/humble/setup.bash ]]; then
-  die "ROS 2 Humble is missing; rerun with --install-system-packages"
+elif [[ ! -f "/opt/ros/$ROS_DISTRO_NAME/setup.bash" ]]; then
+  die "ROS 2 $ROS_DISTRO_NAME is missing; rerun with --install-system-packages"
 fi
 
 if [[ -L "$ENV_DIR" ]]; then
@@ -498,7 +540,8 @@ if [[ "$MODE" == "go2-control" || "$MODE" == "go2-nav" ]]; then
 fi
 
 ROBOT_SCOPE_LIVOX_SDK_PREFIX="$LIVOX_SDK_PREFIX" \
-  "$EXTERNAL_BOOTSTRAP" --mode "$MODE" --apply --workspace-root "$WORKSPACE_ROOT"
+  "$EXTERNAL_BOOTSTRAP" --mode "$MODE" --manifest "$DEPENDENCY_MANIFEST" \
+    --apply --workspace-root "$WORKSPACE_ROOT"
 
 if [[ -L "$VENV_DIR" ]]; then
   die "refusing symlink virtual environment: $VENV_DIR"

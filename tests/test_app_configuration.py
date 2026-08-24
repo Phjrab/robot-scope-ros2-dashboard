@@ -37,6 +37,15 @@ class AppConfigurationTests(unittest.TestCase):
         self.assertEqual(source.count("max_result_bytes=map_file_limit"), 2)
         self.assertNotIn("max_result_bytes=1024 * 1024 * 1024", source)
 
+    def test_generic_runner_selects_the_supported_ros_pair(self):
+        source = (
+            Path(__file__).parents[1] / "scripts" / "run_generic.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn('22.04) ROS_DISTRO_NAME="humble"', source)
+        self.assertIn('24.04) ROS_DISTRO_NAME="jazzy"', source)
+        self.assertIn('/opt/ros/$ROS_DISTRO_NAME/setup.bash', source)
+        self.assertIn("humble|jazzy", source)
+
     def test_xt16_preview_requires_go2_profile_opt_in_and_ready_interface(self):
         source = (
             Path(__file__).parents[1] / "robot_dashboard" / "app.py"

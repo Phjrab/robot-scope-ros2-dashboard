@@ -1,6 +1,6 @@
 # Contributor and CI-only tools.  These exact pins deliberately exclude ROS
-# packages: Ubuntu 22.04 / ROS 2 Humble supplies rclpy through the project's
-# --system-site-packages runtime environment.
+# packages: Ubuntu 22.04/Humble or Ubuntu 24.04/Jazzy supplies rclpy through
+# the project's --system-site-packages runtime environment.
 coverage[toml]==7.6.4
 mypy==1.13.0
 pip-audit==2.7.3

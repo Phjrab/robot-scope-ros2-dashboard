@@ -28,30 +28,36 @@ class InstallerFixture:
         (self.project / "deploy" / "robot-scope.env.example").write_text(
             "ROBOT_SCOPE_CONTROL_ENABLED=0\n", encoding="utf-8"
         )
-        (self.project / "config" / "ros_dependencies_humble.json").write_text(
-            json.dumps(
-                {
-                    "ros_distro": "humble",
-                    "ubuntu_codename": "jammy",
-                    "ros_apt_source": {
-                        "version": "1.2.0",
-                        "url": (
-                            "https://github.com/ros-infrastructure/ros-apt-source/"
-                            "releases/download/1.2.0/"
-                            "ros2-apt-source_1.2.0.jammy_all.deb"
-                        ),
-                        "sha256": "a" * 64,
-                    },
-                    "apt_groups": {
-                        "base": ["python3-venv", "iproute2", "libssl-dev"],
-                        "ros": ["ros-humble-ros-base"],
-                        "camera": ["gstreamer1.0-tools"],
-                        "navigation": ["ros-humble-navigation2"],
-                    },
-                }
-            ),
+        self.os_release = base / "os-release"
+        self.os_release.write_text(
+            'ID=ubuntu\nVERSION_ID="22.04"\nPRETTY_NAME="Ubuntu 22.04 LTS"\n',
             encoding="utf-8",
         )
+        for distro, codename in (("humble", "jammy"), ("jazzy", "noble")):
+            (self.project / "config" / f"ros_dependencies_{distro}.json").write_text(
+                json.dumps(
+                    {
+                        "ros_distro": distro,
+                        "ubuntu_codename": codename,
+                        "ros_apt_source": {
+                            "version": "1.2.0",
+                            "url": (
+                                "https://github.com/ros-infrastructure/ros-apt-source/"
+                                "releases/download/1.2.0/"
+                                f"ros2-apt-source_1.2.0.{codename}_all.deb"
+                            ),
+                            "sha256": "a" * 64,
+                        },
+                        "apt_groups": {
+                            "base": ["python3-venv", "iproute2", "libssl-dev"],
+                            "ros": [f"ros-{distro}-ros-base"],
+                            "camera": ["gstreamer1.0-tools"],
+                            "navigation": [f"ros-{distro}-navigation2"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
         write_executable(
             self.project / "scripts" / "bootstrap_ros_dependencies.sh",
             "#!/usr/bin/env bash\n"
@@ -76,6 +82,8 @@ class InstallerFixture:
                 str(self.project),
                 "--config-dir",
                 str(self.config),
+                "--os-release",
+                str(self.os_release),
                 *extra,
             ],
             check=False,
@@ -93,7 +101,8 @@ class UbuntuInstallerTests(unittest.TestCase):
             result = fixture.run("--mode", "go2-nav")
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("DRY RUN", result.stdout)
-            self.assertIn("bootstrap:--mode go2-nav --dry-run", result.stdout)
+            self.assertIn("bootstrap:--mode go2-nav --manifest", result.stdout)
+            self.assertIn("--dry-run", result.stdout)
             self.assertIn("doctor:--mode go2-nav", result.stdout)
             self.assertIn("--allow-hardware-offline", result.stdout)
             self.assertIn("current doctor status=1", result.stdout)
@@ -182,7 +191,8 @@ class UbuntuInstallerTests(unittest.TestCase):
             timeout=5,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Ubuntu 22.04 x86_64 or arm64", result.stdout)
+        self.assertIn("Ubuntu 22.04/Humble", result.stdout)
+        self.assertIn("Ubuntu 24.04/Jazzy", result.stdout)
         self.assertIn("--apply", result.stdout)
         self.assertIn("Jetson is optional", result.stdout)
 
@@ -205,6 +215,8 @@ class UbuntuInstallerTests(unittest.TestCase):
                     str(fixture.project),
                     "--config-dir",
                     str(fixture.config),
+                    "--os-release",
+                    str(fixture.os_release),
                     "--mode",
                     "go2-nav",
                     "--install-system-packages",
@@ -252,6 +264,62 @@ class UbuntuInstallerTests(unittest.TestCase):
             self.assertIn("gstreamer1.0-tools", go2_guidance)
             self.assertNotIn("ros-humble-navigation2", go2_guidance)
             self.assertIn("ros-humble-navigation2", nav_guidance)
+
+    def test_noble_selects_jazzy_manifest_for_observer(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            fixture.os_release.write_text(
+                'ID=ubuntu\nVERSION_ID="24.04"\nPRETTY_NAME="Ubuntu 24.04 LTS"\n',
+                encoding="utf-8",
+            )
+            result = fixture.run("--mode", "observer")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("platform=Ubuntu 24.04 / ROS 2 jazzy", result.stdout)
+            guidance = next(
+                line for line in result.stdout.splitlines() if "package guidance" in line
+            )
+            self.assertIn("ros-jazzy-ros-base", guidance)
+            self.assertNotIn("ros-humble-ros-base", guidance)
+
+    def test_noble_rejects_unverified_go2_modes_before_writes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            fixture.os_release.write_text(
+                'ID=ubuntu\nVERSION_ID="24.04"\nPRETTY_NAME="Ubuntu 24.04 LTS"\n',
+                encoding="utf-8",
+            )
+            result = fixture.run("--mode", "go2")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("Jazzy currently supports observer mode only", result.stderr)
+            self.assertFalse(fixture.config.exists())
+
+    def test_manifest_apt_source_must_match_ubuntu_codename(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            manifest_path = fixture.project / "config" / "ros_dependencies_humble.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["ros_apt_source"]["url"] = manifest["ros_apt_source"][
+                "url"
+            ].replace(".jammy_all.deb", ".noble_all.deb")
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            result = fixture.run("--mode", "observer")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("ROS apt source metadata is incomplete", result.stderr)
+
+    def test_apply_os_release_override_must_match_running_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            host_release = Path("/etc/os-release").read_text(encoding="utf-8")
+            fake_version = "24.04" if 'VERSION_ID="22.04"' in host_release else "22.04"
+            fixture.os_release.write_text(
+                f'ID=ubuntu\nVERSION_ID="{fake_version}"\n'
+                f'PRETTY_NAME="Ubuntu {fake_version} LTS"\n',
+                encoding="utf-8",
+            )
+            result = fixture.run("--mode", "observer", "--apply")
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("override must match the running host", result.stderr)
+            self.assertFalse(fixture.config.exists())
 
     def test_service_and_ros_source_contract_is_fail_closed(self):
         source = INSTALLER.read_text(encoding="utf-8")

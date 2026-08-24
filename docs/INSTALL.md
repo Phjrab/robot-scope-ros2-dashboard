@@ -8,14 +8,15 @@
 
 | 항목 | 지원 범위 | 검증 수준 |
 |---|---|---|
-| 운영체제 | Ubuntu 22.04 LTS | 필수 기준 |
+| 운영체제 | Ubuntu 22.04 LTS, Ubuntu 24.04 LTS | mode별 필수 기준 |
 | 아키텍처 | `x86_64`, `arm64` | 웹/Generic 계층 지원 |
-| ROS | ROS 2 Humble | 필수 기준 |
+| ROS | 22.04: ROS 2 Humble, 24.04: ROS 2 Jazzy | OS와 고정 pair |
 | 참조 장비 | Jetson Orin Nano (`arm64`) | Go2 + XT16 전체 경로 검증 |
 | 브라우저 | 최신 Chromium 계열 | 주 검증 대상 |
 
-Ubuntu 24.04, ROS 2 Jazzy, 다른 Jetson 제품과 일반 PC는 자동 호환으로 간주하지
-않습니다. 먼저 `observer` 모드에서 확인한 뒤 하드웨어 기능을 한 단계씩 추가하세요.
+Ubuntu 24.04 + ROS 2 Jazzy는 `observer`/Generic 웹 계층까지만 지원합니다. Go2,
+제어, XT16과 Nav2 전체 경로는 Ubuntu 22.04 + ROS 2 Humble에서만 지원하며 installer와
+doctor가 다른 조합을 fail-closed로 거부합니다.
 
 ## 설치 모드
 
@@ -26,7 +27,7 @@ Ubuntu 24.04, ROS 2 Jazzy, 다른 Jetson 제품과 일반 PC는 자동 호환으
 
 | 모드 | 대상 | 포함 범위 | 별도 준비 |
 |---|---|---|---|
-| `observer` | ROS 센서/지도 관측 | 웹 앱, Generic 실행 환경 | ROS 2 Humble |
+| `observer` | ROS 센서/지도 관측 | 웹 앱, Generic 실행 환경 | Humble 또는 Jazzy(OS pair 준수) |
 | `go2` | Go2 센서·카메라 관측 | `observer` + Go2 프로필 | Unitree DDS 환경, 전용 NIC |
 | `go2-control` | 수동 Go2 주행 | `go2` + 독립 제어 브리지 | private 제어 env, 안전 검증, 물리 리모컨 |
 | `go2-xt16` | XT16 매핑·저장 | `go2` + Hesai/FAST-LIO 연동 | 외부 workspace와 저장소 내 bridge/saver/converter |
@@ -47,7 +48,7 @@ df -h /
 
 다음을 확인합니다.
 
-- Ubuntu가 `22.04`인지 확인합니다.
+- Ubuntu가 `22.04` 또는 `24.04`인지 확인하고 각각 Humble 또는 Jazzy를 사용합니다.
 - 관리용 LAN과 로봇/센서 전용 LAN을 구분합니다.
 - Go2 또는 XT16을 사용할 호스트는 전용 NIC 이름과 고정 CIDR을 기록합니다.
 - 로봇 제어 시험 전에는 충분한 공간과 물리 리모컨을 준비합니다.
@@ -60,9 +61,12 @@ df -h /
 Installer는 기본적으로 사용자 영역만 다룹니다. 운영체제 패키지도 함께 준비하려면 target
 사용자로 실행하면서 `--apply --install-system-packages`를 명시합니다. 이 조합에서만
 checksum으로 검증한 공식 ROS apt source와 manifest package를 설치하기 위해 `sudo`를
-사용합니다. 정확한 목록은 `config/ros_dependencies_humble.json`이 기준입니다.
+사용합니다. 정확한 목록은 OS에 따라 `config/ros_dependencies_humble.json` 또는
+`config/ros_dependencies_jazzy.json`이 기준입니다.
 
-다음 수동 APT 명령은 별도 관리자 절차를 원하는 경우의 대안입니다.
+다음 수동 APT 명령은 Ubuntu 22.04/Humble 하드웨어 host에서 별도 관리자 절차를 원하는
+경우의 대안입니다. Ubuntu 24.04/Jazzy observer는 installer가 `ros-jazzy-*` manifest를
+선택하도록 두고 Humble package를 섞지 마세요.
 
 ~~~bash
 sudo apt update
@@ -89,8 +93,8 @@ sudo apt install gstreamer1.0-tools gstreamer1.0-plugins-good \
 sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
 ~~~
 
-ROS 2 APT repository 자체를 아직 설정하지 않았다면 Ubuntu 22.04용 ROS 2 Humble 공식
-설치 절차를 먼저 따릅니다. 다른 ROS 배포판의 package를 섞지 마세요.
+ROS 2 APT repository 자체를 아직 설정하지 않았다면 해당 OS pair의 공식 설치 절차를
+따릅니다. 다른 ROS 배포판의 package를 섞지 마세요.
 
 ### 로봇 탑재 relay host 최초 SSH 보안 설정
 
@@ -181,7 +185,7 @@ Installer 내부 doctor는 새 호스트에서 로봇 케이블이 아직 없어
 고정 CIDR의 형식 오류, 누락된 패키지·workspace·키는 계속 실패합니다. 서비스 시작 전에는
 아래의 독립 doctor를 다시 실행하며, 이때 NIC와 주소도 필수 조건으로 검사됩니다.
 
-Go2 전체 경로도 가장 작은 모드부터 순서대로 확인하는 것이 좋습니다.
+Go2 전체 경로는 Ubuntu 22.04/Humble에서 가장 작은 모드부터 순서대로 확인하는 것이 좋습니다.
 실제 NIC와 static CIDR을 알고 있다면 아래 [Go2 전용 NIC 설정](#go2-전용-nic-설정)을
 먼저 적용하세요. 로봇이 꺼졌거나 케이블이 없는 설치 시점에는 installer가 그 하드웨어
 항목만 경고로 남기고 계속할 수 있지만, live 기능 시작 전 strict doctor는 통과해야 합니다.

@@ -25,6 +25,7 @@ Modes:
   go2-nav        Full go2-xt16 stack used by Navigation
 
 Options:
+  --manifest PATH              Distro-specific pinned dependency manifest
   --dry-run                  Print the exact operations (default)
   --apply                    Clone and build dependencies
   --workspace-root PATH      Parent for unitree_ros2 and ws/ (default: $HOME)
@@ -51,6 +52,11 @@ while (($#)); do
     --workspace-root)
       (($# >= 2)) || die "--workspace-root requires a value"
       WORKSPACE_ROOT="$2"
+      shift 2
+      ;;
+    --manifest)
+      (($# >= 2)) || die "--manifest requires a value"
+      MANIFEST="$2"
       shift 2
       ;;
     --dry-run)
@@ -84,6 +90,23 @@ esac
 [[ -f "$MANIFEST" ]] || die "dependency manifest is missing: $MANIFEST"
 command -v python3 >/dev/null || die "python3 is required"
 
+ROS_DISTRO_NAME="$(python3 - "$MANIFEST" <<'PY'
+import json
+import pathlib
+import re
+import sys
+
+value = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")).get("ros_distro", "")
+if not isinstance(value, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,31}", value):
+    raise SystemExit("invalid ros_distro in dependency manifest")
+print(value)
+PY
+)"
+ROS_SETUP="/opt/ros/$ROS_DISTRO_NAME/setup.bash"
+if [[ "$MODE" != "observer" && "$ROS_DISTRO_NAME" != "humble" ]]; then
+  die "vendor Go2/XT16 source bootstrap is supported only with ROS 2 Humble"
+fi
+
 if [[ "$WORKSPACE_ROOT" != /* ]]; then
   WORKSPACE_ROOT="$(pwd -P)/$WORKSPACE_ROOT"
 fi
@@ -114,7 +137,7 @@ if [[ "$ACTION" == "apply" ]]; then
   command -v git >/dev/null || die "git is required"
   command -v colcon >/dev/null || die "colcon is required"
   command -v cmake >/dev/null || die "cmake is required"
-  [[ -f /opt/ros/humble/setup.bash ]] || die "ROS 2 Humble is not installed"
+  [[ -f "$ROS_SETUP" ]] || die "ROS 2 $ROS_DISTRO_NAME is not installed"
 fi
 
 print_command() {
@@ -256,7 +279,7 @@ fi
 
 run_with_setups \
   "$WORKSPACE_ROOT/unitree_ros2/cyclonedds_ws" 1 \
-  /opt/ros/humble/setup.bash \
+  "$ROS_SETUP" \
   colcon build --symlink-install
 
 if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
@@ -281,13 +304,13 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
 
   run_with_setups \
     "$WORKSPACE_ROOT/ws/hesai_ws" 2 \
-    /opt/ros/humble/setup.bash \
+    "$ROS_SETUP" \
     "$WORKSPACE_ROOT/unitree_ros2/cyclonedds_ws/install/setup.bash" \
     colcon build --symlink-install
 
   run_with_setups \
     "$WORKSPACE_ROOT/ws/livox/ws_livox/src/livox_ros_driver2" 1 \
-    /opt/ros/humble/setup.bash \
+    "$ROS_SETUP" \
     /usr/bin/env \
       "CMAKE_LIBRARY_PATH=$LIVOX_SDK_PREFIX/lib" \
       "CMAKE_INCLUDE_PATH=$LIVOX_SDK_PREFIX/include" \
@@ -296,7 +319,7 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
 
   run_with_setups \
     "$WORKSPACE_ROOT/ws/fastlio_ws" 2 \
-    /opt/ros/humble/setup.bash \
+    "$ROS_SETUP" \
     "$WORKSPACE_ROOT/ws/livox/ws_livox/install/setup.bash" \
     /usr/bin/env \
       "LD_LIBRARY_PATH=$LIVOX_SDK_LIBRARY_PATH" \
