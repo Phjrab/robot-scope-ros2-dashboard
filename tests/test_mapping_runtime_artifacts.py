@@ -462,6 +462,19 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(bridge.BridgeContractError, "gyroscope"):
             bridge.extract_imu_sample(message)
 
+    def test_imu_publication_is_bounded_to_fixed_100_hz(self):
+        self.assertEqual(bridge.IMU_PUBLISH_INTERVAL_S, 0.01)
+        self.assertTrue(bridge.imu_publish_due(10.0, None))
+        self.assertFalse(bridge.imu_publish_due(10.009, 10.0))
+        self.assertTrue(bridge.imu_publish_due(10.01, 10.0))
+        self.assertFalse(bridge.imu_publish_due(9.0, 10.0))
+        for invalid in (-1.0, math.inf, math.nan):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(bridge.BridgeContractError):
+                    bridge.imu_publish_due(invalid, None)
+                with self.assertRaises(bridge.BridgeContractError):
+                    bridge.imu_publish_due(10.0, invalid)
+
     def test_bridge_has_only_fixed_observation_and_mapping_topics(self):
         topics = {
             bridge.RAW_TOPIC,
