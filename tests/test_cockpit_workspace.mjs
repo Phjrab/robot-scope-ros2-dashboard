@@ -110,6 +110,29 @@ test('Cockpit scene layout applies bounded view, follow, point size, and range s
   host.destroy();
 });
 
+test('Cockpit HIGH stays capped by the current server delivery limit', () => {
+  let onChange;
+  let requested = 0;
+  const quality = {
+    value: 'low',
+    addEventListener(name, callback) { if (name === 'change') onChange = callback; },
+    removeEventListener() {},
+  };
+  const host = createCockpitSceneHost({
+    canvas: {}, Renderer: class {}, maxPoints: 18_000, controls: { quality },
+    onPointBudgetRequest(budget) { requested = budget; },
+  });
+  quality.value = 'high';
+  onChange();
+  assert.equal(requested, 60_000);
+  assert.equal(host.diagnostics().quality.effectiveBudget, 18_000);
+  host.setPointLimit(30_000);
+  assert.equal(host.diagnostics().quality.effectiveBudget, 30_000);
+  host.setPointLimit(1_000_000);
+  assert.equal(host.diagnostics().quality.effectiveBudget, 60_000);
+  host.destroy();
+});
+
 test('Cockpit never labels a cached prior-session frame as LIVE', () => {
   const cloud = { seq: 7, points: [0, 0, 0] };
   assert.equal(projectCockpitPointcloud({ cloud, lastFrameAt: 900, sessionStartedAt: 1000, now: 1100, ready: true }).freshness, 'WAITING');
@@ -155,6 +178,8 @@ test('Mapping and Cockpit share exactly one PointCloud transport', () => {
   sockets[0].onmessage?.({ data: new ArrayBuffer(4) });
   scheduledFrames.shift()();
   assert.equal(frames.length, 1, 'one binary frame is decoded and fanned out once');
+  assert.ok(frames[0].transport_metrics.decode_ms >= 0);
+  assert.equal(frames[0].transport_metrics.dropped_frames, 0);
 
   transport.replaceDemand([]);
   assert.equal(sockets[0].readyState, 3);

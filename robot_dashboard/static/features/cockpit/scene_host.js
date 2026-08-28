@@ -1,3 +1,5 @@
+import { COCKPIT_MAX_POINTS, COCKPIT_POINT_BUDGETS, createAdaptivePointBudgetController, createSpatialPointLod } from './point_quality.js';
+
 function rendererStatus(profile, freshness, online) {
   const label = String(profile?.label || 'ROBOT').toUpperCase();
   if (freshness === 'LIVE') {
@@ -31,8 +33,88 @@ export function createCockpitSceneHost(options = {}) {
   let freshness = 'WAITING';
   let robotOnline = null;
   let modelState = 'WAITING';
-  let pointLimit = options.maxPoints ?? 10000;
+  let pointLimit = options.maxPoints ?? COCKPIT_MAX_POINTS;
+  let qualityMode = 'low';
+  let adaptive = false;
+  let nearField = true;
+  let heightColor = true;
+  let projectedCloud = null;
+  let projectedSource = null;
+  let projectedBudget = 0;
+  let projectedNearField = true;
+  const pointLod = createSpatialPointLod({ maxPoints: COCKPIT_MAX_POINTS });
+  const adaptiveBudget = createAdaptivePointBudgetController({ initialLevel: 'low', ceiling: qualityMode });
+  const controlDisposers = [];
+  let requestedServerBudget = null;
+  let budgetRequestActive = false;
   let sceneLayout = Object.freeze({ view: 'isometric', follow_robot: false, point_size: 2, range_m: 150 });
+
+  const clock = () => options.now?.() ?? globalThis.performance?.now?.() ?? Date.now();
+  const serverCap = () => pointLimit == null ? COCKPIT_MAX_POINTS : Math.min(COCKPIT_MAX_POINTS, Math.max(1_000, Number(pointLimit) || 1_000));
+  const qualityBudget = () => Math.min(serverCap(), adaptive ? adaptiveBudget.snapshot().budget : COCKPIT_POINT_BUDGETS[qualityMode]);
+
+  function qualityMetrics(stale = false) {
+    const rendering = renderer?.performanceSnapshot?.() || {};
+    const transport = cloud?.transport_metrics || {};
+    return {
+      frameMs: Number(rendering.frameMs) || 0,
+      fps: Number(rendering.fps) || 0,
+      uploadMs: Number(rendering.uploadMs) || 0,
+      decodeMs: Number(transport.decode_ms) || 0,
+      droppedFrames: Number(transport.dropped_frames) || 0,
+      stale,
+    };
+  }
+
+  function syncQualityControls() {
+    const controls = options.controls || {};
+    if (controls.quality) controls.quality.value = qualityMode;
+    if (controls.adaptive) {
+      controls.adaptive.setAttribute('aria-pressed', adaptive ? 'true' : 'false');
+      controls.adaptive.textContent = adaptive ? 'AUTO ON' : 'AUTO';
+    }
+    if (controls.heightColor) controls.heightColor.setAttribute('aria-pressed', heightColor ? 'true' : 'false');
+    if (controls.nearField) controls.nearField.setAttribute('aria-pressed', nearField ? 'true' : 'false');
+    if (controls.pointSize) controls.pointSize.value = String(sceneLayout.point_size);
+    if (controls.metrics) {
+      const metric = qualityMetrics();
+      const mode = adaptive ? `AUTO:${adaptiveBudget.snapshot().level.toUpperCase()}` : qualityMode.toUpperCase();
+      controls.metrics.textContent = `${mode} · ${(qualityBudget() / 1000).toFixed(0)}K · ${metric.fps ? metric.fps.toFixed(0) : '—'} FPS`;
+    }
+  }
+
+  function invalidateProjection() {
+    projectedCloud = null;
+    projectedSource = null;
+  }
+
+  async function requestServerBudget(budget) {
+    requestedServerBudget = budget;
+    if (budgetRequestActive || typeof options.onPointBudgetRequest !== 'function') return;
+    budgetRequestActive = true;
+    try {
+      while (requestedServerBudget != null) {
+        const requested = requestedServerBudget;
+        requestedServerBudget = null;
+        await options.onPointBudgetRequest(requested);
+      }
+    } catch (error) {
+      options.onError?.(error);
+    } finally {
+      budgetRequestActive = false;
+    }
+  }
+
+  function displayCloud() {
+    const budget = qualityBudget();
+    if (projectedSource !== cloud || projectedBudget !== budget || projectedNearField !== nearField) {
+      projectedCloud = pointLod.project(cloud, budget, nearField);
+      projectedSource = cloud;
+      projectedBudget = budget;
+      projectedNearField = nearField;
+    }
+    return projectedCloud;
+  }
 
   function sceneSnapshot() {
     const cameraMode = renderer?.cameraMode;
@@ -72,6 +154,7 @@ export function createCockpitSceneHost(options = {}) {
       modelState,
       camera,
       layout: sceneSnapshot(),
+      quality: Object.freeze({ mode: qualityMode, adaptive, nearField, heightColor, effectiveBudget: qualityBudget(), adaptiveLevel: adaptiveBudget.snapshot().level, lod: pointLod.diagnostics(), metrics: Object.freeze(qualityMetrics()) }),
     });
   }
 
@@ -96,13 +179,14 @@ export function createCockpitSceneHost(options = {}) {
 
   function renderState() {
     if (!active || !renderer) return;
-    if (freshness === 'LIVE' && cloud?.points?.length) renderer.setPointCloud(cloud);
+    if (freshness === 'LIVE' && cloud?.points?.length) renderer.setPointCloud(displayCloud());
     else renderer.clearPointCloud();
     renderer.setRobotPose(pose);
     renderer.setTrail(trail);
     if (joints) renderer.setRobotJointPositions?.(joints);
     else renderer.resetRobotJointPositions?.();
     renderer.setStatus(rendererStatus(profile, freshness, robotOnline));
+    syncQualityControls();
   }
 
   async function loadModel(expectedSession) {
@@ -146,7 +230,7 @@ export function createCockpitSceneHost(options = {}) {
     session += 1;
     starts += 1;
     renderer = new Renderer(canvas, {
-      maxPoints: pointLimit,
+      maxPoints: serverCap(),
       maxCloudRadius: sceneLayout.range_m,
       pointSize: sceneLayout.point_size / 40,
       autoFitOnFirstCloud: true,
@@ -154,6 +238,8 @@ export function createCockpitSceneHost(options = {}) {
     });
     peakRenderers = Math.max(peakRenderers, renderer ? 1 : 0);
     renderer.bindControls?.(options.controls || {});
+    renderer.setHeightColor?.(heightColor);
+    renderer.setNearFieldEmphasis?.(nearField);
     applySceneLayout(sceneLayout);
     renderState();
     void loadModel(session);
@@ -187,6 +273,8 @@ export function createCockpitSceneHost(options = {}) {
     if (cloud === normalizedCloud && freshness === normalizedFreshness) return;
     cloud = normalizedCloud;
     freshness = normalizedFreshness;
+    invalidateProjection();
+    if (adaptive) adaptiveBudget.sample(qualityMetrics(freshness === 'STALE'), clock());
     if (active) renderState();
   }
 
@@ -210,8 +298,51 @@ export function createCockpitSceneHost(options = {}) {
 
   function setPointLimit(value) {
     pointLimit = value;
-    if (active) renderer?.setPointLimit?.(value);
+    invalidateProjection();
+    if (active) {
+      renderer?.setPointLimit?.(serverCap());
+      renderState();
+    }
   }
+
+  function bindQualityControl(element, eventName, callback) {
+    if (!element?.addEventListener) return;
+    element.addEventListener(eventName, callback);
+    controlDisposers.push(() => element.removeEventListener?.(eventName, callback));
+  }
+
+  bindQualityControl(options.controls?.quality, 'change', () => {
+    const next = String(options.controls.quality.value || 'low');
+    if (!Object.hasOwn(COCKPIT_POINT_BUDGETS, next)) return;
+    qualityMode = next;
+    adaptiveBudget.setCeiling(next, clock(), adaptive);
+    invalidateProjection();
+    void requestServerBudget(COCKPIT_POINT_BUDGETS[next]);
+    if (active) renderState(); else syncQualityControls();
+  });
+  bindQualityControl(options.controls?.adaptive, 'click', () => {
+    adaptive = !adaptive;
+    adaptiveBudget.setCeiling(qualityMode, clock(), adaptive);
+    invalidateProjection();
+    if (active) renderState(); else syncQualityControls();
+  });
+  bindQualityControl(options.controls?.pointSize, 'input', () => {
+    sceneLayout = Object.freeze({ ...sceneLayout, point_size: Math.max(0.5, Math.min(4, Number(options.controls.pointSize.value) || 2)) });
+    if (renderer?.options) renderer.options.pointSize = sceneLayout.point_size / 40;
+    renderer?.render?.();
+    syncQualityControls();
+  });
+  bindQualityControl(options.controls?.heightColor, 'click', () => {
+    heightColor = !heightColor;
+    renderer?.setHeightColor?.(heightColor);
+    syncQualityControls();
+  });
+  bindQualityControl(options.controls?.nearField, 'click', () => {
+    nearField = !nearField;
+    invalidateProjection();
+    renderer?.setNearFieldEmphasis?.(nearField);
+    if (active) renderState(); else syncQualityControls();
+  });
 
   function destroy() {
     if (destroyed) return;
@@ -221,6 +352,7 @@ export function createCockpitSceneHost(options = {}) {
     pose = null;
     trail = [];
     joints = null;
+    controlDisposers.splice(0).forEach((dispose) => dispose());
   }
 
   return Object.freeze({

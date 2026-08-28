@@ -600,7 +600,7 @@ const cockpitWorkspace = initializeCockpitWorkspace({
   Renderer: window.RobotScene3D, maxPoints: 10000, cameraDemand: cameraDemandController, gamepadProvider: selectedControlGamepad,
   getControllerSnapshot: () => ({ speedScale: Number(controlUi.speed.value) / 100, speedScaleRange: controlSnapshot?.limits?.speed_scale, leaseSource: controlLeaseSource || controlSnapshot?.lease?.source, lastControlFrameAt }), getSafetySnapshot: () => ({ state: latestState, stateUpdatedAt: latestStateAt, control: controlSnapshot, controlUpdatedAt: controlSnapshotAt, locallyArmed: Boolean(controlLeaseId), command: controlLastCommand, speedScale: Number(controlUi.speed.value) / 100, controlGeneration: controlArmGeneration,
     navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable }),
-  onGamepadUiZeroIntent: () => failSafeDisarm('cockpit_gamepad_ui_zero'), onGamepadDisconnect: () => { if (controlLeaseSource === 'gamepad') failSafeDisarm('gamepad_disconnected', { notify: true }); }, onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onError: (error) => console.warn('Cockpit scene:', error),
+  onGamepadUiZeroIntent: () => failSafeDisarm('cockpit_gamepad_ui_zero'), onGamepadDisconnect: () => { if (controlLeaseSource === 'gamepad') failSafeDisarm('gamepad_disconnected', { notify: true }); }, onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onPointBudgetRequest: (budget) => applyLivePointLimit(budget, false), onError: (error) => console.warn('Cockpit scene:', error),
 });
 
 const pointcloudTransport = window.RobotPointCloudStream?.decodeFrame

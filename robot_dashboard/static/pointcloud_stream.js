@@ -55,6 +55,9 @@
       copy.set(new Uint8Array(source.buffer, absoluteOffset, pointBytes));
       points = new Float32Array(copy.buffer);
     }
+    for (let index = 0; index < points.length; index += 1) {
+      if (!Number.isFinite(points[index])) throw new Error('point-cloud payload contains non-finite XYZ');
+    }
     return {
       ...metadata,
       points,
@@ -172,5 +175,6 @@
     decodeFrame,
     RegisteredCloudReservoir,
     protocol: 'robot-scope-pointcloud-v1',
+    maxPointCount: MAX_POINT_BYTES / 12,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

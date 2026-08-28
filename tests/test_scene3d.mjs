@@ -187,6 +187,34 @@ test('rendering skips only the axes helper while grid, cloud, model and trail st
   });
 });
 
+test('point projection scratch uses bounded typed arrays and is reused across renders', () => {
+  const context = {
+    setTransform() {}, clearRect() {}, save() {}, restore() {}, beginPath() {}, rect() {}, fill() {},
+  };
+  const { scene } = sceneHarness({ options: { maxPoints: 60_000 } });
+  scene.ctx = context;
+  scene.width = 640;
+  scene.height = 360;
+  scene._basis = {
+    position: [0, 0, -5], forward: [0, 0, 1], right: [1, 0, 0], up: [0, 1, 0], focal: 100,
+  };
+  const points = new Float32Array(30_000);
+  for (let index = 0; index < points.length; index += 3) {
+    points[index] = (index % 90) / 100;
+    points[index + 1] = (index % 60) / 100;
+    points[index + 2] = (index % 30) / 100;
+  }
+  scene.cloud = { ...scene.cloud, points, bounds: { min: [0, 0, 0], max: [1, 1, 1] } };
+  scene._drawPointCloud();
+  const firstScratch = scene._pointScratch;
+  assert.equal(scene.performanceSnapshot().scratchAllocations, 2);
+  scene._drawPointCloud();
+  assert.strictEqual(scene._pointScratch, firstScratch);
+  assert.equal(scene.performanceSnapshot().scratchAllocations, 2);
+  assert.equal(scene.setHeightColor(false), false);
+  assert.equal(scene.setNearFieldEmphasis(false), false);
+});
+
 test('navigation model preview exposes the persistent accessible XYZ control', () => {
   assert.match(indexSource, /id="navigationRobotAxesButton"[^>]*aria-pressed="true"[^>]*>XYZ<\/button>/);
   assert.match(appSource, /axesStorageKey: 'robot-scope\.navigation-model\.axes\.v1'/);

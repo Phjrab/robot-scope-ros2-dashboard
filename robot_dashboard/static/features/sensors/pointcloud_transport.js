@@ -49,6 +49,9 @@ export function createPointcloudTransport(options = {}) {
   let destroyed = false;
   let connectionCount = 0;
   let closeCount = 0;
+  let decodeMs = 0;
+  let droppedFrames = 0;
+  let rejectedFrames = 0;
 
   const wanted = () => !destroyed && consumers.size > 0;
 
@@ -62,6 +65,7 @@ export function createPointcloudTransport(options = {}) {
       requestInFlight,
       lastSequence,
       streamId,
+      performance: Object.freeze({ decodeMs, droppedFrames, rejectedFrames }),
       destroyed,
     });
   }
@@ -85,9 +89,24 @@ export function createPointcloudTransport(options = {}) {
     if (streamChanged || legacyRollback) lastSequence = -1;
     if (incomingStreamId) streamId = incomingStreamId;
     if (sequence <= lastSequence) return false;
+    const dropped = lastSequence > 0 ? Math.max(0, sequence - lastSequence - 1) : 0;
+    droppedFrames = Math.min(1_000_000, droppedFrames + dropped);
     lastSequence = sequence;
-    dispatch(cloud);
+    dispatch({ ...cloud, transport_metrics: Object.freeze({ decode_ms: decodeMs, dropped_frames: dropped }) });
     return true;
+  }
+
+  function timedDecode(buffer) {
+    const startedAt = environment.performance?.now?.() ?? Date.now();
+    try {
+      const cloud = decodeFrame(buffer);
+      const elapsed = Math.max(0, Math.min(10_000, (environment.performance?.now?.() ?? Date.now()) - startedAt));
+      decodeMs = decodeMs ? decodeMs * 0.8 + elapsed * 0.2 : elapsed;
+      return cloud;
+    } catch (error) {
+      rejectedFrames = Math.min(1_000_000, rejectedFrames + 1);
+      throw error;
+    }
   }
 
   function drainFrame() {
@@ -96,7 +115,7 @@ export function createPointcloudTransport(options = {}) {
     pendingFrame = null;
     if (pending && pending.generation === connectionGeneration && wanted()) {
       try {
-        acceptCloud(decodeFrame(pending.buffer));
+        acceptCloud(timedDecode(pending.buffer));
       } catch (error) {
         options.onError?.(error);
       }
@@ -185,7 +204,7 @@ export function createPointcloudTransport(options = {}) {
       if (response.status === 204) return null;
       if (response.status !== 404 && response.status !== 415) {
         if (!response.ok) throw new Error(String(response.status));
-        return decodeFrame(await response.arrayBuffer());
+        return timedDecode(await response.arrayBuffer());
       }
       binaryHttpAvailable = false;
     }

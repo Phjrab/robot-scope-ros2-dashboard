@@ -224,11 +224,17 @@
   top: 18px;
   left: 18px;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+  max-width: min(720px, calc(100% - 36px));
   pointer-events: auto;
 }
 
-.cockpit-scene-controls button {
+.cockpit-scene-controls button,
+.cockpit-point-select,
+.cockpit-point-size,
+.cockpit-scene-controls output {
   min-width: 46px;
   min-height: 34px;
   border: 1px solid rgba(128, 255, 225, 0.22);
@@ -238,6 +244,13 @@
   font: 700 11px/1 system-ui, sans-serif;
   letter-spacing: 0.08em;
 }
+
+.cockpit-point-select,
+.cockpit-point-size,
+.cockpit-scene-controls output { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 9px; }
+.cockpit-point-select select { color: #d9fff6; border: 0; background: transparent; font: inherit; }
+.cockpit-point-size input { width: 72px; accent-color: #4fffcf; }
+.cockpit-scene-controls output { color: #85a9a2; min-width: 126px; }
 
 .cockpit-scene-controls button:hover,
 .cockpit-scene-controls button[aria-pressed="true"] {

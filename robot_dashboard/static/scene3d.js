@@ -31,6 +31,10 @@
     return Number.isFinite(number) ? number : fallback;
   }
 
+  function monotonicNow() {
+    return global.performance?.now?.() ?? Date.now();
+  }
+
   function normalizedPointLimit(value, fallback = 10000) {
     if (value == null || value === 'all' || value === Infinity) return Infinity;
     return clamp(Math.floor(finite(value, fallback)), 100, 5_000_000);
@@ -203,6 +207,8 @@
         showRobot: options.showRobot !== false,
         showTrail: options.showTrail !== false,
         showAxes: options.showAxes !== false,
+        heightColor: options.heightColor !== false,
+        nearFieldEmphasis: options.nearFieldEmphasis === true,
         background: options.background || '#040a09',
       };
       this._axesStorage = options.storage === undefined ? browserStorage() : options.storage;
@@ -268,6 +274,10 @@
       this._interactionTimer = 0;
       this._controlDisposers = [];
       this._controlElements = {};
+      this._pointScratch = new Float32Array(0);
+      this._pointBins = new Uint8Array(0);
+      this._pointScratchAllocations = 0;
+      this._performance = { frameMs: 0, fps: 0, uploadMs: 0, renderedPoints: 0, lastDrawAt: 0 };
       this.cameraMode = 'world';
 
       canvas.style.touchAction = 'none';
@@ -304,6 +314,7 @@
     }
 
     setPointCloud(payload, options = {}) {
+      const updateStartedAt = monotonicNow();
       const cloud = payload && payload.points != null ? payload : { points: payload };
       const input = cloud?.points;
       const limit = this.options.maxPoints;
@@ -364,6 +375,7 @@
           this._hasFittedCloud = true;
         }
         this.render();
+        this._recordPointUpdate(updateStartedAt);
         return Math.floor(points.length / 3);
       }
       const sampled = new Float32Array(wanted * 3);
@@ -457,6 +469,7 @@
         this._hasFittedCloud = true;
       }
       this.render();
+      this._recordPointUpdate(updateStartedAt);
       return Math.floor(points.length / 3);
     }
 
@@ -482,6 +495,35 @@
       this.options.maxPoints = normalizedPointLimit(value, this.options.maxPoints);
       this._invalidateStatic();
       return this.options.maxPoints;
+    }
+
+    setHeightColor(value) {
+      this.options.heightColor = Boolean(value);
+      this._invalidateStatic();
+      this.render();
+      return this.options.heightColor;
+    }
+
+    setNearFieldEmphasis(value) {
+      this.options.nearFieldEmphasis = Boolean(value);
+      this._invalidateStatic();
+      this.render();
+      return this.options.nearFieldEmphasis;
+    }
+
+    _recordPointUpdate(startedAt) {
+      const elapsed = clamp(monotonicNow() - startedAt, 0, 10_000);
+      this._performance.uploadMs = this._performance.uploadMs ? this._performance.uploadMs * 0.8 + elapsed * 0.2 : elapsed;
+    }
+
+    performanceSnapshot() {
+      return Object.freeze({
+        frameMs: this._performance.frameMs,
+        fps: this._performance.fps,
+        uploadMs: this._performance.uploadMs,
+        renderedPoints: this._performance.renderedPoints,
+        scratchAllocations: this._pointScratchAllocations,
+      });
     }
 
     setRobotPose(value) {
@@ -740,6 +782,8 @@
       this._raf = 0;
       this.unbindControls();
       this._resizeObserver?.disconnect();
+      this._pointScratch = new Float32Array(0);
+      this._pointBins = new Uint8Array(0);
       global.removeEventListener?.('resize', this._onWindowResize);
       this.canvas.removeEventListener('pointerdown', this._onPointerDown);
       this.canvas.removeEventListener('pointermove', this._onPointerMove);
@@ -907,6 +951,7 @@
     }
 
     _draw() {
+      const drawStartedAt = monotonicNow();
       this.resizeIfNeeded();
       const ctx = this.ctx;
       const cached = this._staticCtx && (!this._staticDirty || this._rebuildStaticLayer());
@@ -930,6 +975,15 @@
       if (this.trailVisible) this._drawTrail();
       if (this.robotVisible) this._drawRobot();
       this._drawHud();
+      const completedAt = monotonicNow();
+      const elapsed = clamp(completedAt - drawStartedAt, 0, 10_000);
+      const interval = this._performance.lastDrawAt ? completedAt - this._performance.lastDrawAt : 0;
+      this._performance.frameMs = this._performance.frameMs ? this._performance.frameMs * 0.8 + elapsed * 0.2 : elapsed;
+      if (interval > 0) {
+        const fps = clamp(1000 / interval, 0, 240);
+        this._performance.fps = this._performance.fps ? this._performance.fps * 0.8 + fps * 0.2 : fps;
+      }
+      this._performance.lastDrawAt = completedAt;
     }
 
     resizeIfNeeded() {
@@ -984,37 +1038,56 @@
       const bounds = this.cloud.bounds;
       const minZ = bounds?.min?.[2] ?? 0;
       const spanZ = Math.max((bounds?.max?.[2] ?? 1) - minZ, 0.15);
-      const bins = Array.from({ length: 14 }, () => []);
-
       const available = Math.floor(points.length / 3);
       const previewLimit = this._interactivePreview ? 20000 : available;
       const stride = Math.max(1, Math.ceil(available / Math.max(1, previewLimit)));
+      const projectedCapacity = Math.ceil(available / stride);
+      if (this._pointBins.length < projectedCapacity) {
+        this._pointScratch = new Float32Array(projectedCapacity * 3);
+        this._pointBins = new Uint8Array(projectedCapacity);
+        this._pointScratchAllocations += 2;
+      }
+      const basis = this._basis || this._cameraBasis();
+      const nearDepth = Math.max(0.015, this.camera.distance * 0.001);
+      let projectedCount = 0;
       for (let index = 0; index < points.length; index += 3 * stride) {
-        const projected = this._project([points[index], points[index + 1], points[index + 2]]);
-        if (!projected || projected.x < -4 || projected.x > this.width + 4 || projected.y < -4 || projected.y > this.height + 4) continue;
+        const x = points[index]; const y = points[index + 1]; const z = points[index + 2];
+        const relativeX = x - basis.position[0]; const relativeY = y - basis.position[1]; const relativeZ = z - basis.position[2];
+        const depth = relativeX * basis.forward[0] + relativeY * basis.forward[1] + relativeZ * basis.forward[2];
+        if (depth <= nearDepth) continue;
+        const scale = basis.focal / depth;
+        const screenX = this.width / 2 + (relativeX * basis.right[0] + relativeY * basis.right[1] + relativeZ * basis.right[2]) * scale;
+        const screenY = this.height / 2 - (relativeX * basis.up[0] + relativeY * basis.up[1] + relativeZ * basis.up[2]) * scale;
+        if (screenX < -4 || screenX > this.width + 4 || screenY < -4 || screenY > this.height + 4) continue;
         const heightRatio = clamp((points[index + 2] - minZ) / spanZ, 0, 1);
-        const bin = Math.min(bins.length - 1, Math.floor(heightRatio * bins.length));
-        const size = clamp(this.options.pointSize * projected.scale, 1, 4.2);
-        bins[bin].push(projected.x, projected.y, size);
+        const radius = Math.hypot(x, y);
+        const emphasis = this.options.nearFieldEmphasis ? (radius < 5 ? 1.2 : radius >= 15 ? 0.88 : 1) : 1;
+        const target = projectedCount * 3;
+        this._pointScratch[target] = screenX;
+        this._pointScratch[target + 1] = screenY;
+        this._pointScratch[target + 2] = clamp(this.options.pointSize * scale * emphasis, 1, 4.2);
+        this._pointBins[projectedCount] = this.options.heightColor ? Math.min(13, Math.floor(heightRatio * 14)) : 0;
+        projectedCount += 1;
       }
 
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      bins.forEach((values, index) => {
-        if (!values.length) return;
-        const ratio = index / Math.max(bins.length - 1, 1);
+      const binCount = this.options.heightColor ? 14 : 1;
+      for (let bin = 0; bin < binCount; bin += 1) {
+        const ratio = this.options.heightColor ? bin / 13 : 0;
         const hue = 181 - ratio * 135;
         ctx.fillStyle = `hsla(${hue}, 82%, ${58 + ratio * 10}%, .76)`;
         ctx.beginPath();
-        for (let pointIndex = 0; pointIndex < values.length; pointIndex += 3) {
-          const x = values[pointIndex];
-          const y = values[pointIndex + 1];
-          const size = values[pointIndex + 2];
-          ctx.rect(x - size / 2, y - size / 2, size, size);
+        for (let pointIndex = 0; pointIndex < projectedCount; pointIndex += 1) {
+          if (this._pointBins[pointIndex] !== bin) continue;
+          const target = pointIndex * 3;
+          const screenX = this._pointScratch[target]; const screenY = this._pointScratch[target + 1]; const size = this._pointScratch[target + 2];
+          ctx.rect(screenX - size / 2, screenY - size / 2, size, size);
         }
         ctx.fill();
-      });
+      }
       ctx.restore();
+      this._performance.renderedPoints = projectedCount;
     }
 
     _effectiveRobotPose() {

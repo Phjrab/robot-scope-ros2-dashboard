@@ -61,6 +61,7 @@ function json(route, value, status = 200) {
 export async function installDashboardBackend(page, options = {}) {
   const state = {
     online: options.online !== false,
+    pointMax: 10_000,
     mapping: baseMapping(), navigation: baseNavigation(), control: baseControl(), dataset: baseDataset(),
     mapRevision: MAP_REVISION, serviceBlocked: Boolean(options.serviceBlocked),
     annotations: {
@@ -179,7 +180,10 @@ export async function installDashboardBackend(page, options = {}) {
         { source_id: 'realsense_color', id: 'realsense_color', label: 'REALSENSE COLOR', configured: true, available: true, enabled: true, live: true, state: 'ok', age_s: 0.1, fps: 15, width: 4, height: 3, topic: '/camera/color/image_raw', transport: 'fake' },
       ],
     });
-    if (path === '/api/v1/pointcloud/settings') return json(route, { max_points: 10000, all_points: false });
+    if (path === '/api/v1/pointcloud/settings') {
+      if (method === 'POST' && Number.isInteger(body?.max_points)) state.pointMax = body.max_points;
+      return json(route, { max_points: state.pointMax, all_points: false, min_points: 1_000, max_custom_points: 1_000_000 });
+    }
     if (path === '/api/v1/pointcloud.bin' || path === '/api/v1/pointcloud' || path === '/api/v1/map') return route.fulfill({ status: 204, body: '' });
     if (path === '/api/v1/saved-maps') return json(route, { maps: [{
       id: MAP_ID, revision: state.mapRevision, name: 'e2e_static_map', kind: 'occupancy2d',

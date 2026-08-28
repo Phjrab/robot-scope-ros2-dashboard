@@ -150,6 +150,8 @@ export function createCockpitWorkspace(options = {}) {
     Renderer: options.Renderer,
     controls: options.controls,
     maxPoints: options.maxPoints,
+    now: options.now,
+    onPointBudgetRequest: options.onPointBudgetRequest,
     onModelState(state, profile) {
       if (modelElement) modelElement.textContent = `${String(profile?.model?.label || profile?.label || 'ROBOT MODEL').toUpperCase()} · ${state}`;
     },
@@ -346,6 +348,12 @@ export function initializeCockpitWorkspace(options = {}) {
       front: documentValue.querySelector('#cockpitSceneFront'),
       follow: documentValue.querySelector('#cockpitSceneFollow'),
       axes: documentValue.querySelector('#cockpitSceneAxes'),
+      quality: documentValue.querySelector('#cockpitPointQuality'),
+      adaptive: documentValue.querySelector('#cockpitPointAdaptive'),
+      pointSize: documentValue.querySelector('#cockpitPointSize'),
+      heightColor: documentValue.querySelector('#cockpitHeightColor'),
+      nearField: documentValue.querySelector('#cockpitNearField'),
+      metrics: documentValue.querySelector('#cockpitPointMetrics'),
     },
   });
 }

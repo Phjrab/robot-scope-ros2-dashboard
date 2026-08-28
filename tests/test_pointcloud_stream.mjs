@@ -60,6 +60,12 @@ test('binary decoder rejects bad magic, bad lengths and oversized claims', () =>
   assert.throws(() => stream.decodeFrame(badCount), /payload size/);
 });
 
+test('binary decoder rejects tampered non-finite XYZ before the renderer trusts it', () => {
+  const nanFrame = encodeFrame({ seq: 9 }, [1, Number.NaN, 3]);
+  assert.throws(() => stream.decodeFrame(nanFrame), /non-finite XYZ/);
+  assert.equal(stream.maxPointCount, 1_000_000);
+});
+
 test('registered-cloud reservoir is bounded, idempotent and source-scoped', () => {
   const reservoir = new stream.RegisteredCloudReservoir(1000);
   const values = new Float32Array(1500 * 3);

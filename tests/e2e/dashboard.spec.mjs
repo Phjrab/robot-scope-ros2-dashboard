@@ -83,6 +83,24 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(20);
 });
 
+test('Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await expect(page.locator('#cockpitPointQuality')).toHaveValue('low');
+  await page.locator('#cockpitPointQuality').selectOption('medium');
+  await expect.poll(() => backend.mutations('/api/v1/pointcloud/settings').at(-1)?.body?.max_points).toBe(30_000);
+  await page.locator('#cockpitPointQuality').selectOption('high');
+  await expect.poll(() => backend.mutations('/api/v1/pointcloud/settings').at(-1)?.body?.max_points).toBe(60_000);
+  await expect.poll(async () => (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.scene.quality.mode).toBe('high');
+  await expect(page.locator('#cockpitPointMetrics')).toContainText('HIGH · 60K');
+
+  await page.locator('#cockpitPointAdaptive').click();
+  await expect(page.locator('#cockpitPointAdaptive')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#cockpitHeightColor').click();
+  await expect(page.locator('#cockpitHeightColor')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#cockpitNearField').click();
+  await expect(page.locator('#cockpitNearField')).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);

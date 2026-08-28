@@ -98,6 +98,40 @@ released이면 panel mutation 전에 기존 `failSafeDisarm` zero 경로를 호�
 존재하는 경우 기존 disconnect fail-safe 경로를 다시 사용한다. single button으로 ARM,
 STOP 해제, Navigation, mission 또는 Go2 action을 시작하는 shortcut은 없다.
 
+### CWP-08 구현 기록
+
+CWP-08은 기존 단일 PointCloud transport와 서버의 명시적 1,000~1,000,000점
+상한 계약을 유지하면서 Cockpit 표시 파이프라인에만 LOW 10K, MEDIUM 30K,
+HIGH 60K 품질 단계를 추가했다. 기본값은 LOW이며 MEDIUM/HIGH 서버 예산 변경은
+사용자가 Cockpit base scene toolbar에서 직접 선택할 때만 기존
+`/api/v1/pointcloud/settings` 경로로 요청한다. 자동 모드는 서버 설정을 반복 변경하지
+않고 현재 수신 frame 안에서 표시 budget만 낮추거나 천천히 복구한다. ULTRA는 실제
+Jetson/XT16 측정 전에는 제공하거나 기본값으로 사용하지 않는다.
+
+브라우저 LOD는 0~5m, 5~15m, 15m 이상 세 구간에 고정 가중치를 적용한다. 두 개의
+60K `Float32Array`를 ping-pong으로 재사용하며 frame마다 point object 배열을 만들지
+않는다. Canvas renderer의 projection scratch도 typed array로 재사용한다. height
+color, point size, near-field 강조는 panel이 아닌 base scene toolbar가 소유한다.
+decoder는 기존 1,000,000점/12MB frame 상한, metadata 일치와 exact frame length에
+더해 non-finite XYZ를 renderer 전달 전에 거부한다.
+
+적응형 controller는 decode 시간, renderer frame 시간/FPS, scene update 시간,
+sequence gap과 STALE을 읽는다. 성능 악화는 2개 bad sample 및 3초 minimum dwell 뒤
+한 단계씩 낮추며, 회복은 5개 good sample 및 8초 dwell을 요구한다. 이 수치는 layout
+또는 localStorage에 저장하지 않고 bounded diagnostics snapshot으로만 노출한다.
+STALE/WAITING에서는 기존 계약대로 point set을 즉시 비우며 cached frame을 LIVE처럼
+계속 갱신하지 않는다. Mapping과 Saved Maps의 scene/update 경로 및 PointCloud
+subscription 수는 변경하지 않았다.
+
+실제 장비 성능 표는 사용자 요청에 따라 이번 작업에서 실행하지 않았다. 아래 행은
+동일 commit이 Jetson에 배포되고 XT16이 연결된 감독 세션에서만 채운다.
+
+| 장비/모드 | 수신점 | 표시점 | FPS | frame/decode/update ms | drop/stale | 결과 |
+| --- | ---: | ---: | ---: | --- | --- | --- |
+| Jetson + XT16 / LOW | — | 10K 이하 | — | — | — | NOT_RUN |
+| Jetson + XT16 / MEDIUM | — | 30K 이하 | — | — | — | NOT_RUN |
+| Jetson + XT16 / HIGH | — | 60K 이하 | — | — | — | NOT_RUN |
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,
