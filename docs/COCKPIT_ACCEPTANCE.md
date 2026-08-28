@@ -63,8 +63,9 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | pointcloud 없음, stale, malformed frame | `PASS` | projection/binary decoder fail-closed behavior |
 | high budget와 adaptive LOD 전환 | `PASS` | typed-buffer/LOD behavior + Playwright quality transition |
 | route 전환 후 PointCloud owner 중복 없음 | `PASS` | shared transport unit + Playwright 20 route cycles |
-| 실제 Go2+RealSense 동시 영상 stall/restart | `NOT_RUN` | live relays 미사용 |
-| 실제 XT16 high-rate cloud 60분 | `NOT_RUN` | live XT16 미사용 |
+| 실제 Go2+RealSense 동시 영상 stall/restart | `FAIL` | 2026-08-28: Go2 LIVE, source별 viewer lifecycle PASS; RealSense relay producer가 GStreamer status 1로 종료 |
+| 실제 XT16 high-rate cloud와 adaptive LOD 단기 검증 | `PASS` | 2026-08-28: LOW/MEDIUM/HIGH와 AUTO 하향 전환, shared transport 확인 |
+| 실제 XT16 high-rate cloud 60분 | `NOT_RUN` | 단기 검증만 수행; 60분 renderer/socket/heap soak 미실행 |
 
 ### Control, Navigation과 Mission
 
@@ -89,13 +90,13 @@ timing test가 일시 실패하면 assertion을 바꾸지 않고 해당 test를 
 | Suite | 결과 | 상세 |
 | --- | --- | --- |
 | Cockpit 전용 Node unit | `PASS` | 71/71 |
-| 전체 JavaScript unit | `PASS` | 238/238 |
+| 전체 JavaScript unit | `PASS` | 239/239; SavedMapCatalog `map_id` regression 포함 |
 | frontend syntax | `PASS` | 48개 `robot_dashboard/static/**/*.js` 재귀 검사 |
 | Cockpit Playwright | `PASS` | 13/13 |
 | Playwright hardware-free E2E | `PASS` | 27/27, 기존 시나리오 삭제 없음 |
 | Mission/API targeted Python | `PASS` | 13/13; strict schema, persistence, revision, lifecycle, recovery |
 | CWP-12 documentation contract | `PASS` | 3/3 |
-| 전체 Python | `BLOCKED` | 667개 중 666개 통과, macOS `/etc/os-release` baseline 오류 1개 |
+| 전체 Python | `BLOCKED` | 672개 중 671개 통과, macOS `/etc/os-release` baseline 오류 1개 |
 | Python coverage | `PASS` | 전체 65%, MissionCoordinator 74%; 실패 1개 실행 결과도 포함 |
 
 실행 명령:
@@ -147,19 +148,29 @@ reconnect count, dropped frame, JS heap 증가량과 main-thread long task를 �
 
 ## Hardware acceptance
 
-이번 CWP-12 repository 작업에서는 실제 서비스 restart, mapping launch, navigation goal,
-robot motion, sensor cable fault 또는 Jetson 배포를 수행하지 않았다.
+초기 CWP-12 software phase에서는 실제 장비를 사용하지 않았다. 2026-08-28 후속 검증에서는
+commit `3642d75`를 Jetson에 배포해 dashboard restart, live Go2/XT16 관찰, camera demand
+lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, mapping과 Nav2는 시작하지
+않았고 initial pose, goal, map mutation, dataset capture와 robot motion도 수행하지 않았다.
 
 | 실제 시나리오 | 결과 |
 | --- | --- |
-| dashboard/control bridge와 dedicated NIC/LowState freshness | `NOT_RUN` |
-| Go2 camera와 RealSense 동시 LIVE/stall/reconnect | `NOT_RUN` |
-| XT16 rate, stale, adaptive LOD와 60분 rendering | `NOT_RUN` |
+| dashboard와 dedicated NIC/LowState freshness | `PASS` |
+| 현재 commit의 Control Bridge lifecycle | `NOT_RUN` |
+| Go2 camera LIVE와 exact viewer acquire/release | `PASS` |
+| RealSense camera LIVE | `FAIL` |
+| XT16 rate와 adaptive LOD 단기 검증 | `PASS` |
+| XT16 60분 rendering/owner/heap soak | `NOT_RUN` |
+| 실제 Xbox Controller 연결/해제 | `BLOCKED` |
 | deadman/browser close/software STOP/bridge loss 정지 | `NOT_RUN` |
-| 실제 map localization과 initial pose | `NOT_RUN` |
+| exact revision 저장 지도 read-only 표시 | `PASS` |
+| 실제 localization과 initial pose | `NOT_RUN` |
 | Nav goal, child crash, sensor loss와 Manual Takeover | `NOT_RUN` |
 | 실제 annotation Mission pause/skip/retry/abort | `NOT_RUN` |
 | Dataset finalize, storage reserve와 경기 후 보존 | `NOT_RUN` |
+
+상세 수치, RealSense 실패 원인과 종료 상태는
+[2026-08-28 하드웨어 검증 기록](HARDWARE_VALIDATION_2026-08-28.md)의 CWP follow-up을 따른다.
 
 실제 실행은 [하드웨어 인수 검증](HARDWARE_ACCEPTANCE.md)의 단일 supervised scenario,
 물리 정지 수단, clear area와 stop-on-first-failure 원칙을 따른다.

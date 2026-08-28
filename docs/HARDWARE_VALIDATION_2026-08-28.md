@@ -202,18 +202,94 @@ FAST-LIO pipeline and Control Bridge were then stopped through their dashboard
 APIs and verified inactive. The persistent XT16 preview and dashboard remained
 active.
 
+## CWP live verification follow-up
+
+The repository and Jetson were aligned to commit `3642d75` for this follow-up.
+Nav2 was explicitly deferred. The Control Bridge, FAST-LIO and mapping remained
+stopped, and no initial pose, navigation goal, mission mutation, map mutation,
+dataset capture or robot motion was requested.
+
+### Camera ownership and live sources
+
+- The Go2 front camera was live at 1280x720 and approximately 14.3 FPS through
+  the existing UDP multicast H.264 relay.
+- Opening and compacting only the Go2 panel changed its catalog viewer count
+  exactly from 0 to 1 and back to 0. Restoring the panel returned it to 1 while
+  the RealSense source kept its independent viewer. No second camera owner was
+  introduced.
+- The Jetson could reach the RealSense relay at `192.168.123.18`, and its HTTP
+  endpoint returned 200. The source did not produce a frame. The relay health
+  response reported `state=error`, zero frames, `process_running=false`, and
+  `RealSense GStreamer exited with status 1`. This is a live-source FAIL rather
+  than a Cockpit demand or network failure. Relay host credentials were not
+  available, so its service logs were not inspected and it was not restarted.
+
+### Live XT16 rendering and host load
+
+- LOW 10K, MEDIUM 30K and HIGH 60K modes all rendered through the shared
+  `/velodyne_points` transport. Observed short-window UI rates were about
+  23-32, 23-34 and 21-38 FPS respectively.
+- AUTO with a HIGH ceiling stepped HIGH to MEDIUM to LOW under load and then
+  remained bounded at LOW, confirming the adaptive hysteresis path.
+- With HIGH and both camera demands active, a ten-second Jetson sample measured
+  40.113 Mbit/s receive traffic on `eno1`. The dashboard used about 122.08% CPU
+  and 99.28 MiB RSS; the XT16 bridge used 31.37% CPU and 18.28 MiB RSS; the
+  Hesai driver used 35.96% CPU and 118.73 MiB RSS; and the Go2 GStreamer relay
+  used 37.26% CPU and 55.61 MiB RSS.
+- These are bounded short-window observations, not a substitute for the
+  required 60-minute renderer/socket/listener/heap soak.
+
+### Revision-pinned map correction
+
+The Navigation map selector and SavedMapCatalog metadata exposed a valid map
+ID and revision, while the Cockpit map panel incorrectly showed
+`MAP_REVISION_MISMATCH`. The live API confirmed that catalog metadata uses
+`id`, but the bounded map-data response uses `map_id`. Commit `3642d75` accepts
+those two fixed product fields while retaining exact opaque ID and revision
+matching. It does not relax the conflict, geometry, annotation or navigation
+revision gates.
+
+After deployment and dashboard-only restart, the read-only map panel reported
+`READY` for `map_20260813_125411`, map ID prefix `97bae189` and revision prefix
+`504ee7d326`. Localization correctly remained `UNINITIALIZED / UNAVAILABLE`
+and navigation stayed `IDLE` because Nav2 was deferred.
+
+### Verification and final safe state
+
+- Map-state targeted JavaScript: 8/8 passed.
+- Frontend syntax: 48 modules passed.
+- Full JavaScript unit: 239/239 passed.
+- Cockpit Playwright: 13/13 passed. One full-run mission draft timing failure
+  passed when isolated and the complete suite then passed on rerun; no
+  assertion was weakened.
+- Full Python: 672 total, 671 passed, with the known macOS-only
+  `/etc/os-release` baseline error unchanged.
+
+At the end of verification, both camera sources had zero viewers and were
+stopped, the Cockpit had zero floating panels, LiDAR was restored to LOW 10K
+with AUTO disabled, and the Safety HUD showed DISARMED, released deadman, no
+lease and zero velocity commands. Control Bridge, FAST-LIO, mapping and Nav2
+processes were absent; only the dashboard and persistent XT16 preview remained
+active.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
    keep it disabled during later Robot Scope acceptance sessions.
 2. The C++ conversion, DDS receive buffer and FAST-LIO odometry now pass both
-   standalone and Control Bridge combined-load checks. The next supervised
-   validation step is Nav2 start-without-goal, initial pose, runtime TF and
-   localization health. It requires the operator, physical remote and E-stop
-   procedure defined in `HARDWARE_ACCEPTANCE.md`.
+   standalone and Control Bridge combined-load checks. Nav2 validation remains
+   explicitly deferred. When resumed, start with Nav2 without a goal, then
+   initial pose, runtime TF and localization health under the operator,
+   physical remote and E-stop procedure in `HARDWARE_ACCEPTANCE.md`.
 3. Preserve the existing local modifications in the external Hesai workspace;
    the full installer remains intentionally blocked until their ownership and
    purpose are reconciled.
 4. Navigation/localization and supervised motion scenarios remain incomplete.
    Motion validation requires the physical E-stop ready, a clear test area,
    low-speed limits, an operator present, and the physical remote in hand.
+5. Restore the RealSense relay before repeating simultaneous-camera soak. Its
+   current GStreamer producer exits with status 1 even though the relay host is
+   reachable and the HTTP endpoint answers.
+6. Complete the 60-minute CWP soak and actual Xbox Controller validation; the
+   short rendering observation and synthetic controller tests do not satisfy
+   those hardware acceptance rows.
