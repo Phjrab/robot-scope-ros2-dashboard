@@ -74,6 +74,35 @@ XT16 bridge, and Control Bridge were already active. Converted-cloud backlog
 and rejection bursts increased during this contention. Robot Scope timing and
 freshness thresholds were not weakened to hide the failure.
 
+### Quiet-host rerun and rejected tuning
+
+The unrelated discovery load was stopped and its temporary Python processes
+were confirmed absent before a second session. With the Control Bridge stopped,
+the converted cloud recovered to 6.49–7.37 Hz, 0.031–0.050 s age, and
+68–126 ms jitter. This confirmed that the external probe materially worsened
+the first run, but did not prove it was the only cause.
+
+With the signed Control Bridge active, no lease, released deadman, and zero
+commands, the acceptance result remained:
+
+```text
+PASS=49 FAIL=1 BLOCKED=4 NOT_RUN=12
+```
+
+The converted-cloud rate and jitter could remain within bounds while a single
+freshness gap exceeded the fixed 0.5 s limit. One quiet-host run observed
+5.69 Hz, 226 ms jitter, and 0.824 s age. A bounded 100 Hz and then 50 Hz
+`/imu/body` experiment reduced IMU callback work but did not remove the gap;
+the 50 Hz run observed 5.77 Hz, 296 ms jitter, and 2.617 s age. Those tuning
+commits were therefore reverted by `305e324` rather than leaving an unverified
+FAST-LIO behavior change in the product.
+
+Jetson telemetry showed all six CPU cores online in MAXN mode, approximately
+43°C temperature, no swap use, and no thermal or memory pressure. The remaining
+evidence points to the Python large-PointCloud2 conversion/DDS boundary under
+the combined dashboard and signed-bridge workload, not a safe reason to widen
+the timestamp or freshness limits.
+
 ## Repository verification
 
 - Targeted API and acceptance tests: 16 passed.
@@ -87,11 +116,12 @@ freshness thresholds were not weakened to hide the failure.
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
-   repeat one read-only acceptance run during a quiet host window.
-2. If converted-cloud rate still violates the fixed bounds without external
-   contention, profile the bridge and dashboard before changing IMU cadence,
-   point decimation, QoS, or clock logic. Those changes can affect FAST-LIO and
-   require separate navigation-localization validation.
+   keep it disabled during later Robot Scope acceptance sessions.
+2. Profile or replace the Python large-PointCloud2 conversion boundary before
+   changing IMU cadence, point decimation, QoS, process scheduling, or clock
+   logic. A C++ conversion node or an equivalent measured design should be
+   evaluated against the same byte layout and strict timestamp contract, then
+   validated with FAST-LIO odometry before adoption.
 3. Preserve the existing local modifications in the external Hesai workspace;
    the full installer remains intentionally blocked until their ownership and
    purpose are reconciled.
