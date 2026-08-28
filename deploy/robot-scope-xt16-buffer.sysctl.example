@@ -1,0 +1,4 @@
+# Required by the fixed 8 MiB CycloneDDS receive-buffer request used for
+# multi-megabyte XT16 PointCloud2 samples.  This raises only the kernel ceiling;
+# it does not change the default buffer of unrelated sockets.
+net.core.rmem_max = 8388608

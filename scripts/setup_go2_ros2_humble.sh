@@ -68,7 +68,7 @@ export ROS_LOCALHOST_ONLY=0
 export ROBOT_SCOPE_GO2_INTERFACE
 export ROBOT_SCOPE_GO2_INTERFACE_CIDR
 export ROBOT_SCOPE_WORKSPACE_ROOT
-export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"$ROBOT_SCOPE_GO2_INTERFACE\" priority=\"default\" multicast=\"default\" /></Interfaces></General><Discovery><MaxAutoParticipantIndex>80</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
+export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"$ROBOT_SCOPE_GO2_INTERFACE\" priority=\"default\" multicast=\"default\" /></Interfaces></General><Discovery><MaxAutoParticipantIndex>80</MaxAutoParticipantIndex></Discovery><Internal><SocketReceiveBufferSize max=\"8 MiB\" /></Internal></Domain></CycloneDDS>"
 
 echo "[Robot Scope] ROS 2 Humble + CycloneDDS ready | iface=$ROBOT_SCOPE_GO2_INTERFACE | domain=${ROS_DOMAIN_ID:-0}"
 

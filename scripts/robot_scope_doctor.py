@@ -751,7 +751,35 @@ class Doctor:
                     "dependency bootstrap for external workspaces."
                 ),
             )
+        self._check_xt16_dds_receive_buffer()
         self._check_xt16_relay_host()
+
+    def _check_xt16_dds_receive_buffer(self) -> None:
+        required_bytes = 8 * 1024 * 1024
+        limit_path = Path("/proc/sys/net/core/rmem_max")
+        try:
+            configured_bytes = int(limit_path.read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            configured_bytes = 0
+        if configured_bytes >= required_bytes:
+            self.add(
+                "xt16.dds_receive_buffer",
+                "pass",
+                "kernel UDP receive-buffer ceiling supports the fixed XT16 DDS request",
+                detail=f"rmem_max={configured_bytes}",
+            )
+        else:
+            self.add(
+                "xt16.dds_receive_buffer",
+                "fail",
+                "kernel UDP receive-buffer ceiling is too small for XT16 PointCloud2 fragments",
+                detail=f"rmem_max={configured_bytes} required={required_bytes}",
+                remedy=(
+                    "Install deploy/robot-scope-xt16-buffer.sysctl.example as the "
+                    "root-owned /etc/sysctl.d/90-robot-scope-xt16-buffer.conf and "
+                    "apply it before restarting Robot Scope."
+                ),
+            )
 
     def _check_xt16_relay_host(self) -> None:
         """Probe the optional robot-mounted relay host without authenticating."""

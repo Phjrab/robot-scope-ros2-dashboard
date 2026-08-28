@@ -604,6 +604,18 @@ class MapRuntimeArtifactTests(unittest.TestCase):
         saver_source = (ROOT / "scripts/save_map.py").read_text(encoding="utf-8")
         self.assertIn("rclpy.init(args=[])", saver_source)
 
+    def test_xt16_sysctl_artifact_only_raises_the_udp_receive_ceiling(self):
+        source = (
+            ROOT / "deploy" / "robot-scope-xt16-buffer.sysctl.example"
+        ).read_text(encoding="utf-8")
+        assignments = [
+            line.strip()
+            for line in source.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertEqual(assignments, ["net.core.rmem_max = 8388608"])
+        self.assertNotIn("rmem_default", source)
+
 
 class MappingConfigurationArtifactTests(unittest.TestCase):
     def test_repo_configs_preserve_the_verified_fixed_topic_contract(self):

@@ -119,6 +119,11 @@ ros2 topic hz /Odometry
   `hesai_preview.log`, `xt16_preview_bridge.log`를 확인합니다.
 - `/velodyne_points`는 LIVE인데 `/Laser_map`만 없다면 원시 미리보기는 정상이고 FAST-LIO
   매핑 세션만 중지된 상태일 수 있습니다.
+- `/lidar_points`는 10 Hz인데 bridge 로그에 `callback backlog residual`이 반복되면
+  `python3 scripts/robot_scope_doctor.py --mode go2-xt16`의
+  `xt16.dds_receive_buffer`를 확인합니다. timestamp/freshness 한계를 임의로 완화하지 말고
+  `docs/DEPENDENCIES.md`의 고정 sysctl 파일을 적용한 뒤 DDS socket drop과 동일
+  acceptance를 다시 측정합니다.
 
 ## Live Mapping이 끊기거나 지연됨
 

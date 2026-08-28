@@ -97,6 +97,22 @@ checkout의 파일 및 그 checkout에서 빌드한 C++ XT16 실행 파일을 �
 독립적으로 다시 빌드할 때는 `scripts/build_xt16_bridge_humble.sh`를 사용합니다. 이 명령은
 외부 Hesai/FAST-LIO source를 reset하거나 수정하지 않습니다.
 
+XT16 raw cloud는 프레임당 약 2 MiB이므로 기본 Linux UDP receive-buffer ceiling으로는
+CycloneDDS fragment가 유실되고 reliable 재전송 지연이 발생할 수 있습니다. Go2 runtime은
+고정 8 MiB receive buffer를 요청하며, `go2-xt16`/`go2-nav` doctor는 커널 ceiling이
+8 MiB보다 작으면 fail-closed 합니다. 관리자는 검토 후 다음 고정 파일만 설치합니다.
+
+~~~bash
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-xt16-buffer.sysctl.example \
+  /etc/sysctl.d/90-robot-scope-xt16-buffer.conf
+sudo sysctl --system
+~~~
+
+이 파일은 `net.core.rmem_max` 상한만 올리고 다른 소켓의 기본 receive buffer는 변경하지
+않습니다. 적용 후 `python3 scripts/robot_scope_doctor.py --mode go2-xt16`에서
+`xt16.dds_receive_buffer`가 PASS인지 확인합니다.
+
 현재 pinned 외부 source는 다음과 같습니다. 값이 바뀌면 코드와 현장 검증을 다시
 수행하고 manifest 변경을 review해야 합니다.
 

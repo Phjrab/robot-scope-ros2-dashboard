@@ -334,6 +334,7 @@ class RobotScopeDoctorTests(unittest.TestCase):
             self.assertIn("xt16.bridge", ids)
             self.assertIn("xt16.bridge_source", ids)
             self.assertIn("xt16.bridge_reference", ids)
+            self.assertIn("xt16.dds_receive_buffer", ids)
             self.assertIn("xt16.map_saver", ids)
             self.assertIn("xt16.map_converter", ids)
             self.assertNotIn("xt16.pcd2pgm_workspace", ids)

@@ -26,6 +26,7 @@ class Go2SetupHelperTests(unittest.TestCase):
         self.assertIn("ROBOT_SCOPE_UNITREE_SETUP", source)
         self.assertIn("ROBOT_SCOPE_WORKSPACE_ROOT", source)
         self.assertIn("rmw_cyclonedds_cpp", source)
+        self.assertIn('SocketReceiveBufferSize max=\\"8 MiB\\"', source)
         self.assertNotIn("eval ", source)
 
     def test_runtime_runners_use_the_repository_helper(self) -> None:
