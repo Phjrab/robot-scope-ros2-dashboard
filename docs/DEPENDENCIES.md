@@ -106,7 +106,7 @@ CycloneDDS fragment가 유실되고 reliable 재전송 지연이 발생할 수 �
 sudo install -o root -g root -m 0644 \
   deploy/robot-scope-xt16-buffer.sysctl.example \
   /etc/sysctl.d/90-robot-scope-xt16-buffer.conf
-sudo sysctl --system
+sudo sysctl -p /etc/sysctl.d/90-robot-scope-xt16-buffer.conf
 ~~~
 
 이 파일은 `net.core.rmem_max` 상한만 올리고 다른 소켓의 기본 receive buffer는 변경하지
