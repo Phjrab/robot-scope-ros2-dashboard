@@ -569,6 +569,7 @@
     return Object.freeze({
       reset, load, draw, render, cancelDrawing, beginPointer, movePointer,
       finishPointer,
+      snapshot: () => snapshot,
       hasDirty: () => dirty,
       hasActiveTool: () => Boolean(tool),
     });

@@ -101,6 +101,47 @@ test('Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scen
   await expect(page.locator('#cockpitNearField')).toHaveAttribute('aria-pressed', 'false');
 });
 
+test('Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  backend.state.navigation = {
+    ...backend.state.navigation,
+    pipeline: { state: 'running', job_id: 'f'.repeat(32), error: '' },
+    map: { id: backend.mapId, revision: backend.mapRevision },
+    localization: { state: 'localized', pose: { x: 0.5, y: 0.5, yaw: 0.2, frame_id: 'map' } },
+    localization_health: { state: 'READY', reason_code: 'HEALTHY', metrics: { odometry_age_s: 0.05, tf_age_s: 0.08 } },
+    readiness: { ...backend.state.navigation.readiness, map: true, odometry: true, tf: true, localization: true },
+    path: [{ x: 0.25, y: 0.25 }, { x: 0.5, y: 0.5 }],
+    goal: { state: 'active', goal_id: '1'.repeat(32), pose: { x: 0.75, y: 0.75, yaw: 0 }, message: '' },
+  };
+  await page.locator('#refreshButton').click();
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
+  const panel = page.locator('[data-panel-id="placeholder-map"]');
+  await expect(panel.locator('.cockpit-map-panel')).toBeVisible();
+  await expect(panel.locator('.cockpit-map-header strong')).toHaveText('LIVE');
+  await expect(panel.locator('.cockpit-map-header span')).toContainText('e2e_static_map');
+  await expect(panel.locator('.cockpit-map-header span')).toContainText(backend.mapId.slice(0, 8));
+  await expect(panel.locator('.cockpit-map-metrics')).toContainText('LOCALIZED / READY');
+
+  await panel.locator('[data-panel-action="focus"]').click();
+  await expect(panel).toHaveAttribute('data-mode', 'focus');
+  await expect(page.locator('#cockpitSafetyHud')).toBeVisible();
+  await expect(page.locator('#cockpitMapOverlay')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#cockpitMapOverlay').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#cockpitMapOverlay')).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(async () => (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.scene.mapOverlay.enabled).toBe(false);
+
+  backend.state.navigation = { ...backend.state.navigation, map: { id: backend.mapId, revision: 'd'.repeat(64) } };
+  await expect(panel.locator('.cockpit-map-header strong')).toHaveText('CONFLICT', { timeout: 3_000 });
+  await expect(panel.locator('.cockpit-map-warning')).toContainText('REVISION CONFLICT');
+  const cockpit = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  expect(cockpit.workspace.scene.mapOverlay.pathPoints).toBe(0);
+  expect(cockpit.workspace.scene.mapOverlay.markerCount).toBe(0);
+  expect(backend.mutations('/api/v1/navigation/start')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+});
+
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);

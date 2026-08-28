@@ -132,6 +132,43 @@ subscription 수는 변경하지 않았다.
 | Jetson + XT16 / MEDIUM | — | 30K 이하 | — | — | — | NOT_RUN |
 | Jetson + XT16 / HIGH | — | 60K 이하 | — | — | — | NOT_RUN |
 
+### CWP-09 구현 기록
+
+CWP-09에서는 저장 layout 호환성을 위해 기존 `placeholder.map` panel type과
+`placeholder-map` ID를 유지하면서 내용을 읽기 전용 Map & Localization panel로
+교체했다. panel은 기존 Saved Maps catalog/data와 Navigation snapshot만 입력으로
+받으며 별도 HTTP polling, WebSocket, ROS subscription 또는 control session을 만들지
+않는다. map name, opaque ID 일부, exact revision, occupancy, robot footprint/heading,
+bounded trail, HOME/DOCK/POI/INSPECTION_POINT, localization health, odometry/TF age,
+navigation/goal/path를 표시한다. filesystem path나 goal/initial-pose mutation은
+추가하지 않았다.
+
+Map store는 catalog와 decoded map의 24-hex opaque ID 및 64-hex revision이 같고,
+Navigation의 active map pin도 정확히 같을 때만 pose/path를 결합한다. pose frame,
+`LOCALIZED`, server-authoritative `READY` health, odometry와 TF readiness가 모두
+확인되어야 robot pose가 LIVE가 된다. stale 상태에서는 마지막 정상 pose를 주황색
+점선 `LAST KNOWN · STALE`로 명시하고 현재 pose처럼 취급하지 않으며 3D trail을
+제거한다. revision conflict에서는 pose/path/3D overlay를 즉시 제거하고 원인을 panel에
+표시한다. trail 240점, path 512점, annotation 64개, 3D marker HOME+선택 항목 최대
+2개로 제한했다.
+
+Occupancy raster는 map ID/revision별로 한 번 decode해 panel resize 시 재사용한다.
+panel lifecycle 구독은 visible/non-compact 상태에서만 유지되고 compact, close,
+Cockpit 비활성화 시 해제된다. 3D overlay는 새 renderer나 pointcloud stream을 만들지
+않고 현재 `RobotScene3D`의 같은 Canvas 2D rendering context에 path/trail/marker를
+그리며 base toolbar의 `MAP` toggle로 끌 수 있다. 실제 renderer가 WebGL이 아니므로
+별도 WebGL context를 도입하지 않고 기존 renderer context 재사용이라는 제품 경계를
+적용했다. panel open/close와 overlay toggle은 control lease, Navigation state 또는
+Safety HUD에 영향을 주지 않는다.
+
+실기 검증은 로봇을 사용할 수 없는 현재 조건과 사용자 지침에 따라 실행하지 않았다.
+
+| 실기 항목 | 결과 |
+| --- | --- |
+| 실제 대회장 지도 pose/heading 정합성 | NOT_RUN |
+| initial pose 전 unavailable 표시 | NOT_RUN |
+| FAST-LIO 또는 Nav2 TF 중단 stale 전환 | NOT_RUN |
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,

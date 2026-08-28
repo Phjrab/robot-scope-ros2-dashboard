@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createPanelRegistry, PLACEHOLDER_DESCRIPTORS } from '../robot_dashboard/static/features/cockpit/panel_registry.js';
 import { nextLauncherIndex } from '../robot_dashboard/static/features/cockpit/sensor_launcher.js';
 
-test('registry exposes two fixed camera sources, map placeholder, and Controller Panel', () => {
+test('registry exposes two fixed camera sources, read-only map, and Controller Panel', () => {
   const registry = createPanelRegistry({ document: {}, cameraDemand: {} });
   assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Controller']);
   assert.ok(registry.list().every((descriptor) => descriptor.singleton === true && descriptor.defaultVisible === false));
@@ -12,6 +12,7 @@ test('registry exposes two fixed camera sources, map placeholder, and Controller
   assert.equal(registry.get('camera.go2-front').id, 'camera-go2-front');
   assert.equal(registry.get('camera.go2-front').sourceId, 'go2_front');
   assert.equal(registry.get('camera.realsense-color').sourceId, 'realsense_color');
+  assert.equal(registry.get('placeholder.map').kind, 'map');
   assert.equal(registry.get('placeholder.controller').kind, 'controller');
   assert.equal(registry.get('unknown'), null);
 });

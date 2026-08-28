@@ -8,6 +8,7 @@ import { createLayoutStore } from './layout_store.js';
 import { createLayoutLibrary } from './layout_library.js';
 import { createSafetyHud } from './safety_hud.js';
 import { createControllerStateStore, createGamepadUiMapper, dispatchGamepadUiAction, projectControllerStatus } from './gamepad_ui.js';
+import { createCockpitMapStore } from './map_state.js';
 
 export function cockpitGamepadUiBlocked(documentValue) {
   const activeElement = documentValue?.activeElement;
@@ -42,7 +43,8 @@ export function createCockpitWorkspace(options = {}) {
   let destroyed = false;
   const controllerState = createControllerStateStore();
   const gamepadUi = createGamepadUiMapper({ now: options.now });
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState }) : null;
+  const mapState = createCockpitMapStore();
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState, mapState, navigationEngine: options.navigationEngine }) : null;
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
@@ -157,6 +159,7 @@ export function createCockpitWorkspace(options = {}) {
     },
     onError: options.onError,
   });
+  const releaseMapScene = mapState.subscribe((state) => sceneHost.setMapState(state));
 
   function captureLayout(name) {
     const snapshot = panelManager?.diagnostics();
@@ -268,6 +271,7 @@ export function createCockpitWorkspace(options = {}) {
 
   function setRobotState(state) {
     sceneHost.setRobotState(state);
+    mapState.update(options.getMapSnapshot?.() || {});
   }
 
   function resize() {
@@ -292,6 +296,7 @@ export function createCockpitWorkspace(options = {}) {
       safety: safetyHud?.diagnostics() || null,
       layoutLibrary: layoutLibrary?.diagnostics() || layoutStore.snapshot(),
       controller: controllerState.snapshot(),
+      map: mapState.diagnostics(),
     });
   }
 
@@ -303,6 +308,7 @@ export function createCockpitWorkspace(options = {}) {
     safetyHud?.destroy();
     layoutLibrary?.destroy();
     panelManager?.destroy();
+    releaseMapScene();
     sceneHost.destroy();
     destroyed = true;
     root.dataset.lifecycle = 'destroyed';
@@ -348,6 +354,7 @@ export function initializeCockpitWorkspace(options = {}) {
       front: documentValue.querySelector('#cockpitSceneFront'),
       follow: documentValue.querySelector('#cockpitSceneFollow'),
       axes: documentValue.querySelector('#cockpitSceneAxes'),
+      mapOverlay: documentValue.querySelector('#cockpitMapOverlay'),
       quality: documentValue.querySelector('#cockpitPointQuality'),
       adaptive: documentValue.querySelector('#cockpitPointAdaptive'),
       pointSize: documentValue.querySelector('#cockpitPointSize'),

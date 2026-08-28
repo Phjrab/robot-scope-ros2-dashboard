@@ -30,6 +30,8 @@ export function createCockpitSceneHost(options = {}) {
   let pose = null;
   let trail = [];
   let joints = null;
+  let mapState = null;
+  let mapOverlayVisible = true;
   let freshness = 'WAITING';
   let robotOnline = null;
   let modelState = 'WAITING';
@@ -75,6 +77,7 @@ export function createCockpitSceneHost(options = {}) {
     }
     if (controls.heightColor) controls.heightColor.setAttribute('aria-pressed', heightColor ? 'true' : 'false');
     if (controls.nearField) controls.nearField.setAttribute('aria-pressed', nearField ? 'true' : 'false');
+    if (controls.mapOverlay) controls.mapOverlay.setAttribute('aria-pressed', mapOverlayVisible ? 'true' : 'false');
     if (controls.pointSize) controls.pointSize.value = String(sceneLayout.point_size);
     if (controls.metrics) {
       const metric = qualityMetrics();
@@ -155,6 +158,7 @@ export function createCockpitSceneHost(options = {}) {
       camera,
       layout: sceneSnapshot(),
       quality: Object.freeze({ mode: qualityMode, adaptive, nearField, heightColor, effectiveBudget: qualityBudget(), adaptiveLevel: adaptiveBudget.snapshot().level, lod: pointLod.diagnostics(), metrics: Object.freeze(qualityMetrics()) }),
+      mapOverlay: Object.freeze({ enabled: mapOverlayVisible, revision: mapState?.map?.revision || '', pathPoints: mapState?.overlay?.path?.length || 0, trailPoints: mapState?.overlay?.trail?.length || 0, markerCount: mapState?.overlay?.markers?.length || 0 }),
     });
   }
 
@@ -186,6 +190,8 @@ export function createCockpitSceneHost(options = {}) {
     if (joints) renderer.setRobotJointPositions?.(joints);
     else renderer.resetRobotJointPositions?.();
     renderer.setStatus(rendererStatus(profile, freshness, robotOnline));
+    if (mapOverlayVisible && mapState?.overlay) renderer.setSpatialOverlay?.(mapState.overlay);
+    else renderer.clearSpatialOverlay?.();
     syncQualityControls();
   }
 
@@ -292,6 +298,13 @@ export function createCockpitSceneHost(options = {}) {
     }
   }
 
+  function setMapState(nextState) {
+    mapState = nextState || null;
+    if (!active || !renderer) return;
+    if (mapOverlayVisible && mapState?.overlay) renderer.setSpatialOverlay?.(mapState.overlay);
+    else renderer.clearSpatialOverlay?.();
+  }
+
   function resize() {
     if (active) renderer?.resize?.();
   }
@@ -343,6 +356,11 @@ export function createCockpitSceneHost(options = {}) {
     renderer?.setNearFieldEmphasis?.(nearField);
     if (active) renderState(); else syncQualityControls();
   });
+  bindQualityControl(options.controls?.mapOverlay, 'click', () => {
+    mapOverlayVisible = !mapOverlayVisible;
+    setMapState(mapState);
+    syncQualityControls();
+  });
 
   function destroy() {
     if (destroyed) return;
@@ -352,6 +370,7 @@ export function createCockpitSceneHost(options = {}) {
     pose = null;
     trail = [];
     joints = null;
+    mapState = null;
     controlDisposers.splice(0).forEach((dispose) => dispose());
   }
 
@@ -361,6 +380,7 @@ export function createCockpitSceneHost(options = {}) {
     setProfile,
     setCloud,
     setRobotState,
+    setMapState,
     setPointLimit,
     applySceneLayout,
     sceneSnapshot,

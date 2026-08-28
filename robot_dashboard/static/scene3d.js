@@ -98,6 +98,16 @@
     };
   }
 
+  function normalizedSpatialOverlay(value) {
+    if (!value) return null;
+    const bounded = (items, limit) => (Array.isArray(items) ? items : []).slice(-limit).map(normalizedPose).filter(Boolean);
+    const markers = (Array.isArray(value.markers) ? value.markers : []).slice(0, 2).map((marker) => {
+      const pose = normalizedPose(marker?.pose);
+      return pose ? { id: String(marker.id || '').slice(0, 64), type: String(marker.type || 'POI').slice(0, 32), name: String(marker.name || marker.type || 'POINT').slice(0, 64), pose } : null;
+    }).filter(Boolean);
+    return { mapId: String(value.mapId || '').slice(0, 64), revision: String(value.revision || '').slice(0, 128), frameId: String(value.frameId || '').slice(0, 128), path: bounded(value.path, 512), trail: bounded(value.trail, 240), markers };
+  }
+
   function niceGridStep(span) {
     const rough = Math.max(span / 16, 0.05);
     const power = Math.pow(10, Math.floor(Math.log10(rough)));
@@ -249,6 +259,7 @@
       };
       this.robotPose = null;
       this.trail = [];
+      this.spatialOverlay = null;
       this.robotVisible = this.options.showRobot;
       this.trailVisible = this.options.showTrail;
       this.axesVisible = storedBoolean(
@@ -576,6 +587,17 @@
 
     setTrail(values) {
       this.trail = Array.isArray(values) ? values.map(normalizedPose).filter(Boolean).slice(-400) : [];
+      this.render();
+    }
+
+    setSpatialOverlay(value) {
+      this.spatialOverlay = normalizedSpatialOverlay(value);
+      this.render();
+      return Boolean(this.spatialOverlay);
+    }
+
+    clearSpatialOverlay() {
+      this.spatialOverlay = null;
       this.render();
     }
 
@@ -973,6 +995,7 @@
       this._basis = null;
       this._cameraBasis();
       if (this.trailVisible) this._drawTrail();
+      this._drawSpatialOverlay();
       if (this.robotVisible) this._drawRobot();
       this._drawHud();
       const completedAt = monotonicNow();
@@ -1167,6 +1190,30 @@
         ctx.fill();
       });
       ctx.restore();
+    }
+
+    _drawSpatialOverlay() {
+      const overlay = this.spatialOverlay;
+      if (!overlay || (overlay.frameId && this.cloud.frameId && overlay.frameId !== this.cloud.frameId)) return;
+      const ctx = this.ctx;
+      const drawLine = (poses, color, dashed) => {
+        const points = poses.map((pose) => this._project([pose.x, pose.y, this.options.groundZ + 0.025])).filter(Boolean);
+        if (points.length < 2) return;
+        ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2; if (dashed) ctx.setLineDash([7, 5]); ctx.beginPath();
+        points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+        ctx.stroke(); ctx.restore();
+      };
+      drawLine(overlay.path, 'rgba(162, 139, 255, .9)', true);
+      drawLine(overlay.trail, 'rgba(125, 240, 182, .82)', false);
+      overlay.markers.forEach((marker) => {
+        const point = this._project([marker.pose.x, marker.pose.y, this.options.groundZ + 0.05]);
+        if (!point) return;
+        const color = marker.type === 'HOME' ? '#7df0b6' : '#5dded8';
+        ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.arc(point.x, point.y, 7, 0, TAU); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(point.x - 10, point.y); ctx.lineTo(point.x + 10, point.y); ctx.moveTo(point.x, point.y - 10); ctx.lineTo(point.x, point.y + 10); ctx.stroke();
+        ctx.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.fillText(`${marker.type} · ${marker.name}`, point.x + 11, point.y - 8); ctx.restore();
+      });
     }
 
     _drawWorldAxes() {

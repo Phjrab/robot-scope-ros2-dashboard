@@ -110,6 +110,29 @@ test('Cockpit scene layout applies bounded view, follow, point size, and range s
   host.destroy();
 });
 
+test('Cockpit map overlay toggle is read-only and reuses the active renderer', () => {
+  let toggle;
+  const mapOverlay = { setAttribute(_name, value) { this.pressed = value; }, addEventListener(name, handler) { if (name === 'click') toggle = handler; }, removeEventListener() {} };
+  const instances = [];
+  class OverlayRenderer {
+    constructor() { this.overlays = []; instances.push(this); }
+    bindControls() {} setStatus() {} clearPointCloud() {} setRobotPose() {} setTrail() {} resetRobotJointPositions() {} configureOfficialRobot() {} resize() {} destroy() {}
+    setSpatialOverlay(value) { this.overlays.push(value); }
+    clearSpatialOverlay() { this.overlays.push(null); }
+  }
+  const host = createCockpitSceneHost({ canvas: {}, Renderer: OverlayRenderer, controls: { mapOverlay } });
+  const mapState = { map: { revision: 'a'.repeat(64) }, overlay: { path: [{ x: 0, y: 0 }, { x: 1, y: 1 }], trail: [], markers: [] } };
+  host.setMapState(mapState); host.activate();
+  assert.equal(instances.length, 1);
+  assert.equal(host.diagnostics().mapOverlay.enabled, true);
+  assert.equal(host.diagnostics().mapOverlay.pathPoints, 2);
+  toggle();
+  assert.equal(host.diagnostics().mapOverlay.enabled, false);
+  assert.equal(instances.length, 1);
+  assert.equal(instances[0].overlays.at(-1), null);
+  host.destroy();
+});
+
 test('Cockpit HIGH stays capped by the current server delivery limit', () => {
   let onChange;
   let requested = 0;

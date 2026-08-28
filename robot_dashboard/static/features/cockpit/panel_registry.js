@@ -1,5 +1,6 @@
 import { createCameraPanel } from './panels/camera_panel.js';
 import { createControllerPanel } from './panels/controller_panel.js';
+import { createMapPanel } from './panels/map_panel.js';
 
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
@@ -33,13 +34,14 @@ const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
     id: 'placeholder-map',
     panelType: 'placeholder.map',
-    title: 'Map Placeholder',
+    title: 'Map & Localization',
     label: 'Map',
     icon: '⌖',
+    kind: 'map',
     singleton: true,
     defaultVisible: false,
-    eyebrow: 'CWP-03 · PLACEHOLDER',
-    description: '실제 map 또는 localization data를 읽지 않는 배치 검증용 panel입니다.',
+    eyebrow: 'CWP-09 · READ ONLY MAP',
+    description: '선택한 저장 지도와 localization 상태를 리비전에 고정해 표시합니다.',
     defaultGeometry: Object.freeze({ x: 420, y: 138, width: 380, height: 280 }),
     bounds: Object.freeze({ minWidth: 300, minHeight: 190, maxWidth: 820, maxHeight: 640, compactWidth: 300, compactHeight: 58 }),
   }),
@@ -139,6 +141,9 @@ export function createPanelRegistry(options = {}) {
       }
       if (descriptor.kind === 'controller') {
         return createControllerPanel({ descriptor, document: documentValue, controllerState: options.controllerState });
+      }
+      if (descriptor.kind === 'map') {
+        return createMapPanel({ descriptor, document: documentValue, mapState: options.mapState, navigationEngine: options.navigationEngine });
       }
       return createPlaceholderContent(descriptor, documentValue);
     },

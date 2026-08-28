@@ -171,6 +171,20 @@
 .cockpit-camera-metrics span { color: #628d83; font-size: 7px; font-weight: 800; letter-spacing: 0.08em; }
 .cockpit-camera-metrics strong { overflow: hidden; color: #b7d4cd; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 
+.cockpit-map-panel { display:grid; grid-template-rows:auto minmax(110px,1fr) auto auto; min-height:100%; background:#020706; }
+.cockpit-map-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; border-bottom:1px solid rgba(114,207,187,.14); }
+.cockpit-map-header strong { padding:3px 6px; border:1px solid currentColor; border-radius:999px; color:#ffd36a; font-size:8px; letter-spacing:.08em; }
+.cockpit-map-header strong.is-live { color:#5dffbc; }.cockpit-map-header strong.is-error { color:#ff8675; }.cockpit-map-header strong.is-warning { color:#ffcf73; }
+.cockpit-map-header span { overflow:hidden; color:#9ab8b1; font:700 8px ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow:ellipsis; white-space:nowrap; }
+.cockpit-map-canvas-wrap { position:relative; min-height:0; overflow:hidden; }.cockpit-map-canvas-wrap canvas { width:100%; height:100%; display:block; }
+.cockpit-map-warning { position:absolute; inset:auto 8px 8px; padding:7px 9px; border:1px solid rgba(255,155,117,.38); border-radius:6px; color:#ffb38f; background:rgba(18,8,5,.9); font:800 8px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.cockpit-map-warning[hidden] { display:none; }
+.cockpit-map-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); border-top:1px solid rgba(114,207,187,.14); }
+.cockpit-map-metrics > div { display:grid; min-width:0; gap:2px; padding:6px 7px; border-right:1px solid rgba(114,207,187,.1); }.cockpit-map-metrics > div:last-child { border-right:0; }
+.cockpit-map-metrics span { color:#628d83; font-size:7px; font-weight:800; }.cockpit-map-metrics strong { overflow:hidden; color:#b7d4cd; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
+.cockpit-map-annotations { display:flex; gap:5px; min-height:28px; padding:5px 7px; overflow:auto; border-top:1px solid rgba(114,207,187,.12); }
+.cockpit-map-annotations button { flex:0 0 auto; padding:4px 7px; border:1px solid rgba(93,222,216,.22); color:#78a79c; background:#06110f; font-size:7px; }.cockpit-map-annotations button.is-selected { border-color:#5dded8; color:#d9fff6; }
+
 .cockpit-floating-panel.is-compact { grid-template-rows: 1fr; }
 .cockpit-floating-panel.is-compact .cockpit-panel-content,
 .cockpit-floating-panel.is-compact .cockpit-panel-resize { display: none; }
