@@ -125,6 +125,20 @@ class MissionCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(mission["state"], "ready")
         self.assertNotIn("path", str(mission).lower())
 
+    async def test_corrupt_persisted_state_disables_missions_without_submitting_navigation(self):
+        await self.create()
+        state_file = self.root / "missions.json"
+        state_file.write_text('{"schema_version":1,"missions":"corrupt"}', encoding="utf-8")
+        recovered_navigation = FakeNavigation()
+        recovered = MissionCoordinator(recovered_navigation, self.saved_maps, self.root, poll_interval_s=0.01)
+        try:
+            snapshot = recovered.snapshot()
+            self.assertFalse(snapshot["available"])
+            self.assertEqual(snapshot["missions"], [])
+            self.assertEqual(recovered_navigation.sent, [])
+        finally:
+            await recovered.close()
+
     async def test_revision_change_blocks_start_before_any_goal(self):
         mission = await self.create()
         self.saved_maps.annotation_revision = "f" * 64

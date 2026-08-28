@@ -249,9 +249,20 @@ export async function installDashboardBackend(page, options = {}) {
     if (missionAction) {
       const mission = state.missions.find((item) => item.id === missionAction[1]); const action = missionAction[2];
       if (!mission) return json(route, { detail: 'mission was not found' }, 404);
-      if (action === 'start' || action === 'resume' || action === 'retry') { mission.state = 'running'; mission.ownership_active = true; state.activeMissionId = mission.id; const waypoint = mission.waypoints[mission.current_index]; waypoint.status = 'running'; waypoint.attempts += 1; waypoint.goal_id = '7'.repeat(32); state.navigation.goal = { state: 'active', goal_id: waypoint.goal_id }; }
+      if (action === 'start' || action === 'resume' || action === 'retry') { mission.state = 'running'; mission.outcome = null; mission.error = null; mission.ownership_active = true; state.activeMissionId = mission.id; const waypoint = mission.waypoints[mission.current_index]; waypoint.status = 'running'; waypoint.attempts += 1; waypoint.goal_id = '7'.repeat(32); state.navigation.goal = { state: 'active', goal_id: waypoint.goal_id }; }
       if (action === 'pause') { mission.state = 'paused'; mission.ownership_active = true; state.navigation.goal = { state: 'canceled', goal_id: null }; }
-      if (action === 'skip') { mission.waypoints[mission.current_index].status = 'skipped'; mission.current_index += 1; mission.remaining_count = Math.max(0, mission.remaining_count - 1); if (mission.current_index >= mission.waypoints.length) { mission.state = 'completed'; mission.ownership_active = false; state.activeMissionId = null; } }
+      if (action === 'skip') {
+        mission.waypoints[mission.current_index].status = 'skipped';
+        mission.current_index += 1;
+        mission.remaining_count = Math.max(0, mission.remaining_count - 1);
+        if (mission.current_index >= mission.waypoints.length) {
+          mission.state = 'completed'; mission.ownership_active = false; state.activeMissionId = null;
+        } else {
+          const waypoint = mission.waypoints[mission.current_index];
+          waypoint.status = 'running'; waypoint.attempts += 1; waypoint.goal_id = '8'.repeat(32);
+          state.navigation.goal = { state: 'active', goal_id: waypoint.goal_id };
+        }
+      }
       if (action === 'abort') { mission.state = 'failed'; mission.outcome = 'aborted'; mission.ownership_active = false; state.activeMissionId = null; state.navigation.goal = { state: 'canceled', goal_id: null }; }
       mission.logs.push({ seq: mission.logs.length + 1, timestamp: '2026-08-28T00:00:00.000Z', event: `mission_${action}`, waypoint_index: mission.current_index });
       return json(route, { mission }, action === 'start' ? 202 : 200);

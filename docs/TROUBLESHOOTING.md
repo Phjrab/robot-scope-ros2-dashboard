@@ -242,6 +242,46 @@ Control은 다음 조건이 하나라도 사라지면 fail-closed 합니다.
 별도 사용자 인증은 제공하지 않으므로 신뢰 LAN 밖에서는 활성화하지 않습니다. 문제 해결을
 위해 sudoers에 wildcard, reboot 또는 다른 unit을 추가하지 마세요.
 
+## Cockpit panel 또는 센서 상태가 복구되지 않음
+
+1. Safety HUD의 Robot Link, Bridge, LowState와 control source를 먼저 확인합니다.
+2. Camera/LiDAR가 이전 영상이나 점군을 보여도 `LIVE`가 아니면 현재 sensor 증거로
+   사용하지 않습니다.
+3. 해당 panel을 compact했다가 다시 열기보다 닫고 다시 열어 viewer/polling demand가 하나로
+   복구되는지 확인합니다.
+4. Cockpit에서 Overview로 이동한 뒤 다시 들어와 PointCloud owner가 하나인지 diagnostics를
+   확인합니다. route 왕복으로 socket 수가 계속 증가하면 motion을 시작하지 않습니다.
+5. corrupted layout은 Layout Edit의 recovery/default preset으로 복구합니다. localStorage를
+   개발자 도구에서 임의 수정하거나 safety state를 layout에 넣지 않습니다.
+
+Browser reload, BFCache 복귀 또는 relay restart 뒤에도 stale frame이 LIVE로 바뀌거나
+자동 ARM되면 안전 실패입니다. SOFTWARE STOP 또는 물리 정지 수단을 사용하고 diagnostics를
+보존한 뒤 재현 절차를 기록합니다.
+
+## Manual Takeover가 READY_TO_ARM이 되지 않음
+
+Mission panel에서 active Mission이 `PAUSED` 또는 terminal `ABORTED`인지, Navigation goal이
+terminal인지, pipeline이 inactive인지, navigation lease가 released인지 순서대로 확인합니다.
+cleanup timeout을 늘리거나 control gate를 우회하지 않습니다. `RETRY CLEANUP`도 실패하면
+Navigation STOP을 확인하고 물리적으로 stationary인 상태에서 private service 로그를
+조사합니다. READY_TO_ARM은 ARM이 아니므로 Controls에서 별도 ARM 전에는 움직이지 않아야
+합니다.
+
+## Mission이 PAUSED 또는 FAILED에서 진행되지 않음
+
+- PAUSED의 `operator_confirmation`은 운영자의 명시적 Resume이 필요한 정상 상태입니다.
+- map/annotation revision이 달라졌다면 기존 Mission을 수정하지 말고 현재 revision으로 새로
+  생성합니다.
+- FAILED에서는 log의 bounded reason과 Navigation 상태를 확인한 뒤 Retry 또는 Skip을 한 번만
+  누릅니다. 자동 반복 click이나 무한 retry를 사용하지 않습니다.
+- server restart 후 `interrupted` Mission은 자동 resume되지 않는 것이 정상입니다.
+- Abort가 goal cleanup을 확인하지 못하면 manual command를 보내지 말고 Navigation STOP과
+  물리 정지 수단을 사용합니다.
+
+실제 장비 문제와 browser-only 문제를 분리할 때는
+[Cockpit Acceptance](COCKPIT_ACCEPTANCE.md)의 status 표와
+[Cockpit 운영자 가이드](COCKPIT_OPERATOR_GUIDE.md)를 사용합니다.
+
 ## 지원 요청에 포함할 정보
 
 - Robot Scope commit SHA와 설치 mode

@@ -24,6 +24,8 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 | [의존성](docs/DEPENDENCIES.md) | 외부 ROS workspace, pin/라이선스 기록과 미포함 구성 요소 |
 | [토폴로지](docs/TOPOLOGY.md) | 단일/두 호스트 배선, 서비스 역할과 관리망 분리 |
 | [문제 해결](docs/TROUBLESHOOTING.md) | DDS, XT16, 저장, 카메라, 제어와 Nav 진단 순서 |
+| [Cockpit 운영자 가이드](docs/COCKPIT_OPERATOR_GUIDE.md) | Layout, Xbox, STOP, Takeover, Mission과 대회 전후 절차 |
+| [Cockpit 통합 Acceptance](docs/COCKPIT_ACCEPTANCE.md) | software evidence, 성능·soak·hardware 결과와 P0 |
 | [AI 데이터셋](docs/AI_DATASET.md) | 듀얼 카메라 서버 수집, 저장 구조, 라벨링과 YOLO/UFLD 배포 판단 |
 | [업데이트/롤백](docs/UPDATE_ROLLBACK.md) | 지도·상태 보존, fast-forward update와 안전 롤백 |
 | [하드웨어 인수 검증](docs/HARDWARE_ACCEPTANCE.md) | 읽기 전용 Jetson/Go2/XT16 점검, 감독 시나리오와 fail-stop 보고서 |
@@ -59,6 +61,8 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 - 키보드, 화면 패드 또는 표준 Gamepad를 선택하는 Go2 주행 제어
 - 서버 allowlist에 등록된 Go2 자세·제스처·보행 모드 실행
 - Overview, Live Mapping, Saved Maps, Sensors, ROS Graph, Controls, Settings 메뉴
+- 공용 Camera/LiDAR owner, Safety HUD, Map, Navigation과 Mission을 한 화면에 조합하는 Cockpit
+- exact map/annotation revision에 고정된 server-owned 다중 waypoint Mission
 - Settings에서 로봇 작업을 중지하지 않고 생성하는 redacted·size-bounded 진단 ZIP
 - Go2 전용 프로필과 범용 ROS 2 프로필
 
@@ -1073,6 +1077,9 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | POST /api/v1/navigation/goal | 확인된 known-free 목표 전송 |
 | POST /api/v1/navigation/cancel | 현재 목표 취소와 즉시 정지 |
 | POST /api/v1/navigation/clear-costmaps | 정지 상태에서 local/global costmap 정리 |
+| GET/POST /api/v1/missions | bounded revision-pinned Mission 목록과 생성 |
+| GET /api/v1/missions/{id} | server-owned current waypoint와 bounded progress log |
+| POST /api/v1/missions/{id}/{start,pause,resume,skip,retry,abort} | explicit Mission state transition |
 | GET /api/v1/control | 제어 준비, lease, 브리지와 허용 모션 상태 |
 | POST /api/v1/control/arm | 버튼 요청으로 단일 제어 lease 발급 |
 | POST /api/v1/control/disarm | 제로 명령과 제어 lease 반납 |
@@ -1097,7 +1104,8 @@ ROS가 없는 개발 PC에서도 핵심 로직 테스트를 실행할 수 있습
 
 ~~~bash
 python3 -m unittest discover -s tests -v
-node --test tests/*.mjs
+npm run test:unit
+npm run test:cockpit
 node scripts/check_frontend_syntax.mjs
 ~~~
 
@@ -1109,7 +1117,13 @@ node scripts/check_frontend_syntax.mjs
 npm ci --ignore-scripts
 npx playwright install chromium
 npm run test:e2e
+npm run test:cockpit:e2e
 ~~~
+
+`test:cockpit`은 Cockpit 전용 Node behavior suite, `test:cockpit:e2e`는 Cockpit 이름의
+hardware-free browser 흐름을 실행합니다. 실제 Camera/LiDAR 성능, 60분 soak와 motion
+결과는 [Cockpit 통합 Acceptance](docs/COCKPIT_ACCEPTANCE.md)에 software test와 분리해
+기록합니다.
 
 기여자와 CI는 별도 품질 도구를 설치해 아래 검사를 추가로 실행합니다. 이 파일은
 운영 ROS 의존성과 분리되어 있으므로 Jetson의 `rclpy` 또는 system-site-packages를

@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "test:unit": "node --test tests/*.mjs",
+    "test:cockpit": "node --test tests/test_cockpit_*.mjs",
+    "test:cockpit:e2e": "playwright test --grep Cockpit",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=line"
   },

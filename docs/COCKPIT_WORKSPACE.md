@@ -245,6 +245,29 @@ Manual Takeover는 Mission abort 확인을 Navigation cancel/stop/lease-release�
 | pause 후 stationary 확인 | NOT_RUN |
 | Mission takeover 후 별도 re-ARM | NOT_RUN |
 
+### CWP-12 통합 안정화 기록
+
+CWP-12는 production owner나 사용자 기능을 추가하지 않고 CWP-01~11의 lifecycle,
+fault-recovery와 운영 절차를 하나의 acceptance 경계로 정리했다. 전용
+`npm run test:cockpit`과 `npm run test:cockpit:e2e` 명령을 추가하고, Playwright에서
+Mission pause, terminal failure, explicit retry와 연속 skip을 실제 module/API projection으로
+검증한다. 손상된 persisted Mission document는 기능만 unavailable로 만들고 goal을 보내지
+않는 coordinator behavior도 추가했다.
+
+[Cockpit 운영자 가이드](COCKPIT_OPERATOR_GUIDE.md)는 Layout Edit/Operate, Xbox,
+ARM/deadman, STOP, stale sensor, Manual Takeover, Mission과 경기 전후 절차를 한 흐름으로
+정리한다. [Cockpit Acceptance](COCKPIT_ACCEPTANCE.md)는 software-only evidence와 성능,
+60분 soak, Jetson/Go2/XT16 motion acceptance를 분리한다. 실제 stream·hardware·service를
+사용하지 않은 값은 PASS로 추정하지 않고 `NOT_RUN`으로 유지한다.
+
+| CWP-12 실측 항목 | 결과 |
+| --- | --- |
+| hardware-free lifecycle/fault automation | PASS |
+| 1920×1080/2560×1440 live performance | NOT_RUN |
+| live Camera/XT16 60분 soak | NOT_RUN |
+| Jetson CPU/memory/network 실측 | NOT_RUN |
+| supervised control/Nav/Mission | NOT_RUN |
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,

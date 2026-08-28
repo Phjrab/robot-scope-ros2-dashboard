@@ -103,6 +103,9 @@ test('Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scen
 
 test('Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
+  const panel = page.locator('[data-panel-id="placeholder-map"]');
   backend.state.navigation = {
     ...backend.state.navigation,
     pipeline: { state: 'running', job_id: 'f'.repeat(32), error: '' },
@@ -114,9 +117,6 @@ test('Cockpit map panel shows revision-pinned localization and toggles the bound
     goal: { state: 'active', goal_id: '1'.repeat(32), pose: { x: 0.75, y: 0.75, yaw: 0 }, message: '' },
   };
   await page.locator('#refreshButton').click();
-  await enterLayoutEdit(page);
-  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
-  const panel = page.locator('[data-panel-id="placeholder-map"]');
   await expect(panel.locator('.cockpit-map-panel')).toBeVisible();
   await expect(panel.locator('.cockpit-map-header strong')).toHaveText('LIVE');
   await expect(panel.locator('.cockpit-map-header span')).toContainText('e2e_static_map');
@@ -211,6 +211,58 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   await expect(restored.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
   await expect(restored.locator('.cockpit-mission-route')).toContainText('E2E Home · COMPLETED');
   await expect(restored.locator('.cockpit-mission-route')).toContainText('E2E Inspect · COMPLETED');
+});
+
+test('Cockpit mission pause, failure retry, and skips remain explicit and fail closed', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  backend.state.annotations.points.push({ id: backend.secondAnnotationId, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } });
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+  await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
+  const navigationPanel = page.locator('[data-panel-id="navigation-main"]');
+  const missionPanel = page.locator('[data-panel-id="mission-main"]');
+  await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+  await navigationPanel.locator('[data-navigation-action="start"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/navigation/start').length).toBe(1);
+  await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
+  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  backend.state.navigation.goal = { state: 'idle', goal_id: null };
+  backend.state.navigation.safety.can_send_goal = true;
+
+  await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
+  await missionPanel.locator('[data-mission-draft-id]').nth(1).click();
+  await missionPanel.locator('[aria-label="Mission label"]').fill('CWP-12 recovery route');
+  await missionPanel.locator('[data-mission-action="create"]').click();
+  await missionPanel.locator('[data-mission-action="start"]').click();
+  const missionId = '9'.repeat(32);
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+
+  await missionPanel.locator('[data-mission-action="pause"]').click();
+  await expect.poll(() => backend.mutations(`/api/v1/missions/${missionId}/pause`).length).toBe(1);
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION PAUSED');
+  expect(backend.state.navigation.goal.state).toBe('canceled');
+  await missionPanel.locator('[data-mission-action="resume"]').click();
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+
+  const mission = backend.state.missions[0];
+  mission.state = 'failed'; mission.outcome = 'waypoint_failed'; mission.error = 'navigation_goal_failed';
+  mission.ownership_active = false; mission.waypoints[mission.current_index].status = 'failed';
+  backend.state.activeMissionId = null;
+  backend.state.navigation.goal = { state: 'failed', goal_id: null };
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION FAILED');
+  await expect(missionPanel.locator('[data-mission-action="retry"]')).toBeEnabled();
+  expect(backend.mutations(`/api/v1/missions/${missionId}/retry`)).toHaveLength(0);
+
+  await missionPanel.locator('[data-mission-action="retry"]').click();
+  await expect.poll(() => backend.mutations(`/api/v1/missions/${missionId}/retry`).length).toBe(1);
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+  await missionPanel.locator('[data-mission-action="skip"]').click();
+  await expect(missionPanel.locator('.cockpit-mission-route')).toContainText('E2E Home · SKIPPED');
+  await expect(missionPanel.locator('.cockpit-mission-route')).toContainText('E2E Inspect · RUNNING');
+  await missionPanel.locator('[data-mission-action="skip"]').click();
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
+  expect(backend.mutations(`/api/v1/missions/${missionId}/skip`)).toHaveLength(2);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 });
 
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
