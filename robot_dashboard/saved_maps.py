@@ -55,6 +55,21 @@ class SavedMapPointLimitError(SavedMapError):
     """Raised when a point-cloud response limit is invalid or unsafe."""
 
 
+def prepare_private_map_root(path: Path) -> Path:
+    """Create or validate the real, operator-private managed-map root."""
+
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if path.is_symlink() or not path.is_dir():
+        raise RuntimeError("mapping output directory must be a real directory")
+    resolved = path.resolve(strict=True)
+    mode = stat.S_IMODE(resolved.stat().st_mode)
+    if mode & 0o077:
+        raise RuntimeError(
+            "mapping output directory must not be accessible by group or others"
+        )
+    return resolved
+
+
 class SavedMapMutationError(SavedMapError):
     """Base class for a saved-map mutation that could not be completed safely."""
 

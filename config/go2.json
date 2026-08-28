@@ -31,7 +31,7 @@
   },
   "observed_topics": ["/lowstate", "/lf/lowstate", "/lf/sportmodestate", "/sportmodestate", "/joint_states", "/imu/body", "/lidar_imu", "/utlidar/lidar_state"],
   "cloud_radius_limit_m": 150,
-  "pointcloud_frame_interval_s": 0.10,
+  "pointcloud_frame_interval_s": 0.18,
   "xt16_preview": {
     "enabled": true
   },

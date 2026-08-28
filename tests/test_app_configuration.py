@@ -1,8 +1,24 @@
+import stat
+import tempfile
 import unittest
 from pathlib import Path
 
+from robot_dashboard.saved_maps import prepare_private_map_root
+
 
 class AppConfigurationTests(unittest.TestCase):
+    def test_mapping_output_is_created_private_and_broad_existing_mode_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            created = prepare_private_map_root(root / "maps")
+            self.assertEqual(stat.S_IMODE(created.stat().st_mode), 0o700)
+
+            broad = root / "broad-maps"
+            broad.mkdir(mode=0o755)
+            broad.chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "group or others"):
+                prepare_private_map_root(broad)
+
     def test_runners_keep_runtime_data_in_real_project_local_paths(self):
         root = Path(__file__).parents[1]
         for name in ("run_go2_humble.sh", "run_generic.sh"):
@@ -24,7 +40,7 @@ class AppConfigurationTests(unittest.TestCase):
         source = (
             Path(__file__).parents[1] / "robot_dashboard" / "app.py"
         ).read_text(encoding="utf-8")
-        output_ready = source.index("requested_output_dir.mkdir")
+        output_ready = source.index("prepare_private_map_root(requested_output_dir)")
         catalog_ready = source.index("catalog = SavedMapCatalog.from_profile")
         manager_ready = source.index("manager = MappingJobManager.for_robot_scope")
 
@@ -53,6 +69,12 @@ class AppConfigurationTests(unittest.TestCase):
         self.assertIn('RUNTIME.agent.profile.get("xt16_preview")', source)
         self.assertIn('os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"', source)
         self.assertIn("runtime.mapping.start_preview", source)
+
+    def test_go2_dashboard_bounds_idle_pointcloud_processing_rate(self):
+        profile = (
+            Path(__file__).parents[1] / "config" / "go2.json"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"pointcloud_frame_interval_s": 0.18', profile)
 
 
 if __name__ == "__main__":

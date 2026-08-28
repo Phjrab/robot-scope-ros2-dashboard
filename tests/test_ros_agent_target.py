@@ -666,7 +666,7 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(legacy["sensor_id"], "hesai_xt16")
         state = self.agent.state_snapshot()
         self.assertEqual(state["cloud"]["sensor_id"], "hesai_xt16")
-        self.assertAlmostEqual(self.agent._pointcloud_frame_interval(30_000), 0.10)
+        self.assertAlmostEqual(self.agent._pointcloud_frame_interval(30_000), 0.18)
         self.assertAlmostEqual(self.agent._pointcloud_frame_interval(100_000), 0.3)
         self.assertAlmostEqual(self.agent._pointcloud_frame_interval(None), 3.0)
 

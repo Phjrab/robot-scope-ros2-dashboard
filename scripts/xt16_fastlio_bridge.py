@@ -510,10 +510,7 @@ def _parser() -> argparse.ArgumentParser:
 def run_ros_bridge() -> int:
     try:
         import rclpy
-        from rclpy.callback_groups import (
-            MutuallyExclusiveCallbackGroup,
-            ReentrantCallbackGroup,
-        )
+        from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
         from rclpy.executors import MultiThreadedExecutor
         from rclpy.node import Node
         from rclpy.qos import (
@@ -569,7 +566,12 @@ def run_ros_bridge() -> int:
                 output_qos,
             )
             self._cloud_group = MutuallyExclusiveCallbackGroup()
-            self._imu_group = ReentrantCallbackGroup()
+            # LowState can arrive at several hundred hertz.  A reentrant group
+            # lets both Python executor workers drain IMU callbacks and starves
+            # the latest-only cloud callback long enough to trip the strict
+            # host-clock backlog fence.  Serialize only the IMU queue while the
+            # separate cloud group retains its own worker opportunity.
+            self._imu_group = MutuallyExclusiveCallbackGroup()
             self._bridge_subscriptions = (
                 self.create_subscription(
                     PointCloud2,

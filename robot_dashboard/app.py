@@ -106,6 +106,7 @@ from .saved_maps import (
     SavedMapNotFound,
     SavedMapPointLimitError,
     SavedMapReadOnly,
+    prepare_private_map_root,
 )
 
 
@@ -1203,10 +1204,7 @@ def main() -> None:
     project_dir = Path(__file__).resolve().parents[1]
     save_script = project_dir / "scripts" / "save_hesai_map_humble.sh"
     requested_output_dir = Path(args.mapping_output_dir).expanduser()
-    requested_output_dir.mkdir(parents=True, exist_ok=True)
-    if requested_output_dir.is_symlink() or not requested_output_dir.is_dir():
-        raise RuntimeError("mapping output directory must be a real directory")
-    mapping_output_dir = requested_output_dir.resolve(strict=True)
+    mapping_output_dir = prepare_private_map_root(requested_output_dir)
 
     # Establish one exact catalog limit for every trusted saver recipe.
     catalog = SavedMapCatalog.from_profile(

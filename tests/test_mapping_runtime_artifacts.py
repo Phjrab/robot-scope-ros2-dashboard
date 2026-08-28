@@ -151,6 +151,18 @@ def prime_clock(clock, *, next_scan_start, offset, monotonic_start=9.7):
 
 
 class Xt16BridgeArtifactTests(unittest.TestCase):
+    def test_high_rate_imu_callbacks_are_serialized_away_from_cloud_worker(self):
+        source = (ROOT / "scripts" / "xt16_fastlio_bridge.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(
+            source.count("self._imu_group = MutuallyExclusiveCallbackGroup()"),
+            1,
+        )
+        self.assertNotIn("ReentrantCallbackGroup", source)
+        self.assertIn("CLOCK_RESIDUAL_LIMIT_S = 0.25", source)
+        self.assertIn("CONVERTED_CLOUD_MAX_AGE_S = 0.50", source)
+
     def test_conversion_matches_readiness_layout_and_decimates_to_bounded_output(self):
         clock = prime_clock(
             bridge.ClockOffsetTracker(), next_scan_start=1_000.0, offset=0.1
