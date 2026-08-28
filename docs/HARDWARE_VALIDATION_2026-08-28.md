@@ -160,14 +160,57 @@ blocked because those runtimes were idle. No blocked row was converted into a
 false pass. The Control Bridge was stopped through the dashboard immediately
 after acceptance and was verified inactive; the dashboard remained active.
 
+## FAST-LIO odometry validation
+
+The Jetson and repository were aligned to commit `4d43ed2` for this step. The
+dashboard started only its owned FAST-LIO localization pipeline while Nav2,
+initial-pose publication and navigation goals remained idle. No map was saved,
+converted, renamed or deleted. The robot remained stationary and DISARMED.
+
+The fixed FAST-LIO readiness gate passed with three consecutive fresh
+`/Odometry` samples and one fresh `/Laser_map` sample. The final observed header
+and arrival ages were 0.043/0.028 seconds for odometry and 0.070/0.001 seconds
+for the registered cloud. A direct read-only odometry sample retained the
+expected `camera_init -> body` frame contract and zero linear/angular twist.
+
+During a 60-second FAST-LIO-only run, `/Odometry` stayed at or above 13.85 Hz,
+its maximum observed age was 0.111 seconds and its maximum jitter was 39.98 ms.
+The FAST-LIO process's four UDP sockets accumulated no kernel drops. The
+converted cloud remained at or above 9.97 Hz with maximum age 0.137 seconds,
+and its bridge sockets also retained zero drops.
+
+A second run added the authenticated Control Bridge without acquiring a lease,
+holding deadman or publishing a motion command. Both XT16 and FAST-LIO socket
+drop deltas remained zero. The dashboard rate window initially included the
+intentional gap between the stopped first session and the fresh second
+publisher, so it briefly reported a conservative 1.41 Hz minimum and 8.761 s
+jitter while current sample age stayed below 0.102 seconds. The metric recovered
+without weakening any bound. The subsequent read-only acceptance observation
+for `/Odometry` was 19.9 Hz, 0.036 seconds age and 40.94 ms jitter.
+
+The combined-load read-only acceptance result was:
+
+```text
+PASS=54 FAIL=0 BLOCKED=3 NOT_RUN=12
+```
+
+`control.signed_bridge`, `lidar.xt16_converted` and
+`localization.fast_lio_odom` passed. `navigation.tf_and_timestamp` and
+`navigation.localization_health` correctly remained blocked because Nav2 was
+idle, and the unmeasured raw Hesai dashboard-rate row remained blocked. The
+FAST-LIO pipeline and Control Bridge were then stopped through their dashboard
+APIs and verified inactive. The persistent XT16 preview and dashboard remained
+active.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
    keep it disabled during later Robot Scope acceptance sessions.
-2. The C++ conversion and DDS receive-buffer change now pass the standalone and
-   combined-load XT16 bounds. The next validation step is FAST-LIO odometry and
-   localization with the same timestamp contract; this session did not launch
-   mapping, FAST-LIO, or navigation.
+2. The C++ conversion, DDS receive buffer and FAST-LIO odometry now pass both
+   standalone and Control Bridge combined-load checks. The next supervised
+   validation step is Nav2 start-without-goal, initial pose, runtime TF and
+   localization health. It requires the operator, physical remote and E-stop
+   procedure defined in `HARDWARE_ACCEPTANCE.md`.
 3. Preserve the existing local modifications in the external Hesai workspace;
    the full installer remains intentionally blocked until their ownership and
    purpose are reconciled.
