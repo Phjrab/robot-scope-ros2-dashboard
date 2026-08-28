@@ -64,6 +64,7 @@ export function createPanelManager(options = {}) {
   let snapOptions = normalizeSnapOptions(options.snapOptions);
   let snapPreview = null;
   let activePanelId = '';
+  let layoutEditable = options.layoutEditable !== false;
   let activations = 0;
   let deactivations = 0;
 
@@ -78,7 +79,7 @@ export function createPanelManager(options = {}) {
   function setState(id, nextState) {
     const snapshot = panelStateSnapshot(nextState);
     states.set(id, snapshot);
-    runtimes.get(id)?.view?.update(snapshot);
+    runtimes.get(id)?.view?.update(snapshot, { layoutEditable });
     syncContentLifecycle(id);
     options.onStateChange?.(snapshot);
     return snapshot;
@@ -128,7 +129,7 @@ export function createPanelManager(options = {}) {
     const runtime = { descriptor, view, content, contentActive: false };
     runtimes.set(state.id, runtime);
     safeHook(runtime, 'mount', view.content, { panelId: state.id, panelType: state.panelType });
-    view.update(state);
+    view.update(state, { layoutEditable });
     syncContentLifecycle(state.id);
     return runtime;
   }
@@ -137,7 +138,7 @@ export function createPanelManager(options = {}) {
     const visible = [...states.values()].filter((state) => state.visible);
     for (const normalized of normalizePanelZOrder(visible, activeId, PANEL_Z_MAX)) {
       states.set(normalized.id, normalized);
-      runtimes.get(normalized.id)?.view?.update(normalized);
+      runtimes.get(normalized.id)?.view?.update(normalized, { layoutEditable });
     }
   }
 
@@ -218,7 +219,7 @@ export function createPanelManager(options = {}) {
     const descriptor = descriptorForState(state || {});
     const movable = kind === 'move' && state?.mode !== 'focus' && !state?.dock;
     const resizable = kind === 'resize' && state?.mode === 'floating' && !state?.dock;
-    if (!active || !state?.visible || state.locked || !descriptor || (!movable && !resizable)) return false;
+    if (!active || !layoutEditable || !state?.visible || state.locked || !descriptor || (!movable && !resizable)) return false;
     cancelInteraction();
     bringToFront(id);
     const current = states.get(id);
@@ -290,7 +291,7 @@ export function createPanelManager(options = {}) {
 
   function closePanel(id) {
     const state = states.get(id);
-    if (!state?.visible) return null;
+    if (!layoutEditable || !state?.visible) return null;
     if (interaction?.id === id) cancelInteraction();
     const runtime = runtimes.get(id);
     setContentActive(runtime, false, 'panel_closed');
@@ -311,6 +312,7 @@ export function createPanelManager(options = {}) {
     if (!descriptor) return null;
     const previous = states.get(descriptor.id);
     if (previous?.visible) return bringToFront(descriptor.id);
+    if (!layoutEditable) return null;
     const base = previous || {
       id: descriptor.id,
       panelType: descriptor.panelType,
@@ -335,7 +337,7 @@ export function createPanelManager(options = {}) {
   }
 
   function dockPanel(id, position) {
-    if (!DOCK_POSITIONS.includes(position)) return null;
+    if (!layoutEditable || !DOCK_POSITIONS.includes(position)) return null;
     let state = states.get(id);
     const descriptor = descriptorForState(state || {});
     if (!state?.visible || !descriptor || state.locked) return null;
@@ -360,6 +362,7 @@ export function createPanelManager(options = {}) {
   }
 
   function undockPanel(id) {
+    if (!layoutEditable) return null;
     let state = states.get(id);
     const descriptor = descriptorForState(state || {});
     if (!state?.visible || !descriptor || state.locked) return null;
@@ -387,6 +390,7 @@ export function createPanelManager(options = {}) {
   }
 
   function arrangePanels(kind) {
+    if (!layoutEditable) return diagnostics();
     if (kind === 'recover') {
       recoverViewport();
       return diagnostics();
@@ -411,6 +415,7 @@ export function createPanelManager(options = {}) {
   }
 
   function setSnapOptions(nextOptions = {}) {
+    if (!layoutEditable) return snapOptions;
     snapOptions = normalizeSnapOptions({ ...snapOptions, ...nextOptions });
     return snapOptions;
   }
@@ -418,9 +423,10 @@ export function createPanelManager(options = {}) {
   function handleAction(id, action) {
     const state = states.get(id);
     if (!state) return;
-    if (action === 'close') closePanel(id);
-    else if (action === 'compact') toggleCompact(id);
+    if (action === 'compact') toggleCompact(id);
     else if (action === 'focus') toggleFocus(id);
+    else if (!layoutEditable) return;
+    else if (action === 'close') closePanel(id);
     else if (action === 'pin') setState(id, { ...state, pinned: !state.pinned });
     else if (action === 'lock') {
       if (interaction?.id === id) cancelInteraction();
@@ -439,6 +445,15 @@ export function createPanelManager(options = {}) {
       } else setState(state.id, recoverPanelState(state, viewport(), descriptor.bounds));
     }
     normalizeZ();
+  }
+
+  function setLayoutEditable(nextEditable) {
+    const next = Boolean(nextEditable);
+    if (layoutEditable === next) return diagnostics();
+    if (!next) cancelInteraction();
+    layoutEditable = next;
+    for (const state of states.values()) runtimes.get(state.id)?.view?.update(state, { layoutEditable });
+    return diagnostics();
   }
 
   function activate() {
@@ -466,6 +481,7 @@ export function createPanelManager(options = {}) {
       deactivations,
       interaction: interaction ? Object.freeze({ id: interaction.id, kind: interaction.kind, handle: interaction.handle }) : null,
       activePanelId,
+      layoutEditable,
       snapOptions,
       snapPreview,
       panels: Object.freeze([...states.values()].map(panelStateSnapshot)),
@@ -521,6 +537,7 @@ export function createPanelManager(options = {}) {
     undockPanel,
     arrangePanels,
     setSnapOptions,
+    setLayoutEditable,
     handleAction,
     recoverViewport,
     cancelInteraction,

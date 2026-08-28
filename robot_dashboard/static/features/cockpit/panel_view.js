@@ -92,10 +92,12 @@ export function createPanelView(options = {}) {
     });
   }
 
-  function update(state) {
+  function update(state, interaction = {}) {
+    const layoutEditable = interaction.layoutEditable !== false;
     panel.hidden = !state.visible;
     panel.dataset.mode = state.mode;
     panel.dataset.dock = state.dock || '';
+    panel.dataset.layoutEditable = String(layoutEditable);
     panel.classList.toggle('is-compact', state.mode === 'compact');
     panel.classList.toggle('is-focus', state.mode === 'focus');
     panel.classList.toggle('is-pinned', state.pinned);
@@ -107,6 +109,9 @@ export function createPanelView(options = {}) {
     panel.style.zIndex = String(state.zIndex);
     pin.setAttribute('aria-pressed', String(state.pinned));
     lock.setAttribute('aria-pressed', String(state.locked));
+    pin.disabled = !layoutEditable;
+    lock.disabled = !layoutEditable;
+    close.disabled = !layoutEditable;
     compact.setAttribute('aria-pressed', String(state.mode === 'compact'));
     focus.setAttribute('aria-pressed', String(state.mode === 'focus'));
     compact.setAttribute('aria-label', `${descriptor.title} ${state.mode === 'compact' ? '복원' : '최소화'}`);

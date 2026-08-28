@@ -9,6 +9,11 @@ async function openDashboard(page, backendOptions = {}, hash = 'overview') {
   return backend;
 }
 
+async function enterLayoutEdit(page) {
+  await page.locator('[data-cockpit-layout-action="edit"]').click();
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'layout-edit');
+}
+
 test('offline viewer keeps saved maps available while live telemetry fails closed', async ({ page }) => {
   await openDashboard(page, { online: false }, 'overview');
   await expect(page.locator('#connectionLabel')).toContainText('연결 끊김');
@@ -73,6 +78,7 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
 
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
   for (const type of ['camera.go2-front', 'placeholder.map', 'placeholder.controller']) {
     await page.locator(`.cockpit-launcher-item[data-panel-type="${type}"]`).click();
   }
@@ -164,6 +170,7 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
 
 test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
   const toggle = page.locator('.cockpit-launcher-toggle');
   const body = page.locator('#cockpitLauncherBody');
   const cameraButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
@@ -250,6 +257,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
 
 test('Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
   const go2Button = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
   const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   await expect(go2Button).toBeEnabled();
@@ -310,10 +318,121 @@ test('Cockpit disables camera launchers that are absent from the active catalog 
   await openDashboard(page, {
     cameraSources: [{ source_id: 'go2_front', id: 'go2_front', label: 'GO2 FRONT', available: true, state: 'ok', transport: 'fake' }],
   }, 'cockpit');
+  await enterLayoutEdit(page);
   await expect(page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]')).toBeEnabled();
   const unavailable = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   await expect(unavailable).toBeDisabled();
   await expect(unavailable).toContainText('UNAVAILABLE');
+});
+
+test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  const workspace = page.locator('#cockpitWorkspace');
+  const hud = page.locator('#cockpitSafetyHud');
+  const go2Button = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
+  await expect(workspace).toHaveAttribute('data-layout-mode', 'operate');
+  await expect(go2Button).toBeDisabled();
+  await expect(hud.locator('[data-safety-field="control-source"]')).toHaveText('NONE');
+  await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
+  await expect(hud.locator('[data-safety-field="lowstate"]')).toHaveText('50 ms');
+  await expect(hud.locator('[data-safety-field="battery"]')).toHaveText('83%');
+
+  await enterLayoutEdit(page);
+  await expect(go2Button).toBeEnabled();
+  await go2Button.click();
+  const camera = page.locator('[data-panel-id="camera-go2-front"]');
+  await expect(camera.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await page.locator('[data-cockpit-layout-action="apply"]').click();
+  await expect(workspace).toHaveAttribute('data-layout-mode', 'operate');
+  await expect(camera.locator('[data-panel-action="close"]')).toBeDisabled();
+  await expect(camera.locator('[data-panel-action="focus"]')).toBeEnabled();
+
+  const before = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  const title = await camera.locator('.cockpit-panel-titlebar').boundingBox();
+  await page.mouse.move(title.x + 20, title.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(title.x + 120, title.y + 80);
+  await page.mouse.up();
+  const after = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect({ x: after.x, y: after.y, width: after.width, height: after.height }).toEqual({ x: before.x, y: before.y, width: before.width, height: before.height });
+
+  await camera.locator('[data-panel-action="focus"]').click();
+  await expect(camera).toHaveAttribute('data-mode', 'focus');
+  const layering = await page.evaluate(() => {
+    const hudElement = document.querySelector('#cockpitSafetyHud');
+    const stop = document.querySelector('[data-cockpit-software-stop]');
+    const box = stop.getBoundingClientRect();
+    return {
+      hudZ: Number(getComputedStyle(hudElement).zIndex),
+      panelZ: Number(getComputedStyle(document.querySelector('#cockpitPanelLayer')).zIndex),
+      hit: document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest?.('[data-cockpit-software-stop]') === stop,
+    };
+  });
+  expect(layering.hudZ).toBeGreaterThan(layering.panelZ);
+  expect(layering.hit).toBe(true);
+  const stop = page.locator('[data-cockpit-software-stop]');
+  await expect(stop).toContainText('물리 E-STOP 아님');
+  await stop.click();
+  await expect.poll(() => backend.mutations('/api/v1/control/stop').length).toBe(1);
+  await expect(hud.locator('[data-safety-field="software-stop"]')).toHaveText('LATCHED');
+});
+
+test('active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
+  const button = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
+  await button.click();
+  const camera = page.locator('[data-panel-id="camera-go2-front"]');
+  const title = await camera.locator('.cockpit-panel-titlebar').boundingBox();
+  await page.mouse.move(title.x + 20, title.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(title.x + 75, title.y + 45);
+  backend.state.control.lease = { active: true, bound: true, source: 'keyboard' };
+
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'operate');
+  await expect(page.locator('[data-safety-field="armed"]')).toHaveText('ARMED');
+  await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => window.RobotScopeCockpit.snapshot().workspace.panels.interaction)).toBe(null);
+  await page.mouse.up();
+  const locked = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+
+  const lockedTitle = await camera.locator('.cockpit-panel-titlebar').boundingBox();
+  await page.mouse.move(lockedTitle.x + 20, lockedTitle.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(lockedTitle.x + 110, lockedTitle.y + 70);
+  await page.mouse.up();
+  const unchanged = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect({ x: unchanged.x, y: unchanged.y }).toEqual({ x: locked.x, y: locked.y });
+  await camera.locator('[data-panel-action="focus"]').click();
+  await expect(camera).toHaveAttribute('data-mode', 'focus');
+  await expect(button).toBeEnabled();
+
+  backend.state.control.lease = { active: false, bound: false, source: null };
+  await expect(page.locator('[data-safety-field="armed"]')).toHaveText('DISARMED');
+  await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeEnabled();
+});
+
+test('Safety HUD clears stale cached values and preserves STOP and control source on a narrow viewport', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  const hud = page.locator('#cockpitSafetyHud');
+  await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
+  await expect(hud.locator('[data-safety-field="software-stop"]')).toHaveText('CLEAR');
+  backend.on('/api/v1/control', ({ json }) => json({ detail: 'control unavailable' }, 503));
+  backend.state.online = false;
+  await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('STALE');
+  await expect(hud.locator('[data-safety-field="software-stop"]')).toHaveText('UNKNOWN');
+  await expect(hud.locator('[data-safety-field="armed"]')).toHaveText('UNKNOWN');
+  await expect(hud.locator('[data-safety-field="battery"]')).toHaveText('WAITING');
+
+  await page.setViewportSize({ width: 520, height: 720 });
+  await expect(hud).toBeVisible();
+  await expect(hud.locator('[data-safety-field="control-source"]')).toBeVisible();
+  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
+  const bounds = await page.locator('[data-cockpit-software-stop]').boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(520);
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(720);
 });
 
 test('mapping start, save and stop preserve one mutation per operator action', async ({ page }) => {

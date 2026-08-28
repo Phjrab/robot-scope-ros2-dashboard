@@ -154,7 +154,10 @@ export async function installDashboardBackend(page, options = {}) {
         sources: { pointcloud: '/cloud_registered', odometry: '/Odometry', occupancy_grid: '/map', camera: '/camera/image' },
         mapping: { state: 'mapping', cloud: { state: 'ok', hz: 8, frame_id: 'camera_init' }, odometry: { state: 'ok', hz: 50 }, map: {} },
         camera: { state: 'ok', live: true, age_s: 0.1, fps: 15, topic: '/camera/image' },
-        sensors: [{ category: 'battery', state: 'ok', age_s: 0.1, hz: 10, topic: '/lowstate', values: { battery_soc: 83, power_v: 28.4 } }],
+        sensors: [
+          { category: 'robot_state', state: 'ok', age_s: 0.05, hz: 50, topic: '/lowstate', values: {} },
+          { category: 'battery', state: 'ok', age_s: 0.1, hz: 10, topic: '/lowstate', values: { battery_soc: 83, power_v: 28.4 } },
+        ],
       });
     }
     if (path === '/api/v1/topics') return json(route, { topics: [

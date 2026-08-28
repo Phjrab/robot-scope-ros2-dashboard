@@ -2,6 +2,8 @@ import { createCockpitSceneHost } from './scene_host.js';
 import { createPanelManager } from './panel_manager.js';
 import { createPanelRegistry } from './panel_registry.js';
 import { createSensorLauncher } from './sensor_launcher.js';
+import { COCKPIT_LAYOUT_MODES, createLayoutModeController } from './layout_mode.js';
+import { createSafetyHud } from './safety_hud.js';
 
 export function projectCockpitPointcloud(options = {}) {
   const cloud = options.cloud?.offline_snapshot ? null : options.cloud;
@@ -31,7 +33,18 @@ export function createCockpitWorkspace(options = {}) {
   const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand }) : null;
   let panelManager = null;
   let sensorLauncher = null;
+  let safetyHud = null;
   let releaseCameraCatalog = null;
+
+  function syncLayoutMode(state = layoutMode.snapshot()) {
+    const editable = state.mode === COCKPIT_LAYOUT_MODES.EDIT && !state.armed;
+    root.dataset.layoutMode = state.mode;
+    panelManager?.setLayoutEditable(editable);
+    sensorLauncher?.setLayoutEditable(editable);
+    safetyHud?.setLayoutState(state);
+  }
+
+  const layoutMode = createLayoutModeController({ onChange: syncLayoutMode });
 
   function syncLauncher() {
     const snapshot = panelManager?.diagnostics();
@@ -58,6 +71,7 @@ export function createCockpitWorkspace(options = {}) {
     onStateChange: syncLauncher,
     onActivePanelChange: syncLauncher,
     onSnapPreview: renderSnapPreview,
+    layoutEditable: false,
   }) : null;
 
   function handleLayoutAction(action) {
@@ -83,6 +97,20 @@ export function createCockpitWorkspace(options = {}) {
     syncLauncher();
     releaseCameraCatalog = options.cameraDemand?.subscribe((catalog) => sensorLauncher?.updateAvailability(catalog.sources));
   }
+
+  if (options.safetyHudRoot) {
+    safetyHud = createSafetyHud({
+      root: options.safetyHudRoot,
+      document: options.document,
+      getSnapshot: options.getSafetySnapshot,
+      layoutState: layoutMode.snapshot(),
+      onRequestEdit: () => layoutMode.requestEdit(),
+      onApply: () => layoutMode.apply(),
+      onStop: options.onSoftwareStop,
+      onProjection: (projected, input) => layoutMode.updateControl({ armed: projected.layoutArmed, generation: Number(input.controlGeneration) || 0 }),
+    });
+  }
+  syncLayoutMode();
 
   function setFreshness(freshness, note = '') {
     const state = ['LIVE', 'STALE'].includes(freshness) ? freshness : 'WAITING';
@@ -115,6 +143,7 @@ export function createCockpitWorkspace(options = {}) {
     root.dataset.lifecycle = 'active';
     sceneHost.activate();
     panelManager?.activate();
+    safetyHud?.activate();
     return diagnostics();
   }
 
@@ -122,6 +151,7 @@ export function createCockpitWorkspace(options = {}) {
     if (!active) return diagnostics();
     active = false;
     root.dataset.lifecycle = 'inactive';
+    safetyHud?.deactivate();
     panelManager?.deactivate('workspace_inactive');
     sceneHost.deactivate();
     return diagnostics();
@@ -158,6 +188,8 @@ export function createCockpitWorkspace(options = {}) {
       scene: sceneHost.diagnostics(),
       panels: panelManager?.diagnostics() || null,
       launcher: sensorLauncher?.diagnostics() || null,
+      layout: layoutMode.snapshot(),
+      safety: safetyHud?.diagnostics() || null,
     });
   }
 
@@ -166,6 +198,7 @@ export function createCockpitWorkspace(options = {}) {
     deactivate();
     releaseCameraCatalog?.();
     sensorLauncher?.destroy();
+    safetyHud?.destroy();
     panelManager?.destroy();
     sceneHost.destroy();
     destroyed = true;
@@ -201,6 +234,7 @@ export function initializeCockpitWorkspace(options = {}) {
     panelLayer: documentValue.querySelector('#cockpitPanelLayer'),
     snapPreviewElement: documentValue.querySelector('#cockpitSnapPreview'),
     launcherRoot: documentValue.querySelector('#cockpitSensorLauncher'),
+    safetyHudRoot: documentValue.querySelector('#cockpitSafetyHud'),
     cameraDemand: options.cameraDemand,
     document: documentValue,
     controls: {

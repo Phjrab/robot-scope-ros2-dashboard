@@ -334,7 +334,7 @@ const controlUi = {
   actions: $('#controlActions'),
 };
 
-let latestState = null;
+let latestState = null, latestStateAt = 0;
 let stateRequestGeneration = 0;
 let overviewTelemetryAvailability = null;
 let latestTopics = [];
@@ -489,7 +489,7 @@ const controlInput = window.RobotControlInput;
 const mapAnnotationEngine = window.RobotMapAnnotations;
 const CONTROL_SOCKET_MAX_BUFFER_BYTES = 4096;
 const CONTROL_SOCKET_BACKPRESSURE_GRACE_MS = 100;
-let controlSnapshot = null;
+let controlSnapshot = null, controlSnapshotAt = 0;
 let controlLeaseId = '';
 let controlLeaseSource = '';
 let controlSocket = null;
@@ -597,10 +597,10 @@ if (navigationScene3d) {
 }
 
 const cockpitWorkspace = initializeCockpitWorkspace({
-  Renderer: window.RobotScene3D,
-  maxPoints: 10000,
-  cameraDemand: cameraDemandController,
-  onError: (error) => console.warn('Cockpit scene:', error),
+  Renderer: window.RobotScene3D, maxPoints: 10000, cameraDemand: cameraDemandController,
+  getSafetySnapshot: () => ({ state: latestState, stateUpdatedAt: latestStateAt, control: controlSnapshot, controlUpdatedAt: controlSnapshotAt, locallyArmed: Boolean(controlLeaseId), command: controlLastCommand, speedScale: Number(controlUi.speed.value) / 100, controlGeneration: controlArmGeneration,
+    navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable }),
+  onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onError: (error) => console.warn('Cockpit scene:', error),
 });
 
 const pointcloudTransport = window.RobotPointCloudStream?.decodeFrame
@@ -2690,7 +2690,7 @@ async function refreshState() {
   try {
     const state = await api('/api/v1/state');
     if (generation !== stateRequestGeneration) return null;
-    latestState = state;
+    latestState = state; latestStateAt = Date.now();
     updateOverview(state);
     if (activePage === 'cockpit') syncCockpitScene();
     if (activePage === 'mapping') redrawActiveMap();
@@ -2698,7 +2698,7 @@ async function refreshState() {
     return state;
   } catch (error) {
     if (generation !== stateRequestGeneration) return null;
-    latestState = null;
+    latestState = null; latestStateAt = 0;
     ui.connectionChip.className = 'connection-chip error';
     ui.connectionLabel.textContent = '에이전트 연결 끊김';
     renderOverviewUnavailable('에이전트 연결 끊김');
@@ -5946,7 +5946,7 @@ function renderControlCommand(command = controlLastCommand || controlSnapshot?.c
 
 function applyControlSnapshot(snapshot) {
   if (!snapshot) return;
-  controlSnapshot = snapshot;
+  controlSnapshot = snapshot; controlSnapshotAt = Date.now();
   if (!controlSpeedInitialized) {
     const percent = controlInput.clamp(Number(snapshot.limits?.default_speed_scale) || 0.3, 0.1, 1) * 100;
     controlUi.speed.value = String(Math.round(percent / 5) * 5);
@@ -5959,9 +5959,8 @@ function applyControlSnapshot(snapshot) {
 }
 
 async function refreshControlSnapshot() {
-  if (!['controls', 'navigation'].includes(activePage)) return;
-  // A poll started before ARM can finish afterward with the old inactive
-  // snapshot. Never let that stale response revoke a newer local lease.
+  if (!['controls', 'navigation', 'cockpit'].includes(activePage)) return;
+  // Never let a poll started before ARM revoke a newer local lease.
   const armGenerationAtRequest = controlArmGeneration;
   const leaseAtRequest = controlLeaseId;
   try {
@@ -5973,6 +5972,7 @@ async function refreshControlSnapshot() {
     }
   } catch (error) {
     if (armGenerationAtRequest !== controlArmGeneration || leaseAtRequest !== controlLeaseId) return;
+    controlSnapshotAt = 0;
     controlUi.availability.textContent = 'API ERROR';
     controlUi.availabilityNote.textContent = error.message;
     controlUi.availability.closest('.control-status-card').classList.add('is-error');
@@ -6535,7 +6535,7 @@ async function disconnectRobotTarget() {
     ui.robotIp.value = '';
     ui.connectedRobotTarget.textContent = '연결 안 됨';
     resetLiveRobotSessionView();
-    latestState = null;
+    latestState = null; latestStateAt = 0;
     renderOverviewUnavailable('로봇 대상 연결 해제됨', { clearLive: false });
     clearRobotDiscovery('연결 대상이 해제되었습니다. 검색하거나 IP를 입력해 다시 연결할 수 있습니다.');
     setDiscoveryStatus('연결 해제됨');

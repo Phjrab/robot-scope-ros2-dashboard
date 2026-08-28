@@ -164,6 +164,47 @@ test('pointer move is rAF-coalesced and pointer cancel/lost capture always clean
   assert.equal(manager.diagnostics().interaction, null);
 });
 
+test('switching to Operate cancels an active pointer operation and gates geometry mutations', () => {
+  const { manager, views, frames } = managerHarness();
+  manager.activate();
+  const callbacks = views.get('placeholder-one').options;
+  const target = new FakePointerTarget();
+  callbacks.onInteractionStart({ currentTarget: target, pointerId: 7, clientX: 100, clientY: 100 }, 'placeholder-one', 'move', '');
+  target.emit('pointermove', { clientX: 155, clientY: 145, altKey: true });
+  assert.equal(frames.size, 1);
+
+  manager.setLayoutEditable(false);
+  const locked = manager.diagnostics();
+  assert.equal(locked.layoutEditable, false);
+  assert.equal(locked.interaction, null);
+  assert.equal(frames.size, 0);
+  assert.equal(target.captured, null);
+  const settled = locked.panels[0];
+  assert.deepEqual({ x: settled.x, y: settled.y }, { x: 95, y: 95 });
+
+  const blockedTarget = new FakePointerTarget();
+  assert.equal(callbacks.onInteractionStart({ currentTarget: blockedTarget, pointerId: 7, clientX: 0, clientY: 0 }, 'placeholder-one', 'resize', 'se'), false);
+  assert.equal(manager.dockPanel('placeholder-one', 'left'), null);
+  assert.equal(manager.closePanel('placeholder-one'), null);
+  assert.equal(manager.toggleCompact('placeholder-one').mode, 'compact', 'compact remains available in Operate');
+  assert.equal(manager.toggleFocus('placeholder-one').mode, 'focus', 'focus remains available in Operate');
+});
+
+test('Operate blocks panel creation and edit-only actions until Layout Edit resumes', () => {
+  const { manager } = managerHarness();
+  manager.activate();
+  manager.closePanel('placeholder-one');
+  manager.setLayoutEditable(false);
+  assert.equal(manager.openPanel('placeholder.one'), null);
+  manager.setLayoutEditable(true);
+  assert.equal(manager.openPanel('placeholder.one').visible, true);
+  const before = manager.diagnostics().panels[0];
+  manager.setLayoutEditable(false);
+  manager.handleAction('placeholder-one', 'pin');
+  manager.arrangePanels('cascade');
+  assert.deepEqual(manager.diagnostics().panels[0], before);
+});
+
 test('close destroys DOM/content lifecycle and open remounts without duplicate runtime', () => {
   const { manager, views, contentStats } = managerHarness();
   manager.activate();

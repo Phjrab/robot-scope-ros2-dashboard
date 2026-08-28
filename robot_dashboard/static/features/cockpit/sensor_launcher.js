@@ -39,6 +39,10 @@ export function createSensorLauncher(options = {}) {
   list.setAttribute('aria-label', 'Sensor panel 선택');
   const panelButtons = [];
   const panelEntries = [];
+  let visibleTypes = new Set();
+  let activePanelId = '';
+  let layoutEditable = false;
+  let sourceMap = new Map();
 
   for (const descriptor of registry.list()) {
     const item = button(documentValue, '', '');
@@ -132,29 +136,40 @@ export function createSensorLauncher(options = {}) {
     focusable[nextLauncherIndex(current, event.key, focusable.length)]?.focus();
   });
 
-  function update(states = [], activePanelId = '') {
-    const visibleTypes = new Set(states.filter((state) => state.visible).map((state) => state.panelType));
+  function syncAvailability() {
+    for (const { item, descriptor, availability } of panelEntries) {
+      const source = descriptor.sourceId ? sourceMap.get(descriptor.sourceId) : null;
+      const sourceAvailable = !descriptor.sourceId || Boolean(source?.available);
+      const visible = visibleTypes.has(descriptor.panelType);
+      item.disabled = !sourceAvailable || (!layoutEditable && !visible);
+      item.dataset.availability = sourceAvailable ? 'available' : source ? 'unavailable' : 'waiting';
+      availability.textContent = !sourceAvailable ? (source ? 'UNAVAILABLE' : 'CATALOG WAITING')
+        : layoutEditable ? 'AVAILABLE' : visible ? 'ACTIVE · OPERATE' : 'LAYOUT LOCKED';
+      item.setAttribute('aria-label', `${descriptor.label} ${sourceAvailable ? visible ? 'panel 앞으로 가져오기' : layoutEditable ? 'panel 열기' : 'Layout Edit에서 열기' : '사용 불가'}`);
+    }
+    for (const item of layoutButtons) item.disabled = !layoutEditable || (activeActions.has(item.dataset.layoutAction) && !activePanelId);
+    grid.disabled = !layoutEditable;
+  }
+
+  function update(states = [], nextActivePanelId = '') {
+    visibleTypes = new Set(states.filter((state) => state.visible).map((state) => state.panelType));
+    activePanelId = nextActivePanelId;
     for (const item of panelButtons) {
       const visible = visibleTypes.has(item.dataset.panelType);
       item.classList.toggle('is-active', visible);
       item.setAttribute('aria-pressed', String(visible));
     }
-    for (const item of layoutButtons) {
-      if (activeActions.has(item.dataset.layoutAction)) item.disabled = !activePanelId;
-    }
+    syncAvailability();
   }
 
   function updateAvailability(sources = []) {
-    const sourceMap = new Map(sources.map((source) => [source.id, source]));
-    for (const { item, descriptor, availability } of panelEntries) {
-      if (!descriptor.sourceId) continue;
-      const source = sourceMap.get(descriptor.sourceId);
-      const available = Boolean(source?.available);
-      item.disabled = !available;
-      item.dataset.availability = available ? 'available' : source ? 'unavailable' : 'waiting';
-      availability.textContent = available ? 'AVAILABLE' : source ? 'UNAVAILABLE' : 'CATALOG WAITING';
-      item.setAttribute('aria-label', `${descriptor.label} ${available ? 'panel 열기 또는 앞으로 가져오기' : '사용 불가'}`);
-    }
+    sourceMap = new Map(sources.map((source) => [source.id, source]));
+    syncAvailability();
+  }
+
+  function setLayoutEditable(nextEditable) {
+    layoutEditable = Boolean(nextEditable);
+    syncAvailability();
   }
 
   function destroy() {
@@ -162,5 +177,5 @@ export function createSensorLauncher(options = {}) {
   }
 
   update();
-  return Object.freeze({ update, updateAvailability, setExpanded, destroy, diagnostics: () => Object.freeze({ expanded: !body.hidden, panelCount: panelButtons.length }) });
+  return Object.freeze({ update, updateAvailability, setLayoutEditable, setExpanded, destroy, diagnostics: () => Object.freeze({ expanded: !body.hidden, panelCount: panelButtons.length, layoutEditable }) });
 }
