@@ -49,6 +49,16 @@ test('map state pins map, navigation and annotations to one exact revision', () 
   assert.deepEqual(store.snapshot().overlay.markers.map((marker) => marker.type), ['HOME', 'POI']);
 });
 
+test('map state accepts the real SavedMapCatalog data identity field', () => {
+  const store = createCockpitMapStore();
+  const savedMapData = Object.freeze({ ...map, id: undefined, map_id: MAP_ID });
+  const state = store.update({ ...input(), map: savedMapData });
+  assert.equal(state.status, 'LIVE');
+  assert.equal(state.map.id, MAP_ID);
+  assert.equal(state.map.revision, REVISION);
+  assert.equal(state.conflict, false);
+});
+
 test('revision conflict fails closed without mixing pose, path or overlay', () => {
   const state = createCockpitMapStore().update(input(navigation({ map: { id: MAP_ID, revision: 'd'.repeat(64) } })));
   assert.equal(state.status, 'CONFLICT');

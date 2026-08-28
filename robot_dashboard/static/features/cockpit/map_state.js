@@ -102,7 +102,11 @@ export function createCockpitMapStore(options = {}) {
     const navigation = input.navigation || {};
     const id = String(meta?.id || '');
     const revision = String(meta?.revision || '');
-    const mapId = String(map?.id || '');
+    // SavedMapCatalog metadata uses `id`, while its bounded data payload uses
+    // `map_id`.  Accept only those two fixed product fields so the Cockpit can
+    // prove that both responses refer to the same opaque map without weakening
+    // revision pinning.
+    const mapId = String(map?.id || map?.map_id || '');
     const mapRevision = String(map?.revision || '');
     const exactMap = HEX24.test(id) && HEX64.test(revision) && id === mapId && revision === mapRevision && validMapGeometry(map);
     const nextMapKey = exactMap ? `${id}:${revision}` : '';
