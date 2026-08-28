@@ -292,3 +292,35 @@ test('restored focused dock keeps its original floating geometry for a later und
     { x: original.x, y: original.y, width: original.width, height: original.height },
   );
 });
+
+test('gamepad panel selection cycles in registry order, toggles safely, and clears on disconnect', () => {
+  const descriptors = ['alpha', 'bravo'].map((id, index) => ({
+    id: `panel-${id}`, panelType: `panel.${id}`, title: id, eyebrow: 'TEST',
+    defaultGeometry: { x: 40 + index * 340, y: 50, width: 320, height: 220 }, bounds,
+  }));
+  const selected = new Map();
+  const registry = {
+    list: () => descriptors,
+    get: (type) => descriptors.find((descriptor) => descriptor.panelType === type) || null,
+    createContent: () => ({ mount() {}, activate() {}, deactivate() {}, destroy() {} }),
+  };
+  const manager = createPanelManager({
+    host: { clientWidth: 1000, clientHeight: 700, getBoundingClientRect: () => ({ width: 1000, height: 700 }) },
+    registry,
+    viewportProvider: () => viewport,
+    viewFactory({ descriptor }) {
+      return { content: {}, update(_state, interaction) { selected.set(descriptor.id, interaction.gamepadSelected); }, focus() {}, destroy() {} };
+    },
+  });
+  manager.activate();
+  assert.equal(manager.cycleGamepadSelection(1).id, 'panel-alpha');
+  assert.equal(selected.get('panel-alpha'), true);
+  assert.equal(manager.cycleGamepadSelection(1).id, 'panel-bravo');
+  assert.equal(selected.get('panel-alpha'), false);
+  assert.equal(selected.get('panel-bravo'), true);
+  assert.equal(manager.toggleSelectedPanel('focus').mode, 'focus');
+  assert.equal(manager.toggleSelectedPanel('focus').mode, 'floating');
+  manager.clearGamepadSelection();
+  assert.equal(manager.diagnostics().gamepadSelectedPanelId, '');
+  assert.equal(selected.get('panel-bravo'), false);
+});

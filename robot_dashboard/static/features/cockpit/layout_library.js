@@ -114,10 +114,8 @@ export function createLayoutLibrary(options = {}) {
     try { callback(); } catch (error) { setStatus(error?.message || 'Layout 작업을 완료하지 못했습니다.', true); }
   }
 
-  toggle.addEventListener('click', () => {
-    body.hidden = !body.hidden;
-    toggle.setAttribute('aria-expanded', String(!body.hidden));
-  });
+  function setExpanded(expanded) { body.hidden = !expanded; toggle.setAttribute('aria-expanded', String(expanded)); }
+  toggle.addEventListener('click', () => setExpanded(body.hidden));
   select.addEventListener('change', syncDisabled);
   name.addEventListener('input', syncDisabled);
   importText.addEventListener('input', () => { pendingImport = null; syncDisabled(); });
@@ -198,5 +196,5 @@ export function createLayoutLibrary(options = {}) {
   function destroy() { root.replaceChildren(); }
 
   refresh();
-  return Object.freeze({ setLayoutEditable, setProfile, refresh, destroy, diagnostics: () => Object.freeze({ layoutEditable, pendingImport: pendingImport?.name || null, ...store.snapshot() }) });
+  return Object.freeze({ setLayoutEditable, setProfile, setExpanded, refresh, destroy, diagnostics: () => Object.freeze({ expanded: !body.hidden, layoutEditable, pendingImport: pendingImport?.name || null, ...store.snapshot() }) });
 }

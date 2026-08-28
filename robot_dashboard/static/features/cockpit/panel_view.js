@@ -103,6 +103,8 @@ export function createPanelView(options = {}) {
     panel.classList.toggle('is-pinned', state.pinned);
     panel.classList.toggle('is-locked', state.locked);
     panel.classList.toggle('is-docked', Boolean(state.dock));
+    panel.classList.toggle('is-gamepad-selected', Boolean(interaction.gamepadSelected));
+    panel.setAttribute('aria-current', interaction.gamepadSelected ? 'true' : 'false');
     panel.style.width = `${state.width}px`;
     panel.style.height = `${state.height}px`;
     panel.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;

@@ -14,6 +14,13 @@ async function enterLayoutEdit(page) {
   await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'layout-edit');
 }
 
+async function pressSyntheticGamepadButton(page, index, holdMs = 90) {
+  await page.evaluate((button) => window.__syntheticGamepad.setButton(button, true), index);
+  await page.waitForTimeout(holdMs);
+  await page.evaluate((button) => window.__syntheticGamepad.setButton(button, false), index);
+  await page.waitForTimeout(70);
+}
+
 test('offline viewer keeps saved maps available while live telemetry fails closed', async ({ page }) => {
   await openDashboard(page, { online: false }, 'overview');
   await expect(page.locator('#connectionLabel')).toContainText('연결 끊김');
@@ -496,6 +503,64 @@ test('Cockpit preset saves normalized geometry, restores after reload, and impor
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.y).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(620);
+});
+
+test('Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed', async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = { connected: true, timestamp: 1 };
+    const buttons = Array.from({ length: 16 }, () => ({ pressed: false, value: 0 }));
+    const pad = {
+      id: 'Synthetic Xbox (Vendor: 045e Product: 02fd)', index: 0, connected: true,
+      mapping: 'standard', axes: [0, 0, 0, 0], buttons, vibrationActuator: {},
+      get timestamp() { return state.timestamp; },
+    };
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => state.connected ? [pad] : [] });
+    window.__syntheticGamepad = {
+      setButton(index, pressed) { buttons[index] = { pressed, value: pressed ? 1 : 0 }; state.timestamp += 1; },
+      disconnect() { state.connected = false; pad.connected = false; state.timestamp += 1; },
+    };
+  });
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
+  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]').click();
+  await page.locator('[data-cockpit-layout-action="apply"]').click();
+  const map = page.locator('[data-panel-id="placeholder-map"]');
+  const controller = page.locator('[data-panel-id="placeholder-controller"]');
+  await expect(controller.locator('[data-controller-metric="device"] strong')).toHaveText('Synthetic Xbox');
+
+  await page.evaluate(() => window.__syntheticGamepad.setButton(15, true));
+  await expect(map).toHaveClass(/is-gamepad-selected/);
+  await page.waitForTimeout(180);
+  await expect(map).toHaveClass(/is-gamepad-selected/);
+  await page.evaluate(() => window.__syntheticGamepad.setButton(15, false));
+  await page.waitForTimeout(70);
+  await pressSyntheticGamepadButton(page, 15);
+  await expect(controller).toHaveClass(/is-gamepad-selected/);
+
+  await page.evaluate(() => window.__syntheticGamepad.setButton(3, true));
+  await expect(controller).toHaveAttribute('data-mode', 'focus');
+  await page.waitForTimeout(180);
+  await expect(controller).toHaveAttribute('data-mode', 'focus', { timeout: 500 });
+  await page.evaluate(() => window.__syntheticGamepad.setButton(3, false));
+  await page.waitForTimeout(70);
+  await pressSyntheticGamepadButton(page, 3);
+  await expect(controller).toHaveAttribute('data-mode', 'floating');
+  await pressSyntheticGamepadButton(page, 2);
+  await expect(controller).toHaveAttribute('data-mode', 'compact');
+  await pressSyntheticGamepadButton(page, 2);
+  await expect(controller).toHaveAttribute('data-mode', 'floating');
+
+  await pressSyntheticGamepadButton(page, 8);
+  await expect(page.locator('#cockpitLauncherBody')).toBeHidden();
+  await pressSyntheticGamepadButton(page, 9);
+  await expect(page.locator('.cockpit-layout-library-body')).toBeVisible();
+
+  await page.evaluate(() => window.__syntheticGamepad.disconnect());
+  await expect(controller).not.toHaveClass(/is-gamepad-selected/);
+  await expect(controller.locator('[data-controller-metric="connection"] strong')).toHaveText('DISCONNECTED');
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
 });
 
 test('mapping start, save and stop preserve one mutation per operator action', async ({ page }) => {

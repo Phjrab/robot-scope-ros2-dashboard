@@ -64,6 +64,7 @@ export function createPanelManager(options = {}) {
   let snapOptions = normalizeSnapOptions(options.snapOptions);
   let snapPreview = null;
   let activePanelId = '';
+  let gamepadSelectedPanelId = '';
   let layoutEditable = options.layoutEditable !== false;
   let activations = 0;
   let deactivations = 0;
@@ -79,7 +80,7 @@ export function createPanelManager(options = {}) {
   function setState(id, nextState) {
     const snapshot = panelStateSnapshot(nextState);
     states.set(id, snapshot);
-    runtimes.get(id)?.view?.update(snapshot, { layoutEditable });
+    runtimes.get(id)?.view?.update(snapshot, { layoutEditable, gamepadSelected: gamepadSelectedPanelId === id });
     syncContentLifecycle(id);
     options.onStateChange?.(snapshot);
     return snapshot;
@@ -129,7 +130,7 @@ export function createPanelManager(options = {}) {
     const runtime = { descriptor, view, content, contentActive: false };
     runtimes.set(state.id, runtime);
     safeHook(runtime, 'mount', view.content, { panelId: state.id, panelType: state.panelType });
-    view.update(state, { layoutEditable });
+    view.update(state, { layoutEditable, gamepadSelected: gamepadSelectedPanelId === state.id });
     syncContentLifecycle(state.id);
     return runtime;
   }
@@ -138,7 +139,7 @@ export function createPanelManager(options = {}) {
     const visible = [...states.values()].filter((state) => state.visible);
     for (const normalized of normalizePanelZOrder(visible, activeId, PANEL_Z_MAX)) {
       states.set(normalized.id, normalized);
-      runtimes.get(normalized.id)?.view?.update(normalized, { layoutEditable });
+      runtimes.get(normalized.id)?.view?.update(normalized, { layoutEditable, gamepadSelected: gamepadSelectedPanelId === normalized.id });
     }
   }
 
@@ -149,6 +150,42 @@ export function createPanelManager(options = {}) {
     normalizeZ(id);
     options.onActivePanelChange?.(id);
     return states.get(id);
+  }
+
+  function setGamepadSelection(id) {
+    const next = states.get(id)?.visible ? id : '';
+    if (next === gamepadSelectedPanelId) return next ? states.get(next) : null;
+    const previous = gamepadSelectedPanelId;
+    gamepadSelectedPanelId = next;
+    for (const panelId of [previous, next]) {
+      const state = states.get(panelId);
+      if (state) runtimes.get(panelId)?.view?.update(state, { layoutEditable, gamepadSelected: panelId === next });
+    }
+    options.onGamepadSelectionChange?.(next);
+    return next ? states.get(next) : null;
+  }
+
+  function cycleGamepadSelection(direction = 1) {
+    if (!active) return null;
+    const visible = registry.list().map((descriptor) => states.get(descriptor.id)).filter((state) => state?.visible);
+    if (!visible.length) return setGamepadSelection('');
+    const current = visible.findIndex((state) => state.id === gamepadSelectedPanelId);
+    const nextIndex = current < 0 ? (direction < 0 ? visible.length - 1 : 0) : (current + (direction < 0 ? -1 : 1) + visible.length) % visible.length;
+    const next = visible[nextIndex];
+    setGamepadSelection(next.id);
+    bringToFront(next.id);
+    runtimes.get(next.id)?.view?.focus?.();
+    return states.get(next.id);
+  }
+
+  function clearGamepadSelection() {
+    return setGamepadSelection('');
+  }
+
+  function toggleSelectedPanel(action) {
+    if (!active || !gamepadSelectedPanelId) return null;
+    return action === 'focus' ? toggleFocus(gamepadSelectedPanelId)
+      : action === 'compact' ? toggleCompact(gamepadSelectedPanelId) : null;
   }
 
   function flushInteractionFrame() {
@@ -302,6 +339,7 @@ export function createPanelManager(options = {}) {
       activePanelId = '';
       options.onActivePanelChange?.('');
     }
+    if (gamepadSelectedPanelId === id) clearGamepadSelection();
     const closed = setState(id, { ...state, visible: false });
     normalizeZ();
     return closed;
@@ -452,7 +490,7 @@ export function createPanelManager(options = {}) {
     if (layoutEditable === next) return diagnostics();
     if (!next) cancelInteraction();
     layoutEditable = next;
-    for (const state of states.values()) runtimes.get(state.id)?.view?.update(state, { layoutEditable });
+    for (const state of states.values()) runtimes.get(state.id)?.view?.update(state, { layoutEditable, gamepadSelected: gamepadSelectedPanelId === state.id });
     return diagnostics();
   }
 
@@ -488,6 +526,7 @@ export function createPanelManager(options = {}) {
     dockRestore.clear();
     focusRestore.clear();
     activePanelId = '';
+    clearGamepadSelection();
     for (const next of replacements) {
       const runtime = runtimes.get(next.id);
       if (!next.visible && runtime) {
@@ -498,7 +537,7 @@ export function createPanelManager(options = {}) {
       }
       states.set(next.id, next);
       if (next.visible && !runtimes.has(next.id)) mountRuntime(next);
-      else runtimes.get(next.id)?.view?.update(next, { layoutEditable });
+      else runtimes.get(next.id)?.view?.update(next, { layoutEditable, gamepadSelected: false });
       if (next.mode === 'compact' && next.restoreGeometry) compactRestore.set(next.id, next.restoreGeometry);
       if (next.dock && next.restoreGeometry) dockRestore.set(next.id, next.restoreGeometry);
       if (next.mode === 'focus' && next.restoreGeometry) {
@@ -541,6 +580,7 @@ export function createPanelManager(options = {}) {
       deactivations,
       interaction: interaction ? Object.freeze({ id: interaction.id, kind: interaction.kind, handle: interaction.handle }) : null,
       activePanelId,
+      gamepadSelectedPanelId,
       layoutEditable,
       snapOptions,
       snapPreview,
@@ -563,6 +603,7 @@ export function createPanelManager(options = {}) {
     dockRestore.clear();
     focusRestore.clear();
     activePanelId = '';
+    gamepadSelectedPanelId = '';
     setSnapPreview(null);
     destroyed = true;
   }
@@ -592,6 +633,9 @@ export function createPanelManager(options = {}) {
     openPanel,
     closePanel,
     bringToFront,
+    cycleGamepadSelection,
+    clearGamepadSelection,
+    toggleSelectedPanel,
     toggleCompact,
     toggleFocus,
     dockPanel,

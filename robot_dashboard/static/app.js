@@ -497,7 +497,7 @@ let controlSocketBound = false;
 let controlBackpressureSince = null;
 const intentionallyClosedControlSockets = new WeakSet();
 let controlSequence = 0;
-let lastControlHeartbeatAt = 0;
+let lastControlHeartbeatAt = 0, lastControlFrameAt = 0;
 let controlDisarmBusy = false;
 let controlEmergencyBusy = false;
 let controlArmBusy = false;
@@ -597,10 +597,10 @@ if (navigationScene3d) {
 }
 
 const cockpitWorkspace = initializeCockpitWorkspace({
-  Renderer: window.RobotScene3D, maxPoints: 10000, cameraDemand: cameraDemandController,
-  getSafetySnapshot: () => ({ state: latestState, stateUpdatedAt: latestStateAt, control: controlSnapshot, controlUpdatedAt: controlSnapshotAt, locallyArmed: Boolean(controlLeaseId), command: controlLastCommand, speedScale: Number(controlUi.speed.value) / 100, controlGeneration: controlArmGeneration,
+  Renderer: window.RobotScene3D, maxPoints: 10000, cameraDemand: cameraDemandController, gamepadProvider: selectedControlGamepad,
+  getControllerSnapshot: () => ({ speedScale: Number(controlUi.speed.value) / 100, speedScaleRange: controlSnapshot?.limits?.speed_scale, leaseSource: controlLeaseSource || controlSnapshot?.lease?.source, lastControlFrameAt }), getSafetySnapshot: () => ({ state: latestState, stateUpdatedAt: latestStateAt, control: controlSnapshot, controlUpdatedAt: controlSnapshotAt, locallyArmed: Boolean(controlLeaseId), command: controlLastCommand, speedScale: Number(controlUi.speed.value) / 100, controlGeneration: controlArmGeneration,
     navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable }),
-  onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onError: (error) => console.warn('Cockpit scene:', error),
+  onGamepadUiZeroIntent: () => failSafeDisarm('cockpit_gamepad_ui_zero'), onGamepadDisconnect: () => { if (controlLeaseSource === 'gamepad') failSafeDisarm('gamepad_disconnected', { notify: true }); }, onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onError: (error) => console.warn('Cockpit scene:', error),
 });
 
 const pointcloudTransport = window.RobotPointCloudStream?.decodeFrame
@@ -6029,7 +6029,7 @@ function controlSocketSend(message, socket = controlSocket) {
     // server command watchdog.
     return false;
   }
-  try { socket.send(JSON.stringify(message)); return true; }
+  try { socket.send(JSON.stringify(message)); if (['twist', 'heartbeat'].includes(message?.type)) lastControlFrameAt = Date.now(); return true; }
   catch (_) {
     if (!controlDisarmBusy) failSafeDisarm('websocket_send_failed', { notify: true });
     return false;
@@ -6211,7 +6211,7 @@ async function armControl() {
       } catch (_) {}
       return;
     }
-    controlLeaseId = String(response.lease_id);
+    controlLeaseId = String(response.lease_id); lastControlFrameAt = 0;
     controlLeaseSource = source;
     controlSequence = -1;
     resetControlInputs();

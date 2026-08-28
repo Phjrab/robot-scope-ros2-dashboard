@@ -54,6 +54,25 @@
 
 .cockpit-floating-panel:focus-within,
 .cockpit-floating-panel:hover { border-color: rgba(88, 255, 207, 0.58); }
+.cockpit-floating-panel.is-gamepad-selected {
+  border-color: #7fffd4;
+  box-shadow: 0 0 0 3px rgba(93, 255, 188, 0.24), 0 18px 46px rgba(0, 0, 0, 0.42);
+}
+.cockpit-floating-panel.is-gamepad-selected::after {
+  position: absolute;
+  z-index: 4;
+  right: 10px;
+  bottom: 8px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #03110d;
+  background: #7fffd4;
+  content: "GAMEPAD SELECTED";
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
 .cockpit-floating-panel.is-pinned { box-shadow: 0 0 0 1px rgba(255, 211, 106, 0.45), 0 18px 46px rgba(0, 0, 0, 0.38); }
 
 .cockpit-panel-titlebar {
@@ -121,6 +140,19 @@
 .cockpit-placeholder-content strong { font-size: 17px; }
 .cockpit-placeholder-content p { margin: 0; color: #91aaa5; font-size: 12px; line-height: 1.55; }
 .cockpit-placeholder-content small { color: #ffcf73; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; }
+
+.cockpit-controller-panel { display: grid; align-content: start; min-height: 100%; gap: 9px; padding: 12px; background: linear-gradient(145deg, rgba(8, 31, 27, 0.9), rgba(2, 10, 9, 0.96)); }
+.cockpit-controller-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cockpit-controller-status span { color: #5dffbc; font-size: 8px; font-weight: 900; letter-spacing: 0.1em; }
+.cockpit-controller-status strong { color: #84a8a0; font-size: 8px; letter-spacing: 0.06em; }
+.cockpit-controller-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid rgba(117, 255, 220, 0.16); border-radius: 8px; overflow: hidden; }
+.cockpit-controller-metric { display: grid; min-width: 0; gap: 3px; padding: 8px; border-right: 1px solid rgba(117, 255, 220, 0.1); border-bottom: 1px solid rgba(117, 255, 220, 0.1); }
+.cockpit-controller-metric:nth-child(2n) { border-right: 0; }
+.cockpit-controller-metric span { color: #608d83; font-size: 7px; font-weight: 900; letter-spacing: 0.09em; }
+.cockpit-controller-metric strong { overflow: hidden; color: #d9fff6; font: 800 9px ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.cockpit-panel-content[data-controller-connected="false"] .cockpit-controller-status span,
+.cockpit-panel-content[data-controller-connected="false"] [data-controller-metric="connection"] strong { color: #ff9b75; }
+.cockpit-controller-bindings { color: #ffcf73; font-size: 7px; font-weight: 800; line-height: 1.5; letter-spacing: 0.05em; }
 
 .cockpit-camera-panel { display: grid; grid-template-rows: auto minmax(80px, 1fr) auto; min-height: 100%; background: #020706; }
 .cockpit-camera-statusline { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-bottom: 1px solid rgba(114, 207, 187, 0.14); }

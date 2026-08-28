@@ -73,6 +73,31 @@ JSON parse와 preview가 성공해도 현재 panel 및 storage를 바꾸지 않�
 control/robot 상태에 영향을 주지 않고 빈 기본 배치로 복구된다. lease, command,
 telemetry, IP, path, frame과 runtime owner는 schema에 존재하지 않는다.
 
+### CWP-07 구현 기록
+
+CWP-07에서 저장 layout 호환성을 위해 기존 `placeholder.controller` panel type과
+`placeholder-controller` singleton ID를 유지하면서 실제 읽기 전용 Xbox Controller
+Panel로 교체했다. Panel은 standard gamepad의 안전하게 축약한 이름, 연결 상태,
+입력 freshness, LB deadman, 정규화된 좌측 X/Y 및 우측 X 축, 기존 speed policy로
+clamp된 scale, lease source의 범주, 마지막 control frame age와 vibration 지원 여부만
+표시한다. lease ID/token, raw vendor/product ID와 control frame은 panel state나 layout에
+저장하지 않는다.
+
+Cockpit UI mapper는 기존 `control_input.js`의 주행 mapper와 별도인 DOM-free
+rising-edge reducer다. standard mapping에서 D-pad 좌/우는 열린 panel을 registry
+순서로 선택하고 Y는 focus/restore, X는 compact/floating, View는 Sensor Launcher,
+Menu는 Cockpit layout menu를 전환한다. LB deadman, 좌측 stick 주행, 우측 X yaw,
+B software STOP mapping은 변경하지 않았다. 단축키는 Cockpit Operate mode에서만
+동작하고 text input이나 modal이 활성인 동안 edge를 소비해 해제 후 재생하지 않는다.
+연결 또는 재연결 시 이미 눌린 버튼도 action으로 재생하지 않는다.
+
+UI sampler는 Cockpit lifecycle에만 묶인 별도 50 ms timer이며 control WebSocket,
+lease, sequence 또는 frame cadence를 소유하지 않는다. Focus/compact action에서 LB가
+released이면 panel mutation 전에 기존 `failSafeDisarm` zero 경로를 호출한다. 게임패드
+연결 해제는 UI selection과 projected axes/deadman을 즉시 지우며, gamepad lease가
+존재하는 경우 기존 disconnect fail-safe 경로를 다시 사용한다. single button으로 ARM,
+STOP 해제, Navigation, mission 또는 Go2 action을 시작하는 shortcut은 없다.
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,

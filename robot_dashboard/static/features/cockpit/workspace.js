@@ -7,6 +7,13 @@ import { createLayoutDocument, layoutPanelsToPixels } from './layout_schema.js';
 import { createLayoutStore } from './layout_store.js';
 import { createLayoutLibrary } from './layout_library.js';
 import { createSafetyHud } from './safety_hud.js';
+import { createControllerStateStore, createGamepadUiMapper, dispatchGamepadUiAction, projectControllerStatus } from './gamepad_ui.js';
+
+export function cockpitGamepadUiBlocked(documentValue) {
+  const activeElement = documentValue?.activeElement;
+  if (activeElement?.matches?.('input, textarea, select, [contenteditable="true"]')) return true;
+  return Boolean(documentValue?.querySelector?.('dialog[open], [role="dialog"]:not([hidden]), [aria-modal="true"]:not([hidden])'));
+}
 
 export function projectCockpitPointcloud(options = {}) {
   const cloud = options.cloud?.offline_snapshot ? null : options.cloud;
@@ -33,13 +40,16 @@ export function createCockpitWorkspace(options = {}) {
   const modelElement = options.modelElement;
   let active = false;
   let destroyed = false;
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand }) : null;
+  const controllerState = createControllerStateStore();
+  const gamepadUi = createGamepadUiMapper({ now: options.now });
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState }) : null;
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
   let layoutLibrary = null;
   let releaseCameraCatalog = null;
   let currentProfileId = '';
+  let gamepadTimer = 0;
 
   function syncLayoutMode(state = layoutMode.snapshot()) {
     const editable = state.mode === COCKPIT_LAYOUT_MODES.EDIT && !state.armed;
@@ -187,6 +197,28 @@ export function createCockpitWorkspace(options = {}) {
   }
   syncLayoutMode();
 
+  function pollGamepadUi() {
+    if (!active || typeof options.gamepadProvider !== 'function') return;
+    const context = options.getControllerSnapshot?.() || {};
+    const sample = gamepadUi.sample(options.gamepadProvider(), {
+      enabled: layoutMode.snapshot().mode === COCKPIT_LAYOUT_MODES.OPERATE,
+      blocked: cockpitGamepadUiBlocked(options.document),
+    });
+    controllerState.update(projectControllerStatus(sample, context));
+    if (sample.deadmanReleased) options.onGamepadUiZeroIntent?.();
+    if (sample.disconnected) {
+      panelManager?.clearGamepadSelection();
+      options.onGamepadDisconnect?.();
+    }
+    for (const action of sample.actions) dispatchGamepadUiAction(action, sample, {
+      hasSelection: () => Boolean(panelManager?.diagnostics().gamepadSelectedPanelId), ensureZero: options.onGamepadUiZeroIntent,
+      previousPanel: () => panelManager?.cycleGamepadSelection(-1), nextPanel: () => panelManager?.cycleGamepadSelection(1),
+      focus: () => panelManager?.toggleSelectedPanel('focus'), compact: () => panelManager?.toggleSelectedPanel('compact'),
+      launcher: () => sensorLauncher?.setExpanded(!sensorLauncher.diagnostics().expanded),
+      menu: () => layoutLibrary?.setExpanded(!layoutLibrary.diagnostics().expanded),
+    });
+  }
+
   function activate() {
     if (destroyed || active) return diagnostics();
     active = true;
@@ -194,6 +226,9 @@ export function createCockpitWorkspace(options = {}) {
     sceneHost.activate();
     panelManager?.activate();
     safetyHud?.activate();
+    gamepadUi.reset();
+    pollGamepadUi();
+    if (typeof options.gamepadProvider === 'function' && !gamepadTimer) gamepadTimer = (options.setInterval || globalThis.setInterval)(pollGamepadUi, 50);
     return diagnostics();
   }
 
@@ -201,6 +236,11 @@ export function createCockpitWorkspace(options = {}) {
     if (!active) return diagnostics();
     active = false;
     root.dataset.lifecycle = 'inactive';
+    if (gamepadTimer) (options.clearInterval || globalThis.clearInterval)(gamepadTimer);
+    gamepadTimer = 0;
+    gamepadUi.reset();
+    panelManager?.clearGamepadSelection();
+    controllerState.update(projectControllerStatus());
     safetyHud?.deactivate();
     panelManager?.deactivate('workspace_inactive');
     sceneHost.deactivate();
@@ -249,6 +289,7 @@ export function createCockpitWorkspace(options = {}) {
       layout: layoutMode.snapshot(),
       safety: safetyHud?.diagnostics() || null,
       layoutLibrary: layoutLibrary?.diagnostics() || layoutStore.snapshot(),
+      controller: controllerState.snapshot(),
     });
   }
 
@@ -270,6 +311,7 @@ export function createCockpitWorkspace(options = {}) {
     activate,
     deactivate,
     updatePointcloud,
+    pollGamepadUi,
     setProfile,
     setRobotState,
     setPointLimit,

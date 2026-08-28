@@ -1,4 +1,5 @@
 import { createCameraPanel } from './panels/camera_panel.js';
+import { createControllerPanel } from './panels/controller_panel.js';
 
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
@@ -45,13 +46,14 @@ const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
     id: 'placeholder-controller',
     panelType: 'placeholder.controller',
-    title: 'Controller Placeholder',
+    title: 'Xbox Controller',
     label: 'Controller',
     icon: '⌁',
+    kind: 'controller',
     singleton: true,
     defaultVisible: false,
-    eyebrow: 'CWP-03 · PLACEHOLDER',
-    description: 'control lease나 command를 만들지 않는 controller UI 자리입니다.',
+    eyebrow: 'CWP-07 · GAMEPAD',
+    description: '기존 control 경로와 분리된 읽기 전용 controller 상태입니다.',
     defaultGeometry: Object.freeze({ x: 760, y: 76, width: 320, height: 210 }),
     bounds: Object.freeze({ minWidth: 250, minHeight: 150, maxWidth: 620, maxHeight: 520, compactWidth: 280, compactHeight: 58 }),
   }),
@@ -134,6 +136,9 @@ export function createPanelRegistry(options = {}) {
       if (!descriptor) throw new RangeError('Unknown panel type.');
       if (descriptor.kind === 'camera') {
         return createCameraPanel({ descriptor, document: documentValue, cameraDemand: options.cameraDemand });
+      }
+      if (descriptor.kind === 'controller') {
+        return createControllerPanel({ descriptor, document: documentValue, controllerState: options.controllerState });
       }
       return createPlaceholderContent(descriptor, documentValue);
     },
