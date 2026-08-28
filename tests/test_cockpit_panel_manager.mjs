@@ -147,10 +147,10 @@ test('pointer move is rAF-coalesced and pointer cancel/lost capture always clean
   const target = new FakePointerTarget();
   assert.equal(callbacks.onInteractionStart({ currentTarget: target, pointerId: 7, clientX: 100, clientY: 100 }, 'placeholder-one', 'move', ''), true);
   assert.equal(target.captured, 7);
-  target.emit('pointermove', { clientX: 140, clientY: 125 });
-  target.emit('pointermove', { clientX: 180, clientY: 155 });
+  target.emit('pointermove', { clientX: 140, clientY: 125, altKey: true });
+  target.emit('pointermove', { clientX: 180, clientY: 155, altKey: true });
   assert.equal(frames.size, 1, 'pointer moves must share one animation frame');
-  target.emit('pointercancel', { clientX: 180, clientY: 155 });
+  target.emit('pointercancel', { clientX: 180, clientY: 155, altKey: true });
   assert.equal(manager.diagnostics().interaction, null);
   assert.equal(target.captured, null);
   assert.equal(frames.size, 0);
@@ -170,7 +170,7 @@ test('close destroys DOM/content lifecycle and open remounts without duplicate r
   assert.equal(contentStats.mounts, 1);
   assert.equal(contentStats.activations, 1);
   assert.deepEqual(Object.keys(manager.diagnostics().panels[0]).sort(), [
-    'height', 'id', 'locked', 'mode', 'panelType', 'pinned', 'restoreGeometry',
+    'dock', 'height', 'id', 'locked', 'mode', 'panelType', 'pinned', 'restoreGeometry',
     'title', 'visible', 'width', 'x', 'y', 'zIndex',
   ]);
   manager.closePanel('placeholder-one');
@@ -182,4 +182,24 @@ test('close destroys DOM/content lifecycle and open remounts without duplicate r
   assert.equal(contentStats.mounts, 2);
   manager.deactivate();
   manager.destroy();
+});
+
+test('dock, focus, and undock preserve the exact prior floating geometry', () => {
+  const { manager } = managerHarness();
+  manager.activate();
+  const original = manager.diagnostics().panels[0];
+  const docked = manager.dockPanel('placeholder-one', 'left');
+  assert.equal(docked.dock, 'left');
+  assert.deepEqual(docked.restoreGeometry, {
+    mode: 'floating', dock: null, x: original.x, y: original.y, width: original.width, height: original.height,
+  });
+  manager.toggleFocus('placeholder-one');
+  assert.equal(manager.diagnostics().panels[0].mode, 'focus');
+  manager.toggleFocus('placeholder-one');
+  assert.equal(manager.diagnostics().panels[0].dock, 'left');
+  const restored = manager.undockPanel('placeholder-one');
+  assert.deepEqual(
+    { mode: restored.mode, dock: restored.dock, x: restored.x, y: restored.y, width: restored.width, height: restored.height, restoreGeometry: restored.restoreGeometry },
+    { mode: 'floating', dock: null, x: original.x, y: original.y, width: original.width, height: original.height, restoreGeometry: null },
+  );
 });

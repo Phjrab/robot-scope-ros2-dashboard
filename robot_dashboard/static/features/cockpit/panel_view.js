@@ -95,10 +95,12 @@ export function createPanelView(options = {}) {
   function update(state) {
     panel.hidden = !state.visible;
     panel.dataset.mode = state.mode;
+    panel.dataset.dock = state.dock || '';
     panel.classList.toggle('is-compact', state.mode === 'compact');
     panel.classList.toggle('is-focus', state.mode === 'focus');
     panel.classList.toggle('is-pinned', state.pinned);
     panel.classList.toggle('is-locked', state.locked);
+    panel.classList.toggle('is-docked', Boolean(state.dock));
     panel.style.width = `${state.width}px`;
     panel.style.height = `${state.height}px`;
     panel.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;

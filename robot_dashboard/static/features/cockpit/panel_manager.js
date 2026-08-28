@@ -11,6 +11,15 @@ import {
   restoreFocusedPanel,
 } from './panel_geometry.js';
 import { createPanelView } from './panel_view.js';
+import {
+  DOCK_POSITIONS,
+  cascadePanelLayout,
+  dockPanelGeometry,
+  normalizeSnapOptions,
+  snapPanelGeometry,
+  splitPanelLayout,
+  tilePanelLayout,
+} from './snap_layout.js';
 
 function defaultViewport(host) {
   const rect = host.getBoundingClientRect?.() || {};
@@ -25,6 +34,7 @@ function defaultViewport(host) {
 function restoreGeometry(state) {
   return Object.freeze({
     mode: state.mode,
+    dock: state.dock || null,
     x: state.x,
     y: state.y,
     width: state.width,
@@ -44,11 +54,16 @@ export function createPanelManager(options = {}) {
   const states = new Map();
   const runtimes = new Map();
   const compactRestore = new Map();
+  const dockRestore = new Map();
+  const focusRestore = new Map();
   let active = false;
   let destroyed = false;
   let interaction = null;
   let interactionFrame = 0;
   let pendingGeometry = null;
+  let snapOptions = normalizeSnapOptions(options.snapOptions);
+  let snapPreview = null;
+  let activePanelId = '';
   let activations = 0;
   let deactivations = 0;
 
@@ -67,6 +82,11 @@ export function createPanelManager(options = {}) {
     syncContentLifecycle(id);
     options.onStateChange?.(snapshot);
     return snapshot;
+  }
+
+  function setSnapPreview(preview) {
+    snapPreview = preview;
+    options.onSnapPreview?.(preview);
   }
 
   function safeHook(runtime, name, ...args) {
@@ -124,7 +144,9 @@ export function createPanelManager(options = {}) {
   function bringToFront(id) {
     const state = states.get(id);
     if (!state?.visible) return null;
+    activePanelId = id;
     normalizeZ(id);
+    options.onActivePanelChange?.(id);
     return states.get(id);
   }
 
@@ -147,9 +169,18 @@ export function createPanelManager(options = {}) {
     event.preventDefault?.();
     const dx = Number(event.clientX) - interaction.startX;
     const dy = Number(event.clientY) - interaction.startY;
-    const geometry = interaction.kind === 'resize'
+    let geometry = interaction.kind === 'resize'
       ? resizePanelGeometry(interaction.startGeometry, interaction.handle, dx, dy, interaction.viewport, interaction.bounds)
       : movePanelGeometry(interaction.startGeometry, dx, dy, interaction.viewport, interaction.bounds);
+    if (interaction.kind === 'move') {
+      const snapped = snapPanelGeometry(geometry, interaction.viewport, interaction.peers, {
+        ...snapOptions,
+        bounds: interaction.bounds,
+        disabled: Boolean(event.altKey),
+      });
+      geometry = snapped.geometry;
+      setSnapPreview(snapped.preview);
+    }
     scheduleInteractionGeometry(geometry);
   }
 
@@ -170,6 +201,7 @@ export function createPanelManager(options = {}) {
     flushInteractionFrame();
     interaction = null;
     pendingGeometry = null;
+    setSnapPreview(null);
     removeInteractionListeners(current);
     if (event?.type !== 'lostpointercapture' && current.target.hasPointerCapture?.(current.pointerId)) {
       current.target.releasePointerCapture?.(current.pointerId);
@@ -184,8 +216,8 @@ export function createPanelManager(options = {}) {
   function beginInteraction(event, id, kind, handle = '') {
     const state = states.get(id);
     const descriptor = descriptorForState(state || {});
-    const movable = kind === 'move' && state?.mode !== 'focus';
-    const resizable = kind === 'resize' && state?.mode === 'floating';
+    const movable = kind === 'move' && state?.mode !== 'focus' && !state?.dock;
+    const resizable = kind === 'resize' && state?.mode === 'floating' && !state?.dock;
     if (!active || !state?.visible || state.locked || !descriptor || (!movable && !resizable)) return false;
     cancelInteraction();
     bringToFront(id);
@@ -202,6 +234,7 @@ export function createPanelManager(options = {}) {
       startGeometry: current,
       viewport: viewport(),
       bounds: descriptor.bounds,
+      peers: [...states.values()].filter((candidate) => candidate.id !== id && candidate.visible),
     };
     target.addEventListener('pointermove', moveInteraction);
     target.addEventListener('pointerup', finishInteraction);
@@ -215,21 +248,38 @@ export function createPanelManager(options = {}) {
     let state = states.get(id);
     const descriptor = descriptorForState(state || {});
     if (!state?.visible || !descriptor) return null;
-    if (state.mode === 'focus') state = restoreFocusedPanel(state, viewport(), descriptor.bounds);
+    if (state.mode === 'focus') {
+      toggleFocus(id);
+      state = states.get(id);
+    }
     if (state.mode === 'compact') {
       const restore = compactRestore.get(id) || descriptor.defaultGeometry;
       compactRestore.delete(id);
+      if (restore.dock) {
+        const docked = dockPanelGeometry(restore.dock, viewport(), descriptor.bounds, restore);
+        return setState(id, { ...state, ...docked.geometry, mode: docked.mode, dock: docked.dock, restoreGeometry: restore.restoreGeometry });
+      }
       return setState(id, { ...state, ...clampPanelGeometry(restore, viewport(), descriptor.bounds, descriptor.defaultGeometry), mode: 'floating' });
     }
     compactRestore.set(id, restoreGeometry(state));
-    return setState(id, { ...state, ...compactPanelGeometry(state, viewport(), descriptor.bounds), mode: 'compact' });
+    return setState(id, { ...state, ...compactPanelGeometry(state, viewport(), descriptor.bounds), mode: 'compact', dock: null });
   }
 
   function toggleFocus(id) {
     const state = states.get(id);
     const descriptor = descriptorForState(state || {});
     if (!state?.visible || !descriptor) return null;
-    if (state.mode === 'focus') return setState(id, restoreFocusedPanel(state, viewport(), descriptor.bounds));
+    if (state.mode === 'focus') {
+      const saved = focusRestore.get(id);
+      focusRestore.delete(id);
+      if (!saved) return setState(id, restoreFocusedPanel(state, viewport(), descriptor.bounds));
+      if (saved.dock) {
+        const docked = dockPanelGeometry(saved.dock, viewport(), descriptor.bounds, saved);
+        return setState(id, { ...state, ...docked.geometry, mode: docked.mode, dock: docked.dock, restoreGeometry: saved.restoreGeometry });
+      }
+      return setState(id, { ...state, ...recoverPanelState(saved, viewport(), descriptor.bounds), restoreGeometry: saved.restoreGeometry });
+    }
+    focusRestore.set(id, state);
     return setState(id, {
       ...state,
       ...focusPanelGeometry(viewport()),
@@ -247,6 +297,10 @@ export function createPanelManager(options = {}) {
     safeHook(runtime, 'destroy');
     runtime?.view?.destroy();
     runtimes.delete(id);
+    if (activePanelId === id) {
+      activePanelId = '';
+      options.onActivePanelChange?.('');
+    }
     const closed = setState(id, { ...state, visible: false });
     normalizeZ();
     return closed;
@@ -256,6 +310,7 @@ export function createPanelManager(options = {}) {
     const descriptor = registry.get(panelType);
     if (!descriptor) return null;
     const previous = states.get(descriptor.id);
+    if (previous?.visible) return bringToFront(descriptor.id);
     const base = previous || {
       id: descriptor.id,
       panelType: descriptor.panelType,
@@ -267,12 +322,97 @@ export function createPanelManager(options = {}) {
       locked: false,
       visible: true,
       restoreGeometry: null,
+      dock: null,
     };
-    const geometry = recoverPanelState({ ...base, visible: true }, viewport(), descriptor.bounds);
+    const docked = base.dock ? dockPanelGeometry(base.dock, viewport(), descriptor.bounds, base) : null;
+    const geometry = docked
+      ? { ...base, ...docked.geometry, mode: docked.mode, dock: docked.dock, visible: true }
+      : recoverPanelState({ ...base, visible: true }, viewport(), descriptor.bounds);
     const state = setState(descriptor.id, geometry);
     mountRuntime(state);
     bringToFront(descriptor.id);
     return states.get(descriptor.id);
+  }
+
+  function dockPanel(id, position) {
+    if (!DOCK_POSITIONS.includes(position)) return null;
+    let state = states.get(id);
+    const descriptor = descriptorForState(state || {});
+    if (!state?.visible || !descriptor || state.locked) return null;
+    if (state.mode === 'focus') {
+      toggleFocus(id);
+      state = states.get(id);
+    }
+    if (state.mode === 'compact') {
+      toggleCompact(id);
+      state = states.get(id);
+    }
+    if (!state.dock) dockRestore.set(id, restoreGeometry(state));
+    const result = dockPanelGeometry(position, viewport(), descriptor.bounds, state);
+    if (!result.dock) return setState(id, { ...state, ...result.geometry, mode: result.mode, dock: null });
+    return setState(id, {
+      ...state,
+      ...result.geometry,
+      mode: result.mode,
+      dock: result.dock,
+      restoreGeometry: dockRestore.get(id) || restoreGeometry(state),
+    });
+  }
+
+  function undockPanel(id) {
+    let state = states.get(id);
+    const descriptor = descriptorForState(state || {});
+    if (!state?.visible || !descriptor || state.locked) return null;
+    if (state.mode === 'focus') {
+      toggleFocus(id);
+      state = states.get(id);
+    }
+    if (!state.dock) return state;
+    const restore = dockRestore.get(id) || state.restoreGeometry || descriptor.defaultGeometry;
+    dockRestore.delete(id);
+    return setState(id, {
+      ...state,
+      ...clampPanelGeometry(restore, viewport(), descriptor.bounds, descriptor.defaultGeometry),
+      mode: 'floating',
+      dock: null,
+      restoreGeometry: null,
+    });
+  }
+
+  function arrangementEntries() {
+    return [...states.values()]
+      .filter((state) => state.visible && !state.locked && !state.pinned && state.mode !== 'focus')
+      .sort((left, right) => left.zIndex - right.zIndex || left.id.localeCompare(right.id))
+      .map((state) => ({ id: state.id, geometry: state, bounds: descriptorForState(state).bounds }));
+  }
+
+  function arrangePanels(kind) {
+    if (kind === 'recover') {
+      recoverViewport();
+      return diagnostics();
+    }
+    const entries = arrangementEntries();
+    const results = kind === 'split' ? splitPanelLayout(entries, viewport())
+      : kind === 'tile' ? tilePanelLayout(entries, viewport())
+        : kind === 'cascade' ? cascadePanelLayout(entries, viewport()) : [];
+    for (const result of results) {
+      const state = states.get(result.id);
+      if (!state) continue;
+      if (result.dock) {
+        if (!state.dock) dockRestore.set(state.id, restoreGeometry(state));
+        setState(state.id, { ...state, ...result.geometry, mode: result.mode, dock: result.dock, restoreGeometry: dockRestore.get(state.id) });
+      } else {
+        dockRestore.delete(state.id);
+        setState(state.id, { ...state, ...result.geometry, mode: result.mode, dock: null, restoreGeometry: null });
+      }
+    }
+    normalizeZ(activePanelId);
+    return diagnostics();
+  }
+
+  function setSnapOptions(nextOptions = {}) {
+    snapOptions = normalizeSnapOptions({ ...snapOptions, ...nextOptions });
+    return snapOptions;
   }
 
   function handleAction(id, action) {
@@ -293,7 +433,10 @@ export function createPanelManager(options = {}) {
     for (const state of states.values()) {
       const descriptor = descriptorForState(state);
       if (!descriptor || !state.visible) continue;
-      setState(state.id, recoverPanelState(state, viewport(), descriptor.bounds));
+      if (state.dock && state.mode !== 'focus') {
+        const docked = dockPanelGeometry(state.dock, viewport(), descriptor.bounds, state);
+        setState(state.id, { ...state, ...docked.geometry, mode: docked.mode, dock: docked.dock });
+      } else setState(state.id, recoverPanelState(state, viewport(), descriptor.bounds));
     }
     normalizeZ();
   }
@@ -322,6 +465,9 @@ export function createPanelManager(options = {}) {
       activations,
       deactivations,
       interaction: interaction ? Object.freeze({ id: interaction.id, kind: interaction.kind, handle: interaction.handle }) : null,
+      activePanelId,
+      snapOptions,
+      snapPreview,
       panels: Object.freeze([...states.values()].map(panelStateSnapshot)),
       content: Object.freeze(Object.fromEntries([...runtimes].map(([id, runtime]) => [id, runtime.content.diagnostics?.() || null]))),
     });
@@ -337,6 +483,10 @@ export function createPanelManager(options = {}) {
     }
     states.clear();
     compactRestore.clear();
+    dockRestore.clear();
+    focusRestore.clear();
+    activePanelId = '';
+    setSnapPreview(null);
     destroyed = true;
   }
 
@@ -350,11 +500,12 @@ export function createPanelManager(options = {}) {
       zIndex: states.size + 1,
       pinned: false,
       locked: false,
-      visible: true,
+      visible: descriptor.defaultVisible !== false,
       restoreGeometry: null,
+      dock: null,
     });
     states.set(initial.id, initial);
-    mountRuntime(initial);
+    if (initial.visible) mountRuntime(initial);
   }
   normalizeZ();
 
@@ -366,6 +517,10 @@ export function createPanelManager(options = {}) {
     bringToFront,
     toggleCompact,
     toggleFocus,
+    dockPanel,
+    undockPanel,
+    arrangePanels,
+    setSnapOptions,
     handleAction,
     recoverViewport,
     cancelInteraction,

@@ -1,4 +1,5 @@
 export const PANEL_MODES = Object.freeze(['compact', 'floating', 'focus']);
+export const PANEL_DOCKS = Object.freeze(['left', 'right', 'top', 'bottom']);
 export const PANEL_Z_MIN = 1;
 export const PANEL_Z_MAX = 24;
 
@@ -152,6 +153,7 @@ export function panelStateSnapshot(state) {
   const restoreGeometry = state.restoreGeometry
     ? Object.freeze({
         mode: PANEL_MODES.includes(state.restoreGeometry.mode) && state.restoreGeometry.mode !== 'focus' ? state.restoreGeometry.mode : 'floating',
+        dock: PANEL_DOCKS.includes(state.restoreGeometry.dock) ? state.restoreGeometry.dock : null,
         x: finite(state.restoreGeometry.x, 0),
         y: finite(state.restoreGeometry.y, 0),
         width: Math.max(1, finite(state.restoreGeometry.width, 1)),
@@ -171,6 +173,7 @@ export function panelStateSnapshot(state) {
     pinned: Boolean(state.pinned),
     locked: Boolean(state.locked),
     visible: Boolean(state.visible),
+    dock: PANEL_DOCKS.includes(state.dock) ? state.dock : null,
     restoreGeometry,
   });
 }

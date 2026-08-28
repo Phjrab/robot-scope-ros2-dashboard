@@ -1,6 +1,7 @@
 import { createCockpitSceneHost } from './scene_host.js';
 import { createPanelManager } from './panel_manager.js';
 import { createPanelRegistry } from './panel_registry.js';
+import { createSensorLauncher } from './sensor_launcher.js';
 
 export function projectCockpitPointcloud(options = {}) {
   const cloud = options.cloud?.offline_snapshot ? null : options.cloud;
@@ -28,19 +29,58 @@ export function createCockpitWorkspace(options = {}) {
   let active = false;
   let destroyed = false;
   const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document }) : null;
-  const panelManager = panelRegistry ? createPanelManager({
+  let panelManager = null;
+  let sensorLauncher = null;
+
+  function syncLauncher() {
+    const snapshot = panelManager?.diagnostics();
+    sensorLauncher?.update(snapshot?.panels || [], snapshot?.activePanelId || '');
+  }
+
+  function renderSnapPreview(preview) {
+    const element = options.snapPreviewElement;
+    if (!element) return;
+    element.hidden = !preview;
+    if (!preview) return;
+    const geometry = preview.geometry;
+    element.dataset.snapKind = preview.kind;
+    element.style.width = `${geometry.width}px`;
+    element.style.height = `${geometry.height}px`;
+    element.style.transform = `translate3d(${geometry.x}px, ${geometry.y}px, 0)`;
+  }
+
+  panelManager = panelRegistry ? createPanelManager({
     host: options.panelLayer,
     registry: panelRegistry,
     document: options.document,
     onError: options.onError,
+    onStateChange: syncLauncher,
+    onActivePanelChange: syncLauncher,
+    onSnapPreview: renderSnapPreview,
   }) : null;
 
-  function handlePanelOpen(event) {
-    const button = event.target.closest('[data-open-placeholder-panel]');
-    if (!button || !root.contains(button)) return;
-    panelManager?.openPanel(button.dataset.openPlaceholderPanel);
+  function handleLayoutAction(action) {
+    const activeId = panelManager?.diagnostics().activePanelId;
+    if (action.startsWith('dock-') && activeId) panelManager.dockPanel(activeId, action.slice(5));
+    else if (action === 'undock' && activeId) panelManager.undockPanel(activeId);
+    else if (['split', 'tile', 'cascade', 'recover'].includes(action)) panelManager?.arrangePanels(action);
+    syncLauncher();
   }
-  root.addEventListener('click', handlePanelOpen);
+
+  if (panelRegistry && options.launcherRoot) {
+    sensorLauncher = createSensorLauncher({
+      root: options.launcherRoot,
+      registry: panelRegistry,
+      document: options.document,
+      onOpen(panelType) {
+        panelManager?.openPanel(panelType);
+        syncLauncher();
+      },
+      onLayoutAction: handleLayoutAction,
+      onSnapOptions: (nextOptions) => panelManager?.setSnapOptions(nextOptions),
+    });
+    syncLauncher();
+  }
 
   function setFreshness(freshness, note = '') {
     const state = ['LIVE', 'STALE'].includes(freshness) ? freshness : 'WAITING';
@@ -110,13 +150,19 @@ export function createCockpitWorkspace(options = {}) {
   }
 
   function diagnostics() {
-    return Object.freeze({ active, destroyed, scene: sceneHost.diagnostics(), panels: panelManager?.diagnostics() || null });
+    return Object.freeze({
+      active,
+      destroyed,
+      scene: sceneHost.diagnostics(),
+      panels: panelManager?.diagnostics() || null,
+      launcher: sensorLauncher?.diagnostics() || null,
+    });
   }
 
   function destroy() {
     if (destroyed) return;
     deactivate();
-    root.removeEventListener('click', handlePanelOpen);
+    sensorLauncher?.destroy();
     panelManager?.destroy();
     sceneHost.destroy();
     destroyed = true;
@@ -150,6 +196,8 @@ export function initializeCockpitWorkspace(options = {}) {
     statusNote: documentValue.querySelector('#cockpitPointcloudNote'),
     modelElement: documentValue.querySelector('#cockpitModelState'),
     panelLayer: documentValue.querySelector('#cockpitPanelLayer'),
+    snapPreviewElement: documentValue.querySelector('#cockpitSnapPreview'),
+    launcherRoot: documentValue.querySelector('#cockpitSensorLauncher'),
     document: documentValue,
     controls: {
       reset: documentValue.querySelector('#cockpitSceneReset'),

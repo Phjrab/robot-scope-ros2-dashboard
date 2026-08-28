@@ -36,6 +36,27 @@ rAF-coalesced interaction과 content lifecycle을 소유한다.
 placeholder를 다시 여는 작은 임시 control만 제공하며, 실제 Sensor Launcher,
 Snap, Dock, localStorage와 sensor/control 연결은 CWP-03 이후 범위로 남겼다.
 
+### CWP-03 구현 기록
+
+CWP-03에서 registry가 제공하는 fixed descriptor만 읽는 keyboard-accessible Sensor
+Launcher를 추가했다. 현재 descriptor는 Camera, Map, Controller singleton 세 개이며
+icon, label, default/minimum size를 표시한다. 모두 초기에는 닫혀 있고 launcher의
+Enter/Space 또는 pointer 선택으로 열리며, 이미 열린 singleton은 새 DOM이나 content
+runtime을 만들지 않고 bounded z-order의 앞으로만 이동한다. 실제 camera, map,
+controller data/API/command는 연결하지 않았다.
+
+DOM 없는 `snap_layout.js`가 viewport/panel edge snap, 8~32px configurable grid,
+Alt 임시 우회, 좌·우·상·하 dock, 50:50 split, 2×2 tile, cascade와 compact fallback
+계산을 담당한다. PanelManager는 drag rAF 안에서 계산 결과와 한 개의 preview만
+투영하고 pointer 종료 시 preview를 정리한다. Dock은 `floating`의 `dock` 속성이며
+undock용 floating geometry를 보존한다. 우선순위는 focus geometry, dock geometry,
+일반 floating geometry 순서이고 focus 해제 후 기존 dock, undock 후 기존 floating
+geometry가 복원된다. locked/pinned/focus panel은 자동 정렬 대상에서 제외된다.
+
+Launcher와 layout controls는 panel stacking context보다 높은 고정 계층에 남는다.
+Layout persistence, 실제 sensor transport, map/localization state, control lease와
+control command는 계속 후속 CWP 범위다.
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,

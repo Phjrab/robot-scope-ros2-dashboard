@@ -1,29 +1,41 @@
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
-    id: 'placeholder-telemetry',
-    panelType: 'placeholder.telemetry',
-    title: 'Telemetry Placeholder',
-    eyebrow: 'CWP-02 · PLACEHOLDER',
-    description: '향후 로봇 상태 panel이 사용할 범용 content lifecycle 자리입니다.',
-    defaultGeometry: Object.freeze({ x: 28, y: 96, width: 330, height: 220 }),
-    bounds: Object.freeze({ minWidth: 250, minHeight: 150, maxWidth: 620, maxHeight: 520, compactWidth: 290, compactHeight: 58 }),
+    id: 'placeholder-camera',
+    panelType: 'placeholder.camera',
+    title: 'Camera Placeholder',
+    label: 'Camera',
+    icon: '◉',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'CWP-03 · PLACEHOLDER',
+    description: '실제 camera stream을 연결하지 않은 CWP-03 배치 검증용 panel입니다.',
+    defaultGeometry: Object.freeze({ x: 28, y: 96, width: 360, height: 240 }),
+    bounds: Object.freeze({ minWidth: 280, minHeight: 170, maxWidth: 760, maxHeight: 600, compactWidth: 290, compactHeight: 58 }),
   }),
   Object.freeze({
-    id: 'placeholder-spatial',
-    panelType: 'placeholder.spatial',
-    title: 'Spatial Placeholder',
-    eyebrow: 'CWP-02 · PLACEHOLDER',
-    description: '향후 map과 localization content가 들어갈 데이터 비연결 panel입니다.',
-    defaultGeometry: Object.freeze({ x: 390, y: 150, width: 360, height: 250 }),
-    bounds: Object.freeze({ minWidth: 280, minHeight: 170, maxWidth: 760, maxHeight: 600, compactWidth: 300, compactHeight: 58 }),
+    id: 'placeholder-map',
+    panelType: 'placeholder.map',
+    title: 'Map Placeholder',
+    label: 'Map',
+    icon: '⌖',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'CWP-03 · PLACEHOLDER',
+    description: '실제 map 또는 localization data를 읽지 않는 배치 검증용 panel입니다.',
+    defaultGeometry: Object.freeze({ x: 420, y: 138, width: 380, height: 280 }),
+    bounds: Object.freeze({ minWidth: 300, minHeight: 190, maxWidth: 820, maxHeight: 640, compactWidth: 300, compactHeight: 58 }),
   }),
   Object.freeze({
-    id: 'placeholder-mission',
-    panelType: 'placeholder.mission',
-    title: 'Mission Placeholder',
-    eyebrow: 'CWP-02 · PLACEHOLDER',
-    description: '명령을 전송하지 않는 mission panel chrome과 lifecycle 검증용입니다.',
-    defaultGeometry: Object.freeze({ x: 720, y: 76, width: 320, height: 210 }),
+    id: 'placeholder-controller',
+    panelType: 'placeholder.controller',
+    title: 'Controller Placeholder',
+    label: 'Controller',
+    icon: '⌁',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'CWP-03 · PLACEHOLDER',
+    description: 'control lease나 command를 만들지 않는 controller UI 자리입니다.',
+    defaultGeometry: Object.freeze({ x: 760, y: 76, width: 320, height: 210 }),
     bounds: Object.freeze({ minWidth: 250, minHeight: 150, maxWidth: 620, maxHeight: 520, compactWidth: 280, compactHeight: 58 }),
   }),
 ]);
@@ -92,6 +104,8 @@ export function createPanelRegistry(options = {}) {
       throw new TypeError('Panel registry identifiers must be fixed bounded tokens.');
     }
     if (entries.has(descriptor.panelType)) throw new TypeError('Panel type must be unique.');
+    if ([...entries.values()].some((entry) => entry.id === descriptor.id)) throw new TypeError('Panel id must be unique.');
+    if (descriptor.singleton !== true) throw new TypeError('CWP-03 panel descriptors must be singleton.');
     entries.set(descriptor.panelType, descriptor);
   }
 
