@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from ..saved_maps import SavedMapCatalog
     from .lifecycle_coordinator import LifecycleCoordinator
     from .mapping_coordinator import MappingCoordinator
+    from .mission_coordinator import MissionCoordinator
     from .navigation_coordinator import NavigationCoordinator
 
 
@@ -33,6 +34,7 @@ class ApplicationRuntime:
     dataset_capture: DatasetCaptureManager | None = None
     mapping: MappingCoordinator | None = None
     navigation: NavigationCoordinator | None = None
+    mission: MissionCoordinator | None = None
     lifecycle: LifecycleCoordinator | None = None
     operator_events: OperatorEventTimeline | None = None
     diagnostics: DiagnosticsBundleService | None = None

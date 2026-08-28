@@ -17,6 +17,7 @@ function input() {
     command: { deadman: false, linear_x: 0, linear_y: 0, angular_z: 0 }, localLeaseId: '',
     mapMeta: { id: MAP_ID, revision: REVISION }, map: { id: MAP_ID, revision: REVISION }, parameters: { revision: 'c'.repeat(64) },
     controller: { connected: true, inputFreshness: 'FRESH' },
+    mission: { busy: false, active: null },
   };
 }
 
@@ -54,6 +55,21 @@ test('takeover cancels, stops, verifies lease release, and never invokes ARM', a
   assert.equal(adapter.snapshot().takeover.state, 'READY_TO_ARM');
   assert.equal(adapter.snapshot().takeover.readyToArm, true);
   assert.equal(Object.hasOwn(adapter, 'arm'), false);
+  adapter.destroy();
+});
+
+test('takeover aborts server mission ownership before goal and Nav cleanup', async () => {
+  const state = input(); state.navigation.pipeline.state = 'running'; state.navigation.goal = { state: 'active', goal_id: 'd'.repeat(32) }; state.navigation.safety.can_stop = true;
+  state.control.lease = { active: true, source: 'navigation' }; state.mission.active = { id: 'e'.repeat(32), ownership_active: true };
+  const calls = [];
+  const { adapter } = harness(state, {
+    async abortMission() { calls.push('abortMission'); state.mission.active = null; return { mission: { ownership_active: false } }; },
+    async cancel() { calls.push('cancel'); state.navigation.goal = { state: 'canceled' }; return {}; },
+    async stop() { calls.push('stop'); state.navigation.pipeline.state = 'idle'; state.control.lease.active = false; return {}; },
+  });
+  await adapter.requestTakeover();
+  assert.deepEqual(calls, ['abortMission', 'cancel', 'stop']);
+  assert.equal(adapter.snapshot().takeover.state, 'READY_TO_ARM');
   adapter.destroy();
 });
 

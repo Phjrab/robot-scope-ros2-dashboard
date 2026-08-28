@@ -7,6 +7,8 @@ const MAP_REVISION = 'a'.repeat(64);
 const PARAMETER_REVISION = 'b'.repeat(64);
 const ANNOTATION_REVISION = 'c'.repeat(64);
 const ANNOTATION_ID = 'd'.repeat(24);
+const SECOND_ANNOTATION_ID = 'e'.repeat(24);
+const MISSION_ID = '9'.repeat(32);
 
 const tunedNavigationValues = { ...navigationContract.TUNED_VALUES };
 
@@ -70,6 +72,7 @@ export async function installDashboardBackend(page, options = {}) {
       points: [{ id: ANNOTATION_ID, type: 'HOME', name: 'E2E Home', pose: { x: 0.5, y: 0.5, yaw: 0 } }],
       polygons: [],
     },
+    missions: [], activeMissionId: null,
     requests: [], wsConnections: { camera: 0, pointcloud: 0, joints: 0, pose: 0, control: 0 },
     wsCloses: { camera: 0, pointcloud: 0 },
     cameraConnectionsBySource: { go2_front: 0, realsense_color: 0 },
@@ -85,8 +88,16 @@ export async function installDashboardBackend(page, options = {}) {
     parameterRevision: PARAMETER_REVISION,
     annotationRevision: ANNOTATION_REVISION,
     annotationId: ANNOTATION_ID,
+    secondAnnotationId: SECOND_ANNOTATION_ID,
     on(path, handler) { handlers.set(path, handler); },
     mutations(path) { return state.requests.filter((entry) => entry.path === path); },
+    completeMissionWaypoint() {
+      const mission = state.missions.find((item) => item.id === state.activeMissionId); if (!mission) return;
+      mission.waypoints[mission.current_index].status = 'completed'; mission.completed_count += 1; mission.current_index += 1;
+      mission.logs.push({ seq: mission.logs.length + 1, timestamp: '2026-08-28T00:00:00.000Z', event: 'waypoint_completed', waypoint_index: mission.current_index - 1 });
+      if (mission.current_index >= mission.waypoints.length) { mission.state = 'completed'; mission.outcome = 'completed'; mission.ownership_active = false; mission.remaining_count = 0; state.activeMissionId = null; state.navigation.goal = { state: 'succeeded', goal_id: null }; }
+      else { mission.remaining_count -= 1; mission.current_waypoint = mission.waypoints[mission.current_index]; mission.waypoints[mission.current_index].status = 'running'; state.navigation.goal = { state: 'active', goal_id: String(mission.current_index + 3).repeat(32).slice(0, 32) }; }
+    },
   };
 
   await page.routeWebSocket('**/api/v1/ws/**', async (socket) => {
@@ -229,6 +240,24 @@ export async function installDashboardBackend(page, options = {}) {
       presets: [{ id: 'e2e', label: 'E2E', description: 'fake', values: tunedNavigationValues }], requires_restart: true,
     });
     if (path === '/api/v1/navigation/logs') return json(route, { stream_id: 'e'.repeat(32), job: null, entries: [], cursor: 0, latest_cursor: 0, truncated: false, has_more: false, limits: { max_entries: 100, max_message_chars: 320 } });
+    if (path === '/api/v1/missions' && method === 'GET') return json(route, { available: true, active_mission_id: state.activeMissionId, missions: state.missions, limits: { max_missions: 32, max_waypoints: 32, max_log_entries: 200 } });
+    if (path === '/api/v1/missions' && method === 'POST') {
+      const mission = { id: MISSION_ID, label: body?.label || 'Route', state: 'ready', outcome: null, error: null, map_id: body?.map_id, map_revision: body?.map_revision, annotation_revision: body?.annotation_revision, current_index: 0, completed_count: 0, remaining_count: body?.waypoints?.length || 0, elapsed_seconds: 0, hold_remaining: 0, ownership_active: false, waypoints: (body?.waypoints || []).map((item) => ({ ...item, status: 'pending', goal_id: null, attempts: 0 })), logs: [{ seq: 1, timestamp: '2026-08-28T00:00:00.000Z', event: 'mission_created', waypoint_index: null }] };
+      state.missions = [mission]; return json(route, { mission }, 201);
+    }
+    const missionAction = path.match(/^\/api\/v1\/missions\/([0-9a-f]{32})\/(start|pause|resume|skip|retry|abort)$/);
+    if (missionAction) {
+      const mission = state.missions.find((item) => item.id === missionAction[1]); const action = missionAction[2];
+      if (!mission) return json(route, { detail: 'mission was not found' }, 404);
+      if (action === 'start' || action === 'resume' || action === 'retry') { mission.state = 'running'; mission.ownership_active = true; state.activeMissionId = mission.id; const waypoint = mission.waypoints[mission.current_index]; waypoint.status = 'running'; waypoint.attempts += 1; waypoint.goal_id = '7'.repeat(32); state.navigation.goal = { state: 'active', goal_id: waypoint.goal_id }; }
+      if (action === 'pause') { mission.state = 'paused'; mission.ownership_active = true; state.navigation.goal = { state: 'canceled', goal_id: null }; }
+      if (action === 'skip') { mission.waypoints[mission.current_index].status = 'skipped'; mission.current_index += 1; mission.remaining_count = Math.max(0, mission.remaining_count - 1); if (mission.current_index >= mission.waypoints.length) { mission.state = 'completed'; mission.ownership_active = false; state.activeMissionId = null; } }
+      if (action === 'abort') { mission.state = 'failed'; mission.outcome = 'aborted'; mission.ownership_active = false; state.activeMissionId = null; state.navigation.goal = { state: 'canceled', goal_id: null }; }
+      mission.logs.push({ seq: mission.logs.length + 1, timestamp: '2026-08-28T00:00:00.000Z', event: `mission_${action}`, waypoint_index: mission.current_index });
+      return json(route, { mission }, action === 'start' ? 202 : 200);
+    }
+    const missionDetail = path.match(/^\/api\/v1\/missions\/([0-9a-f]{32})$/);
+    if (missionDetail) { const mission = state.missions.find((item) => item.id === missionDetail[1]); return mission ? json(route, { available: true, mission }) : json(route, { detail: 'mission was not found' }, 404); }
     if (path === '/api/v1/navigation') return json(route, state.navigation);
     if (path === '/api/v1/navigation/start') {
       state.control.lease = { active: true, bound: true, source: 'navigation' };

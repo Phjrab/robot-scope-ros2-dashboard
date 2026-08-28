@@ -53,19 +53,21 @@ export function createCockpitNavigationAdapter(options = {}) {
     const mapExact = Boolean(current.mapMeta?.id && current.map?.id === current.mapMeta.id && current.map?.revision === current.mapMeta.revision);
     const parametersReady = Boolean(String(current.parameters?.revision || ''));
     const controller = current.controller || {};
+    const mission = current.mission?.active || null;
+    const missionActive = mission?.ownership_active === true;
     const canStart = current.navigationAvailable === true && navigation.available === true && navigation.robot_online === true &&
       navigation.safety?.can_start === true && !navActive && !manualActive && zeroManualCommand(current.command || control?.command) && mapExact && parametersReady;
-    const takeoverReady = takeoverState === 'READY_TO_ARM' && !navActive && navigationLeaseReleased(control);
+    const takeoverReady = takeoverState === 'READY_TO_ARM' && !navActive && !missionActive && navigationLeaseReleased(control);
     return Object.freeze({
       navigation, control, mapMeta: current.mapMeta || null, map: current.map || null,
       mapCells: current.mapCells || null,
       maps: Object.freeze((Array.isArray(current.maps) ? current.maps : []).slice(0, 64)), parameters: current.parameters || null,
-      annotations: current.annotations || null, logs: current.logs || null, controller,
-      navigationAvailable: current.navigationAvailable === true, operationBusy: Boolean(current.operationBusy || actionBusy),
+      annotations: current.annotations || null, logs: current.logs || null, controller, mission,
+      navigationAvailable: current.navigationAvailable === true, operationBusy: Boolean(current.operationBusy || current.mission?.busy || actionBusy),
       manualActive, commandZero: zeroManualCommand(current.command || control?.command), navigationActive: navActive,
       canStart, canStop: navigation.safety?.can_stop === true || navActive, canCancel: goalActive(navigation),
       canClear: String(navigation.pipeline?.state || '').toLowerCase() === 'running',
-      takeover: Object.freeze({ state: takeoverState, error: takeoverError, readyToArm: takeoverReady, generation: takeoverGeneration,
+      takeover: Object.freeze({ state: takeoverState, error: takeoverError, readyToArm: takeoverReady, generation: takeoverGeneration, missionActive,
         bridgeReady: control?.bridge?.available === true || control?.bridge?.ready === true,
         controllerFresh: controller.connected === true && controller.inputFreshness === 'FRESH' }),
     });
@@ -98,7 +100,7 @@ export function createCockpitNavigationAdapter(options = {}) {
   function reconcileTakeover() {
     if (takeoverState !== 'VERIFYING') return publish();
     const current = input();
-    if (!navigationActive(current.navigation) && navigationLeaseReleased(current.control)) {
+    if (!navigationActive(current.navigation) && current.mission?.active?.ownership_active !== true && navigationLeaseReleased(current.control)) {
       setTakeover('READY_TO_ARM');
     } else if (now() - takeoverStartedAt >= timeoutMs) {
       setTakeover('FAILED', 'Navigation stop 또는 lease 해제를 확인하지 못했습니다. cleanup을 다시 시도하세요.');
@@ -113,6 +115,11 @@ export function createCockpitNavigationAdapter(options = {}) {
     let cleanupWarning = '';
     setTakeover('CANCELING');
     try {
+      if (input().mission?.active?.ownership_active === true) {
+        const aborted = await actions.abortMission?.();
+        if (generation !== takeoverGeneration || destroyed) return state;
+        if (!aborted || aborted.mission?.ownership_active === true) throw new Error('Mission abort was not confirmed.');
+      }
       if (goalActive(input().navigation)) {
         const cancelled = await actions.cancel?.();
         if (generation !== takeoverGeneration || destroyed) return state;

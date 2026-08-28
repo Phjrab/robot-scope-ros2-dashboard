@@ -37,6 +37,7 @@ class ApplicationRuntimeOwnershipTests(unittest.TestCase):
         self.assertIsNone(first.agent)
         self.assertIsNone(first.mapping)
         self.assertIsNone(first.navigation)
+        self.assertIsNone(first.mission)
         self.assertIsNone(first.lifecycle)
         self.assertIsNot(first.pipeline_coordination_lock, second.pipeline_coordination_lock)
         self.assertIsNot(first.json_cache, second.json_cache)
@@ -66,6 +67,7 @@ class ApplicationRuntimeOwnershipTests(unittest.TestCase):
 
         self.assertIn("mapping: MappingCoordinator | None", runtime_source)
         self.assertIn("navigation: NavigationCoordinator | None", runtime_source)
+        self.assertIn("mission: MissionCoordinator | None", runtime_source)
         self.assertIn("lifecycle: LifecycleCoordinator | None", runtime_source)
         self.assertNotIn("mapping_task:", runtime_source)
         self.assertNotIn("navigation_start_task:", runtime_source)

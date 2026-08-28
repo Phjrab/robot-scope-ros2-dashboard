@@ -206,6 +206,45 @@ mission queue, script/action/shell hook은 CWP-10 범위에 포함하지 않았�
 | controller disconnect 상태 takeover | NOT_RUN |
 | localization stale 상태 takeover | NOT_RUN |
 
+### CWP-11 구현 기록
+
+CWP-11은 `ApplicationRuntime`에 정확히 하나의 `MissionCoordinator`를 추가했다.
+Mission은 브라우저 배열이나 layout/localStorage가 아니라 mode 0700 전용 디렉터리의
+mode 0600 bounded JSON 문서에 원자적으로 저장된다. 저장 문서가 symlink, 다른 소유자,
+잘못된 permission, 512 KiB 초과 또는 schema 위반이면 Mission 기능만 fail-closed한다.
+서버 재시작 시 `starting/running/pausing/retrying/skipping/canceling` 상태는 goal을 다시
+보내지 않고 `failed · interrupted`로 복구하며, 이미 stationary인 `paused` 상태만
+명시적 resume 가능 상태로 유지한다.
+
+Mission 생성 입력은 exact map ID/revision과 annotation revision, 최대 32개의 기존
+`HOME/POI/DOCK/INSPECTION_POINT` ID로 제한된다. waypoint metadata는 bounded label,
+0–300초 hold, optional 0.05–2.0 m arrival tolerance, operator confirmation boolean뿐이다.
+ROS topic, command, executable, filesystem path, URL, Python 또는 shell 입력 필드는 strict
+request model의 `extra=forbid`에 의해 거절된다. 최대 32개 Mission과 Mission당 200개
+structured/redacted log만 보관한다.
+
+MissionCoordinator는 목표를 직접 publish하지 않고 기존 `NavigationCoordinator`의
+revision-pinned `send_annotation_goal()`과 `cancel_goal()`만 사용한다. current goal의
+terminal success를 확인하기 전 다음 goal을 보내지 않으며 duplicate START는 같은
+server state를 반환한다. Pause는 goal cancel terminal 확인 후에만 `paused`, Skip/Retry는
+operator API 요청이 있을 때만 실행되고 Abort는 항상 현재 goal cleanup을 우선한다.
+Mission이 ownership을 가진 동안 기존 단일 goal/annotation goal/initial pose/cancel API는
+409로 차단되며 Navigation STOP은 Mission abort를 먼저 완료한다.
+
+Cockpit의 fixed singleton `mission.main` Panel은 shared same-origin API client의 bounded
+projection만 표시한다. Panel을 닫으면 polling과 subscription이 해제되고, 다시 열거나
+browser를 reload하면 GET `/api/v1/missions`에서 current waypoint와 서버 상태를 복구한다.
+Manual Takeover는 Mission abort 확인을 Navigation cancel/stop/lease-release보다 먼저
+수행한다. Mission 완료·실패·takeover 어느 경로도 manual ARM을 자동 실행하지 않는다.
+
+| 실기 항목 | 결과 |
+| --- | --- |
+| 실제 annotation 다중 waypoint 주행 | NOT_RUN |
+| waypoint 도착 판정과 hold 시간 | NOT_RUN |
+| 센서 stale/Nav child failure 중 정지 | NOT_RUN |
+| pause 후 stationary 확인 | NOT_RUN |
+| Mission takeover 후 별도 re-ARM | NOT_RUN |
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,
@@ -733,14 +772,15 @@ access control은 Cockpit layout 기능으로 해결하지 않는다.
 | `static/features/cockpit/panels/map_panel.js` | revision-pinned read-only map/localization projection |
 | `static/features/cockpit/panels/navigation_panel.js` | 기존 navigation API UI adapter와 cleanup 표시 |
 | `static/features/cockpit/navigation_adapter.js` | panel DOM보다 긴 수명의 navigation action/takeover transaction adapter |
+| `static/features/cockpit/mission_client.js` | server Mission polling/mutation generation과 bounded browser projection |
 | `static/features/cockpit/panels/mission_panel.js` | backend mission state의 bounded UI adapter |
 
-### Mission backend — CWP-11에서만
+### Mission backend — CWP-11 구현
 
-`application/mission_coordinator.py`, strict request model/mission router와 bounded
-mission persistence module이 필요할 가능성이 높다. 정확한 파일은 CWP-11 당시
-현재 backend 구조를 다시 조사한다. Mission owner는 `ApplicationRuntime`에 정확히
-하나만 조합하며 NavigationCoordinator를 우회하지 않는다.
+`application/mission_coordinator.py`가 bounded persistence와 sequencing transaction을,
+`api/routers/missions.py`와 `api/models.py`가 strict same-origin HTTP contract를 담당한다.
+Mission owner는 `ApplicationRuntime`에 정확히 하나만 조합되며
+NavigationCoordinator를 우회하지 않는다.
 
 ### 변경 가능성이 높은 기존 파일
 

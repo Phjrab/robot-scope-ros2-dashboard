@@ -1,6 +1,7 @@
 import { createCameraPanel } from './panels/camera_panel.js';
 import { createControllerPanel } from './panels/controller_panel.js';
 import { createMapPanel } from './panels/map_panel.js';
+import { createMissionPanel } from './panels/mission_panel.js';
 import { createNavigationPanel } from './panels/navigation_panel.js';
 
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
@@ -59,6 +60,20 @@ const PLACEHOLDER_DESCRIPTORS = Object.freeze([
     description: '기존 Nav2 상태와 명시적 takeover cleanup을 제어합니다.',
     defaultGeometry: Object.freeze({ x: 520, y: 92, width: 520, height: 520 }),
     bounds: Object.freeze({ minWidth: 390, minHeight: 360, maxWidth: 980, maxHeight: 760, compactWidth: 340, compactHeight: 58 }),
+  }),
+  Object.freeze({
+    id: 'mission-main',
+    panelType: 'mission.main',
+    title: 'Mission Route Sequencer',
+    label: 'Mission',
+    icon: '◆',
+    kind: 'mission',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'CWP-11 · REVISION PINNED',
+    description: '서버가 소유하는 bounded annotation waypoint route입니다.',
+    defaultGeometry: Object.freeze({ x: 28, y: 84, width: 560, height: 560 }),
+    bounds: Object.freeze({ minWidth: 410, minHeight: 390, maxWidth: 980, maxHeight: 780, compactWidth: 350, compactHeight: 58 }),
   }),
   Object.freeze({
     id: 'placeholder-controller',
@@ -162,6 +177,15 @@ export function createPanelRegistry(options = {}) {
       }
       if (descriptor.kind === 'navigation') {
         return createNavigationPanel({ descriptor, document: documentValue, adapter: options.navigationAdapter, navigationEngine: options.navigationEngine });
+      }
+      if (descriptor.kind === 'mission') {
+        return createMissionPanel({
+          descriptor,
+          document: documentValue,
+          client: options.missionClient,
+          navigationAdapter: options.navigationAdapter,
+          getContext: options.getMissionContext,
+        });
       }
       return createPlaceholderContent(descriptor, documentValue);
     },

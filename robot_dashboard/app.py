@@ -27,12 +27,14 @@ from .application.mapping_coordinator import (
     MappingCoordinatorError,
     MappingCoordinatorUnavailable,
 )
+from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.runtime import ApplicationRuntime
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.routers.cameras import router as cameras_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
+from .api.routers.missions import router as missions_router
 from .api.routers.system import router as system_router
 from .api.routers.telemetry import router as telemetry_router
 from .api.models import (
@@ -138,6 +140,13 @@ async def lifespan(fastapi: FastAPI):
     try:
         yield
     finally:
+        # Mission state is persisted and active goals are canceled before the
+        # lower-level navigation owner begins its terminal cleanup.
+        if runtime.mission is not None:
+            try:
+                await runtime.mission.close()
+            except Exception:
+                LOGGER.exception("mission coordinator shutdown failed")
         # Fence and settle any background START before lifecycle observers are
         # closed, matching the original shutdown transaction boundary.
         if runtime.navigation is not None:
@@ -251,6 +260,12 @@ def navigation_coordinator() -> NavigationCoordinator:
     return RUNTIME.navigation
 
 
+def mission_coordinator() -> MissionCoordinator:
+    if RUNTIME.mission is None:
+        raise HTTPException(status_code=503, detail="missions are not configured")
+    return RUNTIME.mission
+
+
 def lifecycle_coordinator() -> LifecycleCoordinator:
     if RUNTIME.lifecycle is None:
         raise HTTPException(
@@ -348,6 +363,7 @@ app.include_router(telemetry_router)
 app.include_router(cameras_router)
 app.include_router(discovery_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
+app.include_router(missions_router)
 
 
 def navigation_active() -> bool:
@@ -363,6 +379,12 @@ def navigation_view() -> Dict[str, Any]:
     """Compatibility projection delegated to the navigation coordinator."""
 
     return navigation_coordinator().view()
+
+
+def require_mission_navigation_idle(detail: str) -> None:
+    mission = RUNTIME.mission
+    if mission is not None and mission.blocks_navigation_goal():
+        raise HTTPException(status_code=409, detail=detail)
 
 
 def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
@@ -848,7 +870,11 @@ async def navigation_stop(
     del body
     require_same_origin(request)
     try:
+        if RUNTIME.mission is not None and RUNTIME.mission.blocks_navigation_goal():
+            await RUNTIME.mission.abort_active(reason="navigation_stop")
         return await navigation_coordinator().stop()
+    except MissionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except NavigationJobError as exc:
         raise navigation_error(exc) from exc
 
@@ -859,6 +885,7 @@ async def navigation_initial_pose(
     body: NavigationPoseRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_mission_navigation_idle("active mission must pause or abort before changing initial pose")
     try:
         return await navigation_coordinator().set_initial_pose(
             map_id=body.map_id,
@@ -879,6 +906,7 @@ async def navigation_goal(
     body: NavigationGoalRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_mission_navigation_idle("active mission owns navigation goals")
     try:
         return await navigation_coordinator().send_goal(
             map_id=body.map_id,
@@ -900,6 +928,7 @@ async def navigation_annotation_goal(
     body: NavigationAnnotationGoalRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_mission_navigation_idle("active mission owns navigation goals")
     try:
         return await navigation_coordinator().send_annotation_goal(
             map_id=body.map_id,
@@ -924,6 +953,7 @@ async def navigation_cancel(
     body: NavigationCancelRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_mission_navigation_idle("use mission pause or abort for an active mission goal")
     try:
         return await navigation_coordinator().cancel_goal(goal_id=body.goal_id)
     except ControlError as exc:
@@ -1258,6 +1288,11 @@ def main() -> None:
         coordination_lock=RUNTIME.pipeline_coordination_lock,
         require_lifecycle_idle=require_lifecycle_idle_application,
         logger=LOGGER,
+    )
+    RUNTIME.mission = MissionCoordinator(
+        RUNTIME.navigation,
+        catalog,
+        Path(args.navigation_runtime_dir).expanduser().resolve() / "missions",
     )
     RUNTIME.lifecycle = LifecycleCoordinator.from_environment(
         control_snapshot_provider=RUNTIME.agent.control_snapshot,

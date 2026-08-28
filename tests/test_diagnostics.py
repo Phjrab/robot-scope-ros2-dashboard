@@ -43,6 +43,7 @@ class OperatorEventTimelineTests(unittest.TestCase):
             ("POST", "/api/v1/navigation/goal/annotation"): "annotation_goal_send",
             ("POST", "/api/v1/navigation/cancel"): "goal_cancel",
             ("POST", "/api/v1/navigation/clear-costmaps"): "costmap_clear",
+            ("POST", "/api/v1/missions"): "mission_create",
             ("POST", "/api/v1/datasets/capture/start"): "dataset_start",
             ("POST", "/api/v1/datasets/capture/stop"): "dataset_stop",
             ("POST", "/api/v1/system/service/restart"): "service_restart",
@@ -59,6 +60,10 @@ class OperatorEventTimelineTests(unittest.TestCase):
                 self.assertEqual(classified[1], {})
         self.assertIsNone(classify_http_event("POST", "/api/v1/mission/start"))
         self.assertIsNone(classify_http_event("GET", "/api/v1/navigation"))
+        mission_id = "1" * 32
+        for action in ("start", "pause", "resume", "skip", "retry", "abort"):
+            classified = classify_http_event("POST", f"/api/v1/missions/{mission_id}/{action}")
+            self.assertEqual(classified, (f"mission_{action}", {"mission_id": mission_id}))
         classified = classify_http_event(
             "PATCH", "/api/v1/saved-maps/0123456789abcdef01234567/annotations"
         )

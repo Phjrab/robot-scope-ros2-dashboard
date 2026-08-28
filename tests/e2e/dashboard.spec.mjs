@@ -169,6 +169,50 @@ test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and n
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 });
 
+test('Cockpit runs a server-owned two-waypoint mission and restores it after reload', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  backend.state.annotations.points.push({ id: backend.secondAnnotationId, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } });
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+  await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
+  const navigationPanel = page.locator('[data-panel-id="navigation-main"]');
+  const missionPanel = page.locator('[data-panel-id="mission-main"]');
+  await expect(missionPanel.locator('.cockpit-mission-panel')).toBeVisible();
+  await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+  await navigationPanel.locator('[data-navigation-action="start"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/navigation/start').length).toBe(1);
+  backend.state.navigation.goal = { state: 'idle', goal_id: null };
+  backend.state.navigation.safety.can_send_goal = true;
+
+  await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
+  await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
+  await missionPanel.locator('[data-mission-draft-id]').nth(1).click();
+  await missionPanel.locator('[aria-label="Mission label"]').fill('E2E competition route');
+  await missionPanel.locator('[data-mission-action="create"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/missions').length).toBe(1);
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION READY');
+  await missionPanel.locator('[data-mission-action="start"]').click();
+  await expect.poll(() => backend.mutations(`/api/v1/missions/${'9'.repeat(32)}/start`).length).toBe(1);
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+  expect(backend.state.control.lease.source).toBe('navigation');
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+
+  backend.completeMissionWaypoint();
+  await expect(missionPanel.locator('.cockpit-mission-route')).toContainText('2. E2E Inspect · RUNNING');
+  backend.completeMissionWaypoint();
+  await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
+  await navigationPanel.locator('[data-navigation-action="stop"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/navigation/stop').length).toBe(1);
+
+  await page.reload();
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
+  const restored = page.locator('[data-panel-id="mission-main"]');
+  await expect(restored.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
+  await expect(restored.locator('.cockpit-mission-route')).toContainText('E2E Home · COMPLETED');
+  await expect(restored.locator('.cockpit-mission-route')).toContainText('E2E Inspect · COMPLETED');
+});
+
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);
@@ -270,7 +314,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   const mapButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]');
   const controllerButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]');
-  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(5);
+  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(6);
   await expect(cameraButton).toContainText('360×240 · MIN 280×170');
 
   await toggle.click();

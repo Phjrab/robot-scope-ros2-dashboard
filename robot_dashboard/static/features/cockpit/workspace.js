@@ -10,6 +10,7 @@ import { createSafetyHud } from './safety_hud.js';
 import { createControllerStateStore, createGamepadUiMapper, dispatchGamepadUiAction, projectControllerStatus } from './gamepad_ui.js';
 import { createCockpitMapStore } from './map_state.js';
 import { createCockpitNavigationAdapter } from './navigation_adapter.js';
+import { createMissionClient } from './mission_client.js';
 
 export function cockpitGamepadUiBlocked(documentValue) {
   const activeElement = documentValue?.activeElement;
@@ -45,8 +46,9 @@ export function createCockpitWorkspace(options = {}) {
   const controllerState = createControllerStateStore();
   const gamepadUi = createGamepadUiMapper({ now: options.now });
   const mapState = createCockpitMapStore();
-  const navigationAdapter = createCockpitNavigationAdapter({ getSnapshot: () => ({ ...options.getNavigationSnapshot?.(), controller: controllerState.snapshot(), navigationEngine: options.navigationEngine }), actions: options.navigationActions });
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine }) : null;
+  const missionClient = createMissionClient({ api: options.api || (() => Promise.reject(new Error('Mission API unavailable.'))) });
+  const navigationAdapter = createCockpitNavigationAdapter({ getSnapshot: () => ({ ...options.getNavigationSnapshot?.(), controller: controllerState.snapshot(), navigationEngine: options.navigationEngine, mission: missionClient.snapshot() }), actions: { ...options.navigationActions, abortMission: () => missionClient.abortActive() } });
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine, missionClient, getMissionContext: options.getNavigationSnapshot }) : null;
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
@@ -300,6 +302,7 @@ export function createCockpitWorkspace(options = {}) {
       controller: controllerState.snapshot(),
       map: mapState.diagnostics(),
       navigation: navigationAdapter.diagnostics(),
+      mission: missionClient.diagnostics(),
     });
   }
 
@@ -313,6 +316,7 @@ export function createCockpitWorkspace(options = {}) {
     panelManager?.destroy();
     releaseMapScene();
     navigationAdapter.destroy();
+    missionClient.destroy();
     sceneHost.destroy();
     destroyed = true;
     root.dataset.lifecycle = 'destroyed';

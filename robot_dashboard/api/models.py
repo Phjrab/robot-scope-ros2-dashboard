@@ -158,6 +158,26 @@ class NavigationClearCostmapsRequest(StrictRequest):
     scope: Literal["both"]
 
 
+class MissionWaypointRequest(StrictRequest):
+    annotation_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    arrival_tolerance: float | None = Field(default=None, strict=True, ge=0.05, le=2.0)
+    hold_seconds: float = Field(default=0.0, strict=True, ge=0.0, le=300.0)
+    requires_operator_confirmation: bool = Field(default=False, strict=True)
+    label: str = Field(min_length=1, max_length=64)
+
+
+class MissionCreateRequest(StrictRequest):
+    label: str = Field(min_length=1, max_length=64)
+    map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    annotation_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    waypoints: list[MissionWaypointRequest] = Field(min_length=1, max_length=32)
+
+
+class MissionActionRequest(StrictRequest):
+    pass
+
+
 class ServiceLifecycleRequest(StrictRequest):
     confirmed: bool = Field(strict=True)
 
