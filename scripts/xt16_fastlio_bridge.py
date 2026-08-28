@@ -51,7 +51,6 @@ CONVERTED_CLOUD_MAX_FUTURE_S = 0.05
 RAW_HEADER_SCAN_START_TOLERANCE_S = 0.01
 RAW_CLOUD_QOS_DEPTH = 1
 OUTPUT_QOS_DEPTH = 5
-IMU_PUBLISH_INTERVAL_S = 0.02
 
 RAW_FIELDS = (
     ("x", 0, FLOAT32, 1),
@@ -99,28 +98,6 @@ class ImuSample:
     orientation_xyzw: tuple[float, float, float, float]
     angular_velocity_xyz: tuple[float, float, float]
     linear_acceleration_xyz: tuple[float, float, float]
-
-
-def imu_publish_due(
-    received_monotonic_s: float,
-    last_published_monotonic_s: float | None,
-) -> bool:
-    """Bound IMU publication to 50 Hz without weakening freshness checks."""
-
-    if not math.isfinite(received_monotonic_s) or received_monotonic_s < 0.0:
-        raise BridgeContractError("IMU monotonic clock is outside the supported range")
-    if last_published_monotonic_s is None:
-        return True
-    if (
-        not math.isfinite(last_published_monotonic_s)
-        or last_published_monotonic_s < 0.0
-    ):
-        raise BridgeContractError(
-            "last IMU monotonic clock is outside the supported range"
-        )
-    return received_monotonic_s >= (
-        last_published_monotonic_s + IMU_PUBLISH_INTERVAL_S
-    )
 
 
 class ClockOffsetTracker:
@@ -578,7 +555,6 @@ def run_ros_bridge() -> int:
             self._cloud_count = 0
             self._imu_count = 0
             self._reject_count = 0
-            self._last_imu_publish_monotonic_s: float | None = None
             self._cloud_publisher = self.create_publisher(
                 PointCloud2,
                 OUTPUT_CLOUD_TOPIC,
@@ -653,13 +629,7 @@ def run_ros_bridge() -> int:
             self._cloud_count += 1
 
         def _on_lowstate(self, message: Any) -> None:
-            received_monotonic_s = time.monotonic()
             try:
-                if not imu_publish_due(
-                    received_monotonic_s,
-                    self._last_imu_publish_monotonic_s,
-                ):
-                    return
                 sample = extract_imu_sample(message)
             except BridgeContractError as exc:
                 self._rejected(exc)
@@ -684,7 +654,6 @@ def run_ros_bridge() -> int:
                 output.linear_acceleration.z,
             ) = sample.linear_acceleration_xyz
             self._imu_publisher.publish(output)
-            self._last_imu_publish_monotonic_s = received_monotonic_s
             self._imu_count += 1
 
         def _report(self) -> None:
