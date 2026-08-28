@@ -71,6 +71,9 @@ export async function installDashboardBackend(page, options = {}) {
     },
     requests: [], wsConnections: { camera: 0, pointcloud: 0, joints: 0, pose: 0, control: 0 },
     wsCloses: { camera: 0, pointcloud: 0 },
+    cameraConnectionsBySource: { go2_front: 0, realsense_color: 0 },
+    cameraClosesBySource: { go2_front: 0, realsense_color: 0 },
+    cameraStreaming: { go2_front: true, realsense_color: true },
   };
   const handlers = new Map();
 
@@ -86,18 +89,41 @@ export async function installDashboardBackend(page, options = {}) {
   };
 
   await page.routeWebSocket('**/api/v1/ws/**', async (socket) => {
-    const path = new URL(socket.url()).pathname;
+    const socketUrl = new URL(socket.url());
+    const path = socketUrl.pathname;
     const kind = path.endsWith('/camera') ? 'camera'
       : path.endsWith('/pointcloud') ? 'pointcloud'
         : path.endsWith('/joints') ? 'joints'
           : path.endsWith('/pose') ? 'pose' : 'control';
     state.wsConnections[kind] += 1;
+    const cameraSourceId = kind === 'camera' ? String(socketUrl.searchParams.get('source_id') || '') : '';
+    if (cameraSourceId) state.cameraConnectionsBySource[cameraSourceId] = (state.cameraConnectionsBySource[cameraSourceId] || 0) + 1;
+    let cameraTimer = null;
     socket.onClose(() => {
       if (kind === 'camera' || kind === 'pointcloud') state.wsCloses[kind] += 1;
+      if (cameraSourceId) state.cameraClosesBySource[cameraSourceId] = (state.cameraClosesBySource[cameraSourceId] || 0) + 1;
+      if (cameraTimer) clearInterval(cameraTimer);
     });
     const closeFirstSockets = Array.isArray(options.closeFirstSockets) ? options.closeFirstSockets : [];
     if ((options.closeFirstSocket === kind || closeFirstSockets.includes(kind)) && state.wsConnections[kind] === 1) {
       setTimeout(() => socket.close({ code: 1012, reason: 'fake reconnect' }), 30);
+    } else if (cameraSourceId) {
+      let seq = 0;
+      const sendFrame = () => {
+        if (state.cameraStreaming[cameraSourceId] === false) return;
+        seq += 1;
+        socket.send(JSON.stringify({
+          source_id: cameraSourceId, topic: cameraSourceId === 'go2_front' ? '/camera/image' : '/camera/color/image_raw',
+          format: 'raw', encoding: 'rgb8', width: 4, height: 3, step: 12, fps: 15, transport: 'fake', state: 'ok', seq,
+        }));
+        socket.send(Buffer.from([
+          240, 40, 40, 40, 240, 40, 40, 40, 240, 220, 220, 40,
+          40, 220, 220, 220, 40, 220, 180, 180, 180, 90, 150, 220,
+          220, 90, 150, 150, 220, 90, 90, 150, 220, 240, 240, 240,
+        ]));
+      };
+      sendFrame();
+      cameraTimer = setInterval(sendFrame, 120);
     }
   });
 
@@ -145,7 +171,10 @@ export async function installDashboardBackend(page, options = {}) {
     });
     if (path === '/api/v1/cameras') return json(route, {
       max_active: 2,
-      sources: [{ source_id: 'go2_front', id: 'go2_front', label: 'GO2 FRONT', configured: true, available: true, enabled: true, live: true, state: 'ok', age_s: 0.1, fps: 15, topic: '/camera/image', transport: 'fake' }],
+      sources: options.cameraSources || [
+        { source_id: 'go2_front', id: 'go2_front', label: 'GO2 FRONT', configured: true, available: true, enabled: true, live: true, state: 'ok', age_s: 0.1, fps: 15, width: 4, height: 3, topic: '/camera/image', transport: 'fake' },
+        { source_id: 'realsense_color', id: 'realsense_color', label: 'REALSENSE COLOR', configured: true, available: true, enabled: true, live: true, state: 'ok', age_s: 0.1, fps: 15, width: 4, height: 3, topic: '/camera/color/image_raw', transport: 'fake' },
+      ],
     });
     if (path === '/api/v1/pointcloud/settings') return json(route, { max_points: 10000, all_points: false });
     if (path === '/api/v1/pointcloud.bin' || path === '/api/v1/pointcloud' || path === '/api/v1/map') return route.fulfill({ status: 204, body: '' });

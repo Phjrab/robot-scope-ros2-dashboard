@@ -71,19 +71,19 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(20);
 });
 
-test('Cockpit placeholder panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
+test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
-  for (const type of ['placeholder.camera', 'placeholder.map', 'placeholder.controller']) {
+  for (const type of ['camera.go2-front', 'placeholder.map', 'placeholder.controller']) {
     await page.locator(`.cockpit-launcher-item[data-panel-type="${type}"]`).click();
   }
   const panels = page.locator('.cockpit-floating-panel:not([hidden])');
   await expect(panels).toHaveCount(3);
-  const telemetry = page.locator('[data-panel-id="placeholder-camera"]');
+  const telemetry = page.locator('[data-panel-id="camera-go2-front"]');
   const spatial = page.locator('[data-panel-id="placeholder-map"]');
   const mission = page.locator('[data-panel-id="placeholder-controller"]');
 
   const beforeDrag = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
-  const telemetryBefore = beforeDrag.workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  const telemetryBefore = beforeDrag.workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   const titlebar = telemetry.locator('.cockpit-panel-titlebar');
   const titleBox = await titlebar.boundingBox();
   await page.mouse.move(titleBox.x + 25, titleBox.y + 25);
@@ -91,7 +91,7 @@ test('Cockpit placeholder panels drag, resize, focus, lock, close, and recover w
   await page.mouse.move(titleBox.x + 125, titleBox.y + 85, { steps: 4 });
   await page.mouse.up();
   const afterDrag = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
-  const telemetryAfter = afterDrag.workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  const telemetryAfter = afterDrag.workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   expect(telemetryAfter.x).toBeGreaterThan(telemetryBefore.x);
   expect(telemetryAfter.y).toBeGreaterThan(telemetryBefore.y);
   expect(afterDrag.workspace.scene.camera).toEqual(beforeDrag.workspace.scene.camera);
@@ -136,10 +136,10 @@ test('Cockpit placeholder panels drag, resize, focus, lock, close, and recover w
     x: missionBeforeFocus.x, y: missionBeforeFocus.y, width: missionBeforeFocus.width, height: missionBeforeFocus.height,
   });
 
-  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.camera"]').click();
+  await page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]').click();
   await telemetry.locator('[data-panel-action="close"]').click();
   await expect(panels).toHaveCount(2);
-  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.camera"]').click();
+  await page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]').click();
   await expect(panels).toHaveCount(3);
 
   await page.setViewportSize({ width: 720, height: 640 });
@@ -166,10 +166,11 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   await openDashboard(page, {}, 'cockpit');
   const toggle = page.locator('.cockpit-launcher-toggle');
   const body = page.locator('#cockpitLauncherBody');
-  const cameraButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.camera"]');
+  const cameraButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
+  const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   const mapButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]');
   const controllerButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]');
-  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(3);
+  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(4);
   await expect(cameraButton).toContainText('360×240 · MIN 280×170');
 
   await toggle.click();
@@ -179,10 +180,13 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   await expect(body).toBeVisible();
   await expect(cameraButton).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.locator('[data-panel-id="placeholder-camera"]')).toHaveCount(1);
+  await expect(page.locator('[data-panel-id="camera-go2-front"]')).toHaveCount(1);
   await expect(cameraButton).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Enter');
-  await expect(page.locator('[data-panel-id="placeholder-camera"]')).toHaveCount(1);
+  await expect(page.locator('[data-panel-id="camera-go2-front"]')).toHaveCount(1);
+  await page.keyboard.press('ArrowDown');
+  await expect(realsenseButton).toBeFocused();
+  await page.keyboard.press('Enter');
   await page.keyboard.press('ArrowDown');
   await expect(mapButton).toBeFocused();
   await page.keyboard.press('Enter');
@@ -195,14 +199,14 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   await toggle.press('ArrowDown');
 
   await cameraButton.click();
-  const camera = page.locator('[data-panel-id="placeholder-camera"]');
-  const floatingBeforeDock = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  const camera = page.locator('[data-panel-id="camera-go2-front"]');
+  const floatingBeforeDock = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   await page.locator('[data-layout-action="dock-left"]').click();
-  let cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  let cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   expect(cameraState.dock).toBe('left');
   expect(cameraState.x).toBe(12);
   await page.locator('[data-layout-action="undock"]').click();
-  cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   expect({ x: cameraState.x, y: cameraState.y, width: cameraState.width, height: cameraState.height }).toEqual({
     x: floatingBeforeDock.x, y: floatingBeforeDock.y, width: floatingBeforeDock.width, height: floatingBeforeDock.height,
   });
@@ -213,7 +217,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   await page.mouse.move(37, titleBox.y + 24, { steps: 3 });
   await expect(page.locator('#cockpitSnapPreview')).toBeVisible();
   await page.mouse.up();
-  cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   expect(cameraState.x).toBe(12);
 
   const snappedTitleBox = await camera.locator('.cockpit-panel-titlebar').boundingBox();
@@ -223,7 +227,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   await page.mouse.move(snappedTitleBox.x + 31, snappedTitleBox.y + 24);
   await page.mouse.up();
   await page.keyboard.up('Alt');
-  cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-camera');
+  cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   expect(cameraState.x).toBe(19);
 
   await page.locator('.cockpit-layout-controls select').selectOption('24');
@@ -242,6 +246,74 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
       expect(panel.y + panel.height).toBeLessThanOrEqual(snapshot.height - 90);
     }
   }
+});
+
+test('Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  const go2Button = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
+  const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
+  await expect(go2Button).toBeEnabled();
+  await expect(realsenseButton).toBeEnabled();
+  await go2Button.click();
+  await realsenseButton.click();
+
+  const go2 = page.locator('[data-panel-id="camera-go2-front"]');
+  const realsense = page.locator('[data-panel-id="camera-realsense-color"]');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(realsense.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(1);
+  await expect.poll(() => backend.state.cameraConnectionsBySource.realsense_color).toBe(1);
+  await go2Button.click();
+  await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(1);
+
+  await go2.locator('[data-panel-action="focus"]').click();
+  await expect(go2).toHaveAttribute('data-mode', 'focus');
+  await go2.locator('[data-panel-action="focus"]').click();
+  await realsenseButton.click();
+  await realsense.locator('[data-panel-action="focus"]').click();
+  await expect(realsense).toHaveAttribute('data-mode', 'focus');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await realsense.locator('[data-panel-action="focus"]').click();
+
+  const resize = go2.locator('[data-panel-resize="se"]');
+  const resizeBox = await resize.boundingBox();
+  await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(resizeBox.x + 55, resizeBox.y + 35, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(1);
+
+  await go2.locator('[data-panel-action="compact"]').click();
+  await expect(go2).toHaveAttribute('data-mode', 'compact');
+  await expect.poll(() => backend.state.cameraClosesBySource.go2_front).toBe(1);
+  await expect(realsense.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  expect(backend.state.cameraClosesBySource.realsense_color).toBe(0);
+  await go2.locator('[data-panel-action="compact"]').click();
+  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(2);
+
+  backend.state.cameraStreaming.realsense_color = false;
+  await expect(realsense.locator('.cockpit-camera-state')).toHaveText('STALE', { timeout: 5_000 });
+  await expect(realsense.locator('.cockpit-camera-overlay')).toContainText('STALE');
+  await expect(realsense.locator('canvas')).toHaveJSProperty('width', 1);
+  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+
+  await realsense.locator('[data-panel-action="close"]').click();
+  await expect(realsense).toHaveCount(0);
+  await expect.poll(() => backend.state.cameraClosesBySource.realsense_color).toBe(1);
+  const demands = await page.evaluate(() => window.RobotScopeCameraStreams.snapshot().demand.sources.map((source) => ({ id: source.id, viewers: source.viewerCount })));
+  expect(demands).toEqual([{ id: 'go2_front', viewers: 1 }, { id: 'realsense_color', viewers: 0 }]);
+  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+});
+
+test('Cockpit disables camera launchers that are absent from the active catalog profile', async ({ page }) => {
+  await openDashboard(page, {
+    cameraSources: [{ source_id: 'go2_front', id: 'go2_front', label: 'GO2 FRONT', available: true, state: 'ok', transport: 'fake' }],
+  }, 'cockpit');
+  await expect(page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]')).toBeEnabled();
+  const unavailable = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
+  await expect(unavailable).toBeDisabled();
+  await expect(unavailable).toContainText('UNAVAILABLE');
 });
 
 test('mapping start, save and stop preserve one mutation per operator action', async ({ page }) => {

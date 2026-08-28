@@ -28,9 +28,10 @@ export function createCockpitWorkspace(options = {}) {
   const modelElement = options.modelElement;
   let active = false;
   let destroyed = false;
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document }) : null;
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand }) : null;
   let panelManager = null;
   let sensorLauncher = null;
+  let releaseCameraCatalog = null;
 
   function syncLauncher() {
     const snapshot = panelManager?.diagnostics();
@@ -80,6 +81,7 @@ export function createCockpitWorkspace(options = {}) {
       onSnapOptions: (nextOptions) => panelManager?.setSnapOptions(nextOptions),
     });
     syncLauncher();
+    releaseCameraCatalog = options.cameraDemand?.subscribe((catalog) => sensorLauncher?.updateAvailability(catalog.sources));
   }
 
   function setFreshness(freshness, note = '') {
@@ -162,6 +164,7 @@ export function createCockpitWorkspace(options = {}) {
   function destroy() {
     if (destroyed) return;
     deactivate();
+    releaseCameraCatalog?.();
     sensorLauncher?.destroy();
     panelManager?.destroy();
     sceneHost.destroy();
@@ -198,6 +201,7 @@ export function initializeCockpitWorkspace(options = {}) {
     panelLayer: documentValue.querySelector('#cockpitPanelLayer'),
     snapPreviewElement: documentValue.querySelector('#cockpitSnapPreview'),
     launcherRoot: documentValue.querySelector('#cockpitSensorLauncher'),
+    cameraDemand: options.cameraDemand,
     document: documentValue,
     controls: {
       reset: documentValue.querySelector('#cockpitSceneReset'),

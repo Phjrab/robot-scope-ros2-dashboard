@@ -1,16 +1,33 @@
+import { createCameraPanel } from './panels/camera_panel.js';
+
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
-    id: 'placeholder-camera',
-    panelType: 'placeholder.camera',
-    title: 'Camera Placeholder',
-    label: 'Camera',
+    id: 'camera-go2-front',
+    panelType: 'camera.go2-front',
+    title: 'Go2 Front Camera',
+    label: 'Go2 Front Camera',
     icon: '◉',
+    kind: 'camera',
+    sourceId: 'go2_front',
     singleton: true,
     defaultVisible: false,
-    eyebrow: 'CWP-03 · PLACEHOLDER',
-    description: '실제 camera stream을 연결하지 않은 CWP-03 배치 검증용 panel입니다.',
+    eyebrow: 'CWP-04 · CAMERA',
     defaultGeometry: Object.freeze({ x: 28, y: 96, width: 360, height: 240 }),
     bounds: Object.freeze({ minWidth: 280, minHeight: 170, maxWidth: 760, maxHeight: 600, compactWidth: 290, compactHeight: 58 }),
+  }),
+  Object.freeze({
+    id: 'camera-realsense-color',
+    panelType: 'camera.realsense-color',
+    title: 'RealSense Color Camera',
+    label: 'RealSense Color Camera',
+    icon: '▣',
+    kind: 'camera',
+    sourceId: 'realsense_color',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'CWP-04 · CAMERA',
+    defaultGeometry: Object.freeze({ x: 420, y: 112, width: 380, height: 250 }),
+    bounds: Object.freeze({ minWidth: 280, minHeight: 170, maxWidth: 760, maxHeight: 600, compactWidth: 300, compactHeight: 58 }),
   }),
   Object.freeze({
     id: 'placeholder-map',
@@ -115,6 +132,9 @@ export function createPanelRegistry(options = {}) {
     createContent(panelType) {
       const descriptor = entries.get(String(panelType || ''));
       if (!descriptor) throw new RangeError('Unknown panel type.');
+      if (descriptor.kind === 'camera') {
+        return createCameraPanel({ descriptor, document: documentValue, cameraDemand: options.cameraDemand });
+      }
       return createPlaceholderContent(descriptor, documentValue);
     },
   });

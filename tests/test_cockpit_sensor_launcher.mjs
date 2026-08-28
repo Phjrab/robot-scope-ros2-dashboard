@@ -4,12 +4,14 @@ import test from 'node:test';
 import { createPanelRegistry, PLACEHOLDER_DESCRIPTORS } from '../robot_dashboard/static/features/cockpit/panel_registry.js';
 import { nextLauncherIndex } from '../robot_dashboard/static/features/cockpit/sensor_launcher.js';
 
-test('registry exposes exactly three fixed singleton placeholder panel contracts', () => {
-  const registry = createPanelRegistry({ document: {} });
-  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Camera', 'Map', 'Controller']);
+test('registry exposes two fixed camera sources and the existing singleton placeholders', () => {
+  const registry = createPanelRegistry({ document: {}, cameraDemand: {} });
+  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Controller']);
   assert.ok(registry.list().every((descriptor) => descriptor.singleton === true && descriptor.defaultVisible === false));
   assert.ok(registry.list().every((descriptor) => descriptor.icon && descriptor.defaultGeometry.width && descriptor.bounds.minWidth));
-  assert.equal(registry.get('placeholder.camera').id, 'placeholder-camera');
+  assert.equal(registry.get('camera.go2-front').id, 'camera-go2-front');
+  assert.equal(registry.get('camera.go2-front').sourceId, 'go2_front');
+  assert.equal(registry.get('camera.realsense-color').sourceId, 'realsense_color');
   assert.equal(registry.get('unknown'), null);
 });
 

@@ -36,8 +36,9 @@ export function createSensorLauncher(options = {}) {
   const list = documentValue.createElement('div');
   list.className = 'cockpit-launcher-list';
   list.setAttribute('role', 'toolbar');
-  list.setAttribute('aria-label', 'Placeholder panel 선택');
+  list.setAttribute('aria-label', 'Sensor panel 선택');
   const panelButtons = [];
+  const panelEntries = [];
 
   for (const descriptor of registry.list()) {
     const item = button(documentValue, '', '');
@@ -54,11 +55,15 @@ export function createSensorLauncher(options = {}) {
     label.textContent = descriptor.label;
     const size = documentValue.createElement('small');
     size.textContent = `${descriptor.defaultGeometry.width}×${descriptor.defaultGeometry.height} · MIN ${descriptor.bounds.minWidth}×${descriptor.bounds.minHeight}`;
-    identity.append(label, size);
+    const availability = documentValue.createElement('small');
+    availability.className = 'cockpit-launcher-availability';
+    availability.textContent = descriptor.sourceId ? 'CATALOG WAITING' : 'AVAILABLE';
+    identity.append(label, size, availability);
     item.append(icon, identity);
     item.addEventListener('click', () => options.onOpen?.(descriptor.panelType));
     list.append(item);
     panelButtons.push(item);
+    panelEntries.push({ item, descriptor, availability });
   }
 
   const layouts = documentValue.createElement('div');
@@ -110,7 +115,7 @@ export function createSensorLauncher(options = {}) {
     if (event.key !== 'ArrowDown') return;
     event.preventDefault();
     setExpanded(true);
-    panelButtons[0]?.focus();
+    panelButtons.find((item) => !item.disabled)?.focus();
   });
   list.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -120,10 +125,11 @@ export function createSensorLauncher(options = {}) {
       return;
     }
     if (!NAVIGATION_KEYS.includes(event.key)) return;
-    const current = panelButtons.indexOf(documentValue.activeElement);
+    const focusable = panelButtons.filter((item) => !item.disabled);
+    const current = focusable.indexOf(documentValue.activeElement);
     if (current < 0) return;
     event.preventDefault();
-    panelButtons[nextLauncherIndex(current, event.key, panelButtons.length)]?.focus();
+    focusable[nextLauncherIndex(current, event.key, focusable.length)]?.focus();
   });
 
   function update(states = [], activePanelId = '') {
@@ -138,10 +144,23 @@ export function createSensorLauncher(options = {}) {
     }
   }
 
+  function updateAvailability(sources = []) {
+    const sourceMap = new Map(sources.map((source) => [source.id, source]));
+    for (const { item, descriptor, availability } of panelEntries) {
+      if (!descriptor.sourceId) continue;
+      const source = sourceMap.get(descriptor.sourceId);
+      const available = Boolean(source?.available);
+      item.disabled = !available;
+      item.dataset.availability = available ? 'available' : source ? 'unavailable' : 'waiting';
+      availability.textContent = available ? 'AVAILABLE' : source ? 'UNAVAILABLE' : 'CATALOG WAITING';
+      item.setAttribute('aria-label', `${descriptor.label} ${available ? 'panel 열기 또는 앞으로 가져오기' : '사용 불가'}`);
+    }
+  }
+
   function destroy() {
     root.replaceChildren();
   }
 
   update();
-  return Object.freeze({ update, setExpanded, destroy, diagnostics: () => Object.freeze({ expanded: !body.hidden, panelCount: panelButtons.length }) });
+  return Object.freeze({ update, updateAvailability, setExpanded, destroy, diagnostics: () => Object.freeze({ expanded: !body.hidden, panelCount: panelButtons.length }) });
 }

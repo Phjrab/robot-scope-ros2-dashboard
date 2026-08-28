@@ -4,6 +4,7 @@ import { formatHz, safeNumber } from './core/format.js';
 import { captureStickyLogScroll, scheduleStickyLogScroll } from './core/log_scroll.js';
 import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
 import { createPointcloudTransport } from './features/sensors/pointcloud_transport.js';
+import { createCameraDemandController } from './features/sensors/camera_demand.js';
 import { initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
@@ -363,6 +364,7 @@ let cameraViewMode = 'single';
 let cameraPrimarySourceId = '';
 let cameraSecondarySourceId = '';
 let cameraSlotRuntimes = null;
+const cameraDemandController = createCameraDemandController({ onDemandChange: syncCameraTransport });
 let cloudSeq = -1;
 let pointcloudLastFrameAt = 0;
 let cockpitPointcloudSessionStartedAt = 0;
@@ -597,6 +599,7 @@ if (navigationScene3d) {
 const cockpitWorkspace = initializeCockpitWorkspace({
   Renderer: window.RobotScene3D,
   maxPoints: 10000,
+  cameraDemand: cameraDemandController,
   onError: (error) => console.warn('Cockpit scene:', error),
 });
 
@@ -4854,6 +4857,7 @@ function setCameraSlotSource(role, sourceId, reason = '') {
 function applyCameraCatalog(payload) {
   const normalized = normalizeCameraCatalog(payload);
   cameraCatalog = normalized.sources;
+  cameraDemandController.updateCatalog(cameraCatalog);
   cameraMaxActive = normalized.maxActive;
   const primaryId = preferredCameraSource(cameraCatalog, cameraPrimarySourceId);
   const secondaryId = secondaryCameraSource(cameraCatalog, primaryId);
@@ -5105,6 +5109,7 @@ function markCameraSlotFrameRendered(slot, sourceKey = '') {
   while (slot.frameWindow.length && performance.now() - slot.frameWindow[0] > 1000) slot.frameWindow.shift();
   slot.empty.style.display = 'none';
   renderCameraSlotIdentity(slot);
+  cameraDemandController.publishFrame(slot.sourceId, slot.socketGeneration, { canvas: slot.canvas, width: slot.canvas.width, height: slot.canvas.height, lastFrameAt: slot.lastFrameAt });
   return wasFresh;
 }
 
@@ -5125,9 +5130,7 @@ function markCameraFrameRendered(sourceKey = '') {
   syncCameraMediaControls();
 }
 
-// Every camera transport ends here.  A direct Flask/MJPEG adapter can pass its
-// HTMLImageElement to this function and gets the same capture/record behavior
-// as the existing ROS/WebSocket H.264, JPEG, PNG and raw-image paths.
+// Every camera transport converges here for capture, recording, and shared Cockpit panels.
 function renderCameraSourceFrame(source, requestedWidth = 0, requestedHeight = 0, sourceKey = '', slot = primaryCameraSlot()) {
   const width = Number(requestedWidth || source?.displayWidth || source?.videoWidth || source?.naturalWidth || source?.width || 0);
   const height = Number(requestedHeight || source?.displayHeight || source?.videoHeight || source?.naturalHeight || source?.height || 0);
@@ -5598,13 +5601,15 @@ function cameraTransportWanted() {
 }
 
 function cameraSlotTransportWanted(slot) {
-  if (!cameraTransportWanted() || !slot.sourceId) return false;
-  if (slot.role === 'secondary' && cameraViewMode !== 'dual') return false;
+  if (!slot.sourceId) return false;
   const source = cameraSourceForId(slot.sourceId);
-  return source?.available !== false;
+  if (source?.available === false) return false;
+  const sensorsDemand = cameraTransportWanted() && !(slot.role === 'secondary' && cameraViewMode !== 'dual');
+  return sensorsDemand || cameraDemandController.isDemanded(slot.sourceId);
 }
 
 function disconnectCameraSlot(slot) {
+  cameraDemandController.endGeneration(slot.sourceId, slot.socketGeneration, 'waiting');
   slot.socketGeneration += 1;
   clearTimeout(slot.reconnectTimer);
   slot.reconnectTimer = 0;
@@ -5645,6 +5650,7 @@ function connectCameraSlot(slot) {
   if (slot.socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(slot.socket.readyState)) return;
   const generation = ++slot.socketGeneration;
   const sourceId = slot.sourceId;
+  cameraDemandController.beginGeneration(sourceId, generation, slot.reconnectTimer ? 'reconnecting' : 'connecting');
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/camera?source_id=${encodeURIComponent(sourceId)}`);
   slot.socket = socket;
@@ -5654,7 +5660,9 @@ function connectCameraSlot(slot) {
   }
   socket.binaryType = 'arraybuffer';
   socket.onopen = () => {
-    if (slot.socket === socket && generation === slot.socketGeneration) renderCameraCatalogUi();
+    if (slot.socket === socket && generation === slot.socketGeneration) {
+      cameraDemandController.publishMetadata(sourceId, generation, slot.meta || slot.statusMeta || {}); renderCameraCatalogUi();
+    }
   };
   socket.onmessage = (event) => {
     if (slot.socket !== socket || generation !== slot.socketGeneration || sourceId !== slot.sourceId || !cameraSlotTransportWanted(slot)) return;
@@ -5669,6 +5677,7 @@ function connectCameraSlot(slot) {
         }
         slot.meta = { ...metadata, source_id: metadata.source_id || sourceId };
         slot.activeSourceKey = sourceKey;
+        cameraDemandController.publishMetadata(sourceId, generation, slot.meta);
         renderCameraSlotIdentity(slot);
       } catch (error) {
         console.warn(`${slot.role} camera metadata:`, error);
@@ -5709,6 +5718,7 @@ function connectCameraSlot(slot) {
     }
     slot.videoDecoder = null;
     slot.hasKey = false;
+    cameraDemandController.endGeneration(sourceId, generation, cameraSlotTransportWanted(slot) ? 'reconnecting' : 'waiting');
     renderCameraCatalogUi();
     if (cameraSlotTransportWanted(slot)) {
       slot.reconnectTimer = setTimeout(() => {
@@ -5756,6 +5766,7 @@ window.RobotScopeCameraStreams = Object.freeze({
       maxActive: cameraMaxActive,
       sources: cameraCatalog.map((source) => ({ ...source })),
       slots,
+      demand: cameraDemandController.snapshot(),
     };
   },
 });
