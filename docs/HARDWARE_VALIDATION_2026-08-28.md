@@ -8,8 +8,8 @@ remained DISARMED with no control lease, released deadman, and zero linear and
 angular commands. No motion action, navigation goal, initial pose, mapping
 launch, map mutation, map deletion, or dataset capture was performed.
 
-The repository and Jetson were aligned to commit
-`1cce222d40d3c12ab129c676a650411c8705bbfd`. Runtime acceptance reports remain
+The final XT16 validation below used repository and Jetson commit
+`2d785c31e27f85faf5cf0223a47fb490687c0fb1`. Runtime acceptance reports remain
 private and Git-ignored on the Jetson.
 
 ## Control Bridge lifecycle result
@@ -107,21 +107,67 @@ the timestamp or freshness limits.
 
 - Targeted API and acceptance tests: 16 passed.
 - JavaScript unit tests: 238 passed.
-- Python suite: 670 total; 669 passed. The one error is the known macOS baseline
+- Python suite: 672 total; 671 passed. The one error is the known macOS baseline
   where `/etc/os-release` is absent in
   `test_apply_os_release_override_must_match_running_host`.
 - The deployed Control Bridge publisher-total fix was verified against the
   live API and acceptance recorder.
 
+## XT16 C++ bridge and receive-buffer resolution
+
+The repository Python converter was retained as the executable contract
+reference, while the deployed high-rate conversion path was replaced with the
+repository-owned C++ ROS 2 node in commit `2e56d8a`. On the Jetson this reduced
+the conversion process from approximately 104% CPU to approximately 30% CPU
+without changing the point layout, decimation, timestamps, QoS contract, or
+freshness rejection boundary.
+
+Per-socket inspection then isolated the remaining intermittent gap to the C++
+node's CycloneDDS unicast socket: with the host's 212,992-byte receive-buffer
+ceiling it accumulated 2,908 kernel UDP drops in 20 seconds. Commit `72e18a3`
+added a fixed 8 MiB CycloneDDS receive-buffer request and a fail-closed doctor
+check. The deployed sysctl file raises only `net.core.rmem_max` to 8,388,608;
+it does not change the default buffer for unrelated sockets.
+
+After applying the fixed sysctl file and restarting only the dashboard, a
+20-second control-idle measurement reported zero drop growth on all four C++
+bridge UDP sockets. A dashboard-mediated Control Bridge start was then tested
+with no lease, released deadman, and zero commands. Across a 60-second combined
+load window, all 241 observations of `/velodyne_points` stayed within the fixed
+bounds:
+
+```text
+minimum rate:       9.980 Hz
+maximum age:        0.117 s
+maximum jitter:     7.480 ms
+out-of-bound rows:  0
+API read errors:    0
+```
+
+The same-window logs contained zero input rejection lines and zero five-second
+summaries with nonzero rejections. Every UDP socket owned by the converter
+still had a zero cumulative kernel-drop count after the combined-load run.
+Read-only `go2-nav` acceptance produced:
+
+```text
+PASS=53 FAIL=0 BLOCKED=4 NOT_RUN=12
+```
+
+`lidar.xt16_converted` and `control.signed_bridge` both passed. The raw Hesai
+dashboard row remained blocked because that raw topic is intentionally not a
+dashboard observation source, and FAST-LIO/navigation/localization remained
+blocked because those runtimes were idle. No blocked row was converted into a
+false pass. The Control Bridge was stopped through the dashboard immediately
+after acceptance and was verified inactive; the dashboard remained active.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
    keep it disabled during later Robot Scope acceptance sessions.
-2. Profile or replace the Python large-PointCloud2 conversion boundary before
-   changing IMU cadence, point decimation, QoS, process scheduling, or clock
-   logic. A C++ conversion node or an equivalent measured design should be
-   evaluated against the same byte layout and strict timestamp contract, then
-   validated with FAST-LIO odometry before adoption.
+2. The C++ conversion and DDS receive-buffer change now pass the standalone and
+   combined-load XT16 bounds. The next validation step is FAST-LIO odometry and
+   localization with the same timestamp contract; this session did not launch
+   mapping, FAST-LIO, or navigation.
 3. Preserve the existing local modifications in the external Hesai workspace;
    the full installer remains intentionally blocked until their ownership and
    purpose are reconciled.
