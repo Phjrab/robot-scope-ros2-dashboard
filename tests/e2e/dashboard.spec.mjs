@@ -435,6 +435,69 @@ test('Safety HUD clears stale cached values and preserves STOP and control sourc
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(720);
 });
 
+test('Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply', async ({ page }) => {
+  await openDashboard(page, {}, 'cockpit');
+  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]').click();
+  const camera = page.locator('[data-panel-id="camera-go2-front"]');
+  const title = await camera.locator('.cockpit-panel-titlebar').boundingBox();
+  await page.mouse.move(title.x + 25, title.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(title.x + 170, title.y + 105, { steps: 4 });
+  await page.mouse.up();
+
+  await page.locator('[data-layout-library-action="toggle"]').click();
+  await page.locator('.cockpit-layout-library input[aria-label="새 Cockpit preset 이름"]').fill('competition-drive');
+  await page.locator('[data-layout-library-action="save-as"]').click();
+  await expect(page.locator('[data-cockpit-preset-list]')).toContainText('competition-drive · DEFAULT');
+  const saved = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('robot-scope.cockpit.layouts.v1.go2')));
+  expect(stored.presets[0].panels[0].x).toBeGreaterThanOrEqual(0);
+  expect(stored.presets[0].panels[0].x).toBeLessThanOrEqual(1);
+  expect(stored.presets[0].panels[0].width).toBeLessThanOrEqual(1);
+
+  await page.reload();
+  await expect(page.locator('#cockpitWorkspace')).toBeVisible();
+  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
+  await expect(camera).toBeVisible();
+  const restored = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect(Math.abs(restored.x - saved.x)).toBeLessThan(2);
+  expect(Math.abs(restored.y - saved.y)).toBeLessThan(2);
+
+  await enterLayoutEdit(page);
+  const restoredTitle = await camera.locator('.cockpit-panel-titlebar').boundingBox();
+  await page.mouse.move(restoredTitle.x + 25, restoredTitle.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(restoredTitle.x - 80, restoredTitle.y - 40, { steps: 3 });
+  await page.mouse.up();
+  const changed = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect({ x: changed.x, y: changed.y }).not.toEqual({ x: restored.x, y: restored.y });
+
+  await page.locator('[data-layout-library-action="toggle"]').click();
+  await page.locator('[aria-label="Cockpit layout import JSON"]').fill('{bad');
+  await page.locator('[data-layout-library-action="preview"]').click();
+  await expect(page.locator('.cockpit-layout-library-status')).toHaveAttribute('data-error', 'true');
+  const afterInvalid = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect({ x: afterInvalid.x, y: afterInvalid.y }).toEqual({ x: changed.x, y: changed.y });
+
+  await page.locator('[aria-label="Cockpit layout import JSON"]').fill(JSON.stringify(stored.presets[0]));
+  await page.locator('[data-layout-library-action="preview"]').click();
+  await expect(page.locator('.cockpit-layout-library-status')).toContainText('아직 적용되지 않음');
+  const afterPreview = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect({ x: afterPreview.x, y: afterPreview.y }).toEqual({ x: changed.x, y: changed.y });
+  await page.locator('[data-layout-library-action="apply-import"]').click();
+  const imported = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+  expect(Math.abs(imported.x - restored.x)).toBeLessThan(2);
+  expect(Math.abs(imported.y - restored.y)).toBeLessThan(2);
+
+  await page.setViewportSize({ width: 620, height: 700 });
+  const bounds = await camera.locator('.cockpit-panel-titlebar').boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.y).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(620);
+});
+
 test('mapping start, save and stop preserve one mutation per operator action', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'mapping');
   await expect(page.locator('#mappingStartButton')).toBeEnabled();

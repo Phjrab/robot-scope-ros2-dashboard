@@ -32,6 +32,26 @@ export function createCockpitSceneHost(options = {}) {
   let robotOnline = null;
   let modelState = 'WAITING';
   let pointLimit = options.maxPoints ?? 10000;
+  let sceneLayout = Object.freeze({ view: 'isometric', follow_robot: false, point_size: 2, range_m: 150 });
+
+  function sceneSnapshot() {
+    const cameraMode = renderer?.cameraMode;
+    const camera = renderer?.camera;
+    let view = sceneLayout.view;
+    if (cameraMode === 'follow') view = 'robot-follow';
+    else if (camera) {
+      const near = (left, right) => Math.abs(Number(left) - right) < 0.02;
+      view = near(camera.pitch, 88 * Math.PI / 180) ? 'top'
+        : near(camera.pitch, 8 * Math.PI / 180) && near(camera.yaw, 0) ? 'front'
+          : near(camera.pitch, 33 * Math.PI / 180) && near(camera.yaw, 45 * Math.PI / 180) ? 'isometric' : 'custom';
+    }
+    return Object.freeze({
+      view,
+      follow_robot: cameraMode == null ? sceneLayout.follow_robot : cameraMode === 'follow',
+      point_size: Number(renderer?.options?.pointSize) * 40 || sceneLayout.point_size,
+      range_m: Number(renderer?.options?.maxCloudRadius) || sceneLayout.range_m,
+    });
+  }
 
   function diagnostics() {
     const camera = renderer?.camera ? Object.freeze({
@@ -51,7 +71,27 @@ export function createCockpitSceneHost(options = {}) {
       freshness,
       modelState,
       camera,
+      layout: sceneSnapshot(),
     });
+  }
+
+  function applySceneLayout(next = {}) {
+    sceneLayout = Object.freeze({
+      view: String(next.view || 'isometric'),
+      follow_robot: Boolean(next.follow_robot),
+      point_size: Number(next.point_size) || 2,
+      range_m: Number(next.range_m) || 150,
+    });
+    if (!active || !renderer) return sceneSnapshot();
+    if (sceneLayout.view === 'top' || sceneLayout.view === 'front') renderer.setViewPreset?.(sceneLayout.view);
+    else if (sceneLayout.view !== 'custom') renderer.setViewPreset?.('isometric');
+    renderer.setCameraMode?.(sceneLayout.follow_robot || sceneLayout.view === 'robot-follow' ? 'follow' : 'world');
+    if (renderer.options) {
+      renderer.options.pointSize = sceneLayout.point_size / 40;
+      renderer.options.maxCloudRadius = sceneLayout.range_m;
+    }
+    renderState();
+    return sceneSnapshot();
   }
 
   function renderState() {
@@ -107,13 +147,14 @@ export function createCockpitSceneHost(options = {}) {
     starts += 1;
     renderer = new Renderer(canvas, {
       maxPoints: pointLimit,
-      maxCloudRadius: options.maxCloudRadius ?? 150,
-      pointSize: options.pointSize ?? 0.05,
+      maxCloudRadius: sceneLayout.range_m,
+      pointSize: sceneLayout.point_size / 40,
       autoFitOnFirstCloud: true,
       axesStorageKey: 'robot-scope.cockpit.axes.v1',
     });
     peakRenderers = Math.max(peakRenderers, renderer ? 1 : 0);
     renderer.bindControls?.(options.controls || {});
+    applySceneLayout(sceneLayout);
     renderState();
     void loadModel(session);
     renderer.resize?.();
@@ -189,6 +230,8 @@ export function createCockpitSceneHost(options = {}) {
     setCloud,
     setRobotState,
     setPointLimit,
+    applySceneLayout,
+    sceneSnapshot,
     resize,
     destroy,
     diagnostics,

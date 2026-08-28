@@ -3,6 +3,9 @@ import { createPanelManager } from './panel_manager.js';
 import { createPanelRegistry } from './panel_registry.js';
 import { createSensorLauncher } from './sensor_launcher.js';
 import { COCKPIT_LAYOUT_MODES, createLayoutModeController } from './layout_mode.js';
+import { createLayoutDocument, layoutPanelsToPixels } from './layout_schema.js';
+import { createLayoutStore } from './layout_store.js';
+import { createLayoutLibrary } from './layout_library.js';
 import { createSafetyHud } from './safety_hud.js';
 
 export function projectCockpitPointcloud(options = {}) {
@@ -34,13 +37,16 @@ export function createCockpitWorkspace(options = {}) {
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
+  let layoutLibrary = null;
   let releaseCameraCatalog = null;
+  let currentProfileId = '';
 
   function syncLayoutMode(state = layoutMode.snapshot()) {
     const editable = state.mode === COCKPIT_LAYOUT_MODES.EDIT && !state.armed;
     root.dataset.layoutMode = state.mode;
     panelManager?.setLayoutEditable(editable);
     sensorLauncher?.setLayoutEditable(editable);
+    layoutLibrary?.setLayoutEditable(editable);
     safetyHud?.setLayoutState(state);
   }
 
@@ -73,6 +79,9 @@ export function createCockpitWorkspace(options = {}) {
     onSnapPreview: renderSnapPreview,
     layoutEditable: false,
   }) : null;
+  const allowedPanelTypes = panelRegistry?.list().map((descriptor) => descriptor.panelType) || [];
+  const panelIdsByType = Object.fromEntries((panelRegistry?.list() || []).map((descriptor) => [descriptor.panelType, descriptor.id]));
+  const layoutStore = createLayoutStore({ storage: options.storage, allowedPanelTypes, panelIdsByType, onError: options.onError });
 
   function handleLayoutAction(action) {
     const activeId = panelManager?.diagnostics().activePanelId;
@@ -137,6 +146,47 @@ export function createCockpitWorkspace(options = {}) {
     onError: options.onError,
   });
 
+  function captureLayout(name) {
+    const snapshot = panelManager?.diagnostics();
+    return createLayoutDocument({
+      name,
+      profileId: currentProfileId,
+      scene: sceneHost.sceneSnapshot(),
+      panels: snapshot?.panels || [],
+      viewport: snapshot?.viewport || {},
+      allowedPanelTypes,
+      panelIdsByType,
+    });
+  }
+
+  function applyLayout(document) {
+    if (!document || document.profile_id !== currentProfileId) return false;
+    const viewport = panelManager?.diagnostics().viewport || {};
+    const panels = layoutPanelsToPixels(document, viewport);
+    panelManager?.restoreValidatedLayout(panels);
+    sceneHost.applySceneLayout(document.scene);
+    syncLauncher();
+    return true;
+  }
+
+  function resetLayout() {
+    panelManager?.restoreValidatedLayout([]);
+    sceneHost.applySceneLayout({ view: 'isometric', follow_robot: false, point_size: 2, range_m: 150 });
+    syncLauncher();
+  }
+
+  if (options.layoutLibraryRoot && panelRegistry) {
+    layoutLibrary = createLayoutLibrary({
+      root: options.layoutLibraryRoot,
+      document: options.document,
+      store: layoutStore,
+      captureLayout,
+      applyLayout,
+      resetLayout,
+    });
+  }
+  syncLayoutMode();
+
   function activate() {
     if (destroyed || active) return diagnostics();
     active = true;
@@ -164,6 +214,14 @@ export function createCockpitWorkspace(options = {}) {
 
   function setProfile(profile) {
     sceneHost.setProfile(profile);
+    const profileId = String(profile?.id || 'generic');
+    if (profileId === currentProfileId) return;
+    currentProfileId = profileId;
+    layoutStore.setProfile(profileId);
+    layoutLibrary?.setProfile(profileId);
+    const storedDefault = layoutStore.getDefault();
+    if (storedDefault) applyLayout(storedDefault);
+    else resetLayout();
   }
 
   function setRobotState(state) {
@@ -190,6 +248,7 @@ export function createCockpitWorkspace(options = {}) {
       launcher: sensorLauncher?.diagnostics() || null,
       layout: layoutMode.snapshot(),
       safety: safetyHud?.diagnostics() || null,
+      layoutLibrary: layoutLibrary?.diagnostics() || layoutStore.snapshot(),
     });
   }
 
@@ -199,6 +258,7 @@ export function createCockpitWorkspace(options = {}) {
     releaseCameraCatalog?.();
     sensorLauncher?.destroy();
     safetyHud?.destroy();
+    layoutLibrary?.destroy();
     panelManager?.destroy();
     sceneHost.destroy();
     destroyed = true;
@@ -234,6 +294,7 @@ export function initializeCockpitWorkspace(options = {}) {
     panelLayer: documentValue.querySelector('#cockpitPanelLayer'),
     snapPreviewElement: documentValue.querySelector('#cockpitSnapPreview'),
     launcherRoot: documentValue.querySelector('#cockpitSensorLauncher'),
+    layoutLibraryRoot: documentValue.querySelector('#cockpitLayoutLibrary'),
     safetyHudRoot: documentValue.querySelector('#cockpitSafetyHud'),
     cameraDemand: options.cameraDemand,
     document: documentValue,

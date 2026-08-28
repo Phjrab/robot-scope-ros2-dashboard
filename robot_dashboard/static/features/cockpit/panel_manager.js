@@ -285,7 +285,7 @@ export function createPanelManager(options = {}) {
       ...state,
       ...focusPanelGeometry(viewport()),
       mode: 'focus',
-      restoreGeometry: restoreGeometry(state),
+      restoreGeometry: state.dock && state.restoreGeometry ? state.restoreGeometry : restoreGeometry(state),
     });
   }
 
@@ -456,6 +456,66 @@ export function createPanelManager(options = {}) {
     return diagnostics();
   }
 
+  function replacementStates(panels = []) {
+    if (!Array.isArray(panels) || panels.length > registry.list().length) throw new RangeError('Validated layout panel count is invalid.');
+    const incoming = new Map();
+    for (const panel of panels) {
+      const descriptor = registry.get(panel?.panelType);
+      if (!descriptor || descriptor.id !== panel.id || incoming.has(panel.id)) throw new TypeError('Validated layout contains an unknown or duplicate panel.');
+      incoming.set(panel.id, panel);
+    }
+    return registry.list().map((descriptor, index) => {
+      const panel = incoming.get(descriptor.id);
+      const base = panel || {
+        id: descriptor.id, panelType: descriptor.panelType, mode: 'floating', dock: null,
+        ...descriptor.defaultGeometry, pinned: false, locked: false, visible: false,
+        restoreGeometry: null, zIndex: index + 1,
+      };
+      const titled = { ...base, title: descriptor.title, visible: Boolean(panel), zIndex: panel?.zIndex || index + 1 };
+      if (!panel) return panelStateSnapshot(titled);
+      if (panel.dock && panel.mode !== 'focus') {
+        const docked = dockPanelGeometry(panel.dock, viewport(), descriptor.bounds, panel);
+        return panelStateSnapshot({ ...titled, ...docked.geometry, mode: docked.mode, dock: docked.dock });
+      }
+      return panelStateSnapshot(recoverPanelState(titled, viewport(), descriptor.bounds));
+    });
+  }
+
+  function restoreValidatedLayout(panels = []) {
+    const replacements = replacementStates(panels);
+    cancelInteraction();
+    compactRestore.clear();
+    dockRestore.clear();
+    focusRestore.clear();
+    activePanelId = '';
+    for (const next of replacements) {
+      const runtime = runtimes.get(next.id);
+      if (!next.visible && runtime) {
+        setContentActive(runtime, false, 'layout_restored_hidden');
+        safeHook(runtime, 'destroy');
+        runtime.view.destroy();
+        runtimes.delete(next.id);
+      }
+      states.set(next.id, next);
+      if (next.visible && !runtimes.has(next.id)) mountRuntime(next);
+      else runtimes.get(next.id)?.view?.update(next, { layoutEditable });
+      if (next.mode === 'compact' && next.restoreGeometry) compactRestore.set(next.id, next.restoreGeometry);
+      if (next.dock && next.restoreGeometry) dockRestore.set(next.id, next.restoreGeometry);
+      if (next.mode === 'focus' && next.restoreGeometry) {
+        if (next.dock) {
+          const descriptor = descriptorForState(next);
+          const docked = dockPanelGeometry(next.dock, viewport(), descriptor.bounds, next);
+          focusRestore.set(next.id, { ...next, ...docked.geometry, mode: docked.mode, dock: docked.dock, restoreGeometry: next.restoreGeometry });
+        } else focusRestore.set(next.id, { ...next, ...next.restoreGeometry, mode: next.restoreGeometry.mode, restoreGeometry: null });
+      }
+      syncContentLifecycle(next.id);
+    }
+    normalizeZ();
+    options.onStateChange?.(null);
+    options.onActivePanelChange?.('');
+    return diagnostics();
+  }
+
   function activate() {
     if (destroyed || active) return diagnostics();
     active = true;
@@ -484,6 +544,7 @@ export function createPanelManager(options = {}) {
       layoutEditable,
       snapOptions,
       snapPreview,
+      viewport: Object.freeze({ ...viewport() }),
       panels: Object.freeze([...states.values()].map(panelStateSnapshot)),
       content: Object.freeze(Object.fromEntries([...runtimes].map(([id, runtime]) => [id, runtime.content.diagnostics?.() || null]))),
     });
@@ -538,6 +599,7 @@ export function createPanelManager(options = {}) {
     arrangePanels,
     setSnapOptions,
     setLayoutEditable,
+    restoreValidatedLayout,
     handleAction,
     recoverViewport,
     cancelInteraction,

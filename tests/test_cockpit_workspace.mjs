@@ -74,6 +74,42 @@ test('Cockpit SceneHost start and stop stay idempotent over 20 route cycles', as
   host.destroy();
 });
 
+test('Cockpit scene layout applies bounded view, follow, point size, and range settings across reactivation', () => {
+  class LayoutRenderer {
+    constructor(_canvas, options) {
+      this.options = { ...options };
+      this.camera = { target: [0, 0, 0], distance: 8, yaw: Math.PI / 4, pitch: 33 * Math.PI / 180 };
+      this.cameraMode = 'world';
+    }
+    bindControls() {}
+    setViewPreset(view) {
+      if (view === 'top') this.camera = { ...this.camera, yaw: -Math.PI / 2, pitch: 88 * Math.PI / 180 };
+      else if (view === 'front') this.camera = { ...this.camera, yaw: 0, pitch: 8 * Math.PI / 180 };
+      else this.camera = { ...this.camera, yaw: Math.PI / 4, pitch: 33 * Math.PI / 180 };
+    }
+    setCameraMode(mode) { this.cameraMode = mode; }
+    setStatus() {}
+    clearPointCloud() {}
+    setRobotPose() {}
+    setTrail() {}
+    resetRobotJointPositions() {}
+    configureOfficialRobot() {}
+    resize() {}
+    destroy() {}
+  }
+  const host = createCockpitSceneHost({ canvas: {}, Renderer: LayoutRenderer });
+  host.activate();
+  assert.deepEqual(host.applySceneLayout({ view: 'top', follow_robot: false, point_size: 3, range_m: 40 }), {
+    view: 'top', follow_robot: false, point_size: 3, range_m: 40,
+  });
+  host.deactivate();
+  host.activate();
+  assert.deepEqual(host.sceneSnapshot(), { view: 'top', follow_robot: false, point_size: 3, range_m: 40 });
+  host.applySceneLayout({ view: 'robot-follow', follow_robot: true, point_size: 2, range_m: 30 });
+  assert.equal(host.sceneSnapshot().view, 'robot-follow');
+  host.destroy();
+});
+
 test('Cockpit never labels a cached prior-session frame as LIVE', () => {
   const cloud = { seq: 7, points: [0, 0, 0] };
   assert.equal(projectCockpitPointcloud({ cloud, lastFrameAt: 900, sessionStartedAt: 1000, now: 1100, ready: true }).freshness, 'WAITING');

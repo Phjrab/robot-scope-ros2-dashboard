@@ -57,6 +57,22 @@ Launcher와 layout controls는 panel stacking context보다 높은 고정 계층
 Layout persistence, 실제 sensor transport, map/localization state, control lease와
 control command는 계속 후속 CWP 범위다.
 
+### CWP-06 구현 기록
+
+CWP-06에서 `layout_schema.js`, `layout_migrations.js`, `layout_store.js`와
+`layout_library.js`를 추가했다. 현재 layout schema는 version 1이며 UTF-8 JSON 및
+profile별 전체 catalog를 32 KiB, preset 이름을 48자, profile별 preset을 12개,
+panel을 24개로 제한한다. 실제 registry의 fixed panel type/id 쌍만 허용하고 unknown
+field, 중복 ID, profile mismatch, 비정상 normalized geometry를 적용 전에 거부한다.
+
+저장은 usable viewport 기준 normalized geometry를 사용하며 focus panel의 직전
+non-focus `restore_geometry`도 함께 보존한다. 첫 preset은 자동으로 해당 profile의
+default가 되고 reload 또는 profile 전환 시에만 자동 복원된다. Import는 bounded
+JSON parse와 preview가 성공해도 현재 panel 및 storage를 바꾸지 않으며, 별도의
+`APPLY IMPORT` 입력 후에만 저장·적용한다. localStorage 접근 실패나 손상 catalog는
+control/robot 상태에 영향을 주지 않고 빈 기본 배치로 복구된다. lease, command,
+telemetry, IP, path, frame과 runtime owner는 schema에 존재하지 않는다.
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,
@@ -455,8 +471,8 @@ normalized usable viewport 좌표이며 snake_case를 사용한다.
 
 - `schema_version`은 필수이며 migration module만 이전 version을 변환한다.
 - profile별 storage namespace를 사용한다. profile mismatch는 적용하지 않는다.
-- name, preset 수, panel 수와 전체 JSON byte size에 상한을 둔다. 정확한 상한은
-  CWP-06에서 테스트와 함께 정한다.
+- name 48자, profile별 preset 12개, panel 24개, UTF-8 JSON 및 profile catalog
+  32 KiB 상한을 적용한다.
 - unknown top-level/panel field, unknown panel type, duplicate ID, unsupported source
   ID, non-finite/out-of-range 수치를 거부한다.
 - panel title, capability와 endpoint는 registry가 제공한다. import 문자열을
@@ -567,11 +583,12 @@ access control은 Cockpit layout 기능으로 해결하지 않는다.
 | `static/features/cockpit/panel_view.js` | panel chrome DOM, pointer capture와 accessible controls |
 | `static/features/cockpit/sensor_launcher.js` | registry 기반 open/availability UI; sensor truth 소유 금지 |
 | `static/features/cockpit/snap_layout.js` | CWP-03의 pure snap/dock/auto-arrange 계산 |
-| `static/features/cockpit/workspace_mode.js` | CWP-05 layout-edit/operate pure state machine |
+| `static/features/cockpit/layout_mode.js` | CWP-05 layout-edit/operate pure state machine |
 | `static/features/cockpit/safety_hud.js` | 기존 authoritative snapshot의 fail-closed 고정 표현 |
 | `static/features/cockpit/layout_schema.js` | CWP-06 bounded schema parse/validation/projection |
 | `static/features/cockpit/layout_migrations.js` | version 간 순수 migration만 담당 |
 | `static/features/cockpit/layout_store.js` | profile-namespaced local preset atomic save/load/import/export 조합 |
+| `static/features/cockpit/layout_library.js` | text-only preset/save/default/reset/import preview UI |
 
 ### Panel content
 

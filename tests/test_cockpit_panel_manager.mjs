@@ -205,6 +205,31 @@ test('Operate blocks panel creation and edit-only actions until Layout Edit resu
   assert.deepEqual(manager.diagnostics().panels[0], before);
 });
 
+test('validated layout replacement is atomic and recovers imported geometry inside the viewport', () => {
+  const { manager } = managerHarness();
+  manager.activate();
+  manager.setLayoutEditable(false);
+  const before = manager.diagnostics().panels[0];
+  assert.throws(() => manager.restoreValidatedLayout([{ ...before, id: 'wrong-panel' }]), /unknown or duplicate/);
+  assert.deepEqual(manager.diagnostics().panels[0], before);
+
+  manager.restoreValidatedLayout([{
+    ...before,
+    x: 990,
+    y: 690,
+    width: 600,
+    height: 480,
+    visible: true,
+    zIndex: 1,
+  }]);
+  const restored = manager.diagnostics().panels[0];
+  assert.ok(restored.x >= 12 && restored.y >= 12);
+  assert.ok(restored.x + restored.width <= 988);
+  assert.ok(restored.y + restored.height <= 610);
+  manager.restoreValidatedLayout([]);
+  assert.equal(manager.diagnostics().panels[0].visible, false);
+});
+
 test('close destroys DOM/content lifecycle and open remounts without duplicate runtime', () => {
   const { manager, views, contentStats } = managerHarness();
   manager.activate();
@@ -242,5 +267,28 @@ test('dock, focus, and undock preserve the exact prior floating geometry', () =>
   assert.deepEqual(
     { mode: restored.mode, dock: restored.dock, x: restored.x, y: restored.y, width: restored.width, height: restored.height, restoreGeometry: restored.restoreGeometry },
     { mode: 'floating', dock: null, x: original.x, y: original.y, width: original.width, height: original.height, restoreGeometry: null },
+  );
+});
+
+test('restored focused dock keeps its original floating geometry for a later undock', () => {
+  const { manager } = managerHarness();
+  manager.activate();
+  const original = manager.diagnostics().panels[0];
+  manager.dockPanel('placeholder-one', 'left');
+  manager.toggleFocus('placeholder-one');
+  const persistedFocus = manager.diagnostics().panels[0];
+  assert.equal(persistedFocus.mode, 'focus');
+  assert.equal(persistedFocus.dock, 'left');
+  assert.deepEqual(persistedFocus.restoreGeometry, {
+    mode: 'floating', dock: null, x: original.x, y: original.y, width: original.width, height: original.height,
+  });
+
+  manager.restoreValidatedLayout([persistedFocus]);
+  manager.toggleFocus('placeholder-one');
+  assert.equal(manager.diagnostics().panels[0].dock, 'left');
+  const undocked = manager.undockPanel('placeholder-one');
+  assert.deepEqual(
+    { x: undocked.x, y: undocked.y, width: undocked.width, height: undocked.height },
+    { x: original.x, y: original.y, width: original.width, height: original.height },
   );
 });
