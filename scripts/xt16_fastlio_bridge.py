@@ -51,7 +51,7 @@ CONVERTED_CLOUD_MAX_FUTURE_S = 0.05
 RAW_HEADER_SCAN_START_TOLERANCE_S = 0.01
 RAW_CLOUD_QOS_DEPTH = 1
 OUTPUT_QOS_DEPTH = 5
-IMU_PUBLISH_INTERVAL_S = 0.01
+IMU_PUBLISH_INTERVAL_S = 0.02
 
 RAW_FIELDS = (
     ("x", 0, FLOAT32, 1),
@@ -105,7 +105,7 @@ def imu_publish_due(
     received_monotonic_s: float,
     last_published_monotonic_s: float | None,
 ) -> bool:
-    """Bound IMU publication to 100 Hz without weakening freshness checks."""
+    """Bound IMU publication to 50 Hz without weakening freshness checks."""
 
     if not math.isfinite(received_monotonic_s) or received_monotonic_s < 0.0:
         raise BridgeContractError("IMU monotonic clock is outside the supported range")
