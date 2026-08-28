@@ -414,6 +414,11 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         )
         if key in internal_bridge
     }
+    if (
+        "total_sport_publishers" not in bridge
+        and "sport_publishers" in internal_bridge
+    ):
+        bridge["total_sport_publishers"] = internal_bridge["sport_publishers"]
     bridge["message"] = public_diagnostic(
         internal_bridge.get("message", internal_bridge.get("last_error", ""))
     )

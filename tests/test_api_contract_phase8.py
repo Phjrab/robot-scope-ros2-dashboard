@@ -223,6 +223,11 @@ class Phase8ApiContractTests(unittest.TestCase):
                     "ready": True,
                     "message": "ready",
                     "status_age_s": 0.1,
+                    "sport_publishers": 10,
+                    "own_sport_publishers": 1,
+                    "foreign_named_sport_publishers": 0,
+                    "bare_unitree_sport_publishers": 9,
+                    "expected_bare_sport_publishers": 9,
                     "bridge_epoch": "private-generation",
                     "bridge_pid": 1234,
                     "issued_at_ms": 999,
@@ -239,11 +244,13 @@ class Phase8ApiContractTests(unittest.TestCase):
         bridge = projected["bridge"]
         self.assertTrue(bridge["authenticated"])
         self.assertEqual(bridge["status_age_s"], 0.1)
+        self.assertEqual(bridge["total_sport_publishers"], 10)
         for private in (
             "bridge_epoch",
             "bridge_pid",
             "issued_at_ms",
             "mac",
+            "sport_publishers",
             "unexpected_secret",
         ):
             self.assertNotIn(private, bridge)
