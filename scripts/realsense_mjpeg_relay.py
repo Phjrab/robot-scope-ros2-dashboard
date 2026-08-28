@@ -22,10 +22,13 @@ BIND_PORT = 8090
 DASHBOARD_HOST = "192.168.123.99"
 HEALTH_CLIENTS = frozenset({"127.0.0.1", BIND_HOST, DASHBOARD_HOST})
 STREAM_CLIENTS = frozenset({DASHBOARD_HOST})
-DEVICE_GLOB = (
-    "/dev/v4l/by-id/"
-    "usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0"
-)
+DEVICE_GLOB = "/dev/v4l/by-path/*-video-index0"
+DEVICE_LINK_DIR = Path("/dev/v4l/by-path")
+SYSFS_VIDEO_ROOT = Path("/sys/class/video4linux")
+REALSENSE_VENDOR_ID = "8086"
+REALSENSE_PRODUCT_ID = "0b3a"
+REALSENSE_COLOR_INTERFACE = "03"
+REALSENSE_VIDEO_INDEX = "0"
 WIDTH = 640
 HEIGHT = 480
 FPS = 15
@@ -61,23 +64,56 @@ def client_allowed(client_host: str, path: str) -> bool:
     return True
 
 
-def resolve_realsense_device(pattern: str = DEVICE_GLOB) -> str:
-    """Resolve exactly one trusted by-id link to a V4L2 character device."""
+def _sysfs_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="ascii").strip().lower()
+    except (OSError, UnicodeError):
+        return ""
 
-    matches = sorted(glob.glob(pattern))
-    if len(matches) != 1:
-        raise RelaySetupError(
-            f"expected exactly one RealSense color interface, found {len(matches)}"
-        )
-    link = Path(matches[0])
-    if not link.is_symlink() or link.parent != Path("/dev/v4l/by-id"):
-        raise RelaySetupError("RealSense interface must be a /dev/v4l/by-id symlink")
-    target = link.resolve(strict=True)
+
+def _is_realsense_color_node(
+    target: Path, sysfs_root: Path = SYSFS_VIDEO_ROOT
+) -> bool:
     if target.parent != Path("/dev") or not target.name.startswith("video"):
-        raise RelaySetupError("RealSense by-id link has an unexpected target")
-    if not stat.S_ISCHR(target.stat().st_mode):
-        raise RelaySetupError("RealSense interface is not a character device")
-    return str(target)
+        return False
+    suffix = target.name[len("video") :]
+    if not suffix.isdigit():
+        return False
+    video_root = sysfs_root / target.name
+    try:
+        interface_root = (video_root / "device").resolve(strict=True)
+    except OSError:
+        return False
+    usb_root = interface_root.parent
+    return (
+        _sysfs_text(interface_root / "bInterfaceNumber")
+        == REALSENSE_COLOR_INTERFACE
+        and _sysfs_text(usb_root / "idVendor") == REALSENSE_VENDOR_ID
+        and _sysfs_text(usb_root / "idProduct") == REALSENSE_PRODUCT_ID
+        and _sysfs_text(video_root / "index") == REALSENSE_VIDEO_INDEX
+    )
+
+
+def resolve_realsense_device(pattern: str = DEVICE_GLOB) -> str:
+    """Resolve exactly one sysfs-verified D435i color V4L2 character device."""
+
+    trusted: set[Path] = set()
+    for match in sorted(glob.glob(pattern)):
+        link = Path(match)
+        if not link.is_symlink() or link.parent != DEVICE_LINK_DIR:
+            continue
+        try:
+            target = link.resolve(strict=True)
+            mode = target.stat().st_mode
+        except OSError:
+            continue
+        if stat.S_ISCHR(mode) and _is_realsense_color_node(target):
+            trusted.add(target)
+    if len(trusted) != 1:
+        raise RelaySetupError(
+            f"expected exactly one verified RealSense color interface, found {len(trusted)}"
+        )
+    return str(next(iter(trusted)))
 
 
 def _plugin_available(name: str) -> bool:

@@ -178,14 +178,16 @@ RealSense만 보이지 않으면 로봇 탑재 Jetson에서 다음을 확인합�
 systemctl status robot-scope-realsense-camera.service --no-pager
 systemctl is-enabled robot-scope-realsense-camera.service
 systemctl is-active robot-scope-realsense-camera.service
-ls -l /dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0
+ls -l /dev/v4l/by-path/*-video-index0
 curl -fsS http://192.168.123.18:8090/health
 journalctl -u robot-scope-realsense-camera.service -n 80 --no-pager
 ~~~
 
-위 D435i RGB by-id glob에 맞는 항목이 없거나 두 개 이상이면 relay는 안전하게 시작을
-거부합니다. USB 재연결 뒤에도 항목 수가 예상과 다르면 glob을 넓히지 말고 실제 모델의
-V4L2 인터페이스 역할을 확인하세요. `is-enabled`는 부팅 정책(`enabled` 자동 시작,
+relay는 by-path 후보 중 sysfs vendor `8086`, product `0b3a`, USB color interface `03`,
+V4L index `0`을 모두 만족하는 D435i RGB 장치가 정확히 하나일 때만 시작합니다. D435i의
+depth와 color interface가 동일한 by-id `video-index0` 이름을 주장할 수 있으므로 by-id
+symlink만으로 color 장치를 판정하지 않습니다. USB 재연결 뒤에도 검증 장치 수가 예상과
+다르면 조건을 넓히지 말고 실제 모델의 V4L2 인터페이스 역할을 확인하세요. `is-enabled`는 부팅 정책(`enabled` 자동 시작,
 `disabled` 수동 실행), `is-active`는 현재 프로세스 상태이므로 둘을 따로 판정합니다.
 
 `/health`가 `idle`인 것은 viewer가 없는 정상 상태일 수 있지만 JPEG 생성 검증은 아닙니다.

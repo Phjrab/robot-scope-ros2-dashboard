@@ -1,6 +1,7 @@
 import importlib.util
 import stat
 import sys
+import tempfile
 import threading
 import time
 import types
@@ -57,8 +58,12 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(relay.MAX_JPEG_BYTES, 4 * 1024 * 1024)
         self.assertEqual(
             relay.DEVICE_GLOB,
-            "/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0",
+            "/dev/v4l/by-path/*-video-index0",
         )
+        self.assertEqual(relay.REALSENSE_VENDOR_ID, "8086")
+        self.assertEqual(relay.REALSENSE_PRODUCT_ID, "0b3a")
+        self.assertEqual(relay.REALSENSE_COLOR_INTERFACE, "03")
+        self.assertEqual(relay.REALSENSE_VIDEO_INDEX, "0")
 
     @mock.patch.object(relay, "_plugin_available")
     def test_pipeline_is_fixed_argv_and_prefers_software_jpeg(self, available):
@@ -87,13 +92,13 @@ class RealSenseRelayTests(unittest.TestCase):
         available.side_effect = lambda name: name == "nvjpegenc"
         self.assertIn("nvjpegenc", relay.gstreamer_command("/dev/video6"))
 
-    def test_device_resolution_requires_exactly_one_by_id_character_device(self):
+    def test_device_resolution_requires_exactly_one_verified_color_device(self):
         with mock.patch.object(relay.glob, "glob", return_value=[]):
             with self.assertRaises(relay.RelaySetupError):
                 relay.resolve_realsense_device()
         link = mock.Mock()
         link.is_symlink.return_value = True
-        link.parent = Path("/dev/v4l/by-id")
+        link.parent = relay.DEVICE_LINK_DIR
         target = mock.Mock()
         target.parent = Path("/dev")
         target.name = "video6"
@@ -102,8 +107,35 @@ class RealSenseRelayTests(unittest.TestCase):
         real_path = Path
         with mock.patch.object(relay.glob, "glob", return_value=["one"]), mock.patch.object(
             relay, "Path", side_effect=lambda value: link if value == "one" else real_path(value)
-        ):
+        ), mock.patch.object(relay, "_is_realsense_color_node", return_value=True):
             self.assertEqual(relay.resolve_realsense_device(), str(target))
+
+    def test_sysfs_identity_selects_only_d435i_color_capture_index(self):
+        with self.subTest("exact identity"):
+            self.assertTrue(self._sysfs_identity_result("03", "8086", "0b3a", "0"))
+        for field, values in {
+            "interface": ("00", "8086", "0b3a", "0"),
+            "vendor": ("03", "1234", "0b3a", "0"),
+            "product": ("03", "8086", "ffff", "0"),
+            "index": ("03", "8086", "0b3a", "1"),
+        }.items():
+            with self.subTest(field):
+                self.assertFalse(self._sysfs_identity_result(*values))
+
+    def _sysfs_identity_result(self, interface, vendor, product, index):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            usb_root = root / "usb-device"
+            interface_root = usb_root / "usb-interface"
+            video_root = root / "class" / "video6"
+            interface_root.mkdir(parents=True)
+            video_root.mkdir(parents=True)
+            (video_root / "device").symlink_to(interface_root, target_is_directory=True)
+            (interface_root / "bInterfaceNumber").write_text(interface, encoding="ascii")
+            (usb_root / "idVendor").write_text(vendor, encoding="ascii")
+            (usb_root / "idProduct").write_text(product, encoding="ascii")
+            (video_root / "index").write_text(index, encoding="ascii")
+            return relay._is_realsense_color_node(Path("/dev/video6"), root / "class")
 
     def test_latest_frame_only_and_viewer_cap(self):
         producers = []
@@ -270,6 +302,7 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIn('self.path == "/health"', source)
         self.assertIn('self.path == "/stream"', source)
         self.assertNotIn("SimpleHTTPRequestHandler", source)
+        self.assertNotIn("removeprefix", source)
         self.assertIn("shell=False", source)
 
     def test_service_is_non_root_capability_free_and_keeps_camera_devices(self):
