@@ -119,7 +119,7 @@ start_owned_process() {
 }
 
 refuse_existing_process "hesai_ros_driver_node" "Hesai driver"
-refuse_existing_process "xt16_fastlio_bridge.py" "XT16 bridge"
+refuse_existing_process "xt16_fastlio_bridge(_node|\.py)" "XT16 bridge"
 
 start_owned_process \
   "Hesai driver" \

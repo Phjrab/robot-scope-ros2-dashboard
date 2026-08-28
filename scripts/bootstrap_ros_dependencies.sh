@@ -283,6 +283,22 @@ run_with_setups \
   colcon build --symlink-install
 
 if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
+  XT16_BRIDGE_PACKAGE="$PROJECT_DIR/ros2/robot_scope_xt16_bridge"
+  XT16_BRIDGE_BUILD_ROOT="$PROJECT_DIR/workspaces/ws/xt16_bridge_ws"
+  run mkdir -p "$XT16_BRIDGE_BUILD_ROOT"
+  run_with_setups \
+    "$PROJECT_DIR" 2 \
+    "$ROS_SETUP" \
+    "$WORKSPACE_ROOT/unitree_ros2/cyclonedds_ws/install/setup.bash" \
+    colcon \
+      --log-base "$XT16_BRIDGE_BUILD_ROOT/log" \
+      build \
+      --base-paths "$XT16_BRIDGE_PACKAGE" \
+      --build-base "$XT16_BRIDGE_BUILD_ROOT/build" \
+      --install-base "$XT16_BRIDGE_BUILD_ROOT/install" \
+      --merge-install \
+      --cmake-args -DCMAKE_BUILD_TYPE=Release
+
   LIVOX_SDK_SOURCE="$WORKSPACE_ROOT/ws/livox/Livox-SDK2"
   LIVOX_SDK_BUILD="$WORKSPACE_ROOT/ws/livox/sdk2_build"
   LIVOX_SDK_LIBRARY_PATH="$LIVOX_SDK_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

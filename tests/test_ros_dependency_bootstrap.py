@@ -140,6 +140,8 @@ class RosDependencyBootstrapTests(unittest.TestCase):
                 self.assertIn(item["url"], result.stdout)
                 self.assertIn(item["commit"], result.stdout)
             self.assertIn("colcon build --symlink-install", result.stdout)
+            self.assertIn("robot_scope_xt16_bridge", result.stdout)
+            self.assertIn("xt16_bridge_ws", result.stdout)
             self.assertIn("Livox-SDK2", result.stdout)
             self.assertIn("sdk2_install", result.stdout)
             self.assertIn("cmake --install", result.stdout)

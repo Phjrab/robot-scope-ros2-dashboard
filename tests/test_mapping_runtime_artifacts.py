@@ -163,6 +163,34 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertIn("CLOCK_RESIDUAL_LIMIT_S = 0.25", source)
         self.assertIn("CONVERTED_CLOUD_MAX_AGE_S = 0.50", source)
 
+    def test_cpp_runtime_preserves_python_reference_safety_contract(self):
+        source = (
+            ROOT
+            / "ros2"
+            / "robot_scope_xt16_bridge"
+            / "src"
+            / "xt16_fastlio_bridge.cpp"
+        ).read_text(encoding="utf-8")
+        package = (
+            ROOT / "ros2" / "robot_scope_xt16_bridge" / "package.xml"
+        ).read_text(encoding="utf-8")
+        for contract in (
+            'constexpr char kRawTopic[] = "/lidar_points"',
+            'constexpr char kOutputCloudTopic[] = "/velodyne_points"',
+            'constexpr char kOutputImuTopic[] = "/imu/body"',
+            "constexpr std::size_t kCloudDecimation = 4",
+            "constexpr std::size_t kOutputPointStep = 22",
+            "constexpr double kClockResidualLimitS = 0.25",
+            "constexpr double kConvertedCloudMaxAgeS = 0.50",
+            "sample rejected without clock rebase",
+            'Node("xt16_fastlio_bridge")',
+        ):
+            self.assertIn(contract, source)
+        self.assertIn("rclcpp::KeepLast(1)).reliable().durability_volatile()", source)
+        self.assertIn("rclcpp::KeepLast(5)).best_effort().durability_volatile()", source)
+        self.assertIn("<depend>unitree_go</depend>", package)
+        self.assertNotIn("create_publisher<unitree_go", source)
+
     def test_conversion_matches_readiness_layout_and_decimates_to_bounded_output(self):
         clock = prime_clock(
             bridge.ClockOffsetTracker(), next_scan_start=1_000.0, offset=0.1
@@ -564,6 +592,7 @@ class MapRuntimeArtifactTests(unittest.TestCase):
             )
             self.assertIn("usage:", result.stdout.lower())
         for relative in (
+            "scripts/build_xt16_bridge_humble.sh",
             "scripts/run_xt16_bridge_humble.sh",
             "scripts/run_hesai_driver_humble.sh",
             "scripts/run_hesai_fastlio_humble.sh",
@@ -601,7 +630,8 @@ class MappingConfigurationArtifactTests(unittest.TestCase):
         bridge_runner = (ROOT / "scripts/run_xt16_bridge_humble.sh").read_text()
         driver_runner = (ROOT / "scripts/run_hesai_driver_humble.sh").read_text()
         fastlio_runner = (ROOT / "scripts/run_hesai_fastlio_humble.sh").read_text()
-        self.assertIn("$PROJECT_DIR/scripts/xt16_fastlio_bridge.py", bridge_runner)
+        self.assertIn("xt16_bridge_ws/install/lib/robot_scope_xt16_bridge", bridge_runner)
+        self.assertNotIn("xt16_fastlio_bridge.py", bridge_runner)
         self.assertIn("$PROJECT_DIR/config/hesai_xt16.yaml", driver_runner)
         self.assertIn('config_path:="$FASTLIO_CONFIG_PATH"', fastlio_runner)
         self.assertIn('FASTLIO_CONFIG_FILE="fastlio_xt16.yaml"', fastlio_runner)
@@ -618,6 +648,7 @@ class MappingConfigurationArtifactTests(unittest.TestCase):
         mapping = (ROOT / "scripts/start_hesai_mapping_humble.sh").read_text()
         self.assertIn("run_hesai_driver_humble.sh", preview)
         self.assertIn("run_xt16_bridge_humble.sh", preview)
+        self.assertIn('xt16_fastlio_bridge(_node|\\.py)', preview)
         self.assertNotIn("run_hesai_fastlio_humble.sh", preview)
         self.assertNotIn('stop_existing "hesai_ros_driver_node"', mapping)
         self.assertNotIn('stop_existing "xt16_fastlio_bridge.py"', mapping)

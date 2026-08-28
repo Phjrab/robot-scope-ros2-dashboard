@@ -695,9 +695,30 @@ class Doctor:
                 livox_sdk_prefix / "include" / "livox_lidar_api.h",
             ),
             (
-                "xt16.bridge",
-                "repository XT16 PointCloud bridge",
+                "xt16.bridge_reference",
+                "repository XT16 PointCloud bridge contract reference",
                 self.project_dir / "scripts" / "xt16_fastlio_bridge.py",
+            ),
+            (
+                "xt16.bridge_source",
+                "repository C++ XT16 PointCloud bridge source",
+                self.project_dir
+                / "ros2"
+                / "robot_scope_xt16_bridge"
+                / "src"
+                / "xt16_fastlio_bridge.cpp",
+            ),
+            (
+                "xt16.bridge",
+                "built repository C++ XT16 PointCloud bridge",
+                self.project_dir
+                / "workspaces"
+                / "ws"
+                / "xt16_bridge_ws"
+                / "install"
+                / "lib"
+                / "robot_scope_xt16_bridge"
+                / "robot_scope_xt16_bridge_node",
             ),
             (
                 "xt16.map_saver",

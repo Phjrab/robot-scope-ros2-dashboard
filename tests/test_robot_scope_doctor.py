@@ -332,6 +332,8 @@ class RobotScopeDoctorTests(unittest.TestCase):
             self.assertIn("xt16.livox_sdk_library", ids)
             self.assertIn("xt16.livox_sdk_header", ids)
             self.assertIn("xt16.bridge", ids)
+            self.assertIn("xt16.bridge_source", ids)
+            self.assertIn("xt16.bridge_reference", ids)
             self.assertIn("xt16.map_saver", ids)
             self.assertIn("xt16.map_converter", ids)
             self.assertNotIn("xt16.pcd2pgm_workspace", ids)

@@ -1,6 +1,6 @@
 # Repository-owned parameters verified with FAST_LIO ros2 revision
 # 2fffc570a25d0df172720bac034fbdb6a13d2162.  Input topics and frames are
-# produced only by scripts/xt16_fastlio_bridge.py.
+# produced only by the repository-owned robot_scope_xt16_bridge C++ node.
 /**:
   ros__parameters:
     feature_extract_enable: false

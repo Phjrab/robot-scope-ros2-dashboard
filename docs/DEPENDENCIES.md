@@ -84,14 +84,18 @@ runtime runner가 같은 root를 사용합니다.
 | FAST-LIO ROS 2 | `~/ws/fastlio_ws` | manifest URL/commit | 미포함 |
 | FAST-LIO XT16 config | `config/fastlio_xt16.yaml` | Robot Scope commit과 FAST-LIO pin | 포함 |
 | Livox message overlay | `~/ws/livox/ws_livox` | manifest URL/commit | 미포함 |
-| XT16 bridge | `scripts/xt16_fastlio_bridge.py` | Robot Scope commit과 테스트 결과 | 포함 |
+| XT16 bridge source | `ros2/robot_scope_xt16_bridge` | Robot Scope commit과 Jetson build/test 결과 | 포함 |
+| XT16 bridge build | `workspaces/ws/xt16_bridge_ws/install` | 해당 checkout에서 생성한 Release build | 생성물, Git 제외 |
+| XT16 Python contract reference | `scripts/xt16_fastlio_bridge.py` | byte/timestamp 회귀 테스트 | 포함, runtime 미사용 |
 | Laser map saver | `scripts/save_map.py` | Robot Scope commit과 테스트 결과 | 포함 |
 | PCD→2D converter | `scripts/convert_pcd_to_occupancy.py` | Robot Scope commit과 테스트 결과 | 포함 |
 | 로봇 모델 assets | `robot_dashboard/static/assets` | 하위 manifest와 라이선스 | 포함 |
 
 내장 bridge, saver와 converter는 핵심 매핑 기능에 필요합니다. Installer와 doctor는 현재
-checkout의 파일을 검사해야 하며 홈 디렉터리의 오래된 prototype이나 외부 `pcd2pgm`을
-우선하지 않습니다.
+checkout의 파일 및 그 checkout에서 빌드한 C++ XT16 실행 파일을 검사해야 하며 홈
+디렉터리의 오래된 prototype이나 외부 `pcd2pgm`을 우선하지 않습니다. C++ bridge만
+독립적으로 다시 빌드할 때는 `scripts/build_xt16_bridge_humble.sh`를 사용합니다. 이 명령은
+외부 Hesai/FAST-LIO source를 reset하거나 수정하지 않습니다.
 
 현재 pinned 외부 source는 다음과 같습니다. 값이 바뀌면 코드와 현장 검증을 다시
 수행하고 manifest 변경을 review해야 합니다.

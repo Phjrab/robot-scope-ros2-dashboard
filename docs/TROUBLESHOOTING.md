@@ -105,7 +105,10 @@ ros2 topic hz /Laser_map
 ros2 topic hz /Odometry
 ~~~
 
-- XT16 bridge는 저장소의 `scripts/xt16_fastlio_bridge.py`를 사용해야 합니다.
+- XT16 bridge는 저장소의 `ros2/robot_scope_xt16_bridge`를 현재 checkout에서 Release로
+  빌드한 실행 파일이어야 합니다. 실행 파일이 없으면
+  `scripts/build_xt16_bridge_humble.sh`를 실행하고, Python contract reference나 홈
+  디렉터리의 이전 prototype을 runtime으로 사용하지 않습니다.
 - Laser map 저장은 `scripts/save_map.py`, 2D 변환은
   `scripts/convert_pcd_to_occupancy.py`를 사용합니다.
 - 홈 디렉터리의 이전 prototype이 실행되고 있지 않은지 확인합니다.

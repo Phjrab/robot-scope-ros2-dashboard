@@ -307,7 +307,7 @@ def build_calibration_assistant(
             {"domains": dict(domains), "offsets_s": metrics.get("host_clock_offsets_s")},
             "cloud normalized to host ROS; controller clock checked by progression",
             "timestamp normalization contract",
-            "scripts/xt16_fastlio_bridge.py",
+            "ros2/robot_scope_xt16_bridge/src/xt16_fastlio_bridge.cpp",
             "Compare five increasing stamps with receive time; never stamp with now().",
         ),
         item(
