@@ -3,6 +3,8 @@ import { $, setStatePill } from './core/dom.js';
 import { formatHz, safeNumber } from './core/format.js';
 import { captureStickyLogScroll, scheduleStickyLogScroll } from './core/log_scroll.js';
 import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
+import { createPointcloudTransport } from './features/sensors/pointcloud_transport.js';
+import { initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
@@ -362,15 +364,8 @@ let cameraPrimarySourceId = '';
 let cameraSecondarySourceId = '';
 let cameraSlotRuntimes = null;
 let cloudSeq = -1;
-let pointcloudRequestInFlight = false;
-let pointcloudRequestGeneration = 0;
-let pointcloudSocket = null;
-let pointcloudSocketGeneration = 0;
-let pointcloudPendingFrame = null;
-let pointcloudFrameScheduled = false;
-let pointcloudReconnectTimer = 0;
 let pointcloudLastFrameAt = 0;
-let pointcloudBinaryHttpAvailable = true;
+let cockpitPointcloudSessionStartedAt = 0;
 let pointcloudStreamId = '';
 let mapSeq = -1;
 let toastTimer = null;
@@ -599,6 +594,27 @@ if (navigationScene3d) {
   });
 }
 
+const cockpitWorkspace = initializeCockpitWorkspace({
+  Renderer: window.RobotScene3D,
+  maxPoints: 10000,
+  onError: (error) => console.warn('Cockpit scene:', error),
+});
+
+const pointcloudTransport = window.RobotPointCloudStream?.decodeFrame
+  ? createPointcloudTransport({
+      decodeFrame: window.RobotPointCloudStream.decodeFrame,
+      onError: (error) => console.warn('Point-cloud transport:', error),
+    })
+  : null;
+
+pointcloudTransport?.subscribe('shared-cloud-store', applyPointcloudSnapshot);
+window.RobotScopeCockpit = Object.freeze({
+  snapshot: () => Object.freeze({
+    workspace: cockpitWorkspace?.diagnostics() || null,
+    pointcloud: pointcloudTransport?.diagnostics() || null,
+  }),
+});
+
 function activeRobotProfile() {
   const profiles = robotTypes.length ? robotTypes : (window.RobotProfiles?.normalizeTypes?.([]) || []);
   return profiles.find((profile) => profile.id === selectedRobotType) || profiles[0] || null;
@@ -695,6 +711,7 @@ function updateNavigationModelPanel({ force = false } = {}) {
 
 async function applyRobotModel(profile = activeRobotProfile()) {
   if (!profile) return;
+  cockpitWorkspace?.setProfile(profile);
   const generation = ++robotModelLoadGeneration;
   const assetUrl = String(profile.model?.asset_url || '').trim();
   const renderers = [
@@ -907,6 +924,7 @@ async function initializeRobotProfiles() {
 
 const PAGE_META = {
   overview: ['Overview', '로봇과 ROS 2 시스템의 전체 상태를 빠르게 확인합니다.'],
+  cockpit: ['Robot Cockpit', 'Go2 모델과 공용 실시간 LiDAR를 하나의 3D 작업공간에서 확인합니다.'],
   mapping: ['Live LiDAR Mapping', '실시간 점군, 로봇 자세와 매핑 파이프라인을 확인합니다.'],
   maps: ['Saved Maps', '이미 매핑된 3D PCD와 2D 점유 지도를 센서 없이 탐색합니다.'],
   sensors: ['Sensors & Camera', '카메라 스트림과 로봇 센서 값을 기능별로 확인합니다.'],
@@ -951,13 +969,24 @@ function activatePage(page, updateHash = false) {
   navigationLogFeature?.onPageChange(previousPage, activePage);
   if (activePage === 'sensors') datasetFeature?.activate();
   else datasetFeature?.deactivate();
+  if (activePage === 'cockpit' && !document.hidden) {
+    const continuousPointcloud = previousPage === 'mapping' && desiredMapView() !== 'occupancy';
+    if (previousPage !== 'cockpit' && !continuousPointcloud) cockpitPointcloudSessionStartedAt = Date.now();
+    cockpitWorkspace?.setProfile(activeRobotProfile());
+    cockpitWorkspace?.activate();
+    syncCockpitScene();
+  } else {
+    cockpitWorkspace?.deactivate();
+  }
   if (previousPage === 'sensors' && activePage !== 'sensors' && cameraRecording) {
     stopCameraRecording(cameraRecordingCleanupPolicy('sensors_page_left'));
   }
   syncPointcloudTransport();
   syncCameraTransport();
   requestAnimationFrame(() => {
-    if (activePage === 'mapping') {
+    if (activePage === 'cockpit') {
+      cockpitWorkspace?.resize();
+    } else if (activePage === 'mapping') {
       scene3d?.resize();
       liveMap2d?.resize();
       redrawActiveMap();
@@ -1083,6 +1112,29 @@ function liveSceneCloud(candidate = lastCloudSnapshot) {
   return candidate?.points?.length && isLiveCloudReady() ? candidate : null;
 }
 
+function cockpitPointcloudPresentation(now = Date.now()) {
+  const selectedTopic = selectedPointcloudTopic();
+  const frameTopic = LidarSourceIdentity.topicOf(lastCloudSnapshot);
+  const sourceMatches = !selectedTopic || !frameTopic || selectedTopic === frameTopic;
+  const result = projectCockpitPointcloud({ cloud: lastCloudSnapshot, lastFrameAt: pointcloudLastFrameAt, sessionStartedAt: cockpitPointcloudSessionStartedAt, now, sourceMatches, ready: isLiveCloudReady() });
+  if (result.freshness === 'LIVE') result.note = `${frameTopic || lastCloudSnapshot?.frame_id || 'PointCloud'} · ${Math.round(result.ageMs)} ms ago · shared transport`;
+  else if (result.freshness === 'STALE') result.note = sourceMatches ? `마지막 LiDAR 프레임 ${Math.max(1, Math.round(result.ageMs / 1000))}초 전 · cached frame은 표시하지 않습니다.` : '선택한 LiDAR 소스의 새 프레임을 기다리고 있습니다.';
+  else result.note = '실시간 LiDAR 프레임을 기다리고 있습니다.';
+  return result;
+}
+
+function syncCockpitScene() {
+  if (!cockpitWorkspace) return;
+  const presentation = cockpitPointcloudPresentation();
+  cockpitWorkspace.updatePointcloud(presentation.cloud, presentation.freshness, presentation.note);
+  cockpitWorkspace.setRobotState({
+    pose: robotRuntimeDataCompatible && poseLive ? currentPose : null,
+    trail: robotRuntimeDataCompatible ? poseTrail : [],
+    joints: robotRuntimeDataCompatible && jointLive ? renderedJointPositions : null,
+    online: poseLive || jointLive || latestState?.health?.robot_online,
+  });
+}
+
 function savedSceneCloud() {
   return offlineCloudSnapshot?.points?.length ? offlineCloudSnapshot : null;
 }
@@ -1174,9 +1226,11 @@ async function applyLivePointLimit(value, notify = true) {
     rememberPointLimit('robotScope.livePointLimit', livePointLimit);
     syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
     scene3d?.setPointLimit?.(livePointLimit);
+    cockpitWorkspace?.setPointLimit(livePointLimit);
     resetLiveCloudAccumulator();
     lastCloudSnapshot = null;
-    pointcloudRequestGeneration += 1;
+    pointcloudTransport?.reset();
+    cockpitWorkspace?.updatePointcloud(null, 'WAITING');
     cloudSeq = -1;
     sceneCloudDataKey = '';
     sceneCloudSourceKey = '';
@@ -1252,6 +1306,7 @@ async function initializePointBudgets() {
   } catch (_) {}
   syncPointBudgetControl(ui.livePointBudget, ui.livePointCustomWrap, ui.livePointCustom, livePointLimit);
   scene3d?.setPointLimit?.(livePointLimit);
+  cockpitWorkspace?.setPointLimit(livePointLimit);
 }
 
 function resetLiveCloudAccumulator() {
@@ -1261,7 +1316,8 @@ function resetLiveCloudAccumulator() {
 function resetLiveRobotSessionView() {
   resetLiveCloudAccumulator();
   lastCloudSnapshot = null;
-  pointcloudRequestGeneration += 1;
+  pointcloudTransport?.reset();
+  cockpitWorkspace?.updatePointcloud(null, 'WAITING');
   cloudSeq = -1;
   poseTrail = [];
   sceneCloudDataKey = '';
@@ -2303,6 +2359,7 @@ function clearLivePose() {
     scene3d?.setRobotPose(null);
     liveMap2d?.setPose(null);
   }
+  if (activePage === 'cockpit') syncCockpitScene();
 }
 
 function animateRobot(timestamp) {
@@ -2347,6 +2404,8 @@ function animateRobot(timestamp) {
     liveMap2d?.setTrail(robotRuntimeDataCompatible ? poseTrail : []);
   } else if (activePage === 'navigation' && robotRuntimeDataCompatible && robotModelsReady && !robotModelsFailed && selectedRobotType === 'go2' && jointLive && renderedJointPositions) {
     navigationScene3d?.setRobotJointPositions?.(renderedJointPositions);
+  } else if (activePage === 'cockpit') {
+    syncCockpitScene();
   }
 }
 
@@ -2630,6 +2689,7 @@ async function refreshState() {
     if (generation !== stateRequestGeneration) return null;
     latestState = state;
     updateOverview(state);
+    if (activePage === 'cockpit') syncCockpitScene();
     if (activePage === 'mapping') redrawActiveMap();
     if (activePage === 'maps') redrawSavedMap();
     return state;
@@ -2640,6 +2700,7 @@ async function refreshState() {
     ui.connectionLabel.textContent = '에이전트 연결 끊김';
     renderOverviewUnavailable('에이전트 연결 끊김');
     renderLidarSourceIdentity('STALE');
+    if (activePage === 'cockpit') syncCockpitScene();
     ui.lastUpdated.textContent = `Last update failed · ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`;
     if (scene3d) scene3d.setStatus({ online: false, lidarOnline: false, message: '에이전트 연결이 끊겼습니다' });
     return null;
@@ -2861,8 +2922,12 @@ function resizeCanvas(canvas) {
   return { width, height, ratio };
 }
 
+function pointcloudDemandConsumers() {
+  return pointcloudTransportWanted() ? [activePage] : [];
+}
+
 function pointcloudTransportWanted() {
-  return activePage === 'mapping' && !document.hidden && desiredMapView() !== 'occupancy';
+  return !document.hidden && (activePage === 'cockpit' || (activePage === 'mapping' && desiredMapView() !== 'occupancy'));
 }
 
 function resetPointcloudStream(streamId = '') {
@@ -2877,6 +2942,8 @@ function resetPointcloudStream(streamId = '') {
   liveMap2dSourceKey = '';
   scene3d?.clearPointCloud();
   liveMap2d?.clearPointCloud();
+  pointcloudTransport?.reset(pointcloudStreamId);
+  cockpitWorkspace?.updatePointcloud(null, 'WAITING');
 }
 
 function applyPointcloudSnapshot(cloud) {
@@ -2897,108 +2964,23 @@ function applyPointcloudSnapshot(cloud) {
     if (view === 'cloud') drawPointcloud(lastCloudSnapshot);
     else if (view === 'projection') drawLivePointProjection(lastCloudSnapshot);
   }
+  syncCockpitScene();
   return true;
 }
 
-function drainPointcloudFrame() {
-  pointcloudFrameScheduled = false;
-  const pending = pointcloudPendingFrame;
-  pointcloudPendingFrame = null;
-  if (pending && pending.generation === pointcloudSocketGeneration && pointcloudTransportWanted()) {
-    try {
-      applyPointcloudSnapshot(window.RobotPointCloudStream.decodeFrame(pending.buffer));
-    } catch (error) {
-      console.warn('point-cloud stream:', error);
-    }
-  }
-  if (pointcloudPendingFrame && !pointcloudFrameScheduled) {
-    pointcloudFrameScheduled = true;
-    requestAnimationFrame(drainPointcloudFrame);
-  }
-}
-
-function queuePointcloudFrame(buffer, generation) {
-  pointcloudPendingFrame = { buffer, generation };
-  if (pointcloudFrameScheduled) return;
-  pointcloudFrameScheduled = true;
-  requestAnimationFrame(drainPointcloudFrame);
-}
-
 function disconnectPointcloud() {
-  pointcloudRequestGeneration += 1;
-  pointcloudSocketGeneration += 1;
-  clearTimeout(pointcloudReconnectTimer);
-  pointcloudReconnectTimer = 0;
-  pointcloudPendingFrame = null;
-  const socket = pointcloudSocket;
-  pointcloudSocket = null;
-  if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) socket.close(1000, 'mapping view inactive');
-}
-
-function connectPointcloud() {
-  if (!pointcloudTransportWanted() || !window.RobotPointCloudStream?.decodeFrame) return;
-  if (pointcloudSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(pointcloudSocket.readyState)) return;
-  const generation = ++pointcloudSocketGeneration;
-  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const socket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/pointcloud`);
-  pointcloudSocket = socket;
-  socket.binaryType = 'arraybuffer';
-  socket.onmessage = (event) => {
-    if (pointcloudSocket !== socket || generation !== pointcloudSocketGeneration || !(event.data instanceof ArrayBuffer)) return;
-    queuePointcloudFrame(event.data, generation);
-  };
-  socket.onclose = () => {
-    if (pointcloudSocket !== socket || generation !== pointcloudSocketGeneration) return;
-    pointcloudSocket = null;
-    if (pointcloudTransportWanted()) {
-      pointcloudReconnectTimer = setTimeout(() => {
-        pointcloudReconnectTimer = 0;
-        connectPointcloud();
-      }, 1200);
-    }
-  };
-  socket.onerror = () => socket.close();
+  pointcloudTransport?.replaceDemand([]);
 }
 
 function syncPointcloudTransport() {
-  if (pointcloudTransportWanted()) connectPointcloud();
-  else disconnectPointcloud();
-}
-
-async function latestBinaryPointcloud(seq) {
-  const response = await fetch(`/api/v1/pointcloud.bin?since=${encodeURIComponent(seq)}`, { cache: 'no-store' });
-  if (response.status === 204) return null;
-  if (response.status === 404 || response.status === 415) {
-    pointcloudBinaryHttpAvailable = false;
-    return latestApi('/api/v1/pointcloud', seq);
-  }
-  if (!response.ok) throw new Error(String(response.status));
-  return window.RobotPointCloudStream.decodeFrame(await response.arrayBuffer());
+  pointcloudTransport?.replaceDemand(pointcloudDemandConsumers());
 }
 
 async function refreshPointcloud() {
-  if (!pointcloudTransportWanted()) return;
-  if (pointcloudSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(pointcloudSocket.readyState)) return;
-  if (pointcloudRequestInFlight) return;
-  pointcloudRequestInFlight = true;
-  const generation = pointcloudRequestGeneration;
-  try {
-    const cloud = pointcloudBinaryHttpAvailable && window.RobotPointCloudStream?.decodeFrame
-      ? await latestBinaryPointcloud(cloudSeq)
-      : await latestApi('/api/v1/pointcloud', cloudSeq);
-    if (generation !== pointcloudRequestGeneration) return;
-    if (!cloud?.seq || !cloud.points?.length) {
-      if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
-      else if (activePage === 'mapping' && desiredMapView() === 'projection') drawLivePointProjection(lastCloudSnapshot);
-      return;
-    }
-    applyPointcloudSnapshot(cloud);
-  } catch (_) {
-    if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(null);
-    else if (activePage === 'mapping' && desiredMapView() === 'projection') drawLivePointProjection(null);
-  } finally {
-    pointcloudRequestInFlight = false;
-  }
+  await pointcloudTransport?.poll();
+  if (activePage === 'mapping' && desiredMapView() === 'cloud') drawPointcloud(lastCloudSnapshot);
+  else if (activePage === 'mapping' && desiredMapView() === 'projection') drawLivePointProjection(lastCloudSnapshot);
+  if (activePage === 'cockpit') syncCockpitScene();
 }
 
 async function loadOfflinePointcloud() {
@@ -6598,7 +6580,8 @@ ui.cloudSource.addEventListener('change', () => {
   if (ui.cloudSource.value) chooseMapView('cloud');
   resetLiveCloudAccumulator();
   lastCloudSnapshot = null;
-  pointcloudRequestGeneration += 1;
+  pointcloudTransport?.reset();
+  cockpitWorkspace?.updatePointcloud(null, 'WAITING');
   cloudSeq = -1;
   renderLidarSourceIdentity('WAITING');
   selectSource('pointcloud', ui.cloudSource.value);
@@ -6788,22 +6771,35 @@ window.addEventListener('blur', () => {
   if (controlLeaseId) failSafeDisarm('window_blurred');
 });
 document.addEventListener('visibilitychange', () => {
+  syncPointcloudTransport();
   if (document.hidden) {
     if (controlArmBusy) invalidatePendingArm();
     if (controlLeaseId) failSafeDisarm('document_hidden');
     if (cameraRecording) stopCameraRecording(cameraRecordingCleanupPolicy('visibility_hidden'));
+    cockpitWorkspace?.deactivate();
+  } else if (activePage === 'cockpit') {
+    cockpitPointcloudSessionStartedAt = Date.now();
+    cockpitWorkspace?.activate();
+    syncCockpitScene();
   }
-  syncPointcloudTransport();
   syncCameraTransport();
 });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('page_hidden');
   disconnectPointcloud();
+  cockpitWorkspace?.deactivate();
   disconnectCamera();
   discardCameraRecordingForPageHide();
 });
 window.addEventListener('pageshow', () => {
+  if (activePage === 'cockpit' && !document.hidden) {
+    cockpitPointcloudSessionStartedAt = Date.now();
+    cockpitWorkspace?.activate();
+    syncCockpitScene();
+  }
+  syncPointcloudTransport();
+  syncCameraTransport();
 });
 window.addEventListener('beforeunload', (event) => {
   if (!editorHasUnsavedChanges() && !mapAnnotationFeature?.hasDirty()) return;
@@ -6812,6 +6808,7 @@ window.addEventListener('beforeunload', (event) => {
 });
 window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
+  if (activePage === 'cockpit') cockpitWorkspace?.resize();
   if (activePage === 'mapping') redrawActiveMap();
   if (activePage === 'maps') { redrawSavedMap(); drawMapEditor(); }
   if (activePage === 'navigation') {

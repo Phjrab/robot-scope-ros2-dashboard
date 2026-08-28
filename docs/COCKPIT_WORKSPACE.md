@@ -5,8 +5,19 @@
 구현하는 CWP-01 이후에는 이 문서와 실제 코드가 다르면 차이를 먼저 기록하고
 소유권을 다시 확인해야 한다.
 
-이 단계는 문서만 추가한다. Cockpit route, panel, transport 또는 robot runtime의
-동작은 변경하지 않는다. 코드로 확인하지 못한 내용은 **확인 필요**로 표시한다.
+CWP-00 단계에서는 문서만 추가했다. 코드로 확인하지 못한 내용은 **확인 필요**로
+표시한다.
+
+### CWP-01 구현 기록
+
+CWP-01에서 `#cockpit` route와 namespaced base workspace를 추가했다. Cockpit
+`SceneHost`는 route가 보일 때만 `RobotScene3D`를 만들고 이탈, document hidden,
+pagehide 시 `destroy()`한다. Go2 official-derived asset, 기존 pose/joint snapshot과
+하나의 누적 PointCloud snapshot을 재사용한다. 기존 PointCloud WS/HTTP fallback은
+`static/features/sensors/pointcloud_transport.js`의 단일 owner로 이동했으며 Mapping과
+Cockpit route demand를 원자적으로 교체한다. 이전 transport session의 cached frame은
+Cockpit에서 `LIVE`로 표시하지 않는다. Safety HUD와 sensor launcher는 계층만 예약한
+비동작 placeholder이고 panel, control, camera 기능은 아직 추가하지 않았다.
 
 ## 1. 제품 목적과 비목표
 
@@ -51,15 +62,17 @@ DOM, formatting, sticky log scroll은 `static/core/`에 있고, 추출된 기능
 joint positions, axes와 camera view를 renderer 인스턴스가 소유한다. `render()`는
 중복 rAF를 coalesce하고 `destroy()`는 rAF, control binding, ResizeObserver와
 pointer/wheel listener를 정리한다. 현재 앱은 Live Mapping, Saved Maps,
-Navigation model용 인스턴스 세 개를 만든다. 별도로 `animateRobot()`은 앱이
+Navigation model용 인스턴스 세 개와 route 활성 중에만 존재하는 Cockpit 인스턴스를
+만든다. 별도로 `animateRobot()`은 앱이
 열린 동안 계속 rAF를 예약하고 활성 page에만 scene update를 적용한다.
 
-현재 `app.js`가 PointCloud WebSocket과 HTTP fallback을 직접 소유한다.
-PointCloud는 `mapping` page가 보이고 문서가 visible이며 occupancy view가 아닐
-때만 필요하다. socket generation, request generation과 최신-frame rAF queue로
-늦은 결과를 거부한다. `pointcloud_stream.js`는 transport를 소유하지 않고,
-bounded binary decoder와 최대 1,000,000점의 `RegisteredCloudReservoir`를
-제공한다.
+현재 `pointcloud_transport.js`가 PointCloud WebSocket과 HTTP fallback을 하나만
+소유한다. PointCloud는 `mapping`의 non-occupancy view 또는 `cockpit` route가 보이고
+문서가 visible일 때만 필요하다. consumer demand 교체, connection/request generation과
+최신-frame rAF queue로 늦은 결과를 거부한다. `pointcloud_stream.js`는 transport를
+소유하지 않고 bounded binary decoder와 최대 1,000,000점의
+`RegisteredCloudReservoir`를 제공하며, 누적 snapshot은 계속 `app.js` 한 곳에서
+만든 뒤 활성 scene에 전달한다.
 
 현재 camera UI도 `app.js`가 primary/secondary slot별 socket, decoder, reconnect
 generation과 최신-frame decode queue를 소유한다. Sensors page가 visible할

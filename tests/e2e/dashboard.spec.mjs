@@ -34,6 +34,43 @@ test('camera and pointcloud reconnect, then release transports on page switch', 
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(1);
 });
 
+test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await expect(page.locator('#cockpitWorkspace')).toBeVisible();
+  await expect(page.locator('#cockpitSceneCanvas')).toBeVisible();
+  await expect(page.locator('#cockpitPointcloudStatus')).toHaveText('WAITING');
+  await expect.poll(() => backend.state.wsConnections.pointcloud).toBe(1);
+
+  await page.setViewportSize({ width: 1180, height: 760 });
+  const canvasSize = await page.locator('#cockpitSceneCanvas').evaluate((canvas) => ({
+    clientWidth: canvas.clientWidth,
+    clientHeight: canvas.clientHeight,
+    width: canvas.width,
+    height: canvas.height,
+  }));
+  expect(canvasSize.clientWidth).toBeGreaterThan(0);
+  expect(canvasSize.clientHeight).toBeGreaterThan(0);
+  expect(canvasSize.width).toBeGreaterThan(0);
+  expect(canvasSize.height).toBeGreaterThan(0);
+
+  for (let index = 0; index < 20; index += 1) {
+    await page.locator('[data-nav="overview"]').click();
+    await expect(page.locator('#cockpitWorkspace')).toBeHidden();
+    await page.locator('[data-nav="cockpit"]').click();
+    await expect(page.locator('#cockpitWorkspace')).toBeVisible();
+  }
+
+  const cockpit = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  expect(cockpit.workspace.active).toBe(true);
+  expect(cockpit.workspace.scene.rendererCount).toBe(1);
+  expect(cockpit.workspace.scene.peakRenderers).toBe(1);
+  expect(cockpit.workspace.scene.starts - cockpit.workspace.scene.stops).toBe(1);
+  expect(cockpit.pointcloud.activeConsumers).toEqual(['cockpit']);
+  expect(cockpit.pointcloud.connected).toBe(true);
+  await expect.poll(() => backend.state.wsConnections.pointcloud).toBe(21);
+  await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(20);
+});
+
 test('mapping start, save and stop preserve one mutation per operator action', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'mapping');
   await expect(page.locator('#mappingStartButton')).toBeEnabled();

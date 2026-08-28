@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#07100f">
   <title>Robot Scope</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/features/cockpit/cockpit.css">
 </head>
 <body>
   <div class="ambient ambient-a"></div>
@@ -32,6 +33,7 @@
       <nav class="app-nav" aria-label="Robot Scope 기능 메뉴">
         <div class="eyebrow">WORKSPACE</div>
         <a class="nav-item is-active" href="#overview" data-nav="overview"><i>01</i><span><b>Overview</b><small>전체 연결 상태</small></span></a>
+        <a class="nav-item" href="#cockpit" data-nav="cockpit"><i>CX</i><span><b>Cockpit</b><small>Go2 · Live LiDAR</small></span></a>
         <a class="nav-item" href="#mapping" data-nav="mapping"><i>02</i><span><b>Live Mapping</b><small>실시간 LiDAR</small></span></a>
         <a class="nav-item" href="#maps" data-nav="maps"><i>03</i><span><b>Saved Maps</b><small>저장 지도 보기</small></span></a>
         <a class="nav-item" href="#sensors" data-nav="sensors"><i>04</i><span><b>Sensors</b><small>카메라·텔레메트리</small></span></a>
@@ -72,6 +74,35 @@
           <a href="#controls" class="route-card control-route-card"><span>ARM REQUIRED</span><strong>Robot Controls</strong><small>키보드·게임패드 주행과 서버가 허용한 Go2 모션을 실행합니다.</small><b>열기 →</b></a>
           <a href="#navigation" class="route-card navigation-route-card"><span>NAV2</span><strong>Autonomous Navigation</strong><small>정적 지도에서 초기 위치와 목표를 지정하고 Nav2 상태를 추적합니다.</small><b>열기 →</b></a>
         </section>
+      </section>
+
+      <section class="page-view cockpit-page" data-page="cockpit" hidden>
+        <div class="cockpit-workspace" id="cockpitWorkspace" data-lifecycle="inactive" data-freshness="waiting">
+          <div class="cockpit-scene-layer">
+            <canvas id="cockpitSceneCanvas" aria-label="Cockpit Go2 및 실시간 LiDAR 3D 장면"></canvas>
+          </div>
+          <div class="cockpit-overlay-layer">
+            <div class="cockpit-scene-controls" aria-label="Cockpit 3D 시점 제어">
+              <button id="cockpitSceneReset" type="button">ISO</button>
+              <button id="cockpitSceneTop" type="button">TOP</button>
+              <button id="cockpitSceneFront" type="button">FRONT</button>
+              <button id="cockpitSceneFollow" type="button" aria-pressed="false">WORLD</button>
+              <button id="cockpitSceneAxes" type="button" aria-pressed="true" title="XYZ 축 숨기기">XYZ</button>
+            </div>
+            <div class="cockpit-scene-readout" role="status" aria-live="polite">
+              <span class="cockpit-status cockpit-status-waiting" id="cockpitPointcloudStatus">WAITING</span>
+              <strong id="cockpitModelState">ROBOT MODEL · WAITING</strong>
+              <small id="cockpitPointcloudNote">실시간 LiDAR 프레임을 기다리고 있습니다.</small>
+            </div>
+          </div>
+          <div class="cockpit-panel-layer" aria-hidden="true"></div>
+          <aside class="cockpit-launcher-placeholder" aria-label="향후 센서 패널 런처 자리">
+            <strong>SENSOR LAUNCHER</strong><span>PLACEHOLDER · CWP-03 이후</span>
+          </aside>
+          <aside class="cockpit-safety-placeholder" aria-label="향후 고정 Safety HUD 자리">
+            <strong>SAFETY HUD RESERVED</strong><span>PLACEHOLDER · 기존 Controls가 현재 제어 권한의 기준입니다.</span>
+          </aside>
+        </div>
       </section>
 
       <section class="page-view" data-page="mapping" hidden>
