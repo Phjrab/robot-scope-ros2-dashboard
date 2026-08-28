@@ -29,6 +29,111 @@
 .cockpit-overlay-layer { z-index: var(--cockpit-overlay-z); pointer-events: none; }
 .cockpit-panel-layer { z-index: var(--cockpit-panel-z); pointer-events: none; }
 
+.cockpit-floating-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid rgba(117, 255, 220, 0.3);
+  border-radius: 12px;
+  color: #d9fff6;
+  background: rgba(5, 18, 16, 0.94);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  will-change: transform;
+}
+
+.cockpit-floating-panel:focus-within,
+.cockpit-floating-panel:hover { border-color: rgba(88, 255, 207, 0.58); }
+.cockpit-floating-panel.is-pinned { box-shadow: 0 0 0 1px rgba(255, 211, 106, 0.45), 0 18px 46px rgba(0, 0, 0, 0.38); }
+
+.cockpit-panel-titlebar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  gap: 10px;
+  padding: 8px 9px 8px 13px;
+  border-bottom: 1px solid rgba(114, 207, 187, 0.14);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.cockpit-panel-titlebar:active { cursor: grabbing; }
+.cockpit-floating-panel.is-locked .cockpit-panel-titlebar { cursor: default; }
+
+.cockpit-panel-identity { min-width: 0; }
+.cockpit-panel-identity span { display: block; overflow: hidden; color: #6caaa0; font-size: 9px; font-weight: 800; letter-spacing: 0.11em; text-overflow: ellipsis; white-space: nowrap; }
+.cockpit-panel-identity h2 { overflow: hidden; margin: 3px 0 0; font-size: 13px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+
+.cockpit-panel-actions { display: flex; flex: 0 0 auto; gap: 3px; }
+.cockpit-panel-actions button,
+.cockpit-placeholder-open-controls button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 7px;
+  border: 1px solid rgba(126, 210, 191, 0.18);
+  border-radius: 6px;
+  color: #94bdb4;
+  background: rgba(1, 10, 9, 0.6);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.cockpit-panel-actions button:hover,
+.cockpit-panel-actions button:focus-visible,
+.cockpit-placeholder-open-controls button:hover,
+.cockpit-placeholder-open-controls button:focus-visible { border-color: rgba(79, 255, 207, 0.6); color: #d9fff6; outline: none; }
+.cockpit-panel-actions button[aria-pressed="true"] { border-color: rgba(255, 211, 106, 0.55); color: #ffd36a; }
+.cockpit-panel-actions button[data-panel-action="close"] { color: #ffab91; }
+
+.cockpit-panel-content {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.cockpit-placeholder-content { display: grid; align-content: center; min-height: 100%; gap: 8px; padding: 20px; }
+.cockpit-placeholder-content span { color: #5dffbc; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; }
+.cockpit-placeholder-content strong { font-size: 17px; }
+.cockpit-placeholder-content p { margin: 0; color: #91aaa5; font-size: 12px; line-height: 1.55; }
+.cockpit-placeholder-content small { color: #ffcf73; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; }
+
+.cockpit-floating-panel.is-compact { grid-template-rows: 1fr; }
+.cockpit-floating-panel.is-compact .cockpit-panel-content,
+.cockpit-floating-panel.is-compact .cockpit-panel-resize { display: none; }
+.cockpit-floating-panel.is-compact .cockpit-panel-titlebar { border-bottom: 0; }
+
+.cockpit-panel-resize { position: absolute; z-index: 3; touch-action: none; }
+.cockpit-panel-resize-n,
+.cockpit-panel-resize-s { left: 12px; right: 12px; height: 10px; cursor: ns-resize; }
+.cockpit-panel-resize-n { top: -4px; }
+.cockpit-panel-resize-s { bottom: -4px; }
+.cockpit-panel-resize-e,
+.cockpit-panel-resize-w { top: 12px; bottom: 12px; width: 10px; cursor: ew-resize; }
+.cockpit-panel-resize-e { right: -4px; }
+.cockpit-panel-resize-w { left: -4px; }
+.cockpit-panel-resize-ne,
+.cockpit-panel-resize-nw,
+.cockpit-panel-resize-se,
+.cockpit-panel-resize-sw { width: 16px; height: 16px; }
+.cockpit-panel-resize-ne { top: -4px; right: -4px; cursor: nesw-resize; }
+.cockpit-panel-resize-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+.cockpit-panel-resize-se { right: -4px; bottom: -4px; cursor: nwse-resize; }
+.cockpit-panel-resize-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+.cockpit-floating-panel.is-focus .cockpit-panel-resize,
+.cockpit-floating-panel.is-locked .cockpit-panel-resize { display: none; }
+
 #cockpitSceneCanvas {
   display: block;
   width: 100%;
@@ -115,7 +220,11 @@
   z-index: var(--cockpit-launcher-z);
   left: 18px;
   bottom: 18px;
+  pointer-events: auto;
 }
+
+.cockpit-placeholder-open-controls { display: flex; gap: 4px; }
+.cockpit-placeholder-open-controls button { min-height: 26px; }
 
 .cockpit-safety-placeholder {
   z-index: var(--cockpit-hud-z);
@@ -133,4 +242,9 @@
   .cockpit-scene-readout small { text-align: left; }
   .cockpit-safety-placeholder { left: 18px; text-align: left; }
   .cockpit-launcher-placeholder { bottom: 86px; }
+  .cockpit-panel-actions button { min-width: 28px; padding: 0 5px; }
+  .cockpit-panel-actions button[data-panel-action="pin"],
+  .cockpit-panel-actions button[data-panel-action="lock"] { font-size: 0; }
+  .cockpit-panel-actions button[data-panel-action="pin"]::after { content: "P"; font-size: 9px; }
+  .cockpit-panel-actions button[data-panel-action="lock"]::after { content: "L"; font-size: 9px; }
 }

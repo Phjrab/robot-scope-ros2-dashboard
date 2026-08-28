@@ -1,4 +1,6 @@
 import { createCockpitSceneHost } from './scene_host.js';
+import { createPanelManager } from './panel_manager.js';
+import { createPanelRegistry } from './panel_registry.js';
 
 export function projectCockpitPointcloud(options = {}) {
   const cloud = options.cloud?.offline_snapshot ? null : options.cloud;
@@ -25,6 +27,20 @@ export function createCockpitWorkspace(options = {}) {
   const modelElement = options.modelElement;
   let active = false;
   let destroyed = false;
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document }) : null;
+  const panelManager = panelRegistry ? createPanelManager({
+    host: options.panelLayer,
+    registry: panelRegistry,
+    document: options.document,
+    onError: options.onError,
+  }) : null;
+
+  function handlePanelOpen(event) {
+    const button = event.target.closest('[data-open-placeholder-panel]');
+    if (!button || !root.contains(button)) return;
+    panelManager?.openPanel(button.dataset.openPlaceholderPanel);
+  }
+  root.addEventListener('click', handlePanelOpen);
 
   function setFreshness(freshness, note = '') {
     const state = ['LIVE', 'STALE'].includes(freshness) ? freshness : 'WAITING';
@@ -56,6 +72,7 @@ export function createCockpitWorkspace(options = {}) {
     active = true;
     root.dataset.lifecycle = 'active';
     sceneHost.activate();
+    panelManager?.activate();
     return diagnostics();
   }
 
@@ -63,6 +80,7 @@ export function createCockpitWorkspace(options = {}) {
     if (!active) return diagnostics();
     active = false;
     root.dataset.lifecycle = 'inactive';
+    panelManager?.deactivate('workspace_inactive');
     sceneHost.deactivate();
     return diagnostics();
   }
@@ -81,7 +99,10 @@ export function createCockpitWorkspace(options = {}) {
   }
 
   function resize() {
-    if (active) sceneHost.resize();
+    if (active) {
+      sceneHost.resize();
+      panelManager?.recoverViewport();
+    }
   }
 
   function setPointLimit(value) {
@@ -89,12 +110,14 @@ export function createCockpitWorkspace(options = {}) {
   }
 
   function diagnostics() {
-    return Object.freeze({ active, destroyed, scene: sceneHost.diagnostics() });
+    return Object.freeze({ active, destroyed, scene: sceneHost.diagnostics(), panels: panelManager?.diagnostics() || null });
   }
 
   function destroy() {
     if (destroyed) return;
     deactivate();
+    root.removeEventListener('click', handlePanelOpen);
+    panelManager?.destroy();
     sceneHost.destroy();
     destroyed = true;
     root.dataset.lifecycle = 'destroyed';
@@ -126,6 +149,8 @@ export function initializeCockpitWorkspace(options = {}) {
     statusElement: documentValue.querySelector('#cockpitPointcloudStatus'),
     statusNote: documentValue.querySelector('#cockpitPointcloudNote'),
     modelElement: documentValue.querySelector('#cockpitModelState'),
+    panelLayer: documentValue.querySelector('#cockpitPanelLayer'),
+    document: documentValue,
     controls: {
       reset: documentValue.querySelector('#cockpitSceneReset'),
       top: documentValue.querySelector('#cockpitSceneTop'),

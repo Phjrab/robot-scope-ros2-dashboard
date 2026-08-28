@@ -19,6 +19,23 @@ Cockpit route demand를 원자적으로 교체한다. 이전 transport session�
 Cockpit에서 `LIVE`로 표시하지 않는다. Safety HUD와 sensor launcher는 계층만 예약한
 비동작 placeholder이고 panel, control, camera 기능은 아직 추가하지 않았다.
 
+### CWP-02 구현 기록
+
+CWP-02에서 sensor와 무관한 범용 Floating Panel Manager를 추가했다. runtime state는
+`id`, `panelType`, `title`, `mode`, `x/y/width/height`, bounded `zIndex`, `pinned`,
+`locked`, `visible`, `restoreGeometry`만 투영한다. `panel_geometry.js`는 DOM 없이
+clamp, edge/corner resize, compact/focus 전환과 exact restore, viewport recovery,
+1~24 범위의 결정적 z-order 정규화를 담당한다. `panel_view.js`는 text-only DOM,
+접근 가능한 action button, pointer capture 경계를 담당하고 `panel_manager.js`가
+rAF-coalesced interaction과 content lifecycle을 소유한다.
+
+현재 등록된 세 content는 명시적인 `mount/activate/deactivate/destroy` hook을 가진
+데이터 비연결 placeholder다. Cockpit 이탈·document hidden·close 시 lifecycle과
+진행 중 pointer capture를 정리한다. Panel layer 자체가 launcher 및 Safety HUD보다
+낮은 stacking context에 있어 내부 z-index로 HUD 위에 올라갈 수 없다. 닫은
+placeholder를 다시 여는 작은 임시 control만 제공하며, 실제 Sensor Launcher,
+Snap, Dock, localStorage와 sensor/control 연결은 CWP-03 이후 범위로 남겼다.
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,

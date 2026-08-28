@@ -95,9 +95,15 @@
               <small id="cockpitPointcloudNote">실시간 LiDAR 프레임을 기다리고 있습니다.</small>
             </div>
           </div>
-          <div class="cockpit-panel-layer" aria-hidden="true"></div>
-          <aside class="cockpit-launcher-placeholder" aria-label="향후 센서 패널 런처 자리">
-            <strong>SENSOR LAUNCHER</strong><span>PLACEHOLDER · CWP-03 이후</span>
+          <div class="cockpit-panel-layer" id="cockpitPanelLayer" aria-label="Cockpit floating placeholder panels"></div>
+          <aside class="cockpit-launcher-placeholder" aria-label="Placeholder panel 다시 열기">
+            <strong>PLACEHOLDER PANELS</strong>
+            <div class="cockpit-placeholder-open-controls">
+              <button type="button" data-open-placeholder-panel="placeholder.telemetry">TELEMETRY</button>
+              <button type="button" data-open-placeholder-panel="placeholder.spatial">SPATIAL</button>
+              <button type="button" data-open-placeholder-panel="placeholder.mission">MISSION</button>
+            </div>
+            <span>임시 open controls · Sensor Launcher는 CWP-03</span>
           </aside>
           <aside class="cockpit-safety-placeholder" aria-label="향후 고정 Safety HUD 자리">
             <strong>SAFETY HUD RESERVED</strong><span>PLACEHOLDER · 기존 Controls가 현재 제어 권한의 기준입니다.</span>

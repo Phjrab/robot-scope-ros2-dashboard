@@ -34,6 +34,12 @@ export function createCockpitSceneHost(options = {}) {
   let pointLimit = options.maxPoints ?? 10000;
 
   function diagnostics() {
+    const camera = renderer?.camera ? Object.freeze({
+      target: Object.freeze(renderer.camera.target.slice()),
+      distance: renderer.camera.distance,
+      yaw: renderer.camera.yaw,
+      pitch: renderer.camera.pitch,
+    }) : null;
     return Object.freeze({
       active,
       destroyed,
@@ -44,6 +50,7 @@ export function createCockpitSceneHost(options = {}) {
       peakRenderers,
       freshness,
       modelState,
+      camera,
     });
   }
 

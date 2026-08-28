@@ -71,6 +71,94 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(20);
 });
 
+test('Cockpit placeholder panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
+  await openDashboard(page, {}, 'cockpit');
+  const panels = page.locator('.cockpit-floating-panel:not([hidden])');
+  await expect(panels).toHaveCount(3);
+  const telemetry = page.locator('[data-panel-id="placeholder-telemetry"]');
+  const spatial = page.locator('[data-panel-id="placeholder-spatial"]');
+  const mission = page.locator('[data-panel-id="placeholder-mission"]');
+
+  const beforeDrag = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  const telemetryBefore = beforeDrag.workspace.panels.panels.find((panel) => panel.id === 'placeholder-telemetry');
+  const titlebar = telemetry.locator('.cockpit-panel-titlebar');
+  const titleBox = await titlebar.boundingBox();
+  await page.mouse.move(titleBox.x + 25, titleBox.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(titleBox.x + 125, titleBox.y + 85, { steps: 4 });
+  await page.mouse.up();
+  const afterDrag = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  const telemetryAfter = afterDrag.workspace.panels.panels.find((panel) => panel.id === 'placeholder-telemetry');
+  expect(telemetryAfter.x).toBeGreaterThan(telemetryBefore.x);
+  expect(telemetryAfter.y).toBeGreaterThan(telemetryBefore.y);
+  expect(afterDrag.workspace.scene.camera).toEqual(beforeDrag.workspace.scene.camera);
+  expect(telemetryAfter.zIndex).toBe(Math.max(...afterDrag.workspace.panels.panels.filter((panel) => panel.visible).map((panel) => panel.zIndex)));
+
+  const spatialBefore = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-spatial');
+  const resizeHandle = spatial.locator('[data-panel-resize="se"]');
+  const resizeBox = await resizeHandle.boundingBox();
+  await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(resizeBox.x + 90, resizeBox.y + 70, { steps: 3 });
+  await page.mouse.up();
+  const spatialAfter = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-spatial');
+  expect(spatialAfter.width).toBeGreaterThan(spatialBefore.width);
+  expect(spatialAfter.height).toBeGreaterThan(spatialBefore.height);
+
+  await spatial.locator('[data-panel-action="pin"]').click();
+  await expect(spatial.locator('[data-panel-action="pin"]')).toHaveAttribute('aria-pressed', 'true');
+  await spatial.locator('[data-panel-action="lock"]').click();
+  const lockedBefore = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-spatial');
+  const lockedTitleBox = await spatial.locator('.cockpit-panel-titlebar').boundingBox();
+  await page.mouse.move(lockedTitleBox.x + 20, lockedTitleBox.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(lockedTitleBox.x + 120, lockedTitleBox.y + 80);
+  await page.mouse.up();
+  const lockedAfter = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-spatial');
+  expect({ x: lockedAfter.x, y: lockedAfter.y }).toEqual({ x: lockedBefore.x, y: lockedBefore.y });
+
+  const missionBeforeCompact = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-mission');
+  await mission.locator('[data-panel-action="compact"]').click();
+  await expect(mission).toHaveAttribute('data-mode', 'compact');
+  await mission.locator('[data-panel-action="compact"]').click();
+  const missionBeforeFocus = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-mission');
+  expect({ x: missionBeforeFocus.x, y: missionBeforeFocus.y, width: missionBeforeFocus.width, height: missionBeforeFocus.height }).toEqual({
+    x: missionBeforeCompact.x, y: missionBeforeCompact.y, width: missionBeforeCompact.width, height: missionBeforeCompact.height,
+  });
+  await mission.locator('[data-panel-action="focus"]').click();
+  await expect(mission).toHaveAttribute('data-mode', 'focus');
+  await mission.locator('[data-panel-action="focus"]').click();
+  const missionRestored = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-mission');
+  expect({ x: missionRestored.x, y: missionRestored.y, width: missionRestored.width, height: missionRestored.height }).toEqual({
+    x: missionBeforeFocus.x, y: missionBeforeFocus.y, width: missionBeforeFocus.width, height: missionBeforeFocus.height,
+  });
+
+  await page.locator('[data-open-placeholder-panel="placeholder.telemetry"]').click();
+  await telemetry.locator('[data-panel-action="close"]').click();
+  await expect(panels).toHaveCount(2);
+  await page.locator('[data-open-placeholder-panel="placeholder.telemetry"]').click();
+  await expect(panels).toHaveCount(3);
+
+  await page.setViewportSize({ width: 720, height: 640 });
+  await expect.poll(() => page.evaluate(() => {
+    const layer = document.querySelector('#cockpitPanelLayer');
+    return window.RobotScopeCockpit.snapshot().workspace.panels.panels.filter((panel) => panel.visible).every((panel) =>
+      panel.x >= 12 && panel.y >= 12 && panel.x + panel.width <= layer.clientWidth - 12 && panel.y + panel.height <= layer.clientHeight - 90);
+  })).toBe(true);
+  const recovered = await page.evaluate(() => ({
+    width: document.querySelector('#cockpitPanelLayer').clientWidth,
+    height: document.querySelector('#cockpitPanelLayer').clientHeight,
+    panels: window.RobotScopeCockpit.snapshot().workspace.panels.panels.filter((panel) => panel.visible),
+  }));
+  for (const panel of recovered.panels) {
+    expect(panel.x).toBeGreaterThanOrEqual(12);
+    expect(panel.y).toBeGreaterThanOrEqual(12);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(recovered.width - 12);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(recovered.height - 90);
+    expect(panel.zIndex).toBeLessThan(25);
+  }
+});
+
 test('mapping start, save and stop preserve one mutation per operator action', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'mapping');
   await expect(page.locator('#mappingStartButton')).toBeEnabled();
