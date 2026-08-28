@@ -529,6 +529,7 @@
         applyNavigationResponse(response);
         showToast(`${point.name} 목표를 전송했습니다.`);
         renderNavigationStatus();
+        return response;
       } catch (error) {
         showToast(`주석 목표 전송 실패: ${error.message}`, true);
       } finally {
@@ -569,7 +570,7 @@
     return Object.freeze({
       reset, load, draw, render, cancelDrawing, beginPointer, movePointer,
       finishPointer,
-      snapshot: () => snapshot,
+      snapshot: () => snapshot, sendGoal,
       hasDirty: () => dirty,
       hasActiveTool: () => Boolean(tool),
     });

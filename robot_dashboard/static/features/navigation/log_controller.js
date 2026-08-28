@@ -32,6 +32,7 @@ let initialized = false;
 let getActivePage = () => '';
 let getNavigationSnapshot = () => null;
 let getNavigationApiAvailable = () => null;
+let isEnabled = () => getActivePage() === 'navigation';
 
 function normalizeNavigationLogEntry(value) {
   if (!value || typeof value !== 'object') return null;
@@ -197,7 +198,7 @@ function invalidateNavigationLogRequests() {
 }
 
 async function refreshNavigationLogs(force = false) {
-  if (getActivePage() !== 'navigation' || document.hidden || navigationLogBusy) return;
+  if (!isEnabled() || document.hidden || navigationLogBusy) return;
   navigationLogBusy = true;
   navigationLogError = false;
   const generation = ++navigationLogRequestGeneration;
@@ -207,7 +208,7 @@ async function refreshNavigationLogs(force = false) {
   try {
     while (true) {
       const payload = await api(`/api/v1/navigation/logs?after=${requestedAfter}&limit=${NAVIGATION_LOG_LIMIT}`);
-      if (generation !== navigationLogRequestGeneration || getActivePage() !== 'navigation' || document.hidden) return;
+      if (generation !== navigationLogRequestGeneration || !isEnabled() || document.hidden) return;
       const result = applyNavigationLogPayload(payload, requestedAfter);
       if (result.refetchTail && !tailRefetched) {
         requestedAfter = 0;
@@ -233,6 +234,7 @@ export function initializeNavigationLogFeature(options = {}) {
   getActivePage = options.getActivePage || getActivePage;
   getNavigationSnapshot = options.getNavigationSnapshot || getNavigationSnapshot;
   getNavigationApiAvailable = options.getNavigationApiAvailable || getNavigationApiAvailable;
+  isEnabled = options.isEnabled || isEnabled;
   ui.navigationLogAutoScroll?.addEventListener('change', () => {
     navigationLogRenderGeneration += 1;
     if (ui.navigationLogAutoScroll.checked) {
@@ -257,6 +259,7 @@ export function initializeNavigationLogFeature(options = {}) {
 const feature = Object.freeze({
   render: renderNavigationLog,
   refresh: refreshNavigationLogs,
+  snapshot: () => Object.freeze({ entries: Object.freeze(navigationLogEntries.slice()), cursor: navigationLogCursor, streamId: navigationLogStreamId, busy: navigationLogBusy, error: navigationLogError }),
   invalidate: invalidateNavigationLogRequests,
   onPageChange(previousPage, activePage) {
     if (previousPage === 'navigation' && activePage !== 'navigation') invalidateNavigationLogRequests();

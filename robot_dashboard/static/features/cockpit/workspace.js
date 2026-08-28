@@ -9,6 +9,7 @@ import { createLayoutLibrary } from './layout_library.js';
 import { createSafetyHud } from './safety_hud.js';
 import { createControllerStateStore, createGamepadUiMapper, dispatchGamepadUiAction, projectControllerStatus } from './gamepad_ui.js';
 import { createCockpitMapStore } from './map_state.js';
+import { createCockpitNavigationAdapter } from './navigation_adapter.js';
 
 export function cockpitGamepadUiBlocked(documentValue) {
   const activeElement = documentValue?.activeElement;
@@ -44,7 +45,8 @@ export function createCockpitWorkspace(options = {}) {
   const controllerState = createControllerStateStore();
   const gamepadUi = createGamepadUiMapper({ now: options.now });
   const mapState = createCockpitMapStore();
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState, mapState, navigationEngine: options.navigationEngine }) : null;
+  const navigationAdapter = createCockpitNavigationAdapter({ getSnapshot: () => ({ ...options.getNavigationSnapshot?.(), controller: controllerState.snapshot(), navigationEngine: options.navigationEngine }), actions: options.navigationActions });
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine }) : null;
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
@@ -297,6 +299,7 @@ export function createCockpitWorkspace(options = {}) {
       layoutLibrary: layoutLibrary?.diagnostics() || layoutStore.snapshot(),
       controller: controllerState.snapshot(),
       map: mapState.diagnostics(),
+      navigation: navigationAdapter.diagnostics(),
     });
   }
 
@@ -309,6 +312,7 @@ export function createCockpitWorkspace(options = {}) {
     layoutLibrary?.destroy();
     panelManager?.destroy();
     releaseMapScene();
+    navigationAdapter.destroy();
     sceneHost.destroy();
     destroyed = true;
     root.dataset.lifecycle = 'destroyed';

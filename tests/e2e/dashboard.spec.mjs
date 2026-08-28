@@ -142,6 +142,33 @@ test('Cockpit map panel shows revision-pinned localization and toggles the bound
   expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
 });
 
+test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+  const panel = page.locator('[data-panel-id="navigation-main"]');
+  await expect(panel.locator('.cockpit-navigation-panel')).toBeVisible();
+  backend.state.control.lease = { active: true, bound: true, source: 'keyboard' };
+  await page.locator('#refreshButton').click();
+  await expect(panel.locator('[data-navigation-action="start"]')).toBeDisabled();
+  await expect(panel.locator('.cockpit-navigation-metrics')).toContainText('LEASE ACTIVE · BLOCKED');
+
+  backend.state.control.lease = { active: false, bound: false, source: null };
+  await page.locator('#refreshButton').click();
+  await expect(panel.locator('[data-navigation-action="start"]')).toBeEnabled();
+  await panel.locator('[data-navigation-action="start"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/navigation/start').length).toBe(1);
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'operate');
+  await expect(panel.locator('[data-navigation-action="takeover"]')).toBeEnabled();
+
+  await panel.locator('[data-navigation-action="takeover"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/navigation/cancel').length).toBe(1);
+  await expect.poll(() => backend.mutations('/api/v1/navigation/stop').length).toBe(1);
+  await expect(panel.locator('.cockpit-navigation-takeover strong')).toHaveText('TAKEOVER READY_TO_ARM');
+  await expect(panel.locator('.cockpit-navigation-takeover small')).toContainText('별도로 ARM하세요');
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+});
+
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);
@@ -243,7 +270,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   const mapButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]');
   const controllerButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]');
-  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(4);
+  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(5);
   await expect(cameraButton).toContainText('360×240 · MIN 280×170');
 
   await toggle.click();

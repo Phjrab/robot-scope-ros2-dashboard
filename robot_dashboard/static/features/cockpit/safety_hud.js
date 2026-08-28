@@ -63,7 +63,7 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
     vy: controlFresh ? formatAxis(command.linear_y) : 'UNKNOWN',
     wz: controlFresh ? formatAxis(command.angular_z) : 'UNKNOWN',
     'speed-scale': reportedScale == null || !controlFresh ? 'UNKNOWN' : `${Math.round(reportedScale * 100)}%`,
-    layoutArmed: cachedLeaseActive,
+    layoutArmed: cachedLeaseActive || navActive,
     tone: danger ? 'danger' : linkLive && controlFresh ? 'normal' : 'waiting',
   });
 }

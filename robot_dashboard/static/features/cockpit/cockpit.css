@@ -185,6 +185,17 @@
 .cockpit-map-annotations { display:flex; gap:5px; min-height:28px; padding:5px 7px; overflow:auto; border-top:1px solid rgba(114,207,187,.12); }
 .cockpit-map-annotations button { flex:0 0 auto; padding:4px 7px; border:1px solid rgba(93,222,216,.22); color:#78a79c; background:#06110f; font-size:7px; }.cockpit-map-annotations button.is-selected { border-color:#5dded8; color:#d9fff6; }
 
+.cockpit-navigation-panel { display:grid; grid-template-rows:auto auto auto minmax(150px,1fr) auto auto auto minmax(58px,.45fr); min-height:100%; gap:6px; padding:9px; overflow:auto; background:#020706; }
+.cockpit-navigation-header { display:flex; justify-content:space-between; gap:8px; }.cockpit-navigation-header strong { color:#7df0b6; }.cockpit-navigation-header span { color:#71988f; font:700 8px ui-monospace,monospace; }
+.cockpit-navigation-panel select { min-height:30px; color:#d9fff6; border:1px solid rgba(93,222,216,.2); border-radius:6px; background:#06110f; }
+.cockpit-navigation-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }.cockpit-navigation-actions button,.cockpit-navigation-annotations button { min-height:30px; border:1px solid rgba(93,222,216,.22); border-radius:6px; color:#a9d4ca; background:#06110f; font-size:8px; font-weight:800; }
+.cockpit-navigation-actions button[data-navigation-action="takeover"] { color:#ffcf73; border-color:rgba(255,198,109,.42); }.cockpit-navigation-actions button:disabled,.cockpit-navigation-annotations button:disabled { opacity:.35; }
+.cockpit-navigation-map { position:relative; min-height:150px; overflow:hidden; border:1px solid rgba(93,222,216,.15); border-radius:7px; }.cockpit-navigation-map canvas { width:100%; height:100%; display:block; }.cockpit-navigation-map small { position:absolute; right:6px; bottom:6px; left:6px; padding:5px; color:#ffcf73; background:rgba(2,7,6,.86); font-size:8px; }
+.cockpit-navigation-takeover { display:flex; justify-content:space-between; gap:8px; padding:7px; border:1px solid rgba(255,198,109,.22); border-radius:6px; }.cockpit-navigation-takeover strong { color:#ffcf73; font-size:9px; }.cockpit-navigation-takeover small { color:#9cb8b2; font-size:8px; text-align:right; }
+.cockpit-navigation-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }.cockpit-navigation-metrics div { display:grid; gap:2px; padding:5px; border-right:1px solid rgba(93,222,216,.12); }.cockpit-navigation-metrics span { color:#628d83; font-size:7px; }.cockpit-navigation-metrics strong { overflow:hidden; color:#d2eee7; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
+.cockpit-navigation-annotations { display:flex; gap:4px; overflow:auto; }.cockpit-navigation-annotations button { flex:0 0 auto; padding:0 7px; }
+.cockpit-navigation-logs { min-height:58px; margin:0; padding:7px; overflow:auto; color:#83b5a9; background:#010504; font:8px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
+
 .cockpit-floating-panel.is-compact { grid-template-rows: 1fr; }
 .cockpit-floating-panel.is-compact .cockpit-panel-content,
 .cockpit-floating-panel.is-compact .cockpit-panel-resize { display: none; }
@@ -326,7 +337,7 @@
 .cockpit-launcher-toggle { min-height: 34px; color: #72ffd2; text-align: left; }
 .cockpit-launcher-body { display: grid; gap: 7px; }
 .cockpit-launcher-body > strong { color: #b7d4cd; font-size: 9px; letter-spacing: 0.12em; }
-.cockpit-launcher-list { display: grid; gap: 4px; }
+.cockpit-launcher-list { display: grid; max-height: 188px; overflow: auto; gap: 4px; }
 .cockpit-launcher-item { display: grid; grid-template-columns: 28px 1fr; align-items: center; min-height: 44px; text-align: left; }
 .cockpit-launcher-item > span:last-child { display: grid; gap: 2px; min-width: 0; }
 .cockpit-launcher-item b { color: #d9fff6; font-size: 10px; }

@@ -1,6 +1,7 @@
 import { createCameraPanel } from './panels/camera_panel.js';
 import { createControllerPanel } from './panels/controller_panel.js';
 import { createMapPanel } from './panels/map_panel.js';
+import { createNavigationPanel } from './panels/navigation_panel.js';
 
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
   Object.freeze({
@@ -44,6 +45,20 @@ const PLACEHOLDER_DESCRIPTORS = Object.freeze([
     description: '선택한 저장 지도와 localization 상태를 리비전에 고정해 표시합니다.',
     defaultGeometry: Object.freeze({ x: 420, y: 138, width: 380, height: 280 }),
     bounds: Object.freeze({ minWidth: 300, minHeight: 190, maxWidth: 820, maxHeight: 640, compactWidth: 300, compactHeight: 58 }),
+  }),
+  Object.freeze({
+    id: 'navigation-main',
+    panelType: 'navigation.main',
+    title: 'Navigation & Takeover',
+    label: 'Navigation',
+    icon: '◈',
+    kind: 'navigation',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'CWP-10 · SERVER AUTHORITATIVE',
+    description: '기존 Nav2 상태와 명시적 takeover cleanup을 제어합니다.',
+    defaultGeometry: Object.freeze({ x: 520, y: 92, width: 520, height: 520 }),
+    bounds: Object.freeze({ minWidth: 390, minHeight: 360, maxWidth: 980, maxHeight: 760, compactWidth: 340, compactHeight: 58 }),
   }),
   Object.freeze({
     id: 'placeholder-controller',
@@ -144,6 +159,9 @@ export function createPanelRegistry(options = {}) {
       }
       if (descriptor.kind === 'map') {
         return createMapPanel({ descriptor, document: documentValue, mapState: options.mapState, navigationEngine: options.navigationEngine });
+      }
+      if (descriptor.kind === 'navigation') {
+        return createNavigationPanel({ descriptor, document: documentValue, adapter: options.navigationAdapter, navigationEngine: options.navigationEngine });
       }
       return createPlaceholderContent(descriptor, documentValue);
     },

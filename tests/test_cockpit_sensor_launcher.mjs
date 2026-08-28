@@ -6,13 +6,14 @@ import { nextLauncherIndex } from '../robot_dashboard/static/features/cockpit/se
 
 test('registry exposes two fixed camera sources, read-only map, and Controller Panel', () => {
   const registry = createPanelRegistry({ document: {}, cameraDemand: {} });
-  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Controller']);
+  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Navigation', 'Controller']);
   assert.ok(registry.list().every((descriptor) => descriptor.singleton === true && descriptor.defaultVisible === false));
   assert.ok(registry.list().every((descriptor) => descriptor.icon && descriptor.defaultGeometry.width && descriptor.bounds.minWidth));
   assert.equal(registry.get('camera.go2-front').id, 'camera-go2-front');
   assert.equal(registry.get('camera.go2-front').sourceId, 'go2_front');
   assert.equal(registry.get('camera.realsense-color').sourceId, 'realsense_color');
   assert.equal(registry.get('placeholder.map').kind, 'map');
+  assert.equal(registry.get('navigation.main').kind, 'navigation');
   assert.equal(registry.get('placeholder.controller').kind, 'controller');
   assert.equal(registry.get('unknown'), null);
 });

@@ -169,6 +169,43 @@ Safety HUD에 영향을 주지 않는다.
 | initial pose 전 unavailable 표시 | NOT_RUN |
 | FAST-LIO 또는 Nav2 TF 중단 stale 전환 | NOT_RUN |
 
+### CWP-10 구현 기록
+
+CWP-10에서는 fixed singleton `navigation.main` Floating Panel과 panel DOM보다
+긴 수명의 Cockpit Navigation adapter를 추가했다. Panel은 기존
+Navigation page가 사용하는 Saved Map ID/revision, parameter revision,
+Navigation snapshot, allowlisted annotation document, control snapshot과 정제된 progress
+log를 공유한다. 새 Navigation/control API, WebSocket, ROS topic 또는 browser
+lease owner를 추가하지 않았다.
+
+START, STOP, initial pose, single goal, annotation goal, cancel, clear-costmaps는
+기존 `app.js` action을 호출한다. 따라서 manual conflict, exact map/parameter
+revision, server safety flag, known-free occupancy cell, goal confirmation과 same-origin strict
+body가 기존과 동일하다. Pose는 FREE 셀에서 heading을 명시적으로
+drag한 뒤 `SEND STAGED`를 눌러야 전송된다. Panel이 compact/close되면
+UI subscription과 Cockpit log polling demand는 해제되며, 기존 Navigation page는
+자신의 동작과 polling을 계속 유지한다.
+
+Manual Takeover는 operator가 명시적으로 요청할 때만 `CANCELING → STOPPING
+→ VERIFYING`을 실행한다. Goal cancel이 실패해도 stop cleanup을 시도하지만,
+server-authoritative Navigation inactive와 control lease release를 모두 확인하기
+전에는 `READY_TO_ARM`이 되지 않는다. 15초 내에 확인하지 못하면
+`FAILED`로 fail-closed하고 operator의 `RETRY CLEANUP`을 요구한다. Takeover
+operation은 panel close와 Cockpit route deactivation으로 취소되지 않는다.
+Navigation이 active이면 layout geometry도 Operate mode로 잠긴다.
+
+Takeover는 manual ARM endpoint를 호출하지 않으며, 완료 후에도 bridge와
+Xbox freshness를 읽기 전용으로 표시할 뿐이다. Operator는 기존 Controls
+경로에서 별도로 ARM해 새 manual lease를 획득해야 한다. Multi-waypoint,
+mission queue, script/action/shell hook은 CWP-10 범위에 포함하지 않았다.
+
+| 실기 항목 | 결과 |
+| --- | --- |
+| 실제 Nav2 주행 중 takeover 정지 | NOT_RUN |
+| goal cancel/control lease release 시간 | NOT_RUN |
+| controller disconnect 상태 takeover | NOT_RUN |
+| localization stale 상태 takeover | NOT_RUN |
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,
@@ -695,7 +732,7 @@ access control은 Cockpit layout 기능으로 해결하지 않는다.
 | `static/features/cockpit/panels/lidar_panel.js` | CWP-08 quality/status UI와 shared scene budget request |
 | `static/features/cockpit/panels/map_panel.js` | revision-pinned read-only map/localization projection |
 | `static/features/cockpit/panels/navigation_panel.js` | 기존 navigation API UI adapter와 cleanup 표시 |
-| `static/features/cockpit/manual_takeover.js` | panel DOM과 분리된 takeover transaction presentation/controller |
+| `static/features/cockpit/navigation_adapter.js` | panel DOM보다 긴 수명의 navigation action/takeover transaction adapter |
 | `static/features/cockpit/panels/mission_panel.js` | backend mission state의 bounded UI adapter |
 
 ### Mission backend — CWP-11에서만

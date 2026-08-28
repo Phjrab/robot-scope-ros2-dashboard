@@ -231,6 +231,7 @@ export async function installDashboardBackend(page, options = {}) {
     if (path === '/api/v1/navigation/logs') return json(route, { stream_id: 'e'.repeat(32), job: null, entries: [], cursor: 0, latest_cursor: 0, truncated: false, has_more: false, limits: { max_entries: 100, max_message_chars: 320 } });
     if (path === '/api/v1/navigation') return json(route, state.navigation);
     if (path === '/api/v1/navigation/start') {
+      state.control.lease = { active: true, bound: true, source: 'navigation' };
       state.navigation = {
         ...baseNavigation(), pipeline: { state: 'running', job_id: 'f'.repeat(32), error: '' },
         localization_pipeline: { state: 'running', phase: 'running', pending: false, owned_by_navigation: true, job_id: 'c'.repeat(32), error: '' },
@@ -260,6 +261,7 @@ export async function installDashboardBackend(page, options = {}) {
     }
     if (path === '/api/v1/navigation/stop') {
       state.navigation = baseNavigation();
+      state.control.lease = { active: false, bound: false, source: null };
       return json(route, state.navigation);
     }
     if (path === '/api/v1/control') return json(route, state.control);

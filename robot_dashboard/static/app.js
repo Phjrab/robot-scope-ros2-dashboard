@@ -597,7 +597,7 @@ if (navigationScene3d) {
 }
 
 const cockpitWorkspace = initializeCockpitWorkspace({
-  Renderer: window.RobotScene3D, maxPoints: 10000, cameraDemand: cameraDemandController, gamepadProvider: selectedControlGamepad, navigationEngine, getMapSnapshot: () => ({ mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), navigation: navigationSnapshot, robotRadius: Number(navigationParameterSnapshot?.values?.robot_radius) || 0.22 }),
+  Renderer: window.RobotScene3D, maxPoints: 10000, cameraDemand: cameraDemandController, gamepadProvider: selectedControlGamepad, navigationEngine, getMapSnapshot: () => ({ mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), navigation: navigationSnapshot, robotRadius: Number(navigationParameterSnapshot?.values?.robot_radius) || 0.22 }), getNavigationSnapshot: () => ({ navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable, operationBusy: navigationOperationBusy, mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, mapCells: navigationMapCells, maps: navigationMapCandidates(), parameters: navigationParameterSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), logs: navigationLogFeature?.snapshot?.(), control: controlSnapshot, localLeaseId: controlLeaseId, command: controlLastCommand }), navigationActions: { start: startNavigation, stop: stopNavigation, cancel: cancelNavigationGoal, clear: clearNavigationCostmaps, selectMap: (id) => { const selected = navigationMapCandidates().find((entry) => entry.id === id); return selected ? loadNavigationMap(selected) : false; }, pose: (mode, pose) => { navigationStagedPose = { mode, ...pose }; return sendNavigationPose(); }, annotationGoal: (id) => mapAnnotationFeature?.sendGoal?.(id) },
   getControllerSnapshot: () => ({ speedScale: Number(controlUi.speed.value) / 100, speedScaleRange: controlSnapshot?.limits?.speed_scale, leaseSource: controlLeaseSource || controlSnapshot?.lease?.source, lastControlFrameAt }), getSafetySnapshot: () => ({ state: latestState, stateUpdatedAt: latestStateAt, control: controlSnapshot, controlUpdatedAt: controlSnapshotAt, locallyArmed: Boolean(controlLeaseId), command: controlLastCommand, speedScale: Number(controlUi.speed.value) / 100, controlGeneration: controlArmGeneration,
     navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable }),
   onGamepadUiZeroIntent: () => failSafeDisarm('cockpit_gamepad_ui_zero'), onGamepadDisconnect: () => { if (controlLeaseSource === 'gamepad') failSafeDisarm('gamepad_disconnected', { notify: true }); }, onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onPointBudgetRequest: (budget) => applyLivePointLimit(budget, false), onError: (error) => console.warn('Cockpit scene:', error),
@@ -4155,7 +4155,7 @@ async function startNavigation() {
     showToast('정적 지도와 파라미터 revision이 모두 필요합니다.', true);
     return;
   }
-  await runNavigationMutation('/api/v1/navigation/start', {
+  return await runNavigationMutation('/api/v1/navigation/start', {
     map_id: navigationSelectedMapMeta.id,
     map_revision: navigationSelectedMapMeta.revision,
     parameters_revision: navigationParameterSnapshot.revision,
@@ -4167,7 +4167,7 @@ async function stopNavigation() {
     navigationEngine?.pipelineActive(navigationSnapshot);
   if (!canStop) return;
   discardNavigationPose();
-  await runNavigationMutation('/api/v1/navigation/stop', {}, 'Nav2 중지를 요청했습니다.');
+  return await runNavigationMutation('/api/v1/navigation/stop', {}, 'Nav2 중지를 요청했습니다.');
 }
 
 async function sendNavigationPose() {
@@ -4193,18 +4193,18 @@ async function sendNavigationPose() {
   if (response) {
     navigationMapTool = '';
     discardNavigationPose();
-  }
+  } return response;
 }
 
 async function cancelNavigationGoal() {
   const goalId = String(navigationSnapshot?.goal?.goal_id || '');
   if (!goalId || !navigationEngine?.goalActive(navigationSnapshot)) return;
-  await runNavigationMutation('/api/v1/navigation/cancel', { goal_id: goalId }, '활성 목표 취소를 요청했습니다.');
+  return await runNavigationMutation('/api/v1/navigation/cancel', { goal_id: goalId }, '활성 목표 취소를 요청했습니다.');
 }
 
 async function clearNavigationCostmaps() {
   if (String(navigationSnapshot?.pipeline?.state || '').toLowerCase() !== 'running') return;
-  await runNavigationMutation('/api/v1/navigation/clear-costmaps', { scope: 'both' }, '전역·로컬 costmap 초기화를 요청했습니다.');
+  return await runNavigationMutation('/api/v1/navigation/clear-costmaps', { scope: 'both' }, '전역·로컬 costmap 초기화를 요청했습니다.');
 }
 
 function navigationParameterPresets() {
@@ -6846,7 +6846,7 @@ renderNavigationPresetOptions();
 navigationLogFeature = initializeNavigationLogFeature({
   getActivePage: () => activePage,
   getNavigationSnapshot: () => navigationSnapshot,
-  getNavigationApiAvailable: () => navigationApiAvailable,
+  getNavigationApiAvailable: () => navigationApiAvailable, isEnabled: () => activePage === 'navigation' || (activePage === 'cockpit' && cockpitWorkspace?.diagnostics().panels?.panels?.some((panel) => panel.panelType === 'navigation.main' && panel.visible && panel.mode !== 'compact')),
 });
 renderNavigationStatus();
 serviceLifecycleFeature = initializeServiceLifecycleFeature({

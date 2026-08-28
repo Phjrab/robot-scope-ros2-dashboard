@@ -66,6 +66,17 @@ test('Navigation ownership is displayed without weakening the manual conflict wa
   assert.equal(projected.armed, 'DISARMED');
 });
 
+test('active Navigation also locks layout geometry without claiming a manual ARM', () => {
+  const projected = projectSafetyHud({
+    navigationAvailable: true,
+    navigation: { pipeline: { state: 'running' }, goal: { state: 'idle' } },
+    control: { lease: { active: true, source: 'navigation' }, command: { deadman: false } },
+    controlUpdatedAt: 1_000,
+  }, 1_100);
+  assert.equal(projected['control-source'], 'NAVIGATION');
+  assert.equal(projected.layoutArmed, true);
+});
+
 test('layout mode is explicit, ARM auto-locks, and stale generations cannot unlock it', () => {
   const initial = reduceLayoutMode(undefined, {});
   assert.equal(initial.mode, COCKPIT_LAYOUT_MODES.OPERATE);
