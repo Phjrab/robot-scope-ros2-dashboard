@@ -272,6 +272,41 @@ lease and zero velocity commands. Control Bridge, FAST-LIO, mapping and Nav2
 processes were absent; only the dashboard and persistent XT16 preview remained
 active.
 
+## RealSense color interface resolution — 2026-08-30
+
+The relay failure was traced to device identity, not network reachability or
+the JPEG encoder. The D435i depth and color USB interfaces both claimed the
+same by-id `video-index0` name. On this host the resulting symlink pointed to
+depth node `/dev/video0`, which rejected the fixed 640x480 YUY2 color profile
+with `not-negotiated`. A two-frame read-only probe showed the same failure on
+`/dev/video2`, while the actual color node `/dev/video4` accepted the profile.
+
+Commit `d56fbd7` replaced the ambiguous by-id selection with a fail-closed
+sysfs identity check. The relay now accepts exactly one by-path character
+device matching Intel vendor `8086`, D435i product `0b3a`, USB color interface
+`03`, and V4L index `0`. It still rejects zero or multiple matches and retains
+the fixed network allowlist, 640x480@15 profile, software JPEG preference,
+bounded viewers and root-owned hardened service.
+
+The exact deployed script checksum was
+`b2280729e85472758965bf1f59649cc752371d27176ed309544e843d3a4adce1`.
+After the RealSense service restart:
+
+- the allowed dashboard host received 2,478,096 MJPEG bytes in five seconds,
+  including a complete 17,152-byte JPEG frame;
+- the standalone Cockpit panel reached LIVE at 15.0 FPS with zero frame age;
+- the short dual-panel check reported Go2 14.29 FPS and RealSense 15.0 FPS in
+  the dashboard API, with exactly one viewer on each source;
+- the relay reported 14.99 FPS, zero invalid frames, one viewer and no error;
+- closing both panels returned dashboard viewers to zero and the relay to idle
+  with no warning-or-higher journal entries after the deployed restart.
+
+The dashboard had been inactive after the Jetson reboot and was started only
+for this read-only CWP check. Control Bridge, FAST-LIO, mapping and Nav2 stayed
+stopped. The final Cockpit state had zero panels, LOW 10K LiDAR, DISARMED,
+released deadman, no lease and zero velocity commands. The actual Xbox
+Controller check and 60-minute soak remain explicitly deferred.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
@@ -287,9 +322,9 @@ active.
 4. Navigation/localization and supervised motion scenarios remain incomplete.
    Motion validation requires the physical E-stop ready, a clear test area,
    low-speed limits, an operator present, and the physical remote in hand.
-5. Restore the RealSense relay before repeating simultaneous-camera soak. Its
-   current GStreamer producer exits with status 1 even though the relay host is
-   reachable and the HTTP endpoint answers.
+5. RealSense now resolves the exact D435i color interface and passes short
+   standalone and simultaneous LIVE checks. Revalidate the sysfs identity if
+   the camera model, USB topology or relay host is replaced.
 6. Complete the 60-minute CWP soak and actual Xbox Controller validation; the
    short rendering observation and synthetic controller tests do not satisfy
    those hardware acceptance rows.
