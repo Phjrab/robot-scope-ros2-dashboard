@@ -307,6 +307,23 @@ stopped. The final Cockpit state had zero panels, LOW 10K LiDAR, DISARMED,
 released deadman, no lease and zero velocity commands. The actual Xbox
 Controller check and 60-minute soak remain explicitly deferred.
 
+### RealSense relay restart recovery
+
+With the RealSense panel already LIVE, the operator restarted only
+`robot-scope-realsense-camera.service`. The panel entered `WAITING` while the
+relay restarted and then returned automatically to LIVE at 15.0 FPS without a
+page reload or panel reopen. After recovery, the dashboard catalog and relay
+health each reported exactly one viewer; the relay reported one running
+producer process, one running producer thread, 14.99 FPS, zero invalid frames
+and no last error. Closing the panel returned both viewer counts to zero and
+the on-demand producer process/thread to stopped while the manually managed
+relay service remained active and idle.
+
+This validates supervised service-restart recovery only. Physical RealSense
+cable removal remains deferred to a separately supervised fault-injection
+scenario. No control lease, motion command, mapping, localization, Nav2 or map
+mutation was used during this check.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
