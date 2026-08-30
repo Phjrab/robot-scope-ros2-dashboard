@@ -340,6 +340,43 @@ the panel returned dashboard and relay viewers to zero, and the relay's
 on-demand producer process and thread both stopped. The relay service remained
 manually managed, active and idle.
 
+### Dataset Capture storage and recovery — 2026-08-30
+
+Three 1 Hz server-side sessions were captured without requesting robot motion.
+All three finalized as `completed` and remain under the private
+`runtime/datasets/sessions` root for post-run inspection:
+
+| Source selection | Session suffix | Samples | Bytes | Drops |
+| --- | --- | ---: | ---: | ---: |
+| Go2 front | `7a00c285070c456fa24a4f1ff2fe4f55` | 14 | 1,873,299 | 1 initial invalid JPEG |
+| RealSense color | `8ee7902369e04f518d23ff1192cf00f3` | 6 | 294,176 | 0 |
+| Go2 + RealSense | `db3954c7d25e4e3f8d634a8ebb2ddf55` | 6 pairs | 1,095,415 | 1 initial invalid JPEG |
+
+Every published sample contained its selected JPEG files and `metadata.json`;
+manifests and sample artifacts were mode `0600` below mode `0700` managed
+directories. RealSense metadata reported 640x480, the dual sample contained
+both 1280x720 Go2 and 640x480 RealSense frames, and the inspected pair skew was
+637 microseconds against the fixed 250 ms maximum. The manifest correctly
+states that pairing is not hardware synchronisation.
+
+The deployed status API reported a 20 GiB per-session quota, a 5 GiB minimum
+free-space reserve and approximately 55.6 GB free. Filling the production disk
+to either boundary was intentionally avoided. Commits `03af9a3`, `ecc295c` and
+`359dd67` instead added and stabilised isolated fail-closed coverage. On the
+Jetson's Linux filesystem, all 18 DatasetCapture tests passed, including:
+
+- quota accounting before a sample is published and exact camera-token release;
+- reserve failure before camera open, and reserve loss during writing with no
+  partial sample published;
+- an isolated capture process that writes a real atomic sample and exits
+  without normal cleanup, followed by recovery as `interrupted` with the
+  committed sample preserved and abandoned temporary directories removed.
+
+The production DatasetCapture manager was idle after verification, all live
+session files were retained, and no dataset path was added to Git. A live
+dashboard SIGKILL during production capture was not required because the same
+manager and filesystem recovery path passed in an isolated child process.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and

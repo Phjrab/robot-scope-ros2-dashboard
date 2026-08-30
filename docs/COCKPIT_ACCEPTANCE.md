@@ -169,7 +169,7 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 | 실제 localization과 initial pose | `NOT_RUN` |
 | Nav goal, child crash, sensor loss와 Manual Takeover | `NOT_RUN` |
 | 실제 annotation Mission pause/skip/retry/abort | `NOT_RUN` |
-| Dataset finalize, storage reserve와 경기 후 보존 | `NOT_RUN` |
+| Dataset 단독/동시 finalize, quota/reserve, 중단 복구와 보존 | `PASS` |
 
 상세 수치, 최초 RealSense 실패와 2026-08-30 해결 결과는
 [하드웨어 검증 기록](HARDWARE_VALIDATION_2026-08-28.md)의 CWP follow-up을 따른다.
