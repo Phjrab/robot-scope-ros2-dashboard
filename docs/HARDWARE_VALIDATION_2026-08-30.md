@@ -188,9 +188,79 @@ This is **PASS** for the configured `.50.30` DHCP reservation across one
 intentional reboot. Router configuration itself was not queried; the observed
 lease retention is the acceptance evidence.
 
+## Wireless dual-camera dashboard validation
+
+Commit `903b57a` added the fixed, camera-only Go2 RTP relay and was deployed to
+the external dashboard Orin. The robot-side Jetson received the exact relay
+script and systemd unit from that commit. Their deployed SHA-256 hashes were:
+
+- `go2_camera_rtp_relay.py`:
+  `defc4723c13696ed704a2590e39ecb54f404e3543a8bf8eee6a4b2dac18c6044`
+- `robot-scope-go2-camera-relay.service`:
+  `20b73b0860ce92cfdc190e57fd14ef7aae8beda2bd2d290e01234a46f77c6619`
+
+The relay accepted only H.264 RTP payload type 96 from Go2 source
+`192.168.123.161` at the fixed multicast endpoint `230.1.1.1:1720` on
+robot-side `eth0`. It forwarded unchanged, validated datagrams from the fixed
+robot-side source `192.168.50.30:46120` to the external dashboard Orin at
+`192.168.50.10:1720`. It did not add a route, NAT rule, Linux bridge, DDS/ROS
+relay, control transport, or runtime-configurable forwarding destination.
+
+The robot-side service was deliberately left `disabled` at boot and manually
+started for the camera check. It remained `active/running`, with one process,
+one invocation, and `NRestarts=0`. The Control Bridge remained inactive on
+both hosts throughout; no control lease, ARM, deadman, motion command,
+navigation, mapping, or Dataset Capture operation was used.
+
+### Dashboard and decoder result
+
+The existing dashboard receiver decoded the relayed Go2 stream without a
+dashboard code change. The Sensors view showed:
+
+- Go2 front camera: **LIVE**, about 11.1 FPS, `1280x720`, `FRAME READY`
+- RealSense color camera: **LIVE**, 15.0 FPS, `640x480`, `FRAME READY`
+
+Cockpit was then configured with both camera panels in a 50:50 layout. With
+both panels open at the same time, the UI reported:
+
+- Go2 front camera: **LIVE**, 12.4 FPS, age 0.1 s, `1280x720`, `CONNECTED`
+- RealSense color camera: **LIVE**, 15.0 FPS, age 0.0 s, `640x480`,
+  `CONNECTED`
+
+At that point the camera API reported `active_sources=2` and `viewers=2`, with
+exactly one viewer for each source. The Go2 side had one external GStreamer
+decoder, and the RealSense side had one relay process and one GStreamer
+producer. No duplicate viewer or producer was present. RealSense briefly
+showed `WAITING` during initial panel stabilization and automatically returned
+to `LIVE` within five seconds without operator action.
+
+After the Cockpit browser tab was closed and the disconnect grace period
+elapsed, the API returned `active_sources=0`, `viewers=0`, and zero viewers for
+both sources. The external Go2 GStreamer decoder exited. RealSense health
+returned `status=idle`, `viewers=0`, `process_running=false`, and
+`producer_thread_running=false`, with no last error. This is **PASS** for
+demand-scoped startup and cleanup of both camera producers.
+
+The Go2 relay itself remains active so that a future dashboard viewer can
+attach without a robot-side login. Its final sampled counters were 81,030
+captured and accepted packets, 80,833 forwarded packets, zero sequence loss,
+duplicates, reordering, SSRC changes, or rejected packets. The 197 send errors
+accumulated only while no dashboard UDP listener existed; they resumed after
+the browser viewer closed and did not occur during the continuous dual-camera
+LIVE observation. This is expected for the connected UDP no-listener interval,
+not evidence of RTP corruption.
+
+The Sensors page's `2 화면` control did not switch from its single-camera
+layout during this check even though it appeared enabled. Simultaneous camera
+operation itself passed in Cockpit, but the Sensors dual-view control remains
+an existing UI issue for a later bounded fix.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
+- Reproduce and fix the Sensors page `2 화면` layout control before treating
+  that page as the supported simultaneous-camera presentation; Cockpit dual
+  view is already validated.
 - Resolve or reproduce the one non-recurring runtime robot-target change from
   the first Wi-Fi fault attempt before relying on unattended fault recovery.
 - Keep abrupt Bridge-process-loss testing motion-free until a separately
@@ -209,8 +279,10 @@ lease retention is the acceptance evidence.
   address is deliberately moved away from `192.168.50.30`.
 - Do not return robot-side `eth0` to DHCP while it remains the dedicated
   `192.168.123.0/24` Go2/sensor link.
-- Both RealSense and robot-side Control Bridge services were left disabled and
-  inactive; no service-state rollback is required.
+- The robot-side Control Bridge was left disabled and inactive. RealSense and
+  the fixed Go2 camera relay were left disabled at boot but manually active;
+  stop those two camera services before rollback if camera availability is no
+  longer required.
 - External dashboard private configuration was backed up as
   `~/.config/robot-scope/control.env.pre-b38dc25`. Restore that mode-0600 copy
   and restart only the dashboard to roll back the wireless control settings.
@@ -226,10 +298,12 @@ lease retention is the acceptance evidence.
 - `git diff --check`: PASS
 - JavaScript unit suite: 239 passed, 0 failed
 - frontend syntax check: 48 modules passed
-- Python unit suite: 695 run; 694 passed and one existing macOS baseline error
+- Python unit suite after the camera-relay change: 712 run; 711 passed and one
+  existing macOS baseline error
   remained. `test_apply_os_release_override_must_match_running_host` attempts to
   read Linux-only `/etc/os-release`, which is absent on the macOS test host.
   No test or assertion was removed or weakened.
+- Targeted fixed Go2 RTP relay tests: 17 passed, 0 failed.
 - Targeted wireless control tests: 69 passed across datagram, dashboard
   transport, lifecycle, Bridge core, Foxy boot scripts, and public API
   projection.
