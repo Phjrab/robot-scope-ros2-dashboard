@@ -402,9 +402,9 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertFalse(hub.publish(b"\xff\xd8" + b"x" * relay.MAX_JPEG_BYTES + b"\xff\xd9"))
         self.assertEqual(hub.health()["invalid_frames"], 2)
 
-    def test_stream_is_only_readable_by_the_fixed_dashboard_host(self):
+    def test_stream_is_only_readable_by_fixed_dashboard_and_local_shadow_host(self):
         self.assertTrue(relay.client_allowed("192.168.123.99", "/stream"))
-        self.assertFalse(relay.client_allowed("192.168.123.18", "/stream"))
+        self.assertTrue(relay.client_allowed("192.168.123.18", "/stream"))
         self.assertFalse(relay.client_allowed("192.168.123.161", "/stream"))
         self.assertTrue(relay.client_allowed("127.0.0.1", "/health"))
         self.assertTrue(relay.client_allowed("192.168.123.18", "/health"))
@@ -421,6 +421,7 @@ class RealSenseRelayTests(unittest.TestCase):
             jpeg_quality=72,
         )
         self.assertTrue(relay.client_allowed("192.168.50.10", "/stream", wireless))
+        self.assertTrue(relay.client_allowed("192.168.50.30", "/stream", wireless))
         self.assertFalse(relay.client_allowed("192.168.50.11", "/stream", wireless))
         self.assertTrue(relay.client_allowed("192.168.50.30", "/health", wireless))
 
@@ -529,8 +530,8 @@ class RealSenseRelayTests(unittest.TestCase):
             def add_viewer(self):
                 return True
 
-            def wait_after(self, sequence):
-                return sequence, None
+            def wait_packet_after(self, sequence):
+                return sequence, None, None
 
             def remove_viewer(self):
                 self.removed += 1
@@ -558,6 +559,55 @@ class RealSenseRelayTests(unittest.TestCase):
 
         self.assertEqual(writer.payloads, [relay.KEEPALIVE_PART])
         self.assertNotIn(b"\xff\xd8", relay.KEEPALIVE_PART)
+        self.assertEqual(hub.removed, 1)
+
+    def test_stream_frame_carries_source_sequence_and_capture_clock(self):
+        jpeg = b"\xff\xd8frame\xff\xd9"
+
+        class OneFrameHub:
+            removed = 0
+            source_epoch = 987654321
+
+            @staticmethod
+            def add_viewer():
+                return True
+
+            @staticmethod
+            def wait_packet_after(_sequence):
+                return 7, jpeg, 123456789
+
+            def remove_viewer(self):
+                self.removed += 1
+
+        class OneFrameWriter:
+            def __init__(self):
+                self.payload = b""
+
+            def write(self, payload):
+                self.payload += payload
+                if jpeg in self.payload:
+                    raise BrokenPipeError("done")
+
+            @staticmethod
+            def flush():
+                return None
+
+        hub = OneFrameHub()
+        writer = OneFrameWriter()
+        handler = object.__new__(relay.RelayHandler)
+        handler.server = types.SimpleNamespace(hub=hub)
+        handler.wfile = writer
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+        handler._stream()
+        self.assertIn(b"X-Robot-Scope-Source-Epoch: 987654321\r\n", writer.payload)
+        self.assertIn(b"X-Robot-Scope-Sequence: 7\r\n", writer.payload)
+        self.assertIn(b"X-Robot-Scope-Capture-Clock: robot-monotonic\r\n", writer.payload)
+        self.assertIn(
+            b"X-Robot-Scope-Capture-Monotonic-Ns: 123456789\r\n",
+            writer.payload,
+        )
         self.assertEqual(hub.removed, 1)
 
     def test_only_health_and_stream_get_routes_exist(self):

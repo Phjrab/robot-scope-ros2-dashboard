@@ -1,0 +1,69 @@
+[Unit]
+Description=Robot Scope robot-side perception shadow runtime
+After=network-online.target robot-scope-realsense-camera.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+# Deliberately no Requires= relationship: an inference failure or stop must not
+# stop, restart, or otherwise own the RealSense relay.
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+SupplementaryGroups=video
+WorkingDirectory=/
+EnvironmentFile=/home/unitree/.config/robot-scope/perception-shadow.env
+ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/robot_side_perception_shadow.py
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=5
+
+# This sidecar reads a fixed local MJPEG endpoint and fixed model directory. It
+# has no camera, ROS, control-device, shell, network-administration or write
+# authority. Keep the unit disabled until the operator starts a validated
+# shadow session.
+NoNewPrivileges=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_UNIX
+# TensorRT needs a small fixed set of JetPack GPU nodes. DevicePolicy remains
+# closed and no /dev/video*, CSI, ISP, encoder or decoder device is allowed.
+PrivateDevices=false
+DevicePolicy=closed
+DeviceAllow=/dev/nvhost-as-gpu rw
+DeviceAllow=/dev/nvhost-ctrl rw
+DeviceAllow=/dev/nvhost-ctrl-gpu rw
+DeviceAllow=/dev/nvhost-gpu rw
+DeviceAllow=/dev/nvhost-nvsched-gpu rw
+DeviceAllow=/dev/nvhost-power-gpu rw
+DeviceAllow=/dev/nvhost-tsg-gpu rw
+DeviceAllow=/dev/nvmap rw
+DeviceAllow=/dev/nvidia0 rw
+DeviceAllow=/dev/nvidiactl rw
+UMask=0077
+PrivateTmp=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+ReadOnlyPaths=/var/lib/robot-scope/perception/models
+MemoryMax=3G
+TasksMax=32
+LimitNOFILE=64
+
+[Install]
+WantedBy=multi-user.target

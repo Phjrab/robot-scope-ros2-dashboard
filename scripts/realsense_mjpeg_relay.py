@@ -379,7 +379,10 @@ def client_allowed(
     if path == "/health":
         return client_host in {"127.0.0.1", config.bind_host, config.dashboard_host}
     if path == "/stream":
-        return client_host == config.dashboard_host
+        # The robot-side shadow runtime may consume the same producer through
+        # the host's exact configured address.  No subnet or wildcard client
+        # is admitted and the dashboard remains the only remote viewer.
+        return client_host in {config.bind_host, config.dashboard_host}
     return True
 
 
@@ -516,8 +519,10 @@ class FrameHub:
         self._frames = 0
         self._bytes = 0
         self._invalid = 0
+        self._source_epoch = time.monotonic_ns()
         self._started_at = time.monotonic()
         self._last_frame_at = 0.0
+        self._capture_monotonic_ns = 0
         self._frame_samples: deque[tuple[float, int]] = deque(
             maxlen=MAX_METRIC_SAMPLES
         )
@@ -538,6 +543,10 @@ class FrameHub:
                 )
                 self._producer.start()
             return True
+
+    @property
+    def source_epoch(self) -> int:
+        return self._source_epoch
 
     def remove_viewer(self) -> None:
         with self._condition:
@@ -569,9 +578,16 @@ class FrameHub:
 
         self._frame = None
         self._last_frame_at = 0.0
+        self._capture_monotonic_ns = 0
         self._frame_samples.clear()
 
-    def publish(self, jpeg: bytes, *, generation: Optional[int] = None) -> bool:
+    def publish(
+        self,
+        jpeg: bytes,
+        *,
+        generation: Optional[int] = None,
+        capture_monotonic_ns: Optional[int] = None,
+    ) -> bool:
         with self._condition:
             if generation is not None and generation != self._producer_generation:
                 return False
@@ -585,6 +601,11 @@ class FrameHub:
                 self._invalid += 1
             return False
         now = time.monotonic()
+        capture_ns = capture_monotonic_ns or time.monotonic_ns()
+        if capture_ns <= 0:
+            with self._condition:
+                self._invalid += 1
+            return False
         with self._condition:
             if generation is not None and generation != self._producer_generation:
                 return False
@@ -593,6 +614,7 @@ class FrameHub:
             self._frames += 1
             self._bytes += len(jpeg)
             self._last_frame_at = now
+            self._capture_monotonic_ns = capture_ns
             self._frame_samples.append((now, len(jpeg)))
             self._condition.notify_all()
         return True
@@ -613,11 +635,19 @@ class FrameHub:
         return fps, bitrate_mbps
 
     def wait_after(self, sequence: int) -> tuple[int, Optional[bytes]]:
+        packet_sequence, frame, _capture_ns = self.wait_packet_after(sequence)
+        return packet_sequence, frame
+
+    def wait_packet_after(
+        self, sequence: int
+    ) -> tuple[int, Optional[bytes], Optional[int]]:
         with self._condition:
             self._condition.wait_for(
                 lambda: self._sequence > sequence, timeout=VIEWER_WAIT_S
             )
-            return self._sequence, self._frame if self._sequence > sequence else None
+            if self._sequence > sequence:
+                return self._sequence, self._frame, self._capture_monotonic_ns
+            return self._sequence, None, None
 
     def health(self) -> dict[str, object]:
         with self._condition:
@@ -921,7 +951,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             self.end_headers()
             sequence = 0
             while True:
-                sequence, jpeg = hub.wait_after(sequence)
+                sequence, jpeg, capture_monotonic_ns = hub.wait_packet_after(sequence)
                 if jpeg is None:
                     # A producer can fail before its first JPEG.  Periodic
                     # multipart keepalives exercise the socket so a dashboard
@@ -933,7 +963,12 @@ class RelayHandler(BaseHTTPRequestHandler):
                     continue
                 header = (
                     f"--{BOUNDARY}\r\nContent-Type: image/jpeg\r\n"
-                    f"Content-Length: {len(jpeg)}\r\n\r\n"
+                    f"Content-Length: {len(jpeg)}\r\n"
+                    f"X-Robot-Scope-Source-Epoch: {hub.source_epoch}\r\n"
+                    f"X-Robot-Scope-Sequence: {sequence}\r\n"
+                    "X-Robot-Scope-Capture-Clock: robot-monotonic\r\n"
+                    "X-Robot-Scope-Capture-Monotonic-Ns: "
+                    f"{capture_monotonic_ns}\r\n\r\n"
                 ).encode("ascii")
                 self.wfile.write(header + jpeg + b"\r\n")
                 self.wfile.flush()
