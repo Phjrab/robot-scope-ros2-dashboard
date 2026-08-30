@@ -86,8 +86,9 @@ only authenticated Bridge status derived from this local observation.
 The implementation and hardware result are **PASS** for the bounded no-motion
 lifecycle:
 
-1. External Orin commit and robot-side archive both resolved to
-   `b38dc255fb4c331760af1b9d95dfa91c890529dd`.
+1. Initial external Orin commit and robot-side archive both resolved to
+   `b38dc255fb4c331760af1b9d95dfa91c890529dd`. The fault-recovery correction
+   was then deployed from `97dd0fbc313404dd91e48418e08c0bc80cb81245`.
 2. The external dashboard bound a connected UDP socket from
    `192.168.50.10:46010` to `192.168.50.30:46010`; the Bridge bound the exact
    reverse peer while active.
@@ -114,13 +115,86 @@ No route, NAT, bridge, generic DDS router, or arbitrary ROS relay was added.
 The full dashboard/Nav2 stack remains on the external Orin, while the minimal
 Foxy Bridge and Go2 DDS participant remain on the robot-side Jetson.
 
+## Wireless fault injection and reboot retention
+
+All fault tests were performed with no lease, deadman false, and all three
+command velocities at `0.0`. No ARM, drive, action, mapping, navigation, or
+Dataset Capture request was used.
+
+### Wi-Fi interruption
+
+The first eight-second scheduled Wi-Fi disconnect exposed an unhandled
+`ENETUNREACH` on Bridge status publication. The Bridge exited once while the
+address was absent, failed one bind during the systemd retry, and then
+recovered, reaching `NRestarts=2`. This initial result was **FAIL** against the
+intended local-watchdog continuity contract; it was not hidden or accepted as
+the final result. A runtime robot-target change was also observed before the
+subsequent STOP, without a corresponding bounded operator-event record. A
+dashboard restart restored the startup Go2 target. That target change did not
+recur during the isolated repeat, so its trigger remains unassigned.
+
+Commit `97dd0fb` changed both connected-UDP receive loops to survive transient
+socket errors and made Bridge status-send failure force a local StopMove while
+retaining the ROS watchdog and fixed socket. After deployment, the same
+scheduled Wi-Fi disconnect was repeated:
+
+- dashboard readiness changed from ready to unavailable and then stale about
+  0.3 seconds after status ceased;
+- lease remained absent, deadman false, and command velocities zero;
+- Bridge logged one status-transport failure and one recovery;
+- the same Bridge invocation remained active with `NRestarts=0`;
+- authenticated status recovered automatically with LowState age 1 ms and
+  publisher cardinality `1 owned / 0 foreign named / 9 Unitree bare`.
+
+This repeat is **PASS** for no-motion Wi-Fi loss and automatic signed-status
+recovery. The observed interval between the Bridge's failure and recovery logs
+was about 16 seconds, including NetworkManager reassociation and DHCP.
+
+### Bridge process loss
+
+The active Bridge main process was then sent `SIGKILL` to model abrupt process
+loss. Dashboard status became unavailable/stale in about 0.3 seconds. Systemd
+created one restart after its configured three-second delay, the Bridge epoch
+and invocation changed, and authenticated ready status returned about 4.3
+seconds after the first unavailable observation. `NRestarts=1`, LowState age
+was 1 ms, cardinality remained `1/0/9`, and no lease or non-zero command
+appeared. This is **PASS** for no-motion detection and service recovery.
+
+Because `SIGKILL` cannot execute the Bridge's three shutdown StopMove
+publications, this result does not authorize an abrupt-process-loss test while
+the robot is moving. Such a test requires a separate supervised motion-risk
+plan and an independent physical stop boundary.
+
+### DHCP reservation across reboot
+
+The Bridge and RealSense units were stopped, disabled, and inactive before the
+robot-side Jetson reboot. Its boot ID changed from
+`50a4cc40-b8d6-4fd2-ae3a-15feb44448bd` to
+`98a95905-6f6f-4dbd-980d-c77102a7f09b`. SSH returned after approximately 37
+seconds with:
+
+- `wlan0=192.168.50.30/24` from the DHCP profile and gateway
+  `192.168.50.1`;
+- `eth0=192.168.123.18/24` retained for the Go2 LAN;
+- NetworkManager autoconnect `yes`, IPv4 method `auto`, and no Wi-Fi
+  `never-default` restriction;
+- NTP synchronized in `Asia/Seoul` before signed-control reuse;
+- 0% loss to the Go2 at `192.168.123.161`, about 0.19 ms average RTT;
+- Bridge and RealSense both still `disabled/inactive/dead`;
+- dashboard restricted lifecycle status recovered and reported START
+  available without starting the unit.
+
+This is **PASS** for the configured `.50.30` DHCP reservation across one
+intentional reboot. Router configuration itself was not queried; the observed
+lease retention is the acceptance evidence.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
-- Run supervised Wi-Fi/UDP interruption and Bridge-process-loss fault tests;
-  neither was injected during this no-motion lifecycle.
-- Verify the DHCP reservation retains `192.168.50.30` after an intentional
-  reconnect or reboot.
+- Resolve or reproduce the one non-recurring runtime robot-target change from
+  the first Wi-Fi fault attempt before relying on unattended fault recovery.
+- Keep abrupt Bridge-process-loss testing motion-free until a separately
+  reviewed physical-stop test plan exists.
 - The Overview ICMP KPI still reports the Go2 body offline because the external
   Orin deliberately has no route to `192.168.123.161`. The Controls readiness
   comes from authenticated Bridge/LowState status and passed. UI wording should
@@ -144,17 +218,19 @@ Foxy Bridge and Go2 DDS participant remain on the robot-side Jetson.
   environment, lifecycle key authorization, forced-command helper, exact
   sudoers file, and systemd unit must be rolled back as one reviewed set. Do
   not delete or overwrite the shared key during an unrelated source rollback.
+- The pre-fix robot-side source was retained temporarily as
+  `/home/unitree/project/robot-scope.pre-97dd0fb` for exact rollback review.
 
 ## Repository verification
 
 - `git diff --check`: PASS
 - JavaScript unit suite: 239 passed, 0 failed
 - frontend syntax check: 48 modules passed
-- Python unit suite: 694 run; 693 passed and one existing macOS baseline error
+- Python unit suite: 695 run; 694 passed and one existing macOS baseline error
   remained. `test_apply_os_release_override_must_match_running_host` attempts to
   read Linux-only `/etc/os-release`, which is absent on the macOS test host.
   No test or assertion was removed or weakened.
-- Targeted wireless control tests: 68 passed across datagram, dashboard
+- Targeted wireless control tests: 69 passed across datagram, dashboard
   transport, lifecycle, Bridge core, Foxy boot scripts, and public API
   projection.
 - Ruff 0.6.9: all new and directly changed wireless-control files passed. The
