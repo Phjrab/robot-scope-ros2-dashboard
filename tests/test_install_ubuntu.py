@@ -195,6 +195,8 @@ class UbuntuInstallerTests(unittest.TestCase):
         self.assertIn("Ubuntu 24.04/Jazzy", result.stdout)
         self.assertIn("--apply", result.stdout)
         self.assertIn("Jetson is optional", result.stdout)
+        self.assertIn("never writes deployment IPs or credentials", result.stdout)
+        self.assertIn("never enables or starts that relay", result.stdout)
 
     def test_privileged_options_only_print_during_dry_run(self):
         with tempfile.TemporaryDirectory() as temporary:

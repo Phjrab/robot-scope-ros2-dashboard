@@ -7,6 +7,7 @@ from robot_dashboard.remote_mjpeg_camera import (
     MAX_JPEG_BYTES,
     RemoteMjpegCamera,
     allowed_realsense_relay_host,
+    allowed_realsense_relay_port,
 )
 
 
@@ -57,11 +58,34 @@ class RemoteMjpegCameraTests(unittest.TestCase):
         )
         self.assertTrue(receiver.configured)
         self.assertTrue(allowed_realsense_relay_host("169.254.10.2"))
-        for value in ("0.0.0.0", "127.0.0.1", "8.8.8.8", "relay.local", "::1"):
+        for value in (
+            "0.0.0.0",
+            "127.0.0.1",
+            "192.168.50.0",
+            "192.168.50.255",
+            "224.0.0.1",
+            "8.8.8.8",
+            "relay.local",
+            "::1",
+        ):
             with self.subTest(value=value):
                 self.assertFalse(allowed_realsense_relay_host(value))
                 blocked = camera(relay_host=value)
                 self.assertFalse(blocked.configured)
+
+    def test_relay_port_is_explicit_and_bounded(self):
+        for value in (1024, 8090, 65535, "18090"):
+            with self.subTest(value=value):
+                self.assertTrue(allowed_realsense_relay_port(value))
+        for value in (None, "", 0, 80, 65536, "8090/path", "port"):
+            with self.subTest(value=value):
+                self.assertFalse(allowed_realsense_relay_port(value))
+        for url in (
+            "http://192.168.123.18:80/stream",
+            "http://192.168.123.18:65536/stream",
+        ):
+            with self.subTest(url=url):
+                self.assertFalse(camera(url=url, allowed_urls=[url]).configured)
 
     def test_extracts_complete_jpegs_and_rejects_oversize_frame(self):
         frames = []

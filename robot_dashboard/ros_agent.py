@@ -35,7 +35,12 @@ from .discovery import (
     robot_type_definition,
 )
 from .go2_multicast_camera import Go2MulticastCamera
-from .remote_mjpeg_camera import REALSENSE_RELAY_HOST, RemoteMjpegCamera
+from .remote_mjpeg_camera import (
+    REALSENSE_RELAY_HOST,
+    REALSENSE_RELAY_PORT,
+    REALSENSE_RELAY_PORT_ENV,
+    RemoteMjpegCamera,
+)
 from .public_diagnostics import public_diagnostic
 from .ros.cameras import CAMERA_SOURCE_IDS, CameraHub, public_camera_status
 from .ros.control_transport import (
@@ -234,16 +239,35 @@ class RosAgent:
             if isinstance(allowed_urls_value, list)
             else []
         )
-        runtime_realsense_host = os.environ.get(
-            "ROBOT_SCOPE_REALSENSE_RELAY_HOST", ""
-        ).strip()
-        realsense_host = runtime_realsense_host or REALSENSE_RELAY_HOST
+        runtime_realsense_host_value = os.environ.get(
+            "ROBOT_SCOPE_REALSENSE_RELAY_HOST"
+        )
+        runtime_realsense_host = (
+            ""
+            if runtime_realsense_host_value is None
+            else runtime_realsense_host_value.strip()
+        )
+        realsense_host = (
+            REALSENSE_RELAY_HOST
+            if runtime_realsense_host_value is None
+            else runtime_realsense_host
+        )
+        runtime_realsense_port = os.environ.get(REALSENSE_RELAY_PORT_ENV)
+        realsense_port = (
+            str(REALSENSE_RELAY_PORT)
+            if runtime_realsense_port is None
+            else runtime_realsense_port.strip()
+        )
         realsense_url = str(realsense_profile.get("url", ""))
-        if runtime_realsense_host:
-            # The host-only override keeps scheme, port and path fixed while
-            # allowing the relay management link to move from wired to Wi-Fi.
+        if (
+            runtime_realsense_host_value is not None
+            or runtime_realsense_port is not None
+        ):
+            # Host and port overrides keep scheme/path fixed while allowing the
+            # relay management link to move from wired to Wi-Fi. Invalid or
+            # blank values remain invalid; they never fall back silently.
             # RemoteMjpegCamera validates the address before opening a socket.
-            realsense_url = f"http://{runtime_realsense_host}:8090/stream"
+            realsense_url = f"http://{realsense_host}:{realsense_port}/stream"
             allowed_urls = [realsense_url]
         self._remote_camera = RemoteMjpegCamera(
             self._camera_hub.remote_callback,

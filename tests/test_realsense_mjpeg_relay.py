@@ -79,12 +79,20 @@ class RealSenseRelayTests(unittest.TestCase):
             relay.relay_network_hosts(
                 {
                     relay.RELAY_BIND_HOST_ENV: "169.254.50.103",
-                    relay.RELAY_DASHBOARD_HOST_ENV: "10.20.30.40",
+                    relay.RELAY_DASHBOARD_HOST_ENV: "169.254.50.10",
                 }
             ),
-            ("169.254.50.103", "10.20.30.40"),
+            ("169.254.50.103", "169.254.50.10"),
         )
-        for value in ("0.0.0.0", "127.0.0.1", "8.8.8.8", "relay.local", "::1"):
+        for value in (
+            "0.0.0.0",
+            "127.0.0.1",
+            "192.168.50.255",
+            "224.0.0.1",
+            "8.8.8.8",
+            "relay.local",
+            "::1",
+        ):
             with self.subTest(value=value):
                 with self.assertRaises(relay.RelaySetupError):
                     relay.relay_network_hosts(
@@ -93,6 +101,88 @@ class RealSenseRelayTests(unittest.TestCase):
                             relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.10",
                         }
                     )
+
+    def test_reference_defaults_are_explicit_and_missing_env_is_compatible(self):
+        config = relay.relay_configuration({})
+        self.assertEqual(
+            config,
+            relay.RelayConfig(
+                bind_host="192.168.123.18",
+                dashboard_host="192.168.123.99",
+                port=8090,
+                width=640,
+                height=480,
+                fps=15,
+                jpeg_quality=72,
+            ),
+        )
+
+    def test_profile_and_port_are_bounded_without_silent_fallback(self):
+        base = {
+            relay.RELAY_BIND_HOST_ENV: "192.168.50.30",
+            relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.10",
+        }
+        configured = relay.relay_configuration(
+            {
+                **base,
+                relay.RELAY_PORT_ENV: "18090",
+                relay.RELAY_WIDTH_ENV: "1280",
+                relay.RELAY_HEIGHT_ENV: "720",
+                relay.RELAY_FPS_ENV: "30",
+                relay.RELAY_JPEG_QUALITY_ENV: "80",
+            }
+        )
+        self.assertEqual(
+            (configured.port, configured.width, configured.height),
+            (18090, 1280, 720),
+        )
+        self.assertEqual((configured.fps, configured.jpeg_quality), (30, 80))
+
+        invalid_values = {
+            relay.RELAY_PORT_ENV: ("", "80", "65536"),
+            relay.RELAY_WIDTH_ENV: ("0", "641", "1920"),
+            relay.RELAY_HEIGHT_ENV: ("0", "481", "1080"),
+            relay.RELAY_FPS_ENV: ("0", "16", "60"),
+            relay.RELAY_JPEG_QUALITY_ENV: ("39", "91", "quality"),
+        }
+        for key, values in invalid_values.items():
+            for value in values:
+                with self.subTest(key=key, value=value):
+                    with self.assertRaisesRegex(
+                        relay.RelaySetupError, "INVALID_CONFIG"
+                    ):
+                        relay.relay_configuration({**base, key: value})
+
+    def test_dashboard_pair_and_local_bind_fail_closed(self):
+        with self.assertRaisesRegex(
+            relay.RelaySetupError, "DASHBOARD_ADDRESS_REJECTED"
+        ):
+            relay.relay_configuration(
+                {
+                    relay.RELAY_BIND_HOST_ENV: "192.168.50.30",
+                    relay.RELAY_DASHBOARD_HOST_ENV: "192.168.51.10",
+                }
+            )
+        with self.assertRaisesRegex(
+            relay.RelaySetupError, "BIND_ADDRESS_MISSING"
+        ):
+            relay.relay_configuration(
+                {
+                    relay.RELAY_BIND_HOST_ENV: "192.168.50.30",
+                    relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.10",
+                },
+                validate_local_bind=True,
+                local_bind_check=lambda _host: False,
+            )
+        config = relay.relay_configuration(
+            {
+                relay.RELAY_BIND_HOST_ENV: "192.168.50.30",
+                relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.10",
+            },
+            validate_local_bind=True,
+            local_bind_check=lambda host: host == "192.168.50.30",
+        )
+        self.assertEqual(config.bind_host, "192.168.50.30")
 
     @mock.patch.object(relay, "_plugin_available")
     def test_pipeline_is_fixed_argv_and_prefers_software_jpeg(self, available):
@@ -108,6 +198,22 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertNotIn("sh", command)
         self.assertNotIn("-c", command)
 
+        custom = relay.RelayConfig(
+            bind_host="192.168.50.30",
+            dashboard_host="192.168.50.10",
+            port=18090,
+            width=1280,
+            height=720,
+            fps=30,
+            jpeg_quality=80,
+        )
+        custom_command = relay.gstreamer_command("/dev/video6", custom)
+        self.assertIn(
+            "video/x-raw,format=YUY2,width=1280,height=720,framerate=30/1",
+            custom_command,
+        )
+        self.assertIn("quality=80", custom_command)
+
     @mock.patch.object(relay.subprocess, "run")
     def test_plugin_probe_allows_a_cold_private_registry_scan(self, run):
         run.return_value.returncode = 0
@@ -121,10 +227,32 @@ class RealSenseRelayTests(unittest.TestCase):
         available.side_effect = lambda name: name == "nvjpegenc"
         self.assertIn("nvjpegenc", relay.gstreamer_command("/dev/video6"))
 
+    @mock.patch.object(relay, "_plugin_available", return_value=False)
+    def test_pipeline_reports_bounded_encoder_error(self, _available):
+        with self.assertRaises(relay.RelaySetupError) as captured:
+            relay.gstreamer_command("/dev/video6")
+        self.assertEqual(captured.exception.code, "ENCODER_UNAVAILABLE")
+
+    def test_capture_process_error_does_not_expose_raw_exception_text(self):
+        producer = relay.GstProducer(lambda _jpeg: True)
+        with mock.patch.object(
+            producer,
+            "_run_once",
+            side_effect=OSError("/private/operator/path must not leak"),
+        ), mock.patch.object(producer._stop, "wait", return_value=True):
+            producer._run()
+        error = producer.status()["last_error"]
+        self.assertEqual(
+            error,
+            "SOURCE_STALE: RealSense capture process unavailable",
+        )
+        self.assertNotIn("/private", error)
+
     def test_device_resolution_requires_exactly_one_verified_color_device(self):
         with mock.patch.object(relay.glob, "glob", return_value=[]):
-            with self.assertRaises(relay.RelaySetupError):
+            with self.assertRaises(relay.RelaySetupError) as captured:
                 relay.resolve_realsense_device()
+            self.assertEqual(captured.exception.code, "DEVICE_NOT_FOUND")
         link = mock.Mock()
         link.is_symlink.return_value = True
         link.parent = relay.DEVICE_LINK_DIR
@@ -206,6 +334,19 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertTrue(relay.client_allowed("192.168.123.18", "/health"))
         self.assertTrue(relay.client_allowed("192.168.123.99", "/health"))
         self.assertFalse(relay.client_allowed("192.168.123.161", "/health"))
+
+        wireless = relay.RelayConfig(
+            bind_host="192.168.50.30",
+            dashboard_host="192.168.50.10",
+            port=8090,
+            width=640,
+            height=480,
+            fps=15,
+            jpeg_quality=72,
+        )
+        self.assertTrue(relay.client_allowed("192.168.50.10", "/stream", wireless))
+        self.assertFalse(relay.client_allowed("192.168.50.11", "/stream", wireless))
+        self.assertTrue(relay.client_allowed("192.168.50.30", "/health", wireless))
 
     def test_first_viewer_starts_source_and_last_uses_grace_timer(self):
         hub = relay.FrameHub(FakeProducer)
@@ -363,7 +504,7 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIn("StartLimitIntervalSec=60", service)
         self.assertIn("StartLimitBurst=5", service)
         self.assertIn(
-            "EnvironmentFile=-/home/unitree/.config/robot-scope/realsense-camera.env",
+            "EnvironmentFile=/home/unitree/.config/robot-scope/realsense-camera.env",
             service,
         )
         self.assertIn("/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py", service)

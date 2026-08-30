@@ -49,6 +49,28 @@ RealSense 컬러 relay는
 배선을 가리켜야 합니다. 세 값은 명시적인 RFC1918 또는 link-local IPv4만 허용하며
 `0.0.0.0`, loopback, hostname, 공인 주소는 거부합니다. 이 설정은 RealSense HTTP 경로만
 바꾸며 `ROBOT_SCOPE_ROBOT_IP`, Go2 DDS interface 또는 control target을 바꾸지 않습니다.
+Relay와 dashboard 주소는 같은 `/24`의 서로 다른 사용 가능한 host 주소여야 하며 network와
+broadcast 주소도 거부합니다. Relay 시작 전에는 bind 주소가 실제 로컬 인터페이스에
+할당됐는지 확인하므로, 주소가 없는 경우 다른 인터페이스나 `0.0.0.0`으로 대체하지 않습니다.
+
+Robot-side private env에는 아래 일곱 값을 모두 명시합니다. 저장소 값은
+`.123.18 → .123.99`, `8090`, `640×480@15`, quality `72`로 처음 검증한 reference
+deployment default일 뿐입니다. 실제 대회 값은 mode `0600`의 host-local env로 덮어쓰며
+소스 코드를 편집하지 않습니다.
+
+| 변수 | 허용 계약 |
+|---|---|
+| `ROBOT_SCOPE_REALSENSE_BIND_HOST` | robot-side 인터페이스가 소유한 명시적 private/link-local IPv4 |
+| `ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST` | 같은 `/24`에 있는 유일한 dashboard IPv4 |
+| `ROBOT_SCOPE_REALSENSE_PORT` | `1024`–`65535`; dashboard에도 동일 값 설정 |
+| `ROBOT_SCOPE_REALSENSE_WIDTH`, `ROBOT_SCOPE_REALSENSE_HEIGHT` | `320×240`, `640×480`, `1280×720` 중 하나 |
+| `ROBOT_SCOPE_REALSENSE_FPS` | `5`, `10`, `15`, `30` 중 하나 |
+| `ROBOT_SCOPE_REALSENSE_JPEG_QUALITY` | `40`–`90` |
+
+더 높은 profile은 허용 범위 안에 있더라도 Wi-Fi 대역폭과 robot-side CPU·온도 측정 없이
+대회 기본값으로 채택하지 않습니다. `/stream`은 정확한 dashboard IP 하나만 허용하고,
+`/health`는 loopback·relay 자신·그 dashboard만 허용합니다. HTTP header, hostname, URL,
+임의 CIDR로 client identity를 확장하지 않습니다.
 
 ~~~text
 D435i RGB by-id --> .50.30 GStreamer/MJPEG :8090 --> .50.10 Dashboard receiver
@@ -195,6 +217,11 @@ service를 켜도 XT16의 원래 패킷을 받는 인터페이스가 아니면 �
 | `ROBOT_SCOPE_REALSENSE_RELAY_HOST` | dashboard가 읽는 로봇 탑재 RealSense relay 주소; Go2 본체 주소와 별개 |
 | `ROBOT_SCOPE_REALSENSE_BIND_HOST` | relay process가 소유해야 하는 정확한 로컬 주소 |
 | `ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST` | relay `/stream`을 읽을 수 있는 유일한 dashboard 주소 |
+| `ROBOT_SCOPE_REALSENSE_PORT` | robot-side relay와 dashboard receiver가 공유하는 제한된 TCP port |
+| `ROBOT_SCOPE_REALSENSE_WIDTH` | robot-side allowlisted capture width |
+| `ROBOT_SCOPE_REALSENSE_HEIGHT` | robot-side allowlisted capture height |
+| `ROBOT_SCOPE_REALSENSE_FPS` | robot-side allowlisted capture rate |
+| `ROBOT_SCOPE_REALSENSE_JPEG_QUALITY` | robot-side bounded JPEG quality |
 | `ROBOT_SCOPE_WORKSPACE_ROOT` | 외부 ROS workspace 공통 root; 빈 값은 service 사용자 홈, custom 값은 절대 경로만 허용 |
 | `ROBOT_SCOPE_LIVOX_SDK_PREFIX` | Livox SDK2 private prefix; 빈 값은 workspace root 아래 기본 경로 |
 | `ROBOT_SCOPE_XT16_RELAY_HOST` | 선택적 XT16 relay host, 참조값 `192.168.123.18` |

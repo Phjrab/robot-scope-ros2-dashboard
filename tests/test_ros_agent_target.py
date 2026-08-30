@@ -509,6 +509,51 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(agent._remote_camera.relay_host, "192.168.50.103")
         self.assertTrue(agent._remote_camera.configured)
 
+    def test_realsense_relay_port_override_is_exact_and_invalid_values_fail_closed(self):
+        with patch.dict(
+            os.environ,
+            {
+                "ROBOT_SCOPE_REALSENSE_RELAY_HOST": "192.168.50.30",
+                "ROBOT_SCOPE_REALSENSE_PORT": "18090",
+            },
+        ):
+            configured = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        self.assertEqual(
+            configured._remote_camera.url,
+            "http://192.168.50.30:18090/stream",
+        )
+        self.assertTrue(configured._remote_camera.configured)
+
+        with patch.dict(
+            os.environ,
+            {
+                "ROBOT_SCOPE_REALSENSE_RELAY_HOST": "192.168.50.30",
+                "ROBOT_SCOPE_REALSENSE_PORT": "",
+            },
+        ):
+            rejected = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        self.assertFalse(rejected._remote_camera.configured)
+        self.assertIn(
+            "allowlisted explicit port",
+            rejected._remote_camera.status()["last_error"],
+        )
+
+        with patch.dict(
+            os.environ,
+            {"ROBOT_SCOPE_REALSENSE_RELAY_HOST": ""},
+        ):
+            blank_host = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        self.assertFalse(blank_host._remote_camera.configured)
+
     def test_camera_tokens_are_source_bound_exactly_once_and_capped(self):
         self.agent._direct_camera.start = Mock(return_value=True)
         self.agent._direct_camera.stop = Mock()

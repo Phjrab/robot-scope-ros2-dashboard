@@ -46,6 +46,23 @@ SUPPORTED_PLATFORMS = {
 HUMBLE_ONLY_FEATURES = frozenset({"go2", "control", "xt16", "nav"})
 ENV_KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,127}$")
 INTERFACE_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,64}$")
+REALSENSE_RELAY_KEYS = (
+    "ROBOT_SCOPE_REALSENSE_BIND_HOST",
+    "ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST",
+    "ROBOT_SCOPE_REALSENSE_PORT",
+    "ROBOT_SCOPE_REALSENSE_WIDTH",
+    "ROBOT_SCOPE_REALSENSE_HEIGHT",
+    "ROBOT_SCOPE_REALSENSE_FPS",
+    "ROBOT_SCOPE_REALSENSE_JPEG_QUALITY",
+)
+REALSENSE_PRIVATE_NETWORKS = (
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+)
+REALSENSE_RESOLUTIONS = frozenset({(320, 240), (640, 480), (1280, 720)})
+REALSENSE_FPS = frozenset({5, 10, 15, 30})
 
 
 @dataclass(frozen=True)
@@ -149,6 +166,7 @@ class Doctor:
         mode: str,
         project_dir: Path,
         env_file: Path | None,
+        realsense_relay_env_file: Path | None = None,
         os_release_file: Path = Path("/etc/os-release"),
         architecture: str | None = None,
         environment: Mapping[str, str] | None = None,
@@ -163,6 +181,7 @@ class Doctor:
         self.features = MODE_FEATURES[mode]
         self.project_dir = project_dir.resolve()
         self.env_file = env_file
+        self.realsense_relay_env_file = realsense_relay_env_file
         file_values = parse_env_file(env_file) if env_file is not None else {}
         self.control_env_file = (
             env_file.with_name("control.env") if env_file is not None else None
@@ -279,7 +298,173 @@ class Doctor:
             self._check_xt16()
         if "nav" in self.features:
             self._check_nav()
+        if self.realsense_relay_env_file is not None:
+            self._check_realsense_relay()
         return list(self.checks)
+
+    @staticmethod
+    def _realsense_ipv4(value: str, label: str) -> ipaddress.IPv4Address:
+        try:
+            address = ipaddress.ip_address(str(value or "").strip())
+        except ValueError as exc:
+            raise ValueError(f"{label} must be a numeric IPv4 address") from exc
+        if not isinstance(address, ipaddress.IPv4Address) or not any(
+            address in network for network in REALSENSE_PRIVATE_NETWORKS
+        ):
+            raise ValueError(f"{label} must be a private or link-local IPv4 address")
+        if address.is_unspecified or address.is_loopback or address.is_multicast:
+            raise ValueError(f"{label} is not an allowed relay address")
+        return address
+
+    @staticmethod
+    def _realsense_integer(
+        values: Mapping[str, str], key: str, minimum: int, maximum: int
+    ) -> int:
+        text = values.get(key, "").strip()
+        if not text.isascii() or not text.isdecimal():
+            raise ValueError(f"{key} must be a decimal integer")
+        parsed = int(text, 10)
+        if not minimum <= parsed <= maximum:
+            raise ValueError(f"{key} is outside the allowed range")
+        return parsed
+
+    def _check_realsense_relay(self) -> None:
+        """Validate a robot-side relay contract without changing network state."""
+
+        path = self.realsense_relay_env_file
+        assert path is not None
+        try:
+            values = parse_env_file(path)
+        except (OSError, ValueError) as exc:
+            self.add(
+                "realsense.config",
+                "fail",
+                "RealSense relay environment is invalid",
+                detail=str(exc)[-300:],
+                remedy="Install a reviewed mode-0600 relay environment file.",
+            )
+            return
+        missing = [key for key in REALSENSE_RELAY_KEYS if not values.get(key, "").strip()]
+        if missing:
+            self.add(
+                "realsense.config",
+                "fail",
+                "RealSense relay environment is incomplete",
+                detail=", ".join(missing),
+                remedy="Copy every bounded setting from the relay environment example.",
+            )
+            return
+        try:
+            bind_address = self._realsense_ipv4(
+                values["ROBOT_SCOPE_REALSENSE_BIND_HOST"],
+                "ROBOT_SCOPE_REALSENSE_BIND_HOST",
+            )
+            dashboard_address = self._realsense_ipv4(
+                values["ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST"],
+                "ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST",
+            )
+            pair_network = ipaddress.ip_network(f"{bind_address}/24", strict=False)
+            unusable = {pair_network.network_address, pair_network.broadcast_address}
+            if bind_address in unusable:
+                raise ValueError("relay bind address is a /24 network or broadcast address")
+            if dashboard_address not in pair_network or dashboard_address in unusable:
+                raise ValueError("dashboard address is outside the relay bind address /24")
+            if dashboard_address == bind_address:
+                raise ValueError("dashboard and relay bind addresses must differ")
+            port = self._realsense_integer(
+                values, "ROBOT_SCOPE_REALSENSE_PORT", 1024, 65535
+            )
+            width = self._realsense_integer(
+                values, "ROBOT_SCOPE_REALSENSE_WIDTH", 320, 1280
+            )
+            height = self._realsense_integer(
+                values, "ROBOT_SCOPE_REALSENSE_HEIGHT", 240, 720
+            )
+            if (width, height) not in REALSENSE_RESOLUTIONS:
+                raise ValueError("RealSense resolution is not allowlisted")
+            fps = self._realsense_integer(
+                values, "ROBOT_SCOPE_REALSENSE_FPS", 5, 30
+            )
+            if fps not in REALSENSE_FPS:
+                raise ValueError("RealSense FPS is not allowlisted")
+            quality = self._realsense_integer(
+                values, "ROBOT_SCOPE_REALSENSE_JPEG_QUALITY", 40, 90
+            )
+        except ValueError as exc:
+            self.add(
+                "realsense.config",
+                "fail",
+                "RealSense relay configuration was rejected",
+                detail=str(exc)[-300:],
+                remedy="Use the explicit private /24 and bounded profile contract.",
+            )
+            return
+
+        permissions = stat.S_IMODE(path.stat().st_mode)
+        if permissions & 0o077:
+            self.add(
+                "realsense.env_permissions",
+                "fail",
+                "RealSense relay environment is readable by group or others",
+                detail=oct(permissions),
+                remedy="Set the relay environment file mode to 0600.",
+            )
+        else:
+            self.add(
+                "realsense.env_permissions",
+                "pass",
+                "RealSense relay environment permissions are private",
+                detail=oct(permissions),
+            )
+        self.add(
+            "realsense.config",
+            "pass",
+            "RealSense relay address and profile contract is valid",
+            detail=f"port={port} profile={width}x{height}@{fps} quality={quality}",
+        )
+
+        ip_binary = self.which("ip")
+        if not ip_binary:
+            self.add(
+                "realsense.bind_address",
+                "fail",
+                "RealSense relay bind address could not be inspected",
+                remedy="Install iproute2 and rerun the read-only doctor.",
+            )
+            return
+        try:
+            result = self.run_command(
+                [ip_binary, "-o", "-4", "addr", "show", "scope", "global"]
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            self.add(
+                "realsense.bind_address",
+                "fail",
+                "RealSense relay bind address could not be inspected",
+                detail=str(exc)[-300:],
+            )
+            return
+        assigned = {
+            token.split("/", 1)[0]
+            for line in result.stdout.splitlines()
+            for token in line.split()
+            if "/" in token
+        }
+        if result.returncode != 0 or str(bind_address) not in assigned:
+            self.add(
+                "realsense.bind_address",
+                "fail",
+                "configured RealSense relay bind address is not assigned locally",
+                detail=str(bind_address),
+                remedy="Assign the reviewed address to the intended interface; do not add a wildcard bind.",
+            )
+            return
+        self.add(
+            "realsense.bind_address",
+            "pass",
+            "configured RealSense relay bind address is assigned locally",
+            detail=str(bind_address),
+        )
 
     def _check_platform(self) -> None:
         release = self.release
@@ -874,6 +1059,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=config_home / "robot-scope" / "robot-scope.env",
     )
     parser.add_argument("--os-release", type=Path, default=Path("/etc/os-release"))
+    parser.add_argument(
+        "--realsense-relay-env-file",
+        type=Path,
+        default=None,
+        help="read-only validation of one robot-side RealSense relay env file",
+    )
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument(
         "--allow-hardware-offline",
@@ -890,6 +1081,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             mode=args.mode,
             project_dir=args.project_dir,
             env_file=args.env_file,
+            realsense_relay_env_file=args.realsense_relay_env_file,
             os_release_file=args.os_release,
             allow_hardware_offline=args.allow_hardware_offline,
         )

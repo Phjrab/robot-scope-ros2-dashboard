@@ -11,7 +11,9 @@ User=unitree
 Group=unitree
 SupplementaryGroups=video
 WorkingDirectory=/
-EnvironmentFile=-/home/unitree/.config/robot-scope/realsense-camera.env
+# A missing deployment contract is a startup error. Install the reviewed
+# mode-0600 copy before starting this unit; no source edit is required.
+EnvironmentFile=/home/unitree/.config/robot-scope/realsense-camera.env
 Environment=GST_REGISTRY=/tmp/robot-scope-gstreamer-registry.bin
 ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/realsense_mjpeg_relay.py
 Restart=on-failure

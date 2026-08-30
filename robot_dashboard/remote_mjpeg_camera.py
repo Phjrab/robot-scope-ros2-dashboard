@@ -18,6 +18,10 @@ MAX_JPEG_DIMENSION = 8192
 MAX_JPEG_PIXELS = 32 * 1024 * 1024
 READ_CHUNK_BYTES = 64 * 1024
 REALSENSE_RELAY_HOST = "192.168.123.18"
+REALSENSE_RELAY_PORT = 8090
+REALSENSE_RELAY_PORT_ENV = "ROBOT_SCOPE_REALSENSE_PORT"
+MIN_REALSENSE_RELAY_PORT = 1024
+MAX_REALSENSE_RELAY_PORT = 65535
 JPEG_SOF_MARKERS = frozenset(
     {
         0xC0,
@@ -56,7 +60,15 @@ def allowed_realsense_relay_host(value: str) -> bool:
         and not address.is_unspecified
         and not address.is_loopback
         and not address.is_multicast
+        and int(str(address).rsplit(".", 1)[1]) not in {0, 255}
     )
+
+
+def allowed_realsense_relay_port(value: object) -> bool:
+    text = str(value or "").strip()
+    if not text.isascii() or not text.isdecimal():
+        return False
+    return MIN_REALSENSE_RELAY_PORT <= int(text, 10) <= MAX_REALSENSE_RELAY_PORT
 
 
 def _jpeg_dimensions(jpeg: bytes) -> Optional[tuple[int, int]]:
@@ -186,8 +198,8 @@ class RemoteMjpegCamera:
             return "remote MJPEG camera URL authority is invalid"
         if parsed.hostname != self.relay_host:
             return "remote MJPEG camera host is not allowlisted"
-        if port is None or not 1 <= port <= 65535:
-            return "remote MJPEG camera URL requires an explicit port"
+        if port is None or not allowed_realsense_relay_port(port):
+            return "remote MJPEG camera URL requires an allowlisted explicit port"
         if parsed.path != "/stream" or parsed.query or parsed.fragment:
             return "remote MJPEG camera URL must use the fixed /stream path"
         return ""

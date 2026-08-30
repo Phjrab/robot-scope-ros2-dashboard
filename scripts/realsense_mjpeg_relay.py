@@ -8,67 +8,228 @@ import ipaddress
 import json
 import os
 import signal
+import socket
 import stat
 import subprocess
 import threading
 import time
+from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Callable, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence
 
 
 class RelaySetupError(RuntimeError):
-    pass
+    """Bounded startup/runtime error suitable for service logs and health."""
+
+    def __init__(self, code: str, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(f"{code}: {message}")
 
 
 DEFAULT_BIND_HOST = "192.168.123.18"
-BIND_PORT = 8090
 DEFAULT_DASHBOARD_HOST = "192.168.123.99"
+DEFAULT_BIND_PORT = 8090
+DEFAULT_WIDTH = 640
+DEFAULT_HEIGHT = 480
+DEFAULT_FPS = 15
+DEFAULT_JPEG_QUALITY = 72
 RELAY_BIND_HOST_ENV = "ROBOT_SCOPE_REALSENSE_BIND_HOST"
 RELAY_DASHBOARD_HOST_ENV = "ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST"
+RELAY_PORT_ENV = "ROBOT_SCOPE_REALSENSE_PORT"
+RELAY_WIDTH_ENV = "ROBOT_SCOPE_REALSENSE_WIDTH"
+RELAY_HEIGHT_ENV = "ROBOT_SCOPE_REALSENSE_HEIGHT"
+RELAY_FPS_ENV = "ROBOT_SCOPE_REALSENSE_FPS"
+RELAY_JPEG_QUALITY_ENV = "ROBOT_SCOPE_REALSENSE_JPEG_QUALITY"
+PRIVATE_NETWORKS = (
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+)
+ALLOWED_CAPTURE_RESOLUTIONS = frozenset({(320, 240), (640, 480), (1280, 720)})
+ALLOWED_CAPTURE_FPS = frozenset({5, 10, 15, 30})
+MIN_BIND_PORT = 1024
+MAX_BIND_PORT = 65535
+MIN_JPEG_QUALITY = 40
+MAX_JPEG_QUALITY = 90
 
 
-def _local_link_ipv4(value: str, label: str) -> str:
+@dataclass(frozen=True)
+class RelayConfig:
+    bind_host: str
+    dashboard_host: str
+    port: int
+    width: int
+    height: int
+    fps: int
+    jpeg_quality: int
+
+
+def _local_link_ipv4(value: str, label: str, error_code: str) -> ipaddress.IPv4Address:
     """Return one explicit RFC1918/link-local IPv4 or fail closed."""
 
     text = str(value or "").strip()
     try:
         address = ipaddress.ip_address(text)
     except ValueError as exc:
-        raise RelaySetupError(f"{label} must be a valid IPv4 address") from exc
-    allowed_networks = (
-        ipaddress.ip_network("10.0.0.0/8"),
-        ipaddress.ip_network("172.16.0.0/12"),
-        ipaddress.ip_network("192.168.0.0/16"),
-        ipaddress.ip_network("169.254.0.0/16"),
-    )
+        raise RelaySetupError(
+            error_code, f"{label} must be a valid IPv4 address"
+        ) from exc
     if not isinstance(address, ipaddress.IPv4Address) or not any(
-        address in network for network in allowed_networks
+        address in network for network in PRIVATE_NETWORKS
     ):
-        raise RelaySetupError(f"{label} must be a private or link-local IPv4 address")
-    if address.is_unspecified or address.is_loopback or address.is_multicast:
-        raise RelaySetupError(f"{label} is not an allowed relay address")
-    return str(address)
+        raise RelaySetupError(
+            error_code, f"{label} must be a private or link-local IPv4 address"
+        )
+    if (
+        address.is_unspecified
+        or address.is_loopback
+        or address.is_multicast
+        or address == ipaddress.ip_address("255.255.255.255")
+    ):
+        raise RelaySetupError(error_code, f"{label} is not an allowed relay address")
+    return address
+
+
+def _bounded_integer(
+    value: object,
+    label: str,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    text = str(value or "").strip()
+    if not text.isascii() or not text.isdecimal():
+        raise RelaySetupError("INVALID_CONFIG", f"{label} must be a decimal integer")
+    parsed = int(text, 10)
+    if not minimum <= parsed <= maximum:
+        raise RelaySetupError(
+            "INVALID_CONFIG", f"{label} is outside the allowed range"
+        )
+    return parsed
+
+
+def _local_bind_available(bind_host: str) -> bool:
+    """Prove that the kernel currently owns the exact configured IPv4."""
+
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        probe.bind((bind_host, 0))
+    except OSError:
+        return False
+    finally:
+        probe.close()
+    return True
+
+
+def relay_configuration(
+    environ: Optional[Mapping[str, str]] = None,
+    *,
+    validate_local_bind: bool = False,
+    local_bind_check: Optional[Callable[[str], bool]] = None,
+) -> RelayConfig:
+    """Load one bounded relay contract without a wildcard or silent fallback."""
+
+    values = os.environ if environ is None else environ
+    bind_address = _local_link_ipv4(
+        values.get(RELAY_BIND_HOST_ENV, DEFAULT_BIND_HOST),
+        RELAY_BIND_HOST_ENV,
+        "INVALID_CONFIG",
+    )
+    dashboard_address = _local_link_ipv4(
+        values.get(RELAY_DASHBOARD_HOST_ENV, DEFAULT_DASHBOARD_HOST),
+        RELAY_DASHBOARD_HOST_ENV,
+        "DASHBOARD_ADDRESS_REJECTED",
+    )
+    pair_network = ipaddress.ip_network(f"{bind_address}/24", strict=False)
+    if bind_address in {pair_network.network_address, pair_network.broadcast_address}:
+        raise RelaySetupError(
+            "INVALID_CONFIG", f"{RELAY_BIND_HOST_ENV} is a /24 network or broadcast address"
+        )
+    if dashboard_address not in pair_network or dashboard_address in {
+        pair_network.network_address,
+        pair_network.broadcast_address,
+    }:
+        raise RelaySetupError(
+            "DASHBOARD_ADDRESS_REJECTED",
+            f"{RELAY_DASHBOARD_HOST_ENV} must be a usable host in the bind address /24",
+        )
+    if dashboard_address == bind_address:
+        raise RelaySetupError(
+            "DASHBOARD_ADDRESS_REJECTED",
+            f"{RELAY_DASHBOARD_HOST_ENV} must differ from the relay bind address",
+        )
+
+    port = _bounded_integer(
+        values.get(RELAY_PORT_ENV, str(DEFAULT_BIND_PORT)),
+        RELAY_PORT_ENV,
+        minimum=MIN_BIND_PORT,
+        maximum=MAX_BIND_PORT,
+    )
+    width = _bounded_integer(
+        values.get(RELAY_WIDTH_ENV, str(DEFAULT_WIDTH)),
+        RELAY_WIDTH_ENV,
+        minimum=min(item[0] for item in ALLOWED_CAPTURE_RESOLUTIONS),
+        maximum=max(item[0] for item in ALLOWED_CAPTURE_RESOLUTIONS),
+    )
+    height = _bounded_integer(
+        values.get(RELAY_HEIGHT_ENV, str(DEFAULT_HEIGHT)),
+        RELAY_HEIGHT_ENV,
+        minimum=min(item[1] for item in ALLOWED_CAPTURE_RESOLUTIONS),
+        maximum=max(item[1] for item in ALLOWED_CAPTURE_RESOLUTIONS),
+    )
+    if (width, height) not in ALLOWED_CAPTURE_RESOLUTIONS:
+        raise RelaySetupError(
+            "INVALID_CONFIG", "RealSense width and height are not an allowlisted profile"
+        )
+    fps = _bounded_integer(
+        values.get(RELAY_FPS_ENV, str(DEFAULT_FPS)),
+        RELAY_FPS_ENV,
+        minimum=min(ALLOWED_CAPTURE_FPS),
+        maximum=max(ALLOWED_CAPTURE_FPS),
+    )
+    if fps not in ALLOWED_CAPTURE_FPS:
+        raise RelaySetupError("INVALID_CONFIG", "RealSense FPS is not allowlisted")
+    jpeg_quality = _bounded_integer(
+        values.get(RELAY_JPEG_QUALITY_ENV, str(DEFAULT_JPEG_QUALITY)),
+        RELAY_JPEG_QUALITY_ENV,
+        minimum=MIN_JPEG_QUALITY,
+        maximum=MAX_JPEG_QUALITY,
+    )
+
+    bind_host = str(bind_address)
+    if validate_local_bind:
+        checker = local_bind_check or _local_bind_available
+        if not checker(bind_host):
+            raise RelaySetupError(
+                "BIND_ADDRESS_MISSING",
+                f"{RELAY_BIND_HOST_ENV} is not assigned to a local interface",
+            )
+    return RelayConfig(
+        bind_host=bind_host,
+        dashboard_host=str(dashboard_address),
+        port=port,
+        width=width,
+        height=height,
+        fps=fps,
+        jpeg_quality=jpeg_quality,
+    )
 
 
 def relay_network_hosts(
     environ: Optional[dict[str, str]] = None,
 ) -> tuple[str, str]:
-    values = os.environ if environ is None else environ
-    return (
-        _local_link_ipv4(
-            values.get(RELAY_BIND_HOST_ENV, DEFAULT_BIND_HOST),
-            RELAY_BIND_HOST_ENV,
-        ),
-        _local_link_ipv4(
-            values.get(RELAY_DASHBOARD_HOST_ENV, DEFAULT_DASHBOARD_HOST),
-            RELAY_DASHBOARD_HOST_ENV,
-        ),
-    )
+    config = relay_configuration(environ)
+    return config.bind_host, config.dashboard_host
 
 
-BIND_HOST, DASHBOARD_HOST = relay_network_hosts()
+REFERENCE_CONFIG = relay_configuration({})
+BIND_HOST = REFERENCE_CONFIG.bind_host
+BIND_PORT = REFERENCE_CONFIG.port
+DASHBOARD_HOST = REFERENCE_CONFIG.dashboard_host
 HEALTH_CLIENTS = frozenset({"127.0.0.1", BIND_HOST, DASHBOARD_HOST})
 STREAM_CLIENTS = frozenset({DASHBOARD_HOST})
 DEVICE_GLOB = "/dev/v4l/by-path/*-video-index0"
@@ -78,10 +239,10 @@ REALSENSE_VENDOR_ID = "8086"
 REALSENSE_PRODUCT_ID = "0b3a"
 REALSENSE_COLOR_INTERFACE = "03"
 REALSENSE_VIDEO_INDEX = "0"
-WIDTH = 640
-HEIGHT = 480
-FPS = 15
-JPEG_QUALITY = 72
+WIDTH = REFERENCE_CONFIG.width
+HEIGHT = REFERENCE_CONFIG.height
+FPS = REFERENCE_CONFIG.fps
+JPEG_QUALITY = REFERENCE_CONFIG.jpeg_quality
 PLUGIN_PROBE_TIMEOUT_S = 15.0
 MAX_JPEG_BYTES = 4 * 1024 * 1024
 MAX_VIEWERS = 4
@@ -99,13 +260,15 @@ KEEPALIVE_PART = (
 ).encode("ascii")
 
 
-def client_allowed(client_host: str, path: str) -> bool:
+def client_allowed(
+    client_host: str, path: str, config: RelayConfig = REFERENCE_CONFIG
+) -> bool:
     """Keep the sensor feed on the fixed robot-to-dashboard link."""
 
     if path == "/health":
-        return client_host in HEALTH_CLIENTS
+        return client_host in {"127.0.0.1", config.bind_host, config.dashboard_host}
     if path == "/stream":
-        return client_host in STREAM_CLIENTS
+        return client_host == config.dashboard_host
     return True
 
 
@@ -156,7 +319,8 @@ def resolve_realsense_device(pattern: str = DEVICE_GLOB) -> str:
             trusted.add(target)
     if len(trusted) != 1:
         raise RelaySetupError(
-            f"expected exactly one verified RealSense color interface, found {len(trusted)}"
+            "DEVICE_NOT_FOUND",
+            f"expected exactly one verified RealSense color interface, found {len(trusted)}",
         )
     return str(next(iter(trusted)))
 
@@ -181,7 +345,9 @@ def _plugin_available(name: str) -> bool:
     return result.returncode == 0
 
 
-def gstreamer_command(device: str) -> tuple[str, ...]:
+def gstreamer_command(
+    device: str, config: RelayConfig = REFERENCE_CONFIG
+) -> tuple[str, ...]:
     # JetPack 5's nvjpegenc can discover successfully yet crash at runtime in
     # a hardened service (NVMAP_IOC_GET_FD / NvRmStream failures).  At the
     # bounded 640x480@15 profile, jpegenc is the reliable default and avoids
@@ -189,7 +355,9 @@ def gstreamer_command(device: str) -> tuple[str, ...]:
     # fallback for images that do not provide the software encoder.
     encoder = "jpegenc" if _plugin_available("jpegenc") else "nvjpegenc"
     if encoder == "nvjpegenc" and not _plugin_available("nvjpegenc"):
-        raise RelaySetupError("neither nvjpegenc nor jpegenc is installed")
+        raise RelaySetupError(
+            "ENCODER_UNAVAILABLE", "neither nvjpegenc nor jpegenc is installed"
+        )
     return (
         "/usr/bin/gst-launch-1.0",
         "-q",
@@ -197,14 +365,17 @@ def gstreamer_command(device: str) -> tuple[str, ...]:
         f"device={device}",
         "do-timestamp=true",
         "!",
-        f"video/x-raw,format=YUY2,width={WIDTH},height={HEIGHT},framerate={FPS}/1",
+        (
+            "video/x-raw,format=YUY2,"
+            f"width={config.width},height={config.height},framerate={config.fps}/1"
+        ),
         "!",
         "videoconvert",
         "!",
         "video/x-raw,format=I420",
         "!",
         encoder,
-        f"quality={JPEG_QUALITY}",
+        f"quality={config.jpeg_quality}",
         "!",
         "fdsink",
         "fd=1",
@@ -354,7 +525,8 @@ class FrameHub:
                 elif producer_age_s is not None and producer_age_s > SOURCE_STARTUP_TIMEOUT_S:
                     state = "error"
                     last_error = (
-                        f"no RealSense JPEG received after {producer_age_s:.1f}s"
+                        "SOURCE_STALE: no RealSense JPEG received after "
+                        f"{producer_age_s:.1f}s"
                     )
                 else:
                     state = "starting"
@@ -364,7 +536,7 @@ class FrameHub:
                 state = "starting"
             else:
                 state = "error"
-                last_error = "RealSense producer stopped unexpectedly"
+                last_error = "SOURCE_STALE: RealSense producer stopped unexpectedly"
 
             return {
                 "status": state,
@@ -404,8 +576,13 @@ class FrameHub:
 
 
 class GstProducer:
-    def __init__(self, publish: Callable[[bytes], bool]):
+    def __init__(
+        self,
+        publish: Callable[[bytes], bool],
+        config: RelayConfig = REFERENCE_CONFIG,
+    ):
         self._publish = publish
+        self._config = config
         self._stop = threading.Event()
         self._lock = threading.RLock()
         self._process: Optional[subprocess.Popen[bytes]] = None
@@ -422,8 +599,10 @@ class GstProducer:
             error = ""
             try:
                 error = self._run_once()
-            except (OSError, RelaySetupError, subprocess.SubprocessError) as exc:
+            except RelaySetupError as exc:
                 error = str(exc)
+            except (OSError, subprocess.SubprocessError):
+                error = "SOURCE_STALE: RealSense capture process unavailable"
             finally:
                 with self._lock:
                     self._process = None
@@ -438,7 +617,7 @@ class GstProducer:
     def _run_once(self) -> str:
         device = resolve_realsense_device()
         process = subprocess.Popen(
-            list(gstreamer_command(device)),
+            list(gstreamer_command(device, self._config)),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             close_fds=True,
@@ -478,10 +657,12 @@ class GstProducer:
         returncode = process.poll()
         if returncode is None:
             self._terminate_process(process)
-            return "RealSense GStreamer stdout closed while the process was running"
+            return (
+                "SOURCE_STALE: RealSense GStreamer stdout closed while the process was running"
+            )
         if returncode == 0:
-            return "RealSense GStreamer stream ended unexpectedly"
-        return f"RealSense GStreamer exited with status {returncode}"
+            return "SOURCE_STALE: RealSense GStreamer stream ended unexpectedly"
+        return f"SOURCE_STALE: RealSense GStreamer exited with status {returncode}"
 
     @staticmethod
     def _terminate_process(process: subprocess.Popen[bytes]) -> None:
@@ -524,10 +705,13 @@ class RelayServer(ThreadingHTTPServer):
     allow_reuse_address = False
     request_queue_size = MAX_HTTP_CLIENTS
 
-    def __init__(self, hub: FrameHub):
+    def __init__(
+        self, hub: FrameHub, config: RelayConfig = REFERENCE_CONFIG
+    ):
         self.hub = hub
+        self.config = config
         self._client_slots = threading.BoundedSemaphore(MAX_HTTP_CLIENTS)
-        super().__init__((BIND_HOST, BIND_PORT), RelayHandler)
+        super().__init__((config.bind_host, config.port), RelayHandler)
 
     def process_request(self, request: object, client_address: object) -> None:
         if not self._client_slots.acquire(blocking=False):
@@ -555,7 +739,9 @@ class RelayHandler(BaseHTTPRequestHandler):
         if self.headers.get("Transfer-Encoding") or self.headers.get("Content-Length", "0") != "0":
             self.send_error(HTTPStatus.BAD_REQUEST, "request body is not accepted")
             return
-        if not client_allowed(str(self.client_address[0]), self.path):
+        if not client_allowed(
+            str(self.client_address[0]), self.path, self.server.config
+        ):
             self.send_error(HTTPStatus.FORBIDDEN, "client is not allowlisted")
             return
         if self.path == "/health":
@@ -620,11 +806,12 @@ def main(argv: Sequence[str] = ()) -> int:
     if argv:
         print("realsense_mjpeg_relay.py accepts no arguments", file=os.sys.stderr)
         return 2
+    config = relay_configuration(validate_local_bind=True)
     # Fail before binding so a missing/ambiguous USB camera is explicit.
     device = resolve_realsense_device()
-    gstreamer_command(device)
-    hub = FrameHub(GstProducer)
-    server = RelayServer(hub)
+    gstreamer_command(device, config)
+    hub = FrameHub(lambda publish: GstProducer(publish, config))
+    server = RelayServer(hub, config)
     stopping = threading.Event()
 
     def stop(_signum: int, _frame: object) -> None:
@@ -635,7 +822,11 @@ def main(argv: Sequence[str] = ()) -> int:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     try:
-        print(f"[Robot Scope RealSense] listening on http://{BIND_HOST}:{BIND_PORT}")
+        print(
+            "[Robot Scope RealSense] listening on "
+            f"http://{config.bind_host}:{config.port} "
+            f"profile={config.width}x{config.height}@{config.fps} q={config.jpeg_quality}"
+        )
         server.serve_forever(poll_interval=0.25)
     finally:
         server.server_close()
@@ -644,4 +835,8 @@ def main(argv: Sequence[str] = ()) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(os.sys.argv[1:]))
+    try:
+        raise SystemExit(main(os.sys.argv[1:]))
+    except RelaySetupError as exc:
+        print(f"[Robot Scope RealSense] {exc}", file=os.sys.stderr)
+        raise SystemExit(2) from None

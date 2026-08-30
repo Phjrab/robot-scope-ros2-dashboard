@@ -66,6 +66,9 @@ relay. It does install the fixed, root-owned robot-scope-dashboard SSH helper,
 but its exact-command sudoers policy remains a separate administrator step.
 The dashboard unit reads robot-scope.env and optional control.env; the control
 bridge unit (control/nav modes) requires both files.
+Robot-side RealSense relay env/service installation is also a separate reviewed
+operation. This installer never writes deployment IPs or credentials into the
+repository and never enables or starts that relay.
 EOF
 }
 

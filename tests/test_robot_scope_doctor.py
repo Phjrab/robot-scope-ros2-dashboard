@@ -89,6 +89,7 @@ class DoctorFixture:
         which=None,
         environment_updates=None,
         allow_hardware_offline=False,
+        realsense_relay_env_file=None,
     ):
         environment = {
             "HOME": str(self.home),
@@ -101,6 +102,7 @@ class DoctorFixture:
             mode=mode,
             project_dir=self.project,
             env_file=env_file,
+            realsense_relay_env_file=realsense_relay_env_file,
             os_release_file=self.os_release,
             architecture="x86_64",
             environment=environment,
@@ -112,6 +114,24 @@ class DoctorFixture:
 
 
 class RobotScopeDoctorTests(unittest.TestCase):
+    @staticmethod
+    def _write_realsense_env(path, **overrides):
+        values = {
+            "ROBOT_SCOPE_REALSENSE_BIND_HOST": "192.168.50.30",
+            "ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST": "192.168.50.10",
+            "ROBOT_SCOPE_REALSENSE_PORT": "8090",
+            "ROBOT_SCOPE_REALSENSE_WIDTH": "640",
+            "ROBOT_SCOPE_REALSENSE_HEIGHT": "480",
+            "ROBOT_SCOPE_REALSENSE_FPS": "15",
+            "ROBOT_SCOPE_REALSENSE_JPEG_QUALITY": "72",
+        }
+        values.update(overrides)
+        path.write_text(
+            "".join(f"{key}={value}\n" for key, value in values.items()),
+            encoding="utf-8",
+        )
+        path.chmod(0o600)
+
     def test_mode_features_are_explicit_and_cumulative(self):
         self.assertEqual(doctor_module.MODE_FEATURES["observer"], {"core"})
         self.assertEqual(
@@ -155,6 +175,83 @@ class RobotScopeDoctorTests(unittest.TestCase):
                 any('source "$1"' in argument for argument in python_probe)
             )
             self.assertIn(str(fixture.ros_prefix / "setup.bash"), python_probe)
+
+    def test_realsense_relay_doctor_validates_config_and_exact_local_bind(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            relay_env = Path(temporary) / "realsense-camera.env"
+            self._write_realsense_env(relay_env)
+            runner = FakeRunner(interface="wlan0", cidr="192.168.50.30/24")
+            doctor = fixture.make_doctor(
+                "observer",
+                runner=runner,
+                realsense_relay_env_file=relay_env,
+            )
+            checks = doctor.run()
+            by_id = {check.id: check for check in checks}
+            self.assertEqual(by_id["realsense.config"].status, "pass")
+            self.assertEqual(by_id["realsense.env_permissions"].status, "pass")
+            self.assertEqual(by_id["realsense.bind_address"].status, "pass")
+            self.assertEqual(doctor.exit_code, 0)
+            address_probe = next(
+                command
+                for command in runner.commands
+                if "addr" in command and "scope" in command
+            )
+            self.assertEqual(
+                address_probe,
+                ("/usr/bin/ip", "-o", "-4", "addr", "show", "scope", "global"),
+            )
+
+    def test_realsense_relay_doctor_rejects_bad_profile_and_missing_bind(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            relay_env = Path(temporary) / "realsense-camera.env"
+            self._write_realsense_env(
+                relay_env,
+                ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST="192.168.50.255",
+            )
+            rejected = fixture.make_doctor(
+                "observer", realsense_relay_env_file=relay_env
+            )
+            rejected_checks = {check.id: check for check in rejected.run()}
+            self.assertEqual(rejected_checks["realsense.config"].status, "fail")
+
+            self._write_realsense_env(relay_env)
+            missing = fixture.make_doctor(
+                "observer",
+                runner=FakeRunner(cidr="192.168.50.31/24"),
+                realsense_relay_env_file=relay_env,
+            )
+            missing_checks = {check.id: check for check in missing.run()}
+            self.assertEqual(missing_checks["realsense.config"].status, "pass")
+            self.assertEqual(missing_checks["realsense.bind_address"].status, "fail")
+            self.assertEqual(missing.exit_code, 1)
+
+    def test_realsense_relay_doctor_requires_every_setting_and_private_file(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            relay_env = Path(temporary) / "realsense-camera.env"
+            relay_env.write_text(
+                "ROBOT_SCOPE_REALSENSE_BIND_HOST=192.168.50.30\n",
+                encoding="utf-8",
+            )
+            incomplete = fixture.make_doctor(
+                "observer", realsense_relay_env_file=relay_env
+            )
+            checks = {check.id: check for check in incomplete.run()}
+            self.assertEqual(checks["realsense.config"].status, "fail")
+
+            self._write_realsense_env(relay_env)
+            relay_env.chmod(0o644)
+            public = fixture.make_doctor(
+                "observer",
+                runner=FakeRunner(cidr="192.168.50.30/24"),
+                realsense_relay_env_file=relay_env,
+            )
+            public_checks = {check.id: check for check in public.run()}
+            self.assertEqual(public_checks["realsense.env_permissions"].status, "fail")
+            self.assertEqual(public.exit_code, 1)
 
     def test_jazzy_observer_is_supported_on_ubuntu_2404(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -193,6 +193,8 @@ RealSense만 보이지 않으면 로봇 탑재 Jetson에서 다음을 확인합�
 
 ~~~bash
 realsense_relay_host=192.168.123.18
+python3 scripts/robot_scope_doctor.py --mode observer \
+  --realsense-relay-env-file "$HOME/.config/robot-scope/realsense-camera.env"
 systemctl status robot-scope-realsense-camera.service --no-pager
 systemctl is-enabled robot-scope-realsense-camera.service
 systemctl is-active robot-scope-realsense-camera.service
@@ -200,6 +202,19 @@ ls -l /dev/v4l/by-path/*-video-index0
 curl -fsS "http://${realsense_relay_host}:8090/health"
 journalctl -u robot-scope-realsense-camera.service -n 80 --no-pager
 ~~~
+
+Doctor는 env 존재·형식·mode `0600` 권한·주소 쌍·bounded capture profile과 로컬 bind 주소를
+읽기 전용으로 검사합니다. 원격 host를 수정하거나 Wi-Fi 설정, route, service 상태를
+변경하지 않습니다. `INVALID_CONFIG`, `BIND_ADDRESS_MISSING`,
+`DASHBOARD_ADDRESS_REJECTED`, `DEVICE_NOT_FOUND`, `ENCODER_UNAVAILABLE`,
+`SOURCE_STALE` 중 하나가 service 로그에 나오면 해당 원인을 해결하며 public bind나 넓은
+client allowlist로 우회하지 않습니다.
+
+WP01 설정 계약을 rollback해야 하면 Git history를 재작성하지 말고 WP01 commit을
+`git revert`합니다. 배포 host에서는 그 revert로 복원한 relay script와 service example을
+검토한 뒤, 기존 reference 두 주소만 사용하던 env를 복구합니다. WP01 직전 repository
+기준선은 `de69843`입니다. 실제 unit 교체나 restart는 별도 승인된 유지보수 시간에만 하고,
+rollback 중에도 `0.0.0.0` bind 또는 dashboard 이외 client 허용은 사용하지 않습니다.
 
 `Cannot assign requested address`가 반복되면 service를 먼저 중지하고
 `~/.config/robot-scope/realsense-camera.env`의 bind 주소가 `ip -br -4 address`에 실제로
