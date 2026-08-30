@@ -27,6 +27,9 @@ subtracted from each other.
 The status vocabulary is `LIVE`, `DEGRADED`, `STALE`, `OFFLINE`, and
 `UNVERIFIED`. Missing executables, malformed health JSON, non-finite values and
 probe timeouts fail to `UNVERIFIED`; they do not widen a timeout or retry queue.
+The relay unit permits `AF_NETLINK` only so its unprivileged, fixed-argument
+`iw dev <interface> link` probe can read wireless status. It remains
+capability-free and has no route, interface, or wireless mutation authority.
 
 ## Dashboard check
 

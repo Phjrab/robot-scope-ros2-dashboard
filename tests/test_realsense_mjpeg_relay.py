@@ -626,6 +626,10 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIn("SupplementaryGroups=video", service)
         self.assertIn("PrivateDevices=false", service)
         self.assertIn("CapabilityBoundingSet=\n", service)
+        self.assertIn(
+            "RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK",
+            service,
+        )
         self.assertIn("ProtectSystem=strict", service)
         self.assertIn("StartLimitIntervalSec=60", service)
         self.assertIn("StartLimitBurst=5", service)

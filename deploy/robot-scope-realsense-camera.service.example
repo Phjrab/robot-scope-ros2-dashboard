@@ -25,7 +25,10 @@ TimeoutStopSec=5
 PrivateDevices=false
 NoNewPrivileges=true
 CapabilityBoundingSet=
-RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# The optional fixed-argv `iw dev <iface> link` probe uses generic netlink.
+# AF_NETLINK does not grant mutation authority; the unprivileged service still
+# has no capabilities and cannot change interface or route configuration.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 
 UMask=0077
 PrivateTmp=true

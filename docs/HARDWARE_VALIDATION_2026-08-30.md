@@ -288,6 +288,64 @@ carry arbitrary ROS/DDS or XT16 point-cloud traffic. Restoring mapping requires
 a separately reviewed sensor-data architecture. It must not be worked around
 by silently adding a broad route, NAT, bridge, or DDS router.
 
+## WP01/WP02 RealSense follow-up — 2026-08-31
+
+The external dashboard Orin was fast-forwarded to commit `d3c1f71` before this
+check. The robot-side relay script was installed from the same source at SHA-256
+`5d4ef09a92b6ccfadaf99eeaadd3b05ac7fe2c5aed203c02062301836e8a0475`.
+The configured relay profile was 640x480 at 15 FPS and JPEG quality 72.
+
+The source-address boundary behaved as designed: requests from the management
+Mac (`192.168.50.104`) received HTTP 403 for both `/health` and `/stream`, while
+the external dashboard Orin and the relay host received HTTP 200. An external
+dashboard WebSocket observation received 110 valid 640x480 JPEG frames in
+8.036 seconds (13.69 observed FPS). While open, the dashboard reported one
+viewer, 15.01 receive FPS, 6.454 Mbps, 35 successful decodes, and zero decode
+failures. The relay reported one viewer and one producer, 15.16 FPS, 5.356
+Mbps, and zero invalid frames. After closure, both layers returned to zero
+viewers and the relay producer stopped. This is **PASS** for WP01 bounded
+access, profile reporting, decode, single-producer behavior, and cleanup.
+
+The first WP02 sample exposed a real observability defect: the relay returned
+`wifi.state=UNVERIFIED` and `iw link probe failed` even though the same
+unprivileged `iw dev wlan0 link` command worked outside the unit. The unit's
+address-family sandbox omitted generic netlink. The service definition now
+allows `AF_NETLINK` for that fixed-argument read-only probe while retaining an
+empty `CapabilityBoundingSet` and no interface, route, or wireless mutation
+authority. A contract test locks this boundary.
+
+The corrected installed unit matched SHA-256
+`37fc89f03fce61148a6cf1a0333f9afc394a6d4f7b7f75f87ee5e4fd97071ad0`.
+Runtime properties confirmed an empty capability bounding set,
+`RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX`, zero service
+restarts, and the required manual-only `disabled` boot policy. Relay health
+then reported Wi-Fi `LIVE` at -34 dBm and 1200.9 Mbps. A six-second stream from
+the external Orin transferred 4,198,376 bytes; the in-stream sample showed one
+viewer, one producer, 15.55 FPS, and zero invalid frames. After the disconnect
+grace period, health returned to `idle`, zero viewers, and stopped producer and
+producer thread. This is **PASS** for WP02 read-only link observability,
+least-privilege confinement, bounded stream operation, and cleanup.
+
+No control lease, deadman input, motion command, navigation, mapping, dataset
+capture, or service auto-enable was used during these checks. The Control
+Bridge remained inactive, the command projection remained zero, and the
+RealSense relay was left manually active but disabled at boot.
+
+Follow-up repository verification for this correction:
+
+- targeted RealSense Python tests: 28 passed, 0 failed;
+- camera-media JavaScript tests: 21 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- complete JavaScript suite: 252 passed, 0 failed;
+- browser E2E: 29 passed and one timing-sensitive mission-restoration case
+  failed in the full 30-case run; that exact case passed when rerun alone;
+- complete Python suite: 793 run, 792 passed, with the unchanged macOS-only
+  `/etc/os-release` baseline error in the Ubuntu installer test;
+- mypy configured targets: PASS;
+- Ruff: the correction itself is clean; the repository-wide targeted scan
+  retains the existing `mission_coordinator.py:691` E701 finding;
+- secret scan and `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
