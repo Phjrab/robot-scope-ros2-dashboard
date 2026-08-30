@@ -102,7 +102,10 @@ class DatasetCaptureTests(unittest.TestCase):
             camera_open=cameras.open,
             camera_close=cameras.close,
             camera_snapshots=cameras.snapshots,
-            metadata_snapshot=lambda: {"state": "ok", "pose": {"x": 1.0}},
+            metadata_snapshot=kwargs.pop(
+                "metadata_snapshot",
+                lambda: {"state": "ok", "pose": {"x": 1.0}},
+            ),
             minimum_free_bytes=kwargs.pop("minimum_free_bytes", 0),
             startup_timeout_s=kwargs.pop("startup_timeout_s", 0.5),
             **kwargs,
@@ -205,6 +208,55 @@ class DatasetCaptureTests(unittest.TestCase):
             self.assertEqual(manifest["filesystem_reserve"]["minimum_free_bytes"], 0)
             self.assertEqual(manifest["drop_counters"], manifest["drop_counts"])
             self.assertFalse(manifest["annotations_present"])
+
+    def test_wp04_perception_source_identity_reaches_sample_reference(self):
+        perception_reference = {
+            "mode": "SHADOW",
+            "results": [
+                {
+                    "source_id": "realsense_color",
+                    "boot_id": "a" * 32,
+                    "task": "object",
+                    "sequence": 91,
+                    "source_sequence": 812,
+                    "source_epoch": 41,
+                    "model_id": "object-v1",
+                    "model_sha256": "b" * 64,
+                    "capture_timestamp": 1_000_000_000,
+                    "capture_clock_domain": "robot-monotonic",
+                    "result_status": "LIVE",
+                    "input_age_s": 0.4,
+                    "last_receive_age": 0.1,
+                    "clock_domain_verified": False,
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            manager, _ = self.make_manager(
+                temporary,
+                metadata_snapshot=lambda: {
+                    "state": "ok",
+                    "perception_reference": perception_reference,
+                },
+            )
+            started = manager.start(("realsense_color",), 5.0, "shadow-reference")
+            self.assertTrue(wait_until(lambda: manager.snapshot()["saved"] >= 1))
+            manager.stop(started["session_id"])
+            metadata = json.loads(
+                (
+                    Path(temporary)
+                    / "sessions"
+                    / started["session_id"]
+                    / "samples"
+                    / "00000001"
+                    / "metadata.json"
+                ).read_text()
+            )
+            result = metadata["perception_result_reference"]["results"][0]
+            self.assertEqual(result["source_sequence"], 812)
+            self.assertEqual(result["source_epoch"], 41)
+            self.assertEqual(result["input_age_s"], 0.4)
+            self.assertFalse(result["clock_domain_verified"])
 
     def test_finalized_export_is_atomic_bounded_and_checksum_manifested(self):
         with tempfile.TemporaryDirectory() as temporary:

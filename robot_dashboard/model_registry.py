@@ -671,9 +671,68 @@ class ModelRegistry:
                 os.close(descriptor)
             final = destination / engine_sha
             if final.exists():
+                try:
+                    if final.is_symlink() or not final.is_dir():
+                        raise ModelRegistryUnavailable(
+                            "existing engine validation content is invalid"
+                        )
+                    entries = {
+                        artifact.name: artifact
+                        for artifact in final.iterdir()
+                    }
+                    if (
+                        set(entries) != {
+                            "engine.plan",
+                            "build.log",
+                            "engine-validation.json",
+                        }
+                        or any(
+                            artifact.is_symlink() or not artifact.is_file()
+                            for artifact in entries.values()
+                        )
+                    ):
+                        raise ModelRegistryUnavailable(
+                            "existing engine validation content is invalid"
+                        )
+                    existing_engine_sha, existing_engine_bytes = _hash_file(
+                        entries["engine.plan"],
+                        MAX_ENGINE_BYTES,
+                    )
+                    existing_log_sha, existing_log_bytes = _hash_file(
+                        entries["build.log"],
+                        MAX_BUILD_LOG_BYTES,
+                    )
+                    _hash_file(entries["engine-validation.json"], MAX_METADATA_BYTES)
+                    existing_metadata = json.loads(
+                        entries["engine-validation.json"].read_text(encoding="utf-8")
+                    )
+                    if (
+                        existing_engine_sha != engine_sha
+                        or existing_engine_bytes != engine_bytes
+                        or existing_log_sha != log_sha
+                        or existing_log_bytes != log_bytes
+                        or existing_metadata != engine_metadata
+                    ):
+                        raise ModelRegistryUnavailable(
+                            "existing engine validation content is invalid"
+                        )
+                except (
+                    OSError,
+                    UnicodeDecodeError,
+                    json.JSONDecodeError,
+                    ModelRegistryValidationError,
+                ) as exc:
+                    raise ModelRegistryUnavailable(
+                        "existing engine validation content is invalid"
+                    ) from exc
                 shutil.rmtree(temporary)
             else:
                 os.rename(temporary, final)
+                descriptor = os.open(destination, os.O_RDONLY)
+                try:
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
             engine_public = {
                 "sha256": engine_sha,
                 "bytes": engine_bytes,
@@ -706,8 +765,10 @@ class ModelRegistry:
                 raise ModelRegistryNotFound("model was not found")
             next_state = copy.deepcopy(self._state)
             record = next_state["models"][model_id]
-            if record.get("state") == "active":
-                raise ModelRegistryConflict("an active model cannot be rejected")
+            if record.get("state") in {"active", "previous"}:
+                raise ModelRegistryConflict(
+                    "an active or rollback-candidate model cannot be rejected"
+                )
             record["state"] = "rejected"
             record["reason"] = reason
             self._atomic_registry(next_state)
@@ -733,6 +794,17 @@ class ModelRegistry:
             task = record["task"]
             current = self._state["active"].get(task)
             next_state = copy.deepcopy(self._state)
+            old_previous = next_state["previous"].pop(task, None)
+            if old_previous and old_previous != current:
+                old_previous_record = next_state["models"].get(old_previous)
+                if (
+                    old_previous_record is None
+                    or old_previous_record.get("state") != "previous"
+                ):
+                    raise ModelRegistryUnavailable(
+                        "model rollback state is inconsistent"
+                    )
+                old_previous_record["state"] = "validated"
             if current and current in next_state["models"]:
                 next_state["models"][current]["state"] = "previous"
                 next_state["previous"][task] = current

@@ -438,6 +438,51 @@ WP04 verification results:
   only the existing `mission_coordinator.py:691` E701 finding;
 - `git diff --check`: PASS.
 
+## WP05 dataset and model lifecycle follow-up — 2026-08-31
+
+The original WP05 implementation from `3703f27` was re-audited against the
+current repository after WP04. Dataset Capture remained idle on the external
+Orin, with the configured 20 GiB session quota and 5 GiB filesystem reserve.
+The dashboard model registry was empty, reported no active or previous model,
+and retained the `LOCAL_OPERATOR_ONLY` activation surface. No Dataset session,
+export archive, package stage, model activation, rollback or service restart
+was performed during this follow-up.
+
+The audit found two model-registry persistence gaps. A third activation could
+leave an older record marked `previous` after the task's single previous
+pointer moved, causing the next registry load to fail closed. Activation now
+atomically demotes that older rollback candidate to `validated`, preserves
+exactly one `previous` model, and prevents rejection of that candidate. An
+existing engine SHA directory was also accepted without rechecking all stored
+artifacts. It must now contain exactly the engine, bounded build log and
+validation evidence with matching hashes and content; any collision leaves the
+model staged and the active registry unchanged. A new cross-component Dataset
+test also confirms that WP04 relay sequence, relay epoch, input age and
+unverified clock state reach the bounded sample perception reference.
+
+The Go2-mounted Jetson remained stationary with Control Bridge and shadow
+perception inactive. Its model registry root was absent and no `model.onnx` or
+`engine.plan` existed in the project tree. The target was reconfirmed as L4T
+35.3.1 with TensorRT 8.5.2 and CUDA 11.4. Actual package staging, TensorRT
+generation, shadow/resource validation, activation and rollback therefore
+remain **BLOCKED** pending an approved model package and supervised evidence;
+software Dataset/export and registry contracts are **PASS**.
+
+WP05 follow-up verification results:
+
+- Dataset/perception/model targeted Python tests: 40 passed, 0 failed;
+- model registry and application-contract tests: 12 passed, 0 failed;
+- complete JavaScript suite: 252 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- browser E2E: 30 passed, 0 failed;
+- complete Python suite: 796 run, 795 passed, with the unchanged macOS-only
+  `/etc/os-release` baseline error in the Ubuntu installer test;
+- mypy configured targets: PASS;
+- tracked-source secret scan: PASS;
+- Ruff: all WP05 files passed; the repository-wide scan retains only the
+  existing `mission_coordinator.py:691` E701 finding;
+- `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.

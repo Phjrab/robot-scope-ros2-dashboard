@@ -30,6 +30,11 @@ time, image SHA-256 and an optional bounded perception result reference.
 `cross_host_clock_verified=false` is mandatory until WP07 records a measured
 clock-domain contract.
 
+When a validated WP04 result exists, the bounded perception reference retains
+its sidecar result sequence, exact relay `source_sequence`/`source_epoch`,
+robot-domain input age and the unverified cross-host clock marker. It does not
+copy an unbounded raw inference response into every sample.
+
 Set these deployment values before collection:
 
 ```text
@@ -124,6 +129,14 @@ one registry manifest. The old active entry becomes `previous`. If publication
 fails, the in-memory and on-disk active record stay unchanged. Reconfirm health
 after activation; if runtime health fails, stop the shadow service using the
 approved manual procedure and roll back:
+
+Only one rollback candidate exists per task. Activating a third validated model
+demotes the older rollback candidate back to `validated`, promotes the current
+active model to `previous`, and publishes all three state changes in the same
+atomic registry replacement. A `previous` model cannot be rejected while it is
+the rollback candidate. Pre-existing engine directories are accepted only when
+the engine, bounded build log, validation evidence, and every recorded hash
+match exactly; collisions fail closed without changing active state.
 
 ```text
 python3 scripts/model_registry_tool.py rollback <task> --confirm-active-model <current_model_id>

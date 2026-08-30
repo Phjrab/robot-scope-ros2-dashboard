@@ -193,6 +193,49 @@ class ModelRegistryTests(unittest.TestCase):
             with self.assertRaisesRegex(ModelRegistryValidationError, "redacted"):
                 registry.validate_engine("object-v2", engine, evidence, log)
 
+    def test_existing_engine_directory_must_match_all_validation_artifacts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            registry = ModelRegistry(root / "registry")
+            record = registry.stage_archive(package_archive(root, "object-collision"))
+            engine, evidence, log = engine_evidence(root, record)
+            engine_sha = hashlib.sha256(engine.read_bytes()).hexdigest()
+            collision = registry.engines / record["model_id"] / engine_sha
+            collision.mkdir(parents=True)
+            (collision / "engine.plan").write_bytes(b"tampered-engine")
+
+            with self.assertRaisesRegex(
+                ModelRegistryUnavailable,
+                "existing engine validation content is invalid",
+            ):
+                registry.validate_engine(
+                    record["model_id"],
+                    engine,
+                    evidence,
+                    log,
+                )
+            self.assertEqual(registry.list_models()["models"][0]["state"], "staged")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            registry = ModelRegistry(root / "registry")
+            record = registry.stage_archive(package_archive(root, "object-retry"))
+            engine, evidence, log = engine_evidence(root, record)
+            engine_sha = hashlib.sha256(engine.read_bytes()).hexdigest()
+            retry = registry.engines / record["model_id"] / engine_sha
+            retry.mkdir(parents=True)
+            (retry / "engine.plan").write_bytes(engine.read_bytes())
+            (retry / "build.log").write_bytes(log.read_bytes())
+            (retry / "engine-validation.json").write_bytes(evidence.read_bytes())
+
+            validated = registry.validate_engine(
+                record["model_id"],
+                engine,
+                evidence,
+                log,
+            )
+            self.assertEqual(validated["state"], "validated")
+
     def test_activation_is_atomic_and_rollback_swaps_previous(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
@@ -241,6 +284,36 @@ class ModelRegistryTests(unittest.TestCase):
             rolled_back = registry.rollback("object", "object-v2")
             self.assertEqual(rolled_back["active"]["object"]["model_id"], "object-v1")
             self.assertEqual(rolled_back["previous"]["object"], "object-v2")
+
+    def test_third_activation_rotates_one_previous_and_survives_reload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            registry = ModelRegistry(root / "registry")
+            for model_id in ("object-v1", "object-v2", "object-v3"):
+                record = registry.stage_archive(package_archive(root, model_id))
+                engine, evidence, log = engine_evidence(root, record)
+                registry.validate_engine(model_id, engine, evidence, log)
+                registry.activate(model_id, model_id)
+
+            snapshot = registry.list_models()
+            records = {record["model_id"]: record for record in snapshot["models"]}
+            self.assertEqual(snapshot["active"], {"object": "object-v3"})
+            self.assertEqual(snapshot["previous"], {"object": "object-v2"})
+            self.assertEqual(records["object-v1"]["state"], "validated")
+            self.assertEqual(records["object-v2"]["state"], "previous")
+            self.assertEqual(records["object-v3"]["state"], "active")
+            with self.assertRaisesRegex(ModelRegistryConflict, "rollback-candidate"):
+                registry.reject("object-v2", "must remain available")
+
+            reloaded = ModelRegistry(root / "registry")
+            self.assertEqual(
+                reloaded.active_snapshot()["active"]["object"]["model_id"],
+                "object-v3",
+            )
+            self.assertEqual(
+                reloaded.active_snapshot()["previous"],
+                {"object": "object-v2"},
+            )
 
     def test_tampered_package_cannot_replace_active(self):
         with tempfile.TemporaryDirectory() as temporary:
