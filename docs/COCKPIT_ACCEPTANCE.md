@@ -51,7 +51,10 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | viewport resize와 corrupted layout recovery | `PASS` | geometry/layout schema behavior + Playwright resize |
 | Safety HUD/STOP이 focus panel 위에 유지 | `PASS` | Playwright stacking/focus 시나리오 |
 | BFCache page lifecycle에서 stale async fence | `PASS` | camera/log/dataset generation behavior tests |
-| browser native fullscreen 진입/이탈 | `NOT_RUN` | headless CI의 OS/browser fullscreen이 reference 환경과 동일하지 않음 |
+| robot-off 1366×768, 1920×1080, 2560×1440 layout/FPS | `PASS` | 2026-08-30: horizontal overflow 없음, 정적 LOW 10K 26 FPS, console warning/error 없음 |
+| browser native fullscreen 진입/이탈 | `BLOCKED` | in-app browser가 단축키 후에도 fullscreen/viewport 변화를 노출하지 않음; reference PC 수동 확인 필요 |
+| 실제 background tab visibility 전환 | `BLOCKED` | 자동화 tab 전환에서 대상 page가 계속 visible; software lifecycle tests만 PASS |
+| 해상도별 browser JS heap/RSS | `BLOCKED` | in-app browser가 page heap을 노출하지 않고 macOS process inspection이 제한됨 |
 | 20개 이하 panel stress | `PASS` | registry singleton과 bounded z-order/route stress |
 
 ### Camera와 LiDAR

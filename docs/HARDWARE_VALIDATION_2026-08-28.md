@@ -393,6 +393,40 @@ evidence only. The current-commit `start -> DISARMED/zero -> stop` hardware row
 remains blocked until the robot is charged and connected; no start request,
 lease, ARM request, action or motion command was sent during this preflight.
 
+### Robot-off browser operating environment — 2026-08-30
+
+The dashboard was started manually at the updated Jetson management address
+while the robot and every robot pipeline remained off. The in-app browser was
+tested at explicit 1366x768, 1920x1080 and 2560x1440 viewports. The Cockpit had
+no horizontal document overflow at any size, its robot-off static renderer
+reported `LOW · 10K · 26 FPS` at all three sizes, and no browser warning or
+error was recorded. These numbers do not replace a live PointCloud/camera load
+measurement. The temporary viewport override was reset to the browser default.
+
+The in-app browser did not expose browser JS heap or per-tab RSS. macOS process
+inspection was also denied to this session, so per-resolution remote-PC memory
+is `BLOCKED`, not inferred. The Jetson dashboard service reported 115,761,152
+bytes (about 110.4 MiB) after the short sequence; this is server memory, not
+browser memory.
+
+Native fullscreen and real background-tab transitions also remain blocked in
+automation. The macOS fullscreen shortcut changed neither viewport nor
+Fullscreen API state, and opening another automation tab left the dashboard
+page `visible`. Existing page lifecycle, stale-generation and demand cleanup
+tests still pass, but the reference browser must be checked manually for real
+fullscreen entry/exit and a true hidden/background transition.
+
+The read-only macOS AC power snapshot reported `displaysleep=0` and `sleep=1`.
+Active assertions at that moment prevented idle display and system sleep, but
+several were owned by ChatGPT, audio and other transient processes rather than
+Robot Scope. No power setting or assertion was changed. The operator must
+recheck the competition PC after those transient assertions disappear instead
+of assuming the dashboard itself prevents sleep.
+
+The final browser layout had no horizontal overflow. Both camera viewer counts
+were zero, DatasetCapture was idle, Control Bridge remained inactive, and the
+dashboard service was active with its manual-start/disabled boot policy intact.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
