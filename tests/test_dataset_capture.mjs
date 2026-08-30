@@ -4,11 +4,13 @@ import test from 'node:test';
 import {
   datasetCaptureCanStop,
   datasetDetailUrl,
+  datasetExportUrl,
   datasetImageUrl,
   formatDatasetBytes,
   normalizeDatasetCapture,
   normalizeDatasetCatalog,
   normalizeDatasetDetail,
+  normalizeModelRegistry,
 } from '../robot_dashboard/static/features/datasets/capture.js';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
@@ -25,6 +27,8 @@ function datasetHooks() {
     formatBytes: formatDatasetBytes,
     imageUrl: datasetImageUrl,
     detailUrl: datasetDetailUrl,
+    exportUrl: datasetExportUrl,
+    normalizeModels: normalizeModelRegistry,
     canStop: datasetCaptureCanStop,
   };
 }
@@ -51,6 +55,10 @@ test('Sensors exposes a server-side dataset capture panel and compact global sta
     'datasetPageNewer',
     'datasetPageOlder',
     'datasetPageStatus',
+    'datasetExportSession',
+    'datasetExportStatus',
+    'modelRegistryList',
+    'modelRegistryRefresh',
   ]) {
     assert.match(indexSource, new RegExp(`id="${id}"`));
   }
@@ -60,7 +68,7 @@ test('Sensors exposes a server-side dataset capture panel and compact global sta
   assert.match(indexSource, /id="datasetCaptureHz"[^>]+min="0\.2"[^>]+max="5"/);
   assert.match(indexSource, /브라우저를 닫거나 Controls 화면으로 이동해도 저장은 계속됩니다/);
   assert.match(indexSource, /이미지별 분류 라벨·주석 기능을 제공하지 않습니다/);
-  assert.match(stylesSource, /\.dataset-capture-panel, \.dataset-library-panel\s*\{\s*grid-column:1\/-1/);
+  assert.match(stylesSource, /\.dataset-capture-panel, \.dataset-library-panel, \.model-registry-panel\s*\{\s*grid-column:1\/-1/);
 });
 
 test('dataset capture uses only the fixed same-origin API contract', () => {
@@ -69,7 +77,34 @@ test('dataset capture uses only the fixed same-origin API contract', () => {
   assert.match(datasetSource, /const body = \{\s*sources: selectedSourceControl\(\),\s*capture_hz: captureHz,\s*label: ui\.sessionLabel\.value\.trim\(\)/);
   assert.match(datasetSource, /request\('\/api\/v1\/datasets\/capture\/stop',\s*\{[\s\S]*?body: JSON\.stringify\(\{ session_id: sessionId \}\)/);
   assert.match(datasetSource, /request\('\/api\/v1\/datasets'\)/);
+  assert.match(datasetSource, /`\/api\/v1\/datasets\/\$\{encodeURIComponent\(sessionId\)\}\/export`/);
+  assert.match(datasetSource, /request\('\/api\/v1\/models'\)/);
   assert.doesNotMatch(datasetSource, /dataset[^\n]{0,80}(?:file:\/\/|xdg-open|open\s+-a)/i);
+});
+
+test('finalized export and model state use fixed read-only lifecycle contracts', () => {
+  const hooks = datasetHooks();
+  assert.equal(
+    hooks.exportUrl('abc/123'),
+    '/api/v1/datasets/exports/abc%2F123',
+  );
+  const registry = hooks.normalizeModels({
+    activation_surface: 'LOCAL_OPERATOR_ONLY',
+    active: { object: 'object-v2' },
+    previous: { object: 'object-v1' },
+    models: [
+      { model_id: 'object-v2', task: 'object', state: 'active', package_sha256: 'a'.repeat(64), engine: { sha256: 'b'.repeat(64) } },
+      { model_id: 'object-v1', task: 'object', state: 'previous', package_sha256: 'c'.repeat(64), engine: { sha256: 'd'.repeat(64) } },
+      { model_id: '../bad', task: 'motion', state: 'active' },
+    ],
+  });
+  assert.equal(registry.mode, 'LOCAL OPERATOR ONLY');
+  assert.equal(registry.models.length, 2);
+  assert.equal(registry.models[0].isActive, true);
+  assert.equal(registry.models[1].isPrevious, true);
+  assert.match(indexSource, /완료된 세션만 내보낼 수 있습니다/);
+  assert.match(indexSource, /브라우저 새로고침이나 네트워크 재연결로 모델을 활성화하지 않습니다/);
+  assert.doesNotMatch(datasetSource, /\/api\/v1\/models\/(?:activate|rollback)/);
 });
 
 test('capture response normalization accepts fixed source counts and storage fields', () => {

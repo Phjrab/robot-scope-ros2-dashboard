@@ -410,7 +410,7 @@
               <section class="dataset-gallery-view" aria-labelledby="datasetSelectedTitle">
                 <header class="dataset-gallery-heading">
                   <div><span>SELECTED WEB FOLDER</span><strong id="datasetSelectedTitle">선택된 데이터셋 없음</strong><code id="datasetSelectedPath">—</code></div>
-                  <div><span>SAMPLES</span><strong id="datasetSelectedSamples">0</strong><small id="datasetSelectedMeta">세션을 선택하세요.</small></div>
+                  <div><span>SAMPLES</span><strong id="datasetSelectedSamples">0</strong><small id="datasetSelectedMeta">세션을 선택하세요.</small><button id="datasetExportSession" type="button" disabled>EXPORT FINALIZED ZIP</button><small id="datasetExportStatus">완료된 세션만 내보낼 수 있습니다.</small></div>
                 </header>
                 <nav class="dataset-gallery-pagination" aria-label="데이터셋 샘플 페이지">
                   <button id="datasetPageNewest" type="button" disabled>NEWEST</button>
@@ -422,6 +422,17 @@
                 <p class="dataset-browser-note">한 페이지에 최대 24개 샘플을 보여 주며 NEWER·OLDER로 세션 전체를 탐색합니다. Safari에서 원격 Jetson의 Finder·파일 앱 폴더를 직접 여는 기능은 제공하지 않습니다.</p>
               </section>
             </div>
+          </article>
+          <article class="panel model-registry-panel" aria-labelledby="modelRegistryHeading">
+            <div class="panel-header compact">
+              <div><div class="eyebrow">MODEL LIFECYCLE · READ ONLY</div><h2 id="modelRegistryHeading">Model registry</h2></div>
+              <span class="muted" id="modelRegistryMode">LOCAL OPERATOR ONLY</span>
+            </div>
+            <div class="model-registry-summary">
+              <p>모델 업로드, target engine 검증, activation과 rollback은 서로 분리됩니다. 이 화면은 상태만 표시하며 브라우저 새로고침이나 네트워크 재연결로 모델을 활성화하지 않습니다.</p>
+              <button id="modelRegistryRefresh" type="button">REFRESH MODELS</button>
+            </div>
+            <div class="model-registry-list" id="modelRegistryList"><div class="dataset-library-empty">모델 registry 상태를 확인하고 있습니다.</div></div>
           </article>
         </section>
       </section>

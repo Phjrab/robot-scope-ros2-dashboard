@@ -147,6 +147,8 @@ class DatasetAppContractTests(unittest.TestCase):
             "/api/v1/datasets/capture/start",
             "/api/v1/datasets/capture/stop",
             "/api/v1/datasets",
+            "/api/v1/datasets/{session_id}/export",
+            "/api/v1/datasets/exports/{export_id}",
             "/api/v1/datasets/{session_id}",
             "/api/v1/datasets/{session_id}/samples/{sample_index}/{source_id}.jpg",
         }
@@ -173,6 +175,30 @@ class DatasetAppContractTests(unittest.TestCase):
         self.assertIn("image/jpeg", constants)
         self.assertIn("private, no-store", constants)
         self.assertIn("nosniff", constants)
+
+    def test_export_is_same_origin_serialized_and_lifecycle_blocked(self):
+        export = self.router_functions["dataset_export"]
+        self.assertTrue(self.calls_name(export, "require_same_origin"))
+        self.assertTrue(self.calls_name(export, "require_service_lifecycle_idle"))
+        self.assertTrue(
+            any(
+                isinstance(node, ast.AsyncWith)
+                and any(
+                    isinstance(item.context_expr, ast.Attribute)
+                    and item.context_expr.attr == "pipeline_coordination_lock"
+                    for item in node.items
+                )
+                for node in ast.walk(export)
+            )
+        )
+        download = self.router_functions["dataset_export_download"]
+        constants = {
+            node.value
+            for node in ast.walk(download)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        self.assertIn("application/zip", constants)
+        self.assertIn("private, no-store", constants)
 
 
 if __name__ == "__main__":

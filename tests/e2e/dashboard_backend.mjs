@@ -369,7 +369,25 @@ export async function installDashboardBackend(page, options = {}) {
       state.dataset = { ...state.dataset, state: 'complete', active: false };
       return json(route, state.dataset);
     }
+    if (path === '/api/v1/models') return json(route, {
+      schema_version: 'robot-scope.model-registry/v1', activation_surface: 'LOCAL_OPERATOR_ONLY',
+      active: { object: 'object-e2e-v2' }, previous: { object: 'object-e2e-v1' },
+      models: [
+        { model_id: 'object-e2e-v2', task: 'object', state: 'active', package_sha256: 'a'.repeat(64), engine: { sha256: 'b'.repeat(64) }, reason: '' },
+        { model_id: 'object-e2e-v1', task: 'object', state: 'previous', package_sha256: 'c'.repeat(64), engine: { sha256: 'd'.repeat(64) }, reason: '' },
+      ],
+    });
     if (path === '/api/v1/datasets') return json(route, { sessions: state.dataset.session_id ? [{ session_id: state.dataset.session_id, label: state.dataset.label || 'session_e2e', state: state.dataset.state, sources: state.dataset.sources, sample_count: state.dataset.saved, bytes_written: state.dataset.bytes_written, output_path: state.dataset.output_path }] : [] });
+    if (path === '/api/v1/datasets/session_e2e/export') return json(route, {
+      schema_version: 'robot-scope.dataset-export-artifact/v1', export_id: '1'.repeat(32),
+      session_id: 'session_e2e', filename: 'robot-scope-dataset-session_e2e.zip',
+      bytes: 1024, file_count: 2, sha256: 'e'.repeat(64), finalized: true,
+    }, 201);
+    if (path === `/api/v1/datasets/exports/${'1'.repeat(32)}`) return route.fulfill({
+      status: 200, contentType: 'application/zip',
+      headers: { 'Content-Disposition': 'attachment; filename="robot-scope-dataset-session_e2e.zip"' },
+      body: Buffer.from('PK\u0003\u0004e2e-dataset'),
+    });
     if (path.startsWith('/api/v1/datasets/')) return json(route, { session_id: 'session_e2e', label: 'session_e2e', state: state.dataset.state, sources: state.dataset.sources, sample_count: 0, bytes_written: 0, output_path: state.dataset.output_path, samples: [], page: { limit: 24, before: null, oldest_index: null, newest_index: null, next_before: null, has_older: false } });
     return json(route, { detail: `unhandled fake endpoint ${method} ${path}` }, 404);
   });

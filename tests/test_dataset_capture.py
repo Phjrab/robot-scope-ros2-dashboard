@@ -5,6 +5,7 @@ import tempfile
 import threading
 import time
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -142,6 +143,23 @@ class DatasetCaptureTests(unittest.TestCase):
             metadata = json.loads((sample / "metadata.json").read_text())
             self.assertEqual(set(metadata["sources"]), {"go2_front", "realsense_color"})
             self.assertEqual(metadata["robot_pose"]["pose"]["x"], 1.0)
+            self.assertEqual(metadata["schema_version"], 2)
+            self.assertFalse(metadata["cross_host_clock_verified"])
+            self.assertIsNone(
+                metadata["sources"]["go2_front"]["capture_source_sequence"]
+            )
+            self.assertEqual(
+                metadata["sources"]["go2_front"]["external_receive_sequence"],
+                metadata["sources"]["go2_front"]["seq"],
+            )
+            self.assertEqual(
+                metadata["receive_timestamp_domain"],
+                "external-orin-monotonic",
+            )
+            self.assertEqual(
+                metadata["sources"]["go2_front"]["image_sha256"],
+                metadata["sources"]["go2_front"]["sha256"],
+            )
 
             catalog = manager.list_sessions()
             self.assertEqual(catalog["sessions"][0]["session_id"], session_id)
@@ -152,6 +170,123 @@ class DatasetCaptureTests(unittest.TestCase):
             self.assertEqual(
                 manager.read_image(session_id, 1, "go2_front"), JPEG_GO2
             )
+
+    def test_wp05_manifest_context_is_bounded_and_not_ground_truth(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            manager, _ = self.make_manager(
+                temporary,
+                session_context_snapshot=lambda: {
+                    "capture_profile": "dual-camera-shadow",
+                    "robot_side_source_id": "go2-internal-realsense",
+                    "network_topology_revision": "be5100m-wifi-v1",
+                    "git_commit": "a" * 40,
+                    "active_preview_profile": "640x480-mjpeg",
+                    "perception_shadow_enabled": True,
+                    "model_ids": ["lane-1", "object-1", "../invalid", "lane-1"],
+                },
+            )
+            started = manager.start(("go2_front",), 5.0, "not-ground-truth")
+            self.assertTrue(wait_until(lambda: manager.snapshot()["saved"] >= 1))
+            manager.stop(started["session_id"])
+            manifest = json.loads(
+                (
+                    Path(temporary)
+                    / "sessions"
+                    / started["session_id"]
+                    / "manifest.json"
+                ).read_text()
+            )
+            self.assertEqual(manifest["schema_version"], 2)
+            self.assertEqual(manifest["created_at"], manifest["started_at"])
+            self.assertEqual(manifest["finalized_at"], manifest["completed_at"])
+            self.assertEqual(manifest["capture_profile"], "dual-camera-shadow")
+            self.assertEqual(manifest["model_ids"], ["lane-1", "object-1"])
+            self.assertTrue(manifest["perception_shadow_enabled"])
+            self.assertEqual(manifest["filesystem_reserve"]["minimum_free_bytes"], 0)
+            self.assertEqual(manifest["drop_counters"], manifest["drop_counts"])
+            self.assertFalse(manifest["annotations_present"])
+
+    def test_finalized_export_is_atomic_bounded_and_checksum_manifested(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            manager, _ = self.make_manager(temporary)
+            started = manager.start(("go2_front",), 5.0, "export")
+            self.assertTrue(wait_until(lambda: manager.snapshot()["saved"] >= 1))
+            manager.stop(started["session_id"])
+            exported = manager.export_session(started["session_id"])
+            self.assertTrue(exported["finalized"])
+            self.assertRegex(exported["sha256"], r"^[0-9a-f]{64}$")
+            archive, metadata = manager.export_download(exported["export_id"])
+            self.assertEqual(metadata, exported)
+            self.assertEqual(archive.stat().st_mode & 0o777, 0o600)
+            with zipfile.ZipFile(archive) as bundle:
+                names = bundle.namelist()
+                self.assertIn("manifest.json", names)
+                self.assertIn("SHA256SUMS.json", names)
+                self.assertIn("samples/00000001/go2_front.jpg", names)
+                checksums = json.loads(bundle.read("SHA256SUMS.json"))
+                self.assertEqual(
+                    checksums["schema_version"],
+                    "robot-scope.dataset-export/v1",
+                )
+                exported_manifest = json.loads(bundle.read("manifest.json"))
+                self.assertEqual(exported_manifest["output_path"], "managed-dataset-root")
+            self.assertFalse(any(manager.exports_dir.glob(".*.tmp")))
+
+    def test_export_rejects_unfinished_traversal_low_disk_and_cleans_partial(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            manager, _ = self.make_manager(temporary)
+            session_id = "20260812T120000Z_" + "9" * 32
+            session = Path(temporary) / "sessions" / session_id
+            (session / "samples").mkdir(parents=True)
+            (session / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "session_id": session_id,
+                        "state": "interrupted",
+                        "sources": ["go2_front"],
+                        "sample_count": 0,
+                    }
+                )
+            )
+            with self.assertRaises(DatasetCaptureConflict):
+                manager.export_session(session_id)
+            with self.assertRaises(DatasetCaptureNotFound):
+                manager.export_session("../../private")
+
+            (session / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "session_id": session_id,
+                        "state": "completed",
+                        "completed_at": "2026-08-30T00:00:00.000Z",
+                        "sources": ["go2_front"],
+                        "sample_count": 0,
+                    }
+                )
+            )
+            manager._minimum_free_bytes = 100
+            with patch.object(manager, "_free_bytes", return_value=100):
+                with self.assertRaisesRegex(DatasetCaptureUnavailable, "reserve"):
+                    manager.export_session(session_id)
+            self.assertFalse(any(manager.exports_dir.iterdir()))
+
+            manager._minimum_free_bytes = 0
+            sample = session / "samples" / "00000001"
+            sample.mkdir()
+            (sample / "metadata.json").write_text("{}")
+            (sample / "go2_front.jpg").write_bytes(JPEG_GO2)
+            manifest = json.loads((session / "manifest.json").read_text())
+            manifest["sample_count"] = 1
+            (session / "manifest.json").write_text(json.dumps(manifest))
+            with patch.object(
+                manager,
+                "_write_export_source",
+                side_effect=DatasetCaptureUnavailable("synthetic export failure"),
+            ):
+                with self.assertRaisesRegex(DatasetCaptureUnavailable, "synthetic"):
+                    manager.export_session(session_id)
+            self.assertFalse(any(manager.exports_dir.iterdir()))
+            self.assertFalse(manager.is_active())
 
     def test_partial_camera_open_rolls_back_exact_token(self):
         with tempfile.TemporaryDirectory() as temporary:

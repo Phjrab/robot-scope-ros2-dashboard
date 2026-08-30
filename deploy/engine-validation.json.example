@@ -1,0 +1,13 @@
+{
+  "schema_version": "robot-scope.engine-validation/v1",
+  "model_id": "object-competition-v1",
+  "package_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "engine_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "jetpack_version": "REPLACE_WITH_MEASURED_VALUE",
+  "tensorrt_version": "REPLACE_WITH_MEASURED_VALUE",
+  "gpu_identity": "REPLACE_WITH_MEASURED_VALUE",
+  "build_log_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "created_at": "2026-08-30T00:00:00.000Z",
+  "shadow_smoke_passed": false,
+  "resource_check_passed": false
+}

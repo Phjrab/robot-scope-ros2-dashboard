@@ -56,6 +56,11 @@ _HTTP_EVENTS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ("POST", re.compile(r"^/api/v1/missions/(?P<mission_id>[0-9a-f]{32})/abort$"), "mission_abort"),
     ("POST", re.compile(r"^/api/v1/datasets/capture/start$"), "dataset_start"),
     ("POST", re.compile(r"^/api/v1/datasets/capture/stop$"), "dataset_stop"),
+    (
+        "POST",
+        re.compile(r"^/api/v1/datasets/(?P<session_id>[0-9]{8}T[0-9]{6}Z_[0-9a-f]{32})/export$"),
+        "dataset_export",
+    ),
     ("POST", re.compile(r"^/api/v1/system/service/restart$"), "service_restart"),
     ("POST", re.compile(r"^/api/v1/system/service/stop$"), "service_stop"),
     ("POST", re.compile(r"^/api/v1/control/bridge-service/start$"), "bridge_service_start"),

@@ -886,6 +886,25 @@ test('dataset start/finalize is lifecycle-owned and duplicate clicks do not dupl
   expect(backend.mutations('/api/v1/datasets/capture/start')).toHaveLength(1);
 });
 
+test('finalized dataset export downloads once and model registry remains read only', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'sensors');
+  await page.locator('#datasetCaptureStart').click();
+  await expect(page.locator('#datasetCaptureStop')).toBeEnabled();
+  await page.locator('#datasetCaptureStop').click();
+  await expect(page.locator('#datasetExportSession')).toBeEnabled();
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#datasetExportSession').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('robot-scope-dataset-session_e2e.zip');
+  await expect.poll(() => backend.mutations('/api/v1/datasets/session_e2e/export').length).toBe(1);
+  await expect(page.locator('#datasetExportStatus')).toContainText('SHA256');
+  await expect(page.locator('#modelRegistryMode')).toHaveText('LOCAL OPERATOR ONLY');
+  await expect(page.locator('.model-registry-item[data-state="active"]')).toContainText('object-e2e-v2');
+  await expect(page.locator('.model-registry-item[data-state="previous"]')).toContainText('object-e2e-v1');
+  expect(backend.mutations('/api/v1/models/activate')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/models/rollback')).toHaveLength(0);
+});
+
 test('software E-stop remains latched until explicit local confirmation clears it', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'controls');
   await page.locator('#softwareEstopButton').click();

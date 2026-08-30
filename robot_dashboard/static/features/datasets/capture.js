@@ -182,6 +182,37 @@ export function datasetDetailUrl(sessionId, before = null) {
     : `${base}?limit=${DATASET_PAGE_LIMIT}`;
 }
 
+export function datasetExportUrl(exportId) {
+  return `/api/v1/datasets/exports/${encodeURIComponent(exportId)}`;
+}
+
+export function normalizeModelRegistry(payload) {
+  const envelope = datasetObject(payload);
+  const active = datasetObject(envelope.active);
+  const previous = datasetObject(envelope.previous);
+  const allowedStates = new Set(['staged', 'validated', 'active', 'previous', 'rejected']);
+  const models = (Array.isArray(envelope.models) ? envelope.models : []).slice(0, 256).map((entry) => {
+    const value = datasetObject(entry);
+    const modelId = String(value.model_id || '').trim();
+    const task = ['lane', 'object', 'depth_summary'].includes(value.task) ? value.task : 'unknown';
+    const state = allowedStates.has(value.state) ? value.state : 'rejected';
+    return {
+      modelId,
+      task,
+      state,
+      packageSha256: String(value.package_sha256 || ''),
+      engineSha256: String(datasetObject(value.engine).sha256 || ''),
+      reason: String(value.reason || ''),
+      isActive: active[task] === modelId,
+      isPrevious: previous[task] === modelId,
+    };
+  }).filter((entry) => /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(entry.modelId));
+  return {
+    models,
+    mode: envelope.activation_surface === 'LOCAL_OPERATOR_ONLY' ? 'LOCAL OPERATOR ONLY' : 'UNAVAILABLE',
+  };
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
@@ -229,12 +260,24 @@ function datasetUi() {
     selectedMeta: $('#datasetSelectedMeta'), pageNewest: $('#datasetPageNewest'),
     pageNewer: $('#datasetPageNewer'), pageOlder: $('#datasetPageOlder'),
     pageStatus: $('#datasetPageStatus'), sampleGallery: $('#datasetSampleGallery'),
+    exportSession: $('#datasetExportSession'), exportStatus: $('#datasetExportStatus'),
+    modelMode: $('#modelRegistryMode'), modelList: $('#modelRegistryList'),
+    modelRefresh: $('#modelRegistryRefresh'),
   };
 }
 
 export function createDatasetFeature(options = {}) {
   const request = options.api || api;
   const showToast = options.showToast || (() => {});
+  const download = options.download || ((url, filename) => {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+  });
   const clock = options.now || Date.now;
   const ui = options.ui || datasetUi();
   let captureSnapshot = null;
@@ -251,6 +294,10 @@ export function createDatasetFeature(options = {}) {
   let selectedGalleryKey = '';
   let detailBusy = false;
   let detailError = '';
+  let exportBusy = false;
+  let exportMessage = '완료된 세션만 내보낼 수 있습니다.';
+  let modelRegistry = { models: [], mode: 'UNAVAILABLE' };
+  let modelPollGeneration = 0;
   let started = false;
   let active = false;
   let destroyed = false;
@@ -469,6 +516,8 @@ export function createDatasetFeature(options = {}) {
       ui.selectedPath.textContent = '—';
       ui.selectedSamples.textContent = '0';
       ui.selectedMeta.textContent = detailError || (selectedSessionId ? '세션 상세 정보를 요청하고 있습니다.' : '세션을 선택하세요.');
+      ui.exportSession.disabled = true;
+      ui.exportStatus.textContent = exportMessage;
       replaceGallery(
         detailError ? `error:${selectedSessionId}:${detailError}` : `loading:${selectedSessionId}`,
         `<div class="dataset-library-empty">${detailError ? '세션 상세 정보를 확인할 수 없습니다.' : '저장 이미지 목록을 기다리고 있습니다.'}</div>`,
@@ -481,6 +530,11 @@ export function createDatasetFeature(options = {}) {
     ui.selectedPath.title = detail.path || '';
     ui.selectedSamples.textContent = Math.floor(detail.sampleCount ?? detail.samples.length).toLocaleString();
     ui.selectedMeta.textContent = detailError || `${datasetSourceLabel(detail.sources)} · ${formatDatasetBytes(detail.bytes)} · ${String(detail.state || 'complete').toUpperCase()}`;
+    const finalized = detail.state === 'completed' || detail.state === 'complete';
+    ui.exportSession.disabled = exportBusy || !finalized;
+    ui.exportStatus.textContent = exportBusy
+      ? '서버에서 archive와 SHA-256 manifest를 생성하고 있습니다.'
+      : exportMessage;
     renderPagination(detail);
     const cards = [];
     const visibleSamples = [...detail.samples].sort((left, right) => right.index - left.index).slice(0, DATASET_PAGE_LIMIT);
@@ -496,6 +550,66 @@ export function createDatasetFeature(options = {}) {
     }
     const galleryKey = [detail.id, detail.page.before || 'newest', ...visibleSamples.flatMap((sample) => [sample.index, ...sample.sources])].join('|');
     replaceGallery(galleryKey, cards.length ? cards.join('') : '<div class="dataset-library-empty">이 페이지에서 확인할 수 있는 이미지가 아직 없습니다.</div>');
+  }
+
+  async function exportSelectedSession() {
+    if (destroyed || exportBusy || !selectedDetail || ui.exportSession.disabled) return null;
+    const sessionId = selectedDetail.id;
+    exportBusy = true;
+    exportMessage = '내보내기 진행 중';
+    renderSelected();
+    try {
+      const result = datasetObject(await request(
+        `/api/v1/datasets/${encodeURIComponent(sessionId)}/export`,
+        { method: 'POST', body: JSON.stringify({}) },
+      ));
+      if (!/^[0-9a-f]{32}$/.test(String(result.export_id || ''))) throw new Error('export id가 유효하지 않습니다.');
+      if (!/^[0-9a-f]{64}$/.test(String(result.sha256 || ''))) throw new Error('archive hash가 유효하지 않습니다.');
+      exportMessage = `READY · ${formatDatasetBytes(result.bytes)} · SHA256 ${String(result.sha256).slice(0, 12)}…`;
+      download(datasetExportUrl(result.export_id), String(result.filename || 'robot-scope-dataset.zip'));
+      showToast('완료된 Dataset archive 다운로드를 시작했습니다.');
+      return result;
+    } catch (error) {
+      exportMessage = `EXPORT FAILED · ${String(error.message || error)}`;
+      showToast(`Dataset export 실패: ${error.message}`, true);
+      return null;
+    } finally {
+      exportBusy = false;
+      if (!destroyed) renderSelected();
+    }
+  }
+
+  function renderModels() {
+    ui.modelMode.textContent = modelRegistry.mode;
+    if (!modelRegistry.models.length) {
+      ui.modelList.innerHTML = '<div class="dataset-library-empty">등록된 모델이 없거나 registry를 사용할 수 없습니다.</div>';
+      return;
+    }
+    ui.modelList.innerHTML = modelRegistry.models.map((model) => {
+      const effectiveState = model.isActive ? 'active' : model.isPrevious ? 'previous' : model.state;
+      const hash = model.engineSha256 || model.packageSha256;
+      return `<article class="model-registry-item" data-state="${escapeHtml(effectiveState)}">
+        <header><strong>${escapeHtml(model.modelId)}</strong><b>${escapeHtml(effectiveState.toUpperCase())}</b></header>
+        <code>${escapeHtml(model.task.toUpperCase())} · ${escapeHtml(hash ? `${hash.slice(0, 16)}…` : 'NO ENGINE')}</code>
+        <small>${escapeHtml(model.reason || 'Activation requires the local target operator tool.')}</small>
+      </article>`;
+    }).join('');
+  }
+
+  async function refreshModels() {
+    const generation = ++modelPollGeneration;
+    try {
+      const next = normalizeModelRegistry(await request('/api/v1/models'));
+      if (destroyed || generation !== modelPollGeneration) return null;
+      modelRegistry = next;
+      renderModels();
+      return next;
+    } catch (_) {
+      if (destroyed || generation !== modelPollGeneration) return null;
+      modelRegistry = { models: [], mode: 'UNAVAILABLE' };
+      renderModels();
+      return null;
+    }
   }
 
   async function refreshDetail(sessionId = selectedSessionId, { before = selectedPageBefore, history = selectedPageHistory } = {}) {
@@ -641,6 +755,8 @@ export function createDatasetFeature(options = {}) {
     ui.pageNewest.addEventListener('click', () => navigatePage('newest'), { signal });
     ui.pageNewer.addEventListener('click', () => navigatePage('newer'), { signal });
     ui.pageOlder.addEventListener('click', () => navigatePage('older'), { signal });
+    ui.exportSession.addEventListener('click', exportSelectedSession, { signal });
+    ui.modelRefresh.addEventListener('click', refreshModels, { signal });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) void refreshCapture();
       if (!document.hidden && active) void refreshSessions({ preferredId: selectedSessionId });
@@ -652,6 +768,7 @@ export function createDatasetFeature(options = {}) {
     active = true;
     void refreshCapture();
     void refreshSessions({ preferredId: selectedSessionId });
+    void refreshModels();
     sessionsPollTimer = window.setInterval(() => {
       if (!document.hidden) void refreshSessions({ preferredId: selectedSessionId });
     }, 10_000);
@@ -664,6 +781,7 @@ export function createDatasetFeature(options = {}) {
     sessionsPollTimer = 0;
     sessionsPollGeneration += 1;
     detailPollGeneration += 1;
+    modelPollGeneration += 1;
     detailBusy = false;
   }
 
@@ -702,6 +820,9 @@ export function createDatasetFeature(options = {}) {
     selectedGalleryKey = '';
     detailBusy = false;
     detailError = '';
+    exportBusy = false;
+    exportMessage = '완료된 세션만 내보낼 수 있습니다.';
+    modelRegistry = { models: [], mode: 'UNAVAILABLE' };
   }
 
   function snapshot() {
@@ -710,19 +831,22 @@ export function createDatasetFeature(options = {}) {
       sessions: sessions.map((entry) => ({ ...entry })),
       selectedSessionId,
       selectedPageBefore,
+      modelRegistry: { ...modelRegistry, models: modelRegistry.models.map((entry) => ({ ...entry })) },
       lifecycle: { started, active, destroyed },
     };
   }
 
   const feature = Object.freeze({
-    start, activate, deactivate, destroy, refresh: refreshCapture, refreshSessions,
-    render: renderCapture, startCapture, stopCapture, selectSession, navigatePage, snapshot,
+    start, activate, deactivate, destroy, refresh: refreshCapture, refreshSessions, refreshModels,
+    render: renderCapture, startCapture, stopCapture, selectSession, navigatePage,
+    exportSelectedSession, snapshot,
     normalizeCapture: normalizeDatasetCapture,
     normalizeCatalog: normalizeDatasetCatalog,
     normalizeDetail: normalizeDatasetDetail,
     formatBytes: formatDatasetBytes,
     imageUrl: datasetImageUrl,
     detailUrl: datasetDetailUrl,
+    exportUrl: datasetExportUrl,
     canStop: datasetCaptureCanStop,
   });
   return feature;

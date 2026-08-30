@@ -6,7 +6,7 @@ import asyncio
 from typing import Any, Callable, Dict
 
 from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 
 from ...application.runtime import ApplicationRuntime
 from ...dataset_capture import (
@@ -90,6 +90,47 @@ def create_router(require_service_lifecycle_idle: Callable[[], None]) -> APIRout
             return await asyncio.to_thread(_manager(runtime).list_sessions)
         except DatasetCaptureError as exc:
             raise _error(exc) from exc
+
+    @router.post("/api/v1/datasets/{session_id}/export", status_code=201)
+    async def dataset_export(
+        request: Request,
+        session_id: str,
+    ) -> Dict[str, Any]:
+        require_same_origin(request)
+        runtime = runtime_from_request(request)
+        async with runtime.pipeline_coordination_lock:
+            require_service_lifecycle_idle()
+            try:
+                return await asyncio.to_thread(
+                    _manager(runtime).export_session,
+                    session_id,
+                )
+            except DatasetCaptureError as exc:
+                raise _error(exc) from exc
+
+    @router.get("/api/v1/datasets/exports/{export_id}")
+    async def dataset_export_download(
+        request: Request,
+        export_id: str,
+    ) -> FileResponse:
+        runtime = runtime_from_request(request)
+        try:
+            path, metadata = await asyncio.to_thread(
+                _manager(runtime).export_download,
+                export_id,
+            )
+        except DatasetCaptureError as exc:
+            raise _error(exc) from exc
+        return FileResponse(
+            path,
+            media_type="application/zip",
+            filename=str(metadata["filename"]),
+            headers={
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "X-Archive-SHA256": str(metadata["sha256"]),
+            },
+        )
 
     @router.get("/api/v1/datasets/{session_id}")
     async def dataset_session(

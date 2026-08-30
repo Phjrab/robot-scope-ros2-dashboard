@@ -158,6 +158,8 @@ class DomainRouterContractTests(unittest.TestCase):
             ("post", "/api/v1/datasets/capture/start"),
             ("post", "/api/v1/datasets/capture/stop"),
             ("get", "/api/v1/datasets"),
+            ("post", "/api/v1/datasets/{session_id}/export"),
+            ("get", "/api/v1/datasets/exports/{export_id}"),
             ("get", "/api/v1/datasets/{session_id}"),
             (
                 "get",

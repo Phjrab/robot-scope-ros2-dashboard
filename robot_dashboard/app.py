@@ -35,6 +35,7 @@ from .api.routers.cameras import router as cameras_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
+from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
 from .api.routers.system import router as system_router
 from .api.routers.telemetry import router as telemetry_router
@@ -82,6 +83,7 @@ from .mapping_jobs import (
     SaveCommandSpec,
     SaveResultError,
 )
+from .model_registry import ModelRegistry
 from .navigation_jobs import (
     NavigationBusy,
     NavigationConflict,
@@ -371,6 +373,7 @@ app.include_router(cameras_router)
 app.include_router(discovery_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
+app.include_router(model_registry_router)
 app.include_router(perception_router)
 
 
@@ -1201,6 +1204,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--perception-source-ip", default="")
     parser.add_argument("--perception-result-port", type=int, default=8092)
     parser.add_argument("--perception-policy", default="")
+    parser.add_argument(
+        "--model-registry-dir",
+        default=str(Path(__file__).resolve().parents[1] / "runtime" / "model-registry"),
+    )
     return parser.parse_args()
 
 
@@ -1226,6 +1233,7 @@ def main() -> None:
         else Path.cwd()
     )
     project_dir = Path(__file__).resolve().parents[1]
+    RUNTIME.model_registry = ModelRegistry(Path(args.model_registry_dir))
     save_script = project_dir / "scripts" / "save_hesai_map_humble.sh"
     requested_output_dir = Path(args.mapping_output_dir).expanduser()
     mapping_output_dir = prepare_private_map_root(requested_output_dir)
@@ -1276,12 +1284,44 @@ def main() -> None:
             metadata["perception_reference"] = RUNTIME.perception.store.metadata_reference()
         return metadata
 
+    def dataset_session_context_snapshot() -> Dict[str, Any]:
+        active_models = RUNTIME.model_registry.active_snapshot()["active"]
+        perception_policy = (
+            RUNTIME.perception.store.policy
+            if RUNTIME.perception is not None
+            else None
+        )
+        model_ids = [
+            str(value["model_id"])
+            for value in active_models.values()
+            if isinstance(value, dict) and value.get("model_id")
+        ]
+        if RUNTIME.perception is not None:
+            for result in RUNTIME.perception.store.latest_snapshot()["results"]:
+                model_id = str(result.get("model_id", ""))
+                if model_id and model_id not in model_ids:
+                    model_ids.append(model_id)
+        return {
+            "capture_profile": "server-jpeg-fixed",
+            "robot_side_source_id": (
+                perception_policy.source_id if perception_policy is not None else "unknown"
+            ),
+            "network_topology_revision": os.environ.get(
+                "ROBOT_SCOPE_NETWORK_TOPOLOGY_REVISION", "unknown"
+            ),
+            "git_commit": os.environ.get("ROBOT_SCOPE_GIT_COMMIT", "unknown"),
+            "active_preview_profile": "realsense-mjpeg",
+            "perception_shadow_enabled": RUNTIME.perception is not None,
+            "model_ids": model_ids,
+        }
+
     RUNTIME.dataset_capture = DatasetCaptureManager(
         Path(args.dataset_output_dir),
         camera_open=RUNTIME.agent.camera_stream_open,
         camera_close=RUNTIME.agent.camera_stream_close,
         camera_snapshots=RUNTIME.agent.camera_snapshots,
         metadata_snapshot=dataset_metadata_snapshot,
+        session_context_snapshot=dataset_session_context_snapshot,
     )
 
     def require_lifecycle_idle_application() -> None:

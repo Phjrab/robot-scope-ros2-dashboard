@@ -19,6 +19,7 @@ import stat
 import threading
 import time
 import uuid
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -31,9 +32,13 @@ ACTIVE_STATES = {"starting", "capturing", "stopping", "finalizing"}
 SESSION_ID_RE = re.compile(r"^[0-9]{8}T[0-9]{6}Z_[0-9a-f]{32}$")
 SAMPLE_DIR_RE = re.compile(r"^[0-9]{8}$")
 TEMP_SAMPLE_DIR_RE = re.compile(r"^\.tmp-[0-9a-f]{32}$")
+EXPORT_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 MAX_JPEG_BYTES = 4 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_SESSIONS = 2_000
+MAX_EXPORT_FILES = 4_096
+MAX_EXPORT_BYTES = 20 * 1024 * 1024 * 1024
+MAX_EXPORT_ARTIFACTS = 32
 DEFAULT_SAMPLES_PER_PAGE = 24
 MAX_SAMPLES_PER_DETAIL = 48
 
@@ -121,6 +126,7 @@ class DatasetCaptureManager:
         camera_close: Callable[[str, str], Dict[str, Any]],
         camera_snapshots: Callable[[Tuple[str, ...]], Dict[str, Dict[str, Any]]],
         metadata_snapshot: Optional[Callable[[], Dict[str, Any]]] = None,
+        session_context_snapshot: Optional[Callable[[], Dict[str, Any]]] = None,
         queue_size: int = 8,
         startup_timeout_s: float = 10.0,
         stale_after_s: float = 2.0,
@@ -162,6 +168,11 @@ class DatasetCaptureManager:
         if self.sessions_dir.is_symlink() or not self.sessions_dir.is_dir():
             raise DatasetCaptureValidationError("dataset sessions directory must be real")
         self.sessions_dir.chmod(0o700)
+        self.exports_dir = self.root / "exports"
+        self.exports_dir.mkdir(mode=0o700, exist_ok=True)
+        if self.exports_dir.is_symlink() or not self.exports_dir.is_dir():
+            raise DatasetCaptureValidationError("dataset exports directory must be real")
+        self.exports_dir.chmod(0o700)
 
         if queue_size < 1 or queue_size > 32:
             raise DatasetCaptureValidationError("dataset writer queue size is invalid")
@@ -174,6 +185,7 @@ class DatasetCaptureManager:
         self._camera_close = camera_close
         self._camera_snapshots = camera_snapshots
         self._metadata_snapshot = metadata_snapshot
+        self._session_context_snapshot = session_context_snapshot
         self._queue_size = queue_size
         self._startup_timeout_s = startup_timeout_s
         self._stale_after_s = stale_after_s
@@ -198,6 +210,10 @@ class DatasetCaptureManager:
         self._bytes_written = 0
         self._last_error = ""
         self._message = "ready"
+        self._session_context: Dict[str, Any] = {}
+        self._export_active = False
+        self._export_session_id = ""
+        self._export_cancel = threading.Event()
         self._tokens: Dict[str, str] = {}
         self._last_frame_keys: Dict[str, Tuple[str, int]] = {}
         self._stop_event = threading.Event()
@@ -280,6 +296,8 @@ class DatasetCaptureManager:
             "output_path": str(self._session_dir or self.root),
             "message": self._message,
             "last_error": self._last_error,
+            "export_active": self._export_active,
+            "export_session_id": self._export_session_id,
         }
 
     def snapshot(self) -> Dict[str, Any]:
@@ -294,7 +312,11 @@ class DatasetCaptureManager:
 
     def is_active(self) -> bool:
         with self._lock:
-            return self._state in ACTIVE_STATES or self._workers_alive_locked()
+            return (
+                self._state in ACTIVE_STATES
+                or self._workers_alive_locked()
+                or self._export_active
+            )
 
     def _drop(self, reason: str, amount: int = 1) -> None:
         with self._lock:
@@ -302,17 +324,27 @@ class DatasetCaptureManager:
 
     def _manifest_locked(self) -> Dict[str, Any]:
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "session_id": self._session_id,
             "label": self._label,
             "state": self._state,
             "sources": list(self._sources),
+            "capture_profile": self._session_context.get("capture_profile", "unknown"),
+            "robot_side_source_id": self._session_context.get("robot_side_source_id", "unknown"),
+            "network_topology_revision": self._session_context.get("network_topology_revision", "unknown"),
+            "git_commit": self._session_context.get("git_commit", "unknown"),
+            "active_preview_profile": self._session_context.get("active_preview_profile", "unknown"),
+            "perception_shadow_enabled": self._session_context.get("perception_shadow_enabled", False),
+            "model_ids": list(self._session_context.get("model_ids", [])),
             "capture_hz": self._capture_hz,
+            "created_at": self._started_at,
+            "finalized_at": self._completed_at,
             "started_at": self._started_at,
             "completed_at": self._completed_at,
             "elapsed_s": round(self._terminal_elapsed_s, 3),
             "sample_count": self._saved,
             "drop_counts": dict(self._dropped),
+            "drop_counters": dict(self._dropped),
             "dropped": sum(self._dropped.values()),
             "bytes_written": self._bytes_written,
             "output_path": str(self._session_dir or self.root),
@@ -323,6 +355,46 @@ class DatasetCaptureManager:
                 "maximum_host_timestamp_skew_us": self._pair_skew_us,
             },
             "annotations_present": False,
+            "filesystem_reserve": {
+                "minimum_free_bytes": self._minimum_free_bytes,
+                "session_quota_bytes": self._session_quota_bytes,
+            },
+        }
+
+    def _capture_session_context(self) -> Dict[str, Any]:
+        candidate: object = {}
+        if self._session_context_snapshot is not None:
+            try:
+                candidate = self._session_context_snapshot()
+            except Exception:
+                candidate = {}
+        source = candidate if isinstance(candidate, dict) else {}
+
+        def bounded_text(name: str, limit: int = 128) -> str:
+            value = source.get(name, "unknown")
+            if not isinstance(value, str):
+                return "unknown"
+            clean = " ".join(value.split())[:limit]
+            return clean or "unknown"
+
+        raw_models = source.get("model_ids", [])
+        model_ids = []
+        if isinstance(raw_models, list):
+            for value in raw_models[:8]:
+                if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", value):
+                    if value not in model_ids:
+                        model_ids.append(value)
+        git_commit = bounded_text("git_commit", 64)
+        if git_commit != "unknown" and not re.fullmatch(r"[0-9a-f]{7,64}", git_commit):
+            git_commit = "unknown"
+        return {
+            "capture_profile": bounded_text("capture_profile", 64),
+            "robot_side_source_id": bounded_text("robot_side_source_id"),
+            "network_topology_revision": bounded_text("network_topology_revision"),
+            "git_commit": git_commit,
+            "active_preview_profile": bounded_text("active_preview_profile", 64),
+            "perception_shadow_enabled": source.get("perception_shadow_enabled") is True,
+            "model_ids": model_ids,
         }
 
     @staticmethod
@@ -409,9 +481,10 @@ class DatasetCaptureManager:
         capture_hz = _safe_float(capture_hz, -1.0)
         if capture_hz < 0.2 or capture_hz > 5.0:
             raise DatasetCaptureValidationError("capture rate must be between 0.2 and 5 Hz")
+        session_context = self._capture_session_context()
 
         with self._lock:
-            if self._state in ACTIVE_STATES or self._workers_alive_locked():
+            if self._state in ACTIVE_STATES or self._workers_alive_locked() or self._export_active:
                 raise DatasetCaptureBusy("a dataset capture session is already active")
             if self._free_bytes() - MAX_MANIFEST_BYTES < self._minimum_free_bytes:
                 raise DatasetCaptureUnavailable("dataset storage free-space reserve is not available")
@@ -429,6 +502,7 @@ class DatasetCaptureManager:
             self._bytes_written = 0
             self._last_error = ""
             self._message = "waiting for fresh camera frames"
+            self._session_context = session_context
             self._tokens = {}
             self._last_frame_keys = {}
             self._stop_event = threading.Event()
@@ -567,20 +641,26 @@ class DatasetCaptureManager:
                 return None
             keys[source_id] = key
             stamps.append(stamp_us)
+            image_sha256 = hashlib.sha256(data).hexdigest()
             frames[source_id] = {
                 "data": data,
                 "metadata": {
                     "source_id": source_id,
                     "seq": seq,
+                    "capture_source_sequence": None,
+                    "external_receive_sequence": seq,
                     "stream_id": stream_id,
                     "stamp_us": stamp_us,
+                    "capture_timestamp": stamp_us,
+                    "capture_timestamp_domain": "camera-snapshot-provided-unverified",
                     "age_s": age_s,
                     "topic": str(snapshot.get("topic", ""))[:512],
                     "transport": str(snapshot.get("transport", ""))[:64],
                     "width": max(0, _safe_int(snapshot.get("width"))),
                     "height": max(0, _safe_int(snapshot.get("height"))),
                     "bytes": len(data),
-                    "sha256": hashlib.sha256(data).hexdigest(),
+                    "sha256": image_sha256,
+                    "image_sha256": image_sha256,
                 },
             }
         skew_us = max(stamps) - min(stamps) if len(stamps) > 1 else 0
@@ -659,17 +739,23 @@ class DatasetCaptureManager:
             for source_id, frame in bundle["frames"].items()
         }
         metadata = {
-            "schema_version": 1,
+            "schema_version": 2,
             "session_id": self._session_id,
             "sample_index": next_index,
             "captured_at": bundle["captured_at"],
             "requested_monotonic_ns": bundle["requested_monotonic_ns"],
+            "receive_timestamp": bundle["requested_monotonic_ns"],
+            "receive_timestamp_domain": "external-orin-monotonic",
+            "cross_host_clock_verified": False,
             "sources": source_metadata,
             "pair_skew_us": bundle["pair_skew_us"],
             "hardware_synchronised": False,
             "annotations_present": False,
             "robot_pose": bundle["robot_pose"],
         }
+        perception_reference = bundle["robot_pose"].get("perception_reference")
+        if isinstance(perception_reference, dict):
+            metadata["perception_result_reference"] = perception_reference
         metadata_bytes = json.dumps(
             metadata,
             ensure_ascii=False,
@@ -809,6 +895,7 @@ class DatasetCaptureManager:
             return self._snapshot_locked()
 
     def close(self) -> None:
+        self._export_cancel.set()
         with self._lifecycle_lock:
             with self._lock:
                 session_id = self._session_id
@@ -1048,6 +1135,230 @@ class DatasetCaptureManager:
             "has_newer": before is not None and last_index < sample_count,
         }
         return detail
+
+    @staticmethod
+    def _regular_file_info(path: Path, maximum_bytes: int) -> os.stat_result:
+        if path.is_symlink() or not path.is_file():
+            raise DatasetCaptureUnavailable("dataset export source is incomplete")
+        info = path.stat()
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_size <= 0
+            or info.st_size > maximum_bytes
+        ):
+            raise DatasetCaptureUnavailable("dataset export source is invalid")
+        return info
+
+    def _export_plan(
+        self,
+        session_dir: Path,
+        manifest: Dict[str, Any],
+    ) -> list[tuple[Path, str, int]]:
+        if manifest.get("state") != "completed" or not manifest.get("completed_at"):
+            raise DatasetCaptureConflict("only finalized dataset sessions can be exported")
+        sample_count = max(0, _safe_int(manifest.get("sample_count")))
+        raw_sources = manifest.get("sources", [])
+        sources = [
+            source_id
+            for source_id in CAMERA_SOURCE_IDS
+            if isinstance(raw_sources, list) and source_id in raw_sources
+        ]
+        files_per_sample = len(sources) + 1
+        if not sources or sample_count > (MAX_EXPORT_FILES - 2) // files_per_sample:
+            raise DatasetCaptureUnavailable("dataset export file count exceeds its limit")
+        samples_dir = session_dir / "samples"
+        if samples_dir.is_symlink() or not samples_dir.is_dir():
+            raise DatasetCaptureUnavailable("dataset export source is incomplete")
+        plan: list[tuple[Path, str, int]] = []
+        total_bytes = 0
+        for sample_index in range(1, sample_count + 1):
+            sample_name = f"{sample_index:08d}"
+            sample_dir = samples_dir / sample_name
+            if sample_dir.is_symlink() or not sample_dir.is_dir():
+                raise DatasetCaptureUnavailable("dataset export source is incomplete")
+            metadata_path = sample_dir / "metadata.json"
+            metadata_info = self._regular_file_info(metadata_path, MAX_MANIFEST_BYTES)
+            plan.append((metadata_path, f"samples/{sample_name}/metadata.json", metadata_info.st_size))
+            total_bytes += metadata_info.st_size
+            for source_id in sources:
+                image_path = sample_dir / f"{source_id}.jpg"
+                image_info = self._regular_file_info(image_path, MAX_JPEG_BYTES)
+                plan.append((image_path, f"samples/{sample_name}/{source_id}.jpg", image_info.st_size))
+                total_bytes += image_info.st_size
+            if total_bytes > min(self._session_quota_bytes, MAX_EXPORT_BYTES):
+                raise DatasetCaptureUnavailable("dataset export size exceeds its limit")
+        if len(plan) + 2 > MAX_EXPORT_FILES:
+            raise DatasetCaptureUnavailable("dataset export file count exceeds its limit")
+        return plan
+
+    def _write_export_source(
+        self,
+        archive: zipfile.ZipFile,
+        source: Path,
+        archive_name: str,
+        expected_bytes: int,
+    ) -> tuple[str, int]:
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        try:
+            descriptor = os.open(source, flags)
+        except OSError as exc:
+            raise DatasetCaptureUnavailable("dataset export source became unavailable") from exc
+        digest = hashlib.sha256()
+        copied = 0
+        entry = zipfile.ZipInfo(archive_name)
+        entry.compress_type = zipfile.ZIP_STORED
+        entry.external_attr = 0o600 << 16
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or info.st_size != expected_bytes:
+                raise DatasetCaptureUnavailable("dataset export source changed during export")
+            with archive.open(entry, "w", force_zip64=True) as output:
+                while copied < expected_bytes:
+                    if self._export_cancel.is_set():
+                        raise DatasetCaptureUnavailable("dataset export was cancelled")
+                    chunk = os.read(descriptor, min(256 * 1024, expected_bytes - copied))
+                    if not chunk:
+                        break
+                    output.write(chunk)
+                    digest.update(chunk)
+                    copied += len(chunk)
+        finally:
+            os.close(descriptor)
+        if copied != expected_bytes:
+            raise DatasetCaptureUnavailable("dataset export source changed during export")
+        return digest.hexdigest(), copied
+
+    def export_session(self, session_id: str) -> Dict[str, Any]:
+        session_id = self._validate_session_id(session_id)
+        with self._lifecycle_lock:
+            with self._lock:
+                if self._state in ACTIVE_STATES or self._workers_alive_locked() or self._export_active:
+                    raise DatasetCaptureBusy("dataset storage is busy")
+                self._export_active = True
+                self._export_session_id = session_id
+                self._export_cancel = threading.Event()
+            temporary: Optional[Path] = None
+            published: Optional[Path] = None
+            metadata_path: Optional[Path] = None
+            try:
+                artifact_count = 0
+                with os.scandir(self.exports_dir) as entries:
+                    for entry in entries:
+                        if entry.name.endswith(".zip") and entry.is_file(follow_symlinks=False):
+                            artifact_count += 1
+                            if artifact_count >= MAX_EXPORT_ARTIFACTS:
+                                raise DatasetCaptureUnavailable("dataset export artifact limit was reached")
+                session_dir = self._session_path(session_id)
+                manifest = self._read_json(session_dir / "manifest.json")
+                if manifest.get("session_id") != session_id:
+                    raise DatasetCaptureNotFound("dataset session was not found")
+                plan = self._export_plan(session_dir, manifest)
+                proposed_bytes = sum(item[2] for item in plan) + MAX_MANIFEST_BYTES
+                if proposed_bytes > min(self._session_quota_bytes, MAX_EXPORT_BYTES):
+                    raise DatasetCaptureUnavailable("dataset export size exceeds its limit")
+                if self._free_bytes() - proposed_bytes < self._minimum_free_bytes:
+                    raise DatasetCaptureUnavailable("dataset export free-space reserve is not available")
+
+                export_id = uuid.uuid4().hex
+                temporary = self.exports_dir / f".{export_id}.zip.tmp"
+                published = self.exports_dir / f"{export_id}.zip"
+                metadata_path = self.exports_dir / f"{export_id}.json"
+                checksums = []
+                exported_manifest = dict(manifest)
+                exported_manifest["output_path"] = "managed-dataset-root"
+                manifest_bytes = json.dumps(
+                    exported_manifest,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+                if len(manifest_bytes) > MAX_MANIFEST_BYTES:
+                    raise DatasetCaptureUnavailable("dataset export manifest exceeds its limit")
+                with zipfile.ZipFile(
+                    temporary,
+                    mode="x",
+                    compression=zipfile.ZIP_STORED,
+                    allowZip64=True,
+                ) as archive:
+                    archive.writestr("manifest.json", manifest_bytes)
+                    checksums.append({
+                        "path": "manifest.json",
+                        "bytes": len(manifest_bytes),
+                        "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                    })
+                    for index, (source, archive_name, expected_bytes) in enumerate(plan, start=1):
+                        digest, copied = self._write_export_source(
+                            archive,
+                            source,
+                            archive_name,
+                            expected_bytes,
+                        )
+                        checksums.append({"path": archive_name, "bytes": copied, "sha256": digest})
+                        if index % 32 == 0 and self._free_bytes() < self._minimum_free_bytes:
+                            raise DatasetCaptureUnavailable("dataset export free-space reserve was reached")
+                    checksum_payload = json.dumps(
+                        {
+                            "schema_version": "robot-scope.dataset-export/v1",
+                            "session_id": session_id,
+                            "files": checksums,
+                        },
+                        allow_nan=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ).encode("utf-8")
+                    if len(checksum_payload) > MAX_MANIFEST_BYTES:
+                        raise DatasetCaptureUnavailable("dataset export checksum manifest exceeds its limit")
+                    archive.writestr("SHA256SUMS.json", checksum_payload)
+                temporary.chmod(0o600)
+                archive_size = temporary.stat().st_size
+                if archive_size <= 0 or archive_size > min(self._session_quota_bytes, MAX_EXPORT_BYTES):
+                    raise DatasetCaptureUnavailable("dataset export archive exceeds its limit")
+                archive_sha = hashlib.sha256()
+                with temporary.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        archive_sha.update(chunk)
+                os.replace(temporary, published)
+                _fsync_directory(self.exports_dir)
+                public = {
+                    "schema_version": "robot-scope.dataset-export-artifact/v1",
+                    "export_id": export_id,
+                    "session_id": session_id,
+                    "filename": f"robot-scope-dataset-{session_id}.zip",
+                    "bytes": archive_size,
+                    "file_count": len(checksums) + 1,
+                    "sha256": archive_sha.hexdigest(),
+                    "created_at": _utc_now(),
+                    "finalized": True,
+                }
+                self._atomic_json(metadata_path, public)
+                return public
+            except Exception:
+                for artifact in (temporary, published, metadata_path):
+                    if artifact is not None:
+                        try:
+                            artifact.unlink()
+                        except FileNotFoundError:
+                            pass
+                raise
+            finally:
+                with self._lock:
+                    self._export_active = False
+                    self._export_session_id = ""
+
+    def export_download(self, export_id: str) -> tuple[Path, Dict[str, Any]]:
+        if not isinstance(export_id, str) or not EXPORT_ID_RE.fullmatch(export_id):
+            raise DatasetCaptureNotFound("dataset export was not found")
+        metadata = self._read_json(self.exports_dir / f"{export_id}.json")
+        archive = self.exports_dir / f"{export_id}.zip"
+        if metadata.get("export_id") != export_id or archive.is_symlink() or not archive.is_file():
+            raise DatasetCaptureNotFound("dataset export was not found")
+        info = archive.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size != _safe_int(metadata.get("bytes")):
+            raise DatasetCaptureNotFound("dataset export was not found")
+        return archive, metadata
 
     def read_image(self, session_id: str, sample_index: int, source_id: str) -> bytes:
         session_dir = self._session_path(session_id)
