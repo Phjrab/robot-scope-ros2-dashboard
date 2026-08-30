@@ -427,6 +427,58 @@ The final browser layout had no horizontal overflow. Both camera viewer counts
 were zero, DatasetCapture was idle, Control Bridge remained inactive, and the
 dashboard service was active with its manual-start/disabled boot policy intact.
 
+### CWP management-link address transition — 2026-08-30
+
+The operator clarified that `192.168.50.103` is the management address of the
+Jetson mounted on the Go2, not the Go2 body. The external dashboard Jetson was
+`192.168.50.10`; the Go2 startup target therefore remained
+`192.168.123.161`. Both the Mac and external Jetson reached the mounted Jetson,
+and dashboard discovery listed it on the directly attached `192.168.50.0/24`
+network. No Robot Scope target-selection request changed the Go2 address.
+
+The mounted Jetson owned only `eth0=192.168.50.103/24` during this temporary
+wired setup. Its old `192.168.123.18` address was absent, so the installed
+RealSense relay could not bind and systemd had entered an unbounded restart
+loop (435 recorded restarts). The service was stopped and disabled before
+deployment. Commit `1c13eaa` then separated the relay management address from
+the Go2 target with three exact host settings, limited them to explicit
+RFC1918/link-local IPv4, retained the single-dashboard stream allowlist, and
+bounded service restart attempts to five per 60 seconds.
+
+The dashboard was configured only with
+`ROBOT_SCOPE_REALSENSE_RELAY_HOST=192.168.50.103`. The mounted relay used
+`ROBOT_SCOPE_REALSENSE_BIND_HOST=192.168.50.103` and
+`ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST=192.168.50.10`. The dashboard API kept
+`robot_ip=192.168.123.161` and exposed the new fixed RealSense URI without
+changing the Go2 control target. A direct eight-second stream captured 110
+complete JPEGs in 6,081,698 bytes; the inspected first JPEG was 38,707 bytes
+and 640x480. While streaming, relay health reported exactly one viewer, one
+producer process/thread, 15.0 FPS, zero invalid frames and no error.
+
+That first hardware run exposed a narrow shutdown race: a final producer frame
+could repopulate `last_frame_age_s` after idle cleanup. Commit `0104247`
+introduced producer generations so callbacks from a detached producer are
+rejected before session state can be changed. After redeployment, a real
+dashboard camera WebSocket delivered a valid 38,223-byte JPEG with source
+`realsense_color`, state `ok`, and 640x480 metadata. Closing it returned the
+dashboard and relay viewer counts to zero, stopped the sole GStreamer producer,
+and left relay health `idle` with `last_frame_age_s=null`.
+
+Final state was fail-safe: the mounted RealSense unit was `disabled`,
+`inactive/dead`, PID zero and restart count zero; the dashboard remained
+manual-start/active; Control Bridge remained `inactive/dead` with no lease,
+deadman false and zero command. No ARM, action, mapping, navigation or motion
+request was issued. Temporary stream captures were not added to Git.
+
+This validates the current wired management relay path and makes a later
+wireless management-NIC address change configuration-only. It does not validate
+Go2 DDS over the current wiring: the external dashboard still reports the Go2
+dedicated interface unavailable/offline, and the mounted Jetson could not ping
+`192.168.123.161` while it owned only the management subnet. The planned
+wireless transition must preserve a separate Go2/sensor network or provide a
+separately reviewed relay/routing design; the management address must never be
+substituted for the Go2 body target.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
@@ -448,3 +500,6 @@ dashboard service was active with its manual-start/disabled boot policy intact.
 6. Complete the 60-minute CWP soak and actual Xbox Controller validation; the
    short rendering observation and synthetic controller tests do not satisfy
    those hardware acceptance rows.
+7. Restore and verify the separate Go2/DDS network before Control Bridge
+   lifecycle validation. The temporary `192.168.50.0/24` management link alone
+   reaches the mounted Jetson and RealSense relay, not the Go2 body target.
