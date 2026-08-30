@@ -492,6 +492,23 @@ class RobotTargetSafetyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.agent.camera_snapshots(("http://attacker.invalid/camera",))
 
+    def test_realsense_relay_host_override_does_not_change_go2_target(self):
+        with patch.dict(
+            os.environ,
+            {"ROBOT_SCOPE_REALSENSE_RELAY_HOST": "192.168.50.103"},
+        ):
+            agent = RosAgent(
+                robot_ip="192.168.123.161",
+                profile_path=str(ROOT / "config" / "go2.json"),
+            )
+        self.assertEqual(agent.robot_target_snapshot()["ip"], "192.168.123.161")
+        self.assertEqual(
+            agent._remote_camera.url,
+            "http://192.168.50.103:8090/stream",
+        )
+        self.assertEqual(agent._remote_camera.relay_host, "192.168.50.103")
+        self.assertTrue(agent._remote_camera.configured)
+
     def test_camera_tokens_are_source_bound_exactly_once_and_capped(self):
         self.agent._direct_camera.start = Mock(return_value=True)
         self.agent._direct_camera.stop = Mock()

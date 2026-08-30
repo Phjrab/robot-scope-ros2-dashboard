@@ -40,6 +40,13 @@ RealSense 컬러 relay는
 브라우저는 대시보드의 같은 출처 WebSocket을 사용하며 robot-side relay에 직접 접속하지
 않습니다.
 
+참조 주소와 다른 관리망에서는 relay 주소만 별도 계약으로 바꿉니다. Dashboard의
+`ROBOT_SCOPE_REALSENSE_RELAY_HOST`와 relay host의
+`ROBOT_SCOPE_REALSENSE_BIND_HOST`, `ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST`가 같은
+배선을 가리켜야 합니다. 세 값은 명시적인 RFC1918 또는 link-local IPv4만 허용하며
+`0.0.0.0`, loopback, hostname, 공인 주소는 거부합니다. 이 설정은 RealSense HTTP 경로만
+바꾸며 `ROBOT_SCOPE_ROBOT_IP`, Go2 DDS interface 또는 control target을 바꾸지 않습니다.
+
 ~~~text
 D435i RGB by-id --> .18 GStreamer/MJPEG :8090 --> .99 Dashboard receiver
                                                         |
@@ -51,6 +58,24 @@ Browser management LAN <------ same-origin camera WS ---+
 `enable --now`한 경우에만 부팅 자동 시작을 사용합니다. `.99`에서 실제 `/stream` JPEG를
 받기 전에는 `/health`의 `idle`이나 Dashboard catalog만으로 영상 경로가 정상이라고 판정하지
 않습니다.
+
+## 로봇 탑재 Jetson 관리 링크의 유선→무선 전환
+
+로봇 탑재 Jetson의 관리 주소는 Go2 본체 주소가 아닙니다. 임시 유선 관리 링크를 무선
+랜카드로 옮길 때도 역할을 합치지 않습니다.
+
+| 역할 | 현재 검증 예 | 전환 원칙 |
+|---|---|---|
+| 외부 dashboard Jetson 관리 주소 | `192.168.50.10` | 신뢰된 관리 LAN에 유지 |
+| 로봇 탑재 relay Jetson 관리 주소 | `192.168.50.103` | 추후 무선 NIC의 예약 주소로 이동 가능 |
+| Go2 본체 | `192.168.123.161` | relay 관리 주소로 대체하지 않음 |
+| Go2/센서 전용망 | `192.168.123.0/24` 참조 계약 | DDS·센서 경로를 관리 Wi-Fi에 암묵적으로 합치지 않음 |
+
+무선 전환 때는 먼저 새 NIC가 관리 주소를 소유하고 dashboard host에서 relay host에
+도달하는지 확인한 뒤 RealSense의 세 host 설정만 교체합니다. Go2 multicast/DDS를 Wi-Fi로
+옮기거나 라우팅·브리지를 추가하는 작업은 별도 설계와 control fail-closed 검증 없이는
+수행하지 않습니다. DHCP를 사용한다면 주소 예약 또는 운영자가 확인 가능한 고정 lease를
+사용하고, 주소가 바뀐 상태에서 이전 대상에 자동 연결하지 않습니다.
 
 ## 가장 단순한 단일 호스트 구성
 
@@ -134,6 +159,9 @@ service를 켜도 XT16의 원래 패킷을 받는 인터페이스가 아니면 �
 | `ROBOT_SCOPE_ROS_SETUP` | 기본값과 다른 ROS setup 파일을 쓸 때만 지정 |
 | `ROBOT_SCOPE_UNITREE_SETUP` | 기본값과 다른 Unitree workspace setup 파일을 쓸 때만 지정 |
 | `ROBOT_SCOPE_CAMERA_INTERFACE` | 허용된 카메라 multicast 수신 NIC |
+| `ROBOT_SCOPE_REALSENSE_RELAY_HOST` | dashboard가 읽는 로봇 탑재 RealSense relay 주소; Go2 본체 주소와 별개 |
+| `ROBOT_SCOPE_REALSENSE_BIND_HOST` | relay process가 소유해야 하는 정확한 로컬 주소 |
+| `ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST` | relay `/stream`을 읽을 수 있는 유일한 dashboard 주소 |
 | `ROBOT_SCOPE_WORKSPACE_ROOT` | 외부 ROS workspace 공통 root; 빈 값은 service 사용자 홈, custom 값은 절대 경로만 허용 |
 | `ROBOT_SCOPE_LIVOX_SDK_PREFIX` | Livox SDK2 private prefix; 빈 값은 workspace root 아래 기본 경로 |
 | `ROBOT_SCOPE_XT16_RELAY_HOST` | 선택적 XT16 relay host, 참조값 `192.168.123.18` |

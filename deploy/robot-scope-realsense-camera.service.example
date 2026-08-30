@@ -2,7 +2,8 @@
 Description=Robot Scope on-demand RealSense color MJPEG relay
 Wants=network-online.target
 After=network-online.target
-StartLimitIntervalSec=0
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -10,6 +11,7 @@ User=unitree
 Group=unitree
 SupplementaryGroups=video
 WorkingDirectory=/
+EnvironmentFile=-/home/unitree/.config/robot-scope/realsense-camera.env
 Environment=GST_REGISTRY=/tmp/robot-scope-gstreamer-registry.bin
 ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/realsense_mjpeg_relay.py
 Restart=on-failure

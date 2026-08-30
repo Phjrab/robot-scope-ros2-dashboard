@@ -95,6 +95,11 @@ systemctl is-enabled robot-scope-realsense-camera.service
 systemctl is-active robot-scope-realsense-camera.service
 ~~~
 
+Host별 `~/.config/robot-scope/realsense-camera.env`는 배포 파일로 덮어쓰지 않습니다. 새
+관리망으로 옮길 때만 예제와 diff한 뒤 bind/dashboard 주소를 명시적으로 변경합니다.
+Dashboard의 `ROBOT_SCOPE_REALSENSE_RELAY_HOST`는 같은 relay 주소를 가리켜야 하지만
+`ROBOT_SCOPE_ROBOT_IP`는 Go2 본체 주소를 계속 유지합니다.
+
 `enable --now`는 restart 대체 명령이 아니며, 실행과 함께 다음 부팅의 자동 시작까지
 활성화합니다. 공용 개발 host의 manual-only 정책은 `disabled`를 유지하고 `systemctl start`로
 현재 세션만 시작합니다. 전용 relay host로 합의한 경우에만 `enable --now`를 사용합니다.

@@ -65,6 +65,35 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(relay.REALSENSE_COLOR_INTERFACE, "03")
         self.assertEqual(relay.REALSENSE_VIDEO_INDEX, "0")
 
+    def test_private_or_link_local_network_hosts_are_configurable(self):
+        self.assertEqual(
+            relay.relay_network_hosts(
+                {
+                    relay.RELAY_BIND_HOST_ENV: "192.168.50.103",
+                    relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.10",
+                }
+            ),
+            ("192.168.50.103", "192.168.50.10"),
+        )
+        self.assertEqual(
+            relay.relay_network_hosts(
+                {
+                    relay.RELAY_BIND_HOST_ENV: "169.254.50.103",
+                    relay.RELAY_DASHBOARD_HOST_ENV: "10.20.30.40",
+                }
+            ),
+            ("169.254.50.103", "10.20.30.40"),
+        )
+        for value in ("0.0.0.0", "127.0.0.1", "8.8.8.8", "relay.local", "::1"):
+            with self.subTest(value=value):
+                with self.assertRaises(relay.RelaySetupError):
+                    relay.relay_network_hosts(
+                        {
+                            relay.RELAY_BIND_HOST_ENV: value,
+                            relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.10",
+                        }
+                    )
+
     @mock.patch.object(relay, "_plugin_available")
     def test_pipeline_is_fixed_argv_and_prefers_software_jpeg(self, available):
         available.side_effect = lambda name: name == "jpegenc"
@@ -314,7 +343,12 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIn("PrivateDevices=false", service)
         self.assertIn("CapabilityBoundingSet=\n", service)
         self.assertIn("ProtectSystem=strict", service)
-        self.assertIn("StartLimitIntervalSec=0", service)
+        self.assertIn("StartLimitIntervalSec=60", service)
+        self.assertIn("StartLimitBurst=5", service)
+        self.assertIn(
+            "EnvironmentFile=-/home/unitree/.config/robot-scope/realsense-camera.env",
+            service,
+        )
         self.assertIn("/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py", service)
         self.assertNotIn("AmbientCapabilities=", service)
         self.assertNotIn("MemoryDenyWriteExecute=true", service)

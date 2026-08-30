@@ -175,13 +175,21 @@ gst-inspect-1.0 avdec_h264
 RealSense만 보이지 않으면 로봇 탑재 Jetson에서 다음을 확인합니다.
 
 ~~~bash
+realsense_relay_host=192.168.123.18
 systemctl status robot-scope-realsense-camera.service --no-pager
 systemctl is-enabled robot-scope-realsense-camera.service
 systemctl is-active robot-scope-realsense-camera.service
 ls -l /dev/v4l/by-path/*-video-index0
-curl -fsS http://192.168.123.18:8090/health
+curl -fsS "http://${realsense_relay_host}:8090/health"
 journalctl -u robot-scope-realsense-camera.service -n 80 --no-pager
 ~~~
+
+`Cannot assign requested address`가 반복되면 service를 먼저 중지하고
+`~/.config/robot-scope/realsense-camera.env`의 bind 주소가 `ip -br -4 address`에 실제로
+존재하는지 확인합니다. Dashboard 쪽 `ROBOT_SCOPE_REALSENSE_RELAY_HOST`도 같은 relay
+주소여야 합니다. Go2 본체의 `ROBOT_SCOPE_ROBOT_IP`는 이 문제를 해결하기 위해 바꾸지
+마세요. 수동 운영 host에서는 `disable --now`로 재시작 반복을 멈춘 후 설정과 unit을
+검증하고 `start`만 사용합니다.
 
 relay는 by-path 후보 중 sysfs vendor `8086`, product `0b3a`, USB color interface `03`,
 V4L index `0`을 모두 만족하는 D435i RGB 장치가 정확히 하나일 때만 시작합니다. D435i의
@@ -191,11 +199,12 @@ symlink만으로 color 장치를 판정하지 않습니다. USB 재연결 뒤에
 `disabled` 수동 실행), `is-active`는 현재 프로세스 상태이므로 둘을 따로 판정합니다.
 
 `/health`가 `idle`인 것은 viewer가 없는 정상 상태일 수 있지만 JPEG 생성 검증은 아닙니다.
-다음 검사는 반드시 `/stream` 접근이 허용된 dashboard host `192.168.123.99`에서 실행합니다.
+다음 검사는 반드시 `/stream` 접근이 허용된 dashboard host에서 실행합니다.
 
 ~~~bash
+realsense_relay_host=192.168.123.18
 relay_capture=/tmp/robot-scope-realsense-stream.mjpeg
-curl -fsS --max-time 5 http://192.168.123.18:8090/stream -o "$relay_capture"
+curl -fsS --max-time 5 "http://${realsense_relay_host}:8090/stream" -o "$relay_capture"
 relay_curl_status=$?
 test "$relay_curl_status" -eq 0 -o "$relay_curl_status" -eq 28
 python3 - <<'PY'

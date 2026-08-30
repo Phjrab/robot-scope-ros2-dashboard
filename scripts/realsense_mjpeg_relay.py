@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import glob
+import ipaddress
 import json
 import os
 import signal
@@ -17,9 +18,57 @@ from pathlib import Path
 from typing import Callable, Optional, Sequence
 
 
-BIND_HOST = "192.168.123.18"
+class RelaySetupError(RuntimeError):
+    pass
+
+
+DEFAULT_BIND_HOST = "192.168.123.18"
 BIND_PORT = 8090
-DASHBOARD_HOST = "192.168.123.99"
+DEFAULT_DASHBOARD_HOST = "192.168.123.99"
+RELAY_BIND_HOST_ENV = "ROBOT_SCOPE_REALSENSE_BIND_HOST"
+RELAY_DASHBOARD_HOST_ENV = "ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST"
+
+
+def _local_link_ipv4(value: str, label: str) -> str:
+    """Return one explicit RFC1918/link-local IPv4 or fail closed."""
+
+    text = str(value or "").strip()
+    try:
+        address = ipaddress.ip_address(text)
+    except ValueError as exc:
+        raise RelaySetupError(f"{label} must be a valid IPv4 address") from exc
+    allowed_networks = (
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network("169.254.0.0/16"),
+    )
+    if not isinstance(address, ipaddress.IPv4Address) or not any(
+        address in network for network in allowed_networks
+    ):
+        raise RelaySetupError(f"{label} must be a private or link-local IPv4 address")
+    if address.is_unspecified or address.is_loopback or address.is_multicast:
+        raise RelaySetupError(f"{label} is not an allowed relay address")
+    return str(address)
+
+
+def relay_network_hosts(
+    environ: Optional[dict[str, str]] = None,
+) -> tuple[str, str]:
+    values = os.environ if environ is None else environ
+    return (
+        _local_link_ipv4(
+            values.get(RELAY_BIND_HOST_ENV, DEFAULT_BIND_HOST),
+            RELAY_BIND_HOST_ENV,
+        ),
+        _local_link_ipv4(
+            values.get(RELAY_DASHBOARD_HOST_ENV, DEFAULT_DASHBOARD_HOST),
+            RELAY_DASHBOARD_HOST_ENV,
+        ),
+    )
+
+
+BIND_HOST, DASHBOARD_HOST = relay_network_hosts()
 HEALTH_CLIENTS = frozenset({"127.0.0.1", BIND_HOST, DASHBOARD_HOST})
 STREAM_CLIENTS = frozenset({DASHBOARD_HOST})
 DEVICE_GLOB = "/dev/v4l/by-path/*-video-index0"
@@ -48,10 +97,6 @@ KEEPALIVE_PART = (
     "Content-Type: text/plain\r\n"
     "Content-Length: 0\r\n\r\n\r\n"
 ).encode("ascii")
-
-
-class RelaySetupError(RuntimeError):
-    pass
 
 
 def client_allowed(client_host: str, path: str) -> bool:

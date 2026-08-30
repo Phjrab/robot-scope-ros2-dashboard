@@ -3,7 +3,11 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from robot_dashboard.remote_mjpeg_camera import MAX_JPEG_BYTES, RemoteMjpegCamera
+from robot_dashboard.remote_mjpeg_camera import (
+    MAX_JPEG_BYTES,
+    RemoteMjpegCamera,
+    allowed_realsense_relay_host,
+)
 
 
 URL = "http://192.168.123.18:8090/stream"
@@ -43,6 +47,21 @@ class RemoteMjpegCameraTests(unittest.TestCase):
             with self.subTest(url=value):
                 receiver = camera(url=value, allowed_urls=[value])
                 self.assertFalse(receiver.configured)
+
+    def test_private_runtime_relay_host_is_exactly_allowlisted(self):
+        runtime_url = "http://192.168.50.103:8090/stream"
+        receiver = camera(
+            url=runtime_url,
+            allowed_urls=[runtime_url],
+            relay_host="192.168.50.103",
+        )
+        self.assertTrue(receiver.configured)
+        self.assertTrue(allowed_realsense_relay_host("169.254.10.2"))
+        for value in ("0.0.0.0", "127.0.0.1", "8.8.8.8", "relay.local", "::1"):
+            with self.subTest(value=value):
+                self.assertFalse(allowed_realsense_relay_host(value))
+                blocked = camera(relay_host=value)
+                self.assertFalse(blocked.configured)
 
     def test_extracts_complete_jpegs_and_rejects_oversize_frame(self):
         frames = []

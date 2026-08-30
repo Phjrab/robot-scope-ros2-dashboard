@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import http.client
+import ipaddress
 import socket
 import threading
 import time
@@ -34,6 +35,28 @@ JPEG_SOF_MARKERS = frozenset(
         0xCF,
     }
 )
+
+
+def allowed_realsense_relay_host(value: str) -> bool:
+    """Allow only an explicit RFC1918 or link-local IPv4 relay endpoint."""
+
+    try:
+        address = ipaddress.ip_address(str(value or "").strip())
+    except ValueError:
+        return False
+    allowed_networks = (
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network("169.254.0.0/16"),
+    )
+    return (
+        isinstance(address, ipaddress.IPv4Address)
+        and any(address in network for network in allowed_networks)
+        and not address.is_unspecified
+        and not address.is_loopback
+        and not address.is_multicast
+    )
 
 
 def _jpeg_dimensions(jpeg: bytes) -> Optional[tuple[int, int]]:
@@ -97,6 +120,7 @@ class RemoteMjpegCamera:
         enabled: bool,
         url: str,
         allowed_urls: Sequence[str],
+        relay_host: str = REALSENSE_RELAY_HOST,
         source_id: str = "realsense_color",
         source_label: str = "RealSense color camera",
         stale_after_s: float = 3.0,
@@ -110,6 +134,7 @@ class RemoteMjpegCamera:
         self.allowed_urls = tuple(
             dict.fromkeys(str(value).strip() for value in allowed_urls if str(value).strip())
         )
+        self.relay_host = str(relay_host or "").strip()
         self.source_id = str(source_id)
         self.source_label = str(source_label)
         self.stale_after_s = max(0.5, min(float(stale_after_s), 15.0))
@@ -146,6 +171,8 @@ class RemoteMjpegCamera:
             return ""
         if self.source_id != "realsense_color":
             return "remote MJPEG camera source id is not allowlisted"
+        if not allowed_realsense_relay_host(self.relay_host):
+            return "remote MJPEG camera relay host is not allowlisted"
         if not self.url or self.url not in self.allowed_urls:
             return "remote MJPEG camera URL is not allowlisted"
         try:
@@ -157,7 +184,7 @@ class RemoteMjpegCamera:
             return "remote MJPEG camera URL must use http"
         if not parsed.hostname or parsed.username or parsed.password:
             return "remote MJPEG camera URL authority is invalid"
-        if parsed.hostname != REALSENSE_RELAY_HOST:
+        if parsed.hostname != self.relay_host:
             return "remote MJPEG camera host is not allowlisted"
         if port is None or not 1 <= port <= 65535:
             return "remote MJPEG camera URL requires an explicit port"
@@ -255,7 +282,7 @@ class RemoteMjpegCamera:
                 headers={
                     "Accept": "multipart/x-mixed-replace",
                     "Connection": "close",
-                    "Host": f"{REALSENSE_RELAY_HOST}:{parsed.port}",
+                    "Host": f"{self.relay_host}:{parsed.port}",
                     "User-Agent": "Robot-Scope/0.2",
                 },
             )

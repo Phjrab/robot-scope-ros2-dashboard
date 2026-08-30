@@ -137,6 +137,33 @@ sudo sshd -t
 sudo systemctl reload ssh
 ~~~
 
+### 로봇 탑재 RealSense relay의 host별 주소
+
+Relay 실행 파일과 service를 설치한 뒤 예제 설정을 사용자별 파일로 복사합니다. 실제 주소는
+Git에 커밋하지 않습니다.
+
+~~~bash
+install -d -m 700 "$HOME/.config/robot-scope"
+install -m 600 deploy/robot-scope-realsense-camera.env.example \
+  "$HOME/.config/robot-scope/realsense-camera.env"
+~~~
+
+참조 배선이 아니라면 탑재 Jetson에서 `ROBOT_SCOPE_REALSENSE_BIND_HOST`를 그 호스트가 실제
+소유한 관리 주소로, `ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST`를 dashboard host 주소로
+설정합니다. Dashboard host의 `robot-scope.env` 또는 `control.env`에는 같은 relay 주소를
+`ROBOT_SCOPE_REALSENSE_RELAY_HOST`로 설정합니다. 이 값은 Go2 본체 주소가 아니므로
+`ROBOT_SCOPE_ROBOT_IP`를 함께 변경하지 않습니다.
+
+수동 운영 정책에서는 service를 `disabled`로 유지하고 필요할 때만 `start`합니다.
+
+~~~bash
+sudo systemctl disable robot-scope-realsense-camera.service
+sudo systemctl start robot-scope-realsense-camera.service
+~~~
+
+잘못된 bind 주소로 인한 영구 재시작을 막기 위해 service는 60초 동안 5회 실패하면 추가
+재시작을 중단합니다. 주소를 수정한 뒤 `reset-failed`하고 다시 수동 시작하세요.
+
 ## 2. 저장소 받기
 
 운영 설치는 임의 브랜치보다 검증된 release tag 또는 담당자가 지정한 commit을
