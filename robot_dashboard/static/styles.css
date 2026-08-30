@@ -291,8 +291,8 @@ input:focus, select:focus { border-color: rgba(125,240,182,.55); box-shadow: 0 0
 .muted { color: var(--muted); font-size: 10px; }
 .topic-badge { max-width: 190px; padding: 6px 9px; overflow: hidden; color: #8aa19a; border: 1px solid var(--line); border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 
-.camera-view-toolbar { display:grid; grid-template-columns:auto minmax(190px,1fr) auto; align-items:end; gap:10px; padding:12px 14px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:rgba(7,21,18,.9); }
-.camera-view-toggle { display:inline-grid; grid-template-columns:repeat(2,minmax(64px,1fr)); overflow:hidden; border:1px solid var(--line-strong); border-radius:9px; }
+.camera-view-toolbar { display:grid; grid-template-columns:minmax(130px,max-content) minmax(190px,1fr); align-items:end; gap:10px; padding:12px 14px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:rgba(7,21,18,.9); }
+.camera-view-toggle { min-width:130px; display:inline-grid; grid-template-columns:repeat(2,minmax(64px,1fr)); overflow:hidden; border:1px solid var(--line-strong); border-radius:9px; }
 .camera-view-toggle button { min-height:36px; padding:7px 11px; color:#789089; border:0; background:rgba(255,255,255,.02); font-size:var(--type-control); font-weight:750; }
 .camera-view-toggle button + button { border-left:1px solid var(--line-strong); }
 .camera-view-toggle button[aria-pressed="true"] { color:#071b14; background:var(--green); }
@@ -300,7 +300,7 @@ input:focus, select:focus { border-color: rgba(125,240,182,.55); box-shadow: 0 0
 .camera-primary-picker { min-width:0; display:grid; gap:5px; }
 .camera-primary-picker > span { color:#748982; font-size:var(--type-micro); font-weight:750; letter-spacing:.08em; }
 .camera-primary-picker select { width:100%; min-height:36px; padding:7px 10px; color:#c9ddd6; border:1px solid var(--line-strong); border-radius:9px; background:#0a1815; font-size:var(--type-control); }
-.camera-view-capacity { min-width:150px; text-align:right; }
+.camera-view-capacity { grid-column:1/-1; min-width:0; text-align:left; }
 .camera-view-capacity strong, .camera-view-capacity small { display:block; }
 .camera-view-capacity strong { color:var(--cyan); font:750 var(--type-control) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.06em; }
 .camera-view-capacity small { margin-top:5px; color:#6f847d; font-size:var(--type-secondary); }

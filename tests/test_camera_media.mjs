@@ -197,6 +197,9 @@ test('camera page supports single and dual layouts with persistent primary contr
   assert.match(indexSource, /캡처·녹화는 PRIMARY 화면만 사용/);
   assert.match(stylesSource, /\.camera-view-grid\[data-view-mode="dual"\]\s*\{\s*grid-template-columns:repeat\(2/);
   assert.match(stylesSource, /\.sensor-page-grid \.camera-panel\.is-dual-view\s*\{\s*grid-column:1\/-1/);
+  assert.match(stylesSource, /\.camera-view-toolbar\s*\{[^}]*grid-template-columns:minmax\(130px,max-content\) minmax\(190px,1fr\)/);
+  assert.match(stylesSource, /\.camera-view-toggle\s*\{[^}]*min-width:130px/);
+  assert.match(stylesSource, /\.camera-view-capacity\s*\{[^}]*grid-column:1\/-1/);
   assert.match(appSource, /classList\.toggle\('is-dual-view', cameraViewMode === 'dual'\)/);
   assert.match(appSource, /\$\{connectedSources\} CONNECTED · \$\{requestedSources\} REQUESTED/);
   assert.match(stylesSource, /@media \(max-width: 800px\)[\s\S]*?\.camera-view-grid\[data-view-mode="dual"\]\s*\{\s*grid-template-columns:1fr/);
