@@ -12,8 +12,74 @@ from urllib.parse import urlsplit
 
 
 MAX_JPEG_BYTES = 4 * 1024 * 1024
+MAX_JPEG_HEADER_BYTES = 128 * 1024
+MAX_JPEG_DIMENSION = 8192
+MAX_JPEG_PIXELS = 32 * 1024 * 1024
 READ_CHUNK_BYTES = 64 * 1024
 REALSENSE_RELAY_HOST = "192.168.123.18"
+JPEG_SOF_MARKERS = frozenset(
+    {
+        0xC0,
+        0xC1,
+        0xC2,
+        0xC3,
+        0xC5,
+        0xC6,
+        0xC7,
+        0xC9,
+        0xCA,
+        0xCB,
+        0xCD,
+        0xCE,
+        0xCF,
+    }
+)
+
+
+def _jpeg_dimensions(jpeg: bytes) -> Optional[tuple[int, int]]:
+    """Return bounded JPEG SOF dimensions without decoding image content."""
+
+    if len(jpeg) < 4 or not jpeg.startswith(b"\xff\xd8"):
+        return None
+    limit = min(len(jpeg), MAX_JPEG_HEADER_BYTES)
+    offset = 2
+    while offset < limit:
+        if jpeg[offset] != 0xFF:
+            return None
+        while offset < limit and jpeg[offset] == 0xFF:
+            offset += 1
+        if offset >= limit:
+            return None
+        marker = jpeg[offset]
+        offset += 1
+        if marker in {0x00, 0xD8}:
+            return None
+        if marker == 0x01 or 0xD0 <= marker <= 0xD7:
+            continue
+        if marker in {0xD9, 0xDA} or offset + 2 > limit:
+            return None
+        segment_length = int.from_bytes(jpeg[offset : offset + 2], "big")
+        if segment_length < 2:
+            return None
+        segment_end = offset + segment_length
+        if segment_end > limit or segment_end > len(jpeg):
+            return None
+        if marker in JPEG_SOF_MARKERS:
+            if segment_length < 8:
+                return None
+            height = int.from_bytes(jpeg[offset + 3 : offset + 5], "big")
+            width = int.from_bytes(jpeg[offset + 5 : offset + 7], "big")
+            if (
+                width < 1
+                or height < 1
+                or width > MAX_JPEG_DIMENSION
+                or height > MAX_JPEG_DIMENSION
+                or width * height > MAX_JPEG_PIXELS
+            ):
+                return None
+            return width, height
+        offset = segment_end
+    return None
 
 
 class RemoteMjpegCamera:
@@ -63,6 +129,8 @@ class RemoteMjpegCamera:
         self._last_error = ""
         self._last_frame_at = 0.0
         self._frames = 0
+        self._width = 0
+        self._height = 0
         self._oversize_frames = 0
         self._invalid_frames = 0
         self._restart_count = 0
@@ -110,6 +178,8 @@ class RemoteMjpegCamera:
             self._stop_event.clear()
             self._state = "starting"
             self._restart_in_s = None
+            self._width = 0
+            self._height = 0
             self._thread = threading.Thread(
                 target=self._supervise,
                 name="realsense-mjpeg-camera",
@@ -275,6 +345,7 @@ class RemoteMjpegCamera:
             with self._lock:
                 self._invalid_frames += 1
             return
+        dimensions = _jpeg_dimensions(jpeg)
         try:
             self.on_jpeg(jpeg)
         except Exception as exc:
@@ -284,6 +355,7 @@ class RemoteMjpegCamera:
         now = time.monotonic()
         with self._lock:
             self._frames += 1
+            self._width, self._height = dimensions or (0, 0)
             self._last_frame_at = now
             self._frame_times.append(now)
             self._state = "ok"
@@ -317,6 +389,8 @@ class RemoteMjpegCamera:
                 "uri": self.url,
                 "format": "jpeg",
                 "max_frame_bytes": MAX_JPEG_BYTES,
+                "width": self._width,
+                "height": self._height,
                 "fps": self._fps_locked(),
                 "frames": self._frames,
                 "age_s": age,

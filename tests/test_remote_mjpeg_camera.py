@@ -9,6 +9,18 @@ from robot_dashboard.remote_mjpeg_camera import MAX_JPEG_BYTES, RemoteMjpegCamer
 URL = "http://192.168.123.18:8090/stream"
 
 
+def jpeg_with_sof(width, height, *, marker=0xC0):
+    sof = (
+        bytes((0xFF, marker))
+        + (11).to_bytes(2, "big")
+        + bytes((8,))
+        + int(height).to_bytes(2, "big")
+        + int(width).to_bytes(2, "big")
+        + b"\x01\x01\x11\x00"
+    )
+    return b"\xff\xd8\xff\xe0\x00\x04RS" + sof + b"\xff\xd9"
+
+
 def camera(callback=lambda _jpeg: None, **overrides):
     values = {
         "enabled": True,
@@ -42,6 +54,31 @@ class RemoteMjpegCameraTests(unittest.TestCase):
         receiver._read_jpegs(io.BytesIO(oversized))
         self.assertEqual(receiver.status()["oversize_frames"], 1)
         self.assertEqual(len(frames), 2)
+
+    def test_published_jpeg_exposes_bounded_sof_dimensions(self):
+        receiver = camera()
+        receiver._publish_jpeg(jpeg_with_sof(640, 480))
+        status = receiver.status()
+        self.assertEqual((status["width"], status["height"]), (640, 480))
+
+        receiver._publish_jpeg(jpeg_with_sof(1280, 720, marker=0xC2))
+        status = receiver.status()
+        self.assertEqual((status["width"], status["height"]), (1280, 720))
+
+    def test_dimension_scan_rejects_embedded_or_unbounded_sof_metadata(self):
+        receiver = camera()
+        embedded_sof = b"\xff\xd8\xff\xe0\x00\x0bxx\xff\xc0\x00\x03abc\xff\xd9"
+        receiver._publish_jpeg(embedded_sof)
+        self.assertEqual(
+            (receiver.status()["width"], receiver.status()["height"]),
+            (0, 0),
+        )
+
+        receiver._publish_jpeg(jpeg_with_sof(9000, 480))
+        self.assertEqual(
+            (receiver.status()["width"], receiver.status()["height"]),
+            (0, 0),
+        )
 
     def test_run_once_uses_direct_http_connection_and_rejects_redirect(self):
         response = Mock()

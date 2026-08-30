@@ -532,6 +532,8 @@ class CameraHub:
                 "source_label": status.get("source_label", "RealSense color camera"),
                 "transport": status.get("transport", "http_mjpeg"),
                 "state": status.get("state", "waiting"),
+                "width": int(status.get("width", 0) or 0),
+                "height": int(status.get("height", 0) or 0),
                 "fps": status.get("fps"),
                 "age_s": status.get("age_s"),
             }

@@ -185,6 +185,28 @@ class RosObservabilityComponentTests(unittest.TestCase):
         hub.shutdown()
         self.assertEqual(decoder.stops, 1)
 
+    def test_camera_hub_projects_remote_jpeg_dimensions_to_catalog_and_frames(self):
+        hub = CameraHub(
+            threading.RLock(),
+            tick=lambda *_: None,
+            selected_ros_topic=lambda: "",
+        )
+        hub.attach(
+            FakeReceiver("go2_front"),
+            FakeReceiver("realsense_color"),
+            FakeDecoder(),
+        )
+        hub.remote_callback(b"\xff\xd8frame\xff\xd9")
+
+        realsense = next(
+            entry
+            for entry in hub.catalog_snapshot()["sources"]
+            if entry["source_id"] == "realsense_color"
+        )
+        self.assertEqual((realsense["width"], realsense["height"]), (640, 480))
+        snapshot = hub.remote_snapshot_locked()
+        self.assertEqual((snapshot["width"], snapshot["height"]), (640, 480))
+
     def test_pointcloud_hub_bounds_frame_and_preserves_binary_epoch(self):
         lock = threading.RLock()
         hub = PointCloudHub(
