@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import tempfile
 import threading
@@ -70,6 +71,23 @@ def wait_until(predicate, timeout=3.0):
             return True
         time.sleep(0.02)
     return False
+
+
+def abandon_capture_process(root):
+    cameras = FakeCameras()
+    manager = DatasetCaptureManager(
+        Path(root).resolve(),
+        camera_open=cameras.open,
+        camera_close=cameras.close,
+        camera_snapshots=cameras.snapshots,
+        metadata_snapshot=lambda: {"state": "ok", "pose": {"x": 1.0}},
+        minimum_free_bytes=0,
+        startup_timeout_s=0.5,
+    )
+    manager.start(("go2_front",), 5.0, "abrupt interruption")
+    if not wait_until(lambda: manager.snapshot()["saved"] >= 1):
+        os._exit(2)
+    os._exit(0)
 
 
 class DatasetCaptureTests(unittest.TestCase):
@@ -332,6 +350,33 @@ class DatasetCaptureTests(unittest.TestCase):
             self.assertFalse(abandoned.exists())
             self.assertEqual(
                 manager.list_sessions()["sessions"][0]["state"], "interrupted"
+            )
+
+    def test_abrupt_process_exit_recovers_published_files_as_interrupted(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            context = multiprocessing.get_context("spawn")
+            process = context.Process(
+                target=abandon_capture_process,
+                args=(temporary,),
+            )
+            process.start()
+            process.join(5.0)
+            if process.is_alive():
+                process.terminate()
+                process.join(2.0)
+            self.assertEqual(process.exitcode, 0)
+
+            sessions = list((Path(temporary) / "sessions").iterdir())
+            self.assertEqual(len(sessions), 1)
+            manager, _ = self.make_manager(temporary)
+            recovered = json.loads((sessions[0] / "manifest.json").read_text())
+            self.assertEqual(recovered["state"], "interrupted")
+            self.assertGreaterEqual(recovered["sample_count"], 1)
+            self.assertIn("dashboard stopped", recovered["last_error"])
+            self.assertFalse(any((sessions[0] / "samples").glob(".tmp-*")))
+            self.assertEqual(
+                manager.list_sessions()["sessions"][0]["state"],
+                "interrupted",
             )
 
     def test_recovery_reconciles_one_atomically_published_sample(self):
