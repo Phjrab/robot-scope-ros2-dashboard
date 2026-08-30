@@ -324,6 +324,22 @@ cable removal remains deferred to a separately supervised fault-injection
 scenario. No control lease, motion command, mapping, localization, Nav2 or map
 mutation was used during this check.
 
+### RealSense JPEG resolution metadata
+
+Commit `37abe45` added a bounded JPEG SOF metadata scan to the dashboard's
+existing single RealSense reader. It does not decode the image or add another
+camera owner. The scan follows JPEG segment lengths within a 128 KiB header
+limit and rejects malformed markers, dimensions above 8192, or images above
+32 MiPixels. Width and height are projected through the fixed camera catalog
+and the existing WebSocket frame metadata.
+
+After the commit was fast-forwarded to the dashboard host and only
+`robot-scope.service` was restarted, the live API reported width 640, height
+480 and 15.0 FPS. The Cockpit panel displayed `RES 640×480` while LIVE. Closing
+the panel returned dashboard and relay viewers to zero, and the relay's
+on-demand producer process and thread both stopped. The relay service remained
+manually managed, active and idle.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and

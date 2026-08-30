@@ -63,7 +63,7 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | pointcloud 없음, stale, malformed frame | `PASS` | projection/binary decoder fail-closed behavior |
 | high budget와 adaptive LOD 전환 | `PASS` | typed-buffer/LOD behavior + Playwright quality transition |
 | route 전환 후 PointCloud owner 중복 없음 | `PASS` | shared transport unit + Playwright 20 route cycles |
-| 실제 Go2+RealSense 동시 LIVE와 viewer lifecycle | `PASS` | 2026-08-30: Go2 14.29 FPS, RealSense 15.0 FPS, source별 viewer 1; close 후 모두 0 |
+| 실제 Go2+RealSense 동시 LIVE와 viewer lifecycle | `PASS` | 2026-08-30: Go2 14.29 FPS, RealSense 15.0 FPS와 640×480, source별 viewer 1; close 후 모두 0 |
 | 실제 RealSense relay restart 중 panel 복구 | `PASS` | 2026-08-30: panel을 연 채 relay restart; `WAITING` 뒤 자동 `LIVE` 15.0 FPS 복귀, dashboard/relay viewer 각 1, producer process/thread 각 1 |
 | 실제 camera cable 분리 fault injection | `NOT_RUN` | 감독된 케이블 분리 시나리오로 명시적 보류 |
 | 실제 XT16 high-rate cloud와 adaptive LOD 단기 검증 | `PASS` | 2026-08-28: LOW/MEDIUM/HIGH와 AUTO 하향 전환, shared transport 확인 |
