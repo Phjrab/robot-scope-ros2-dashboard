@@ -84,7 +84,7 @@ class DatasetCaptureTests(unittest.TestCase):
             camera_close=cameras.close,
             camera_snapshots=cameras.snapshots,
             metadata_snapshot=lambda: {"state": "ok", "pose": {"x": 1.0}},
-            minimum_free_bytes=0,
+            minimum_free_bytes=kwargs.pop("minimum_free_bytes", 0),
             startup_timeout_s=kwargs.pop("startup_timeout_s", 0.5),
             **kwargs,
         )
@@ -194,6 +194,52 @@ class DatasetCaptureTests(unittest.TestCase):
             )
             manager.close()
             self.assertEqual(len(cameras.closes), 1)
+
+    def test_free_space_reserve_blocks_start_before_camera_open(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            minimum_free_bytes = 5 * 1024 * 1024
+            manager, cameras = self.make_manager(
+                temporary,
+                minimum_free_bytes=minimum_free_bytes,
+            )
+            with patch.object(
+                manager,
+                "_free_bytes",
+                return_value=minimum_free_bytes + MAX_MANIFEST_BYTES - 1,
+            ):
+                with self.assertRaisesRegex(
+                    DatasetCaptureUnavailable,
+                    "free-space reserve is not available",
+                ):
+                    manager.start(("go2_front",), 1.0, "reserve preflight")
+            self.assertEqual(cameras.opens, [])
+            self.assertEqual(list((Path(temporary) / "sessions").iterdir()), [])
+
+    def test_free_space_reserve_failure_stops_writer_without_partial_sample(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            cameras = FakeCameras()
+            cameras.mode = "stale"
+            manager, _ = self.make_manager(
+                temporary,
+                cameras,
+                minimum_free_bytes=1,
+            )
+            started = manager.start(("go2_front",), 5.0, "reserve write")
+            with patch.object(manager, "_free_bytes", return_value=0):
+                cameras.mode = "ok"
+                self.assertTrue(
+                    wait_until(lambda: manager.snapshot()["state"] == "failed")
+                )
+            snapshot = manager.snapshot()
+            self.assertEqual(
+                snapshot["last_error"],
+                "dataset storage free-space reserve was reached",
+            )
+            self.assertEqual(snapshot["saved"], 0)
+            session = Path(temporary) / "sessions" / started["session_id"]
+            self.assertFalse((session / "samples" / "00000001").exists())
+            self.assertEqual(cameras.closes, [("go2_front", "token-go2_front")])
+            manager.close()
 
     def test_validation_and_stale_session_stop_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as temporary:
