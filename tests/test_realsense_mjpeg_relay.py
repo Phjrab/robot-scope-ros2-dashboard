@@ -239,6 +239,23 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertIsNone(frame)
         self.assertIsNone(second.health()["last_frame_age_s"])
 
+    def test_late_frame_from_stopped_generation_cannot_repopulate_idle_health(self):
+        class LateProducer(FakeProducer):
+            def stop(self):
+                self.publish(b"\xff\xd8late\xff\xd9")
+                super().stop()
+
+        hub = relay.FrameHub(LateProducer)
+        self.assertTrue(hub.add_viewer())
+        self.assertTrue(hub.publish(b"\xff\xd8live\xff\xd9"))
+        hub.remove_viewer()
+        hub._stop_if_idle()
+
+        health = hub.health()
+        self.assertEqual(health["state"], "idle")
+        self.assertEqual(health["frames"], 1)
+        self.assertIsNone(health["last_frame_age_s"])
+
     def test_health_reports_starting_streaming_stale_and_error(self):
         producers = []
 

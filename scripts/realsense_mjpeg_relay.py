@@ -219,6 +219,7 @@ class FrameHub:
         self._producer_factory = producer_factory
         self._condition = threading.Condition()
         self._producer: Optional[GstProducer] = None
+        self._producer_generation = 0
         self._stop_timer: Optional[threading.Timer] = None
         self._frame: Optional[bytes] = None
         self._sequence = 0
@@ -239,7 +240,11 @@ class FrameHub:
                 self._stop_timer.cancel()
                 self._stop_timer = None
             if self._producer is None:
-                self._producer = self._producer_factory(self.publish)
+                self._producer_generation += 1
+                generation = self._producer_generation
+                self._producer = self._producer_factory(
+                    lambda jpeg: self.publish(jpeg, generation=generation)
+                )
                 self._producer.start()
             return True
 
@@ -258,9 +263,15 @@ class FrameHub:
                 return
             producer = self._producer
             self._producer = None
+            self._producer_generation += 1
             self._stop_timer = None
-            self._clear_frame_locked()
         producer.stop()
+        with self._condition:
+            # GstProducer may deliver one final frame while stop() joins its
+            # native process. Its invalidated callback is rejected above, and
+            # a concurrently started replacement producer keeps its own frame.
+            if self._producer is None and self._viewers == 0:
+                self._clear_frame_locked()
 
     def _clear_frame_locked(self) -> None:
         """Remove session-local image state while preserving lifetime counters."""
@@ -269,7 +280,10 @@ class FrameHub:
         self._last_frame_at = 0.0
         self._frame_times.clear()
 
-    def publish(self, jpeg: bytes) -> bool:
+    def publish(self, jpeg: bytes, *, generation: Optional[int] = None) -> bool:
+        with self._condition:
+            if generation is not None and generation != self._producer_generation:
+                return False
         if (
             len(jpeg) > MAX_JPEG_BYTES
             or len(jpeg) < 4
@@ -281,6 +295,8 @@ class FrameHub:
             return False
         now = time.monotonic()
         with self._condition:
+            if generation is not None and generation != self._producer_generation:
+                return False
             self._frame = jpeg
             self._sequence += 1
             self._frames += 1
@@ -380,6 +396,7 @@ class FrameHub:
                 self._stop_timer.cancel()
                 self._stop_timer = None
             producer, self._producer = self._producer, None
+            self._producer_generation += 1
             self._clear_frame_locked()
             self._condition.notify_all()
         if producer:
