@@ -20,6 +20,7 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 | 문서 | 내용 |
 |---|---|
 | [현재 아키텍처](docs/ARCHITECTURE.md) | subsystem 소유권, safety boundary, Phase 0 대비 구조와 남은 부채 |
+| [대회용 분산 아키텍처](docs/COMPETITION_SYSTEM_ARCHITECTURE.md) | 내부 Jetson·외부 Orin·노트북 책임, 무선 데이터 경계와 WP 기준선 |
 | [설치](docs/INSTALL.md) | `observer`, `go2`, `go2-control`, `go2-xt16`, `go2-nav` 모드와 스모크 테스트 |
 | [의존성](docs/DEPENDENCIES.md) | 외부 ROS workspace, pin/라이선스 기록과 미포함 구성 요소 |
 | [토폴로지](docs/TOPOLOGY.md) | 단일/두 호스트 배선, 서비스 역할과 관리망 분리 |
