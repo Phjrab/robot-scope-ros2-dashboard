@@ -31,10 +31,18 @@ reconnects. This is not a D435 hardware-clock timestamp. Both processes use
 the same robot-side monotonic clock; WP04 must not subtract it from an
 external-host monotonic timestamp.
 
+Every result carries all three identities: the monotonically increasing
+sidecar `sequence`, the relay's exact `source_sequence`, and its
+`source_epoch`. The source sequence resets only with a new source epoch when
+the relay process restarts; a capture-producer restart inside that relay keeps
+the sequence increasing. Missing or non-positive source identity is
+rejected before a frame enters the latest-frame hub and is rejected again by
+the external result validator.
+
 Inference and preview never open the camera separately. A sidecar crash closes
 one relay viewer; it cannot stop or restart the independent relay service.
 
-## Verified target inventory (read-only, 2026-08-30)
+## Verified target inventory (read-only, 2026-08-31)
 
 | Item | Observed value |
 |---|---|
@@ -48,10 +56,14 @@ one relay viewer; it cannot stop or restart the independent relay service.
 | PyCUDA / cuda-python | unavailable |
 | RealSense relay policy | active, disabled (manual start) |
 | Relay at inspection | idle, zero viewers, no capture process |
+| Shadow service/unit | not installed, inactive |
+| Approved model root/artifacts | absent |
 
-This is compatibility inventory, not load acceptance. The installed relay hash
-also differed from repository HEAD, so deployment must update the relay and
-sidecar together before a hardware shadow test.
+This is compatibility inventory, not load acceptance. The installed relay now
+matches repository source SHA-256
+`5d4ef09a92b6ccfadaf99eeaadd3b05ac7fe2c5aed203c02062301836e8a0475`.
+The sidecar deployment/start gate remains blocked until approved Lane and
+Object model manifests and target-built artifacts exist.
 
 ## Model contract
 

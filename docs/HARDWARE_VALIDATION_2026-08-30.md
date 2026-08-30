@@ -346,6 +346,60 @@ Follow-up repository verification for this correction:
   retains the existing `mission_coordinator.py:691` E701 finding;
 - secret scan and `git diff --check`: PASS.
 
+## WP03 shadow-runtime inventory and fail-closed gate — 2026-08-31
+
+Read-only inventory on the Go2-mounted Jetson reconfirmed `aarch64`, Python
+3.8.10, L4T 35.3.1, CUDA 11.4, TensorRT 8.5.2.2, OpenCV 4.2.0, NumPy 1.17.4,
+and Pillow 7.0.0. ROS Noetic and Foxy are installed, but the standalone shadow
+runtime imports neither. ONNX Runtime remains unavailable. No package or
+system-Python dependency was installed.
+
+The WP03 unit and executable were not installed, the model root was absent,
+and no approved Lane or Object manifest or target-built TensorRT engine was
+available. Hardware inference, resource comparison, and soak therefore remain
+**BLOCKED** rather than being inferred from software tests.
+
+Source review found that the relay's exact `source_sequence` and
+`source_epoch` reached the sidecar frame but were omitted from the result
+contract. The runtime and external validator now require and preserve both
+fields while retaining a separate sidecar-monotonic result `sequence`. Frames
+with missing/non-positive source identity fail before entering the depth-one
+hub, and malformed remote results fail atomically. Tests now cover a relay
+process restart where source epoch changes and source sequence returns to one
+while result sequence continues increasing.
+
+The corrected sidecar was copied only to a temporary unprivileged path on the
+robot for Python 3.8 compatibility and fail-closed checks; no systemd unit was
+installed or started, and the temporary copy was removed afterward. The staged SHA-256 was
+`92e277ae25db8bb38d604f034cb1776fc97b2d06505291ebb09355cb251fb66f`.
+An unexpected argument returned exit status 2. A fixed host configuration with
+deliberately missing model names returned exit status 2 with
+`INVALID_MANIFEST` before opening health or result listeners. Ports 8091 and
+8092 remained closed, Control Bridge remained inactive, and the independent
+RealSense relay remained active/disabled and idle with zero viewers and no
+capture producer.
+
+This is **PASS** for target-Python compatibility, invalid-model fail-closed
+behavior, zero motion/control ownership, and exact source-frame traceability.
+It is **BLOCKED** for relay + Lane + YOLO coexistence, per-model/combined
+performance, CPU/GPU/RAM/swap/thermal measurements, preview comparison,
+robot-service freshness under inference load, and the required 30-minute soak.
+
+WP03 follow-up verification results:
+
+- shadow runtime Python tests: 11 passed, 0 failed;
+- external perception contract Python tests: 9 passed, 0 failed;
+- perception/Cockpit JavaScript tests: 8 passed, 0 failed;
+- complete JavaScript suite: 252 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- browser E2E: 30 passed, 0 failed;
+- complete Python suite: 793 run, 792 passed, with the unchanged macOS-only
+  `/etc/os-release` baseline error in the Ubuntu installer test;
+- mypy configured targets: PASS;
+- Ruff: all WP03 files passed; the repository-wide scan retains only the
+  existing `mission_coordinator.py:691` E701 finding;
+- `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.

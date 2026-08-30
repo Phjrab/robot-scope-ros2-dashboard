@@ -303,6 +303,8 @@ class LatestFrameHub:
             frame.sequence <= 0
             or frame.capture_monotonic_ns <= 0
             or frame.received_monotonic_ns <= 0
+            or frame.source_sequence <= 0
+            or frame.source_epoch <= 0
             or (frame.width, frame.height) not in ALLOWED_RESOLUTIONS
             or frame.pixel_format != "JPEG"
             or len(frame.jpeg) > MAX_FRAME_BYTES
@@ -557,6 +559,8 @@ class InferenceWorker:
                     "source_id": self.source_id,
                     "boot_id": self.boot_id,
                     "sequence": frame.sequence,
+                    "source_sequence": frame.source_sequence,
+                    "source_epoch": frame.source_epoch,
                     "task": self.adapter.manifest.task,
                     "capture_timestamp": frame.capture_monotonic_ns,
                     "capture_clock_domain": "robot-monotonic",

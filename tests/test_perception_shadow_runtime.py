@@ -43,7 +43,7 @@ def manifest(task="lane", backend="onnx"):
     )
 
 
-def frame(sequence, *, age_s=0.0):
+def frame(sequence, *, age_s=0.0, source_sequence=None, source_epoch=1):
     return shadow.Frame(
         sequence=sequence,
         capture_monotonic_ns=time.monotonic_ns() - int(age_s * 1e9),
@@ -52,6 +52,8 @@ def frame(sequence, *, age_s=0.0):
         height=480,
         pixel_format="JPEG",
         jpeg=b"\xff\xd8synthetic\xff\xd9",
+        source_sequence=sequence if source_sequence is None else source_sequence,
+        source_epoch=source_epoch,
     )
 
 
@@ -95,11 +97,13 @@ class PerceptionShadowTests(unittest.TestCase):
         self.assertTrue(hub.publish(frame(1)))
         self.assertTrue(hub.publish(frame(2)))
         self.assertFalse(hub.publish(frame(2)))
+        self.assertFalse(hub.publish(frame(3, source_sequence=0)))
+        self.assertFalse(hub.publish(frame(3, source_epoch=0)))
         latest = hub.wait_after(0)
         self.assertEqual(latest.sequence, 2)
         self.assertEqual(hub.snapshot()["queue_depth"], 1)
         self.assertEqual(hub.snapshot()["published"], 2)
-        self.assertEqual(hub.snapshot()["rejected"], 1)
+        self.assertEqual(hub.snapshot()["rejected"], 3)
 
     def test_manifest_rejects_invalid_metadata_hash_and_target_mismatch(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -251,22 +255,27 @@ class PerceptionShadowTests(unittest.TestCase):
         )
         runtime.start()
         try:
-            runtime.submit(frame(10))
+            runtime.submit(frame(10, source_sequence=812, source_epoch=41))
             self.assertTrue(wait_for(lambda: worker.health()["latest_result"] is not None))
-            first = worker.health()["latest_result"]["sequence"]
+            first = worker.health()["latest_result"]
+            self.assertEqual(first["source_sequence"], 812)
+            self.assertEqual(first["source_epoch"], 41)
             self.assertEqual(
-                worker.health()["latest_result"]["capture_clock_domain"],
+                first["capture_clock_domain"],
                 "robot-monotonic",
             )
             time.sleep(0.04)
-            runtime.submit(frame(11))
+            runtime.submit(frame(11, source_sequence=1, source_epoch=42))
             self.assertTrue(
                 wait_for(
                     lambda: worker.health()["latest_result"]
                     and worker.health()["latest_result"]["sequence"] == 11
                 )
             )
-            self.assertGreater(11, first)
+            second = worker.health()["latest_result"]
+            self.assertGreater(second["sequence"], first["sequence"])
+            self.assertEqual(second["source_sequence"], 1)
+            self.assertEqual(second["source_epoch"], 42)
             time.sleep(0.12)
             health = runtime.health()
             self.assertEqual(health["state"], "FAILED")

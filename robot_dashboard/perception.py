@@ -169,6 +169,8 @@ COMMON_KEYS = frozenset(
         "source_id",
         "boot_id",
         "sequence",
+        "source_sequence",
+        "source_epoch",
         "task",
         "capture_timestamp",
         "capture_clock_domain",
@@ -303,6 +305,12 @@ class PerceptionStore:
         ):
             self._reject("UNKNOWN_MODEL")
         sequence = _integer(raw["sequence"], 1, 2**63 - 1, "INVALID_SEQUENCE")
+        source_sequence = _integer(
+            raw["source_sequence"], 1, 2**63 - 1, "INVALID_SOURCE_SEQUENCE"
+        )
+        source_epoch = _integer(
+            raw["source_epoch"], 1, 2**63 - 1, "INVALID_SOURCE_EPOCH"
+        )
         capture = _integer(raw["capture_timestamp"], 1, 2**63 - 1, "INVALID_TIMESTAMP")
         started = _integer(raw["inference_started_at"], 1, 2**63 - 1, "INVALID_TIMESTAMP")
         completed = _integer(raw["inference_completed_at"], 1, 2**63 - 1, "INVALID_TIMESTAMP")
@@ -320,7 +328,14 @@ class PerceptionStore:
             expected = max((item["confidence"] for item in payload["detections"]), default=0.0)
             if not math.isclose(confidence, expected, abs_tol=0.0001):
                 self._reject("INVALID_CONFIDENCE")
-        return {**raw, "payload": payload, "confidence": confidence, "sequence": sequence}
+        return {
+            **raw,
+            "payload": payload,
+            "confidence": confidence,
+            "sequence": sequence,
+            "source_sequence": source_sequence,
+            "source_epoch": source_epoch,
+        }
 
     def ingest(self, snapshot: object, *, source_ip: str, received_monotonic_ns: int | None = None) -> int:
         if source_ip != self.source_ip:
@@ -481,7 +496,8 @@ class PerceptionStore:
         references = []
         for result in latest["results"]:
             references.append({key: result[key] for key in (
-                "source_id", "boot_id", "task", "sequence", "model_id", "model_sha256",
+                "source_id", "boot_id", "task", "sequence", "source_sequence", "source_epoch",
+                "model_id", "model_sha256",
                 "capture_timestamp", "capture_clock_domain", "result_status", "last_receive_age",
                 "clock_domain_verified",
             )})

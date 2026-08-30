@@ -43,7 +43,14 @@ def load_policy():
     return directory, PerceptionPolicy.load(path)
 
 
-def result(task="lane", sequence=1, boot_id=BOOT_A, server_ns=10_000_000_000):
+def result(
+    task="lane",
+    sequence=1,
+    boot_id=BOOT_A,
+    server_ns=10_000_000_000,
+    source_sequence=None,
+    source_epoch=1,
+):
     payloads = {
         "lane": {"lateral_error_normalized": 0.1, "heading_error_rad": 0.02, "curvature": 0.001, "left_lane_visible": True, "right_lane_visible": True, "confidence": 0.9, "reason": "model_output"},
         "object": {"detections": [{"class_id": 1, "class_name": "cone", "x1": 10.0, "y1": 20.0, "x2": 100.0, "y2": 200.0, "confidence": 0.8}], "detection_count": 1},
@@ -55,6 +62,8 @@ def result(task="lane", sequence=1, boot_id=BOOT_A, server_ns=10_000_000_000):
         "source_id": SOURCE_ID,
         "boot_id": boot_id,
         "sequence": sequence,
+        "source_sequence": sequence if source_sequence is None else source_sequence,
+        "source_epoch": source_epoch,
         "task": task,
         "capture_timestamp": server_ns - 300_000_000,
         "capture_clock_domain": "robot-monotonic",
@@ -95,6 +104,8 @@ class PerceptionContractTests(unittest.TestCase):
         self.assertEqual({item["task"] for item in latest["results"]}, {"lane", "object", "depth_summary"})
         self.assertTrue(all(item["result_status"] == "LIVE" for item in latest["results"]))
         self.assertTrue(all(item["clock_domain_verified"] is False for item in latest["results"]))
+        self.assertTrue(all(item["source_sequence"] == 1 for item in latest["results"]))
+        self.assertTrue(all(item["source_epoch"] == 1 for item in latest["results"]))
         self.assertLessEqual(len(self.store.history_snapshot(limit=120)["results"]), 4)
 
     def test_nan_inf_detection_limit_and_coordinate_fail_closed(self):
@@ -136,6 +147,14 @@ class PerceptionContractTests(unittest.TestCase):
         malformed = snapshot([result()])
         malformed["schema_version"] = "unknown"
         self.assert_rejected("UNKNOWN_SCHEMA", malformed)
+        invalid_source_sequence = result()
+        invalid_source_sequence["source_sequence"] = 0
+        self.assert_rejected(
+            "INVALID_SOURCE_SEQUENCE", snapshot([invalid_source_sequence])
+        )
+        invalid_source_epoch = result()
+        invalid_source_epoch["source_epoch"] = 0
+        self.assert_rejected("INVALID_SOURCE_EPOCH", snapshot([invalid_source_epoch]))
         self.assert_rejected("SOURCE_IP_REJECTED", snapshot([result()]), source_ip="192.168.50.31")
 
     def test_one_malformed_result_rejects_the_whole_snapshot_atomically(self):
@@ -152,6 +171,8 @@ class PerceptionContractTests(unittest.TestCase):
         self.assertEqual(self.store.health_snapshot()["reconnects"], 1)
         reference = self.store.metadata_reference()
         self.assertEqual(reference["results"][0]["model_sha256"], HASHES["lane"])
+        self.assertEqual(reference["results"][0]["source_sequence"], 1)
+        self.assertEqual(reference["results"][0]["source_epoch"], 1)
         self.assertNotIn("payload", reference["results"][0])
 
         root = Path(__file__).resolve().parents[1]
