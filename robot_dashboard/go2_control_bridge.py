@@ -24,7 +24,10 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
-from rclpy.signals import SignalHandlerOptions
+try:
+    from rclpy.signals import SignalHandlerOptions
+except ImportError:  # ROS 2 Foxy has no SignalHandlerOptions.
+    SignalHandlerOptions = None  # type: ignore[assignment]
 from std_msgs.msg import String
 from unitree_api.msg import Request
 from unitree_go.msg import LowState
@@ -34,6 +37,15 @@ from .control_protocol import (
     decode_signed,
     encode_signed,
     shared_key,
+)
+from .control_datagram import (
+    CONTROL_TRANSPORT_ROS,
+    CONTROL_TRANSPORT_UDP,
+    ConnectedControlDatagram,
+    ControlDatagramConfig,
+    ControlDatagramError,
+    DatagramStringPublisher,
+    control_transport_mode,
 )
 from .go2_bridge import (
     API_STOP_MOVE,
@@ -51,7 +63,13 @@ LOWSTATE_TOPICS = ("/lowstate", "/lf/lowstate")
 
 
 class Go2ControlBridge(Node):
-    def __init__(self, profile: dict[str, Any], key: bytes) -> None:
+    def __init__(
+        self,
+        profile: dict[str, Any],
+        key: bytes,
+        *,
+        datagram_config: ControlDatagramConfig | None = None,
+    ) -> None:
         super().__init__("robot_scope_go2_control_bridge")
         control = profile.get("control", {})
         configured_lowstate = str(control.get("lowstate_topic", "/lowstate"))
@@ -78,6 +96,9 @@ class Go2ControlBridge(Node):
         # runs in the main thread. Serialize every core mutation and sport
         # publish so no in-flight MOVE can appear after the final StopMove.
         self._operation_lock = threading.RLock()
+        self._datagram_endpoint: ConnectedControlDatagram | None = None
+        self._datagram_stop = threading.Event()
+        self._datagram_thread: threading.Thread | None = None
 
         reliable = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -97,19 +118,32 @@ class Go2ControlBridge(Node):
             reliable,
             callback_group=self._callback_group,
         )
-        self._status_publisher = self.create_publisher(
-            String,
-            STATUS_TOPIC,
-            reliable,
-            callback_group=self._callback_group,
-        )
-        self._command_subscription = self.create_subscription(
-            String,
-            COMMAND_TOPIC,
-            self._command_callback,
-            reliable,
-            callback_group=self._callback_group,
-        )
+        if datagram_config is None:
+            self._status_publisher = self.create_publisher(
+                String,
+                STATUS_TOPIC,
+                reliable,
+                callback_group=self._callback_group,
+            )
+            self._command_subscription = self.create_subscription(
+                String,
+                COMMAND_TOPIC,
+                self._command_callback,
+                reliable,
+                callback_group=self._callback_group,
+            )
+        else:
+            endpoint = ConnectedControlDatagram(datagram_config)
+            receiver = threading.Thread(
+                target=self._receive_datagram_commands,
+                args=(endpoint,),
+                name="control-datagram-command",
+                daemon=True,
+            )
+            self._datagram_endpoint = endpoint
+            self._datagram_thread = receiver
+            self._status_publisher = DatagramStringPublisher(endpoint)
+            self._command_subscription = endpoint
         self._lowstate_subscription = (
             self.create_subscription(
                 LowState,
@@ -131,6 +165,33 @@ class Go2ControlBridge(Node):
             f"{self._core.expected_bare_sport_publishers} trusted bare Unitree "
             "sport publishers, and one sport subscriber"
         )
+        if self._datagram_thread is not None:
+            self._datagram_thread.start()
+
+    def _receive_datagram_commands(
+        self, endpoint: ConnectedControlDatagram
+    ) -> None:
+        while not self._datagram_stop.is_set():
+            try:
+                encoded = endpoint.receive_text()
+            except ControlDatagramError as exc:
+                with self._operation_lock:
+                    if not self._closing:
+                        self._core.force_stop(f"rejected command datagram: {exc}")
+                self.get_logger().warning(str(exc))
+                continue
+            except OSError as exc:
+                if not self._datagram_stop.is_set():
+                    with self._operation_lock:
+                        if not self._closing:
+                            self._core.force_stop("command datagram failed")
+                    self.get_logger().error(f"command datagram failed: {exc}")
+                return
+            if encoded is None:
+                continue
+            message = String()
+            message.data = encoded
+            self._command_callback(message)
 
     def _lowstate_callback(self, _: LowState) -> None:
         self._last_lowstate = time.monotonic()
@@ -266,6 +327,8 @@ class Go2ControlBridge(Node):
             self._last_status = now
 
     def stop_safely(self) -> None:
+        endpoint: ConnectedControlDatagram | None = None
+        receiver: threading.Thread | None = None
         with self._operation_lock:
             if self._closing:
                 return
@@ -282,6 +345,14 @@ class Go2ControlBridge(Node):
                         f"StopMove publish failed during shutdown: {exc}"
                     )
                 time.sleep(0.04)
+            self._datagram_stop.set()
+            endpoint = self._datagram_endpoint
+            receiver = self._datagram_thread
+            self._datagram_endpoint = None
+        if endpoint is not None:
+            endpoint.close()
+        if receiver is not None and receiver is not threading.current_thread():
+            receiver.join(timeout=0.5)
 
 
 def load_profile(path: str) -> dict[str, Any]:
@@ -328,7 +399,15 @@ def main() -> None:
     try:
         key = shared_key(os.environ.get("ROBOT_SCOPE_CONTROL_BRIDGE_KEY", ""))
         process_lock = acquire_process_lock()
-    except (ControlProtocolError, RuntimeError) as exc:
+        transport_mode = control_transport_mode(os.environ)
+        datagram_config = (
+            ControlDatagramConfig.from_environment(os.environ)
+            if transport_mode == CONTROL_TRANSPORT_UDP
+            else None
+        )
+        if transport_mode not in {CONTROL_TRANSPORT_ROS, CONTROL_TRANSPORT_UDP}:
+            raise ControlDatagramError("control transport is invalid")
+    except (ControlProtocolError, ControlDatagramError, RuntimeError) as exc:
         raise SystemExit(str(exc)) from exc
 
     # rclpy's default SIGINT handler shuts the ROS context down before
@@ -345,13 +424,16 @@ def main() -> None:
         shutdown_requested = True
         raise KeyboardInterrupt
 
-    rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
+    if SignalHandlerOptions is None:
+        rclpy.init(args=None)
+    else:
+        rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
     previous_sigint = signal.signal(signal.SIGINT, request_shutdown)
     previous_sigterm = signal.signal(signal.SIGTERM, request_shutdown)
     node: Go2ControlBridge | None = None
     executor: MultiThreadedExecutor | None = None
     try:
-        node = Go2ControlBridge(profile, key)
+        node = Go2ControlBridge(profile, key, datagram_config=datagram_config)
         executor = MultiThreadedExecutor(num_threads=2)
         executor.add_node(node)
         executor.spin()

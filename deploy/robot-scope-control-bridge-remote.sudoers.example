@@ -1,0 +1,6 @@
+# Install only on the robot-side Jetson as
+# /etc/sudoers.d/robot-scope-control-bridge-remote with owner root:root mode 0440.
+# The restricted SSH forced command can mutate only this fixed service.
+unitree ALL=(root) NOPASSWD: \
+    /usr/bin/systemctl --no-block start robot-scope-control-bridge.service, \
+    /usr/bin/systemctl --no-block stop robot-scope-control-bridge.service

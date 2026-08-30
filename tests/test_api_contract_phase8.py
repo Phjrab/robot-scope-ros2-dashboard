@@ -228,6 +228,7 @@ class Phase8ApiContractTests(unittest.TestCase):
                     "foreign_named_sport_publishers": 0,
                     "bare_unitree_sport_publishers": 9,
                     "expected_bare_sport_publishers": 9,
+                    "transport": "udp",
                     "bridge_epoch": "private-generation",
                     "bridge_pid": 1234,
                     "issued_at_ms": 999,
@@ -245,6 +246,7 @@ class Phase8ApiContractTests(unittest.TestCase):
         self.assertTrue(bridge["authenticated"])
         self.assertEqual(bridge["status_age_s"], 0.1)
         self.assertEqual(bridge["total_sport_publishers"], 10)
+        self.assertEqual(bridge["transport"], "udp")
         for private in (
             "bridge_epoch",
             "bridge_pid",

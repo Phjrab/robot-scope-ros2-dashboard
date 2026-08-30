@@ -15,6 +15,15 @@ from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPo
 from std_msgs.msg import String
 
 from ..control import ControlClosed, ControlDisabled, ControlManager
+from ..control_datagram import (
+    CONTROL_TRANSPORT_ROS,
+    CONTROL_TRANSPORT_UDP,
+    ConnectedControlDatagram,
+    ControlDatagramConfig,
+    ControlDatagramError,
+    DatagramStringPublisher,
+    control_transport_mode,
+)
 from ..control_protocol import (
     ControlProtocolError,
     decode_signed,
@@ -48,6 +57,7 @@ class ControlTransport:
     ) -> None:
         self.profile = profile
         environment = os.environ if environ is None else environ
+        self._environment = dict(environment)
         self.manager = (
             manager
             if manager is not None
@@ -91,6 +101,14 @@ class ControlTransport:
         except ControlProtocolError as exc:
             self.bridge_key = None
             bridge_key_error = str(exc)
+        try:
+            self.transport_mode = control_transport_mode(environment)
+            transport_mode_error = ""
+        except ControlDatagramError as exc:
+            self.transport_mode = "invalid"
+            transport_mode_error = str(exc)
+        if transport_mode_error:
+            bridge_key_error = transport_mode_error
 
         self.source_id = f"robot-scope-agent-{os.getpid()}-{secrets.token_hex(8)}"
         self.bridge_seq = -1
@@ -116,6 +134,9 @@ class ControlTransport:
         self.command_publisher: Any = None
         self.status_subscription: Any = None
         self.timer: Any = None
+        self._datagram_endpoint: ConnectedControlDatagram | None = None
+        self._datagram_stop = threading.Event()
+        self._datagram_thread: threading.Thread | None = None
         self.status_received = 0.0
         self.status: Dict[str, Any] = {
             "state": "not_configured" if bridge_key_error else "waiting",
@@ -177,8 +198,37 @@ class ControlTransport:
     def setup(self, node: Any, timer_callback: Callable[[], None]) -> None:
         """Create only the two fixed signed endpoints and their 50 ms timer."""
 
+        pending_endpoint: ConnectedControlDatagram | None = None
         try:
             callback_group = MutuallyExclusiveCallbackGroup()
+            if self.transport_mode == CONTROL_TRANSPORT_UDP:
+                endpoint = ConnectedControlDatagram(
+                    ControlDatagramConfig.from_environment(self._environment)
+                )
+                pending_endpoint = endpoint
+                timer = node.create_timer(
+                    0.05,
+                    timer_callback,
+                    callback_group=callback_group,
+                )
+                receiver = threading.Thread(
+                    target=self._receive_datagram_status,
+                    args=(endpoint,),
+                    name="control-datagram-status",
+                    daemon=True,
+                )
+                with self.transport_lock:
+                    self.callback_group = callback_group
+                    self.command_publisher = DatagramStringPublisher(endpoint)
+                    self.status_subscription = endpoint
+                    self.timer = timer
+                    self._datagram_endpoint = endpoint
+                    self._datagram_thread = receiver
+                receiver.start()
+                pending_endpoint = None
+                return
+            if self.transport_mode != CONTROL_TRANSPORT_ROS:
+                raise ControlDatagramError("control transport is invalid")
             reliable = QoSProfile(
                 history=HistoryPolicy.KEEP_LAST,
                 depth=10,
@@ -209,7 +259,28 @@ class ControlTransport:
                 self.status_subscription = subscription
                 self.timer = timer
         except Exception as exc:
-            self.set_unready(f"control ROS transport unavailable: {exc}")
+            if pending_endpoint is not None:
+                pending_endpoint.close()
+            self.set_unready(f"control transport unavailable: {exc}")
+
+    def _receive_datagram_status(
+        self, endpoint: ConnectedControlDatagram
+    ) -> None:
+        while not self._datagram_stop.is_set():
+            try:
+                encoded = endpoint.receive_text()
+            except ControlDatagramError as exc:
+                self.set_unready(f"rejected bridge status datagram: {exc}")
+                continue
+            except OSError as exc:
+                if not self._datagram_stop.is_set():
+                    self.set_unready(f"control status datagram failed: {exc}")
+                return
+            if encoded is None:
+                continue
+            message = String()
+            message.data = encoded
+            self.status_callback(message)
 
     @staticmethod
     def status_readiness(
@@ -539,7 +610,16 @@ class ControlTransport:
                     and self.command_publisher is not None
                     and self.status_subscription is not None
                     and self.timer is not None
+                    and (
+                        self.transport_mode != CONTROL_TRANSPORT_UDP
+                        or (
+                            self._datagram_endpoint is not None
+                            and self._datagram_thread is not None
+                            and self._datagram_thread.is_alive()
+                        )
+                    )
                 )
+        bridge["transport"] = self.transport_mode
         bridge["status_age_s"] = (
             None
             if received <= 0.0
@@ -562,6 +642,8 @@ class ControlTransport:
     def shutdown(self) -> None:
         """Close once and publish the manager's final signed stop."""
 
+        endpoint: ConnectedControlDatagram | None = None
+        receiver: threading.Thread | None = None
         with self.operation_lock:
             with self.transport_lock:
                 if self.shutdown_started:
@@ -570,6 +652,14 @@ class ControlTransport:
                 self.manager.close()
                 outputs = self.manager.drain_outputs()
                 self.publish_outputs(outputs, allow_shutdown=True)
+                self._datagram_stop.set()
+                endpoint = self._datagram_endpoint
+                receiver = self._datagram_thread
+                self._datagram_endpoint = None
+        if endpoint is not None:
+            endpoint.close()
+        if receiver is not None and receiver is not threading.current_thread():
+            receiver.join(timeout=0.5)
 
 
 __all__ = [

@@ -3,11 +3,14 @@ import importlib.machinery
 import importlib.util
 import json
 import math
+import queue
 import sys
+import threading
 import time
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 def _install_ros_stubs():
@@ -135,6 +138,33 @@ class FakeNode:
         return timer
 
 
+class FakeDatagramEndpoint:
+    instances = []
+
+    def __init__(self, config):
+        self.config = config
+        self.incoming = queue.Queue()
+        self.sent = []
+        self.closed = False
+        self.__class__.instances.append(self)
+
+    def send_text(self, value):
+        if self.closed:
+            raise OSError("closed")
+        self.sent.append(value)
+
+    def receive_text(self):
+        if self.closed:
+            raise OSError("closed")
+        try:
+            return self.incoming.get(timeout=0.02)
+        except queue.Empty:
+            return None
+
+    def close(self):
+        self.closed = True
+
+
 class ControlTransportTests(unittest.TestCase):
     def profile(self, **control_overrides):
         control = {
@@ -207,6 +237,52 @@ class ControlTransportTests(unittest.TestCase):
         self.assertEqual(node.publisher_calls[0][2].depth, 10)
         node.timer_calls[0][1]()
         self.assertEqual(calls, ["tick"])
+
+    def test_udp_setup_uses_no_ros_command_topics_and_accepts_only_signed_status(self):
+        transport = ControlTransport(
+            self.profile(),
+            environ={
+                "ROBOT_SCOPE_CONTROL_ENABLED": "1",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_KEY": KEY,
+                "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_BIND_HOST": "192.168.50.10",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_PEER_HOST": "192.168.50.30",
+            },
+        )
+        node = FakeNode()
+        FakeDatagramEndpoint.instances.clear()
+        with mock.patch.object(
+            control_transport_module,
+            "ConnectedControlDatagram",
+            FakeDatagramEndpoint,
+        ):
+            transport.setup(node, lambda: None)
+            endpoint = FakeDatagramEndpoint.instances[-1]
+            endpoint.incoming.put(
+                encode_signed(self.status_payload(), KEY)
+            )
+            deadline = time.monotonic() + 0.5
+            while not transport.status.get("authenticated"):
+                if time.monotonic() >= deadline:
+                    self.fail("signed datagram status was not accepted")
+                time.sleep(0.01)
+
+            self.assertEqual(node.publisher_calls, [])
+            self.assertEqual(node.subscription_calls, [])
+            self.assertEqual(len(node.timer_calls), 1)
+            self.assertTrue(transport.raw_snapshot()["transport_configured"])
+            self.assertEqual(transport.raw_snapshot()["bridge"]["transport"], "udp")
+            transport.shutdown()
+
+        self.assertTrue(endpoint.closed)
+        self.assertTrue(endpoint.sent)
+        self.assertEqual(decode_signed(endpoint.sent[-1], KEY)["type"], "stop")
+        self.assertFalse(
+            any(
+                thread.name == "control-datagram-status" and thread.is_alive()
+                for thread in threading.enumerate()
+            )
+        )
 
     def test_blank_key_and_invalid_expected_publisher_baseline_fail_closed(self):
         transport = ControlTransport(

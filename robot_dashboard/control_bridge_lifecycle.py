@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import stat
 import subprocess
 import threading
 import time
@@ -23,6 +24,11 @@ from typing import Any, Callable, Mapping, Sequence
 SERVICE_NAME = "robot-scope-control-bridge.service"
 SUDO_PATH = "/usr/bin/sudo"
 SYSTEMCTL_PATH = "/usr/bin/systemctl"
+SSH_PATH = "/usr/bin/ssh"
+LIFECYCLE_TRANSPORT_ENV = "ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_TRANSPORT"
+REMOTE_USER_ENV = "ROBOT_SCOPE_CONTROL_BRIDGE_REMOTE_USER"
+SSH_IDENTITY_ENV = "ROBOT_SCOPE_CONTROL_BRIDGE_SSH_IDENTITY"
+SSH_KNOWN_HOSTS_ENV = "ROBOT_SCOPE_CONTROL_BRIDGE_SSH_KNOWN_HOSTS"
 MUTATION_COMMANDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         "start": (
@@ -59,6 +65,7 @@ _TRANSITIONING_SYSTEMD_STATES = frozenset(
 )
 _SYSTEMD_VALUE = re.compile(r"^[A-Za-z0-9_.:@-]{0,128}$")
 _INVOCATION_ID = re.compile(r"^[0-9a-fA-F]{32}$")
+_SSH_USER = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
 
 
 class ControlBridgeLifecycleError(RuntimeError):
@@ -151,6 +158,129 @@ def _default_status_runner(
         timeout=timeout_seconds,
         env=_fixed_environment(),
     )
+
+
+class FixedSshControlBridgeRunner:
+    """Run the fixed lifecycle vocabulary through one restricted SSH key."""
+
+    def __init__(
+        self,
+        *,
+        host: str,
+        user: str,
+        identity_file: str,
+        known_hosts_file: str,
+    ) -> None:
+        from .control_datagram import private_control_host
+
+        # Reuse the datagram address validator without permitting a second,
+        # independently configurable lifecycle target.
+        validated_host = private_control_host(
+            host,
+            field="remote control bridge host",
+        )
+        if not _SSH_USER.fullmatch(user):
+            raise ValueError("remote control bridge user is invalid")
+        identity = Path(identity_file)
+        known_hosts = Path(known_hosts_file)
+        if not identity.is_absolute() or identity == Path("/"):
+            raise ValueError("control bridge SSH identity must be an absolute file")
+        if not known_hosts.is_absolute() or known_hosts == Path("/"):
+            raise ValueError("control bridge known-hosts path must be absolute")
+        self.host = validated_host
+        self.user = user
+        self.identity_file = identity
+        self.known_hosts_file = known_hosts
+
+    @property
+    def available(self) -> bool:
+        if not _default_executable_probe(SSH_PATH):
+            return False
+        try:
+            identity_stat = self.identity_file.lstat()
+            known_hosts_stat = self.known_hosts_file.lstat()
+        except OSError:
+            return False
+        return bool(
+            stat.S_ISREG(identity_stat.st_mode)
+            and stat.S_IMODE(identity_stat.st_mode) & 0o077 == 0
+            and identity_stat.st_uid == os.geteuid()
+            and identity_stat.st_nlink == 1
+            and os.access(self.identity_file, os.R_OK)
+            and stat.S_ISREG(known_hosts_stat.st_mode)
+            and os.access(self.known_hosts_file, os.R_OK)
+        )
+
+    def executable_probe(self, _path: str) -> bool:
+        return self.available
+
+    def _command(self, action: str) -> tuple[str, ...]:
+        if action not in {"status", "start", "stop"}:
+            raise ValueError("remote control bridge action is not allowlisted")
+        return (
+            SSH_PATH,
+            "-F",
+            "/dev/null",
+            "-i",
+            str(self.identity_file),
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "IdentitiesOnly=yes",
+            "-o",
+            "StrictHostKeyChecking=yes",
+            "-o",
+            f"UserKnownHostsFile={self.known_hosts_file}",
+            "-o",
+            "ConnectTimeout=2",
+            "--",
+            f"{self.user}@{self.host}",
+            action,
+        )
+
+    @staticmethod
+    def _action_for_command(command: tuple[str, ...]) -> str:
+        if command == STATUS_COMMAND:
+            return "status"
+        for action, expected in MUTATION_COMMANDS.items():
+            if command == expected:
+                return action
+        raise ValueError("control bridge lifecycle command is not allowlisted")
+
+    def run_mutation(
+        self, command: tuple[str, ...], timeout_seconds: float
+    ) -> subprocess.CompletedProcess[str]:
+        action = self._action_for_command(command)
+        if action not in {"start", "stop"}:
+            raise ValueError("status cannot be dispatched as a mutation")
+        return subprocess.run(
+            self._command(action),
+            shell=False,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=timeout_seconds,
+            env=_fixed_environment(),
+        )
+
+    def run_status(
+        self, command: tuple[str, ...], timeout_seconds: float
+    ) -> subprocess.CompletedProcess[str]:
+        if self._action_for_command(command) != "status":
+            raise ValueError("mutation cannot be dispatched as a status read")
+        return subprocess.run(
+            self._command("status"),
+            shell=False,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=timeout_seconds,
+            env=_fixed_environment(),
+        )
 
 
 def _safe_systemd_value(value: object, *, fallback: str) -> str:
@@ -366,12 +496,55 @@ class ControlBridgeLifecycleManager:
         bridge_status_provider: BridgeStatusProvider | None = None,
     ) -> "ControlBridgeLifecycleManager":
         values = os.environ if environ is None else environ
+        enabled = _enabled(
+            values.get("ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED")
+        )
+        lifecycle_transport = str(
+            values.get(LIFECYCLE_TRANSPORT_ENV, "local")
+        ).strip().casefold() or "local"
+        if lifecycle_transport == "local":
+            return cls(
+                enabled=enabled,
+                preflight_provider=preflight_provider,
+                bridge_status_provider=bridge_status_provider,
+            )
+        if lifecycle_transport != "ssh":
+            return cls(
+                enabled=enabled,
+                preflight_provider=preflight_provider,
+                bridge_status_provider=bridge_status_provider,
+                executable_probe=lambda _path: False,
+            )
+        try:
+            from .control_datagram import (
+                CONTROL_TRANSPORT_UDP,
+                ControlDatagramConfig,
+                control_transport_mode,
+            )
+
+            if control_transport_mode(values) != CONTROL_TRANSPORT_UDP:
+                raise ValueError("remote lifecycle requires udp control transport")
+            datagram_config = ControlDatagramConfig.from_environment(values)
+            runner = FixedSshControlBridgeRunner(
+                host=datagram_config.peer_host,
+                user=str(values.get(REMOTE_USER_ENV, "")),
+                identity_file=str(values.get(SSH_IDENTITY_ENV, "")),
+                known_hosts_file=str(values.get(SSH_KNOWN_HOSTS_ENV, "")),
+            )
+        except (OSError, ValueError):
+            return cls(
+                enabled=enabled,
+                preflight_provider=preflight_provider,
+                bridge_status_provider=bridge_status_provider,
+                executable_probe=lambda _path: False,
+            )
         return cls(
-            enabled=_enabled(
-                values.get("ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED")
-            ),
+            enabled=enabled,
             preflight_provider=preflight_provider,
             bridge_status_provider=bridge_status_provider,
+            mutation_runner=runner.run_mutation,
+            status_runner=runner.run_status,
+            executable_probe=runner.executable_probe,
         )
 
     @property
@@ -721,7 +894,13 @@ class ControlBridgeLifecycleManager:
 
 __all__ = [
     "MUTATION_COMMANDS",
+    "FixedSshControlBridgeRunner",
+    "LIFECYCLE_TRANSPORT_ENV",
+    "REMOTE_USER_ENV",
     "SERVICE_NAME",
+    "SSH_IDENTITY_ENV",
+    "SSH_KNOWN_HOSTS_ENV",
+    "SSH_PATH",
     "STATUS_COMMAND",
     "ControlBridgeLifecycleBlocked",
     "ControlBridgeLifecycleBusy",

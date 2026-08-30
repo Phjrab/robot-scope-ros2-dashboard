@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WAITER = ROOT / "scripts" / "wait_for_go2_interface.sh"
 SUPERVISOR = ROOT / "scripts" / "run_go2_dashboard_supervisor.py"
 CONTROL_SUPERVISOR = ROOT / "scripts" / "run_go2_control_bridge_supervisor.sh"
+FOXY_SETUP = ROOT / "scripts" / "setup_go2_ros2_foxy.sh"
 
 
 def write_executable(path: Path, source: str) -> None:
@@ -82,6 +83,20 @@ exit 1
         )
         self.assertEqual(result.returncode, 2)
         self.assertIn("invalid Go2 interface label", result.stderr)
+
+
+class Go2FoxySetupTests(unittest.TestCase):
+    def test_conda_environment_is_rejected_before_ros_setup(self):
+        result = subprocess.run(
+            ["bash", str(FOXY_SETUP)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "CONDA_PREFIX": "/tmp/untrusted-conda"},
+            timeout=2,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("deactivate Conda", result.stderr)
 
 
 class Go2DashboardSupervisorTests(unittest.TestCase):
@@ -375,6 +390,40 @@ class Go2SystemdExampleTests(unittest.TestCase):
             unit,
         )
         self.assertNotIn("Environment=ROBOT_SCOPE_GO2_INTERFACE=", unit)
+
+    def test_robot_side_bridge_is_foxy_udp_only_and_never_enabled_by_example(self):
+        unit = (
+            ROOT
+            / "deploy"
+            / "robot-scope-control-bridge-robot-side.service.example"
+        ).read_text(encoding="utf-8")
+        runner = (
+            ROOT / "scripts" / "run_go2_control_bridge_foxy.sh"
+        ).read_text(encoding="utf-8")
+        setup = (
+            ROOT / "scripts" / "setup_go2_ros2_foxy.sh"
+        ).read_text(encoding="utf-8")
+        environment = (
+            ROOT
+            / "deploy"
+            / "robot-scope-control-bridge-robot-side.env.example"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("User=unitree", unit)
+        self.assertIn("run_go2_control_bridge_foxy.sh", unit)
+        self.assertNotIn("WantedBy=network-online.target", unit)
+        self.assertNotIn("enable --now", unit)
+        self.assertIn('ROBOT_SCOPE_CONTROL_TRANSPORT:-}', runner)
+        self.assertIn('!= "udp"', runner)
+        self.assertIn("setup_go2_ros2_foxy.sh", runner)
+        self.assertIn("/opt/ros/foxy/setup.bash", setup)
+        self.assertIn("192.168.123.18/24", setup)
+        self.assertIn("NetworkInterface name=", setup)
+        self.assertIn("ROBOT_SCOPE_CONTROL_BRIDGE_KEY=", environment)
+        self.assertNotRegex(
+            environment,
+            r"ROBOT_SCOPE_CONTROL_BRIDGE_KEY=.+",
+        )
 
 
 class Go2ControlBridgeSupervisorTests(unittest.TestCase):

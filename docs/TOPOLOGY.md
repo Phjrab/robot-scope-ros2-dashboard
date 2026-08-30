@@ -82,9 +82,10 @@ Browser management LAN <---------- same-origin camera WS ---+
 
 2026-08-30 현장 구성에서 탑재 Jetson은 `wlan0=192.168.50.30/24`와
 `eth0=192.168.123.18/24`를 동시에 소유합니다. `wlan0`만 기본 경로를 가지며 `eth0`에는
-gateway를 두지 않습니다. 외부 dashboard Orin은 `192.168.50.10/24`만 소유하므로 현재
-Go2 DDS/control host 요건인 별도 `192.168.123.99/24` NIC를 충족하지 않습니다. 이 상태에서
-관리 Wi-Fi를 통한 임의 DDS relay, bridge 또는 NAT를 추가하지 않습니다. 실제 확인 결과와
+gateway를 두지 않습니다. 외부 dashboard Orin은 `192.168.50.10/24`만 소유하므로
+Go2 DDS participant는 탑재 Jetson에서 실행합니다. DDS, route, bridge 또는 NAT를 관리
+Wi-Fi에 추가하지 않고, 기존 HMAC command/status envelope만 고정 UDP peer 사이로 전달하는
+[인증 무선 제어 ADR](ADR_WIRELESS_CONTROL_TRANSPORT.md)을 따릅니다. 실제 확인 결과와
 남은 control gate는 [2026-08-30 하드웨어 검증](HARDWARE_VALIDATION_2026-08-30.md)에
 기록합니다.
 

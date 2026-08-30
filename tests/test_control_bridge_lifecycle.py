@@ -1,5 +1,7 @@
 import json
+import stat
 import subprocess
+import tempfile
 import threading
 import time
 import unittest
@@ -8,6 +10,7 @@ from unittest import mock
 
 import robot_dashboard.control_bridge_lifecycle as lifecycle_module
 from robot_dashboard.control_bridge_lifecycle import (
+    FixedSshControlBridgeRunner,
     MUTATION_COMMANDS,
     SERVICE_NAME,
     STATUS_COMMAND,
@@ -464,6 +467,107 @@ class ControlBridgeLifecycleEnvironmentTests(unittest.TestCase):
         self.assertIn("NOPASSWD: ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE", commands)
         for forbidden in ("systemctl *", " restart ", " enable ", " disable ", "daemon-reload"):
             self.assertNotIn(forbidden, commands)
+
+    def test_remote_runner_uses_one_restricted_key_and_three_word_vocabulary(self):
+        with mock.patch.object(
+            lifecycle_module, "_default_executable_probe", return_value=True
+        ):
+            with mock.patch.object(Path, "lstat") as path_stat, \
+                mock.patch.object(Path, "is_absolute", return_value=True), \
+                mock.patch.object(lifecycle_module.os, "access", return_value=True):
+                path_stat.return_value.st_mode = stat.S_IFREG | 0o600
+                path_stat.return_value.st_uid = lifecycle_module.os.geteuid()
+                path_stat.return_value.st_nlink = 1
+                runner = FixedSshControlBridgeRunner(
+                    host="192.168.50.30",
+                    user="unitree",
+                    identity_file="/run/robot-scope/control_bridge",
+                    known_hosts_file="/run/robot-scope/known_hosts",
+                )
+                self.assertTrue(runner.available)
+
+        completed = subprocess.CompletedProcess((), 0, stdout=systemd_output())
+        with mock.patch.object(
+            lifecycle_module.subprocess, "run", return_value=completed
+        ) as run:
+            runner.run_status(STATUS_COMMAND, 1.0)
+            runner.run_mutation(MUTATION_COMMANDS["start"], 2.0)
+            runner.run_mutation(MUTATION_COMMANDS["stop"], 2.0)
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual([command[-1] for command in commands], ["status", "start", "stop"])
+        for command in commands:
+            self.assertEqual(command[0], "/usr/bin/ssh")
+            self.assertIn("StrictHostKeyChecking=yes", command)
+            self.assertIn("unitree@192.168.50.30", command)
+            self.assertNotIn(SERVICE_NAME, command)
+        with self.assertRaises(ValueError):
+            runner.run_mutation(("/bin/sh", "-c", "anything"), 1.0)
+
+    def test_remote_mode_is_unavailable_for_public_or_missing_key_paths(self):
+        base = {
+            "ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED": "1",
+            "ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_TRANSPORT": "ssh",
+            "ROBOT_SCOPE_CONTROL_BRIDGE_REMOTE_USER": "unitree",
+            "ROBOT_SCOPE_CONTROL_BRIDGE_SSH_IDENTITY": "/missing/identity",
+            "ROBOT_SCOPE_CONTROL_BRIDGE_SSH_KNOWN_HOSTS": "/missing/known_hosts",
+            "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp",
+            "ROBOT_SCOPE_CONTROL_DATAGRAM_BIND_HOST": "192.168.50.10",
+        }
+        for host in ("8.8.8.8", "192.168.50.30"):
+            with self.subTest(host=host):
+                manager = ControlBridgeLifecycleManager.from_environment(
+                    {
+                        **base,
+                        "ROBOT_SCOPE_CONTROL_DATAGRAM_PEER_HOST": host,
+                    }
+                )
+                self.assertTrue(manager.snapshot()["enabled"])
+                self.assertFalse(manager.configured)
+
+    def test_remote_mode_requires_matching_udp_configuration_and_private_key(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            identity = Path(temporary) / "identity"
+            known_hosts = Path(temporary) / "known_hosts"
+            identity.write_text("private test fixture", encoding="utf-8")
+            identity.chmod(0o600)
+            known_hosts.write_text("host test fixture", encoding="utf-8")
+            values = {
+                "ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED": "1",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_TRANSPORT": "ssh",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_REMOTE_USER": "unitree",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_SSH_IDENTITY": str(identity),
+                "ROBOT_SCOPE_CONTROL_BRIDGE_SSH_KNOWN_HOSTS": str(known_hosts),
+                "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_BIND_HOST": "192.168.50.10",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_PEER_HOST": "192.168.50.30",
+            }
+            with mock.patch.object(
+                lifecycle_module, "_default_executable_probe", return_value=True
+            ):
+                manager = ControlBridgeLifecycleManager.from_environment(values)
+                self.assertTrue(manager.configured)
+
+                values["ROBOT_SCOPE_CONTROL_TRANSPORT"] = "ros"
+                wrong_transport = ControlBridgeLifecycleManager.from_environment(
+                    values
+                )
+                self.assertFalse(wrong_transport.configured)
+
+    def test_robot_side_remote_sudoers_and_forced_command_are_narrow(self):
+        root = Path(__file__).resolve().parents[1]
+        sudoers = (
+            root / "deploy" / "robot-scope-control-bridge-remote.sudoers.example"
+        ).read_text(encoding="utf-8")
+        helper = (
+            root / "scripts" / "robot_scope_control_bridge_ssh_command.py"
+        ).read_text(encoding="utf-8")
+        for allowed in ("--no-block start", "--no-block stop"):
+            self.assertIn(allowed, sudoers)
+        for forbidden in (" restart ", " enable ", " disable ", "systemctl *"):
+            self.assertNotIn(forbidden, sudoers)
+        self.assertIn('"start": (', helper)
+        self.assertIn('elif action in MUTATION_COMMANDS:', helper)
+        self.assertNotIn("shell=True", helper)
 
 
 if __name__ == "__main__":

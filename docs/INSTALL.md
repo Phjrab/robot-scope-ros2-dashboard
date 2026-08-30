@@ -18,6 +18,11 @@ Ubuntu 24.04 + ROS 2 Jazzy는 `observer`/Generic 웹 계층까지만 지원합�
 제어, XT16과 Nav2 전체 경로는 Ubuntu 22.04 + ROS 2 Humble에서만 지원하며 installer와
 doctor가 다른 조합을 fail-closed로 거부합니다.
 
+완전 무선 대회 구성의 예외는 Ubuntu 20.04/ROS 2 Foxy 탑재 Jetson에서 실행하는 최소
+`Go2ControlBridge` 프로세스뿐입니다. 웹, Mission, Nav2 또는 전체 Robot Scope를 그
+호스트로 옮기지 않습니다. 이 경로는 portable installer 대상이 아니며
+[무선 제어 ADR](ADR_WIRELESS_CONTROL_TRANSPORT.md)의 고정 서비스와 검증 절차만 사용합니다.
+
 ## 설치 모드
 
 `scripts/install_ubuntu.sh`는 다음 모드 이름을 사용합니다. 모드는 필요한 구성 요소를
@@ -163,6 +168,62 @@ sudo systemctl start robot-scope-realsense-camera.service
 
 잘못된 bind 주소로 인한 영구 재시작을 막기 위해 service는 60초 동안 5회 실패하면 추가
 재시작을 중단합니다. 주소를 수정한 뒤 `reset-failed`하고 다시 수동 시작하세요.
+
+### 완전 무선 Control Bridge 설치
+
+이 절차는 외부 Orin `192.168.50.10`, 탑재 Jetson `192.168.50.30`, 탑재 Jetson의 Go2
+전용 `eth0=192.168.123.18/24`가 먼저 검증된 구성에만 적용합니다. 서비스 설치 중에는
+로봇을 움직이지 않으며 두 Control Bridge unit을 모두 stopped 상태로 유지합니다.
+
+탑재 Jetson에는 검증된 commit을 `/home/unitree/project/robot-scope`에 배포하고 다음 예제의
+private copy를 만듭니다. Dashboard의 기존 Bridge key와 정확히 같은 값을 안전한 채널로
+복사하되 터미널 출력, 명령 인자, 로그 또는 Git에 남기지 않습니다.
+
+~~~bash
+install -d -m 700 /home/unitree/.config/robot-scope
+install -m 600 deploy/robot-scope-control-bridge-robot-side.env.example \
+  /home/unitree/.config/robot-scope/control-bridge.env
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-control-bridge-robot-side.service.example \
+  /etc/systemd/system/robot-scope-control-bridge.service
+sudo systemctl daemon-reload
+sudo systemctl disable robot-scope-control-bridge.service
+~~~
+
+탑재 Jetson의 remote lifecycle 권한은 별도로 설치합니다. 두 파일 모두 root-owned인지
+확인하고 sudoers 문법 검사를 통과해야 합니다.
+
+~~~bash
+sudo install -d -o root -g root -m 0755 /usr/local/libexec/robot-scope
+sudo install -o root -g root -m 0755 \
+  scripts/robot_scope_control_bridge_ssh_command.py \
+  /usr/local/libexec/robot-scope/control-bridge-lifecycle-ssh
+sudo install -o root -g root -m 0440 \
+  deploy/robot-scope-control-bridge-remote.sudoers.example \
+  /etc/sudoers.d/.robot-scope-control-bridge-remote.new
+sudo visudo -cf /etc/sudoers.d/.robot-scope-control-bridge-remote.new
+sudo mv /etc/sudoers.d/.robot-scope-control-bridge-remote.new \
+  /etc/sudoers.d/robot-scope-control-bridge-remote
+sudo visudo -cf /etc/sudoers.d/robot-scope-control-bridge-remote
+~~~
+
+외부 Orin의 Robot Scope service 사용자로 별도 ED25519 키를 생성합니다. 기존 일반 관리
+키를 재사용하지 않습니다. 공개키만 탑재 Jetson의 `authorized_keys`에 다음 강제 명령
+형식으로 등록합니다.
+
+~~~text
+restrict,command="/usr/local/libexec/robot-scope/control-bridge-lifecycle-ssh" ssh-ed25519 PUBLIC_KEY_MATERIAL robot-scope-control-lifecycle
+~~~
+
+외부 Orin의 private `control.env`에는 ADR의 dashboard-side UDP 및 SSH lifecycle 값을
+추가합니다. Identity는 mode 0600 regular file이어야 하고 known-hosts 파일은
+`192.168.50.30`의 실제 host key를 strict matching해야 합니다. 설정 후 dashboard만
+재시작합니다. 탑재 Bridge는 자동으로 시작하지 않습니다.
+
+배포 직후 첫 검증은 Controls 페이지에서 확인 체크 → START → signed status 확인 → STOP
+순서입니다. ARM, deadman, drive, action, navigation 또는 mapping 입력을 사용하지 않습니다.
+START 후 authenticated status, LowState freshness와 graph cardinality를 모두 확인하기 전에는
+제어 가능 상태로 판정하지 않습니다.
 
 ## 2. 저장소 받기
 

@@ -411,6 +411,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "expected_bare_sport_publishers",
             "total_sport_publishers",
             "lowstate_publishers",
+            "transport",
         )
         if key in internal_bridge
     }
@@ -447,7 +448,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     elif not enabled:
         state = "서버 시작 설정에서 제어가 비활성화되어 있습니다."
     elif not configured:
-        state = "제어 브리지 키 또는 ROS 전송이 설정되지 않았습니다."
+        state = "제어 브리지 키 또는 제어 전송이 설정되지 않았습니다."
     elif estop_latched:
         state = "대시보드 SOFTWARE STOP이 잠겨 있습니다."
     elif action_guard.get("active"):

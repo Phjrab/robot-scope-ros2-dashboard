@@ -87,6 +87,20 @@ class Go2BridgeCoreTests(unittest.TestCase):
             methods["stop_safely"].index("self._timer.cancel()"),
             methods["stop_safely"].index("self._publish_request"),
         )
+        self.assertIn("if SignalHandlerOptions is None", rendered)
+        self.assertIn("datagram_config=datagram_config", rendered)
+
+    def test_wireless_transport_reuses_signed_bridge_without_relaying_dds(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "robot_dashboard"
+            / "go2_control_bridge.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("ConnectedControlDatagram", source)
+        self.assertIn("self._accept_command(message)", source)
+        self.assertIn("DatagramStringPublisher(endpoint)", source)
+        self.assertNotIn("/api/sport/response", source)
+        self.assertNotIn("create_generic", source)
 
     def test_startup_and_watchdog_publish_stop(self):
         requests = self.tick()

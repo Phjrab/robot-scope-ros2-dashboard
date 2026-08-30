@@ -1,0 +1,23 @@
+[Unit]
+Description=Robot Scope robot-side Go2 control safety bridge
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=unitree
+WorkingDirectory=/home/unitree/project/robot-scope
+EnvironmentFile=/home/unitree/.config/robot-scope/control-bridge.env
+ExecStart=/home/unitree/project/robot-scope/scripts/run_go2_control_bridge_foxy.sh
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=2
+KillMode=control-group
+Environment=HOME=/home/unitree
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
