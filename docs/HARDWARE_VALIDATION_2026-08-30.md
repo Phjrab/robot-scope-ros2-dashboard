@@ -4,13 +4,16 @@
 
 This session covered the robot-side Jetson wireless management link, its
 dedicated Go2 Ethernet link, Go2 DDS/LowState observation, and the external
-dashboard/control preflight. The robot remained uncommanded. No control lease,
-ARM, deadman press, action request, navigation goal, mapping launch, map
-mutation, dataset capture, robot service restart, or motion command was issued.
+dashboard/control preflight. It later deployed and exercised the accepted
+wireless Control Bridge boundary from commit `b38dc25`. No control lease, ARM,
+deadman press, drive, action request, navigation goal, mapping launch, map
+mutation, or dataset capture was issued. The only Go2 requests allowed during
+the lifecycle check were the Bridge watchdog and shutdown StopMove requests.
 
-The standalone Control Bridge was not started because the external Orin did
-not own the dedicated Go2 interface required by the repository contract. Its
-unit remained disabled and `inactive/dead`, with PID 0 and zero restarts.
+The standalone Control Bridge was started once from the dashboard, observed
+without acquiring a lease, and stopped immediately after its readiness fields
+were captured. The robot-side unit ended disabled and `inactive/dead`, with
+zero restarts.
 
 ## Validated host and network roles
 
@@ -20,7 +23,7 @@ unit remained disabled and `inactive/dead`, with PID 0 and zero restarts.
 | Robot-side Jetson management | `wlan0=192.168.50.30/24` | PASS; `RobotLab_5G`, DHCP address, management default route present |
 | Robot-side Jetson Go2/sensor LAN | `eth0=192.168.123.18/24` | PASS; static address, no gateway, `never-default=yes` |
 | Go2 body | `192.168.123.161/24` | PASS from robot-side Jetson; 0% loss, about 0.17 ms average RTT |
-| External Orin Go2 interface | required `192.168.123.99/24` | BLOCKED; no dedicated interface/address is currently present |
+| External Orin Go2 interface | no `192.168.123.99/24` | N/A for accepted wireless command/status transport; DDS remains robot-side |
 
 The robot-side wireless adapter was identified as a USB `mt7921u` device using
 the Jetson 5.10.104-tegra driver. It associated to the 5 GHz `RobotLab_5G` SSID
@@ -75,40 +78,56 @@ live, increasing samples. A bounded three-second CSV observation counted:
 
 The observed LowState payload included increasing ticks and finite battery,
 power, and temperature fields. This is a PASS for the robot-side Jetson to Go2
-DDS/LowState path. It is not a PASS for the external Orin path.
+DDS/LowState path. DDS itself does not cross Wi-Fi; the external Orin receives
+only authenticated Bridge status derived from this local observation.
 
 ## Control Bridge lifecycle status
 
-The external dashboard restored the configured Go2 target and projected the
-Control Bridge lifecycle surface, but the host still lacked
-`192.168.123.99/24`. Starting the service in this topology would only leave its
-supervisor waiting for that exact interface; it would not exercise the signed
-bridge, LowState freshness, graph cardinality, zero-command watchdog, or
-authenticated status path. Therefore the requested no-motion lifecycle is
-recorded as **BLOCKED / NOT RUN**, not as a false pass.
+The implementation and hardware result are **PASS** for the bounded no-motion
+lifecycle:
 
-The remaining supervised acceptance sequence is:
+1. External Orin commit and robot-side archive both resolved to
+   `b38dc255fb4c331760af1b9d95dfa91c890529dd`.
+2. The external dashboard bound a connected UDP socket from
+   `192.168.50.10:46010` to `192.168.50.30:46010`; the Bridge bound the exact
+   reverse peer while active.
+3. Lifecycle SSH used a dedicated ED25519 key, strict host-key matching, a
+   forced command with only `status`/`start`/`stop`, and exact-command sudoers.
+4. Before START, Nav2, mapping, and Dataset Capture were idle; control had no
+   lease, released deadman, and zero linear/angular command.
+5. Dashboard START reached the disabled robot-side unit without enabling it at
+   boot. The unit became `active/running` with a new invocation and zero
+   restarts.
+6. Signed status became authenticated and ready over UDP. LowState age was
+   1–2 ms, with one LowState publisher, one sport subscriber, one Bridge-owned
+   sport publisher, no foreign named sport publishers, and nine expected bare
+   Unitree publishers. Total sport publishers were ten.
+7. Control remained lease-free with deadman false and all three commanded
+   velocities at `0.0`. No ARM, drive, action, or autonomous command was sent.
+8. Dashboard STOP succeeded. The robot-side unit returned to
+   `disabled`, `inactive/dead`, `Result=success`, and `NRestarts=0`; signed
+   status then became stale as required.
 
-1. provide the external Orin with the approved dedicated Go2 transport;
-2. confirm the dashboard starts in `go2_interface` mode and sees fresh
-   LowState;
-3. confirm no lease, DISARMED state, released deadman, and zero linear/angular
-   command;
-4. start the fixed Control Bridge service through the dashboard;
-5. require authenticated bridge-ready status, fresh LowState, expected graph
-   cardinality, DISARMED state, and zero command;
-6. stop through the dashboard and confirm `inactive/dead` with no motion.
+The implemented boundary is documented in
+[ADR — Authenticated wireless Control Bridge transport](ADR_WIRELESS_CONTROL_TRANSPORT.md).
+No route, NAT, bridge, generic DDS router, or arbitrary ROS relay was added.
+The full dashboard/Nav2 stack remains on the external Orin, while the minimal
+Foxy Bridge and Go2 DDS participant remain on the robot-side Jetson.
 
-## Required architecture decision before the remaining test
+## Remaining wireless acceptance
 
-The currently implemented and previously accepted path is a second external
-Orin NIC at `192.168.123.99/24` connected to the dedicated Go2 network. If the
-competition configuration must be fully wireless between the moving robot and
-the external Orin, that is a product-boundary change: a narrow authenticated
-cross-host transport and its fail-closed behavior must be designed, reviewed,
-implemented, and hardware-tested first. Moving the whole dashboard or Control
-Bridge onto the Foxy relay host, exposing arbitrary DDS over management Wi-Fi,
-or adding generic routing/bridging is not an approved shortcut.
+- Run the deferred 60-minute Wi-Fi soak and interference test.
+- Run supervised Wi-Fi/UDP interruption and Bridge-process-loss fault tests;
+  neither was injected during this no-motion lifecycle.
+- Verify the DHCP reservation retains `192.168.50.30` after an intentional
+  reconnect or reboot.
+- The Overview ICMP KPI still reports the Go2 body offline because the external
+  Orin deliberately has no route to `192.168.123.161`. The Controls readiness
+  comes from authenticated Bridge/LowState status and passed. UI wording should
+  continue to distinguish these two signals rather than treating remote ICMP
+  as the motion-safety source.
+- External-Orin Nav2 remains deferred because its ROS/DDS sensor and command
+  dependencies are not carried by this narrow control transport.
 
 ## Rollback notes
 
@@ -116,15 +135,33 @@ or adding generic routing/bridging is not an approved shortcut.
   address is deliberately moved away from `192.168.50.30`.
 - Do not return robot-side `eth0` to DHCP while it remains the dedicated
   `192.168.123.0/24` Go2/sensor link.
-- Both RealSense and Control Bridge services were left disabled and inactive;
-  no service-state rollback is required.
+- Both RealSense and robot-side Control Bridge services were left disabled and
+  inactive; no service-state rollback is required.
+- External dashboard private configuration was backed up as
+  `~/.config/robot-scope/control.env.pre-b38dc25`. Restore that mode-0600 copy
+  and restart only the dashboard to roll back the wireless control settings.
+- Robot-side source is `/home/unitree/project/robot-scope`; its private Bridge
+  environment, lifecycle key authorization, forced-command helper, exact
+  sudoers file, and systemd unit must be rolled back as one reviewed set. Do
+  not delete or overwrite the shared key during an unrelated source rollback.
 
 ## Repository verification
 
 - `git diff --check`: PASS
 - JavaScript unit suite: 239 passed, 0 failed
 - frontend syntax check: 48 modules passed
-- Python unit suite: 683 run; 682 passed and one existing macOS baseline error
+- Python unit suite: 694 run; 693 passed and one existing macOS baseline error
   remained. `test_apply_os_release_override_must_match_running_host` attempts to
   read Linux-only `/etc/os-release`, which is absent on the macOS test host.
   No test or assertion was removed or weakened.
+- Targeted wireless control tests: 68 passed across datagram, dashboard
+  transport, lifecycle, Bridge core, Foxy boot scripts, and public API
+  projection.
+- Ruff 0.6.9: all new and directly changed wireless-control files passed. The
+  repository-wide run still reports ten pre-existing findings; four were
+  reproduced directly from the corresponding HEAD version of
+  `test_ros_control_transport.py`.
+- mypy 1.13.0 strict configured targets: PASS.
+- Browser E2E: 27 passed outside the macOS sandbox. The first sandboxed attempt
+  failed before test execution because Chromium Mach port registration was
+  denied; rerunning in the approved browser environment passed all tests.
