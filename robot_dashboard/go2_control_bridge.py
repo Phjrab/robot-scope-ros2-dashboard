@@ -99,6 +99,8 @@ class Go2ControlBridge(Node):
         self._datagram_endpoint: ConnectedControlDatagram | None = None
         self._datagram_stop = threading.Event()
         self._datagram_thread: threading.Thread | None = None
+        self._command_transport_failed = False
+        self._status_transport_failed = False
 
         reliable = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -181,14 +183,22 @@ class Go2ControlBridge(Node):
                 self.get_logger().warning(str(exc))
                 continue
             except OSError as exc:
-                if not self._datagram_stop.is_set():
-                    with self._operation_lock:
-                        if not self._closing:
-                            self._core.force_stop("command datagram failed")
+                if self._datagram_stop.is_set():
+                    return
+                with self._operation_lock:
+                    if not self._closing:
+                        self._core.force_stop("command datagram failed")
+                if not self._command_transport_failed:
                     self.get_logger().error(f"command datagram failed: {exc}")
-                return
+                self._command_transport_failed = True
+                if self._datagram_stop.wait(0.2):
+                    return
+                continue
             if encoded is None:
                 continue
+            if self._command_transport_failed:
+                self.get_logger().info("command datagram transport recovered")
+                self._command_transport_failed = False
             message = String()
             message.data = encoded
             self._command_callback(message)
@@ -283,7 +293,20 @@ class Go2ControlBridge(Node):
         )
         message = String()
         message.data = encode_signed(snapshot, self._key)
-        self._status_publisher.publish(message)
+        try:
+            self._status_publisher.publish(message)
+        except (ControlDatagramError, OSError) as exc:
+            # Loss of the management Wi-Fi must not terminate the local ROS
+            # watchdog. Force a StopMove for the next tick and keep retrying the
+            # bounded status envelope on the same fixed socket.
+            self._core.force_stop("bridge status transport failed")
+            if not self._status_transport_failed:
+                self.get_logger().error(f"bridge status transport failed: {exc}")
+            self._status_transport_failed = True
+            return
+        if self._status_transport_failed:
+            self.get_logger().info("bridge status transport recovered")
+            self._status_transport_failed = False
 
     def _tick(self) -> None:
         with self._operation_lock:

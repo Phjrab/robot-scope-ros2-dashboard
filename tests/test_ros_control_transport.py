@@ -157,9 +157,12 @@ class FakeDatagramEndpoint:
         if self.closed:
             raise OSError("closed")
         try:
-            return self.incoming.get(timeout=0.02)
+            value = self.incoming.get(timeout=0.02)
         except queue.Empty:
             return None
+        if isinstance(value, BaseException):
+            raise value
+        return value
 
     def close(self):
         self.closed = True
@@ -283,6 +286,43 @@ class ControlTransportTests(unittest.TestCase):
                 for thread in threading.enumerate()
             )
         )
+
+    def test_udp_receiver_survives_transient_network_error_and_recovers_status(self):
+        transport = ControlTransport(
+            self.profile(),
+            environ={
+                "ROBOT_SCOPE_CONTROL_ENABLED": "1",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_KEY": KEY,
+                "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_BIND_HOST": "192.168.50.10",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_PEER_HOST": "192.168.50.30",
+            },
+        )
+        FakeDatagramEndpoint.instances.clear()
+        with mock.patch.object(
+            control_transport_module,
+            "ConnectedControlDatagram",
+            FakeDatagramEndpoint,
+        ):
+            transport.setup(FakeNode(), lambda: None)
+            endpoint = FakeDatagramEndpoint.instances[-1]
+            endpoint.incoming.put(OSError("network unreachable"))
+            deadline = time.monotonic() + 0.5
+            while transport.status.get("state") != "error":
+                if time.monotonic() >= deadline:
+                    self.fail("transient datagram error was not observed")
+                time.sleep(0.01)
+
+            endpoint.incoming.put(encode_signed(self.status_payload(), KEY))
+            deadline = time.monotonic() + 1.0
+            while not transport.status.get("authenticated"):
+                if time.monotonic() >= deadline:
+                    self.fail("signed status did not recover on the existing socket")
+                time.sleep(0.01)
+
+            self.assertTrue(transport.raw_snapshot()["transport_configured"])
+            self.assertTrue(transport._datagram_thread.is_alive())
+            transport.shutdown()
 
     def test_blank_key_and_invalid_expected_publisher_baseline_fail_closed(self):
         transport = ControlTransport(

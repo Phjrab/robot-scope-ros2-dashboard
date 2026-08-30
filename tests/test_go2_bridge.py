@@ -102,6 +102,24 @@ class Go2BridgeCoreTests(unittest.TestCase):
         self.assertNotIn("/api/sport/response", source)
         self.assertNotIn("create_generic", source)
 
+        tree = ast.parse(source)
+        bridge = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Go2ControlBridge"
+        )
+        methods = {
+            node.name: ast.unparse(node)
+            for node in bridge.body
+            if isinstance(node, ast.FunctionDef)
+        }
+        publish_status = methods["_publish_status"]
+        receive_commands = methods["_receive_datagram_commands"]
+        self.assertIn("except (ControlDatagramError, OSError)", publish_status)
+        self.assertIn("self._core.force_stop", publish_status)
+        self.assertIn("except OSError", receive_commands)
+        self.assertIn("continue", receive_commands)
+
     def test_startup_and_watchdog_publish_stop(self):
         requests = self.tick()
         self.assertEqual(requests[0].api_id, API_STOP_MOVE)

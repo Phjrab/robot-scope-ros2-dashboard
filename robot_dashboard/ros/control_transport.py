@@ -273,9 +273,16 @@ class ControlTransport:
                 self.set_unready(f"rejected bridge status datagram: {exc}")
                 continue
             except OSError as exc:
-                if not self._datagram_stop.is_set():
-                    self.set_unready(f"control status datagram failed: {exc}")
-                return
+                if self._datagram_stop.is_set():
+                    return
+                self.set_unready(f"control status datagram failed: {exc}")
+                # A connected UDP socket can report a transient network error
+                # while its fixed peer or interface is unavailable. Keep the
+                # receiver alive so authenticated status can recover without a
+                # dashboard restart; readiness remains revoked meanwhile.
+                if self._datagram_stop.wait(0.2):
+                    return
+                continue
             if encoded is None:
                 continue
             message = String()
