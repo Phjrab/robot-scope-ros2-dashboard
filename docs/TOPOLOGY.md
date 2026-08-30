@@ -36,7 +36,10 @@ Relay host의 초기 암호는 저장소와 문서에 포함하지 않습니다.
 RealSense 컬러 relay는
 `/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0`로
 식별한 RGB 장치 하나만 사용합니다. `.18:8090`의 `/health`는 relay 자신과 `.99`가,
-`/stream`은 `.99`만 읽을 수 있습니다. 일반 관리망이나 인터넷으로 route/NAT하지 마세요.
+`/stream`은 `.99`만 읽을 수 있다는 전용망 참조 계약으로 처음 검증했습니다. 현재 무선 관리망
+전환 구성에서는 relay가 `192.168.50.30:8090`에 bind하고
+`192.168.50.10` dashboard host만 `/stream`을 읽도록 제한합니다. 행사 공용망이나
+인터넷으로 route/NAT하지 마세요.
 브라우저는 대시보드의 같은 출처 WebSocket을 사용하며 robot-side relay에 직접 접속하지
 않습니다.
 
@@ -48,9 +51,9 @@ RealSense 컬러 relay는
 바꾸며 `ROBOT_SCOPE_ROBOT_IP`, Go2 DDS interface 또는 control target을 바꾸지 않습니다.
 
 ~~~text
-D435i RGB by-id --> .18 GStreamer/MJPEG :8090 --> .99 Dashboard receiver
-                                                        |
-Browser management LAN <------ same-origin camera WS ---+
+D435i RGB by-id --> .50.30 GStreamer/MJPEG :8090 --> .50.10 Dashboard receiver
+                                                            |
+Browser management LAN <---------- same-origin camera WS ---+
 ~~~
 
 `robot-scope-realsense-camera.service`의 enable 상태는 배선이 아니라 운영 정책입니다. 공용
@@ -67,7 +70,7 @@ Browser management LAN <------ same-origin camera WS ---+
 | 역할 | 현재 검증 예 | 전환 원칙 |
 |---|---|---|
 | 외부 dashboard Jetson 관리 주소 | `192.168.50.10` | 신뢰된 관리 LAN에 유지 |
-| 로봇 탑재 relay Jetson 관리 주소 | `192.168.50.103` | 추후 무선 NIC의 예약 주소로 이동 가능 |
+| 로봇 탑재 relay Jetson 관리 주소 | `192.168.50.30` | 무선 NIC의 DHCP 예약 또는 운영자가 확인 가능한 고정 lease 유지 |
 | Go2 본체 | `192.168.123.161` | relay 관리 주소로 대체하지 않음 |
 | Go2/센서 전용망 | `192.168.123.0/24` 참조 계약 | DDS·센서 경로를 관리 Wi-Fi에 암묵적으로 합치지 않음 |
 
@@ -76,6 +79,14 @@ Browser management LAN <------ same-origin camera WS ---+
 옮기거나 라우팅·브리지를 추가하는 작업은 별도 설계와 control fail-closed 검증 없이는
 수행하지 않습니다. DHCP를 사용한다면 주소 예약 또는 운영자가 확인 가능한 고정 lease를
 사용하고, 주소가 바뀐 상태에서 이전 대상에 자동 연결하지 않습니다.
+
+2026-08-30 현장 구성에서 탑재 Jetson은 `wlan0=192.168.50.30/24`와
+`eth0=192.168.123.18/24`를 동시에 소유합니다. `wlan0`만 기본 경로를 가지며 `eth0`에는
+gateway를 두지 않습니다. 외부 dashboard Orin은 `192.168.50.10/24`만 소유하므로 현재
+Go2 DDS/control host 요건인 별도 `192.168.123.99/24` NIC를 충족하지 않습니다. 이 상태에서
+관리 Wi-Fi를 통한 임의 DDS relay, bridge 또는 NAT를 추가하지 않습니다. 실제 확인 결과와
+남은 control gate는 [2026-08-30 하드웨어 검증](HARDWARE_VALIDATION_2026-08-30.md)에
+기록합니다.
 
 ## 가장 단순한 단일 호스트 구성
 
