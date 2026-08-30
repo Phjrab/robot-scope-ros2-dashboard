@@ -400,6 +400,44 @@ WP03 follow-up verification results:
   existing `mission_coordinator.py:691` E701 finding;
 - `git diff --check`: PASS.
 
+## WP04 result contract and dashboard integration — 2026-08-31
+
+The existing narrow server-to-server HTTP pull transport remains unchanged.
+The external dashboard now validates source-frame freshness in the robot
+monotonic clock domain, rejects an input older than the fixed 1.5-second limit
+even when inference completed recently, and projects that input age forward
+only with external receive-domain elapsed time. It never subtracts timestamps
+from different hosts.
+
+Sensors, Cockpit camera panels, and Competition status now expose the exact
+relay `source_sequence`, `source_epoch`, and input age. Missing or malformed
+source identity fails closed to a stale/degraded presentation. Bounded dataset
+metadata references preserve the same source identity and input age without
+capturing or starting a dataset. No control, motion, navigation, mapping, or
+service lifecycle behavior was changed.
+
+The live inference portion remains **BLOCKED**: the robot-side shadow service
+is intentionally not installed or running because no approved Lane/YOLO model
+manifests and target-built TensorRT engines exist. Consequently the external
+receiver policy is not configured and the dashboard correctly returns the
+fail-closed unavailable state. Software contract, projection, stale cleanup,
+and dashboard integration are **PASS**; actual Lane/YOLO overlay and record
+verification must wait for approved model artifacts.
+
+WP04 verification results:
+
+- perception contract Python tests: 9 passed, 0 failed;
+- perception/Cockpit JavaScript tests: 8 passed, 0 failed;
+- complete JavaScript suite: 252 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- browser E2E: 30 passed, 0 failed;
+- complete Python suite: 793 run, 792 passed, with the unchanged macOS-only
+  `/etc/os-release` baseline error in the Ubuntu installer test;
+- mypy configured targets: PASS;
+- Ruff: the WP04 files pass targeted checks; the repository-wide scan retains
+  only the existing `mission_coordinator.py:691` E701 finding;
+- `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.

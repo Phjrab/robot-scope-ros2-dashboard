@@ -58,6 +58,9 @@ test('Sensors camera observability shows Wi-Fi, source, transport, decode and cl
   await expect(page.locator('#cameraDecodeHealthStatus')).toHaveText('LIVE');
   await expect(page.locator('#cameraDecodeHealthDetail')).toContainText('OK ');
   await expect(page.locator('#cameraLatencyDomain')).toContainText('UNVERIFIED_CLOCK_DOMAIN');
+  await expect(page.locator('#cameraPerceptionHud span')).toContainText('SRC 1204');
+  await expect(page.locator('#cameraPerceptionHud span')).toContainText('EPOCH 81');
+  await expect(page.locator('#cameraPerceptionHud span')).toContainText('INPUT AGE');
 });
 
 test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner', async ({ page }) => {
@@ -108,6 +111,7 @@ test('Cockpit competition status locks configuration and separates SHADOW, netwo
   await expect(status).toContainText('UNAVAILABLE · P50');
   await expect(status).toContainText('LANE');
   await expect(status).toContainText('LIVE · lane-v2');
+  await expect(status).toContainText('SRC 1202 · EPOCH 81 · INPUT AGE');
   await expect(status).toContainText('PREVIOUS MODEL');
   await expect(status).toContainText('lane:lane-v1');
   await expect(hud.locator('[data-safety-field="perception-authority"]')).toHaveText('NONE');

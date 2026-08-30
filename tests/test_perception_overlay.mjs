@@ -8,8 +8,8 @@ function snapshot(status = 'LIVE') {
     mode: 'SHADOW',
     transport_state: 'LIVE',
     results: [
-      { task: 'lane', result_status: status, model_id: 'lane-1', sequence: 12, last_receive_age: 0.1, inference_fps: 9.8, inference_latency_ms: 21.4, input_width: 640, input_height: 480, clock_domain_verified: false, payload: { lateral_error_normalized: 0.1, curvature: 0.02, left_lane_visible: true, right_lane_visible: true } },
-      { task: 'object', result_status: status, model_id: 'object-1', sequence: 11, last_receive_age: 0.2, inference_fps: 7, inference_latency_ms: 32, input_width: 640, input_height: 480, clock_domain_verified: false, payload: { detections: [{ class_name: 'cone', confidence: 0.8, x1: 10, y1: 20, x2: 100, y2: 200 }] } },
+      { task: 'lane', result_status: status, model_id: 'lane-1', sequence: 12, source_sequence: 812, source_epoch: 41, input_age_s: 0.3, last_receive_age: 0.1, inference_fps: 9.8, inference_latency_ms: 21.4, input_width: 640, input_height: 480, clock_domain_verified: false, payload: { lateral_error_normalized: 0.1, curvature: 0.02, left_lane_visible: true, right_lane_visible: true } },
+      { task: 'object', result_status: status, model_id: 'object-1', sequence: 11, source_sequence: 811, source_epoch: 41, input_age_s: 0.4, last_receive_age: 0.2, inference_fps: 7, inference_latency_ms: 32, input_width: 640, input_height: 480, clock_domain_verified: false, payload: { detections: [{ class_name: 'cone', confidence: 0.8, x1: 10, y1: 20, x2: 100, y2: 200 }] } },
     ],
   };
 }
@@ -20,6 +20,9 @@ test('shadow overlay transitions live results to visibly inactive stale state', 
   assert.equal(live.visualState, 'active');
   assert.equal(live.mode, 'SHADOW');
   assert.equal(live.sequence, 12);
+  assert.equal(live.sourceSequence, 812);
+  assert.equal(live.sourceEpoch, 41);
+  assert.equal(live.age, '0.40 s');
   assert.equal(live.clock, 'UNVERIFIED CLOCK');
   const stale = projectPerceptionOverlay(snapshot(), 'realsense_color', 2_001);
   assert.equal(stale.state, 'STALE');
@@ -38,6 +41,9 @@ test('shadow overlay transitions live results to visibly inactive stale state', 
   const unrelated = projectPerceptionOverlay(snapshot(), 'go2_front', 10);
   assert.equal(unrelated.state, 'OFFLINE');
   assert.equal(unrelated.results.length, 0);
+  const missingIdentity = snapshot();
+  delete missingIdentity.results[0].source_sequence;
+  assert.equal(projectPerceptionOverlay(missingIdentity, 'realsense_color', 10).state, 'DEGRADED');
 });
 
 test('overlay renderer clears old geometry before every draw and stale draw remains gray', () => {

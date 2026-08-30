@@ -106,6 +106,7 @@ class PerceptionContractTests(unittest.TestCase):
         self.assertTrue(all(item["clock_domain_verified"] is False for item in latest["results"]))
         self.assertTrue(all(item["source_sequence"] == 1 for item in latest["results"]))
         self.assertTrue(all(item["source_epoch"] == 1 for item in latest["results"]))
+        self.assertTrue(all(item["input_age_s"] == 0.4 for item in latest["results"]))
         self.assertLessEqual(len(self.store.history_snapshot(limit=120)["results"]), 4)
 
     def test_nan_inf_detection_limit_and_coordinate_fail_closed(self):
@@ -141,6 +142,9 @@ class PerceptionContractTests(unittest.TestCase):
         stale["inference_started_at"] = 7_800_000_000
         stale["inference_completed_at"] = 8_000_000_000
         self.assert_rejected("STALE_RESULT", snapshot([stale]))
+        stale_input = result()
+        stale_input["capture_timestamp"] = 8_000_000_000
+        self.assert_rejected("STALE_RESULT", snapshot([stale_input]))
         unknown = result()
         unknown["model_sha256"] = "f" * 64
         self.assert_rejected("UNKNOWN_MODEL", snapshot([unknown]))
@@ -173,6 +177,7 @@ class PerceptionContractTests(unittest.TestCase):
         self.assertEqual(reference["results"][0]["model_sha256"], HASHES["lane"])
         self.assertEqual(reference["results"][0]["source_sequence"], 1)
         self.assertEqual(reference["results"][0]["source_epoch"], 1)
+        self.assertGreaterEqual(reference["results"][0]["input_age_s"], 0.3)
         self.assertNotIn("payload", reference["results"][0])
 
         root = Path(__file__).resolve().parents[1]

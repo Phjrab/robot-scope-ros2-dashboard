@@ -316,7 +316,8 @@ class PerceptionStore:
         completed = _integer(raw["inference_completed_at"], 1, 2**63 - 1, "INVALID_TIMESTAMP")
         if raw["capture_clock_domain"] != "robot-monotonic" or not capture <= started <= completed <= server_ns:
             self._reject("INVALID_TIMESTAMP")
-        if server_ns - completed > SOURCE_STALE_AFTER_NS:
+        input_age_s = (server_ns - capture) / 1e9
+        if server_ns - capture > SOURCE_STALE_AFTER_NS:
             self._reject("STALE_RESULT")
         confidence = _number(raw["confidence"], 0, 1, "INVALID_CONFIDENCE")
         payload = self._payload(raw, model)
@@ -335,6 +336,7 @@ class PerceptionStore:
             "sequence": sequence,
             "source_sequence": source_sequence,
             "source_epoch": source_epoch,
+            "input_age_s": round(input_age_s, 3),
         }
 
     def ingest(self, snapshot: object, *, source_ip: str, received_monotonic_ns: int | None = None) -> int:
@@ -417,6 +419,7 @@ class PerceptionStore:
         return {
             **result,
             "last_receive_age": round(age, 3),
+            "input_age_s": round(float(result["input_age_s"]) + age, 3),
             "transport_state": state,
             "result_status": state,
             "inference_latency_ms": round(latency_ms, 3),
@@ -498,7 +501,8 @@ class PerceptionStore:
             references.append({key: result[key] for key in (
                 "source_id", "boot_id", "task", "sequence", "source_sequence", "source_epoch",
                 "model_id", "model_sha256",
-                "capture_timestamp", "capture_clock_domain", "result_status", "last_receive_age",
+                "capture_timestamp", "capture_clock_domain", "result_status", "input_age_s",
+                "last_receive_age",
                 "clock_domain_verified",
             )})
         return {"mode": "SHADOW", "results": references}

@@ -49,9 +49,9 @@ test('competition projection separates network, camera, perception, model and da
       } },
     ] },
     perception: { updatedAt: NOW - 100, snapshot: { transport_state: 'LIVE', results: [
-      { task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', model_sha256: 'a'.repeat(64), sequence: 8, last_receive_age: 0.1, inference_fps: 12, inference_p95_ms: 8, confidence: 0.91 },
-      { task: 'object', result_status: 'LIVE', model_id: 'yolo-v3', model_sha256: 'b'.repeat(64), sequence: 9, last_receive_age: 0.1, inference_fps: 10, inference_p95_ms: 18, confidence: 0.82 },
-      { task: 'depth_summary', result_status: 'LIVE', model_id: 'depth-v1', model_sha256: 'c'.repeat(64), sequence: 10, last_receive_age: 0.1, inference_fps: 8, inference_p95_ms: 22, confidence: 0.75 },
+      { task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', model_sha256: 'a'.repeat(64), sequence: 8, source_sequence: 108, source_epoch: 7, input_age_s: 0.2, last_receive_age: 0.1, inference_fps: 12, inference_p95_ms: 8, confidence: 0.91 },
+      { task: 'object', result_status: 'LIVE', model_id: 'yolo-v3', model_sha256: 'b'.repeat(64), sequence: 9, source_sequence: 109, source_epoch: 7, input_age_s: 0.2, last_receive_age: 0.1, inference_fps: 10, inference_p95_ms: 18, confidence: 0.82 },
+      { task: 'depth_summary', result_status: 'LIVE', model_id: 'depth-v1', model_sha256: 'c'.repeat(64), sequence: 10, source_sequence: 110, source_epoch: 7, input_age_s: 0.2, last_receive_age: 0.1, inference_fps: 8, inference_p95_ms: 22, confidence: 0.75 },
     ] } },
   }, NOW);
   assert.equal(projection.operationMode, 'MANUAL');
@@ -61,6 +61,9 @@ test('competition projection separates network, camera, perception, model and da
   assert.match(projection.robotWifi, /RSSI -52 dBm · LINK 433\.0 Mbps/);
   assert.match(projection.rtt, /^UNAVAILABLE/);
   assert.equal(projection.tasks.lane.state, 'LIVE');
+  assert.equal(projection.tasks.lane.sourceSequence, '108');
+  assert.equal(projection.tasks.lane.sourceEpoch, '7');
+  assert.equal(projection.tasks.lane.inputAge, '0.30 s');
   assert.match(projection.tasks.lane.model, /lane-v2 · a{12}/);
   assert.match(projection.tasks.lane.performance, /P95 8\.0 ms/);
   assert.equal(projection.pointcloudMode, 'SUMMARY');
@@ -71,7 +74,7 @@ test('competition projection separates network, camera, perception, model and da
 test('stale backend and perception fail closed without showing cached live authority', () => {
   const stale = projectCompetitionStatus({
     state: backend({ updatedAt: NOW - COMPETITION_STALE_MS - 1 }),
-    perception: { updatedAt: NOW - 3000, snapshot: { transport_state: 'LIVE', results: [{ task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', sequence: 1, last_receive_age: 0.1 }] } },
+    perception: { updatedAt: NOW - 3000, snapshot: { transport_state: 'LIVE', results: [{ task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', sequence: 1, source_sequence: 1, source_epoch: 1, input_age_s: 0.1, last_receive_age: 0.1 }] } },
   }, NOW);
   assert.match(stale.operationMode, /^SAFE_STOP/);
   assert.equal(stale.lock, 'UNKNOWN · BLOCKED');
@@ -82,7 +85,7 @@ test('stale backend and perception fail closed without showing cached live autho
 test('model mismatch is explicit TRANSITION and implementation creates no sensor viewer', () => {
   const transition = projectCompetitionStatus({
     state: backend(),
-    perception: { updatedAt: NOW, snapshot: { transport_state: 'LIVE', results: [{ task: 'lane', result_status: 'LIVE', model_id: 'lane-old', model_sha256: 'd'.repeat(64), sequence: 2, last_receive_age: 0.1 }] } },
+    perception: { updatedAt: NOW, snapshot: { transport_state: 'LIVE', results: [{ task: 'lane', result_status: 'LIVE', model_id: 'lane-old', model_sha256: 'd'.repeat(64), sequence: 2, source_sequence: 2, source_epoch: 1, input_age_s: 0.1, last_receive_age: 0.1 }] } },
   }, NOW);
   assert.match(transition.activeModel, /^TRANSITION/);
   const source = readFileSync(new URL('../robot_dashboard/static/features/cockpit/competition_status.js', import.meta.url), 'utf8');

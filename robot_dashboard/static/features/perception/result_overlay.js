@@ -11,6 +11,11 @@ function text(value, fallback = '—') {
   return result || fallback;
 }
 
+function positiveInteger(value) {
+  const number = finite(value, 0);
+  return Number.isSafeInteger(number) && number > 0 ? number : 0;
+}
+
 export function projectPerceptionOverlay(snapshot = {}, sourceId = 'realsense_color', localAgeMs = 0) {
   const supported = sourceId === 'realsense_color';
   const rawResults = Array.isArray(snapshot.results) ? snapshot.results : [];
@@ -18,10 +23,18 @@ export function projectPerceptionOverlay(snapshot = {}, sourceId = 'realsense_co
   const backendState = text(snapshot.transport_state, 'OFFLINE').toUpperCase();
   const aged = !Number.isFinite(localAgeMs) || localAgeMs > PERCEPTION_STALE_MS;
   const hasResult = results.length > 0;
-  const projected = results.map((item) => ({
-    ...item,
-    result_status: backendState === 'LIVE' && !aged && item.result_status === 'LIVE' ? 'LIVE' : 'STALE',
-  }));
+  const projected = results.map((item) => {
+    const sourceSequence = positiveInteger(item.source_sequence);
+    const sourceEpoch = positiveInteger(item.source_epoch);
+    const inputAge = finite(item.input_age_s);
+    const identityValid = sourceSequence > 0 && sourceEpoch > 0 && inputAge != null && inputAge >= 0;
+    return {
+      ...item,
+      source_sequence: sourceSequence,
+      source_epoch: sourceEpoch,
+      result_status: backendState === 'LIVE' && !aged && identityValid && item.result_status === 'LIVE' ? 'LIVE' : 'STALE',
+    };
+  });
   const liveCount = projected.filter((item) => item.result_status === 'LIVE').length;
   const state = !supported || backendState === 'OFFLINE'
     ? 'OFFLINE'
@@ -38,14 +51,17 @@ export function projectPerceptionOverlay(snapshot = {}, sourceId = 'realsense_co
   const newest = projected.reduce((best, item) => !best || Number(item.sequence) > Number(best.sequence) ? item : best, null);
   const latency = newest ? finite(newest.inference_latency_ms) : null;
   const fps = newest ? finite(newest.inference_fps) : null;
-  const age = newest ? Math.max(finite(newest.last_receive_age, 0) * 1000, localAgeMs) : null;
+  const inputAge = newest ? finite(newest.input_age_s) : null;
+  const age = inputAge == null ? null : Math.max(0, (inputAge * 1000) + localAgeMs);
   return Object.freeze({
     mode: 'SHADOW',
     state,
     visualState,
     results: projected,
     model: newest ? text(newest.model_id) : '—',
-    sequence: newest ? Number(newest.sequence) || 0 : 0,
+    sequence: newest ? positiveInteger(newest.sequence) : 0,
+    sourceSequence: newest ? positiveInteger(newest.source_sequence) : 0,
+    sourceEpoch: newest ? positiveInteger(newest.source_epoch) : 0,
     age: age == null ? '—' : `${(age / 1000).toFixed(2)} s`,
     fps: fps == null ? '—' : `${fps.toFixed(1)} FPS`,
     latency: latency == null ? '—' : `${latency.toFixed(1)} ms`,
@@ -180,7 +196,7 @@ export function bindSensorPerception(client, getSlots) {
       drawPerceptionOverlay(canvas, slot.canvas, projected);
       hud.dataset.state = projected.state.toLowerCase();
       hud.querySelector('strong').textContent = `SHADOW · ${projected.state}`;
-      hud.querySelector('span').textContent = `MODEL ${projected.model} · SEQ ${projected.sequence} · AGE ${projected.age} · ${projected.fps} · ${projected.latency}`;
+      hud.querySelector('span').textContent = `MODEL ${projected.model} · SRC ${projected.sourceSequence} · EPOCH ${projected.sourceEpoch} · INPUT AGE ${projected.age} · ${projected.fps} · ${projected.latency}`;
       hud.hidden = slot.sourceId !== 'realsense_color';
     }
   });

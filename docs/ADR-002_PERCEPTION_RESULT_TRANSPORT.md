@@ -38,6 +38,12 @@ time. It never subtracts one host's monotonic value from the other. Therefore
 `clock_domain_verified=false` remains visible until a separately measured clock
 contract exists.
 
+The receiver derives `input_age_s` only from robot-domain
+`server_monotonic - capture_timestamp`, then ages that value using its own
+receive-domain elapsed time. It never subtracts a robot timestamp from an
+external-Orin timestamp. A source frame older than the fixed 1.5-second input
+limit is rejected even if inference completed recently.
+
 Each result also carries a sidecar-monotonic result `sequence` plus the exact
 relay `source_sequence` and `source_epoch`. The result sequence remains
 monotonic across relay reconnects; the source pair preserves traceability to

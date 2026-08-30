@@ -117,7 +117,7 @@ export function createCameraPanelView(options = {}) {
   function renderPerception(projected) {
     drawPerceptionOverlay(perceptionCanvas, canvas, projected);
     perceptionHud.dataset.state = projected.state.toLowerCase();
-    perceptionHud.textContent = `SHADOW · ${projected.state} · ${projected.model} · S${projected.sequence} · ${projected.age} · ${projected.fps} · ${projected.latency}`;
+    perceptionHud.textContent = `SHADOW · ${projected.state} · ${projected.model} · SRC ${projected.sourceSequence} · EPOCH ${projected.sourceEpoch} · INPUT AGE ${projected.age} · ${projected.fps} · ${projected.latency}`;
     perceptionHud.hidden = options.sourceId && options.sourceId !== 'realsense_color';
   }
 

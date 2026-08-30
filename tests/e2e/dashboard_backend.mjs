@@ -251,9 +251,9 @@ export async function installDashboardBackend(page, options = {}) {
     if (path === '/api/v1/perception/latest') {
       if (!state.perceptionOnline) return json(route, { detail: 'perception offline' }, 503);
       return json(route, { mode: 'SHADOW', transport_state: 'LIVE', results: [
-        { task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', model_sha256: 'a'.repeat(64), sequence: 12, last_receive_age: 0.1, inference_fps: 12, inference_p95_ms: 9, confidence: 0.91, clock_domain_verified: false },
-        { task: 'object', result_status: 'LIVE', model_id: 'yolo-v3', model_sha256: 'c'.repeat(64), sequence: 13, last_receive_age: 0.1, inference_fps: 10, inference_p95_ms: 18, confidence: 0.84, clock_domain_verified: false },
-        { task: 'depth_summary', result_status: 'LIVE', model_id: 'depth-v1', model_sha256: 'e'.repeat(64), sequence: 14, last_receive_age: 0.1, inference_fps: 8, inference_p95_ms: 22, confidence: 0.75, clock_domain_verified: false },
+        { task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', model_sha256: 'a'.repeat(64), sequence: 12, source_sequence: 1202, source_epoch: 81, input_age_s: 0.2, last_receive_age: 0.1, inference_fps: 12, inference_p95_ms: 9, confidence: 0.91, clock_domain_verified: false },
+        { task: 'object', result_status: 'LIVE', model_id: 'yolo-v3', model_sha256: 'c'.repeat(64), sequence: 13, source_sequence: 1203, source_epoch: 81, input_age_s: 0.2, last_receive_age: 0.1, inference_fps: 10, inference_p95_ms: 18, confidence: 0.84, clock_domain_verified: false },
+        { task: 'depth_summary', result_status: 'LIVE', model_id: 'depth-v1', model_sha256: 'e'.repeat(64), sequence: 14, source_sequence: 1204, source_epoch: 81, input_age_s: 0.2, last_receive_age: 0.1, inference_fps: 8, inference_p95_ms: 22, confidence: 0.75, clock_domain_verified: false },
       ] });
     }
     if (path === '/api/v1/pointcloud/settings') {

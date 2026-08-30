@@ -12,6 +12,11 @@ function text(value, fallback = '—') {
   return normalized || fallback;
 }
 
+function positiveInteger(value) {
+  const number = finite(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : 0;
+}
+
 function shortHash(value) {
   const normalized = String(value || '').toLowerCase();
   return /^[0-9a-f]{64}$/.test(normalized) ? normalized.slice(0, 12) : '—';
@@ -36,7 +41,13 @@ export function reduceCompetitionState(state = {}, action = {}) {
 function taskProjection(snapshot, task, localAgeMs) {
   const result = (Array.isArray(snapshot?.results) ? snapshot.results : []).find((entry) => entry?.task === task);
   const receiveAge = finite(result?.last_receive_age);
-  const stale = !result || localAgeMs > 2000 || receiveAge == null || receiveAge > 2 || result.result_status !== 'LIVE';
+  const sourceSequence = positiveInteger(result?.source_sequence);
+  const sourceEpoch = positiveInteger(result?.source_epoch);
+  const inputAge = finite(result?.input_age_s);
+  const currentInputAge = inputAge == null ? null : inputAge + Math.max(0, localAgeMs) / 1000;
+  const stale = !result || localAgeMs > 2000 || receiveAge == null || receiveAge > 2
+    || sourceSequence === 0 || sourceEpoch === 0 || currentInputAge == null
+    || currentInputAge > 2 || result.result_status !== 'LIVE';
   const transport = text(snapshot?.transport_state, 'OFFLINE').toUpperCase();
   const state = !result ? (transport === 'WAITING' ? 'WAITING' : 'OFFLINE') : stale ? 'STALE' : 'LIVE';
   const confidence = finite(result?.confidence);
@@ -46,9 +57,12 @@ function taskProjection(snapshot, task, localAgeMs) {
     task,
     state,
     model: `${text(result?.model_id)} · ${shortHash(result?.model_sha256)}`,
-    sequence: result ? String(Number(result.sequence) || 0) : '—',
+    resultSequence: result ? String(positiveInteger(result.sequence) || '—') : '—',
+    sourceSequence: sourceSequence ? String(sourceSequence) : '—',
+    sourceEpoch: sourceEpoch ? String(sourceEpoch) : '—',
     age: receiveAge == null ? '—' : `${receiveAge.toFixed(2)} s`,
-    inputAge: result?.clock_domain_verified === true ? 'VERIFIED' : 'UNVERIFIED CLOCK',
+    inputAge: currentInputAge == null ? '—' : `${currentInputAge.toFixed(2)} s`,
+    inputClock: result?.clock_domain_verified === true ? 'VERIFIED' : 'UNVERIFIED CLOCK',
     performance: `${fps == null ? '—' : `${fps.toFixed(1)} FPS`} · P95 ${p95 == null ? '—' : `${p95.toFixed(1)} ms`}`,
     confidence: confidence == null ? '—' : `${(confidence * 100).toFixed(0)}%`,
   });
@@ -198,7 +212,7 @@ export function createCompetitionStatus(options = {}) {
     fields.get('clock').textContent = projected.clock;
     for (const [task, key] of [['lane', 'lane'], ['object', 'object'], ['depth_summary', 'depth']]) {
       const item = projected.tasks[task];
-      fields.get(key).textContent = `${item.state} · ${item.model} · S${item.sequence} · AGE ${item.age} · ${item.inputAge} · ${item.performance} · CONF ${item.confidence}`;
+      fields.get(key).textContent = `${item.state} · ${item.model} · SRC ${item.sourceSequence} · EPOCH ${item.sourceEpoch} · INPUT AGE ${item.inputAge} · ${item.inputClock} · RX AGE ${item.age} · ${item.performance} · CONF ${item.confidence}`;
     }
     fields.get('pointcloud').textContent = `${projected.pointcloudMode} · DEPTH ${projected.depthMode}`;
     fields.get('active-model').textContent = projected.activeModel;
