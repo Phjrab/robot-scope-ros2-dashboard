@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Dict
 from ..discovery import LocalRobotDiscovery
 
 if TYPE_CHECKING:
+    from ..competition import CompetitionStateManager
     from ..dataset_capture import DatasetCaptureManager
     from ..diagnostics import DiagnosticsBundleService
     from ..operator_events import OperatorEventTimeline
@@ -42,6 +43,7 @@ class ApplicationRuntime:
     diagnostics: DiagnosticsBundleService | None = None
     perception: PerceptionBridgeClient | None = None
     model_registry: ModelRegistry | None = None
+    competition: CompetitionStateManager | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)

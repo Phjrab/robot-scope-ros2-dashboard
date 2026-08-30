@@ -39,6 +39,7 @@ class ApplicationRuntimeOwnershipTests(unittest.TestCase):
         self.assertIsNone(first.navigation)
         self.assertIsNone(first.mission)
         self.assertIsNone(first.lifecycle)
+        self.assertIsNone(first.competition)
         self.assertIsNot(first.pipeline_coordination_lock, second.pipeline_coordination_lock)
         self.assertIsNot(first.json_cache, second.json_cache)
         self.assertIsNot(first.control_bindings, second.control_bindings)

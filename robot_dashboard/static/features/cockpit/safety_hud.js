@@ -39,6 +39,12 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
   const source = navActive ? 'NAVIGATION' : manualActive ? 'MANUAL' : 'NONE';
   const command = controlFresh ? (input.command || control?.command || {}) : {};
   const stopLatched = controlFresh ? Boolean(control?.estop_latched ?? control?.estop?.latched) : null;
+  const bridge = controlFresh ? control?.bridge : null;
+  const bridgeState = bridge && typeof bridge === 'object'
+    ? (bridge.ready === true && bridge.authenticated !== false ? 'READY' : String(bridge.state || 'NOT READY').toUpperCase())
+    : 'UNKNOWN';
+  const competition = input.competition || null;
+  const capture = input.dataset?.capture || null;
   const sensors = stateFresh && Array.isArray(state?.sensors) ? state.sensors : [];
   const lowstate = sensors.find((sensor) => sensor?.category === 'robot_state' || /(^|\/)lowstate$/i.test(String(sensor?.topic || '')));
   const lowstateAge = finite(lowstate?.age_s);
@@ -55,6 +61,11 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
     armed: controlFresh ? (cachedLeaseActive ? 'ARMED' : 'DISARMED') : cachedLeaseActive ? 'UNKNOWN · LOCKED' : 'UNKNOWN',
     deadman: controlFresh ? (command.deadman ? 'HELD' : 'RELEASED') : 'UNKNOWN',
     'software-stop': stopLatched == null ? 'UNKNOWN' : stopLatched ? 'LATCHED' : 'CLEAR',
+    'control-bridge': bridgeState,
+    'operation-mode': competition ? String(competition.operationMode || 'SAFE_STOP') : 'SAFE_STOP · UNKNOWN',
+    'competition-lock': competition ? String(competition.lock || 'UNKNOWN') : 'UNKNOWN · BLOCKED',
+    'perception-authority': competition ? String(competition.authority || 'NONE') : 'NONE',
+    dataset: capture?.active ? 'CAPTURING' : 'IDLE',
     lease: controlFresh ? (control?.lease?.active ? 'ACTIVE' : 'NONE') : cachedLeaseActive ? 'UNKNOWN · LOCKED' : 'UNKNOWN',
     'go2-link': linkLive ? 'LIVE' : stateFresh ? 'OFFLINE' : 'STALE',
     lowstate: lowstateFresh ? `${Math.round(lowstateAge * 1000)} ms` : lowstate ? 'STALE' : 'WAITING',
@@ -64,7 +75,7 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
     wz: controlFresh ? formatAxis(command.angular_z) : 'UNKNOWN',
     'speed-scale': reportedScale == null || !controlFresh ? 'UNKNOWN' : `${Math.round(reportedScale * 100)}%`,
     layoutArmed: cachedLeaseActive || navActive,
-    tone: danger ? 'danger' : linkLive && controlFresh ? 'normal' : 'waiting',
+    tone: danger || (Object.hasOwn(input, 'competition') && !competition) ? 'danger' : linkLive && controlFresh ? 'normal' : 'waiting',
   });
 }
 

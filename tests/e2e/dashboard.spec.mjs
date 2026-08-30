@@ -97,6 +97,47 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(20);
 });
 
+test('Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  const status = page.locator('#cockpitCompetitionStatus');
+  const hud = page.locator('#cockpitSafetyHud');
+  await expect(status).toBeVisible();
+  await expect(status).toContainText('MANUAL · REQUESTED MANUAL');
+  await expect(status).toContainText('SHADOW · AUTHORITY NONE');
+  await expect(status).toContainText('LIVE · RSSI -54 dBm · LINK 433.3 Mbps');
+  await expect(status).toContainText('UNAVAILABLE · P50');
+  await expect(status).toContainText('LANE');
+  await expect(status).toContainText('LIVE · lane-v2');
+  await expect(status).toContainText('PREVIOUS MODEL');
+  await expect(status).toContainText('lane:lane-v1');
+  await expect(hud.locator('[data-safety-field="perception-authority"]')).toHaveText('NONE');
+  await expect(hud.locator('[data-safety-field="control-bridge"]')).toHaveText('READY');
+  await expect(page.locator('[data-competition-mode="ASSISTED"]')).toBeDisabled();
+  await expect(page.locator('[data-competition-mode="AUTO"]')).toBeDisabled();
+
+  await page.getByRole('button', { name: 'ENABLE LOCK' }).click();
+  await expect(status).toHaveAttribute('data-locked', 'true');
+  await expect(status).toContainText('LOCKED · PHYSICAL SAFETY: NO');
+  await expect(page.locator('[data-competition-mode="MANUAL"]')).toBeDisabled();
+  expect(backend.state.control.lease.active).toBe(false);
+
+  backend.state.dataset = { ...baseDatasetForTest(), state: 'capturing', active: true, session_id: 'session_e2e' };
+  await page.evaluate(() => window.RobotScopeDatasetCapture.refresh());
+  await expect(status).toContainText('CAPTURING · session_e2e', { timeout: 3_000 });
+  await page.reload();
+  await expect(status).toContainText('CAPTURING · session_e2e', { timeout: 3_000 });
+  await expect(hud.locator('[data-safety-field="armed"]')).toHaveText('DISARMED');
+
+  backend.state.perceptionOnline = false;
+  await expect(status).toContainText('STALE · lane-v2', { timeout: 4_000 });
+  backend.state.perceptionOnline = true;
+  await expect(status).toContainText('LIVE · lane-v2', { timeout: 4_000 });
+});
+
+function baseDatasetForTest() {
+  return { available: true, saved: 0, dropped: 0, bytes_written: 0, sources: ['realsense_color'], capture_hz: 1 };
+}
+
 test('Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   await expect(page.locator('#cockpitPointQuality')).toHaveValue('low');

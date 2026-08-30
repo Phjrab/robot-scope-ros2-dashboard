@@ -31,7 +31,9 @@ from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.runtime import ApplicationRuntime
 from .api.dependencies import require_same_origin, websocket_same_origin
+from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
+from .api.routers.competition import router as competition_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
@@ -71,6 +73,7 @@ from .control import (
     LeaseInvalid,
     SequenceError,
 )
+from .competition import CompetitionStateManager
 from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
 from .diagnostics import DiagnosticsBundleService
@@ -370,6 +373,7 @@ def require_service_lifecycle_idle() -> None:
 app.include_router(system_router)
 app.include_router(telemetry_router)
 app.include_router(cameras_router)
+app.include_router(competition_router)
 app.include_router(discovery_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
@@ -584,6 +588,7 @@ async def control_status() -> Dict[str, Any]:
 async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, Any]:
     require_same_origin(request)
     async with RUNTIME.pipeline_coordination_lock:
+        require_manual_operation_mode(RUNTIME)
         require_service_lifecycle_idle()
         if navigation_coordinator().manual_control_blocked():
             raise HTTPException(
@@ -848,6 +853,7 @@ async def update_navigation_parameters(
     body: NavigationParameterPatchRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "navigation parameter changes")
     try:
         return await navigation_coordinator().update_parameters(
             body.base_revision,
@@ -863,6 +869,7 @@ async def navigation_start(
     body: NavigationStartRequest,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_manual_operation_mode(RUNTIME)
     try:
         return await navigation_coordinator().start(
             map_id=body.map_id,
@@ -1024,6 +1031,7 @@ async def mapping_stop(request: Request) -> Dict[str, Any]:
 @app.post("/api/v1/mapping/save", status_code=202)
 async def mapping_save(body: MapSaveRequest, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "map revision creation")
     try:
         return await mapping_coordinator().save(
             body.name,
@@ -1049,6 +1057,7 @@ async def convert_saved_pcd_to_2d(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "map revision conversion")
     try:
         return await mapping_coordinator().convert_pcd_to_2d(
             map_id,
@@ -1072,6 +1081,7 @@ async def save_edited_map_copy(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "edited map revision creation")
     try:
         metadata = await mapping_coordinator().save_edited_copy(
             map_id,
@@ -1111,6 +1121,7 @@ async def update_saved_map_annotations(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "map annotation revision changes")
     try:
         return await mapping_coordinator().update_annotations(
             map_id,
@@ -1134,6 +1145,7 @@ async def rename_saved_map(
     request: Request,
 ) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "saved map rename")
     try:
         metadata = await mapping_coordinator().rename(map_id, body.name)
     except LifecycleTransitionBusy as exc:
@@ -1148,6 +1160,7 @@ async def rename_saved_map(
 @app.delete("/api/v1/saved-maps/{map_id}")
 async def delete_saved_map(map_id: str, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
+    require_competition_unlocked(RUNTIME, "saved map deletion")
     try:
         result = await mapping_coordinator().delete(map_id)
     except LifecycleTransitionBusy as exc:
@@ -1207,6 +1220,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model-registry-dir",
         default=str(Path(__file__).resolve().parents[1] / "runtime" / "model-registry"),
+    )
+    parser.add_argument(
+        "--competition-state-dir",
+        default=str(Path(__file__).resolve().parents[1] / "runtime" / "competition"),
     )
     return parser.parse_args()
 
@@ -1374,6 +1391,23 @@ def main() -> None:
             RUNTIME.navigation.internal_start_state
         ),
         dataset_capture_active_provider=RUNTIME.dataset_capture.is_active,
+    )
+    def competition_blockers() -> Dict[str, bool]:
+        control = RUNTIME.agent.control_snapshot()
+        lease = control.get("lease", {})
+        mapping_active, _ = RUNTIME.mapping.activity()
+        return {
+            "control_armed": bool(isinstance(lease, dict) and lease.get("active")),
+            "navigation_active": RUNTIME.navigation.is_active(),
+            "mission_active": RUNTIME.mission.blocks_navigation_goal(),
+            "dataset_capture_active": RUNTIME.dataset_capture.is_active(),
+            "mapping_active": mapping_active,
+        }
+
+    RUNTIME.competition = CompetitionStateManager(
+        Path(args.competition_state_dir),
+        blockers_provider=competition_blockers,
+        control_provider=RUNTIME.agent.control_snapshot,
     )
     RUNTIME.operator_events = OperatorEventTimeline(
         Path(args.operator_event_dir).expanduser()

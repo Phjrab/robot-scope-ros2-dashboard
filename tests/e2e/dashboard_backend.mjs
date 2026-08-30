@@ -65,6 +65,12 @@ export async function installDashboardBackend(page, options = {}) {
     online: options.online !== false,
     pointMax: 10_000,
     mapping: baseMapping(), navigation: baseNavigation(), control: baseControl(), dataset: baseDataset(),
+    competition: {
+      schema_version: 'robot-scope.competition-state/v1', operation_mode: 'MANUAL',
+      requested_mode: 'MANUAL', locked: false, revision: 1,
+      motion_authority: 'NONE', perception_mode: 'SHADOW',
+    },
+    perceptionOnline: true,
     mapRevision: MAP_REVISION, serviceBlocked: Boolean(options.serviceBlocked),
     annotations: {
       schema_version: 1, map_id: MAP_ID, map_revision: MAP_REVISION,
@@ -218,6 +224,38 @@ export async function installDashboardBackend(page, options = {}) {
         },
       ],
     });
+    if (path === '/api/v1/competition') return json(route, state.competition);
+    if (path === '/api/v1/competition/lock') {
+      state.competition = { ...state.competition, locked: true, revision: state.competition.revision + 1 };
+      return json(route, state.competition);
+    }
+    if (path === '/api/v1/competition/unlock') {
+      if (body?.stationary_confirmed !== true || state.control.lease.active || state.dataset.active || state.activeMissionId) {
+        return json(route, { detail: 'competition unlock blockers are active' }, 409);
+      }
+      state.competition = { ...state.competition, locked: false, revision: state.competition.revision + 1 };
+      return json(route, state.competition);
+    }
+    if (path === '/api/v1/competition/mode') {
+      if (state.competition.locked || !['MANUAL', 'SHADOW'].includes(body?.mode)) return json(route, { detail: 'mode is blocked' }, 409);
+      state.competition = { ...state.competition, requested_mode: body.mode, operation_mode: body.mode, revision: state.competition.revision + 1 };
+      return json(route, state.competition);
+    }
+    if (path === '/api/v1/models/active') return json(route, {
+      active: {
+        lane: { model_id: 'lane-v2', package_sha256: 'a'.repeat(64), engine_sha256: 'b'.repeat(64) },
+        object: { model_id: 'yolo-v3', package_sha256: 'c'.repeat(64), engine_sha256: 'd'.repeat(64) },
+      },
+      previous: { lane: 'lane-v1', object: 'yolo-v2' }, activation_surface: 'LOCAL_OPERATOR_ONLY',
+    });
+    if (path === '/api/v1/perception/latest') {
+      if (!state.perceptionOnline) return json(route, { detail: 'perception offline' }, 503);
+      return json(route, { mode: 'SHADOW', transport_state: 'LIVE', results: [
+        { task: 'lane', result_status: 'LIVE', model_id: 'lane-v2', model_sha256: 'a'.repeat(64), sequence: 12, last_receive_age: 0.1, inference_fps: 12, inference_p95_ms: 9, confidence: 0.91, clock_domain_verified: false },
+        { task: 'object', result_status: 'LIVE', model_id: 'yolo-v3', model_sha256: 'c'.repeat(64), sequence: 13, last_receive_age: 0.1, inference_fps: 10, inference_p95_ms: 18, confidence: 0.84, clock_domain_verified: false },
+        { task: 'depth_summary', result_status: 'LIVE', model_id: 'depth-v1', model_sha256: 'e'.repeat(64), sequence: 14, last_receive_age: 0.1, inference_fps: 8, inference_p95_ms: 22, confidence: 0.75, clock_domain_verified: false },
+      ] });
+    }
     if (path === '/api/v1/pointcloud/settings') {
       if (method === 'POST' && Number.isInteger(body?.max_points)) state.pointMax = body.max_points;
       return json(route, { max_points: state.pointMax, all_points: false, min_points: 1_000, max_custom_points: 1_000_000 });

@@ -14,12 +14,14 @@ STATE_DIR="${ROBOT_SCOPE_STATE_DIR:-$RUNTIME_DIR/state}"
 SOURCE_SELECTION_STATE="${ROBOT_SCOPE_SOURCE_SELECTION_STATE:-$STATE_DIR/source-selection.json}"
 NAVIGATION_RUNTIME_DIR="${ROBOT_SCOPE_NAVIGATION_RUNTIME_DIR:-$STATE_DIR/navigation}"
 MODEL_REGISTRY_DIR="${ROBOT_SCOPE_MODEL_REGISTRY_DIR:-$RUNTIME_DIR/model-registry}"
+COMPETITION_STATE_DIR="${ROBOT_SCOPE_COMPETITION_STATE_DIR:-$RUNTIME_DIR/competition}"
 ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"
 if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
   "$MAPS_DIR" != /* || "$RUNTIME_DIR" != /* || "$RUNTIME_DIR" == "/" ||
   "$DATASET_DIR" != /* || "$DATASET_DIR" == "/" ||
   "$STATE_DIR" != /* || "$STATE_DIR" == "/" ||
   "$MODEL_REGISTRY_DIR" != /* || "$MODEL_REGISTRY_DIR" == "/" ||
+  "$COMPETITION_STATE_DIR" != /* || "$COMPETITION_STATE_DIR" == "/" ||
   "$SOURCE_SELECTION_STATE" != /* || "$NAVIGATION_RUNTIME_DIR" != /* ||
   "$ROS_LOG_DIR" != /* || "$ROS_LOG_DIR" == "/" ]]; then
   echo "[Robot Scope] workspace, maps, dataset, state and log paths must be absolute and safe" >&2
@@ -80,6 +82,7 @@ DASHBOARD_ARGS=(
   --source-selection-state "$SOURCE_SELECTION_STATE" \
   --navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR" \
   --model-registry-dir "$MODEL_REGISTRY_DIR" \
+  --competition-state-dir "$COMPETITION_STATE_DIR" \
   --profile "$PROJECT_DIR/config/go2.json"
 )
 PERCEPTION_SOURCE_IP="${ROBOT_SCOPE_PERCEPTION_SOURCE_IP:-}"

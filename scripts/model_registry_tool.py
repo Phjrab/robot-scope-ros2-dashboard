@@ -11,9 +11,15 @@ from pathlib import Path
 from typing import Sequence
 
 from robot_dashboard.model_registry import ModelRegistry, ModelRegistryError
+from robot_dashboard.competition import (
+    CompetitionError,
+    CompetitionStateManager,
+    CompetitionUnavailable,
+)
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1] / "runtime" / "model-registry"
+DEFAULT_COMPETITION_ROOT = Path(__file__).resolve().parents[1] / "runtime" / "competition"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -44,6 +50,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     root = Path(os.environ.get("ROBOT_SCOPE_MODEL_REGISTRY_DIR") or DEFAULT_ROOT)
     try:
         registry = ModelRegistry(root)
+        if args.command in {"activate", "rollback"}:
+            competition_root = Path(
+                os.environ.get("ROBOT_SCOPE_COMPETITION_STATE_DIR")
+                or (
+                    Path(os.environ["ROBOT_SCOPE_RUNTIME_DIR"]) / "competition"
+                    if os.environ.get("ROBOT_SCOPE_RUNTIME_DIR")
+                    else DEFAULT_COMPETITION_ROOT
+                )
+            )
+            if not (competition_root / "state.json").is_file():
+                raise CompetitionUnavailable(
+                    "competition state must exist before model activation"
+                )
+            CompetitionStateManager(competition_root).require_unlocked(
+                "model activation" if args.command == "activate" else "model rollback"
+            )
         if args.command == "stage":
             result = registry.stage_archive(args.archive)
         elif args.command == "validate-engine":
@@ -61,7 +83,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = registry.active_snapshot()
         else:
             result = registry.list_models()
-    except ModelRegistryError as exc:
+    except (ModelRegistryError, CompetitionError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, separators=(",", ":")))
         return 2
     print(json.dumps({"ok": True, "result": result}, separators=(",", ":")))

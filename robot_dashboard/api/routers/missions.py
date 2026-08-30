@@ -15,7 +15,12 @@ from ...application.mission_coordinator import (
     MissionValidationError,
 )
 from ...application.runtime import ApplicationRuntime
-from ..dependencies import require_component, require_same_origin, runtime_from_request
+from ..dependencies import (
+    require_competition_unlocked,
+    require_component,
+    require_same_origin,
+    runtime_from_request,
+)
 from ..models import MissionActionRequest, MissionCreateRequest
 
 
@@ -46,8 +51,10 @@ async def mission_list(request: Request) -> Dict[str, Any]:
 @router.post("/api/v1/missions", status_code=201)
 async def mission_create(body: MissionCreateRequest, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
+    runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "mission revision creation")
     try:
-        return await _coordinator(runtime_from_request(request)).create(
+        return await _coordinator(runtime).create(
             label=body.label,
             map_id=body.map_id,
             map_revision=body.map_revision,

@@ -201,3 +201,17 @@ class DatasetCaptureStartRequest(StrictRequest):
 
 class DatasetCaptureStopRequest(StrictRequest):
     session_id: str = Field(pattern=r"^[0-9]{8}T[0-9]{6}Z_[0-9a-f]{32}$")
+
+
+class CompetitionLockRequest(StrictRequest):
+    confirmation: Literal["LOCK"]
+
+
+class CompetitionUnlockRequest(StrictRequest):
+    confirmation: Literal["UNLOCK"]
+    stationary_confirmed: bool = Field(strict=True)
+
+
+class CompetitionModeRequest(StrictRequest):
+    mode: Literal["MANUAL", "ASSISTED", "AUTO", "SAFE_STOP", "SHADOW"]
+    confirmation: str = Field(min_length=4, max_length=9)

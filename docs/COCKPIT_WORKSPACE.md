@@ -1,5 +1,9 @@
 # Robot Scope Cockpit Workspace 설계 계약
 
+WP06 Competition Cockpit의 운용 모드, 고정 안전 필드, 설정 Lock,
+network/perception/model 상태 및 rollback 규칙은
+[`WP06_COMPETITION_COCKPIT.md`](WP06_COMPETITION_COCKPIT.md)에 기록한다.
+
 이 문서는 CWP-00에서 확인한 현재 코드 기준의 Cockpit 설계 계약이다. 조사
 기준은 `main`의 `f91ef38affbd56a1b4f119aeeb958e38926ff5f4`이며, Cockpit을
 구현하는 CWP-01 이후에는 이 문서와 실제 코드가 다르면 차이를 먼저 기록하고

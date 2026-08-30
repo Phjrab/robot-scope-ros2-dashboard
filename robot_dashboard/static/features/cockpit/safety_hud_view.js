@@ -41,7 +41,8 @@ export function createSafetyHudView(options = {}) {
   const fields = new Map();
   for (const [label, field] of [
     ['CONTROL SOURCE', 'control-source'], ['ARM', 'armed'], ['DEADMAN', 'deadman'],
-    ['SOFTWARE STOP', 'software-stop'], ['CONTROL LEASE', 'lease'], ['GO2 LINK', 'go2-link'],
+    ['SOFTWARE STOP', 'software-stop'], ['CONTROL BRIDGE', 'control-bridge'], ['CONTROL LEASE', 'lease'], ['GO2 LINK', 'go2-link'],
+    ['OPERATION MODE', 'operation-mode'], ['COMPETITION LOCK', 'competition-lock'], ['PERCEPTION AUTHORITY', 'perception-authority'], ['DATASET', 'dataset'],
     ['LOWSTATE', 'lowstate'], ['BATTERY', 'battery'], ['VX', 'vx'], ['VY', 'vy'],
     ['WZ', 'wz'], ['SPEED SCALE', 'speed-scale'],
   ]) {
@@ -54,7 +55,8 @@ export function createSafetyHudView(options = {}) {
   stop.type = 'button';
   stop.dataset.cockpitSoftwareStop = '';
   stop.append(element(documentValue, 'strong', '', 'DASHBOARD SOFTWARE STOP'), element(documentValue, 'small', '', '물리 E-STOP 아님'));
-  root.append(header, metrics, stop);
+  const physicalReminder = element(documentValue, 'p', 'cockpit-physical-stop-reminder', 'PHYSICAL STOP 위치와 접근 가능 상태를 현장에서 확인하세요 · Competition Lock / Dashboard STOP은 물리 E-STOP이 아닙니다.');
+  root.append(header, metrics, physicalReminder, stop);
 
   edit.addEventListener('click', () => options.onRequestEdit?.());
   apply.addEventListener('click', () => options.onApply?.());

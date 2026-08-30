@@ -389,7 +389,13 @@ class PerceptionStore:
             else:
                 self._last_transport_error = " ".join(str(error).split())[:160]
 
-    def _project(self, result: Mapping[str, Any], now_ns: int, fps: float = 0.0) -> Dict[str, Any]:
+    def _project(
+        self,
+        result: Mapping[str, Any],
+        now_ns: int,
+        fps: float = 0.0,
+        p95_ms: float = 0.0,
+    ) -> Dict[str, Any]:
         age = max(0.0, (now_ns - int(result["received_monotonic"])) / 1e9)
         state = "LIVE" if age <= STALE_AFTER_NS / 1e9 and self._transport_state == "LIVE" else "STALE"
         latency_ms = (int(result["inference_completed_at"]) - int(result["inference_started_at"])) / 1e6
@@ -400,6 +406,7 @@ class PerceptionStore:
             "result_status": state,
             "inference_latency_ms": round(latency_ms, 3),
             "inference_fps": round(fps, 2),
+            "inference_p95_ms": round(p95_ms, 3),
         }
 
     def _task_fps(self, now_ns: int) -> Dict[str, float]:
@@ -411,11 +418,30 @@ class PerceptionStore:
                 counts[task] = counts.get(task, 0) + 1
         return {task: count / 5.0 for task, count in counts.items()}
 
+    def _task_latency_p95(self, now_ns: int) -> Dict[str, float]:
+        cutoff = now_ns - 5_000_000_000
+        values: Dict[str, list[float]] = {}
+        for result in self._history:
+            if int(result["received_monotonic"]) < cutoff:
+                continue
+            latency = (
+                int(result["inference_completed_at"])
+                - int(result["inference_started_at"])
+            ) / 1e6
+            values.setdefault(str(result["task"]), []).append(latency)
+        projected: Dict[str, float] = {}
+        for task, samples in values.items():
+            ordered = sorted(samples)
+            index = max(0, min(len(ordered) - 1, (95 * len(ordered) + 99) // 100 - 1))
+            projected[task] = ordered[index]
+        return projected
+
     def latest_snapshot(self, *, now_ns: int | None = None) -> Dict[str, Any]:
         now = now_ns or time.monotonic_ns()
         with self._lock:
             fps = self._task_fps(now)
-            results = [self._project(value, now, fps.get(task, 0.0)) for task, value in self._latest.items()]
+            p95 = self._task_latency_p95(now)
+            results = [self._project(value, now, fps.get(task, 0.0), p95.get(task, 0.0)) for task, value in self._latest.items()]
             transport = self._transport_state
         return {"mode": "SHADOW", "transport_state": transport, "results": results}
 
@@ -424,7 +450,8 @@ class PerceptionStore:
         now = now_ns or time.monotonic_ns()
         with self._lock:
             fps = self._task_fps(now)
-            results = [self._project(value, now, fps.get(str(value["task"]), 0.0)) for value in list(self._history)[-bounded:]]
+            p95 = self._task_latency_p95(now)
+            results = [self._project(value, now, fps.get(str(value["task"]), 0.0), p95.get(str(value["task"]), 0.0)) for value in list(self._history)[-bounded:]]
         return {"mode": "SHADOW", "bounded": True, "limit": bounded, "results": results}
 
     def health_snapshot(self, *, now_ns: int | None = None) -> Dict[str, Any]:

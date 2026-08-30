@@ -25,7 +25,12 @@ from ...service_lifecycle import (
     ServiceLifecycleError,
     ServiceLifecycleUnavailable,
 )
-from ..dependencies import require_component, require_same_origin, runtime_from_request
+from ..dependencies import (
+    require_competition_unlocked,
+    require_component,
+    require_same_origin,
+    runtime_from_request,
+)
 from ..models import ControlBridgeLifecycleRequest, ServiceLifecycleRequest
 
 
@@ -103,6 +108,7 @@ async def service_lifecycle_restart(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "dashboard service restart")
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
@@ -120,6 +126,7 @@ async def service_lifecycle_stop(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "dashboard service stop")
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(
@@ -143,6 +150,7 @@ async def control_bridge_lifecycle_start(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "control bridge service start")
     async with runtime.pipeline_coordination_lock:
         try:
             return await asyncio.to_thread(

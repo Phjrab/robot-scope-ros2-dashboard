@@ -14,6 +14,7 @@ from ...pointcloud_stream import PointCloudFrameError, encode_pointcloud_frame
 from ...ros_agent import RosAgent
 from ...websocket_stream import stream_until_disconnect
 from ..dependencies import (
+    require_competition_unlocked,
     require_component,
     require_same_origin,
     runtime_from_request,
@@ -101,6 +102,7 @@ async def select_sources(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "sensor source selection")
     values = selection.model_dump(exclude_none=True)
     try:
         return await asyncio.to_thread(_agent(runtime).set_sources, values)
@@ -146,6 +148,7 @@ async def set_pointcloud_settings(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "PointCloud diagnostic settings")
     try:
         settings = await asyncio.to_thread(_agent(runtime).set_cloud_max_points, body.max_points)
     except (TypeError, ValueError) as exc:

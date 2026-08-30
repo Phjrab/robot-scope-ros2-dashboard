@@ -15,7 +15,12 @@ from ...discovery import (
     public_robot_types,
 )
 from ...ros_agent import RosAgent
-from ..dependencies import require_component, require_same_origin, runtime_from_request
+from ..dependencies import (
+    require_competition_unlocked,
+    require_component,
+    require_same_origin,
+    runtime_from_request,
+)
 from ..models import RobotDiscoveryRequest, RobotTarget
 
 
@@ -61,6 +66,7 @@ async def set_robot(
 ) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "robot network target changes")
     try:
         await asyncio.to_thread(
             runtime.robot_discovery.validate_target,
@@ -92,6 +98,7 @@ async def set_robot(
 async def disconnect_robot(request: Request) -> Dict[str, Any]:
     require_same_origin(request)
     runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "robot network target disconnect")
     selected = await asyncio.to_thread(_agent(runtime).disconnect_robot_target)
     runtime.control_bindings.clear()
     return {

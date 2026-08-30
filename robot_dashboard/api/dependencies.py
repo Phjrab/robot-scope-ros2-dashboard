@@ -7,6 +7,7 @@ from typing import TypeVar
 from fastapi import HTTPException, Request, WebSocket
 
 from ..application.runtime import ApplicationRuntime
+from ..competition import CompetitionConflict, CompetitionUnavailable
 from ..http_security import is_same_origin
 
 
@@ -39,6 +40,26 @@ def require_same_origin(request: Request) -> None:
         request.headers.get("host", ""),
     ):
         raise HTTPException(status_code=403, detail="mutation requests must be same-origin")
+
+
+def require_competition_unlocked(runtime: ApplicationRuntime, action: str) -> None:
+    manager = require_component(runtime.competition, "competition state is not configured")
+    try:
+        manager.require_unlocked(action)
+    except CompetitionConflict as exc:
+        raise HTTPException(status_code=423, detail=str(exc)) from exc
+    except CompetitionUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+def require_manual_operation_mode(runtime: ApplicationRuntime) -> None:
+    manager = require_component(runtime.competition, "competition state is not configured")
+    try:
+        manager.require_manual_mode()
+    except CompetitionConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except CompetitionUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 def websocket_same_origin(websocket: WebSocket) -> bool:

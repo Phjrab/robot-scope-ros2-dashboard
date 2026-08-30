@@ -33,12 +33,14 @@ DATASET_DIR="${ROBOT_SCOPE_DATASET_DIR:-$RUNTIME_DIR/datasets}"
 STATE_DIR="${ROBOT_SCOPE_STATE_DIR:-$RUNTIME_DIR/state}"
 SOURCE_SELECTION_STATE="${ROBOT_SCOPE_SOURCE_SELECTION_STATE:-$STATE_DIR/source-selection.json}"
 NAVIGATION_RUNTIME_DIR="${ROBOT_SCOPE_NAVIGATION_RUNTIME_DIR:-$STATE_DIR/navigation}"
+COMPETITION_STATE_DIR="${ROBOT_SCOPE_COMPETITION_STATE_DIR:-$RUNTIME_DIR/competition}"
 ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"
 
 if [[ "$MAPS_DIR" != /* || "$RUNTIME_DIR" != /* || "$RUNTIME_DIR" == "/" ||
   "$DATASET_DIR" != /* || "$DATASET_DIR" == "/" ||
   "$STATE_DIR" != /* || "$STATE_DIR" == "/" ||
   "$SOURCE_SELECTION_STATE" != /* || "$NAVIGATION_RUNTIME_DIR" != /* ||
+  "$COMPETITION_STATE_DIR" != /* || "$COMPETITION_STATE_DIR" == "/" ||
   "$ROS_LOG_DIR" != /* || "$ROS_LOG_DIR" == "/" ]]; then
   echo "[Robot Scope] maps, dataset, state and log paths must be absolute and safe" >&2
   exit 2
@@ -82,4 +84,5 @@ exec "$PYTHON_BIN" -m robot_dashboard.app \
   --dataset-output-dir "$DATASET_DIR" \
   --source-selection-state "$SOURCE_SELECTION_STATE" \
   --navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR" \
+  --competition-state-dir "$COMPETITION_STATE_DIR" \
   --profile "$PROJECT_DIR/config/$PROFILE_FILE"

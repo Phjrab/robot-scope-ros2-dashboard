@@ -134,6 +134,10 @@ export function createPerceptionClient(options = {}) {
   }
 
   async function refresh() {
+    if (typeof options.shouldPoll === 'function' && !options.shouldPoll()) {
+      publish();
+      return;
+    }
     try {
       const next = await request('/api/v1/perception/latest');
       snapshot = next && typeof next === 'object' ? next : { mode: 'SHADOW', transport_state: 'OFFLINE', results: [] };

@@ -11,6 +11,7 @@ import { createControllerStateStore, createGamepadUiMapper, dispatchGamepadUiAct
 import { createCockpitMapStore } from './map_state.js';
 import { createCockpitNavigationAdapter } from './navigation_adapter.js';
 import { createMissionClient } from './mission_client.js';
+import { createCompetitionStatus } from './competition_status.js';
 
 export function cockpitGamepadUiBlocked(documentValue) {
   const activeElement = documentValue?.activeElement;
@@ -53,6 +54,7 @@ export function createCockpitWorkspace(options = {}) {
   let sensorLauncher = null;
   let safetyHud = null;
   let layoutLibrary = null;
+  let competitionStatus = null;
   let releaseCameraCatalog = null;
   let currentProfileId = '';
   let gamepadTimer = 0;
@@ -127,12 +129,27 @@ export function createCockpitWorkspace(options = {}) {
     safetyHud = createSafetyHud({
       root: options.safetyHudRoot,
       document: options.document,
-      getSnapshot: options.getSafetySnapshot,
+      getSnapshot: () => ({
+        ...options.getSafetySnapshot?.(),
+        competition: competitionStatus?.snapshot().projected || null,
+        dataset: options.getDatasetSnapshot?.() || null,
+      }),
       layoutState: layoutMode.snapshot(),
       onRequestEdit: () => layoutMode.requestEdit(),
       onApply: () => layoutMode.apply(),
       onStop: options.onSoftwareStop,
       onProjection: (projected, input) => layoutMode.updateControl({ armed: projected.layoutArmed, generation: Number(input.controlGeneration) || 0 }),
+    });
+  }
+  if (options.competitionStatusRoot) {
+    competitionStatus = createCompetitionStatus({
+      root: options.competitionStatusRoot,
+      document: options.document,
+      api: options.api,
+      cameraDemand: options.cameraDemand,
+      perception: options.perception,
+      getDatasetSnapshot: options.getDatasetSnapshot,
+      onError: options.onError,
     });
   }
   syncLayoutMode();
@@ -235,6 +252,7 @@ export function createCockpitWorkspace(options = {}) {
     sceneHost.activate();
     panelManager?.activate();
     safetyHud?.activate();
+    competitionStatus?.activate();
     gamepadUi.reset();
     pollGamepadUi();
     if (typeof options.gamepadProvider === 'function' && !gamepadTimer) gamepadTimer = (options.setInterval || globalThis.setInterval)(pollGamepadUi, 50);
@@ -251,6 +269,7 @@ export function createCockpitWorkspace(options = {}) {
     panelManager?.clearGamepadSelection();
     controllerState.update(projectControllerStatus());
     safetyHud?.deactivate();
+    competitionStatus?.deactivate();
     panelManager?.deactivate('workspace_inactive');
     sceneHost.deactivate();
     return diagnostics();
@@ -298,6 +317,7 @@ export function createCockpitWorkspace(options = {}) {
       launcher: sensorLauncher?.diagnostics() || null,
       layout: layoutMode.snapshot(),
       safety: safetyHud?.diagnostics() || null,
+      competition: competitionStatus?.snapshot() || null,
       layoutLibrary: layoutLibrary?.diagnostics() || layoutStore.snapshot(),
       controller: controllerState.snapshot(),
       map: mapState.diagnostics(),
@@ -312,6 +332,7 @@ export function createCockpitWorkspace(options = {}) {
     releaseCameraCatalog?.();
     sensorLauncher?.destroy();
     safetyHud?.destroy();
+    competitionStatus?.destroy();
     layoutLibrary?.destroy();
     panelManager?.destroy();
     releaseMapScene();
@@ -354,6 +375,7 @@ export function initializeCockpitWorkspace(options = {}) {
     launcherRoot: documentValue.querySelector('#cockpitSensorLauncher'),
     layoutLibraryRoot: documentValue.querySelector('#cockpitLayoutLibrary'),
     safetyHudRoot: documentValue.querySelector('#cockpitSafetyHud'),
+    competitionStatusRoot: documentValue.querySelector('#cockpitCompetitionStatus'),
     cameraDemand: options.cameraDemand,
     document: documentValue,
     controls: {

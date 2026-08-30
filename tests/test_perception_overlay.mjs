@@ -86,3 +86,24 @@ test('perception client is read only and preserves results as offline after reco
   assert.equal(client.snapshot().snapshot.results.length, 2);
   client.stop();
 });
+
+test('hidden perception polling publishes cached freshness without a network request', async () => {
+  let allowed = false;
+  let callback = null;
+  let requests = 0;
+  const client = createPerceptionClient({
+    api: async () => { requests += 1; return snapshot(); },
+    shouldPoll: () => allowed,
+    setInterval: (value) => { callback = value; return 9; },
+    clearInterval: () => {},
+  });
+  client.start();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(requests, 0);
+  await callback();
+  assert.equal(requests, 0);
+  allowed = true;
+  await callback();
+  assert.equal(requests, 1);
+  client.stop();
+});
