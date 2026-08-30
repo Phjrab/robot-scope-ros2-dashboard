@@ -377,6 +377,22 @@ session files were retained, and no dataset path was added to Git. A live
 dashboard SIGKILL during production capture was not required because the same
 manager and filesystem recovery path passed in an isolated child process.
 
+### Control Bridge robot-off preflight — 2026-08-30
+
+After the robot battery was exhausted, no live bridge transition was attempted.
+The Jetson ran all 18 Control Bridge lifecycle, preflight and HTTP contract
+tests successfully. The deployed unit remained `disabled`, `inactive` and
+`dead`, with no main PID or matching bridge process. The read-only lifecycle API
+reported a loaded fixed service, no operation and stop unavailable because the
+unit was already inactive.
+
+The control projection remained fail-closed: no active or bound lease, deadman
+false, linear X/Y and angular Z all exactly zero, bridge waiting/not connected,
+and control unavailable. This is sufficient software and inactive-state
+evidence only. The current-commit `start -> DISARMED/zero -> stop` hardware row
+remains blocked until the robot is charged and connected; no start request,
+lease, ARM request, action or motion command was sent during this preflight.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and

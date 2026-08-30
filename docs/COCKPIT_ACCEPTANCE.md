@@ -158,7 +158,7 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 | 실제 시나리오 | 결과 |
 | --- | --- |
 | dashboard와 dedicated NIC/LowState freshness | `PASS` |
-| 현재 commit의 Control Bridge lifecycle | `NOT_RUN` |
+| 현재 commit의 Control Bridge lifecycle | `BLOCKED` — robot battery exhausted; software 18/18과 inactive/zero preflight만 PASS |
 | Go2 camera LIVE와 exact viewer acquire/release | `PASS` |
 | RealSense camera LIVE | `PASS` |
 | XT16 rate와 adaptive LOD 단기 검증 | `PASS` |
