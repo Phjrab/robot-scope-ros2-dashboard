@@ -510,7 +510,7 @@ test('Cockpit camera panels share catalog-owned streams through dual open, focus
   backend.state.cameraStreaming.realsense_color = false;
   await expect(realsense.locator('.cockpit-camera-state')).toHaveText('STALE', { timeout: 5_000 });
   await expect(realsense.locator('.cockpit-camera-overlay')).toContainText('STALE');
-  await expect(realsense.locator('canvas')).toHaveJSProperty('width', 1);
+  await expect(realsense.locator('canvas:not(.cockpit-perception-overlay)')).toHaveJSProperty('width', 1);
   await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
 
   await realsense.locator('[data-panel-action="close"]').click();

@@ -167,7 +167,7 @@ export function createPanelRegistry(options = {}) {
       const descriptor = entries.get(String(panelType || ''));
       if (!descriptor) throw new RangeError('Unknown panel type.');
       if (descriptor.kind === 'camera') {
-        return createCameraPanel({ descriptor, document: documentValue, cameraDemand: options.cameraDemand });
+        return createCameraPanel({ descriptor, document: documentValue, cameraDemand: options.cameraDemand, perception: options.perception });
       }
       if (descriptor.kind === 'controller') {
         return createControllerPanel({ descriptor, document: documentValue, controllerState: options.controllerState });

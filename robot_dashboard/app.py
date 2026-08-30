@@ -35,6 +35,7 @@ from .api.routers.cameras import router as cameras_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
+from .api.routers.perception import router as perception_router
 from .api.routers.system import router as system_router
 from .api.routers.telemetry import router as telemetry_router
 from .api.models import (
@@ -95,6 +96,7 @@ from .operator_events import (
     classify_http_event,
     record_http_event,
 )
+from .perception import PerceptionBridgeClient, PerceptionPolicy, PerceptionStore
 from .ros_agent import RosAgent
 from .saved_maps import (
     SavedMapCatalog,
@@ -131,6 +133,8 @@ async def lifespan(fastapi: FastAPI):
     if runtime.agent is None:
         raise RuntimeError("ROS agent has not been configured")
     runtime.agent.start()
+    if runtime.perception is not None:
+        runtime.perception.start()
     if runtime.mapping is not None:
         try:
             await runtime.mapping.start_preview()
@@ -168,6 +172,8 @@ async def lifespan(fastapi: FastAPI):
                 LOGGER.exception("navigation coordinator shutdown failed")
         # Motion stop takes priority over potentially slow storage/process work.
         runtime.agent.shutdown_control()
+        if runtime.perception is not None:
+            runtime.perception.close()
         if runtime.dataset_capture is not None:
             try:
                 await asyncio.to_thread(runtime.dataset_capture.close)
@@ -365,6 +371,7 @@ app.include_router(cameras_router)
 app.include_router(discovery_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
+app.include_router(perception_router)
 
 
 def navigation_active() -> bool:
@@ -1191,6 +1198,9 @@ def parse_args() -> argparse.Namespace:
             Path(__file__).resolve().parents[1] / "runtime" / "operator-events"
         ),
     )
+    parser.add_argument("--perception-source-ip", default="")
+    parser.add_argument("--perception-result-port", type=int, default=8092)
+    parser.add_argument("--perception-policy", default="")
     return parser.parse_args()
 
 
@@ -1202,6 +1212,14 @@ def main() -> None:
         cloud_max_points=args.cloud_max_points,
         source_selection_path=args.source_selection_state or None,
     )
+    if bool(args.perception_source_ip) != bool(args.perception_policy):
+        raise RuntimeError("perception source IP and policy must be configured together")
+    if args.perception_source_ip:
+        policy = PerceptionPolicy.load(Path(args.perception_policy).expanduser())
+        RUNTIME.perception = PerceptionBridgeClient(
+            PerceptionStore(args.perception_source_ip, policy),
+            port=args.perception_result_port,
+        )
     profile_base = (
         Path(args.profile).expanduser().resolve().parent
         if args.profile
@@ -1252,12 +1270,18 @@ def main() -> None:
         require_pipeline_for_save=False,
     )
     RUNTIME.saved_maps = catalog
+    def dataset_metadata_snapshot() -> Dict[str, Any]:
+        metadata = RUNTIME.agent.pose_snapshot()
+        if RUNTIME.perception is not None:
+            metadata["perception_reference"] = RUNTIME.perception.store.metadata_reference()
+        return metadata
+
     RUNTIME.dataset_capture = DatasetCaptureManager(
         Path(args.dataset_output_dir),
         camera_open=RUNTIME.agent.camera_stream_open,
         camera_close=RUNTIME.agent.camera_stream_close,
         camera_snapshots=RUNTIME.agent.camera_snapshots,
-        metadata_snapshot=RUNTIME.agent.pose_snapshot,
+        metadata_snapshot=dataset_metadata_snapshot,
     )
 
     def require_lifecycle_idle_application() -> None:

@@ -38,6 +38,7 @@ def manifest(task="lane", backend="onnx"):
         input_width=640,
         input_height=480,
         input_color="RGB",
+        classes=("person",) if task == "object" else (),
         target=shadow.RuntimeIdentity("aarch64", "R35.3.1", "8.5.2.2"),
     )
 
@@ -68,10 +69,13 @@ class FakeAdapter:
         self.manifest = manifest(task)
         self._infer = infer or (
             lambda _frame: {
-                "lateral_error_m": 0.1,
+                "lateral_error_normalized": 0.1,
                 "heading_error_rad": 0.02,
-                "curvature_1pm": 0.001,
+                "curvature": 0.001,
+                "left_lane_visible": True,
+                "right_lane_visible": True,
                 "confidence": 0.9,
+                "reason": "test",
             }
         )
 
@@ -166,10 +170,13 @@ class PerceptionShadowTests(unittest.TestCase):
             entered.set()
             release.wait(1.0)
             return {
-                "lateral_error_m": 0,
+                "lateral_error_normalized": 0,
                 "heading_error_rad": 0,
-                "curvature_1pm": 0,
+                "curvature": 0,
+                "left_lane_visible": True,
+                "right_lane_visible": True,
                 "confidence": 1,
+                "reason": "test",
             }
 
         slow_worker = shadow.InferenceWorker(
@@ -246,9 +253,9 @@ class PerceptionShadowTests(unittest.TestCase):
         try:
             runtime.submit(frame(10))
             self.assertTrue(wait_for(lambda: worker.health()["latest_result"] is not None))
-            first = worker.health()["latest_result"]["source_sequence"]
+            first = worker.health()["latest_result"]["sequence"]
             self.assertEqual(
-                worker.health()["latest_result"]["source_clock_domain"],
+                worker.health()["latest_result"]["capture_clock_domain"],
                 "robot-monotonic",
             )
             time.sleep(0.04)
@@ -256,7 +263,7 @@ class PerceptionShadowTests(unittest.TestCase):
             self.assertTrue(
                 wait_for(
                     lambda: worker.health()["latest_result"]
-                    and worker.health()["latest_result"]["source_sequence"] == 11
+                    and worker.health()["latest_result"]["sequence"] == 11
                 )
             )
             self.assertGreater(11, first)
@@ -291,7 +298,7 @@ class PerceptionShadowTests(unittest.TestCase):
         class Context:
             @staticmethod
             def get_binding_shape(index):
-                return (1, 3, 480, 640) if index == 0 else (1, 4)
+                return (1, 3, 480, 640) if index == 0 else (1, 6)
 
             @staticmethod
             def set_binding_shape(_index, _shape):
@@ -310,7 +317,7 @@ class PerceptionShadowTests(unittest.TestCase):
 
             @staticmethod
             def get_binding_shape(index):
-                return (1, 3, 480, 640) if index == 0 else (1, 4)
+                return (1, 3, 480, 640) if index == 0 else (1, 6)
 
             @staticmethod
             def get_binding_dtype(_index):
@@ -362,7 +369,7 @@ class PerceptionShadowTests(unittest.TestCase):
 
             @staticmethod
             def device_to_host(array, _pointer):
-                array[:] = numpy.asarray([[0.1, 0.02, 0.001, 0.9]])
+                array[:] = numpy.asarray([[0.1, 0.02, 0.001, 1.0, 1.0, 0.9]])
 
             @staticmethod
             def synchronize():
@@ -382,7 +389,7 @@ class PerceptionShadowTests(unittest.TestCase):
                 adapter = shadow.TensorRtAdapter(contract)
                 result = adapter.infer(frame(1))
                 adapter.close()
-        self.assertAlmostEqual(result["lateral_error_m"], 0.1)
+        self.assertAlmostEqual(result["lateral_error_normalized"], 0.1)
         self.assertAlmostEqual(result["confidence"], 0.9)
 
     def test_source_disconnect_supervision_is_bounded_and_stoppable(self):

@@ -322,7 +322,7 @@
                   <div class="camera-feed-health"><span id="cameraPrimaryState" data-state="waiting">WAITING</span><strong id="cameraPrimaryFps">— FPS</strong></div>
                   <small id="cameraPrimaryTopic">TOPIC —</small><small id="cameraPrimaryTransport">TRANSPORT —</small>
                 </header>
-                <div class="camera-stage"><canvas id="cameraCanvas" aria-label="현재 선택한 기본 카메라 영상"></canvas><div class="empty-state" id="cameraEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraEmptyText">카메라 소스를 자동으로 찾고 있습니다.</small></div><div class="stream-overlay"><span id="cameraTopicLabel">NO SOURCE</span><span id="cameraCodecLabel">—</span></div></div>
+                <div class="camera-stage"><canvas id="cameraCanvas" aria-label="현재 선택한 기본 카메라 영상"></canvas><canvas id="cameraPerceptionOverlay" class="perception-overlay-canvas" aria-label="Shadow perception overlay"></canvas><div id="cameraPerceptionHud" class="perception-overlay-hud" data-state="offline"><strong>SHADOW · OFFLINE</strong><span>MODEL — · SEQ 0 · AGE — · — FPS · —</span></div><div class="empty-state" id="cameraEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraEmptyText">카메라 소스를 자동으로 찾고 있습니다.</small></div><div class="stream-overlay"><span id="cameraTopicLabel">NO SOURCE</span><span id="cameraCodecLabel">—</span></div></div>
               </section>
               <section class="camera-feed-slot is-secondary" id="cameraSecondarySlot" data-camera-slot="secondary" aria-label="보조 카메라 화면" hidden>
                 <header class="camera-feed-identity">
@@ -330,7 +330,7 @@
                   <div class="camera-feed-health"><span id="cameraSecondaryState" data-state="waiting">WAITING</span><strong id="cameraSecondaryFps">— FPS</strong></div>
                   <small id="cameraSecondaryTopic">TOPIC —</small><small id="cameraSecondaryTransport">TRANSPORT —</small>
                 </header>
-                <div class="camera-stage"><canvas id="cameraSecondaryCanvas" aria-label="보조 카메라 영상"></canvas><div class="empty-state" id="cameraSecondaryEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraSecondaryEmptyText">두 번째 카메라 신호를 기다리고 있습니다.</small></div><div class="stream-overlay"><span id="cameraSecondaryTopicLabel">NO SOURCE</span><span id="cameraSecondaryCodecLabel">—</span></div></div>
+                <div class="camera-stage"><canvas id="cameraSecondaryCanvas" aria-label="보조 카메라 영상"></canvas><canvas id="cameraSecondaryPerceptionOverlay" class="perception-overlay-canvas" aria-label="Shadow perception overlay"></canvas><div id="cameraSecondaryPerceptionHud" class="perception-overlay-hud" data-state="offline"><strong>SHADOW · OFFLINE</strong><span>MODEL — · SEQ 0 · AGE — · — FPS · —</span></div><div class="empty-state" id="cameraSecondaryEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraSecondaryEmptyText">두 번째 카메라 신호를 기다리고 있습니다.</small></div><div class="stream-overlay"><span id="cameraSecondaryTopicLabel">NO SOURCE</span><span id="cameraSecondaryCodecLabel">—</span></div></div>
               </section>
             </div>
             <section class="camera-link-observability" aria-label="기본 카메라 링크 상태">

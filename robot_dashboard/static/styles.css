@@ -329,6 +329,12 @@ input:focus, select:focus { border-color: rgba(125,240,182,.55); box-shadow: 0 0
 .live-map-stage, .saved-map-stage { height: 610px; }
 .camera-stage canvas, .map-stage canvas { width: 100%; height: 100%; display: block; }
 .camera-stage canvas { object-fit: contain; }
+.camera-stage .perception-overlay-canvas { position:absolute; z-index:3; inset:0; width:100%; height:100%; pointer-events:none; }
+.perception-overlay-hud { position:absolute; z-index:5; top:10px; left:10px; display:grid; gap:3px; max-width:calc(100% - 20px); padding:7px 9px; color:#5dffbc; border:1px solid currentColor; border-radius:8px; background:rgba(2,18,14,.76); pointer-events:none; }
+.perception-overlay-hud strong { font:850 8px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.11em; }
+.perception-overlay-hud span { overflow:hidden; color:#b9d8cf; font:650 7px ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow:ellipsis; white-space:nowrap; }
+.perception-overlay-hud[data-state="degraded"] { color:var(--amber); border-color:rgba(255,198,109,.45); background:rgba(48,37,17,.82); }
+.perception-overlay-hud[data-state="stale"], .perception-overlay-hud[data-state="offline"], .perception-overlay-hud[data-state="waiting"] { color:#a8b3af; border-color:rgba(168,179,175,.45); background:rgba(27,33,31,.8); }
 .camera-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(7,16,15,.05), transparent 55%, rgba(7,16,15,.6)); }
 .empty-state { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 8px; color: #b6c9c3; text-align: center; background: radial-gradient(circle, rgba(27,59,53,.32), rgba(3,9,8,.92)); }
 .empty-state strong { font-size: 13px; }.empty-state small { color: var(--muted); font-size: 10px; }

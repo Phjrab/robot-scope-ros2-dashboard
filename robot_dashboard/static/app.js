@@ -12,6 +12,7 @@ import { initializeControlBridgeServiceFeature } from './features/control/bridge
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
+import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
 
 // Exposed for the lightweight Node contract test and browser diagnostics.
 window.RobotLidarSourceIdentity = LidarSourceIdentity;
@@ -375,6 +376,7 @@ let cameraPrimarySourceId = '';
 let cameraSecondarySourceId = '';
 let cameraSlotRuntimes = null;
 const cameraDemandController = createCameraDemandController({ onDemandChange: syncCameraTransport });
+const perceptionClient = createPerceptionClient({ api });
 let cloudSeq = -1;
 let pointcloudLastFrameAt = 0;
 let cockpitPointcloudSessionStartedAt = 0;
@@ -607,7 +609,7 @@ if (navigationScene3d) {
 }
 
 const cockpitWorkspace = initializeCockpitWorkspace({
-  Renderer: window.RobotScene3D, maxPoints: 10000, api, cameraDemand: cameraDemandController, gamepadProvider: selectedControlGamepad, navigationEngine, getMapSnapshot: () => ({ mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), navigation: navigationSnapshot, robotRadius: Number(navigationParameterSnapshot?.values?.robot_radius) || 0.22 }), getNavigationSnapshot: () => ({ navigation: navigationSnapshot, navigationActive: navigationEngine?.pipelineActive(navigationSnapshot) || navigationEngine?.goalActive(navigationSnapshot), navigationAvailable: navigationApiAvailable, operationBusy: navigationOperationBusy, mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, mapCells: navigationMapCells, maps: navigationMapCandidates(), parameters: navigationParameterSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), logs: navigationLogFeature?.snapshot?.(), control: controlSnapshot, localLeaseId: controlLeaseId, command: controlLastCommand }), navigationActions: { start: startNavigation, stop: stopNavigation, cancel: cancelNavigationGoal, clear: clearNavigationCostmaps, selectMap: (id) => { const selected = navigationMapCandidates().find((entry) => entry.id === id); return selected ? loadNavigationMap(selected) : false; }, pose: (mode, pose) => { navigationStagedPose = { mode, ...pose }; return sendNavigationPose(); }, annotationGoal: (id) => mapAnnotationFeature?.sendGoal?.(id) },
+  Renderer: window.RobotScene3D, maxPoints: 10000, api, cameraDemand: cameraDemandController, perception: perceptionClient, gamepadProvider: selectedControlGamepad, navigationEngine, getMapSnapshot: () => ({ mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), navigation: navigationSnapshot, robotRadius: Number(navigationParameterSnapshot?.values?.robot_radius) || 0.22 }), getNavigationSnapshot: () => ({ navigation: navigationSnapshot, navigationActive: navigationEngine?.pipelineActive(navigationSnapshot) || navigationEngine?.goalActive(navigationSnapshot), navigationAvailable: navigationApiAvailable, operationBusy: navigationOperationBusy, mapMeta: navigationSelectedMapMeta, map: navigationMapSnapshot, mapCells: navigationMapCells, maps: navigationMapCandidates(), parameters: navigationParameterSnapshot, annotations: mapAnnotationFeature?.snapshot?.(), logs: navigationLogFeature?.snapshot?.(), control: controlSnapshot, localLeaseId: controlLeaseId, command: controlLastCommand }), navigationActions: { start: startNavigation, stop: stopNavigation, cancel: cancelNavigationGoal, clear: clearNavigationCostmaps, selectMap: (id) => { const selected = navigationMapCandidates().find((entry) => entry.id === id); return selected ? loadNavigationMap(selected) : false; }, pose: (mode, pose) => { navigationStagedPose = { mode, ...pose }; return sendNavigationPose(); }, annotationGoal: (id) => mapAnnotationFeature?.sendGoal?.(id) },
   getControllerSnapshot: () => ({ speedScale: Number(controlUi.speed.value) / 100, speedScaleRange: controlSnapshot?.limits?.speed_scale, leaseSource: controlLeaseSource || controlSnapshot?.lease?.source, lastControlFrameAt }), getSafetySnapshot: () => ({ state: latestState, stateUpdatedAt: latestStateAt, control: controlSnapshot, controlUpdatedAt: controlSnapshotAt, locallyArmed: Boolean(controlLeaseId), command: controlLastCommand, speedScale: Number(controlUi.speed.value) / 100, controlGeneration: controlArmGeneration,
     navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable }),
   onGamepadUiZeroIntent: () => failSafeDisarm('cockpit_gamepad_ui_zero'), onGamepadDisconnect: () => { if (controlLeaseSource === 'gamepad') failSafeDisarm('gamepad_disconnected', { notify: true }); }, onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onPointBudgetRequest: (budget) => applyLivePointLimit(budget, false), onError: (error) => console.warn('Cockpit scene:', error),
@@ -6820,6 +6822,8 @@ window.addEventListener('resize', () => {
 });
 
 startClock();
+bindSensorPerception(perceptionClient, getCameraSlots);
+perceptionClient.start();
 initializeCameraMediaControls();
 initializeCameraStreams();
 datasetFeature = createDatasetFeature({ showToast });

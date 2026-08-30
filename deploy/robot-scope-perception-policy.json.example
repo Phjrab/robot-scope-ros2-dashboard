@@ -1,0 +1,24 @@
+{
+  "schema_version": "robot-scope.perception-policy/v1",
+  "source_id": "go2-internal-realsense",
+  "models": [
+    {
+      "task": "lane",
+      "model_id": "replace-with-approved-model-id",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "backend": "tensorrt",
+      "input_width": 640,
+      "input_height": 480,
+      "classes": []
+    },
+    {
+      "task": "object",
+      "model_id": "replace-with-approved-model-id",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "backend": "tensorrt",
+      "input_width": 640,
+      "input_height": 480,
+      "classes": ["replace-with-model-class"]
+    }
+  ]
+}

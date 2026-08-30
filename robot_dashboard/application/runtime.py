@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from ..dataset_capture import DatasetCaptureManager
     from ..diagnostics import DiagnosticsBundleService
     from ..operator_events import OperatorEventTimeline
+    from ..perception import PerceptionBridgeClient
     from ..ros_agent import RosAgent
     from ..saved_maps import SavedMapCatalog
     from .lifecycle_coordinator import LifecycleCoordinator
@@ -38,6 +39,7 @@ class ApplicationRuntime:
     lifecycle: LifecycleCoordinator | None = None
     operator_events: OperatorEventTimeline | None = None
     diagnostics: DiagnosticsBundleService | None = None
+    perception: PerceptionBridgeClient | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)

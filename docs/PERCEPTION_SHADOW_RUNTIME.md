@@ -3,9 +3,10 @@
 ## Status and boundary
 
 WP03 adds a standalone, observation-only runtime for the Go2-mounted Jetson.
-It does not add a dashboard result API; that belongs to WP04. It has no ROS,
+WP04 adds one separately allowlisted, read-only result snapshot endpoint. It has no ROS,
 motion, lease, control-key, model-upload or shell-command surface. The local
-health endpoint is fixed to `127.0.0.1:8091/health` and accepts GET only.
+health endpoint is fixed to `127.0.0.1:8091/health`. The result endpoint binds
+one exact private address at port 8092 and accepts GET from one exact peer only.
 
 The software boundary is:
 
@@ -18,7 +19,8 @@ D435i color device
                  -> independent Lane worker
                  -> independent Object worker
                  -> optional Depth SUMMARY worker
-            -> loopback health only
+            -> loopback health
+            -> fixed-peer `/api/v1/perception/snapshot` (read only)
 ```
 
 The relay attaches a per-process source epoch, source sequence and the
@@ -70,6 +72,7 @@ Required manifest shape:
   "source_model_sha256": "<64 lowercase hexadecimal characters>",
   "output_adapter": "lane_v1",
   "input": {"width": 640, "height": 480, "color": "RGB"},
+  "classes": [],
   "target": {"machine": "aarch64", "jetpack": "R35.3.1", "tensorrt": "8.5.2.2"}
 }
 ```
@@ -78,6 +81,10 @@ The loader rejects symlinks, path traversal, unknown schemas/tasks/backends,
 oversize files, artifact hash mismatch and target/runtime mismatch. TensorRT
 metadata is accepted only when it exactly matches the target where the engine
 was built. WP03 does not silently fall back from TensorRT to ONNX.
+Object manifests require a bounded `classes` list; the runtime derives
+`class_name` only from that immutable list. Lane and depth manifests require
+an empty list. The lane adapter consumes six values: normalized lateral error,
+heading, curvature, left-visible, right-visible and confidence.
 
 The TensorRT 8.x adapter uses the target's fixed CUDA runtime library and does
 not require PyCUDA or cuda-python. It accepts exactly one FP32 NCHW input with

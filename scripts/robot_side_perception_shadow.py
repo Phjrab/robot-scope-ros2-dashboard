@@ -32,6 +32,8 @@ from typing import Any, Callable, Mapping, Optional, Protocol, Sequence
 
 MODEL_SCHEMA = "robot-scope.perception-model/v1"
 HEALTH_SCHEMA = "robot-scope.perception-shadow-health/v1"
+RESULT_SCHEMA = "robot-scope.perception-result/v1"
+SNAPSHOT_SCHEMA = "robot-scope.perception-snapshot/v1"
 RUNTIME_MODE = "SHADOW"
 MODEL_ROOT = Path("/var/lib/robot-scope/perception/models")
 ALLOWED_TASKS = frozenset({"lane", "object", "depth_summary"})
@@ -39,6 +41,8 @@ ALLOWED_BACKENDS = frozenset({"onnx", "tensorrt"})
 ALLOWED_POINTCLOUD_MODES = frozenset({"OFF", "SUMMARY"})
 ALLOWED_RESOLUTIONS = frozenset({(320, 240), (640, 480), (1280, 720)})
 NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\Z")
+CLASS_NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_. -]{0,63}\Z")
+BOOT_ID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f-]{27,35}\Z")
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 MAX_FRAME_BYTES = 4 * 1024 * 1024
 MAX_MANIFEST_BYTES = 64 * 1024
@@ -54,6 +58,9 @@ SOURCE_HEADER_BYTES = 8192
 SOURCE_HEADER_LINES = 16
 HEALTH_BIND_HOST = "127.0.0.1"
 HEALTH_PORT = 8091
+RESULT_PORT = 8092
+RESULT_PATH = "/api/v1/perception/snapshot"
+RESULT_SOURCE_ID = "go2-internal-realsense"
 PRIVATE_NETWORKS = (
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
@@ -69,6 +76,16 @@ class ShadowSetupError(RuntimeError):
         self.code = code
         self.message = message
         super().__init__(f"{code}: {message}")
+
+
+def _boot_id() -> str:
+    try:
+        value = Path("/proc/sys/kernel/random/boot_id").read_text(encoding="ascii").strip().lower()
+    except (OSError, UnicodeError) as exc:
+        raise ShadowSetupError("BOOT_ID_UNAVAILABLE", "kernel boot identity is unavailable") from exc
+    if not BOOT_ID_PATTERN.fullmatch(value):
+        raise ShadowSetupError("BOOT_ID_UNAVAILABLE", "kernel boot identity is invalid")
+    return value
 
 
 def _redacted_error(value: object) -> str:
@@ -143,6 +160,7 @@ class ModelManifest:
     input_width: int
     input_height: int
     input_color: str
+    classes: tuple[str, ...]
     target: RuntimeIdentity
 
     @classmethod
@@ -207,6 +225,16 @@ class ModelManifest:
         color = str(input_contract.get("color", "")).upper()
         if (width, height) not in ALLOWED_RESOLUTIONS or color not in {"RGB", "BGR"}:
             raise ShadowSetupError("INVALID_MANIFEST", "input profile is not allowlisted")
+        raw_classes = payload.get("classes", ())
+        if not isinstance(raw_classes, Sequence) or isinstance(raw_classes, (str, bytes)):
+            raise ShadowSetupError("INVALID_MANIFEST", "model classes must be a bounded list")
+        classes = tuple(str(item) for item in raw_classes)
+        if len(classes) > 256 or any(not CLASS_NAME_PATTERN.fullmatch(item) for item in classes):
+            raise ShadowSetupError("INVALID_MANIFEST", "model classes are invalid")
+        if task == "object" and not classes:
+            raise ShadowSetupError("INVALID_MANIFEST", "object model classes are required")
+        if task != "object" and classes:
+            raise ShadowSetupError("INVALID_MANIFEST", "classes are only valid for object models")
         target = RuntimeIdentity(
             str(target_contract.get("machine", "")).lower(),
             str(target_contract.get("jetpack", ""))[:32],
@@ -238,6 +266,7 @@ class ModelManifest:
             width,
             height,
             color,
+            classes,
             target,
         )
 
@@ -332,10 +361,13 @@ class LaneEngine:
     @staticmethod
     def validate(result: Mapping[str, object]) -> dict[str, object]:
         return {
-            "lateral_error_m": round(_finite(result.get("lateral_error_m"), minimum=-10, maximum=10), 4),
+            "lateral_error_normalized": round(_finite(result.get("lateral_error_normalized"), minimum=-1, maximum=1), 4),
             "heading_error_rad": round(_finite(result.get("heading_error_rad"), minimum=-math.pi, maximum=math.pi), 4),
-            "curvature_1pm": round(_finite(result.get("curvature_1pm"), minimum=-10, maximum=10), 5),
+            "curvature": round(_finite(result.get("curvature"), minimum=-10, maximum=10), 5),
+            "left_lane_visible": result.get("left_lane_visible") is True,
+            "right_lane_visible": result.get("right_lane_visible") is True,
             "confidence": round(_finite(result.get("confidence"), minimum=0, maximum=1), 4),
+            "reason": str(result.get("reason", ""))[:96],
         }
 
 
@@ -347,8 +379,10 @@ class ObjectEngine:
         raw = result.get("detections", ())
         if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
             raise ValueError("detections must be a bounded sequence")
+        if len(raw) > MAX_DETECTIONS:
+            raise ValueError("detection count exceeds the bound")
         detections = []
-        for item in raw[:MAX_DETECTIONS]:
+        for item in raw:
             if not isinstance(item, Mapping):
                 raise ValueError("detection is not an object")
             box = item.get("box_xyxy")
@@ -357,10 +391,18 @@ class ObjectEngine:
             detections.append(
                 {
                     "class_id": int(_finite(item.get("class_id"), minimum=0, maximum=65535)),
-                    "box_xyxy": [round(_finite(v, minimum=0, maximum=8192), 2) for v in box],
+                    "class_name": str(item.get("class_name", "")),
+                    "x1": round(_finite(box[0], minimum=0, maximum=8192), 2),
+                    "y1": round(_finite(box[1], minimum=0, maximum=8192), 2),
+                    "x2": round(_finite(box[2], minimum=0, maximum=8192), 2),
+                    "y2": round(_finite(box[3], minimum=0, maximum=8192), 2),
                     "confidence": round(_finite(item.get("confidence"), minimum=0, maximum=1), 4),
                 }
             )
+            if not CLASS_NAME_PATTERN.fullmatch(detections[-1]["class_name"]):
+                raise ValueError("detection class name is invalid")
+            if detections[-1]["x2"] <= detections[-1]["x1"] or detections[-1]["y2"] <= detections[-1]["y1"]:
+                raise ValueError("detection coordinates are not ordered")
         return {"detections": detections, "detection_count": len(detections)}
 
 
@@ -375,6 +417,7 @@ class DepthSummaryEngine:
             "right_clearance_m": round(_finite(result.get("right_clearance_m"), minimum=0, maximum=100), 3),
             "obstacle_count": int(_finite(result.get("obstacle_count"), minimum=0, maximum=10000)),
             "ground_confidence": round(_finite(result.get("ground_confidence"), minimum=0, maximum=1), 4),
+            "mode": "SUMMARY",
         }
 
 
@@ -388,21 +431,33 @@ RESULT_VALIDATORS = {
 def _adapt_array_output(manifest: ModelManifest, values: Any) -> Mapping[str, object]:
     if manifest.output_adapter == "lane_v1":
         flat = values.reshape(-1)
-        if flat.size < 4:
+        if flat.size < 6:
             raise ValueError("lane output is incomplete")
         return {
-            "lateral_error_m": flat[0],
+            "lateral_error_normalized": flat[0],
             "heading_error_rad": flat[1],
-            "curvature_1pm": flat[2],
-            "confidence": flat[3],
+            "curvature": flat[2],
+            "left_lane_visible": bool(flat[3] >= 0.5),
+            "right_lane_visible": bool(flat[4] >= 0.5),
+            "confidence": flat[5],
+            "reason": "model_output",
         }
     if manifest.output_adapter == "yolo_xyxy_v1":
         if values.size % 6:
             raise ValueError("object output is not an Nx6 tensor")
-        rows = values.reshape(-1, 6)[:MAX_DETECTIONS]
+        rows = values.reshape(-1, 6)
+        if len(rows) > MAX_DETECTIONS:
+            raise ValueError("object output exceeds the detection bound")
         return {
             "detections": [
-                {"box_xyxy": row[:4].tolist(), "confidence": row[4], "class_id": row[5]}
+                {
+                    "box_xyxy": row[:4].tolist(),
+                    "confidence": row[4],
+                    "class_id": row[5],
+                    "class_name": manifest.classes[int(row[5])]
+                    if 0 <= int(row[5]) < len(manifest.classes)
+                    else "",
+                }
                 for row in rows
             ]
         }
@@ -428,11 +483,17 @@ class InferenceWorker:
         *,
         max_hz: float,
         stale_after_s: float,
+        source_id: str = RESULT_SOURCE_ID,
+        boot_id: str = "00000000-0000-0000-0000-000000000000",
     ) -> None:
         self.hub = hub
         self.adapter = adapter
         self.max_hz = _finite(max_hz, minimum=0.1, maximum=30)
         self.stale_after_s = _finite(stale_after_s, minimum=0.1, maximum=10)
+        if not NAME_PATTERN.fullmatch(source_id) or not BOOT_ID_PATTERN.fullmatch(boot_id):
+            raise ShadowSetupError("INVALID_CONFIG", "result source or boot identity is invalid")
+        self.source_id = source_id
+        self.boot_id = boot_id
         self._stop = threading.Event()
         self._lock = threading.Lock()
         self._thread: Optional[threading.Thread] = None
@@ -476,23 +537,39 @@ class InferenceWorker:
                     self._last_result = None
                     self._last_error = "SOURCE_STALE: frame exceeded the inference age limit"
                 continue
-            started = time.monotonic()
+            started_ns = time.monotonic_ns()
             try:
                 raw = self.adapter.infer(frame)
                 validated = RESULT_VALIDATORS[self.adapter.manifest.task](raw)
-                latency_ms = (time.monotonic() - started) * 1000
+                completed_ns = time.monotonic_ns()
+                latency_ms = (completed_ns - started_ns) / 1e6
+                confidence = validated.get("confidence")
+                if confidence is None and self.adapter.manifest.task == "object":
+                    detections = validated.get("detections", ())
+                    confidence = max(
+                        (float(item["confidence"]) for item in detections),
+                        default=0.0,
+                    )
+                if confidence is None:
+                    confidence = validated.get("ground_confidence", 0.0)
                 observation = {
-                    "mode": RUNTIME_MODE,
+                    "schema_version": RESULT_SCHEMA,
+                    "source_id": self.source_id,
+                    "boot_id": self.boot_id,
+                    "sequence": frame.sequence,
                     "task": self.adapter.manifest.task,
+                    "capture_timestamp": frame.capture_monotonic_ns,
+                    "capture_clock_domain": "robot-monotonic",
+                    "inference_started_at": started_ns,
+                    "inference_completed_at": completed_ns,
                     "model_id": self.adapter.manifest.model_id,
                     "model_sha256": self.adapter.manifest.artifact_sha256,
-                    "result_sequence": frame.sequence,
-                    "source_sequence": frame.source_sequence or frame.sequence,
-                    "source_epoch": frame.source_epoch,
-                    "source_capture_monotonic_ns": frame.capture_monotonic_ns,
-                    "source_clock_domain": "robot-monotonic",
-                    "source_age_s": round(frame.age_s, 4),
-                    "result": validated,
+                    "backend": self.adapter.manifest.backend,
+                    "input_width": self.adapter.manifest.input_width,
+                    "input_height": self.adapter.manifest.input_height,
+                    "result_status": "LIVE",
+                    "confidence": round(_finite(confidence, minimum=0, maximum=1), 4),
+                    "payload": validated,
                 }
                 with self._lock:
                     self._last_result = observation
@@ -643,6 +720,20 @@ class PerceptionRuntime:
             "engines": engines,
             "thermal": thermal,
             "uptime_s": round(time.monotonic() - self._started_at, 1),
+        }
+
+    def result_snapshot(self) -> dict[str, object]:
+        engines = [worker.health() for worker in self.workers]
+        results = [
+            engine["latest_result"]
+            for engine in engines
+            if engine.get("state") == "LIVE" and isinstance(engine.get("latest_result"), Mapping)
+        ]
+        return {
+            "schema_version": SNAPSHOT_SCHEMA,
+            "server_monotonic": time.monotonic_ns(),
+            "mode": RUNTIME_MODE,
+            "results": results,
         }
 
     def stop(self) -> None:
@@ -982,6 +1073,55 @@ class HealthHandler(BaseHTTPRequestHandler):
         return
 
 
+class ResultServer(HTTPServer):
+    allow_reuse_address = False
+    request_queue_size = 4
+
+    def __init__(self, runtime: PerceptionRuntime, host: str, peer: str, port: int):
+        self.runtime = runtime
+        self.allowed_peer = peer
+        super().__init__((host, port), ResultHandler)
+
+
+class ResultHandler(BaseHTTPRequestHandler):
+    server_version = "RobotScopePerceptionResult/1"
+    sys_version = ""
+
+    def do_GET(self) -> None:
+        server = self.server
+        if not isinstance(server, ResultServer):
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+        if self.client_address[0] != server.allowed_peer:
+            self.send_error(HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get("Transfer-Encoding") or self.headers.get("Content-Length", "0") != "0":
+            self.send_error(HTTPStatus.BAD_REQUEST, "request body is not accepted")
+            return
+        if self.path != RESULT_PATH:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        payload = json.dumps(
+            server.runtime.result_snapshot(), allow_nan=False, separators=(",", ":")
+        ).encode("utf-8")
+        if len(payload) > MAX_MANIFEST_BYTES:
+            self.send_error(HTTPStatus.SERVICE_UNAVAILABLE, "result snapshot exceeds limit")
+            return
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def do_POST(self) -> None:
+        self.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+
+    def log_message(self, _fmt: str, *_args: object) -> None:
+        return
+
+
 def _config_integer(values: Mapping[str, str], name: str, default: int, minimum: int, maximum: int) -> int:
     text = str(values.get(name, default))
     if not text.isascii() or not text.isdecimal() or not minimum <= int(text) <= maximum:
@@ -1045,6 +1185,22 @@ def _local_private_ipv4(value: str) -> str:
     return str(address)
 
 
+def _private_ipv4(value: str, *, label: str) -> str:
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError as exc:
+        raise ShadowSetupError("INVALID_CONFIG", f"{label} must be an explicit private IPv4 address") from exc
+    if (
+        not isinstance(address, ipaddress.IPv4Address)
+        or not any(address in network for network in PRIVATE_NETWORKS)
+        or address.is_unspecified
+        or address.is_loopback
+        or address.is_multicast
+    ):
+        raise ShadowSetupError("INVALID_CONFIG", f"{label} must be an explicit private IPv4 address")
+    return str(address)
+
+
 def main(argv: Sequence[str] = ()) -> int:
     if argv:
         print("robot_side_perception_shadow.py accepts no arguments", file=sys.stderr)
@@ -1054,12 +1210,21 @@ def main(argv: Sequence[str] = ()) -> int:
         str(values.get("ROBOT_SCOPE_PERCEPTION_SOURCE_HOST", "")).strip()
     )
     source_port = _config_integer(values, "ROBOT_SCOPE_PERCEPTION_SOURCE_PORT", 8090, 1024, 65535)
+    result_host = _local_private_ipv4(
+        str(values.get("ROBOT_SCOPE_PERCEPTION_RESULT_HOST", source_host)).strip()
+    )
+    result_peer = _private_ipv4(
+        str(values.get("ROBOT_SCOPE_PERCEPTION_RESULT_PEER", "")).strip(),
+        label="result peer",
+    )
+    result_port = _config_integer(values, "ROBOT_SCOPE_PERCEPTION_RESULT_PORT", RESULT_PORT, 1024, 65535)
     width = _config_integer(values, "ROBOT_SCOPE_PERCEPTION_WIDTH", 640, 320, 1280)
     height = _config_integer(values, "ROBOT_SCOPE_PERCEPTION_HEIGHT", 480, 240, 720)
     if (width, height) not in ALLOWED_RESOLUTIONS:
         raise ShadowSetupError("INVALID_CONFIG", "source profile is not allowlisted")
     pointcloud_mode = str(values.get("ROBOT_SCOPE_PERCEPTION_POINTCLOUD_MODE", "OFF")).upper()
     hub = LatestFrameHub()
+    boot_id = _boot_id()
     runtime_identity = RuntimeIdentity.discover()
     workers = []
     seen_tasks = set()
@@ -1083,6 +1248,8 @@ def main(argv: Sequence[str] = ()) -> int:
                 adapter,
                 max_hz=_config_rate(values, manifest.task),
                 stale_after_s=1.0,
+                source_id=RESULT_SOURCE_ID,
+                boot_id=boot_id,
             )
         )
     if pointcloud_mode == "SUMMARY" and "depth_summary" not in seen_tasks:
@@ -1105,15 +1272,24 @@ def main(argv: Sequence[str] = ()) -> int:
     )
     stop = threading.Event()
     server = HealthServer(runtime)
+    result_server = ResultServer(runtime, result_host, result_peer, result_port)
+    result_thread = threading.Thread(
+        target=result_server.serve_forever,
+        kwargs={"poll_interval": 0.25},
+        name="shadow-result-server",
+        daemon=True,
+    )
 
     def request_stop(_signum: int, _frame: object) -> None:
         if not stop.is_set():
             stop.set()
             threading.Thread(target=server.shutdown, daemon=True).start()
+            threading.Thread(target=result_server.shutdown, daemon=True).start()
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
     runtime.start()
+    result_thread.start()
     source_thread = threading.Thread(
         target=source.supervise, args=(runtime, stop), name="shadow-frame-source", daemon=True
     )
@@ -1123,8 +1299,11 @@ def main(argv: Sequence[str] = ()) -> int:
     finally:
         stop.set()
         server.server_close()
+        result_server.shutdown()
+        result_server.server_close()
         runtime.stop()
         source_thread.join(timeout=2.0)
+        result_thread.join(timeout=2.0)
     return 0
 
 

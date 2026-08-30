@@ -68,7 +68,7 @@ if [[ -x "$PROJECT_DIR/.venv/bin/python" ]]; then
 fi
 
 cd "$PROJECT_DIR"
-exec "$PYTHON_BIN" -m robot_dashboard.app \
+DASHBOARD_ARGS=(
   --host 0.0.0.0 \
   --port "$PORT" \
   --robot-ip "$ROBOT_IP" \
@@ -78,3 +78,18 @@ exec "$PYTHON_BIN" -m robot_dashboard.app \
   --source-selection-state "$SOURCE_SELECTION_STATE" \
   --navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR" \
   --profile "$PROJECT_DIR/config/go2.json"
+)
+PERCEPTION_SOURCE_IP="${ROBOT_SCOPE_PERCEPTION_SOURCE_IP:-}"
+PERCEPTION_POLICY="${ROBOT_SCOPE_PERCEPTION_POLICY:-}"
+if [[ -n "$PERCEPTION_SOURCE_IP" || -n "$PERCEPTION_POLICY" ]]; then
+  if [[ -z "$PERCEPTION_SOURCE_IP" || -z "$PERCEPTION_POLICY" || "$PERCEPTION_POLICY" != /* ]]; then
+    echo "[Robot Scope] perception source IP and absolute policy path must be configured together" >&2
+    exit 2
+  fi
+  DASHBOARD_ARGS+=(
+    --perception-source-ip "$PERCEPTION_SOURCE_IP"
+    --perception-result-port "${ROBOT_SCOPE_PERCEPTION_RESULT_PORT:-8092}"
+    --perception-policy "$PERCEPTION_POLICY"
+  )
+fi
+exec "$PYTHON_BIN" -m robot_dashboard.app "${DASHBOARD_ARGS[@]}"

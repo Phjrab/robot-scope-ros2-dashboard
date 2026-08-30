@@ -48,7 +48,7 @@ export function createCockpitWorkspace(options = {}) {
   const mapState = createCockpitMapStore();
   const missionClient = createMissionClient({ api: options.api || (() => Promise.reject(new Error('Mission API unavailable.'))) });
   const navigationAdapter = createCockpitNavigationAdapter({ getSnapshot: () => ({ ...options.getNavigationSnapshot?.(), controller: controllerState.snapshot(), navigationEngine: options.navigationEngine, mission: missionClient.snapshot() }), actions: { ...options.navigationActions, abortMission: () => missionClient.abortActive() } });
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine, missionClient, getMissionContext: options.getNavigationSnapshot }) : null;
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, perception: options.perception, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine, missionClient, getMissionContext: options.getNavigationSnapshot }) : null;
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;

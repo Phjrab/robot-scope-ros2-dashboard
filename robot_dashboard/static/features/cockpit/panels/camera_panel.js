@@ -1,5 +1,6 @@
 import { createCameraPanelView } from './camera_panel_view.js';
 import { projectCameraObservability } from '../../sensors/camera_observability.js';
+import { projectPerceptionOverlay } from '../../perception/result_overlay.js';
 
 export const CAMERA_PANEL_STALE_MS = 3000;
 
@@ -52,6 +53,7 @@ export function projectCameraPanelState(source = {}, lastRenderedAt = 0, now = D
 export function createCameraPanel(options = {}) {
   const descriptor = options.descriptor;
   const demand = options.cameraDemand;
+  const perception = options.perception;
   const documentValue = options.document || globalThis.document;
   const now = options.now || Date.now;
   const setIntervalValue = options.setInterval || globalThis.setInterval?.bind(globalThis);
@@ -67,14 +69,17 @@ export function createCameraPanel(options = {}) {
   let renders = 0;
   let activations = 0;
   let deactivations = 0;
+  let releasePerception = null;
+  let perceptionState = projectPerceptionOverlay({}, descriptor.sourceId, Number.POSITIVE_INFINITY);
 
   function refresh() {
     view?.render(projectCameraPanelState(sourceState, lastRenderedAt, now()));
+    view?.renderPerception?.(perceptionState);
   }
 
   function mount(root) {
     if (destroyed || view) return;
-    view = (options.viewFactory || createCameraPanelView)({ root, document: documentValue, label: descriptor.label });
+    view = (options.viewFactory || createCameraPanelView)({ root, document: documentValue, label: descriptor.label, sourceId: descriptor.sourceId });
     refresh();
   }
 
@@ -96,6 +101,11 @@ export function createCameraPanel(options = {}) {
         refresh();
       },
     });
+    releasePerception = perception?.subscribe?.((snapshot, localAgeMs) => {
+      if (!active) return;
+      perceptionState = projectPerceptionOverlay(snapshot, descriptor.sourceId, localAgeMs);
+      refresh();
+    }) || null;
     timer = setIntervalValue?.(refresh, 500) || 0;
     refresh();
   }
@@ -108,6 +118,9 @@ export function createCameraPanel(options = {}) {
     timer = 0;
     token?.release();
     token = null;
+    releasePerception?.();
+    releasePerception = null;
+    perceptionState = projectPerceptionOverlay({}, descriptor.sourceId, Number.POSITIVE_INFINITY);
     lastRenderedAt = 0;
     view?.clearFrame();
     refresh();

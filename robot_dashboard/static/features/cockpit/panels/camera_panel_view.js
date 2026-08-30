@@ -1,3 +1,5 @@
+import { drawPerceptionOverlay } from '../../perception/result_overlay.js';
+
 function metric(documentValue, label) {
   const item = documentValue.createElement('div');
   const name = documentValue.createElement('span');
@@ -28,10 +30,19 @@ export function createCameraPanelView(options = {}) {
   canvas.width = 1;
   canvas.height = 1;
   canvas.setAttribute('aria-label', `${options.label} 영상`);
+  const perceptionCanvas = documentValue.createElement('canvas');
+  perceptionCanvas.className = 'cockpit-perception-overlay';
+  perceptionCanvas.width = 1;
+  perceptionCanvas.height = 1;
+  perceptionCanvas.setAttribute('aria-label', `${options.label} shadow perception overlay`);
+  const perceptionHud = documentValue.createElement('div');
+  perceptionHud.className = 'cockpit-perception-hud';
+  perceptionHud.dataset.state = 'offline';
+  perceptionHud.textContent = 'SHADOW · OFFLINE';
   const overlay = documentValue.createElement('div');
   overlay.className = 'cockpit-camera-overlay';
   overlay.textContent = 'WAITING FOR FRAME';
-  viewport.append(canvas, overlay);
+  viewport.append(canvas, perceptionCanvas, perceptionHud, overlay);
   const metrics = documentValue.createElement('div');
   metrics.className = 'cockpit-camera-metrics';
   const fps = metric(documentValue, 'FPS');
@@ -64,6 +75,10 @@ export function createCameraPanelView(options = {}) {
       canvas.width = 1;
       canvas.height = 1;
     } else canvas.getContext('2d')?.clearRect(0, 0, 1, 1);
+    if (perceptionCanvas.width !== 1 || perceptionCanvas.height !== 1) {
+      perceptionCanvas.width = 1;
+      perceptionCanvas.height = 1;
+    } else perceptionCanvas.getContext('2d')?.clearRect(0, 0, 1, 1);
   }
 
   function renderFrame(frame) {
@@ -99,10 +114,17 @@ export function createCameraPanelView(options = {}) {
     if (projected.state !== 'LIVE') clearFrame();
   }
 
+  function renderPerception(projected) {
+    drawPerceptionOverlay(perceptionCanvas, canvas, projected);
+    perceptionHud.dataset.state = projected.state.toLowerCase();
+    perceptionHud.textContent = `SHADOW · ${projected.state} · ${projected.model} · S${projected.sequence} · ${projected.age} · ${projected.fps} · ${projected.latency}`;
+    perceptionHud.hidden = options.sourceId && options.sourceId !== 'realsense_color';
+  }
+
   function destroy() {
     clearFrame();
     shell.remove();
   }
 
-  return Object.freeze({ canvas, renderFrame, render, clearFrame, destroy });
+  return Object.freeze({ canvas, renderFrame, render, renderPerception, clearFrame, destroy });
 }
