@@ -250,17 +250,50 @@ the browser viewer closed and did not occur during the continuous dual-camera
 LIVE observation. This is expected for the connected UDP no-listener interval,
 not evidence of RTP corruption.
 
-The Sensors page's `2 화면` control did not switch from its single-camera
-layout during this check even though it appeared enabled. Simultaneous camera
-operation itself passed in Cockpit, but the Sensors dual-view control remains
-an existing UI issue for a later bounded fix.
+The first Sensors-page check found that the `2 화면` control did not switch from
+its single-camera layout even though it appeared enabled. At a 1280-pixel
+browser viewport, the half-width camera panel was about 410 pixels wide while
+the three-column toolbar required about 490 pixels. The primary-camera select
+therefore covered the center of the dual-view button.
+
+Commit `317bbb3` changed the toolbar to two bounded control columns plus a
+separate capacity row and gave the view toggle a 130-pixel minimum width. The
+deployed button center then resolved to `cameraDualMode`, not the overlapping
+select. A real click changed `aria-pressed` to `true`, changed the grid to
+`dual`, exposed the secondary slot, and reported `2 CONNECTED / 2 REQUESTED`.
+Sensors simultaneously showed RealSense **LIVE** at 15.0 FPS and Go2 front
+**LIVE** at 11.3 FPS. This follow-up is **PASS** for the Sensors dual-view fix.
+
+## External-dashboard point-cloud and mapping check
+
+The external dashboard Orin remained in its intentional `offline_viewer` ROS
+transport mode. Its selected `/velodyne_points` descriptor had zero publishers,
+zero samples, and `available=false`; the point-cloud snapshot contained zero
+source and sent points. The Live Mapping page therefore showed `NO POINTCLOUD
+TOPIC`, `0 POINTS`, and ROS data `WAITING`.
+
+A single operator-requested, no-motion `새 맵 시작` check was made after
+confirming no control lease, released deadman, zero velocity command, inactive
+Control Bridge, idle Nav2, and idle Dataset Capture. The allowlisted launcher
+failed closed in less than one second because external-Orin `eno1` does not own
+the required sensor-LAN address `192.168.123.99/24`. Pipeline state became
+`failed` with exit status 1. No FAST-LIO, XT16 bridge, or LiDAR driver process
+remained, no map was saved, and no robot command was sent.
+
+This result is **FAIL** for point-cloud display and mapping on the current
+external wireless dashboard, but **PASS** for the launcher's network preflight
+and cleanup boundary. The narrow wireless transports currently carry camera
+and authenticated control status/commands only; they deliberately do not
+carry arbitrary ROS/DDS or XT16 point-cloud traffic. Restoring mapping requires
+a separately reviewed sensor-data architecture. It must not be worked around
+by silently adding a broad route, NAT, bridge, or DDS router.
 
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
-- Reproduce and fix the Sensors page `2 화면` layout control before treating
-  that page as the supported simultaneous-camera presentation; Cockpit dual
-  view is already validated.
+- Design and validate a bounded wireless XT16/FAST-LIO data path, or explicitly
+  colocate the mapping stack with the sensor, before external-dashboard mapping
+  can be accepted.
 - Resolve or reproduce the one non-recurring runtime robot-target change from
   the first Wi-Fi fault attempt before relying on unattended fault recovery.
 - Keep abrupt Bridge-process-loss testing motion-free until a separately
@@ -304,6 +337,8 @@ an existing UI issue for a later bounded fix.
   read Linux-only `/etc/os-release`, which is absent on the macOS test host.
   No test or assertion was removed or weakened.
 - Targeted fixed Go2 RTP relay tests: 17 passed, 0 failed.
+- Targeted camera media/layout tests after the Sensors fix: 18 passed, 0
+  failed.
 - Targeted wireless control tests: 69 passed across datagram, dashboard
   transport, lifecycle, Bridge core, Foxy boot scripts, and public API
   projection.
