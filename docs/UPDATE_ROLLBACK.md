@@ -40,6 +40,8 @@ stash나 강제 checkout으로 숨기지 말고, 변경 내용을 호스트별 �
 - 설치된 systemd unit과 sudoers 파일의 검증된 사본
 - `/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py`와
   `/etc/systemd/system/robot-scope-realsense-camera.service`의 검증된 사본 및 enable 상태
+- `/usr/local/libexec/robot-scope/go2_camera_rtp_relay.py`와
+  `/etc/systemd/system/robot-scope-go2-camera-relay.service`의 검증된 사본 및 enable 상태
 
 키와 토큰 백업은 암호 관리 도구나 접근 제한 저장소를 사용합니다. Git, issue, CI artifact에
 올리지 않습니다. 지도와 데이터셋 백업은 원본을 덮어쓰지 않고 날짜가 있는 읽기 전용
@@ -103,6 +105,23 @@ Dashboard의 `ROBOT_SCOPE_REALSENSE_RELAY_HOST`는 같은 relay 주소를 가리
 `enable --now`는 restart 대체 명령이 아니며, 실행과 함께 다음 부팅의 자동 시작까지
 활성화합니다. 공용 개발 host의 manual-only 정책은 `disabled`를 유지하고 `systemctl start`로
 현재 세션만 시작합니다. 전용 relay host로 합의한 경우에만 `enable --now`를 사용합니다.
+
+Go2 camera relay도 Git checkout과 root-owned 실행 파일이 분리됩니다. 업데이트 전
+enable/active 상태를 기록하고 두 고정 파일을 설치한 뒤 `daemon-reload`합니다. 이전에
+active였을 때만 restart하고, manual-only unit을 enable하지 않습니다.
+
+~~~bash
+systemctl is-enabled robot-scope-go2-camera-relay.service
+systemctl is-active robot-scope-go2-camera-relay.service
+sudo install -o root -g root -m 0755 scripts/go2_camera_rtp_relay.py \
+  /usr/local/libexec/robot-scope/go2_camera_rtp_relay.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-go2-camera-relay.service.example \
+  /etc/systemd/system/robot-scope-go2-camera-relay.service
+sudo systemctl daemon-reload
+# 업데이트 전 active였을 때만 실행
+sudo systemctl restart robot-scope-go2-camera-relay.service
+~~~
 
 ## 재시작 후 스모크 테스트
 
@@ -193,6 +212,19 @@ systemctl is-active robot-scope-realsense-camera.service
 마지막 두 명령은 제거 후 각각 `not-found`, `inactive`를 보고 비정상 종료 코드를 반환하는
 것이 예상됩니다. 다른 파일이 남아 있거나 다른 이름의 drop-in/unit이 서비스를 다시
 활성화하지 않는지도 `systemctl status`로 확인합니다.
+
+Go2 camera relay를 제거할 때도 다른 relay, dashboard, 지도와 control 파일을 건드리지 않고
+다음 두 고정 파일만 대상으로 합니다.
+
+~~~bash
+sudo systemctl disable --now robot-scope-go2-camera-relay.service
+sudo systemctl reset-failed robot-scope-go2-camera-relay.service
+sudo rm -f /etc/systemd/system/robot-scope-go2-camera-relay.service
+sudo rm -f /usr/local/libexec/robot-scope/go2_camera_rtp_relay.py
+sudo systemctl daemon-reload
+systemctl is-enabled robot-scope-go2-camera-relay.service
+systemctl is-active robot-scope-go2-camera-relay.service
+~~~
 
 ## 롤백 완료 기준
 

@@ -1,0 +1,50 @@
+[Unit]
+Description=Robot Scope fixed Go2 camera RTP relay
+Wants=network-online.target
+After=network-online.target
+# A cold boot can expose network-online before eth0 and wlan0 own their fixed
+# addresses. Keep a finite delay between retries until the links return.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/
+ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/go2_camera_rtp_relay.py
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=3
+
+# The relay uses ordinary UDP sockets only. It needs no network administration,
+# raw packet access, camera device, ROS, DDS, shell, filesystem write or root.
+CapabilityBoundingSet=
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET
+
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+LimitNOFILE=32
+
+[Install]
+WantedBy=multi-user.target

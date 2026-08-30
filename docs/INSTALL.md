@@ -169,6 +169,36 @@ sudo systemctl start robot-scope-realsense-camera.service
 잘못된 bind 주소로 인한 영구 재시작을 막기 위해 service는 60초 동안 5회 실패하면 추가
 재시작을 중단합니다. 주소를 수정한 뒤 `reset-failed`하고 다시 수동 시작하세요.
 
+### 완전 무선 Go2 내장 카메라 relay
+
+이 절차는 탑재 Jetson이 `eth0=192.168.123.18`, `wlan0=192.168.50.30`을 소유하고 외부
+dashboard가 `192.168.50.10`을 소유하는 검증된 배선에만 적용합니다. 주소를 일반화하거나
+환경 파일로 바꾸지 않습니다. 다른 배선은 코드와 packet contract를 별도 review해야 합니다.
+
+탑재 Jetson의 검증된 checkout에서 실행 파일과 unit을 root-owned 고정 경로에 설치합니다.
+설치는 service를 자동 시작하거나 다음 부팅에 enable하지 않습니다.
+
+~~~bash
+sudo install -d -o root -g root -m 0755 /usr/local/libexec/robot-scope
+sudo install -o root -g root -m 0755 scripts/go2_camera_rtp_relay.py \
+  /usr/local/libexec/robot-scope/go2_camera_rtp_relay.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-go2-camera-relay.service.example \
+  /etc/systemd/system/robot-scope-go2-camera-relay.service
+sudo systemctl daemon-reload
+sudo systemctl disable robot-scope-go2-camera-relay.service
+sudo systemctl start robot-scope-go2-camera-relay.service
+systemctl is-enabled robot-scope-go2-camera-relay.service
+systemctl is-active robot-scope-go2-camera-relay.service
+~~~
+
+기대값은 `disabled`와 `active`입니다. Sensors에서 Go2 panel을 열어 실제 `LIVE`, JPEG frame,
+FPS를 확인한 뒤 viewer를 닫습니다. Relay는 원본 RTP를 재인코딩하지 않으며 dashboard의
+기존 고정 Go2 GStreamer receiver를 그대로 사용합니다. service 로그의 `accepted`,
+`forwarded`, `rejected`, sequence loss를 함께 확인하세요. `send_errors`는 dashboard에서
+viewer가 없어 UDP port가 닫힌 동안 발생할 수 있으므로 패널이 열린 구간의 실제 LIVE와
+연속 sequence를 성공 기준으로 사용합니다.
+
 ### 완전 무선 Control Bridge 설치
 
 이 절차는 외부 Orin `192.168.50.10`, 탑재 Jetson `192.168.50.30`, 탑재 Jetson의 Go2

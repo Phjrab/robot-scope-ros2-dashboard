@@ -12,7 +12,7 @@ Robot Scope는 브라우저, dashboard/ROS 호스트, 로봇과 센서가 서로
 | Dashboard/ROS host | `robot-scope.service`, ROS subscriptions | 센서 DDS와 지도 파일에 직접 접근 |
 | Control host | `robot-scope-control-bridge.service` | 보통 dashboard host와 동일 |
 | Mapping/Nav host | Hesai driver, bridge, FAST-LIO, Nav2 | 보통 dashboard host와 동일 |
-| Optional relay host | XT16 relay, RealSense MJPEG relay | 해당 센서가 실제 연결된 호스트에서만 실행 |
+| Optional relay host | XT16 relay, RealSense MJPEG relay, fixed Go2 camera RTP relay | 해당 센서가 실제 연결된 호스트에서만 실행 |
 | Go2 | 제조사 DDS와 카메라 송신 | 전용 유선망 사용 |
 | XT16 | UDP point packets | 목적지는 현장 설정에 따름 |
 
@@ -62,6 +62,26 @@ Browser management LAN <---------- same-origin camera WS ---+
 받기 전에는 `/health`의 `idle`이나 Dashboard catalog만으로 영상 경로가 정상이라고 판정하지
 않습니다.
 
+외부 dashboard가 Go2 전용망을 직접 소유하지 않는 현재 무선 구성에서는
+`robot-scope-go2-camera-relay.service`가 Go2의 고정 `230.1.1.1:1720` H.264 RTP만
+검증하여 `192.168.50.10:1720`으로 단방향 복제합니다. 입력은
+`eth0=192.168.123.18`, 송신은 `192.168.50.30:46120`, 목적지는
+`192.168.50.10:1720`으로 코드에 고정됩니다. HTTP, 환경 변수와 명령행으로 주소·포트·NIC를
+바꿀 수 없고 RTP v2, payload type 96, H.264 NAL 구조 및 Go2 source IP가 맞지 않는
+datagram은 전달하지 않습니다.
+
+~~~text
+Go2 230.1.1.1:1720 -- eth0/.123.18 fixed RTP validator
+                                      |
+                                      +-- wlan0/.50.30:46120
+                                              |
+                                              +--> .50.10:1720 Dashboard GStreamer
+~~~
+
+이 서비스는 route, NAT, Linux bridge, multicast forwarder, DDS/ROS relay 또는 control
+transport가 아닙니다. 관리망으로 내보내는 것은 검증된 카메라 RTP datagram뿐입니다. 현재
+수동 운영 정책에서는 unit을 disabled로 유지하고 카메라 사용 세션에만 start합니다.
+
 ## 로봇 탑재 Jetson 관리 링크의 유선→무선 전환
 
 로봇 탑재 Jetson의 관리 주소는 Go2 본체 주소가 아닙니다. 임시 유선 관리 링크를 무선
@@ -75,10 +95,11 @@ Browser management LAN <---------- same-origin camera WS ---+
 | Go2/센서 전용망 | `192.168.123.0/24` 참조 계약 | DDS·센서 경로를 관리 Wi-Fi에 암묵적으로 합치지 않음 |
 
 무선 전환 때는 먼저 새 NIC가 관리 주소를 소유하고 dashboard host에서 relay host에
-도달하는지 확인한 뒤 RealSense의 세 host 설정만 교체합니다. Go2 multicast/DDS를 Wi-Fi로
-옮기거나 라우팅·브리지를 추가하는 작업은 별도 설계와 control fail-closed 검증 없이는
-수행하지 않습니다. DHCP를 사용한다면 주소 예약 또는 운영자가 확인 가능한 고정 lease를
-사용하고, 주소가 바뀐 상태에서 이전 대상에 자동 연결하지 않습니다.
+도달하는지 확인한 뒤 RealSense의 세 host 설정만 교체합니다. Go2 DDS를 Wi-Fi로 옮기거나
+라우팅·브리지를 추가하지 않습니다. Go2 카메라가 필요한 경우에만 위에서 정의한 고정 RTP
+relay를 별도 설치하며 범용 multicast forwarding으로 확장하지 않습니다. DHCP를 사용한다면
+주소 예약 또는 운영자가 확인 가능한 고정 lease를 사용하고, 주소가 바뀐 상태에서 이전
+대상에 자동 연결하지 않습니다.
 
 2026-08-30 현장 구성에서 탑재 Jetson은 `wlan0=192.168.50.30/24`와
 `eth0=192.168.123.18/24`를 동시에 소유합니다. `wlan0`만 기본 경로를 가지며 `eth0`에는

@@ -172,6 +172,23 @@ gst-inspect-1.0 avdec_h264
 - GStreamer good/bad/libav plugins가 설치되어 있는지 확인합니다.
 - multicast 경로가 관리 LAN으로 잘못 라우팅되지 않았는지 확인합니다.
 
+외부 dashboard가 Go2 전용 `192.168.123.0/24` NIC를 소유하지 않는 완전 무선 구성에서는
+범용 route나 multicast bridge를 추가하지 말고 고정 카메라 relay를 확인합니다.
+
+~~~bash
+systemctl status robot-scope-go2-camera-relay.service --no-pager
+systemctl is-enabled robot-scope-go2-camera-relay.service
+systemctl is-active robot-scope-go2-camera-relay.service
+journalctl -u robot-scope-go2-camera-relay.service -n 80 --no-pager
+~~~
+
+수동 정책의 기대값은 `disabled`와 카메라 사용 중 `active`입니다. 로그에서 source가
+`192.168.123.161`, 입력이 `230.1.1.1:1720`, 고정 목적지가 `192.168.50.10:1720`인지
+확인합니다. `captured=accepted`이고 sequence loss와 rejection이 0인데 Dashboard가
+`WAITING`이면 외부 host에서 UDP 1720 listener, `ROBOT_SCOPE_CAMERA_INTERFACE=eno1`, 방화벽
+및 동일 포트를 먼저 확인합니다. relay 검사를 위해 Go2 본체 IP, DDS interface 또는 control
+target을 `.50.30`으로 바꾸지 않습니다.
+
 RealSense만 보이지 않으면 로봇 탑재 Jetson에서 다음을 확인합니다.
 
 ~~~bash
