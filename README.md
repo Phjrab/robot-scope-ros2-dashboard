@@ -29,6 +29,7 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 | [Cockpit 통합 Acceptance](docs/COCKPIT_ACCEPTANCE.md) | software evidence, 성능·soak·hardware 결과와 P0 |
 | [AI 데이터셋](docs/AI_DATASET.md) | 듀얼 카메라 서버 수집, 저장 구조, 라벨링과 YOLO/UFLD 배포 판단 |
 | [업데이트/롤백](docs/UPDATE_ROLLBACK.md) | 지도·상태 보존, fast-forward update와 안전 롤백 |
+| [대회 release runbook](docs/WP08_RELEASE_LOCK_ROLLBACK_RUNBOOK.md) | offline bundle, Competition Lock, 시작·종료와 commit/model rollback |
 | [하드웨어 인수 검증](docs/HARDWARE_ACCEPTANCE.md) | 읽기 전용 Jetson/Go2/XT16 점검, 감독 시나리오와 fail-stop 보고서 |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | 포함된 공식 robot model의 출처와 라이선스 |
 

@@ -4,6 +4,11 @@ Robot Scope 업데이트는 소스만 바꾸는 작업이 아닙니다. Python �
 외부 ROS workspace와 지도 runtime 상태가 함께 영향을 받을 수 있습니다. 실제 경기나
 주행 직전에는 업데이트하지 말고 검증 시간을 확보하세요.
 
+Competition Lock이 켜진 고정 release에서는 아래 fast-forward 업데이트 절차를 실행하지
+않습니다. 대회용 offline package, 시작/종료 체크리스트와 commit/model 단위 복구는
+[WP08 release runbook](WP08_RELEASE_LOCK_ROLLBACK_RUNBOOK.md)을 따릅니다. 잠금을 해제했다고
+해서 업데이트, 설치 또는 서비스 재구성이 자동 승인되는 것은 아닙니다.
+
 ## 업데이트 전 조건
 
 1. 로봇을 안전하게 정지하고 물리 리모컨을 확보합니다.

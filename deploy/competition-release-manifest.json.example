@@ -1,0 +1,53 @@
+{
+  "schema_version": "robot-scope.competition-release/v1",
+  "release_id": "competition-20260830-r1",
+  "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "dashboard_version": "competition-20260830-r1",
+  "robot_side_agent_version": "competition-20260830-r1",
+  "schema_versions": {
+    "competition_state": "robot-scope.competition-state/v1",
+    "hardware_acceptance": "robot-scope.hardware-acceptance/v1",
+    "model_registry": "robot-scope.model-registry/v1",
+    "perception_result": "robot-scope.perception-result/v1"
+  },
+  "active_model_ids": {
+    "object": "object-competition-v1"
+  },
+  "active_model_sha256": {
+    "object": {
+      "package_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "engine_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  },
+  "previous_model_ids": {
+    "object": "object-competition-v0"
+  },
+  "previous_model_sha256": {
+    "object": {
+      "package_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "engine_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  },
+  "jetpack_tensorrt_identity": {
+    "platform": "go2-internal-jetson",
+    "jetpack_version": "5.1.2",
+    "tensorrt_version": "8.5.2",
+    "gpu_identity": "NVIDIA-Orin-NX"
+  },
+  "camera_profile": {
+    "go2": "rtp-h264-640x480",
+    "realsense": "mjpeg-640x480-30"
+  },
+  "network_config_fingerprint": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "ros": {
+    "distro": "humble",
+    "rmw": "rmw_cyclonedds_cpp",
+    "domain_id": 0
+  },
+  "map_revision": "arena-map-r1",
+  "mission_revision": "competition-mission-r1",
+  "acceptance_report_ids": [
+    "acceptance-20260830-r1"
+  ],
+  "created_at": "2026-08-30T10:00:00.000Z"
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "practice-20260830-001",
+  "release_id": "competition-20260830-r1",
+  "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "model_ids": {
+    "object": "object-competition-v1"
+  },
+  "mode": "SHADOW",
+  "start": "2026-08-30T10:00:00.000Z",
+  "end": "2026-08-30T10:20:00.000Z",
+  "network_summary": "redacted-management-link-stable",
+  "camera_summary": "go2-live-realsense-live",
+  "perception_summary": "shadow-fresh-no-authority",
+  "max_temperature_c": 68.0,
+  "throttling": "none-observed",
+  "dataset_session": "none",
+  "operator": "operator-id",
+  "result": "completed",
+  "stop_failure_reason": "normal-completion"
+}
