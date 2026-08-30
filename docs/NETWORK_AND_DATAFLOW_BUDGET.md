@@ -114,6 +114,10 @@ freshness and service stability must pass in the same test interval.
 
 ## Test matrix
 
+실제 측정 절차와 기록 양식은
+[LINK_OBSERVABILITY_VALIDATION.md](LINK_OBSERVABILITY_VALIDATION.md)를 사용합니다.
+그 절차는 로봇 동작이나 `iperf`를 자동 시작하지 않습니다.
+
 | ID | Camera | AI | PointCloud | Control/status | Purpose |
 | --- | --- | --- | --- | --- | --- |
 | A | off | off | off | off | Wi-Fi baseline |

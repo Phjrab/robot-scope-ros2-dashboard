@@ -12,6 +12,11 @@ test('camera panel projection replaces an aged frame with an explicit stale over
   assert.equal(live.state, 'LIVE');
   assert.equal(live.overlay, '');
   assert.equal(live.resolution, '640×480');
+  assert.match(live.wifi, /^UNVERIFIED/);
+  assert.match(live.source, /^UNVERIFIED/);
+  assert.match(live.receive, /Mb/);
+  assert.match(live.decode, /^OK 0 · FAIL 0 · DROP 0 · Q0$/);
+  assert.equal(live.clock, 'UNVERIFIED_CLOCK_DOMAIN');
   const stale = projectCameraPanelState(source, 10_000, 10_000 + CAMERA_PANEL_STALE_MS + 1);
   assert.equal(stale.state, 'STALE');
   assert.match(stale.overlay, /^STALE/);
@@ -71,4 +76,34 @@ test('camera panel implementation owns no socket or decoder transport', async ()
   const source = await import('node:fs/promises').then((fs) => fs.readFile(new URL('../robot_dashboard/static/features/cockpit/panels/camera_panel.js', import.meta.url), 'utf8'));
   assert.doesNotMatch(source, /new\s+WebSocket|VideoDecoder|fetch\s*\(/);
   assert.doesNotMatch(source, /dataset|capture/i);
+});
+
+test('camera panel projects relay, transport and browser decode observability', () => {
+  const projected = projectCameraPanelState({
+    connection: 'live',
+    state: 'ok',
+    metadata: {
+      state: 'ok',
+      receive_fps: 14.8,
+      receive_bitrate_mbps: 4.125,
+      cross_host_latency_state: 'UNVERIFIED_CLOCK_DOMAIN',
+      relay_health: {
+        state: 'streaming',
+        fps: 15,
+        last_frame_age_s: 0.12,
+        wifi: { state: 'LIVE', rssi_dbm: -54, link_mbps: 433.3 },
+      },
+      browser_decode: {
+        decodedFrames: 20,
+        decodeFailures: 1,
+        supersededFrames: 3,
+        queueDepth: 1,
+      },
+    },
+  }, 10_000, 10_100);
+  assert.match(projected.wifi, /LIVE · RSSI -54 dBm · LINK 433\.3 Mbps/);
+  assert.match(projected.source, /LIVE · 15\.0 FPS · AGE 0\.12s/);
+  assert.equal(projected.receive, '4.125 Mbps · 14.8 FPS · R0');
+  assert.equal(projected.decode, 'OK 20 · FAIL 1 · DROP 3 · Q1');
+  assert.equal(projected.clock, 'UNVERIFIED_CLOCK_DOMAIN');
 });

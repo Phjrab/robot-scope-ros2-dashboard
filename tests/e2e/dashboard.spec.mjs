@@ -46,6 +46,20 @@ test('camera and pointcloud reconnect, then release transports on page switch', 
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(1);
 });
 
+test('Sensors camera observability shows Wi-Fi, source, transport, decode and clock domain', async ({ page }) => {
+  await openDashboard(page, {}, 'sensors');
+  await page.locator('#cameraPrimarySource').selectOption('realsense_color');
+  await expect(page.locator('#cameraWifiStatus')).toHaveText('LIVE');
+  await expect(page.locator('#cameraWifiDetail')).toContainText('-54 dBm');
+  await expect(page.locator('#cameraSourceHealthStatus')).toHaveText('LIVE');
+  await expect(page.locator('#cameraSourceHealthDetail')).toContainText('640×480');
+  await expect(page.locator('#cameraTransportHealthStatus')).toHaveText('LIVE');
+  await expect(page.locator('#cameraTransportHealthDetail')).toContainText('4.125 Mbps');
+  await expect(page.locator('#cameraDecodeHealthStatus')).toHaveText('LIVE');
+  await expect(page.locator('#cameraDecodeHealthDetail')).toContainText('OK ');
+  await expect(page.locator('#cameraLatencyDomain')).toContainText('UNVERIFIED_CLOCK_DOMAIN');
+});
+
 test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   await expect(page.locator('#cockpitWorkspace')).toBeVisible();
@@ -458,6 +472,10 @@ test('Cockpit camera panels share catalog-owned streams through dual open, focus
   const realsense = page.locator('[data-panel-id="camera-realsense-color"]');
   await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
   await expect(realsense.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('ROBOT WI-FI');
+  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('LIVE · RSSI -54 dBm');
+  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('4.125 Mbps · 14.8 FPS');
+  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('UNVERIFIED_CLOCK_DOMAIN');
   await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(1);
   await expect.poll(() => backend.state.cameraConnectionsBySource.realsense_color).toBe(1);
   await go2Button.click();

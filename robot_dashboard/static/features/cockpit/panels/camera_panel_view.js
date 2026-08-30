@@ -39,7 +39,23 @@ export function createCameraPanelView(options = {}) {
   const resolution = metric(documentValue, 'RES');
   const transport = metric(documentValue, 'TRANSPORT');
   const reconnect = metric(documentValue, 'RECONNECT');
-  metrics.append(fps.item, age.item, resolution.item, transport.item, reconnect.item);
+  const wifi = metric(documentValue, 'ROBOT WI-FI');
+  const source = metric(documentValue, 'SOURCE');
+  const receive = metric(documentValue, 'TRANSPORT RX');
+  const decode = metric(documentValue, 'DECODE');
+  const clock = metric(documentValue, 'E2E LATENCY');
+  metrics.append(
+    fps.item,
+    age.item,
+    resolution.item,
+    transport.item,
+    reconnect.item,
+    wifi.item,
+    source.item,
+    receive.item,
+    decode.item,
+    clock.item,
+  );
   shell.append(header, viewport, metrics);
   root.append(shell);
 
@@ -70,6 +86,14 @@ export function createCameraPanelView(options = {}) {
     resolution.value.textContent = projected.resolution;
     transport.value.textContent = projected.transport;
     reconnect.value.textContent = projected.reconnect;
+    wifi.value.textContent = projected.wifi;
+    wifi.value.title = projected.clock;
+    source.value.textContent = projected.source;
+    source.value.title = projected.clock;
+    receive.value.textContent = projected.receive;
+    receive.value.title = projected.clock;
+    decode.value.textContent = projected.decode;
+    clock.value.textContent = projected.clock;
     overlay.textContent = projected.overlay;
     overlay.hidden = projected.state === 'LIVE';
     if (projected.state !== 'LIVE') clearFrame();

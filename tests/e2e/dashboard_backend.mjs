@@ -124,9 +124,23 @@ export async function installDashboardBackend(page, options = {}) {
       const sendFrame = () => {
         if (state.cameraStreaming[cameraSourceId] === false) return;
         seq += 1;
+        const observability = cameraSourceId === 'realsense_color' ? {
+          receive_fps: 14.8,
+          receive_bitrate_mbps: 4.125,
+          restart_count: 1,
+          status_class: 'LIVE',
+          cross_host_latency_state: 'UNVERIFIED_CLOCK_DOMAIN',
+          relay_health: {
+            state: 'streaming', fps: 15, last_frame_age_s: 0.12,
+            payload_bitrate_mbps: 3.9,
+            profile: { width: 640, height: 480, fps: 15, jpeg_quality: 72 },
+            wifi: { state: 'LIVE', interface: 'wlan0', rssi_dbm: -54, link_mbps: 433.3 },
+          },
+        } : {};
         socket.send(JSON.stringify({
           source_id: cameraSourceId, topic: cameraSourceId === 'go2_front' ? '/camera/image' : '/camera/color/image_raw',
           format: 'raw', encoding: 'rgb8', width: 4, height: 3, step: 12, fps: 15, transport: 'fake', state: 'ok', seq,
+          ...observability,
         }));
         socket.send(Buffer.from([
           240, 40, 40, 40, 240, 40, 40, 40, 240, 220, 220, 40,
@@ -188,7 +202,20 @@ export async function installDashboardBackend(page, options = {}) {
       max_active: 2,
       sources: options.cameraSources || [
         { source_id: 'go2_front', id: 'go2_front', label: 'GO2 FRONT', configured: true, available: true, enabled: true, live: true, state: 'ok', age_s: 0.1, fps: 15, width: 4, height: 3, topic: '/camera/image', transport: 'fake' },
-        { source_id: 'realsense_color', id: 'realsense_color', label: 'REALSENSE COLOR', configured: true, available: true, enabled: true, live: true, state: 'ok', age_s: 0.1, fps: 15, width: 4, height: 3, topic: '/camera/color/image_raw', transport: 'fake' },
+        {
+          source_id: 'realsense_color', id: 'realsense_color', label: 'REALSENSE COLOR',
+          configured: true, available: true, enabled: true, live: true, state: 'ok',
+          age_s: 0.1, fps: 15, width: 4, height: 3,
+          topic: '/camera/color/image_raw', transport: 'fake', receive_fps: 14.8,
+          receive_bitrate_mbps: 4.125, restart_count: 1, status_class: 'LIVE',
+          cross_host_latency_state: 'UNVERIFIED_CLOCK_DOMAIN',
+          relay_health: {
+            state: 'streaming', fps: 15, last_frame_age_s: 0.12,
+            payload_bitrate_mbps: 3.9,
+            profile: { width: 640, height: 480, fps: 15, jpeg_quality: 72 },
+            wifi: { state: 'LIVE', interface: 'wlan0', rssi_dbm: -54, link_mbps: 433.3 },
+          },
+        },
       ],
     });
     if (path === '/api/v1/pointcloud/settings') {

@@ -1,11 +1,15 @@
 import io
 import threading
+import time
 import unittest
 from unittest.mock import Mock, patch
 
 from robot_dashboard.remote_mjpeg_camera import (
     MAX_JPEG_BYTES,
+    MAX_METRIC_SAMPLES,
+    METRIC_WINDOW_S,
     RemoteMjpegCamera,
+    _bounded_relay_health,
     allowed_realsense_relay_host,
     allowed_realsense_relay_port,
 )
@@ -155,6 +159,60 @@ class RemoteMjpegCameraTests(unittest.TestCase):
         self.assertEqual(error, "remote MJPEG stream ended")
         self.assertEqual(frames, [b"\xff\xd8ok\xff\xd9"])
         self.assertEqual(receiver.status()["frames"], 1)
+        self.assertGreater(receiver.status()["network_bytes"], 0)
+        self.assertGreaterEqual(receiver.status()["receive_bitrate_mbps"], 0)
+        self.assertEqual(receiver.status()["decode_successes"], 1)
+        self.assertEqual(receiver.status()["decode_failures"], 0)
+        self.assertEqual(receiver.status()["metric_window_s"], METRIC_WINDOW_S)
+        self.assertLessEqual(len(receiver._transport_samples), MAX_METRIC_SAMPLES)
+        self.assertEqual(
+            receiver.status()["cross_host_latency_state"],
+            "UNVERIFIED_CLOCK_DOMAIN",
+        )
+
+    def test_relay_health_projection_rejects_malformed_and_bounds_nested_fields(self):
+        self.assertEqual(_bounded_relay_health("not an object"), {})
+        projected = _bounded_relay_health(
+            {
+                "state": "streaming",
+                "fps": "15.2",
+                "frames": "bad",
+                "profile": {"width": 99_999, "height": -1, "fps": float("nan")},
+                "wifi": {
+                    "state": "unexpected",
+                    "interface": "x" * 100,
+                    "rssi_dbm": -52,
+                    "link_mbps": float("inf"),
+                    "reason": "r" * 500,
+                },
+            }
+        )
+        self.assertEqual(projected["fps"], 15.2)
+        self.assertEqual(projected["frames"], 0)
+        self.assertEqual(projected["profile"]["width"], 8192)
+        self.assertEqual(projected["profile"]["height"], 0)
+        self.assertIsNone(projected["profile"]["fps"])
+        self.assertEqual(projected["wifi"]["state"], "UNVERIFIED")
+        self.assertLessEqual(len(projected["wifi"]["interface"]), 32)
+        self.assertIsNone(projected["wifi"]["link_mbps"])
+        self.assertLessEqual(len(projected["wifi"]["reason"]), 120)
+
+    def test_expired_windows_and_relay_health_transition_to_stale(self):
+        receiver = camera()
+        now = time.monotonic()
+        with receiver._lock:
+            receiver._frame_times.extend((now - 10.0, now - 9.0))
+            receiver._transport_samples.append((now - 10.0, 100_000))
+            receiver._relay_health = {
+                "state": "streaming",
+                "wifi": {"state": "LIVE"},
+            }
+            receiver._relay_health_at = now - 10.0
+        status = receiver.status()
+        self.assertIsNone(status["receive_fps"])
+        self.assertEqual(status["receive_bitrate_mbps"], 0.0)
+        self.assertEqual(status["relay_health"]["state"], "stale")
+        self.assertEqual(status["relay_health"]["wifi"]["state"], "STALE")
 
     def test_stop_closes_blocking_response_and_joins_thread(self):
         receiver = camera()

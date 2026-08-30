@@ -7,12 +7,14 @@ import glob
 import ipaddress
 import json
 import os
+import re
 import signal
 import socket
 import stat
 import subprocess
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -43,6 +45,7 @@ RELAY_WIDTH_ENV = "ROBOT_SCOPE_REALSENSE_WIDTH"
 RELAY_HEIGHT_ENV = "ROBOT_SCOPE_REALSENSE_HEIGHT"
 RELAY_FPS_ENV = "ROBOT_SCOPE_REALSENSE_FPS"
 RELAY_JPEG_QUALITY_ENV = "ROBOT_SCOPE_REALSENSE_JPEG_QUALITY"
+RELAY_WIFI_INTERFACE_ENV = "ROBOT_SCOPE_REALSENSE_WIFI_INTERFACE"
 PRIVATE_NETWORKS = (
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
@@ -55,6 +58,12 @@ MIN_BIND_PORT = 1024
 MAX_BIND_PORT = 65535
 MIN_JPEG_QUALITY = 40
 MAX_JPEG_QUALITY = 90
+METRIC_WINDOW_S = 5.0
+MAX_METRIC_SAMPLES = 120
+WIFI_PROBE_TIMEOUT_S = 1.0
+MAX_WIFI_PROBE_OUTPUT_BYTES = 4096
+WIFI_INTERFACE_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,32}\Z")
+IW_EXECUTABLES = ("/usr/sbin/iw", "/usr/bin/iw")
 
 
 @dataclass(frozen=True)
@@ -66,6 +75,7 @@ class RelayConfig:
     height: int
     fps: int
     jpeg_quality: int
+    wifi_interface: str = ""
 
 
 def _local_link_ipv4(value: str, label: str, error_code: str) -> ipaddress.IPv4Address:
@@ -199,6 +209,12 @@ def relay_configuration(
         minimum=MIN_JPEG_QUALITY,
         maximum=MAX_JPEG_QUALITY,
     )
+    wifi_interface = str(values.get(RELAY_WIFI_INTERFACE_ENV, "") or "").strip()
+    if wifi_interface and not WIFI_INTERFACE_PATTERN.fullmatch(wifi_interface):
+        raise RelaySetupError(
+            "INVALID_CONFIG",
+            f"{RELAY_WIFI_INTERFACE_ENV} is not a valid interface name",
+        )
 
     bind_host = str(bind_address)
     if validate_local_bind:
@@ -216,6 +232,7 @@ def relay_configuration(
         height=height,
         fps=fps,
         jpeg_quality=jpeg_quality,
+        wifi_interface=wifi_interface,
     )
 
 
@@ -258,6 +275,100 @@ KEEPALIVE_PART = (
     "Content-Type: text/plain\r\n"
     "Content-Length: 0\r\n\r\n\r\n"
 ).encode("ascii")
+
+
+class WifiLinkProbe:
+    """Optional, cached and bounded read-only Wi-Fi link probe."""
+
+    def __init__(self, interface: str, *, cache_s: float = 2.0):
+        self.interface = str(interface or "")
+        self.cache_s = max(0.5, min(float(cache_s), 10.0))
+        self._lock = threading.Lock()
+        self._last_probe_at = 0.0
+        self._cached: dict[str, object] = self._unverified("interface not configured")
+
+    def _unverified(self, reason: str) -> dict[str, object]:
+        return {
+            "state": "UNVERIFIED",
+            "interface": self.interface,
+            "rssi_dbm": None,
+            "link_mbps": None,
+            "reason": reason[:120],
+        }
+
+    @staticmethod
+    def _parse(output: str, interface: str) -> dict[str, object]:
+        if "Not connected." in output:
+            return {
+                "state": "OFFLINE",
+                "interface": interface,
+                "rssi_dbm": None,
+                "link_mbps": None,
+                "reason": "not connected",
+            }
+        signal_match = re.search(r"^\s*signal:\s*(-?\d+)\s+dBm\s*$", output, re.MULTILINE)
+        bitrate_match = re.search(
+            r"^\s*tx bitrate:\s*([0-9]+(?:\.[0-9]+)?)\s+MBit/s(?:\s|$)",
+            output,
+            re.MULTILINE,
+        )
+        rssi = int(signal_match.group(1)) if signal_match else None
+        link = float(bitrate_match.group(1)) if bitrate_match else None
+        if rssi is None and link is None:
+            return {
+                "state": "UNVERIFIED",
+                "interface": interface,
+                "rssi_dbm": None,
+                "link_mbps": None,
+                "reason": "link metrics unavailable",
+            }
+        return {
+            "state": "LIVE",
+            "interface": interface,
+            "rssi_dbm": rssi,
+            "link_mbps": link,
+            "reason": "",
+        }
+
+    def status(self) -> dict[str, object]:
+        if not self.interface:
+            return dict(self._cached)
+        now = time.monotonic()
+        with self._lock:
+            if self._last_probe_at and now - self._last_probe_at < self.cache_s:
+                return dict(self._cached)
+            executable = next(
+                (path for path in IW_EXECUTABLES if os.path.isfile(path) and os.access(path, os.X_OK)),
+                "",
+            )
+            if not executable:
+                result = self._unverified("iw executable unavailable")
+            else:
+                try:
+                    completed = subprocess.run(
+                        [executable, "dev", self.interface, "link"],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        timeout=WIFI_PROBE_TIMEOUT_S,
+                        check=False,
+                        shell=False,
+                    )
+                    bounded = completed.stdout[:MAX_WIFI_PROBE_OUTPUT_BYTES].decode(
+                        "utf-8", errors="replace"
+                    )
+                    result = (
+                        self._parse(bounded, self.interface)
+                        if completed.returncode == 0
+                        else self._unverified("iw link probe failed")
+                    )
+                except subprocess.TimeoutExpired:
+                    result = self._unverified("iw link probe timed out")
+                except OSError:
+                    result = self._unverified("iw link probe unavailable")
+            self._last_probe_at = now
+            self._cached = result
+            return dict(result)
 
 
 def client_allowed(
@@ -386,8 +497,15 @@ def gstreamer_command(
 class FrameHub:
     """Latest-frame broadcaster with one source and bounded viewer count."""
 
-    def __init__(self, producer_factory: Callable[[Callable[[bytes], None]], "GstProducer"]):
+    def __init__(
+        self,
+        producer_factory: Callable[[Callable[[bytes], None]], "GstProducer"],
+        config: RelayConfig = REFERENCE_CONFIG,
+        wifi_probe: Optional[WifiLinkProbe] = None,
+    ):
         self._producer_factory = producer_factory
+        self._config = config
+        self._wifi_probe = wifi_probe or WifiLinkProbe(config.wifi_interface)
         self._condition = threading.Condition()
         self._producer: Optional[GstProducer] = None
         self._producer_generation = 0
@@ -400,7 +518,9 @@ class FrameHub:
         self._invalid = 0
         self._started_at = time.monotonic()
         self._last_frame_at = 0.0
-        self._frame_times: list[float] = []
+        self._frame_samples: deque[tuple[float, int]] = deque(
+            maxlen=MAX_METRIC_SAMPLES
+        )
 
     def add_viewer(self) -> bool:
         with self._condition:
@@ -449,7 +569,7 @@ class FrameHub:
 
         self._frame = None
         self._last_frame_at = 0.0
-        self._frame_times.clear()
+        self._frame_samples.clear()
 
     def publish(self, jpeg: bytes, *, generation: Optional[int] = None) -> bool:
         with self._condition:
@@ -473,10 +593,24 @@ class FrameHub:
             self._frames += 1
             self._bytes += len(jpeg)
             self._last_frame_at = now
-            self._frame_times.append(now)
-            self._frame_times = self._frame_times[-120:]
+            self._frame_samples.append((now, len(jpeg)))
             self._condition.notify_all()
         return True
+
+    def _recent_metrics_locked(self, now: float) -> tuple[float, float]:
+        while self._frame_samples and now - self._frame_samples[0][0] > METRIC_WINDOW_S:
+            self._frame_samples.popleft()
+        if not self._frame_samples:
+            return 0.0, 0.0
+        elapsed = max(1.0, min(METRIC_WINDOW_S, now - self._frame_samples[0][0]))
+        fps = len(self._frame_samples) / elapsed
+        bitrate_mbps = (
+            sum(size for _stamp, size in self._frame_samples)
+            * 8
+            / elapsed
+            / 1_000_000
+        )
+        return fps, bitrate_mbps
 
     def wait_after(self, sequence: int) -> tuple[int, Optional[bytes]]:
         with self._condition:
@@ -488,11 +622,7 @@ class FrameHub:
     def health(self) -> dict[str, object]:
         with self._condition:
             now = time.monotonic()
-            fps = 0.0
-            if len(self._frame_times) > 1:
-                elapsed = self._frame_times[-1] - self._frame_times[0]
-                if elapsed > 0:
-                    fps = (len(self._frame_times) - 1) / elapsed
+            fps, bitrate_mbps = self._recent_metrics_locked(now)
             producer = self._producer
             producer_status = producer.status() if producer is not None else {}
             process_running = bool(producer_status.get("process_running", False))
@@ -538,7 +668,7 @@ class FrameHub:
                 state = "error"
                 last_error = "SOURCE_STALE: RealSense producer stopped unexpectedly"
 
-            return {
+            payload: dict[str, object] = {
                 "status": state,
                 "source": "realsense_color",
                 "state": state,
@@ -548,6 +678,8 @@ class FrameHub:
                 "bytes": self._bytes,
                 "payload_bytes": self._bytes,
                 "fps": round(fps, 2),
+                "payload_bitrate_mbps": round(bitrate_mbps, 3),
+                "metric_window_s": METRIC_WINDOW_S,
                 "invalid_frames": self._invalid,
                 "process_running": process_running,
                 "producer_thread_running": bool(
@@ -560,7 +692,19 @@ class FrameHub:
                     else None
                 ),
                 "uptime_s": round(now - self._started_at, 1),
+                "producer_generation": self._producer_generation,
+                "profile": {
+                    "width": self._config.width,
+                    "height": self._config.height,
+                    "fps": self._config.fps,
+                    "jpeg_quality": self._config.jpeg_quality,
+                },
+                "clock_domain": "relay_monotonic",
+                "cross_host_latency_state": "UNVERIFIED_CLOCK_DOMAIN",
             }
+        # Never hold the frame condition while an optional OS probe is running.
+        payload["wifi"] = self._wifi_probe.status()
+        return payload
 
     def close(self) -> None:
         with self._condition:
@@ -810,7 +954,7 @@ def main(argv: Sequence[str] = ()) -> int:
     # Fail before binding so a missing/ambiguous USB camera is explicit.
     device = resolve_realsense_device()
     gstreamer_command(device, config)
-    hub = FrameHub(lambda publish: GstProducer(publish, config))
+    hub = FrameHub(lambda publish: GstProducer(publish, config), config)
     server = RelayServer(hub, config)
     stopping = threading.Event()
 

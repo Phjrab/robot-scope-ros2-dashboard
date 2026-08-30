@@ -5,6 +5,7 @@ import { captureStickyLogScroll, scheduleStickyLogScroll } from './core/log_scro
 import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
 import { createPointcloudTransport } from './features/sensors/pointcloud_transport.js';
 import { createCameraDemandController } from './features/sensors/camera_demand.js';
+import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraObservability } from './features/sensors/camera_observability.js';
 import { initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
@@ -69,6 +70,15 @@ const ui = {
   cameraSecondaryTransport: $('#cameraSecondaryTransport'),
   cameraSecondaryTopicLabel: $('#cameraSecondaryTopicLabel'),
   cameraSecondaryCodecLabel: $('#cameraSecondaryCodecLabel'),
+  cameraWifiStatus: $('#cameraWifiStatus'),
+  cameraWifiDetail: $('#cameraWifiDetail'),
+  cameraSourceHealthStatus: $('#cameraSourceHealthStatus'),
+  cameraSourceHealthDetail: $('#cameraSourceHealthDetail'),
+  cameraTransportHealthStatus: $('#cameraTransportHealthStatus'),
+  cameraTransportHealthDetail: $('#cameraTransportHealthDetail'),
+  cameraDecodeHealthStatus: $('#cameraDecodeHealthStatus'),
+  cameraDecodeHealthDetail: $('#cameraDecodeHealthDetail'),
+  cameraLatencyDomain: $('#cameraLatencyDomain'),
   cloudSource: $('#cloudSource'),
   cloudSourceSensorBadge: $('#cloudSourceSensorBadge'),
   cloudSourcePin: $('#cloudSourcePin'),
@@ -4704,6 +4714,7 @@ function createCameraSlotRuntime(role, elements) {
     frames: 0,
     frameWindow: [],
     imageDecodeQueue: null,
+    reconnects: 0,
     videoDecoder: null,
     hasKey: false,
   };
@@ -4766,6 +4777,23 @@ function formatCameraFps(value) {
   return Number.isFinite(fps) && fps >= 0 ? `${fps.toFixed(fps >= 10 ? 1 : 2)} FPS` : '— FPS';
 }
 
+function setCameraObservabilityMetric(statusElement, detailElement, state, detail) {
+  const normalized = cameraObservabilityState(state);
+  statusElement.textContent = normalized;
+  statusElement.dataset.state = normalized.toLowerCase();
+  detailElement.textContent = detail;
+}
+
+function renderCameraObservability(slot = primaryCameraSlot(), now = Date.now()) {
+  const metadata = cameraSlotMetadata(slot);
+  const projected = projectCameraObservability({ metadata, queue: slot.imageDecodeQueue?.snapshot(), fresh: cameraSlotFrameAvailable(slot, now), hadFrame: Boolean(slot.lastFrameAt), reconnects: slot.reconnects });
+  setCameraObservabilityMetric(ui.cameraWifiStatus, ui.cameraWifiDetail, projected.wifi.state, projected.wifi.detail);
+  setCameraObservabilityMetric(ui.cameraSourceHealthStatus, ui.cameraSourceHealthDetail, projected.source.state, projected.source.detail);
+  setCameraObservabilityMetric(ui.cameraTransportHealthStatus, ui.cameraTransportHealthDetail, projected.transport.state, projected.transport.detail);
+  setCameraObservabilityMetric(ui.cameraDecodeHealthStatus, ui.cameraDecodeHealthDetail, projected.decode.state, projected.decode.detail);
+  ui.cameraLatencyDomain.textContent = `E2E LATENCY · ${projected.clock}`;
+}
+
 function renderCameraSlotIdentity(slot, now = Date.now()) {
   const source = cameraSourceForId(slot.sourceId);
   const metadata = cameraSlotMetadata(slot);
@@ -4795,6 +4823,7 @@ function renderCameraSlotIdentity(slot, now = Date.now()) {
   slot.codecOverlay.textContent = [format, dimensions, transport].filter(Boolean).join(' · ') || '—';
   if (slot.role === 'primary') {
     setStatePill(ui.cameraState, state, state === 'live' ? 'LIVE' : state.toUpperCase());
+    renderCameraObservability(slot, now);
   }
 }
 
@@ -4925,53 +4954,6 @@ function cameraFrameIsFresh(lastFrameAt, metadata = {}, now = Date.now(), maxAge
   const reportedAge = Number(metadata?.age_s);
   if (metadata?.age_s != null && (!Number.isFinite(reportedAge) || reportedAge * 1000 > maxAgeMs)) return false;
   return true;
-}
-
-function createLatestCameraFrameQueue({ decode, render, close, onError = () => {} }) {
-  let generation = 0;
-  let active = false;
-  let pending = null;
-
-  async function drain(initialFrame) {
-    let frame = initialFrame;
-    while (frame) {
-      let decoded = null;
-      try {
-        decoded = await decode(frame);
-        if (frame.generation === generation) render(decoded, frame);
-      } catch (error) {
-        if (frame.generation === generation) onError(error, frame);
-      } finally {
-        if (decoded) close(decoded, frame);
-      }
-      frame = pending;
-      pending = null;
-    }
-    active = false;
-  }
-
-  return Object.freeze({
-    enqueue(frame) {
-      const tagged = { ...frame, generation };
-      if (active) {
-        // Keep only the newest undecoded frame. ArrayBuffer payloads require no
-        // explicit close and are released when this reference is replaced.
-        pending = tagged;
-      } else {
-        active = true;
-        void drain(tagged);
-      }
-      return generation;
-    },
-    reset() {
-      generation += 1;
-      pending = null;
-      return generation;
-    },
-    snapshot() {
-      return { generation, active, pending: pending ? 1 : 0 };
-    },
-  });
 }
 
 function getCameraImageDecodeQueue() {
@@ -5109,6 +5091,14 @@ function markCameraSlotFrameRendered(slot, sourceKey = '') {
   while (slot.frameWindow.length && performance.now() - slot.frameWindow[0] > 1000) slot.frameWindow.shift();
   slot.empty.style.display = 'none';
   renderCameraSlotIdentity(slot);
+  if (slot.meta) {
+    slot.meta = {
+      ...slot.meta,
+      browser_decode: slot.imageDecodeQueue?.snapshot() || null,
+      browser_reconnects: slot.reconnects,
+    };
+    cameraDemandController.publishMetadata(slot.sourceId, slot.socketGeneration, slot.meta);
+  }
   cameraDemandController.publishFrame(slot.sourceId, slot.socketGeneration, { canvas: slot.canvas, width: slot.canvas.width, height: slot.canvas.height, lastFrameAt: slot.lastFrameAt });
   return wasFresh;
 }
@@ -5718,6 +5708,7 @@ function connectCameraSlot(slot) {
     }
     slot.videoDecoder = null;
     slot.hasKey = false;
+    if (cameraSlotTransportWanted(slot)) slot.reconnects += 1;
     cameraDemandController.endGeneration(sourceId, generation, cameraSlotTransportWanted(slot) ? 'reconnecting' : 'waiting');
     renderCameraCatalogUi();
     if (cameraSlotTransportWanted(slot)) {

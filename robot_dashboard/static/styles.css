@@ -338,6 +338,15 @@ input:focus, select:focus { border-color: rgba(125,240,182,.55); box-shadow: 0 0
 .radar-icon span { position: absolute; left: 50%; top: 50%; width: 27px; height: 1px; transform-origin: left; background: linear-gradient(90deg, var(--cyan), transparent); animation: radar 2s linear infinite; }
 @keyframes radar { to { transform: rotate(360deg); } }
 .stream-overlay, .map-meta { position: absolute; z-index: 4; left: 14px; right: 14px; bottom: 12px; display: flex; justify-content: space-between; color: rgba(225,244,238,.7); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; letter-spacing: .08em; pointer-events: none; }
+.camera-link-observability { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; border-top:1px solid var(--line); background:var(--line); }
+.camera-link-observability article { min-width:0; display:grid; gap:6px; padding:11px 13px; background:rgba(5,17,14,.98); }
+.camera-link-observability span { color:#6f857d; font:800 var(--type-micro) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.08em; }
+.camera-link-observability strong { width:max-content; max-width:100%; padding:3px 6px; overflow:hidden; color:var(--amber); border:1px solid rgba(255,198,109,.28); border-radius:999px; font:800 var(--type-micro) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.06em; text-overflow:ellipsis; white-space:nowrap; }
+.camera-link-observability strong[data-state="live"] { color:var(--green); border-color:rgba(125,240,182,.32); }
+.camera-link-observability strong[data-state="degraded"], .camera-link-observability strong[data-state="unverified"] { color:var(--amber); border-color:rgba(255,198,109,.3); }
+.camera-link-observability strong[data-state="stale"], .camera-link-observability strong[data-state="offline"] { color:var(--danger); border-color:rgba(255,122,127,.32); }
+.camera-link-observability small { min-width:0; overflow:hidden; color:#89a098; font:700 var(--type-secondary) ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow:ellipsis; white-space:nowrap; }
+.camera-link-observability p { grid-column:1/-1; margin:0; padding:7px 13px; color:#7f7361; background:rgba(255,198,109,.035); font:700 var(--type-micro) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.06em; }
 .camera-media-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px; min-height:76px; padding:13px 16px; border-top:1px solid var(--line); background:rgba(6,18,15,.94); }
 .camera-media-readout { min-width:0; display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:9px; }
 .camera-record-indicator { width:8px; height:8px; border:1px solid rgba(156,201,190,.3); border-radius:50%; background:#30413c; }
@@ -1342,6 +1351,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .workspace { padding:24px 16px; }.page-heading { align-items:flex-start; }.live-clock { display:none; }
   .route-grid, .mapping-support-grid { grid-template-columns:1fr; }
   .camera-view-grid[data-view-mode="dual"] { grid-template-columns:1fr; }
+  .camera-link-observability { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .dataset-capture-layout, .dataset-library-layout { grid-template-columns:1fr; }.dataset-capture-readout { border-top:1px solid var(--line); border-left:0; }.dataset-session-list { max-height:260px; border-right:0; border-bottom:1px solid var(--line); }
   .camera-stage, .sensor-page-grid .camera-stage { height:300px; }.map-stage, .live-map-stage, .saved-map-stage { height:440px; min-height:380px; }.sensor-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .map-conversion-parameters, .map-conversion-advanced > div { grid-template-columns:1fr; }
@@ -1383,6 +1393,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 520px) {
   .brand small { display:none; }.connection-chip { min-width:0; }.connection-chip #connectionLabel { display:none; }
   .kpi-grid { grid-template-columns:1fr; }.sensor-grid, .sensor-page-grid .sensor-grid, .source-settings-grid, .settings-detail { grid-template-columns:1fr; }
+  .camera-link-observability { grid-template-columns:1fr; }
   .pose-layout { grid-template-columns:1fr; }.axis-visual { display:none; }.page-heading p { max-width:280px; }
   .mapping-job-summary { grid-template-columns:1fr; }
   .map-legend { max-width:290px; gap:6px; }.scene-controls button { min-width:36px; padding:5px 6px; }

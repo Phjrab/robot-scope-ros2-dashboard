@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import http.client
 import ipaddress
+import json
 import socket
 import threading
 import time
 from collections import deque
+from collections.abc import Mapping
 from typing import BinaryIO, Callable, Dict, Optional, Sequence
 from urllib.parse import urlsplit
 
@@ -17,6 +19,11 @@ MAX_JPEG_HEADER_BYTES = 128 * 1024
 MAX_JPEG_DIMENSION = 8192
 MAX_JPEG_PIXELS = 32 * 1024 * 1024
 READ_CHUNK_BYTES = 64 * 1024
+METRIC_WINDOW_S = 5.0
+MAX_METRIC_SAMPLES = 120
+RELAY_HEALTH_POLL_S = 2.0
+RELAY_HEALTH_STALE_S = 6.0
+MAX_RELAY_HEALTH_BYTES = 16 * 1024
 REALSENSE_RELAY_HOST = "192.168.123.18"
 REALSENSE_RELAY_PORT = 8090
 REALSENSE_RELAY_PORT_ENV = "ROBOT_SCOPE_REALSENSE_PORT"
@@ -39,6 +46,69 @@ JPEG_SOF_MARKERS = frozenset(
         0xCF,
     }
 )
+
+
+def _finite_metric(value: object, *, minimum: float = 0.0) -> Optional[float]:
+    if isinstance(value, bool):
+        return None
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not result >= minimum or result == float("inf"):
+        return None
+    return round(result, 3)
+
+
+def _bounded_count(value: object, maximum: int = 2**63 - 1) -> int:
+    if isinstance(value, bool):
+        return 0
+    try:
+        result = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return 0
+    return max(0, min(result, maximum))
+
+
+def _bounded_relay_health(payload: object) -> Dict[str, object]:
+    """Project the robot-side payload into a small, stable public contract."""
+
+    if not isinstance(payload, Mapping):
+        return {}
+    profile = payload.get("profile")
+    wifi = payload.get("wifi")
+    result: Dict[str, object] = {
+        "state": str(payload.get("state", "unverified"))[:24].lower(),
+        "fps": _finite_metric(payload.get("fps")),
+        "payload_bitrate_mbps": _finite_metric(payload.get("payload_bitrate_mbps")),
+        "last_frame_age_s": _finite_metric(payload.get("last_frame_age_s")),
+        "frames": _bounded_count(payload.get("frames")),
+        "invalid_frames": _bounded_count(payload.get("invalid_frames")),
+        "process_running": bool(payload.get("process_running", False)),
+        "producer_generation": _bounded_count(payload.get("producer_generation")),
+        "metric_window_s": _finite_metric(payload.get("metric_window_s")),
+        "clock_domain": "relay_monotonic",
+        "cross_host_latency_state": "UNVERIFIED_CLOCK_DOMAIN",
+    }
+    if isinstance(profile, Mapping):
+        result["profile"] = {
+            "width": _bounded_count(profile.get("width"), MAX_JPEG_DIMENSION),
+            "height": _bounded_count(profile.get("height"), MAX_JPEG_DIMENSION),
+            "fps": _finite_metric(profile.get("fps")),
+            "jpeg_quality": _finite_metric(profile.get("jpeg_quality")),
+        }
+    if isinstance(wifi, Mapping):
+        wifi_state = str(wifi.get("state", "UNVERIFIED"))[:24].upper()
+        result["wifi"] = {
+            "state": wifi_state
+            if wifi_state in {"LIVE", "DEGRADED", "STALE", "OFFLINE", "UNVERIFIED"}
+            else "UNVERIFIED",
+            "interface": str(wifi.get("interface", ""))[:32],
+            "rssi_dbm": _finite_metric(wifi.get("rssi_dbm"), minimum=-150.0),
+            "link_mbps": _finite_metric(wifi.get("link_mbps")),
+            "reason": str(wifi.get("reason", ""))[:120],
+        }
+    return result
 
 
 def allowed_realsense_relay_host(value: str) -> bool:
@@ -160,6 +230,7 @@ class RemoteMjpegCamera:
         self._lock = threading.RLock()
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
+        self._health_thread: Optional[threading.Thread] = None
         self._connection: Optional[http.client.HTTPConnection] = None
         self._response: Optional[BinaryIO] = None
         self._state = "disabled" if not self.enabled else "waiting"
@@ -173,6 +244,14 @@ class RemoteMjpegCamera:
         self._restart_count = 0
         self._restart_in_s: Optional[float] = None
         self._frame_times: deque[float] = deque(maxlen=120)
+        self._transport_samples: deque[tuple[float, int]] = deque(
+            maxlen=MAX_METRIC_SAMPLES
+        )
+        self._network_bytes = 0
+        self._decode_successes = 0
+        self._decode_failures = 0
+        self._relay_health: Dict[str, object] = {}
+        self._relay_health_at = 0.0
         self._configuration_error = self._validate_configuration()
         if self._configuration_error:
             self._state = "error"
@@ -225,6 +304,12 @@ class RemoteMjpegCamera:
                 daemon=True,
             )
             self._thread.start()
+            self._health_thread = threading.Thread(
+                target=self._poll_relay_health,
+                name="realsense-relay-health",
+                daemon=True,
+            )
+            self._health_thread.start()
             return True
 
     def stop(self) -> None:
@@ -245,12 +330,53 @@ class RemoteMjpegCamera:
         thread = self._thread
         if thread and thread is not threading.current_thread():
             thread.join(timeout=self.request_timeout_s + 1.0)
+        health_thread = self._health_thread
+        if health_thread and health_thread is not threading.current_thread():
+            health_thread.join(timeout=min(self.request_timeout_s + 1.0, 3.0))
         with self._lock:
             self._connection = None
             self._response = None
             self._restart_in_s = None
             if self.enabled and not self._configuration_error:
                 self._state = "stopped"
+
+    def _poll_relay_health(self) -> None:
+        while not self._stop_event.wait(RELAY_HEALTH_POLL_S):
+            parsed = urlsplit(self.url)
+            connection = http.client.HTTPConnection(
+                parsed.hostname,
+                parsed.port,
+                timeout=min(self.request_timeout_s, 2.0),
+            )
+            try:
+                connection.request(
+                    "GET",
+                    "/health",
+                    headers={
+                        "Accept": "application/json",
+                        "Connection": "close",
+                        "Host": f"{self.relay_host}:{parsed.port}",
+                        "User-Agent": "Robot-Scope/0.2",
+                    },
+                )
+                response = connection.getresponse()
+                content_type = str(response.headers.get("Content-Type", "")).lower()
+                payload = response.read(MAX_RELAY_HEALTH_BYTES + 1)
+                if (
+                    response.status != 200
+                    or content_type.split(";", 1)[0].strip() != "application/json"
+                    or len(payload) > MAX_RELAY_HEALTH_BYTES
+                ):
+                    continue
+                projected = _bounded_relay_health(json.loads(payload.decode("utf-8")))
+                if projected:
+                    with self._lock:
+                        self._relay_health = projected
+                        self._relay_health_at = time.monotonic()
+            except (OSError, http.client.HTTPException, UnicodeError, json.JSONDecodeError):
+                continue
+            finally:
+                connection.close()
 
     def _supervise(self) -> None:
         delay = self.restart_initial_s
@@ -347,6 +473,10 @@ class RemoteMjpegCamera:
             chunk = read_chunk(READ_CHUNK_BYTES)
             if not chunk:
                 break
+            now = time.monotonic()
+            with self._lock:
+                self._network_bytes += len(chunk)
+                self._transport_samples.append((now, len(chunk)))
             buffer.extend(chunk)
             while True:
                 start = buffer.find(b"\xff\xd8")
@@ -361,6 +491,7 @@ class RemoteMjpegCamera:
                     if len(buffer) > MAX_JPEG_BYTES:
                         with self._lock:
                             self._oversize_frames += 1
+                            self._decode_failures += 1
                         # Discard this SOI and search the remaining bytes for a
                         # later frame instead of growing the buffer indefinitely.
                         del buffer[:2]
@@ -372,6 +503,7 @@ class RemoteMjpegCamera:
                 if frame_size > MAX_JPEG_BYTES:
                     with self._lock:
                         self._oversize_frames += 1
+                        self._decode_failures += 1
                     continue
                 self._publish_jpeg(jpeg)
 
@@ -383,6 +515,7 @@ class RemoteMjpegCamera:
         ):
             with self._lock:
                 self._invalid_frames += 1
+                self._decode_failures += 1
             return
         dimensions = _jpeg_dimensions(jpeg)
         try:
@@ -390,23 +523,41 @@ class RemoteMjpegCamera:
         except Exception as exc:
             with self._lock:
                 self._last_error = f"remote camera JPEG callback failed: {exc}"[-400:]
+                self._decode_failures += 1
             return
         now = time.monotonic()
         with self._lock:
             self._frames += 1
+            self._decode_successes += 1
             self._width, self._height = dimensions or (0, 0)
             self._last_frame_at = now
             self._frame_times.append(now)
             self._state = "ok"
             self._last_error = ""
 
-    def _fps_locked(self) -> Optional[float]:
+    def _fps_locked(self, now: float) -> Optional[float]:
+        while self._frame_times and now - self._frame_times[0] > METRIC_WINDOW_S:
+            self._frame_times.popleft()
         if len(self._frame_times) < 2:
             return None
         elapsed = self._frame_times[-1] - self._frame_times[0]
         if elapsed <= 0:
             return None
         return round((len(self._frame_times) - 1) / elapsed, 2)
+
+    def _receive_bitrate_locked(self, now: float) -> float:
+        while self._transport_samples and now - self._transport_samples[0][0] > METRIC_WINDOW_S:
+            self._transport_samples.popleft()
+        if not self._transport_samples:
+            return 0.0
+        elapsed = max(1.0, min(METRIC_WINDOW_S, now - self._transport_samples[0][0]))
+        return round(
+            sum(size for _stamp, size in self._transport_samples)
+            * 8
+            / elapsed
+            / 1_000_000,
+            3,
+        )
 
     def status(self) -> Dict[str, object]:
         now = time.monotonic()
@@ -415,6 +566,22 @@ class RemoteMjpegCamera:
             state = self._state
             if self.configured and self._last_frame_at and state == "ok":
                 state = "ok" if age is not None and age <= self.stale_after_s else "stale"
+            status_class = {
+                "ok": "LIVE",
+                "stale": "STALE",
+                "disabled": "OFFLINE",
+                "stopped": "OFFLINE",
+                "error": "OFFLINE",
+            }.get(state, "DEGRADED")
+            relay_health_age = (
+                round(now - self._relay_health_at, 3) if self._relay_health_at else None
+            )
+            relay_health = dict(self._relay_health)
+            if relay_health_age is not None and relay_health_age > RELAY_HEALTH_STALE_S:
+                relay_health["state"] = "stale"
+                wifi = relay_health.get("wifi")
+                if isinstance(wifi, Mapping) and wifi.get("state") == "LIVE":
+                    relay_health["wifi"] = {**wifi, "state": "STALE"}
             return {
                 "enabled": self.enabled,
                 "configured": self.configured,
@@ -430,13 +597,26 @@ class RemoteMjpegCamera:
                 "max_frame_bytes": MAX_JPEG_BYTES,
                 "width": self._width,
                 "height": self._height,
-                "fps": self._fps_locked(),
+                "fps": self._fps_locked(now),
+                "receive_fps": self._fps_locked(now),
                 "frames": self._frames,
                 "age_s": age,
+                "last_complete_jpeg_age_s": age,
+                "network_bytes": self._network_bytes,
+                "receive_bitrate_mbps": self._receive_bitrate_locked(now),
+                "metric_window_s": METRIC_WINDOW_S,
+                "decode_successes": self._decode_successes,
+                "decode_failures": self._decode_failures,
                 "process_running": bool(self._thread and self._thread.is_alive()),
                 "restart_count": self._restart_count,
                 "restart_in_s": self._restart_in_s,
                 "oversize_frames": self._oversize_frames,
                 "invalid_frames": self._invalid_frames,
+                "status_class": status_class,
+                "configured_robot_ip": self.relay_host,
+                "clock_domain": "dashboard_monotonic",
+                "cross_host_latency_state": "UNVERIFIED_CLOCK_DOMAIN",
+                "relay_health": relay_health,
+                "relay_health_age_s": relay_health_age,
                 "last_error": self._last_error,
             }

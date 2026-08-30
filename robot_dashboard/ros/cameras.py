@@ -47,6 +47,19 @@ _PUBLIC_CAMERA_STATUS_FIELDS = frozenset(
         "restart_in_s",
         "oversize_frames",
         "invalid_frames",
+        "receive_fps",
+        "last_complete_jpeg_age_s",
+        "network_bytes",
+        "receive_bitrate_mbps",
+        "metric_window_s",
+        "decode_successes",
+        "decode_failures",
+        "status_class",
+        "configured_robot_ip",
+        "clock_domain",
+        "cross_host_latency_state",
+        "relay_health",
+        "relay_health_age_s",
         "last_error",
     }
 )
@@ -536,6 +549,20 @@ class CameraHub:
                 "height": int(status.get("height", 0) or 0),
                 "fps": status.get("fps"),
                 "age_s": status.get("age_s"),
+                "receive_fps": status.get("receive_fps"),
+                "last_complete_jpeg_age_s": status.get("last_complete_jpeg_age_s"),
+                "network_bytes": status.get("network_bytes"),
+                "receive_bitrate_mbps": status.get("receive_bitrate_mbps"),
+                "metric_window_s": status.get("metric_window_s"),
+                "decode_successes": status.get("decode_successes"),
+                "decode_failures": status.get("decode_failures"),
+                "restart_count": status.get("restart_count"),
+                "status_class": status.get("status_class"),
+                "configured_robot_ip": status.get("configured_robot_ip"),
+                "clock_domain": status.get("clock_domain"),
+                "cross_host_latency_state": status.get("cross_host_latency_state"),
+                "relay_health": status.get("relay_health", {}),
+                "relay_health_age_s": status.get("relay_health_age_s"),
             }
         )
         return snapshot
@@ -551,6 +578,7 @@ class CameraHub:
             ("go2_front", "Go2 front camera", self.direct_camera.status()),
             ("realsense_color", "RealSense color camera", self.remote_camera.status()),
         ):
+            public_status = public_camera_status(status)
             entries.append(
                 {
                     "id": source_id,
@@ -574,6 +602,26 @@ class CameraHub:
                     "fps": status.get("fps"),
                     "age_s": status.get("age_s"),
                     "last_error": public_diagnostic(status.get("last_error", "")),
+                    **{
+                        key: public_status[key]
+                        for key in (
+                            "receive_fps",
+                            "last_complete_jpeg_age_s",
+                            "network_bytes",
+                            "receive_bitrate_mbps",
+                            "metric_window_s",
+                            "decode_successes",
+                            "decode_failures",
+                            "restart_count",
+                            "status_class",
+                            "configured_robot_ip",
+                            "clock_domain",
+                            "cross_host_latency_state",
+                            "relay_health",
+                            "relay_health_age_s",
+                        )
+                        if key in public_status
+                    },
                 }
             )
         return {

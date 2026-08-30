@@ -1,6 +1,7 @@
 const DEFAULT_ALLOWED_SOURCES = Object.freeze(['go2_front', 'realsense_color']);
 
 function finite(value, fallback = null) {
+  if (value == null || value === '' || typeof value === 'boolean') return fallback;
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
@@ -20,6 +21,14 @@ function normalizeSource(entry, allowed) {
     height: Math.max(0, finite(entry?.height, 0)),
     transport: String(entry?.transport || '—'),
     topic: String(entry?.topic || '—'),
+    receive_fps: finite(entry?.receive_fps),
+    receive_bitrate_mbps: finite(entry?.receive_bitrate_mbps),
+    restart_count: Math.max(0, finite(entry?.restart_count, 0)),
+    status_class: String(entry?.status_class || ''),
+    relay_health: entry?.relay_health && typeof entry.relay_health === 'object'
+      ? Object.freeze({ ...entry.relay_health })
+      : null,
+    cross_host_latency_state: String(entry?.cross_host_latency_state || 'UNVERIFIED_CLOCK_DOMAIN'),
   });
 }
 

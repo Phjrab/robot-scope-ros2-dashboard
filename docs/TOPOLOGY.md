@@ -53,7 +53,7 @@ Relay와 dashboard 주소는 같은 `/24`의 서로 다른 사용 가능한 host
 broadcast 주소도 거부합니다. Relay 시작 전에는 bind 주소가 실제 로컬 인터페이스에
 할당됐는지 확인하므로, 주소가 없는 경우 다른 인터페이스나 `0.0.0.0`으로 대체하지 않습니다.
 
-Robot-side private env에는 아래 일곱 값을 모두 명시합니다. 저장소 값은
+Robot-side private env에는 아래 일곱 network/capture 값을 모두 명시합니다. 저장소 값은
 `.123.18 → .123.99`, `8090`, `640×480@15`, quality `72`로 처음 검증한 reference
 deployment default일 뿐입니다. 실제 대회 값은 mode `0600`의 host-local env로 덮어쓰며
 소스 코드를 편집하지 않습니다.
@@ -66,11 +66,17 @@ deployment default일 뿐입니다. 실제 대회 값은 mode `0600`의 host-loc
 | `ROBOT_SCOPE_REALSENSE_WIDTH`, `ROBOT_SCOPE_REALSENSE_HEIGHT` | `320×240`, `640×480`, `1280×720` 중 하나 |
 | `ROBOT_SCOPE_REALSENSE_FPS` | `5`, `10`, `15`, `30` 중 하나 |
 | `ROBOT_SCOPE_REALSENSE_JPEG_QUALITY` | `40`–`90` |
+| `ROBOT_SCOPE_REALSENSE_WIFI_INTERFACE` | 선택 사항인 실제 Wi-Fi interface 이름; 비어 있으면 health는 `UNVERIFIED` |
 
 더 높은 profile은 허용 범위 안에 있더라도 Wi-Fi 대역폭과 robot-side CPU·온도 측정 없이
 대회 기본값으로 채택하지 않습니다. `/stream`은 정확한 dashboard IP 하나만 허용하고,
 `/health`는 loopback·relay 자신·그 dashboard만 허용합니다. HTTP header, hostname, URL,
 임의 CIDR로 client identity를 확장하지 않습니다.
+
+Wi-Fi interface가 명시된 경우 `/health`는 캐시된 RSSI와 negotiated TX link rate만
+추가합니다. 고정된 read-only `iw dev <interface> link` 호출은 1초 timeout과 4096-byte
+stdout 상한을 사용합니다. 실행 파일 누락, timeout, 파싱 실패는 네트워크 설정 변경이나
+fallback 명령 없이 `UNVERIFIED`로 표시됩니다.
 
 ~~~text
 D435i RGB by-id --> .50.30 GStreamer/MJPEG :8090 --> .50.10 Dashboard receiver

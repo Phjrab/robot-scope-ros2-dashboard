@@ -1,8 +1,10 @@
 import { createCameraPanelView } from './camera_panel_view.js';
+import { projectCameraObservability } from '../../sensors/camera_observability.js';
 
 export const CAMERA_PANEL_STALE_MS = 3000;
 
 function finite(value, fallback = null) {
+  if (value == null || value === '' || typeof value === 'boolean') return fallback;
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
@@ -24,6 +26,13 @@ export function projectCameraPanelState(source = {}, lastRenderedAt = 0, now = D
   const height = Number(metadata.height || source.height || 0);
   const fps = finite(metadata.fps ?? source.fps);
   const ageMs = localAgeMs ?? reportedAgeMs;
+  const observability = projectCameraObservability({
+    metadata: { ...source, ...metadata },
+    queue: metadata.browser_decode,
+    fresh: live,
+    hadFrame: Boolean(lastRenderedAt),
+    reconnects: metadata.browser_reconnects,
+  });
   return Object.freeze({
     state,
     fps: fps == null ? '—' : `${fps.toFixed(fps >= 10 ? 1 : 2)} FPS`,
@@ -31,6 +40,11 @@ export function projectCameraPanelState(source = {}, lastRenderedAt = 0, now = D
     resolution: width > 0 && height > 0 ? `${width}×${height}` : '—',
     transport: String(metadata.transport || source.transport || '—').toUpperCase(),
     reconnect: source.reconnecting ? 'RECONNECTING' : state === 'ERROR' ? 'ERROR' : source.connection === 'live' || source.connection === 'connected' ? 'CONNECTED' : 'WAITING',
+    wifi: `${observability.wifi.state} · ${observability.wifi.detail}`,
+    source: `${observability.source.state} · ${observability.source.detail}`,
+    receive: observability.transport.detail,
+    decode: observability.decode.detail,
+    clock: observability.clock,
     overlay: state === 'LIVE' ? '' : state === 'STALE' ? `STALE · ${ageMs == null ? 'AGE UNKNOWN' : `${(ageMs / 1000).toFixed(1)} s`}` : state === 'ERROR' ? 'CAMERA ERROR' : 'WAITING FOR FRAME',
   });
 }

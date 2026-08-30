@@ -3,9 +3,12 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+import { createLatestCameraFrameQueue, projectCameraObservability } from '../robot_dashboard/static/features/sensors/camera_observability.js';
+
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
+const observabilitySource = readFileSync(new URL('../robot_dashboard/static/features/sensors/camera_observability.js', import.meta.url), 'utf8');
 
 function extractedFunction(startMarker, endMarker, exportName) {
   const start = appSource.indexOf(startMarker);
@@ -95,7 +98,7 @@ test('recording cleanup policy saves on visibility and route changes but discard
 test('camera freshness rejects frozen frames and stale backend metadata', () => {
   const isFresh = extractedFunction(
     'const CAMERA_FRAME_FRESH_MS = 3000;',
-    'function createLatestCameraFrameQueue(',
+    'function getCameraImageDecodeQueue()',
     'cameraFrameIsFresh',
   );
   assert.equal(isFresh(1_000, { state: 'ok', age_s: 0.2 }, 3_999), true);
@@ -111,16 +114,11 @@ test('camera freshness rejects frozen frames and stale backend metadata', () => 
 });
 
 test('JPEG queue is single-flight, latest-only and never renders an older pending frame', async () => {
-  const createQueue = extractedFunction(
-    'function createLatestCameraFrameQueue(',
-    'function getCameraImageDecodeQueue()',
-    'createLatestCameraFrameQueue',
-  );
   const waits = new Map([['a', deferred()], ['b', deferred()], ['c', deferred()]]);
   const decoded = [];
   const rendered = [];
   const closed = [];
-  const queue = createQueue({
+  const queue = createLatestCameraFrameQueue({
     decode: (frame) => {
       decoded.push(frame.id);
       return waits.get(frame.id).promise;
@@ -132,7 +130,15 @@ test('JPEG queue is single-flight, latest-only and never renders an older pendin
   queue.enqueue({ id: 'a', sourceKey: 'source-a' });
   queue.enqueue({ id: 'b', sourceKey: 'source-a' });
   queue.enqueue({ id: 'c', sourceKey: 'source-a' });
-  assert.deepEqual({ ...queue.snapshot() }, { generation: 0, active: true, pending: 1 });
+  assert.deepEqual({ ...queue.snapshot() }, {
+    generation: 0,
+    active: true,
+    pending: 1,
+    queueDepth: 2,
+    decodedFrames: 0,
+    decodeFailures: 0,
+    supersededFrames: 1,
+  });
   waits.get('a').resolve({ id: 'bitmap-a' });
   await flushTasks();
   assert.deepEqual(decoded, ['a', 'c']);
@@ -142,20 +148,23 @@ test('JPEG queue is single-flight, latest-only and never renders an older pendin
   await flushTasks();
   assert.deepEqual(rendered, ['a:bitmap-a', 'c:bitmap-c']);
   assert.deepEqual(closed, ['bitmap-a', 'bitmap-c']);
-  assert.deepEqual({ ...queue.snapshot() }, { generation: 0, active: false, pending: 0 });
+  assert.deepEqual({ ...queue.snapshot() }, {
+    generation: 0,
+    active: false,
+    pending: 0,
+    queueDepth: 0,
+    decodedFrames: 2,
+    decodeFailures: 0,
+    supersededFrames: 1,
+  });
 });
 
 test('source generation reset closes an old decoded bitmap without rendering it', async () => {
-  const createQueue = extractedFunction(
-    'function createLatestCameraFrameQueue(',
-    'function getCameraImageDecodeQueue()',
-    'createLatestCameraFrameQueue',
-  );
   const waits = new Map([['old', deferred()], ['new', deferred()]]);
   const decoded = [];
   const rendered = [];
   const closed = [];
-  const queue = createQueue({
+  const queue = createLatestCameraFrameQueue({
     decode: (frame) => {
       decoded.push(frame.id);
       return waits.get(frame.id).promise;
@@ -176,7 +185,35 @@ test('source generation reset closes an old decoded bitmap without rendering it'
   await flushTasks();
   assert.deepEqual(rendered, ['new']);
   assert.deepEqual(closed, ['bitmap-old', 'bitmap-new']);
-  assert.deepEqual({ ...queue.snapshot() }, { generation: 1, active: false, pending: 0 });
+  assert.deepEqual({ ...queue.snapshot() }, {
+    generation: 1,
+    active: false,
+    pending: 0,
+    queueDepth: 0,
+    decodedFrames: 2,
+    decodeFailures: 0,
+    supersededFrames: 0,
+  });
+});
+
+test('camera decode diagnostics count bounded failures without blocking later frames', async () => {
+  const rendered = [];
+  const queue = createLatestCameraFrameQueue({
+    decode: async (frame) => {
+      if (frame.id === 'bad') throw new Error('malformed JPEG');
+      return { id: frame.id };
+    },
+    render: (_bitmap, frame) => rendered.push(frame.id),
+    close: () => {},
+  });
+  queue.enqueue({ id: 'bad' });
+  await flushTasks();
+  queue.enqueue({ id: 'good' });
+  await flushTasks();
+  assert.deepEqual(rendered, ['good']);
+  assert.equal(queue.snapshot().decodedFrames, 1);
+  assert.equal(queue.snapshot().decodeFailures, 1);
+  assert.ok(queue.snapshot().queueDepth <= 2);
 });
 
 test('camera page supports single and dual layouts with persistent primary controls', () => {
@@ -216,6 +253,51 @@ test('both slots keep source identity, topic, transport, state and fps visible',
   assert.match(appSource, /slot\.fps\.textContent = formatCameraFps/);
   assert.match(appSource, /slot\.topic\.textContent = `TOPIC \$\{topic\}`/);
   assert.match(appSource, /slot\.transport\.textContent = `TRANSPORT \$\{transport\}`/);
+});
+
+test('Sensors camera panel exposes bounded link observability and clock-domain warning', () => {
+  for (const id of [
+    'cameraWifiStatus',
+    'cameraWifiDetail',
+    'cameraSourceHealthStatus',
+    'cameraSourceHealthDetail',
+    'cameraTransportHealthStatus',
+    'cameraTransportHealthDetail',
+    'cameraDecodeHealthStatus',
+    'cameraDecodeHealthDetail',
+    'cameraLatencyDomain',
+  ]) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.match(indexSource, /UNVERIFIED_CLOCK_DOMAIN/);
+  assert.match(stylesSource, /\.camera-link-observability/);
+  assert.match(observabilitySource, /function cameraObservabilityState\(/);
+  assert.match(observabilitySource, /receive_bitrate_mbps/);
+  assert.match(observabilitySource, /supersededFrames/);
+  assert.match(observabilitySource, /clock: 'UNVERIFIED_CLOCK_DOMAIN'/);
+});
+
+test('camera observability rejects malformed and non-finite metrics without widening clock state', () => {
+  const projected = projectCameraObservability({
+    metadata: {
+      receive_bitrate_mbps: Number.POSITIVE_INFINITY,
+      receive_fps: 9999,
+      cross_host_latency_state: 'forged-clock-domain',
+      relay_health: {
+        state: 'unexpected',
+        fps: Number.NaN,
+        profile: { width: 99999, height: -1 },
+        wifi: { state: 'unexpected', rssi_dbm: null, link_mbps: Number.POSITIVE_INFINITY },
+      },
+    },
+    queue: { decodedFrames: Number.POSITIVE_INFINITY, decodeFailures: -1, supersededFrames: 'bad', queueDepth: 99 },
+    reconnects: Number.POSITIVE_INFINITY,
+  });
+  assert.equal(projected.wifi.state, 'UNVERIFIED');
+  assert.equal(projected.source.state, 'UNVERIFIED');
+  assert.equal(projected.transport.detail, '— Mbps · — FPS · R0');
+  assert.equal(projected.decode.detail, 'OK 0 · FAIL 0 · DROP 0 · Q2');
+  assert.equal(projected.clock, 'UNVERIFIED_CLOCK_DOMAIN');
 });
 
 test('camera catalog normalizes source_id aliases and clamps active streams to two', () => {

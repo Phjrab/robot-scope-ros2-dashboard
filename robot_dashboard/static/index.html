@@ -333,6 +333,13 @@
                 <div class="camera-stage"><canvas id="cameraSecondaryCanvas" aria-label="보조 카메라 영상"></canvas><div class="empty-state" id="cameraSecondaryEmpty"><div class="radar-icon"><span></span></div><strong>영상 신호 대기 중</strong><small id="cameraSecondaryEmptyText">두 번째 카메라 신호를 기다리고 있습니다.</small></div><div class="stream-overlay"><span id="cameraSecondaryTopicLabel">NO SOURCE</span><span id="cameraSecondaryCodecLabel">—</span></div></div>
               </section>
             </div>
+            <section class="camera-link-observability" aria-label="기본 카메라 링크 상태">
+              <article><span>ROBOT WI-FI</span><strong id="cameraWifiStatus" data-state="unverified">UNVERIFIED</strong><small id="cameraWifiDetail">RSSI — · LINK —</small></article>
+              <article><span>REALSENSE SOURCE</span><strong id="cameraSourceHealthStatus" data-state="unverified">UNVERIFIED</strong><small id="cameraSourceHealthDetail">— FPS · AGE —</small></article>
+              <article><span>TRANSPORT</span><strong id="cameraTransportHealthStatus" data-state="offline">OFFLINE</strong><small id="cameraTransportHealthDetail">— Mbps · — FPS · R0</small></article>
+              <article><span>DECODE</span><strong id="cameraDecodeHealthStatus" data-state="offline">OFFLINE</strong><small id="cameraDecodeHealthDetail">OK 0 · FAIL 0 · DROP 0 · Q0</small></article>
+              <p id="cameraLatencyDomain">E2E LATENCY · UNVERIFIED_CLOCK_DOMAIN</p>
+            </section>
             <div class="camera-media-toolbar" aria-label="카메라 캡처 및 녹화">
               <div class="camera-media-readout">
                 <span class="camera-record-indicator" aria-hidden="true"></span>

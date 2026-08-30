@@ -2,7 +2,6 @@ import importlib.util
 import stat
 import sys
 import tempfile
-import threading
 import time
 import types
 import unittest
@@ -64,6 +63,8 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(relay.REALSENSE_PRODUCT_ID, "0b3a")
         self.assertEqual(relay.REALSENSE_COLOR_INTERFACE, "03")
         self.assertEqual(relay.REALSENSE_VIDEO_INDEX, "0")
+        self.assertEqual(relay.METRIC_WINDOW_S, 5.0)
+        self.assertEqual(relay.MAX_METRIC_SAMPLES, 120)
 
     def test_private_or_link_local_network_hosts_are_configurable(self):
         self.assertEqual(
@@ -183,6 +184,59 @@ class RealSenseRelayTests(unittest.TestCase):
             local_bind_check=lambda host: host == "192.168.50.30",
         )
         self.assertEqual(config.bind_host, "192.168.50.30")
+
+    def test_optional_wifi_interface_is_validated_without_shell_input(self):
+        config = relay.relay_configuration(
+            {relay.RELAY_WIFI_INTERFACE_ENV: "wlx001122aabbcc"}
+        )
+        self.assertEqual(config.wifi_interface, "wlx001122aabbcc")
+        for value in ("wlan0;id", "$(id)", "wifi interface", "x" * 33):
+            with self.subTest(value=value):
+                with self.assertRaises(relay.RelaySetupError):
+                    relay.relay_configuration({relay.RELAY_WIFI_INTERFACE_ENV: value})
+
+    def test_wifi_probe_is_fixed_argv_cached_and_bounded(self):
+        completed = types.SimpleNamespace(
+            returncode=0,
+            stdout=b"Connected\n\tsignal: -51 dBm\n\ttx bitrate: 433.3 MBit/s\n",
+        )
+        with (
+            mock.patch.object(relay.os.path, "isfile", return_value=True),
+            mock.patch.object(relay.os, "access", return_value=True),
+            mock.patch.object(relay.subprocess, "run", return_value=completed) as run,
+        ):
+            probe = relay.WifiLinkProbe("wlan0")
+            first = probe.status()
+            second = probe.status()
+        self.assertEqual(first["state"], "LIVE")
+        self.assertEqual(first["rssi_dbm"], -51)
+        self.assertEqual(first["link_mbps"], 433.3)
+        self.assertEqual(first, second)
+        run.assert_called_once()
+        command = run.call_args.args[0]
+        self.assertEqual(command[1:], ["dev", "wlan0", "link"])
+        self.assertFalse(run.call_args.kwargs["shell"])
+        self.assertEqual(run.call_args.kwargs["timeout"], relay.WIFI_PROBE_TIMEOUT_S)
+
+    def test_wifi_probe_timeout_is_unverified(self):
+        with (
+            mock.patch.object(relay.os.path, "isfile", return_value=True),
+            mock.patch.object(relay.os, "access", return_value=True),
+            mock.patch.object(
+                relay.subprocess,
+                "run",
+                side_effect=relay.subprocess.TimeoutExpired(["iw"], 1.0),
+            ),
+        ):
+            status = relay.WifiLinkProbe("wlan0").status()
+        self.assertEqual(status["state"], "UNVERIFIED")
+        self.assertIn("timed out", status["reason"])
+
+    def test_wifi_probe_missing_executable_is_unverified(self):
+        with mock.patch.object(relay.os.path, "isfile", return_value=False):
+            status = relay.WifiLinkProbe("wlan0").status()
+        self.assertEqual(status["state"], "UNVERIFIED")
+        self.assertIn("unavailable", status["reason"])
 
     @mock.patch.object(relay, "_plugin_available")
     def test_pipeline_is_fixed_argv_and_prefers_software_jpeg(self, available):
@@ -319,6 +373,28 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(hub.health()["bytes"], len(first) + len(latest))
         self.assertEqual(hub.health()["payload_bytes"], len(first) + len(latest))
         hub.close()
+
+    def test_health_uses_bounded_recent_rate_window_and_explicit_clock_domain(self):
+        class Probe:
+            @staticmethod
+            def status():
+                return {"state": "UNVERIFIED"}
+
+        hub = relay.FrameHub(FakeProducer, wifi_probe=Probe())
+        with hub._condition:
+            hub._frame_samples.extend(
+                ((100.0, 100_000), (102.0, 200_000), (105.0, 300_000))
+            )
+        with mock.patch.object(relay.time, "monotonic", return_value=106.0):
+            health = hub.health()
+        self.assertEqual(len(hub._frame_samples), 2)
+        self.assertEqual(health["metric_window_s"], 5.0)
+        self.assertGreater(health["payload_bitrate_mbps"], 0)
+        self.assertLessEqual(len(hub._frame_samples), relay.MAX_METRIC_SAMPLES)
+        self.assertEqual(health["clock_domain"], "relay_monotonic")
+        self.assertEqual(
+            health["cross_host_latency_state"], "UNVERIFIED_CLOCK_DOMAIN"
+        )
 
     def test_invalid_and_oversize_frames_are_rejected(self):
         hub = relay.FrameHub(FakeProducer)
