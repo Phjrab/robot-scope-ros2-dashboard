@@ -181,6 +181,7 @@ class DatasetCaptureTests(unittest.TestCase):
                 )
                 self.assertEqual(len(cameras.closes), 2)
                 self.assertGreater(manager.snapshot()["dropped"], 0)
+                manager.close()
 
     def test_quota_failure_stops_writer_and_releases_camera(self):
         with tempfile.TemporaryDirectory() as temporary:
