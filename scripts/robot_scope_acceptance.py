@@ -10,6 +10,7 @@ E-stop, or changes a safety limit.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import platform
@@ -36,6 +37,10 @@ REPORT_FILE_MODE = 0o600
 MAX_HTTP_BYTES = 2 * 1024 * 1024
 MAX_SAFE_TEXT = 240
 MANIFEST_RESERVE_BYTES = 1024 * 1024
+CAMERA_MIN_FPS_HZ = 10.0
+CAMERA_MAX_AGE_S = 3.0
+PERCEPTION_MAX_RESULT_AGE_S = 2.0
+POINTCLOUD_DECIMATED_MAX_POINTS = 60_000
 FIXED_DASHBOARD_HOST = "127.0.0.1"
 FIXED_UNITS = (
     "robot-scope.service",
@@ -59,6 +64,12 @@ READ_ONLY_ENDPOINTS = (
     "/api/v1/system/service",
     "/api/v1/control/bridge-service",
     "/api/v1/topics",
+    "/api/v1/cameras",
+    "/api/v1/perception/health",
+    "/api/v1/perception/latest",
+    "/api/v1/models",
+    "/api/v1/competition",
+    "/api/v1/pointcloud/settings",
 )
 SECRET_RE = re.compile(
     r"(?i)(authorization|bearer|bridge[_-]?key|password|secret|token|mac)"
@@ -187,6 +198,90 @@ SUPERVISED_SCENARIOS = (
         "Use only the approved bounded test volume; attempt the documented write and retain the volume afterward for inspection.",
         "Confirms low-disk handling does not publish partial durable artifacts.",
     ),
+    SupervisedScenario(
+        "supervised.robot_wifi_disconnect",
+        "Robot Wi-Fi disconnect",
+        "Receiver and perception become stale or offline, and reconnect never restores ARM or AUTO state.",
+        "With the robot stationary and the physical stop available, use the approved Wi-Fi isolation procedure and then restore the link.",
+        "Confirms management-link loss cannot reuse stale results or restore motion authority.",
+    ),
+    SupervisedScenario(
+        "supervised.realsense_source_stall",
+        "RealSense source stall",
+        "The source and dependent results become stale, and no incomplete Dataset sample is published.",
+        "With no capture or motion active, apply the approved source-stall procedure and observe source, result, and Dataset state.",
+        "Confirms a frozen source cannot be presented as live input.",
+    ),
+    SupervisedScenario(
+        "supervised.realsense_relay_restart",
+        "RealSense relay restart",
+        "The receiver reports a bounded interruption and returns live with one producer and no automatic motion state change.",
+        "While stationary, restart only the relay through the approved manual procedure and observe receiver generation and viewers.",
+        "Confirms relay recovery does not duplicate producers or affect control authority.",
+    ),
+    SupervisedScenario(
+        "supervised.perception_process_stop",
+        "Perception process stop",
+        "Perception becomes offline, stale results are not ready, and motion authority remains absent.",
+        "While stationary, stop only the shadow process through the approved manual procedure and observe dashboard status.",
+        "Confirms optional inference loss cannot bypass the control bridge.",
+    ),
+    SupervisedScenario(
+        "supervised.perception_result_freeze",
+        "Perception result freeze",
+        "A non-advancing result exceeds its age bound and is explicitly classified stale.",
+        "Use the approved fixed freeze fixture while stationary and observe sequence, result age, and readiness.",
+        "Confirms cached AI output cannot remain ready.",
+    ),
+    SupervisedScenario(
+        "supervised.model_hash_mismatch",
+        "Model hash mismatch",
+        "Mismatched runtime model identity is rejected while the old active and previous records remain intact.",
+        "Use only the approved invalid model fixture and inspect the local registry and shadow runtime without activating it.",
+        "Confirms model identity mismatch fails closed without damaging rollback state.",
+    ),
+    SupervisedScenario(
+        "supervised.model_activation_rollback",
+        "Model activation rollback",
+        "A validated activation is explicit and rollback restores the exact previous model without auto-resume.",
+        "Use the local operator tool with exact confirmations, validate shadow health, then perform the documented rollback.",
+        "Confirms active and previous model publication remains atomic and operator-owned.",
+    ),
+    SupervisedScenario(
+        "supervised.preview_consumer_disconnect",
+        "Preview consumer disconnect",
+        "Disconnect releases exactly one viewer and never leaves an extra receiver or producer.",
+        "Open one approved preview, disconnect that consumer, and observe bounded viewer and producer counts.",
+        "Confirms preview demand cleanup does not accumulate transport owners.",
+    ),
+    SupervisedScenario(
+        "supervised.decimated_pointcloud_load",
+        "Decimated PointCloud load",
+        "The bounded diagnostic cloud preserves camera, perception, LowState, and control freshness.",
+        "Enable only the approved point and rate limit while stationary, observe priority traffic, then disable the diagnostic stream.",
+        "Confirms diagnostic PointCloud stays below the reviewed bound.",
+    ),
+    SupervisedScenario(
+        "supervised.raw_pointcloud_overload_abort",
+        "Raw PointCloud overload abort",
+        "Any priority-traffic degradation aborts raw PointCloud first and the overload is never recorded as PASS.",
+        "Under separate load approval, enable the fixed raw diagnostic briefly and abort immediately on a stop condition.",
+        "Confirms optional raw traffic is shed before safety or freshness limits are changed.",
+    ),
+    SupervisedScenario(
+        "supervised.dashboard_receiver_restart",
+        "Dashboard receiver restart",
+        "The receiver restarts offline, reacquires one generation, and never restores ARM or AUTO automatically.",
+        "While stationary and DISARMED, use the approved dashboard lifecycle procedure and observe receiver ownership after recovery.",
+        "Confirms receiver restart cannot replay state or create duplicate consumers.",
+    ),
+    SupervisedScenario(
+        "supervised.competition_lock_mutation_rejection",
+        "Competition Lock mutation rejection",
+        "Competition Lock rejects configuration mutation while STOP and other safety cleanup remain available.",
+        "Enable Competition Lock, attempt only the approved harmless configuration change, then verify cleanup controls remain available.",
+        "Confirms configuration freeze cannot block fail-safe cleanup.",
+    ),
 )
 SCENARIO_BY_ID = {item.id: item for item in SUPERVISED_SCENARIOS}
 
@@ -222,6 +317,22 @@ def _finite_number(value: Any) -> float | None:
     if number != number or number in {float("inf"), float("-inf")}:
         return None
     return number
+
+
+def _private_ipv4(value: Any) -> str | None:
+    try:
+        address = ipaddress.ip_address(str(value or "").strip())
+    except ValueError:
+        return None
+    if (
+        not isinstance(address, ipaddress.IPv4Address)
+        or not (address.is_private or address.is_link_local)
+        or address.is_loopback
+        or address.is_unspecified
+        or address.is_multicast
+    ):
+        return None
+    return str(address)
 
 
 class LocalDashboardClient:
@@ -583,6 +694,230 @@ class AcceptanceRunner:
             safety_impact="A wrong RMW, domain, or interface can discover the wrong graph or hide the intended robot.",
         )
 
+    @staticmethod
+    def _camera_source(payload: Mapping[str, Any] | None, source_id: str) -> Mapping[str, Any] | None:
+        sources = payload.get("sources") if payload else None
+        if not isinstance(sources, list):
+            return None
+        return next(
+            (
+                item
+                for item in sources
+                if isinstance(item, Mapping) and item.get("id") == source_id
+            ),
+            None,
+        )
+
+    def _collect_distributed_identity(self) -> None:
+        health = self._response("/api/v1/health")
+        hostname = str(health.get("hostname", "")).strip() if health else ""
+        machine = str(health.get("platform", "")).strip() if health else ""
+        if hostname and machine and len(hostname) <= 253 and len(machine) <= 40:
+            dashboard_status = "PASS"
+            dashboard_observed = "The dashboard host exposes a bounded runtime identity."
+        else:
+            dashboard_status = "BLOCKED"
+            dashboard_observed = "The dashboard host identity is unavailable."
+        self.add(
+            "runtime.dashboard_identity",
+            dashboard_status,
+            "The dashboard host name and machine identity are recorded from the fixed local API.",
+            dashboard_observed,
+            evidence=(f"hostname={hostname or 'unavailable'}", f"machine={machine or 'unavailable'}"),
+            safety_impact="Field evidence must identify the dashboard host that produced it.",
+        )
+
+        cameras = self._response("/api/v1/cameras")
+        realsense = self._camera_source(cameras, "realsense_color")
+        relay_raw = realsense.get("configured_robot_ip") if realsense else None
+        perception = self._response("/api/v1/perception/health")
+        perception_raw = perception.get("source_ip") if perception else None
+        relay_ip = _private_ipv4(relay_raw)
+        perception_ip = _private_ipv4(perception_raw)
+        malformed = (relay_raw and relay_ip is None) or (perception_raw and perception_ip is None)
+        if malformed:
+            source_status = "FAIL"
+            source_observed = "A configured robot-side source identity is not a private IPv4 address."
+        elif relay_ip and perception_ip and relay_ip == perception_ip:
+            source_status = "PASS"
+            source_observed = "Camera and perception identify the same private robot-side host."
+        else:
+            source_status = "BLOCKED"
+            source_observed = "Both matching robot-side source identities are not available."
+        self.add(
+            "runtime.robot_source_identity",
+            source_status,
+            "Camera and perception expose the same explicit private robot-side source identity.",
+            source_observed,
+            evidence=(
+                f"camera_source={relay_ip or 'unavailable'}",
+                f"perception_source={perception_ip or 'unavailable'}",
+            ),
+            safety_impact="Results from an unexpected host must not be accepted as the configured robot source.",
+        )
+
+    def _collect_camera_and_link(self) -> None:
+        cameras = self._response("/api/v1/cameras")
+        source = self._camera_source(cameras, "realsense_color")
+        if not source:
+            for check_id, expected, impact in (
+                (
+                    "camera.realsense_source",
+                    "The fixed RealSense source is live within its documented FPS and age bounds.",
+                    "A missing source must invalidate dependent perception and Dataset evidence.",
+                ),
+                (
+                    "camera.realsense_transport",
+                    "The dashboard receives complete JPEG frames within the documented FPS and age bounds.",
+                    "A missing receiver must not reuse the last complete image as live.",
+                ),
+                (
+                    "network.robot_wifi",
+                    "The robot-side Wi-Fi probe reports a bounded live RSSI and negotiated link rate.",
+                    "An unavailable management link blocks distributed camera and perception acceptance.",
+                ),
+            ):
+                self.add(
+                    check_id,
+                    "BLOCKED",
+                    expected,
+                    "The RealSense camera catalog entry is unavailable.",
+                    safety_impact=impact,
+                )
+            self._collect_network_quality(None)
+            return
+
+        relay = source.get("relay_health") if isinstance(source.get("relay_health"), Mapping) else {}
+        state = str(source.get("state", "offline")).lower()
+        source_state = str(relay.get("state", state)).lower()
+        source_fps = _finite_number(relay.get("fps"))
+        source_age = _finite_number(relay.get("last_frame_age_s"))
+        if not bool(source.get("configured")) or state in {"disabled", "stopped", "offline", "error", "waiting"}:
+            source_status = "BLOCKED"
+            source_observed = "The configured RealSense source is not currently live."
+        elif source_state == "stale" or state == "stale":
+            source_status = "FAIL"
+            source_observed = "The RealSense source is explicitly stale."
+        elif source_fps is None or source_age is None:
+            source_status = "BLOCKED"
+            source_observed = "The RealSense source is missing bounded FPS or age evidence."
+        elif source_fps < CAMERA_MIN_FPS_HZ or source_age > CAMERA_MAX_AGE_S:
+            source_status = "FAIL"
+            source_observed = "The RealSense source is outside the documented FPS or age bound."
+        elif bool(source.get("live")) and source_state in {"streaming", "ok", "live"}:
+            source_status = "PASS"
+            source_observed = "The RealSense source is live within the documented bounds."
+        else:
+            source_status = "FAIL"
+            source_observed = "The RealSense source state is inconsistent with its live flag."
+        self.add(
+            "camera.realsense_source",
+            source_status,
+            "The fixed RealSense source is live at 10 Hz or more with age no greater than 3 s.",
+            source_observed,
+            evidence=(
+                f"state={source_state}",
+                f"fps={source_fps}",
+                f"age_s={source_age}",
+                f"invalid_frames={relay.get('invalid_frames')}",
+                f"producer_generation={relay.get('producer_generation')}",
+            ),
+            safety_impact="A stale source must invalidate dependent perception and Dataset evidence.",
+        )
+
+        receive_fps = _finite_number(source.get("receive_fps"))
+        receive_age = _finite_number(source.get("last_complete_jpeg_age_s"))
+        receive_bitrate = _finite_number(source.get("receive_bitrate_mbps"))
+        if state in {"disabled", "stopped", "offline", "error", "waiting"}:
+            transport_status = "BLOCKED"
+            transport_observed = "The dashboard receiver is not currently live."
+        elif state == "stale":
+            transport_status = "FAIL"
+            transport_observed = "The dashboard receiver is explicitly stale."
+        elif receive_fps is None or receive_age is None or receive_bitrate is None:
+            transport_status = "BLOCKED"
+            transport_observed = "The receiver is missing bounded FPS, age, or bitrate evidence."
+        elif receive_fps < CAMERA_MIN_FPS_HZ or receive_age > CAMERA_MAX_AGE_S:
+            transport_status = "FAIL"
+            transport_observed = "The receiver is outside the documented FPS or age bound."
+        elif bool(source.get("live")):
+            transport_status = "PASS"
+            transport_observed = "The receiver is live within the documented bounds."
+        else:
+            transport_status = "FAIL"
+            transport_observed = "The receiver state is inconsistent with its live flag."
+        self.add(
+            "camera.realsense_transport",
+            transport_status,
+            "The dashboard receives complete JPEG frames at 10 Hz or more with age no greater than 3 s.",
+            transport_observed,
+            evidence=(
+                f"state={state}",
+                f"receive_fps={receive_fps}",
+                f"receive_age_s={receive_age}",
+                f"receive_bitrate_mbps={receive_bitrate}",
+                f"restart_count={source.get('restart_count')}",
+            ),
+            safety_impact="A stalled receiver must not reuse its last complete image as live.",
+        )
+
+        wifi = relay.get("wifi") if isinstance(relay.get("wifi"), Mapping) else None
+        if not wifi:
+            wifi_status = "BLOCKED"
+            wifi_observed = "The robot-side Wi-Fi probe is unavailable."
+            wifi_state, rssi, link = "UNVERIFIED", None, None
+        else:
+            wifi_state = str(wifi.get("state", "UNVERIFIED")).upper()
+            rssi = _finite_number(wifi.get("rssi_dbm"))
+            link = _finite_number(wifi.get("link_mbps"))
+            if wifi_state == "LIVE" and rssi is not None and link is not None and link > 0:
+                wifi_status = "PASS"
+                wifi_observed = "The robot-side Wi-Fi probe reports live bounded metrics."
+            elif wifi_state in {"OFFLINE", "UNVERIFIED"}:
+                wifi_status = "BLOCKED"
+                wifi_observed = "The robot-side Wi-Fi metrics are unavailable."
+            else:
+                wifi_status = "FAIL"
+                wifi_observed = "The robot-side Wi-Fi probe reports degradation or stale metrics."
+        self.add(
+            "network.robot_wifi",
+            wifi_status,
+            "The robot-side Wi-Fi probe reports a bounded live RSSI and negotiated link rate.",
+            wifi_observed,
+            evidence=(
+                f"state={wifi_state}",
+                f"interface={wifi.get('interface', 'unavailable') if wifi else 'unavailable'}",
+                f"rssi_dbm={rssi}",
+                f"link_mbps={link}",
+            ),
+            safety_impact="An unavailable management link blocks distributed camera and perception acceptance.",
+        )
+        self._collect_network_quality(wifi)
+
+    def _collect_network_quality(self, wifi: Mapping[str, Any] | None) -> None:
+        metrics = wifi.get("quality") if wifi and isinstance(wifi.get("quality"), Mapping) else None
+        values = {
+            key: _finite_number(metrics.get(key)) if metrics else None
+            for key in ("rtt_p50_ms", "rtt_p95_ms", "rtt_p99_ms", "loss_percent", "minimum_throughput_mbps")
+        }
+        if not metrics or any(value is None for value in values.values()):
+            status = "BLOCKED"
+            observed = "RTT, loss, and minimum observed throughput are not exposed by the fixed API."
+        elif values["loss_percent"] < 0 or values["loss_percent"] > 100:
+            status = "FAIL"
+            observed = "The network-quality metrics are malformed."
+        else:
+            status = "PASS"
+            observed = "The fixed API exposes one bounded network-quality observation set."
+        self.add(
+            "network.quality_observation",
+            status,
+            "One measured interval records RTT p50/p95/p99, loss, and minimum observed throughput.",
+            observed,
+            evidence=tuple(f"{key}={value}" for key, value in values.items()),
+            safety_impact="Link-rate branding or one ping must not substitute for measured competition-link evidence.",
+        )
+
     def _collect_control(self) -> None:
         payload = self._response("/api/v1/control")
         control = payload.get("control") if payload else None
@@ -652,6 +987,397 @@ class AcceptanceRunner:
             observed,
             evidence=evidence,
             safety_impact="Unexpected publishers, stale LowState, or unauthenticated status must block motion.",
+        )
+
+    def _collect_perception(self) -> None:
+        health = self._response("/api/v1/perception/health")
+        if not health:
+            self.add(
+                "perception.runtime",
+                "BLOCKED",
+                "Shadow perception is observable and has no motion authority or command publishers.",
+                "The perception health snapshot is unavailable.",
+                safety_impact="Mission readiness cannot infer AI availability from cached results.",
+            )
+        else:
+            state = str(health.get("state", "OFFLINE")).upper()
+            authority = health.get("motion_authority")
+            command_publishers = health.get("command_publishers", 0)
+            unsafe_authority = authority not in {False, "NONE"} or command_publishers not in {0, None}
+            if unsafe_authority or str(health.get("mode", "")).upper() != "SHADOW":
+                status = "FAIL"
+                observed = "Perception does not satisfy the SHADOW and zero-authority contract."
+            elif state == "LIVE":
+                status = "PASS"
+                observed = "Shadow perception is live with no motion authority."
+            elif state in {"OFFLINE", "WAITING", "UNAVAILABLE"}:
+                status = "BLOCKED"
+                observed = "Shadow perception is not currently live."
+            else:
+                status = "FAIL"
+                observed = "Shadow perception reports a failed or degraded runtime."
+            self.add(
+                "perception.runtime",
+                status,
+                "Shadow perception is observable and has no motion authority or command publishers.",
+                observed,
+                evidence=(
+                    f"mode={health.get('mode', 'unavailable')}",
+                    f"state={state}",
+                    f"motion_authority={authority}",
+                    f"command_publishers={command_publishers}",
+                    f"last_success_age_s={health.get('last_success_age_s')}",
+                ),
+                safety_impact="Optional AI must never publish commands or bypass the control bridge.",
+            )
+
+        latest = self._response("/api/v1/perception/latest")
+        results = latest.get("results") if latest else None
+        transport = str(latest.get("transport_state", "OFFLINE")).upper() if latest else "OFFLINE"
+        if not isinstance(results, list) or not results:
+            result_status = "BLOCKED"
+            result_observed = "No bounded perception result is available."
+            result_evidence = (f"transport={transport}", "results=0")
+        else:
+            fresh = 0
+            stale_closed = 0
+            unsafe = 0
+            for result in results:
+                if not isinstance(result, Mapping):
+                    unsafe += 1
+                    continue
+                age = _finite_number(result.get("last_receive_age"))
+                state = str(result.get("result_status", "")).upper()
+                if state == "LIVE" and transport == "LIVE" and age is not None and age <= PERCEPTION_MAX_RESULT_AGE_S:
+                    fresh += 1
+                elif state == "STALE" and (transport != "LIVE" or age is None or age > PERCEPTION_MAX_RESULT_AGE_S):
+                    stale_closed += 1
+                else:
+                    unsafe += 1
+            if unsafe:
+                result_status = "FAIL"
+                result_observed = "One or more perception results has an unsafe freshness classification."
+            else:
+                result_status = "PASS"
+                result_observed = (
+                    "All current results are fresh."
+                    if fresh
+                    else "All retained results are explicitly stale and cannot be ready."
+                )
+            result_evidence = (
+                f"transport={transport}",
+                f"results={len(results)}",
+                f"fresh={fresh}",
+                f"stale_fail_closed={stale_closed}",
+                f"unsafe={unsafe}",
+            )
+        self.add(
+            "perception.result_freshness",
+            result_status,
+            "Results at or below 2 s are LIVE; older, frozen, or disconnected results are explicitly STALE.",
+            result_observed,
+            evidence=result_evidence,
+            safety_impact="A stale or frozen AI result must never satisfy motion or Mission readiness.",
+        )
+
+        verified = [
+            result.get("clock_domain_verified") is True
+            for result in results
+            if isinstance(results, list) and isinstance(result, Mapping)
+        ] if isinstance(results, list) else []
+        self.add(
+            "perception.clock_domain",
+            "PASS" if verified and all(verified) else "BLOCKED",
+            "Every accepted cross-host result has an explicitly verified clock domain.",
+            (
+                "All observed results have a verified clock domain."
+                if verified and all(verified)
+                else "Cross-host result timing remains explicitly unverified."
+            ),
+            evidence=(f"verified={sum(verified)}", f"observed={len(verified)}"),
+            safety_impact="Unverified clocks must not produce synthetic end-to-end latency or hide stale input.",
+        )
+        self._collect_compute_metrics(health)
+
+    def _collect_compute_metrics(self, health: Mapping[str, Any] | None) -> None:
+        compute = health.get("compute") if health and isinstance(health.get("compute"), Mapping) else None
+        if not compute:
+            self.add(
+                "perception.compute_metrics",
+                "BLOCKED",
+                "CPU, GPU, RAM, temperature, and throttling availability are recorded together.",
+                "The fixed dashboard API does not expose the complete compute metric set.",
+                safety_impact="An unobserved resource or thermal limit cannot support workload acceptance.",
+            )
+            return
+        cpu = _finite_number(compute.get("cpu_percent"))
+        gpu = _finite_number(compute.get("gpu_percent"))
+        ram_used = _finite_number(compute.get("ram_used_bytes"))
+        ram_total = _finite_number(compute.get("ram_total_bytes"))
+        temperature = _finite_number(compute.get("temperature_c"))
+        throttling = compute.get("throttling")
+        valid = (
+            cpu is not None
+            and 0 <= cpu <= 100
+            and gpu is not None
+            and 0 <= gpu <= 100
+            and ram_used is not None
+            and ram_total is not None
+            and 0 <= ram_used <= ram_total
+            and temperature is not None
+            and -50 <= temperature <= 150
+            and isinstance(throttling, bool)
+        )
+        if not valid:
+            status = "FAIL"
+            observed = "One or more compute metrics is malformed or unavailable."
+        elif throttling:
+            status = "FAIL"
+            observed = "The workload reports thermal or power throttling."
+        else:
+            status = "PASS"
+            observed = "The complete compute metric set is available without throttling."
+        self.add(
+            "perception.compute_metrics",
+            status,
+            "CPU, GPU, RAM, temperature, and throttling availability are recorded together.",
+            observed,
+            evidence=(
+                f"cpu_percent={cpu}",
+                f"gpu_percent={gpu}",
+                f"ram_used_bytes={ram_used}",
+                f"ram_total_bytes={ram_total}",
+                f"temperature_c={temperature}",
+                f"throttling={throttling}",
+            ),
+            safety_impact="A throttled or unobservable workload cannot be accepted for competition use.",
+        )
+
+    def _collect_models(self) -> None:
+        registry = self._response("/api/v1/models")
+        latest = self._response("/api/v1/perception/latest")
+        raw_models = registry.get("models") if registry else None
+        active = registry.get("active") if registry else None
+        previous = registry.get("previous") if registry else None
+        results = latest.get("results") if latest else None
+        if not isinstance(raw_models, list) or not isinstance(active, Mapping) or not isinstance(previous, Mapping):
+            self.add(
+                "models.registry_identity",
+                "BLOCKED",
+                "Active and previous model IDs resolve to bounded ONNX and engine SHA-256 identities.",
+                "The model registry snapshot is unavailable.",
+                safety_impact="Runtime results cannot be tied to validated rollback-capable model artifacts.",
+            )
+            self.add(
+                "models.runtime_match",
+                "BLOCKED",
+                "Every runtime result matches the active model ID and backend artifact SHA-256 for its task.",
+                "Model identity comparison is unavailable.",
+                safety_impact="A mismatched runtime model must not be treated as active or ready.",
+            )
+            return
+        records = {
+            str(item.get("model_id")): item
+            for item in raw_models
+            if isinstance(item, Mapping) and item.get("model_id")
+        }
+        identities: list[str] = []
+        malformed = False
+        for label, mapping in (("active", active), ("previous", previous)):
+            for task, model_id in mapping.items():
+                record = records.get(str(model_id))
+                onnx_digest = str(record.get("onnx_sha256", "")) if record else ""
+                engine = record.get("engine") if record and isinstance(record.get("engine"), Mapping) else None
+                engine_digest = str(engine.get("sha256", "")) if engine else ""
+                if (
+                    not record
+                    or not re.fullmatch(r"[0-9a-f]{64}", onnx_digest)
+                    or not re.fullmatch(r"[0-9a-f]{64}", engine_digest)
+                ):
+                    malformed = True
+                    continue
+                identities.append(
+                    f"{label}.{task}={model_id}:onnx={onnx_digest}:engine={engine_digest}"
+                )
+        if not active:
+            registry_status = "BLOCKED"
+            registry_observed = "No active model is recorded."
+        elif malformed:
+            registry_status = "FAIL"
+            registry_observed = "An active or previous model does not resolve to a bounded hash identity."
+        else:
+            registry_status = "PASS"
+            registry_observed = "Active and previous model identities resolve in the local registry."
+        self.add(
+            "models.registry_identity",
+            registry_status,
+            "Active and previous model IDs resolve to bounded ONNX and engine SHA-256 identities.",
+            registry_observed,
+            evidence=identities[:12] or ("active_models=0",),
+            safety_impact="Rollback depends on intact active and previous artifact identity.",
+        )
+
+        if not isinstance(results, list) or not results or not active:
+            runtime_status = "BLOCKED"
+            runtime_observed = "There are no live runtime results and active identities to compare."
+            compared = 0
+            mismatches = 0
+            missing_count = len(active)
+        else:
+            compared = 0
+            mismatches = 0
+            seen_tasks: set[str] = set()
+            for result in results:
+                if not isinstance(result, Mapping):
+                    mismatches += 1
+                    continue
+                task = str(result.get("task", ""))
+                if task in seen_tasks:
+                    mismatches += 1
+                    continue
+                seen_tasks.add(task)
+                model_id = str(result.get("model_id", ""))
+                digest = str(result.get("model_sha256", ""))
+                backend = str(result.get("backend", ""))
+                expected_id = str(active.get(task, ""))
+                expected = records.get(expected_id)
+                if backend == "onnx" and expected:
+                    expected_digest = str(expected.get("onnx_sha256", ""))
+                elif backend == "tensorrt" and expected and isinstance(expected.get("engine"), Mapping):
+                    expected_digest = str(expected["engine"].get("sha256", ""))
+                else:
+                    expected_digest = ""
+                compared += 1
+                if (
+                    model_id != expected_id
+                    or not re.fullmatch(r"[0-9a-f]{64}", digest)
+                    or digest != expected_digest
+                ):
+                    mismatches += 1
+            missing_tasks = set(str(task) for task in active) - seen_tasks
+            missing_count = len(missing_tasks)
+            if mismatches:
+                runtime_status = "FAIL"
+                runtime_observed = "One or more runtime results does not match the active model identity."
+            elif missing_tasks:
+                runtime_status = "BLOCKED"
+                runtime_observed = "One or more active tasks has no runtime result to compare."
+            else:
+                runtime_status = "PASS"
+                runtime_observed = "Every runtime result matches its active model identity."
+        self.add(
+            "models.runtime_match",
+            runtime_status,
+            "Every runtime result matches the active model ID and backend artifact SHA-256 for its task.",
+            runtime_observed,
+            evidence=(
+                f"compared={compared}",
+                f"mismatches={mismatches}",
+                f"missing_active_tasks={missing_count}",
+            ),
+            safety_impact="A mismatched runtime model must not be treated as active or ready.",
+        )
+
+    def _collect_competition(self) -> None:
+        competition = self._response("/api/v1/competition")
+        if not competition:
+            status = "BLOCKED"
+            observed = "Competition state is unavailable."
+            evidence = ()
+        else:
+            mode = str(competition.get("operation_mode", "UNKNOWN")).upper()
+            authority = str(competition.get("motion_authority", "UNKNOWN")).upper()
+            locked = competition.get("locked")
+            physical = competition.get("lock_is_physical_safety")
+            if authority != "NONE" or physical is not False or mode in {"ASSISTED", "AUTO"}:
+                status = "FAIL"
+                observed = "Competition state grants unaccepted authority or misrepresents the software lock."
+            elif locked is True and mode in {"MANUAL", "SHADOW", "SAFE_STOP"}:
+                status = "PASS"
+                observed = "Competition Lock is enabled with no AI motion authority."
+            elif locked is False:
+                status = "FAIL"
+                observed = "Competition Lock is not enabled for this acceptance observation."
+            else:
+                status = "BLOCKED"
+                observed = "Competition Lock state is malformed or unavailable."
+            evidence = (
+                f"mode={mode}",
+                f"locked={locked}",
+                f"motion_authority={authority}",
+                f"lock_is_physical_safety={physical}",
+            )
+        self.add(
+            "competition.lock_and_authority",
+            status,
+            "Competition Lock is enabled, is explicitly non-physical, and AI motion authority is NONE.",
+            observed,
+            evidence=evidence,
+            safety_impact="Configuration freeze must not be confused with the physical stop or grant AI control.",
+        )
+
+    def _collect_pointcloud(self) -> None:
+        latest = self._response("/api/v1/perception/latest")
+        transport = str(latest.get("transport_state", "OFFLINE")).upper() if latest else "OFFLINE"
+        results = latest.get("results") if latest else None
+        depth = next(
+            (
+                item
+                for item in results
+                if isinstance(item, Mapping) and item.get("task") == "depth_summary"
+            ),
+            None,
+        ) if isinstance(results, list) else None
+        if depth and depth.get("result_status") == "LIVE" and transport == "LIVE":
+            mode_status = "PASS"
+            mode_observed = "The active robot-side PointCloud product is the typed SUMMARY result."
+            mode = "SUMMARY"
+        elif transport == "LIVE" and depth is None:
+            mode_status = "PASS"
+            mode_observed = "No robot-side PointCloud result is active."
+            mode = "OFF"
+        else:
+            mode_status = "BLOCKED"
+            mode_observed = "Robot-side PointCloud mode cannot be established from a live result."
+            mode = "UNAVAILABLE"
+        self.add(
+            "pointcloud.robot_side_mode",
+            mode_status,
+            "Robot-side management-Wi-Fi PointCloud mode is OFF or a fresh typed SUMMARY result.",
+            mode_observed,
+            evidence=(f"mode={mode}", f"transport={transport}"),
+            safety_impact="A stale summary or implicit raw cloud must not become motion-ready input.",
+        )
+
+        settings = self._response("/api/v1/pointcloud/settings")
+        if not settings:
+            budget_status = "BLOCKED"
+            budget_observed = "The dashboard PointCloud renderer budget is unavailable."
+            limit = None
+            all_points = None
+        else:
+            limit = settings.get("max_points")
+            all_points = settings.get("all_points")
+            if all_points is True and limit is None:
+                budget_status = "BLOCKED"
+                budget_observed = "Raw all-points mode requires a separate supervised load approval."
+            elif isinstance(limit, int) and not isinstance(limit, bool) and 1_000 <= limit <= POINTCLOUD_DECIMATED_MAX_POINTS:
+                budget_status = "PASS"
+                budget_observed = "The renderer uses a bounded decimated point budget."
+            else:
+                budget_status = "FAIL"
+                budget_observed = "The renderer point budget is malformed or exceeds the reviewed bound."
+        self.add(
+            "pointcloud.dashboard_budget",
+            budget_status,
+            "Dashboard diagnostic PointCloud is bounded to 60,000 points or raw mode remains supervised-only.",
+            budget_observed,
+            evidence=(
+                f"max_points={limit}",
+                f"all_points={all_points}",
+                f"frame_interval_s={settings.get('frame_interval_s') if settings else None}",
+            ),
+            safety_impact="Raw or oversized diagnostic traffic must never be accepted without overload-abort evidence.",
         )
 
     def _topic_check(
@@ -1000,7 +1726,13 @@ class AcceptanceRunner:
         self._collect_systemd()
         self._fetch_endpoints()
         self._collect_health()
+        self._collect_distributed_identity()
+        self._collect_camera_and_link()
         self._collect_control()
+        self._collect_perception()
+        self._collect_models()
+        self._collect_competition()
+        self._collect_pointcloud()
         self._collect_topics()
         self._collect_navigation()
         self._collect_maps()
@@ -1135,6 +1867,21 @@ def render_markdown(report: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+class SingleValueAction(argparse.Action):
+    """Reject repeated safety-critical selectors instead of using the last value."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str,
+        option_string: str | None = None,
+    ) -> None:
+        if getattr(namespace, self.dest, None) is not None:
+            raise argparse.ArgumentError(self, f"{option_string} may be provided only once")
+        setattr(namespace, self.dest, values)
+
+
 def build_parser() -> argparse.ArgumentParser:
     project_default = Path(__file__).resolve().parents[1]
     config_home = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
@@ -1151,8 +1898,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--confirm-clear-area", action="store_true")
     parser.add_argument("--confirm-low-speed-limits", action="store_true")
     parser.add_argument("--confirm-operator-present", action="store_true")
-    parser.add_argument("--supervised-scenario", choices=tuple(SCENARIO_BY_ID))
-    parser.add_argument("--supervised-result", choices=STATUSES)
+    parser.add_argument(
+        "--supervised-scenario",
+        choices=tuple(SCENARIO_BY_ID),
+        action=SingleValueAction,
+    )
+    parser.add_argument(
+        "--supervised-result",
+        choices=STATUSES,
+        action=SingleValueAction,
+    )
     return parser
 
 

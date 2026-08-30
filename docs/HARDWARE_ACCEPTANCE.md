@@ -83,6 +83,25 @@ Robot Scope checkout and reports still use its fixed `runtime/reports` child.
 | Storage | Dataset free space exceeds its configured reserve plus one bounded manifest; configured dataset, map, mapping-log, ROS-log, and report directories are real, non-writable by group/others, and private where required |
 | Services | Both fixed systemd units are observed with load, enablement, active/sub-state, result, and restart count; no enable/start/stop occurs |
 
+WP07 extends that fixed GET allowlist with camera, shadow-perception, model
+registry, Competition Lock, and PointCloud settings. These observations remain
+read-only and do not acquire a camera viewer, start inference, activate a model,
+change a PointCloud limit, or release Competition Lock.
+
+| WP07 area | Acceptance evidence and fixed classification |
+|---|---|
+| Host/source identity | Dashboard hostname/machine and matching private robot-side camera/perception source addresses; missing live identity is `BLOCKED` |
+| RealSense | Source and receiver state, FPS, age, bitrate, invalid frames, generation and reconnect count; source/receiver minimum 10 Hz and maximum age 3 s |
+| Network | Wi-Fi interface/RSSI/link plus RTT p50/p95/p99, loss and minimum observed throughput when all are exposed; missing interval metrics remain `BLOCKED` |
+| Perception | `SHADOW`, zero motion authority, transport state and result age; a result older than 2 s must be explicitly `STALE` |
+| Models | Active/previous IDs resolve to ONNX and engine SHA-256 records; every runtime task matches the active ID and its backend artifact hash |
+| Resources | CPU, GPU, RAM, temperature and throttling must be available together; missing metrics are `BLOCKED`, throttling is `FAIL` |
+| Competition/PointCloud | Competition Lock must be enabled with authority `NONE`; robot-side mode is `OFF` or fresh `SUMMARY`; dashboard diagnostic budget is at most 60,000 points and raw remains supervised-only |
+
+The numeric values above are acceptance criteria only. They do not change the
+camera, perception, LowState, control, navigation, or watchdog runtime timeout.
+One Wi-Fi link-rate value or one ping is not enough to pass network acceptance.
+
 The Localization row is paired with the Phase 14
 `navigation.localization_health` check. That row records the explicit state
 and reason plus bounded cloud/odometry rates and ages, TF age and advancing
@@ -184,10 +203,27 @@ from being copied into the report.
 | `supervised.xt16_interruption` | With no goal active, interrupt XT16 and confirm freshness loss blocks Nav without replaying stale clouds. |
 | `supervised.dataset_shutdown_blocker` | Start a short capture and confirm lifecycle change is blocked until capture is finalized. |
 | `supervised.low_disk_rejection` | Use only a bounded approved test volume and confirm map/dataset writes reject before crossing reserve. |
+| `supervised.robot_wifi_disconnect` | Isolate and restore the approved robot Wi-Fi path; verify receiver/result stale state and no automatic ARM/AUTO resume. |
+| `supervised.realsense_source_stall` | Apply the fixed source-stall procedure; verify source and dependent results become stale and no incomplete Dataset sample is published. |
+| `supervised.realsense_relay_restart` | Restart only the relay through the approved procedure; verify one producer/generation and bounded automatic preview recovery. |
+| `supervised.perception_process_stop` | Stop only shadow perception; verify explicit offline state, stale result rejection and zero command authority. |
+| `supervised.perception_result_freeze` | Freeze only the fixed result fixture; verify non-advancing sequence age becomes stale. |
+| `supervised.model_hash_mismatch` | Present only the invalid fixed model fixture; verify rejection and preservation of active/previous records. |
+| `supervised.model_activation_rollback` | Explicitly activate a validated model and roll back with exact local confirmations; verify atomic active/previous exchange. |
+| `supervised.preview_consumer_disconnect` | Disconnect one preview consumer; verify exactly one viewer release and no duplicate receiver/producer. |
+| `supervised.decimated_pointcloud_load` | Enable only the approved bounded diagnostic cloud and verify priority traffic remains within its existing bounds. |
+| `supervised.raw_pointcloud_overload_abort` | Under separate approval, abort raw diagnostic traffic first on any priority degradation; an overload is never `PASS`. |
+| `supervised.dashboard_receiver_restart` | Restart the receiver while stationary/DISARMED; verify one new generation and no automatic ARM/AUTO resume. |
+| `supervised.competition_lock_mutation_rejection` | With Competition Lock enabled, verify harmless configuration mutation is rejected while safety cleanup remains available. |
 
 The physical remote must remain in hand during every motion-capable scenario.
 Dashboard SOFTWARE STOP is a software latch, not a substitute for the physical
 E-stop. The recorder never clears either stop.
+
+When the robot is powered off, do not execute any row in this table. Repository
+tests may prove parser and classifier behavior, but every supervised row remains
+`NOT_RUN`; live camera, perception, network, LowState, bridge and resource rows
+remain `BLOCKED` unless the same deployed run actually observed them.
 
 ## Immediate stop and failure rules
 

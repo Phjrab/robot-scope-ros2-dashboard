@@ -3,6 +3,9 @@
 WP06 Competition Cockpit의 운용 모드, 고정 안전 필드, 설정 Lock,
 network/perception/model 상태 및 rollback 규칙은
 [`WP06_COMPETITION_COCKPIT.md`](WP06_COMPETITION_COCKPIT.md)에 기록한다.
+WP07의 read-only 고장 수락 기준, fixed supervised scenario와 hardware-free
+경계는 [`WP07_FAIL_CLOSED_ACCEPTANCE.md`](WP07_FAIL_CLOSED_ACCEPTANCE.md)에
+기록한다.
 
 이 문서는 CWP-00에서 확인한 현재 코드 기준의 Cockpit 설계 계약이다. 조사
 기준은 `main`의 `f91ef38affbd56a1b4f119aeeb958e38926ff5f4`이며, Cockpit을
