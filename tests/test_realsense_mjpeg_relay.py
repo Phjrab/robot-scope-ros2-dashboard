@@ -66,6 +66,10 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(relay.METRIC_WINDOW_S, 5.0)
         self.assertEqual(relay.MAX_METRIC_SAMPLES, 120)
 
+    def test_listener_can_rebind_after_restart_without_parallel_port_sharing(self):
+        self.assertTrue(relay.RelayServer.allow_reuse_address)
+        self.assertFalse(getattr(relay.RelayServer, "allow_reuse_port", False))
+
     def test_private_or_link_local_network_hosts_are_configurable(self):
         self.assertEqual(
             relay.relay_network_hosts(

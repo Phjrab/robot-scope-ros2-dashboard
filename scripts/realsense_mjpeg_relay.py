@@ -876,7 +876,11 @@ class GstProducer:
 
 class RelayServer(ThreadingHTTPServer):
     daemon_threads = True
-    allow_reuse_address = False
+    # A supervised service restart can leave the previous MJPEG connection in
+    # TCP teardown after the listener has closed.  SO_REUSEADDR permits the
+    # single replacement listener to reclaim the fixed port without enabling
+    # parallel listeners (SO_REUSEPORT remains disabled).
+    allow_reuse_address = True
     request_queue_size = MAX_HTTP_CLIENTS
 
     def __init__(
