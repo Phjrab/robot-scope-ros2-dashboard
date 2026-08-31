@@ -124,7 +124,8 @@ The following remain intentionally `BLOCKED` or `NOT_RUN` for WP07:
   the accepted split `go2-control` link and remains required in Nav/XT16 modes;
 - every formal supervised scenario, because the five recorder confirmations
   were not supplied; separate dashboard-restart and Lock-rejection observations
-  were deliberately not promoted to supervised `PASS` records;
+  and the 2026-08-31 preview demand disconnect/reconnect observation were
+  deliberately not promoted to supervised `PASS` records;
 - physical no-auto-resume and bounded-stop observations.
 
 ## Rollback

@@ -642,6 +642,44 @@ Verification results for this correction:
 - tracked-source secret scan: PASS;
 - `git diff --check`: PASS.
 
+## Go2 relay recovery and preview demand lifecycle — 2026-08-31
+
+With Sensors already in dual-camera mode, the fixed Go2 relay was restarted
+once while the robot remained stationary. The service MainPID changed from
+3898 to 5277 and returned `active/running` with `NRestarts=0`; its boot policy
+remained `disabled`. The dashboard receiver reconnected without operator
+action. The browser showed Go2 LIVE at 1280x720 and about 11.6 FPS after
+stabilization, while the RealSense primary stayed LIVE at 640x480 and about
+15–19 FPS. The interruption was shorter than the UI observation interval, so
+no transient STALE/WAITING label was claimed. Post-recovery API state was
+`active_sources=2`, `viewers=2`, with exactly one viewer per source and zero
+RealSense decode failures.
+
+The Sensors layout was then changed from dual view to single view and back.
+Dual view reported one RealSense viewer and one Go2 viewer. Single view kept
+the RealSense primary LIVE with one viewer and released Go2 to `stopped` with
+zero viewers, yielding `active_sources=1` and `viewers=1`. Returning to dual
+view restored exactly one viewer for each source, with no duplicate consumer.
+After leaving Sensors for Overview, both sources were `stopped`,
+`active_sources=0`, and `viewers=0`. Robot-side RealSense health was `idle`
+with zero viewers and both producer process and producer thread stopped.
+
+The final control projection still had no lease, deadman false, and all linear
+and angular commands at zero. No ARM, motion, action, Dataset, Navigation, or
+Mapping request was issued. Both camera services were left manually active and
+disabled at boot. This is a separate non-motion observation; it does not
+promote `supervised.preview_consumer_disconnect` or any other formal WP07
+scenario to PASS without the recorder's five required field confirmations.
+
+Repository verification for this observation-only update:
+
+- complete Python suite: 799 passed, 0 failed;
+- complete JavaScript suite: 253 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- Ruff configured repository targets: PASS;
+- tracked-source secret scan: PASS;
+- `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
