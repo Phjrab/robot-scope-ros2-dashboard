@@ -614,36 +614,61 @@ class AcceptanceRunner:
 
     def _collect_health(self) -> None:
         health = self._response("/api/v1/health")
+        expected = "The agent, pinned target, and mode-required Go2 link are live."
         if not health:
             self.add(
                 "runtime.go2_connection",
                 "BLOCKED",
-                "The agent, ROS interface, pinned target, and Go2 reachability are live.",
+                expected,
                 "The health snapshot is unavailable.",
                 safety_impact="No robot-dependent check may be treated as current.",
             )
             return
-        local_ready = bool(health.get("agent_ready")) and bool(
-            health.get("ros_interface_ready")
-        )
+        agent_ready = bool(health.get("agent_ready"))
+        ros_interface_ready = bool(health.get("ros_interface_ready"))
         target_ready = bool(health.get("robot_target_connected")) and bool(
             health.get("target_matches_startup")
         )
         online = bool(health.get("robot_online"))
-        if local_ready and target_ready and online:
+        link_contract = "direct_ros"
+        if self.mode == "go2-control":
+            control = self._response("/api/v1/control")
+            control = control.get("control") if control else None
+            bridge = control.get("bridge") if isinstance(control, Mapping) else None
+            status_age = _finite_number(bridge.get("status_age_s")) if isinstance(bridge, Mapping) else None
+            lowstate_age_ms = _finite_number(bridge.get("lowstate_age_ms")) if isinstance(bridge, Mapping) else None
+            signed_bridge_ready = (
+                isinstance(bridge, Mapping)
+                and bridge.get("authenticated") is True
+                and bridge.get("ready") is True
+                and bridge.get("connected") is True
+                and status_age is not None
+                and 0 <= status_age <= 0.75
+                and lowstate_age_ms is not None
+                and 0 <= lowstate_age_ms <= 750.0
+            )
+            link_contract = "signed_bridge"
+            if agent_ready and target_ready and signed_bridge_ready:
+                status, observed = "PASS", "The pinned Go2 target and signed LowState Bridge are live."
+            elif agent_ready:
+                status, observed = "BLOCKED", "The local agent is ready but the signed Go2 control link is not live."
+            else:
+                status, observed = "FAIL", "The local agent is not ready."
+        elif agent_ready and ros_interface_ready and target_ready and online:
             status, observed = "PASS", "The pinned Go2 target is reachable and the local ROS interface is ready."
-        elif local_ready:
+        elif agent_ready and ros_interface_ready:
             status, observed = "BLOCKED", "The local agent is ready but the pinned Go2 target is not live."
         else:
             status, observed = "FAIL", "The local agent or required ROS interface is not ready."
         self.add(
             "runtime.go2_connection",
             status,
-            "The agent, ROS interface, pinned target, and Go2 reachability are live.",
+            expected,
             observed,
             evidence=(
-                f"agent_ready={bool(health.get('agent_ready'))}",
-                f"ros_interface_ready={bool(health.get('ros_interface_ready'))}",
+                f"link_contract={link_contract}",
+                f"agent_ready={agent_ready}",
+                f"ros_interface_ready={ros_interface_ready}",
                 f"target_matches_startup={bool(health.get('target_matches_startup'))}",
                 f"robot_online={online}",
             ),

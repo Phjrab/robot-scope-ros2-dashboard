@@ -24,6 +24,7 @@ control/LowState/cardinality, and PointCloud mode/budget.
 
 | Check | PASS boundary | Fail-closed classification |
 |---|---|---|
+| Go2 link | `go2-control` requires a fresh authenticated signed Bridge/LowState link; Nav/XT16 modes still require their direct ROS interface | missing mode-required link is `BLOCKED` when the agent remains observable; a missing required ROS interface in a direct-ROS mode is `FAIL` |
 | RealSense source/receiver | at least 10 Hz and age at most 3 s | offline/missing hardware `BLOCKED`; explicit stale or inconsistent live state `FAIL` |
 | Perception result | `LIVE` only at age at most 2 s | older/frozen/disconnected result must be `STALE`; old result labelled `LIVE` is `FAIL` |
 | Model identity | runtime task ID and backend artifact SHA-256 match the local active ONNX/engine record | mismatch is `FAIL`; absent active/runtime evidence is `BLOCKED` |

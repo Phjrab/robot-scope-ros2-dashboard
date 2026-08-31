@@ -290,7 +290,7 @@ def healthy_responses():
 
 
 class RobotScopeAcceptanceTests(unittest.TestCase):
-    def make_runner(self, base: Path, responses=None):
+    def make_runner(self, base: Path, responses=None, *, mode="go2-nav"):
         project = base / "project"
         project.mkdir()
         (project / "robot_dashboard").mkdir()
@@ -308,6 +308,7 @@ class RobotScopeAcceptanceTests(unittest.TestCase):
 
         runner = acceptance.AcceptanceRunner(
             project_dir=project,
+            mode=mode,
             report_dir=project / "runtime" / "reports",
             fetch_json=fetch,
             command_runner=commands,
@@ -316,6 +317,49 @@ class RobotScopeAcceptanceTests(unittest.TestCase):
             now=lambda: "2026-08-23T00:00:00.000Z",
         )
         return runner, commands
+
+    def test_go2_control_accepts_fresh_signed_bridge_without_direct_ros(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            responses = healthy_responses()
+            responses["/api/v1/health"].update(
+                {
+                    "ros_interface_ready": False,
+                    "robot_online": False,
+                    "ros_transport": {
+                        "mode": "offline_viewer",
+                        "interface_ready": False,
+                        "offline_viewer": True,
+                    },
+                }
+            )
+            responses["/api/v1/control"]["control"]["bridge"]["connected"] = True
+            runner, _ = self.make_runner(
+                Path(temporary), responses, mode="go2-control"
+            )
+            runner._responses = responses
+
+            runner._collect_health()
+
+            check = next(item for item in runner.checks if item.id == "runtime.go2_connection")
+            self.assertEqual(check.status, "PASS")
+            self.assertIn("signed LowState Bridge", check.observed)
+            self.assertIn("link_contract=signed_bridge", check.evidence)
+
+    def test_go2_nav_still_requires_direct_ros_interface(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            responses = healthy_responses()
+            responses["/api/v1/health"]["ros_interface_ready"] = False
+            responses["/api/v1/health"]["robot_online"] = False
+            responses["/api/v1/control"]["control"]["bridge"]["connected"] = True
+            runner, _ = self.make_runner(Path(temporary), responses, mode="go2-nav")
+            runner._responses = responses
+
+            runner._collect_health()
+
+            check = next(item for item in runner.checks if item.id == "runtime.go2_connection")
+            self.assertEqual(check.status, "FAIL")
+            self.assertIn("required ROS interface", check.observed)
+            self.assertIn("link_contract=direct_ros", check.evidence)
 
     def test_read_only_collection_uses_only_fixed_gets_and_safe_commands(self):
         with tempfile.TemporaryDirectory() as temporary:
