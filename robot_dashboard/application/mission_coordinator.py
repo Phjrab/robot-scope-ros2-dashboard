@@ -688,7 +688,8 @@ class MissionCoordinator:
             await self._cancel_current_locked(mission)
             if mission["current_index"] < len(mission["waypoints"]):
                 waypoint = mission["waypoints"][mission["current_index"]]
-                if waypoint["status"] == "running": waypoint.update(status="failed", goal_id=None)
+                if waypoint["status"] == "running":
+                    waypoint.update(status="failed", goal_id=None)
             mission.update(state="failed", outcome="aborted", error=str(reason)[:48], completed_at=_timestamp(self._now()), completed_epoch=self._now(), hold_until_epoch=0.0, pause_reason="")
             self._active_id = None
             self._record(mission, "mission_aborted")

@@ -104,6 +104,11 @@ timing test가 일시 실패하면 assertion을 바꾸지 않고 해당 test를 
 | 전체 Python | `BLOCKED` | 673개 중 672개 통과, macOS `/etc/os-release` baseline 오류 1개 |
 | Python coverage | `PASS` | 전체 65%, MissionCoordinator 74%; 실패 1개 실행 결과도 포함 |
 
+2026-08-31 follow-up: the installer test now verifies the Linux host-mismatch
+gate on Linux and the earlier Ubuntu-only apply gate on macOS. Both paths keep
+the filesystem unchanged and return failure. The current complete Python suite
+is `PASS` at 796/796; no safety assertion was removed or weakened.
+
 실행 명령:
 
 ```bash

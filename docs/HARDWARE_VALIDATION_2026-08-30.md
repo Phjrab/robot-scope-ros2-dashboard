@@ -483,6 +483,19 @@ WP05 follow-up verification results:
   existing `mission_coordinator.py:691` E701 finding;
 - `git diff --check`: PASS.
 
+## macOS installer baseline resolution — 2026-08-31
+
+The remaining repository-wide Python failure was in the test fixture, not the
+installer. The fixture read Linux-only `/etc/os-release` before invoking the
+installer. It now selects a mismatched Ubuntu fixture when the host file exists
+and accepts only the installer’s earlier Ubuntu-only apply rejection on macOS.
+Linux still must produce the exact host-mismatch rejection. Both paths require
+exit status 2 and verify that no configuration directory was created, so the
+fail-closed assertion is unchanged. The complete Python suite now passes all
+796 tests on the macOS development host. The unrelated pre-existing Ruff E701
+finding in Mission abort handling was also expanded to an equivalent block;
+the repository-wide `robot_dashboard` and `scripts` Ruff scan now passes.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.

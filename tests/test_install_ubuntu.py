@@ -308,11 +308,24 @@ class UbuntuInstallerTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("ROS apt source metadata is incomplete", result.stderr)
 
-    def test_apply_os_release_override_must_match_running_host(self):
+    def test_apply_rejects_non_host_os_release_before_writes(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = InstallerFixture(Path(temporary))
-            host_release = Path("/etc/os-release").read_text(encoding="utf-8")
-            fake_version = "24.04" if 'VERSION_ID="22.04"' in host_release else "22.04"
+            host_release_path = Path("/etc/os-release")
+            host_release = (
+                host_release_path.read_text(encoding="utf-8")
+                if host_release_path.is_file()
+                else ""
+            )
+            host_version = next(
+                (
+                    line.split("=", 1)[1].strip().strip('"')
+                    for line in host_release.splitlines()
+                    if line.startswith("VERSION_ID=")
+                ),
+                "",
+            )
+            fake_version = "24.04" if host_version == "22.04" else "22.04"
             fixture.os_release.write_text(
                 f'ID=ubuntu\nVERSION_ID="{fake_version}"\n'
                 f'PRETTY_NAME="Ubuntu {fake_version} LTS"\n',
@@ -320,7 +333,12 @@ class UbuntuInstallerTests(unittest.TestCase):
             )
             result = fixture.run("--mode", "observer", "--apply")
             self.assertEqual(result.returncode, 2)
-            self.assertIn("override must match the running host", result.stderr)
+            expected = (
+                "override must match the running host"
+                if os.uname().sysname == "Linux"
+                else "--apply is supported only on Ubuntu Linux"
+            )
+            self.assertIn(expected, result.stderr)
             self.assertFalse(fixture.config.exists())
 
     def test_service_and_ros_source_contract_is_fail_closed(self):
