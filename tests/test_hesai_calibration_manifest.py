@@ -24,9 +24,12 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)
-        self.correction = self.directory / "xt16-correction.dat"
+        self.correction = self.directory / "xt16-correction.csv"
         self.manifest = self.directory / "xt16-calibration.manifest"
-        self.payload = bytes(range(64))
+        self.payload = (
+            "Channel,Elevation,Azimuth\n"
+            + "".join(f"{channel},{16 - channel},0\n" for channel in range(1, 17))
+        ).encode("utf-8")
         self.correction.write_bytes(self.payload)
         self.correction.chmod(0o640)
         self.contract = CalibrationContract(
@@ -39,7 +42,7 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
             "schema_version": 1,
             "sensor": {
                 "model": "XT16",
-                "parser_identity": "JT16",
+                "parser_identity": "PandarXT",
                 "serial": "private-test-serial",
             },
             "driver_revision": DRIVER_REVISION,
@@ -51,7 +54,7 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
             "correction": {
                 "path": str(self.correction),
                 "sha256": hashlib.sha256(self.payload).hexdigest(),
-                "bytes": 64,
+                "bytes": len(self.payload),
             },
         }
         self._write_manifest()
@@ -64,10 +67,28 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
         validate_bundle(self.contract)
 
     def test_hash_mismatch_fails_closed(self):
-        self.correction.write_bytes(b"x" * 64)
+        self.correction.write_bytes(self.payload.replace(b",0\n", b",1\n", 1))
         self.correction.chmod(0o640)
         with self.assertRaisesRegex(CalibrationError, "hash mismatch"):
             validate_bundle(self.contract)
+
+    def test_non_pandarxt_csv_is_rejected(self):
+        invalid_payloads = (
+            self.payload.replace(b"Channel,Elevation,Azimuth", b"id,x,y"),
+            self.payload.replace(b"16,0,0\n", b""),
+            self.payload.replace(b"8,8,0\n", b"9,8,0\n"),
+            self.payload.replace(b"8,8,0\n", b"8,nan,0\n"),
+            self.payload + b"not-a-valid-trailer\n",
+        )
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload[-32:]):
+                self.correction.write_bytes(payload)
+                self.correction.chmod(0o640)
+                self.document["correction"]["bytes"] = len(payload)
+                self.document["correction"]["sha256"] = hashlib.sha256(payload).hexdigest()
+                self._write_manifest()
+                with self.assertRaises(CalibrationError):
+                    validate_bundle(self.contract)
 
     def test_symlinked_correction_is_rejected(self):
         target = self.directory / "actual.dat"
@@ -107,8 +128,8 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
         self.assertEqual(staged.stat().st_mode & 0o777, 0o600)
         document = json.loads(staged.read_text(encoding="utf-8"))
         self.assertNotIn("firetime", document)
-        self.assertEqual(document["correction"]["bytes"], 64)
-        self.assertEqual(document["correction"]["path"], "/etc/robot-scope/hesai/xt16-correction.dat")
+        self.assertEqual(document["correction"]["bytes"], len(self.payload))
+        self.assertEqual(document["correction"]["path"], "/etc/robot-scope/hesai/xt16-correction.csv")
 
     def test_stage_refuses_to_overwrite_manifest(self):
         self.correction.chmod(0o600)
@@ -124,8 +145,8 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn('kSensorIp[] = "192.168.123.20"', source)
         self.assertIn("kPtcPort = 9347", source)
-        self.assertIn("client.JT16GetCorrectionInfo(correction)", source)
-        self.assertIn("correction.size() != kCorrectionBytes", source)
+        self.assertIn("client.GetCorrectionInfo(correction)", source)
+        self.assertIn("kMaxCorrectionBytes", source)
         self.assertIn("O_EXCL", source)
         self.assertIn("O_NOFOLLOW", source)
         for forbidden in (
@@ -135,6 +156,7 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
             "SetSpinSpeed(",
             "GetFiretimesInfo(",
             "QueryCommand(",
+            "JT16GetCorrectionInfo(",
         ):
             self.assertNotIn(forbidden, source)
 
@@ -154,7 +176,8 @@ class HesaiCalibrationManifestTests(unittest.TestCase):
         )
         for contract in (
             "APPROVE_WIRELESS_XT16_DEPLOY",
-            "does not support firetime",
+            "PandarXT",
+            "optional and intentionally empty",
             "physical label",
             "second operator",
             "HW-2 still",

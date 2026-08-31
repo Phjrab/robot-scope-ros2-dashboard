@@ -41,7 +41,7 @@ class HesaiWirelessProfileTests(unittest.TestCase):
         self.assertEqual(udp["ptc_mode"], 0)
         self.assertEqual(
             udp["correction_file_path"],
-            "/etc/robot-scope/hesai/xt16-correction.dat",
+            "/etc/robot-scope/hesai/xt16-correction.csv",
         )
         self.assertEqual(udp["firetimes_path"], "")
         self.assertGreater(udp["recv_point_cloud_timeout"], 0)
@@ -106,7 +106,8 @@ class HesaiWirelessProfileTests(unittest.TestCase):
     def test_decision_keeps_calibration_private_and_proxy_blocked(self):
         for contract in (
             "xt16-calibration.manifest",
-            "exact 64-byte length and SHA-256",
+            "bounded measured byte length and SHA-256",
+            "PandarXT",
             "Actual correction contents, serial numbers and hashes are not",
             "PTC proxy is not required",
             "remains `BLOCKED`",

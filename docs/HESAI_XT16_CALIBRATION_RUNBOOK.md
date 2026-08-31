@@ -14,7 +14,7 @@ anything until the operator has supplied the exact deployment phrase
 hardware-free; executing it opens PTC and therefore belongs to the approved
 deployment transaction.
 
-## Why the bundle contains no firetime file
+## Measured parser identity and optional firetime
 
 The exact pinned source was inspected at these revisions:
 
@@ -23,21 +23,19 @@ The exact pinned source was inspected at these revisions:
 | Hesai ROS wrapper | `e7e112f0809f0eed5e3c81c55a1a0376474db234` |
 | Hesai SDK | `9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168` |
 
-The measured XT16 packets select the SDK's `JT16`/UDP 1.8 parser. Its
-`JT16GetCorrectionInfo` read returns the 16-channel binary correction, and
-`LoadCorrectionString` consumes 64 bytes: 16 signed azimuth values followed by
-16 signed elevation values. A `.dat` or `.bin` path invokes that binary loader;
-a `.csv` path invokes a different text parser. The same parser's
-`LoadFiretimesFile` explicitly reports that JT16 does not support firetime
-loading. Therefore the fixed deployment artifact is:
+The measured packet header begins `EE FF 06 01`, which selects the SDK's
+`PandarXT`/UDP 6.1 (`XTM1`) parser for the marketed XT16. A historic live wired
+run of this exact unit also logged `init 6_1 XTM1 parser`, loaded its generic
+CSV correction successfully and continued publishing at 10 Hz after the
+optional firetime file was absent. The fixed deployment artifact is therefore:
 
 ```text
-/etc/robot-scope/hesai/xt16-correction.dat
+/etc/robot-scope/hesai/xt16-correction.csv
 ```
 
-`firetimes_path` is intentionally empty. Inventing a firetime file, exporting
-the SDK sample CSV as if it were sensor-specific or using the generic
-`SaveCorrectionFile`/PTC `0x05` path is prohibited.
+`firetimes_path` is optional and intentionally empty for the proven baseline.
+The sensor-specific CSV must be acquired from this mounted sensor; substituting
+an SDK sample, another sensor's file or an invented firetime is prohibited.
 
 ## Approved acquisition transaction
 
@@ -48,9 +46,10 @@ external Orin's modified vendor checkout block the transaction.
 Build `tools/hesai_xt16_calibration` in a new private temporary build
 directory with `HESAI_SDK_ROOT` set to the absolute pinned SDK path. The helper
 links the pinned PTC client without changing the vendor checkout. It accepts
-no network arguments, connects only to `192.168.123.20:9347`, calls only
-`JT16GetCorrectionInfo`, requires exactly 64 bytes, never prints the payload
-and refuses to overwrite or follow its output.
+no network arguments, connects only to `192.168.123.20:9347`, calls only the
+generic read-only `GetCorrectionInfo`, accepts only a bounded non-NUL response,
+never prints the payload and refuses to overwrite or follow its output. The
+manifest stage performs the strict 16-channel PandarXT CSV validation.
 
 Immediately before running it, confirm:
 
@@ -62,9 +61,9 @@ Immediately before running it, confirm:
   `0700`, and contains no previous output.
 
 Run the helper once with `--approved-read-only-ptc` and the absolute private
-staging directory. It creates only `xt16-correction.dat`, mode `0600`. Stop if
-the response is not exactly 64 bytes or if any unexpected sensor/process state
-appears. Do not retry automatically.
+staging directory. It creates only `xt16-correction.csv`, mode `0600`. Stop if
+the response is outside the bounded CSV contract or if any unexpected
+sensor/process state appears. Do not retry automatically.
 
 The pinned SDK does not expose a documented PTC serial decoder for this model.
 Read the installed sensor's serial from its physical label and have a
@@ -81,11 +80,11 @@ python3 scripts/hesai_calibration_manifest.py stage \
 The stage command creates, without printing the serial or hash, a JSON
 `xt16-calibration.manifest` that binds:
 
-- product model `XT16` and pinned parser identity `JT16`;
+- product model `XT16` and pinned parser identity `PandarXT`;
 - the physically cross-checked private serial;
 - exact ROS wrapper and SDK revisions;
 - fixed read-only acquisition method and UTC time;
-- fixed installed correction path, exact 64-byte length and SHA-256.
+- fixed installed correction path, bounded measured byte length and SHA-256.
 
 There is intentionally no firetime entry.
 
@@ -101,7 +100,7 @@ Install the correction and manifest atomically as `root`, group
 `jetson_orin_nano`, mode `0640`, at:
 
 ```text
-/etc/robot-scope/hesai/xt16-correction.dat
+/etc/robot-scope/hesai/xt16-correction.csv
 /etc/robot-scope/hesai/xt16-calibration.manifest
 ```
 

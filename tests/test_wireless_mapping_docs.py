@@ -129,7 +129,7 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "leaves maps, Dataset, private logs and calibration backups untouched",
             "No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed",
             "passes 1/1 through both colcon and direct CTest",
-            "`/home/unitree/project/robot-scope` checkout is currently absent",
+            "robot-side exported tree exists at an older deployment commit",
             "`iptables v1.8.4 (legacy)`",
             "`iptables v1.8.7 (legacy)`",
             "privileged network verification is cleared on both hosts",

@@ -24,7 +24,7 @@ is not a freshness pass.
 | Gate 0 network boundary | `PASS` | both hosts `FORWARD DROP`, Docker-only `172.17.0.0/16` forwarding/NAT, no management/sensor forwarding; external nftables ruleset empty; no rules changed |
 | Gate 1 architecture and acceptance documents | `PASS` after contract tests | this document and the wireless transport ADR; no runtime/deployment mutation |
 | Gate 2 fixed XT16 relay implementation | `PASS` after hardware-free contract tests | separate fixed-address relay, disabled service example and strict regression tests; no host installation or live packet claim |
-| Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private 64-byte JT16 correction selected, unsupported firetime omitted; PTC proxy not implemented and fallback remains blocked |
+| Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private PandarXT 16-channel CSV correction selected, optional firetime omitted from the proven baseline; PTC proxy not implemented and fallback remains blocked |
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
@@ -70,10 +70,12 @@ source port. The separate wireless profile fixes
 `/lidar_points` output and leaves the wired profile unchanged.
 
 The pinned SDK also has an offline path when PTC is disabled. The measured
-packet selects its JT16 parser, which consumes a 64-byte binary correction and
-explicitly does not support firetime loading. Gate 3 therefore selects one
-fixed private sensor-associated `.dat` correction, leaves `firetimes_path`
-empty and does not implement a PTC proxy. The acquisition helper and private
+`EE FF 06 01` packet header selects its PandarXT/UDP 6.1 (`XTM1`) parser, which
+consumes a sensor-specific 16-channel CSV correction. A historic live wired
+run of this exact unit loaded that correction and published at 10 Hz while the
+optional firetime file was absent. Gate 3 therefore selects one fixed private
+CSV correction, leaves `firetimes_path` empty and does not implement a PTC
+proxy. The acquisition helper and private
 manifest validator are repository-tested, but the actual correction, physical
 serial cross-check and installation remain unavailable until deployment is
 approved. Driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains
@@ -246,9 +248,9 @@ inventory found only ROS `Firetime.msg` source/generated files rather than an
 XT16 correction or firetime artifact. No PTC connection was made. The external
 operating checkout was clean at
 `6dd569ea0367598f9230096f2bac423b7f1b2dc9`, behind the reviewed candidate,
-while the planned robot-side `/home/unitree/project/robot-scope` checkout does
-not exist. Code provenance, rollback source and the exact robot-side install
-path must be resolved before deployment.
+while the robot-side exported tree records an older deployed commit and must be
+preserved as rollback before complete-tree replacement. Code provenance and
+the exact staged install paths must be recorded during deployment.
 
 These observations preserve repository `CODE_READY`, but deployment and
 HW-1–HW-6 remain `NOT_RUN`.
@@ -283,8 +285,8 @@ The existing wired relay and its parser remain unchanged.
 ### Gate 3 — Hesai wireless input and PTC
 
 The external receive path accepts only robot-side `192.168.50.30:46236` to
-external `192.168.50.10:2368`. Use the private sensor-associated 64-byte JT16
-correction and no firetime artifact. A fixed one-client PTC proxy is `BLOCKED`
+external `192.168.50.10:2368`. Use the private sensor-associated PandarXT
+16-channel CSV correction and leave optional firetime empty. A fixed one-client PTC proxy is `BLOCKED`
 until the pinned driver proves it is necessary and the operator separately
 approves it. Actual correction data and identities never enter Git.
 

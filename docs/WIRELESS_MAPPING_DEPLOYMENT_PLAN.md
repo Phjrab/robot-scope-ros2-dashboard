@@ -65,7 +65,7 @@ Control Bridge port `46010` and camera transport remain separate and unchanged.
   `/home/jetson_orin_nano/project/robot-scope` and build the current
   `robot_scope_xt16_bridge` package plus pinned Hesai/FAST-LIO dependencies;
 - keep `config/hesai_xt16_wireless.yaml` repository-owned and install private
-  correction state at `/etc/robot-scope/hesai/xt16-correction.dat` and
+  correction state at `/etc/robot-scope/hesai/xt16-correction.csv` and
   `/etc/robot-scope/hesai/xt16-calibration.manifest`;
 - install `/etc/robot-scope/wireless-imu.key`, owned by
   `jetson_orin_nano`, mode `0600`;
@@ -96,17 +96,19 @@ shared control or camera credential.
 
 ## PTC and calibration decision
 
-Use the pinned driver's offline JT16 binary-correction path with
-`use_ptc_connected: false`. The pinned JT16 parser explicitly does not support
-firetime loading, so `firetimes_path` is empty and no firetime artifact is
-invented. After the exact deployment approval and before driver start, follow
+Use the pinned driver's offline PandarXT CSV-correction path with
+`use_ptc_connected: false`. The measured `EE FF 06 01` packets and historic
+live wired log both identify UDP 6.1/XTM1. That successful run continued at
+10 Hz without a firetime file, so `firetimes_path` is intentionally empty.
+After the exact deployment approval and before driver start, follow
 `docs/HESAI_XT16_CALIBRATION_RUNBOOK.md`. The private manifest must bind the
 installed XT16 model/physically cross-checked serial, parser identity,
 acquisition method, driver revision
 `e7e112f0809f0eed5e3c81c55a1a0376474db234`, SDK revision
-`9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168`, fixed correction path, exact
-64-byte length and SHA-256. The wireless driver runner validates ownership,
-mode, schema and hash before sourcing ROS. Any mismatch blocks HW-2.
+`9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168`, fixed correction path, bounded
+measured length, strict 16-channel CSV structure and SHA-256. The wireless
+driver runner validates ownership, mode, schema and hash before sourcing ROS.
+Any mismatch blocks HW-2.
 
 No PTC proxy is installed. It remains a separately approved fallback only if
 the exact offline artifacts fail with the pinned driver during HW-2.
@@ -201,10 +203,10 @@ Go2/XT16 sensor configuration.
   Docker-only `172.17.0.0/16` MASQUERADE and no management/sensor forwarding;
 - the correction acquisition and checkout staging procedures are now
   repository-defined, but their actual approved execution remains pending:
-  acquire the exact 64-byte XT16 correction, cross-check the private serial,
-  and install/validate the manifest;
-- the `/home/unitree/project/robot-scope` checkout is currently absent; create
-  it from the final tested commit using the complete-tree staging procedure;
+  acquire the sensor-specific PandarXT CSV correction, cross-check the private
+  serial, and install/validate the manifest;
+- the robot-side exported tree exists at an older deployment commit; preserve
+  it as rollback and replace it only through the complete-tree staging procedure;
 - update the clean external operating checkout from
   `6dd569ea0367598f9230096f2bac423b7f1b2dc9` to the reviewed deployment commit
   only after approval, preserving its current rollback identity;

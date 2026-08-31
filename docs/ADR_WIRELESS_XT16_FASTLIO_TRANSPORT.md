@@ -81,7 +81,7 @@ wireless source port `46236`.
   sender identity, boot identity, transport/source sequence, realtime and
   monotonic timestamps, quaternion, gyro, acceleration and HMAC-SHA256;
 - a fixed one-client PTC connection only if the approved one-time, read-only
-  JT16 correction acquisition cannot produce the exact offline artifact.
+  PandarXT correction acquisition cannot produce the exact offline artifact.
 
 ### Forbidden data and mechanisms
 
@@ -117,10 +117,11 @@ contracts.
 
 ### PTC and calibration
 
-Gate 3 must first determine whether the pinned Hesai driver can start from
-private, sensor-associated correction and firetime artifacts without a live
-PTC connection. The artifacts remain outside Git with sensor identity and
-SHA-256 recorded in a private manifest. A fixed PTC proxy is a fallback only;
+Gate 3 must first determine whether the pinned Hesai driver can start from a
+private, sensor-associated PandarXT CSV correction without a live PTC
+connection. The optional firetime path remains empty because the historic live
+wired baseline published successfully without it. The artifact remains outside
+Git with sensor identity and SHA-256 recorded in a private manifest. A fixed PTC proxy is a fallback only;
 it requires separate approval, one exact external client, one exact XT16
 destination, bounded buffers and connect/idle timeouts. No generic proxy is
 authorized by this ADR.

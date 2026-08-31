@@ -48,36 +48,36 @@ applied by Gate 3.
 
 The pinned SDK's `Lidar::Init` has an explicit offline path: with
 `use_ptc_connected: false`, it calls the selected parser's local loaders
-instead of opening the PTC client. The measured XT16 packet header selects the
-SDK's `JT16`/UDP 1.8 parser. That parser consumes the sensor's 64-byte binary
-correction through a `.dat` or `.bin` path; a `.csv` suffix selects a different
-text parser. Its `LoadFiretimesFile` explicitly reports that JT16 does not
-support firetime loading. Firetime is therefore not an artifact for this exact
-sensor/parser contract.
+instead of opening the PTC client. The measured packet header `EE FF 06 01`
+selects the SDK's `PandarXT`/UDP 6.1 (`XTM1`) parser for this marketed XT16.
+That parser consumes the sensor-specific generic CSV correction. A historic
+live wired log for this unit shows the same parser loading that correction and
+publishing at 10 Hz while its optional firetime file was absent. Firetime is
+therefore intentionally omitted from this proven baseline.
 
 The fixed private paths are:
 
 ```text
-/etc/robot-scope/hesai/xt16-correction.dat
+/etc/robot-scope/hesai/xt16-correction.csv
 /etc/robot-scope/hesai/xt16-calibration.manifest
 ```
 
 Actual correction contents, serial numbers and hashes are not repository
 data. After deployment approval, the procedure in
 `docs/HESAI_XT16_CALIBRATION_RUNBOOK.md` obtains the correction for the exact
-installed XT16 using only the pinned SDK's read-only
-`JT16GetCorrectionInfo`. It creates a private manifest containing:
+installed XT16 using only the pinned SDK's generic read-only
+`GetCorrectionInfo`. It creates a private manifest containing:
 
 ```text
 sensor model and serial association
 driver and SDK revisions
-absolute correction path, exact 64-byte length and SHA-256
+absolute correction path, bounded measured byte length and SHA-256
 acquisition time and approved acquisition method
 ```
 
 The physical label supplies the private serial association because this pinned
-SDK does not expose a documented JT16 PTC serial decoder. A second operator
-must cross-check it against the mounted unit. The runtime validator rejects a
+SDK does not expose a documented generic PTC serial decoder for this contract.
+A second operator must cross-check it against the mounted unit. The runtime validator rejects a
 missing, symlinked, non-regular, wrong-owner/group, broadly accessible,
 wrong-revision, wrong-model/path/length or hash-mismatched bundle before ROS is
 sourced or the driver starts. Gate 3 did not create those files, read the

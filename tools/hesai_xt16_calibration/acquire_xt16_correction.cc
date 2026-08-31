@@ -1,7 +1,7 @@
+#include <algorithm>
 #include <chrono>
 #include <cerrno>
 #include <cstdint>
-#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -19,8 +19,9 @@ namespace {
 
 constexpr char kSensorIp[] = "192.168.123.20";
 constexpr std::uint16_t kPtcPort = 9347;
-constexpr std::size_t kCorrectionBytes = 64;
-constexpr char kOutputName[] = "xt16-correction.dat";
+constexpr std::size_t kMinCorrectionBytes = 64;
+constexpr std::size_t kMaxCorrectionBytes = 64 * 1024;
+constexpr char kOutputName[] = "xt16-correction.csv";
 
 bool WriteExclusive(int directory_fd, const std::vector<std::uint8_t>& data) {
   const int descriptor = openat(
@@ -115,9 +116,11 @@ int main(int argc, char** argv) {
   }
 
   hesai::lidar::u8Array_t correction;
-  if (client.JT16GetCorrectionInfo(correction) != 0 ||
-      correction.size() != kCorrectionBytes) {
-    std::cerr << "XT16 correction response failed the fixed 64-byte contract\n";
+  if (client.GetCorrectionInfo(correction) != 0 ||
+      correction.size() < kMinCorrectionBytes ||
+      correction.size() > kMaxCorrectionBytes ||
+      std::find(correction.begin(), correction.end(), 0) != correction.end()) {
+    std::cerr << "PandarXT correction response failed the bounded CSV contract\n";
     close(directory_fd);
     return 1;
   }
