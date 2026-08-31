@@ -28,7 +28,7 @@ is not a freshness pass.
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
-| Gate 7 repository/C++ verification | `FAIL` with pre-existing failures isolated | project venv: 873 Python PASS; Node: 257 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; Orin C++ Release build PASS with zero warnings, but CTest has zero registered tests and Playwright is 28 PASS / 2 FAIL on both candidate and pre-Gate-6 baseline |
+| Gate 7 repository/C++ verification | `FAIL` with C++ coverage gap | project venv: 873 Python PASS; Node: 257 PASS; Playwright: 30 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; Orin C++ Release build PASS with zero warnings, but CTest has zero registered tests |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
@@ -166,6 +166,13 @@ snapshot of pre-Gate-6 commit
 and Gate 6 changed none of the Playwright, static frontend or configuration
 files involved in those scenarios.
 
+A follow-up corrected the direct-ROS disconnected label without changing the
+separate authenticated Control Bridge projection. It also made the perception
+fault scenario wait for a proven LIVE sample after reload and initialized the
+two-waypoint Mission fixture before page load. Assertions for fail-closed KPI,
+STALE perception, DISARMED state and Mission behavior remain intact. The
+targeted scenarios and the complete Playwright suite now pass `30/30`.
+
 On the external aarch64 Orin with ROS 2 Humble, an isolated `/tmp` source
 archive built both `robot_scope_xt16_bridge_node` and
 `robot_scope_xt16_cloud_bridge_node` in Release mode. The compiler emitted no
@@ -173,11 +180,11 @@ warnings. `colcon test`, `colcon test-result` and direct CTest completed with
 zero errors, but the package currently registers zero C++ tests. Nothing was
 installed into the operating checkout and no ROS node or service was started.
 
-Because required browser E2E is not green and the C++ package has no registered
-tests, Gate 7 is recorded as `FAIL` rather than promoted to `CODE_READY`.
-Deployment and every hardware status remain `NOT_RUN`. The deployment plan is
-documentation only and remains blocked until these verification gaps are
-resolved and the exact deployment approval phrase is supplied.
+Because the C++ package has no registered tests, Gate 7 remains `FAIL` rather
+than being promoted to `CODE_READY`. Deployment and every hardware status
+remain `NOT_RUN`. The deployment plan is documentation only and remains
+blocked until this final repository verification gap is resolved and the exact
+deployment approval phrase is supplied.
 
 ## Safety prerequisites for every hardware stage
 

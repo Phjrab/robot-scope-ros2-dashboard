@@ -313,6 +313,11 @@ test('header separates direct ROS observability from authenticated remote contro
   assert.equal(headerUi.controlConnectionLabel.textContent, '원격 제어 Bridge 연결');
   assert.match(headerUi.connectionChip.className, /waiting/);
   assert.match(headerUi.controlConnectionChip.className, /ok/);
+  renderHeaderConnections(headerUi, {}, null, true);
+  assert.equal(headerUi.connectionLabel.textContent, '직접 ROS 연결 끊김');
+  assert.equal(headerUi.controlConnectionLabel.textContent, '원격 제어 Bridge 확인 실패');
+  assert.match(headerUi.connectionChip.className, /error/);
+  assert.match(headerUi.controlConnectionChip.className, /error/);
   assert.match(indexSource, /대시보드 호스트에서 로봇 ROS\/DDS를 직접 관측하는 상태/);
   assert.match(functionSource('refreshControlSnapshot'), /\['overview', 'controls', 'navigation', 'cockpit'\]/);
 });

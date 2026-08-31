@@ -22,7 +22,7 @@ export function renderHeaderConnections(ui, health = {}, snapshot = null, reques
   const interfaceReady = transport.interface_ready ?? health.ros_interface_ready;
   const offlineViewer = Boolean(transport.offline_viewer ?? health.ros_offline_viewer);
   ui.connectionChip.className = `connection-chip ${ready && interfaceReady === true && health.robot_online ? 'ok' : ready ? 'waiting' : 'error'}`;
-  ui.connectionLabel.textContent = !ready ? '에이전트 오류'
+  ui.connectionLabel.textContent = !ready ? '직접 ROS 연결 끊김'
     : !targetConnected ? '직접 ROS 대상 해제'
       : !health.robot_online ? '직접 ROS 오프라인'
         : offlineViewer || interfaceReady === false ? '직접 ROS/DDS 오프라인 뷰어'

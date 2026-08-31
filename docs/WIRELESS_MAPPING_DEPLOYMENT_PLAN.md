@@ -184,8 +184,8 @@ Go2/XT16 sensor configuration.
 
 ## Blocking items before deployment approval
 
-- fix or explicitly re-baseline the two pre-existing Playwright failures
-  without weakening fail-closed behavior, then obtain 30/30 PASS;
+- Playwright is now 30/30 PASS after preserving fail-closed assertions and
+  removing two asynchronous fixture races;
 - add meaningful registered C++ tests or explicitly approve the documented
   zero-test coverage gap, then rerun colcon/CTest;
 - acquire and validate the exact XT16 correction/firetime files and private

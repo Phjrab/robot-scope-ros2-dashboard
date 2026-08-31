@@ -131,6 +131,7 @@ test('Cockpit competition status locks configuration and separates SHADOW, netwo
   await page.reload();
   await expect(status).toContainText('CAPTURING · session_e2e', { timeout: 3_000 });
   await expect(hud.locator('[data-safety-field="armed"]')).toHaveText('DISARMED');
+  await expect(status).toContainText('LIVE · lane-v2', { timeout: 4_000 });
 
   backend.state.perceptionOnline = false;
   await expect(status).toContainText('STALE · lane-v2', { timeout: 4_000 });
@@ -274,8 +275,7 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
 });
 
 test('Cockpit mission pause, failure retry, and skips remain explicit and fail closed', async ({ page }) => {
-  const backend = await openDashboard(page, {}, 'cockpit');
-  backend.state.annotations.points.push({ id: backend.secondAnnotationId, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } });
+  const backend = await openDashboard(page, { includeSecondAnnotation: true }, 'cockpit');
   await page.locator('#refreshButton').click();
   await enterLayoutEdit(page);
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
@@ -290,6 +290,7 @@ test('Cockpit mission pause, failure retry, and skips remain explicit and fail c
   backend.state.navigation.goal = { state: 'idle', goal_id: null };
   backend.state.navigation.safety.can_send_goal = true;
 
+  await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
   await missionPanel.locator('[data-mission-draft-id]').nth(1).click();
   await missionPanel.locator('[aria-label="Mission label"]').fill('CWP-12 recovery route');

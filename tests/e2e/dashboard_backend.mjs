@@ -75,7 +75,12 @@ export async function installDashboardBackend(page, options = {}) {
     annotations: {
       schema_version: 1, map_id: MAP_ID, map_revision: MAP_REVISION,
       annotation_revision: ANNOTATION_REVISION, revision: ANNOTATION_REVISION, exists: true,
-      points: [{ id: ANNOTATION_ID, type: 'HOME', name: 'E2E Home', pose: { x: 0.5, y: 0.5, yaw: 0 } }],
+      points: [
+        { id: ANNOTATION_ID, type: 'HOME', name: 'E2E Home', pose: { x: 0.5, y: 0.5, yaw: 0 } },
+        ...(options.includeSecondAnnotation
+          ? [{ id: SECOND_ANNOTATION_ID, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } }]
+          : []),
+      ],
       polygons: [],
     },
     missions: [], activeMissionId: null,
