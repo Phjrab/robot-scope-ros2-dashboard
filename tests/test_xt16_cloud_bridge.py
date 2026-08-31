@@ -9,6 +9,13 @@ SOURCE_PATH = (
     ROOT / "ros2" / "robot_scope_xt16_bridge" / "src" / "xt16_fastlio_bridge.cpp"
 )
 CMAKE_PATH = ROOT / "ros2" / "robot_scope_xt16_bridge" / "CMakeLists.txt"
+CPP_TEST_PATH = (
+    ROOT
+    / "ros2"
+    / "robot_scope_xt16_bridge"
+    / "test"
+    / "xt16_cloud_contract_test.cpp"
+)
 RUNNER_PATH = ROOT / "scripts" / "run_xt16_cloud_bridge_humble.sh"
 DOCUMENT_PATH = ROOT / "docs" / "WIRELESS_XT16_CLOUD_BRIDGE.md"
 
@@ -48,6 +55,7 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
         cls.cloud = compiled_projection(cls.source, cloud_only=True)
         cls.legacy = compiled_projection(cls.source, cloud_only=False)
         cls.cmake = CMAKE_PATH.read_text(encoding="utf-8")
+        cls.cpp_test = CPP_TEST_PATH.read_text(encoding="utf-8")
         cls.runner = RUNNER_PATH.read_text(encoding="utf-8")
         cls.document = DOCUMENT_PATH.read_text(encoding="utf-8")
 
@@ -148,6 +156,44 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
             "`NOT_RUN`",
         ):
             self.assertIn(contract, self.document)
+
+    def test_ctest_registers_a_ros_free_cloud_contract_executable(self):
+        for contract in (
+            "include(CTest)",
+            "if(BUILD_TESTING)",
+            "robot_scope_xt16_cloud_contract_test",
+            "test/xt16_cloud_contract_test.cpp",
+            "NAME robot_scope_xt16_cloud_contract",
+        ):
+            self.assertIn(contract, self.cmake)
+        dependency = re.search(
+            r"ament_target_dependencies\(\s*"
+            r"robot_scope_xt16_cloud_contract_test(.*?)\)",
+            self.cmake,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(dependency)
+        self.assertIn("rclcpp", dependency.group(1))
+        self.assertIn("sensor_msgs", dependency.group(1))
+        self.assertNotIn("unitree_go", dependency.group(1))
+
+    def test_cpp_contract_covers_layout_freshness_and_fail_closed_inputs(self):
+        for contract in (
+            "ROBOT_SCOPE_XT16_CLOUD_ONLY",
+            "ROBOT_SCOPE_XT16_BRIDGE_NO_MAIN",
+            "four-to-one decimation changed",
+            "output stride changed",
+            "device timestamp did not increase",
+            "residual discontinuity",
+            "frame must be hesai_lidar",
+            "header does not match",
+            "field x is duplicated",
+            "payload length does not match",
+            "too few finite decimated",
+        ):
+            self.assertIn(contract, self.cpp_test)
+        self.assertNotIn("rclcpp::init", self.cpp_test)
+        self.assertNotIn("spin", self.cpp_test)
 
 
 if __name__ == "__main__":

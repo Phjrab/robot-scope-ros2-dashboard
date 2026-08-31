@@ -331,127 +331,19 @@ struct SelectedPoint
   double timestamp;
 };
 
-class Xt16FastlioBridge : public rclcpp::Node
+class CloudContract
 {
 public:
-  Xt16FastlioBridge()
-#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-  : Node("robot_scope_xt16_cloud_bridge")
-#else
-  : Node("xt16_fastlio_bridge")
-#endif
-  {
-    if (!native_little_endian()) {
-      throw ContractError("XT16 bridge requires a little-endian host");
-    }
-
-    auto output_qos = rclcpp::QoS(rclcpp::KeepLast(5)).reliable().durability_volatile();
-    auto raw_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability_volatile();
-#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-    auto lowstate_qos = rclcpp::QoS(rclcpp::KeepLast(5)).best_effort().durability_volatile();
-#endif
-
-    cloud_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>(
-      kOutputCloudTopic, output_qos);
-#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-    imu_publisher_ = create_publisher<sensor_msgs::msg::Imu>(kOutputImuTopic, output_qos);
-#endif
-
-    cloud_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-    imu_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-#endif
-    rclcpp::SubscriptionOptions cloud_options;
-    cloud_options.callback_group = cloud_group_;
-#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-    rclcpp::SubscriptionOptions imu_options;
-    imu_options.callback_group = imu_group_;
-#endif
-    cloud_subscription_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-      kRawTopic, raw_qos,
-      std::bind(&Xt16FastlioBridge::on_cloud, this, std::placeholders::_1), cloud_options);
-#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-    imu_subscription_ = create_subscription<unitree_go::msg::LowState>(
-      kLowStateTopic, lowstate_qos,
-      std::bind(&Xt16FastlioBridge::on_lowstate, this, std::placeholders::_1), imu_options);
-#endif
-    report_timer_ = create_wall_timer(
-      std::chrono::seconds(5), std::bind(&Xt16FastlioBridge::report, this));
-#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
-    RCLCPP_INFO(
-      get_logger(),
-      "fixed C++ XT16 cloud bridge ready: /lidar_points -> /velodyne_points");
-#else
-    RCLCPP_INFO(
-      get_logger(),
-      "fixed C++ XT16 bridge ready: /lidar_points -> /velodyne_points; "
-      "/lowstate -> /imu/body");
-#endif
-  }
-
-private:
   static bool native_little_endian()
   {
     const std::uint16_t value = 1;
     return *reinterpret_cast<const std::uint8_t *>(&value) == 1;
   }
 
-  static double steady_seconds()
-  {
-    return std::chrono::duration<double>(
-      std::chrono::steady_clock::now().time_since_epoch()).count();
-  }
-
-  static double header_seconds(const builtin_interfaces::msg::Time & stamp)
-  {
-    if (stamp.sec < 0 || stamp.nanosec >= 1'000'000'000U) {
-      throw ContractError("raw cloud header timestamp is outside the supported range");
-    }
-    const double result = static_cast<double>(stamp.sec) +
-      static_cast<double>(stamp.nanosec) * 1e-9;
-    if (result <= 0.0) {
-      throw ContractError("raw cloud header timestamp must be positive");
-    }
-    return result;
-  }
-
-  void reject(const ContractError & error)
-  {
-    const auto count = reject_count_.fetch_add(1, std::memory_order_relaxed) + 1;
-    if (count == 1 || count % 50 == 0) {
-      RCLCPP_ERROR(get_logger(), "bridge rejected input: %s", error.what());
-    }
-  }
-
-  void validate_cloud(const sensor_msgs::msg::PointCloud2 & message) const
-  {
-    if (message.header.frame_id != kLidarFrame) {
-      throw ContractError("raw cloud frame must be hesai_lidar");
-    }
-    const std::uint64_t points =
-      static_cast<std::uint64_t>(message.width) * static_cast<std::uint64_t>(message.height);
-    if (message.height != 1 || points < kRawMinPoints || points > kRawMaxPoints) {
-      throw ContractError("raw cloud must contain 4000..100000 points in one row");
-    }
-    if (message.point_step < kRawMinPointStep || message.is_bigendian) {
-      throw ContractError("raw cloud byte layout is unsupported");
-    }
-    const std::uint64_t expected_row = points * message.point_step;
-    if (message.row_step != expected_row || message.data.size() != expected_row) {
-      throw ContractError("raw cloud payload length does not match its layout");
-    }
-    require_field(message, "x", 0, PointField::FLOAT32);
-    require_field(message, "y", 4, PointField::FLOAT32);
-    require_field(message, "z", 8, PointField::FLOAT32);
-    require_field(message, "intensity", 12, PointField::FLOAT32);
-    require_field(message, "ring", 16, PointField::UINT16);
-    require_field(message, "timestamp", 18, PointField::FLOAT64);
-  }
-
-  sensor_msgs::msg::PointCloud2 convert_cloud(
+  sensor_msgs::msg::PointCloud2 convert(
     const sensor_msgs::msg::PointCloud2 & message, double received, double monotonic)
   {
-    validate_cloud(message);
+    validate(message);
     const std::size_t points = static_cast<std::size_t>(message.width);
     std::vector<SelectedPoint> selected;
     selected.reserve((points + kCloudDecimation - 1) / kCloudDecimation);
@@ -514,11 +406,128 @@ private:
       write_value(output.data, base, point.x);
       write_value(output.data, base + 4, point.y);
       write_value(output.data, base + 8, point.z);
-      write_value(output.data, base + 12, std::isfinite(point.intensity) ? point.intensity : 0.0F);
+      write_value(
+        output.data, base + 12,
+        std::isfinite(point.intensity) ? point.intensity : 0.0F);
       write_value(output.data, base + 16, static_cast<float>(point.timestamp - scan_start));
       write_value(output.data, base + 20, point.ring);
     }
     return output;
+  }
+
+private:
+  static double header_seconds(const builtin_interfaces::msg::Time & stamp)
+  {
+    if (stamp.sec < 0 || stamp.nanosec >= 1'000'000'000U) {
+      throw ContractError("raw cloud header timestamp is outside the supported range");
+    }
+    const double result = static_cast<double>(stamp.sec) +
+      static_cast<double>(stamp.nanosec) * 1e-9;
+    if (result <= 0.0) {
+      throw ContractError("raw cloud header timestamp must be positive");
+    }
+    return result;
+  }
+
+  static void validate(const sensor_msgs::msg::PointCloud2 & message)
+  {
+    if (message.header.frame_id != kLidarFrame) {
+      throw ContractError("raw cloud frame must be hesai_lidar");
+    }
+    const std::uint64_t points =
+      static_cast<std::uint64_t>(message.width) * static_cast<std::uint64_t>(message.height);
+    if (message.height != 1 || points < kRawMinPoints || points > kRawMaxPoints) {
+      throw ContractError("raw cloud must contain 4000..100000 points in one row");
+    }
+    if (message.point_step < kRawMinPointStep || message.is_bigendian) {
+      throw ContractError("raw cloud byte layout is unsupported");
+    }
+    const std::uint64_t expected_row = points * message.point_step;
+    if (message.row_step != expected_row || message.data.size() != expected_row) {
+      throw ContractError("raw cloud payload length does not match its layout");
+    }
+    require_field(message, "x", 0, PointField::FLOAT32);
+    require_field(message, "y", 4, PointField::FLOAT32);
+    require_field(message, "z", 8, PointField::FLOAT32);
+    require_field(message, "intensity", 12, PointField::FLOAT32);
+    require_field(message, "ring", 16, PointField::UINT16);
+    require_field(message, "timestamp", 18, PointField::FLOAT64);
+  }
+
+  ClockOffsetTracker clock_offset_;
+};
+
+class Xt16FastlioBridge : public rclcpp::Node
+{
+public:
+  Xt16FastlioBridge()
+#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+  : Node("robot_scope_xt16_cloud_bridge")
+#else
+  : Node("xt16_fastlio_bridge")
+#endif
+  {
+    if (!CloudContract::native_little_endian()) {
+      throw ContractError("XT16 bridge requires a little-endian host");
+    }
+
+    auto output_qos = rclcpp::QoS(rclcpp::KeepLast(5)).reliable().durability_volatile();
+    auto raw_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability_volatile();
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    auto lowstate_qos = rclcpp::QoS(rclcpp::KeepLast(5)).best_effort().durability_volatile();
+#endif
+
+    cloud_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>(
+      kOutputCloudTopic, output_qos);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    imu_publisher_ = create_publisher<sensor_msgs::msg::Imu>(kOutputImuTopic, output_qos);
+#endif
+
+    cloud_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    imu_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+#endif
+    rclcpp::SubscriptionOptions cloud_options;
+    cloud_options.callback_group = cloud_group_;
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    rclcpp::SubscriptionOptions imu_options;
+    imu_options.callback_group = imu_group_;
+#endif
+    cloud_subscription_ = create_subscription<sensor_msgs::msg::PointCloud2>(
+      kRawTopic, raw_qos,
+      std::bind(&Xt16FastlioBridge::on_cloud, this, std::placeholders::_1), cloud_options);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    imu_subscription_ = create_subscription<unitree_go::msg::LowState>(
+      kLowStateTopic, lowstate_qos,
+      std::bind(&Xt16FastlioBridge::on_lowstate, this, std::placeholders::_1), imu_options);
+#endif
+    report_timer_ = create_wall_timer(
+      std::chrono::seconds(5), std::bind(&Xt16FastlioBridge::report, this));
+#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    RCLCPP_INFO(
+      get_logger(),
+      "fixed C++ XT16 cloud bridge ready: /lidar_points -> /velodyne_points");
+#else
+    RCLCPP_INFO(
+      get_logger(),
+      "fixed C++ XT16 bridge ready: /lidar_points -> /velodyne_points; "
+      "/lowstate -> /imu/body");
+#endif
+  }
+
+private:
+  static double steady_seconds()
+  {
+    return std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+  }
+
+  void reject(const ContractError & error)
+  {
+    const auto count = reject_count_.fetch_add(1, std::memory_order_relaxed) + 1;
+    if (count == 1 || count % 50 == 0) {
+      RCLCPP_ERROR(get_logger(), "bridge rejected input: %s", error.what());
+    }
   }
 
   void on_cloud(const sensor_msgs::msg::PointCloud2::SharedPtr message)
@@ -526,7 +535,7 @@ private:
     const double received = now().seconds();
     const double monotonic = steady_seconds();
     try {
-      auto output = convert_cloud(*message, received, monotonic);
+      auto output = cloud_contract_.convert(*message, received, monotonic);
       cloud_publisher_->publish(std::move(output));
       cloud_count_.fetch_add(1, std::memory_order_relaxed);
     } catch (const ContractError & error) {
@@ -595,7 +604,7 @@ private:
 #endif
   }
 
-  ClockOffsetTracker clock_offset_;
+  CloudContract cloud_contract_;
   std::atomic<std::uint64_t> cloud_count_{0};
 #if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
   std::atomic<std::uint64_t> imu_count_{0};
@@ -618,6 +627,7 @@ private:
 
 }  // namespace robot_scope_xt16_bridge
 
+#if !defined(ROBOT_SCOPE_XT16_BRIDGE_NO_MAIN)
 int main(int, char **)
 {
   int argc = 0;
@@ -638,3 +648,4 @@ int main(int, char **)
     return 2;
   }
 }
+#endif
