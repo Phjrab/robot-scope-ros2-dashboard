@@ -187,6 +187,34 @@ test('rendering skips only the axes helper while grid, cloud, model and trail st
   });
 });
 
+test('empty cloud keeps the centered waiting message without the upper point and frame readout', () => {
+  const text = [];
+  const context = {
+    save() {}, restore() {}, beginPath() {}, arc() {}, fill() {}, stroke() {},
+    measureText(value) { return { width: String(value).length * 5 }; },
+    fillText(value) { text.push(String(value)); },
+  };
+  const { scene } = sceneHarness();
+  scene.ctx = context;
+  scene.width = 640;
+  scene.height = 360;
+  scene._roundedRectPath = () => {};
+  scene.status = { online: null, lidarOnline: false, snapshot: false, message: 'UNITREE GO2 · LIDAR WAITING' };
+  scene.cloud = { points: new Float32Array(), sourcePoints: 0, frameId: '' };
+
+  scene._drawHud();
+  assert.equal(text.includes('NO POINT CLOUD'), false);
+  assert.equal(text.some((value) => value.startsWith('FRAME ')), false);
+  assert.equal(text.includes('UNITREE GO2 · LIDAR WAITING'), true);
+  assert.equal(text.includes('로봇 모델은 미리보기로 계속 조작할 수 있습니다'), true);
+
+  text.length = 0;
+  scene.cloud = { points: new Float32Array([1, 2, 3]), sourcePoints: 1, frameId: 'lidar' };
+  scene._drawHud();
+  assert.equal(text.includes('1 / 1 POINTS'), true);
+  assert.equal(text.includes('FRAME lidar'), true);
+});
+
 test('point projection scratch uses bounded typed arrays and is reused across renders', () => {
   const context = {
     setTransform() {}, clearRect() {}, save() {}, restore() {}, beginPath() {}, rect() {}, fill() {},

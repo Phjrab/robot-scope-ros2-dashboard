@@ -405,7 +405,7 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .cockpit-layout-library {
   position: absolute;
   z-index: var(--cockpit-launcher-z);
-  top: 18px;
+  top: 120px;
   left: 18px;
   display: grid;
   width: min(360px, calc(100% - 36px));
@@ -420,6 +420,12 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
   backdrop-filter: blur(14px);
   pointer-events: auto;
+}
+.cockpit-layout-library[data-expanded="false"] {
+  top: 18px;
+  right: 410px;
+  left: auto;
+  width: 120px;
 }
 .cockpit-layout-library-toggle { min-height: 34px; color: #88c9ff; text-align: left; }
 .cockpit-layout-library-body { display: grid; gap: 7px; }
@@ -458,7 +464,7 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .cockpit-competition-status {
   position: absolute;
   z-index: calc(var(--cockpit-hud-z) - 1);
-  top: 120px;
+  top: 18px;
   right: 18px;
   left: auto;
   display: grid;
@@ -476,7 +482,7 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   pointer-events: none;
 }
 .cockpit-competition-status[data-state="stale"] { border-color: #ff876f; }
-.cockpit-competition-status[data-expanded="false"] { width: min(390px, calc(100% - 36px)); max-height: none; padding: 8px 10px; overflow: hidden; }
+.cockpit-competition-status[data-expanded="false"] { z-index: calc(var(--cockpit-panel-z) - 1); width: min(390px, calc(100% - 36px)); max-height: none; padding: 8px 10px; overflow: hidden; }
 .cockpit-competition-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .cockpit-competition-header strong { color: #d9efff; font-size: 10px; letter-spacing: 0.08em; }
 .cockpit-competition-header span { min-width: 0; overflow: hidden; color: #75ffd0; font-size: 8px; font-weight: 900; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
@@ -609,7 +615,8 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   .cockpit-safety-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .cockpit-fixed-stop { position: sticky; bottom: 0; }
   .cockpit-sensor-launcher { bottom: min(58%, 290px); width: min(300px, calc(100% - 36px)); max-height: 38%; }
-  .cockpit-layout-library { top: 12px; left: 12px; width: min(300px, calc(100% - 24px)); max-height: 38%; }
+  .cockpit-layout-library,
+  .cockpit-layout-library[data-expanded="false"] { top: 180px; right: auto; left: 12px; width: min(300px, calc(100% - 24px)); max-height: 38%; }
   .cockpit-panel-actions button { min-width: 28px; padding: 0 5px; }
   .cockpit-panel-actions button[data-panel-action="pin"],
   .cockpit-panel-actions button[data-panel-action="lock"] { font-size: 0; }

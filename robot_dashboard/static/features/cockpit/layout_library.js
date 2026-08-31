@@ -21,6 +21,7 @@ export function createLayoutLibrary(options = {}) {
   if (!root || !documentValue || !store) throw new TypeError('LayoutLibrary requires root, document, and store.');
   root.replaceChildren();
   root.className = 'cockpit-layout-library';
+  root.dataset.expanded = 'false';
 
   const toggle = actionButton(documentValue, 'LAYOUTS', 'toggle');
   toggle.className = 'cockpit-layout-library-toggle';
@@ -114,7 +115,11 @@ export function createLayoutLibrary(options = {}) {
     try { callback(); } catch (error) { setStatus(error?.message || 'Layout 작업을 완료하지 못했습니다.', true); }
   }
 
-  function setExpanded(expanded) { body.hidden = !expanded; toggle.setAttribute('aria-expanded', String(expanded)); }
+  function setExpanded(expanded) {
+    body.hidden = !expanded;
+    root.dataset.expanded = String(expanded);
+    toggle.setAttribute('aria-expanded', String(expanded));
+  }
   toggle.addEventListener('click', () => setExpanded(body.hidden));
   select.addEventListener('change', syncDisabled);
   name.addEventListener('input', syncDisabled);

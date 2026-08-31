@@ -1427,13 +1427,14 @@
         x += width + 7;
       });
 
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#789089';
-      ctx.font = '500 8px ui-monospace, SFMono-Regular, Menlo, monospace';
-      const pointLabel = cloudCount ? `${cloudCount.toLocaleString()} / ${sourceCount.toLocaleString()} POINTS` : 'NO POINT CLOUD';
-      ctx.fillText(pointLabel, this.width - 12, 19);
-      ctx.fillText(`FRAME ${this.cloud.frameId || '—'}`, this.width - 12, 31);
-      ctx.textAlign = 'left';
+      if (cloudCount) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#789089';
+        ctx.font = '500 8px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillText(`${cloudCount.toLocaleString()} / ${sourceCount.toLocaleString()} POINTS`, this.width - 12, 19);
+        ctx.fillText(`FRAME ${this.cloud.frameId || '—'}`, this.width - 12, 31);
+        ctx.textAlign = 'left';
+      }
 
       if (!cloudCount) {
         const message = this.status.message || (this.status.lidarOnline === false ? 'LiDAR 신호를 기다리고 있습니다' : '3D point cloud waiting');
