@@ -14,6 +14,9 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
         cls.acceptance = (
             ROOT / "docs" / "WIRELESS_MAPPING_ACCEPTANCE.md"
         ).read_text(encoding="utf-8")
+        cls.deployment = (
+            ROOT / "docs" / "WIRELESS_MAPPING_DEPLOYMENT_PLAN.md"
+        ).read_text(encoding="utf-8")
 
     def test_adr_freezes_the_measured_topology_and_narrow_data_boundary(self):
         for value in (
@@ -93,6 +96,32 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "No deployment or hardware status is claimed",
         ):
             self.assertIn(contract, self.acceptance)
+
+    def test_deployment_plan_is_fixed_peer_disabled_and_separately_approved(self):
+        for contract in (
+            "wlan0=192.168.50.30/24",
+            "eth0=192.168.123.18/24",
+            "eno1=192.168.50.10/24",
+            "192.168.50.30:46236",
+            "192.168.50.10:2368",
+            "192.168.50.30:46020",
+            "192.168.50.10:46020",
+            "All three new service units are installed disabled",
+            "APPROVE_WIRELESS_XT16_DEPLOY",
+            "APPROVE_STATIONARY_MAPPING_TEST",
+        ):
+            self.assertIn(contract, self.deployment)
+
+    def test_deployment_plan_preserves_network_control_and_private_state(self):
+        for contract in (
+            "add no `FORWARD`, NAT, MASQUERADE, bridge, route, multicast or DDS rule",
+            "must not be printed, logged, passed as a command argument",
+            "No PTC proxy is installed",
+            "never starts Nav2, Mission, ARM, a control lease or a goal",
+            "leaves maps, Dataset, private logs and calibration backups untouched",
+            "No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed",
+        ):
+            self.assertIn(contract, self.deployment)
 
 
 if __name__ == "__main__":

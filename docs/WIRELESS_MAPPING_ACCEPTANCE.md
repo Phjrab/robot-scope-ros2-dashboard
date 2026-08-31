@@ -28,7 +28,7 @@ is not a freshness pass.
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
-| Gate 7 repository/C++ verification | `NOT_RUN` | runs after implementation |
+| Gate 7 repository/C++ verification | `FAIL` with pre-existing failures isolated | project venv: 873 Python PASS; Node: 257 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; Orin C++ Release build PASS with zero warnings, but CTest has zero registered tests and Playwright is 28 PASS / 2 FAIL on both candidate and pre-Gate-6 baseline |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
@@ -140,6 +140,44 @@ error field.
 Gate 6 did not install or start either service, change network state, start
 Mapping, publish a cloud, save a map or operate the robot. HW-1 through HW-6
 and all hardware status flags remain `NOT_RUN`.
+
+### Gate 7 repository evidence
+
+Gate 7 was executed against candidate runtime commit
+`96428d7099fcdaf0827558815026b84cc0e1cff1`. The project virtual environment
+completed all 871 tests present on that commit. After adding two deployment-plan
+contract tests, the final Gate 7 tree completed all 873 Python tests. Node
+completed all 257 JavaScript unit tests; frontend syntax checked 52 modules.
+Ruff, strict configured mypy targets, the tracked-source secret scan and
+`git diff --check` all passed.
+
+The exact unqualified system-Python command ran 867 tests and had one import
+collection error because the macOS Python 3.13 environment does not contain
+`fastapi`. The repository-managed virtual environment contains the declared
+dependency and completed the full 871-test suite. This is an unmanaged-host
+dependency failure, not a changed assertion or product-code failure.
+
+The full Playwright run completed 28 of 30 scenarios. It failed the offline
+connection-label expectation (`연결 끊김` expected, `에이전트 오류` rendered)
+and the perception-loss expectation (`STALE · lane-v2` expected, fail-closed
+`OFFLINE` rendered). Both failures reproduced unchanged in a Git-archive
+snapshot of pre-Gate-6 commit
+`2ca30bc17ee47c7e40820ef59540bd20c072211f`. No test was removed or weakened,
+and Gate 6 changed none of the Playwright, static frontend or configuration
+files involved in those scenarios.
+
+On the external aarch64 Orin with ROS 2 Humble, an isolated `/tmp` source
+archive built both `robot_scope_xt16_bridge_node` and
+`robot_scope_xt16_cloud_bridge_node` in Release mode. The compiler emitted no
+warnings. `colcon test`, `colcon test-result` and direct CTest completed with
+zero errors, but the package currently registers zero C++ tests. Nothing was
+installed into the operating checkout and no ROS node or service was started.
+
+Because required browser E2E is not green and the C++ package has no registered
+tests, Gate 7 is recorded as `FAIL` rather than promoted to `CODE_READY`.
+Deployment and every hardware status remain `NOT_RUN`. The deployment plan is
+documentation only and remains blocked until these verification gaps are
+resolved and the exact deployment approval phrase is supplied.
 
 ## Safety prerequisites for every hardware stage
 
@@ -255,8 +293,9 @@ maps, PCD, rosbag, Dataset files and raw payloads are excluded.
 
 ## Deployment approval and rollback
 
-Gate 7 completion produces `docs/WIRELESS_MAPPING_DEPLOYMENT_PLAN.md` and then
-stops. Installation on either Jetson requires the exact operator phrase
+Gate 7 produced `docs/WIRELESS_MAPPING_DEPLOYMENT_PLAN.md` and then stopped.
+The plan is not deployment authorization. Installation on either Jetson
+requires Gate 7 to be green and the exact operator phrase
 `APPROVE_WIRELESS_XT16_DEPLOY`. Stationary FAST-LIO later requires
 `APPROVE_STATIONARY_MAPPING_TEST`.
 
@@ -270,4 +309,5 @@ bundle unrelated service rollback.
 
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
-Gates 2, 3, 4 and 5 are repository-only PASS. No deployment or hardware status is claimed.
+Gates 2, 3, 4 and 5 are repository-only PASS. The current repository status is
+`FAIL` at Gate 7. No deployment or hardware status is claimed.
