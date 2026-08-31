@@ -6,4 +6,4 @@ unitree ALL=(root) NOPASSWD: \
     /usr/bin/systemctl --no-block stop robot-scope-xt16-wireless-relay.service, \
     /usr/bin/systemctl --no-block start robot-scope-wireless-imu-sender.service, \
     /usr/bin/systemctl --no-block stop robot-scope-wireless-imu-sender.service, \
-    /usr/bin/journalctl --no-pager -o cat --since\=-12s -n 2 -u robot-scope-xt16-wireless-relay.service
+    /usr/bin/journalctl --no-pager -o cat --since\=-15s -n 32 -u robot-scope-xt16-wireless-relay.service

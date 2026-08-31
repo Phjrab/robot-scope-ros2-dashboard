@@ -2,7 +2,7 @@
 Description=Robot Scope authenticated minimum Go2 IMU receiver
 Wants=network-online.target time-sync.target
 After=network-online.target time-sync.target
-ConditionPathIsExecutable=/home/jetson_orin_nano/project/robot-scope/scripts/run_wireless_imu_receiver_humble.sh
+ConditionFileIsExecutable=/home/jetson_orin_nano/project/robot-scope/scripts/run_wireless_imu_receiver_humble.sh
 ConditionPathIsRegular=/etc/robot-scope/wireless-imu.key
 StartLimitIntervalSec=60
 StartLimitBurst=5

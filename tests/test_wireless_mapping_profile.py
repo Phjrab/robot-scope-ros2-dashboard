@@ -21,6 +21,13 @@ preflight = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = preflight
 assert SPEC.loader is not None
 SPEC.loader.exec_module(preflight)
+REMOTE_HELPER_PATH = ROOT / "scripts" / "robot_scope_wireless_mapping_ssh_command.py"
+REMOTE_SPEC = importlib.util.spec_from_file_location(
+    "wireless_mapping_remote_helper", REMOTE_HELPER_PATH
+)
+remote_helper = importlib.util.module_from_spec(REMOTE_SPEC)
+assert REMOTE_SPEC.loader is not None
+REMOTE_SPEC.loader.exec_module(remote_helper)
 
 
 def completed(argv, returncode=0, stdout=""):
@@ -103,6 +110,24 @@ class WirelessMappingProfileTests(unittest.TestCase):
             with self.assertRaisesRegex(preflight.PreflightError, "XT16 PACKETS STALE"):
                 preflight.check_relay_health(fixture.environment, runner=stale_runner)
 
+    def test_remote_health_filters_journal_noise_and_returns_last_two_metrics(self):
+        metric = (
+            "[Robot Scope wireless XT16 relay] periodic captured={count} "
+            "accepted={count} forwarded={count} bytes={bytes} send_errors=0 "
+            "seq_lost=0 seq_duplicate=0 seq_reordered=0 "
+            "last_accepted_age_s=0.001 last_forwarded_age_s=0.001 "
+            "rejected=0(none)"
+        )
+        first = metric.format(count=10, bytes=5680)
+        second = metric.format(count=20, bytes=11360)
+        third = metric.format(count=30, bytes=17040)
+        output = "\n".join((first, "systemd warning", second, third))
+        self.assertEqual(
+            remote_helper._relay_health_lines(output),
+            (second, third),
+        )
+        self.assertIsNone(remote_helper._relay_health_lines("systemd warning"))
+
     def test_private_ssh_material_is_mandatory(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = Fixture(Path(temporary))
@@ -184,6 +209,10 @@ class WirelessMappingProfileTests(unittest.TestCase):
         ):
             self.assertIn(service, helper)
             self.assertIn(service, sudoers)
+        self.assertIn('"--since=-15s"', helper)
+        self.assertIn('"32"', helper)
+        self.assertIn("--since\\=-15s -n 32", sudoers)
+        self.assertIn("_relay_health_lines", helper)
         for forbidden in (
             '"restart"',
             '"enable"',

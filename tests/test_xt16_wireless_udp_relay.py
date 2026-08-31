@@ -397,7 +397,7 @@ class ProcessContractTests(unittest.TestCase):
             unit,
         )
         self.assertIn(
-            "ConditionPathIsExecutable="
+            "ConditionFileIsExecutable="
             "/usr/local/libexec/robot-scope/xt16_udp_relay.py",
             unit,
         )

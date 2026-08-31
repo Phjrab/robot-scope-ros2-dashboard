@@ -2,8 +2,8 @@
 Description=Robot Scope fixed wireless XT16 payload relay
 Wants=network-online.target
 After=network-online.target
-ConditionPathIsExecutable=/usr/local/libexec/robot-scope/xt16_udp_relay.py
-ConditionPathIsExecutable=/usr/local/libexec/robot-scope/xt16_wireless_udp_relay.py
+ConditionFileIsExecutable=/usr/local/libexec/robot-scope/xt16_udp_relay.py
+ConditionFileIsExecutable=/usr/local/libexec/robot-scope/xt16_wireless_udp_relay.py
 StartLimitIntervalSec=60
 StartLimitBurst=5
 

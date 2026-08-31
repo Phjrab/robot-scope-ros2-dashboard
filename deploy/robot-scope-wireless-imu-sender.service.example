@@ -2,7 +2,7 @@
 Description=Robot Scope authenticated minimum Go2 IMU sender
 Wants=network-online.target time-sync.target
 After=network-online.target time-sync.target
-ConditionPathIsExecutable=/home/unitree/project/robot-scope/scripts/run_wireless_imu_sender_foxy.sh
+ConditionFileIsExecutable=/home/unitree/project/robot-scope/scripts/run_wireless_imu_sender_foxy.sh
 ConditionPathIsRegular=/etc/robot-scope/wireless-imu.key
 StartLimitIntervalSec=60
 StartLimitBurst=5
