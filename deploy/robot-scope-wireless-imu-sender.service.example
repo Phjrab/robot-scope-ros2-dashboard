@@ -1,0 +1,49 @@
+[Unit]
+Description=Robot Scope authenticated minimum Go2 IMU sender
+Wants=network-online.target time-sync.target
+After=network-online.target time-sync.target
+ConditionPathIsExecutable=/home/unitree/project/robot-scope/scripts/run_wireless_imu_sender_foxy.sh
+ConditionPathIsRegular=/etc/robot-scope/wireless-imu.key
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/project/robot-scope
+ExecStart=/home/unitree/project/robot-scope/scripts/run_wireless_imu_sender_foxy.sh
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=3
+
+CapabilityBoundingSet=
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_UNIX
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+LimitNOFILE=32
+
+[Install]
+# Installer must leave this unit disabled. Gate 4 does not install or start it.
+WantedBy=multi-user.target

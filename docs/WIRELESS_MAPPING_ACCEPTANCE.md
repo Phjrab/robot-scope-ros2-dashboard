@@ -25,14 +25,15 @@ is not a freshness pass.
 | Gate 1 architecture and acceptance documents | `PASS` after contract tests | this document and the wireless transport ADR; no runtime/deployment mutation |
 | Gate 2 fixed XT16 relay implementation | `PASS` after hardware-free contract tests | separate fixed-address relay, disabled service example and strict regression tests; no host installation or live packet claim |
 | Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private offline correction/firetime selected; PTC proxy not implemented and fallback remains blocked |
-| Gates 4–6 implementation | `NOT_RUN` | later work gates |
+| Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
+| Gates 5–6 implementation | `NOT_RUN` | later work gates |
 | Gate 7 repository/C++ verification | `NOT_RUN` | runs after implementation |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
 `/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
 and Dataset Capture are idle. The current repository status is not
-`CODE_READY`; that classification requires Gates 4–7.
+`CODE_READY`; that classification requires Gates 5–7.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -73,6 +74,28 @@ files, serial association and private SHA-256 manifest are still unavailable,
 so driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains `BLOCKED`
 unless the offline path fails in an approved hardware test and receives a new
 design approval.
+
+### Gate 4 repository evidence
+
+The robot-side sender subscribes only to `/lowstate` using best-effort,
+volatile, keep-last depth 1 and extracts only quaternion, gyroscope,
+accelerometer and an available integer source tick. The external receiver has
+no `/lowstate` endpoint. It publishes only `sensor_msgs/Imu` on `/imu/body`,
+frame `body_imu`, using reliable, volatile, keep-last depth 5, and refuses to
+compete with another publisher.
+
+The canonical 184-byte binary datagram fixes
+`192.168.50.30:46020 -> 192.168.50.10:46020`, sender identity, version and
+message type and authenticates every byte with HMAC-SHA256. Its exact 32-byte
+mode-0600 file credential is distinct from Control Bridge authentication.
+Receiver tests cover authentication, boot/sequence replay, duplicate/reorder,
+finite and quaternion checks, stale/future time, clock fail-closed behavior,
+receive jitter, fixed-peer sockets and five-sample loss recovery. See
+`docs/WIRELESS_IMU_PROTOCOL.md` for the byte and clock-domain contract.
+
+Gate 4 did not install a key or service, contact either Jetson, start a ROS
+process, create a topic, or operate the robot. HW-3 and `IMU_PASS` therefore
+remain `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 
@@ -203,4 +226,4 @@ bundle unrelated service rollback.
 
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
-Gates 2 and 3 are repository-only PASS. No deployment or hardware status is claimed.
+Gates 2, 3 and 4 are repository-only PASS. No deployment or hardware status is claimed.
