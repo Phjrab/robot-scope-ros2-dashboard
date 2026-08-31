@@ -89,7 +89,12 @@ def _require_runtime(
 def _chain_exists(
     runner: Callable[..., subprocess.CompletedProcess[str]],
 ) -> bool:
-    return _iptables("-S", CHAIN, runner=runner).returncode == 0
+    inventory = _iptables("-S", runner=runner)
+    if inventory.returncode != 0:
+        raise FirewallError("firewall inventory is unavailable")
+    return any(
+        line.strip() == f"-N {CHAIN}" for line in inventory.stdout.splitlines()
+    )
 
 
 def status(

@@ -17,6 +17,7 @@ TimeoutStartSec=20
 TimeoutStopSec=20
 
 CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN
 NoNewPrivileges=true
 RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX
 UMask=0077
@@ -37,7 +38,7 @@ RestrictNamespaces=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
 SystemCallArchitectures=native
-SystemCallFilter=@system-service
+SystemCallFilter=@system-service @network-io
 SystemCallErrorNumber=EPERM
 LimitNOFILE=32
 

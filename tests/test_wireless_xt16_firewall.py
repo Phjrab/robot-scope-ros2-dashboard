@@ -23,6 +23,7 @@ class FakeIptables:
         self.rules = []
         self.jump = False
         self.calls = []
+        self.inventory_returncode = 0
 
     def __call__(self, argv, **_kwargs):
         values = tuple(argv)
@@ -38,7 +39,13 @@ class FakeIptables:
             lines = [f"-N {firewall.CHAIN}"] + ["-A " + " ".join(rule) for rule in self.rules]
             return subprocess.CompletedProcess(values, 0, "\n".join(lines) + "\n", "")
         if args == ("-S",):
+            if self.inventory_returncode:
+                return subprocess.CompletedProcess(
+                    values, self.inventory_returncode, "", "denied"
+                )
             lines = ["-P INPUT ACCEPT"]
+            if self.chain:
+                lines.append(f"-N {firewall.CHAIN}")
             if self.jump:
                 lines.append("-A " + " ".join(firewall._JUMP))
             return subprocess.CompletedProcess(values, 0, "\n".join(lines) + "\n", "")
@@ -96,6 +103,14 @@ class WirelessXt16FirewallTests(unittest.TestCase):
         mutations = {"-N", "-A", "-I", "-D", "-F", "-X"}
         self.assertFalse(any(call[3] in mutations for call in fake.calls if len(call) > 3))
 
+    def test_inventory_permission_failure_never_attempts_creation(self):
+        fake = FakeIptables()
+        fake.inventory_returncode = 4
+        with mock.patch.object(os, "geteuid", return_value=0):
+            with self.assertRaisesRegex(firewall.FirewallError, "inventory"):
+                firewall.install(runner=fake)
+        self.assertFalse(any(call[3] == "-N" for call in fake.calls if len(call) > 3))
+
     def test_runtime_is_root_fixed_interface_and_legacy_only(self):
         with self.assertRaisesRegex(firewall.FirewallError, "root is required"):
             firewall.status(runner=FakeIptables())
@@ -109,11 +124,13 @@ class WirelessXt16FirewallTests(unittest.TestCase):
             "Before=robot-scope.service robot-scope-wireless-imu-receiver.service",
             "User=root",
             "CapabilityBoundingSet=CAP_NET_ADMIN",
+            "AmbientCapabilities=CAP_NET_ADMIN",
             "NoNewPrivileges=true",
             "RemainAfterExit=yes",
             "WantedBy=multi-user.target",
         ):
             self.assertIn(value, service)
+        self.assertIn("SystemCallFilter=@system-service @network-io", service)
         for forbidden in ("ExecStart=/usr/sbin/iptables", "sudo", "reboot", "enable --now"):
             self.assertNotIn(forbidden, service)
 
