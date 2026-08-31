@@ -496,6 +496,64 @@ fail-closed assertion is unchanged. The complete Python suite now passes all
 finding in Mission abort handling was also expanded to an equivalent block;
 the repository-wide `robot_dashboard` and `scripts` Ruff scan now passes.
 
+## WP06 Competition Cockpit hardware follow-up — 2026-08-31
+
+The external Orin checkout was cleanly fast-forwarded from `61a9131` to
+`ba799bc`, then the dashboard-only lifecycle endpoint restarted
+`robot-scope.service` with no active lifecycle blockers. The new dashboard
+instance was `eaeb9b986298467a85b627929cfadbfb`. No ARM, deadman, motion command,
+robot action, Navigation, Mapping or Dataset mutation was issued.
+
+The receiver restart briefly projected `command datagram failed`, then the
+existing authenticated Bridge recovered without operator motion input. The
+steady state was Bridge `READY`, connected and authenticated, with LowState age
+0–1 ms, one expected Bridge publisher, all nine expected bare Sport publishers,
+no lease, deadman released and all three command axes exactly zero. The
+robot-side Bridge service remained active but disabled at boot.
+
+Before the HUD correction, the live Cockpit showed Control Bridge `READY` while
+GO2 LINK remained `OFFLINE` and LOWSTATE remained `WAITING`, because the
+external Orin deliberately has no direct Go2 DDS route. After deployment, the
+same in-app browser showed the distinct split-topology state `CONTROL LIVE` and
+the bounded Bridge LowState age while preserving `DISARMED`, lease `NONE`,
+authority `NONE`, MANUAL mode and zero command axes. Direct ROS telemetry is
+still offline and is not relabelled as live.
+
+Competition Lock was enabled with explicit `LOCK` confirmation. The Cockpit
+showed `LOCKED · PHYSICAL SAFETY: NO`, disabled mode controls and retained the
+always-visible Dashboard SOFTWARE STOP. A dashboard restart request was
+rejected with HTTP 423 and `Competition Lock blocks dashboard service restart`.
+The lock was then released with explicit `UNLOCK`, stationary confirmation and
+server-authoritative idle blockers; the final state was unlocked, MANUAL,
+motion authority `NONE`, lease absent, deadman released and command axes zero.
+
+The camera panels were not opened during this narrow follow-up, so the Network
+and Camera fields correctly remained `UNAVAILABLE`/`WAITING`. Perception stayed
+SHADOW with authority `NONE`; Lane, YOLO and Depth remained `OFFLINE`,
+PointCloud diagnostic mode remained `OFF`, and both active and previous model
+fields remained `NONE`. These are truthful unavailable states, not WP06 display
+failures. Actual model overlay evidence remains blocked by the missing approved
+model artifacts recorded in the WP04/WP05 sections.
+
+WP06 follow-up verification results:
+
+- Safety HUD targeted JavaScript tests: 11 passed, 0 failed;
+- Cockpit JavaScript suite: 78 passed, 0 failed;
+- complete JavaScript suite: 253 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- complete Python suite: 796 passed, 0 failed;
+- Ruff configured repository targets: PASS;
+- tracked-source secret scan: PASS;
+- browser E2E: 30 passed, 0 failed after making the two mission tests refresh
+  their injected annotation fixture explicitly; their waypoint and mission
+  assertions were not removed or weakened;
+- `git diff --check`: PASS.
+
+WP06 is **PASS** for the currently available software, split-topology Bridge
+status, fail-closed display and Competition Lock behavior. Live camera overlay
+and model rollback display hardware evidence remain pending approved model
+artifacts, while their software contracts are covered by the passing suites.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
