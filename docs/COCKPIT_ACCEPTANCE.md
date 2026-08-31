@@ -54,6 +54,7 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | viewport resize와 corrupted layout recovery | `PASS` | geometry/layout schema behavior + Playwright resize |
 | Safety HUD/STOP이 focus panel 위에 유지 | `PASS` | Playwright stacking/focus 시나리오 |
 | Competition/Control Authority 기본 접힘과 요약 갱신 | `PASS` | Playwright 접힘·펼침, narrow viewport와 STOP 상시 노출 시나리오 |
+| Competition Status와 상단 3D 제어 툴바 비중첩 | `PASS` | Playwright 1366×768, 1920×1080, 2560×1440 bounding geometry |
 | BFCache page lifecycle에서 stale async fence | `PASS` | camera/log/dataset generation behavior tests |
 | robot-off 1366×768, 1920×1080, 2560×1440 layout/FPS | `PASS` | 2026-08-30: horizontal overflow 없음, 정적 LOW 10K 26 FPS, console warning/error 없음 |
 | strict `?workspace=cockpit#cockpit`, dashboard chrome 제거와 전용 toolbar 아래 full-window layout | `PASS` | pure URL contract + Playwright 1366×768, 1920×1080, 2560×1440 geometry/overflow |

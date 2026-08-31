@@ -50,7 +50,8 @@ consumer가 될 수 있으므로 그렇게 운용하지 않는다.
 Competition Status와 Control Authority는 장면을 가리지 않도록 기본 접힘 상태다.
 Competition Status는 MODE, LOCK, AUTHORITY를, Control Authority는 ARM, DEADMAN,
 BRIDGE, LEASE를 접힌 상태에서도 갱신한다. 각각 **상세 펼치기/상세 접기**로 전환하며,
-Control Authority를 접어도 **DASHBOARD SOFTWARE STOP**은 숨겨지지 않는다.
+Control Authority를 접어도 **DASHBOARD SOFTWARE STOP**은 숨겨지지 않는다. Competition
+Status는 상단 3D 시점·PointCloud 제어 툴바 아래에 배치되어 해당 버튼을 가리지 않는다.
 
 ## Layout Edit와 Operate
 

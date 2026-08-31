@@ -202,12 +202,16 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
     const geometry = await page.evaluate(() => {
       const bar = document.querySelector('#cockpitWindowBar').getBoundingClientRect();
       const workspace = document.querySelector('#cockpitWorkspace').getBoundingClientRect();
+      const sceneControls = document.querySelector('.cockpit-scene-controls').getBoundingClientRect();
+      const competition = document.querySelector('#cockpitCompetitionStatus').getBoundingClientRect();
       const stop = document.querySelector('[data-cockpit-software-stop]').getBoundingClientRect();
       const hudZ = Number(getComputedStyle(document.querySelector('#cockpitSafetyHud')).zIndex);
       const panelZ = Number(getComputedStyle(document.querySelector('#cockpitPanelLayer')).zIndex);
       return {
         bar: { x: bar.x, y: bar.y, width: bar.width, height: bar.height, bottom: bar.bottom },
         workspace: { x: workspace.x, y: workspace.y, width: workspace.width, height: workspace.height, bottom: workspace.bottom },
+        sceneControls: { left: sceneControls.left, top: sceneControls.top, right: sceneControls.right, bottom: sceneControls.bottom },
+        competition: { left: competition.left, top: competition.top, right: competition.right, bottom: competition.bottom },
         stop: { left: stop.left, top: stop.top, right: stop.right, bottom: stop.bottom },
         hudZ,
         panelZ,
@@ -223,6 +227,7 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
     expect(geometry.workspace.y).toBe(geometry.bar.bottom);
     expect(geometry.workspace.width).toBe(viewport.width);
     expect(geometry.workspace.bottom).toBe(viewport.height);
+    expect(geometry.competition.top).toBeGreaterThanOrEqual(geometry.sceneControls.bottom + 8);
     expect(geometry.stop.left).toBeGreaterThanOrEqual(0);
     expect(geometry.stop.top).toBeGreaterThanOrEqual(0);
     expect(geometry.stop.right).toBeLessThanOrEqual(viewport.width);

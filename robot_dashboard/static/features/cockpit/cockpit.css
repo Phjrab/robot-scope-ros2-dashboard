@@ -52,7 +52,7 @@ html[data-workspace-window="cockpit"] .workspace { width: 100%; height: 100%; pa
 html[data-workspace-window="cockpit"] .cockpit-page.is-active { display: flex; width: 100%; height: 100%; flex-direction: column; animation: none; }
 html[data-workspace-window="cockpit"] .cockpit-workspace { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; border: 0; border-radius: 0; }
 html[data-workspace-window="cockpit"] .toast { z-index: 200; }
-html[data-workspace-window="cockpit"] .cockpit-competition-status { position: fixed; max-height: calc(100dvh - 260px); }
+html[data-workspace-window="cockpit"] .cockpit-competition-status { max-height: calc(100dvh - 260px); }
 html[data-workspace-window="cockpit"] .cockpit-competition-metrics span,
 html[data-workspace-window="cockpit"] .cockpit-safety-metric span { font-size: 7px; }
 html[data-workspace-window="cockpit"] .cockpit-competition-metrics strong,
@@ -476,7 +476,7 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .cockpit-competition-status {
   position: absolute;
   z-index: calc(var(--cockpit-hud-z) - 1);
-  top: 70px;
+  top: 120px;
   left: 18px;
   display: grid;
   width: min(520px, calc(100% - 36px));
