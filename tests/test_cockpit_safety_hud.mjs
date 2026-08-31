@@ -56,6 +56,29 @@ test('Safety HUD fails closed instead of retaining cached control and telemetry 
   assert.equal(stale.tone, 'danger');
 });
 
+test('authenticated Bridge LowState is visible when external DDS telemetry is offline', () => {
+  const input = liveInput();
+  input.state.health.robot_online = false;
+  input.state.sensors = [];
+  input.control.lease.active = false;
+  input.control.command.deadman = false;
+  input.control.bridge = {
+    state: 'idle', ready: true, authenticated: true, connected: true, lowstate_age_ms: 12,
+  };
+  const projected = projectSafetyHud(input, NOW);
+  assert.equal(projected['control-bridge'], 'READY');
+  assert.equal(projected['go2-link'], 'CONTROL LIVE');
+  assert.equal(projected.lowstate, '12 ms');
+  assert.equal(projected.armed, 'DISARMED');
+  assert.equal(projected.tone, 'normal');
+
+  input.control.bridge.lowstate_age_ms = 1500.001;
+  const stale = projectSafetyHud(input, NOW);
+  assert.equal(stale['go2-link'], 'OFFLINE');
+  assert.equal(stale.lowstate, 'WAITING');
+  assert.equal(stale.tone, 'waiting');
+});
+
 test('Navigation ownership is displayed without weakening the manual conflict warning', () => {
   const input = liveInput();
   input.control.lease.active = false;

@@ -58,6 +58,13 @@ deadman, software STOP, physical-stop reminder, operation mode, Lock, perception
 authority and dataset state. Missing/stale competition state displays
 `SAFE_STOP · UNKNOWN`, `UNKNOWN · BLOCKED`, and authority `NONE`.
 
+On the split wireless topology, authenticated Control Bridge LowState is the
+motion-safety link even when the external Orin intentionally has no direct Go2
+DDS/ICMP route. The HUD reports this as `CONTROL LIVE` with the bounded Bridge
+LowState age. Direct ROS telemetry remains `LIVE`; neither signal silently
+substitutes for the other, and a stale/missing Bridge age cannot produce a live
+control-link display.
+
 The Competition Status surface reuses existing camera catalog and perception
 subscriptions. It does not acquire a camera viewer or create PointCloud/WebSocket
 sources. It displays Wi-Fi/RSSI/link, camera and transport status, decode/reconnect,

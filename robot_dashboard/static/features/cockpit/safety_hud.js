@@ -31,7 +31,7 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
   const controlFresh = Boolean(control) && ageFresh(input.controlUpdatedAt, now);
   const health = state?.health || {};
   const targetConnected = health.robot_target_connected == null ? Boolean(health.robot_ip) : health.robot_target_connected === true;
-  const linkLive = stateFresh && health.agent_ready === true && targetConnected && health.robot_online === true;
+  const telemetryLinkLive = stateFresh && health.agent_ready === true && targetConnected && health.robot_online === true;
   const navActive = input.navigationAvailable === true && navigationActive(input.navigation);
   const cachedLeaseActive = Boolean(input.locallyArmed || control?.lease?.active);
   const manualActive = controlFresh && cachedLeaseActive;
@@ -43,12 +43,23 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
   const bridgeState = bridge && typeof bridge === 'object'
     ? (bridge.ready === true && bridge.authenticated !== false ? 'READY' : String(bridge.state || 'NOT READY').toUpperCase())
     : 'UNKNOWN';
+  const bridgeLowstateAgeMs = finite(bridge?.lowstate_age_ms);
+  const bridgeLowstateFresh = Boolean(bridge)
+    && bridge.ready === true
+    && bridge.authenticated !== false
+    && bridge.connected !== false
+    && bridgeLowstateAgeMs != null
+    && bridgeLowstateAgeMs >= 0
+    && bridgeLowstateAgeMs <= 1500;
+  const controlLinkLive = controlFresh && bridgeLowstateFresh;
+  const linkLive = telemetryLinkLive || controlLinkLive;
   const competition = input.competition || null;
   const capture = input.dataset?.capture || null;
   const sensors = stateFresh && Array.isArray(state?.sensors) ? state.sensors : [];
   const lowstate = sensors.find((sensor) => sensor?.category === 'robot_state' || /(^|\/)lowstate$/i.test(String(sensor?.topic || '')));
   const lowstateAge = finite(lowstate?.age_s);
-  const lowstateFresh = Boolean(lowstate) && lowstate?.state === 'ok' && lowstateAge != null && lowstateAge >= 0 && lowstateAge <= 1.5;
+  const telemetryLowstateFresh = Boolean(lowstate) && lowstate?.state === 'ok' && lowstateAge != null && lowstateAge >= 0 && lowstateAge <= 1.5;
+  const lowstateFresh = bridgeLowstateFresh || telemetryLowstateFresh;
   const battery = sensors.find((sensor) => sensor?.category === 'battery' || sensor?.values?.battery_soc != null);
   const batteryAge = finite(battery?.age_s);
   const batterySoc = finite(battery?.values?.battery_soc ?? (battery?.values?.percentage == null ? null : battery.values.percentage * 100));
@@ -67,8 +78,12 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
     'perception-authority': competition ? String(competition.authority || 'NONE') : 'NONE',
     dataset: capture?.active ? 'CAPTURING' : 'IDLE',
     lease: controlFresh ? (control?.lease?.active ? 'ACTIVE' : 'NONE') : cachedLeaseActive ? 'UNKNOWN · LOCKED' : 'UNKNOWN',
-    'go2-link': linkLive ? 'LIVE' : stateFresh ? 'OFFLINE' : 'STALE',
-    lowstate: lowstateFresh ? `${Math.round(lowstateAge * 1000)} ms` : lowstate ? 'STALE' : 'WAITING',
+    'go2-link': telemetryLinkLive ? 'LIVE' : controlLinkLive ? 'CONTROL LIVE' : stateFresh ? 'OFFLINE' : 'STALE',
+    lowstate: bridgeLowstateFresh
+      ? `${Math.round(bridgeLowstateAgeMs)} ms`
+      : telemetryLowstateFresh
+        ? `${Math.round(lowstateAge * 1000)} ms`
+        : lowstate ? 'STALE' : 'WAITING',
     battery: batteryFresh ? `${Math.round(batterySoc)}%` : battery ? 'STALE' : 'WAITING',
     vx: controlFresh ? formatAxis(command.linear_x) : 'UNKNOWN',
     vy: controlFresh ? formatAxis(command.linear_y) : 'UNKNOWN',
