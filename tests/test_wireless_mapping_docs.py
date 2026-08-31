@@ -89,7 +89,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "age `<=0.5 s`",
             "jitter `<=300 ms`",
             "zero external `/lowstate`",
-            "No status above Gate 1 is currently claimed",
+            "Gate 2 is a repository-only PASS",
+            "No deployment or hardware status is claimed",
         ):
             self.assertIn(contract, self.acceptance)
 

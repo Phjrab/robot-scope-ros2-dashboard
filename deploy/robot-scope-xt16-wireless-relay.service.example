@@ -1,0 +1,53 @@
+[Unit]
+Description=Robot Scope fixed wireless XT16 payload relay
+Wants=network-online.target
+After=network-online.target
+ConditionPathIsExecutable=/usr/local/libexec/robot-scope/xt16_udp_relay.py
+ConditionPathIsExecutable=/usr/local/libexec/robot-scope/xt16_wireless_udp_relay.py
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/
+ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/xt16_wireless_udp_relay.py
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=3
+
+# CAP_NET_RAW is used only for passive, non-promiscuous AF_PACKET capture.
+# Output uses one ordinary UDP socket with fixed private source and peer.
+CapabilityBoundingSet=CAP_NET_RAW
+AmbientCapabilities=CAP_NET_RAW
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_PACKET AF_INET
+
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+LimitNOFILE=32
+
+[Install]
+# Installer must leave this unit disabled by default. Gate 2 does not install it.
+WantedBy=multi-user.target

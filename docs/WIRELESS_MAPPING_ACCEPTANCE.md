@@ -23,7 +23,8 @@ is not a freshness pass.
 | Gate 0 legacy relay cleanup | `PASS` | former `.123.99:2368` relay is `inactive/dead`, disabled, PID 0; installed rollback files preserved |
 | Gate 0 network boundary | `PASS` with recorded limitation | robot-side `FORWARD DROP`, Docker-only forwarding/NAT, no `wlan0↔eth0` rule; external has no sensor route/interface, but privileged external netfilter dump remains unverified |
 | Gate 1 architecture and acceptance documents | `PASS` after contract tests | this document and the wireless transport ADR; no runtime/deployment mutation |
-| Gates 2–6 implementation | `NOT_RUN` | later work gates |
+| Gate 2 fixed XT16 relay implementation | `PASS` after hardware-free contract tests | separate fixed-address relay, disabled service example and strict regression tests; no host installation or live packet claim |
+| Gates 3–6 implementation | `NOT_RUN` | later work gates |
 | Gate 7 repository/C++ verification | `NOT_RUN` | runs after implementation |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
@@ -36,6 +37,23 @@ Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
 frame `map`, mode `trinary`. This is inventory only: it does not approve a map
 load, initial pose or goal, and no map artifact is copied into Git.
+
+### Gate 2 repository evidence
+
+The new relay passively observes only `PACKET_HOST` IPv4 packets on `eth0` and
+reuses the unchanged wired parser for the measured
+`192.168.123.20:10000 -> 192.168.123.18:2368` contract. It additionally checks
+a supplied IPv4 UDP checksum; checksum zero remains valid because IPv4 permits
+the sender to omit it. Accepted 568-byte payloads become new ordinary UDP
+datagrams from fixed `192.168.50.30:46236` to fixed
+`192.168.50.10:2368`. There is no promiscuous capture, raw-IP spoofing, runtime
+network override, route, NAT or bridge.
+
+The service example runs as `unitree`, grants only `CAP_NET_RAW`, has a finite
+restart limit and is explicitly left disabled. Gate 2 created no private
+configuration and performed no installation, service start, mapping, Nav2,
+Dataset Capture or robot operation. Live receipt and loss bounds therefore
+remain `NOT_RUN` until the separately approved HW-1 stage.
 
 ## Safety prerequisites for every hardware stage
 
@@ -166,4 +184,4 @@ bundle unrelated service rollback.
 
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
-No status above Gate 1 is currently claimed.
+Gate 2 is a repository-only PASS. No deployment or hardware status is claimed.
