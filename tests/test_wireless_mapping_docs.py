@@ -93,6 +93,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "jitter `<=300 ms`",
             "zero external `/lowstate`",
             "Gates 2, 3, 4 and 5 are repository-only PASS",
+            "registered CTest PASS 1/1",
+            "repository status is `CODE_READY`",
             "No deployment or hardware status is claimed",
         ):
             self.assertIn(contract, self.acceptance)
@@ -109,6 +111,7 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "All three new service units are installed disabled",
             "APPROVE_WIRELESS_XT16_DEPLOY",
             "APPROVE_STATIONARY_MAPPING_TEST",
+            "repository `CODE_READY`; deployment and HW-1–HW-6 `NOT_RUN`",
         ):
             self.assertIn(contract, self.deployment)
 
@@ -120,6 +123,7 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "never starts Nav2, Mission, ARM, a control lease or a goal",
             "leaves maps, Dataset, private logs and calibration backups untouched",
             "No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed",
+            "passes 1/1 through both colcon and direct CTest",
         ):
             self.assertIn(contract, self.deployment)
 

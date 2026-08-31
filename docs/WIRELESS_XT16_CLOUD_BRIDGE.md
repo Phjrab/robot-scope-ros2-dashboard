@@ -43,9 +43,22 @@ the new installed C++ executable. Network ownership, the fixed receive-buffer
 ceiling and wireless readiness checks remain Gate 6 responsibilities; this
 runner does not bypass or reconfigure them.
 
+## Registered contract test
+
+CTest registers `robot_scope_xt16_cloud_contract`, which invokes the shared
+conversion contract directly without initializing rclcpp or spinning a ROS
+node. Synthetic 4,000-point inputs verify the exact output fields, 22-byte
+stride, four-to-one decimation, calibrated timestamp and finite-value rules.
+Fail-closed cases cover stale device time, clock-residual discontinuity, wrong
+frame, malformed or duplicate fields, short payload and insufficient finite
+decimated points. The test target links `rclcpp` and `sensor_msgs` only; it does
+not link `unitree_go` or exercise the legacy LowState/IMU path.
+
 ## Safety and deployment status
 
 This change creates no control publisher, lease, motion command, Mapping/Nav
 start, network mutation or automatic service. It does not install or run the
-new executable on either Jetson. Live `/velodyne_points` validation and HW-4
-remain `NOT_RUN` until the later deployment gate and explicit approval.
+new executable in either operating environment. Gate 7 used only an isolated
+external-Orin `/tmp` build and test tree; it did not start a ROS node or service.
+Live `/velodyne_points` validation and HW-4 remain `NOT_RUN` until the later
+deployment gate and explicit approval.

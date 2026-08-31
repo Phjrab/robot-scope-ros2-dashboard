@@ -1,14 +1,14 @@
 # Wireless XT16 mapping deployment plan
 
 - Plan date: 2026-08-31
-- Candidate runtime baseline: `96428d7099fcdaf0827558815026b84cc0e1cff1`
+- Candidate runtime baseline: `f9660793447982d17ee5c359409de731b3dd5b33`
 - Deployment authorized: **no**
-- Current status: `FAIL` at repository Gate 7
+- Current status: repository `CODE_READY`; deployment and HW-1–HW-6 `NOT_RUN`
 
 This document fixes the intended installation and hardware-test boundary. It
 does not authorize installation, a service start, Mapping, FAST-LIO, Nav2, a
-map write, a control lease or robot motion. Gate 7 must first be green, and
-deployment then requires the exact operator phrase
+map write, a control lease or robot motion. Gate 7 is green, but deployment
+still requires every blocker below to clear and the exact operator phrase
 `APPROVE_WIRELESS_XT16_DEPLOY`.
 
 ## Measured topology and ownership
@@ -184,10 +184,9 @@ Go2/XT16 sensor configuration.
 
 ## Blocking items before deployment approval
 
-- Playwright is now 30/30 PASS after preserving fail-closed assertions and
-  removing two asynchronous fixture races;
-- add meaningful registered C++ tests or explicitly approve the documented
-  zero-test coverage gap, then rerun colcon/CTest;
+- repository verification is cleared: Playwright is 30/30 PASS, the Orin
+  Release build has zero compiler warnings and the registered cloud contract
+  passes 1/1 through both colcon and direct CTest;
 - acquire and validate the exact XT16 correction/firetime files and private
   serial/hash manifest;
 - audit the external privileged firewall and select its existing rule owner;
@@ -196,5 +195,6 @@ Go2/XT16 sensor configuration.
 - supply the exact phrase `APPROVE_WIRELESS_XT16_DEPLOY` only after reviewing
   this plan and the green Gate 7 rerun.
 
-Until every item clears, status remains `FAIL`.
+Until every deployment blocker clears, deployment remains unauthorized and all
+hardware stages remain `NOT_RUN`; the repository status remains `CODE_READY`.
 No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed.

@@ -28,13 +28,14 @@ is not a freshness pass.
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
-| Gate 7 repository/C++ verification | `FAIL` with C++ coverage gap | project venv: 873 Python PASS; Node: 257 PASS; Playwright: 30 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; Orin C++ Release build PASS with zero warnings, but CTest has zero registered tests |
+| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | project venv: 875 Python PASS; Node: 257 PASS; Playwright: 30 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
 `/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
-and Dataset Capture are idle. The current repository status is not
-`CODE_READY`; that classification requires Gates 6–7.
+and Dataset Capture are idle. The current repository status is `CODE_READY`;
+that repository classification does not authorize deployment or claim any
+live sensor, mapping or navigation result.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -117,8 +118,8 @@ buffer and network readiness contracts. See
 
 The existing wired runner and preview remain bound to the legacy executable.
 Gate 5 did not build on a Jetson, install an executable, start a ROS process or
-publish a cloud. The targeted colcon build remains Gate 7 work, and HW-4 plus
-`CLOUD_PASS` remain `NOT_RUN`.
+publish a cloud. The targeted colcon build was deferred to Gate 7 and is
+recorded below; HW-4 plus `CLOUD_PASS` remain `NOT_RUN`.
 
 ### Gate 6 repository evidence
 
@@ -144,9 +145,12 @@ and all hardware status flags remain `NOT_RUN`.
 ### Gate 7 repository evidence
 
 Gate 7 was executed against candidate runtime commit
-`96428d7099fcdaf0827558815026b84cc0e1cff1`. The project virtual environment
+`96428d7099fcdaf0827558815026b84cc0e1cff1`, with the fail-closed browser
+follow-up at `ec87939a5dfd4c37056b6f351fdad995b69e47d1` and the registered C++
+contract at `f9660793447982d17ee5c359409de731b3dd5b33`. The project virtual environment
 completed all 871 tests present on that commit. After adding two deployment-plan
-contract tests, the final Gate 7 tree completed all 873 Python tests. Node
+contract tests and two C++ registration/coverage contract tests, the final
+Gate 7 tree completed all 875 Python tests. Node
 completed all 257 JavaScript unit tests; frontend syntax checked 52 modules.
 Ruff, strict configured mypy targets, the tracked-source secret scan and
 `git diff --check` all passed.
@@ -176,15 +180,17 @@ targeted scenarios and the complete Playwright suite now pass `30/30`.
 On the external aarch64 Orin with ROS 2 Humble, an isolated `/tmp` source
 archive built both `robot_scope_xt16_bridge_node` and
 `robot_scope_xt16_cloud_bridge_node` in Release mode. The compiler emitted no
-warnings. `colcon test`, `colcon test-result` and direct CTest completed with
-zero errors, but the package currently registers zero C++ tests. Nothing was
-installed into the operating checkout and no ROS node or service was started.
+warnings. The package registered exactly one CTest,
+`robot_scope_xt16_cloud_contract`. `colcon test` reported one test, zero errors,
+zero failures and zero skips, and direct CTest independently passed `1/1`.
+Nothing was installed into the operating checkout or system directories and no
+ROS node or service was started.
 
-Because the C++ package has no registered tests, Gate 7 remains `FAIL` rather
-than being promoted to `CODE_READY`. Deployment and every hardware status
-remain `NOT_RUN`. The deployment plan is documentation only and remains
-blocked until this final repository verification gap is resolved and the exact
-deployment approval phrase is supplied.
+The registered fail-closed contract test resolves the former zero-test gap, so
+Gate 7 is `PASS` and the repository is `CODE_READY`. Deployment and every
+hardware status remain `NOT_RUN`. The deployment plan is documentation only;
+private calibration, firewall audit, final dual-host/safety re-audit and the
+exact deployment approval phrase are still required.
 
 ## Safety prerequisites for every hardware stage
 
@@ -317,4 +323,4 @@ bundle unrelated service rollback.
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
 Gates 2, 3, 4 and 5 are repository-only PASS. The current repository status is
-`FAIL` at Gate 7. No deployment or hardware status is claimed.
+`CODE_READY` after Gate 7 PASS. No deployment or hardware status is claimed.
