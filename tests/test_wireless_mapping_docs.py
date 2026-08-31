@@ -95,7 +95,10 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "Gates 2, 3, 4 and 5 are repository-only PASS",
             "registered CTest PASS 1/1",
             "repository status is `CODE_READY`",
-            "Current privileged firewall dumps",
+            "privileged network boundary is `PASS`",
+            "external privileged network boundary is also `PASS`",
+            "`ip_forward=1`",
+            "accepted as evidence",
             "HW-1–HW-6 remain `NOT_RUN`",
             "No deployment or hardware status is claimed",
         ):
@@ -127,7 +130,9 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed",
             "passes 1/1 through both colcon and direct CTest",
             "`/home/unitree/project/robot-scope` checkout is currently absent",
-            "both hosts report `ip_forward=1`",
+            "`iptables v1.8.4 (legacy)`",
+            "`iptables v1.8.7 (legacy)`",
+            "privileged network verification is cleared on both hosts",
         ):
             self.assertIn(contract, self.deployment)
 

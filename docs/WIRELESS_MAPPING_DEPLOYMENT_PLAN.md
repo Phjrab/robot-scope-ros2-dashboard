@@ -107,8 +107,12 @@ the exact offline artifacts fail with the pinned driver during HW-2.
 
 ## Proposed firewall policy
 
-The existing firewall owner and syntax must be identified by a privileged
-read-only audit before applying anything. The reviewed semantic policy is:
+The robot-side firewall owner is confirmed as `iptables v1.8.4 (legacy)` and
+the external owner as `iptables v1.8.7 (legacy)`. Both have default
+`FORWARD DROP`, Docker-only forwarding/NAT and no management/sensor forwarding
+rule. The external installed `nft` tool returned an empty ruleset; robot-side
+`nft` is absent. No rule was changed during the audit. The reviewed semantic
+policy is:
 
 1. on external `eno1`, allow UDP only from
    `192.168.50.30:46236` to `192.168.50.10:2368`;
@@ -187,11 +191,10 @@ Go2/XT16 sensor configuration.
 - repository verification is cleared: Playwright is 30/30 PASS, the Orin
   Release build has zero compiler warnings and the registered cloud contract
   passes 1/1 through both colcon and direct CTest;
+- privileged network verification is cleared on both hosts: `FORWARD DROP`,
+  Docker-only `172.17.0.0/16` MASQUERADE and no management/sensor forwarding;
 - acquire and validate the exact XT16 correction/firetime files and private
   serial/hash manifest;
-- obtain current privileged iptables/nft dumps from both hosts and select the
-  existing firewall owner; both hosts report `ip_forward=1`, so unprivileged
-  route and inactive-bridge observations are insufficient;
 - resolve robot-side code provenance and rollback staging because the planned
   `/home/unitree/project/robot-scope` checkout is currently absent;
 - update the clean external operating checkout from

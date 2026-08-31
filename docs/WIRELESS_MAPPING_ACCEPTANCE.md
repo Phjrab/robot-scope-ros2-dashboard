@@ -221,10 +221,17 @@ bridge metadata was stale and was not treated as current readiness.
 Both hosts currently report `net.ipv4.ip_forward=1`. Their unprivileged route
 and link views showed no management-to-sensor route and no active carrier on
 the Docker or Jetson USB bridges, but these observations cannot prove the
-FORWARD/NAT policy. Non-interactive privileged iptables/nft reads required an
-administrator password on both hosts. Current privileged firewall dumps
-therefore remain `BLOCKED`; prior evidence is not substituted for the final
-deployment audit.
+FORWARD/NAT policy. After explicit operator approval, a privileged robot-side
+dump showed `iptables v1.8.4 (legacy)`, default `FORWARD DROP`, Docker-only
+forward chains and a single `172.17.0.0/16` Docker MASQUERADE. There is no
+`wlan0`/`eth0` forwarding or NAT rule; `nft` is not installed. The robot-side
+privileged network boundary is `PASS` for this re-audit. The operator-provided
+external dump showed `iptables v1.8.7 (legacy)`, default `FORWARD DROP`, the
+same Docker-only `172.17.0.0/16` MASQUERADE boundary and no sensor or `eno1`
+forwarding/NAT rule. Its installed `nft` tool returned an empty ruleset. The
+external privileged network boundary is also `PASS`. Both dumps must still be
+repeated against the final deployed commit; `ip_forward=1` alone is never
+accepted as evidence.
 
 The three fixed external calibration paths are absent, and a bounded filename
 inventory found only ROS `Firetime.msg` source/generated files rather than an
