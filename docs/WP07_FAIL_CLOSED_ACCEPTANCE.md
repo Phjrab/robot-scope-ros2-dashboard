@@ -115,7 +115,9 @@ no ARM, lease, deadman or non-zero command was created.
 The following remain intentionally `BLOCKED` or `NOT_RUN` for WP07:
 
 - robot-side Wi-Fi RSSI/link and full RTT/loss/throughput interval;
-- live RealSense source/transport and restart/stall behavior;
+- RealSense source-stall/cable fault behavior and the formal supervised relay
+  scenario record; live source/transport and immediate relay restart recovery
+  were observed separately at `f48ef07` without promoting the scenario row;
 - live shadow perception, model match, task ages and complete compute metrics;
 - robot-side PointCloud mode and coexistence with live optional workloads;
 - direct external ROS, XT16/FAST-LIO and Navigation evidence, which is outside

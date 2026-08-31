@@ -598,6 +598,50 @@ WP07 recorder verification results:
 - browser E2E: 30 passed, 0 failed;
 - `git diff --check`: PASS.
 
+## RealSense immediate restart recovery — 2026-08-31
+
+The robot-side RealSense and fixed Go2 camera relay services were manually
+started while their boot policy remained disabled. Sensors dual view showed
+RealSense LIVE at 640×480 and 15.0 FPS and Go2 LIVE at 1280×720 and about
+11.9 FPS. RealSense Wi-Fi was -37 to -39 dBm at 1080.6–1200.9 Mbps, transport
+was about 6.8–7.6 Mbps, and browser decode reported zero failures and drops.
+The dashboard owned exactly one viewer per source; the robot relay owned one
+viewer and one producer process/thread with zero invalid frames.
+
+Stopping the RealSense relay while the dual panel remained open changed only
+the RealSense panel and transport/decode fields to STALE; Go2 remained LIVE and
+the old RealSense frame was not presented as live. Immediate restart then
+failed: the cleanly replaced process could not bind fixed port 8090 while the
+prior MJPEG TCP connection was still tearing down. Systemd made five bounded
+attempts and entered failed with `Address already in use`.
+
+Commit `f48ef07` enables only `SO_REUSEADDR` on the single fixed HTTP listener.
+`SO_REUSEPORT` remains disabled, so parallel listeners are not permitted. The
+dashboard/relay IP allowlist, fixed port, viewer/client caps, capture profile,
+frame bounds and service hardening are unchanged. The root-owned deployed file
+has SHA-256 `36c0a0676a47eea48e0eb4cc0618270ed15f6c23e9f3a226ad81324db0f1b916`;
+the pre-fix file is retained as
+`/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py.pre-f48ef07`.
+
+With a viewer open, an immediate `systemctl restart` then returned active with
+`NRestarts=0`. The existing dashboard receiver automatically returned to
+RealSense LIVE at 640×480 while Go2 remained LIVE. Viewer/producer cardinality
+was still one per layer and invalid/decode failure/drop counts remained zero.
+After leaving Sensors, both dashboard viewers were zero and the robot-side
+RealSense relay returned to idle with no producer process or thread. Both
+camera services remained manually active and disabled at boot.
+
+Verification results for this correction:
+
+- RealSense relay tests: 29 passed, 0 failed;
+- camera JavaScript tests: 28 passed, 0 failed;
+- complete JavaScript suite: 253 passed, 0 failed;
+- complete Python suite: 799 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- Ruff configured repository targets: PASS;
+- tracked-source secret scan: PASS;
+- `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
