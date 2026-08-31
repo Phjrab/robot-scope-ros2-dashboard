@@ -231,6 +231,7 @@ test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and n
 test('Cockpit runs a server-owned two-waypoint mission and restores it after reload', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   backend.state.annotations.points.push({ id: backend.secondAnnotationId, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } });
+  await page.locator('#refreshButton').click();
   await enterLayoutEdit(page);
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
@@ -275,6 +276,7 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
 test('Cockpit mission pause, failure retry, and skips remain explicit and fail closed', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   backend.state.annotations.points.push({ id: backend.secondAnnotationId, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } });
+  await page.locator('#refreshButton').click();
   await enterLayoutEdit(page);
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
