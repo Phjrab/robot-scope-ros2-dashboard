@@ -17,10 +17,14 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
 #include "sensor_msgs/msg/imu.hpp"
+#endif
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "sensor_msgs/msg/point_field.hpp"
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
 #include "unitree_go/msg/low_state.hpp"
+#endif
 
 namespace robot_scope_xt16_bridge
 {
@@ -28,11 +32,22 @@ namespace robot_scope_xt16_bridge
 using sensor_msgs::msg::PointField;
 
 constexpr char kRawTopic[] = "/lidar_points";
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
 constexpr char kLowStateTopic[] = "/lowstate";
+#endif
 constexpr char kOutputCloudTopic[] = "/velodyne_points";
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
 constexpr char kOutputImuTopic[] = "/imu/body";
+#endif
 constexpr char kLidarFrame[] = "hesai_lidar";
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
 constexpr char kImuFrame[] = "body_imu";
+#endif
+#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+constexpr char kLoggerName[] = "robot_scope_xt16_cloud_bridge";
+#else
+constexpr char kLoggerName[] = "xt16_fastlio_bridge";
+#endif
 
 constexpr std::size_t kRawMinPoints = 4'000;
 constexpr std::size_t kRawMaxPoints = 100'000;
@@ -320,7 +335,11 @@ class Xt16FastlioBridge : public rclcpp::Node
 {
 public:
   Xt16FastlioBridge()
+#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+  : Node("robot_scope_xt16_cloud_bridge")
+#else
   : Node("xt16_fastlio_bridge")
+#endif
   {
     if (!native_little_endian()) {
       throw ContractError("XT16 bridge requires a little-endian host");
@@ -328,30 +347,46 @@ public:
 
     auto output_qos = rclcpp::QoS(rclcpp::KeepLast(5)).reliable().durability_volatile();
     auto raw_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability_volatile();
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
     auto lowstate_qos = rclcpp::QoS(rclcpp::KeepLast(5)).best_effort().durability_volatile();
+#endif
 
     cloud_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>(
       kOutputCloudTopic, output_qos);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
     imu_publisher_ = create_publisher<sensor_msgs::msg::Imu>(kOutputImuTopic, output_qos);
+#endif
 
     cloud_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
     imu_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+#endif
     rclcpp::SubscriptionOptions cloud_options;
     cloud_options.callback_group = cloud_group_;
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
     rclcpp::SubscriptionOptions imu_options;
     imu_options.callback_group = imu_group_;
+#endif
     cloud_subscription_ = create_subscription<sensor_msgs::msg::PointCloud2>(
       kRawTopic, raw_qos,
       std::bind(&Xt16FastlioBridge::on_cloud, this, std::placeholders::_1), cloud_options);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
     imu_subscription_ = create_subscription<unitree_go::msg::LowState>(
       kLowStateTopic, lowstate_qos,
       std::bind(&Xt16FastlioBridge::on_lowstate, this, std::placeholders::_1), imu_options);
+#endif
     report_timer_ = create_wall_timer(
       std::chrono::seconds(5), std::bind(&Xt16FastlioBridge::report, this));
+#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    RCLCPP_INFO(
+      get_logger(),
+      "fixed C++ XT16 cloud bridge ready: /lidar_points -> /velodyne_points");
+#else
     RCLCPP_INFO(
       get_logger(),
       "fixed C++ XT16 bridge ready: /lidar_points -> /velodyne_points; "
       "/lowstate -> /imu/body");
+#endif
   }
 
 private:
@@ -499,6 +534,7 @@ private:
     }
   }
 
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
   void on_lowstate(const unitree_go::msg::LowState::SharedPtr message)
   {
     const auto & state = message->imu_state;
@@ -536,29 +572,47 @@ private:
     imu_publisher_->publish(std::move(output));
     imu_count_.fetch_add(1, std::memory_order_relaxed);
   }
+#endif
 
   void report()
   {
     const auto clouds = cloud_count_.exchange(0, std::memory_order_relaxed);
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
     const auto imu = imu_count_.exchange(0, std::memory_order_relaxed);
+#endif
     const auto rejected = reject_count_.exchange(0, std::memory_order_relaxed);
+#if defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
+    RCLCPP_INFO(
+      get_logger(), "cloud bridge 5s: clouds=%llu, rejected=%llu",
+      static_cast<unsigned long long>(clouds),
+      static_cast<unsigned long long>(rejected));
+#else
     RCLCPP_INFO(
       get_logger(), "bridge 5s: clouds=%llu, imu=%llu, rejected=%llu",
       static_cast<unsigned long long>(clouds),
       static_cast<unsigned long long>(imu),
       static_cast<unsigned long long>(rejected));
+#endif
   }
 
   ClockOffsetTracker clock_offset_;
   std::atomic<std::uint64_t> cloud_count_{0};
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
   std::atomic<std::uint64_t> imu_count_{0};
+#endif
   std::atomic<std::uint64_t> reject_count_{0};
   rclcpp::CallbackGroup::SharedPtr cloud_group_;
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
   rclcpp::CallbackGroup::SharedPtr imu_group_;
+#endif
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_publisher_;
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher_;
+#endif
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscription_;
+#if !defined(ROBOT_SCOPE_XT16_CLOUD_ONLY)
   rclcpp::Subscription<unitree_go::msg::LowState>::SharedPtr imu_subscription_;
+#endif
   rclcpp::TimerBase::SharedPtr report_timer_;
 };
 
@@ -578,7 +632,8 @@ int main(int, char **)
     rclcpp::shutdown();
     return 0;
   } catch (const std::exception & error) {
-    RCLCPP_FATAL(rclcpp::get_logger("xt16_fastlio_bridge"), "%s", error.what());
+    RCLCPP_FATAL(
+      rclcpp::get_logger(robot_scope_xt16_bridge::kLoggerName), "%s", error.what());
     rclcpp::shutdown();
     return 2;
   }

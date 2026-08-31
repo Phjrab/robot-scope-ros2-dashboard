@@ -26,14 +26,15 @@ is not a freshness pass.
 | Gate 2 fixed XT16 relay implementation | `PASS` after hardware-free contract tests | separate fixed-address relay, disabled service example and strict regression tests; no host installation or live packet claim |
 | Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private offline correction/firetime selected; PTC proxy not implemented and fallback remains blocked |
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
-| Gates 5–6 implementation | `NOT_RUN` | later work gates |
+| Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
+| Gate 6 wireless mapping profile | `NOT_RUN` | later work gate |
 | Gate 7 repository/C++ verification | `NOT_RUN` | runs after implementation |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
 `/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
 and Dataset Capture are idle. The current repository status is not
-`CODE_READY`; that classification requires Gates 5–7.
+`CODE_READY`; that classification requires Gates 6–7.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -96,6 +97,28 @@ receive jitter, fixed-peer sockets and five-sample loss recovery. See
 Gate 4 did not install a key or service, contact either Jetson, start a ROS
 process, create a topic, or operate the robot. HW-3 and `IMU_PASS` therefore
 remain `NOT_RUN`.
+
+### Gate 5 repository evidence
+
+The existing high-rate C++ source now builds two explicit executables. The
+legacy `robot_scope_xt16_bridge_node` retains `/lidar_points` and `/lowstate`
+inputs plus `/velodyne_points` and `/imu/body` outputs. The new
+`robot_scope_xt16_cloud_bridge_node` is built with a fixed compile definition
+that removes the Unitree header, LowState topic/subscription/callback and all
+IMU message/publisher state from that binary.
+
+Both targets use the same C++ conversion implementation, preserving exact
+point fields, four-to-one decimation, reliable volatile QoS, frame, clock
+residual, stale/future and monotonically increasing timestamp checks. The
+wireless runner accepts no arguments and names only the cloud-only binary; it
+does not substitute the Python reference converter or bypass the receive
+buffer and network readiness contracts. See
+`docs/WIRELESS_XT16_CLOUD_BRIDGE.md`.
+
+The existing wired runner and preview remain bound to the legacy executable.
+Gate 5 did not build on a Jetson, install an executable, start a ROS process or
+publish a cloud. The targeted colcon build remains Gate 7 work, and HW-4 plus
+`CLOUD_PASS` remain `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 
@@ -226,4 +249,4 @@ bundle unrelated service rollback.
 
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
-Gates 2, 3 and 4 are repository-only PASS. No deployment or hardware status is claimed.
+Gates 2, 3, 4 and 5 are repository-only PASS. No deployment or hardware status is claimed.

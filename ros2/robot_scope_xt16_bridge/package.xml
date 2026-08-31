@@ -2,7 +2,7 @@
 <package format="3">
   <name>robot_scope_xt16_bridge</name>
   <version>0.1.0</version>
-  <description>Fixed-contract Hesai XT16 and Go2 telemetry bridge for Robot Scope.</description>
+  <description>Fixed-contract legacy and cloud-only Hesai XT16 bridges for Robot Scope.</description>
   <maintainer email="robot-scope@example.invalid">Robot Scope maintainers</maintainer>
   <license>MIT</license>
 

@@ -20,6 +20,26 @@ ament_target_dependencies(
   unitree_go
 )
 
-install(TARGETS robot_scope_xt16_bridge_node DESTINATION lib/${PROJECT_NAME})
+add_executable(robot_scope_xt16_cloud_bridge_node src/xt16_fastlio_bridge.cpp)
+target_compile_definitions(
+  robot_scope_xt16_cloud_bridge_node
+  PRIVATE ROBOT_SCOPE_XT16_CLOUD_ONLY=1
+)
+target_compile_options(
+  robot_scope_xt16_cloud_bridge_node
+  PRIVATE -Wall -Wextra -Wpedantic
+)
+ament_target_dependencies(
+  robot_scope_xt16_cloud_bridge_node
+  rclcpp
+  sensor_msgs
+)
+
+install(
+  TARGETS
+    robot_scope_xt16_bridge_node
+    robot_scope_xt16_cloud_bridge_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
