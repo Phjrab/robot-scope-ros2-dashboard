@@ -27,7 +27,7 @@ is not a freshness pass.
 | Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private offline correction/firetime selected; PTC proxy not implemented and fallback remains blocked |
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
-| Gate 6 wireless mapping profile | `NOT_RUN` | later work gate |
+| Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
 | Gate 7 repository/C++ verification | `NOT_RUN` | runs after implementation |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
@@ -119,6 +119,27 @@ The existing wired runner and preview remain bound to the legacy executable.
 Gate 5 did not build on a Jetson, install an executable, start a ROS process or
 publish a cloud. The targeted colcon build remains Gate 7 work, and HW-4 plus
 `CLOUD_PASS` remain `NOT_RUN`.
+
+### Gate 6 repository evidence
+
+The default `go2-xt16-wired` mode still selects the existing preview and
+FAST-LIO launchers. Explicit `go2-xt16-wireless` selection instead chooses one
+transactional launcher with the fixed relay, IMU receiver, wireless Hesai,
+cloud-only C++ bridge and FAST-LIO order. Host, clock, receive-buffer,
+conflicting-process, restricted lifecycle, advancing relay counters, IMU,
+cloud and FAST-LIO readiness are fail-closed. The application additionally
+rejects Mapping start while a control lease or Dataset Capture is active.
+
+The robot-side forced command and sudoers example admit only the exact two
+sensor service lifecycle. Already-active services are never claimed, and only
+children started by the current transaction are removed in reverse order.
+Exit codes map to the fixed public failure vocabulary documented in
+`docs/WIRELESS_MAPPING_PROFILE.md`; raw child diagnostics cannot become the UI
+error field.
+
+Gate 6 did not install or start either service, change network state, start
+Mapping, publish a cloud, save a map or operate the robot. HW-1 through HW-6
+and all hardware status flags remain `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 

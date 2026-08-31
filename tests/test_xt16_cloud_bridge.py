@@ -125,7 +125,7 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
     def test_cloud_runner_is_fixed_cpp_only_and_does_not_bypass_network_contracts(self):
         subprocess.run(["bash", "-n", str(RUNNER_PATH)], check=True)
         self.assertIn("robot_scope_xt16_cloud_bridge_node", self.runner)
-        self.assertIn("source /opt/ros/humble/setup.bash", self.runner)
+        self.assertIn("setup_wireless_mapping_ros2_humble.sh", self.runner)
         self.assertIn('[[ "$#" -ne 0 ]]', self.runner)
         for forbidden in (
             "run_xt16_bridge_humble.sh",

@@ -187,6 +187,8 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.lock = asyncio.Lock()
         self.manager.coordination_lock = self.lock
         self.navigation_is_active = False
+        self.control_lease_is_active = False
+        self.dataset_is_active = False
         self.lifecycle_calls = 0
 
         def lifecycle_idle():
@@ -197,6 +199,8 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             self.catalog,
             coordination_lock=self.lock,
             navigation_active=lambda: self.navigation_is_active,
+            control_lease_active=lambda: self.control_lease_is_active,
+            dataset_capture_active=lambda: self.dataset_is_active,
             require_lifecycle_idle=lifecycle_idle,
             logger=logging.getLogger(__name__),
         )
@@ -241,6 +245,8 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             self.catalog,
             coordination_lock=self.lock,
             navigation_active=lambda: (_ for _ in ()).throw(RuntimeError("unknown")),
+            control_lease_active=lambda: False,
+            dataset_capture_active=lambda: False,
             require_lifecycle_idle=lambda: None,
         )
         with self.assertRaises(MappingCoordinatorConflict):
@@ -256,6 +262,16 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(MappingCoordinatorConflict, "map save must finish"):
             await self.coordinator.stop()
         self.coordinator._task = None
+
+    async def test_mapping_start_rejects_control_lease_and_dataset_capture(self):
+        self.control_lease_is_active = True
+        with self.assertRaisesRegex(MappingCoordinatorConflict, "control lease"):
+            await self.coordinator.start()
+        self.control_lease_is_active = False
+        self.dataset_is_active = True
+        with self.assertRaisesRegex(MappingCoordinatorConflict, "dataset capture"):
+            await self.coordinator.start()
+        self.assertFalse(any(call[0] == "start_mapping" for call in self.manager.calls))
 
     async def test_running_localization_is_shared_but_transitions_and_work_block(self):
         self.manager.pipeline_state = "running"

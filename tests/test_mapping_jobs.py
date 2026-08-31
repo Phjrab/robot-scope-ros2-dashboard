@@ -387,6 +387,52 @@ class MappingJobManagerTests(unittest.TestCase):
         self.assertEqual(failed["exit_code"], 7)
         self.assertIn("readiness launcher", failed["error"])
 
+    def test_allowlisted_exit_reason_is_projected_without_child_output(self):
+        launcher = self._script("bounded_failure.py", "import sys\nsys.exit(62)\n")
+        manager = MappingJobManager(
+            project_dir=self.root,
+            output_dir=self.maps,
+            start_command=CommandSpec((sys.executable, str(launcher)), cwd=self.root),
+            save_commands={},
+            failure_exit_reasons={62: "XT16 PACKETS STALE"},
+            stop_grace_seconds=0.2,
+        )
+        self.managers.append(manager)
+        manager.start_mapping()
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "failed")
+        )
+        self.assertEqual(
+            manager.snapshot()["pipeline"]["error"],
+            "XT16 PACKETS STALE",
+        )
+
+    def test_fixed_runtime_marker_commits_long_lived_transaction(self):
+        launcher = self._script(
+            "long_lived_transaction.py",
+            "import signal,sys,time\n"
+            "signal.signal(signal.SIGINT, lambda *_: sys.exit(130))\n"
+            "print('[Robot Scope] wireless XT16 mapping readiness verified', flush=True)\n"
+            "time.sleep(120)\n",
+        )
+        manager = MappingJobManager(
+            project_dir=self.root,
+            output_dir=self.maps,
+            start_command=CommandSpec((sys.executable, str(launcher)), cwd=self.root),
+            save_commands={},
+            readiness_runtime_marker=(
+                "[Robot Scope] wireless XT16 mapping readiness verified"
+            ),
+            stop_grace_seconds=0.2,
+        )
+        self.managers.append(manager)
+        manager.start_mapping()
+        self.assertIsNotNone(
+            wait_until(lambda: manager.snapshot()["pipeline"]["state"] == "running")
+        )
+        stopped = manager.stop_mapping()
+        self.assertEqual(stopped["pipeline"]["state"], "stopped")
+
     def test_stop_during_readiness_start_cannot_transition_back_to_running(self):
         pid_file = self.root / "starting-child.pid"
         launcher = self._script(

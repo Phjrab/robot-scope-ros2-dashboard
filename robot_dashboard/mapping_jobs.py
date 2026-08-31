@@ -33,6 +33,21 @@ MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 KIND_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 SUFFIX_RE = re.compile(r"^\.[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
 OUTPUT_PREFIX_TOKEN = "{output_prefix}"
+WIRED_MAPPING_PROFILE = "go2-xt16-wired"
+WIRELESS_MAPPING_PROFILE = "go2-xt16-wireless"
+WIRELESS_MAPPING_EXIT_REASONS = MappingProxyType(
+    {
+        61: "WIRELESS XT16 RELAY OFFLINE",
+        62: "XT16 PACKETS STALE",
+        63: "HESAI DRIVER WAITING",
+        64: "WIRELESS IMU UNAUTHENTICATED",
+        65: "IMU STALE",
+        66: "CLOCK NOT SYNCHRONIZED",
+        67: "CLOUD BRIDGE STALE",
+        68: "FAST-LIO NOT READY",
+        69: "WIRELESS MAPPING PREFLIGHT BLOCKED",
+    }
+)
 
 
 class MappingJobError(RuntimeError):
@@ -159,6 +174,8 @@ class MappingJobManager:
         log_capacity: int = 300,
         stop_grace_seconds: float = 4.0,
         require_pipeline_for_save: bool = True,
+        failure_exit_reasons: Mapping[int, str] | None = None,
+        readiness_runtime_marker: str | None = None,
     ) -> None:
         self.project_dir = project_dir.expanduser().resolve(strict=True)
         if not self.project_dir.is_dir():
@@ -188,6 +205,18 @@ class MappingJobManager:
 
         self.stop_grace_seconds = float(stop_grace_seconds)
         self.require_pipeline_for_save = bool(require_pipeline_for_save)
+        self.failure_exit_reasons = MappingProxyType(
+            {
+                int(code): public_diagnostic(reason)
+                for code, reason in (failure_exit_reasons or {}).items()
+                if 1 <= int(code) <= 255 and public_diagnostic(reason)
+            }
+        )
+        if readiness_runtime_marker is not None and readiness_runtime_marker != (
+            "[Robot Scope] wireless XT16 mapping readiness verified"
+        ):
+            raise ValueError("unsupported mapping readiness marker")
+        self.readiness_runtime_marker = readiness_runtime_marker
         self._lock = threading.RLock()
         self._logs: deque[dict[str, Any]] = deque(maxlen=int(log_capacity))
         self._seq = 0
@@ -244,23 +273,39 @@ class MappingJobManager:
         output_dir: Path,
         save_commands: Mapping[str, SaveCommandSpec],
         enable_preview: bool = False,
+        mapping_profile: str = WIRED_MAPPING_PROFILE,
         **kwargs: Any,
     ) -> "MappingJobManager":
         """Build a manager using the repository's allowlisted Humble launcher."""
 
         project = project_dir.expanduser().resolve(strict=True)
-        launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
-        preview_launcher = project / "scripts" / "start_xt16_preview_humble.sh"
+        if mapping_profile == WIRED_MAPPING_PROFILE:
+            launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
+            preview_launcher = project / "scripts" / "start_xt16_preview_humble.sh"
+            failure_exit_reasons: Mapping[int, str] = {}
+            readiness_runtime_marker = None
+        elif mapping_profile == WIRELESS_MAPPING_PROFILE:
+            launcher = project / "scripts" / "start_wireless_mapping_humble.sh"
+            preview_launcher = None
+            enable_preview = False
+            failure_exit_reasons = WIRELESS_MAPPING_EXIT_REASONS
+            readiness_runtime_marker = (
+                "[Robot Scope] wireless XT16 mapping readiness verified"
+            )
+        else:
+            raise ValueError("unsupported mapping profile")
         return cls(
             project_dir=project,
             output_dir=output_dir,
             start_command=CommandSpec((str(launcher),), cwd=project, timeout_seconds=30),
             preview_command=(
                 CommandSpec((str(preview_launcher),), cwd=project, timeout_seconds=30)
-                if enable_preview
+                if enable_preview and preview_launcher is not None
                 else None
             ),
             save_commands=save_commands,
+            failure_exit_reasons=failure_exit_reasons,
+            readiness_runtime_marker=readiness_runtime_marker,
             **kwargs,
         )
 
@@ -975,7 +1020,10 @@ class MappingJobManager:
                     state="failed",
                     stopped_at=_utc_now(),
                     exit_code=exit_code,
-                    error=f"mapping readiness launcher exited with status {exit_code}",
+                    error=self.failure_exit_reasons.get(
+                        exit_code,
+                        f"mapping readiness launcher exited with status {exit_code}",
+                    ),
                 )
                 self._append_log_locked("pipeline", self._pipeline["error"])
             return
@@ -1065,11 +1113,22 @@ class MappingJobManager:
             self._terminate_group(pipeline_process, pipeline_pgid)
 
     def _append_log(self, source: str, message: str) -> None:
+        runtime_ready = bool(
+            source == "pipeline"
+            and self.readiness_runtime_marker is not None
+            and str(message).strip() == self.readiness_runtime_marker
+        )
         clean = public_diagnostic(message, runtime=True)
         if not clean:
             return
         with self._lock:
             self._append_log_locked(source, clean)
+            if runtime_ready and self._pipeline["state"] == "starting":
+                self._pipeline.update(state="running", exit_code=None, error=None)
+                self._append_log_locked(
+                    "pipeline",
+                    "mapping pipeline readiness verified",
+                )
 
     def _append_log_locked(self, source: str, message: str) -> None:
         clean = "".join(char for char in str(message).strip() if char == "\t" or ord(char) >= 32)

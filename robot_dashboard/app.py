@@ -85,6 +85,8 @@ from .mapping_jobs import (
     PipelineNotRunning,
     SaveCommandSpec,
     SaveResultError,
+    WIRED_MAPPING_PROFILE,
+    WIRELESS_MAPPING_PROFILE,
 )
 from .model_registry import ModelRegistry
 from .navigation_jobs import (
@@ -1194,6 +1196,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8088)
     parser.add_argument("--robot-ip", default="")
     parser.add_argument("--profile", default="")
+    parser.add_argument(
+        "--mapping-profile",
+        choices=(WIRED_MAPPING_PROFILE, WIRELESS_MAPPING_PROFILE),
+        default=WIRED_MAPPING_PROFILE,
+    )
     parser.add_argument("--cloud-max-points", type=int, default=18000)
     parser.add_argument(
         "--source-selection-state",
@@ -1266,6 +1273,7 @@ def main() -> None:
     mapping_manager = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
         output_dir=mapping_output_dir,
+        mapping_profile=args.mapping_profile,
         enable_preview=bool(
             isinstance(RUNTIME.agent.profile.get("xt16_preview"), dict)
             and RUNTIME.agent.profile["xt16_preview"].get("enabled") is True
@@ -1352,11 +1360,18 @@ def main() -> None:
         # Mapping mutations fail closed until the navigation owner is wired.
         return True if navigation is None else navigation.is_active()
 
+    def control_lease_is_active() -> bool:
+        control = RUNTIME.agent.control_snapshot()
+        lease = control.get("lease", {})
+        return True if not isinstance(lease, dict) else bool(lease.get("active"))
+
     RUNTIME.mapping = MappingCoordinator(
         mapping_manager,
         catalog,
         coordination_lock=RUNTIME.pipeline_coordination_lock,
         navigation_active=navigation_is_active,
+        control_lease_active=control_lease_is_active,
+        dataset_capture_active=RUNTIME.dataset_capture.is_active,
         require_lifecycle_idle=require_lifecycle_idle_application,
         logger=LOGGER,
     )

@@ -15,6 +15,7 @@ SOURCE_SELECTION_STATE="${ROBOT_SCOPE_SOURCE_SELECTION_STATE:-$STATE_DIR/source-
 NAVIGATION_RUNTIME_DIR="${ROBOT_SCOPE_NAVIGATION_RUNTIME_DIR:-$STATE_DIR/navigation}"
 MODEL_REGISTRY_DIR="${ROBOT_SCOPE_MODEL_REGISTRY_DIR:-$RUNTIME_DIR/model-registry}"
 COMPETITION_STATE_DIR="${ROBOT_SCOPE_COMPETITION_STATE_DIR:-$RUNTIME_DIR/competition}"
+MAPPING_PROFILE="${ROBOT_SCOPE_MAPPING_PROFILE:-go2-xt16-wired}"
 ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"
 if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
   "$MAPS_DIR" != /* || "$RUNTIME_DIR" != /* || "$RUNTIME_DIR" == "/" ||
@@ -27,6 +28,13 @@ if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
   echo "[Robot Scope] workspace, maps, dataset, state and log paths must be absolute and safe" >&2
   exit 2
 fi
+case "$MAPPING_PROFILE" in
+  go2-xt16-wired|go2-xt16-wireless) ;;
+  *)
+    echo "[Robot Scope] unsupported mapping profile" >&2
+    exit 2
+    ;;
+esac
 mkdir -p -- "$ROS_LOG_DIR"
 export ROS_LOG_DIR
 
@@ -83,6 +91,7 @@ DASHBOARD_ARGS=(
   --navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR" \
   --model-registry-dir "$MODEL_REGISTRY_DIR" \
   --competition-state-dir "$COMPETITION_STATE_DIR" \
+  --mapping-profile "$MAPPING_PROFILE" \
   --profile "$PROJECT_DIR/config/go2.json"
 )
 PERCEPTION_SOURCE_IP="${ROBOT_SCOPE_PERCEPTION_SOURCE_IP:-}"

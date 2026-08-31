@@ -484,6 +484,14 @@ class StageState:
         self.stage = stage
         if stage == "raw":
             self.gates = {"/lidar_points": Xt16ReadinessGate()}
+        elif stage == "imu":
+            self.gates = {
+                "/imu/body": FreshSequenceGate(
+                    required_frames=5,
+                    max_gap_seconds=0.20,
+                    minimum_rate_hz=10.0,
+                ),
+            }
         elif stage == "bridge":
             self.gates = {
                 "/velodyne_points": FreshSequenceGate(
@@ -533,7 +541,11 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Wait for a fixed XT16 mapping-pipeline readiness stage."
     )
-    parser.add_argument("--stage", choices=("raw", "bridge", "fastlio"), default="raw")
+    parser.add_argument(
+        "--stage",
+        choices=("raw", "imu", "bridge", "fastlio"),
+        default="raw",
+    )
     parser.add_argument("--timeout", type=float, default=15.0)
     return parser
 
@@ -586,6 +598,10 @@ def wait_for_ros_stage(
             if options.stage == "raw":
                 self._readiness_subscriptions.append(
                     self.create_subscription(PointCloud2, "/lidar_points", self.on_raw, qos)
+                )
+            elif options.stage == "imu":
+                self._readiness_subscriptions.append(
+                    self.create_subscription(Imu, "/imu/body", self.on_imu, qos)
                 )
             elif options.stage == "bridge":
                 self._readiness_subscriptions.extend(

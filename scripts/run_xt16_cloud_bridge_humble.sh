@@ -14,5 +14,5 @@ CLOUD_BRIDGE="$PROJECT_DIR/workspaces/ws/xt16_bridge_ws/install/lib/robot_scope_
   exit 1
 }
 
-source /opt/ros/humble/setup.bash
+source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
 exec "$CLOUD_BRIDGE"

@@ -309,6 +309,9 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
             )
 
     def test_bridge_and_fastlio_stages_require_every_output_topic(self):
+        imu = readiness.StageState("imu")
+        self.assertEqual(set(imu.gates), {"/imu/body"})
+        self.assertFalse(imu.ready)
         bridge = readiness.StageState("bridge")
         self.assertEqual(
             set(bridge.gates), {"/velodyne_points", "/imu/body"}

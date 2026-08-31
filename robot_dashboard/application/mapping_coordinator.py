@@ -61,17 +61,25 @@ class MappingCoordinator:
         *,
         coordination_lock: asyncio.Lock,
         navigation_active: Callable[[], bool],
+        control_lease_active: Callable[[], bool],
+        dataset_capture_active: Callable[[], bool],
         require_lifecycle_idle: Callable[[], None],
         logger: logging.Logger | None = None,
     ) -> None:
         if not callable(navigation_active):
             raise TypeError("navigation_active must be callable")
+        if not callable(control_lease_active):
+            raise TypeError("control_lease_active must be callable")
+        if not callable(dataset_capture_active):
+            raise TypeError("dataset_capture_active must be callable")
         if not callable(require_lifecycle_idle):
             raise TypeError("require_lifecycle_idle must be callable")
         self._manager = manager
         self._catalog = catalog
         self._coordination_lock = coordination_lock
         self._navigation_active = navigation_active
+        self._control_lease_active = control_lease_active
+        self._dataset_capture_active = dataset_capture_active
         self._require_lifecycle_idle = require_lifecycle_idle
         self._logger = logger or LOGGER
         self._task: asyncio.Task[None] | None = None
@@ -167,6 +175,14 @@ class MappingCoordinator:
             self._require_lifecycle_idle()
             self._require_navigation_idle(
                 "navigation must stop before mapping can start"
+            )
+            self._require_inactive(
+                self._control_lease_active,
+                "control lease must be released before mapping can start",
+            )
+            self._require_inactive(
+                self._dataset_capture_active,
+                "dataset capture must stop before mapping can start",
             )
             self._require_task_idle("a map save is in progress")
             snapshot = await asyncio.to_thread(self._manager.start_mapping)
@@ -403,6 +419,15 @@ class MappingCoordinator:
 
     def _require_task_idle(self, detail: str) -> None:
         if self.task_active():
+            raise MappingCoordinatorConflict(detail)
+
+    @staticmethod
+    def _require_inactive(provider: Callable[[], bool], detail: str) -> None:
+        try:
+            active = bool(provider())
+        except Exception as exc:
+            raise MappingCoordinatorConflict(detail) from exc
+        if active:
             raise MappingCoordinatorConflict(detail)
 
 
