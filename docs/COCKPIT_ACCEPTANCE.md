@@ -168,18 +168,22 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 | 실제 시나리오 | 결과 |
 | --- | --- |
 | dashboard와 dedicated NIC/LowState freshness | `PASS` |
-| 현재 commit의 Control Bridge lifecycle | `BLOCKED` — robot battery exhausted; software 18/18과 inactive/zero preflight만 PASS |
+| 현재 commit의 Control Bridge lifecycle | `PASS` — supervised stop revoked readiness with zero command; manual start recovered authenticated LowState without ARM |
 | Go2 camera LIVE와 exact viewer acquire/release | `PASS` |
 | RealSense camera LIVE | `PASS` |
 | XT16 rate와 adaptive LOD 단기 검증 | `PASS` |
 | XT16 60분 rendering/owner/heap soak | `NOT_RUN` |
 | 실제 Xbox Controller 연결/해제 | `BLOCKED` |
-| deadman/browser close/software STOP/bridge loss 정지 | `NOT_RUN` |
+| deadman short-stop | `PASS` — 35% server limit, operator-observed motion and complete stop, final DISARMED/zero |
+| browser disconnect watchdog | `PASS` — socket abort during motion failed closed in 63.6 ms; physical stop confirmed |
+| software STOP/abrupt bridge-process-loss 정지 | `NOT_RUN` |
 | exact revision 저장 지도 read-only 표시 | `PASS` |
 | 실제 localization과 initial pose | `NOT_RUN` |
 | Nav goal, child crash, sensor loss와 Manual Takeover | `NOT_RUN` |
 | 실제 annotation Mission pause/skip/retry/abort | `NOT_RUN` |
 | Dataset 단독/동시 finalize, quota/reserve, 중단 복구와 보존 | `PASS` |
+| Dataset active 중 dashboard shutdown rejection | `PASS` — HTTP 409 `dataset_capture_active`, then 17 samples finalized |
+| dashboard/receiver lifecycle and Competition Lock rejection | `PASS` |
 
 상세 수치, 최초 RealSense 실패와 2026-08-30 해결 결과는
 [하드웨어 검증 기록](HARDWARE_VALIDATION_2026-08-28.md)의 CWP follow-up을 따른다.
@@ -207,5 +211,6 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 4. 실제 대회 지도에서 localization, initial pose, Nav goal, Mission과 Manual Takeover를
    낮은 속도로 검증한다.
 5. Jetson CPU/memory, disk reserve, network throughput과 browser power-saving 설정을 확인한다.
+6. browser teleop의 speed scale 이중 적용과 release acknowledgement race를 server clamp/watchdog을 유지한 채 수정·재검증한다.
 
 위 P0가 남아 있는 동안 software-only 결과만으로 대회 준비 완료를 선언하지 않는다.

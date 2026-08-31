@@ -712,6 +712,101 @@ axes zero, both dashboard camera viewers zero, and both camera services still
 manually active but disabled at boot. No ARM, motion, action, Dataset,
 Navigation, or Mapping operation occurred.
 
+## Remaining supervised scenarios and dashboard connectivity — 2026-08-31
+
+The operator again confirmed the physical remote/E-stop, clear area, reviewed
+low-speed limits, supervised execution approval and an on-site safety operator.
+The robot remained stationary for every lifecycle and fault-prerequisite row.
+Each formal recorder invocation selected exactly one fixed supervised scenario.
+Competition Lock was enabled only while each report was collected and was
+explicitly released afterwards.
+
+The dashboard header continued to show the robot offline even while the signed
+control path was healthy. This is a projection mismatch in the intentional
+split wireless topology, not a Control Bridge disconnect. The external Jetson
+has no route to the Go2 body at `192.168.123.161`; `/api/v1/state` therefore
+reported `robot_target_connected=true`, `robot_online=false`, and ROS transport
+`offline_viewer`. The robot-side Jetson retained the dedicated body interface
+and the dashboard control projection simultaneously reported authenticated and
+connected Bridge readiness, one expected LowState publisher, exact Sport graph
+cardinality and 0--2 ms LowState age. Adding an external route, NAT or DDS
+router was deliberately not attempted because it would change the reviewed
+network and control boundary. A future UI change should distinguish direct
+ROS/ICMP observability from signed remote-control readiness.
+
+The following rows passed:
+
+| Scenario | Report | Result and bounded evidence |
+| --- | --- | --- |
+| `supervised.manual_short_stop` | `acceptance-20260831T021545.648708Z` | `PASS`; after an allowlisted Stand up action, 40 public dashboard control frames held the existing 35% server limit for 2 seconds. The operator observed forward motion and complete stop; final lease and command were zero. |
+| `supervised.browser_disconnect_watchdog` | `acceptance-20260831T021754.601247Z` | `PASS`; the control socket was aborted after 16 frames and the dashboard reported lease release, deadman false and exact zero in 63.6 ms. The operator observed motion and complete stop, with no automatic ARM/AUTO return. |
+| `supervised.competition_lock_mutation_rejection` | `acceptance-20260831T015229.515673Z` | `PASS`; a harmless PointCloud setting mutation returned HTTP 423 while cleanup remained available. |
+| `supervised.realsense_relay_restart` | `acceptance-20260831T015440.454194Z` | `PASS`; both cameras returned LIVE, one viewer per source, one producer process/thread and zero decode failures. |
+| `supervised.dataset_shutdown_blocker` | `acceptance-20260831T015538.566325Z` | `PASS`; 17 RealSense samples (1,129,860 bytes) finalized and dashboard stop was rejected with HTTP 409 and `dataset_capture_active` while capture was active. |
+| `supervised.control_bridge_stop` | `acceptance-20260831T015635.416852Z` | `PASS`; stop revoked signed readiness with no lease and zero command, then manual start recovered authenticated readiness without ARM. |
+| `supervised.dashboard_process_stop` | `acceptance-20260831T015809.586916Z` | `PASS`; dashboard reached inactive/dead, robot-side Bridge stayed active, and manual dashboard start recovered DISARMED with boot policy still disabled. |
+| `supervised.dashboard_receiver_restart` | `acceptance-20260831T020026.055773Z` | `PASS`; both source stream IDs were replaced once, viewers returned to exactly one per source, and no ARM/AUTO state returned. The relay counter advances once for invalidation and once for replacement, so one normal producer stop/start is a `+2` counter change, not two live producers. |
+
+Every PASS report above had `FAIL=0` and the accepted baseline summary
+`PASS=31 BLOCKED=19 NOT_RUN=23`. Runtime Dataset files, temporary supervised
+clients and immutable acceptance reports remain private deployment artifacts
+and were not added to Git.
+
+The remaining fault rows were recorded as `BLOCKED`, not simulated or promoted
+from software tests:
+
+| Scenario | Report | Blocking prerequisite |
+| --- | --- | --- |
+| `supervised.stale_lowstate` | `acceptance-20260831T020311.767414Z` | No approved isolated LowState interruption fixture. |
+| `supervised.foreign_sport_publisher` | `acceptance-20260831T020314.503235Z` | No fixed lab foreign-publisher fixture. |
+| `supervised.navigation_start_stop` | `acceptance-20260831T020318.537818Z` | No ready map, scan, odometry, TF, localization, planner or controller. |
+| `supervised.mapping_warmup_cancel` | `acceptance-20260831T020321.492619Z` | The external dashboard is an offline ROS viewer and has no active mapping pipeline. |
+| `supervised.nav2_child_crash` | `acceptance-20260831T020324.464303Z` | Nav2 is inactive and its required inputs are absent. |
+| `supervised.xt16_interruption` | `acceptance-20260831T020328.475841Z` | Dashboard PointCloud contained zero points and no trusted XT16 freshness source. |
+| `supervised.low_disk_rejection` | `acceptance-20260831T020331.507003Z` | No bounded approved test volume; the live dataset filesystem had about 51.7 GiB free. |
+| `supervised.robot_wifi_disconnect` | `acceptance-20260831T020335.504804Z` | The deployment was fully wireless with no reviewed out-of-band recovery path. |
+| `supervised.realsense_source_stall` | `acceptance-20260831T020338.555785Z` | No fixed source-stall fixture or separately supervised cable-fault procedure. |
+| `supervised.perception_process_stop` | `acceptance-20260831T020342.489411Z` | Shadow perception receiver returned HTTP 503 because it was not configured. |
+| `supervised.perception_result_freeze` | `acceptance-20260831T020345.510841Z` | No configured perception receiver or fixed freeze fixture. |
+| `supervised.model_hash_mismatch` | `acceptance-20260831T020348.514358Z` | Model registry was empty and no reviewed invalid fixture was installed. |
+| `supervised.model_activation_rollback` | `acceptance-20260831T020352.519592Z` | No validated active/previous model pair existed. |
+| `supervised.decimated_pointcloud_load` | `acceptance-20260831T020355.475459Z` | No live trusted PointCloud source was available to the external dashboard. |
+| `supervised.raw_pointcloud_overload_abort` | `acceptance-20260831T020358.552137Z` | Separate overload approval and a live trusted PointCloud source were absent; an overload can never be PASS. |
+
+All 15 BLOCKED reports had `FAIL=0` and summary
+`PASS=30 BLOCKED=20 NOT_RUN=23`.
+
+The first manual short-stop attempt produced no visible motion because the robot
+was sitting. The allowlisted Stand up action consumed its lease, completed its
+fixed safety guard and returned DISARMED before the retry. The in-app automation
+surface could issue press/release but could not sustain a key-down interval.
+Inspection also found that the current browser path scales the normalized input
+to `0.105` at 35% and sends both that scaled value and `speed_scale=0.35`; the
+server then correctly applies its own limit and scale again. This makes the UI
+path's effective Bridge command much smaller than the displayed `0.105 m/s`.
+No safety-sensitive control code was changed during field acceptance. The
+accepted bounded retry used the same public arm/bind/twist/disarm API with
+normalized `linear_x=1.0` and the unchanged server scale of 0.35, never the
+private signed Bridge protocol.
+
+During the manual retry the bounded client sent zero and release, did not receive
+the expected release acknowledgement before the socket ended, and executed the
+same HTTP disarm fallback used by the UI. The physical robot stopped and the
+server then showed no lease, deadman false and exact zero. This acknowledgement
+race and the browser double-scaling issue remain follow-up items even though the
+stop criteria passed. The separate disconnect scenario intentionally sent no
+zero or release before aborting its socket; server-side fail-closed behavior was
+therefore observed independently.
+
+Final runtime state after all executed rows was MANUAL, Competition Lock off,
+motion authority NONE, no control lease, deadman false, all command axes zero,
+signed Bridge READY/authenticated/connected and LowState age 0--1 ms. The
+dashboard, robot-side Bridge and both camera relay services were active after
+manual starts; their boot policy remained disabled. Dashboard camera demand was
+then released, leaving zero viewers and the RealSense producer idle. No
+route/NAT/DDS configuration, Nav2, mapping, model activation, raw cloud load or
+destructive disk manipulation was applied.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
@@ -729,6 +824,11 @@ Navigation, or Mapping operation occurred.
   as the motion-safety source.
 - External-Orin Nav2 remains deferred because its ROS/DDS sensor and command
   dependencies are not carried by this narrow control transport.
+- Correct the browser/server double application of speed scale with focused
+  control-contract tests and a separately supervised low-speed deployment; do
+  not weaken the server clamp or watchdog. Also determine why one explicit
+  release acknowledgement raced with socket completion despite successful HTTP
+  fallback and final zero state.
 
 ## Rollback notes
 
