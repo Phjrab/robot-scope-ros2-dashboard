@@ -24,14 +24,15 @@ is not a freshness pass.
 | Gate 0 network boundary | `PASS` with recorded limitation | robot-side `FORWARD DROP`, Docker-only forwarding/NAT, no `wlan0↔eth0` rule; external has no sensor route/interface, but privileged external netfilter dump remains unverified |
 | Gate 1 architecture and acceptance documents | `PASS` after contract tests | this document and the wireless transport ADR; no runtime/deployment mutation |
 | Gate 2 fixed XT16 relay implementation | `PASS` after hardware-free contract tests | separate fixed-address relay, disabled service example and strict regression tests; no host installation or live packet claim |
-| Gates 3–6 implementation | `NOT_RUN` | later work gates |
+| Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private offline correction/firetime selected; PTC proxy not implemented and fallback remains blocked |
+| Gates 4–6 implementation | `NOT_RUN` | later work gates |
 | Gate 7 repository/C++ verification | `NOT_RUN` | runs after implementation |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
 `/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
 and Dataset Capture are idle. The current repository status is not
-`CODE_READY`; that classification requires Gates 2–7.
+`CODE_READY`; that classification requires Gates 4–7.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -54,6 +55,24 @@ restart limit and is explicitly left disabled. Gate 2 created no private
 configuration and performed no installation, service start, mapping, Nav2,
 Dataset Capture or robot operation. Live receipt and loss bounds therefore
 remain `NOT_RUN` until the separately approved HW-1 stage.
+
+### Gate 3 repository evidence
+
+The pinned Hesai ROS revision
+`e7e112f0809f0eed5e3c81c55a1a0376474db234` and SDK revision
+`9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168` support binding the exact local
+address and filtering point packets by the combined peer IPv4 address and
+source port. The separate wireless profile fixes
+`192.168.50.30:46236 -> 192.168.50.10:2368`, publishes only the bounded
+`/lidar_points` output and leaves the wired profile unchanged.
+
+The pinned SDK also has an offline path that loads correction and firetime
+files when PTC is disabled. Gate 3 therefore selects fixed private
+sensor-associated artifacts and does not implement a PTC proxy. The actual
+files, serial association and private SHA-256 manifest are still unavailable,
+so driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains `BLOCKED`
+unless the offline path fails in an approved hardware test and receives a new
+design approval.
 
 ## Safety prerequisites for every hardware stage
 
@@ -184,4 +203,4 @@ bundle unrelated service rollback.
 
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
-Gate 2 is a repository-only PASS. No deployment or hardware status is claimed.
+Gates 2 and 3 are repository-only PASS. No deployment or hardware status is claimed.
