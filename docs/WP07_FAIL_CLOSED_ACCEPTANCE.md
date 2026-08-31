@@ -10,9 +10,11 @@ disconnects Wi-Fi, stalls a source, restarts or stops a process, changes a model
 or PointCloud setting, acquires a camera viewer, publishes ROS data, or sends a
 robot command.
 
-The robot was deliberately powered off for this repository work. Hardware-free
-tests verify classification and recorder safety only. All live and supervised
-field observations remain `BLOCKED` or `NOT_RUN`; none are inferred as `PASS`.
+The initial repository implementation was completed while the robot was
+deliberately powered off, so its hardware-free tests proved classification and
+recorder safety only. A later robot-connected follow-up is recorded below;
+supervised rows still remain `NOT_RUN` unless all five field confirmations are
+explicitly provided to the recorder.
 
 ## Read-only observation contract
 
@@ -101,13 +103,25 @@ Competition Lock are not physical safety devices.
 
 ## Current hardware status
 
+On 2026-08-31 the external Orin ran commit `758e274` in `go2-control` mode while
+the robot was powered and stationary. Competition Lock was enabled only for the
+read-only collection, then explicitly released. The private report summary was
+`PASS=27 FAIL=0 BLOCKED=22 NOT_RUN=24`. The fresh authenticated signed Bridge,
+LowState freshness/cardinality, exact split-topology link contract, dashboard
+identity, Dataset reserve and non-physical zero-authority Lock were observed;
+no ARM, lease, deadman or non-zero command was created.
+
 The following remain intentionally `BLOCKED` or `NOT_RUN` for WP07:
 
 - robot-side Wi-Fi RSSI/link and full RTT/loss/throughput interval;
 - live RealSense source/transport and restart/stall behavior;
 - live shadow perception, model match, task ages and complete compute metrics;
-- live LowState, signed bridge, graph cardinality and PointCloud coexistence;
-- every supervised fault scenario, including model rollback and receiver restart;
+- robot-side PointCloud mode and coexistence with live optional workloads;
+- direct external ROS, XT16/FAST-LIO and Navigation evidence, which is outside
+  the accepted split `go2-control` link and remains required in Nav/XT16 modes;
+- every formal supervised scenario, because the five recorder confirmations
+  were not supplied; separate dashboard-restart and Lock-rejection observations
+  were deliberately not promoted to supervised `PASS` records;
 - physical no-auto-resume and bounded-stop observations.
 
 ## Rollback

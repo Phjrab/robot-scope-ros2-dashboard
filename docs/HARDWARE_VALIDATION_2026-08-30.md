@@ -554,6 +554,50 @@ status, fail-closed display and Competition Lock behavior. Live camera overlay
 and model rollback display hardware evidence remain pending approved model
 artifacts, while their software contracts are covered by the passing suites.
 
+## WP07 read-only acceptance follow-up — 2026-08-31
+
+The first robot-connected `go2-control` recorder run at commit `e357bdb`
+reported `PASS=25 FAIL=2 BLOCKED=22 NOT_RUN=24`. The fixed failure rows exposed
+two distinct causes: the observation was intentionally unlocked, and the
+recorder incorrectly required the external Orin's direct ROS interface even in
+the accepted signed-Bridge control topology. No failure was reclassified by
+weakening a timeout or assertion.
+
+Commit `758e274` makes the link contract mode-specific. `go2-control` now
+requires the agent, pinned target, authenticated and connected Bridge, Bridge
+status age at most 0.75 s and LowState age at most 750 ms. `go2-nav` and XT16
+modes retain their direct ROS-interface requirement, and the separate exact
+publisher-cardinality check remains unchanged. Regression tests prove both the
+split-control PASS path and the unchanged direct-ROS failure path.
+
+The patched recorder was deployed without a dashboard restart. During the
+second read-only observation Competition Lock was explicitly enabled and the
+robot remained stationary, DISARMED, deadman released, without a lease and with
+all command axes zero. The resulting private report was
+`acceptance-20260831T010027.420870Z` with `PASS=27 FAIL=0 BLOCKED=22 NOT_RUN=24`.
+Lock was then explicitly released; the final Bridge remained authenticated,
+connected and ready with LowState age 0 ms and exact publisher cardinality.
+
+The 22 BLOCKED rows are retained for unavailable direct ROS/Nav/XT16 evidence,
+inactive local-only Bridge systemd ownership on the external host, unavailable
+RealSense/network quality, missing perception/model/compute evidence and
+robot-side PointCloud mode. All 24 supervised rows remain NOT_RUN because the
+recorder's five field confirmations were not supplied. The separately observed
+dashboard receiver recovery and Competition Lock rejection were not promoted
+to formal supervised PASS records.
+
+WP07 recorder verification results:
+
+- targeted acceptance and WP07 contract tests: 25 passed, 0 failed;
+- complete Python suite: 798 passed, 0 failed;
+- complete JavaScript suite: 253 passed, 0 failed;
+- frontend syntax check: 51 modules passed;
+- mypy configured targets: PASS;
+- Ruff configured repository targets: PASS;
+- tracked-source secret scan: PASS;
+- browser E2E: 30 passed, 0 failed;
+- `git diff --check`: PASS.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
