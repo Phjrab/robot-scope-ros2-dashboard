@@ -10,11 +10,12 @@ disconnects Wi-Fi, stalls a source, restarts or stops a process, changes a model
 or PointCloud setting, acquires a camera viewer, publishes ROS data, or sends a
 robot command.
 
-The initial repository implementation was completed while the robot was
-deliberately powered off, so its hardware-free tests proved classification and
-recorder safety only. A later robot-connected follow-up is recorded below;
-supervised rows still remain `NOT_RUN` unless all five field confirmations are
-explicitly provided to the recorder.
+The robot was deliberately powered off during the initial repository
+implementation, so its hardware-free tests proved classification and recorder
+safety only; none are inferred as `PASS` for that hardware-free run. A later
+robot-connected follow-up is recorded below; supervised rows still remain
+`NOT_RUN` unless all five field confirmations are explicitly provided to the
+recorder.
 
 ## Read-only observation contract
 
