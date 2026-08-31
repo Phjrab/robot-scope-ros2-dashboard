@@ -127,7 +127,8 @@ policy is:
 2. on external `eno1`, allow UDP only from
    `192.168.50.30:46020` to `192.168.50.10:46020`;
 3. reject or drop every other source tuple targeting external UDP 2368 or
-   46020, without changing established control/camera management traffic;
+   46020, then explicitly return from the interface-scoped owned chain without
+   changing established control/camera management traffic;
 4. add no `FORWARD`, NAT, MASQUERADE, bridge, route, multicast or DDS rule on
    either host.
 

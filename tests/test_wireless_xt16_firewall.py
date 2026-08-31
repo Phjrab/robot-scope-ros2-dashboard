@@ -82,6 +82,9 @@ class WirelessXt16FirewallTests(unittest.TestCase):
             self.assertIn(value, flattened)
         for forbidden in ("FORWARD", "MASQUERADE", "nat", "0.0.0.0"):
             self.assertNotIn(forbidden, flattened)
+        self.assertIn((firewall.CHAIN, "-j", "RETURN"), firewall._RULES)
+        self.assertTrue(all("-i" not in rule for rule in firewall._RULES))
+        self.assertIn("-i", firewall._JUMP)
 
     def test_unknown_existing_chain_fails_without_mutation(self):
         fake = FakeIptables()

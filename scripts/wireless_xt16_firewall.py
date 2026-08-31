@@ -19,7 +19,6 @@ _JUMP = ("INPUT", "-i", INTERFACE, "-j", CHAIN)
 _RULES = (
     (
         CHAIN,
-        "-i", INTERFACE,
         "-p", "udp",
         "-s", "192.168.50.30/32",
         "-d", "192.168.50.10/32",
@@ -29,7 +28,6 @@ _RULES = (
     ),
     (
         CHAIN,
-        "-i", INTERFACE,
         "-p", "udp",
         "-s", "192.168.50.30/32",
         "-d", "192.168.50.10/32",
@@ -37,8 +35,9 @@ _RULES = (
         "--dport", "46020",
         "-j", "ACCEPT",
     ),
-    (CHAIN, "-i", INTERFACE, "-p", "udp", "-d", "192.168.50.10/32", "--dport", "2368", "-j", "DROP"),
-    (CHAIN, "-i", INTERFACE, "-p", "udp", "-d", "192.168.50.10/32", "--dport", "46020", "-j", "DROP"),
+    (CHAIN, "-p", "udp", "-d", "192.168.50.10/32", "--dport", "2368", "-j", "DROP"),
+    (CHAIN, "-p", "udp", "-d", "192.168.50.10/32", "--dport", "46020", "-j", "DROP"),
+    (CHAIN, "-j", "RETURN"),
 )
 
 
