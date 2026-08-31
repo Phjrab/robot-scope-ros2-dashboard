@@ -680,6 +680,38 @@ Repository verification for this observation-only update:
 - tracked-source secret scan: PASS;
 - `git diff --check`: PASS.
 
+### Formal supervised preview-consumer record
+
+Later on 2026-08-31 the operator explicitly supplied all five supervised field
+confirmations: supervised execution approval, physical remote/E-stop ready,
+clear area, low-speed limits confirmed, and a present safety operator. The
+same preview lifecycle was therefore rerun while the robot remained stationary.
+The external dashboard checkout was commit `07e58a7`; the two relay scripts and
+two installed camera service units on the robot-side Jetson matched the files
+from that commit by SHA-256.
+
+The first immutable recorder output,
+`acceptance-20260831T014104.873048Z`, retained the selected preview scenario as
+PASS but had overall `PASS=27 FAIL=2 BLOCKED=21 NOT_RUN=23`. It was collected
+after closing Sensors, so the dashboard's demand-scoped Wi-Fi cache was STALE,
+and Competition Lock had not been enabled. The robot relay's direct health was
+LIVE; the failed report was preserved instead of deleted or edited.
+
+The fixed procedure kept Sensors LIVE during collection and enabled the
+non-physical Competition Lock only for that read-only interval. Report
+`acceptance-20260831T014254.689479Z` recorded
+`PASS=31 FAIL=0 BLOCKED=19 NOT_RUN=23`. It specifically recorded
+`network.robot_wifi=PASS`, `competition.lock_and_authority=PASS`, and
+`supervised.preview_consumer_disconnect=PASS`. The selected scenario observed
+viewer counts `2 -> 1 -> 2 -> 0`, zero Go2 receivers after disconnect, exactly
+one after reconnect, and an idle RealSense producer after final panel close.
+
+Competition Lock was explicitly released after collection. Final state was
+MANUAL with motion authority NONE, no control lease, deadman false, all command
+axes zero, both dashboard camera viewers zero, and both camera services still
+manually active but disabled at boot. No ARM, motion, action, Dataset,
+Navigation, or Mapping operation occurred.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.

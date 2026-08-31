@@ -112,9 +112,23 @@ LowState freshness/cardinality, exact split-topology link contract, dashboard
 identity, Dataset reserve and non-physical zero-authority Lock were observed;
 no ARM, lease, deadman or non-zero command was created.
 
+A later stationary follow-up at commit `07e58a7` received all five explicit
+field confirmations and reran only
+`supervised.preview_consumer_disconnect`. The first immutable report exposed
+an ordering error (`PASS=27 FAIL=2 BLOCKED=21 NOT_RUN=23`): collection occurred
+after the demand-scoped camera receiver was closed and without Competition
+Lock. It remains preserved. With Sensors kept LIVE and non-physical
+Competition Lock enabled only during collection, private report
+`acceptance-20260831T014254.689479Z` recorded
+`PASS=31 FAIL=0 BLOCKED=19 NOT_RUN=23`, including preview-consumer, robot Wi-Fi,
+and zero-authority Lock PASS rows. Lock was then released and the system
+returned to MANUAL, no lease, deadman false, zero command and zero camera
+viewers.
+
 The following remain intentionally `BLOCKED` or `NOT_RUN` for WP07:
 
-- robot-side Wi-Fi RSSI/link and full RTT/loss/throughput interval;
+- full RTT/loss/minimum-throughput interval; the robot-side Wi-Fi RSSI/link row
+  passed in the formal preview-consumer report;
 - RealSense source-stall/cable fault behavior and the formal supervised relay
   scenario record; live source/transport and immediate relay restart recovery
   were observed separately at `f48ef07` without promoting the scenario row;
@@ -122,10 +136,9 @@ The following remain intentionally `BLOCKED` or `NOT_RUN` for WP07:
 - robot-side PointCloud mode and coexistence with live optional workloads;
 - direct external ROS, XT16/FAST-LIO and Navigation evidence, which is outside
   the accepted split `go2-control` link and remains required in Nav/XT16 modes;
-- every formal supervised scenario, because the five recorder confirmations
-  were not supplied; separate dashboard-restart and Lock-rejection observations
-  and the 2026-08-31 preview demand disconnect/reconnect observation were
-  deliberately not promoted to supervised `PASS` records;
+- the remaining 23 formal supervised scenarios; the preview-consumer scenario
+  is the only formal supervised PASS so far, and prior separate
+  dashboard-restart and Lock-rejection observations remain non-supervised;
 - physical no-auto-resume and bounded-stop observations.
 
 ## Rollback

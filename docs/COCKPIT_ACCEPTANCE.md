@@ -69,7 +69,7 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | 실제 Go2+RealSense 동시 LIVE와 viewer lifecycle | `PASS` | 2026-08-30 및 2026-08-31: Go2 11–14 FPS/1280×720, RealSense 15 FPS/640×480, source별 viewer 1; route 이탈 후 모두 0과 RealSense producer idle |
 | 실제 RealSense relay restart 중 panel 복구 | `PASS` | 2026-08-31: 즉시 restart의 8090 재바인드 실패를 재현하고 `f48ef07` 배포; panel `STALE` 뒤 자동 `LIVE`, systemd active/NRestarts 0, dashboard/relay viewer 각 1과 producer 1 확인 |
 | 실제 Go2 relay restart와 source 격리 | `PASS` | 2026-08-31: Go2 MainPID 교체 후 자동 LIVE(1280×720, 약 11.6 FPS), NRestarts 0; RealSense는 계속 LIVE, source별 viewer 1 유지 |
-| 실제 1화면↔2화면 preview demand 정리 | `PASS` | 2026-08-31: 2화면 1+1 → 1화면 RealSense 1/Go2 0 → 2화면 1+1; Overview 이탈 후 모두 0, RealSense producer idle. WP07 formal supervised record와는 별도 관찰 |
+| 실제 1화면↔2화면 preview demand 정리 | `PASS` | 2026-08-31: 2화면 1+1 → 1화면 RealSense 1/Go2 0 → 2화면 1+1 → route 이탈 0+0, RealSense producer idle; WP07 `supervised.preview_consumer_disconnect` formal PASS (`acceptance-20260831T014254.689479Z`) |
 | 실제 camera cable 분리 fault injection | `NOT_RUN` | 감독된 케이블 분리 시나리오로 명시적 보류 |
 | 실제 XT16 high-rate cloud와 adaptive LOD 단기 검증 | `PASS` | 2026-08-28: LOW/MEDIUM/HIGH와 AUTO 하향 전환, shared transport 확인 |
 | 실제 XT16 high-rate cloud 60분 | `NOT_RUN` | 단기 검증만 수행; 60분 renderer/socket/heap soak 미실행 |
