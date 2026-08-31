@@ -52,6 +52,14 @@ class Fixture:
 
     def runner(self, argv, **_kwargs):
         values = tuple(argv)
+        if values[0] == preflight.SYSTEMCTL:
+            return completed(
+                values,
+                stdout=(
+                    "LoadState=loaded\nActiveState=active\nSubState=exited\n"
+                    "Result=success\nExecMainStatus=0\n"
+                ),
+            )
         if values[:2] == (preflight.IP, "-j"):
             return completed(
                 values,
@@ -155,6 +163,22 @@ class WirelessMappingProfileTests(unittest.TestCase):
                 preflight.check_host(
                     fixture.environment,
                     runner=fixture.runner,
+                    proc_root=fixture.proc,
+                )
+
+    def test_missing_firewall_unit_blocks_before_sensor_checks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = Fixture(Path(temporary))
+
+            def failed_firewall(argv, **kwargs):
+                if tuple(argv)[0] == preflight.SYSTEMCTL:
+                    return completed(argv, returncode=1)
+                return fixture.runner(argv, **kwargs)
+
+            with self.assertRaisesRegex(preflight.PreflightError, "PREFLIGHT BLOCKED"):
+                preflight.check_host(
+                    fixture.environment,
+                    runner=failed_firewall,
                     proc_root=fixture.proc,
                 )
 

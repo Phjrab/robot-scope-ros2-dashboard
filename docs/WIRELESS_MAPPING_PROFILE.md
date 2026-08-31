@@ -44,6 +44,8 @@ inferred from stale ROS/DDS data.
 
 The read-only preflight requires all of the following before FAST-LIO:
 
+- the fixed root-owned wireless firewall unit is active/exited with a
+  successful main result; the dashboard receives no firewall authority;
 - `eno1` owns exactly `192.168.50.10/24` and `192.168.50.30` responds;
 - both hosts report synchronized clocks;
 - `net.core.rmem_max` is at least 8 MiB;

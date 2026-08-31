@@ -136,6 +136,16 @@ management session before persistence. If the host firewall framework or
 existing policy cannot express the two exact tuples without weakening another
 boundary, deployment stops for a new review.
 
+Persistence is owned by a dedicated root oneshot unit using the fixed
+`wireless_xt16_firewall.py` helper. It is ordered after network readiness and
+before the dashboard and wireless IMU receiver, and is the only new unit
+enabled at boot. The dashboard has no firewall mutation permission and merely
+remains available if this unit fails; every later wireless sensor preflight
+must then fail closed. The helper refuses a non-legacy backend, a missing
+`eno1`, an unknown existing chain, extra rules or ambiguous INPUT references.
+It never modifies FORWARD, NAT, routes, bridges or another chain. Sensor,
+Mapping, Nav2 and Mission services remain disabled and never auto-resume.
+
 ## Enable policy and transactional lifecycle
 
 All three new service units are installed disabled. No unit is enabled at boot

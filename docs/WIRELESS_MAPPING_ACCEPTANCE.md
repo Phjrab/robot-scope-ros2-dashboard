@@ -279,6 +279,13 @@ bridging or routes. The host has no firewall persistence owner installed, so
 this INPUT chain is runtime-only and not reboot-persistent; reboot validation
 remains a deployment risk before later stages.
 
+The follow-up persistence design assigns that exact chain to a separate root
+oneshot unit ordered before the dashboard. It does not grant the dashboard
+firewall authority and does not enable any sensor, Mapping, Nav2 or Mission
+service. Repository tests cover exact ownership and fail-closed rejection;
+installation, a second-session check and reboot persistence remain required
+before HW-2.
+
 The first relay-only attempt exposed unsupported systemd condition names and a
 journal tail that could be displaced by manager warnings. Commits `5de2fa7`
 and `e22215a` replaced them with supported unit conditions and strict bounded

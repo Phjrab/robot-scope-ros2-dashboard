@@ -24,6 +24,8 @@ SSH = "/usr/bin/ssh"
 IP = "/usr/sbin/ip"
 PING = "/usr/bin/ping"
 TIMEDATECTL = "/usr/bin/timedatectl"
+SYSTEMCTL = "/usr/bin/systemctl"
+FIREWALL_UNIT = "robot-scope-wireless-firewall.service"
 SSH_IDENTITY_ENV = "ROBOT_SCOPE_WIRELESS_MAPPING_SSH_IDENTITY"
 SSH_KNOWN_HOSTS_ENV = "ROBOT_SCOPE_WIRELESS_MAPPING_SSH_KNOWN_HOSTS"
 
@@ -164,6 +166,27 @@ def check_host(
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     proc_root: Path = Path("/proc"),
 ) -> None:
+    firewall = _run(
+        (
+            SYSTEMCTL,
+            "show",
+            FIREWALL_UNIT,
+            "--property=LoadState,ActiveState,SubState,Result,ExecMainStatus",
+        ),
+        runner=runner,
+    )
+    firewall_state = dict(
+        line.split("=", 1) for line in firewall.stdout.splitlines() if "=" in line
+    )
+    if firewall.returncode != 0 or firewall_state != {
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "exited",
+        "Result": "success",
+        "ExecMainStatus": "0",
+    }:
+        raise PreflightError("WIRELESS MAPPING PREFLIGHT BLOCKED", 69)
+
     addresses = _run(
         (IP, "-j", "-4", "address", "show", "dev", EXTERNAL_INTERFACE), runner=runner
     )

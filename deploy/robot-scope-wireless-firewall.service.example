@@ -1,0 +1,47 @@
+[Unit]
+Description=Robot Scope fixed wireless XT16 external firewall
+Wants=network-online.target
+After=network-online.target
+Before=robot-scope.service robot-scope-wireless-imu-receiver.service
+ConditionFileIsExecutable=/usr/local/libexec/robot-scope/wireless_xt16_firewall.py
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 /usr/local/libexec/robot-scope/wireless_xt16_firewall.py install
+ExecStartPost=/usr/bin/python3 /usr/local/libexec/robot-scope/wireless_xt16_firewall.py status
+ExecStop=/usr/bin/python3 /usr/local/libexec/robot-scope/wireless_xt16_firewall.py remove
+RemainAfterExit=yes
+TimeoutStartSec=20
+TimeoutStopSec=20
+
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+LimitNOFILE=32
+
+[Install]
+# This network boundary is persistent and independent of dashboard privileges.
+# Sensor, Mapping, Nav2 and Mission units remain disabled and never auto-resume.
+WantedBy=multi-user.target
