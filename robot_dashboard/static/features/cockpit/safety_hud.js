@@ -123,6 +123,10 @@ export function createSafetyHud(options = {}) {
     view.render(projected, layoutState);
   }
 
+  function setExpanded(value) {
+    view.setExpanded?.(value);
+  }
+
   function activate() {
     if (active) return;
     active = true;
@@ -142,5 +146,5 @@ export function createSafetyHud(options = {}) {
     view.destroy();
   }
 
-  return Object.freeze({ activate, deactivate, refresh, setLayoutState, diagnostics: () => Object.freeze({ active, projected, layoutState }), destroy });
+  return Object.freeze({ activate, deactivate, refresh, setLayoutState, setExpanded, diagnostics: () => Object.freeze({ active, projected, layoutState, view: view.snapshot?.() || null }), destroy });
 }

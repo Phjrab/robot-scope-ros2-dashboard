@@ -150,6 +150,7 @@ export function createCompetitionStatus(options = {}) {
   let perception = { snapshot: {}, updatedAt: 0 };
   let releaseCamera = null;
   let releasePerception = null;
+  let expanded = false;
 
   root.replaceChildren();
   root.className = 'cockpit-competition-status';
@@ -160,9 +161,17 @@ export function createCompetitionStatus(options = {}) {
   title.textContent = 'COMPETITION STATUS';
   const shadow = documentValue.createElement('span');
   shadow.textContent = 'SHADOW · AUTHORITY NONE';
-  header.append(title, shadow);
+  const toggle = documentValue.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'cockpit-competition-toggle';
+  toggle.textContent = '상세 펼치기';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'cockpitCompetitionDetails');
+  header.append(title, shadow, toggle);
   const metrics = documentValue.createElement('div');
+  metrics.id = 'cockpitCompetitionDetails';
   metrics.className = 'cockpit-competition-metrics';
+  metrics.hidden = true;
   const fields = new Map();
   for (const [label, key] of [
     ['MODE', 'mode'], ['LOCK', 'lock'], ['DATASET', 'dataset'], ['ROBOT WI-FI', 'wifi'], ['RTT / LOSS', 'rtt'],
@@ -171,6 +180,7 @@ export function createCompetitionStatus(options = {}) {
   ]) fields.set(key, appendMetric(documentValue, metrics, label));
   const controls = documentValue.createElement('div');
   controls.className = 'cockpit-competition-controls';
+  controls.hidden = true;
   const modeButtons = new Map();
   for (const mode of ['MANUAL', 'SHADOW', 'ASSISTED', 'AUTO']) {
     const button = documentValue.createElement('button');
@@ -197,6 +207,15 @@ export function createCompetitionStatus(options = {}) {
   controls.append(lockButton, stationary, note);
   root.append(header, metrics, controls);
 
+  function setExpanded(value) {
+    expanded = Boolean(value);
+    root.dataset.expanded = String(expanded);
+    metrics.hidden = !expanded;
+    controls.hidden = !expanded;
+    toggle.textContent = expanded ? '상세 접기' : '상세 펼치기';
+    toggle.setAttribute('aria-expanded', String(expanded));
+  }
+
   function render() {
     const projected = projectCompetitionStatus({ state, cameraCatalog, perception, dataset: options.getDatasetSnapshot?.() }, now());
     fields.get('mode').textContent = `${projected.operationMode} · REQUESTED ${projected.requestedMode}`;
@@ -217,6 +236,7 @@ export function createCompetitionStatus(options = {}) {
     fields.get('pointcloud').textContent = `${projected.pointcloudMode} · DEPTH ${projected.depthMode}`;
     fields.get('active-model').textContent = projected.activeModel;
     fields.get('previous-model').textContent = projected.previousModel;
+    shadow.textContent = `${projected.operationMode} · ${projected.lock} · AUTHORITY ${projected.authority}`;
     root.dataset.state = projected.fresh ? 'live' : 'stale';
     root.dataset.locked = String(projected.locked);
     lockButton.textContent = projected.locked ? 'UNLOCK' : 'ENABLE LOCK';
@@ -255,6 +275,7 @@ export function createCompetitionStatus(options = {}) {
   }
 
   for (const [mode, button] of modeButtons) button.addEventListener('click', () => mutate('/api/v1/competition/mode', { mode, confirmation: mode }));
+  toggle.addEventListener('click', () => setExpanded(!expanded));
   lockButton.addEventListener('click', () => {
     const locked = state.competition?.locked !== false;
     if (locked) mutate('/api/v1/competition/unlock', { confirmation: 'UNLOCK', stationary_confirmed: check.checked === true });
@@ -283,8 +304,9 @@ export function createCompetitionStatus(options = {}) {
   }
 
   function destroy() { deactivate(); root.replaceChildren(); }
+  setExpanded(false);
   render();
-  return Object.freeze({ activate, deactivate, refresh, snapshot: () => Object.freeze({ active, state, projected: projectCompetitionStatus({ state, cameraCatalog, perception, dataset: options.getDatasetSnapshot?.() }, now()) }), destroy });
+  return Object.freeze({ activate, deactivate, refresh, setExpanded, snapshot: () => Object.freeze({ active, expanded, state, projected: projectCompetitionStatus({ state, cameraCatalog, perception, dataset: options.getDatasetSnapshot?.() }, now()) }), destroy });
 }
 
 export { COMPETITION_STALE_MS };

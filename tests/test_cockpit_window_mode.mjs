@@ -149,3 +149,49 @@ test('Cockpit full-window controller owns DOM bindings and strict route projecti
   elements.get('#cockpitOpenWindowButton').dispatchEvent(new Event('click'));
   assert.equal(opened, 1, 'destroy removes the launcher binding');
 });
+
+test('Cockpit navigation opens the dedicated full-window and falls back inline when popups are blocked', () => {
+  class FakeElement extends EventTarget {
+    constructor() { super(); this.hidden = true; this.attributes = new Map(); this.textContent = ''; }
+    setAttribute(name, value) { this.attributes.set(name, value); }
+  }
+  const navigation = new FakeElement();
+  const elements = new Map([
+    ['[data-nav="cockpit"]', navigation],
+    ['#cockpitOpenWindowButton', new FakeElement()],
+    ['#cockpitWindowBar', new FakeElement()],
+    ['#cockpitFullscreenButton', new FakeElement()],
+    ['#cockpitCloseWindowButton', new FakeElement()],
+  ]);
+  const documentValue = new EventTarget();
+  documentValue.documentElement = { dataset: {} };
+  documentValue.querySelector = (selector) => elements.get(selector) || null;
+  const popup = { opener: {}, focus() {} };
+  let opened = 0;
+  let blocked = 0;
+  let allowPopup = true;
+  const windowValue = {
+    location: { href: 'https://dashboard.test/#overview', hash: '#overview' },
+    screen: {},
+    open() { return allowPopup ? popup : null; },
+  };
+  const controller = initializeCockpitWindowMode({
+    windowValue,
+    documentValue,
+    onOpened: () => { opened += 1; },
+    onBlocked: () => { blocked += 1; },
+  });
+
+  assert.equal(navigation.dispatchEvent(new Event('click', { cancelable: true })), false, 'successful popup cancels inline navigation');
+  assert.equal(opened, 1);
+  assert.equal(blocked, 0);
+  allowPopup = false;
+  assert.equal(navigation.dispatchEvent(new Event('click', { cancelable: true })), true, 'blocked popup preserves inline navigation');
+  assert.equal(opened, 1);
+  assert.equal(blocked, 1);
+
+  controller.destroy();
+  allowPopup = true;
+  navigation.dispatchEvent(new Event('click', { cancelable: true }));
+  assert.equal(opened, 1, 'destroy removes automatic navigation launch');
+});

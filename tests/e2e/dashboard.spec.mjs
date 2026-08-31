@@ -10,6 +10,8 @@ async function openDashboard(page, backendOptions = {}, hash = 'overview') {
 }
 
 async function enterLayoutEdit(page) {
+  const toggle = page.locator('.cockpit-safety-toggle');
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
   await page.locator('[data-cockpit-layout-action="edit"]').click();
   await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'layout-edit');
 }
@@ -82,6 +84,7 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   expect(embeddedBounds.competition.top).toBeGreaterThanOrEqual(embeddedBounds.workspace.top);
   expect(embeddedBounds.competition.right).toBeLessThanOrEqual(embeddedBounds.workspace.right);
   expect(embeddedBounds.competition.bottom).toBeLessThanOrEqual(embeddedBounds.workspace.bottom);
+  expect(embeddedBounds.competition.bottom - embeddedBounds.competition.top).toBeLessThan(80);
 
   await page.setViewportSize({ width: 1180, height: 760 });
   const canvasSize = await page.locator('#cockpitSceneCanvas').evaluate((canvas) => ({
@@ -98,7 +101,7 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   for (let index = 0; index < 20; index += 1) {
     await page.locator('[data-nav="overview"]').click();
     await expect(page.locator('#cockpitWorkspace')).toBeHidden();
-    await page.locator('[data-nav="cockpit"]').click();
+    await page.evaluate(() => { window.location.hash = '#cockpit'; });
     await expect(page.locator('#cockpitWorkspace')).toBeVisible();
   }
 
@@ -152,8 +155,10 @@ test('Cockpit full-window launcher reuses one named target, cleans the opener, a
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 
   await page.locator('[data-nav="cockpit"]').click();
+  await expect(page.locator('#pageTitle')).toHaveText('Overview');
+  await expect.poll(() => page.evaluate(() => window.__cockpitPopupCalls.length)).toBe(2);
   await page.evaluate(() => { window.open = () => null; });
-  await page.locator('#cockpitOpenWindowButton').click();
+  await page.locator('[data-nav="cockpit"]').click();
   await expect(page.locator('#cockpitWorkspace')).toBeVisible();
   await expect(page.locator('#toast')).toContainText('팝업 허용');
   expect((await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.active).toBe(true);
@@ -258,8 +263,12 @@ test('Cockpit competition status locks configuration and separates SHADOW, netwo
   const status = page.locator('#cockpitCompetitionStatus');
   const hud = page.locator('#cockpitSafetyHud');
   await expect(status).toBeVisible();
+  await expect(status).toHaveAttribute('data-expanded', 'false');
+  await expect(status.locator('.cockpit-competition-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(status).toContainText('MANUAL · UNLOCKED · AUTHORITY NONE');
+  await status.locator('.cockpit-competition-toggle').click();
+  await expect(status).toHaveAttribute('data-expanded', 'true');
   await expect(status).toContainText('MANUAL · REQUESTED MANUAL');
-  await expect(status).toContainText('SHADOW · AUTHORITY NONE');
   await expect(status).toContainText('LIVE · RSSI -54 dBm · LINK 433.3 Mbps');
   await expect(status).toContainText('UNAVAILABLE · P50');
   await expect(status).toContainText('LANE');
@@ -282,6 +291,8 @@ test('Cockpit competition status locks configuration and separates SHADOW, netwo
   await page.evaluate(() => window.RobotScopeDatasetCapture.refresh());
   await expect(status).toContainText('CAPTURING · session_e2e', { timeout: 3_000 });
   await page.reload();
+  await expect(status).toHaveAttribute('data-expanded', 'false');
+  await status.locator('.cockpit-competition-toggle').click();
   await expect(status).toContainText('CAPTURING · session_e2e', { timeout: 3_000 });
   await expect(hud.locator('[data-safety-field="armed"]')).toHaveText('DISARMED');
   await expect(status).toContainText('LIVE · lane-v2', { timeout: 4_000 });
@@ -740,6 +751,11 @@ test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and softw
   const go2Button = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
   await expect(workspace).toHaveAttribute('data-layout-mode', 'operate');
   await expect(go2Button).toBeDisabled();
+  await expect(hud).toHaveAttribute('data-expanded', 'false');
+  await expect(hud.locator('.cockpit-safety-summary')).toContainText('ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE');
+  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
+  await hud.locator('.cockpit-safety-toggle').click();
+  await expect(hud).toHaveAttribute('data-expanded', 'true');
   await expect(hud.locator('[data-safety-field="control-source"]')).toHaveText('NONE');
   await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
   await expect(hud.locator('[data-safety-field="lowstate"]')).toHaveText('50 ms');
@@ -834,13 +850,18 @@ test('Safety HUD clears stale cached values and preserves STOP and control sourc
 
   await page.setViewportSize({ width: 520, height: 720 });
   await expect(hud).toBeVisible();
-  await expect(hud.locator('[data-safety-field="control-source"]')).toBeVisible();
+  await expect(hud).toHaveAttribute('data-expanded', 'false');
+  await expect(hud.locator('.cockpit-safety-summary')).toContainText('ARM UNKNOWN');
+  await expect(hud.locator('[data-safety-field="control-source"]')).toBeHidden();
   await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
   const bounds = await page.locator('[data-cockpit-software-stop]').boundingBox();
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.y).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(520);
   expect(bounds.y + bounds.height).toBeLessThanOrEqual(720);
+  await hud.locator('.cockpit-safety-toggle').click();
+  await expect(hud.locator('[data-safety-field="control-source"]')).toBeVisible();
+  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
 });
 
 test('Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply', async ({ page }) => {

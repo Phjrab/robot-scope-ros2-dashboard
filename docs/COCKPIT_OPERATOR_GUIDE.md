@@ -9,9 +9,12 @@ Navigation 전환과 Mission 정리를 수행하는 절차를 설명한다. Cock
 
 1. Ubuntu ROS host에서 승인된 실행 mode의 dashboard와 필요한 control bridge가 이미
    실행 중인지 확인한다.
-2. 관리 PC에서 `http://JETSON_IP:8088`을 열고 상단의 **Cockpit**을 선택한다.
-3. 고정 Safety HUD에서 Robot Link, Bridge, LowState, control source, ARM, deadman과
-   STOP 상태를 먼저 확인한다.
+2. 관리 PC에서 `http://JETSON_IP:8088`을 열고 상단의 **Cockpit**을 선택한다. 선택 시
+   화면 크기에 맞춘 전용 Cockpit 창을 자동으로 열거나 이미 열린 전용 창을 앞으로 가져온다.
+   팝업이 차단되면 현재 대시보드의 내장 Cockpit으로 진입한다.
+3. 접힌 고정 Safety HUD의 ARM, DEADMAN, BRIDGE, LEASE 요약과 항상 노출되는
+   **DASHBOARD SOFTWARE STOP**을 먼저 확인한다. Robot Link, LowState, battery, command
+   등 상세 항목은 **상세 펼치기**로 확인한다.
 4. `WAITING`, `STALE`, `OFFLINE`, revision conflict가 있으면 motion을 시작하지 않는다.
 
 Cockpit 진입·reload·BFCache 복귀는 기존 lease를 새로 발급하거나 motion을 다시 보내지
@@ -23,8 +26,9 @@ Cockpit 진입·reload·BFCache 복귀는 기존 lease를 새로 발급하거나
 전용 창을 권장한다.
 
 1. 로봇이 stationary이고 manual control이 `DISARMED`인지 먼저 확인한다.
-2. Cockpit 제목 옆의 **CWP 전체 창**을 누른다. 브라우저가 차단하면 해당 Jetson 주소의
-   팝업을 허용하고 다시 누른다.
+2. **Cockpit** 메뉴를 선택하면 전용 창을 자동으로 연다. 내장 Cockpit을 URL이나 팝업
+   차단 fallback으로 연 경우에는 제목 옆의 **CWP 전체 창**을 사용할 수 있다. 브라우저가
+   차단하면 해당 Jetson 주소의 팝업을 허용하고 다시 누른다.
 3. 성공하면 이름이 고정된 Cockpit 창 하나를 열거나 기존 창을 다시 앞에 표시하고, 원래
    대시보드의 내장 Cockpit은 Overview로 돌아가 센서 demand를 정리한다.
 4. 전용 창에서 고정 Safety HUD와 **DASHBOARD SOFTWARE STOP**이 보이는지 다시 확인한다.
@@ -42,6 +46,11 @@ Cockpit 진입·reload·BFCache 복귀는 기존 lease를 새로 발급하거나
 지원된 버튼은 한 browser context에서 같은 이름의 창을 재사용한다. 전용 URL을 여러 탭에
 직접 복사하거나 다른 browser profile에서 동시에 열면 각 document가 별도 telemetry
 consumer가 될 수 있으므로 그렇게 운용하지 않는다.
+
+Competition Status와 Control Authority는 장면을 가리지 않도록 기본 접힘 상태다.
+Competition Status는 MODE, LOCK, AUTHORITY를, Control Authority는 ARM, DEADMAN,
+BRIDGE, LEASE를 접힌 상태에서도 갱신한다. 각각 **상세 펼치기/상세 접기**로 전환하며,
+Control Authority를 접어도 **DASHBOARD SOFTWARE STOP**은 숨겨지지 않는다.
 
 ## Layout Edit와 Operate
 

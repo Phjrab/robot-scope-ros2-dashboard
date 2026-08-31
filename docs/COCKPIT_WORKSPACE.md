@@ -277,11 +277,12 @@ ARM/deadman, STOP, stale sensor, Manual Takeover, Mission과 경기 전후 절�
 
 ### CWP-12 이후 별도 전체 작업창 후속 기록
 
-기존 `#cockpit` route는 compatibility를 위해 그대로 유지한다. 운영자가
-**CWP 전체 창**을 누르면 same-origin의 strict allowlist URL
+기존 `#cockpit` route는 compatibility와 popup 차단 fallback을 위해 그대로 유지한다.
+운영자가 **Cockpit** 메뉴를 선택하면 same-origin의 strict allowlist URL
 `?workspace=cockpit#cockpit`을 이름이 고정된 창 하나로 열거나 재사용한다. 성공한 경우
 원래 대시보드는 Overview로 이동해 내장 Cockpit scene과 sensor demand를 비활성화한다.
-팝업이 차단되면 route와 demand를 바꾸지 않고 오류를 표시한다.
+팝업이 차단되면 기본 anchor route를 유지해 내장 Cockpit으로 진입하고 오류를 표시한다.
+내장 Cockpit의 **CWP 전체 창**도 동일한 전용 창 실행 경로를 제공한다.
 
 전용 mode는 dashboard topbar, sidebar, page heading, footer를 숨기고 Cockpit page가
 browser content viewport 전체를 사용하게 한다. 52px 전용 toolbar 아래의 workspace가
@@ -638,6 +639,12 @@ ARMED/DISARMED, deadman, software STOP latch, lease 존재 여부, Go2 link,
 LowState freshness, battery, 현재 `vx`/`vy`/`wz`와 speed scale이다. 이 값들은
 layout schema나 panel content의 cached 값이 아니라 기존 authoritative snapshot의
 freshness와 함께 표시한다.
+
+HUD는 화면 점유를 줄이기 위해 기본 접힘 상태이며 ARM, deadman, bridge, lease 요약은
+접힌 상태에서도 authoritative projection으로 계속 갱신한다. 상세 metric, 물리 정지 안내와
+Layout Edit action만 사용자가 펼쳤을 때 표시한다. 접힘 여부와 무관하게 SOFTWARE STOP은
+항상 보이고 pointer target도 유지되어야 한다. Competition Status도 기본 접힘 상태에서
+mode, lock, authority 요약을 유지하고 별도 toggle로 상세 metric과 설정 control을 연다.
 
 Panel의 최대 z-index는 HUD의 최소 z-index보다 작아야 한다. HUD root가
 `pointer-events: none`을 사용하더라도 STOP과 필요한 control은 명시적으로

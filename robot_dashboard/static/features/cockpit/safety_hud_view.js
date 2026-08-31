@@ -21,6 +21,7 @@ export function createSafetyHudView(options = {}) {
   root.replaceChildren();
   root.className = 'cockpit-safety-hud';
   root.setAttribute('aria-label', 'Cockpit 고정 Safety HUD');
+  let expanded = false;
 
   const header = element(documentValue, 'div', 'cockpit-safety-header');
   const identity = element(documentValue, 'div', 'cockpit-safety-identity');
@@ -35,9 +36,17 @@ export function createSafetyHudView(options = {}) {
   apply.dataset.cockpitLayoutAction = 'apply';
   const modeActions = element(documentValue, 'div', 'cockpit-layout-mode-actions');
   modeActions.append(mode, edit, apply);
-  header.append(identity, modeActions);
+  modeActions.hidden = true;
+  const summary = element(documentValue, 'span', 'cockpit-safety-summary', 'ARM UNKNOWN · DEADMAN UNKNOWN · BRIDGE UNKNOWN · LEASE UNKNOWN');
+  const toggle = element(documentValue, 'button', 'cockpit-safety-toggle', '상세 펼치기');
+  toggle.type = 'button';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'cockpitSafetyDetails');
+  header.append(identity, summary, toggle, modeActions);
 
   const metrics = element(documentValue, 'div', 'cockpit-safety-metrics');
+  metrics.id = 'cockpitSafetyDetails';
+  metrics.hidden = true;
   const fields = new Map();
   for (const [label, field] of [
     ['CONTROL SOURCE', 'control-source'], ['ARM', 'armed'], ['DEADMAN', 'deadman'],
@@ -56,16 +65,30 @@ export function createSafetyHudView(options = {}) {
   stop.dataset.cockpitSoftwareStop = '';
   stop.append(element(documentValue, 'strong', '', 'DASHBOARD SOFTWARE STOP'), element(documentValue, 'small', '', '물리 E-STOP 아님'));
   const physicalReminder = element(documentValue, 'p', 'cockpit-physical-stop-reminder', 'PHYSICAL STOP 위치와 접근 가능 상태를 현장에서 확인하세요 · Competition Lock / Dashboard STOP은 물리 E-STOP이 아닙니다.');
+  physicalReminder.hidden = true;
   root.append(header, metrics, physicalReminder, stop);
 
   edit.addEventListener('click', () => options.onRequestEdit?.());
   apply.addEventListener('click', () => options.onApply?.());
   stop.addEventListener('click', () => options.onStop?.());
+  toggle.addEventListener('click', () => setExpanded(!expanded));
+
+  function setExpanded(value) {
+    expanded = Boolean(value);
+    root.dataset.expanded = String(expanded);
+    metrics.hidden = !expanded;
+    physicalReminder.hidden = !expanded;
+    modeActions.hidden = !expanded;
+    summary.hidden = expanded;
+    toggle.textContent = expanded ? '상세 접기' : '상세 펼치기';
+    toggle.setAttribute('aria-expanded', String(expanded));
+  }
 
   function render(projected, layoutState) {
     root.dataset.tone = projected.tone;
     root.dataset.layoutMode = layoutState.mode;
     for (const [field, value] of fields) value.textContent = projected[field];
+    summary.textContent = `ARM ${projected.armed} · DEADMAN ${projected.deadman} · BRIDGE ${projected['control-bridge']} · LEASE ${projected.lease}`;
     mode.textContent = layoutState.mode === 'layout-edit' ? 'LAYOUT EDIT' : 'OPERATE';
     mode.dataset.armed = String(layoutState.armed);
     edit.disabled = layoutState.armed || layoutState.mode === 'layout-edit';
@@ -78,5 +101,6 @@ export function createSafetyHudView(options = {}) {
     root.replaceChildren();
   }
 
-  return Object.freeze({ render, destroy });
+  setExpanded(false);
+  return Object.freeze({ render, setExpanded, snapshot: () => Object.freeze({ expanded }), destroy });
 }

@@ -86,6 +86,7 @@ export function initializeCockpitWindowMode({
   const mode = workspaceWindowMode(windowValue?.location);
   const dedicated = mode === COCKPIT_WINDOW_MODE;
   const launcher = documentValue?.querySelector?.('#cockpitOpenWindowButton');
+  const cockpitNavigation = documentValue?.querySelector?.('[data-nav="cockpit"]');
   const windowBar = documentValue?.querySelector?.('#cockpitWindowBar');
   const fullscreenButton = documentValue?.querySelector?.('#cockpitFullscreenButton');
   const closeButton = documentValue?.querySelector?.('#cockpitCloseWindowButton');
@@ -106,6 +107,12 @@ export function initializeCockpitWindowMode({
     const result = openCockpitWorkspaceWindow(windowValue);
     if (result.opened) onOpened(result);
     else onBlocked(result);
+    return result;
+  };
+  const launchFromNavigation = (event) => {
+    if (dedicated) return;
+    const result = launch();
+    if (result.opened) event?.preventDefault?.();
   };
   const toggleFullscreen = async () => {
     try {
@@ -127,6 +134,7 @@ export function initializeCockpitWindowMode({
   };
 
   launcher?.addEventListener('click', launch, { signal: listeners.signal });
+  if (!dedicated) cockpitNavigation?.addEventListener('click', launchFromNavigation, { signal: listeners.signal });
   fullscreenButton?.addEventListener('click', toggleFullscreen, { signal: listeners.signal });
   closeButton?.addEventListener('click', close, { signal: listeners.signal });
   documentValue?.addEventListener?.('fullscreenchange', syncFullscreenButton, { signal: listeners.signal });

@@ -19,12 +19,12 @@ Hardware가 없거나 live stream을 사용하지 않은 시나리오는 테스�
 - Go2 Front/RealSense fixed-source Camera panel과 source별 단일 demand owner
 - bounded floating panel move, resize, compact, focus, dock, tile, cascade와 recovery
 - profile-scoped bounded layout preset/import/export
-- 고정 Safety HUD, SOFTWARE STOP과 Layout Edit/Operate interlock
+- 기본 접힘 Control Authority 요약, 항상 노출되는 SOFTWARE STOP과 Layout Edit/Operate interlock
 - 읽기 전용 Xbox Controller panel과 기존 control session 기반 UI shortcut
 - exact revision 기반 Map/Localization panel과 같은 renderer의 3D overlay
 - 기존 NavigationCoordinator를 사용하는 Navigation/Takeover panel
 - server-owned annotation Mission 목록, 순서, progress, pause/resume/skip/retry/abort
-- strict same-origin 전용 Cockpit 창, 고정 이름 재사용과 opener demand cleanup
+- Cockpit 메뉴에서 자동 실행되는 strict same-origin 전용 창, 고정 이름 재사용과 opener demand cleanup
 - dashboard chrome 없는 full-content-viewport layout과 사용자 gesture 기반 선택적 native fullscreen
 
 ## Architecture와 data ownership
@@ -37,7 +37,7 @@ Hardware가 없거나 live stream을 사용하지 않은 시나리오는 테스�
 | panel geometry/layout | browser Cockpit manager/store | motion 권한, revision 또는 server operation을 저장하지 않음 |
 | map/localization/Nav goal | SavedMapCatalog와 NavigationCoordinator | exact ID/revision projection과 기존 action만 사용 |
 | Mission execution | runtime-owned MissionCoordinator | browser는 bounded GET/strict mutation client이며 실행 상태를 localStorage에 두지 않음 |
-| Cockpit window mode | `window_mode.js`와 app composition | allowlisted URL, named target, CSS mode와 explicit fullscreen만 소유; lease/sensor/server operation 인계 금지 |
+| Cockpit window mode | `window_mode.js`와 app composition | 메뉴의 allowlisted named full-window 실행, CSS mode와 explicit native fullscreen만 소유; lease/sensor/server operation 인계 금지 |
 
 Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으로 간주하거나 새 lease를
 발급하지 않는다. Mission/Navigation cleanup은 panel DOM보다 긴 server transaction이다.
@@ -53,10 +53,12 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | drag 중 Operate/ARM lock 전환 cleanup | `PASS` | pointer cancel과 layout lock behavior |
 | viewport resize와 corrupted layout recovery | `PASS` | geometry/layout schema behavior + Playwright resize |
 | Safety HUD/STOP이 focus panel 위에 유지 | `PASS` | Playwright stacking/focus 시나리오 |
+| Competition/Control Authority 기본 접힘과 요약 갱신 | `PASS` | Playwright 접힘·펼침, narrow viewport와 STOP 상시 노출 시나리오 |
 | BFCache page lifecycle에서 stale async fence | `PASS` | camera/log/dataset generation behavior tests |
 | robot-off 1366×768, 1920×1080, 2560×1440 layout/FPS | `PASS` | 2026-08-30: horizontal overflow 없음, 정적 LOW 10K 26 FPS, console warning/error 없음 |
 | strict `?workspace=cockpit#cockpit`, dashboard chrome 제거와 전용 toolbar 아래 full-window layout | `PASS` | pure URL contract + Playwright 1366×768, 1920×1080, 2560×1440 geometry/overflow |
 | Cockpit에서만 launcher 표시, popup 차단 시 embedded workspace 유지 | `PASS` | Playwright popup stub, error toast와 active scene 유지 |
+| Cockpit 메뉴 선택 시 전용 full-window 자동 실행 | `PASS` | Node navigation binding + Playwright named popup/blocked fallback |
 | fixed named target/focus와 성공 시 opener scene·PointCloud demand cleanup | `PASS` | Node named-window contract + Playwright opener Overview/deactivate/socket close |
 | 전용 mode 진입 시 ARM/STOP clear/mapping/Nav 자동 mutation 없음 | `PASS` | Playwright mutation log와 DISARMED snapshot |
 | Fullscreen API 요청·종료가 explicit button에서만 발생 | `PASS` | Node dependency-injected API + Playwright user-click stub; 실제 native 전환 증거 아님 |
@@ -122,19 +124,19 @@ gate on Linux and the earlier Ubuntu-only apply gate on macOS. Both paths keep
 the filesystem unchanged and return failure. The current complete Python suite
 is `PASS` at 796/796; no safety assertion was removed or weakened.
 
-### 2026-08-31 전용 전체 창 후속 검증
+### 2026-08-31 전용 전체 창 및 접이식 HUD 후속 검증
 
 아래 결과는 전용 Cockpit 전체 창 변경이 포함된 동일 working tree에서 다시 실행했다. 기존
 CWP-12 기록은 당시 commit의 역사적 증거로 유지하며, 아래 수치로 소급 변경하지 않는다.
 
 | Suite | 결과 | 상세 |
 | --- | --- | --- |
-| Cockpit 전용 Node unit | `PASS` | 85/85 |
-| 전체 JavaScript unit | `PASS` | 264/264 |
+| Cockpit 전용 Node unit | `PASS` | 86/86; 메뉴 자동 full-window와 popup 차단 fallback 포함 |
+| 전체 JavaScript unit | `PASS` | 265/265 |
 | frontend syntax | `PASS` | 53개 module |
-| Cockpit Playwright | `PASS` | 16/16 |
-| Playwright hardware-free E2E | `PASS` | 32/32; 전용 창 3개 해상도와 embedded containment 포함 |
-| 프로젝트 가상환경 전체 Python | `PASS` | 894/894 |
+| Cockpit Playwright | `PASS` | 16/16; Competition/Control Authority 접힘·펼침과 STOP 상시 노출 포함 |
+| Playwright hardware-free E2E | `PASS` | 32/32; 전용 창 3개 해상도, embedded containment와 narrow HUD 포함 |
+| 프로젝트 가상환경 전체 Python | `PASS` | 898/898 |
 | 시스템 기본 Python | `BLOCKED` | 890개 실행 후 `fastapi` 미설치로 1개 test module import 실패; assertion failure 없음 |
 | Ruff | `PASS` | `robot_dashboard`, `scripts` |
 | Mypy | `PASS` | 설정된 4개 source file |
