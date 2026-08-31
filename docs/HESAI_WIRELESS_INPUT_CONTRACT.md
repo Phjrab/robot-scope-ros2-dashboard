@@ -47,37 +47,41 @@ applied by Gate 3.
 ## PTC and calibration decision
 
 The pinned SDK's `Lidar::Init` has an explicit offline path: with
-`use_ptc_connected: false`, it calls the selected XT16 parser's local
-correction and firetime loaders instead of opening the PTC client. The generic
-parser describes correction data as necessary for packet decoding. Firetime
-data enables per-channel timing correction and is kept mandatory in this
-product profile so that hardware acceptance does not silently use reduced
-timing fidelity.
+`use_ptc_connected: false`, it calls the selected parser's local loaders
+instead of opening the PTC client. The measured XT16 packet header selects the
+SDK's `JT16`/UDP 1.8 parser. That parser consumes the sensor's 64-byte binary
+correction through a `.dat` or `.bin` path; a `.csv` suffix selects a different
+text parser. Its `LoadFiretimesFile` explicitly reports that JT16 does not
+support firetime loading. Firetime is therefore not an artifact for this exact
+sensor/parser contract.
 
 The fixed private paths are:
 
 ```text
-/etc/robot-scope/hesai/xt16-correction.csv
-/etc/robot-scope/hesai/xt16-firetime.csv
+/etc/robot-scope/hesai/xt16-correction.dat
 /etc/robot-scope/hesai/xt16-calibration.manifest
 ```
 
-Actual calibration contents, serial numbers and hashes are not repository
-data. Before deployment, an approved sensor-side procedure must obtain the
-files for the exact installed XT16 and create a private manifest containing:
+Actual correction contents, serial numbers and hashes are not repository
+data. After deployment approval, the procedure in
+`docs/HESAI_XT16_CALIBRATION_RUNBOOK.md` obtains the correction for the exact
+installed XT16 using only the pinned SDK's read-only
+`JT16GetCorrectionInfo`. It creates a private manifest containing:
 
 ```text
 sensor model and serial association
 driver and SDK revisions
-absolute correction and firetime paths
-SHA-256 of both files
+absolute correction path, exact 64-byte length and SHA-256
 acquisition time and approved acquisition method
 ```
 
-The installer must reject missing, symlinked, non-regular, writable-by-group,
-writable-by-other or hash-mismatched artifacts. Gate 3 does not create those
-files, read the sensor serial, connect to PTC, install a profile or start the
-driver.
+The physical label supplies the private serial association because this pinned
+SDK does not expose a documented JT16 PTC serial decoder. A second operator
+must cross-check it against the mounted unit. The runtime validator rejects a
+missing, symlinked, non-regular, wrong-owner/group, broadly accessible,
+wrong-revision, wrong-model/path/length or hash-mismatched bundle before ROS is
+sourced or the driver starts. Gate 3 did not create those files, read the
+sensor serial, connect to PTC, install a profile or start the driver.
 
 ## PTC proxy verdict
 
@@ -95,7 +99,7 @@ identity, UDP receipt, `/lidar_points` publication, point count, rate, age,
 jitter, packet loss or socket drops. HW-2 remains `NOT_RUN` until HW-1 has
 passed and deployment has been separately approved.
 
-At hardware start, any missing or mismatched calibration manifest, unexpected
+At hardware start, any missing or mismatched correction manifest, unexpected
 UDP peer, PTC attempt, multiple `/lidar_points` publishers, stale cloud or
 driver residue is a stop condition. Recovery never starts Mapping, FAST-LIO,
 Nav2, Mission, Dataset Capture, a control lease or robot motion.

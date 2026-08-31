@@ -37,9 +37,9 @@ Both hosts have platform Docker/L4T bridges and `net.ipv4.ip_forward=1`. The
 robot-side filter policy was verified as `FORWARD DROP`; its forwarding and
 MASQUERADE exceptions apply only to `docker0` and `172.17.0.0/16`. There is no
 `wlan0` to `eth0` forwarding or sensor-LAN NAT rule. The external host has no
-sensor-LAN interface or route. Its privileged netfilter rules were not
-independently read during Gate 0, so that check remains a deployment preflight
-item rather than an inferred pass.
+sensor-LAN interface or route. Its later privileged audit also confirmed
+`FORWARD DROP`, Docker-only forwarding/NAT and an empty nftables ruleset. No
+firewall rule was changed by either audit.
 
 ## Decision
 
@@ -80,8 +80,8 @@ wireless source port `46236`.
 - a canonical bounded binary IMU envelope containing only version/type,
   sender identity, boot identity, transport/source sequence, realtime and
   monotonic timestamps, quaternion, gyro, acceleration and HMAC-SHA256;
-- a fixed one-client PTC connection only if Gate 3 proves that an offline
-  correction/firetime artifact cannot safely replace it.
+- a fixed one-client PTC connection only if the approved one-time, read-only
+  JT16 correction acquisition cannot produce the exact offline artifact.
 
 ### Forbidden data and mechanisms
 

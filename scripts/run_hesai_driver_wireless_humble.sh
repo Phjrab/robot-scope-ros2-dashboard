@@ -20,6 +20,8 @@ HESAI_CONFIG="$PROJECT_DIR/config/hesai_xt16_wireless.yaml"
   exit 1
 }
 
+python3 "$PROJECT_DIR/scripts/hesai_calibration_manifest.py" validate
+
 source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
 source "$WORKSPACE_ROOT/ws/hesai_ws/install/setup.bash"
 

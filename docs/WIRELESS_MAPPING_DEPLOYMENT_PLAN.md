@@ -1,7 +1,7 @@
 # Wireless XT16 mapping deployment plan
 
 - Plan date: 2026-08-31
-- Candidate runtime baseline: `f9660793447982d17ee5c359409de731b3dd5b33`
+- Candidate runtime baseline: final tested `main` HEAD, frozen at approval
 - Deployment authorized: **no**
 - Current status: repository `CODE_READY`; deployment and HW-1–HW-6 `NOT_RUN`
 
@@ -47,7 +47,9 @@ Control Bridge port `46010` and camera transport remain separate and unchanged.
   `/usr/local/libexec/robot-scope/xt16_udp_relay.py` and
   `/usr/local/libexec/robot-scope/xt16_wireless_udp_relay.py`;
 - update the approved project checkout under
-  `/home/unitree/project/robot-scope` for the fixed IMU sender and its runner;
+  `/home/unitree/project/robot-scope` for the fixed IMU sender and its runner,
+  using the complete-tree staging and rollback procedure in
+  `docs/ROBOT_SIDE_WIRELESS_CHECKOUT_STAGING.md`;
 - install `robot-scope-xt16-wireless-relay.service` and
   `robot-scope-wireless-imu-sender.service` from their reviewed examples;
 - install the fixed forced-command script and the exact
@@ -63,8 +65,7 @@ Control Bridge port `46010` and camera transport remain separate and unchanged.
   `/home/jetson_orin_nano/project/robot-scope` and build the current
   `robot_scope_xt16_bridge` package plus pinned Hesai/FAST-LIO dependencies;
 - keep `config/hesai_xt16_wireless.yaml` repository-owned and install private
-  calibration files at `/etc/robot-scope/hesai/xt16-correction.csv`,
-  `/etc/robot-scope/hesai/xt16-firetime.csv` and
+  correction state at `/etc/robot-scope/hesai/xt16-correction.dat` and
   `/etc/robot-scope/hesai/xt16-calibration.manifest`;
 - install `/etc/robot-scope/wireless-imu.key`, owned by
   `jetson_orin_nano`, mode `0600`;
@@ -95,12 +96,17 @@ shared control or camera credential.
 
 ## PTC and calibration decision
 
-Use the pinned driver's offline correction/firetime path with
-`use_ptc_connected: false`. Before driver start, the private manifest must bind
-the installed XT16 model/serial, acquisition method, driver revision
+Use the pinned driver's offline JT16 binary-correction path with
+`use_ptc_connected: false`. The pinned JT16 parser explicitly does not support
+firetime loading, so `firetimes_path` is empty and no firetime artifact is
+invented. After the exact deployment approval and before driver start, follow
+`docs/HESAI_XT16_CALIBRATION_RUNBOOK.md`. The private manifest must bind the
+installed XT16 model/physically cross-checked serial, parser identity,
+acquisition method, driver revision
 `e7e112f0809f0eed5e3c81c55a1a0376474db234`, SDK revision
-`9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168` and both artifact SHA-256 values.
-Missing, mismatched, symlinked or broadly writable artifacts block HW-2.
+`9d5dc4fc4ade5be5f6a6ca00e71dd4050b054168`, fixed correction path, exact
+64-byte length and SHA-256. The wireless driver runner validates ownership,
+mode, schema and hash before sourcing ROS. Any mismatch blocks HW-2.
 
 No PTC proxy is installed. It remains a separately approved fallback only if
 the exact offline artifacts fail with the pinned driver during HW-2.
@@ -193,10 +199,12 @@ Go2/XT16 sensor configuration.
   passes 1/1 through both colcon and direct CTest;
 - privileged network verification is cleared on both hosts: `FORWARD DROP`,
   Docker-only `172.17.0.0/16` MASQUERADE and no management/sensor forwarding;
-- acquire and validate the exact XT16 correction/firetime files and private
-  serial/hash manifest;
-- resolve robot-side code provenance and rollback staging because the planned
-  `/home/unitree/project/robot-scope` checkout is currently absent;
+- the correction acquisition and checkout staging procedures are now
+  repository-defined, but their actual approved execution remains pending:
+  acquire the exact 64-byte XT16 correction, cross-check the private serial,
+  and install/validate the manifest;
+- the `/home/unitree/project/robot-scope` checkout is currently absent; create
+  it from the final tested commit using the complete-tree staging procedure;
 - update the clean external operating checkout from
   `6dd569ea0367598f9230096f2bac423b7f1b2dc9` to the reviewed deployment commit
   only after approval, preserving its current rollback identity;

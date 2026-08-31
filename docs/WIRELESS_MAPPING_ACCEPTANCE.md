@@ -21,14 +21,14 @@ is not a freshness pass.
 | --- | --- | --- |
 | Gate 0 dual-host audit | `PASS` | `.50.30/wlan0`, `.123.18/eth0`, `.50.10/eno1`, Go2 `.123.161`, XT16 `.123.20`, synchronized clocks, zero-loss bounded pings, fresh LowState, DISARMED/zero |
 | Gate 0 legacy relay cleanup | `PASS` | former `.123.99:2368` relay is `inactive/dead`, disabled, PID 0; installed rollback files preserved |
-| Gate 0 network boundary | `PASS` with recorded limitation | robot-side `FORWARD DROP`, Docker-only forwarding/NAT, no `wlan0↔eth0` rule; external has no sensor route/interface, but privileged external netfilter dump remains unverified |
+| Gate 0 network boundary | `PASS` | both hosts `FORWARD DROP`, Docker-only `172.17.0.0/16` forwarding/NAT, no management/sensor forwarding; external nftables ruleset empty; no rules changed |
 | Gate 1 architecture and acceptance documents | `PASS` after contract tests | this document and the wireless transport ADR; no runtime/deployment mutation |
 | Gate 2 fixed XT16 relay implementation | `PASS` after hardware-free contract tests | separate fixed-address relay, disabled service example and strict regression tests; no host installation or live packet claim |
-| Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private offline correction/firetime selected; PTC proxy not implemented and fallback remains blocked |
+| Gate 3 Hesai wireless input and PTC decision | `PASS` after pinned-source and configuration contract tests | exact `.50.30:46236 -> .50.10:2368` profile; private 64-byte JT16 correction selected, unsupported firetime omitted; PTC proxy not implemented and fallback remains blocked |
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
-| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | project venv: 875 Python PASS; Node: 257 PASS; Playwright: 30 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
+| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | project venv: 886 Python PASS; Node: 257 PASS; Playwright: 30 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
 | Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
@@ -69,13 +69,21 @@ source port. The separate wireless profile fixes
 `192.168.50.30:46236 -> 192.168.50.10:2368`, publishes only the bounded
 `/lidar_points` output and leaves the wired profile unchanged.
 
-The pinned SDK also has an offline path that loads correction and firetime
-files when PTC is disabled. Gate 3 therefore selects fixed private
-sensor-associated artifacts and does not implement a PTC proxy. The actual
-files, serial association and private SHA-256 manifest are still unavailable,
-so driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains `BLOCKED`
-unless the offline path fails in an approved hardware test and receives a new
-design approval.
+The pinned SDK also has an offline path when PTC is disabled. The measured
+packet selects its JT16 parser, which consumes a 64-byte binary correction and
+explicitly does not support firetime loading. Gate 3 therefore selects one
+fixed private sensor-associated `.dat` correction, leaves `firetimes_path`
+empty and does not implement a PTC proxy. The acquisition helper and private
+manifest validator are repository-tested, but the actual correction, physical
+serial cross-check and installation remain unavailable until deployment is
+approved. Driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains
+`BLOCKED` unless the offline path fails in an approved hardware test and
+receives a new design approval.
+
+The helper was also compiled, but not executed, against the clean robot-side
+pinned SDK using GNU C++ 9.4 in Release mode. Its target passed
+`-Wall -Wextra -Wpedantic -Werror`. The executable was not installed, no PTC
+connection was opened and the temporary source/build tree was removed.
 
 ### Gate 4 repository evidence
 
@@ -275,10 +283,10 @@ The existing wired relay and its parser remain unchanged.
 ### Gate 3 — Hesai wireless input and PTC
 
 The external receive path accepts only robot-side `192.168.50.30:46236` to
-external `192.168.50.10:2368`. Prefer a private sensor-associated offline
-correction/firetime artifact. A fixed one-client PTC proxy is `BLOCKED` until
-the pinned driver proves it is necessary and the operator separately approves
-it. Actual calibration artifacts and identities never enter Git.
+external `192.168.50.10:2368`. Use the private sensor-associated 64-byte JT16
+correction and no firetime artifact. A fixed one-client PTC proxy is `BLOCKED`
+until the pinned driver proves it is necessary and the operator separately
+approves it. Actual correction data and identities never enter Git.
 
 ### Gate 4 — minimum authenticated IMU
 

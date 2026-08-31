@@ -41,12 +41,9 @@ class HesaiWirelessProfileTests(unittest.TestCase):
         self.assertEqual(udp["ptc_mode"], 0)
         self.assertEqual(
             udp["correction_file_path"],
-            "/etc/robot-scope/hesai/xt16-correction.csv",
+            "/etc/robot-scope/hesai/xt16-correction.dat",
         )
-        self.assertEqual(
-            udp["firetimes_path"],
-            "/etc/robot-scope/hesai/xt16-firetime.csv",
-        )
+        self.assertEqual(udp["firetimes_path"], "")
         self.assertGreater(udp["recv_point_cloud_timeout"], 0)
         self.assertLessEqual(udp["recv_point_cloud_timeout"], 10)
         self.assertGreaterEqual(udp["ptc_connect_timeout"], 0)
@@ -109,14 +106,24 @@ class HesaiWirelessProfileTests(unittest.TestCase):
     def test_decision_keeps_calibration_private_and_proxy_blocked(self):
         for contract in (
             "xt16-calibration.manifest",
-            "SHA-256 of both files",
-            "Actual calibration contents, serial numbers and hashes are not",
+            "exact 64-byte length and SHA-256",
+            "Actual correction contents, serial numbers and hashes are not",
             "PTC proxy is not required",
             "remains `BLOCKED`",
             "HW-2 remains `NOT_RUN`",
             "never starts Mapping",
         ):
             self.assertIn(contract, self.decision)
+
+    def test_wireless_runner_validates_private_correction_before_ros(self):
+        runner = (ROOT / "scripts" / "run_hesai_driver_wireless_humble.sh").read_text(
+            encoding="utf-8"
+        )
+        validator = runner.index("hesai_calibration_manifest.py\" validate")
+        ros_setup = runner.index("setup_wireless_mapping_ros2_humble.sh")
+        driver = runner.index("ros2 run hesai_ros_driver")
+        self.assertLess(validator, ros_setup)
+        self.assertLess(validator, driver)
 
 
 if __name__ == "__main__":

@@ -4,8 +4,9 @@
 #
 # The robot-side relay emits only 192.168.50.30:46236 ->
 # 192.168.50.10:2368.  PTC is deliberately disabled: deployment must provide
-# the exact sensor-associated correction and firetime files at the fixed
-# private paths below.  Neither artifact belongs in Git.
+# the exact sensor-associated JT16 binary correction at the fixed private path
+# below.  The pinned JT16 parser explicitly does not support a firetime file.
+# The correction and its private manifest do not belong in Git.
 lidar:
   - driver:
       use_gpu: false
@@ -17,8 +18,8 @@ lidar:
         multicast_ip_address: ""
         use_ptc_connected: false
         host_ptc_port: 0
-        correction_file_path: /etc/robot-scope/hesai/xt16-correction.csv
-        firetimes_path: /etc/robot-scope/hesai/xt16-firetime.csv
+        correction_file_path: /etc/robot-scope/hesai/xt16-correction.dat
+        firetimes_path: ""
         recv_point_cloud_timeout: 5.0
         ptc_connect_timeout: 2.0
         host_ip_address: 192.168.50.10

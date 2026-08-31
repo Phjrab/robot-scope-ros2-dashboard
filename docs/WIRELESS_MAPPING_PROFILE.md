@@ -55,6 +55,9 @@ The read-only preflight requires all of the following before FAST-LIO:
 - the restricted IMU sender lifecycle reports active/running;
 - five fresh, increasing, reliable/volatile `/imu/body` samples from exactly
   one publisher pass the existing absolute timestamp and frame checks;
+- the fixed private JT16 correction manifest passes owner/group, mode,
+  revision, model, path, 64-byte length and SHA-256 validation before the
+  Hesai driver is invoked; the pinned JT16 parser uses no firetime artifact;
 - five fresh raw clouds, then five converted clouds, pass their existing frame,
   layout, point-count, publisher, rate, timestamp and QoS gates;
 - fresh FAST-LIO odometry and a non-empty laser map pass readiness.
