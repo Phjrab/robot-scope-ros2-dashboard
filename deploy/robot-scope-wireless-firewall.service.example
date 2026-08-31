@@ -16,8 +16,10 @@ RemainAfterExit=yes
 TimeoutStartSec=20
 TimeoutStopSec=20
 
-CapabilityBoundingSet=CAP_NET_ADMIN
-AmbientCapabilities=CAP_NET_ADMIN
+# Ubuntu's iptables-legacy backend requires both capabilities even for a
+# read-only filter-table inventory. No other capability is retained.
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 NoNewPrivileges=true
 RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX
 UMask=0077

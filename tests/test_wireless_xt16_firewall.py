@@ -123,8 +123,8 @@ class WirelessXt16FirewallTests(unittest.TestCase):
         for value in (
             "Before=robot-scope.service robot-scope-wireless-imu-receiver.service",
             "User=root",
-            "CapabilityBoundingSet=CAP_NET_ADMIN",
-            "AmbientCapabilities=CAP_NET_ADMIN",
+            "CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW",
+            "AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW",
             "NoNewPrivileges=true",
             "RemainAfterExit=yes",
             "WantedBy=multi-user.target",

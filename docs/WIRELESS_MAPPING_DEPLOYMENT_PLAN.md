@@ -139,21 +139,25 @@ boundary, deployment stops for a new review.
 
 Persistence is owned by a dedicated root oneshot unit using the fixed
 `wireless_xt16_firewall.py` helper. It is ordered after network readiness and
-before the dashboard and wireless IMU receiver, and is the only new unit
-enabled at boot. The dashboard has no firewall mutation permission and merely
+before the dashboard and wireless IMU receiver. It is the only new unit enabled at boot.
+The dashboard has no firewall mutation permission and merely
 remains available if this unit fails; every later wireless sensor preflight
 must then fail closed. The helper refuses a non-legacy backend, a missing
 `eno1`, an unknown existing chain, extra rules or ambiguous INPUT references.
 It never modifies FORWARD, NAT, routes, bridges or another chain. Sensor,
 Mapping, Nav2 and Mission services remain disabled and never auto-resume.
+The hardened unit retains only `CAP_NET_ADMIN` and `CAP_NET_RAW`; the deployed
+Ubuntu iptables-legacy backend was measured to require both even for a
+read-only filter-table inventory. Neither capability is granted to the
+dashboard or a sensor process.
 
 ## Enable policy and transactional lifecycle
 
-All three new service units are installed disabled. No unit is enabled at boot
-and there is no automatic Mapping/Nav/Mission resume after boot or Wi-Fi
-recovery. Robot Scope may start only the two robot-side units through the
-restricted forced command after an explicit Mapping start and successful
-preflight.
+All three new sensor service units are installed disabled.
+No sensor unit is enabled at boot. There is no automatic Mapping/Nav/Mission
+resume after boot or Wi-Fi recovery. Robot Scope may start only the two
+robot-side units through the restricted forced command after an explicit
+Mapping start and successful preflight.
 
 Startup is fixed:
 
