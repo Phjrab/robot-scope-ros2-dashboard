@@ -1413,7 +1413,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 @media (max-width: 520px) {
-  .brand small { display:none; }.connection-chip { min-width:0; }.connection-chip #connectionLabel { display:none; }
+  .brand small { display:none; }.connection-chip { min-width:0; }.connection-chip #connectionLabel, .connection-chip #controlConnectionLabel { display:none; }
   .kpi-grid { grid-template-columns:1fr; }.sensor-grid, .sensor-page-grid .sensor-grid, .source-settings-grid, .settings-detail { grid-template-columns:1fr; }
   .camera-link-observability { grid-template-columns:1fr; }
   .pose-layout { grid-template-columns:1fr; }.axis-visual { display:none; }.page-heading p { max-width:280px; }

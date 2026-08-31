@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 import vm from 'node:vm';
+import { CONTROL_RELEASE_ACK_TIMEOUT_MS, createReleaseAckTracker } from '../robot_dashboard/static/features/control/session_contract.js';
 
 const require = createRequire(import.meta.url);
 const input = require('../robot_dashboard/static/control_input.js');
@@ -122,6 +123,18 @@ test('browser control frames carry fresh client timestamps and reject queued wri
   assert.match(appSource, /if \(controlSocketBound && controlSocket\?\.readyState === WebSocket\.OPEN\)/);
 });
 
+test('browser sends normalized axes and applies speed scale exactly once on the server', () => {
+  const start = appSource.indexOf('function controlTick()');
+  const end = appSource.indexOf('\nasync function triggerEmergencyStop(', start);
+  assert.ok(start >= 0 && end > start, 'controlTick must exist');
+  const tick = appSource.slice(start, end);
+  assert.match(tick, /const scaled = controlInput\.scaleCommand\(raw, controlLimits\(\), speedScale\)/);
+  assert.match(tick, /controlLastCommand = scaled;\s*renderControlCommand\(scaled\)/);
+  assert.match(tick, /linear_x: raw\.linear_x, linear_y: raw\.linear_y, angular_z: raw\.angular_z/);
+  assert.match(tick, /speed_scale: speedScale/);
+  assert.doesNotMatch(tick, /linear_x: scaled\.linear_x|linear_y: scaled\.linear_y|angular_z: scaled\.angular_z/);
+});
+
 test('small WebSocket backpressure skips frames briefly, then fails closed', () => {
   const decision = loadBackpressureDecision();
   assert.deepEqual({ ...decision(0, 900, 1000) }, { action: 'send', sinceMs: null });
@@ -179,9 +192,42 @@ test('late messages from an old control socket cannot touch a replacement lease'
   const handler = appSource.slice(start, end);
   const guard = 'if (controlSocket !== socket || controlLeaseId !== leaseAtConnect) return;';
   assert.match(handler, /controlSocket !== socket \|\| controlLeaseId !== leaseAtConnect/);
-  assert.ok(handler.indexOf(guard) < handler.indexOf('JSON.parse(event.data)'), 'session guard must run before payload handling');
+  assert.match(handler, /payload\.type === 'released' && controlReleaseAcks\.has\(socket\)/);
+  assert.ok(handler.indexOf("payload.type === 'released'") < handler.indexOf(guard), 'a registered release acknowledgement must settle after local authority is cleared');
   assert.ok(handler.indexOf(guard) < handler.indexOf("payload.type === 'error'"), 'old errors must be ignored');
   assert.ok(handler.indexOf(guard) < handler.indexOf("payload.type === 'bound'"), 'old bound frames must be ignored');
+});
+
+test('normal disarm waits briefly for release acknowledgement before HTTP fallback', () => {
+  assert.equal(CONTROL_RELEASE_ACK_TIMEOUT_MS, 180);
+  const start = appSource.indexOf('async function failSafeDisarm(');
+  const end = appSource.indexOf('\nfunction invalidatePendingArm()', start);
+  assert.ok(start >= 0 && end > start, 'failSafeDisarm must exist');
+  const disarm = appSource.slice(start, end);
+  const zero = disarm.indexOf('sendImmediateZero(leaseId, source)');
+  const release = disarm.indexOf("type: 'release'");
+  const localClear = disarm.indexOf("controlLeaseId = ''");
+  const awaitAck = disarm.indexOf('await releaseAck');
+  const fallback = disarm.indexOf("api('/api/v1/control/disarm'");
+  assert.ok(zero >= 0 && zero < release, 'zero must precede release');
+  assert.ok(release < localClear && localClear < awaitAck, 'local authority must clear before waiting for acknowledgement');
+  assert.ok(awaitAck < fallback, 'HTTP disarm must remain the missing-ack fallback');
+  assert.match(disarm, /if \(!acknowledged\)/);
+  assert.match(disarm, /controlReleaseAcks\.wait\(releaseSocket\)/);
+});
+
+test('release acknowledgement tracker settles once and times out fail-closed', async () => {
+  const socket = { readyState: 1 };
+  const acknowledgedTracker = createReleaseAckTracker(20);
+  const acknowledged = acknowledgedTracker.wait(socket);
+  assert.equal(acknowledgedTracker.has(socket), true);
+  acknowledgedTracker.settle(socket, true);
+  acknowledgedTracker.settle(socket, false);
+  assert.equal(await acknowledged, true);
+  assert.equal(acknowledgedTracker.has(socket), false);
+
+  const timedOutTracker = createReleaseAckTracker(1);
+  assert.equal(await timedOutTracker.wait({ readyState: 1 }), false);
 });
 
 test('keyboard repeats are idempotent and direction keyup stops without disarming', () => {

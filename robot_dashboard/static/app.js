@@ -9,6 +9,7 @@ import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraOb
 import { initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
+import { createReleaseAckTracker, renderHeaderConnections } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
@@ -20,6 +21,7 @@ window.RobotLidarSourceIdentity = LidarSourceIdentity;
 const ui = {
   connectionChip: $('#connectionChip'),
   connectionLabel: $('#connectionLabel'),
+  controlConnectionChip: $('#controlConnectionChip'), controlConnectionLabel: $('#controlConnectionLabel'),
   robotType: $('#robotType'),
   robotTypeNote: $('#robotTypeNote'),
   discoverRobotsButton: $('#discoverRobotsButton'),
@@ -508,6 +510,7 @@ let controlSocket = null;
 let controlSocketBound = false;
 let controlBackpressureSince = null;
 const intentionallyClosedControlSockets = new WeakSet();
+const controlReleaseAcks = createReleaseAckTracker();
 let controlSequence = 0;
 let lastControlHeartbeatAt = 0, lastControlFrameAt = 0;
 let controlDisarmBusy = false;
@@ -1070,26 +1073,12 @@ function invalidateStateRequests() {
 }
 
 function updateHealth(health) {
-  const ready = Boolean(health.agent_ready);
   const online = Boolean(health.robot_online);
   robotTargetConnected = health.robot_target_connected == null
     ? Boolean(health.robot_ip)
     : Boolean(health.robot_target_connected);
   const rosTransport = health.ros_transport || {};
-  const rosInterfaceReady = rosTransport.interface_ready ?? health.ros_interface_ready;
-  const offlineViewer = Boolean(rosTransport.offline_viewer ?? health.ros_offline_viewer);
-  ui.connectionChip.className = `connection-chip ${ready && rosInterfaceReady === true && online ? 'ok' : ready ? 'waiting' : 'error'}`;
-  ui.connectionLabel.textContent = !ready
-    ? '에이전트 오류'
-    : !robotTargetConnected
-      ? '로봇 대상 연결 해제됨'
-    : !online
-      ? '로봇 오프라인'
-    : offlineViewer || rosInterfaceReady === false
-      ? 'ROS/DDS 오프라인 뷰어'
-      : rosInterfaceReady === true
-        ? 'ROS/DDS 인터페이스 준비'
-        : 'ROS 에이전트 연결됨';
+  renderHeaderConnections(ui, health, controlSnapshot);
   ui.agentHost.textContent = health.hostname || '—';
   const rosInterface = rosTransport.interface ? ` · ${rosTransport.interface}` : '';
   ui.rosRuntime.textContent = `${health.ros_distro || '—'} · ${health.rmw || 'default'}${rosInterface}`;
@@ -5940,6 +5929,7 @@ function renderControlCommand(command = controlLastCommand || controlSnapshot?.c
 function applyControlSnapshot(snapshot) {
   if (!snapshot) return;
   controlSnapshot = snapshot; controlSnapshotAt = Date.now();
+  renderHeaderConnections(ui, latestState?.health, snapshot);
   if (!controlSpeedInitialized) {
     const percent = controlInput.clamp(Number(snapshot.limits?.default_speed_scale) || 0.3, 0.1, 1) * 100;
     controlUi.speed.value = String(Math.round(percent / 5) * 5);
@@ -5952,7 +5942,7 @@ function applyControlSnapshot(snapshot) {
 }
 
 async function refreshControlSnapshot() {
-  if (!['controls', 'navigation', 'cockpit'].includes(activePage)) return;
+  if (!['overview', 'controls', 'navigation', 'cockpit'].includes(activePage)) return;
   // Never let a poll started before ARM revoke a newer local lease.
   const armGenerationAtRequest = controlArmGeneration;
   const leaseAtRequest = controlLeaseId;
@@ -5966,6 +5956,7 @@ async function refreshControlSnapshot() {
   } catch (error) {
     if (armGenerationAtRequest !== controlArmGeneration || leaseAtRequest !== controlLeaseId) return;
     controlSnapshotAt = 0;
+    if (activePage === 'overview') renderHeaderConnections(ui, latestState?.health, controlSnapshot, true);
     controlUi.availability.textContent = 'API ERROR';
     controlUi.availabilityNote.textContent = error.message;
     controlUi.availability.closest('.control-status-card').classList.add('is-error');
@@ -6060,6 +6051,7 @@ function closeControlSocket(reason = 'client_close') {
   controlBackpressureSince = null;
   clearPendingControlAction(false);
   if (!socket) return;
+  controlReleaseAcks.settle(socket, false);
   intentionallyClosedControlSockets.add(socket);
   try { socket.close(1000, reason.slice(0, 90)); } catch (_) {}
 }
@@ -6082,11 +6074,17 @@ function connectControlSocket() {
     lastControlHeartbeatAt = Date.now();
   };
   socket.onmessage = (event) => {
+    let payload;
+    try { payload = JSON.parse(event.data); } catch (error) { console.warn('control stream:', error); return; }
+    if (payload.type === 'released' && controlReleaseAcks.has(socket)) {
+      controlReleaseAcks.settle(socket, true);
+      applyControlSnapshot(extractControlSnapshot(payload));
+      return;
+    }
     // Ignore late bound/error frames from a socket that belonged to an older
     // lease. They must never mutate or revoke the replacement control session.
     if (controlSocket !== socket || controlLeaseId !== leaseAtConnect) return;
     try {
-      const payload = JSON.parse(event.data);
       if (payload.type === 'error') {
         clearPendingControlAction();
         showToast(`제어 스트림 오류: ${payload.detail || payload.message || 'unknown'}`, true);
@@ -6125,6 +6123,7 @@ function connectControlSocket() {
   };
   socket.onerror = () => { try { socket.close(); } catch (_) {} };
   socket.onclose = () => {
+    controlReleaseAcks.settle(socket, false);
     if (controlSocket === socket) {
       controlSocket = null;
       controlSocketBound = false;
@@ -6157,15 +6156,21 @@ async function failSafeDisarm(reason, { notify = false } = {}) {
     return;
   }
   controlDisarmBusy = true;
+  const releaseSocket = controlSocket;
   sendImmediateZero(leaseId, source);
-  controlSocketSend({ type: 'release', lease_id: leaseId, reason, client_time_ms: Date.now() });
+  const releaseAck = controlReleaseAcks.wait(releaseSocket);
+  const releaseSent = controlSocketSend({ type: 'release', lease_id: leaseId, reason, client_time_ms: Date.now() }, releaseSocket);
+  if (!releaseSent) controlReleaseAcks.settle(releaseSocket, false);
   controlLeaseId = '';
   controlLeaseSource = '';
-  closeControlSocket(reason);
   resetControlInputs();
   renderControlStatus();
   try {
-    await api('/api/v1/control/disarm', { method: 'POST', keepalive: true, body: JSON.stringify({ lease_id: leaseId }) });
+    const acknowledged = releaseSent && await releaseAck;
+    if (!acknowledged) {
+      closeControlSocket(reason);
+      await api('/api/v1/control/disarm', { method: 'POST', keepalive: true, body: JSON.stringify({ lease_id: leaseId }) });
+    }
     if (notify) showToast('안전 해제: 제로 명령 후 제어 권한을 반납했습니다.');
   } catch (error) {
     if (notify) showToast(`제어 해제 확인 실패: ${error.message}`, true);
@@ -6862,7 +6867,7 @@ connectPose();
 requestAnimationFrame(animateRobot);
 const pointBudgetReady = initializePointBudgets();
 pointBudgetReady.then(() => loadOfflinePointcloud().then(refreshSavedMaps));
-refreshState();
+refreshState(); refreshControlSnapshot();
 refreshTopics();
 refreshSources();
 pointBudgetReady.then(() => {

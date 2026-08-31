@@ -22,8 +22,11 @@
         <span class="dataset-capture-dot" aria-hidden="true"></span><strong>SERVER CAPTURE</strong><small id="datasetGlobalStatusText">00:00 · 0 saved</small>
       </a>
       <button class="ghost-button" id="refreshButton" type="button">새로고침</button>
-      <div class="connection-chip waiting" id="connectionChip">
-        <span class="status-dot"></span><span id="connectionLabel">에이전트 확인 중</span>
+      <div class="connection-chip waiting" id="connectionChip" title="대시보드 호스트에서 로봇 ROS/DDS를 직접 관측하는 상태">
+        <span class="status-dot"></span><span id="connectionLabel">직접 ROS 확인 중</span>
+      </div>
+      <div class="connection-chip waiting" id="controlConnectionChip" title="서명·인증된 원격 Control Bridge 상태">
+        <span class="status-dot"></span><span id="controlConnectionLabel">제어 Bridge 확인 중</span>
       </div>
     </div>
   </header>

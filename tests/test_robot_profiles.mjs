@@ -7,6 +7,7 @@ import { runInNewContext } from 'node:vm';
 const require = createRequire(import.meta.url);
 const profiles = require('../robot_dashboard/static/robot_profiles.js');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const controlSessionSource = readFileSync(new URL('../robot_dashboard/static/features/control/session_contract.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 const rendererSource = readFileSync(new URL('../robot_dashboard/static/go2_official_model.js', import.meta.url), 'utf8');
 
@@ -107,8 +108,8 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(appSource, /if \(response\.robot\?\.changed\) resetLiveRobotSessionView\(\)/);
   assert.match(appSource, /response\.robot\?\.restart_required/);
   assert.match(appSource, /ROS 재시작 전 기존 데이터 · 로봇 오버레이 숨김/);
-  assert.match(appSource, /ROS\/DDS 오프라인 뷰어/);
-  assert.match(appSource, /ROS\/DDS 인터페이스 준비/);
+  assert.match(controlSessionSource, /직접 ROS\/DDS 오프라인 뷰어/);
+  assert.match(controlSessionSource, /직접 ROS\/DDS 인터페이스 준비/);
   assert.match(appSource, /if \(robotConnectionBusy\) return/);
   assert.match(appSource, /api\('\/api\/v1\/robot', \{ method: 'DELETE' \}\)/);
   assert.match(appSource, /robotTargetConnected = false/);

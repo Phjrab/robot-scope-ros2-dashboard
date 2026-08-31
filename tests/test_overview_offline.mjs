@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
+import { controlBridgeConnectionState, renderHeaderConnections } from '../robot_dashboard/static/features/control/session_contract.js';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
@@ -270,6 +271,52 @@ test('live telemetry gate fails closed for agent, target and robot state includi
   assert.equal(overviewTelemetryLive({ agent_ready: true, robot_online: true, robot_ip: '192.0.2.1' }), true);
   assert.equal(overviewTelemetryLive({ agent_ready: true, robot_online: true }), false);
   assert.equal(overviewTelemetryLive({ ...healthy, robot_target_connected: false, robot_ip: '192.0.2.1' }), false);
+});
+
+test('header separates direct ROS observability from authenticated remote control Bridge', () => {
+  for (const id of ['connectionChip', 'connectionLabel', 'controlConnectionChip', 'controlConnectionLabel']) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.deepEqual(
+    { ...controlBridgeConnectionState({
+      configured: true,
+      target_supported: true,
+      readiness: { bridge_fresh: true },
+      bridge: { authenticated: true, connected: true, state: 'ready' },
+    }) },
+    { tone: 'ok', label: '원격 제어 Bridge 연결' },
+  );
+  assert.deepEqual(
+    { ...controlBridgeConnectionState({
+      configured: true,
+      target_supported: true,
+      readiness: { bridge_fresh: false },
+      bridge: { authenticated: true, connected: false, state: 'stale' },
+    }) },
+    { tone: 'error', label: '원격 제어 Bridge 오프라인' },
+  );
+  const headerUi = uiFixture();
+  renderHeaderConnections(
+    headerUi,
+    {
+      agent_ready: true,
+      robot_target_connected: true,
+      robot_online: false,
+      ros_transport: { interface_ready: false, offline_viewer: true },
+    },
+    {
+      configured: true,
+      target_supported: true,
+      readiness: { bridge_fresh: true },
+      bridge: { authenticated: true, connected: true, state: 'ready' },
+    },
+  );
+  assert.equal(headerUi.connectionLabel.textContent, '직접 ROS 오프라인');
+  assert.equal(headerUi.controlConnectionLabel.textContent, '원격 제어 Bridge 연결');
+  assert.match(headerUi.connectionChip.className, /waiting/);
+  assert.match(headerUi.controlConnectionChip.className, /ok/);
+  assert.match(indexSource, /대시보드 호스트에서 로봇 ROS\/DDS를 직접 관측하는 상태/);
+  assert.match(functionSource('refreshControlSnapshot'), /\['overview', 'controls', 'navigation', 'cockpit'\]/);
 });
 
 test('offline cached payload cannot revive camera, lidar, battery or link KPIs', () => {
