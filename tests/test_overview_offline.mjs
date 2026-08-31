@@ -281,7 +281,6 @@ test('header separates direct ROS observability from authenticated remote contro
     { ...controlBridgeConnectionState({
       configured: true,
       target_supported: true,
-      readiness: { bridge_fresh: true },
       bridge: { authenticated: true, connected: true, state: 'ready' },
     }) },
     { tone: 'ok', label: '원격 제어 Bridge 연결' },
@@ -307,7 +306,6 @@ test('header separates direct ROS observability from authenticated remote contro
     {
       configured: true,
       target_supported: true,
-      readiness: { bridge_fresh: true },
       bridge: { authenticated: true, connected: true, state: 'ready' },
     },
   );

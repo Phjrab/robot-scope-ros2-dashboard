@@ -3,7 +3,7 @@ export const CONTROL_RELEASE_ACK_TIMEOUT_MS = 180;
 export function controlBridgeConnectionState(snapshot, requestFailed = false) {
   const bridge = snapshot?.bridge || {};
   if (requestFailed) return { tone: 'error', label: '원격 제어 Bridge 확인 실패' };
-  if (bridge.authenticated === true && bridge.connected === true && snapshot?.readiness?.bridge_fresh === true) {
+  if (bridge.authenticated === true && bridge.connected === true) {
     return { tone: 'ok', label: '원격 제어 Bridge 연결' };
   }
   if (snapshot?.target_supported === false || snapshot?.configured === false) {
