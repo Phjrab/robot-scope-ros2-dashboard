@@ -349,24 +349,6 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   background: rgba(15, 67, 56, 0.86);
 }
 
-.cockpit-scene-readout {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  display: grid;
-  justify-items: end;
-  gap: 5px;
-  max-width: min(420px, calc(100% - 210px));
-  padding: 12px 14px;
-  border: 1px solid rgba(128, 255, 225, 0.16);
-  border-radius: 10px;
-  background: rgba(4, 14, 13, 0.8);
-  backdrop-filter: blur(10px);
-}
-
-.cockpit-scene-readout strong { color: #d9fff6; font-size: 12px; letter-spacing: 0.08em; }
-.cockpit-scene-readout small { color: #85a9a2; text-align: right; }
-
 .cockpit-status {
   padding: 4px 8px;
   border: 1px solid currentColor;
@@ -477,7 +459,8 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   position: absolute;
   z-index: calc(var(--cockpit-hud-z) - 1);
   top: 120px;
-  left: 18px;
+  right: 18px;
+  left: auto;
   display: grid;
   width: min(520px, calc(100% - 36px));
   max-height: calc(100% - 88px);
@@ -615,11 +598,9 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   .cockpit-window-identity span { display: none; }
   .cockpit-window-actions button { min-height: 32px; padding: 0 8px; font-size: 8px; }
   .cockpit-workspace { min-height: 500px; height: calc(100vh - 250px); }
-  .cockpit-scene-readout { top: 64px; left: 18px; right: auto; max-width: calc(100% - 36px); justify-items: start; }
-  .cockpit-scene-readout small { text-align: left; }
   .cockpit-safety-hud { left: 12px; right: 12px; bottom: 12px; width: auto; min-width: 0; max-height: min(54%, calc(100dvh - 24px)); }
   .cockpit-safety-hud[data-expanded="false"] { width: auto; min-width: 0; max-height: none; }
-  .cockpit-competition-status { top: 58px; left: 12px; width: calc(100% - 24px); max-height: 34%; }
+  .cockpit-competition-status { top: 58px; right: 12px; left: 12px; width: calc(100% - 24px); max-height: 34%; }
   .cockpit-competition-status[data-expanded="false"] { width: calc(100% - 24px); max-height: none; }
   .cockpit-safety-header { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .cockpit-safety-summary { grid-column: 1 / -1; grid-row: 2; text-align: left; }

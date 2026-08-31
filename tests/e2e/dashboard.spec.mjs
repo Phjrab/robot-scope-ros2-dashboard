@@ -69,7 +69,7 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   const backend = await openDashboard(page, {}, 'cockpit');
   await expect(page.locator('#cockpitWorkspace')).toBeVisible();
   await expect(page.locator('#cockpitSceneCanvas')).toBeVisible();
-  await expect(page.locator('#cockpitPointcloudStatus')).toHaveText('WAITING');
+  await expect(page.locator('.cockpit-scene-readout')).toHaveCount(0);
   await expect.poll(() => backend.state.wsConnections.pointcloud).toBe(1);
 
   const embeddedBounds = await page.evaluate(() => {
@@ -199,20 +199,31 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
   ]) {
     await page.setViewportSize(viewport);
     if (page.url() === 'about:blank') await page.goto('/?workspace=cockpit#overview');
+    const layoutToggle = page.locator('[data-layout-library-action="toggle"]');
+    if (await layoutToggle.getAttribute('aria-expanded') === 'false') await layoutToggle.click();
     const geometry = await page.evaluate(() => {
       const bar = document.querySelector('#cockpitWindowBar').getBoundingClientRect();
       const workspace = document.querySelector('#cockpitWorkspace').getBoundingClientRect();
       const sceneControls = document.querySelector('.cockpit-scene-controls').getBoundingClientRect();
+      const layoutLibrary = document.querySelector('.cockpit-layout-library').getBoundingClientRect();
       const competition = document.querySelector('#cockpitCompetitionStatus').getBoundingClientRect();
       const stop = document.querySelector('[data-cockpit-software-stop]').getBoundingClientRect();
       const hudZ = Number(getComputedStyle(document.querySelector('#cockpitSafetyHud')).zIndex);
       const panelZ = Number(getComputedStyle(document.querySelector('#cockpitPanelLayer')).zIndex);
+      const overlaps = (first, second) => !(
+        first.right <= second.left
+        || first.left >= second.right
+        || first.bottom <= second.top
+        || first.top >= second.bottom
+      );
       return {
         bar: { x: bar.x, y: bar.y, width: bar.width, height: bar.height, bottom: bar.bottom },
         workspace: { x: workspace.x, y: workspace.y, width: workspace.width, height: workspace.height, bottom: workspace.bottom },
         sceneControls: { left: sceneControls.left, top: sceneControls.top, right: sceneControls.right, bottom: sceneControls.bottom },
+        layoutLibrary: { left: layoutLibrary.left, top: layoutLibrary.top, right: layoutLibrary.right, bottom: layoutLibrary.bottom },
         competition: { left: competition.left, top: competition.top, right: competition.right, bottom: competition.bottom },
         stop: { left: stop.left, top: stop.top, right: stop.right, bottom: stop.bottom },
+        competitionOverlapsLayoutLibrary: overlaps(competition, layoutLibrary),
         hudZ,
         panelZ,
         noHorizontalOverflow: document.documentElement.scrollWidth <= innerWidth,
@@ -228,6 +239,7 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
     expect(geometry.workspace.width).toBe(viewport.width);
     expect(geometry.workspace.bottom).toBe(viewport.height);
     expect(geometry.competition.top).toBeGreaterThanOrEqual(geometry.sceneControls.bottom + 8);
+    expect(geometry.competitionOverlapsLayoutLibrary).toBe(false);
     expect(geometry.stop.left).toBeGreaterThanOrEqual(0);
     expect(geometry.stop.top).toBeGreaterThanOrEqual(0);
     expect(geometry.stop.right).toBeLessThanOrEqual(viewport.width);
