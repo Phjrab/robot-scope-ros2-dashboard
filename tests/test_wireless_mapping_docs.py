@@ -99,8 +99,11 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "external privileged network boundary is also `PASS`",
             "`ip_forward=1`",
             "accepted as evidence",
-            "HW-1–HW-6 remain `NOT_RUN`",
-            "No deployment or hardware status is claimed",
+            "HW-2–HW-6 remain `NOT_RUN`",
+            "current hardware status is `XT16_RELAY_PASS`",
+            "runtime-only and not reboot-persistent",
+            "53,328 packets",
+            "zero relay send errors",
         ):
             self.assertIn(contract, self.acceptance)
 

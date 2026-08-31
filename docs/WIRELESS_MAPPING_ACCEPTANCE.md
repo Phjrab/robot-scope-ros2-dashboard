@@ -28,14 +28,15 @@ is not a freshness pass.
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
-| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | project venv: 886 Python PASS; Node: 257 PASS; Playwright: 30 PASS; Ruff, mypy, syntax, secrets and diff checks PASS; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
-| Deployment and HW-1–HW-6 | `NOT_RUN` | `APPROVE_WIRELESS_XT16_DEPLOY` not supplied |
+| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | final `e22215a`: 888 Python PASS, Node 257 PASS, Ruff and mypy PASS; Playwright 30 PASS on the tested `03b4d08` predecessor before service-only Jetson compatibility fixes; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
+| Deployment and HW-1 XT16 relay | `PASS` — `XT16_RELAY_PASS` | exact approval received; private PandarXT correction and disabled units installed; final `e22215a` relay-only run received 53,328 exact packets in 12 s and cleaned up with no service residue |
+| HW-2–HW-6 | `NOT_RUN` | stopped after HW-1 as required; no Hesai driver, IMU publisher, cloud bridge, FAST-LIO, map write or Nav2 start |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
 `/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
-and Dataset Capture are idle. The current repository status is `CODE_READY`;
-that repository classification does not authorize deployment or claim any
-live sensor, mapping or navigation result.
+and Dataset Capture are idle. The repository status is `CODE_READY`; the
+current hardware status is `XT16_RELAY_PASS`. No LiDAR pointcloud, IMU, cloud,
+mapping or navigation PASS is implied.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -252,8 +253,53 @@ while the robot-side exported tree records an older deployed commit and must be
 preserved as rollback before complete-tree replacement. Code provenance and
 the exact staged install paths must be recorded during deployment.
 
-These observations preserve repository `CODE_READY`, but deployment and
-HW-1–HW-6 remain `NOT_RUN`.
+These were predeployment observations and preserved repository `CODE_READY` at
+that point. The later approved transaction and HW-1 result are recorded below.
+
+## Approved deployment and HW-1 evidence — 2026-08-31
+
+The operator supplied `APPROVE_WIRELESS_XT16_DEPLOY`. Both hosts were deployed
+to final commit `e22215af02ec43f6aee9b947ee5dad7fdca49529` with complete-tree or
+fast-forward rollback preserved. The mounted sensor's measured `EE FF 06 01`
+stream selected PandarXT/UDP 6.1. One approved generic read-only PTC query
+returned a private 16-channel CSV correction; its physical-label association,
+format, bounded length, owner/mode, revisions and hash passed the private
+manifest validator. Neither its contents, serial nor hash entered Git or this
+report.
+
+The relay, IMU sender and IMU receiver units were installed disabled and left
+inactive. Dedicated mode-0600 IMU and SSH material, a restricted forced SSH
+command, exact sudoers commands and the 8 MiB receive-buffer ceiling were
+installed. The external INPUT chain accepts only
+`192.168.50.30:46236 -> 192.168.50.10:2368` and
+`192.168.50.30:46020 -> 192.168.50.10:46020`, then drops other traffic to those
+two destination ports. It was applied behind an automatic rollback window and
+verified from a second SSH session without changing `FORWARD DROP`, NAT,
+bridging or routes. The host has no firewall persistence owner installed, so
+this INPUT chain is runtime-only and not reboot-persistent; reboot validation
+remains a deployment risk before later stages.
+
+The first relay-only attempt exposed unsupported systemd condition names and a
+journal tail that could be displaced by manager warnings. Commits `5de2fa7`
+and `e22215a` replaced them with supported unit conditions and strict bounded
+filtering of the final two relay metric lines. All three deployed units then
+passed targeted `systemd-analyze verify` checks without an unknown-key report.
+
+The final HW-1 run opened a fixed external validator before starting only
+`robot-scope-xt16-wireless-relay.service` for 12 seconds. It observed:
+
+- 53,328 packets, 4,443.9 packets/s;
+- zero wrong-peer, wrong-length or wrong-header payloads;
+- zero relay send errors and equal advancing accepted/forwarded counters;
+- 152 sequence gaps (about 0.285%) and two reordered packets, retained as the
+  Wi-Fi baseline rather than hidden;
+- Wi-Fi signal `-38 dBm`, 1,200.9 Mbit/s receive/transmit link rate;
+- 20/20 management pings, zero loss, 2.156 ms average RTT.
+
+Cleanup stopped the relay and confirmed disabled/inactive, PID 0, restart count
+0. Both IMU units remained disabled/inactive; Hesai, cloud bridge, FAST-LIO and
+Nav2 never started. Mapping and Dataset Capture remained idle, with no control
+lease, deadman false and exact zero command. HW-2–HW-6 remain `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 
@@ -385,5 +431,7 @@ bundle unrelated service rollback.
 
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
-Gates 2, 3, 4 and 5 are repository-only PASS. The current repository status is
-`CODE_READY` after Gate 7 PASS. No deployment or hardware status is claimed.
+Gates 2, 3, 4 and 5 are repository-only PASS. The repository gate is
+`CODE_READY`; the current hardware status is `XT16_RELAY_PASS`. `LIDAR_PASS`,
+`IMU_PASS`, `CLOUD_PASS`, `MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not
+claimed.
