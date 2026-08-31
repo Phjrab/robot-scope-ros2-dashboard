@@ -410,7 +410,7 @@ class SocketAndSourceContractTests(unittest.TestCase):
             ).read_text()
             self.assertIn(f"User={user}", service)
             self.assertIn(
-                "ConditionPathIsRegular=/etc/robot-scope/wireless-imu.key", service
+                "ConditionFileNotEmpty=/etc/robot-scope/wireless-imu.key", service
             )
             self.assertIn("CapabilityBoundingSet=", service)
             self.assertIn("NoNewPrivileges=true", service)
