@@ -100,8 +100,78 @@ class DashboardServiceScriptTests(unittest.TestCase):
         with patch.dict(
             module.os.environ,
             {"SSH_CONNECTION": "192.168.0.10 53122 192.168.0.26 22"},
+        ), patch.object(
+            module, "_configured_dashboard_address", return_value=None
         ), patch.object(module, "_status_port", return_value=8088):
             self.assertEqual(module._dashboard_url(), "http://192.168.0.26:8088")
+
+    def test_dashboard_url_prefers_root_owned_configured_address(self):
+        trusted = unittest.mock.MagicMock(
+            st_mode=0o100644,
+            st_uid=0,
+            st_size=14,
+        )
+        configured = unittest.mock.MagicMock()
+        configured.exists.return_value = True
+        with patch.object(
+            module, "DASHBOARD_ADDRESS_CONFIG_PATH", configured
+        ), patch.object(module.os, "open", return_value=92), patch.object(
+            module.os, "fstat", return_value=trusted
+        ), patch.object(
+            module.os, "read", return_value=b"192.168.50.10\n"
+        ), patch.object(module.os, "close"), patch.dict(
+            module.os.environ,
+            {"SSH_CONNECTION": "192.168.0.10 53122 192.168.0.26 22"},
+        ), patch.object(module, "_status_port", return_value=8088):
+            self.assertEqual(module._dashboard_url(), "http://192.168.50.10:8088")
+
+    def test_dashboard_address_config_rejects_public_or_untrusted_files(self):
+        configured = unittest.mock.MagicMock()
+        configured.exists.return_value = True
+        untrusted = unittest.mock.MagicMock(
+            st_mode=0o100666,
+            st_uid=0,
+            st_size=12,
+        )
+        with patch.object(
+            module, "DASHBOARD_ADDRESS_CONFIG_PATH", configured
+        ), patch.object(module.os, "open", return_value=93), patch.object(
+            module.os, "fstat", return_value=untrusted
+        ), patch.object(module.os, "close"):
+            with self.assertRaisesRegex(module.DashboardServiceError, "not trusted"):
+                module._configured_dashboard_address()
+
+        trusted = unittest.mock.MagicMock(
+            st_mode=0o100644,
+            st_uid=0,
+            st_size=8,
+        )
+        with patch.object(
+            module, "DASHBOARD_ADDRESS_CONFIG_PATH", configured
+        ), patch.object(module.os, "open", return_value=94), patch.object(
+            module.os, "fstat", return_value=trusted
+        ), patch.object(
+            module.os, "read", return_value=b"8.8.8.8\n"
+        ), patch.object(module.os, "close"):
+            with self.assertRaisesRegex(module.DashboardServiceError, "private host IPv4"):
+                module._configured_dashboard_address()
+
+    def test_blank_root_owned_address_config_keeps_automatic_selection(self):
+        configured = unittest.mock.MagicMock()
+        configured.exists.return_value = True
+        trusted = unittest.mock.MagicMock(
+            st_mode=0o100644,
+            st_uid=0,
+            st_size=1,
+        )
+        with patch.object(
+            module, "DASHBOARD_ADDRESS_CONFIG_PATH", configured
+        ), patch.object(module.os, "open", return_value=95), patch.object(
+            module.os, "fstat", return_value=trusted
+        ), patch.object(module.os, "read", return_value=b"\n"), patch.object(
+            module.os, "close"
+        ):
+            self.assertIsNone(module._configured_dashboard_address())
 
     def test_active_status_prints_the_dashboard_url(self):
         active = {

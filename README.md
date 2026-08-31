@@ -1005,7 +1005,11 @@ robot-scope-dashboard logs
 `start`와 `restart`는 새 systemd 실행 ID가 active가 될 때까지 확인하고, `stop`은 inactive를
 확인합니다. `start`, `restart`와 실행 중인 `status`는 준비 확인 후 현재 SSH가 접속한
 관리망 주소와 설정 포트를 조합한 브라우저 URL도 터미널에 출력합니다. 예:
-`[Robot Scope] dashboard URL: http://192.168.0.26:8088`. 60초 안에 전환되지 않으면
+`[Robot Scope] dashboard URL: http://192.168.50.10:8088`. 다중 NIC host는
+`ROBOT_SCOPE_DASHBOARD_ADDRESS`에 운영자가 사용할 private/link-local IPv4를 지정하면
+installer가 root 소유 고정 설정으로 설치하고 `start`, `restart`, `status` 모두 같은 URL을
+출력합니다. 값이 없을 때만 현재 SSH server 주소와 local route 순서로 자동 선택합니다.
+60초 안에 전환되지 않으면
 강제 종료나 재시도를 하지 않습니다. 실행 중인
 제어 lease, 매핑, 저장, navigation 또는 안전 래치가 있으면 로컬 관리 API preflight가
 명령 전송을 거부합니다. 이 SSH 도구는 관리용 경로이므로 로봇 작업이 idle일 때 사용하며,
@@ -1024,6 +1028,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 - config/turtlebot.json: TurtleBot 관측 전용 시작 프로필
 - ROBOT_SCOPE_DIR: 프로젝트 루트 강제 지정
 - ROBOT_SCOPE_PORT: HTTP 포트, 기본 8088
+- ROBOT_SCOPE_DASHBOARD_ADDRESS: 다중 NIC host에서 터미널에 출력할 고정 private/link-local IPv4
 - ROBOT_SCOPE_ROBOT_IP: 네트워크 생존 확인 대상
 - ROBOT_SCOPE_CAMERA_INTERFACE: Go2 영상 멀티캐스트를 받을 allowlist 유선 인터페이스
 - ROBOT_SCOPE_OVERLAY: Generic 프로필에서 불러올 ROS workspace setup 파일

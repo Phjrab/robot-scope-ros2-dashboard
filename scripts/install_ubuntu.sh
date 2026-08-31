@@ -276,6 +276,35 @@ fi
 ((10#$ROBOT_SCOPE_PORT_VALUE <= 65535)) || \
   die "ROBOT_SCOPE_PORT must be an integer from 1 to 65535"
 
+ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE="$(literal_env_value ROBOT_SCOPE_DASHBOARD_ADDRESS)"
+if [[ -n "$ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE" ]]; then
+  if ! ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE="$(python3 - "$ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE" <<'PY'
+import ipaddress
+import sys
+
+try:
+    address = ipaddress.ip_address(sys.argv[1])
+except ValueError:
+    raise SystemExit(1)
+networks = tuple(
+    ipaddress.ip_network(value)
+    for value in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16")
+)
+if (
+    address.version != 4
+    or not any(address in network for network in networks)
+    or address.is_loopback
+    or address.is_multicast
+    or address.is_unspecified
+):
+    raise SystemExit(1)
+print(address)
+PY
+)"; then
+    die "ROBOT_SCOPE_DASHBOARD_ADDRESS must be an explicit private or link-local host IPv4"
+  fi
+fi
+
 APT_PACKAGES=()
 while IFS= read -r package; do
   [[ -n "$package" ]] && APT_PACKAGES+=("$package")
@@ -463,6 +492,11 @@ if [[ "$ACTION" == "--dry-run" ]]; then
     print_command sudo install -o root -g root -m 0755 \
       "$OPERATOR_SOURCE" /usr/local/bin/robot-scope-dashboard
     echo "[Robot Scope installer] would install root-owned operator port: $ROBOT_SCOPE_PORT_VALUE"
+    if [[ -n "$ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE" ]]; then
+      echo "[Robot Scope installer] would install root-owned operator address: $ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE"
+    else
+      echo "[Robot Scope installer] would install automatic dashboard address selection"
+    fi
     print_command sudo systemctl daemon-reload
     echo "[Robot Scope installer] would leave Robot Scope services disabled and stopped"
   else
@@ -591,6 +625,7 @@ install_services() {
   [[ -x "$dashboard_exec" ]] || die "dashboard service executable is missing"
   operator_target="/usr/local/bin/robot-scope-dashboard"
   operator_port_target="/etc/robot-scope-dashboard-operator.port"
+  operator_address_target="/etc/robot-scope-dashboard-operator.address"
   [[ -x "$OPERATOR_SOURCE" ]] || die "dashboard SSH operator helper is missing or not executable"
   if [[ -e "$operator_target" || -L "$operator_target" ]]; then
     [[ -f "$operator_target" && ! -L "$operator_target" ]] || \
@@ -604,11 +639,20 @@ install_services() {
     [[ "$(stat -c '%u:%g:%a' -- "$operator_port_target" 2>/dev/null || true)" == "0:0:644" ]] || \
       die "refusing unmanaged dashboard operator port config: $operator_port_target"
   fi
+  if [[ -e "$operator_address_target" || -L "$operator_address_target" ]]; then
+    [[ -f "$operator_address_target" && ! -L "$operator_address_target" ]] || \
+      die "refusing non-regular dashboard operator address config: $operator_address_target"
+    [[ "$(stat -c '%u:%g:%a' -- "$operator_address_target" 2>/dev/null || true)" == "0:0:644" ]] || \
+      die "refusing unmanaged dashboard operator address config: $operator_address_target"
+  fi
 
   SERVICE_TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/robot-scope-units.XXXXXX")"
   local operator_port_source="$SERVICE_TEMP_DIR/robot-scope-dashboard-operator.port"
   printf '%s\n' "$ROBOT_SCOPE_PORT_VALUE" > "$operator_port_source"
   chmod 0644 -- "$operator_port_source"
+  local operator_address_source="$SERVICE_TEMP_DIR/robot-scope-dashboard-operator.address"
+  printf '%s\n' "$ROBOT_SCOPE_DASHBOARD_ADDRESS_VALUE" > "$operator_address_source"
+  chmod 0644 -- "$operator_address_source"
   local dashboard_unit="$SERVICE_TEMP_DIR/robot-scope.service"
   {
     printf '%s\n' \
@@ -692,6 +736,7 @@ install_services() {
   done
   sudo install -o root -g root -m 0755 -- "$OPERATOR_SOURCE" "$operator_target"
   sudo install -o root -g root -m 0644 -- "$operator_port_source" "$operator_port_target"
+  sudo install -o root -g root -m 0644 -- "$operator_address_source" "$operator_address_target"
   sudo systemctl daemon-reload
   echo "[Robot Scope installer] installed without enabling: ${unit_names[*]}"
   echo "[Robot Scope installer] installed SSH operator helper: $operator_target"

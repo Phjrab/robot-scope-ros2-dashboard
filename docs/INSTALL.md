@@ -384,6 +384,7 @@ ip -br -4 address
 `robot-scope.env`에서 다음 값을 현재 host에 맞춥니다.
 
 ~~~dotenv
+ROBOT_SCOPE_DASHBOARD_ADDRESS=<운영자가_접속할_현재_Jetson_IP>
 ROBOT_SCOPE_ROBOT_IP=192.168.123.161
 ROBOT_SCOPE_GO2_INTERFACE=<실제_유선_NIC>
 ROBOT_SCOPE_GO2_INTERFACE_CIDR=192.168.123.99/24
@@ -478,8 +479,11 @@ ssh robot-scope-host robot-scope-dashboard restart
 ~~~
 
 `start`, `restart`와 실행 중인 `status`는 대시보드 HTTP 준비가 끝난 뒤 브라우저에서 열
-접속 주소를 터미널에 함께 출력합니다. SSH 세션에서는 해당 세션이 접속한 서버 IP를 우선
-사용하므로 관리망 주소가 바뀌어도 고정 IP를 스크립트에 넣을 필요가 없습니다.
+접속 주소를 터미널에 함께 출력합니다. 다중 NIC host에서
+`ROBOT_SCOPE_DASHBOARD_ADDRESS`를 설정한 뒤 installer를 적용하면 root 소유 operator
+address 설정을 우선 사용합니다. 값이 없을 때만 SSH 세션이 접속한 서버 IP와 local route를
+차례로 사용합니다. 설정값은 RFC1918 또는 link-local host IPv4만 허용하며 HTTP listener는
+계속 `0.0.0.0:<port>`에서 같은 LAN 접근을 받습니다.
 
 `robot-scope-host`는 관리 PC의 `~/.ssh/config`에 등록한 별칭입니다. 개인키, 비밀번호와
 유동 관리망 주소는 저장소에 넣지 않습니다. start/stop/restart 전에 제어·mapping·Nav가

@@ -165,6 +165,30 @@ class UbuntuInstallerTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("must be blank or absolute", result.stderr)
 
+    def test_dashboard_address_is_validated_and_planned_for_operator_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            fixture.config.mkdir()
+            env_file = fixture.config / "robot-scope.env"
+            env_file.write_text(
+                "ROBOT_SCOPE_DASHBOARD_ADDRESS=192.168.50.10\n",
+                encoding="utf-8",
+            )
+            result = fixture.run("--mode", "go2", "--install-service")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                "would install root-owned operator address: 192.168.50.10",
+                result.stdout,
+            )
+
+            env_file.write_text(
+                "ROBOT_SCOPE_DASHBOARD_ADDRESS=8.8.8.8\n",
+                encoding="utf-8",
+            )
+            rejected = fixture.run("--mode", "go2", "--install-service")
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("private or link-local host IPv4", rejected.stderr)
+
     def test_missing_pinned_bootstrap_is_a_packaging_error(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = InstallerFixture(Path(temporary))
@@ -359,6 +383,7 @@ class UbuntuInstallerTests(unittest.TestCase):
         self.assertIn("sudo install -o root -g root -m 0755", source)
         self.assertIn("/usr/local/bin/robot-scope-dashboard", source)
         self.assertIn("/etc/robot-scope-dashboard-operator.port", source)
+        self.assertIn("/etc/robot-scope-dashboard-operator.address", source)
         self.assertNotIn("curl |", source)
         self.assertNotIn("robot-scope-service-lifecycle.sudoers", source)
         self.assertNotIn("robot-scope-xt16-relay.service", source)

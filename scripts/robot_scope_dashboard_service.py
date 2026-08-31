@@ -33,6 +33,13 @@ STATUS_PATH = "/api/v1/system/service"
 HEALTH_PATH = "/api/v1/health"
 DEFAULT_STATUS_PORT = 8088
 PORT_CONFIG_PATH = Path("/etc/robot-scope-dashboard-operator.port")
+DASHBOARD_ADDRESS_CONFIG_PATH = Path(
+    "/etc/robot-scope-dashboard-operator.address"
+)
+DASHBOARD_ADDRESS_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16")
+)
 COMMAND_TIMEOUT_SECONDS = 5.0
 TRANSITION_TIMEOUT_SECONDS = 60.0
 POLL_INTERVAL_SECONDS = 0.25
@@ -147,6 +154,63 @@ def _status_port() -> int:
     return port
 
 
+def _configured_dashboard_address() -> str | None:
+    """Read an optional root-owned private IPv4 dashboard address."""
+
+    if not DASHBOARD_ADDRESS_CONFIG_PATH.exists():
+        return None
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    if hasattr(os, "O_NONBLOCK"):
+        flags |= os.O_NONBLOCK
+    try:
+        descriptor = os.open(DASHBOARD_ADDRESS_CONFIG_PATH, flags)
+    except OSError as exc:
+        raise DashboardServiceError(
+            "dashboard operator address config is unavailable"
+        ) from exc
+    try:
+        info = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_uid != 0
+            or info.st_size < 1
+            or info.st_size > 64
+            or info.st_mode & 0o022
+        ):
+            raise DashboardServiceError(
+                "dashboard operator address config is not trusted"
+            )
+        raw = os.read(descriptor, 65)
+    except OSError as exc:
+        raise DashboardServiceError(
+            "dashboard operator address config is unreadable"
+        ) from exc
+    finally:
+        os.close(descriptor)
+    try:
+        value = raw.decode("ascii").strip()
+        if not value:
+            return None
+        address = ipaddress.ip_address(value)
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise DashboardServiceError(
+            "dashboard operator address config is malformed"
+        ) from exc
+    if (
+        address.version != 4
+        or not any(address in network for network in DASHBOARD_ADDRESS_NETWORKS)
+        or address.is_loopback
+        or address.is_multicast
+        or address.is_unspecified
+    ):
+        raise DashboardServiceError(
+            "dashboard operator address config is not a private host IPv4"
+        )
+    return str(address)
+
+
 def _snapshot() -> dict[str, str]:
     try:
         result = _run(STATUS_COMMAND)
@@ -176,7 +240,11 @@ def _print_snapshot(snapshot: Mapping[str, str]) -> None:
 
 
 def _dashboard_address() -> str:
-    """Return the management address used by SSH, with a local-route fallback."""
+    """Return the configured management address, then safe runtime fallbacks."""
+
+    configured = _configured_dashboard_address()
+    if configured is not None:
+        return configured
 
     ssh_connection = os.environ.get("SSH_CONNECTION", "").split()
     if len(ssh_connection) == 4:
