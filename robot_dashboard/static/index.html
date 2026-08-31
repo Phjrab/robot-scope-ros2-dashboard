@@ -59,7 +59,12 @@
           <h1 id="pageTitle">Overview</h1>
           <p id="pageDescription">로봇과 ROS 2 시스템의 전체 상태를 빠르게 확인합니다.</p>
         </div>
-        <div class="live-clock"><span>LOCAL TIME</span><strong id="clock">--:--:--</strong></div>
+        <div class="page-heading-actions">
+          <button class="workspace-window-button" id="cockpitOpenWindowButton" type="button">
+            <span aria-hidden="true">↗</span><strong>CWP 전체 창</strong><small>별도 창으로 열기</small>
+          </button>
+          <div class="live-clock"><span>LOCAL TIME</span><strong id="clock">--:--:--</strong></div>
+        </div>
       </div>
 
       <section class="page-view is-active" data-page="overview">
@@ -80,6 +85,13 @@
       </section>
 
       <section class="page-view cockpit-page" data-page="cockpit" hidden>
+        <header class="cockpit-window-bar" id="cockpitWindowBar" hidden>
+          <div class="cockpit-window-identity"><span>CWP · DEDICATED WORKSPACE</span><strong>ROBOT COCKPIT</strong></div>
+          <div class="cockpit-window-actions">
+            <button id="cockpitFullscreenButton" type="button" aria-pressed="false">브라우저 전체 화면</button>
+            <button id="cockpitCloseWindowButton" type="button">창 닫기</button>
+          </div>
+        </header>
         <div class="cockpit-workspace" id="cockpitWorkspace" data-lifecycle="inactive" data-freshness="waiting">
           <div class="cockpit-scene-layer">
             <canvas id="cockpitSceneCanvas" aria-label="Cockpit Go2 및 실시간 LiDAR 3D 장면"></canvas>

@@ -13,6 +13,8 @@ import { createCockpitNavigationAdapter } from './navigation_adapter.js';
 import { createMissionClient } from './mission_client.js';
 import { createCompetitionStatus } from './competition_status.js';
 
+export { initializeCockpitWindowMode } from './window_mode.js';
+
 export function cockpitGamepadUiBlocked(documentValue) {
   const activeElement = documentValue?.activeElement;
   if (activeElement?.matches?.('input, textarea, select, [contenteditable="true"]')) return true;

@@ -63,7 +63,7 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 - 키보드, 화면 패드 또는 표준 Gamepad를 선택하는 Go2 주행 제어
 - 서버 allowlist에 등록된 Go2 자세·제스처·보행 모드 실행
 - Overview, Live Mapping, Saved Maps, Sensors, ROS Graph, Controls, Settings 메뉴
-- 공용 Camera/LiDAR owner, Safety HUD, Map, Navigation과 Mission을 한 화면에 조합하는 Cockpit
+- 공용 Camera/LiDAR owner, Safety HUD, Map, Navigation과 Mission을 조합하고 별도 전체 작업창·선택적 native fullscreen을 제공하는 Cockpit
 - exact map/annotation revision에 고정된 server-owned 다중 waypoint Mission
 - Settings에서 로봇 작업을 중지하지 않고 생성하는 redacted·size-bounded 진단 ZIP
 - Go2 전용 프로필과 범용 ROS 2 프로필

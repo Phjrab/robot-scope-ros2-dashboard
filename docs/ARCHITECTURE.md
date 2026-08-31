@@ -146,6 +146,14 @@ saved-map raster editing and most manual/navigation UI state. The hardware-free
 browser contract is recorded in `docs/ARCHITECTURE_PHASE12.md`. This remaining
 size is known debt, not hidden completion.
 
+Cockpit has both the compatible embedded `#cockpit` composition and a strict
+same-origin `?workspace=cockpit#cockpit` full-window composition. The supported
+named-window launcher deactivates the embedded Cockpit after a successful open,
+but each browser document still has its own JavaScript owners; no cross-window
+sensor/control singleton or lease handoff is claimed. The server safety owners,
+watchdogs and fail-closed authority remain unchanged. The detailed contract is
+in [COCKPIT_WORKSPACE.md](COCKPIT_WORKSPACE.md).
+
 Backend responses are authoritative for capability grants, sensor identity,
 processing stage and freshness. Browser constants may format labels but may
 not grant a capability or infer a physical sensor from a topic name.

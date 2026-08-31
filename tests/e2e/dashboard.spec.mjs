@@ -70,6 +70,19 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   await expect(page.locator('#cockpitPointcloudStatus')).toHaveText('WAITING');
   await expect.poll(() => backend.state.wsConnections.pointcloud).toBe(1);
 
+  const embeddedBounds = await page.evaluate(() => {
+    const workspace = document.querySelector('#cockpitWorkspace').getBoundingClientRect();
+    const competition = document.querySelector('#cockpitCompetitionStatus').getBoundingClientRect();
+    return {
+      workspace: { left: workspace.left, top: workspace.top, right: workspace.right, bottom: workspace.bottom },
+      competition: { left: competition.left, top: competition.top, right: competition.right, bottom: competition.bottom },
+    };
+  });
+  expect(embeddedBounds.competition.left).toBeGreaterThanOrEqual(embeddedBounds.workspace.left);
+  expect(embeddedBounds.competition.top).toBeGreaterThanOrEqual(embeddedBounds.workspace.top);
+  expect(embeddedBounds.competition.right).toBeLessThanOrEqual(embeddedBounds.workspace.right);
+  expect(embeddedBounds.competition.bottom).toBeLessThanOrEqual(embeddedBounds.workspace.bottom);
+
   await page.setViewportSize({ width: 1180, height: 760 });
   const canvasSize = await page.locator('#cockpitSceneCanvas').evaluate((canvas) => ({
     clientWidth: canvas.clientWidth,
@@ -98,6 +111,146 @@ test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one Poin
   expect(cockpit.pointcloud.connected).toBe(true);
   await expect.poll(() => backend.state.wsConnections.pointcloud).toBe(21);
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(20);
+});
+
+test('Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await expect(page.locator('#cockpitOpenWindowButton')).toBeVisible();
+  await page.evaluate(() => {
+    window.__cockpitPopupCalls = [];
+    window.__cockpitPopupFocuses = 0;
+    window.open = (...args) => {
+      window.__cockpitPopupCalls.push(args);
+      return {
+        opener: window,
+        focus() { window.__cockpitPopupFocuses += 1; },
+      };
+    };
+  });
+
+  await page.locator('#cockpitOpenWindowButton').click();
+  await expect(page.locator('#pageTitle')).toHaveText('Overview');
+  await expect(page.locator('#cockpitWorkspace')).toBeHidden();
+  await expect(page.locator('#cockpitOpenWindowButton')).toBeHidden();
+  await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(1);
+  const launch = await page.evaluate(() => ({
+    calls: window.__cockpitPopupCalls,
+    focuses: window.__cockpitPopupFocuses,
+    cockpit: window.RobotScopeCockpit.snapshot(),
+  }));
+  expect(launch.calls).toHaveLength(1);
+  const [url, name, features] = launch.calls[0];
+  const target = new URL(url);
+  expect(target.origin).toBe('http://127.0.0.1:4173');
+  expect(target.search).toBe('?workspace=cockpit');
+  expect(target.hash).toBe('#cockpit');
+  expect(name).toBe('robot-scope-cockpit-workspace');
+  expect(features).toContain('popup=yes');
+  expect(launch.focuses).toBe(1);
+  expect(launch.cockpit.workspace.active).toBe(false);
+  expect(launch.cockpit.pointcloud.activeConsumers).toEqual([]);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+
+  await page.locator('[data-nav="cockpit"]').click();
+  await page.evaluate(() => { window.open = () => null; });
+  await page.locator('#cockpitOpenWindowButton').click();
+  await expect(page.locator('#cockpitWorkspace')).toBeVisible();
+  await expect(page.locator('#toast')).toContainText('팝업 허용');
+  expect((await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.active).toBe(true);
+});
+
+test('Cockpit standalone page fills each browser viewport and requests native fullscreen only on click', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__fullscreenRequestCount = 0;
+    window.__fullscreenExitCount = 0;
+    window.__fakeFullscreenElement = null;
+    Object.defineProperty(Document.prototype, 'fullscreenElement', {
+      configurable: true,
+      get() { return window.__fakeFullscreenElement; },
+    });
+    Object.defineProperty(Element.prototype, 'requestFullscreen', {
+      configurable: true,
+      async value() {
+        window.__fullscreenRequestCount += 1;
+        window.__fakeFullscreenElement = this;
+        document.dispatchEvent(new Event('fullscreenchange'));
+      },
+    });
+    Object.defineProperty(Document.prototype, 'exitFullscreen', {
+      configurable: true,
+      async value() {
+        window.__fullscreenExitCount += 1;
+        window.__fakeFullscreenElement = null;
+        document.dispatchEvent(new Event('fullscreenchange'));
+      },
+    });
+  });
+  const backend = await installDashboardBackend(page);
+
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 1920, height: 1080 },
+    { width: 2560, height: 1440 },
+  ]) {
+    await page.setViewportSize(viewport);
+    if (page.url() === 'about:blank') await page.goto('/?workspace=cockpit#overview');
+    const geometry = await page.evaluate(() => {
+      const bar = document.querySelector('#cockpitWindowBar').getBoundingClientRect();
+      const workspace = document.querySelector('#cockpitWorkspace').getBoundingClientRect();
+      const stop = document.querySelector('[data-cockpit-software-stop]').getBoundingClientRect();
+      const hudZ = Number(getComputedStyle(document.querySelector('#cockpitSafetyHud')).zIndex);
+      const panelZ = Number(getComputedStyle(document.querySelector('#cockpitPanelLayer')).zIndex);
+      return {
+        bar: { x: bar.x, y: bar.y, width: bar.width, height: bar.height, bottom: bar.bottom },
+        workspace: { x: workspace.x, y: workspace.y, width: workspace.width, height: workspace.height, bottom: workspace.bottom },
+        stop: { left: stop.left, top: stop.top, right: stop.right, bottom: stop.bottom },
+        hudZ,
+        panelZ,
+        noHorizontalOverflow: document.documentElement.scrollWidth <= innerWidth,
+        noVerticalOverflow: document.documentElement.scrollHeight <= innerHeight,
+      };
+    });
+    expect(geometry.bar.x).toBe(0);
+    expect(geometry.bar.y).toBe(0);
+    expect(geometry.bar.width).toBe(viewport.width);
+    expect(geometry.bar.height).toBe(52);
+    expect(geometry.workspace.x).toBe(0);
+    expect(geometry.workspace.y).toBe(geometry.bar.bottom);
+    expect(geometry.workspace.width).toBe(viewport.width);
+    expect(geometry.workspace.bottom).toBe(viewport.height);
+    expect(geometry.stop.left).toBeGreaterThanOrEqual(0);
+    expect(geometry.stop.top).toBeGreaterThanOrEqual(0);
+    expect(geometry.stop.right).toBeLessThanOrEqual(viewport.width);
+    expect(geometry.stop.bottom).toBeLessThanOrEqual(viewport.height);
+    expect(geometry.hudZ).toBeGreaterThan(geometry.panelZ);
+    expect(geometry.noHorizontalOverflow).toBe(true);
+    expect(geometry.noVerticalOverflow).toBe(true);
+  }
+
+  await expect(page).toHaveURL(/\?workspace=cockpit#cockpit$/);
+  await expect(page.locator('.topbar')).toBeHidden();
+  await expect(page.locator('.sidebar')).toBeHidden();
+  await expect(page.locator('.page-heading')).toBeHidden();
+  await expect(page.locator('#cockpitWindowBar')).toBeVisible();
+  await expect(page.locator('#cockpitWorkspace')).toBeVisible();
+  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
+  expect(await page.evaluate(() => window.RobotScopeCockpitWindow.mode)).toBe('cockpit');
+  expect(await page.evaluate(() => window.__fullscreenRequestCount)).toBe(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/mapping/start')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/start')).toHaveLength(0);
+
+  await page.locator('#cockpitFullscreenButton').click();
+  await expect(page.locator('#cockpitFullscreenButton')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => window.__fullscreenRequestCount)).toBe(1);
+  await page.locator('#cockpitFullscreenButton').click();
+  await expect(page.locator('#cockpitFullscreenButton')).toHaveAttribute('aria-pressed', 'false');
+  expect(await page.evaluate(() => window.__fullscreenExitCount)).toBe(1);
+
+  await page.evaluate(() => { window.location.hash = '#controls'; });
+  await expect(page).toHaveURL(/\?workspace=cockpit#cockpit$/);
+  await expect(page.locator('#cockpitWorkspace')).toBeVisible();
 });
 
 test('Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state', async ({ page }) => {

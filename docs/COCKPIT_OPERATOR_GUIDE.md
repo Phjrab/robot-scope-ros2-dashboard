@@ -17,6 +17,32 @@ Navigation 전환과 Mission 정리를 수행하는 절차를 설명한다. Cock
 Cockpit 진입·reload·BFCache 복귀는 기존 lease를 새로 발급하거나 motion을 다시 보내지
 않는다. 화면이 복구됐다는 사실만으로 로봇 상태가 복구됐다고 판단하지 않는다.
 
+## 별도 전체 창과 브라우저 Fullscreen
+
+정보가 많은 Cockpit은 기본 대시보드 안에서도 사용할 수 있지만, 실제 운용에서는 별도
+전용 창을 권장한다.
+
+1. 로봇이 stationary이고 manual control이 `DISARMED`인지 먼저 확인한다.
+2. Cockpit 제목 옆의 **CWP 전체 창**을 누른다. 브라우저가 차단하면 해당 Jetson 주소의
+   팝업을 허용하고 다시 누른다.
+3. 성공하면 이름이 고정된 Cockpit 창 하나를 열거나 기존 창을 다시 앞에 표시하고, 원래
+   대시보드의 내장 Cockpit은 Overview로 돌아가 센서 demand를 정리한다.
+4. 전용 창에서 고정 Safety HUD와 **DASHBOARD SOFTWARE STOP**이 보이는지 다시 확인한다.
+5. OS/browser chrome까지 숨겨야 할 때만 **브라우저 전체 화면**을 명시적으로 누른다.
+   브라우저 정책이 거부할 수 있고 일반적으로 `Esc`로 빠져나온다.
+6. **창 닫기**로 전용 창을 종료한다. 브라우저가 script close를 거부하면 같은 창이 일반
+   대시보드 Overview로 돌아간다.
+
+전용 창 열기는 화면 배치 전환일 뿐 제어 세션 인계가 아니다. 창 focus 변화와 명시적 전용
+창 전환은 기존 fail-safe zero/DISARM을 수행할 수 있으며 새 창은 자동 ARM하지 않는다.
+새 창에서 authoritative 상태를 다시 확인한 뒤 필요한 경우에만 별도로 ARM한다. 창을 닫는
+행위는 server-owned Navigation, Mission 또는 Dataset을 중지·완료·finalize했다는 뜻이
+아니다.
+
+지원된 버튼은 한 browser context에서 같은 이름의 창을 재사용한다. 전용 URL을 여러 탭에
+직접 복사하거나 다른 browser profile에서 동시에 열면 각 document가 별도 telemetry
+consumer가 될 수 있으므로 그렇게 운용하지 않는다.
+
 ## Layout Edit와 Operate
 
 - **Layout Edit**에서만 panel 열기, 닫기, 이동, resize, dock, tile과 preset 적용이
@@ -122,6 +148,10 @@ manual input을 보내지 말고 `RETRY CLEANUP`, Navigation STOP과 물리 정�
 - [ ] RealSense LIVE
 - [ ] LiDAR LIVE와 point rate
 - [ ] Cockpit layout 복원
+- [ ] Cockpit 팝업 허용과 전용 창 하나만 활성
+- [ ] 전용 창에서 Safety HUD와 STOP 접근 가능
+- [ ] 브라우저 전체 화면 진입·`Esc` 복귀 확인
+- [ ] live 검증 시 camera viewer·PointCloud demand 중복 없음
 - [ ] STOP 버튼 접근 가능
 - [ ] 지도 revision 확인
 - [ ] Localization 상태 확인

@@ -6,6 +6,58 @@
   --cockpit-hud-z: 80;
 }
 
+.cockpit-window-bar {
+  position: relative;
+  z-index: 100;
+  flex: 0 0 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 16px;
+  padding: 6px 14px 6px 18px;
+  border-bottom: 1px solid rgba(111, 255, 222, 0.2);
+  background: rgba(3, 14, 12, 0.98);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
+}
+
+.cockpit-window-bar[hidden] { display: none; }
+.cockpit-window-identity { display: grid; min-width: 0; gap: 2px; }
+.cockpit-window-identity span { color: #69c8b2; font-size: 8px; font-weight: 800; letter-spacing: 0.16em; }
+.cockpit-window-identity strong { color: #d9fff6; font-size: 12px; letter-spacing: 0.1em; }
+.cockpit-window-actions { display: flex; align-items: center; gap: 7px; }
+.cockpit-window-actions button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(111, 255, 222, 0.28);
+  border-radius: 8px;
+  color: #b9eee2;
+  background: rgba(11, 43, 37, 0.82);
+  font-size: 9px;
+  font-weight: 800;
+}
+.cockpit-window-actions button:hover,
+.cockpit-window-actions button[aria-pressed="true"] { border-color: #61ffd0; color: #61ffd0; background: rgba(16, 68, 57, 0.9); }
+.cockpit-window-actions #cockpitCloseWindowButton { border-color: rgba(255, 135, 111, 0.32); color: #ffb9aa; background: rgba(68, 22, 16, 0.78); }
+
+html[data-workspace-window="cockpit"],
+html[data-workspace-window="cockpit"] body { width: 100%; height: 100%; overflow: hidden; }
+html[data-workspace-window="cockpit"] .ambient,
+html[data-workspace-window="cockpit"] .topbar,
+html[data-workspace-window="cockpit"] .sidebar,
+html[data-workspace-window="cockpit"] .page-heading,
+html[data-workspace-window="cockpit"] .workspace > footer { display: none; }
+html[data-workspace-window="cockpit"] .shell { display: block; width: 100vw; max-width: none; height: 100dvh; margin: 0; }
+html[data-workspace-window="cockpit"] .workspace { width: 100%; height: 100%; padding: 0; }
+html[data-workspace-window="cockpit"] .cockpit-page.is-active { display: flex; width: 100%; height: 100%; flex-direction: column; animation: none; }
+html[data-workspace-window="cockpit"] .cockpit-workspace { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; border: 0; border-radius: 0; }
+html[data-workspace-window="cockpit"] .toast { z-index: 200; }
+html[data-workspace-window="cockpit"] .cockpit-competition-status { position: fixed; max-height: calc(100dvh - 260px); }
+html[data-workspace-window="cockpit"] .cockpit-competition-metrics span,
+html[data-workspace-window="cockpit"] .cockpit-safety-metric span { font-size: 7px; }
+html[data-workspace-window="cockpit"] .cockpit-competition-metrics strong,
+html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size: 9px; }
+
 .cockpit-workspace {
   position: relative;
   min-height: 560px;
@@ -422,13 +474,13 @@
 .cockpit-layout-library-status[data-error="true"] { color: #ffab91; }
 
 .cockpit-competition-status {
-  position: fixed;
+  position: absolute;
   z-index: calc(var(--cockpit-hud-z) - 1);
   top: 70px;
   left: 18px;
   display: grid;
   width: min(520px, calc(100% - 36px));
-  max-height: calc(100dvh - 260px);
+  max-height: calc(100% - 88px);
   gap: 7px;
   padding: 9px;
   overflow: auto;
@@ -525,6 +577,9 @@
 .cockpit-workspace[data-lifecycle="inactive"] .cockpit-scene-layer { visibility: hidden; }
 
 @media (max-width: 760px) {
+  .cockpit-window-bar { padding-left: 12px; }
+  .cockpit-window-identity span { display: none; }
+  .cockpit-window-actions button { min-height: 32px; padding: 0 8px; font-size: 8px; }
   .cockpit-workspace { min-height: 500px; height: calc(100vh - 250px); }
   .cockpit-scene-readout { top: 64px; left: 18px; right: auto; max-width: calc(100% - 36px); justify-items: start; }
   .cockpit-scene-readout small { text-align: left; }

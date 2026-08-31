@@ -24,17 +24,20 @@ Hardware가 없거나 live stream을 사용하지 않은 시나리오는 테스�
 - exact revision 기반 Map/Localization panel과 같은 renderer의 3D overlay
 - 기존 NavigationCoordinator를 사용하는 Navigation/Takeover panel
 - server-owned annotation Mission 목록, 순서, progress, pause/resume/skip/retry/abort
+- strict same-origin 전용 Cockpit 창, 고정 이름 재사용과 opener demand cleanup
+- dashboard chrome 없는 full-content-viewport layout과 사용자 gesture 기반 선택적 native fullscreen
 
 ## Architecture와 data ownership
 
 | 데이터 또는 동작 | 권위자 | Cockpit 경계 |
 | --- | --- | --- |
 | control lease, frame, watchdog | 기존 control session/bridge | HUD와 Controller panel은 projection만 사용하며 자동 ARM하지 않음 |
-| PointCloud transport | shared `pointcloud_transport.js` 1개 | Mapping/Cockpit demand를 교체하며 panel별 socket을 만들지 않음 |
+| PointCloud transport | document별 shared `pointcloud_transport.js` 1개 | Mapping/Cockpit demand를 교체하며 panel별 socket을 만들지 않음; launcher 성공 시 opener demand 해제 |
 | Camera transport | fixed source별 `camera_demand.js` owner | panel lifecycle token만 acquire/release |
 | panel geometry/layout | browser Cockpit manager/store | motion 권한, revision 또는 server operation을 저장하지 않음 |
 | map/localization/Nav goal | SavedMapCatalog와 NavigationCoordinator | exact ID/revision projection과 기존 action만 사용 |
 | Mission execution | runtime-owned MissionCoordinator | browser는 bounded GET/strict mutation client이며 실행 상태를 localStorage에 두지 않음 |
+| Cockpit window mode | `window_mode.js`와 app composition | allowlisted URL, named target, CSS mode와 explicit fullscreen만 소유; lease/sensor/server operation 인계 금지 |
 
 Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으로 간주하거나 새 lease를
 발급하지 않는다. Mission/Navigation cleanup은 panel DOM보다 긴 server transaction이다.
@@ -52,6 +55,12 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | Safety HUD/STOP이 focus panel 위에 유지 | `PASS` | Playwright stacking/focus 시나리오 |
 | BFCache page lifecycle에서 stale async fence | `PASS` | camera/log/dataset generation behavior tests |
 | robot-off 1366×768, 1920×1080, 2560×1440 layout/FPS | `PASS` | 2026-08-30: horizontal overflow 없음, 정적 LOW 10K 26 FPS, console warning/error 없음 |
+| strict `?workspace=cockpit#cockpit`, dashboard chrome 제거와 전용 toolbar 아래 full-window layout | `PASS` | pure URL contract + Playwright 1366×768, 1920×1080, 2560×1440 geometry/overflow |
+| Cockpit에서만 launcher 표시, popup 차단 시 embedded workspace 유지 | `PASS` | Playwright popup stub, error toast와 active scene 유지 |
+| fixed named target/focus와 성공 시 opener scene·PointCloud demand cleanup | `PASS` | Node named-window contract + Playwright opener Overview/deactivate/socket close |
+| 전용 mode 진입 시 ARM/STOP clear/mapping/Nav 자동 mutation 없음 | `PASS` | Playwright mutation log와 DISARMED snapshot |
+| Fullscreen API 요청·종료가 explicit button에서만 발생 | `PASS` | Node dependency-injected API + Playwright user-click stub; 실제 native 전환 증거 아님 |
+| 전용 mode의 Safety HUD/STOP viewport 접근성과 panel 상단 stacking | `PASS` | Playwright 3개 viewport geometry와 z-index |
 | browser native fullscreen 진입/이탈 | `BLOCKED` | in-app browser가 단축키 후에도 fullscreen/viewport 변화를 노출하지 않음; reference PC 수동 확인 필요 |
 | 실제 background tab visibility 전환 | `BLOCKED` | 자동화 tab 전환에서 대상 page가 계속 visible; software lifecycle tests만 PASS |
 | 해상도별 browser JS heap/RSS | `BLOCKED` | in-app browser가 page heap을 노출하지 않고 macOS process inspection이 제한됨 |
@@ -112,6 +121,26 @@ timing test가 일시 실패하면 assertion을 바꾸지 않고 해당 test를 
 gate on Linux and the earlier Ubuntu-only apply gate on macOS. Both paths keep
 the filesystem unchanged and return failure. The current complete Python suite
 is `PASS` at 796/796; no safety assertion was removed or weakened.
+
+### 2026-08-31 전용 전체 창 후속 검증
+
+아래 결과는 전용 Cockpit 전체 창 변경이 포함된 동일 working tree에서 다시 실행했다. 기존
+CWP-12 기록은 당시 commit의 역사적 증거로 유지하며, 아래 수치로 소급 변경하지 않는다.
+
+| Suite | 결과 | 상세 |
+| --- | --- | --- |
+| Cockpit 전용 Node unit | `PASS` | 85/85 |
+| 전체 JavaScript unit | `PASS` | 264/264 |
+| frontend syntax | `PASS` | 53개 module |
+| Cockpit Playwright | `PASS` | 16/16 |
+| Playwright hardware-free E2E | `PASS` | 32/32; 전용 창 3개 해상도와 embedded containment 포함 |
+| 프로젝트 가상환경 전체 Python | `PASS` | 894/894 |
+| 시스템 기본 Python | `BLOCKED` | 890개 실행 후 `fastapi` 미설치로 1개 test module import 실패; assertion failure 없음 |
+| Ruff | `PASS` | `robot_dashboard`, `scripts` |
+| Mypy | `PASS` | 설정된 4개 source file |
+
+실제 native fullscreen 전환, reference PC의 성능 수치와 live sensor 장시간 운용은 이
+software-only 결과로 대체하지 않으며 위 acceptance 표의 `BLOCKED`/`NOT_RUN` 상태를 유지한다.
 
 실행 명령:
 
@@ -198,6 +227,10 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 
 - 현재 trusted LAN 모델에는 사용자 인증과 TLS가 포함되지 않는다.
 - browser fullscreen, sleep/power 정책과 실제 GPU driver 차이는 hardware-free CI가 증명하지 못한다.
+- named target은 지원된 launcher/browser context 안에서만 재사용된다. 독립 tab이나 다른
+  browser profile에 전용 URL을 직접 열면 document별 transport와 polling이 생길 수 있다.
+- in-memory frame, unsaved geometry와 control lease는 창 사이에서 공유·인계되지 않는다.
+- popup/fullscreen browser policy가 요청을 거부할 수 있으며 이는 robot state를 바꾸지 않는다.
 - arrival tolerance는 Mission metadata로 고정되지만 현재 Navigation의 기존 server policy를
   사용할 수 있다.
 - fake backend의 frame/goal 완료는 real sensor timestamp, DDS graph나 physical stop을

@@ -6,7 +6,7 @@ import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
 import { createPointcloudTransport } from './features/sensors/pointcloud_transport.js';
 import { createCameraDemandController } from './features/sensors/camera_demand.js';
 import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraObservability } from './features/sensors/camera_observability.js';
-import { initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
+import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { createReleaseAckTracker, renderHeaderConnections } from './features/control/session_contract.js';
@@ -951,15 +951,13 @@ const PAGE_META = {
   navigation: ['Nav2 Navigation', '저장된 2D 지도에서 초기 위치와 목표를 지정하고 Go2 자율주행을 관리합니다.'],
   settings: ['Settings', '로봇 유형을 고르고 네트워크에서 연결 대상을 찾은 뒤 ROS 2 데이터 소스를 선택합니다.'],
 };
-
-function pageFromHash() {
-  const route = location.hash.replace(/^#\/?/, '').trim();
-  return Object.hasOwn(PAGE_META, route) ? route : 'overview';
-}
+const cockpitWindowMode = initializeCockpitWindowMode({
+  onOpened: () => { if (controlArmBusy) invalidatePendingArm(); if (controlLeaseId) failSafeDisarm('cockpit_window_opened'); activatePage('overview', true); showToast('Cockpit을 별도 전체 창으로 열고 이 화면의 센서 사용을 정리했습니다.'); }, onBlocked: () => showToast('Cockpit 새 창을 열 수 없습니다. 브라우저의 팝업 허용 상태를 확인하세요.', true), onFullscreenError: (error) => showToast(`브라우저 전체 화면 전환 실패: ${error.message}`, true), });
+const pageFromHash = () => cockpitWindowMode.pageFromHash(PAGE_META);
 
 function activatePage(page, updateHash = false) {
   const previousPage = activePage;
-  const requestedPage = Object.hasOwn(PAGE_META, page) ? page : 'overview';
+  const requestedPage = cockpitWindowMode.resolvePage(Object.hasOwn(PAGE_META, page) ? page : 'overview');
   if (previousPage === 'maps' && requestedPage !== 'maps' && editorHasUnsavedChanges()) {
     if (!confirmDiscardMapEditor('저장하지 않은 2D 지도 편집을 버리고 화면을 이동할까요?')) {
       history.replaceState(null, '', '#maps');
@@ -981,7 +979,7 @@ function activatePage(page, updateHash = false) {
   const [title, description] = PAGE_META[activePage];
   ui.pageTitle.textContent = title;
   ui.pageDescription.textContent = description;
-  if (updateHash && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
+  if (cockpitWindowMode.shouldReplaceHash(updateHash) && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
   if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
   if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();
   navigationLogFeature?.onPageChange(previousPage, activePage);

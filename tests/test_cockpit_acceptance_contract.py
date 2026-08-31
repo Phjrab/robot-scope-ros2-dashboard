@@ -11,6 +11,7 @@ class CockpitAcceptanceDocumentationTests(unittest.TestCase):
         guide = (ROOT / "docs" / "COCKPIT_OPERATOR_GUIDE.md").read_text(encoding="utf-8")
         required = {
             "Cockpit 진입",
+            "별도 전체 창과 브라우저 Fullscreen",
             "Layout Edit와 Operate",
             "Panel 열기와 Focus",
             "Xbox 연결",
@@ -26,6 +27,9 @@ class CockpitAcceptanceDocumentationTests(unittest.TestCase):
             self.assertIn(heading, guide)
         self.assertIn("물리 정지", guide)
         self.assertIn("자동 ARM", guide)
+        self.assertIn("CWP 전체 창", guide)
+        self.assertIn("팝업", guide)
+        self.assertIn("브라우저 전체 화면", guide)
 
     def test_acceptance_report_separates_software_hardware_and_unmeasured_results(self):
         report = (ROOT / "docs" / "COCKPIT_ACCEPTANCE.md").read_text(encoding="utf-8")

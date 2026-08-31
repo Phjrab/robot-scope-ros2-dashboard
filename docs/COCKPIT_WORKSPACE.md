@@ -275,6 +275,24 @@ ARM/deadman, STOP, stale sensor, Manual Takeover, Mission과 경기 전후 절�
 | Jetson CPU/memory/network 실측 | NOT_RUN |
 | supervised control/Nav/Mission | NOT_RUN |
 
+### CWP-12 이후 별도 전체 작업창 후속 기록
+
+기존 `#cockpit` route는 compatibility를 위해 그대로 유지한다. 운영자가
+**CWP 전체 창**을 누르면 same-origin의 strict allowlist URL
+`?workspace=cockpit#cockpit`을 이름이 고정된 창 하나로 열거나 재사용한다. 성공한 경우
+원래 대시보드는 Overview로 이동해 내장 Cockpit scene과 sensor demand를 비활성화한다.
+팝업이 차단되면 route와 demand를 바꾸지 않고 오류를 표시한다.
+
+전용 mode는 dashboard topbar, sidebar, page heading, footer를 숨기고 Cockpit page가
+browser content viewport 전체를 사용하게 한다. 52px 전용 toolbar 아래의 workspace가
+남은 높이를 모두 사용한다. OS/browser chrome을 숨기는 native fullscreen은 자동 실행하지
+않으며 **브라우저 전체 화면**을 누른 사용자 gesture에서만 Fullscreen API를 요청한다.
+
+전용 창 열기·reload·닫기는 ARM, STOP clear, mapping/Nav/Mission 시작 또는 motion resume을
+하지 않는다. opener blur, route deactivation, visibility와 pagehide의 기존 fail-safe cleanup도
+유지한다. 이름 재사용은 지원된 launcher/browser context 안에서만 중복을 제한하며 서로
+독립적으로 직접 연 tab이나 browser profile까지 전역 singleton으로 만들지는 않는다.
+
 ## 1. 제품 목적과 비목표
 
 Cockpit은 Go2 URDF 모델과 실시간 LiDAR를 기본 장면으로 사용하고, 카메라,
@@ -301,8 +319,8 @@ Panel로 여는 대회 조종 작업공간이다. 기존 화면의 데이터를 
 - layout 저장소를 robot 상태, mission 실행 상태, lease 또는 인증 저장소로 쓰지
   않는다.
 - CWP-00에서는 runtime 코드, route 또는 UI를 구현하지 않는다.
-- 다중 모니터 pop-out, 계정 기반 workspace 공유와 기본 Go2 리모컨 통합은
-  CWP-12 이후의 별도 범위다.
+- 고정된 Cockpit 전용 창 하나만 지원한다. 임의 panel pop-out, 여러 workspace 창,
+  cross-origin 또는 계정 기반 workspace 공유와 기본 Go2 리모컨 통합은 별도 범위다.
 
 ## 2. 확인한 현재 구조
 
@@ -413,8 +431,10 @@ manager는 base canvas를 재부모화하거나 renderer 내부 상태를 직접
 소유자가 아니다.
 
 Safety HUD가 차지하는 영역은 panel geometry의 usable viewport에서 제외한다.
-Focus는 브라우저 fullscreen이 아니라 그 usable viewport를 채우는 panel 상태다.
-따라서 Focus camera/map도 HUD와 STOP을 가릴 수 없다.
+Panel **Focus**는 전용 Cockpit 창이나 native browser fullscreen이 아니라 그 usable
+viewport를 채우는 panel 상태다. 전용 창이 dashboard chrome을 숨기거나 Fullscreen API가
+성공해도 fixed Safety HUD, STOP과 toast 계층은 유지한다. 따라서 Focus camera/map도 HUD와
+STOP을 가릴 수 없다.
 
 ## 4. 데이터와 기능의 단일 소유권
 
@@ -441,6 +461,14 @@ Focus는 브라우저 fullscreen이 아니라 그 usable viewport를 채우는 p
 | panel runtime/geometry | 신규 `PanelManager` | DOM/geometry/lifecycle만 소유하고 sensor, control, navigation truth를 소유하지 않는다. |
 | panel type/capability descriptors | 신규 `PanelRegistry` | fixed panel type, title, source mapping과 lifecycle factory를 등록한다. arbitrary plugin/URL/path 입력 금지. |
 | Safety HUD presentation | 신규 `SafetyHudView`; truth는 기존 API owners | fail-closed projection만 렌더링한다. control grant나 freshness를 추론하지 않는다. |
+| Cockpit window mode | `window_mode.js`와 `app.js` composition | strict query, same-origin named window, opener deactivation과 explicit fullscreen만 담당한다. sensor/control/ROS/server operation의 owner가 아니다. |
+
+Browser transport와 UI singleton은 **document별** 계약이다. 지원된 launcher는 성공 직후
+opener의 내장 Cockpit을 비활성화해 두 document가 의도적으로 같은 Cockpit demand를
+유지하지 않게 한다. 그러나 전용 URL을 독립 tab에서 직접 열면 별도 JS runtime, socket과
+in-memory state가 생길 수 있다. cross-window lease handoff, BroadcastChannel control owner나
+전역 browser singleton을 주장하지 않는다. same-origin localStorage preset은 공유될 수 있지만
+unsaved geometry, current frame와 lease는 전달하지 않는다.
 
 ### 4.1 PointCloud 재사용 전략
 
@@ -456,8 +484,8 @@ PointCloudTransport**로 추출하는 것이 선행 조건이다. owner는 다�
 5. connection generation, request generation과 stream ID를 함께 fence로 사용한다.
 6. 마지막 consumer가 사라지거나 문서가 hidden/pagehide 되면 socket, pending
    frame, reconnect timer를 정리한다.
-7. Mapping과 Cockpit이 동시에 DOM에 남아 있어도 active demand만 등록하며,
-   socket 수는 하나를 넘지 않는다.
+7. 한 document에서 Mapping과 Cockpit이 동시에 DOM에 남아 있어도 active demand만 등록하며,
+   socket 수는 하나를 넘지 않는다. 전용 창 launcher는 opener demand를 먼저 정리한다.
 8. SceneHost는 transport를 생성하거나 닫지 않고 subscriber disposer만 소유한다.
 
 현재 live accumulated reservoir를 transport에 둘지 별도 shared cloud store에 둘지는
@@ -523,6 +551,12 @@ Hook 계약은 다음과 같다.
 Panel error는 해당 content만 `ERROR`로 만들고 panel chrome과 close/retry는
 유지한다. Error, close 또는 focus 전환이 backend watchdog, STOP route,
 navigation cleanup을 막아서는 안 된다.
+
+성공한 전용 창 전환은 opener의 일반 route deactivation disposer를 실행하고, 전용 창
+종료는 visibility/pagehide cleanup을 실행한다. 두 경로 모두 manual lease를 새 창으로
+인계하지 않으며 자동 ARM하지 않는다. server-owned Navigation, Mission과 Dataset은 panel
+DOM보다 긴 transaction이므로 창 종료만으로 cancel, complete 또는 finalize됐다고 간주하지
+않는다.
 
 ## 6. Panel UI mode 정의
 
@@ -627,6 +661,11 @@ Panel geometry 계산은 DOM과 분리된 순수 module이 담당한다.
 - resize/drag는 rAF로 coalesce하고 storage write는 pointer 종료 또는 명시적 저장
   시점에만 한다.
 - recovery는 z-order를 bounded normalization한 뒤 적용한다.
+- 전용 mode의 Cockpit page는 dashboard chrome이나 document scroll 없이 browser content
+  viewport를 채우고, 52px toolbar 아래 workspace가 남은 공간을 채운다. browser/OS chrome은
+  명시적 Fullscreen API가 성공한 경우에만 사라진다.
+- Fullscreen 요청 거부 또는 `Esc` exit는 layout/control state를 바꾸거나 ARM, STOP clear,
+  Nav/Mission 동작을 호출하지 않는다.
 
 화면 회전, monitor 이동, browser zoom, BFCache 복귀를 Playwright와 실제
 브라우저에서 각각 확인해야 한다. **확인 필요:** macOS Safari와 대회용 Chromium의
@@ -777,6 +816,7 @@ access control은 Cockpit layout 기능으로 해결하지 않는다.
 | 예상 파일 | 단일 책임 |
 | --- | --- |
 | `static/features/cockpit/workspace.js` | route enter/leave, 하위 lifecycle 조합, session generation |
+| `static/features/cockpit/window_mode.js` | strict standalone detection, canonical same-origin URL, named window open/reuse와 explicit fullscreen toggle; telemetry/control owner 금지 |
 | `static/features/cockpit/scene_host.js` | `RobotScene3D` canvas lifecycle과 shared snapshot attach/detach |
 | `static/features/cockpit/cockpit.css` | Cockpit stacking context와 namespaced layout |
 | `static/features/cockpit/panel_registry.js` | fixed panel descriptors, factories와 capability visibility |
@@ -868,6 +908,10 @@ CWP-00  이 문서: ownership와 safety 계약
 5. **control UI extraction:** Controller panel을 위해 기존 control composition을
    복사하면 lease, sequence, heartbeat와 cleanup owner가 둘이 된다. 기능을 붙이기
    전에 하나의 shared session owner로만 이동해야 한다.
+6. **cross-window runtime:** named target reuse는 한 launcher/browser context의 일반 중복만
+   막는다. 사용자가 전용 URL을 여러 tab이나 profile에 직접 열면 document별 transport와
+   polling이 생길 수 있으므로 운영 절차에서 active Cockpit 창 하나만 허용하고 viewer/demand를
+   확인해야 한다.
 
 실제 하드웨어 없이는 다음을 확인할 수 없다.
 
