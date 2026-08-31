@@ -28,9 +28,10 @@ is not a freshness pass.
 | Gate 4 minimum authenticated IMU | `PASS` after hardware-free contract tests | fixed 184-byte HMAC envelope, fixed connected UDP peers, fail-closed clock/order/freshness state and exact `/imu/body` QoS; no installation or live IMU claim |
 | Gate 5 XT16 C++ role separation | `PASS` after hardware-free contract tests | explicit cloud-only C++ target and runner exclude LowState/IMU at compile time while the existing wired executable remains unchanged in behavior |
 | Gate 6 wireless mapping profile | `PASS` after hardware-free contract tests | explicit opt-in profile, read-only preflight, restricted two-service lifecycle, transactional reverse cleanup and bounded UI failure reasons; no deployment or Mapping start |
-| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | final `e22215a`: 888 Python PASS, Node 257 PASS, Ruff and mypy PASS; Playwright 30 PASS on the tested `03b4d08` predecessor before service-only Jetson compatibility fixes; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
-| Deployment and HW-1 XT16 relay | `PASS` — `XT16_RELAY_PASS` | exact approval received; private PandarXT correction and disabled units installed; final `e22215a` relay-only run received 53,328 exact packets in 12 s and cleaned up with no service residue |
-| HW-2–HW-6 | `NOT_RUN` | stopped after HW-1 as required; no Hesai driver, IMU publisher, cloud bridge, FAST-LIO, map write or Nav2 start |
+| Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | deployed `0d81a74`: 894 Python PASS, Node 257 PASS, Ruff and mypy PASS; Playwright 30 PASS on the tested `03b4d08` predecessor before service-only Jetson compatibility fixes; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
+| Deployment and HW-1 XT16 relay | `PASS` — `XT16_RELAY_PASS` | exact approval received; private PandarXT correction and disabled units installed; relay-only run received 53,328 exact packets in 12 s and cleaned up with no service residue |
+| Firewall persistence and HW-2 workspace readiness | `PASS` | dedicated root oneshot owns only the exact INPUT chain and survived an external-Orin reboot; clean pinned Hesai source was built and resolved from the final `~/ws/hesai_ws` path without starting a sensor |
+| HW-2–HW-6 | `NOT_RUN` | HW-2 awaits a fresh physical safety check; no Hesai driver, IMU publisher, cloud bridge, FAST-LIO, map write or Nav2 start |
 
 Current external topics remain truthfully unavailable: `/lidar_points`,
 `/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
@@ -77,9 +78,10 @@ run of this exact unit loaded that correction and published at 10 Hz while the
 optional firetime file was absent. Gate 3 therefore selects one fixed private
 CSV correction, leaves `firetimes_path` empty and does not implement a PTC
 proxy. The acquisition helper and private
-manifest validator are repository-tested, but the actual correction, physical
-serial cross-check and installation remain unavailable until deployment is
-approved. Driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains
+manifest validator are repository-tested. The approved deployment later
+installed and validated the private correction after a physical serial
+cross-check; the contents, serial and hash remain outside Git and this report.
+Driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains
 `BLOCKED` unless the offline path fails in an approved hardware test and
 receives a new design approval.
 
@@ -151,7 +153,7 @@ error field.
 
 Gate 6 did not install or start either service, change network state, start
 Mapping, publish a cloud, save a map or operate the robot. HW-1 through HW-6
-and all hardware status flags remain `NOT_RUN`.
+and all hardware status flags were `NOT_RUN` at Gate 6 completion.
 
 ### Gate 7 repository evidence
 
@@ -198,10 +200,11 @@ Nothing was installed into the operating checkout or system directories and no
 ROS node or service was started.
 
 The registered fail-closed contract test resolves the former zero-test gap, so
-Gate 7 is `PASS` and the repository is `CODE_READY`. Deployment and every
-hardware status remain `NOT_RUN`. The deployment plan is documentation only;
-private calibration, firewall audit, final dual-host/safety re-audit and the
-exact deployment approval phrase are still required.
+Gate 7 is `PASS` and the repository is `CODE_READY`. At Gate 7 completion,
+deployment and every hardware status were `NOT_RUN`; private calibration,
+firewall audit, the final dual-host/safety re-audit and the exact deployment
+approval phrase were still required. The later approved deployment and HW-1
+evidence are recorded below without changing that repository-only verdict.
 
 ### Pre-deployment read-only re-audit — 2026-08-31
 
@@ -275,16 +278,31 @@ installed. The external INPUT chain accepts only
 `192.168.50.30:46020 -> 192.168.50.10:46020`, then drops other traffic to those
 two destination ports. It was applied behind an automatic rollback window and
 verified from a second SSH session without changing `FORWARD DROP`, NAT,
-bridging or routes. The host has no firewall persistence owner installed, so
-this INPUT chain is runtime-only and not reboot-persistent; reboot validation
-remains a deployment risk before later stages.
+bridging or routes. The first approved HW-1 run used this chain as a
+runtime-only rule while its persistence owner was still pending.
 
-The follow-up persistence design assigns that exact chain to a separate root
-oneshot unit ordered before the dashboard. It does not grant the dashboard
-firewall authority and does not enable any sensor, Mapping, Nav2 or Mission
-service. Repository tests cover exact ownership and fail-closed rejection;
-installation, a second-session check and reboot persistence remain required
-before HW-2.
+The follow-up persistence deployment assigns that exact chain to a separate
+root oneshot unit ordered before the dashboard. It grants the unit only the
+measured `CAP_NET_ADMIN` and `CAP_NET_RAW` requirements of Ubuntu's
+iptables-legacy backend; the dashboard and sensor processes receive neither.
+The helper adopted the already verified exact chain, rejected ambiguous or
+extra rules, and made no FORWARD, NAT, route or bridge change. A second session
+verified the owned chain before reboot. After an external-Orin reboot at the
+same management address, the unit returned `active/exited`, `Result=success`
+and `ExecMainStatus=0`, and the exact helper status passed again. The dashboard
+remained stopped because its pre-existing manual-start unit is disabled, not
+because of the firewall; it started normally when explicitly requested while
+Mapping, Nav2 and Dataset Capture remained idle. No sensor unit was enabled or started.
+
+Before HW-2, the missing Hesai runtime workspace was rebuilt without reusing a
+dirty rollback tree. Source-only archives of the pinned wrapper and SDK
+revisions were built first in isolation and then from the final
+`~/ws/hesai_ws` path. Both Release builds completed successfully. The final
+workspace resolves `hesai_ros_driver_node`, has no missing dynamic libraries,
+and validates the private correction bundle. `colcon test-result --verbose`
+reports zero registered tests, zero errors and zero failures; this is recorded
+as workspace readiness, not as a hardware or pointcloud PASS. The original
+dirty rollback workspace and the temporary staging workspace remain preserved.
 
 The first relay-only attempt exposed unsupported systemd condition names and a
 journal tail that could be displaced by manager warnings. Commits `5de2fa7`

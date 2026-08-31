@@ -1,15 +1,18 @@
 # Wireless XT16 mapping deployment plan
 
 - Plan date: 2026-08-31
-- Candidate runtime baseline: final tested `main` HEAD, frozen at approval
-- Deployment authorized: **no**
-- Current status: repository `CODE_READY`; deployment and HW-1–HW-6 `NOT_RUN`
+- Candidate runtime baseline: deployed `0d81a74`, with later evidence-only
+  documentation commits allowed
+- Deployment authorized: **yes**, exact approval was received on 2026-08-31
+- Current status: repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2–HW-6
+  `NOT_RUN`
 
-This document fixes the intended installation and hardware-test boundary. It
-does not authorize installation, a service start, Mapping, FAST-LIO, Nav2, a
-map write, a control lease or robot motion. Gate 7 is green, but deployment
-still requires every blocker below to clear and the exact operator phrase
-`APPROVE_WIRELESS_XT16_DEPLOY`.
+This document fixes the installation and hardware-test boundary. The exact
+`APPROVE_WIRELESS_XT16_DEPLOY` phrase was received and the bounded installation
+plus HW-1 were completed. That approval does not authorize Mapping, FAST-LIO,
+Nav2, a map write, a control lease or robot motion. Each later hardware stage
+still needs its own current safety-prerequisite check and must stop for an
+individual result.
 
 ## Measured topology and ownership
 
@@ -209,27 +212,25 @@ leaves maps, Dataset, private logs and calibration backups untouched. Neither
 rollback resets networking, reboots, deletes shared credentials or changes
 Go2/XT16 sensor configuration.
 
-## Blocking items before deployment approval
+## Resolved deployment blockers and remaining stage prerequisites
 
 - repository verification is cleared: Playwright is 30/30 PASS, the Orin
   Release build has zero compiler warnings and the registered cloud contract
   passes 1/1 through both colcon and direct CTest;
 - privileged network verification is cleared on both hosts: `FORWARD DROP`,
   Docker-only `172.17.0.0/16` MASQUERADE and no management/sensor forwarding;
-- the correction acquisition and checkout staging procedures are now
-  repository-defined, but their actual approved execution remains pending:
-  acquire the sensor-specific PandarXT CSV correction, cross-check the private
-  serial, and install/validate the manifest;
-- the robot-side exported tree exists at an older deployment commit; preserve
-  it as rollback and replace it only through the complete-tree staging procedure;
-- update the clean external operating checkout from
-  `6dd569ea0367598f9230096f2bac423b7f1b2dc9` to the reviewed deployment commit
-  only after approval, preserving its current rollback identity;
-- repeat both host addresses, clocks, interface ownership, privileged network
-  policy and idle safety state against that final deployed commit;
-- supply the exact phrase `APPROVE_WIRELESS_XT16_DEPLOY` only after reviewing
-  this plan and the green Gate 7 rerun.
+- the private correction was acquired with the pinned read-only helper,
+  physically cross-checked, installed and validated without recording its
+  serial, hash or contents in Git;
+- the robot-side deployment and external checkout preserve rollback copies;
+- the exact external INPUT chain is owned by a dedicated root oneshot, was
+  verified from a second session and survived reboot without enabling any
+  sensor or dashboard service;
+- a clean pinned Hesai wrapper/SDK workspace now builds and resolves from the
+  final external `~/ws/hesai_ws` path; its zero registered tests are reported
+  exactly and do not imply live sensor behavior;
+- before HW-2 starts, repeat the physical E-stop/operator/stationary check and
+  machine-verifiable DISARMED/no-lease/deadman-zero/idle state.
 
-Until every deployment blocker clears, deployment remains unauthorized and all
-hardware stages remain `NOT_RUN`; the repository status remains `CODE_READY`.
-No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed.
+HW-1 alone is `XT16_RELAY_PASS`. HW-2–HW-6 remain `NOT_RUN`.
+No LiDAR pointcloud, IMU, cloud, FAST-LIO, mapping, Nav2 or soak PASS is claimed.

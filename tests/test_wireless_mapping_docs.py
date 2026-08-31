@@ -101,7 +101,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "accepted as evidence",
             "HW-2–HW-6 remain `NOT_RUN`",
             "current hardware status is `XT16_RELAY_PASS`",
-            "runtime-only and not reboot-persistent",
+            "survived an external-Orin reboot",
+            "No sensor unit was enabled or started",
             "53,328 packets",
             "zero relay send errors",
         ):
@@ -121,7 +122,7 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "is the only new unit enabled at boot",
             "APPROVE_WIRELESS_XT16_DEPLOY",
             "APPROVE_STATIONARY_MAPPING_TEST",
-            "repository `CODE_READY`; deployment and HW-1–HW-6 `NOT_RUN`",
+            "repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2–HW-6",
         ):
             self.assertIn(contract, self.deployment)
 
@@ -132,9 +133,10 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "No PTC proxy is installed",
             "never starts Nav2, Mission, ARM, a control lease or a goal",
             "leaves maps, Dataset, private logs and calibration backups untouched",
-            "No relay, LiDAR, IMU, cloud, FAST-LIO or soak hardware PASS is claimed",
+            "HW-1 alone is `XT16_RELAY_PASS`",
+            "No LiDAR pointcloud, IMU, cloud, FAST-LIO, mapping, Nav2 or soak PASS is claimed",
             "passes 1/1 through both colcon and direct CTest",
-            "robot-side exported tree exists at an older deployment commit",
+            "robot-side deployment and external checkout preserve rollback copies",
             "`iptables v1.8.4 (legacy)`",
             "`iptables v1.8.7 (legacy)`",
             "privileged network verification is cleared on both hosts",
