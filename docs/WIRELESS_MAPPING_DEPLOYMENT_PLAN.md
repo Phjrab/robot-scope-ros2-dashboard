@@ -189,9 +189,16 @@ Go2/XT16 sensor configuration.
   passes 1/1 through both colcon and direct CTest;
 - acquire and validate the exact XT16 correction/firetime files and private
   serial/hash manifest;
-- audit the external privileged firewall and select its existing rule owner;
-- re-audit both host addresses, clocks, interface ownership and idle safety
-  state on the final deployment commit;
+- obtain current privileged iptables/nft dumps from both hosts and select the
+  existing firewall owner; both hosts report `ip_forward=1`, so unprivileged
+  route and inactive-bridge observations are insufficient;
+- resolve robot-side code provenance and rollback staging because the planned
+  `/home/unitree/project/robot-scope` checkout is currently absent;
+- update the clean external operating checkout from
+  `6dd569ea0367598f9230096f2bac423b7f1b2dc9` to the reviewed deployment commit
+  only after approval, preserving its current rollback identity;
+- repeat both host addresses, clocks, interface ownership, privileged network
+  policy and idle safety state against that final deployed commit;
 - supply the exact phrase `APPROVE_WIRELESS_XT16_DEPLOY` only after reviewing
   this plan and the green Gate 7 rerun.
 

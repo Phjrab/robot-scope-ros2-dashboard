@@ -192,6 +192,52 @@ hardware status remain `NOT_RUN`. The deployment plan is documentation only;
 private calibration, firewall audit, final dual-host/safety re-audit and the
 exact deployment approval phrase are still required.
 
+### Pre-deployment read-only re-audit — 2026-08-31
+
+No deployment approval was supplied, so this audit made no installation,
+service, sensor, network, Mapping, Nav, Dataset, control-lease or robot-motion
+mutation. The new wireless XT16 and IMU units report `LoadState=not-found` on
+their intended hosts.
+
+The robot-side Jetson was re-identified as Ubuntu 20.04 host `ubuntu`, with
+`wlan0=192.168.50.30/24` and `eth0=192.168.123.18/24`. Its new management
+address presented the same ED25519 host key previously recorded for
+`192.168.123.18` and `192.168.50.103`. The external Ubuntu 22.04 Orin remained
+`jetson-orin-nano` with `eno1=192.168.50.10/24`. Both clocks reported NTP
+synchronized in `Asia/Seoul`; bounded pings in both management directions had
+zero loss. Robot-side bounded pings to Go2 `192.168.123.161` and XT16
+`192.168.123.20` also had zero loss. Wi-Fi reported `-38 dBm` and a negotiated
+1,200.9 Mbit/s receive/transmit link during this short snapshot; this is not a
+soak or payload-throughput result.
+
+With the complete Foxy, Unitree-message and CycloneDDS `eth0` environment, the
+robot-side graph showed exactly one `/lowstate` publisher and continuously
+advancing samples. The external graph still had no `/lidar_points`,
+`/velodyne_points` or `/imu/body` topic and zero `/Odometry` publishers. The
+dashboard's public control projection reported no lease, deadman released,
+exact zero command and an inactive Control Bridge service. Cached authenticated
+bridge metadata was stale and was not treated as current readiness.
+
+Both hosts currently report `net.ipv4.ip_forward=1`. Their unprivileged route
+and link views showed no management-to-sensor route and no active carrier on
+the Docker or Jetson USB bridges, but these observations cannot prove the
+FORWARD/NAT policy. Non-interactive privileged iptables/nft reads required an
+administrator password on both hosts. Current privileged firewall dumps
+therefore remain `BLOCKED`; prior evidence is not substituted for the final
+deployment audit.
+
+The three fixed external calibration paths are absent, and a bounded filename
+inventory found only ROS `Firetime.msg` source/generated files rather than an
+XT16 correction or firetime artifact. No PTC connection was made. The external
+operating checkout was clean at
+`6dd569ea0367598f9230096f2bac423b7f1b2dc9`, behind the reviewed candidate,
+while the planned robot-side `/home/unitree/project/robot-scope` checkout does
+not exist. Code provenance, rollback source and the exact robot-side install
+path must be resolved before deployment.
+
+These observations preserve repository `CODE_READY`, but deployment and
+HW-1–HW-6 remain `NOT_RUN`.
+
 ## Safety prerequisites for every hardware stage
 
 Before each stage, record all of the following again:
