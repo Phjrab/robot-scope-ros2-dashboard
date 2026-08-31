@@ -85,7 +85,9 @@ Panel close, route leave, reload와 BFCache 복귀는 server motion을 성공으
 | Mission pause/resume, failed retry와 explicit skip | `PASS` | MissionCoordinator behavior + Playwright recovery route |
 | Mission browser reload와 server restart interrupted recovery | `PASS` | Playwright reload + persisted coordinator behavior |
 | Nav goal terminal failure가 Mission을 멈춤 | `PASS` | terminal failure/retry behavior; 자동 retry 없음 |
-| 실제 sensor/LowState loss, bridge loss, Nav child crash 중 정지 | `NOT_RUN` | 실제 service/hardware fault injection 미실행 |
+| 실제 LowState loss fail-closed와 자동 복구 | `PASS` | 2026-08-31: robot-side eth0 5초 격리, 약 0.5 s freshness gate 후 unavailable, LowState age 약 11.9 s까지 증가, 전 구간 lease/deadman/command false/false/0, 자동 ready 복귀 |
+| 실제 foreign named Sport publisher gate | `PASS` | 2026-08-31: 메시지를 발행하지 않는 고정 typed fixture에서 foreign/total 0/10→1/11, Bridge unavailable과 zero 유지, 종료 후 0/10 ready 자동 복귀 |
+| 실제 Nav child crash 중 정지 | `NOT_RUN` | Nav2 prerequisite와 live pipeline 부재 |
 
 ## 전체 테스트 결과
 
@@ -176,10 +178,11 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 | 실제 Xbox Controller 연결/해제 | `BLOCKED` |
 | deadman short-stop | `PASS` — 35% server limit, operator-observed motion and complete stop, final DISARMED/zero |
 | browser disconnect watchdog | `PASS` — socket abort during motion failed closed in 63.6 ms; physical stop confirmed |
-| software STOP/abrupt bridge-process-loss 정지 | `NOT_RUN` |
+| software STOP 중 실제 정지 | `PASS` — 0.76 s 저속 입력 중 STOP 응답 28.6 ms, E-stop latch/lease revoke/exact zero, 운영자 물리 정지 확인 |
+| abrupt bridge-process-loss 감지와 복구 | `PASS` — stationary/DISARMED에서만 실행; SIGKILL 후 systemd가 약 4 s 뒤 새 PID로 1회 재시작했고 authenticated readiness도 이어서 복구. motion 중 SIGKILL은 미승인 |
 | exact revision 저장 지도 read-only 표시 | `PASS` |
 | 실제 localization과 initial pose | `NOT_RUN` |
-| Nav goal, child crash, sensor loss와 Manual Takeover | `NOT_RUN` |
+| Nav goal, Nav child crash, XT16/Nav sensor loss와 Manual Takeover | `NOT_RUN` |
 | 실제 annotation Mission pause/skip/retry/abort | `NOT_RUN` |
 | Dataset 단독/동시 finalize, quota/reserve, 중단 복구와 보존 | `PASS` |
 | Dataset active 중 dashboard shutdown rejection | `PASS` — HTTP 409 `dataset_capture_active`, then 17 samples finalized |
@@ -206,11 +209,15 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 
 1. reference remote PC의 1920×1080 및 2560×1440 Chromium 성능표를 live Camera/XT16으로 채운다.
 2. 동일 commit으로 최소 60분 soak를 완료하고 socket/listener/heap 증가가 bounded임을 확인한다.
-3. 물리 정지 운영자와 함께 deadman, browser close, LowState/bridge loss, SOFTWARE STOP을
-   한 시나리오씩 검증한다.
-4. 실제 대회 지도에서 localization, initial pose, Nav goal, Mission과 Manual Takeover를
+3. 실제 대회 지도에서 localization, initial pose, Nav goal, Mission과 Manual Takeover를
    낮은 속도로 검증한다.
-5. Jetson CPU/memory, disk reserve, network throughput과 browser power-saving 설정을 확인한다.
-6. browser teleop의 speed scale 이중 적용과 release acknowledgement race를 server clamp/watchdog을 유지한 채 수정·재검증한다.
+4. Jetson CPU/memory, disk reserve, network throughput과 browser power-saving 설정을 확인한다.
+
+Control P0 follow-up은 2026-08-31에 완료했다. speed scale은 wire에서 한 번만
+적용되며 server clamp/watchdog은 유지된다. 정상 release acknowledgement는 6.8 ms로
+관찰됐고, 실제 저속 전진·정지, Dashboard Software STOP, stationary Bridge process loss,
+stale LowState와 foreign named Sport publisher를 각각 분리 검증했다. 상세 증거와 motion
+중 `SIGKILL` 비승인 경계는
+[하드웨어 검증 기록](HARDWARE_VALIDATION_2026-08-30.md)을 따른다.
 
 위 P0가 남아 있는 동안 software-only 결과만으로 대회 준비 완료를 선언하지 않는다.

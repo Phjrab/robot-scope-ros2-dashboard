@@ -807,6 +807,59 @@ then released, leaving zero viewers and the RealSense producer idle. No
 route/NAT/DDS configuration, Nav2, mapping, model activation, raw cloud load or
 destructive disk manipulation was applied.
 
+## P0 control-contract correction and supervised fault follow-up — 2026-08-31
+
+Commits `5461dee` and `6dd569e` corrected the two control-client contract
+defects and the split-topology header projection without weakening the server
+clamp, 200 ms Bridge watchdog, lease gate, fixed signed UDP transport, Sport
+publisher cardinality gate or LowState freshness gate.
+
+- The browser now sends normalized axes and a single `speed_scale`; the
+  displayed velocity is derived from the server limit and scale but is not fed
+  back as an already-scaled wire axis.
+- Explicit release sends zero first, clears browser authority immediately and
+  waits at most 180 ms for the WebSocket `released` acknowledgement. HTTP
+  disarm remains the fail-closed fallback only when that acknowledgement is
+  absent.
+- The header now reports `direct ROS` and the authenticated remote Control
+  Bridge independently. In the accepted wireless split topology it truthfully
+  showed direct ROS offline and remote Control Bridge connected at the same
+  time. Offline Overview sensor projections remain fail-closed.
+
+A dedicated stationary WebSocket check observed the normal `bound` then
+`released` sequence with the release acknowledgement in 6.8 ms, followed by
+an HTTP cleanup check. No motion frame was sent. The supervised low-speed
+physical check was then repeated with normalized `linear_x=1.0`,
+`speed_scale=0.35` and the unchanged server maximum of 0.30 m/s, yielding the
+single-scaled 0.105 m/s bound. Twenty-two frames were sent over about 1.25
+seconds, followed by explicit zero and an acknowledged release. The operator
+confirmed both forward movement and complete stop. Final state was DISARMED,
+lease-free and exact zero.
+
+The remaining control fault scenarios were executed one at a time with the
+operator's physical E-stop ready, a clear area, the low-speed limit confirmed
+and an on-site safety operator:
+
+| Scenario | Result and bounded evidence |
+| --- | --- |
+| Dashboard Software STOP during low-speed motion | **PASS**; after 13 frames over 0.76 s, the STOP response arrived in 28.6 ms. The server latched E-stop, revoked the lease and projected exact zero. The operator confirmed complete physical stop before the latch was explicitly cleared. |
+| Abnormal Control Bridge main-process loss | **PASS for stationary detection/recovery**; the robot was DISARMED and exact zero. `SIGKILL` ended the service main process at 12:03:00, systemd recorded `status=9/KILL`, scheduled one restart, and started new PID 50138 at 12:03:04 with `NRestarts=1`. Authenticated readiness, fresh LowState and exact graph cardinality recovered. This does not authorize `SIGKILL` during motion because that signal cannot execute shutdown StopMove. |
+| Stale LowState | **PASS**; while management Wi-Fi remained available, robot-side `eth0` was isolated for five seconds. Bridge readiness became unavailable once LowState age crossed about 0.5 s and remained unavailable as age rose to about 11.9 s. Lease, deadman and command remained `false`, `false` and `0.0` throughout. Ethernet carrier and fresh LowState recovered automatically and the Bridge returned to idle/ready. |
+| Fixed foreign named Sport publisher | **PASS**; a ROS 2 node named `robot_scope_foreign_sport_fixture` created a typed `/api/sport/request` publisher for eight seconds but never called `publish`. The graph changed from `0 foreign / 10 total` to `1 foreign / 11 total`; Bridge readiness became unavailable with no lease, deadman or non-zero command. Fixture exit restored `0/10` and idle/ready automatically. |
+
+The older immutable acceptance reports that recorded stale LowState and foreign
+publisher as BLOCKED remain unchanged: the fixed supervised fixtures did not
+exist when those reports were collected. This direct follow-up supplies the
+later hardware evidence and does not rewrite those historical artifacts.
+
+Post-change repository verification was complete Python 799/799, complete
+JavaScript 257/257, frontend syntax 52/52 and `git diff --check` PASS. The
+deployed external dashboard resolved to `6dd569e`; the robot-side Bridge
+remained manually started and disabled at boot. Final control state was
+DISARMED with no lease, deadman false, exact zero, authenticated Bridge ready,
+fresh LowState, `0` foreign named Sport publishers and the expected total of
+ten Sport publishers.
+
 ## Remaining wireless acceptance
 
 - Run the deferred 60-minute Wi-Fi soak and interference test.
@@ -824,11 +877,9 @@ destructive disk manipulation was applied.
   as the motion-safety source.
 - External-Orin Nav2 remains deferred because its ROS/DDS sensor and command
   dependencies are not carried by this narrow control transport.
-- Correct the browser/server double application of speed scale with focused
-  control-contract tests and a separately supervised low-speed deployment; do
-  not weaken the server clamp or watchdog. Also determine why one explicit
-  release acknowledgement raced with socket completion despite successful HTTP
-  fallback and final zero state.
+- The browser/server speed-scale and normal release-acknowledgement follow-up is
+  complete at `5461dee`; retain the HTTP disarm fallback and repeat the bounded
+  check after any future control-session protocol change.
 
 ## Rollback notes
 
