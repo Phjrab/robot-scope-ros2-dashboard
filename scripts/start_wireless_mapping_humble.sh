@@ -40,7 +40,8 @@ stop_local_children() {
   local signal="$1"
   local index
   for ((index=${#LOCAL_PIDS[@]} - 1; index >= 0; index--)); do
-    local_alive "$index" && kill "-$signal" "${LOCAL_PIDS[$index]}" 2>/dev/null || true
+    local_alive "$index" && \
+      kill "-$signal" -- "-${LOCAL_PIDS[$index]}" 2>/dev/null || true
   done
 }
 
@@ -102,7 +103,7 @@ start_local() {
   local label="$1"
   local log_file="$2"
   local command="$3"
-  "$command" >"$log_file" 2>&1 < /dev/null &
+  /usr/bin/setsid -- "$command" >"$log_file" 2>&1 < /dev/null &
   local pid="$!"
   local identity
   identity="$(process_identity "$pid")"

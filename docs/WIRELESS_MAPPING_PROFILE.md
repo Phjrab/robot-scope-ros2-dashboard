@@ -38,8 +38,10 @@ cloud or FAST-LIO readiness can pass before the post-bind relay health gate.
 Stop or failure cleans up in reverse order. A robot-side service that was
 already active before this transaction is observed but not claimed and is not
 stopped. Local children are tracked by PID plus Linux process start identity;
-only this process group is signalled. There is no automatic retry after a
-terminal failure and no Mapping, Nav2 or Mission restoration.
+each runner is placed in its own session and only that owned process group is
+signalled. This includes a `ros2 run` wrapper and the native ROS node it starts,
+so cleanup cannot leave an orphaned Hesai child. There is no automatic retry
+after a terminal failure and no Mapping, Nav2 or Mission restoration.
 
 The launcher cannot create a control lease, ARM, publish a goal, start Nav2,
 save a map or run Dataset Capture. The application coordinator also refuses a

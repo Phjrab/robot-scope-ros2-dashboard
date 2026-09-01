@@ -217,6 +217,8 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertIn(
             "for ((index=${#LOCAL_PIDS[@]} - 1; index >= 0; index--))", source
         )
+        self.assertIn('/usr/bin/setsid -- "$command"', source)
+        self.assertIn('kill "-$signal" -- "-${LOCAL_PIDS[$index]}"', source)
         self.assertLess(
             source.index("--service imu --action stop"),
             source.index("--service relay --action stop"),
