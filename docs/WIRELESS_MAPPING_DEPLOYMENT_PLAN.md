@@ -243,6 +243,13 @@ Go2/XT16 sensor configuration.
   bounded age/jitter, stable relay errors, zero kernel UDP errors and verified
   process-group cleanup; commits `c9873b7`, `7f87c65` and `cb56b10` provide the
   external cloud-only build, post-bind relay gate and child-safe cleanup;
+- the HW-5 preflight found that the active external private workspace was
+  missing its Livox message and FAST-LIO overlays. The non-relocatable rollback
+  build was not reused. Manifest-pinned Livox-SDK2 `08f523c`,
+  livox_ros_driver2 `4a1def9` and FAST-LIO `2fffc57` were cloned and rebuilt in
+  the active workspace without starting a sensor or mapping process. The
+  resulting FAST-LIO executable resolves all shared libraries and has SHA-256
+  `b03fabb88b875115f2074da3934e47f0345c5218e82d1abe8ba993b722945fdc`;
 - before HW-5 starts, repeat the physical E-stop/operator/stationary check and
   machine-verifiable DISARMED/no-lease/deadman-zero/idle state, then require the
   separate exact `APPROVE_STATIONARY_MAPPING_TEST` phrase.

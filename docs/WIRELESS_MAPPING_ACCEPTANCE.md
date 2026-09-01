@@ -512,6 +512,30 @@ and zero restarts, no external UDP 2368/46020 listener, and zero publishers on
 Mapping/Nav/Dataset idle. HW-4 is `PASS` as `CLOUD_PASS`; HW-5–HW-6 remain
 `NOT_RUN`.
 
+On 2026-09-01, the read-only HW-5 preflight found that the active external
+checkout no longer contained the Livox message or FAST-LIO overlays. The only
+older install tree was inside the preserved `6dd569e` rollback checkout and
+its generated setup files embedded the former `/home/jetson_orin_nano/ws`
+paths, so it was not copied into service. The external Orin instead cloned the
+manifest-pinned Livox-SDK2 `08f523c`, livox_ros_driver2 `4a1def9` and FAST-LIO
+`2fffc57` sources into the active private workspace and rebuilt the two ROS
+overlays there. The resulting `fastlio_mapping` executable has SHA-256
+`b03fabb88b875115f2074da3934e47f0345c5218e82d1abe8ba993b722945fdc`,
+resolves all shared libraries and is discoverable from the active overlay.
+The external pinned projects had no tracked changes after the build. The
+upstream builds completed with one livox_ros_driver2 unused-variable warning,
+one FAST-LIO CMake policy warning and upstream compiler notes; none was hidden
+or promoted to a repository PASS claim.
+
+No relay, IMU, Hesai, cloud bridge, FAST-LIO, Mapping, Nav2, Dataset or control
+process was started during that repair. The post-build host preflight passed,
+all six relevant external ROS topics had zero publishers before the stage, the
+dashboard still reported no lease, deadman false, exact zero and idle
+Mapping/Nav/Dataset, and the robot-side sensor and control units remained
+inactive. Therefore this is dependency recovery evidence only: HW-5 remains
+`NOT_RUN` until its physical safety prerequisites are freshly recorded and the
+stationary FAST-LIO observation is completed.
+
 ## Safety prerequisites for every hardware stage
 
 Before each stage, record all of the following again:
