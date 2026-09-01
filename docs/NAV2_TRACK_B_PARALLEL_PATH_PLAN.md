@@ -1,9 +1,9 @@
 # Nav2 Track B parallel-path decision and no-goal plan
 
-- Status: repository analysis complete; hardware execution blocked
+- Status: Unitree Humble workspace prepared; dedicated sensor NIC blocked
 - Date: 2026-09-01
 - Selected path: `A_EXISTING_WIRED_CANDIDATE`
-- Current readiness: `BLOCKED_BY_PHYSICAL_TOPOLOGY_AND_WORKSPACE`
+- Current readiness: `BLOCKED_BY_PHYSICAL_TOPOLOGY`
 - Related deferred path: Track A controller-odometry source-clock recovery
 
 ## Scope and invariant boundary
@@ -179,6 +179,40 @@ existing pure validation functions; it opens no ROS graph or network socket.
 | T7 PDF-style sensor restamp boundary | sensor/TF clock handling must not rebase controller odom | `PASS` | scan stamp, host TF stamp, receiver original stamp | roles remain separate | strict original stamp preserved | hardware timestamps not remeasured |
 
 ## Candidate evaluation and selected path
+
+### Candidate A preparation update — 2026-09-01
+
+The pinned Unitree Humble workspace is now installed at the repository
+helper's expected path on the external Jetson:
+
+- path: `/home/jetson_orin_nano/unitree_ros2`
+- origin: `https://github.com/unitreerobotics/unitree_ros2.git`
+- commit: `668d1ec5a05d1c38d3306bdca7d59f2ba3581a88`
+- build: `unitree_api`, `unitree_go` and `unitree_hg` completed successfully
+- XT16 bridge: the full builder now forces the legacy target back on after a
+  cloud-only build, preventing a shared CMake cache from silently omitting
+  `robot_scope_xt16_bridge_node`
+- offline preflight: `robot_scope_doctor.py --mode go2-nav
+  --allow-hardware-offline` returns success with all required checks passing;
+  only the absent dedicated address and unreachable direct sensor-LAN relay
+  host remain non-required hardware warnings
+
+The previous path was a dangling symbolic link to the removed
+`project/robot-scope/workspaces/unitree_ros2` directory. It was preserved as
+`/home/jetson_orin_nano/unitree_ros2.dangling-pre-track-b-20260901T0849Z`
+before the pinned workspace was installed. The bootstrap now rejects this
+condition explicitly instead of reaching a generic `git clone` failure.
+
+The physical topology gate remains closed. `eno1` owns management address
+`192.168.50.10/24` and the preferred default route, while `wlP1p1s0` owns
+`192.168.0.26/24`. No additional physical Ethernet adapter is present; the
+two `usb0`/`usb1` devices are inactive Tegra USB-gadget interfaces and are not
+accepted as the dedicated sensor NIC. No interface was reconfigured and
+`192.168.123.99/24` was not assigned.
+
+The wired environment helper remains fail-closed in this state and exits
+nonzero before any ROS runtime is started. No no-goal acceptance, initial pose
+or navigation goal is authorized by this preparation result.
 
 ### Candidate A — existing direct wired Humble
 

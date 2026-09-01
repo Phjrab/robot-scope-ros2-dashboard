@@ -129,8 +129,10 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
         ):
             self.assertIn(contract, self.legacy)
         legacy_runner = (ROOT / "scripts" / "run_xt16_bridge_humble.sh").read_text()
+        legacy_builder = (ROOT / "scripts" / "build_xt16_bridge_humble.sh").read_text()
         self.assertIn("robot_scope_xt16_bridge_node", legacy_runner)
         self.assertNotIn("robot_scope_xt16_cloud_bridge_node", legacy_runner)
+        self.assertIn("-DROBOT_SCOPE_XT16_BUILD_LEGACY=ON", legacy_builder)
 
     def test_cloud_runner_is_fixed_cpp_only_and_does_not_bypass_network_contracts(self):
         subprocess.run(["bash", "-n", str(RUNNER_PATH)], check=True)

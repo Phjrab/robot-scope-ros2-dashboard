@@ -191,6 +191,28 @@ class RosDependencyBootstrapTests(unittest.TestCase):
             self.assertIn(str(prefix), result.stdout)
             self.assertFalse(prefix.exists())
 
+    def test_dangling_repository_symlink_fails_without_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary) / "workspace"
+            workspace.mkdir()
+            target = workspace / "unitree_ros2"
+            missing = workspace / "missing-unitree-workspace"
+            target.symlink_to(missing)
+
+            result = self.run_script(
+                "--mode",
+                "go2",
+                "--workspace-root",
+                str(workspace),
+                "--dry-run",
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("target is a dangling symbolic link", result.stderr)
+            self.assertTrue(target.is_symlink())
+            self.assertEqual(target.readlink(), missing)
+            self.assertFalse(missing.exists())
+
     def test_script_uses_no_reset_or_force_checkout(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertNotRegex(source, r"git[^\n]*(?:reset|clean)")

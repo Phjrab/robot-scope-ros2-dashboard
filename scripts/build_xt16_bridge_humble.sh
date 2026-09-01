@@ -33,4 +33,6 @@ exec colcon \
   --build-base "$BUILD_ROOT/build" \
   --install-base "$BUILD_ROOT/install" \
   --merge-install \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release
+  --cmake-args \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DROBOT_SCOPE_XT16_BUILD_LEGACY=ON

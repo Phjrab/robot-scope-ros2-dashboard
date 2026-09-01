@@ -199,6 +199,12 @@ install_repository() {
   recursive="$(dependency_field "$name" recursive)"
   local target="$WORKSPACE_ROOT/$relative"
 
+  if [[ -L "$target" && ! -e "$target" ]]; then
+    local link_target
+    link_target="$(readlink -- "$target" 2>/dev/null || true)"
+    die "$name target is a dangling symbolic link: $target -> $link_target"
+  fi
+
   if [[ -e "$target" ]]; then
     if [[ "$ACTION" == "dry-run" ]]; then
       print_command git -C "$target" verify-pinned-origin-and-commit "$commit"
