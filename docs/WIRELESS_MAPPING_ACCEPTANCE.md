@@ -35,13 +35,13 @@ is not a freshness pass.
 | HW-3 IMU only | `PASS` — `IMU_PASS` | supervised stationary run produced exactly one reliable/volatile `/imu/body` publisher at about 502 Hz with authenticated, finite, fresh, increasing samples; zero external `/lowstate` publishers and cleanup left no sender, receiver or socket residue |
 | HW-4 cloud bridge | `PASS` — `CLOUD_PASS` | supervised stationary run produced exactly one reliable/volatile `/velodyne_points` publisher at about 10 Hz with 16,000-point exact-layout clouds; age, jitter, relay and kernel-drop bounds passed and verified process-group cleanup left no topic, socket or service residue |
 | HW-5 stationary FAST-LIO | `PASS` — `MAPPING_STATIONARY_PASS` | exact approval and fresh physical safety check recorded; all three FAST-LIO outputs were fresh, non-empty and single-publisher, shutdown-race correction `9bad38e` was deployed and retested, and reverse cleanup left no topic, socket, process or service residue |
-| HW-6 compound load | `NOT_RUN` | no 60-second, 10-minute or 60-minute soak claim; no Nav2 start |
+| HW-6 compound load | `PASS` for 60 s and 10 min; 60 min `NOT_RUN` | simultaneous XT16, authenticated IMU, FAST-LIO, both cameras, signed Control Bridge status and LOW dashboard PointCloud remained bounded; 60-minute soak is still deferred and `SOAK_PASS` is not claimed |
 
 After final HW-4 cleanup, current external topics remain truthfully unavailable:
 `/lidar_points`, `/velodyne_points` and `/imu/body` have zero publishers.
 Mapping, navigation and Dataset Capture are idle. The repository status is `CODE_READY`;
-the current hardware status is `MAPPING_STATIONARY_PASS`. No Nav2 or compound
-load PASS is implied.
+the current hardware status remains `MAPPING_STATIONARY_PASS` because the
+60-minute soak is still `NOT_RUN`. No Nav2 or `SOAK_PASS` result is implied.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -591,7 +591,88 @@ sensor units disabled/inactive with PID 0 and zero restarts, no external UDP
 no-lease, deadman false and exact zero. No new PCD, saved map or Dataset file
 was created; the two-byte upstream `PCD/1` placeholder predated HW-5 and its
 mtime did not change. HW-5 is therefore `PASS` as
-`MAPPING_STATIONARY_PASS`; HW-6 remains `NOT_RUN`.
+`MAPPING_STATIONARY_PASS`. At that checkpoint HW-6 remained `NOT_RUN`; its
+later short-gate evidence is recorded below.
+
+## HW-6 supervised compound load — 2026-09-01
+
+The operator freshly confirmed physical E-stop readiness, an on-site safety
+operator, a clear safety area and a stationary robot. The compound fixture was
+the exact prompt contract: XT16 relay, authenticated wireless IMU, FAST-LIO,
+Go2 and RealSense cameras, signed Control Bridge status with no lease and the
+Cockpit PointCloud renderer fixed to `LOW · 10K`. Mapping/Nav/Dataset remained
+idle in the dashboard; no ARM, deadman, motion command, Nav2, goal, map save,
+PCD save or Dataset capture was requested.
+
+The first browser connection exposed a deployment-baseline omission rather
+than a sensor failure: Uvicorn had no WebSocket implementation even though
+`requirements.txt` requires `websockets>=12,<16`. The external Orin installed
+the declared user-local `websockets 15.0.1`, the no-lease Control Bridge was
+stopped, the dashboard was safely restarted, and then the bridge was started
+again. Both camera panels became live before the mapping launcher ran. This
+dependency repair did not change repository source, network configuration or
+service enablement.
+
+The 60-second gate and then the 10-minute gate both sustained the complete
+compound load. Representative and final evidence was:
+
+- `/lidar_points` and `/velodyne_points` remained approximately 10 Hz; the
+  five-minute samples were `10.016 Hz` and `10.008 Hz` respectively;
+- `/Odometry` finished at `10.017 Hz`, `/cloud_registered` at `10.021 Hz` and
+  `/Laser_map` at `1.000 Hz`; the authenticated IMU remained near 500 Hz with
+  zero loss, duplicate, reorder, authentication, finite-value, clock or
+  transport errors;
+- XT16 relay sequence loss/duplicate/reorder remained zero and its inherited
+  send-error counter stayed fixed at 7. Kernel UDP receive/Rcvbuf errors rose
+  from 0 to 6 during the first short gate, then remained exactly 6 through the
+  remainder of that gate, the full 10-minute gate and the final regression;
+  kernel send-buffer errors stayed zero;
+- robot Wi-Fi RSSI ranged from approximately `-32` to `-40 dBm`, negotiated
+  link rate remained at least `720.6 Mbit/s` in the sampled intervals, and the
+  measured ping samples had zero loss with about `1.4-1.9 ms` average and at
+  most `3.407 ms` observed RTT;
+- Go2 camera delivery stayed about `11.0-12.5 FPS` and RealSense delivery about
+  `15.0-18.6 FPS`, with backend ages below `0.08 s`, no source error and zero
+  service restarts. The RealSense relay itself held about 15 FPS at 640x480;
+- the signed bridge stayed authenticated/ready with status age at most about
+  `0.252 s`, LowState age `0-1 ms`, exactly one LowState publisher, no lease,
+  deadman false and exact zero on all three velocity axes;
+- external used RAM changed from about 2.20 to 2.24 GiB during the 10-minute
+  interval, swap remained zero, GPU was zero in sampled `tegrastats`, and the
+  highest sampled thermal value was about 41.3 degrees Celsius. The LOW
+  Cockpit renderer reported approximately 26-34 FPS. All sensor, camera,
+  dashboard and control service restart counters stayed zero.
+
+One Cockpit presentation mismatch remains recorded: while the backend source
+was continuously live with sub-second frame age, a camera panel badge could
+briefly project `WAITING` before returning to `LIVE`. It did not correspond to
+a source restart, decoder failure or stale backend frame, but it should be
+fixed before the deferred 60-minute operator-facing soak.
+
+The first 10-minute stop exposed a narrow shutdown diagnostic: SIGINT delivered
+to the whole SSH foreground group could interrupt the launcher's in-flight
+read-only remote-service check and print a Python `KeyboardInterrupt`
+traceback. Cleanup still left no process, topic, port or service residue.
+`check_wireless_mapping_preflight.py` now converts only that interrupt into
+bounded exit code 130, with a regression test; timeout and all fail-closed
+stage errors are unchanged. The deployed previous helper is preserved as
+`check_wireless_mapping_preflight.py.pre-hw6-interrupt`.
+
+An additional SSH-TTY-only stop attempt demonstrated that killing the client
+before signalling the remote launcher can orphan its child groups. The exact
+recorded PIDs, start identities and process groups were stopped in reverse
+order and the robot relay was stopped through its restricted lifecycle. This
+was not accepted as product cleanup evidence. The final correction run instead
+sent SIGINT to the verified remote launcher PID, exited 130 with no traceback,
+and automatically returned all six ROS publishers and both UDP listeners to
+zero while leaving both mapping sensor units inactive. Final cleanup also
+closed the browser viewers and returned Control Bridge, Go2 camera and
+RealSense services to their original disabled/inactive, PID-0 state. No map,
+PCD or Dataset artifact was created.
+
+HW-6 is therefore `PASS` for its ordered 60-second and 10-minute gates. The
+separately required 60-minute gate remains `NOT_RUN`, so the hardware status
+does not advance to `SOAK_PASS` and remains `MAPPING_STATIONARY_PASS`.
 
 ## Safety prerequisites for every hardware stage
 

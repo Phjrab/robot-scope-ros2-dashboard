@@ -155,6 +155,14 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertEqual(result.returncode, 124)
         self.assertEqual(result.stdout, "")
 
+    def test_subprocess_interrupt_is_bounded_without_traceback(self):
+        def interrupted_runner(*_args, **_kwargs):
+            raise KeyboardInterrupt
+
+        result = preflight._run(("/fixed",), runner=interrupted_runner)
+        self.assertEqual(result.returncode, 130)
+        self.assertEqual(result.stdout, "")
+
     def test_conflicting_navigation_process_blocks_host_preflight(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = Fixture(Path(temporary))

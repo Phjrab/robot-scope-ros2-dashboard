@@ -6,7 +6,8 @@
 - Deployment authorized: **yes**, exact approval was received on 2026-08-31
 - Current status: repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2
   `LIDAR_PASS`; HW-3 `IMU_PASS`; HW-4 `CLOUD_PASS`; HW-5
-  `MAPPING_STATIONARY_PASS`; HW-6 `NOT_RUN`
+  `MAPPING_STATIONARY_PASS`; HW-6 60-second and 10-minute gates `PASS`,
+  60-minute gate `NOT_RUN`; no `SOAK_PASS`
 
 This document fixes the installation and hardware-test boundary. The exact
 `APPROVE_WIRELESS_XT16_DEPLOY` phrase was received and the bounded installation
@@ -256,8 +257,14 @@ Go2/XT16 sensor configuration.
   outputs were single-publisher, fresh and non-empty. Shutdown race correction
   `9bad38e` was deployed and the complete readiness/TERM cleanup sequence was
   repeated without traceback or process/topic/service residue; no map, PCD,
-  Dataset, Nav2, goal or control lease was created.
+  Dataset, Nav2, goal or control lease was created;
+- HW-6 completed its ordered 60-second and 10-minute compound gates on
+  2026-09-01 with both cameras, signed Control Bridge status/no lease,
+  authenticated IMU, XT16, FAST-LIO and the LOW Cockpit renderer concurrent.
+  Rates, resources, freshness, service restarts and bounded network counters
+  passed; the separate 60-minute soak remains deferred.
 
 HW-1 is `XT16_RELAY_PASS`, HW-2 is `LIDAR_PASS`, HW-3 is `IMU_PASS` and HW-4
-is `CLOUD_PASS`. HW-5 is `MAPPING_STATIONARY_PASS`; HW-6 remains `NOT_RUN`.
-No Nav2 or soak PASS is claimed.
+is `CLOUD_PASS`. HW-5 is `MAPPING_STATIONARY_PASS`; HW-6 short gates are
+`PASS` and its 60-minute gate remains `NOT_RUN`. No Nav2 or `SOAK_PASS` is
+claimed.

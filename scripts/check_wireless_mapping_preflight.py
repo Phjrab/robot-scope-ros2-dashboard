@@ -93,6 +93,8 @@ def _run(
             timeout=timeout,
             env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C", "LC_ALL": "C"},
         )
+    except KeyboardInterrupt:
+        return subprocess.CompletedProcess(command, 130, "", "")
     except (OSError, subprocess.SubprocessError):
         return subprocess.CompletedProcess(command, 124, "", "")
 
