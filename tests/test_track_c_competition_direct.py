@@ -175,19 +175,37 @@ class TrackCCompetitionDirectTests(unittest.TestCase):
 
         def runner(argv, **_kwargs):
             values = tuple(argv)
-            if values[1:3] == ("lifecycle", "get"):
+            if values[1:3] == ("node", "list"):
+                return completed(values, stdout="\n".join(no_goal.LIFECYCLE_NODES) + "\n")
+            if values[1:3] == ("topic", "list"):
+                return completed(values, stdout=f"{no_goal.RAW_COMMAND_TOPIC}\n")
+            if values[:2] == (no_goal.TIMEOUT, "3") and "lifecycle" in values:
                 return completed(values, stdout="active [3]\n")
             if values[1:3] == ("topic", "info"):
                 return completed(values, stdout="Publisher count: 1\n")
             if "tf2_echo" in values:
                 return completed(values, returncode=124, stdout="Translation:\nRotation:\n")
+            if values[:2] == (no_goal.TIMEOUT, "3") and "topic" in values:
+                return completed(values, stdout="fresh sample\n")
             if values[:2] == (no_goal.TIMEOUT, "2"):
                 return completed(values, returncode=124)
             raise AssertionError(values)
 
         no_goal.check(
+            stage="localized",
             environment=environment,
             runner=runner,
+            control_fetcher=lambda: {
+                "control": {
+                    "lease": {"active": False},
+                    "command": {
+                        "deadman": False,
+                        "linear_x": 0.0,
+                        "linear_y": 0.0,
+                        "angular_z": 0.0,
+                    },
+                }
+            },
             ros2="/opt/ros/humble/bin/ros2",
         )
 
@@ -198,10 +216,22 @@ class TrackCCompetitionDirectTests(unittest.TestCase):
                 return completed(values, stdout="motion sample\n")
             return result
 
-        with self.assertRaisesRegex(no_goal.NoGoalError, "unexpected output"):
+        with self.assertRaisesRegex(no_goal.NoGoalError, "raw command"):
             no_goal.check(
+                stage="localized",
                 environment=environment,
                 runner=motion_runner,
+                control_fetcher=lambda: {
+                    "control": {
+                        "lease": {"active": False},
+                        "command": {
+                            "deadman": False,
+                            "linear_x": 0.0,
+                            "linear_y": 0.0,
+                            "angular_z": 0.0,
+                        },
+                    }
+                },
                 ros2="/opt/ros/humble/bin/ros2",
             )
 

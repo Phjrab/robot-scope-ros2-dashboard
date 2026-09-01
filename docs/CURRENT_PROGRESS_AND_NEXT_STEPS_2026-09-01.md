@@ -236,3 +236,36 @@ Perception은 관측만 제공하며 control, navigation 또는 Mission authorit
 
 이 기준선은 새 기능의 hardware readiness를 뜻하지 않는다. 다음 실제 기능 게이트는
 Unitree 답신 검토와 controller odometry source-clock 정상화다.
+
+## 2026-09-02 Track C2 우선순위 전환
+
+위의 source-clock 지원 요청과 Track A/B 작업은 삭제하지 않고 `DEFERRED`로 보존한다.
+Track C direct-Humble 조사에서 확인한 물리/배포 제약을 바탕으로, 현재 external Humble
+Orin에서 이미 검증된 wireless XT16·인증 IMU·FAST-LIO 경로를 재사용하는 별도 opt-in
+profile을 구현했다.
+
+- profile: `go2-xt16-wireless-competition-fastlio`
+- localization odometry: `/Odometry` (`camera_init -> body`)
+- controller odometry: `/robot_scope/nav/controller_odom_fastlio`
+  (`odom -> base_link`)
+- strict `/utlidar/robot_odom` profile, 500 ms/100 ms guard와
+  `competition-pdf-direct` profile은 변경하지 않았다.
+- NG0는 initial pose 이전 단계로 분리해 `map -> base_link` 없이도 명시적으로
+  `WAITING_FOR_INITIAL_POSE`를 판정한다. NG1만 해당 TF와 costmap을 요구한다.
+- C2에서는 initial pose, goal, lease, ARM, deadman과 robot motion을 실행하지 않는다.
+
+원본 교육 PDF 01–12를 새로 확인했고, 특히 09 p4/p10–18, 10 p4–6/p9,
+11 p4–7을 repository ownership과 page 단위로 대조했다. 결과는
+`TRACK_C_COMPETITION_DIRECT_NAV2_PLAN.md` 후속 section에 기록했다. 설계 결정은
+`ADR_COMPETITION_FASTLIO_CONTROLLER_ODOM.md`, 실행 결과는
+`TRACK_C2_COMPETITION_FASTLIO_NO_GOAL_ACCEPTANCE.md`가 기준이다.
+
+같은 배포 코드에서 stationary sensor/controller-odometry를 30초 이상 확인했고,
+command-isolated NG0 60초를 12/12 반복 PASS한 뒤 reverse cleanup을 증명했다.
+canonical odometry는 약 10 Hz, `odom -> base_link`, source/output stamp 동일,
+final host offset 약 36 ms였으며 jump/error는 없었다. raw command는 60초간 0 byte,
+Sport topic은 없었고 lease/deadman/속도는 계속 false/false/zero였다.
+
+다음 단계는 `TRACK_C3_STATIONARY_INITIAL_POSE_NO_GOAL_PROMPT.md`에 따라 exact map
+revision을 다시 고정하고, known-free initial pose 한 번과 localized no-goal을 별도 감독
+승인으로 수행하는 것이다. C3에서도 goal과 motion은 금지된다.

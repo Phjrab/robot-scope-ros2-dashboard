@@ -129,6 +129,8 @@ class NavigationJobManagerTests(unittest.TestCase):
                 "scan_topic": "/scan",
                 "odom_topic": "/Odometry",
                 "cmd_vel_topic": PRIVATE_CMD_VEL_TOPIC,
+                "controller_odom_topic": "/utlidar/robot_odom",
+                "controller_odom_mode": "strict_onboard",
                 "min_obstacle_height": -0.25,
                 "max_obstacle_height": 2.0,
                 "obstacle_max_range": 8.0,

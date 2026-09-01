@@ -39,6 +39,9 @@ case "$MAPPING_PROFILE" in
   go2-xt16-wireless)
     source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
     ;;
+  go2-xt16-wireless-competition-fastlio)
+    source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
+    ;;
   *)
     echo "[Robot Scope] navigation mapping profile is unsupported" >&2
     exit 2

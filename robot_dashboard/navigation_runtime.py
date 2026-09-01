@@ -23,8 +23,10 @@ on machines that do not have ROS installed.  ROS imports occur only when
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import math
+import os
 import signal
 import sys
 import time
@@ -84,6 +86,165 @@ class BoundedRateWindow:
             "jitter_s": round(math.sqrt(variance), 4),
             "age_s": round(age, 4),
             "samples": len(self._arrivals),
+        }
+
+
+FASTLIO_CONTROLLER_ODOM_TOPIC = "/robot_scope/nav/controller_odom_fastlio"
+STRICT_CONTROLLER_ODOM_TOPIC = "/utlidar/robot_odom"
+CONTROLLER_ODOM_MAX_PAST_S = 0.50
+CONTROLLER_ODOM_MAX_FUTURE_S = 0.25
+CONTROLLER_ODOM_SILENCE_S = 0.75
+
+
+@dataclass(frozen=True)
+class ControllerOdometrySample:
+    """ROS-independent FAST-LIO sample accepted by the controller gate."""
+
+    stamp_ns: int
+    parent_frame: str
+    child_frame: str
+    position: tuple[float, float, float]
+    orientation: tuple[float, float, float, float]
+    linear_velocity: tuple[float, float, float]
+    angular_velocity: tuple[float, float, float]
+    pose_covariance: tuple[float, ...]
+    twist_covariance: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class ControllerOdometryOutput:
+    """Validated canonical output metadata; the source stamp is preserved."""
+
+    stamp_ns: int
+    parent_frame: str
+    child_frame: str
+    sample: ControllerOdometrySample
+
+
+class FastLioControllerOdomGate:
+    """Fail-closed validator for the opt-in FAST-LIO controller source."""
+
+    def __init__(self, *, silence_s: float = CONTROLLER_ODOM_SILENCE_S) -> None:
+        self.silence_s = _finite_number(silence_s, "controller odometry silence")
+        if self.silence_s < 0.1 or self.silence_s > 2.0:
+            raise NavigationRuntimeError("controller odometry silence is invalid")
+        self._generation: int | None = None
+        self._last_stamp_ns = 0
+        self._last_observed = 0.0
+        self._last_pose: PlanarTransform | None = None
+        self._last_error = "waiting for FAST-LIO controller odometry"
+        self._last_offset_s: float | None = None
+
+    @staticmethod
+    def _finite_values(values: Sequence[Any], label: str) -> tuple[float, ...]:
+        return tuple(_finite_number(value, label) for value in values)
+
+    def observe(
+        self,
+        sample: ControllerOdometrySample,
+        *,
+        now_ns: int,
+        observed_monotonic: float,
+        input_publishers: int,
+        output_publishers: int,
+        process_generation: int,
+    ) -> ControllerOdometryOutput:
+        """Validate one source sample and return its fixed-frame projection."""
+
+        try:
+            if input_publishers != 1:
+                raise NavigationRuntimeError("FAST-LIO input publisher count is not one")
+            if output_publishers != 1:
+                raise NavigationRuntimeError("controller odometry output publisher conflict")
+            if (
+                isinstance(process_generation, bool)
+                or not isinstance(process_generation, int)
+                or process_generation <= 0
+            ):
+                raise NavigationRuntimeError("controller odometry generation is invalid")
+            if self._generation is None:
+                self._generation = process_generation
+            elif process_generation != self._generation:
+                self._last_stamp_ns = 0
+                self._last_pose = None
+                raise NavigationRuntimeError("controller odometry process generation changed")
+            if (
+                isinstance(sample.stamp_ns, bool)
+                or not isinstance(sample.stamp_ns, int)
+                or sample.stamp_ns <= 0
+            ):
+                raise NavigationRuntimeError("controller odometry timestamp is zero")
+            if isinstance(now_ns, bool) or not isinstance(now_ns, int) or now_ns <= 0:
+                raise NavigationRuntimeError("controller odometry host clock is invalid")
+            age_ns = now_ns - sample.stamp_ns
+            if age_ns > int(CONTROLLER_ODOM_MAX_PAST_S * 1_000_000_000):
+                raise NavigationRuntimeError("controller odometry timestamp is stale")
+            if age_ns < -int(CONTROLLER_ODOM_MAX_FUTURE_S * 1_000_000_000):
+                raise NavigationRuntimeError("controller odometry timestamp is in the future")
+            if self._last_stamp_ns and sample.stamp_ns <= self._last_stamp_ns:
+                raise NavigationRuntimeError("controller odometry timestamp did not increase")
+            if not odometry_frames_are_expected(sample.parent_frame, sample.child_frame):
+                raise NavigationRuntimeError("unexpected FAST-LIO controller source frames")
+
+            position = bounded_pose_position(*sample.position)
+            orientation = self._finite_values(sample.orientation, "orientation")
+            yaw = quaternion_to_yaw(*orientation)
+            linear = self._finite_values(sample.linear_velocity, "linear velocity")
+            angular = self._finite_values(sample.angular_velocity, "angular velocity")
+            if len(linear) != 3 or len(angular) != 3:
+                raise NavigationRuntimeError("controller odometry twist shape is invalid")
+            if any(abs(value) > 5.0 for value in linear) or any(
+                abs(value) > 10.0 for value in angular
+            ):
+                raise NavigationRuntimeError("controller odometry twist is implausible")
+            for covariance, label in (
+                (sample.pose_covariance, "pose covariance"),
+                (sample.twist_covariance, "twist covariance"),
+            ):
+                values = self._finite_values(covariance, label)
+                if len(values) != 36 or any(abs(value) > 1.0e9 for value in values):
+                    raise NavigationRuntimeError(f"{label} is invalid")
+
+            observed = _finite_number(observed_monotonic, "controller observation")
+            current_pose = PlanarTransform(position[0], position[1], yaw)
+            if self._last_pose is not None and self._last_observed > 0.0:
+                discontinuity = odometry_discontinuity_reason(
+                    self._last_pose,
+                    current_pose,
+                    observed - self._last_observed,
+                )
+                if discontinuity:
+                    raise NavigationRuntimeError(discontinuity)
+        except NavigationRuntimeError as exc:
+            self._last_observed = 0.0
+            self._last_error = str(exc)
+            raise
+
+        self._last_stamp_ns = sample.stamp_ns
+        self._last_observed = observed
+        self._last_pose = current_pose
+        self._last_error = ""
+        self._last_offset_s = round(age_ns / 1_000_000_000.0, 6)
+        return ControllerOdometryOutput(
+            stamp_ns=sample.stamp_ns,
+            parent_frame="odom",
+            child_frame="base_link",
+            sample=sample,
+        )
+
+    def snapshot(self, now_monotonic: float) -> dict[str, Any]:
+        now = _finite_number(now_monotonic, "controller snapshot time")
+        age = None if self._last_observed <= 0.0 else max(0.0, now - self._last_observed)
+        ready = bool(age is not None and age <= self.silence_s and not self._last_error)
+        return {
+            "ready": ready,
+            "state": "ready" if ready else "blocked",
+            "age_s": None if age is None else round(age, 4),
+            "source_stamp_ns": self._last_stamp_ns or None,
+            "output_stamp_ns": self._last_stamp_ns or None,
+            "source_to_host_offset_s": self._last_offset_s,
+            "process_generation": self._generation,
+            "error": self._last_error if not ready else "",
         }
 
 
@@ -293,6 +454,8 @@ class RuntimeFilterSettings:
     z_max: float
     range_min: float
     range_max: float
+    controller_odom_topic: str
+    controller_odom_mode: str
 
 
 RUNTIME_PARAMETER_KEYS = frozenset(
@@ -300,6 +463,8 @@ RUNTIME_PARAMETER_KEYS = frozenset(
         "scan_topic",
         "odom_topic",
         "cmd_vel_topic",
+        "controller_odom_topic",
+        "controller_odom_mode",
         "min_obstacle_height",
         "max_obstacle_height",
         "obstacle_max_range",
@@ -346,6 +511,14 @@ def load_runtime_filter_settings(path: str | Path) -> RuntimeFilterSettings:
     for key, expected in fixed_topics.items():
         if values.get(key) != expected:
             raise NavigationRuntimeError(f"{key} must remain fixed at {expected}")
+    controller_mode = values.get("controller_odom_mode")
+    controller_topic = values.get("controller_odom_topic")
+    expected_controller_topic = {
+        "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
+        "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+    }.get(controller_mode)
+    if expected_controller_topic != controller_topic:
+        raise NavigationRuntimeError("controller odometry profile is invalid")
 
     z_min = _finite_number(values.get("min_obstacle_height"), "min_obstacle_height")
     z_max = _finite_number(values.get("max_obstacle_height"), "max_obstacle_height")
@@ -362,6 +535,8 @@ def load_runtime_filter_settings(path: str | Path) -> RuntimeFilterSettings:
         z_max=z_max,
         range_min=0.4,
         range_max=max(obstacle_range, raytrace_range),
+        controller_odom_topic=str(controller_topic),
+        controller_odom_mode=str(controller_mode),
     )
     # Reuse the projection validator for all cross-field invariants.
     ScanGeometry(
@@ -534,6 +709,30 @@ def _message_stamp_is_fresh(node: Any, message: Any, timeout_s: float) -> bool:
     return -0.25 <= age <= timeout_s
 
 
+def controller_odometry_sample_from_message(message: Any) -> ControllerOdometrySample:
+    """Extract the complete fixed numeric contract from one ROS Odometry."""
+
+    stamp = message.header.stamp
+    pose = message.pose.pose
+    twist = message.twist.twist
+    return ControllerOdometrySample(
+        stamp_ns=int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec),
+        parent_frame=str(message.header.frame_id),
+        child_frame=str(message.child_frame_id),
+        position=(pose.position.x, pose.position.y, pose.position.z),
+        orientation=(
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w,
+        ),
+        linear_velocity=(twist.linear.x, twist.linear.y, twist.linear.z),
+        angular_velocity=(twist.angular.x, twist.angular.y, twist.angular.z),
+        pose_covariance=tuple(message.pose.covariance),
+        twist_covariance=tuple(message.twist.covariance),
+    )
+
+
 def _build_ros_runtime_node_class() -> type[Any]:
     """Import ROS lazily and construct the runtime Node class."""
 
@@ -574,6 +773,10 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "/Odometry": 0,
                 "/initialpose": 0,
             }
+            self._controller_odom_gate: FastLioControllerOdomGate | None = None
+            self._controller_odom_publisher: Any = None
+            self._controller_odom_error = ""
+            self._process_generation = os.getpid()
             self._odom_to_base: PlanarTransform | None = None
             self._odom_z = 0.0
             self._odom_quaternion = (0.0, 0.0, 0.0, 1.0)
@@ -607,6 +810,20 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._health_publisher = self.create_publisher(
                 String, "/robot_scope/nav/runtime_health", health_qos
             )
+            if options.controller_odom_mode == "competition_fastlio":
+                controller_qos = QoSProfile(
+                    history=HistoryPolicy.KEEP_LAST,
+                    depth=5,
+                    reliability=ReliabilityPolicy.RELIABLE,
+                    durability=DurabilityPolicy.VOLATILE,
+                )
+                self._controller_odom_gate = FastLioControllerOdomGate()
+                self._controller_odom_publisher = self.create_publisher(
+                    Odometry,
+                    FASTLIO_CONTROLLER_ODOM_TOPIC,
+                    controller_qos,
+                )
+                self._publisher_counts[FASTLIO_CONTROLLER_ODOM_TOPIC] = 0
             self._tf_broadcaster = TransformBroadcaster(self)
             self._static_tf_broadcaster = StaticTransformBroadcaster(self)
 
@@ -632,7 +849,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._publish_static_lidar_transform(TransformStamped)
             self.get_logger().info(
                 "fixed navigation runtime ready: /velodyne_points -> /scan; "
-                "/Odometry -> odom/base_link"
+                f"/Odometry -> odom/base_link; controller={options.controller_odom_mode}"
             )
 
         def _publish_static_lidar_transform(self, transform_type: type[Any]) -> None:
@@ -778,6 +995,31 @@ def _build_ros_runtime_node_class() -> type[Any]:
                         self._map_to_odom = None
                         return
 
+            if self._controller_odom_gate is not None:
+                try:
+                    output = self._controller_odom_gate.observe(
+                        controller_odometry_sample_from_message(message),
+                        now_ns=int(self.get_clock().now().nanoseconds),
+                        observed_monotonic=now,
+                        input_publishers=self._publisher_counts["/Odometry"],
+                        output_publishers=self._publisher_counts[
+                            FASTLIO_CONTROLLER_ODOM_TOPIC
+                        ],
+                        process_generation=self._process_generation,
+                    )
+                    canonical = copy.deepcopy(message)
+                    canonical.header.frame_id = output.parent_frame
+                    canonical.child_frame_id = output.child_frame
+                    self._controller_odom_publisher.publish(canonical)
+                    self._controller_odom_error = ""
+                except (AttributeError, NavigationRuntimeError, TypeError, ValueError) as exc:
+                    self._last_odom_monotonic = 0.0
+                    self._last_odom_error = str(exc)[:200]
+                    self._controller_odom_error = self._last_odom_error
+                    self._odom_to_base = None
+                    self._map_to_odom = None
+                    return
+
             self._odom_to_base = odom_to_base
             self._odom_z = z_value
             self._odom_quaternion = yaw_to_quaternion(yaw)
@@ -897,7 +1139,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
         def _on_health_timer(self) -> None:
             self._publisher_counts = {
                 topic: int(self.count_publishers(topic))
-                for topic in ("/velodyne_points", "/Odometry", "/initialpose")
+                for topic in self._publisher_counts
             }
             cloud_fresh = self._cloud_fresh()
             odom_fresh = self._odom_fresh()
@@ -932,6 +1174,21 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 if self._last_jump_monotonic <= 0.0
                 else round(max(0.0, observed_at - self._last_jump_monotonic), 4)
             )
+            if self._controller_odom_gate is not None:
+                controller_state = self._controller_odom_gate.snapshot(observed_at)
+                if not controller_state["ready"] and not self._controller_odom_error:
+                    self._controller_odom_error = str(controller_state["error"])
+            else:
+                controller_state = {
+                    "ready": False,
+                    "state": "strict_external",
+                    "age_s": None,
+                    "source_stamp_ns": None,
+                    "output_stamp_ns": None,
+                    "source_to_host_offset_s": None,
+                    "process_generation": self._process_generation,
+                    "error": "",
+                }
             payload = {
                 "schema": "robot-scope.navigation-runtime-health.v1",
                 "ready": bool(
@@ -943,6 +1200,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "cloud_topic": "/velodyne_points",
                 "scan_topic": "/scan",
                 "odometry_topic": "/Odometry",
+                "controller_odometry_topic": self._options.controller_odom_topic,
+                "controller_odometry_mode": self._options.controller_odom_mode,
+                "controller_odometry": controller_state,
                 "cloud_frame": self._options.cloud_frame,
                 "publisher_counts": dict(self._publisher_counts),
                 "input_points": input_points,
@@ -985,6 +1245,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 },
                 "cloud_error": self._last_cloud_error if not cloud_fresh else "",
                 "odom_error": self._last_odom_error if not odom_fresh else "",
+                "controller_odom_error": self._controller_odom_error,
                 "odom_frame_error": self._odom_frame_error,
                 "source_error": source_error,
             }
@@ -1039,6 +1300,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         options.range_max = filters.range_max
         options.z_min = filters.z_min
         options.z_max = filters.z_max
+        options.controller_odom_topic = filters.controller_odom_topic
+        options.controller_odom_mode = filters.controller_odom_mode
         _validate_runtime_options(options)
         import rclpy
     except (ImportError, NavigationRuntimeError) as exc:

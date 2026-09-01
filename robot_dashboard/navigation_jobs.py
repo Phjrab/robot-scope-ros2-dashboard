@@ -53,6 +53,19 @@ PUBLIC_LOG_PHASES = frozenset({"idle", "starting", "running", "stopping", "faile
 PUBLIC_LOG_SOURCES = frozenset({"manager", "runtime", "parameters"})
 COSTMAP_MIN_OBSTACLE_HEIGHT = -1.0
 COSTMAP_MAX_OBSTACLE_HEIGHT = 3.0
+STRICT_CONTROLLER_ODOM_TOPIC = "/utlidar/robot_odom"
+FASTLIO_CONTROLLER_ODOM_TOPIC = "/robot_scope/nav/controller_odom_fastlio"
+COMPETITION_FASTLIO_NAVIGATION_PROFILE = (
+    "go2-xt16-wireless-competition-fastlio"
+)
+STRICT_NAVIGATION_PROFILES = frozenset(
+    {
+        "",
+        "go2-xt16-wired",
+        "go2-xt16-wireless",
+        "competition-pdf-direct",
+    }
+)
 HUMBLE_BT_PLUGIN_LIBRARIES = (
     "nav2_compute_path_to_pose_action_bt_node",
     "nav2_compute_path_through_poses_action_bt_node",
@@ -291,6 +304,7 @@ class NavigationJobManager:
         startup_grace_seconds: float = 0.15,
         max_parameter_bytes: int = 1024 * 1024,
         log_capacity: int = 300,
+        navigation_profile: str = "",
     ) -> None:
         self.project_dir = project_dir.expanduser().resolve(strict=True)
         if not self.project_dir.is_dir():
@@ -308,6 +322,16 @@ class NavigationJobManager:
             pass
 
         self.base_parameters_file = base_parameters_file.expanduser()
+        if navigation_profile == COMPETITION_FASTLIO_NAVIGATION_PROFILE:
+            self.navigation_profile = navigation_profile
+            self.controller_odom_mode = "competition_fastlio"
+            self.controller_odom_topic = FASTLIO_CONTROLLER_ODOM_TOPIC
+        elif navigation_profile in STRICT_NAVIGATION_PROFILES:
+            self.navigation_profile = navigation_profile or "go2-xt16-wired"
+            self.controller_odom_mode = "strict_onboard"
+            self.controller_odom_topic = STRICT_CONTROLLER_ODOM_TOPIC
+        else:
+            raise ValueError("unsupported navigation profile")
         self.start_command = self._prepare_command(start_command)
         self.map_snapshotter = map_snapshotter
         if not callable(map_snapshotter):
@@ -455,6 +479,9 @@ class NavigationJobManager:
                 "map": self._public_map_locked(),
                 "parameters_revision": _parameter_revision(self._parameters),
                 "command_topic": PRIVATE_CMD_VEL_TOPIC,
+                "navigation_profile": self.navigation_profile,
+                "controller_odometry_topic": self.controller_odom_topic,
+                "controller_odometry_mode": self.controller_odom_mode,
                 "missing_prerequisites": missing,
                 "configuration_error": self._parameter_error,
                 # Compatibility fields retain the existing manager snapshot
@@ -781,7 +808,31 @@ class NavigationJobManager:
                 self.max_parameter_bytes,
             )
             payload = yaml.safe_load(content.decode("utf-8"))
-            self._parameters = self._extract_parameters(payload)
+            try:
+                self._parameters = self._extract_parameters(
+                    payload,
+                    controller_odom_topic=self.controller_odom_topic,
+                    controller_odom_mode=self.controller_odom_mode,
+                )
+            except NavigationParameterError:
+                # A trusted server-side profile switch may encounter the
+                # previous strict snapshot.  Accept only that exact fixed
+                # binding as parameter input; start() always regenerates a
+                # fresh snapshot for the newly selected immutable profile.
+                legacy = copy.deepcopy(payload)
+                runtime = self._at(
+                    legacy,
+                    "robot_scope_navigation_runtime",
+                    "ros__parameters",
+                )
+                if "controller_odom_topic" not in runtime and "controller_odom_mode" not in runtime:
+                    runtime["controller_odom_topic"] = STRICT_CONTROLLER_ODOM_TOPIC
+                    runtime["controller_odom_mode"] = "strict_onboard"
+                self._parameters = self._extract_parameters(
+                    legacy,
+                    controller_odom_topic=STRICT_CONTROLLER_ODOM_TOPIC,
+                    controller_odom_mode="strict_onboard",
+                )
         except Exception:
             self._parameter_error = "generated navigation parameters are invalid"
 
@@ -866,7 +917,12 @@ class NavigationJobManager:
             document = yaml.safe_load(source.decode("utf-8"))
             if not isinstance(document, dict):
                 raise NavigationParameterError("base Nav2 YAML must be an object")
-            patched = self._patch_yaml(copy.deepcopy(document), normalized)
+            patched = self._patch_yaml(
+                copy.deepcopy(document),
+                normalized,
+                controller_odom_topic=self.controller_odom_topic,
+                controller_odom_mode=self.controller_odom_mode,
+            )
             rendered = yaml.safe_dump(
                 patched,
                 allow_unicode=False,
@@ -876,7 +932,11 @@ class NavigationJobManager:
             if len(rendered) > self.max_parameter_bytes:
                 raise NavigationParameterError("generated Nav2 YAML exceeds the configured limit")
             parsed = yaml.safe_load(rendered.decode("utf-8"))
-            if self._extract_parameters(parsed) != normalized:
+            if self._extract_parameters(
+                parsed,
+                controller_odom_topic=self.controller_odom_topic,
+                controller_odom_mode=self.controller_odom_mode,
+            ) != normalized:
                 raise NavigationParameterError("generated Nav2 YAML did not pass validation")
             self._publish_parameter_file(rendered)
         except NavigationJobError:
@@ -904,7 +964,16 @@ class NavigationJobManager:
         cls,
         document: dict[str, Any],
         values: Mapping[str, Any],
+        *,
+        controller_odom_topic: str = STRICT_CONTROLLER_ODOM_TOPIC,
+        controller_odom_mode: str = "strict_onboard",
     ) -> dict[str, Any]:
+        expected_topic = {
+            "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
+            "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+        }.get(controller_odom_mode)
+        if expected_topic != controller_odom_topic:
+            raise NavigationParameterError("controller odometry profile is invalid")
         bt = cls._at(document, "bt_navigator", "ros__parameters")
         controller = cls._at(document, "controller_server", "ros__parameters")
         follow = cls._at(document, "controller_server", "ros__parameters", "FollowPath")
@@ -951,11 +1020,11 @@ class NavigationJobManager:
             "inflation_layer",
         )
 
-        bt["odom_topic"] = "/utlidar/robot_odom"
+        bt["odom_topic"] = controller_odom_topic
         bt["plugin_lib_names"] = list(HUMBLE_BT_PLUGIN_LIBRARIES)
         controller.update(
             {
-                "odom_topic": "/utlidar/robot_odom",
+                "odom_topic": controller_odom_topic,
                 "controller_frequency": values["controller_frequency"],
                 "progress_checker_plugin": "progress_checker",
             }
@@ -1035,7 +1104,7 @@ class NavigationJobManager:
         if isinstance(document.get("velocity_smoother"), dict):
             smoother = cls._at(document, "velocity_smoother", "ros__parameters")
             smoother.pop("enable_stamped_cmd_vel", None)
-            smoother["odom_topic"] = "/utlidar/robot_odom"
+            smoother["odom_topic"] = controller_odom_topic
 
         map_server = cls._at(document, "map_server", "ros__parameters")
         map_server["use_sim_time"] = False
@@ -1064,6 +1133,8 @@ class NavigationJobManager:
                 "scan_topic": "/scan",
                 "odom_topic": "/Odometry",
                 "cmd_vel_topic": PRIVATE_CMD_VEL_TOPIC,
+                "controller_odom_topic": controller_odom_topic,
+                "controller_odom_mode": controller_odom_mode,
                 "min_obstacle_height": values["min_obstacle_height"],
                 "max_obstacle_height": values["max_obstacle_height"],
                 "obstacle_max_range": values["obstacle_max_range"],
@@ -1073,7 +1144,19 @@ class NavigationJobManager:
         return document
 
     @classmethod
-    def _extract_parameters(cls, document: Any) -> dict[str, Any]:
+    def _extract_parameters(
+        cls,
+        document: Any,
+        *,
+        controller_odom_topic: str = STRICT_CONTROLLER_ODOM_TOPIC,
+        controller_odom_mode: str = "strict_onboard",
+    ) -> dict[str, Any]:
+        expected_topic = {
+            "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
+            "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+        }.get(controller_odom_mode)
+        if expected_topic != controller_odom_topic:
+            raise NavigationParameterError("controller odometry profile is invalid")
         if not isinstance(document, dict):
             raise NavigationParameterError("generated Nav2 YAML must be an object")
         controller = cls._at(document, "controller_server", "ros__parameters")
@@ -1164,11 +1247,11 @@ class NavigationJobManager:
             "inflation_layer",
         )
         fixed_checks = (
-            controller.get("odom_topic") == "/utlidar/robot_odom",
+            controller.get("odom_topic") == controller_odom_topic,
             controller.get("progress_checker_plugin") == "progress_checker",
             "progress_checker_plugins" not in controller,
             cls._at(document, "bt_navigator", "ros__parameters").get("odom_topic")
-            == "/utlidar/robot_odom",
+            == controller_odom_topic,
             cls._at(document, "bt_navigator", "ros__parameters").get(
                 "plugin_lib_names"
             )
@@ -1209,6 +1292,8 @@ class NavigationJobManager:
                 "scan_topic",
                 "odom_topic",
                 "cmd_vel_topic",
+                "controller_odom_topic",
+                "controller_odom_mode",
                 "min_obstacle_height",
                 "max_obstacle_height",
                 "obstacle_max_range",
@@ -1217,6 +1302,8 @@ class NavigationJobManager:
             runtime.get("scan_topic") == "/scan",
             runtime.get("odom_topic") == "/Odometry",
             runtime.get("cmd_vel_topic") == PRIVATE_CMD_VEL_TOPIC,
+            runtime.get("controller_odom_topic") == controller_odom_topic,
+            runtime.get("controller_odom_mode") == controller_odom_mode,
             runtime.get("min_obstacle_height") == normalized["min_obstacle_height"],
             runtime.get("max_obstacle_height") == normalized["max_obstacle_height"],
             runtime.get("obstacle_max_range") == normalized["obstacle_max_range"],

@@ -121,6 +121,7 @@ class RosAgent:
         profile_path: Optional[str] = None,
         cloud_max_points: Optional[int] = 18000,
         source_selection_path: Optional[str] = None,
+        navigation_profile: str = "",
     ) -> None:
         self.robot_ip = self._valid_ip(robot_ip)
         normalized_cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
@@ -303,6 +304,7 @@ class RosAgent:
             tick=self._tick,
             graph_getter=lambda: self._graph,
             profile=self.profile,
+            navigation_profile=navigation_profile,
         )
         self._network_cache: Tuple[float, bool, Optional[float]] = (0.0, False, None)
 

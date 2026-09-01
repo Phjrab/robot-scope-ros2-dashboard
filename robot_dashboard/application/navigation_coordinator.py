@@ -1499,6 +1499,21 @@ class NavigationCoordinator:
             or runtime_goal_active
             or runtime.get("navigation_lease_active")
         )
+        runtime_bindings = (
+            runtime.get("bindings")
+            if isinstance(runtime.get("bindings"), Mapping)
+            else {}
+        )
+        controller_odometry_topic = str(
+            runtime_bindings.get("controller_odometry")
+            or manager.get("controller_odometry_topic")
+            or "/utlidar/robot_odom"
+        )
+        navigation_profile = str(
+            runtime_bindings.get("navigation_profile")
+            or manager.get("navigation_profile")
+            or "go2-xt16-wired"
+        )
         startup_cleanup_required = bool(
             startup_pending
             or startup.get("mapping_owned")
@@ -1548,9 +1563,11 @@ class NavigationCoordinator:
                 manager.get("command_topic", "/robot_scope/nav/cmd_vel_raw")
             ),
             "bindings": {
+                "navigation_profile": navigation_profile,
                 "scan": "/scan",
-                "odometry": "/utlidar/robot_odom",
+                "odometry": controller_odometry_topic,
                 "localization_odometry": "/Odometry",
+                "controller_odometry": controller_odometry_topic,
                 "command": "/robot_scope/nav/cmd_vel_raw",
             },
             "localization_pipeline": {
@@ -1563,6 +1580,9 @@ class NavigationCoordinator:
                 "error": _public_navigation_diagnostic(startup.get("error")),
             },
         }
+        controller_source = runtime.get("controller_source")
+        if isinstance(controller_source, Mapping):
+            result["controller_source"] = dict(controller_source)
         health = runtime.get("localization_health")
         if isinstance(health, Mapping):
             result["localization_health"] = dict(health)

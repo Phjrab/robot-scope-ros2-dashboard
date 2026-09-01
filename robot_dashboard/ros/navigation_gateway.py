@@ -9,6 +9,7 @@ import re
 import secrets
 import threading
 import time
+from types import MappingProxyType
 from typing import Any, Callable, Dict, Mapping, Optional, Protocol
 
 from ..control import (
@@ -36,6 +37,26 @@ NAVIGATION_FAST_LIO_ODOM_TOPIC = "/Odometry"
 # The Go2's continuously available onboard odometry provides controller
 # velocity feedback. FAST-LIO remains the fixed localization input.
 NAVIGATION_CONTROLLER_ODOM_TOPIC = "/utlidar/robot_odom"
+NAVIGATION_FASTLIO_CONTROLLER_ODOM_TOPIC = (
+    "/robot_scope/nav/controller_odom_fastlio"
+)
+NAVIGATION_COMPETITION_FASTLIO_PROFILE = (
+    "go2-xt16-wireless-competition-fastlio"
+)
+NAVIGATION_STRICT_PROFILES = frozenset(
+    {
+        "",
+        "go2-xt16-wired",
+        "go2-xt16-wireless",
+        "competition-pdf-direct",
+    }
+)
+NAVIGATION_CONTROLLER_ODOM_TOPICS = MappingProxyType(
+    {
+        "strict_onboard": NAVIGATION_CONTROLLER_ODOM_TOPIC,
+        "competition_fastlio": NAVIGATION_FASTLIO_CONTROLLER_ODOM_TOPIC,
+    }
+)
 NAVIGATION_ACTION = "/navigate_to_pose"
 NAVIGATION_ODOM_STAMP_MAX_AGE_S = 1.5
 NAVIGATION_ODOM_STAMP_MAX_FUTURE_S = 0.5
@@ -91,6 +112,7 @@ class NavigationRosGateway:
         tick: Callable[[str, float], None],
         graph_getter: Callable[[], Mapping[str, Mapping[str, Any]]],
         profile: Mapping[str, Any] | None = None,
+        navigation_profile: str = "",
     ) -> None:
         self._control_port = control_port
         self._node_getter = node_getter
@@ -98,6 +120,16 @@ class NavigationRosGateway:
         self._graph_getter = graph_getter
         self._profile = dict(profile or {})
         self._health_thresholds = LocalizationHealthThresholds.from_profile(profile)
+        if navigation_profile == NAVIGATION_COMPETITION_FASTLIO_PROFILE:
+            self._controller_odom_mode = "competition_fastlio"
+        elif navigation_profile in NAVIGATION_STRICT_PROFILES:
+            self._controller_odom_mode = "strict_onboard"
+        else:
+            raise ValueError("unsupported navigation profile")
+        self._navigation_profile = navigation_profile or "go2-xt16-wired"
+        self._controller_odom_topic = NAVIGATION_CONTROLLER_ODOM_TOPICS[
+            self._controller_odom_mode
+        ]
 
         self._navigation_lock = threading.RLock()
         self._navigation_callback_group: Any = None
@@ -119,14 +151,14 @@ class NavigationRosGateway:
         }
         self._navigation_odom_stamp_ns: Dict[str, int] = {
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0,
+            self._controller_odom_topic: 0,
         }
         # These receipts are written only after fixed callback validation. UI
         # graph metrics must never be able to open a motion gate.
         self._navigation_validated_receipts: Dict[str, float] = {
             "/scan": 0.0,
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.0,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.0,
+            self._controller_odom_topic: 0.0,
             NAVIGATION_LOCALIZATION_POSE_TOPIC: 0.0,
         }
         self._navigation_token = ""
@@ -143,7 +175,7 @@ class NavigationRosGateway:
         self._navigation_health_sequences = (0, 0)
         self._navigation_clock_offsets_s: Dict[str, Optional[float]] = {
             NAVIGATION_FAST_LIO_ODOM_TOPIC: None,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: None,
+            self._controller_odom_topic: None,
         }
         self._navigation_goal_progress = {
             "last_distance": None,
@@ -255,11 +287,11 @@ class NavigationRosGateway:
                     ),
                     callback_group=callback_group,
                 ),
-                NAVIGATION_CONTROLLER_ODOM_TOPIC: node.create_subscription(
+                self._controller_odom_topic: node.create_subscription(
                     odometry_type,
-                    NAVIGATION_CONTROLLER_ODOM_TOPIC,
+                    self._controller_odom_topic,
                     lambda message: self._navigation_health_callback(
-                        NAVIGATION_CONTROLLER_ODOM_TOPIC, message
+                        self._controller_odom_topic, message
                     ),
                     QoSProfile(
                         history=HistoryPolicy.KEEP_LAST,
@@ -641,7 +673,7 @@ class NavigationRosGateway:
                     raise ValueError("scan contains too few ranges")
             elif topic in {
                 NAVIGATION_FAST_LIO_ODOM_TOPIC,
-                NAVIGATION_CONTROLLER_ODOM_TOPIC,
+                self._controller_odom_topic,
             }:
                 stamp_ns = self._navigation_validate_odom_stamp(topic, message)
                 pose = message.pose.pose
@@ -689,6 +721,15 @@ class NavigationRosGateway:
                     )
                     if parent != "camera_init" or child != "body":
                         raise ValueError("unexpected FAST-LIO odometry frames")
+                elif self._controller_odom_mode == "competition_fastlio":
+                    parent = str(getattr(message.header, "frame_id", "")).lstrip(
+                        "/"
+                    )
+                    child = str(getattr(message, "child_frame_id", "")).lstrip(
+                        "/"
+                    )
+                    if parent != "odom" or child != "base_link":
+                        raise ValueError("unexpected controller odometry frames")
                 if not self._navigation_commit_odom_stamp(topic, stamp_ns):
                     # The first controller sample, and the first sample after
                     # an inactive robot-clock reset, establish only a baseline.
@@ -721,7 +762,7 @@ class NavigationRosGateway:
 
         if topic not in {
             NAVIGATION_FAST_LIO_ODOM_TOPIC,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self._controller_odom_topic,
         }:
             raise ValueError("unexpected odometry topic")
         stamp = message.header.stamp
@@ -741,7 +782,10 @@ class NavigationRosGateway:
         if stamp_ns <= 0:
             raise ValueError("odometry timestamp is zero")
 
-        if topic == NAVIGATION_FAST_LIO_ODOM_TOPIC:
+        if topic == NAVIGATION_FAST_LIO_ODOM_TOPIC or (
+            topic == self._controller_odom_topic
+            and self._controller_odom_mode == "competition_fastlio"
+        ):
             node = self._node_getter()
             if node is None:
                 raise ValueError("ROS clock is unavailable")
@@ -771,13 +815,13 @@ class NavigationRosGateway:
             previous_ns = int(self._navigation_odom_stamp_ns.get(topic, 0) or 0)
             if not previous_ns:
                 self._navigation_odom_stamp_ns[topic] = stamp_ns
-                if topic == NAVIGATION_CONTROLLER_ODOM_TOPIC:
+                if topic == self._controller_odom_topic:
                     self._navigation_validated_receipts[topic] = 0.0
                     return False
                 return True
 
             if stamp_ns <= previous_ns:
-                if topic == NAVIGATION_CONTROLLER_ODOM_TOPIC:
+                if topic == self._controller_odom_topic:
                     self._navigation_validated_receipts[topic] = 0.0
                     active = bool(self._navigation.get("active"))
                     if not active and stamp_ns < previous_ns:
@@ -854,6 +898,36 @@ class NavigationRosGateway:
                 raise ValueError("health scan topic is invalid")
             if payload.get("odometry_topic") != "/Odometry":
                 raise ValueError("health odometry topic is invalid")
+            controller_state: Dict[str, Any] = {}
+            if self._controller_odom_mode == "competition_fastlio":
+                if payload.get("controller_odometry_topic") != self._controller_odom_topic:
+                    raise ValueError("health controller odometry topic is invalid")
+                if payload.get("controller_odometry_mode") != self._controller_odom_mode:
+                    raise ValueError("health controller odometry mode is invalid")
+                raw_controller = payload.get("controller_odometry")
+                if not isinstance(raw_controller, Mapping):
+                    raise ValueError("health controller odometry state is invalid")
+                ready = raw_controller.get("ready")
+                state = raw_controller.get("state")
+                if not isinstance(ready, bool) or state not in {"ready", "blocked"}:
+                    raise ValueError("health controller odometry readiness is invalid")
+                age_value = raw_controller.get("age_s")
+                if age_value is not None:
+                    age_value = float(age_value)
+                    if not math.isfinite(age_value) or not 0.0 <= age_value <= 3600.0:
+                        raise ValueError("health controller odometry age is invalid")
+                offset_value = raw_controller.get("source_to_host_offset_s")
+                if offset_value is not None:
+                    offset_value = float(offset_value)
+                    if not math.isfinite(offset_value) or not -1.0 <= offset_value <= 1.0:
+                        raise ValueError("health controller odometry offset is invalid")
+                controller_state = {
+                    "ready": ready,
+                    "state": state,
+                    "age_s": age_value,
+                    "source_to_host_offset_s": offset_value,
+                    "error": public_navigation_reason(raw_controller.get("error", "")),
+                }
             if payload.get("cloud_frame") != "hesai_lidar":
                 raise ValueError("health cloud frame is invalid")
             counts = payload.get("publisher_counts")
@@ -954,6 +1028,9 @@ class NavigationRosGateway:
             "frames": self._sanitize_runtime_frames(payload.get("frames")),
             "lidar_extrinsic": self._sanitize_lidar_extrinsic(payload.get("lidar_extrinsic")),
             "clock_domains": self._sanitize_clock_domains(payload.get("clock_domains")),
+            "controller_odometry": controller_state,
+            "controller_odometry_topic": self._controller_odom_topic,
+            "controller_odometry_mode": self._controller_odom_mode,
             "error": None,
         }
         with self._navigation_lock:
@@ -1100,7 +1177,7 @@ class NavigationRosGateway:
         required_topics = {
             "/scan": 0.75,
             NAVIGATION_FAST_LIO_ODOM_TOPIC: 0.75,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC: 0.75,
+            self._controller_odom_topic: 0.75,
         }
         if require_localized:
             required_topics.update(
@@ -1137,7 +1214,7 @@ class NavigationRosGateway:
         with self._navigation_lock:
             health_received = self._navigation_runtime_health_received
             controller_odom_received = self._navigation_validated_receipts[
-                NAVIGATION_CONTROLLER_ODOM_TOPIC
+                self._controller_odom_topic
             ]
         if ready_after > 0.0 and health_received < ready_after:
             return "navigation runtime health has not started for this session"
@@ -1808,7 +1885,7 @@ class NavigationRosGateway:
             "frame_error": runtime_health.get("frame_error") or "",
             "host_clock_offsets_s": {
                 "fast_lio": offsets.get(NAVIGATION_FAST_LIO_ODOM_TOPIC),
-                "controller": offsets.get(NAVIGATION_CONTROLLER_ODOM_TOPIC),
+                "controller": offsets.get(self._controller_odom_topic),
             },
             "calibration_suspected": calibration_suspected,
             "calibration_reason": "LIDAR_EXTRINSIC_FRAME_MISMATCH" if calibration_suspected else None,
@@ -1856,7 +1933,7 @@ class NavigationRosGateway:
         for topic in (
             "/scan",
             NAVIGATION_FAST_LIO_ODOM_TOPIC,
-            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self._controller_odom_topic,
             NAVIGATION_LOCALIZATION_POSE_TOPIC,
             NAVIGATION_RUNTIME_HEALTH_TOPIC,
         ):
@@ -1896,7 +1973,7 @@ class NavigationRosGateway:
             controller_odom_fresh,
             raw_controller_odom_age,
         ) = self._navigation_validated_recency(
-            NAVIGATION_CONTROLLER_ODOM_TOPIC,
+            self._controller_odom_topic,
             now,
             1.0,
         )
@@ -1975,7 +2052,7 @@ class NavigationRosGateway:
         )
         controller_odom_ready = (
             controller_odom_fresh
-            and topic_publishers[NAVIGATION_CONTROLLER_ODOM_TOPIC] == 1
+            and topic_publishers[self._controller_odom_topic] == 1
         )
         localization_ready = (
             localization_fresh
@@ -2052,7 +2129,7 @@ class NavigationRosGateway:
                         NAVIGATION_FAST_LIO_ODOM_TOPIC
                     ],
                     "controller_odometry_publishers": topic_publishers[
-                        NAVIGATION_CONTROLLER_ODOM_TOPIC
+                        self._controller_odom_topic
                     ],
                     "runtime_health_publishers": topic_publishers[
                         NAVIGATION_RUNTIME_HEALTH_TOPIC
@@ -2079,12 +2156,27 @@ class NavigationRosGateway:
                 "localization_health": localization_health,
                 "calibration_assistant": calibration_assistant,
                 "bindings": {
+                    "navigation_profile": self._navigation_profile,
                     "pointcloud": "/velodyne_points",
                     "scan": "/scan",
                     "localization_odometry": NAVIGATION_FAST_LIO_ODOM_TOPIC,
-                    "controller_odometry": NAVIGATION_CONTROLLER_ODOM_TOPIC,
+                    "controller_odometry": self._controller_odom_topic,
+                    "controller_odometry_mode": self._controller_odom_mode,
                     "localization_pose": NAVIGATION_LOCALIZATION_POSE_TOPIC,
                     "command": NAVIGATION_CMD_VEL_TOPIC,
+                },
+                "controller_source": {
+                    "profile": self._navigation_profile,
+                    "mode": self._controller_odom_mode,
+                    "topic": self._controller_odom_topic,
+                    "state": (
+                        runtime_health.get("controller_odometry")
+                        if self._controller_odom_mode == "competition_fastlio"
+                        else {
+                            "ready": controller_odom_ready,
+                            "state": "ready" if controller_odom_ready else "blocked",
+                        }
+                    ),
                 },
             }
         )

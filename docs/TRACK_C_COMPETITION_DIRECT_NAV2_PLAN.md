@@ -186,3 +186,48 @@ explicit safety confirmation.
   wireless relay services inactive; the bounded Hesai probe was stopped; no
   Track C sensor, FAST-LIO, Nav2 or command bridge process or related listening
   UDP port observed.
+
+## 2026-09-02 follow-up: original PDF crosswalk and Track C2
+
+The earlier Evidence boundary remains the historical truth for the Track C
+run above. The original 01–12 education PDFs were supplied and inspected for
+this follow-up. PDF page numbers below are one-based PDF pages.
+
+| Function | Original PDF page/section | Repository implementation | Difference / decision |
+|---|---|---|---|
+| XT16 driver | 09 p4, p10–12 | fixed robot-side relay plus pinned external Hesai driver | PDF is direct on one host; C2 reuses the authenticated wireless sensor transport |
+| Body IMU bridge | 09 p4, p10–12 | authenticated `/lowstate` subset sender/receiver and fixed cloud-only C++ bridge | PDF Python bridge subscribes directly; external C2 host never exposes `/lowstate` |
+| Host restamp | 09 p4, p12 | existing XT16 bridge normalizes sensor input for FAST-LIO | Only sensor inputs are normalized; controller odometry preserves validated FAST-LIO source stamp |
+| FAST-LIO | 09 p4, p12–14; 10 p4 | pinned external Humble FAST-LIO, `/Odometry` and `/Laser_map` | Same data role, different workspace/launcher ownership |
+| Map save | 09 p14 | allowlisted `save_hesai_map_humble.sh`/`save_map.py` staged publication | Repository adds atomic validation, size and filesystem boundaries |
+| PCD to 2D | 09 p15–18 | `save_map.py` PCD slice and managed PGM/YAML catalog | Repository pins and revisions the generated pair before Nav2 use |
+| `/scan` | 10 p5–6; 11 p4–7 | navigation runtime projects validated `/velodyne_points` to fixed `/scan` | Repository owns the projection instead of accepting a caller-selected scan path |
+| TF | 10 p4–6, p9 | runtime owns `base_link -> hesai_lidar`, `odom -> base_link`, and post-initial-pose `map -> odom` | C2 NG0 intentionally has no `map -> odom` |
+| Nav2 core | 10 p6, p9 | fixed map/controller/planner/behavior/BT lifecycle owners | C2 starts no command bridge and sends no goal |
+| Controller odometry | 11 p4 | strict profiles retain `/utlidar/robot_odom`; C2 derives `/robot_scope/nav/controller_odom_fastlio` from `/Odometry` | Explicit deviation: source-clock-blocked onboard odom is not silently substituted or overwritten |
+| Tuned parameters | 11 p4–7 | canonical `nav2_params_go2_humble.yaml` plus deterministic profile patch | Existing conservative rotation and speed bounds win over larger PDF examples |
+| Command bridge | 10 p6 | signed Control Bridge remains the only product motion boundary | Disconnected in NG0; `cmd_vel_to_sport` is never launched |
+
+The remaining originals were also checked for environment and topology
+context: 04 covers shell/ROS aliases, 05 the ROS 2/Unitree SDK environment, 06
+the Go2 PC connection, 07 RViz, and 08 sensor/algorithm roles. PDFs 01–03 and
+12 are ancillary introduction, standalone operation, and camera-stream
+material; they do not override the C2 navigation safety boundary.
+
+The current physical topology is still split: `192.168.50.30` is the
+Go2-mounted Foxy Jetson with direct Go2/XT16 access, while `192.168.50.10` is
+the external Humble Orin. Track C2 therefore adds the explicit
+`go2-xt16-wireless-competition-fastlio` profile. It reuses the accepted
+wireless XT16/IMU/FAST-LIO path and derives controller odometry at
+`/robot_scope/nav/controller_odom_fastlio`; the strict transport and direct
+profile remain unchanged. See `ADR_COMPETITION_FASTLIO_CONTROLLER_ODOM.md`
+and `TRACK_C2_COMPETITION_FASTLIO_NO_GOAL_ACCEPTANCE.md`.
+
+The stationary C2 execution subsequently passed the sensor/controller-odom
+gate and a 60-second command-isolated NG0. The checker reported
+`WAITING_FOR_INITIAL_POSE`; `map -> base_link` stayed absent, raw command stayed
+quiet, no Sport topic appeared and no control authority was created. Reverse
+cleanup returned both hosts to zero related publishers/sockets with all
+sensor/control services inactive. The detailed measurements and the two
+hardware-discovered checker corrections are recorded in the C2 acceptance
+document; they do not change the historical direct-profile result above.

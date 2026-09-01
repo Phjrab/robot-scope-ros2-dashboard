@@ -29,7 +29,7 @@ if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
   exit 2
 fi
 case "$MAPPING_PROFILE" in
-  go2-xt16-wired|go2-xt16-wireless|competition-pdf-direct) ;;
+  go2-xt16-wired|go2-xt16-wireless|competition-pdf-direct|go2-xt16-wireless-competition-fastlio) ;;
   *)
     echo "[Robot Scope] unsupported mapping profile" >&2
     exit 2

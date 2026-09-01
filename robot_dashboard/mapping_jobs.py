@@ -36,6 +36,7 @@ OUTPUT_PREFIX_TOKEN = "{output_prefix}"
 WIRED_MAPPING_PROFILE = "go2-xt16-wired"
 WIRELESS_MAPPING_PROFILE = "go2-xt16-wireless"
 COMPETITION_DIRECT_MAPPING_PROFILE = "competition-pdf-direct"
+COMPETITION_FASTLIO_MAPPING_PROFILE = "go2-xt16-wireless-competition-fastlio"
 WIRELESS_MAPPING_EXIT_REASONS = MappingProxyType(
     {
         61: "WIRELESS XT16 RELAY OFFLINE",
@@ -298,7 +299,10 @@ class MappingJobManager:
             )
             failure_exit_reasons = {}
             readiness_runtime_marker = None
-        elif mapping_profile == WIRELESS_MAPPING_PROFILE:
+        elif mapping_profile in {
+            WIRELESS_MAPPING_PROFILE,
+            COMPETITION_FASTLIO_MAPPING_PROFILE,
+        }:
             launcher = project / "scripts" / "start_wireless_mapping_humble.sh"
             preview_launcher = None
             enable_preview = False

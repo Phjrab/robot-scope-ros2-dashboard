@@ -32,6 +32,8 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 | [업데이트/롤백](docs/UPDATE_ROLLBACK.md) | 지도·상태 보존, fast-forward update와 안전 롤백 |
 | [대회 release runbook](docs/WP08_RELEASE_LOCK_ROLLBACK_RUNBOOK.md) | offline bundle, Competition Lock, 시작·종료와 commit/model rollback |
 | [하드웨어 인수 검증](docs/HARDWARE_ACCEPTANCE.md) | 읽기 전용 Jetson/Go2/XT16 점검, 감독 시나리오와 fail-stop 보고서 |
+| [Track C2 controller odometry ADR](docs/ADR_COMPETITION_FASTLIO_CONTROLLER_ODOM.md) | wireless FAST-LIO 기반 명시적 controller odometry와 NG0/NG1 안전 경계 |
+| [Track C2 no-goal acceptance](docs/TRACK_C2_COMPETITION_FASTLIO_NO_GOAL_ACCEPTANCE.md) | stationary 센서·controller odometry·NG0 실행 및 cleanup 판정 |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | 포함된 공식 robot model의 출처와 라이선스 |
 
 처음 설치하는 사용자는 가장 작은 `observer` 모드에서 시작해 필요한 하드웨어 기능만

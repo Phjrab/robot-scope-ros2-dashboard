@@ -379,7 +379,9 @@ class NavigationAppContractTests(unittest.TestCase):
     def test_status_exposes_fixed_private_bindings(self):
         source = ast.unparse(self.navigation_methods["view"])
         self.assertIn("'scan': '/scan'", source)
-        self.assertIn("'odometry': '/utlidar/robot_odom'", source)
+        self.assertIn("'odometry': controller_odometry_topic", source)
+        self.assertIn("'/utlidar/robot_odom'", source)
+        self.assertIn("'controller_odometry': controller_odometry_topic", source)
         self.assertIn("'localization_odometry': '/Odometry'", source)
         self.assertIn("'command': '/robot_scope/nav/cmd_vel_raw'", source)
         self.assertIn("deactivation_reason", source)

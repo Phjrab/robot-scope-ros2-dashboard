@@ -142,6 +142,8 @@ robot_scope_navigation_runtime:
     scan_topic: /scan
     odom_topic: /Odometry
     cmd_vel_topic: /robot_scope/nav/cmd_vel_raw
+    controller_odom_topic: /utlidar/robot_odom
+    controller_odom_mode: strict_onboard
     min_obstacle_height: -0.5
     max_obstacle_height: 2.0
     obstacle_max_range: 8.0
@@ -154,6 +156,8 @@ robot_scope_navigation_runtime:
             self.assertEqual(settings.range_min, 0.4)
             self.assertEqual(settings.range_max, 10.0)
             self.assertEqual((settings.z_min, settings.z_max), (-0.5, 2.0))
+            self.assertEqual(settings.controller_odom_topic, "/utlidar/robot_odom")
+            self.assertEqual(settings.controller_odom_mode, "strict_onboard")
 
             path.write_text(valid.replace("/Odometry", "/other_odom"), encoding="utf-8")
             with self.assertRaises(NavigationRuntimeError):

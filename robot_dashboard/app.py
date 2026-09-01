@@ -78,6 +78,7 @@ from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
 from .diagnostics import DiagnosticsBundleService
 from .mapping_jobs import (
+    COMPETITION_FASTLIO_MAPPING_PROFILE,
     COMPETITION_DIRECT_MAPPING_PROFILE,
     InvalidMapName,
     JobBusyError,
@@ -1203,6 +1204,7 @@ def parse_args() -> argparse.Namespace:
             WIRED_MAPPING_PROFILE,
             WIRELESS_MAPPING_PROFILE,
             COMPETITION_DIRECT_MAPPING_PROFILE,
+            COMPETITION_FASTLIO_MAPPING_PROFILE,
         ),
         default=WIRED_MAPPING_PROFILE,
     )
@@ -1247,6 +1249,7 @@ def main() -> None:
         profile_path=args.profile or None,
         cloud_max_points=args.cloud_max_points,
         source_selection_path=args.source_selection_state or None,
+        navigation_profile=args.mapping_profile,
     )
     if bool(args.perception_source_ip) != bool(args.perception_policy):
         raise RuntimeError("perception source IP and policy must be configured together")
@@ -1384,6 +1387,7 @@ def main() -> None:
         project_dir=project_dir,
         runtime_dir=Path(args.navigation_runtime_dir),
         map_snapshotter=catalog.snapshot_navigation_map,
+        navigation_profile=args.mapping_profile,
     )
     RUNTIME.navigation = NavigationCoordinator(
         RUNTIME.agent,
