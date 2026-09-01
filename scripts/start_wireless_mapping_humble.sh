@@ -121,15 +121,8 @@ relay_state="$(remote_lifecycle --service relay --action ensure-started)" || \
   fail 61 "WIRELESS XT16 RELAY OFFLINE"
 [[ "$relay_state" == "started" ]] && REMOTE_RELAY_STARTED=1
 
-relay_ready=0
-for _ in {1..6}; do
-  if /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay; then
-    relay_ready=1
-    break
-  fi
-  sleep 2
-done
-[[ "$relay_ready" -eq 1 ]] || fail 62 "XT16 PACKETS STALE"
+/usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay-service || \
+  fail 61 "WIRELESS XT16 RELAY OFFLINE"
 
 imu_state="$(remote_lifecycle --service imu --action ensure-started)" || \
   fail 64 "WIRELESS IMU UNAUTHENTICATED"
@@ -148,6 +141,19 @@ start_local "Hesai driver" "$LOG_DIR/wireless_hesai_driver.log" \
 /usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage raw \
   --timeout "${ROBOT_SCOPE_WIRELESS_HESAI_READY_TIMEOUT_SECONDS:-20}" || \
   fail 63 "HESAI DRIVER WAITING"
+
+# A connected relay socket can receive ICMP port-unreachable errors until the
+# fixed Hesai consumer binds UDP 2368. Require two advancing, error-stable
+# post-bind reports before any converted cloud is accepted.
+relay_ready=0
+for _ in {1..8}; do
+  if /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay; then
+    relay_ready=1
+    break
+  fi
+  sleep 2
+done
+[[ "$relay_ready" -eq 1 ]] || fail 62 "XT16 PACKETS STALE"
 
 start_local "cloud bridge" "$LOG_DIR/wireless_cloud_bridge.log" \
   "$PROJECT_DIR/scripts/run_xt16_cloud_bridge_humble.sh"

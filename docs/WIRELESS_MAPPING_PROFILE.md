@@ -28,6 +28,13 @@ One explicit Mapping start owns this order:
 6. external FAST-LIO through a separate `eno1=192.168.50.10/24` wrapper
 7. the existing Mapping job state, after every readiness gate passes
 
+The relay service identity is verified immediately after start. Its advancing
+counter and non-increasing send-error health gate is evaluated only after the
+fixed Hesai UDP 2368 consumer has bound and produced fresh raw clouds. This
+preserves the startup order while preventing expected pre-bind ICMP
+port-unreachable errors from making the profile permanently fail closed. No
+cloud or FAST-LIO readiness can pass before the post-bind relay health gate.
+
 Stop or failure cleans up in reverse order. A robot-side service that was
 already active before this transaction is observed but not claimed and is not
 stopped. Local children are tracked by PID plus Linux process start identity;

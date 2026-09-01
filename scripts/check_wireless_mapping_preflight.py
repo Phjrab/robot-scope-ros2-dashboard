@@ -295,7 +295,9 @@ def _parser() -> argparse.ArgumentParser:
         description="Check one fixed wireless mapping preflight stage."
     )
     parser.add_argument(
-        "--stage", required=True, choices=("host", "relay", "imu-service")
+        "--stage",
+        required=True,
+        choices=("host", "relay-service", "relay", "imu-service"),
     )
     return parser
 
@@ -306,6 +308,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if options.stage == "host":
             check_host(environment)
+        elif options.stage == "relay-service":
+            check_remote_service("relay", environment)
         elif options.stage == "relay":
             check_relay_health(environment)
         else:

@@ -104,6 +104,10 @@ class WirelessMappingProfileTests(unittest.TestCase):
             preflight.check_remote_service(
                 "imu", fixture.environment, runner=fixture.runner
             )
+            self.assertEqual(
+                preflight._parser().parse_args(["--stage", "relay-service"]).stage,
+                "relay-service",
+            )
 
     def test_relay_health_fails_when_sequence_does_not_advance(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -217,6 +221,14 @@ class WirelessMappingProfileTests(unittest.TestCase):
             source.index("--service imu --action stop"),
             source.index("--service relay --action stop"),
         )
+        service_check = source.index("--stage relay-service")
+        hesai_start = source.index("run_hesai_driver_wireless_humble.sh")
+        health_check = source.index("--stage relay;", hesai_start)
+        cloud_start = source.index("run_xt16_cloud_bridge_humble.sh")
+        self.assertLess(service_check, hesai_start)
+        self.assertLess(hesai_start, health_check)
+        self.assertLess(health_check, cloud_start)
+        self.assertIn("post-bind reports", source)
         for forbidden in ("ros2 bag", "nav2", "control_arm", "mapping/save", "sudo "):
             self.assertNotIn(forbidden, source)
 
