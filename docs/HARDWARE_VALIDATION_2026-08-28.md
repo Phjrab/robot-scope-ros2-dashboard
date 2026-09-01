@@ -553,6 +553,16 @@ source age, so readiness correctly stayed false and the external freshness
 checker exited 69 without starting Navigation. No timestamp was rebased and no
 freshness limit was widened.
 
+A read-only owner trace found an enabled robot-side
+`lidar-timesync.service`. It is a one-shot job that last succeeded at boot by
+setting the Jetson system clock from `/utlidar/imu`, while
+`systemd-timesyncd` is now also active and reports NTP synchronized. This is a
+mixed clock-authority configuration: the L1/controller source continues in its
+sensor time domain after the host clock is disciplined independently. No time
+setting, service restart or configuration mutation was performed. The repair
+must select and validate one authoritative policy for the robot host and L1
+source rather than masking the offset in the wireless receiver.
+
 Cleanup stopped the foreground receiver before the sender. Final checks found
 both odometry units disabled/inactive, no receiver process, no UDP 46030
 listener, zero Navigation/FAST-LIO/mapping processes, and the reviewed firewall
