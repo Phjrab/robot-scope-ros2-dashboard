@@ -5,7 +5,8 @@
   documentation commits allowed
 - Deployment authorized: **yes**, exact approval was received on 2026-08-31
 - Current status: repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2
-  `LIDAR_PASS`; HW-3 `IMU_PASS`; HW-4 `CLOUD_PASS`; HW-5–HW-6 `NOT_RUN`
+  `LIDAR_PASS`; HW-3 `IMU_PASS`; HW-4 `CLOUD_PASS`; HW-5
+  `MAPPING_STATIONARY_PASS`; HW-6 `NOT_RUN`
 
 This document fixes the installation and hardware-test boundary. The exact
 `APPROVE_WIRELESS_XT16_DEPLOY` phrase was received and the bounded installation
@@ -250,10 +251,13 @@ Go2/XT16 sensor configuration.
   the active workspace without starting a sensor or mapping process. The
   resulting FAST-LIO executable resolves all shared libraries and has SHA-256
   `b03fabb88b875115f2074da3934e47f0345c5218e82d1abe8ba993b722945fdc`;
-- before HW-5 starts, repeat the physical E-stop/operator/stationary check and
-  machine-verifiable DISARMED/no-lease/deadman-zero/idle state, then require the
-  separate exact `APPROVE_STATIONARY_MAPPING_TEST` phrase.
+- HW-5 completed on 2026-09-01 after the exact stationary-mapping approval and
+  a fresh physical E-stop/operator/stationary check. All required FAST-LIO
+  outputs were single-publisher, fresh and non-empty. Shutdown race correction
+  `9bad38e` was deployed and the complete readiness/TERM cleanup sequence was
+  repeated without traceback or process/topic/service residue; no map, PCD,
+  Dataset, Nav2, goal or control lease was created.
 
 HW-1 is `XT16_RELAY_PASS`, HW-2 is `LIDAR_PASS`, HW-3 is `IMU_PASS` and HW-4
-is `CLOUD_PASS`. HW-5–HW-6 remain `NOT_RUN`. No FAST-LIO, mapping, Nav2 or soak
-PASS is claimed.
+is `CLOUD_PASS`. HW-5 is `MAPPING_STATIONARY_PASS`; HW-6 remains `NOT_RUN`.
+No Nav2 or soak PASS is claimed.

@@ -34,13 +34,14 @@ is not a freshness pass.
 | HW-2 Hesai driver only | `PASS` — `LIDAR_PASS` | supervised stationary run produced exactly one reliable/volatile `/lidar_points` publisher at about 10 Hz with 64,000-point `hesai_lidar` clouds; bounded relay and UDP-drop checks passed and cleanup left no publisher or service residue |
 | HW-3 IMU only | `PASS` — `IMU_PASS` | supervised stationary run produced exactly one reliable/volatile `/imu/body` publisher at about 502 Hz with authenticated, finite, fresh, increasing samples; zero external `/lowstate` publishers and cleanup left no sender, receiver or socket residue |
 | HW-4 cloud bridge | `PASS` — `CLOUD_PASS` | supervised stationary run produced exactly one reliable/volatile `/velodyne_points` publisher at about 10 Hz with 16,000-point exact-layout clouds; age, jitter, relay and kernel-drop bounds passed and verified process-group cleanup left no topic, socket or service residue |
-| HW-5–HW-6 | `NOT_RUN` | no FAST-LIO, map write or Nav2 start; HW-5 requires the separate exact stationary-mapping approval |
+| HW-5 stationary FAST-LIO | `PASS` — `MAPPING_STATIONARY_PASS` | exact approval and fresh physical safety check recorded; all three FAST-LIO outputs were fresh, non-empty and single-publisher, shutdown-race correction `9bad38e` was deployed and retested, and reverse cleanup left no topic, socket, process or service residue |
+| HW-6 compound load | `NOT_RUN` | no 60-second, 10-minute or 60-minute soak claim; no Nav2 start |
 
 After final HW-4 cleanup, current external topics remain truthfully unavailable:
 `/lidar_points`, `/velodyne_points` and `/imu/body` have zero publishers.
 Mapping, navigation and Dataset Capture are idle. The repository status is `CODE_READY`;
-the current hardware status is `CLOUD_PASS`. No FAST-LIO, mapping or navigation
-PASS is implied.
+the current hardware status is `MAPPING_STATIONARY_PASS`. No Nav2 or compound
+load PASS is implied.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -509,8 +510,8 @@ automatic cleanup left both robot-side services disabled/inactive with PID 0
 and zero restarts, no external UDP 2368/46020 listener, and zero publishers on
 `/lidar_points`, `/velodyne_points`, `/imu/body`, `/lowstate`, `/Odometry` and
 `/Laser_map`. The dashboard remained no-lease, deadman false, exact zero, with
-Mapping/Nav/Dataset idle. HW-4 is `PASS` as `CLOUD_PASS`; HW-5–HW-6 remain
-`NOT_RUN`.
+Mapping/Nav/Dataset idle. At that checkpoint HW-4 was `PASS` as `CLOUD_PASS`
+and the higher stages had not yet run; the later HW-5 result is recorded below.
 
 On 2026-09-01, the read-only HW-5 preflight found that the active external
 checkout no longer contained the Livox message or FAST-LIO overlays. The only
@@ -532,9 +533,65 @@ process was started during that repair. The post-build host preflight passed,
 all six relevant external ROS topics had zero publishers before the stage, the
 dashboard still reported no lease, deadman false, exact zero and idle
 Mapping/Nav/Dataset, and the robot-side sensor and control units remained
-inactive. Therefore this is dependency recovery evidence only: HW-5 remains
-`NOT_RUN` until its physical safety prerequisites are freshly recorded and the
-stationary FAST-LIO observation is completed.
+inactive. This was dependency recovery evidence only and did not itself promote
+HW-5; the supervised result below records the later live observation.
+
+## HW-5 supervised stationary FAST-LIO — 2026-09-01
+
+The operator supplied exact `APPROVE_STATIONARY_MAPPING_TEST` authorization and
+freshly confirmed physical E-stop readiness, an on-site safety operator, a
+clear safety area and that the robot was seated. Immediately before launch the
+dashboard reported no control lease, deadman false, exact zero on all three
+velocity axes and idle Mapping/Nav/Dataset. The external host preflight passed,
+all six sensor/mapping topics had zero publishers, the robot-side sensor units
+were disabled/inactive and the robot-side `/lowstate` graph had exactly one
+publisher. No control bridge, motion command, Nav2 process, goal or map-save
+operation was started.
+
+The fixed wireless launcher passed every ordered readiness gate. FAST-LIO then
+published exactly one reliable/volatile publisher for each required output:
+
+- `/Odometry` was `camera_init -> body`, passed three consecutive fresh samples
+  at readiness and measured `10.007 Hz` over the final 50-sample window with
+  `0.086-0.114 s` intervals and `0.00567 s` standard deviation;
+- `/Laser_map` used frame `camera_init`, was non-empty at 11,574 points in the
+  sampled message and measured approximately `0.997 Hz`;
+- `/cloud_registered` used frame `camera_init`, was non-empty at 202 points in
+  the sampled message and measured `9.983 Hz` with `0.086-0.117 s` intervals
+  and `0.00777 s` standard deviation on the correction rerun.
+
+During the first bounded run, UDP `InErrors`, `RcvbufErrors` and `SndbufErrors`
+remained zero. The robot Wi-Fi link measured `-33 dBm` with 1,200.9 Mbit/s RX
+and TX link rates. External RAM remained near 2.0 GiB of 7.6 GiB, swap stayed
+at zero, GPU load was zero and the highest sampled SoC/CPU temperature was
+about 40.6 degrees Celsius. The signed control state remained no-lease,
+deadman false and exact zero throughout. The relay advanced continuously with
+zero sequence loss/reorder/duplicate and a stable inherited send-error count;
+the authenticated IMU receiver reported no loss, replay, invalid sample,
+authentication, clock or transport errors.
+
+TERM cleanup on the first run exposed a ROS Humble shutdown race: an already
+running IMU timer could attempt one publish after the context became invalid.
+There was no service, process, socket or topic residue, but the traceback was
+not accepted as clean shutdown evidence. Commit `9bad38e` catches only
+`RCLError` after `rclpy.ok()` becomes false; the same exception while the
+context is live still propagates fail-closed. Targeted 19/19 and full 899/899
+Python tests passed before deployment. The previous receiver was preserved as
+`wireless_imu_receiver_humble.py.pre-9bad38e`, and the deployed replacement
+SHA-256 was
+`1e960fced0b4f2282466bc1d873a508c1d5ce57dbebba81db42674249831065f`.
+
+The complete readiness sequence was repeated with the correction. All gates
+passed again, `/cloud_registered` sustained approximately 10 Hz and TERM
+cleanup produced no traceback. Final automatic cleanup left both robot-side
+sensor units disabled/inactive with PID 0 and zero restarts, no external UDP
+2368/46020 listener, and zero publishers on `/lidar_points`,
+`/velodyne_points`, `/imu/body`, `/Odometry`, `/Laser_map` and
+`/cloud_registered`. Mapping/Nav/Dataset returned to idle and control remained
+no-lease, deadman false and exact zero. No new PCD, saved map or Dataset file
+was created; the two-byte upstream `PCD/1` placeholder predated HW-5 and its
+mtime did not change. HW-5 is therefore `PASS` as
+`MAPPING_STATIONARY_PASS`; HW-6 remains `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 
@@ -667,5 +724,5 @@ bundle unrelated service rollback.
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
 Gates 2, 3, 4 and 5 are repository-only PASS. The repository gate is
-`CODE_READY`; the current hardware status is `CLOUD_PASS`.
-`MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not claimed.
+`CODE_READY`; the current hardware status is `MAPPING_STATIONARY_PASS`.
+`SOAK_PASS` is not claimed.
