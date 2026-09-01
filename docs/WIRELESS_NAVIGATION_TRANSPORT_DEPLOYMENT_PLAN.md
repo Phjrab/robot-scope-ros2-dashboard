@@ -7,6 +7,13 @@ installation, firewall replacement, key creation, service start/restart,
 Navigation launch, initial pose, goal or motion. The operator must explicitly
 approve deployment after reviewing the exact files and rollback below.
 
+The operator approved installation plus WNO-1/WNO-2 on 2026-09-01. The fixed
+transport was installed and WNO-1 passed. WNO-2 failed closed because the
+original controller-odometry stamp was more than 220 seconds behind robot
+realtime, beyond the unchanged 500 ms source-age bound. See the hardware
+validation record for the measured evidence and final safe state. WNO-3 and
+WNO-4 remain unauthorized.
+
 Fixed topology:
 
 | Role | Address | Responsibility |

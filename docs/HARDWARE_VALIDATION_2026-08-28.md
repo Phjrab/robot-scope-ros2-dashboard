@@ -519,6 +519,53 @@ The fixed recorder produced `acceptance-20260901T034805.316528Z` with
 
 ## Remaining risks and next safe step
 
+### Authenticated wireless controller odometry — 2026-09-01
+
+The operator supplied the exact `APPROVE_WIRELESS_ODOM_DEPLOY` token, which
+authorized transactional installation and stationary WNO-1/WNO-2 only. It did
+not authorize WNO-3 fault injection, WNO-4 Navigation, initial pose, goal,
+lease, deadman or motion. The reviewed commit was `7707b8e`.
+
+The fixed sender, receiver, restricted lifecycle actions, private odometry key
+and external firewall rule were installed on the robot-side and external
+Jetsons. The new key was verified only by length, owner and mode and was never
+printed, hashed into a report or committed. Both odometry units remained
+disabled at boot. Existing unrelated external deployment modifications were
+preserved, and the dashboard was not restarted.
+
+WNO-1 **PASS**: the source graph contained exactly one RELIABLE/VOLATILE
+`nav_msgs/msg/Odometry` publisher on `/utlidar/robot_odom`; both host clocks
+reported synchronized; the sender stayed active with `NRestarts=0`, zero
+invalid samples and advancing counters. Six consecutive five-second reports
+advanced `sent` by 371-373 packets per interval, approximately 74.2-74.6 Hz and
+below the fixed 100 Hz cap. The external receiver was inactive with no UDP
+46030 listener. The sender was then stopped through the restricted lifecycle
+and reached `inactive/dead`, PID zero, with no restart.
+
+WNO-2 **FAIL (fail-closed)**: the manually owned receiver bound the fixed peer
+and received 6,376 datagrams with an exclusive external publisher, synchronized
+clock, zero receive errors and zero authentication failures. It accepted and
+published zero packets. A direct source sample had the required
+`odom -> base_link` frames and advancing data, but its header stamp was more
+than 220 seconds behind robot realtime. The two Jetson realtime clocks differed
+by only about 50 ms. The unchanged receiver contract permits at most 500 ms of
+source age, so readiness correctly stayed false and the external freshness
+checker exited 69 without starting Navigation. No timestamp was rebased and no
+freshness limit was widened.
+
+Cleanup stopped the foreground receiver before the sender. Final checks found
+both odometry units disabled/inactive, no receiver process, no UDP 46030
+listener, zero Navigation/FAST-LIO/mapping processes, and the reviewed firewall
+active. Control remained lease-free with deadman false and exact zero velocity;
+the Control Bridge was not started. No initial pose, goal, map mutation or robot
+motion occurred.
+
+The next safe prerequisite is to identify and correct the authoritative
+controller-odometry producer clock at its source, then repeat WNO-2 under a new
+explicit approval. Do not rebase the timestamp in this transport, relax the
+500 ms age bound, substitute FAST-LIO odometry or proceed to WNO-3/WNO-4 while
+the source stamp remains stale.
+
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
    keep it disabled during later Robot Scope acceptance sessions.
 2. The C++ conversion, DDS receive buffer and FAST-LIO odometry pass both

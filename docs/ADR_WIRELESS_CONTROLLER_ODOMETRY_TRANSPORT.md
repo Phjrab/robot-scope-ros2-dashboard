@@ -1,6 +1,6 @@
 # ADR — Authenticated wireless controller-odometry transport
 
-- Status: accepted for software implementation; hardware deployment pending
+- Status: deployed; WNO-1 passed, WNO-2 blocked by stale source timestamps
 - Date: 2026-09-01
 - Scope: the single Go2 controller-odometry observation required by Nav2
 - Related: [wireless control transport](ADR_WIRELESS_CONTROL_TRANSPORT.md),
