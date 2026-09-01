@@ -65,8 +65,8 @@ not link `unitree_go` or exercise the legacy LowState/IMU path.
 ## Safety and deployment status
 
 This change creates no control publisher, lease, motion command, Mapping/Nav
-start, network mutation or automatic service. It does not install or run the
-new executable in either operating environment. Gate 7 used only an isolated
-external-Orin `/tmp` build and test tree; it did not start a ROS node or service.
-Live `/velodyne_points` validation and HW-4 remain `NOT_RUN` until the later
-deployment gate and explicit approval.
+start, network mutation or automatic service. At Gate 7, only an isolated
+external-Orin `/tmp` build/test tree existed and HW-4 remained `NOT_RUN`. The
+later separately supervised deployment and live `/velodyne_points` result are
+recorded as `CLOUD_PASS` in `docs/WIRELESS_MAPPING_ACCEPTANCE.md`; repository
+tests alone still do not claim live hardware behavior.

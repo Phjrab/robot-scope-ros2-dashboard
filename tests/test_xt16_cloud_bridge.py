@@ -163,8 +163,9 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
             "robot_scope_xt16_cloud_bridge_node",
             "same reviewed",
             "C++ conversion source",
-            "does not install or run",
-            "HW-4",
+            "At Gate 7",
+            "HW-4 remained `NOT_RUN`",
+            "`CLOUD_PASS`",
             "`NOT_RUN`",
         ):
             self.assertIn(contract, self.document)

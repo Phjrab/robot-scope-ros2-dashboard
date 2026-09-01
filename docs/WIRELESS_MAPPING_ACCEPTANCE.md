@@ -33,13 +33,14 @@ is not a freshness pass.
 | Firewall persistence and HW-2 workspace readiness | `PASS` | dedicated root oneshot owns only the exact INPUT chain and survived an external-Orin reboot; clean pinned Hesai source was built and resolved from the final `~/ws/hesai_ws` path without starting a sensor |
 | HW-2 Hesai driver only | `PASS` — `LIDAR_PASS` | supervised stationary run produced exactly one reliable/volatile `/lidar_points` publisher at about 10 Hz with 64,000-point `hesai_lidar` clouds; bounded relay and UDP-drop checks passed and cleanup left no publisher or service residue |
 | HW-3 IMU only | `PASS` — `IMU_PASS` | supervised stationary run produced exactly one reliable/volatile `/imu/body` publisher at about 502 Hz with authenticated, finite, fresh, increasing samples; zero external `/lowstate` publishers and cleanup left no sender, receiver or socket residue |
-| HW-4–HW-6 | `NOT_RUN` | no cloud bridge, FAST-LIO, map write or Nav2 start; HW-4 requires a fresh per-stage safety check |
+| HW-4 cloud bridge | `PASS` — `CLOUD_PASS` | supervised stationary run produced exactly one reliable/volatile `/velodyne_points` publisher at about 10 Hz with 16,000-point exact-layout clouds; age, jitter, relay and kernel-drop bounds passed and verified process-group cleanup left no topic, socket or service residue |
+| HW-5–HW-6 | `NOT_RUN` | no FAST-LIO, map write or Nav2 start; HW-5 requires the separate exact stationary-mapping approval |
 
-After HW-2 cleanup, current external topics remain truthfully unavailable:
+After final HW-4 cleanup, current external topics remain truthfully unavailable:
 `/lidar_points`, `/velodyne_points` and `/imu/body` have zero publishers.
 Mapping, navigation and Dataset Capture are idle. The repository status is `CODE_READY`;
-the current hardware status is `IMU_PASS`. No converted-cloud, mapping or
-navigation PASS is implied.
+the current hardware status is `CLOUD_PASS`. No FAST-LIO, mapping or navigation
+PASS is implied.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -135,7 +136,8 @@ buffer and network readiness contracts. See
 The existing wired runner and preview remain bound to the legacy executable.
 Gate 5 did not build on a Jetson, install an executable, start a ROS process or
 publish a cloud. The targeted colcon build was deferred to Gate 7 and is
-recorded below; HW-4 plus `CLOUD_PASS` remain `NOT_RUN`.
+recorded below. At Gate 5 completion, HW-4 was `NOT_RUN`; the later supervised
+deployment and `CLOUD_PASS` evidence are recorded below.
 
 ### Gate 6 repository evidence
 
@@ -442,6 +444,74 @@ dashboard still showed no lease, deadman false, exact zero command, and
 Mapping/Nav/Dataset idle with no localization or goal. HW-3 is `PASS` as
 `IMU_PASS`; HW-4–HW-6 remain `NOT_RUN`.
 
+## HW-4 cloud-only C++ bridge evidence — 2026-09-01
+
+The operator supplied a fresh `HW4 안전 확인 완료` confirmation. Machine
+preflight showed synchronized clocks, the fixed external firewall
+active/successful, no conflicting sensor or navigation process, DISARMED, no
+control lease, deadman released, exact zero command, and Mapping, Nav2 and
+Dataset Capture idle. The test started only the robot-side XT16 relay and IMU
+sender plus the external IMU receiver, Hesai driver and cloud-only C++ bridge.
+FAST-LIO, map save, localization, Nav2 and robot motion were never started.
+
+The external host had no production cloud binary before this stage. Commit
+`c9873b7` added a fixed cloud-only Release build path that leaves the legacy
+Unitree-dependent target enabled by default. The external build produced no
+legacy executable, linked no `unitree_go`, completed successfully, and passed
+the registered cloud contract through both colcon and direct CTest `1/1`.
+The installed cloud binary SHA-256 was
+`99a56c3ff62c9f9ece51b4da80f85e5590b41a663eddd52fd8fec1d86dd332ec`.
+The selectively deployed CMake, build runner, preflight and final launcher
+files matched commits `c9873b7`, `7f87c65` and `cb56b10`; every replaced file
+has a separate rollback copy.
+
+The final bounded run observed:
+
+- exactly one `/velodyne_points` publisher, node
+  `robot_scope_xt16_cloud_bridge`, offering reliable, volatile QoS;
+- 50/50 contract-valid, finite, strictly increasing clouds at about
+  `9.998 Hz`, maximum sampled header age `106.981 ms` and maximum arrival
+  jitter `3.648 ms`;
+- frame `hesai_lidar`, height 1, width 16,000, `point_step=22`,
+  `row_step=352,000`, and exact fields `x`, `y`, `z`, `intensity`, `time`,
+  `ring`; sampled output values had zero non-finite values;
+- exactly one reliable/volatile `/lidar_points` publisher and one
+  reliable/volatile authenticated `/imu/body` publisher while the stage was
+  active, with zero external `/lowstate` publishers;
+- zero `/Odometry` and `/Laser_map` publishers, proving FAST-LIO did not start;
+- relay accepted/forwarded counters advancing from `75,003/74,996` to
+  `100,004/99,997`, send errors stable at 7 and 137 measured sequence gaps;
+- external UDP `InErrors=0`, `RcvbufErrors=0` and `SndbufErrors=0` before and
+  after the interval;
+- Wi-Fi signal `-35 dBm`, 1,080.6 Mbit/s receive and 1,200.9 Mbit/s transmit
+  link rate, plus 5/5 management pings with zero loss and 1.864 ms average RTT;
+- independently synchronized clocks with external offset `-5.255 ms` and
+  `10.214 ms` jitter, and robot-side offset `+22.523 ms` and `10.387 ms`
+  jitter. These host observations are not subtracted across clock domains.
+
+Preparatory attempts failed closed without producing a cloud PASS. The first
+showed that the external host intentionally lacks the legacy Unitree workspace,
+which led to the separate cloud-only build path. The next exposed that strict
+relay send-error health was evaluated before the fixed UDP 2368 consumer bound;
+commit `7f87c65` preserves relay-first startup but moves the advancing,
+error-stable gate after fresh raw clouds. Two temporary supervision-fixture
+attempts then stopped before cloud launch because their ROS environment was not
+yet sourced correctly; the product launcher already sourced it in the proper
+order. No safety threshold or assertion was weakened.
+
+The first successful measurement also exposed that signalling only a
+`ros2 run` wrapper could leave its native Hesai child alive. That exact child
+was identified by PID, start identity, executable and fixed config, stopped,
+and the socket/topic graph returned to zero. Commit `cb56b10` places each local
+runner in an owned process group and signals the group during reverse cleanup.
+The complete HW-4 scenario was repeated with this fix and passed again. Final
+automatic cleanup left both robot-side services disabled/inactive with PID 0
+and zero restarts, no external UDP 2368/46020 listener, and zero publishers on
+`/lidar_points`, `/velodyne_points`, `/imu/body`, `/lowstate`, `/Odometry` and
+`/Laser_map`. The dashboard remained no-lease, deadman false, exact zero, with
+Mapping/Nav/Dataset idle. HW-4 is `PASS` as `CLOUD_PASS`; HW-5–HW-6 remain
+`NOT_RUN`.
+
 ## Safety prerequisites for every hardware stage
 
 Before each stage, record all of the following again:
@@ -573,5 +643,5 @@ bundle unrelated service rollback.
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
 Gates 2, 3, 4 and 5 are repository-only PASS. The repository gate is
-`CODE_READY`; the current hardware status is `IMU_PASS`. `CLOUD_PASS`,
+`CODE_READY`; the current hardware status is `CLOUD_PASS`.
 `MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not claimed.
