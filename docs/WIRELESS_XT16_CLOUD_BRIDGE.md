@@ -43,6 +43,14 @@ the new installed C++ executable. Network ownership, the fixed receive-buffer
 ceiling and wireless readiness checks remain Gate 6 responsibilities; this
 runner does not bypass or reconfigure them.
 
+The default package build still produces both executables and therefore keeps
+the wired legacy `unitree_go` dependency. An external mapping host that does
+not install Unitree message packages uses the separate fixed
+`scripts/build_xt16_cloud_bridge_humble.sh` entrypoint. It selects only
+`ROBOT_SCOPE_XT16_BUILD_LEGACY=OFF`, builds the same cloud-only target and does
+not install, emulate or stub `unitree_go`. The option defaults to `ON`, so the
+existing wired build and runner do not silently lose their legacy executable.
+
 ## Registered contract test
 
 CTest registers `robot_scope_xt16_cloud_contract`, which invokes the shared

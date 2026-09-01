@@ -17,6 +17,7 @@ CPP_TEST_PATH = (
     / "xt16_cloud_contract_test.cpp"
 )
 RUNNER_PATH = ROOT / "scripts" / "run_xt16_cloud_bridge_humble.sh"
+BUILD_RUNNER_PATH = ROOT / "scripts" / "build_xt16_cloud_bridge_humble.sh"
 DOCUMENT_PATH = ROOT / "docs" / "WIRELESS_XT16_CLOUD_BRIDGE.md"
 
 
@@ -57,6 +58,7 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
         cls.cmake = CMAKE_PATH.read_text(encoding="utf-8")
         cls.cpp_test = CPP_TEST_PATH.read_text(encoding="utf-8")
         cls.runner = RUNNER_PATH.read_text(encoding="utf-8")
+        cls.build_runner = BUILD_RUNNER_PATH.read_text(encoding="utf-8")
         cls.document = DOCUMENT_PATH.read_text(encoding="utf-8")
 
     def test_cloud_target_is_explicit_and_has_no_unitree_target_dependency(self):
@@ -144,6 +146,16 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
             "robot_scope_doctor",
         ):
             self.assertNotIn(forbidden, self.runner)
+
+    def test_cloud_only_build_does_not_require_the_unitree_workspace(self):
+        subprocess.run(["bash", "-n", str(BUILD_RUNNER_PATH)], check=True)
+        self.assertIn("ROBOT_SCOPE_XT16_BUILD_LEGACY", self.cmake)
+        self.assertIn("if(ROBOT_SCOPE_XT16_BUILD_LEGACY)", self.cmake)
+        self.assertIn("find_package(unitree_go REQUIRED)", self.cmake)
+        self.assertIn("-DROBOT_SCOPE_XT16_BUILD_LEGACY=OFF", self.build_runner)
+        self.assertNotIn("ROBOT_SCOPE_UNITREE_SETUP", self.build_runner)
+        self.assertNotIn("unitree_ros2", self.build_runner)
+        self.assertNotIn("sudo", self.build_runner)
 
     def test_gate_document_separates_repository_pass_from_live_evidence(self):
         for contract in (
