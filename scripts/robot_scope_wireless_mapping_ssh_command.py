@@ -15,7 +15,8 @@ TIMEDATECTL = "/usr/bin/timedatectl"
 SUDO = "/usr/bin/sudo"
 RELAY_SERVICE = "robot-scope-xt16-wireless-relay.service"
 IMU_SERVICE = "robot-scope-wireless-imu-sender.service"
-SERVICES = {"relay": RELAY_SERVICE, "imu": IMU_SERVICE}
+ODOM_SERVICE = "robot-scope-wireless-odom-sender.service"
+SERVICES = {"relay": RELAY_SERVICE, "imu": IMU_SERVICE, "odom": ODOM_SERVICE}
 FIXED_ENVIRONMENT = {
     "PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
     "LANG": "C",

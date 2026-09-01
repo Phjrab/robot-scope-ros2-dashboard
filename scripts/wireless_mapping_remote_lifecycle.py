@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start/stop only the fixed robot-side wireless mapping input services."""
+"""Start/stop only fixed robot-side wireless observation services."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Sequence
 from check_wireless_mapping_preflight import _service_active, remote_command
 
 
-SERVICES = ("relay", "imu")
+SERVICES = ("relay", "imu", "odom")
 
 
 def ensure_started(service: str, environment: dict[str, str]) -> str:

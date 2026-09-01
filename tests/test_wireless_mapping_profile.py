@@ -252,6 +252,7 @@ class WirelessMappingProfileTests(unittest.TestCase):
         for service in (
             "robot-scope-xt16-wireless-relay.service",
             "robot-scope-wireless-imu-sender.service",
+            "robot-scope-wireless-odom-sender.service",
         ):
             self.assertIn(service, helper)
             self.assertIn(service, sudoers)

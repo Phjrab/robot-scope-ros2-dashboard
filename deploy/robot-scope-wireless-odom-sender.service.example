@@ -1,0 +1,52 @@
+[Unit]
+Description=Robot Scope authenticated Go2 controller odometry sender
+Wants=network-online.target time-sync.target
+After=network-online.target time-sync.target
+ConditionFileIsExecutable=/home/unitree/project/robot-scope/scripts/run_wireless_odom_sender_foxy.sh
+ConditionFileNotEmpty=/etc/robot-scope/wireless-odom.key
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/project/robot-scope
+ExecStart=/home/unitree/project/robot-scope/scripts/run_wireless_odom_sender_foxy.sh
+Environment=ROS_LOG_DIR=/run/robot-scope-wireless-odom-sender
+RuntimeDirectory=robot-scope-wireless-odom-sender
+RuntimeDirectoryMode=0700
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=3
+
+CapabilityBoundingSet=
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX
+UMask=0077
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+LimitNOFILE=32
+
+[Install]
+# Navigation owns start/stop. Installer must leave this unit disabled.
+WantedBy=multi-user.target

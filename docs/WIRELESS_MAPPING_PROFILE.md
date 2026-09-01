@@ -16,6 +16,13 @@ The existing wired launcher, preview owner, `.123.99/24` preflight and Hesai
 profile remain separate. The wireless launcher never sources or bypasses that
 wired network setup.
 
+Navigation is a separate consumer of this profile. Its fixed launcher sources
+the same external wireless ROS environment and additionally owns the
+purpose-specific authenticated controller-odometry transport documented in
+`ADR_WIRELESS_CONTROLLER_ODOMETRY_TRANSPORT.md`. Mapping alone does not start
+or require that transport, and the wired Navigation profile still uses the
+dedicated Go2 helper unchanged.
+
 ## Fixed ownership transaction
 
 One explicit Mapping start owns this order:

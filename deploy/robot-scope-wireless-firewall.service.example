@@ -2,7 +2,7 @@
 Description=Robot Scope fixed wireless XT16 external firewall
 Wants=network-online.target
 After=network-online.target
-Before=robot-scope.service robot-scope-wireless-imu-receiver.service
+Before=robot-scope.service robot-scope-wireless-imu-receiver.service robot-scope-wireless-odom-receiver.service
 ConditionFileIsExecutable=/usr/local/libexec/robot-scope/wireless_xt16_firewall.py
 
 [Service]

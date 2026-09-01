@@ -152,6 +152,7 @@ diagnostic-cloud points/rate/drop, when enabled
 | --- | --- | --- |
 | RealSense relay | explicit private/link-local bind and one dashboard host | deployment-configurable and fail closed |
 | signed control UDP | explicit private bind/peer on fixed port 46010 | deployment-configurable and fail closed |
+| controller odometry UDP | fixed `.50.30:46030 -> .50.10:46030`, 784 bytes, at most 100 Hz | purpose-specific authenticated Navigation observation; deployment pending |
 | Go2 camera RTP copy | fixed verified interfaces/addresses/ports in code | needs reviewed WP01 portability without arbitrary forwarding |
 | XT16 UDP copy | fixed `.123.18 → .123.99` lab contract | incompatible with current management-only external Orin |
 | Dashboard Go2 interface | defaults to `eno1` and `.123.99/24` | direct-wired reference, not current wireless fact |

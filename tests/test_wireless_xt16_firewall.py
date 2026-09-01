@@ -85,7 +85,14 @@ class WirelessXt16FirewallTests(unittest.TestCase):
         self.assertFalse(fake.chain)
         self.assertFalse(fake.jump)
         flattened = " ".join(" ".join(call) for call in fake.calls)
-        for value in ("192.168.50.30/32", "192.168.50.10/32", "46236", "46020", "2368"):
+        for value in (
+            "192.168.50.30/32",
+            "192.168.50.10/32",
+            "46236",
+            "46020",
+            "46030",
+            "2368",
+        ):
             self.assertIn(value, flattened)
         for forbidden in ("FORWARD", "MASQUERADE", "nat", "0.0.0.0"):
             self.assertNotIn(forbidden, flattened)
@@ -121,7 +128,7 @@ class WirelessXt16FirewallTests(unittest.TestCase):
     def test_service_is_privileged_bounded_and_separate_from_dashboard(self):
         service = SERVICE.read_text(encoding="utf-8")
         for value in (
-            "Before=robot-scope.service robot-scope-wireless-imu-receiver.service",
+            "Before=robot-scope.service robot-scope-wireless-imu-receiver.service robot-scope-wireless-odom-receiver.service",
             "User=root",
             "CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW",
             "AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW",

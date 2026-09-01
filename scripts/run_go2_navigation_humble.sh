@@ -25,8 +25,20 @@ MAP_YAML="$(realpath -e -- "$MAP_INPUT")"
 PARAMS_FILE="$(realpath -e -- "$PARAMS_INPUT")"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
+MAPPING_PROFILE="${ROBOT_SCOPE_MAPPING_PROFILE:-go2-xt16-wired}"
 
-source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
+case "$MAPPING_PROFILE" in
+  go2-xt16-wired)
+    source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
+    ;;
+  go2-xt16-wireless)
+    source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
+    ;;
+  *)
+    echo "[Robot Scope] navigation mapping profile is unsupported" >&2
+    exit 2
+    ;;
+esac
 cd "$PROJECT_DIR"
 
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
@@ -62,6 +74,11 @@ done
 
 PIDS=()
 STOPPING=0
+REMOTE_ODOM_STARTED=0
+
+remote_lifecycle() {
+  /usr/bin/python3 "$PROJECT_DIR/scripts/wireless_mapping_remote_lifecycle.py" "$@"
+}
 
 stop_children() {
   local requested_status="${1:-1}"
@@ -87,10 +104,29 @@ stop_children() {
     kill -TERM "${PIDS[@]}" 2>/dev/null || true
     wait "${PIDS[@]}" 2>/dev/null || true
   fi
+  if [[ "$REMOTE_ODOM_STARTED" -eq 1 ]]; then
+    remote_lifecycle --service odom --action stop >/dev/null 2>&1 || true
+    REMOTE_ODOM_STARTED=0
+  fi
   exit "$requested_status"
 }
 
 trap 'stop_children 130' INT TERM
+
+if [[ "$MAPPING_PROFILE" == "go2-xt16-wireless" ]]; then
+  odom_state="$(remote_lifecycle --service odom --action ensure-started)" || {
+    echo "[Robot Scope] WIRELESS CONTROLLER ODOMETRY OFFLINE" >&2
+    stop_children 69
+  }
+  [[ "$odom_state" == "started" ]] && REMOTE_ODOM_STARTED=1
+  "$PROJECT_DIR/scripts/run_wireless_odom_receiver_humble.sh" &
+  PIDS+=("$!")
+  if ! "$PYTHON_BIN" "$PROJECT_DIR/scripts/check_wireless_odom_ready.py" \
+    --timeout "${ROBOT_SCOPE_WIRELESS_ODOM_READY_TIMEOUT_SECONDS:-15}"; then
+    echo "[Robot Scope] WIRELESS CONTROLLER ODOMETRY STALE" >&2
+    stop_children 69
+  fi
+fi
 
 "$PYTHON_BIN" -m robot_dashboard.navigation_runtime \
   --runtime-params-file "$PARAMS_FILE" &
@@ -118,7 +154,7 @@ PIDS+=("$!")
   --params-file "$PARAMS_FILE" &
 PIDS+=("$!")
 
-echo "[Robot Scope] fixed Humble navigation stack started"
+echo "[Robot Scope] fixed Humble navigation stack started | profile=$MAPPING_PROFILE"
 set +e
 wait -n "${PIDS[@]}"
 CHILD_STATUS="$?"

@@ -138,6 +138,15 @@ Wi-Fi에 추가하지 않고, 기존 HMAC command/status envelope만 고정 UDP 
 남은 control gate는 [2026-08-30 하드웨어 검증](HARDWARE_VALIDATION_2026-08-30.md)에
 기록합니다.
 
+무선 Navigation은 전체 Go2 DDS graph를 전달하지 않습니다. 탑재 Jetson의 정확히 한
+`/utlidar/robot_odom`을 별도 키로 인증한 고정
+`.50.30:46030 -> .50.10:46030/udp` binary envelope로만 투영합니다. 외부 publisher는
+원본 `odom -> base_link` frame과 source timestamp를 보존하며 freshness, sequence,
+boot ID, HMAC과 단일 publisher gate를 통과해야 합니다. 이 경로는 explicit Navigation
+lifecycle에만 종속되고 Mapping 단독 실행에는 필요하지 않습니다. 자세한 경계는
+[무선 controller-odometry ADR](ADR_WIRELESS_CONTROLLER_ODOMETRY_TRANSPORT.md)을
+따릅니다.
+
 ## 가장 단순한 단일 호스트 구성
 
 XT16이 dashboard host로 직접 송신할 수 있다면 릴레이를 사용하지 않습니다.
