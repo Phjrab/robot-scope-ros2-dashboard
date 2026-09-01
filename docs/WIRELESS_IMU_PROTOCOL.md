@@ -127,7 +127,9 @@ capability bounding set and no interface, route or firewall mutation authority.
 Because home remains read-only, each unit also gives ROS exactly one private
 mode-0700 runtime log directory under `/run`; no map, Dataset or persistent
 home path becomes writable.
-Gate 4 does not install, enable or start either service.
-Installation remains gated by the separate exact approval phrase
-`APPROVE_WIRELESS_XT16_DEPLOY`. Hardware status remains `NOT_RUN`; repository
-tests do not claim `IMU_PASS`.
+At Gate 4 completion neither service was installed, enabled or started, and
+hardware status remained `NOT_RUN`. Installation remained gated by the
+separate exact approval phrase `APPROVE_WIRELESS_XT16_DEPLOY`. The later
+separately supervised HW-3 run is recorded as `IMU_PASS` in
+`docs/WIRELESS_MAPPING_ACCEPTANCE.md`; repository tests alone still do not
+claim live hardware behavior.

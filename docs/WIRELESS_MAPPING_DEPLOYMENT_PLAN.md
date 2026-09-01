@@ -5,7 +5,7 @@
   documentation commits allowed
 - Deployment authorized: **yes**, exact approval was received on 2026-08-31
 - Current status: repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2
-  `LIDAR_PASS`; HW-3–HW-6 `NOT_RUN`
+  `LIDAR_PASS`; HW-3 `IMU_PASS`; HW-4–HW-6 `NOT_RUN`
 
 This document fixes the installation and hardware-test boundary. The exact
 `APPROVE_WIRELESS_XT16_DEPLOY` phrase was received and the bounded installation
@@ -233,9 +233,14 @@ Go2/XT16 sensor configuration.
   publisher at about 10 Hz and 64,000 points, steady relay errors and zero
   kernel UDP receive/buffer errors; see the acceptance report for the bounded
   measurements and cleanup evidence;
-- before HW-3 starts, repeat the physical E-stop/operator/stationary check and
+- HW-3 completed on 2026-09-01 with exactly one authenticated reliable/volatile
+  `/imu/body` publisher at about 502 Hz, zero external `/lowstate` publishers,
+  fresh finite increasing samples, zero recorded transport/validation errors
+  and complete sender/receiver cleanup; the service compatibility correction
+  is commit `094186e` and preserves the fail-closed sandbox boundary;
+- before HW-4 starts, repeat the physical E-stop/operator/stationary check and
   machine-verifiable DISARMED/no-lease/deadman-zero/idle state.
 
-HW-1 is `XT16_RELAY_PASS` and HW-2 is `LIDAR_PASS`. HW-3–HW-6 remain
-`NOT_RUN`. No IMU, converted-cloud, FAST-LIO, mapping, Nav2 or soak PASS is
-claimed.
+HW-1 is `XT16_RELAY_PASS`, HW-2 is `LIDAR_PASS` and HW-3 is `IMU_PASS`.
+HW-4–HW-6 remain `NOT_RUN`. No converted-cloud, FAST-LIO, mapping, Nav2 or
+soak PASS is claimed.

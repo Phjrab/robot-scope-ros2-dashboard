@@ -32,13 +32,14 @@ is not a freshness pass.
 | Deployment and HW-1 XT16 relay | `PASS` — `XT16_RELAY_PASS` | exact approval received; private PandarXT correction and disabled units installed; relay-only run received 53,328 exact packets in 12 s and cleaned up with no service residue |
 | Firewall persistence and HW-2 workspace readiness | `PASS` | dedicated root oneshot owns only the exact INPUT chain and survived an external-Orin reboot; clean pinned Hesai source was built and resolved from the final `~/ws/hesai_ws` path without starting a sensor |
 | HW-2 Hesai driver only | `PASS` — `LIDAR_PASS` | supervised stationary run produced exactly one reliable/volatile `/lidar_points` publisher at about 10 Hz with 64,000-point `hesai_lidar` clouds; bounded relay and UDP-drop checks passed and cleanup left no publisher or service residue |
-| HW-3–HW-6 | `NOT_RUN` | no IMU publisher, cloud bridge, FAST-LIO, map write or Nav2 start; HW-3 requires a fresh per-stage safety check |
+| HW-3 IMU only | `PASS` — `IMU_PASS` | supervised stationary run produced exactly one reliable/volatile `/imu/body` publisher at about 502 Hz with authenticated, finite, fresh, increasing samples; zero external `/lowstate` publishers and cleanup left no sender, receiver or socket residue |
+| HW-4–HW-6 | `NOT_RUN` | no cloud bridge, FAST-LIO, map write or Nav2 start; HW-4 requires a fresh per-stage safety check |
 
 After HW-2 cleanup, current external topics remain truthfully unavailable:
 `/lidar_points`, `/velodyne_points` and `/imu/body` have zero publishers.
 Mapping, navigation and Dataset Capture are idle. The repository status is `CODE_READY`;
-the current hardware status is `LIDAR_PASS`. No IMU,
-converted-cloud, mapping or navigation PASS is implied.
+the current hardware status is `IMU_PASS`. No converted-cloud, mapping or
+navigation PASS is implied.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -110,9 +111,9 @@ finite and quaternion checks, stale/future time, clock fail-closed behavior,
 receive jitter, fixed-peer sockets and five-sample loss recovery. See
 `docs/WIRELESS_IMU_PROTOCOL.md` for the byte and clock-domain contract.
 
-Gate 4 did not install a key or service, contact either Jetson, start a ROS
-process, create a topic, or operate the robot. HW-3 and `IMU_PASS` therefore
-remain `NOT_RUN`.
+At Gate 4 completion, no key or service had been installed, neither Jetson had
+been contacted, and HW-3 was `NOT_RUN`. The later separately supervised HW-3
+deployment and `IMU_PASS` evidence are recorded below.
 
 ### Gate 5 repository evidence
 
@@ -381,7 +382,65 @@ restarts; the external IMU receiver was disabled/inactive; port 2368 had no
 listener and `/lidar_points` was absent. The dashboard remained active but
 showed no lease, deadman false, exact zero command, Mapping/Nav/Dataset idle and
 no localization or goal. HW-2 is `PASS` as `LIDAR_PASS`.
-HW-3–HW-6 remain `NOT_RUN`.
+HW-3–HW-6 remained `NOT_RUN` at HW-2 completion.
+
+## HW-3 authenticated IMU-only evidence — 2026-09-01
+
+The operator supplied a fresh `HW3 안전 확인 완료` confirmation. Machine
+preflight independently showed DISARMED, no control lease, deadman released,
+exact zero command, synchronized clocks, the fixed firewall active/successful,
+and Mapping, Nav2 and Dataset Capture idle. The robot-side XT16 relay and
+Control Bridge and the external Hesai path remained disabled/inactive. The
+stage started only the fixed robot-side IMU sender and external IMU receiver.
+
+The candidate and deployed runtime commit was `094186e`. The installed files
+matched the repository with SHA-256 values
+`1cc1600a1ea2c26a93570835e82d5c6bbef0fa63be953fd2933832e42f1fac29`
+for the sender unit,
+`ec70e5e04d47fc25bee83d69fd3e682f2fc8f685be2192eb3550bb18cdaf9831`
+for the sender script,
+`65df6b5b5bd6d96c7432ffa225563b5e4cf83bc168ac4356bb08d97c97cde114`
+for the receiver unit and
+`4d8899b40323d6d551d841d666af8e28a8631e62562601dcbc958449dfebff97`
+for the receiver script. Both units stayed disabled and were started only for
+the bounded test. Their previous installed files remain as rollback copies.
+
+The successful run observed:
+
+- exactly one `/imu/body` publisher, node
+  `robot_scope_wireless_imu_receiver`, and zero external `/lowstate`
+  publishers;
+- reliable, volatile publisher QoS, frame `body_imu`, 50/50 contract-valid
+  finite samples and strictly increasing timestamps;
+- about `501.84 Hz`, maximum sampled message age `17.964 ms` and maximum
+  arrival jitter `1.036 ms`;
+- 4,152 received, authenticated, accepted and published envelopes, with zero
+  loss, duplicate, reorder, receive, authentication, finite, quaternion,
+  clock or rejection errors in the recorded receiver health report;
+- sender health later showed input ready and clock synchronized, 7,192 fresh
+  LowState samples received, 6,713 envelopes sent, and zero invalid samples,
+  send errors or clock blocks;
+- synchronized host clocks measured independently as external offset
+  `-3.915 ms` with `10.729 ms` jitter and robot-side offset `+14.415 ms` with
+  `6.524 ms` jitter. These per-host observations are not subtracted across
+  clock domains.
+
+Two preparatory attempts failed closed before a usable publisher. The first
+showed that the unit sandbox needed unprivileged `AF_NETLINK` for its read-only
+interface-address preflight; the second showed that ROS required a writable
+log location while home remained read-only. Commit `094186e` admits only that
+read-only address-family query, retains an empty capability bounding set, and
+provides each unit a private mode-0700 runtime log directory under `/run`.
+Idempotent ROS shutdown also prevents a duplicate cleanup exception. No
+network mutation authority, safety threshold, publisher contract, test or
+assertion was weakened.
+
+Final cleanup left both IMU units disabled/inactive with PID 0 and restart
+count 0, no listener on UDP 46020 and zero `/imu/body` publishers. The XT16
+relay, Control Bridge and camera relay remained disabled/inactive. The
+dashboard still showed no lease, deadman false, exact zero command, and
+Mapping/Nav/Dataset idle with no localization or goal. HW-3 is `PASS` as
+`IMU_PASS`; HW-4–HW-6 remain `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 
@@ -514,5 +573,5 @@ bundle unrelated service rollback.
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
 Gates 2, 3, 4 and 5 are repository-only PASS. The repository gate is
-`CODE_READY`; the current hardware status is `LIDAR_PASS`. `IMU_PASS`,
-`CLOUD_PASS`, `MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not claimed.
+`CODE_READY`; the current hardware status is `IMU_PASS`. `CLOUD_PASS`,
+`MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not claimed.
