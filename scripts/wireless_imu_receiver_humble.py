@@ -52,6 +52,7 @@ def main() -> int:
 
     try:
         import rclpy  # type: ignore[import-not-found]
+        from rclpy._rclpy_pybind11 import RCLError  # type: ignore[import-not-found]
         from rclpy.node import Node  # type: ignore[import-not-found]
         from rclpy.qos import (  # type: ignore[import-not-found]
             DurabilityPolicy,
@@ -126,7 +127,16 @@ def main() -> int:
                     values.linear_acceleration_xyz[0:2]
                 )
                 message.linear_acceleration.z = values.linear_acceleration_xyz[2]
-                self._publisher.publish(message)
+                try:
+                    self._publisher.publish(message)
+                except RCLError:
+                    # Humble's signal handler can invalidate the context while
+                    # this timer callback is already running.  Suppress only
+                    # that shutdown race; a live-context publish failure must
+                    # still fail closed and terminate the receiver.
+                    if rclpy.ok():
+                        raise
+                    return
                 core.note_published()
 
         def _report(self) -> None:
