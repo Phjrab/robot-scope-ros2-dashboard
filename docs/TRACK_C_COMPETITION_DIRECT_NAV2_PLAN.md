@@ -42,9 +42,12 @@ host files and live read-only measurements are reported separately.
 | Candidate | Direct Go2/XT16 network | Runtime | Decision |
 |---|---|---|---|
 | External Jetson `192.168.50.10` | No `192.168.123.0/24` NIC or route; direct pings fail | Ubuntu 22.04, ROS 2 Humble, 6 cores, 7.4 GiB | Rejected for Track C physical topology |
-| Robot-mounted Jetson `192.168.50.30` | `eth0=192.168.123.18/24`; Go2 and XT16 pings pass | Ubuntu 20.04, ROS 2 Foxy, 8 cores, 15 GiB | Only physically eligible host; runtime compatibility blocked |
+| Go2-mounted external Jetson `192.168.50.30` | `eth0=192.168.123.18/24`; Go2 and XT16 pings pass | Ubuntu 20.04, ROS 2 Foxy, 8 cores, 15 GiB | Only physically eligible host; runtime compatibility blocked |
 
-The robot-mounted Jetson is the only current direct host. It cannot run the
+`192.168.50.30` is the management address of the external Jetson mounted on
+the Go2; it is not the Go2 internal computer. The off-robot dashboard Jetson is
+`192.168.50.10`. The Go2-mounted external Jetson is the only current direct
+host. It cannot run the
 repository-owned Humble Track C stack without mixing ROS distributions, which
 Track C explicitly forbids. Its installed Foxy graph has Nav2 and Unitree/Hesai
 messages but no `fast_lio` package. No automatic OS/ROS upgrade or substitute
@@ -165,7 +168,7 @@ continued:
    verified Foxy bridge build.
 
 The current external Humble Jetson cannot satisfy option 1 while Go2 and XT16
-remain physically connected only to the robot-mounted Jetson. No route, NAT,
+remain physically connected only to the Go2-mounted external Jetson. No route, NAT,
 bridge, wireless relay or ROS distro mixing will be introduced as a shortcut.
 
 After the host requirement is met, the next stationary sequence is: direct
@@ -179,7 +182,7 @@ explicit safety confirmation.
 - External Jetson: dashboard service active on TCP `0.0.0.0:8088`; wireless
   odometry receiver and Control Bridge inactive; no Track C sensor, FAST-LIO,
   Nav2 or command bridge process observed.
-- Robot-mounted Jetson: wireless odometry sender, Control Bridge and XT16
+- Go2-mounted external Jetson: wireless odometry sender, Control Bridge and XT16
   wireless relay services inactive; the bounded Hesai probe was stopped; no
   Track C sensor, FAST-LIO, Nav2 or command bridge process or related listening
   UDP port observed.
