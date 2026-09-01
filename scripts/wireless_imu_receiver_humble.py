@@ -151,7 +151,8 @@ def main() -> int:
     finally:
         node.destroy_node()
         transport.close()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
     return 0
 
 

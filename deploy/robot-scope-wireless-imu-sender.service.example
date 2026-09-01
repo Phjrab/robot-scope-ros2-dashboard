@@ -13,6 +13,9 @@ User=unitree
 Group=unitree
 WorkingDirectory=/home/unitree/project/robot-scope
 ExecStart=/home/unitree/project/robot-scope/scripts/run_wireless_imu_sender_foxy.sh
+Environment=ROS_LOG_DIR=/run/robot-scope-wireless-imu-sender
+RuntimeDirectory=robot-scope-wireless-imu-sender
+RuntimeDirectoryMode=0700
 Restart=on-failure
 RestartSec=3
 KillSignal=SIGTERM
@@ -20,7 +23,9 @@ TimeoutStopSec=3
 
 CapabilityBoundingSet=
 NoNewPrivileges=true
-RestrictAddressFamilies=AF_INET AF_UNIX
+# The fixed runner verifies eth0 ownership with read-only rtnetlink before ROS
+# starts. AF_NETLINK grants no mutation capability; CapabilityBoundingSet stays empty.
+RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX
 UMask=0077
 PrivateTmp=true
 PrivateDevices=true

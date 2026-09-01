@@ -120,7 +120,14 @@ The repository supplies disabled service examples and fixed runners:
   `jetson_orin_nano` on Humble.
 
 They grant no Linux capability, apply a finite restart limit and restrict
-address families. Gate 4 does not install, enable or start either service.
+address families. The runners verify the fixed local interface address before
+opening ROS or UDP. Their service sandboxes therefore admit `AF_NETLINK` only
+for that unprivileged read-only rtnetlink query while retaining an empty
+capability bounding set and no interface, route or firewall mutation authority.
+Because home remains read-only, each unit also gives ROS exactly one private
+mode-0700 runtime log directory under `/run`; no map, Dataset or persistent
+home path becomes writable.
+Gate 4 does not install, enable or start either service.
 Installation remains gated by the separate exact approval phrase
 `APPROVE_WIRELESS_XT16_DEPLOY`. Hardware status remains `NOT_RUN`; repository
 tests do not claim `IMU_PASS`.

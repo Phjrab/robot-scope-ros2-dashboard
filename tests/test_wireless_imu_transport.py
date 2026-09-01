@@ -400,6 +400,8 @@ class SocketAndSourceContractTests(unittest.TestCase):
         self.assertIn('status["ready"] and self._publisher_exclusive', receiver_source)
         self.assertIn("depth=1", sender_source)
         self.assertIn("ReliabilityPolicy.BEST_EFFORT", sender_source)
+        self.assertIn("if rclpy.ok():", sender_source)
+        self.assertIn("if rclpy.ok():", receiver_source)
 
         for name, user in (
             ("sender", "unitree"),
@@ -414,9 +416,21 @@ class SocketAndSourceContractTests(unittest.TestCase):
             )
             self.assertIn("CapabilityBoundingSet=", service)
             self.assertIn("NoNewPrivileges=true", service)
+            self.assertIn(
+                "RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX", service
+            )
+            self.assertIn("AF_NETLINK grants no mutation capability", service)
             self.assertIn("StartLimitBurst=5", service)
             self.assertIn("disabled", service)
-            self.assertNotIn("Environment=", service)
+            self.assertIn(
+                f"Environment=ROS_LOG_DIR=/run/robot-scope-wireless-imu-{name}",
+                service,
+            )
+            self.assertIn(
+                f"RuntimeDirectory=robot-scope-wireless-imu-{name}", service
+            )
+            self.assertIn("RuntimeDirectoryMode=0700", service)
+            self.assertEqual(service.count("Environment="), 1)
 
 
 if __name__ == "__main__":

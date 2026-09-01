@@ -13,6 +13,9 @@ User=jetson_orin_nano
 Group=jetson_orin_nano
 WorkingDirectory=/home/jetson_orin_nano/project/robot-scope
 ExecStart=/home/jetson_orin_nano/project/robot-scope/scripts/run_wireless_imu_receiver_humble.sh
+Environment=ROS_LOG_DIR=/run/robot-scope-wireless-imu-receiver
+RuntimeDirectory=robot-scope-wireless-imu-receiver
+RuntimeDirectoryMode=0700
 Restart=on-failure
 RestartSec=3
 KillSignal=SIGTERM
@@ -20,7 +23,9 @@ TimeoutStopSec=3
 
 CapabilityBoundingSet=
 NoNewPrivileges=true
-RestrictAddressFamilies=AF_INET AF_UNIX
+# The fixed runner verifies eno1 ownership with read-only rtnetlink before ROS
+# starts. AF_NETLINK grants no mutation capability; CapabilityBoundingSet stays empty.
+RestrictAddressFamilies=AF_INET AF_NETLINK AF_UNIX
 UMask=0077
 PrivateTmp=true
 PrivateDevices=true
