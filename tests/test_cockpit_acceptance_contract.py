@@ -60,6 +60,8 @@ class CockpitAcceptanceDocumentationTests(unittest.TestCase):
         self.assertIn("Software-only acceptance", report)
         self.assertIn("Hardware acceptance", report)
         self.assertIn("P0", report)
+        self.assertIn("실제 Nav2 no-goal start/stop", report)
+        self.assertIn("legacy direct-Go2 launcher", report)
 
     def test_cockpit_node_and_browser_suites_have_dedicated_commands(self):
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))

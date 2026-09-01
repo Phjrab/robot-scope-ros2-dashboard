@@ -479,15 +479,53 @@ wireless transition must preserve a separate Go2/sensor network or provide a
 separately reviewed relay/routing design; the management address must never be
 substituted for the Go2 body target.
 
+### NAV0 supervised no-goal startup — 2026-09-01
+
+The operator freshly confirmed the physical E-stop/remote, on-site safety
+operator, clear area and stationary robot. The latest audited 2D map pair,
+`map_20260813_125411.yaml` and `.pgm`, was restored non-destructively from the
+preserved deployment rollback into the empty private managed map root. Source
+and restored SHA-256 values matched; the dashboard catalog accepted one
+manageable `120x169`, `0.05 m/cell`, trinary map with a fixed opaque revision.
+The PCD was not copied or modified.
+
+The signed Control Bridge then became authenticated/ready with one fresh
+LowState publisher, no lease, deadman false and exact zero. The dashboard
+accepted the fixed map and `go2-safe` parameter revisions and started the
+Navigation-owned wireless localization dependency. Authenticated IMU, Hesai,
+the cloud bridge and FAST-LIO all passed readiness. Nav2 itself failed closed
+before activation because `run_go2_navigation_humble.sh` sourced the legacy
+direct-Go2 helper and could not find the expected Unitree workspace under the
+current external-Orin home. Its only discovered Unitree overlay was inside the
+preserved rollback tree; it was not reused or copied.
+
+This is not safely fixed by changing one path. The external Orin owns only the
+wireless mapping interface `eno1=192.168.50.10/24`, while the legacy helper
+requires the direct Go2 DDS interface and workspace. The current wireless
+transport supplies `/velodyne_points`, authenticated `/imu/body` and FAST-LIO
+`/Odometry`, but the Navigation safety gate separately requires a fresh,
+single-publisher `/utlidar/robot_odom`. The wireless mapping specification also
+forbids adding an unreviewed route, NAT, Linux bridge or DDS router and does
+not authorize weakening that controller-odometry gate.
+
+The coordinator reported `navigation launcher exited during startup`, stopped
+the partial Nav process group, and compare-and-stopped only its owned mapping
+job with exit 130. Final checks found no Nav2/mapping process, UDP listener or
+robot sensor service residue. Control Bridge, XT16 and IMU services were
+inactive with PID 0 and restart count 0. No initial pose, goal, navigation
+lease, ARM, deadman, velocity command, map mutation or robot motion occurred.
+The fixed recorder produced `acceptance-20260901T034805.316528Z` with
+`supervised.navigation_start_stop=FAIL`.
+
 ## Remaining risks and next safe step
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
    keep it disabled during later Robot Scope acceptance sessions.
-2. The C++ conversion, DDS receive buffer and FAST-LIO odometry now pass both
-   standalone and Control Bridge combined-load checks. Nav2 validation remains
-   explicitly deferred. When resumed, start with Nav2 without a goal, then
-   initial pose, runtime TF and localization health under the operator,
-   physical remote and E-stop procedure in `HARDWARE_ACCEPTANCE.md`.
+2. The C++ conversion, DDS receive buffer and FAST-LIO odometry pass both
+   standalone and Control Bridge combined-load checks. NAV0 no-goal startup was
+   attempted and failed closed at the legacy direct-Go2 environment boundary.
+   Do not retry until the wireless controller-odometry transport and matching
+   launcher environment have a separately reviewed design and implementation.
 3. Preserve the existing local modifications in the external Hesai workspace;
    the full installer remains intentionally blocked until their ownership and
    purpose are reconciled.
@@ -500,6 +538,7 @@ substituted for the Go2 body target.
 6. Complete the 60-minute CWP soak and actual Xbox Controller validation; the
    short rendering observation and synthetic controller tests do not satisfy
    those hardware acceptance rows.
-7. Restore and verify the separate Go2/DDS network before Control Bridge
-   lifecycle validation. The temporary `192.168.50.0/24` management link alone
-   reaches the mounted Jetson and RealSense relay, not the Go2 body target.
+7. Preserve the direct-Go2 `/utlidar/robot_odom` safety requirement. A future
+   wireless observation transport must be fixed-peer, authenticated, bounded,
+   freshness/sequence checked and separately accepted; do not substitute
+   FAST-LIO odometry or enable broad forwarding to make Nav2 start.

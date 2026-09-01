@@ -213,6 +213,7 @@ lifecycle과 읽기 전용 map panel을 확인했다. Control Bridge, FAST-LIO, 
 | software STOP 중 실제 정지 | `PASS` — 0.76 s 저속 입력 중 STOP 응답 28.6 ms, E-stop latch/lease revoke/exact zero, 운영자 물리 정지 확인 |
 | abrupt bridge-process-loss 감지와 복구 | `PASS` — stationary/DISARMED에서만 실행; SIGKILL 후 systemd가 약 4 s 뒤 새 PID로 1회 재시작했고 authenticated readiness도 이어서 복구. motion 중 SIGKILL은 미승인 |
 | exact revision 저장 지도 read-only 표시 | `PASS` |
+| 실제 Nav2 no-goal start/stop | `FAIL` — 2026-09-01 NAV0에서 무선 IMU·XT16·FAST-LIO readiness는 통과했지만 legacy direct-Go2 launcher가 Unitree workspace 부재로 종료; coordinator가 owned mapping/Nav를 정리했고 lease·initial pose·goal·motion은 없었음 |
 | 실제 localization과 initial pose | `NOT_RUN` |
 | Nav goal, Nav child crash, XT16/Nav sensor loss와 Manual Takeover | `NOT_RUN` |
 | 실제 annotation Mission pause/skip/retry/abort | `NOT_RUN` |
