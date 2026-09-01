@@ -8,6 +8,13 @@ restarting `lidar-timesync.service`, changing NTP, calling an undocumented Go2
 API, using `/api/bashrunner`, restarting the robot, launching Mapping/Nav2, or
 moving the robot.
 
+The sender-side guard from commit `ae821ba` was transactionally installed on
+the robot Jetson on 2026-09-01 after the exact guard-only approval. Stationary
+check WOC-1 passed: the guard reported an approximately 227.874-second-old
+source stamp, advanced `source_stale` while keeping `sent=0`, and was then
+stopped. Both wireless odometry units remain disabled and inactive. This
+deployment does not clear WNO-2 or authorize any later gate.
+
 The fixed safety contract remains unchanged:
 
 - preserve the original `/utlidar/robot_odom` header stamp;

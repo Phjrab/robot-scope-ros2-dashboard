@@ -570,6 +570,47 @@ active. Control remained lease-free with deadman false and exact zero velocity;
 the Control Bridge was not started. No initial pose, goal, map mutation or robot
 motion occurred.
 
+### Wireless controller-odometry source-clock guard — 2026-09-01
+
+The operator supplied the exact
+`APPROVE_WIRELESS_ODOM_SOURCE_CLOCK_GUARD` token. Its scope was limited to the
+robot-side sender guard and stationary WOC-1; it did not authorize either host
+clock, NTP, `lidar-timesync.service`, the external Jetson, firewall or key
+changes, WNO-2 or later gates, Navigation, Mapping, control or motion.
+
+Commit `ae821ba` was deployed transactionally to only
+`scripts/wireless_odom_protocol.py` and
+`scripts/wireless_odom_sender_foxy.py`. The deployed SHA-256 values were
+`4a5e4dc0df2867dc2bc782154c391c5837855088ef81e3645d810f623a109229`
+and
+`3ca6f69e4c12c697e7e2735044b4ed15b8ec3dabd8ac6ddb0f178faf1cbd2ec1`
+respectively. Both matched the reviewed local files before and after install.
+The previous files remain alongside them as `.pre-ae821ba` rollback copies.
+Python syntax validation passed before replacement, and the sender remained
+inactive during installation.
+
+WOC-1 **PASS**: the restricted lifecycle started only the disabled robot-side
+odometry sender. Four consecutive reports kept `sent=0`, `send_errors=0`,
+`clock_blocks=0` and `source_future=0`; `source_stale` advanced from 602 to
+1,347, 2,096 and 2,850 while `source_stamp_age_ms` exposed the original source
+offset at approximately 227,873.491-227,874.093 ms. This proves the sender
+rejects the stale original stamp without rebasing or transmitting it. The
+external receiver stayed inactive with PID zero, and no Navigation, FAST-LIO or
+Mapping pipeline was started. Control stayed lease-free, deadman false and
+linear X/Y plus angular Z exactly zero.
+
+The sender was stopped through the restricted lifecycle immediately after the
+fourth report. Final checks found both odometry units `inactive/dead`, PID zero,
+restart count zero and disabled at boot, with no UDP 46030 listener. Installed
+hashes still matched and the private staging directory was removed. No clock,
+service-policy, dashboard, map, robot posture or motion change occurred.
+
+WNO-2 remains **BLOCKED**. The measured source age is far outside the unchanged
+500 ms maximum, so the next prerequisite is a separately reviewed,
+vendor-supported correction at the authoritative Go2 `/utlidar/*` producer.
+Do not restart the legacy time-sync job, rebase the transport stamp, widen the
+freshness limit or start Navigation from this result.
+
 The next safe prerequisite is to identify and correct the authoritative
 controller-odometry producer clock at its source, then repeat WNO-2 under a new
 explicit approval. Do not rebase the timestamp in this transport, relax the
