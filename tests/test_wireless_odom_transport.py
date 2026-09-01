@@ -467,6 +467,44 @@ class RuntimeContractTests(unittest.TestCase):
         ):
             self.assertIn(" ".join(value.split()), normalized_recovery)
 
+    def test_vendor_support_request_is_complete_and_sanitized(self):
+        request = (
+            ROOT / "docs" / "UNITREE_CONTROLLER_ODOMETRY_CLOCK_SUPPORT_REQUEST.md"
+        ).read_text(encoding="utf-8")
+        normalized = " ".join(request.split())
+
+        for value in (
+            "/utlidar/robot_odom",
+            "/utlidar/imu",
+            "v1.1.15",
+            "v2.0.0-8031e",
+            "227.874 seconds",
+            "approximately 681 ms",
+            "500 ms",
+            "100 ms",
+            "L1 firmware/build",
+            "persist across a robot reboot",
+            "official rollback or downgrade procedure",
+            "expected timestamp domain",
+            "WNO-2, localization and Nav2 remain blocked",
+        ):
+            self.assertIn(value, normalized)
+
+        for rejected in (
+            "rebasing the ROS header stamp",
+            "stepping either Linux host clock with `date -s`",
+            "guessing an undocumented key for the generic SDK2 `ConfigClient`",
+        ):
+            self.assertIn(rejected, normalized)
+
+        for secret in (
+            "BEGIN OPENSSH PRIVATE KEY",
+            "ROBOT_SCOPE_CONTROL_BRIDGE_KEY=",
+            "ROBOT_SCOPE_WIRELESS_ODOM_KEY=",
+            "Password:",
+        ):
+            self.assertNotIn(secret, request)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -106,8 +106,11 @@ edited.
 
 ### Vendor response required
 
+The sanitized, ready-to-send request and private submission checklist are in
+[Unitree controller odometry clock support request](UNITREE_CONTROLLER_ODOMETRY_CLOCK_SUPPORT_REQUEST.md).
+
 No execution approval token can be defined until Unitree identifies all of the
-following for this exact Go2 EDU Plus/L1 configuration:
+following for this exact Go2 EDU hardware-v2.0/L1 configuration:
 
 1. the supported API, application workflow or service procedure that changes
    the clock used by the authoritative `/utlidar/imu` and
