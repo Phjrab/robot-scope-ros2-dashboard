@@ -14,6 +14,11 @@ realtime, beyond the unchanged 500 ms source-age bound. See the hardware
 validation record for the measured evidence and final safe state. WNO-3 and
 WNO-4 remain unauthorized.
 
+The fail-closed sender source-clock guard and its guard-only deployment token
+are specified separately in
+`docs/CONTROLLER_ODOMETRY_CLOCK_RECOVERY_PLAN.md`. The earlier odometry token
+does not authorize that follow-up replacement or any clock mutation.
+
 Fixed topology:
 
 | Role | Address | Responsibility |

@@ -540,6 +540,8 @@ __all__ = [
     "FRESH_AFTER_NS",
     "KEY_BYTES",
     "KEY_PATH",
+    "MAX_FUTURE_SKEW_NS",
+    "MAX_STAMP_SENDER_DELTA_NS",
     "OdomEnvelope",
     "PACKET_BYTES",
     "READY_SAMPLE_COUNT",

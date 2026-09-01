@@ -1,6 +1,6 @@
 # ADR — Authenticated wireless controller-odometry transport
 
-- Status: deployed; WNO-1 passed, WNO-2 blocked by stale source timestamps
+- Status: deployed; sender source-clock guard ready, WNO-2 blocked by stale source timestamps
 - Date: 2026-09-01
 - Scope: the single Go2 controller-odometry observation required by Nav2
 - Related: [wireless control transport](ADR_WIRELESS_CONTROL_TRANSPORT.md),
@@ -57,6 +57,11 @@ invalid quaternion. A new/recovered boot requires five consecutive fresh
 samples. It publishes only when it is the sole publisher on the fixed external
 topic. Receiver loss does not create a cached or locally rebased odometry
 sample.
+
+The sender applies the same 500 ms source-age and 100 ms future-skew fence
+before transmission and reports bounded source-clock diagnostics. This does
+not replace the receiver fence: both sides independently reject a stale or
+future original stamp, and neither side rebases it.
 
 ## Lifecycle and Navigation ownership
 

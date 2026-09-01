@@ -10,6 +10,8 @@ from typing import Any
 
 from wireless_odom_protocol import (
     CHILD_FRAME,
+    MAX_FUTURE_SKEW_NS,
+    MAX_STAMP_SENDER_DELTA_NS,
     SOURCE_FRAME,
     ConnectedOdomDatagram,
     OdomEnvelope,
@@ -81,6 +83,25 @@ def extract_source_odometry(message: Any) -> SourceOdometry:
     return values
 
 
+def validate_source_clock(source_stamp_ns: int, sender_realtime_ns: int) -> int:
+    """Return source age while preserving the original fail-closed clock bounds."""
+
+    for timestamp in (source_stamp_ns, sender_realtime_ns):
+        if (
+            isinstance(timestamp, bool)
+            or not isinstance(timestamp, int)
+            or timestamp <= 0
+            or timestamp > 0xFFFFFFFFFFFFFFFF
+        ):
+            raise WirelessOdomError("timestamp")
+    age_ns = sender_realtime_ns - source_stamp_ns
+    if age_ns > MAX_STAMP_SENDER_DELTA_NS:
+        raise WirelessOdomError("stale")
+    if age_ns < -MAX_FUTURE_SKEW_NS:
+        raise WirelessOdomError("future")
+    return age_ns
+
+
 def main() -> int:
     if os.geteuid() == 0:
         raise SystemExit("wireless odometry sender refuses to run as root")
@@ -120,6 +141,9 @@ def main() -> int:
             self._invalid = 0
             self._send_errors = 0
             self._clock_blocks = 0
+            self._source_stale = 0
+            self._source_future = 0
+            self._last_source_age_ms: float | None = None
             self.create_subscription(Odometry, INPUT_TOPIC, self._handle, qos)
             self.create_timer(1.0, self._update_graph_state)
             self.create_timer(REPORT_INTERVAL_S, self._report)
@@ -151,6 +175,9 @@ def main() -> int:
                 if source.source_stamp_ns <= self._last_source_stamp_ns:
                     raise WirelessOdomError("replay")
                 sender_realtime_ns = time.time_ns()
+                source_age_ns = sender_realtime_ns - source.source_stamp_ns
+                self._last_source_age_ms = round(source_age_ns / 1_000_000, 3)
+                validate_source_clock(source.source_stamp_ns, sender_realtime_ns)
                 self._sequence = min(0xFFFFFFFFFFFFFFFF, self._sequence + 1)
                 sample = OdomEnvelope(
                     boot_id=boot_id,
@@ -169,8 +196,12 @@ def main() -> int:
                 self._last_source_stamp_ns = source.source_stamp_ns
                 self._last_sent_monotonic_ns = sender_monotonic_ns
                 self._sent = self._increment(self._sent)
-            except WirelessOdomError:
+            except WirelessOdomError as exc:
                 self._invalid = self._increment(self._invalid)
+                if exc.reason == "stale":
+                    self._source_stale = self._increment(self._source_stale)
+                elif exc.reason == "future":
+                    self._source_future = self._increment(self._source_future)
             except OSError:
                 self._send_errors = self._increment(self._send_errors)
 
@@ -181,7 +212,10 @@ def main() -> int:
                 f"clock_synchronized={str(system_clock_synchronized()).lower()} "
                 f"received={self._received} sent={self._sent} "
                 f"rate_limited={self._rate_limited} invalid={self._invalid} "
-                f"send_errors={self._send_errors} clock_blocks={self._clock_blocks}"
+                f"send_errors={self._send_errors} clock_blocks={self._clock_blocks} "
+                f"source_stamp_age_ms={self._last_source_age_ms} "
+                f"source_stale={self._source_stale} "
+                f"source_future={self._source_future}"
             )
 
     rclpy.init(args=None)

@@ -301,6 +301,53 @@ class RuntimeContractTests(unittest.TestCase):
             sample.source_stamp_ns,
         )
 
+    def test_sender_rejects_stale_and_future_source_clock_without_rebasing(self):
+        self.assertEqual(
+            sender.validate_source_clock(
+                BASE_REALTIME - protocol.MAX_STAMP_SENDER_DELTA_NS,
+                BASE_REALTIME,
+            ),
+            protocol.MAX_STAMP_SENDER_DELTA_NS,
+        )
+        self.assertEqual(
+            sender.validate_source_clock(
+                BASE_REALTIME + protocol.MAX_FUTURE_SKEW_NS,
+                BASE_REALTIME,
+            ),
+            -protocol.MAX_FUTURE_SKEW_NS,
+        )
+        with self.assertRaisesRegex(protocol.WirelessOdomError, "stale"):
+            sender.validate_source_clock(
+                BASE_REALTIME - protocol.MAX_STAMP_SENDER_DELTA_NS - 1,
+                BASE_REALTIME,
+            )
+        with self.assertRaisesRegex(protocol.WirelessOdomError, "future"):
+            sender.validate_source_clock(
+                BASE_REALTIME + protocol.MAX_FUTURE_SKEW_NS + 1,
+                BASE_REALTIME,
+            )
+        for invalid in (0, -1, 1.5, True, 0x10000000000000000):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(protocol.WirelessOdomError, "timestamp"):
+                    sender.validate_source_clock(invalid, BASE_REALTIME)
+
+    def test_sender_reports_source_clock_failures_without_a_rebase_path(self):
+        source = (SCRIPTS / "wireless_odom_sender_foxy.py").read_text(
+            encoding="utf-8"
+        )
+        for required in (
+            "validate_source_clock(source.source_stamp_ns, sender_realtime_ns)",
+            "source_stamp_age_ms=",
+            "source_stale=",
+            "source_future=",
+        ):
+            self.assertIn(required, source)
+        for forbidden in (
+            "source.source_stamp_ns = sender_realtime_ns",
+            "source_stamp_ns=sender_realtime_ns",
+        ):
+            self.assertNotIn(forbidden, source)
+
     def test_readiness_requires_fixed_frames_fresh_finite_sample(self):
         message = fake_message(BASE_REALTIME)
         self.assertEqual(
@@ -368,6 +415,10 @@ class RuntimeContractTests(unittest.TestCase):
         plan = (
             ROOT / "docs" / "WIRELESS_NAVIGATION_TRANSPORT_DEPLOYMENT_PLAN.md"
         ).read_text(encoding="utf-8")
+        recovery = (
+            ROOT / "docs" / "CONTROLLER_ODOMETRY_CLOCK_RECOVERY_PLAN.md"
+        ).read_text(encoding="utf-8")
+        normalized_recovery = " ".join(recovery.split())
         for value in (
             "/utlidar/robot_odom",
             "192.168.50.30:46030",
@@ -388,6 +439,15 @@ class RuntimeContractTests(unittest.TestCase):
             "Rollback never deletes runtime maps",
         ):
             self.assertIn(value, plan)
+        for value in (
+            "APPROVE_WIRELESS_ODOM_SOURCE_CLOCK_GUARD",
+            "original `/utlidar/robot_odom` header stamp",
+            "source_stamp_age_ms",
+            "sent=0",
+            "does not authorize changing either Jetson clock",
+            "WNO-2, WNO-3, WNO-4, localization and Nav2 remain blocked",
+        ):
+            self.assertIn(" ".join(value.split()), normalized_recovery)
 
 
 if __name__ == "__main__":
