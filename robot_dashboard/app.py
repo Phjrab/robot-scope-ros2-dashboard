@@ -78,6 +78,7 @@ from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
 from .diagnostics import DiagnosticsBundleService
 from .mapping_jobs import (
+    COMPETITION_DIRECT_MAPPING_PROFILE,
     InvalidMapName,
     JobBusyError,
     MappingJobError,
@@ -1198,7 +1199,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--profile", default="")
     parser.add_argument(
         "--mapping-profile",
-        choices=(WIRED_MAPPING_PROFILE, WIRELESS_MAPPING_PROFILE),
+        choices=(
+            WIRED_MAPPING_PROFILE,
+            WIRELESS_MAPPING_PROFILE,
+            COMPETITION_DIRECT_MAPPING_PROFILE,
+        ),
         default=WIRED_MAPPING_PROFILE,
     )
     parser.add_argument("--cloud-max-points", type=int, default=18000)

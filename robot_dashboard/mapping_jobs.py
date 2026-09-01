@@ -35,6 +35,7 @@ SUFFIX_RE = re.compile(r"^\.[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
 OUTPUT_PREFIX_TOKEN = "{output_prefix}"
 WIRED_MAPPING_PROFILE = "go2-xt16-wired"
 WIRELESS_MAPPING_PROFILE = "go2-xt16-wireless"
+COMPETITION_DIRECT_MAPPING_PROFILE = "competition-pdf-direct"
 WIRELESS_MAPPING_EXIT_REASONS = MappingProxyType(
     {
         61: "WIRELESS XT16 RELAY OFFLINE",
@@ -283,6 +284,19 @@ class MappingJobManager:
             launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
             preview_launcher = project / "scripts" / "start_xt16_preview_humble.sh"
             failure_exit_reasons: Mapping[int, str] = {}
+            readiness_runtime_marker = None
+        elif mapping_profile == COMPETITION_DIRECT_MAPPING_PROFILE:
+            launcher = (
+                project
+                / "scripts"
+                / "start_competition_pdf_direct_mapping_humble.sh"
+            )
+            preview_launcher = (
+                project
+                / "scripts"
+                / "start_competition_pdf_direct_preview_humble.sh"
+            )
+            failure_exit_reasons = {}
             readiness_runtime_marker = None
         elif mapping_profile == WIRELESS_MAPPING_PROFILE:
             launcher = project / "scripts" / "start_wireless_mapping_humble.sh"

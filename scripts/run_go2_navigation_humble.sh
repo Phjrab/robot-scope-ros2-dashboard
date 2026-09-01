@@ -31,6 +31,11 @@ case "$MAPPING_PROFILE" in
   go2-xt16-wired)
     source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
     ;;
+  competition-pdf-direct)
+    source "$PROJECT_DIR/scripts/setup_competition_pdf_direct_humble.sh"
+    /usr/bin/python3 "$PROJECT_DIR/scripts/check_competition_direct_preflight.py" \
+      --stage navigation
+    ;;
   go2-xt16-wireless)
     source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
     ;;

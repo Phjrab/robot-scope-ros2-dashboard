@@ -3,12 +3,25 @@ set -eo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
+HESAI_DRIVER_RUNNER="${ROBOT_SCOPE_HESAI_DRIVER_RUNNER:-$PROJECT_DIR/scripts/run_hesai_driver_humble.sh}"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
 LOG_DIR="${ROBOT_SCOPE_MAPPING_LOG_DIR:-$WORKSPACE_ROOT/ws/go2_3d}"
 if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" || "$LOG_DIR" != /* ]]; then
   echo "[Robot Scope] workspace and preview log paths must be absolute and safe" >&2
   exit 2
 fi
+case "$HESAI_DRIVER_RUNNER" in
+  "$PROJECT_DIR/scripts/run_hesai_driver_humble.sh"|\
+  "$PROJECT_DIR/scripts/run_hesai_driver_competition_direct_humble.sh") ;;
+  *)
+    echo "[Robot Scope] Hesai driver runner is not allowlisted" >&2
+    exit 2
+    ;;
+esac
+[[ -x "$HESAI_DRIVER_RUNNER" && ! -L "$HESAI_DRIVER_RUNNER" ]] || {
+  echo "[Robot Scope] Hesai driver runner must be an executable regular file" >&2
+  exit 2
+}
 mkdir -p "$LOG_DIR"
 
 # This process is started only after the fixed Go2 interface is ready.  It
@@ -124,7 +137,7 @@ refuse_existing_process "xt16_fastlio_bridge(_node|\.py)" "XT16 bridge"
 start_owned_process \
   "Hesai driver" \
   "$LOG_DIR/hesai_preview.log" \
-  "$PROJECT_DIR/scripts/run_hesai_driver_humble.sh"
+  "$HESAI_DRIVER_RUNNER"
 sleep 1
 if ! is_started_process_alive 0; then
   echo "[Robot Scope] Hesai preview driver exited during startup" >&2
