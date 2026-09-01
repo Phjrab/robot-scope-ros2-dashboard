@@ -163,7 +163,7 @@ model reload and stale-result recovery never auto-arm or auto-resume motion.
 | Signed control datagram peers are explicit private settings | matches | preserve port, HMAC, lease and watchdog contracts |
 | Robot-side Foxy bridge owns Go2 DDS in wireless mode | matches | document as the competition control host |
 | External Orin owns Dataset Capture and private session files | matches | preserve quotas, reserve and atomic finalization |
-| External Orin directly owns `192.168.123.99/24` for XT16/FAST-LIO | code/architecture change needed | current wireless deployment is blocked; decide a bounded data path later |
+| External Orin directly owns `192.168.123.99/24` for XT16/FAST-LIO | physical mismatch / rejected for this robot | Go2 and XT16 remain physically owned by robot-side Foxy; use only reviewed bounded wireless transports |
 | Raw PointCloud is a normal live-view input when directly wired | deployment-dependent | management Wi-Fi default becomes `OFF`; diagnostic modes require gates |
 | Sensor-local inference runtime exists | code change needed | add shadow-only runtime in later WPs |
 | Laptop/browser is needed to operate the UI | matches | it is a client, not a runtime or motion dependency |
@@ -179,7 +179,7 @@ model reload and stale-result recovery never auto-arm or auto-resume motion.
 | `scripts/go2_camera_rtp_relay.py` | capture `.123.18`, source Go2, relay `.50.30` and dashboard `.50.10` are fixed constants | code change needed for another competition address plan |
 | `control_datagram.py` and the robot-side control env example | port 46010 is fixed; bind/peer are explicit private addresses | matches competition boundary |
 | `setup_go2_ros2_foxy.sh` and robot-side service | Foxy DDS binds to robot-side `.123.18/24` | matches accepted wireless control topology |
-| `setup_go2_ros2_humble.sh`, `run_hesai_fastlio_humble.sh`, doctor and dashboard env example | external Orin must own `.123.99/24` | incompatible with the current management-only external Orin |
+| `setup_go2_ros2_humble.sh`, `run_hesai_fastlio_humble.sh`, doctor and dashboard env example | external Orin must own `.123.99/24` | supported direct-wired profile, but not selectable for this robot's physical topology |
 | `scripts/xt16_udp_relay.py` and Hesai config | fixed XT16 `.123.20 → .123.18 → .123.99` lab packet path | code/architecture change needed for wireless competition use |
 | `dataset_capture.py`, application runtime and run scripts | Dataset writer and private storage live with Robot Scope | matches external-Orin ownership |
 | `mapping_jobs.py`, `navigation_jobs.py` and application coordinators | FAST-LIO/Nav2 children live with Robot Scope | product ownership matches, but live wireless inputs are blocked |

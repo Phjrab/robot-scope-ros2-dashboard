@@ -24,6 +24,32 @@ The fixed safety contract remains unchanged:
 - never replace controller odometry with FAST-LIO `/Odometry`;
 - never make stale input current by rebasing it to sender or receiver time.
 
+## Post-v1.1.15 read-only remeasurement — 2026-09-01
+
+After the operator reported completing the Go2 body update to `v1.1.15`, a
+read-only robot-side subscription collected three independent 30-sample
+windows from the authoritative `/utlidar/robot_odom` publisher. No Robot Scope
+service, sender, receiver, Mapping, Nav2 or control process was started.
+
+The update changed the observed failure mode but did not clear the clock gate:
+
+| Check | Result |
+|---|---|
+| publisher | exactly one bare-DDS RELIABLE/VOLATILE publisher |
+| frames | `odom -> base_link` in all 90 samples |
+| advancement | strictly advancing in all three windows |
+| source-stamp rate | `149.957-150.054 Hz` |
+| source age | median `-681.218` to `-681.229 ms` (source is in the future) |
+| robot Jetson NTP | synchronized; reported offset `+10.334 ms` |
+| external Jetson NTP | synchronized; reported offset `+2.075 ms` |
+
+The previous approximately 228-second stale offset was no longer present, but
+the new approximately 681 ms future skew exceeds the unchanged 100 ms limit.
+The sender's existing `MIN_SEND_INTERVAL_NS=10_000_000` guard still bounds a
+150 Hz source to at most 100 transmitted packets per second; it does not and
+must not make the future stamp acceptable. WNO-2, localization and Nav2 remain
+blocked pending a producer-clock result inside the existing bounds.
+
 ## Measured clock ownership
 
 The 2026-09-01 read-only audit found:

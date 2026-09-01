@@ -16,7 +16,7 @@ Robot Scope는 브라우저, dashboard/ROS 호스트, 로봇과 센서가 서로
 | Go2 | 제조사 DDS와 카메라 송신 | 전용 유선망 사용 |
 | XT16 | UDP point packets | 목적지는 현장 설정에 따름 |
 
-## 현재 Go2 + XT16 참조 배선
+## Go2 + XT16 주소 역할과 현재 배선
 
 다음 값은 현재 검증한 전용 `192.168.123.0/24` 배선의 역할 계약입니다. 다른 현장에서는
 충돌 여부를 확인해 호스트별 설정을 바꾸되, 한 주소를 서로 다른 역할에 재사용하지 마세요.
@@ -26,12 +26,19 @@ Robot Scope는 브라우저, dashboard/ROS 호스트, 로봇과 센서가 서로
 | Go2 `192.168.123.161` | 로봇 본체 | 제조사 DDS, camera multicast |
 | XT16 `192.168.123.20` | 외장 LiDAR | 원본 UDP packet 송신 |
 | `unitree@192.168.123.18` | 로봇 탑재 Jetson, 기존 XT16 수신/RealSense USB host | XT16 relay와 선택적 RealSense MJPEG relay만 실행 |
-| `192.168.123.99` | 외부 dashboard/mapping Jetson의 전용 NIC | Hesai driver, XT16 bridge, FAST-LIO, Robot Scope, 선택적 control/Nav2 |
+| `192.168.123.99` | 직접 유선 profile에서만 사용하는 외부 host 전용 NIC | 현재 무선 배치에는 존재하지 않으며 할당하지 않음 |
 | 관리 PC/브라우저 | 별도 관리 LAN | `http://DASHBOARD_MANAGEMENT_IP:8088` 접속 |
 
 Relay host의 초기 암호는 저장소와 문서에 포함하지 않습니다. 최초 접속은 대화형으로만
 수행하고 [설치 가이드의 SSH 보안 설정](INSTALL.md#로봇-탑재-relay-host-최초-ssh-보안-설정)에
 따라 암호 변경과 공개키 전환을 완료하세요.
+
+현재 장비의 물리 소유권은 운영자가 다시 확인했습니다. Go2와 XT16은 모두 로봇 탑재
+Jetson의 `eth0=192.168.123.18/24` 센서 LAN에 연결되어 있고, 외부 Jetson에는 이 센서
+LAN을 직접 연결할 수 없습니다. 따라서 외부 Jetson에 `.123.99/24`를 추가하거나 관리
+NIC를 재사용하지 않습니다. 외부 Orin은 `.50.10`, 탑재 Jetson은 `.50.30`을 사용하는
+검증된 목적별 wireless transport만 사용하며, route/NAT/Linux bridge/DDS router를
+추가하지 않습니다.
 
 RealSense 컬러 relay는
 `/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_435i_*-video-index0`로
@@ -147,7 +154,7 @@ lifecycle에만 종속되고 Mapping 단독 실행에는 필요하지 않습니�
 [무선 controller-odometry ADR](ADR_WIRELESS_CONTROLLER_ODOMETRY_TRANSPORT.md)을
 따릅니다.
 
-## 가장 단순한 단일 호스트 구성
+## 가장 단순한 단일 호스트 구성 — 다른 직접 유선 설치용
 
 XT16이 dashboard host로 직접 송신할 수 있다면 릴레이를 사용하지 않습니다.
 
@@ -162,7 +169,7 @@ Browser -- management LAN --> Dashboard/ROS host :8088
 이 구성에서는 dashboard host가 Go2 DDS, 카메라 multicast, Hesai driver, FAST-LIO와
 Nav2를 실행합니다. 관리 LAN은 별도 Wi-Fi 또는 USB Ethernet을 권장합니다.
 
-## 두 호스트 XT16 릴레이 구성
+## 두 호스트 XT16 릴레이 구성 — 과거 직접 유선 참조
 
 센서 목적지를 바꿀 수 없고 기존 수신 호스트의 처리도 유지해야 할 때만 제한된 단방향
 릴레이를 사용합니다.

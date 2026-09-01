@@ -348,6 +348,21 @@ class RuntimeContractTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
 
+    def test_sender_rate_limit_bounds_the_new_150_hz_source_before_send(self):
+        source = (SCRIPTS / "wireless_odom_sender_foxy.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("MIN_SEND_INTERVAL_NS = 10_000_000", source)
+        rate_guard = source.index("sender_monotonic_ns - self._last_sent_monotonic_ns")
+        rate_counter = source.index("self._rate_limited = self._increment")
+        datagram_send = source.index("transport.send(encode_envelope(sample, key))")
+        sent_clock_commit = source.index(
+            "self._last_sent_monotonic_ns = sender_monotonic_ns"
+        )
+        self.assertLess(rate_guard, rate_counter)
+        self.assertLess(rate_counter, datagram_send)
+        self.assertLess(datagram_send, sent_clock_commit)
+
     def test_readiness_requires_fixed_frames_fresh_finite_sample(self):
         message = fake_message(BASE_REALTIME)
         self.assertEqual(
@@ -444,6 +459,9 @@ class RuntimeContractTests(unittest.TestCase):
             "original `/utlidar/robot_odom` header stamp",
             "source_stamp_age_ms",
             "sent=0",
+            "Post-v1.1.15 read-only remeasurement",
+            "approximately 681 ms future skew",
+            "MIN_SEND_INTERVAL_NS=10_000_000",
             "does not authorize changing either Jetson clock",
             "WNO-2, WNO-3, WNO-4, localization and Nav2 remain blocked",
         ):

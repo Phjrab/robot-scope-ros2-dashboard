@@ -1,9 +1,9 @@
 # Nav2 Track B parallel-path decision and no-goal plan
 
-- Status: Unitree Humble workspace prepared; dedicated sensor NIC blocked
+- Status: deployed topology clarified; strict wireless source clock blocked
 - Date: 2026-09-01
-- Selected path: `A_EXISTING_WIRED_CANDIDATE`
-- Current readiness: `BLOCKED_BY_PHYSICAL_TOPOLOGY`
+- Selected path: `B_EXISTING_STRICT_WIRELESS_CANDIDATE`
+- Current readiness: `BLOCKED_BY_CONTROLLER_ODOMETRY_SOURCE_CLOCK`
 - Related deferred path: Track A controller-odometry source-clock recovery
 
 ## Scope and invariant boundary
@@ -112,8 +112,8 @@ bare-DDS producer timestamp was repaired.
 
 | Candidate | Result | Evidence |
 |---|---|---|
-| Direct wired Humble | `BLOCKED` | no `.123.99/24` NIC, no direct body/XT16 reachability, missing Unitree workspace |
-| Existing strict wireless | `BLOCKED` | topology is installed but Track A source clock failed the unchanged sender fence |
+| Direct wired Humble | `REJECTED` | operator confirmed Go2 and XT16 are physically attached only to the robot Jetson; external direct attachment is not available |
+| Existing strict wireless | `SELECTED / BLOCKED` | deployed topology matches this path, but the post-v1.1.15 source clock is approximately 681 ms future and fails the unchanged sender fence |
 | Robot-side full Nav2 | `REJECTED` | Foxy host is outside the supported full-stack deployment contract |
 | PDF Jazzy commands unchanged | `REJECTED` | different OS/ROS, launch and TF details are not established |
 
@@ -149,18 +149,19 @@ bare-DDS producer timestamp was repaired.
 ### Gate B3 conclusions
 
 ```text
-WIRED_ABSOLUTE_SOURCE_AGE_BLOCKER=NOT_ENFORCED_BY_WIRELESS_TRANSPORT; NAV2_RUNTIME_ACCEPTANCE_REQUIRED
+WIRED_ABSOLUTE_SOURCE_AGE_BLOCKER=NOT_APPLICABLE_TO_DEPLOYED_PHYSICAL_TOPOLOGY
 WIRELESS_ABSOLUTE_SOURCE_AGE_BLOCKER=YES_500MS_PAST_100MS_FUTURE
-TF_DOMAIN_COMPATIBILITY=PARTIAL_UNPROVEN_FOR_DIRECT_CONTROLLER_ODOMETRY
-CURRENT_PRIMARY_BLOCKER=E_PHYSICAL_TOPOLOGY_FOR_A_PLUS_C_STRICT_TRANSPORT_CLOCK_FOR_B
+TF_DOMAIN_COMPATIBILITY=PARTIAL_UNPROVEN_AFTER_STRICT_WIRELESS_TRANSPORT
+CURRENT_PRIMARY_BLOCKER=STRICT_CONTROLLER_ODOMETRY_FUTURE_SKEW_FOR_B
 PDF_EVIDENCE_LIMIT=GO2_TF_AND_CONTROLLER_ODOMETRY_CLOCK_BEHAVIOR_NOT_SHOWN
 ```
 
 An advancing controller stamp with a fixed absolute offset passes the current
-gateway's controller-specific validation. That is not promoted to a hardware
-PASS: Nav2 and TF compatibility still require a stationary no-goal run on the
-direct wired topology. The PDF's XT16/body-IMU restamping does not establish
-that controller odometry was restamped or safe.
+gateway's controller-specific validation, but the selected wireless sender
+and receiver reject it outside the stricter clock bounds. That is not promoted
+to a hardware PASS: WNO-2 must pass before a stationary no-goal run can be
+considered. The PDF's XT16/body-IMU restamping does not establish that
+controller odometry was restamped or safe.
 
 ## Hardware-free Track B experiment
 
@@ -180,7 +181,7 @@ existing pure validation functions; it opens no ROS graph or network socket.
 
 ## Candidate evaluation and selected path
 
-### Candidate A preparation update — 2026-09-01
+### Historical Candidate A software preparation — 2026-09-01
 
 The pinned Unitree Humble workspace is now installed at the repository
 helper's expected path on the external Jetson:
@@ -203,7 +204,13 @@ The previous path was a dangling symbolic link to the removed
 before the pinned workspace was installed. The bootstrap now rejects this
 condition explicitly instead of reaching a generic `git clone` failure.
 
-The physical topology gate remains closed. `eno1` owns management address
+The later operator topology clarification established that this software
+preparation cannot make Candidate A executable: Go2 and XT16 are physically
+attached only to the robot Jetson, and an external direct sensor connection is
+not available. The installed workspace remains inert and may be useful for
+build-time type support, but it is not a reason to alter the deployed network.
+
+`eno1` owns management address
 `192.168.50.10/24` and the preferred default route, while `wlP1p1s0` owns
 `192.168.0.26/24`. No additional physical Ethernet adapter is present; the
 two `usb0`/`usb1` devices are inactive Tegra USB-gadget interfaces and are not
@@ -216,37 +223,21 @@ or navigation goal is authorized by this preparation result.
 
 ### Candidate A — existing direct wired Humble
 
-`SELECTED_PATH=A_EXISTING_WIRED_CANDIDATE`
-
-This is the preferred Track B route because it reuses the existing profile and
-does not weaken Track A. It is not executable in the current wiring.
-
-Required preparation in a separately approved task:
-
-1. Connect a dedicated external-host NIC to the Go2/XT16 sensor LAN without
-   changing the management Wi-Fi/LAN.
-2. Assign the repository contract address `192.168.123.99/24` to that dedicated
-   interface, with no default route, forwarding, NAT or bridge.
-3. Install/verify the pinned Unitree Humble workspace at the existing helper's
-   expected absolute path.
-4. Verify carrier, exact address ownership and bounded direct reachability to
-   Go2 `192.168.123.161` and XT16 `192.168.123.20`.
-5. Verify the fixed wired XT16 configuration and packet destination without
-   changing the sensor in this Track B repository task.
-6. Run the repository doctor and static preflight before any ROS child is
-   started.
-
-Rollback for that future physical task is to remove only the added sensor-LAN
-cable/NIC configuration and restore its recorded prior network profile. It
-must not change `.50.10`, `.50.30`, Track A files, the wireless keys or any
-robot-side service.
+`REJECTED_BY_DEPLOYED_PHYSICAL_TOPOLOGY`. Do not assign
+`192.168.123.99/24`, repurpose the management NIC, or introduce a bridge, NAT,
+forwarder or DDS router to simulate this candidate. The repository's wired
+profile remains supported for genuinely direct-wired installations, but it is
+not the selected route for this robot.
 
 ### Candidate B — strict wireless
 
-`DEFERRED / BLOCKED PENDING UNITREE SUPPORT`. The original stamp and all
+`SELECTED_PATH=B_EXISTING_STRICT_WIRELESS_CANDIDATE`, currently
+`BLOCKED PENDING PRODUCER CLOCK CORRECTION`. The original stamp and all
 transport guards remain unchanged. Go2 body `v1.1.15` is a Track A resume
-trigger, not proof of repair; source timestamps must be remeasured in that
-separate track before WNO-2 is reconsidered.
+trigger, not proof of repair. The post-update read-only remeasurement found a
+strictly advancing approximately 150 Hz source about 681 ms in the future.
+That remains outside the unchanged 100 ms future-skew bound, so WNO-2 is not
+reconsidered from this result.
 
 ### Candidate C — future explicit adaptation
 
@@ -258,13 +249,14 @@ a threat model, hardware acceptance and explicit approval.
 ## No-goal validation plan — not authorized by this document
 
 The following is a future supervised plan only. It does not create an approval
-token and must not be run as part of Track B repository work.
+token and must not be run as part of Track B repository work. It also requires
+WNO-2 to pass first with the original source stamp inside the fixed bounds.
 
 1. Record the exact repository and deployed commit on every participating host.
-2. Select exactly `go2-xt16-wired`; do not fall back to wireless.
+2. Select exactly `go2-xt16-wireless`; do not fall back to wired.
 3. Use only the external Ubuntu 22.04/Humble host for the full stack.
-4. Record the dedicated interface name, carrier and exact
-   `192.168.123.99/24` ownership.
+4. Record the fixed `.50.30 -> .50.10` authenticated transport peers and prove
+   the external host does not own or require `192.168.123.99/24`.
 5. Select one immutable saved map ID and revision without modifying map data.
 6. Record SHA-256 of the generated map and parameter snapshots.
 7. Confirm sender/receiver, Mapping, FAST-LIO, Nav2 and Control Bridge starting
@@ -300,7 +292,8 @@ No-goal success would authorize neither an initial pose nor a navigation goal.
 Reopen Track A separately when any of the following is available:
 
 - authoritative source timestamp remeasurement after the operator-reported
-  Go2 `v1.1.15` update;
+  Go2 `v1.1.15` update (completed; approximately 681 ms future and still
+  blocked);
 - an official Unitree support response or supported producer-clock workflow;
 - applicable body/L1 firmware range and persistence behavior;
 - calibration, locomotion, saved-map and rollback/downgrade impact;

@@ -620,6 +620,27 @@ version field returned `[0, 0]`, which is not a usable firmware identity. The
 local `lidar-timesync.service` and script were read but not changed or run; they
 step only the Jetson host clock and do not correct the authoritative producer.
 
+#### Go2 v1.1.15 source-clock remeasurement
+
+After the operator reported completing the Go2 body update to `v1.1.15`, a
+new read-only probe collected three 30-sample windows directly on the robot
+Jetson. The publisher remained one RELIABLE/VOLATILE bare-DDS endpoint with
+`odom -> base_link`, and all 90 source stamps advanced strictly. Source-stamp
+rate was `149.957-150.054 Hz`.
+
+The previous approximately 228-second stale offset was no longer observed.
+Instead, median source age was `-681.218` to `-681.229 ms`, meaning the source
+was approximately 681 ms in the future. The robot and external Jetsons both
+reported NTP synchronized, with current timesync offsets of `+10.334 ms` and
+`+2.075 ms` respectively. This is outside the unchanged 100 ms future-skew
+limit and therefore remains a fail-closed WNO-2 blocker.
+
+The sender and receiver stayed inactive before and after the probe. The
+existing 10 ms sender interval continues to bound any accepted input to at
+most 100 transmitted packets per second, but it does not alter or rebase the
+future stamp. No UDP 46030 listener, Navigation, Mapping, FAST-LIO, Control
+Bridge, lease, deadman or motion command was created.
+
 The remediation gate therefore remains **BLOCKED PENDING UNITREE SUPPORT**.
 The exact vendor questions, audited upstream commit permalinks and the required
 rollback/approval evidence are recorded in
@@ -631,7 +652,7 @@ The next safe prerequisite is to identify and correct the authoritative
 controller-odometry producer clock at its source, then repeat WNO-2 under a new
 explicit approval. Do not rebase the timestamp in this transport, relax the
 500 ms age bound, substitute FAST-LIO odometry or proceed to WNO-3/WNO-4 while
-the source stamp remains stale.
+the source stamp remains outside the fixed stale/future bounds.
 
 1. Stop or reschedule the unrelated cluster-discovery/temporary-venv probe and
    keep it disabled during later Robot Scope acceptance sessions.

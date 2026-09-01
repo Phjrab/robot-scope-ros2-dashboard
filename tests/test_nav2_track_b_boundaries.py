@@ -74,6 +74,18 @@ def envelope(sequence: int) -> protocol.OdomEnvelope:
 
 
 class TrackBClockBoundaryTests(unittest.TestCase):
+    def test_deployed_physical_topology_selects_only_strict_wireless(self):
+        plan = (ROOT / "docs" / "NAV2_TRACK_B_PARALLEL_PATH_PLAN.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "Selected path: `B_EXISTING_STRICT_WIRELESS_CANDIDATE`", plan
+        )
+        self.assertIn("`REJECTED_BY_DEPLOYED_PHYSICAL_TOPOLOGY`", plan)
+        self.assertIn("Go2 and XT16 are physically attached only", plan)
+        self.assertIn("Do not assign\n`192.168.123.99/24`", plan)
+        self.assertIn("bridge, NAT,\nforwarder or DDS router", plan)
+
     def test_fixed_past_controller_stamp_is_not_gateway_absolute_age_gated(self):
         navigation = gateway()
         past_ns = NOW_NS - FIXED_PAST_OFFSET_NS
