@@ -99,8 +99,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "external privileged network boundary is also `PASS`",
             "`ip_forward=1`",
             "accepted as evidence",
-            "HW-2–HW-6 remain `NOT_RUN`",
-            "current hardware status is `XT16_RELAY_PASS`",
+            "HW-3–HW-6 remain `NOT_RUN`",
+            "current hardware status is `LIDAR_PASS`",
             "survived an external-Orin reboot",
             "No sensor unit was enabled or started",
             "53,328 packets",
@@ -122,7 +122,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "is the only new unit enabled at boot",
             "APPROVE_WIRELESS_XT16_DEPLOY",
             "APPROVE_STATIONARY_MAPPING_TEST",
-            "repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2–HW-6",
+            "repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2",
+            "`LIDAR_PASS`; HW-3–HW-6 `NOT_RUN`",
         ):
             self.assertIn(contract, self.deployment)
 
@@ -133,8 +134,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "No PTC proxy is installed",
             "never starts Nav2, Mission, ARM, a control lease or a goal",
             "leaves maps, Dataset, private logs and calibration backups untouched",
-            "HW-1 alone is `XT16_RELAY_PASS`",
-            "No LiDAR pointcloud, IMU, cloud, FAST-LIO, mapping, Nav2 or soak PASS is claimed",
+            "HW-1 is `XT16_RELAY_PASS` and HW-2 is `LIDAR_PASS`",
+            "No IMU, converted-cloud, FAST-LIO, mapping, Nav2 or soak PASS is",
             "passes 1/1 through both colcon and direct CTest",
             "robot-side deployment and external checkout preserve rollback copies",
             "`iptables v1.8.4 (legacy)`",

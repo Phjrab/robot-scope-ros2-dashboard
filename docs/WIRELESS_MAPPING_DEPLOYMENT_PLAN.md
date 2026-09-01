@@ -4,8 +4,8 @@
 - Candidate runtime baseline: deployed `0d81a74`, with later evidence-only
   documentation commits allowed
 - Deployment authorized: **yes**, exact approval was received on 2026-08-31
-- Current status: repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2–HW-6
-  `NOT_RUN`
+- Current status: repository `CODE_READY`; HW-1 `XT16_RELAY_PASS`; HW-2
+  `LIDAR_PASS`; HW-3–HW-6 `NOT_RUN`
 
 This document fixes the installation and hardware-test boundary. The exact
 `APPROVE_WIRELESS_XT16_DEPLOY` phrase was received and the bounded installation
@@ -229,8 +229,13 @@ Go2/XT16 sensor configuration.
 - a clean pinned Hesai wrapper/SDK workspace now builds and resolves from the
   final external `~/ws/hesai_ws` path; its zero registered tests are reported
   exactly and do not imply live sensor behavior;
-- before HW-2 starts, repeat the physical E-stop/operator/stationary check and
+- HW-2 completed on 2026-09-01 with one reliable/volatile `/lidar_points`
+  publisher at about 10 Hz and 64,000 points, steady relay errors and zero
+  kernel UDP receive/buffer errors; see the acceptance report for the bounded
+  measurements and cleanup evidence;
+- before HW-3 starts, repeat the physical E-stop/operator/stationary check and
   machine-verifiable DISARMED/no-lease/deadman-zero/idle state.
 
-HW-1 alone is `XT16_RELAY_PASS`. HW-2–HW-6 remain `NOT_RUN`.
-No LiDAR pointcloud, IMU, cloud, FAST-LIO, mapping, Nav2 or soak PASS is claimed.
+HW-1 is `XT16_RELAY_PASS` and HW-2 is `LIDAR_PASS`. HW-3–HW-6 remain
+`NOT_RUN`. No IMU, converted-cloud, FAST-LIO, mapping, Nav2 or soak PASS is
+claimed.

@@ -15,7 +15,7 @@ prove live XT16, IMU, PointCloud, FAST-LIO, mapping, Nav2 or physical stop
 behavior. A cached frame, publisher count, running process or Wi-Fi association
 is not a freshness pass.
 
-## Current Gate record — 2026-08-31
+## Current Gate record — 2026-09-01
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
@@ -31,13 +31,14 @@ is not a freshness pass.
 | Gate 7 repository/C++ verification | `PASS` — `CODE_READY` | deployed `0d81a74`: 894 Python PASS, Node 257 PASS, Ruff and mypy PASS; Playwright 30 PASS on the tested `03b4d08` predecessor before service-only Jetson compatibility fixes; isolated Orin C++ Release build PASS with zero warnings and registered CTest PASS 1/1 |
 | Deployment and HW-1 XT16 relay | `PASS` — `XT16_RELAY_PASS` | exact approval received; private PandarXT correction and disabled units installed; relay-only run received 53,328 exact packets in 12 s and cleaned up with no service residue |
 | Firewall persistence and HW-2 workspace readiness | `PASS` | dedicated root oneshot owns only the exact INPUT chain and survived an external-Orin reboot; clean pinned Hesai source was built and resolved from the final `~/ws/hesai_ws` path without starting a sensor |
-| HW-2–HW-6 | `NOT_RUN` | HW-2 awaits a fresh physical safety check; no Hesai driver, IMU publisher, cloud bridge, FAST-LIO, map write or Nav2 start |
+| HW-2 Hesai driver only | `PASS` — `LIDAR_PASS` | supervised stationary run produced exactly one reliable/volatile `/lidar_points` publisher at about 10 Hz with 64,000-point `hesai_lidar` clouds; bounded relay and UDP-drop checks passed and cleanup left no publisher or service residue |
+| HW-3–HW-6 | `NOT_RUN` | no IMU publisher, cloud bridge, FAST-LIO, map write or Nav2 start; HW-3 requires a fresh per-stage safety check |
 
-Current external topics remain truthfully unavailable: `/lidar_points`,
-`/velodyne_points` and `/imu/body` have zero publishers. Mapping, navigation
-and Dataset Capture are idle. The repository status is `CODE_READY`; the
-current hardware status is `XT16_RELAY_PASS`. No LiDAR pointcloud, IMU, cloud,
-mapping or navigation PASS is implied.
+After HW-2 cleanup, current external topics remain truthfully unavailable:
+`/lidar_points`, `/velodyne_points` and `/imu/body` have zero publishers.
+Mapping, navigation and Dataset Capture are idle. The repository status is `CODE_READY`;
+the current hardware status is `LIDAR_PASS`. No IMU,
+converted-cloud, mapping or navigation PASS is implied.
 
 Three manageable 2D maps exist for later revision-pinned Nav2 work. The latest
 audited candidate was `map_20260813_125411`, `120×169`, resolution `0.05 m`,
@@ -81,9 +82,10 @@ proxy. The acquisition helper and private
 manifest validator are repository-tested. The approved deployment later
 installed and validated the private correction after a physical serial
 cross-check; the contents, serial and hash remain outside Git and this report.
-Driver start and HW-2 remain `NOT_RUN`. A proxy fallback remains
-`BLOCKED` unless the offline path fails in an approved hardware test and
-receives a new design approval.
+At Gate 3 completion, driver start and HW-2 were `NOT_RUN`. The later approved
+HW-2 run is recorded below. A proxy fallback remains `BLOCKED` unless the
+offline path fails in an approved hardware test and receives a new design
+approval.
 
 The helper was also compiled, but not executed, against the clean robot-side
 pinned SDK using GNU C++ 9.4 in Release mode. Its target passed
@@ -324,7 +326,62 @@ The final HW-1 run opened a fixed external validator before starting only
 Cleanup stopped the relay and confirmed disabled/inactive, PID 0, restart count
 0. Both IMU units remained disabled/inactive; Hesai, cloud bridge, FAST-LIO and
 Nav2 never started. Mapping and Dataset Capture remained idle, with no control
-lease, deadman false and exact zero command. HW-2–HW-6 remain `NOT_RUN`.
+lease, deadman false and exact zero command. At HW-1 completion, HW-2–HW-6
+remained `NOT_RUN`.
+
+## HW-2 Hesai driver-only evidence — 2026-09-01
+
+The operator reconfirmed the physical E-stop, safety supervision and clear
+area, and reported the robot stationary in its seated posture. Machine
+preflight independently showed DISARMED, no control lease, deadman released,
+exact zero command, synchronized clocks, the fixed firewall active/successful,
+the private correction manifest valid, and Mapping, Nav2 and Dataset Capture
+idle. The robot-side Control Bridge and both IMU services remained disabled and
+inactive. Only the XT16 relay and external Hesai driver were started.
+
+The external operating checkout was `72e39c3`; the robot-side sensor export
+remained the reviewed `e22215a` deployment. The later changes between those
+revisions do not change the relay service, wireless Hesai runner/profile or
+readiness contract used by this stage, except for the already recorded
+external firewall preflight ownership update. The pinned Hesai wrapper and SDK
+workspace and private calibration manifest both validated before launch.
+
+The successful bounded run observed:
+
+- exactly one `/lidar_points` publisher, node `hesai_ros_driver_node`;
+- reliable, volatile, keep-last-depth-10 publisher QoS;
+- frame `hesai_lidar`, height 1, width 64,000, `point_step=26` and
+  `row_step=1,664,000`;
+- five consecutive contract-valid fresh raw clouds, with final arrival age
+  `0.001 s`;
+- about `10.0 Hz` over repeated 30-frame windows, with `0.098–0.103 s`
+  inter-arrival intervals and at most `1.07 ms` standard deviation in the
+  sampled windows; the conservative interval spread was `5 ms`, below the
+  `300 ms` jitter bound;
+- offline private correction load success with PTC disabled as designed; the
+  optional empty firetime path produced the pinned SDK's known non-terminal
+  `load firetime` diagnostic while parsing continued at 64,000 points/frame;
+- two consecutive steady-state relay reports advancing accepted and forwarded
+  counters from `175,008/175,006` to `200,009/200,007`, with send errors fixed
+  at 2 rather than increasing;
+- external kernel UDP `InErrors=0`, `RcvbufErrors=0` and `SndbufErrors=0`
+  before and after the measured interval.
+
+Preparatory measurement-wrapper attempts failed closed before any driver start
+when their local shell/environment ordering was incomplete. The first short
+driver interval then exposed that relay health must compare two fully
+post-bind statistics rather than a pre-bind/post-bind transition; it produced
+valid 64,000-point frames but was not counted as PASS and was cleaned up. The
+final run waited for two post-bind relay intervals and met every HW-2 bound.
+No safety threshold, product runtime, test or assertion was changed.
+
+Final cleanup stopped the exact Hesai child and relay it started. The robot-side
+relay, IMU sender and Control Bridge were disabled/inactive with PID 0 and zero
+restarts; the external IMU receiver was disabled/inactive; port 2368 had no
+listener and `/lidar_points` was absent. The dashboard remained active but
+showed no lease, deadman false, exact zero command, Mapping/Nav/Dataset idle and
+no localization or goal. HW-2 is `PASS` as `LIDAR_PASS`.
+HW-3–HW-6 remain `NOT_RUN`.
 
 ## Safety prerequisites for every hardware stage
 
@@ -457,6 +514,5 @@ bundle unrelated service rollback.
 Use exactly: `CODE_READY`, `XT16_RELAY_PASS`, `LIDAR_PASS`, `IMU_PASS`,
 `CLOUD_PASS`, `MAPPING_STATIONARY_PASS`, `SOAK_PASS`, `BLOCKED` or `FAIL`.
 Gates 2, 3, 4 and 5 are repository-only PASS. The repository gate is
-`CODE_READY`; the current hardware status is `XT16_RELAY_PASS`. `LIDAR_PASS`,
-`IMU_PASS`, `CLOUD_PASS`, `MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not
-claimed.
+`CODE_READY`; the current hardware status is `LIDAR_PASS`. `IMU_PASS`,
+`CLOUD_PASS`, `MAPPING_STATIONARY_PASS` and `SOAK_PASS` are not claimed.
