@@ -45,6 +45,23 @@ test('camera demand rejects stale generation metadata and frames', () => {
   assert.equal(controller.sourceSnapshot('go2_front').metadata, null);
 });
 
+test('camera metadata refresh does not demote a live generation to waiting', () => {
+  const connections = [];
+  const controller = createCameraDemandController();
+  controller.updateCatalog(CATALOG);
+  controller.acquire('go2_front', {
+    onState: (source) => connections.push(source.connection),
+  });
+
+  controller.beginGeneration('go2_front', 4);
+  controller.publishMetadata('go2_front', 4, { width: 640, height: 480, seq: 1 });
+  controller.publishFrame('go2_front', 4, { canvas: {}, width: 640, height: 480, lastFrameAt: 1_000 });
+  controller.publishMetadata('go2_front', 4, { width: 640, height: 480, seq: 2 });
+
+  assert.equal(controller.sourceSnapshot('go2_front').connection, 'live');
+  assert.deepEqual(connections.slice(-2), ['live', 'live']);
+});
+
 test('camera catalog allowlist keeps unavailable profiles disabled and sources independent', () => {
   const controller = createCameraDemandController();
   controller.updateCatalog([CATALOG[0], { id: 'arbitrary_url', available: true }]);

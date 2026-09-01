@@ -643,11 +643,18 @@ compound load. Representative and final evidence was:
   Cockpit renderer reported approximately 26-34 FPS. All sensor, camera,
   dashboard and control service restart counters stayed zero.
 
-One Cockpit presentation mismatch remains recorded: while the backend source
-was continuously live with sub-second frame age, a camera panel badge could
-briefly project `WAITING` before returning to `LIVE`. It did not correspond to
-a source restart, decoder failure or stale backend frame, but it should be
-fixed before the deferred 60-minute operator-facing soak.
+One Cockpit presentation mismatch was recorded during the gate: while the
+backend source was continuously live with sub-second frame age, a camera panel
+badge could briefly project `WAITING` before returning to `LIVE`. The cause was
+the per-frame MJPEG metadata event demoting an already-live shared generation
+to `connected` until its following binary frame. The post-gate correction now
+preserves `live` across metadata refreshes while the received frame remains
+fresh; generation reset, explicit close, reconnect, decode failure and stale
+frame paths are unchanged. The focused unit, full JavaScript and Cockpit camera
+E2E suites passed, and the corrected static module was deployed without a
+dashboard or robot service restart. Because camera services remained in their
+safe inactive state after HW-6, continuous live-hardware confirmation remains
+part of the deferred 60-minute operator-facing soak.
 
 The first 10-minute stop exposed a narrow shutdown diagnostic: SIGINT delivered
 to the whole SSH foreground group could interrupt the launcher's in-flight

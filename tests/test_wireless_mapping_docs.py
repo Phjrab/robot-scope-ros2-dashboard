@@ -105,6 +105,8 @@ class WirelessMappingDocumentationContractTests(unittest.TestCase):
             "`websockets 15.0.1`",
             "`10.021 Hz`",
             "exactly 6",
+            "preserves `live` across metadata refreshes",
+            "continuous live-hardware confirmation remains",
             "`10.007 Hz`",
             "`9.983 Hz`",
             "Commit `9bad38e`",

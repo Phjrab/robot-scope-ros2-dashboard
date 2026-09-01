@@ -146,7 +146,10 @@ export function createCameraDemandController(options = {}) {
     if (!generationCurrent(sourceId, generation)) return false;
     const current = runtime(sourceId);
     current.metadata = { ...metadata, source_id: sourceId };
-    current.connection = 'connected';
+    // MJPEG transports publish metadata immediately before each binary frame.
+    // Do not transiently demote an already-live generation while that fresh
+    // frame remains available to every shared consumer.
+    if (current.connection !== 'live' || !current.lastFrameAt) current.connection = 'connected';
     current.error = '';
     emitSource(sourceId);
     return true;

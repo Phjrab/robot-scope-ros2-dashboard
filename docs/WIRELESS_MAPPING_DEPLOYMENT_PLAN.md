@@ -262,7 +262,9 @@ Go2/XT16 sensor configuration.
   2026-09-01 with both cameras, signed Control Bridge status/no lease,
   authenticated IMU, XT16, FAST-LIO and the LOW Cockpit renderer concurrent.
   Rates, resources, freshness, service restarts and bounded network counters
-  passed; the separate 60-minute soak remains deferred.
+  passed. Its observed transient camera `WAITING` badge was corrected and
+  deployed after focused/full JavaScript and Cockpit camera E2E regression;
+  the separate 60-minute live-hardware soak remains deferred.
 
 HW-1 is `XT16_RELAY_PASS`, HW-2 is `LIDAR_PASS`, HW-3 is `IMU_PASS` and HW-4
 is `CLOUD_PASS`. HW-5 is `MAPPING_STATIONARY_PASS`; HW-6 short gates are
