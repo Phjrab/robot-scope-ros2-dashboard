@@ -611,6 +611,22 @@ vendor-supported correction at the authoritative Go2 `/utlidar/*` producer.
 Do not restart the legacy time-sync job, rebase the transport stamp, widen the
 freshness limit or start Navigation from this result.
 
+A follow-up read-only vendor audit compared the deployed Unitree ROS2 version
+`0.3.0` at `3ff13ea08ec619496c2651fd21b172f7958dd5a5` with current official
+SDK2, SDK2 Python and ROS2 commits. None exposes a documented Go2 clock/NTP/time
+sync client or example. The generic SDK2 ConfigClient documents no time key,
+schema, applicable firmware or rollback and was not called. The public LowState
+version field returned `[0, 0]`, which is not a usable firmware identity. The
+local `lidar-timesync.service` and script were read but not changed or run; they
+step only the Jetson host clock and do not correct the authoritative producer.
+
+The remediation gate therefore remains **BLOCKED PENDING UNITREE SUPPORT**.
+The exact vendor questions, audited upstream commit permalinks and the required
+rollback/approval evidence are recorded in
+`CONTROLLER_ODOMETRY_CLOCK_RECOVERY_PLAN.md`. No body endpoint, ConfigClient,
+OTA, app mutation, clock/NTP change, service restart, WNO-2, Navigation,
+Mapping, control or motion action was attempted during this audit.
+
 The next safe prerequisite is to identify and correct the authoritative
 controller-odometry producer clock at its source, then repeat WNO-2 under a new
 explicit approval. Do not rebase the timestamp in this transport, relax the

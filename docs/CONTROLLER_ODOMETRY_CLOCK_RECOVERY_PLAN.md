@@ -49,6 +49,63 @@ only for a driver that directly owns the sensor connection. Robot Scope does
 not own the Go2 bare-DDS publisher, so it must not infer an undocumented
 mutation from that unrelated interface.
 
+## Vendor-supported remediation audit — 2026-09-01
+
+The post-WOC-1 audit checked the deployed source and the current official
+public sources without publishing a request or changing either host:
+
+| Source | Audited identity | Result |
+|---|---|---|
+| robot-side `unitree_ros2` | version `0.3.0`, commit `3ff13ea08ec619496c2651fd21b172f7958dd5a5` | no tracked clock, NTP or time-sync client; local setup/workspace changes were preserved |
+| [official `unitree_sdk2`](https://github.com/unitreerobotics/unitree_sdk2/tree/9754cd153af3da471b0fe5f3aa535e426fb11db3) | commit `9754cd153af3da471b0fe5f3aa535e426fb11db3` | public Go2 clients expose config, robot-state, obstacle, sport, tracking, video and VUI surfaces, but no clock client |
+| [official `unitree_sdk2_python`](https://github.com/unitreerobotics/unitree_sdk2_python/tree/65691c8a8bc53b98d3976dba4dbf9d5d20b2e7f5) | commit `65691c8a8bc53b98d3976dba4dbf9d5d20b2e7f5` | no clock, NTP or time-sync API/example |
+| [official `unitree_ros2`](https://github.com/unitreerobotics/unitree_ros2/tree/668d1ec5a05d1c38d3306bdca7d59f2ba3581a88) | version `0.3.0`, commit `668d1ec5a05d1c38d3306bdca7d59f2ba3581a88` | no clock, NTP or time-sync API/example |
+| robot LowState | public `version` field observed as `[0, 0]` | insufficient to identify the body/L1 firmware build |
+
+SDK2's generic Go2 `ConfigClient` is not an authorization to guess a private
+time key. The official source publishes only generic Set/Get/Delete/Meta
+operations and contains no documented time configuration name, schema,
+applicable firmware or rollback. Calling it with an inferred key would be an
+undocumented mutation and remains prohibited.
+
+The enabled local `lidar-timesync.service` is also not a vendor remediation.
+Its local Python script explicitly runs `date -s` on the robot Jetson from one
+`/utlidar/imu` sample and was written for a no-RTC/no-NTP premise. It does not
+change the authoritative Go2 producer and cannot align the separate external
+NTP host. Its service and script SHA-256 values at audit time were
+`852747f6fe5b310fe11c4b6325ebb5392432598f7da6bf32cbf9ffebaf11ac38`
+and `e478160e1e2ae1ffd7604b8af8d873d266d0873b3c669b51a8fd8ccf85b4cd84`.
+They were read only; the inactive one-shot was not restarted, disabled or
+edited.
+
+### Vendor response required
+
+No execution approval token can be defined until Unitree identifies all of the
+following for this exact Go2 EDU Plus/L1 configuration:
+
+1. the supported API, application workflow or service procedure that changes
+   the clock used by the authoritative `/utlidar/imu` and
+   `/utlidar/robot_odom` producer;
+2. the applicable Go2 body/L1 firmware and Unitree app/tool versions, plus a
+   supported read-only way to report those versions;
+3. whether the method persists across reboot and whether it requires Internet,
+   the Unitree app or an OTA update;
+4. the vendor rollback or downgrade procedure and its effect on calibration,
+   locomotion and saved maps;
+5. the expected source timestamp domain and maximum error relative to an NTP
+   host after the procedure.
+
+The support request should include the measured 227.874-second source age, the
+fact that both Jetsons are NTP-synchronized, the fixed frames
+`odom -> base_link`, the single bare-DDS publisher observation, SDK/ROS commit
+identities above and the statement that transport timestamp rebasing is not
+acceptable. Do not include private keys, host passwords or unrestricted logs.
+
+Until a vendor answer supplies the exact method and rollback, source-clock
+remediation is **BLOCKED**. An app OTA, generic ConfigClient mutation, direct
+body endpoint probe, `/api/bashrunner`, host clock step or legacy time-sync
+restart is not an approved substitute.
+
 ## Software guard
 
 Before any further hardware clock action, deploy a sender-side copy of the

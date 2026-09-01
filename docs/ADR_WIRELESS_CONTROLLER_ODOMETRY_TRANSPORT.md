@@ -1,6 +1,6 @@
 # ADR — Authenticated wireless controller-odometry transport
 
-- Status: deployed; sender source-clock guard ready, WNO-2 blocked by stale source timestamps
+- Status: deployed; sender source-clock guard and WOC-1 passed, WNO-2 blocked by stale source timestamps
 - Date: 2026-09-01
 - Scope: the single Go2 controller-odometry observation required by Nav2
 - Related: [wireless control transport](ADR_WIRELESS_CONTROL_TRANSPORT.md),
