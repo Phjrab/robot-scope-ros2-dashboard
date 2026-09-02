@@ -377,6 +377,39 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(len(battery), 1)
         self.assertEqual(battery[0]["topic"], "/lowstate")
 
+    def test_state_and_joint_stream_use_fresh_signed_bridge_joints_without_direct_dds(self):
+        now = time.monotonic()
+        positions = [0.0, 0.5, -1.2] * 4
+        with self.agent._control_transport.transport_lock:
+            self.agent._control_transport.status_received = now
+            self.agent._control_transport.status = {
+                "authenticated": True,
+                "lowstate_age_ms": 20.0,
+                "telemetry": {
+                    "joints": {
+                        "position_rad": positions,
+                        "imu_rpy_rad": [0.01, -0.02, 0.03],
+                        "seq": 77,
+                    }
+                },
+            }
+
+        state_joints = self.agent.state_snapshot()["robot_joints"]
+        with self.agent._control_transport.transport_lock:
+            self.agent._control_transport.status_received = time.monotonic()
+        stream_joints = self.agent.joint_snapshot()
+        for label, snapshot in (
+            ("state", state_joints),
+            ("stream", stream_joints),
+        ):
+            self.assertEqual(snapshot["state"], "ok", (label, snapshot))
+            self.assertEqual(snapshot["seq"], 77)
+            self.assertEqual(snapshot["position_rad"], positions)
+            self.assertEqual(
+                snapshot["topic"],
+                "bridge://go2/lowstate/joints",
+            )
+
     def test_direct_camera_is_exposed_without_mutating_ros_source_selection(self):
         sources = self.agent.sources_snapshot()
         self.assertEqual(

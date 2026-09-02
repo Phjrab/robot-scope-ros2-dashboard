@@ -467,6 +467,60 @@ class ControlTransportTests(unittest.TestCase):
         )
         self.assertIsNone(transport.battery_sensor_snapshot())
 
+    def test_signed_fresh_joint_telemetry_drives_only_the_read_only_model(self):
+        transport = self.transport(expected_bare_sport_publishers=9)
+        positions = [0.0, 0.5, -1.2] * 4
+        self.send_status(
+            transport,
+            ready=False,
+            sport_publishers=10,
+            bare_unitree_sport_publishers=9,
+            expected_bare_sport_publishers=9,
+            lowstate_age_ms=25.0,
+            telemetry={
+                "joints": {
+                    "position_rad": positions,
+                    "imu_rpy_rad": [0.01, -0.02, 0.03],
+                    "seq": 42,
+                }
+            },
+        )
+
+        self.assertFalse(transport.manager.snapshot()["ready"])
+        snapshot = transport.joint_state_snapshot()
+        self.assertIsNotNone(snapshot)
+        self.assertEqual(snapshot["state"], "ok")
+        self.assertEqual(snapshot["topic"], "bridge://go2/lowstate/joints")
+        self.assertEqual(snapshot["seq"], 42)
+        self.assertEqual(snapshot["position_rad"], positions)
+        self.assertEqual(snapshot["imu_rpy_rad"], [0.01, -0.02, 0.03])
+        self.assertFalse(transport.manager.snapshot()["lease"]["active"])
+
+    def test_bridge_joint_telemetry_rejects_partial_nonfinite_and_out_of_range(self):
+        positions = [0.0, 0.5, -1.2] * 4
+        invalid = (
+            positions[:-1],
+            [*positions[:-1], math.nan],
+            [100.0, *positions[1:]],
+        )
+        for candidate in invalid:
+            with self.subTest(candidate=candidate):
+                with self.assertRaisesRegex(
+                    ControlProtocolError,
+                    "joint telemetry is invalid",
+                ):
+                    ControlTransport.status_telemetry(
+                        {
+                            "telemetry": {
+                                "joints": {
+                                    "position_rad": candidate,
+                                    "imu_rpy_rad": [0.0, 0.0, 0.0],
+                                    "seq": 1,
+                                }
+                            }
+                        }
+                    )
+
     def test_epoch_rotation_revokes_lease_and_signs_stop_with_new_epoch(self):
         transport, node, _ = self.ready_setup()
         acquired = transport.manager.acquire_lease("keyboard")

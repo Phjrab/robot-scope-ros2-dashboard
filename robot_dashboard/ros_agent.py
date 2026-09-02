@@ -2364,8 +2364,12 @@ class RosAgent:
     def joint_snapshot(self) -> Dict[str, Any]:
         """Return the small joint-only snapshot for a high-rate API/WS route."""
 
+        bridge_joints = self._control_transport.joint_state_snapshot()
         with self._lock:
-            return self._joint_snapshot_locked(time.monotonic())
+            direct_joints = self._joint_snapshot_locked(time.monotonic())
+        if direct_joints.get("state") == "ok" or bridge_joints is None:
+            return direct_joints
+        return bridge_joints
 
     def _pose_snapshot_locked(self, now: float) -> Dict[str, Any]:
         return self._telemetry_hub.pose_snapshot_locked(now)
@@ -2388,6 +2392,7 @@ class RosAgent:
 
     def state_snapshot(self) -> Dict[str, Any]:
         bridge_battery = self._control_transport.battery_sensor_snapshot()
+        bridge_joints = self._control_transport.joint_state_snapshot()
         with self._lock:
             sensors = []
             for topic, summary in self._summaries.items():
@@ -2419,6 +2424,8 @@ class RosAgent:
                 cloud_meta.update(pointcloud_source_metadata(cloud_topic))
             map_meta = {key: value for key, value in self._map.items() if key != "data_b64"}
             robot_joints = self._joint_snapshot_locked(time.monotonic())
+            if robot_joints.get("state") != "ok" and bridge_joints is not None:
+                robot_joints = bridge_joints
             robot_pose = self._pose_snapshot_locked(time.monotonic())
 
             mapping_topic = sources.get("pointcloud", "")

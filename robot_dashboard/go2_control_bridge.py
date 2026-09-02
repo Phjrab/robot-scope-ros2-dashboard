@@ -54,7 +54,11 @@ from .go2_bridge import (
     SportRequest,
     classify_sport_request_publishers,
 )
-from .serializers import extract_go2_battery
+from .serializers import (
+    extract_go2_battery,
+    extract_go2_imu_rpy,
+    extract_go2_joint_positions,
+)
 
 
 COMMAND_TOPIC = "/robot_scope/control/command"
@@ -92,6 +96,8 @@ class Go2ControlBridge(Node):
         self._callback_group = MutuallyExclusiveCallbackGroup()
         self._last_lowstate = 0.0
         self._lowstate_battery: dict[str, Any] = {}
+        self._lowstate_joints: dict[str, Any] = {}
+        self._lowstate_seq = 0
         self._last_status = 0.0
         self._closing = False
         # ROS callbacks run in executor threads while signal-driven shutdown
@@ -207,6 +213,21 @@ class Go2ControlBridge(Node):
 
     def _lowstate_callback(self, message: LowState) -> None:
         self._last_lowstate = time.monotonic()
+        positions = extract_go2_joint_positions(
+            message,
+            "unitree_go/msg/LowState",
+        )
+        imu_rpy = extract_go2_imu_rpy(message, "unitree_go/msg/LowState")
+        self._lowstate_seq = (self._lowstate_seq + 1) % 2_147_483_647
+        self._lowstate_joints = (
+            {
+                "position_rad": positions,
+                "imu_rpy_rad": imu_rpy,
+                "seq": self._lowstate_seq,
+            }
+            if positions is not None
+            else {}
+        )
         self._lowstate_battery = extract_go2_battery(
             message,
             "unitree_go/msg/LowState",
@@ -295,7 +316,10 @@ class Go2ControlBridge(Node):
                 "command_topic": COMMAND_TOPIC,
                 "request_topic": SPORT_REQUEST_TOPIC,
                 "lowstate_topic": self._lowstate_topic,
-                "telemetry": {"battery": dict(self._lowstate_battery)},
+                "telemetry": {
+                    "battery": dict(self._lowstate_battery),
+                    "joints": dict(self._lowstate_joints),
+                },
             }
         )
         message = String()

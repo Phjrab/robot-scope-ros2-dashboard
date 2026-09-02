@@ -30,6 +30,7 @@ from ..control_protocol import (
     encode_signed,
     shared_key,
 )
+from ..serializers import GO2_JOINT_LIMITS, GO2_JOINT_ORDER, go2_joint_state_payload
 
 
 CONTROL_COMMAND_TOPIC = "/robot_scope/control/command"
@@ -432,40 +433,132 @@ class ControlTransport:
         telemetry = payload.get("telemetry")
         if telemetry is None:
             return {}
-        if not isinstance(telemetry, Mapping) or set(telemetry) - {"battery"}:
+        if not isinstance(telemetry, Mapping) or set(telemetry) - {"battery", "joints"}:
             raise ControlProtocolError("bridge telemetry is invalid")
         battery = telemetry.get("battery")
-        if battery is None:
-            return {}
-        if not isinstance(battery, Mapping) or set(battery) - {
-            "battery_soc",
-            "battery_current_ma",
-            "power_v",
-            "power_a",
-        }:
-            raise ControlProtocolError("bridge battery telemetry is invalid")
-        bounds = {
-            "battery_soc": (0.0, 100.0),
-            "battery_current_ma": (-100_000.0, 100_000.0),
-            "power_v": (0.0, 100.0),
-            "power_a": (-100.0, 100.0),
-        }
-        projected: Dict[str, float | int] = {}
-        for key, value in battery.items():
-            lower, upper = bounds[key]
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, (int, float))
-                or not math.isfinite(float(value))
-                or not lower <= float(value) <= upper
-            ):
+        projected_battery: Dict[str, float | int] = {}
+        if battery is not None:
+            if not isinstance(battery, Mapping) or set(battery) - {
+                "battery_soc",
+                "battery_current_ma",
+                "power_v",
+                "power_a",
+            }:
                 raise ControlProtocolError("bridge battery telemetry is invalid")
-            projected[key] = (
-                int(value)
-                if key.endswith(("soc", "_ma"))
-                else round(float(value), 3)
-            )
-        return {"battery": projected} if projected else {}
+            bounds = {
+                "battery_soc": (0.0, 100.0),
+                "battery_current_ma": (-100_000.0, 100_000.0),
+                "power_v": (0.0, 100.0),
+                "power_a": (-100.0, 100.0),
+            }
+            for key, value in battery.items():
+                lower, upper = bounds[key]
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value))
+                    or not lower <= float(value) <= upper
+                ):
+                    raise ControlProtocolError("bridge battery telemetry is invalid")
+                projected_battery[key] = (
+                    int(value)
+                    if key.endswith(("soc", "_ma"))
+                    else round(float(value), 3)
+                )
+
+        joints = telemetry.get("joints")
+        projected_joints: Dict[str, Any] = {}
+        if joints is not None:
+            if not isinstance(joints, Mapping) or set(joints) - {
+                "position_rad",
+                "imu_rpy_rad",
+                "seq",
+            }:
+                raise ControlProtocolError("bridge joint telemetry is invalid")
+            positions = joints.get("position_rad")
+            sequence = joints.get("seq")
+            if (
+                not isinstance(positions, list)
+                or len(positions) != len(GO2_JOINT_ORDER)
+                or isinstance(sequence, bool)
+                or not isinstance(sequence, int)
+                or not 0 <= sequence < 2_147_483_647
+            ):
+                raise ControlProtocolError("bridge joint telemetry is invalid")
+            safe_positions: List[float] = []
+            for joint_name, value in zip(GO2_JOINT_ORDER, positions):
+                lower, upper = GO2_JOINT_LIMITS[joint_name]
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value))
+                    or not lower <= float(value) <= upper
+                ):
+                    raise ControlProtocolError("bridge joint telemetry is invalid")
+                safe_positions.append(round(float(value), 6))
+            imu_rpy = joints.get("imu_rpy_rad")
+            safe_imu: List[float] | None = None
+            if imu_rpy is not None:
+                if (
+                    not isinstance(imu_rpy, list)
+                    or len(imu_rpy) != 3
+                    or any(
+                        isinstance(value, bool)
+                        or not isinstance(value, (int, float))
+                        or not math.isfinite(float(value))
+                        for value in imu_rpy
+                    )
+                ):
+                    raise ControlProtocolError("bridge joint telemetry is invalid")
+                safe_imu = [round(float(value), 6) for value in imu_rpy]
+            projected_joints = {
+                "position_rad": safe_positions,
+                "imu_rpy_rad": safe_imu,
+                "seq": sequence,
+            }
+
+        projected: Dict[str, Any] = {}
+        if projected_battery:
+            projected["battery"] = projected_battery
+        if projected_joints:
+            projected["joints"] = projected_joints
+        return projected
+
+    def joint_state_snapshot(self) -> Dict[str, Any] | None:
+        """Project fresh authenticated bridge joints for the read-only model."""
+
+        now = time.monotonic()
+        with self.transport_lock:
+            status = dict(self.status)
+            received = self.status_received
+        status_age = max(0.0, now - received) if received > 0.0 else None
+        lowstate_age_ms = status.get("lowstate_age_ms")
+        telemetry = status.get("telemetry")
+        joints = telemetry.get("joints") if isinstance(telemetry, Mapping) else None
+        fresh = (
+            status.get("authenticated") is True
+            and status_age is not None
+            and status_age <= self.status_timeout_s
+            and not isinstance(lowstate_age_ms, bool)
+            and isinstance(lowstate_age_ms, (int, float))
+            and math.isfinite(float(lowstate_age_ms))
+            and 0.0 <= float(lowstate_age_ms) <= self.lowstate_timeout_s * 1_000.0
+            and isinstance(joints, Mapping)
+        )
+        if not fresh:
+            return None
+        age_s = max(status_age, float(lowstate_age_ms) / 1_000.0)
+        return go2_joint_state_payload(
+            topic="bridge://go2/lowstate/joints",
+            type_name="unitree_go/msg/LowState",
+            positions=joints.get("position_rad"),
+            updated_at=now - age_s,
+            now=now,
+            stale_after_s=self.lowstate_timeout_s,
+            seq=int(joints.get("seq", 0)),
+            source_order="unitree_lowstate",
+            imu_rpy_rad=joints.get("imu_rpy_rad"),
+        )
 
     def battery_sensor_snapshot(self) -> Dict[str, Any] | None:
         """Project fresh authenticated bridge battery data as one sensor."""

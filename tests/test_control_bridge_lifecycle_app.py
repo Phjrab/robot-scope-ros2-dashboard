@@ -74,6 +74,13 @@ def attribute_names(node):
 
 
 class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
+    def test_dashboard_lifespan_ensures_fixed_bridge_start_without_motion_calls(self):
+        lifespan_node = function_node("lifespan")
+        attributes = attribute_names(lifespan_node)
+        self.assertIn("ensure_control_bridge_started", attributes)
+        for forbidden in ("arm", "acquire_lease", "set_deadman", "send_velocity"):
+            self.assertNotIn(forbidden, attributes)
+
     def test_mutations_are_same_origin_strict_and_use_only_coordinator_methods(self):
         expected = {
             "control_bridge_lifecycle_start": "schedule_control_bridge_start",

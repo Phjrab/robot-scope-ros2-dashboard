@@ -147,6 +147,14 @@ async def lifespan(fastapi: FastAPI):
     runtime.agent.start()
     if runtime.perception is not None:
         runtime.perception.start()
+    if runtime.lifecycle is not None:
+        try:
+            runtime.lifecycle.ensure_control_bridge_started()
+        except Exception:
+            # Bridge startup is fail-closed and independent of dashboard
+            # observability. Keep the UI available so the fixed lifecycle
+            # status and recovery controls can report the failure.
+            LOGGER.exception("Go2 control bridge automatic startup failed")
     if runtime.mapping is not None:
         try:
             await runtime.mapping.start_preview()

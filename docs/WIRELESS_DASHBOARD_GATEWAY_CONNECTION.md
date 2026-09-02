@@ -22,10 +22,13 @@ the management interface and no longer reports the missing direct Go2 NIC as
 the primary connection failure. The wired and `competition-pdf-direct`
 profiles retain their existing direct-interface contract.
 
-## Connect operation
+## Dashboard startup and connect operation
 
-The Settings connection button performs two bounded actions for the matching
-wireless startup target:
+Dashboard startup now requests the existing restricted Control Bridge
+lifecycle start when the fixed unit is inactive and all existing preflight
+checks permit it. The Settings connection button retains the same bounded
+start/stop facility as an explicit recovery control. For the matching wireless
+startup target the connection flow performs two bounded actions:
 
 1. select and validate the onboard Jetson address on a directly attached
    private LAN;
@@ -57,16 +60,17 @@ fixed absolute `ROBOT_SCOPE_DEPENDENCY_WORKSPACE_ROOT`. The path cannot be `/`
 or relative. It does not change the generated-map directory or permit a
 request-provided executable.
 
-## Battery projection
+## Bounded LowState projection
 
 The external Orin does not subscribe directly to the Go2 LowState topic in
 this topology. The onboard Control Bridge therefore includes only four
-bounded battery fields in its existing signed status envelope: state of
-charge, battery current, voltage and current. Robot Scope accepts those fields
-only while both the authenticated bridge status and its LowState sample are
-within the existing freshness limits. Stale, unsigned, non-finite or
-out-of-range values are omitted instead of retaining the previous reading.
-This telemetry projection does not change Bridge readiness, control leases,
+bounded battery fields plus the twelve bounded Go2 model joints and body IMU
+orientation in its existing signed status envelope. Robot Scope accepts those
+fields only while both the authenticated bridge status and its LowState sample
+are within the existing freshness limits. Stale, unsigned, partial,
+non-finite or out-of-range values are omitted instead of retaining the
+previous reading. This telemetry projection drives only dashboard sensors and
+the read-only 3D model; it does not change Bridge readiness, control leases,
 deadman handling, publisher cardinality checks or motion authority.
 
 ## Deferred work

@@ -40,11 +40,17 @@ class FakeControlBridgeLifecycle:
     def __init__(self, events=None):
         self.busy = False
         self.raise_busy = False
+        self.active_state = "inactive"
+        self.can_start = True
         self.events = events if events is not None else []
 
     def snapshot(self):
         self.events.append("bridge_snapshot")
-        return {"service": "bridge"}
+        return {
+            "service": "bridge",
+            "systemd": {"active_state": self.active_state},
+            "can_start": self.can_start,
+        }
 
     def is_busy(self):
         if self.raise_busy:
@@ -237,7 +243,7 @@ class LifecycleCoordinatorTests(unittest.TestCase):
             False,
         )
         self.assertEqual(
-            self.coordinator.control_bridge_snapshot(), {"service": "bridge"}
+            self.coordinator.control_bridge_snapshot()["service"], "bridge"
         )
         self.assertEqual(
             self.coordinator.schedule_control_bridge_start(confirmed=True)["action"],
@@ -251,6 +257,26 @@ class LifecycleCoordinatorTests(unittest.TestCase):
         self.assertIn(("service_stop", False), self.events)
         self.assertIn(("bridge_start", True), self.events)
         self.assertIn(("bridge_stop", False), self.events)
+
+    def test_dashboard_start_ensures_only_an_inactive_startable_bridge(self):
+        self.assertEqual(
+            self.coordinator.ensure_control_bridge_started()["action"],
+            "start",
+        )
+        self.assertIn(("bridge_start", True), self.events)
+
+        self.events.clear()
+        self.bridge.active_state = "active"
+        snapshot = self.coordinator.ensure_control_bridge_started()
+        self.assertEqual(snapshot["systemd"]["active_state"], "active")
+        self.assertNotIn(("bridge_start", True), self.events)
+
+        self.events.clear()
+        self.bridge.active_state = "inactive"
+        self.bridge.can_start = False
+        snapshot = self.coordinator.ensure_control_bridge_started()
+        self.assertFalse(snapshot["can_start"])
+        self.assertNotIn(("bridge_start", True), self.events)
 
     def test_new_work_gate_reports_the_exact_busy_lifecycle(self):
         self.coordinator.require_idle()

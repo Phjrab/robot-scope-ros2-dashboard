@@ -289,6 +289,24 @@ class LifecycleCoordinator:
     ) -> dict[str, Any]:
         return self.control_bridge_lifecycle.schedule_start(confirmed=confirmed)
 
+    def ensure_control_bridge_started(self) -> dict[str, Any]:
+        """Start the fixed bridge when the configured service is inactive.
+
+        This dashboard-owned startup path does not arm control, acquire a
+        lease, assert deadman, or publish a motion command. All normal bridge
+        preflight and immutable-service checks still run in ``schedule_start``.
+        """
+
+        snapshot = self.control_bridge_lifecycle.snapshot()
+        systemd = (
+            snapshot.get("systemd")
+            if isinstance(snapshot.get("systemd"), Mapping)
+            else {}
+        )
+        if systemd.get("active_state") == "active" or not snapshot.get("can_start"):
+            return snapshot
+        return self.control_bridge_lifecycle.schedule_start(confirmed=True)
+
     def schedule_control_bridge_stop(
         self, *, confirmed: bool
     ) -> dict[str, Any]:
