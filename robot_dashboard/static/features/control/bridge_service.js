@@ -228,13 +228,13 @@ function renderControlBridgeService() {
     || (!snapshot?.can_start && !snapshot?.can_stop);
   controlUi.bridgeServiceStart.disabled = locked || !snapshot?.can_start || !locallyConfirmed;
   controlUi.bridgeServiceStop.disabled = locked || !snapshot?.can_stop || !locallyConfirmed;
-  controlUi.bridgeServiceStart.textContent = transitionAction === 'start' ? 'STARTING…' : 'START BRIDGE';
-  controlUi.bridgeServiceStop.textContent = transitionAction === 'stop' ? 'STOPPING…' : 'STOP BRIDGE';
+  controlUi.bridgeServiceStart.textContent = transitionAction === 'start' ? '시작 중…' : 'BRIDGE 시작';
+  controlUi.bridgeServiceStop.textContent = transitionAction === 'stop' ? '중지 중…' : 'BRIDGE 중지';
   controlUi.bridgeServiceState.setAttribute('aria-busy', locked ? 'true' : 'false');
 }
 
 async function refreshControlBridgeService(force = false) {
-  if (!force && !['controls', 'navigation'].includes(getActivePage()) && !controlBridgeServiceExpected) return null;
+  if (!force && !['controls', 'navigation', 'settings'].includes(getActivePage()) && !controlBridgeServiceExpected) return null;
   const generation = ++controlBridgeServiceRequestGeneration;
   try {
     const snapshot = await api('/api/v1/control/bridge-service');
@@ -347,7 +347,7 @@ export function initializeControlBridgeServiceFeature(options = {}) {
   controlUi.bridgeServiceStart?.addEventListener('click', () => requestControlBridgeService('start'));
   controlUi.bridgeServiceStop?.addEventListener('click', () => requestControlBridgeService('stop'));
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && (['controls', 'navigation'].includes(getActivePage()) || controlBridgeServiceExpected)) {
+    if (!document.hidden && (['controls', 'navigation', 'settings'].includes(getActivePage()) || controlBridgeServiceExpected)) {
       controlBridgeServiceRequestGeneration += 1;
       void refreshControlBridgeService(true);
     }
@@ -355,7 +355,7 @@ export function initializeControlBridgeServiceFeature(options = {}) {
   window.addEventListener('pagehide', () => { controlBridgeServiceRequestGeneration += 1; });
   window.addEventListener('pageshow', () => {
     controlBridgeServiceRequestGeneration += 1;
-    if (['controls', 'navigation'].includes(getActivePage()) || controlBridgeServiceExpected) void refreshControlBridgeService(true);
+    if (['controls', 'navigation', 'settings'].includes(getActivePage()) || controlBridgeServiceExpected) void refreshControlBridgeService(true);
   });
   setInterval(refreshControlBridgeService, 1000);
   renderControlBridgeService();

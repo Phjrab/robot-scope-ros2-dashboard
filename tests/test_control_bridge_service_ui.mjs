@@ -22,7 +22,7 @@ function functionSource(name, nextName) {
   return bridgeSource.slice(start, end);
 }
 
-test('Controls exposes a fixed bridge service panel with an explicit safety acknowledgement', () => {
+test('Settings exposes a fixed bridge service panel with an explicit safety acknowledgement', () => {
   for (const id of [
     'controlBridgeServiceState', 'controlBridgeServiceName',
     'controlBridgeServiceActive', 'controlBridgeServiceSub',
@@ -30,7 +30,11 @@ test('Controls exposes a fixed bridge service panel with an explicit safety ackn
     'controlBridgeServiceStart', 'controlBridgeServiceStop',
     'controlBridgeServiceMessage',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
-  assert.match(indexSource, /고정된 제어 브리지 서비스만 시작·중지합니다/);
+  const settingsStart = indexSource.indexOf('data-page="settings"');
+  const bridgePanel = indexSource.indexOf('id="controlBridgeServiceHeading"');
+  assert.ok(settingsStart >= 0 && bridgePanel > settingsStart);
+  assert.match(indexSource, /탑재 Jetson의 고정 Control Bridge만 시작·중지합니다/);
+  assert.match(indexSource, /시작해도 ARM, lease, deadman 또는 로봇 동작은 자동 실행하지 않습니다/);
   assert.match(indexSource, /Control은 DISARM, Navigation은 STOP/);
   assert.doesNotMatch(indexSource, /controlBridgeServiceAdmin|관리 키/);
   assert.doesNotMatch(indexSource, /<input[^>]+(?:service|unit)[^>]*(?:text|password)/i);
@@ -128,10 +132,13 @@ test('poll generations and page lifecycle prevent stale Safari BFCache responses
   assert.match(bridgeSource, /window\.addEventListener\('pagehide',[\s\S]*?controlBridgeServiceRequestGeneration \+= 1/);
   assert.match(bridgeSource, /window\.addEventListener\('pageshow',[\s\S]*?refreshControlBridgeService\(true\)/);
   assert.match(bridgeSource, /setInterval\(refreshControlBridgeService, 1000\)/);
+  assert.match(bridgeSource, /\['controls', 'navigation', 'settings'\]/);
+  assert.match(appSource, /activePage === 'settings'[\s\S]*?controlBridgeServiceFeature\?\.refresh\(\)/);
 });
 
 test('bridge service panel collapses safely on tablet and phone widths', () => {
   assert.match(stylesSource, /\.control-bridge-service-body \{ display:grid; grid-template-columns:/);
   assert.match(stylesSource, /@media \(max-width: 800px\)[\s\S]*?\.control-bridge-service-body \{ grid-template-columns:1fr; \}/);
   assert.match(stylesSource, /@media \(max-width: 520px\)[\s\S]*?\.control-bridge-service-status, \.control-bridge-service-buttons \{ grid-template-columns:1fr; \}/);
+  assert.match(stylesSource, /\.settings-grid > \.control-bridge-service-panel \{ grid-column:1\/-1; \}/);
 });

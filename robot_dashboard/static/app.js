@@ -1019,6 +1019,7 @@ function activatePage(page, updateHash = false) {
       controlBridgeServiceFeature?.refresh();
       navigationLogFeature?.refresh(true);
     } else if (activePage === 'settings') {
+      controlBridgeServiceFeature?.refresh();
       serviceLifecycleFeature?.refresh();
     }
   });
