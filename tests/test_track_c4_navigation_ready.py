@@ -80,7 +80,30 @@ def safe_navigation():
         "localization_session": {"active": False},
         "goal": {"state": "idle"},
         "safety": {"can_send_goal": True},
-        "localization_health": {"state": "READY"},
+        "localization_health": {
+            "state": "READY",
+            "instantaneous_state": "READY",
+            "stable_ready_duration_s": 12.0,
+            "rate_band": "ENTER",
+            "hard_fault": False,
+            "rate_gate": {
+                "enabled": True,
+                "profile": c4.PROFILE,
+                "source": "server_fixed_competition_fastlio",
+                "nominal_hz": 10.0,
+                "ready_enter_hz": c4.READY_ENTER_HZ,
+                "ready_exit_hz": c4.READY_EXIT_HZ,
+                "ready_enter_dwell_s": c4.READY_ENTER_DWELL_S,
+                "ready_exit_dwell_s": c4.READY_EXIT_DWELL_S,
+                "max_gap_s": c4.MAX_GAP_S,
+            },
+            "metrics": {
+                "odometry_frequency_hz_raw": 9.984123,
+                "odometry_frequency_hz_display": 9.984,
+                "odometry_p95_period_s": 0.101,
+                "odometry_max_gap_s": 0.102,
+            },
+        },
         "bindings": {
             "navigation_profile": c4.PROFILE,
             "controller_odometry": c4.CONTROLLER_ODOM,
@@ -205,6 +228,34 @@ class TrackC4NavigationReadyTests(unittest.TestCase):
                 c4.C4ReadyError
             ):
                 self.check(navigation=navigation)
+
+    def test_stable_ready_evidence_is_required(self):
+        for section, key, value in (
+            ("localization_health", "stable_ready_duration_s", 3.0),
+            ("localization_health", "hard_fault", True),
+            ("rate_gate", "profile", "go2-xt16-wireless"),
+            ("rate_gate", "ready_enter_hz", 10.0),
+            ("metrics", "odometry_max_gap_s", 0.251),
+        ):
+            navigation = safe_navigation()
+            target = navigation["localization_health"]
+            if section != "localization_health":
+                target = target[section]
+            target[key] = value
+            with self.subTest(section=section, key=key), self.assertRaises(
+                c4.C4ReadyError
+            ):
+                self.check(navigation=navigation)
+
+    def test_hysteresis_band_can_remain_stably_ready(self):
+        navigation = safe_navigation()
+        health = navigation["localization_health"]
+        health["instantaneous_state"] = "DEGRADED"
+        health["rate_band"] = "HYSTERESIS"
+        health["metrics"]["odometry_frequency_hz_raw"] = 9.2
+        result = self.check(navigation=navigation)
+        self.assertEqual(result["odometry_frequency_hz_raw"], "9.200000")
+        self.assertEqual(result["stable_ready_duration_s"], "12.000")
 
     def test_navigation_lease_must_be_bound_and_command_must_be_zero(self):
         controls = []

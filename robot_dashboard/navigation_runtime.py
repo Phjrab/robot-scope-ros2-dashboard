@@ -70,22 +70,62 @@ class BoundedRateWindow:
 
     def snapshot(self, now: float) -> dict[str, float | int | None]:
         current = _finite_number(now, "current time")
+        empty = {
+            "frequency_hz": None,
+            "frequency_hz_raw": None,
+            "mean_period_s": None,
+            "median_period_s": None,
+            "p95_period_s": None,
+            "max_gap_s": None,
+            "window_duration_s": None,
+            "jitter_s": None,
+            "age_s": None,
+            "latest_age_s": None,
+            "samples": 0,
+            "sample_count": 0,
+            "interval_count": 0,
+        }
         if not self._arrivals:
-            return {"frequency_hz": None, "jitter_s": None, "age_s": None, "samples": 0}
+            return empty
         age = max(0.0, current - self._arrivals[-1])
         if len(self._arrivals) < 2:
-            return {"frequency_hz": None, "jitter_s": None, "age_s": round(age, 4), "samples": len(self._arrivals)}
+            return {
+                **empty,
+                "age_s": round(age, 4),
+                "latest_age_s": round(age, 6),
+                "samples": len(self._arrivals),
+                "sample_count": len(self._arrivals),
+            }
         intervals = [
             self._arrivals[index] - self._arrivals[index - 1]
             for index in range(1, len(self._arrivals))
         ]
         mean = sum(intervals) / len(intervals)
         variance = sum((interval - mean) ** 2 for interval in intervals) / len(intervals)
+        ordered = sorted(intervals)
+        middle = len(ordered) // 2
+        median = (
+            ordered[middle]
+            if len(ordered) % 2
+            else (ordered[middle - 1] + ordered[middle]) / 2.0
+        )
+        # Nearest-rank percentile: ceil(0.95 * N), with a one-based rank.
+        p95 = ordered[max(0, math.ceil(0.95 * len(ordered)) - 1)]
+        frequency_raw = 1.0 / mean if mean > 0.0 else None
         return {
-            "frequency_hz": round(1.0 / mean, 3) if mean > 0.0 else None,
+            "frequency_hz": round(frequency_raw, 3) if frequency_raw is not None else None,
+            "frequency_hz_raw": frequency_raw,
+            "mean_period_s": mean,
+            "median_period_s": median,
+            "p95_period_s": p95,
+            "max_gap_s": max(intervals),
+            "window_duration_s": self._arrivals[-1] - self._arrivals[0],
             "jitter_s": round(math.sqrt(variance), 4),
             "age_s": round(age, 4),
+            "latest_age_s": round(age, 6),
             "samples": len(self._arrivals),
+            "sample_count": len(self._arrivals),
+            "interval_count": len(intervals),
         }
 
 
@@ -1214,12 +1254,21 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "cloud_jitter_s": cloud_rate["jitter_s"],
                 "cloud_age_s": cloud_rate["age_s"],
                 "odometry_frequency_hz": odom_rate["frequency_hz"],
+                "odometry_frequency_hz_raw": odom_rate["frequency_hz_raw"],
+                "odometry_mean_period_s": odom_rate["mean_period_s"],
+                "odometry_median_period_s": odom_rate["median_period_s"],
+                "odometry_p95_period_s": odom_rate["p95_period_s"],
+                "odometry_max_gap_s": odom_rate["max_gap_s"],
+                "odometry_window_duration_s": odom_rate["window_duration_s"],
+                "odometry_sample_count": odom_rate["sample_count"],
+                "odometry_interval_count": odom_rate["interval_count"],
                 "odometry_jitter_s": odom_rate["jitter_s"],
                 "odometry_age_s": odom_rate["age_s"],
                 "odom_to_base_age_s": odom_tf_age,
                 "map_to_odom_age_s": map_tf_age,
                 "translation_jump_count": self._translation_jump_count,
                 "heading_jump_count": self._heading_jump_count,
+                "process_generation": self._process_generation,
                 "last_jump_reason": self._last_jump_reason,
                 "last_jump_age_s": last_jump_age,
                 "frames": {

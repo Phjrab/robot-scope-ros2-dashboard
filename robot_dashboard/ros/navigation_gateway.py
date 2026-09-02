@@ -23,6 +23,8 @@ from ..control import (
 )
 from ..localization_health import (
     LocalizationHealthThresholds,
+    LocalizationReadinessStabilizer,
+    OdometryRateReadinessPolicy,
     build_calibration_assistant,
     classify_localization_health,
 )
@@ -131,6 +133,17 @@ class NavigationRosGateway:
         else:
             raise ValueError("unsupported navigation profile")
         self._navigation_profile = navigation_profile or "go2-xt16-wired"
+        self._rate_policy = OdometryRateReadinessPolicy.for_navigation_profile(
+            self._navigation_profile,
+            legacy_min_hz=self._health_thresholds.odometry_min_hz,
+        )
+        self._readiness_session_generation = 0
+        self._health_stabilizer = LocalizationReadinessStabilizer(self._rate_policy)
+        self._health_stabilizer.reset(
+            (self._navigation_profile, self._readiness_session_generation, None),
+            "GATEWAY_INITIALIZED",
+        )
+        self._localization_health = self._health_stabilizer.snapshot()
         self._controller_odom_topic = NAVIGATION_CONTROLLER_ODOM_TOPICS[
             self._controller_odom_mode
         ]
@@ -535,6 +548,7 @@ class NavigationRosGateway:
                         "clear_costmaps": {"state": "idle", "error": None},
                     }
                 )
+                self._reset_localization_readiness_locked("NAVIGATION_SESSION_STARTED")
             self._control_port.flush_outputs()
         return self.runtime_snapshot()
 
@@ -751,6 +765,9 @@ class NavigationRosGateway:
                     "pose": None,
                 }
                 self._navigation["seq"] += 1
+                self._reset_localization_readiness_locked(
+                    "LOCALIZATION_SESSION_STARTED"
+                )
         return self.runtime_snapshot()
 
     def deactivate_localization_only(
@@ -785,6 +802,9 @@ class NavigationRosGateway:
                     "pose": None,
                 }
                 self._navigation["seq"] += 1
+                self._reset_localization_readiness_locked(
+                    "LOCALIZATION_SESSION_STOPPED"
+                )
         return self.runtime_snapshot()
 
     def set_localization_only_initial_pose(
@@ -857,6 +877,9 @@ class NavigationRosGateway:
                     "pose": {"x": x_value, "y": y_value, "yaw": yaw_value},
                 }
                 self._navigation["seq"] += 1
+                self._reset_localization_readiness_locked(
+                    "INITIAL_POSE_PUBLISHED"
+                )
         return self.runtime_snapshot()
 
     def localization_only_preflight_active(self) -> Dict[str, Any]:
@@ -920,6 +943,9 @@ class NavigationRosGateway:
                     goal["state"] = "canceled"
                     goal["error"] = public_reason
                     self._navigation["goal"] = goal
+                self._reset_localization_readiness_locked(
+                    "NAVIGATION_SESSION_STOPPED"
+                )
             stop_published = False
             if token:
                 try:
@@ -1270,17 +1296,51 @@ class NavigationRosGateway:
                 if not math.isfinite(number) or number < 0.0 or number > maximum:
                     raise ValueError(f"health {key} is invalid")
                 bounded_metrics[key] = round(number, 4)
+            raw_rate_metrics: Dict[str, Any] = {}
+            for key, maximum in (
+                ("odometry_frequency_hz_raw", 2_000.0),
+                ("odometry_mean_period_s", 60.0),
+                ("odometry_median_period_s", 60.0),
+                ("odometry_p95_period_s", 60.0),
+                ("odometry_max_gap_s", 60.0),
+                ("odometry_window_duration_s", 3_600.0),
+            ):
+                value = payload.get(key)
+                if value is None:
+                    raw_rate_metrics[key] = None
+                    continue
+                number = float(value)
+                if not math.isfinite(number) or number < 0.0 or number > maximum:
+                    raise ValueError(f"health {key} is invalid")
+                raw_rate_metrics[key] = number
             bounded_integers: Dict[str, int] = {}
             for key in (
                 "cloud_sequence",
                 "odometry_sequence",
                 "translation_jump_count",
                 "heading_jump_count",
+                "odometry_sample_count",
+                "odometry_interval_count",
             ):
                 value = payload.get(key, 0)
                 if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > 2**53 - 1:
                     raise ValueError(f"health {key} is invalid")
                 bounded_integers[key] = value
+            process_generation = payload.get("process_generation", 0)
+            if (
+                isinstance(process_generation, bool)
+                or not isinstance(process_generation, int)
+                or process_generation < 0
+                or process_generation > 2**31 - 1
+                or (self._rate_policy.enabled and process_generation == 0)
+            ):
+                raise ValueError("health process generation is invalid")
+            if self._rate_policy.enabled and (
+                any(value is None for value in raw_rate_metrics.values())
+                or bounded_integers["odometry_sample_count"] < 2
+                or bounded_integers["odometry_interval_count"] < 1
+            ):
+                raise ValueError("competition odometry rate metrics are incomplete")
             node = self._node_getter()
             publishers = (
                 node.count_publishers(NAVIGATION_RUNTIME_HEALTH_TOPIC)
@@ -1314,12 +1374,17 @@ class NavigationRosGateway:
             "input_points": input_points,
             "accepted_points": accepted_points,
             **bounded_metrics,
+            **raw_rate_metrics,
             **bounded_integers,
+            "process_generation": process_generation,
             "last_jump_reason": public_navigation_reason(payload.get("last_jump_reason"))[:80] if payload.get("last_jump_reason") else "",
             "frame_error": public_navigation_reason(payload.get("odom_frame_error", ""))[:160] if payload.get("odom_frame_error") else "",
             "frames": self._sanitize_runtime_frames(payload.get("frames")),
             "lidar_extrinsic": self._sanitize_lidar_extrinsic(payload.get("lidar_extrinsic")),
             "clock_domains": self._sanitize_clock_domains(payload.get("clock_domains")),
+            "source_error": public_navigation_reason(payload.get("source_error", ""))
+            if payload.get("source_error")
+            else "",
             "controller_odometry": controller_state,
             "controller_odometry_topic": self._controller_odom_topic,
             "controller_odometry_mode": self._controller_odom_mode,
@@ -1353,6 +1418,7 @@ class NavigationRosGateway:
             sanitized["fresh_sequence_count"] = self._navigation_fresh_sequence_count
             self._navigation_runtime_health_received = now
             self._navigation_runtime_health = sanitized
+            self._update_localization_readiness_locked(now, sanitized)
 
     def _navigation_localization_callback(self, message: Any) -> None:
         now = time.monotonic()
@@ -2187,6 +2253,70 @@ class NavigationRosGateway:
             )
         return self.runtime_snapshot()
 
+    def _reset_localization_readiness_locked(self, reason: str) -> None:
+        self._readiness_session_generation += 1
+        generation = (
+            self._navigation_profile,
+            self._readiness_session_generation,
+            self._navigation_runtime_health.get("process_generation"),
+        )
+        self._health_stabilizer.reset(generation, reason)
+        self._localization_health = self._health_stabilizer.snapshot()
+
+    def _update_localization_readiness_locked(
+        self,
+        now: float,
+        runtime_health: Mapping[str, Any],
+    ) -> None:
+        runtime_for_metrics = dict(runtime_health)
+        runtime_for_metrics["age_s"] = 0.0
+        metrics = self._localization_metrics(runtime_for_metrics, now)
+        active = bool(
+            self._navigation.get("active") or self._localization_only.get("active")
+        )
+        localized = bool(
+            runtime_health.get("localized")
+            and str((self._navigation.get("localization") or {}).get("state", ""))
+            == "localized"
+        )
+        instantaneous = classify_localization_health(
+            metrics,
+            active=active,
+            localized=localized,
+            thresholds=self._health_thresholds,
+            rate_policy=self._rate_policy,
+        )
+        generation = (
+            self._navigation_profile,
+            self._readiness_session_generation,
+            runtime_health.get("process_generation"),
+        )
+        self._localization_health = self._health_stabilizer.update(
+            instantaneous,
+            metrics,
+            now=now,
+            generation=generation,
+        )
+
+    @staticmethod
+    def _public_rate_metrics(metrics: Mapping[str, Any]) -> Dict[str, Any]:
+        public = dict(metrics)
+        for key in (
+            "odometry_frequency_hz_raw",
+            "odometry_mean_period_s",
+            "odometry_median_period_s",
+            "odometry_p95_period_s",
+            "odometry_max_gap_s",
+            "odometry_window_duration_s",
+        ):
+            value = public.get(key)
+            if isinstance(value, (int, float)) and math.isfinite(float(value)):
+                public[key] = round(float(value), 6)
+        public["odometry_frequency_hz_display"] = public.get(
+            "odometry_frequency_hz"
+        )
+        return public
+
     def _localization_metrics(self, runtime_health: Mapping[str, Any], now: float) -> Dict[str, Any]:
         with self._navigation_lock:
             progress = dict(self._navigation_goal_progress)
@@ -2221,6 +2351,28 @@ class NavigationRosGateway:
             "cloud_age_s": runtime_health.get("cloud_age_s"),
             "runtime_health_age_s": runtime_health.get("age_s"),
             "odometry_frequency_hz": runtime_health.get("odometry_frequency_hz"),
+            "odometry_frequency_hz_raw": runtime_health.get(
+                "odometry_frequency_hz_raw"
+            ),
+            "odometry_mean_period_s": runtime_health.get(
+                "odometry_mean_period_s"
+            ),
+            "odometry_median_period_s": runtime_health.get(
+                "odometry_median_period_s"
+            ),
+            "odometry_p95_period_s": runtime_health.get(
+                "odometry_p95_period_s"
+            ),
+            "odometry_max_gap_s": runtime_health.get("odometry_max_gap_s"),
+            "odometry_window_duration_s": runtime_health.get(
+                "odometry_window_duration_s"
+            ),
+            "odometry_sample_count": int(
+                runtime_health.get("odometry_sample_count", 0) or 0
+            ),
+            "odometry_interval_count": int(
+                runtime_health.get("odometry_interval_count", 0) or 0
+            ),
             "odometry_jitter_s": runtime_health.get("odometry_jitter_s"),
             "odometry_age_s": runtime_health.get("odometry_age_s"),
             "tf_age_s": round(max(finite_tf_ages), 4) if finite_tf_ages else None,
@@ -2239,6 +2391,7 @@ class NavigationRosGateway:
             "costmap_clear_count": clear_count,
             "fresh_sequence_count": int(runtime_health.get("fresh_sequence_count", 0) or 0),
             "frame_error": runtime_health.get("frame_error") or "",
+            "source_error": runtime_health.get("source_error") or "",
             "host_clock_offsets_s": {
                 "fast_lio": offsets.get(NAVIGATION_FAST_LIO_ODOM_TOPIC),
                 "controller": offsets.get(self._controller_odom_topic),
@@ -2369,14 +2522,35 @@ class NavigationRosGateway:
         active = bool(snapshot.get("active"))
         localization_only_active = bool(localization_only.get("active"))
         localization_metrics = self._localization_metrics(runtime_health, now)
-        localization_health = classify_localization_health(
+        instantaneous_health = classify_localization_health(
             localization_metrics,
             active=active or localization_only_active,
             localized=str((snapshot.get("localization") or {}).get("state", "")) == "localized",
             thresholds=self._health_thresholds,
+            rate_policy=self._rate_policy,
         )
-        localization_health["metrics"] = localization_metrics
+        if self._rate_policy.enabled:
+            with self._navigation_lock:
+                if self._health_stabilizer.is_hard_fault(instantaneous_health):
+                    generation = (
+                        self._navigation_profile,
+                        self._readiness_session_generation,
+                        runtime_health.get("process_generation"),
+                    )
+                    self._localization_health = self._health_stabilizer.update(
+                        instantaneous_health,
+                        localization_metrics,
+                        now=now,
+                        generation=generation,
+                    )
+                localization_health = copy.deepcopy(self._localization_health)
+        else:
+            localization_health = instantaneous_health
+        localization_health["metrics"] = self._public_rate_metrics(
+            localization_metrics
+        )
         localization_health["thresholds"] = self._health_thresholds.public()
+        localization_health["rate_gate"] = self._rate_policy.public()
         calibration_assistant = self._calibration_assistant(
             runtime_health,
             topic_publishers,
@@ -2542,7 +2716,7 @@ class NavigationRosGateway:
                 "manual_control_active": manual_active,
                 "navigation_lease_active": navigation_lease_active,
                 "cleanup_required": cleanup_required,
-                "runtime_health": runtime_health,
+                "runtime_health": self._public_rate_metrics(runtime_health),
                 "localization_health": localization_health,
                 "calibration_assistant": calibration_assistant,
                 "bindings": {

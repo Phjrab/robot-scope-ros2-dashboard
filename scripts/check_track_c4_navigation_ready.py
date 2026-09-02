@@ -34,6 +34,11 @@ GOAL_POSE = (0.25, 0.0, 0.0)
 ROBOT_RADIUS_M = 0.22
 STOP_BUFFER_M = 0.15
 ROUTE_SAMPLE_STEP_M = 0.01
+READY_ENTER_HZ = 9.5
+READY_EXIT_HZ = 9.0
+READY_ENTER_DWELL_S = 10.0
+READY_EXIT_DWELL_S = 2.0
+MAX_GAP_S = 0.25
 C4_PARAMETER_VALUES = {
     "desired_linear_vel": 0.10,
     "xy_goal_tolerance": 0.05,
@@ -294,7 +299,7 @@ def _route_clearance(fetcher: Fetcher) -> float:
     return minimum_clearance
 
 
-def _navigation_is_localized_and_idle(fetcher: Fetcher) -> None:
+def _navigation_is_localized_and_idle(fetcher: Fetcher) -> dict[str, float | str]:
     payload = fetcher()
     pipeline = payload.get("pipeline")
     map_state = payload.get("map")
@@ -343,6 +348,57 @@ def _navigation_is_localized_and_idle(fetcher: Fetcher) -> None:
         raise C4ReadyError("TRACK C4 BLOCKED: goal safety gate is closed")
     if health.get("state") != "READY":
         raise C4ReadyError("TRACK C4 BLOCKED: localization health is not READY")
+    rate_gate = health.get("rate_gate")
+    metrics = health.get("metrics")
+    if not isinstance(rate_gate, Mapping) or not isinstance(metrics, Mapping):
+        raise C4ReadyError("TRACK C4 BLOCKED: stabilized rate evidence is missing")
+    if (
+        rate_gate.get("enabled") is not True
+        or rate_gate.get("profile") != PROFILE
+        or rate_gate.get("source") != "server_fixed_competition_fastlio"
+    ):
+        raise C4ReadyError("TRACK C4 BLOCKED: rate gate profile is invalid")
+    for key, expected in (
+        ("nominal_hz", 10.0),
+        ("ready_enter_hz", READY_ENTER_HZ),
+        ("ready_exit_hz", READY_EXIT_HZ),
+        ("ready_enter_dwell_s", READY_ENTER_DWELL_S),
+        ("ready_exit_dwell_s", READY_EXIT_DWELL_S),
+        ("max_gap_s", MAX_GAP_S),
+    ):
+        if not math.isclose(
+            _finite_number(rate_gate.get(key), f"rate gate {key}"),
+            expected,
+            rel_tol=0.0,
+            abs_tol=1e-9,
+        ):
+            raise C4ReadyError(f"TRACK C4 BLOCKED: rate gate {key} is invalid")
+    stable_duration = _finite_number(
+        health.get("stable_ready_duration_s"),
+        "stable READY duration",
+    )
+    if stable_duration < READY_ENTER_DWELL_S:
+        raise C4ReadyError("TRACK C4 BLOCKED: stable READY dwell is incomplete")
+    if health.get("hard_fault") is not False:
+        raise C4ReadyError("TRACK C4 BLOCKED: localization hard fault is present")
+    raw_rate = _finite_number(
+        metrics.get("odometry_frequency_hz_raw"),
+        "raw odometry frequency",
+    )
+    display_rate = _finite_number(
+        metrics.get("odometry_frequency_hz_display"),
+        "display odometry frequency",
+    )
+    p95_period = _finite_number(
+        metrics.get("odometry_p95_period_s"),
+        "odometry p95 period",
+    )
+    max_gap = _finite_number(
+        metrics.get("odometry_max_gap_s"),
+        "odometry maximum gap",
+    )
+    if max_gap > MAX_GAP_S:
+        raise C4ReadyError("TRACK C4 BLOCKED: odometry maximum gap is unsafe")
     if (
         bindings.get("navigation_profile") != PROFILE
         or bindings.get("controller_odometry") != CONTROLLER_ODOM
@@ -375,6 +431,14 @@ def _navigation_is_localized_and_idle(fetcher: Fetcher) -> None:
     ):
         if type(readiness.get(key)) is not int or readiness.get(key) != 1:
             raise C4ReadyError(f"TRACK C4 BLOCKED: readiness {key} is invalid")
+    return {
+        "odometry_frequency_hz_raw": raw_rate,
+        "odometry_frequency_hz_display": display_rate,
+        "odometry_p95_period_s": p95_period,
+        "odometry_max_gap_s": max_gap,
+        "stable_ready_duration_s": stable_duration,
+        "rate_band": str(health.get("rate_band") or "")[:32],
+    }
 
 
 def _required_nodes_are_active(ros2: str, runner: Runner) -> None:
@@ -460,7 +524,7 @@ def check(
     _control_is_ready_and_zero(control_fetcher)
     parameters_revision = _parameters_are_c4_safe(parameters_fetcher)
     route_clearance = _route_clearance(map_data_fetcher)
-    _navigation_is_localized_and_idle(navigation_fetcher)
+    rate_evidence = _navigation_is_localized_and_idle(navigation_fetcher)
     _required_nodes_are_active(ros2_command, runner)
     _topics_are_fresh(ros2_command, runner)
     for parent, child in (
@@ -479,6 +543,12 @@ def check(
         "route_clearance_m": f"{route_clearance:.3f}",
         "goal": "IDLE",
         "raw_command": raw_command,
+        "odometry_frequency_hz_raw": f"{rate_evidence['odometry_frequency_hz_raw']:.6f}",
+        "odometry_frequency_hz_display": f"{rate_evidence['odometry_frequency_hz_display']:.3f}",
+        "odometry_p95_period_s": f"{rate_evidence['odometry_p95_period_s']:.6f}",
+        "odometry_max_gap_s": f"{rate_evidence['odometry_max_gap_s']:.6f}",
+        "stable_ready_duration_s": f"{rate_evidence['stable_ready_duration_s']:.3f}",
+        "rate_band": rate_evidence["rate_band"],
     }
 
 
@@ -495,7 +565,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         "[Robot Scope] Track C4 pre-goal readiness passed | "
         f"map={result['map_id']} goal={result['goal']} "
-        f"raw_command={result['raw_command']}"
+        f"raw_command={result['raw_command']} "
+        f"odom_raw_hz={result['odometry_frequency_hz_raw']} "
+        f"stable_ready_s={result['stable_ready_duration_s']}"
     )
     return 0
 

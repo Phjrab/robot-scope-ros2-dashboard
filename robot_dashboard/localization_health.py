@@ -24,6 +24,8 @@ LOCALIZATION_HEALTH_STATES = frozenset(
     }
 )
 
+COMPETITION_FASTLIO_PROFILE = "go2-xt16-wireless-competition-fastlio"
+
 
 def _bounded_float(
     values: Mapping[str, Any], key: str, default: float, minimum: float, maximum: float
@@ -93,6 +95,56 @@ class LocalizationHealthThresholds:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class OdometryRateReadinessPolicy:
+    """Immutable, server-owned policy for the one competition profile."""
+
+    profile: str
+    source: str
+    enabled: bool
+    nominal_hz: float
+    ready_enter_hz: float
+    ready_exit_hz: float
+    ready_enter_dwell_s: float
+    ready_exit_dwell_s: float
+    max_gap_s: float | None
+
+    @classmethod
+    def for_navigation_profile(
+        cls,
+        navigation_profile: str,
+        *,
+        legacy_min_hz: float,
+    ) -> "OdometryRateReadinessPolicy":
+        if navigation_profile == COMPETITION_FASTLIO_PROFILE:
+            return cls(
+                profile=navigation_profile,
+                source="server_fixed_competition_fastlio",
+                enabled=True,
+                nominal_hz=10.0,
+                ready_enter_hz=9.5,
+                ready_exit_hz=9.0,
+                ready_enter_dwell_s=10.0,
+                ready_exit_dwell_s=2.0,
+                max_gap_s=0.25,
+            )
+        minimum = max(0.1, min(float(legacy_min_hz), 500.0))
+        return cls(
+            profile=navigation_profile or "go2-xt16-wired",
+            source="profile.navigation_health.odometry_min_hz",
+            enabled=False,
+            nominal_hz=minimum,
+            ready_enter_hz=minimum,
+            ready_exit_hz=minimum,
+            ready_enter_dwell_s=0.0,
+            ready_exit_dwell_s=0.0,
+            max_gap_s=None,
+        )
+
+    def public(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 def _number(metrics: Mapping[str, Any], key: str) -> float | None:
     value = metrics.get(key)
     if isinstance(value, bool):
@@ -110,6 +162,7 @@ def classify_localization_health(
     active: bool,
     localized: bool,
     thresholds: LocalizationHealthThresholds,
+    rate_policy: OdometryRateReadinessPolicy | None = None,
 ) -> dict[str, Any]:
     """Return one explicit state and reason without inventing a confidence score."""
 
@@ -132,6 +185,13 @@ def classify_localization_health(
             "CALIBRATION_SUSPECTED",
             str(metrics.get("calibration_reason") or "CALIBRATION_CONTRACT_MISMATCH")[:64],
             "calibration assistant observed a fixed-contract mismatch",
+        )
+    source_error = str(metrics.get("source_error") or "").strip()
+    if source_error:
+        return result(
+            "UNAVAILABLE",
+            "SOURCE_PUBLISHER_CONFLICT",
+            source_error[:160],
         )
     if not active:
         return result("UNAVAILABLE", "NAVIGATION_INACTIVE", "navigation.active == false")
@@ -168,32 +228,293 @@ def classify_localization_health(
         return result("DEGRADED", "INITIAL_POSE_REQUIRED", "localization.localized == false")
 
     cloud_hz = _number(metrics, "cloud_frequency_hz")
-    odom_hz = _number(metrics, "odometry_frequency_hz")
+    odom_hz = (
+        _number(metrics, "odometry_frequency_hz_raw")
+        if rate_policy is not None and rate_policy.enabled
+        else _number(metrics, "odometry_frequency_hz")
+    )
     cloud_jitter = _number(metrics, "cloud_jitter_s")
     odom_jitter = _number(metrics, "odometry_jitter_s")
     accepted_points = int(_number(metrics, "accepted_points") or 0)
-    degraded = []
     if cloud_hz is None or cloud_hz < thresholds.cloud_min_hz:
-        degraded.append(f"cloud_frequency_hz<{thresholds.cloud_min_hz}")
-    if odom_hz is None or odom_hz < thresholds.odometry_min_hz:
-        degraded.append(f"odometry_frequency_hz<{thresholds.odometry_min_hz}")
+        return result(
+            "DEGRADED",
+            "CLOUD_RATE_BELOW_MINIMUM",
+            f"cloud_frequency_hz<{thresholds.cloud_min_hz}",
+        )
+    if rate_policy is not None and rate_policy.enabled:
+        max_gap = _number(metrics, "odometry_max_gap_s")
+        if max_gap is None:
+            return result(
+                "DEGRADED",
+                "ODOMETRY_RATE_METRICS_MISSING",
+                "odometry_max_gap_s is unavailable",
+            )
+        if rate_policy.max_gap_s is None or max_gap > rate_policy.max_gap_s:
+            return result(
+                "DEGRADED",
+                "ODOMETRY_MAX_GAP_EXCEEDED",
+                f"odometry_max_gap_s>{rate_policy.max_gap_s}",
+            )
+        if odom_hz is None or odom_hz < rate_policy.ready_enter_hz:
+            return result(
+                "DEGRADED",
+                "ODOMETRY_RATE_BELOW_ENTER",
+                f"odometry_frequency_hz_raw<{rate_policy.ready_enter_hz}",
+            )
+    elif odom_hz is None or odom_hz < thresholds.odometry_min_hz:
+        return result(
+            "DEGRADED",
+            "ODOMETRY_RATE_BELOW_MINIMUM",
+            f"odometry_frequency_hz<{thresholds.odometry_min_hz}",
+        )
     if cloud_jitter is None or cloud_jitter > thresholds.cloud_max_jitter_s:
-        degraded.append(f"cloud_jitter_s>{thresholds.cloud_max_jitter_s}")
+        return result(
+            "DEGRADED",
+            "CLOUD_JITTER_EXCEEDED",
+            f"cloud_jitter_s>{thresholds.cloud_max_jitter_s}",
+        )
     if odom_jitter is None or odom_jitter > thresholds.odometry_max_jitter_s:
-        degraded.append(f"odometry_jitter_s>{thresholds.odometry_max_jitter_s}")
+        return result(
+            "DEGRADED",
+            "ODOMETRY_JITTER_EXCEEDED",
+            f"odometry_jitter_s>{thresholds.odometry_max_jitter_s}",
+        )
     if accepted_points < thresholds.accepted_points_min:
-        degraded.append(f"accepted_points<{thresholds.accepted_points_min}")
+        return result(
+            "DEGRADED",
+            "ACCEPTED_POINTS_TOO_LOW",
+            f"accepted_points<{thresholds.accepted_points_min}",
+        )
     stall = _number(metrics, "controller_stall_duration_s")
     if stall is not None and stall >= thresholds.controller_stall_s:
-        degraded.append(f"controller_stall_duration_s>={thresholds.controller_stall_s}")
         progress_rate = _number(metrics, "goal_progress_rate_mps")
         if bool(metrics.get("goal_active")) and (
             progress_rate is None or progress_rate < thresholds.goal_progress_min_mps
         ):
-            degraded.append(f"goal_progress_rate_mps<{thresholds.goal_progress_min_mps}")
-    if degraded:
-        return result("DEGRADED", "PERFORMANCE_THRESHOLD_EXCEEDED", ", ".join(degraded))
+            return result(
+                "DEGRADED",
+                "GOAL_PROGRESS_TOO_LOW",
+                f"goal_progress_rate_mps<{thresholds.goal_progress_min_mps}",
+            )
+        return result(
+            "DEGRADED",
+            "CONTROLLER_STALL_EXCEEDED",
+            f"controller_stall_duration_s>={thresholds.controller_stall_s}",
+        )
     return result("READY", "HEALTHY", "all configured thresholds satisfied")
+
+
+class LocalizationReadinessStabilizer:
+    """Session-owned hysteresis over only the competition odometry rate."""
+
+    _RATE_REASON = "ODOMETRY_RATE_BELOW_ENTER"
+    _HARD_STATES = frozenset(
+        {
+            "STALE",
+            "DISCONTINUITY",
+            "FRAME_MISMATCH",
+            "CALIBRATION_SUSPECTED",
+            "UNAVAILABLE",
+        }
+    )
+
+    def __init__(self, policy: OdometryRateReadinessPolicy) -> None:
+        self.policy = policy
+        self._generation: Any = None
+        self._state = "UNAVAILABLE"
+        self._enter_since: float | None = None
+        self._exit_since: float | None = None
+        self._ready_since: float | None = None
+        self._transition_count = 0
+        self._last_transition_reason = "INITIALIZED"
+        self._latest = {
+            "state": "UNAVAILABLE",
+            "reason_code": "READINESS_NOT_OBSERVED",
+            "threshold_basis": "no session-owned health observation",
+            "instantaneous_state": "UNAVAILABLE",
+            "instantaneous_reason_code": "READINESS_NOT_OBSERVED",
+            "stable_ready_duration_s": 0.0,
+            "enter_candidate_duration_s": 0.0,
+            "exit_candidate_duration_s": 0.0,
+            "rate_band": "UNAVAILABLE",
+            "transition_count": 0,
+            "last_transition_reason": "INITIALIZED",
+            "hard_fault": True,
+        }
+
+    def reset(self, generation: Any, reason: str) -> None:
+        self._generation = generation
+        self._state = "UNAVAILABLE"
+        self._enter_since = None
+        self._exit_since = None
+        self._ready_since = None
+        self._transition_count = 0
+        self._last_transition_reason = str(reason or "RESET")[:64]
+        self._latest = {
+            **self._latest,
+            "state": "UNAVAILABLE",
+            "reason_code": "READINESS_RESET",
+            "threshold_basis": self._last_transition_reason,
+            "instantaneous_state": "UNAVAILABLE",
+            "instantaneous_reason_code": "READINESS_RESET",
+            "stable_ready_duration_s": 0.0,
+            "enter_candidate_duration_s": 0.0,
+            "exit_candidate_duration_s": 0.0,
+            "rate_band": "UNAVAILABLE",
+            "transition_count": 0,
+            "last_transition_reason": self._last_transition_reason,
+            "hard_fault": True,
+        }
+
+    @classmethod
+    def is_hard_fault(cls, instantaneous: Mapping[str, Any]) -> bool:
+        state = str(instantaneous.get("state") or "UNAVAILABLE")
+        reason = str(instantaneous.get("reason_code") or "")
+        return state in cls._HARD_STATES or (
+            state == "DEGRADED" and reason != cls._RATE_REASON
+        )
+
+    def _transition(self, state: str, reason: str) -> None:
+        if state != self._state:
+            self._transition_count += 1
+            self._state = state
+        self._last_transition_reason = reason[:64]
+
+    def update(
+        self,
+        instantaneous: Mapping[str, Any],
+        metrics: Mapping[str, Any],
+        *,
+        now: float,
+        generation: Any,
+    ) -> dict[str, Any]:
+        current = float(now)
+        if not math.isfinite(current) or current < 0.0:
+            raise ValueError("readiness monotonic time is invalid")
+        generation_changed = generation != self._generation
+        if generation_changed:
+            self.reset(generation, "GENERATION_CHANGED")
+        if not self.policy.enabled:
+            self._latest = {
+                **dict(instantaneous),
+                "instantaneous_state": instantaneous.get("state"),
+                "instantaneous_reason_code": instantaneous.get("reason_code"),
+                "stable_ready_duration_s": 0.0,
+                "enter_candidate_duration_s": 0.0,
+                "exit_candidate_duration_s": 0.0,
+                "rate_band": "LEGACY",
+                "transition_count": 0,
+                "last_transition_reason": "LEGACY_INSTANTANEOUS",
+                "hard_fault": self.is_hard_fault(instantaneous),
+            }
+            return dict(self._latest)
+
+        if generation_changed:
+            self._latest = {
+                **self._latest,
+                "instantaneous_state": str(instantaneous.get("state"))[:32],
+                "instantaneous_reason_code": str(
+                    instantaneous.get("reason_code")
+                )[:64],
+                "rate_band": "HARD_FAULT",
+                "last_transition_reason": "GENERATION_CHANGED",
+                "hard_fault": True,
+            }
+            return dict(self._latest)
+
+        raw_rate = _number(metrics, "odometry_frequency_hz_raw")
+        hard_fault = self.is_hard_fault(instantaneous)
+        if hard_fault:
+            self._enter_since = None
+            self._exit_since = None
+            self._ready_since = None
+            self._transition(str(instantaneous.get("state")), str(instantaneous.get("reason_code")))
+            rate_band = "HARD_FAULT"
+            reason_code = str(instantaneous.get("reason_code"))
+            basis = str(instantaneous.get("threshold_basis"))
+        elif self._state == "READY":
+            assert raw_rate is not None
+            if raw_rate < self.policy.ready_exit_hz:
+                if self._exit_since is None:
+                    self._exit_since = current
+                exit_duration = max(0.0, current - self._exit_since)
+                if exit_duration >= self.policy.ready_exit_dwell_s:
+                    self._enter_since = None
+                    self._ready_since = None
+                    self._transition("DEGRADED", "READY_EXIT_DWELL_SATISFIED")
+                    reason_code = "ODOMETRY_RATE_BELOW_EXIT"
+                    basis = f"raw rate below {self.policy.ready_exit_hz} Hz for {self.policy.ready_exit_dwell_s} s"
+                else:
+                    reason_code = "ODOMETRY_RATE_EXIT_DWELL"
+                    basis = f"raw rate below {self.policy.ready_exit_hz} Hz; exit dwell pending"
+                rate_band = "EXIT_FAILURE"
+            else:
+                self._exit_since = None
+                reason_code = "HEALTHY_STABLE"
+                basis = "competition odometry rate hysteresis satisfied"
+                rate_band = (
+                    "ENTER"
+                    if raw_rate >= self.policy.ready_enter_hz
+                    else "HYSTERESIS"
+                )
+        elif instantaneous.get("state") == "READY" and raw_rate is not None:
+            self._exit_since = None
+            if self._enter_since is None:
+                self._enter_since = current
+            enter_duration = max(0.0, current - self._enter_since)
+            if enter_duration >= self.policy.ready_enter_dwell_s:
+                self._ready_since = self._enter_since
+                self._transition("READY", "READY_ENTER_DWELL_SATISFIED")
+                reason_code = "HEALTHY_STABLE"
+                basis = "competition odometry rate enter dwell satisfied"
+            else:
+                self._transition("DEGRADED", "READY_ENTER_DWELL_PENDING")
+                reason_code = "ODOMETRY_READY_DWELL"
+                basis = f"continuous enter dwell < {self.policy.ready_enter_dwell_s} s"
+            rate_band = "ENTER"
+        else:
+            self._enter_since = None
+            self._exit_since = None
+            self._ready_since = None
+            self._transition("DEGRADED", str(instantaneous.get("reason_code")))
+            reason_code = str(instantaneous.get("reason_code"))
+            basis = str(instantaneous.get("threshold_basis"))
+            rate_band = "EXIT_FAILURE"
+
+        self._latest = {
+            "state": self._state,
+            "reason_code": reason_code[:64],
+            "threshold_basis": basis[:160],
+            "instantaneous_state": str(instantaneous.get("state"))[:32],
+            "instantaneous_reason_code": str(instantaneous.get("reason_code"))[:64],
+            "stable_ready_duration_s": round(
+                max(0.0, current - self._ready_since)
+                if self._ready_since is not None
+                else 0.0,
+                3,
+            ),
+            "enter_candidate_duration_s": round(
+                max(0.0, current - self._enter_since)
+                if self._enter_since is not None and self._state != "READY"
+                else 0.0,
+                3,
+            ),
+            "exit_candidate_duration_s": round(
+                max(0.0, current - self._exit_since)
+                if self._exit_since is not None
+                else 0.0,
+                3,
+            ),
+            "rate_band": rate_band,
+            "transition_count": self._transition_count,
+            "last_transition_reason": self._last_transition_reason,
+            "hard_fault": hard_fault,
+        }
+        return dict(self._latest)
+
+    def snapshot(self) -> dict[str, Any]:
+        return dict(self._latest)
 
 
 def build_calibration_assistant(
@@ -339,8 +660,11 @@ def build_calibration_assistant(
 
 
 __all__ = [
+    "COMPETITION_FASTLIO_PROFILE",
     "LOCALIZATION_HEALTH_STATES",
     "LocalizationHealthThresholds",
+    "LocalizationReadinessStabilizer",
+    "OdometryRateReadinessPolicy",
     "build_calibration_assistant",
     "classify_localization_health",
 ]

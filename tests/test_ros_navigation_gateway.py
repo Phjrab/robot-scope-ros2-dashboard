@@ -3,6 +3,7 @@ import json
 import threading
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -109,7 +110,7 @@ class CountNode:
         return self.count
 
 
-def gateway(*, port=None, node=None, ticks=None):
+def gateway(*, port=None, node=None, ticks=None, navigation_profile=""):
     control_port = port if port is not None else StubControlPort()
     count_node = node if node is not None else CountNode()
     tick_events = ticks if ticks is not None else []
@@ -118,6 +119,7 @@ def gateway(*, port=None, node=None, ticks=None):
         node_getter=lambda: count_node,
         tick=lambda topic, observed: tick_events.append((topic, observed)),
         graph_getter=lambda: {},
+        navigation_profile=navigation_profile,
     )
 
 
@@ -177,6 +179,117 @@ class NavigationRosGatewayTests(unittest.TestCase):
         self.assertEqual(navigation._navigation_runtime_health["fresh_sequence_count"], 1)
         publish(6, fresh=False)
         self.assertEqual(navigation._navigation_runtime_health["fresh_sequence_count"], 0)
+
+    def test_competition_runtime_owns_stable_raw_rate_evidence(self):
+        navigation = gateway(
+            navigation_profile="go2-xt16-wireless-competition-fastlio"
+        )
+        navigation._localization_only["active"] = True
+        navigation._navigation["localization"] = {
+            "state": "localized",
+            "pose": {"x": 0.0, "y": 0.0, "yaw": 0.0},
+        }
+
+        def payload(sequence, raw_rate=9.984123456):
+            return {
+                "schema": "robot-scope.navigation-runtime-health.v1",
+                "ready": True,
+                "cloud_fresh": True,
+                "odom_fresh": True,
+                "localized": True,
+                "cloud_topic": "/velodyne_points",
+                "scan_topic": "/scan",
+                "odometry_topic": "/Odometry",
+                "controller_odometry_topic": (
+                    "/robot_scope/nav/controller_odom_fastlio"
+                ),
+                "controller_odometry_mode": "competition_fastlio",
+                "controller_odometry": {
+                    "ready": True,
+                    "state": "ready",
+                    "age_s": 0.01,
+                    "source_to_host_offset_s": 0.01,
+                    "error": "",
+                },
+                "cloud_frame": "hesai_lidar",
+                "publisher_counts": {"/velodyne_points": 1, "/Odometry": 1},
+                "input_points": 1000,
+                "accepted_points": 500,
+                "cloud_sequence": sequence,
+                "odometry_sequence": sequence,
+                "cloud_frequency_hz": 10.0,
+                "cloud_jitter_s": 0.01,
+                "cloud_age_s": 0.02,
+                "odometry_frequency_hz": round(raw_rate, 3),
+                "odometry_frequency_hz_raw": raw_rate,
+                "odometry_mean_period_s": 1.0 / raw_rate,
+                "odometry_median_period_s": 0.1001,
+                "odometry_p95_period_s": 0.101,
+                "odometry_max_gap_s": 0.102,
+                "odometry_window_duration_s": 3.1,
+                "odometry_sample_count": 32,
+                "odometry_interval_count": 31,
+                "odometry_jitter_s": 0.005,
+                "odometry_age_s": 0.01,
+                "odom_to_base_age_s": 0.01,
+                "map_to_odom_age_s": 0.01,
+                "translation_jump_count": 0,
+                "heading_jump_count": 0,
+                "last_jump_age_s": None,
+                "process_generation": 4242,
+                "frames": {"cloud": "hesai_lidar"},
+                "lidar_extrinsic": {
+                    "parent": "base_link",
+                    "child": "hesai_lidar",
+                    "x": 0.25,
+                    "y": 0,
+                    "z": 0,
+                    "yaw": 0,
+                },
+                "clock_domains": {"pointcloud": "host_ros_normalized"},
+            }
+
+        for sequence in range(1, 104):
+            observed = 100.0 + (sequence - 1) * 0.1
+            with mock.patch(
+                "robot_dashboard.ros.navigation_gateway.time.monotonic",
+                return_value=observed,
+            ):
+                navigation._navigation_runtime_health_callback(
+                    SimpleNamespace(data=json.dumps(payload(sequence)))
+                )
+        with mock.patch(
+            "robot_dashboard.ros.navigation_gateway.time.monotonic",
+            return_value=110.3,
+        ):
+            navigation._navigation_runtime_health_callback(
+                SimpleNamespace(data=json.dumps(payload(104)))
+            )
+            snapshot = navigation.runtime_snapshot()
+
+        health = snapshot["localization_health"]
+        self.assertEqual(health["state"], "READY", health)
+        self.assertEqual(health["stable_ready_duration_s"], 10.1)
+        self.assertTrue(health["rate_gate"]["enabled"])
+        self.assertEqual(
+            health["metrics"]["odometry_frequency_hz_raw"], 9.984123
+        )
+        self.assertEqual(
+            health["metrics"]["odometry_frequency_hz_display"], 9.984
+        )
+
+        nonfinite = payload(105)
+        nonfinite["odometry_frequency_hz_raw"] = float("nan")
+        with mock.patch(
+            "robot_dashboard.ros.navigation_gateway.time.monotonic",
+            return_value=110.4,
+        ):
+            navigation._navigation_runtime_health_callback(
+                SimpleNamespace(data=json.dumps(nonfinite))
+            )
+            rejected = navigation.runtime_snapshot()["localization_health"]
+        self.assertEqual(rejected["state"], "UNAVAILABLE")
+        self.assertTrue(rejected["hard_fault"])
 
     def test_instances_own_independent_navigation_state(self):
         first = gateway()
