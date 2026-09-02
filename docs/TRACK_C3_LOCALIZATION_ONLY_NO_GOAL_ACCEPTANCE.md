@@ -36,11 +36,12 @@ software-only evidence.
 | Repository baseline | `382a86585797d8735486f2e0990a5335cd137490` on `main` before the C3 map-pin update |
 | Baseline CI | GitHub Actions run `33606397403`, successful |
 | External production checkout | `/home/jetson_orin_nano/project/robot-scope`, old/dirty at `72e39c3f9517e9ba445ee2b8ddbcf6779bfe699b` |
-| Production symlink | `/home/jetson_orin_nano/robot-scope -> /home/jetson_orin_nano/releases/robot-scope/382a865` |
-| Production service | active from clean release `382a865`; `ROBOT_SCOPE_DIR` and the reversible systemd release override point to that exact release |
+| Production symlink | `/home/jetson_orin_nano/robot-scope -> /home/jetson_orin_nano/releases/robot-scope/92117dd` |
+| Production service | active from clean release `92117dd`; `ROBOT_SCOPE_DIR` and the reversible systemd release override point to that exact release |
 | Private environment | `/home/jetson_orin_nano/.config/robot-scope/control.env`, mode `0600`; content is not recorded here |
-| Clean production path | `/home/jetson_orin_nano/releases/robot-scope/382a865` |
-| Production commit | `382a86585797d8735486f2e0990a5335cd137490` |
+| Clean production path | `/home/jetson_orin_nano/releases/robot-scope/92117dd` |
+| Production commit | `92117dd03588817adf9bbce269029243f86761b2` |
+| Map-pin CI | GitHub Actions run `33609783794`, successful |
 
 The old deployment checkout is preserved in place. C3 must not pull, reset,
 clean, overwrite or reuse it as a staging directory. The production service
@@ -108,6 +109,12 @@ a control command.
 No earlier general approval, C2 approval or automatically calculated pose is
 authorization to publish `/initialpose`.
 
+The map origin candidate `(x=0.0, y=0.0)` was evaluated without starting a
+localization session. Cell `(179, 41)` is free, and all 61 cells inside the
+configured 0.22 m robot radius are free. This geometric result is not an
+operator confirmation of the robot's physical location or heading; yaw and
+the final candidate remain `NOT_RUN` until that confirmation is received.
+
 ## Acceptance table
 
 | Check | Result | Evidence |
@@ -152,7 +159,10 @@ canonical odometry, `/scan`, `/map` and the private command all returned zero;
 the fixed UDP ports had no listener. Mounted relay, IMU, odometry and Control
 Bridge services were inactive. The foreground candidate dashboard was then
 stopped and the production service returned active from its original old
-checkout.
+checkout. A later, separately approved deployment replaced that production
+target with clean release `92117dd`; its post-deployment state was lease
+inactive, deadman false, exact-zero command, navigation `idle`, localization
+session `idle` and goal `idle`.
 
 `/amcl_pose`, localized TF/costmaps and NG1 remain `NOT_RUN`. During the later
 confirmation-gated run, any nonzero raw command or Sport request is an
@@ -161,6 +171,14 @@ is `BLOCKED`, never `PASS`.
 
 ## Changed files, tests, commit and push
 
-The final changed-file inventory, complete command results, repository and
-deployed commit, hashes, focused commit and push result will be recorded only
-after the confirmation-gated hardware portion completes.
+The preparatory map-pin update changed this acceptance record,
+`TRACK_C3_STATIONARY_INITIAL_POSE_NO_GOAL_PROMPT.md`, the exact constants in
+`scripts/check_competition_no_goal_ready.py`, and its C3 regression fixtures.
+Focused C3/C2 tests passed 29/29, JavaScript tests passed 270/270, and CI run
+`33609783794` passed. Local Python ran 976 tests with 975 passing and one
+pre-existing `fastapi` import error in `test_competition_state`; CI supplied
+the declared dependency and passed the full suite. Commit `92117dd` was pushed
+to `origin/main` and deployed as a clean release.
+
+The final hardware acceptance inventory and the later confirmation-gated C3
+commit will be recorded only after localized NG1 and reverse cleanup complete.
