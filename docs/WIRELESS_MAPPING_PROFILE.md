@@ -23,17 +23,26 @@ purpose-specific authenticated controller-odometry transport documented in
 or require that transport, and the wired Navigation profile still uses the
 dedicated Go2 helper unchanged.
 
-## Fixed ownership transaction
+## Fixed preview and mapping ownership
 
-One explicit Mapping start owns this order:
+The dashboard starts one observation-only preview after its ROS agent is ready:
 
-1. robot-side `robot-scope-xt16-wireless-relay.service`
-2. robot-side `robot-scope-wireless-imu-sender.service`
-3. external authenticated IMU receiver
-4. external Hesai driver using `config/hesai_xt16_wireless.yaml`
-5. external C++ cloud-only bridge
-6. external FAST-LIO through a separate `eno1=192.168.50.10/24` wrapper
-7. the existing Mapping job state, after every readiness gate passes
+1. robot-side `robot-scope-xt16-wireless-relay.service`;
+2. external Hesai driver using `config/hesai_xt16_wireless.yaml`;
+3. external C++ cloud-only bridge publishing `/velodyne_points`.
+
+That preview contains no IMU receiver, FAST-LIO, map accumulation, save, Nav2,
+control lease or motion authority. It lets Cockpit display fresh XT16 points
+before Mapping starts and remains running after Mapping stops. Dashboard
+shutdown stops only the preview-owned processes and a relay service that the
+preview itself started; service enablement is never changed.
+
+One explicit Mapping start reuses the ready preview and adds this order:
+
+1. robot-side `robot-scope-wireless-imu-sender.service`;
+2. external authenticated IMU receiver;
+3. external FAST-LIO through the fixed `eno1=192.168.50.10/24` wrapper;
+4. the existing Mapping job state, after every readiness gate passes.
 
 The relay service identity is verified immediately after start. Its advancing
 counter and non-increasing send-error health gate is evaluated only after the
@@ -42,13 +51,15 @@ preserves the startup order while preventing expected pre-bind ICMP
 port-unreachable errors from making the profile permanently fail closed. No
 cloud or FAST-LIO readiness can pass before the post-bind relay health gate.
 
-Stop or failure cleans up in reverse order. A robot-side service that was
-already active before this transaction is observed but not claimed and is not
-stopped. Local children are tracked by PID plus Linux process start identity;
-each runner is placed in its own session and only that owned process group is
-signalled. This includes a `ros2 run` wrapper and the native ROS node it starts,
-so cleanup cannot leave an orphaned Hesai child. There is no automatic retry
-after a terminal failure and no Mapping, Nav2 or Mission restoration.
+Mapping stop or failure cleans up FAST-LIO and the mapping-owned IMU path in
+reverse order without stopping the point-cloud preview. Preview failure while
+Mapping is active fails the Mapping group closed. A robot-side service that was
+already active before either transaction is observed but not claimed and is
+not stopped. Local children are tracked by PID plus Linux process start
+identity; each runner is placed in its own session and only that owned process
+group is signalled. This includes a `ros2 run` wrapper and the native ROS node
+it starts, so cleanup cannot leave an orphaned child. There is no automatic
+retry after a terminal failure and no Mapping, Nav2 or Mission restoration.
 
 The launcher cannot create a control lease, ARM, publish a goal, start Nav2,
 save a map or run Dataset Capture. The application coordinator also refuses a
@@ -58,7 +69,10 @@ inferred from stale ROS/DDS data.
 
 ## Preflight contract
 
-The read-only preflight requires all of the following before FAST-LIO:
+The preview preflight requires the fixed host, relay, raw-cloud and converted-
+cloud gates. The explicit Mapping preflight rechecks those live inputs, then
+requires the IMU and FAST-LIO gates. Across both transactions the following
+remain mandatory:
 
 - the fixed root-owned wireless firewall unit is active/exited with a
   successful main result; the dashboard receives no firewall authority;

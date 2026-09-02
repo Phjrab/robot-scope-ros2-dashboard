@@ -2,7 +2,7 @@
 set -eo pipefail
 
 if [[ "$#" -ne 0 ]]; then
-  echo "[Robot Scope] wireless mapping launcher accepts no arguments" >&2
+  echo "[Robot Scope] wireless XT16 preview accepts no arguments" >&2
   exit 2
 fi
 
@@ -11,7 +11,7 @@ PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
 LOG_DIR="${ROBOT_SCOPE_MAPPING_LOG_DIR:-$WORKSPACE_ROOT/ws/go2_3d}"
 [[ "$WORKSPACE_ROOT" == /* && "$WORKSPACE_ROOT" != "/" && "$LOG_DIR" == /* ]] || {
-  echo "[Robot Scope] wireless mapping paths are unsafe" >&2
+  echo "[Robot Scope] wireless preview paths are unsafe" >&2
   exit 69
 }
 mkdir -p -- "$LOG_DIR"
@@ -19,7 +19,7 @@ mkdir -p -- "$LOG_DIR"
 LOCAL_PIDS=()
 LOCAL_IDENTITIES=()
 LOCAL_LABELS=()
-REMOTE_IMU_STARTED=0
+REMOTE_RELAY_STARTED=0
 FINAL_STATUS=0
 
 process_identity() {
@@ -79,8 +79,8 @@ cleanup() {
   fi
   local pid
   for pid in "${LOCAL_PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done
-  if [[ "$REMOTE_IMU_STARTED" -eq 1 ]]; then
-    remote_lifecycle --service imu --action stop >/dev/null 2>&1 || true
+  if [[ "$REMOTE_RELAY_STARTED" -eq 1 ]]; then
+    remote_lifecycle --service relay --action stop >/dev/null 2>&1 || true
   fi
   exit "$FINAL_STATUS"
 }
@@ -103,66 +103,64 @@ start_local() {
   local pid="$!"
   local identity
   identity="$(process_identity "$pid")"
-  [[ -n "$identity" ]] || fail 69 "WIRELESS MAPPING PREFLIGHT BLOCKED"
+  [[ -n "$identity" ]] || fail 69 "WIRELESS PREVIEW PREFLIGHT BLOCKED"
   LOCAL_PIDS+=("$pid")
   LOCAL_IDENTITIES+=("$identity")
   LOCAL_LABELS+=("$label")
-  echo "[Robot Scope] started wireless mapping $label"
+  echo "[Robot Scope] started wireless preview $label"
 }
 
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage host-with-preview || exit "$?"
+/usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage host || exit "$?"
 source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh" || \
-  fail 69 "WIRELESS MAPPING PREFLIGHT BLOCKED"
+  fail 69 "WIRELESS PREVIEW PREFLIGHT BLOCKED"
 
-# The dashboard-owned preview already owns the fixed XT16 relay, receiver and
-# cloud-only converter. Mapping adds only IMU transport and FAST-LIO so that
-# stopping a map never removes Cockpit point-cloud observability.
+relay_state="$(remote_lifecycle --service relay --action ensure-started)" || \
+  fail 61 "WIRELESS XT16 RELAY OFFLINE"
+[[ "$relay_state" == "started" ]] && REMOTE_RELAY_STARTED=1
+
 /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay-service || \
   fail 61 "WIRELESS XT16 RELAY OFFLINE"
+
+start_local "Hesai driver" "$LOG_DIR/wireless_hesai_driver.log" \
+  "$PROJECT_DIR/scripts/run_hesai_driver_wireless_humble.sh"
 /usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage raw \
-  --timeout "${ROBOT_SCOPE_WIRELESS_HESAI_READY_TIMEOUT_SECONDS:-8}" || \
+  --timeout "${ROBOT_SCOPE_WIRELESS_HESAI_READY_TIMEOUT_SECONDS:-20}" || \
   fail 63 "HESAI DRIVER WAITING"
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay || \
-  fail 62 "XT16 PACKETS STALE"
+
+# A connected relay socket can receive ICMP port-unreachable errors until the
+# fixed Hesai consumer binds UDP 2368. Require two advancing, error-stable
+# post-bind reports before accepting any converted cloud.
+relay_ready=0
+for _ in {1..8}; do
+  if /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay; then
+    relay_ready=1
+    break
+  fi
+  sleep 2
+done
+[[ "$relay_ready" -eq 1 ]] || fail 62 "XT16 PACKETS STALE"
+
+start_local "cloud bridge" "$LOG_DIR/wireless_cloud_bridge.log" \
+  "$PROJECT_DIR/scripts/run_xt16_cloud_bridge_humble.sh"
 /usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage bridge \
-  --timeout "${ROBOT_SCOPE_WIRELESS_CLOUD_READY_TIMEOUT_SECONDS:-8}" || \
+  --timeout "${ROBOT_SCOPE_WIRELESS_CLOUD_READY_TIMEOUT_SECONDS:-20}" || \
   fail 67 "CLOUD BRIDGE STALE"
 
-imu_state="$(remote_lifecycle --service imu --action ensure-started)" || \
-  fail 64 "WIRELESS IMU UNAUTHENTICATED"
-[[ "$imu_state" == "started" ]] && REMOTE_IMU_STARTED=1
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage imu-service || \
-  fail 64 "WIRELESS IMU UNAUTHENTICATED"
-
-start_local "IMU receiver" "$LOG_DIR/wireless_imu_receiver.log" \
-  "$PROJECT_DIR/scripts/run_wireless_imu_receiver_humble.sh"
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage imu \
-  --timeout "${ROBOT_SCOPE_WIRELESS_IMU_READY_TIMEOUT_SECONDS:-15}" || \
-  fail 64 "WIRELESS IMU UNAUTHENTICATED"
-
-start_local "FAST-LIO" "$LOG_DIR/wireless_fastlio.log" \
-  "$PROJECT_DIR/scripts/run_hesai_fastlio_wireless_humble.sh"
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage fastlio \
-  --timeout "${ROBOT_SCOPE_WIRELESS_FASTLIO_READY_TIMEOUT_SECONDS:-45}" || \
-  fail 68 "FAST-LIO NOT READY"
-
-echo "[Robot Scope] wireless XT16 mapping readiness verified"
+echo "[Robot Scope] wireless XT16 preview readiness verified"
 
 next_remote_check=$((SECONDS + 5))
 while true; do
   for ((index=0; index < ${#LOCAL_PIDS[@]}; index++)); do
     if ! local_alive "$index"; then
       case "${LOCAL_LABELS[$index]}" in
-        "IMU receiver") fail 65 "IMU STALE" ;;
-        "FAST-LIO") fail 68 "FAST-LIO NOT READY" ;;
+        "Hesai driver") fail 63 "HESAI DRIVER WAITING" ;;
+        "cloud bridge") fail 67 "CLOUD BRIDGE STALE" ;;
       esac
     fi
   done
   if (( SECONDS >= next_remote_check )); then
     /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay >/dev/null || \
       fail 62 "XT16 PACKETS STALE"
-    /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage imu-service >/dev/null || \
-      fail 65 "IMU STALE"
     next_remote_check=$((SECONDS + 5))
   fi
   sleep 0.5

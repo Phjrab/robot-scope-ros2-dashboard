@@ -304,8 +304,9 @@ class MappingJobManager:
             COMPETITION_FASTLIO_MAPPING_PROFILE,
         }:
             launcher = project / "scripts" / "start_wireless_mapping_humble.sh"
-            preview_launcher = None
-            enable_preview = False
+            preview_launcher = (
+                project / "scripts" / "start_wireless_xt16_preview_humble.sh"
+            )
             failure_exit_reasons = WIRELESS_MAPPING_EXIT_REASONS
             readiness_runtime_marker = (
                 "[Robot Scope] wireless XT16 mapping readiness verified"

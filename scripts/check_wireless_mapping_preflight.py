@@ -52,6 +52,7 @@ _CONFLICT_MARKERS = (
     "robot_scope_xt16_bridge_node",
     "start_hesai_mapping_humble.sh",
     "start_xt16_preview_humble.sh",
+    "start_wireless_xt16_preview_humble.sh",
     "fastlio_mapping",
     "nav2_bringup",
     "navigation_launch.py",
@@ -62,6 +63,11 @@ _CONFLICT_MARKERS = (
     "/nav2_bt_navigator/bt_navigator",
     "/nav2_lifecycle_manager/lifecycle_manager",
     "ros2 bag record",
+)
+_PREVIEW_PROCESS_MARKERS = (
+    "hesai_ros_driver_node",
+    "robot_scope_xt16_cloud_bridge_node",
+    "start_wireless_xt16_preview_humble.sh",
 )
 
 
@@ -167,6 +173,7 @@ def check_host(
     *,
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     proc_root: Path = Path("/proc"),
+    allow_preview_processes: bool = False,
 ) -> None:
     firewall = _run(
         (
@@ -249,8 +256,15 @@ def check_host(
             )
         except (OSError, ValueError):
             continue
+        conflict_markers = _CONFLICT_MARKERS
+        if allow_preview_processes:
+            conflict_markers = tuple(
+                marker
+                for marker in conflict_markers
+                if marker not in _PREVIEW_PROCESS_MARKERS
+            )
         if pid not in ancestors and any(
-            marker in command for marker in _CONFLICT_MARKERS
+            marker in command for marker in conflict_markers
         ):
             raise PreflightError("WIRELESS MAPPING PREFLIGHT BLOCKED", 69)
 
@@ -299,7 +313,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--stage",
         required=True,
-        choices=("host", "relay-service", "relay", "imu-service"),
+        choices=(
+            "host",
+            "host-with-preview",
+            "relay-service",
+            "relay",
+            "imu-service",
+        ),
     )
     return parser
 
@@ -310,6 +330,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if options.stage == "host":
             check_host(environment)
+        elif options.stage == "host-with-preview":
+            check_host(environment, allow_preview_processes=True)
         elif options.stage == "relay-service":
             check_remote_service("relay", environment)
         elif options.stage == "relay":

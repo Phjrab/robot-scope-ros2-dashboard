@@ -598,6 +598,8 @@ class MapRuntimeArtifactTests(unittest.TestCase):
             "scripts/run_hesai_fastlio_humble.sh",
             "scripts/save_hesai_map_humble.sh",
             "scripts/start_xt16_preview_humble.sh",
+            "scripts/start_wireless_xt16_preview_humble.sh",
+            "scripts/start_wireless_mapping_humble.sh",
             "scripts/start_hesai_mapping_humble.sh",
         ):
             subprocess.run(["bash", "-n", str(ROOT / relative)], check=True)

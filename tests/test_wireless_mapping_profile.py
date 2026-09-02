@@ -178,6 +178,34 @@ class WirelessMappingProfileTests(unittest.TestCase):
                     proc_root=fixture.proc,
                 )
 
+    def test_mapping_host_allows_only_the_dashboard_preview_processes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = Fixture(Path(temporary))
+            preview = fixture.proc / "4242"
+            preview.mkdir()
+            (preview / "cmdline").write_bytes(
+                b"/usr/bin/hesai_ros_driver_node\0"
+                b"/home/operator/start_wireless_xt16_preview_humble.sh\0"
+            )
+            preflight.check_host(
+                fixture.environment,
+                runner=fixture.runner,
+                proc_root=fixture.proc,
+                allow_preview_processes=True,
+            )
+            navigation = fixture.proc / "4343"
+            navigation.mkdir()
+            (navigation / "cmdline").write_bytes(
+                b"/opt/ros/humble/lib/nav2_controller/controller_server\0"
+            )
+            with self.assertRaisesRegex(preflight.PreflightError, "PREFLIGHT BLOCKED"):
+                preflight.check_host(
+                    fixture.environment,
+                    runner=fixture.runner,
+                    proc_root=fixture.proc,
+                    allow_preview_processes=True,
+                )
+
     def test_missing_firewall_unit_blocks_before_sensor_checks(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = Fixture(Path(temporary))
@@ -210,37 +238,47 @@ class WirelessMappingProfileTests(unittest.TestCase):
             },
         )
 
-    def test_launcher_has_transactional_order_and_no_resume_or_arm(self):
-        source = (ROOT / "scripts" / "start_wireless_mapping_humble.sh").read_text()
-        order = (
+    def test_preview_and_mapping_launchers_have_separate_transactional_ownership(self):
+        preview = (
+            ROOT / "scripts" / "start_wireless_xt16_preview_humble.sh"
+        ).read_text()
+        mapping = (ROOT / "scripts" / "start_wireless_mapping_humble.sh").read_text()
+        preview_order = (
             "--service relay --action ensure-started",
-            "--service imu --action ensure-started",
-            "run_wireless_imu_receiver_humble.sh",
             "run_hesai_driver_wireless_humble.sh",
             "run_xt16_cloud_bridge_humble.sh",
+        )
+        mapping_order = (
+            "--stage host-with-preview",
+            "--stage bridge",
+            "--service imu --action ensure-started",
+            "run_wireless_imu_receiver_humble.sh",
             "run_hesai_fastlio_wireless_humble.sh",
         )
-        offsets = [source.index(value) for value in order]
-        self.assertEqual(offsets, sorted(offsets))
-        self.assertIn(
-            "for ((index=${#LOCAL_PIDS[@]} - 1; index >= 0; index--))", source
-        )
-        self.assertIn('/usr/bin/setsid -- "$command"', source)
-        self.assertIn('kill "-$signal" -- "-${LOCAL_PIDS[$index]}"', source)
-        self.assertLess(
-            source.index("--service imu --action stop"),
-            source.index("--service relay --action stop"),
-        )
-        service_check = source.index("--stage relay-service")
-        hesai_start = source.index("run_hesai_driver_wireless_humble.sh")
-        health_check = source.index("--stage relay;", hesai_start)
-        cloud_start = source.index("run_xt16_cloud_bridge_humble.sh")
+        for source, order in ((preview, preview_order), (mapping, mapping_order)):
+            offsets = [source.index(value) for value in order]
+            self.assertEqual(offsets, sorted(offsets))
+            self.assertIn(
+                "for ((index=${#LOCAL_PIDS[@]} - 1; index >= 0; index--))",
+                source,
+            )
+            self.assertIn('/usr/bin/setsid -- "$command"', source)
+            self.assertIn('kill "-$signal" -- "-${LOCAL_PIDS[$index]}"', source)
+            for forbidden in ("ros2 bag", "nav2", "control_arm", "mapping/save", "sudo "):
+                self.assertNotIn(forbidden, source)
+        service_check = preview.index("--stage relay-service")
+        hesai_start = preview.index("run_hesai_driver_wireless_humble.sh")
+        health_check = preview.index("--stage relay;", hesai_start)
+        cloud_start = preview.index("run_xt16_cloud_bridge_humble.sh")
         self.assertLess(service_check, hesai_start)
         self.assertLess(hesai_start, health_check)
         self.assertLess(health_check, cloud_start)
-        self.assertIn("post-bind reports", source)
-        for forbidden in ("ros2 bag", "nav2", "control_arm", "mapping/save", "sudo "):
-            self.assertNotIn(forbidden, source)
+        self.assertIn("post-bind reports", preview)
+        self.assertNotIn("run_hesai_fastlio_wireless_humble.sh", preview)
+        self.assertNotIn("--service imu", preview)
+        self.assertNotIn("run_hesai_driver_wireless_humble.sh", mapping)
+        self.assertNotIn("run_xt16_cloud_bridge_humble.sh", mapping)
+        self.assertNotIn("--service relay --action stop", mapping)
 
     def test_remote_forced_command_and_sudoers_are_exact(self):
         helper = (
@@ -282,6 +320,7 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertIn("WIRELESS_MAPPING_PROFILE,", manager)
         self.assertIn("COMPETITION_FASTLIO_MAPPING_PROFILE,", manager)
         self.assertIn("start_wireless_mapping_humble.sh", manager)
+        self.assertIn("start_wireless_xt16_preview_humble.sh", manager)
         self.assertIn("start_hesai_mapping_humble.sh", manager)
         self.assertIn("start_xt16_preview_humble.sh", manager)
 
@@ -314,7 +353,11 @@ class WirelessMappingProfileTests(unittest.TestCase):
                 wireless.start_command.argv[0],
                 str(ROOT / "scripts/start_wireless_mapping_humble.sh"),
             )
-            self.assertIsNone(wireless.preview_command)
+            self.assertIsNotNone(wireless.preview_command)
+            self.assertEqual(
+                wireless.preview_command.argv[0],
+                str(ROOT / "scripts/start_wireless_xt16_preview_humble.sh"),
+            )
             self.assertEqual(wireless.failure_exit_reasons[68], "FAST-LIO NOT READY")
 
     def test_wireless_hesai_runner_uses_only_wireless_config(self):
