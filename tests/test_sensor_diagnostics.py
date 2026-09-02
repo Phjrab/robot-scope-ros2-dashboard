@@ -19,7 +19,10 @@ class SensorDiagnosticsTests(unittest.TestCase):
         self.assertIn('ROBOT_SCOPE_DDS_MODE="offline_viewer"', script)
         self.assertIn('ROBOT_SCOPE_DDS_INTERFACE_READY="0"', script)
         self.assertIn('ROBOT_SCOPE_DDS_MODE="go2_interface"', script)
+        self.assertIn('ROBOT_SCOPE_DDS_MODE="wireless_gateway"', script)
         self.assertIn('ROBOT_SCOPE_DDS_INTERFACE_READY="1"', script)
+        self.assertIn('ROBOT_SCOPE_ROBOT_GATEWAY_IP:-192.168.50.30', script)
+        self.assertIn('setup_wireless_mapping_ros2_humble.sh', script)
 
     def test_runtime_status_distinguishes_offline_viewer_from_go2_interface(self):
         offline = ros_transport_status({
@@ -42,6 +45,18 @@ class SensorDiagnosticsTests(unittest.TestCase):
         self.assertEqual(online["interface"], "eno1")
         self.assertTrue(online["dds_uri_configured"])
         self.assertNotIn("private-value-not-returned", online.values())
+
+        wireless = ros_transport_status({
+            "ROBOT_SCOPE_DDS_MODE": "wireless_gateway",
+            "ROBOT_SCOPE_DDS_INTERFACE_READY": "1",
+            "ROBOT_SCOPE_DDS_INTERFACE": "eno1",
+            "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+            "CYCLONEDDS_URI": "private-wireless-value",
+        }, require_go2_interface=True)
+        self.assertTrue(wireless["interface_ready"])
+        self.assertFalse(wireless["offline_viewer"])
+        self.assertFalse(wireless["dedicated_interface_required"])
+        self.assertNotIn("private-wireless-value", wireless.values())
 
     def test_runtime_status_rejects_untrusted_labels_and_invalid_flags(self):
         status = ros_transport_status({

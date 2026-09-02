@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
-import { controlBridgeConnectionState, renderHeaderConnections } from '../robot_dashboard/static/features/control/session_contract.js';
+import { controlBridgeConnectionState, overviewUnavailableReason, renderHeaderConnections } from '../robot_dashboard/static/features/control/session_contract.js';
 
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
@@ -145,9 +145,10 @@ function overviewHarness() {
   const ui = uiFixture();
   const resetCalls = [];
   const sandbox = loadFunctions(
-    ['overviewTelemetryLive', 'overviewUnavailableReason', 'renderOverviewUnavailable', 'updateOverview'],
+    ['overviewTelemetryLive', 'renderOverviewUnavailable', 'updateOverview'],
     {
       ui,
+      overviewUnavailableReason,
       cameraStatusMeta: { state: 'ok', fps: 99 },
       overviewTelemetryAvailability: null,
       cameraCatalog: [],
@@ -283,7 +284,7 @@ test('header separates direct ROS observability from authenticated remote contro
       target_supported: true,
       bridge: { authenticated: true, connected: true, state: 'ready' },
     }) },
-    { tone: 'ok', label: '원격 제어 Bridge 연결' },
+    { tone: 'ok', label: 'Go2 Bridge 연결' },
   );
   assert.deepEqual(
     { ...controlBridgeConnectionState({
@@ -292,7 +293,7 @@ test('header separates direct ROS observability from authenticated remote contro
       readiness: { bridge_fresh: false },
       bridge: { authenticated: true, connected: false, state: 'stale' },
     }) },
-    { tone: 'error', label: '원격 제어 Bridge 오프라인' },
+    { tone: 'error', label: 'Go2 Bridge 오프라인' },
   );
   const headerUi = uiFixture();
   renderHeaderConnections(
@@ -310,15 +311,15 @@ test('header separates direct ROS observability from authenticated remote contro
     },
   );
   assert.equal(headerUi.connectionLabel.textContent, '직접 ROS 오프라인');
-  assert.equal(headerUi.controlConnectionLabel.textContent, '원격 제어 Bridge 연결');
+  assert.equal(headerUi.controlConnectionLabel.textContent, 'Go2 Bridge 연결');
   assert.match(headerUi.connectionChip.className, /waiting/);
   assert.match(headerUi.controlConnectionChip.className, /ok/);
   renderHeaderConnections(headerUi, {}, null, true);
   assert.equal(headerUi.connectionLabel.textContent, '직접 ROS 연결 끊김');
-  assert.equal(headerUi.controlConnectionLabel.textContent, '원격 제어 Bridge 확인 실패');
+  assert.equal(headerUi.controlConnectionLabel.textContent, 'Go2 Bridge 확인 실패');
   assert.match(headerUi.connectionChip.className, /error/);
   assert.match(headerUi.controlConnectionChip.className, /error/);
-  assert.match(indexSource, /대시보드 호스트에서 로봇 ROS\/DDS를 직접 관측하는 상태/);
+  assert.match(indexSource, /무선 프로필은 탑재 Jetson, 유선 프로필은 직접 ROS\/DDS 연결 상태/);
   assert.match(functionSource('refreshControlSnapshot'), /\['overview', 'controls', 'navigation', 'cockpit'\]/);
 });
 
@@ -398,9 +399,10 @@ test('an online payload restores fresh KPIs after an offline reset without touch
 test('lidar source identity cannot repopulate its subtitle while telemetry is unavailable', () => {
   const ui = uiFixture();
   const sandbox = loadFunctions(
-    ['overviewTelemetryLive', 'overviewUnavailableReason', 'renderLidarSourceIdentity'],
+    ['overviewTelemetryLive', 'renderLidarSourceIdentity'],
     {
       ui,
+      overviewUnavailableReason,
       overviewTelemetryAvailability: null,
       latestState: { health: { agent_ready: true, robot_target_connected: true, robot_online: false } },
       selectedPointcloudTopic() { throw new Error('offline lidar rendering must return before resolving cached sources'); },

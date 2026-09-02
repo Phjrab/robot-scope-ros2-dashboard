@@ -129,6 +129,12 @@ transport가 아닙니다. 관리망으로 내보내는 것은 검증된 카메�
 | Go2 본체 | `192.168.123.161` | relay 관리 주소로 대체하지 않음 |
 | Go2/센서 전용망 | `192.168.123.0/24` 참조 계약 | DDS·센서 경로를 관리 Wi-Fi에 암묵적으로 합치지 않음 |
 
+무선 dashboard profile의 Settings 연결 대상은 Go2 본체 주소가 아니라
+`192.168.50.30` 탑재 Jetson 관리 주소다. Dashboard는 이 gateway의 고정된
+Control Bridge와 mapping lifecycle만 사용하며, 탑재 Jetson이 내부
+`192.168.123.0/24`에서 Go2와 XT16 연결을 소유한다. 자세한 운용 계약은
+`docs/WIRELESS_DASHBOARD_GATEWAY_CONNECTION.md`에 기록한다.
+
 무선 전환 때는 먼저 새 NIC가 관리 주소를 소유하고 dashboard host에서 relay host에
 도달하는지 확인한 뒤 RealSense의 세 host 설정만 교체합니다. Go2 DDS를 Wi-Fi로 옮기거나
 라우팅·브리지를 추가하지 않습니다. Go2 카메라가 필요한 경우에만 위에서 정의한 고정 RTP

@@ -234,11 +234,11 @@ function renderControlBridgeService() {
 }
 
 async function refreshControlBridgeService(force = false) {
-  if (!force && !['controls', 'navigation'].includes(getActivePage()) && !controlBridgeServiceExpected) return;
+  if (!force && !['controls', 'navigation'].includes(getActivePage()) && !controlBridgeServiceExpected) return null;
   const generation = ++controlBridgeServiceRequestGeneration;
   try {
     const snapshot = await api('/api/v1/control/bridge-service');
-    if (generation !== controlBridgeServiceRequestGeneration) return;
+    if (generation !== controlBridgeServiceRequestGeneration) return null;
     controlBridgeServiceSnapshot = snapshot;
     completeExpectedControlBridgeServiceTransition(snapshot);
     if (controlBridgeServiceExpected
@@ -247,7 +247,7 @@ async function refreshControlBridgeService(force = false) {
       showToast('제어 브리지 전환을 45초 안에 확인하지 못했습니다.', true);
     }
   } catch (error) {
-    if (generation !== controlBridgeServiceRequestGeneration) return;
+    if (generation !== controlBridgeServiceRequestGeneration) return null;
     if (controlBridgeServiceExpected) {
       const elapsed = Date.now() - controlBridgeServiceExpected.startedAt;
       if (elapsed > CONTROL_BRIDGE_SERVICE_TRANSITION_TIMEOUT_MS) {
@@ -260,23 +260,25 @@ async function refreshControlBridgeService(force = false) {
     }
   }
   renderControlBridgeService();
+  return controlBridgeServiceSnapshot;
 }
 
-async function requestControlBridgeService(action) {
-  if (controlBridgeServiceBusy || controlBridgeServiceExpected || !['start', 'stop'].includes(action)) return;
+async function requestControlBridgeService(action, options = {}) {
+  if (controlBridgeServiceBusy || controlBridgeServiceExpected || !['start', 'stop'].includes(action)) return { state: 'busy' };
   if (controlBridgeServiceSnapshot?.[`can_${action}`] !== true) {
     showToast(`제어 브리지 ${action === 'start' ? '시작' : '중지'}가 현재 허용되지 않습니다.`, true);
     void refreshControlBridgeService(true);
-    return;
+    return { state: 'blocked' };
   }
-  if (!controlUi.bridgeServiceConfirm.checked) {
+  const explicitlyConfirmed = options.confirmed === true;
+  if (!explicitlyConfirmed && !controlUi.bridgeServiceConfirm.checked) {
     showToast('제어 브리지 안전 확인 체크가 필요합니다.', true);
-    return;
+    return { state: 'confirmation_required' };
   }
   const warning = action === 'start'
     ? '고정된 제어 브리지 서비스를 시작합니다. 실제 로봇 제어 전 BRIDGE READY를 확인하고 별도로 ARM해야 합니다. 시작할까요?'
     : '제어 브리지 서비스를 중지하면 수동 제어와 Navigation 명령 경로가 끊깁니다. 중지할까요?';
-  if (!window.confirm(warning)) return;
+  if (options.prompt !== false && !window.confirm(warning)) return { state: 'cancelled' };
 
   controlBridgeServiceBusy = true;
   controlBridgeServiceRequestGeneration += 1;
@@ -290,6 +292,7 @@ async function requestControlBridgeService(action) {
   };
   controlUi.bridgeServiceConfirm.checked = false;
   renderControlBridgeService();
+  let result = { state: 'scheduled' };
   try {
     const snapshot = await api(`/api/v1/control/bridge-service/${action}`, {
       method: 'POST',
@@ -311,6 +314,7 @@ async function requestControlBridgeService(action) {
         : '요청 결과를 확인할 수 없습니다. 제어 브리지 상태를 다시 확인합니다.',
       true,
     );
+    result = { state: 'failed' };
   } finally {
     if (mutationGeneration === controlBridgeServiceMutationGeneration) {
       controlBridgeServiceBusy = false;
@@ -318,6 +322,18 @@ async function requestControlBridgeService(action) {
       void refreshControlBridgeService(true);
     }
   }
+  return result;
+}
+
+async function ensureControlBridgeServiceStarted() {
+  const snapshot = await refreshControlBridgeService(true);
+  if (snapshot?.systemd?.running === true) return { state: 'running' };
+  if (snapshot?.can_start !== true) {
+    const blockers = controlBridgeServiceBlockerText(snapshot?.blockers?.start);
+    showToast(`탑재 Jetson은 연결됐지만 Go2 Bridge 시작이 차단되었습니다${blockers ? `: ${blockers}` : '.'}`, true);
+    return { state: 'blocked' };
+  }
+  return requestControlBridgeService('start', { confirmed: true, prompt: false });
 }
 
 export function initializeControlBridgeServiceFeature(options = {}) {
@@ -348,6 +364,7 @@ export function initializeControlBridgeServiceFeature(options = {}) {
 
 const feature = Object.freeze({
   refresh: refreshControlBridgeService, render: renderControlBridgeService, request: requestControlBridgeService,
+  ensureStarted: ensureControlBridgeServiceStarted,
   invalidate: () => { controlBridgeServiceRequestGeneration += 1; },
   hasExpectedTransition: () => Boolean(controlBridgeServiceExpected),
 });

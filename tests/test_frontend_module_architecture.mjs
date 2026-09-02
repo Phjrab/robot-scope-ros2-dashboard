@@ -29,6 +29,8 @@ test('feature modules own their bounded request and lifecycle state', () => {
   assert.match(navigationLogSource, /setInterval\(refreshNavigationLogs, 1000\)/);
   assert.match(bridgeSource, /let controlBridgeServiceExpected = null/);
   assert.match(bridgeSource, /api\(`\/api\/v1\/control\/bridge-service\/\$\{action\}`/);
+  assert.match(bridgeSource, /ensureControlBridgeServiceStarted/);
+  assert.match(bridgeSource, /requestControlBridgeService\('start', \{ confirmed: true, prompt: false \}\)/);
   assert.match(lifecycleSource, /let serviceLifecycleExpected = null/);
   assert.match(lifecycleSource, /api\(`\/api\/v1\/system\/service\/\$\{action\}`/);
   assert.doesNotMatch(appSource, /let navigationLogRequestGeneration|let controlBridgeServiceExpected|let serviceLifecycleExpected/);

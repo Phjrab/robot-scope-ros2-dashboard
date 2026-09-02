@@ -133,6 +133,19 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertTrue(reselected["restart_required"])
         self.assertFalse(reselected["control_target_supported"])
 
+    def test_wireless_profile_exposes_onboard_gateway_without_weakening_control_target(self):
+        agent = RosAgent(
+            robot_ip="192.168.50.30",
+            profile_path=str(ROOT / "config" / "go2.json"),
+            navigation_profile="go2-xt16-wireless-competition-fastlio",
+        )
+        target = agent.robot_target_snapshot()
+        health = agent.health_snapshot()
+        self.assertEqual(target["connection_topology"], "onboard_gateway")
+        self.assertEqual(health["connection_topology"], "onboard_gateway")
+        self.assertEqual(target["ip"], "192.168.50.30")
+        self.assertTrue(target["control_target_supported"])
+
     def test_target_change_revokes_lease_and_non_go2_blocks_all_enabling_mutators(self):
         lease = self.agent.control_acquire("keyboard")["token"]
         self.agent.control_bind(lease, "target-test-websocket")

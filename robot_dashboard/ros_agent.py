@@ -24,6 +24,7 @@ from std_msgs.msg import String
 
 from .camera_decoder import H264JpegDecoder
 from .capabilities import capabilities_for_robot_type
+from .connection_topology import connection_topology_for
 from .control import (
     ControlDisabled,
     LeaseBusy,
@@ -132,6 +133,10 @@ class RosAgent:
         # was constructed at process startup.  Runtime UI selection only
         # changes observation/display metadata; it never retargets the bridge.
         self._startup_robot_type = self._robot_type
+        self._connection_topology = connection_topology_for(
+            self._startup_robot_type,
+            navigation_profile,
+        )
         self._startup_robot_ip = self.robot_ip
         self._robot_target_connected = bool(self.robot_ip)
         self._target_restart_required = False
@@ -1992,6 +1997,7 @@ class RosAgent:
                     and target_matches_startup
                     and not self._target_restart_required
                 ),
+                "connection_topology": self._connection_topology,
             }
 
     def set_robot_target(
@@ -2176,6 +2182,7 @@ class RosAgent:
                     and target_matches_startup
                     and not self._target_restart_required
                 ),
+                "connection_topology": self._connection_topology,
                 "robot_online": online,
                 "robot_latency_ms": latency,
                 "uptime_s": round(time.monotonic() - self._started_at, 1),

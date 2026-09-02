@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep the offline dashboard available, then re-exec it on the Go2 LAN."""
+"""Select the fixed wireless gateway or supervise a direct Go2 interface."""
 
 from __future__ import annotations
 
@@ -10,10 +10,21 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Mapping
 
 
 POLL_SECONDS = 0.05
 CHILD_STOP_TIMEOUT_S = 20.0
+WIRELESS_GATEWAY_PROFILES = frozenset(
+    {
+        "go2-xt16-wireless",
+        "go2-xt16-wireless-competition-fastlio",
+    }
+)
+
+
+def _uses_wireless_gateway(environ: Mapping[str, str]) -> bool:
+    return str(environ.get("ROBOT_SCOPE_MAPPING_PROFILE", "")).strip() in WIRELESS_GATEWAY_PROFILES
 
 
 def _executable(path: Path, label: str) -> str:
@@ -36,6 +47,12 @@ def _stop_child(process: subprocess.Popen[bytes] | None) -> None:
 def main() -> int:
     script_dir = Path(__file__).resolve().parent
     runner = _executable(script_dir / "run_go2_humble.sh", "dashboard runner")
+    if _uses_wireless_gateway(os.environ):
+        print(
+            "[Robot Scope] starting dashboard on the fixed onboard Jetson gateway profile",
+            flush=True,
+        )
+        os.execv(runner, [runner])
     waiter = _executable(
         script_dir / "wait_for_go2_interface.sh", "interface waiter"
     )

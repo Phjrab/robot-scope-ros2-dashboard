@@ -100,6 +100,29 @@ class Go2FoxySetupTests(unittest.TestCase):
 
 
 class Go2DashboardSupervisorTests(unittest.TestCase):
+    def test_wireless_profiles_skip_the_direct_go2_interface_waiter(self):
+        spec = importlib.util.spec_from_file_location(
+            "robot_scope_dashboard_supervisor_wireless_test", SUPERVISOR
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for profile in (
+            "go2-xt16-wireless",
+            "go2-xt16-wireless-competition-fastlio",
+        ):
+            self.assertTrue(
+                module._uses_wireless_gateway(
+                    {"ROBOT_SCOPE_MAPPING_PROFILE": profile}
+                )
+            )
+        self.assertFalse(
+            module._uses_wireless_gateway(
+                {"ROBOT_SCOPE_MAPPING_PROFILE": "go2-xt16-wired"}
+            )
+        )
+
     @staticmethod
     def make_scripts(temporary: str, *, waiter_delay: float = 0.05):
         script_dir = Path(temporary)

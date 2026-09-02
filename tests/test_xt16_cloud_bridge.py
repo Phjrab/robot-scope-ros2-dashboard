@@ -74,6 +74,15 @@ class Xt16CloudOnlyBridgeTests(unittest.TestCase):
         self.assertIn("sensor_msgs", match.group(1))
         self.assertNotIn("unitree_go", match.group(1))
 
+    def test_runner_accepts_only_an_absolute_persistent_dependency_workspace(self):
+        self.assertIn("ROBOT_SCOPE_DEPENDENCY_WORKSPACE_ROOT", self.runner)
+        self.assertIn('DEPENDENCY_WORKSPACE_ROOT" == /*', self.runner)
+        self.assertIn('DEPENDENCY_WORKSPACE_ROOT" != "/"', self.runner)
+        self.assertIn(
+            '$DEPENDENCY_WORKSPACE_ROOT/ws/xt16_bridge_ws/install/lib/',
+            self.runner,
+        )
+
     def test_cloud_projection_has_no_lowstate_or_imu_dependency(self):
         for forbidden in (
             "unitree_go",

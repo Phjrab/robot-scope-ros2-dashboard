@@ -51,12 +51,14 @@ ROBOT_TYPES: Dict[str, Dict[str, Any]] = {
     "go2": {
         "id": "go2",
         "label": "Unitree Go2",
-        "description": "Unitree Go2 본체와 전용 유선 네트워크를 탐색합니다.",
-        "connection_kind": "robot",
+        "description": (
+            "무선에서는 Go2 탑재 Jetson을, 전용 유선에서는 Go2 본체를 탐색합니다."
+        ),
+        "connection_kind": "gateway_or_robot",
         "profile_id": "go2",
         "capabilities": capabilities_for_robot_type("go2"),
-        "known_ips": ("192.168.123.161",),
-        "hostname_hints": ("go2", "unitree"),
+        "known_ips": ("192.168.50.30", "192.168.123.161"),
+        "hostname_hints": ("go2", "unitree", "ubuntu"),
         "model": {
             "kind": "robot-model-lite",
             "asset_url": "/static/assets/go2/go2-official-lite.json",

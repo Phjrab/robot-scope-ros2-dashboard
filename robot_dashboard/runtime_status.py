@@ -7,7 +7,13 @@ import re
 from typing import Mapping, Optional
 
 
-_DDS_MODES = {"automatic", "go2_interface", "offline_viewer", "unknown"}
+_DDS_MODES = {
+    "automatic",
+    "go2_interface",
+    "offline_viewer",
+    "wireless_gateway",
+    "unknown",
+}
 _INTERFACE_PATTERN = re.compile(r"[A-Za-z0-9_.:@-]{1,64}")
 
 
@@ -44,7 +50,7 @@ def ros_transport_status(
         interface = ""
 
     interface_ready = _optional_bool(values.get("ROBOT_SCOPE_DDS_INTERFACE_READY"))
-    if mode == "go2_interface":
+    if mode in {"go2_interface", "wireless_gateway"}:
         # A marker alone cannot prove a valid Go2 transport.  Both settings
         # are required by this project's Humble setup.
         interface_ready = interface_ready is not False and dds_uri_configured and cyclonedds_configured
@@ -65,5 +71,7 @@ def ros_transport_status(
         ),
         "dds_uri_configured": dds_uri_configured,
         "cyclonedds_configured": cyclonedds_configured,
-        "dedicated_interface_required": bool(require_go2_interface),
+        "dedicated_interface_required": bool(
+            require_go2_interface and mode != "wireless_gateway"
+        ),
     }

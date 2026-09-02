@@ -166,6 +166,34 @@ class DiscoveryScanTests(unittest.TestCase):
         self.assertTrue(0.0 <= candidate["confidence"] <= 1.0)
         self.assertNotIn("192.168.123.20", {item["ip"] for item in result["candidates"]})
 
+    def test_go2_wireless_management_lan_prefers_onboard_gateway(self):
+        class WirelessFixture(FixtureDiscovery):
+            def _local_interfaces(self):
+                return [
+                    interface("eno1", "192.168.50.10", "192.168.50.0/24"),
+                ]
+
+            def _default_interface(self):
+                return "eno1"
+
+            def _neighbors(self, interfaces):
+                return {
+                    "192.168.50.30": {"interface": "eno1", "source": "neighbor"},
+                }
+
+            def _mdns_hosts(self, interfaces):
+                return {}
+
+            def _probe_many(self, addresses):
+                self.probed = list(addresses)
+                return {"192.168.50.30": 1.2} if "192.168.50.30" in addresses else {}
+
+        result = WirelessFixture().discover("go2")
+        self.assertEqual(result["connection_kind"], "gateway_or_robot")
+        self.assertEqual(result["scan_scope"]["network"], "192.168.50.0/24")
+        self.assertEqual(result["candidates"][0]["ip"], "192.168.50.30")
+        self.assertEqual(result["candidates"][0]["confidence"], 0.99)
+
     def test_unsupported_product_type_cannot_start_discovery(self):
         scanner = FixtureDiscovery()
         with self.assertRaises(UnknownRobotType):

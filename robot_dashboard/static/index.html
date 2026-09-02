@@ -22,11 +22,11 @@
         <span class="dataset-capture-dot" aria-hidden="true"></span><strong>SERVER CAPTURE</strong><small id="datasetGlobalStatusText">00:00 · 0 saved</small>
       </a>
       <button class="ghost-button" id="refreshButton" type="button">새로고침</button>
-      <div class="connection-chip waiting" id="connectionChip" title="대시보드 호스트에서 로봇 ROS/DDS를 직접 관측하는 상태">
-        <span class="status-dot"></span><span id="connectionLabel">직접 ROS 확인 중</span>
+      <div class="connection-chip waiting" id="connectionChip" title="무선 프로필은 탑재 Jetson, 유선 프로필은 직접 ROS/DDS 연결 상태">
+        <span class="status-dot"></span><span id="connectionLabel">로봇 게이트웨이 확인 중</span>
       </div>
       <div class="connection-chip waiting" id="controlConnectionChip" title="서명·인증된 원격 Control Bridge 상태">
-        <span class="status-dot"></span><span id="controlConnectionLabel">제어 Bridge 확인 중</span>
+        <span class="status-dot"></span><span id="controlConnectionLabel">Go2 Bridge 확인 중</span>
       </div>
     </div>
   </header>
@@ -750,17 +750,17 @@
                 <select id="robotType"><option value="go2">Unitree Go2</option><option value="turtlebot">TurtleBot</option></select>
                 <button id="discoverRobotsButton" type="button">네트워크 검색</button>
               </div>
-              <p class="robot-type-note" id="robotTypeNote">유형을 선택하면 같은 네트워크에서 연결 가능한 로봇을 자동으로 찾습니다.</p>
+              <p class="robot-type-note" id="robotTypeNote">무선 Go2는 같은 관리망의 탑재 Jetson을 찾고, 탑재 Jetson이 Go2/XT16 전용망을 소유합니다.</p>
               <div class="robot-discovery-head">
                 <span>발견된 로봇</span><strong id="robotDiscoveryStatus" role="status" aria-live="polite">검색 대기</strong>
               </div>
               <div class="robot-discovery-results" id="robotDiscoveryResults" role="group" aria-label="발견된 로봇 후보">
                 <div class="robot-discovery-empty">로봇 유형을 선택하면 네트워크 검색을 시작합니다.</div>
               </div>
-              <label class="field-label manual-ip-label" for="robotIp">선택한 IP 또는 직접 입력</label>
-              <div class="input-row connection-input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.123.161"><button id="connectButton" type="button">연결</button><button id="disconnectButton" class="connection-disconnect-button" type="button" disabled>연결 해제</button></div>
+              <label class="field-label manual-ip-label" for="robotIp">탑재 Jetson 관리 IP 또는 유선 Go2 IP</label>
+              <div class="input-row connection-input-row"><input id="robotIp" autocomplete="off" inputmode="decimal" value="192.168.50.30"><button id="connectButton" type="button">Jetson + Go2 연결</button><button id="disconnectButton" class="connection-disconnect-button" type="button" disabled>연결 해제</button></div>
               <div class="connection-target-state"><span>현재 대상</span><strong id="connectedRobotTarget">연결 안 됨</strong></div>
-              <p class="connection-runtime-note">연결 해제는 선택 대상과 Go2 제어 권한을 안전하게 지우지만 물리 네트워크·ROS/DDS 프로세스·로봇 전원은 변경하지 않습니다. DDS 인터페이스·Domain·ROS workspace를 바꾸려면 올바른 프로필로 대시보드를 다시 시작하세요.</p>
+              <p class="connection-runtime-note">무선 연결은 탑재 Jetson을 고정 대상으로 선택하고, 안전 사전점검을 통과하면 Go2 Control Bridge를 DISARMED·zero·no-lease 상태로 시작합니다. ARM, 로봇 동작, XT16 매핑은 자동 시작하지 않습니다.</p>
               <div class="selected-model-note"><span>3D 모델</span><div><strong id="selectedRobotModel">선택한 유형에 맞춰 준비 중</strong><a id="selectedRobotUrdf" href="#" target="_blank" rel="noopener" hidden>URDF 보기</a></div></div>
               <div class="connection-detail settings-detail">
                 <div><span>Agent</span><strong id="agentHost">—</strong></div>

@@ -4,7 +4,6 @@ set -eo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
 PORT="${ROBOT_SCOPE_PORT:-8088}"
-ROBOT_IP="${ROBOT_SCOPE_ROBOT_IP:-192.168.123.161}"
 CLOUD_MAX_POINTS="${ROBOT_SCOPE_CLOUD_MAX_POINTS:-10000}"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
 MAPS_DIR="${ROBOT_SCOPE_MAPS_DIR:-$WORKSPACE_ROOT/ws/go2_3d/maps}"
@@ -16,6 +15,7 @@ NAVIGATION_RUNTIME_DIR="${ROBOT_SCOPE_NAVIGATION_RUNTIME_DIR:-$STATE_DIR/navigat
 MODEL_REGISTRY_DIR="${ROBOT_SCOPE_MODEL_REGISTRY_DIR:-$RUNTIME_DIR/model-registry}"
 COMPETITION_STATE_DIR="${ROBOT_SCOPE_COMPETITION_STATE_DIR:-$RUNTIME_DIR/competition}"
 MAPPING_PROFILE="${ROBOT_SCOPE_MAPPING_PROFILE:-go2-xt16-wired}"
+ROBOT_IP="${ROBOT_SCOPE_ROBOT_IP:-192.168.123.161}"
 ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"
 if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
   "$MAPS_DIR" != /* || "$RUNTIME_DIR" != /* || "$RUNTIME_DIR" == "/" ||
@@ -48,30 +48,41 @@ export MALLOC_TRIM_THRESHOLD_="${ROBOT_SCOPE_MALLOC_TRIM_THRESHOLD:-131072}"
 # Unitree overlay or dedicated cable is unavailable.
 source "${ROBOT_SCOPE_ROS_SETUP:-/opt/ros/humble/setup.bash}"
 
-# Publish the startup DDS decision to the health API.  ICMP reachability can
-# recover after a cable is connected, but an rclpy participant created in the
-# fallback mode cannot retarget itself to the dedicated Go2 interface.
-export ROBOT_SCOPE_DDS_MODE="offline_viewer"
-export ROBOT_SCOPE_DDS_INTERFACE_READY="0"
-unset ROBOT_SCOPE_DDS_INTERFACE
-GO2_SETUP="$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
-if [[ -f "$GO2_SETUP" ]]; then
-  if ! source "$GO2_SETUP"; then
-    # Keep the observability UI available while the dedicated Go2 cable is
-    # disconnected. CycloneDDS auto-selects an active interface; reconnecting
-    # the cable and restarting restores the dedicated-interface profile.
-    export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-    export ROS_LOCALHOST_ONLY=0
-    unset CYCLONEDDS_URI
-    echo "[Robot Scope] Go2 interface unavailable; starting dashboard in offline viewer mode."
-  else
-    export ROBOT_SCOPE_DDS_MODE="go2_interface"
-    export ROBOT_SCOPE_DDS_INTERFACE_READY="1"
-    ROBOT_SCOPE_DDS_INTERFACE="$ROBOT_SCOPE_GO2_INTERFACE"
-    export ROBOT_SCOPE_DDS_INTERFACE
-  fi
+# Wireless profiles observe only the external management LAN. The selected
+# target is the fixed onboard Jetson gateway; that gateway owns the direct
+# Go2/XT16 sensor LAN and the signed Control Bridge. Wired profiles retain the
+# dedicated Go2-interface behavior unchanged.
+if [[ "$MAPPING_PROFILE" == "go2-xt16-wireless" ||
+  "$MAPPING_PROFILE" == "go2-xt16-wireless-competition-fastlio" ]]; then
+  ROBOT_IP="${ROBOT_SCOPE_ROBOT_GATEWAY_IP:-192.168.50.30}"
+  source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
+  export ROBOT_SCOPE_DDS_MODE="wireless_gateway"
+  export ROBOT_SCOPE_DDS_INTERFACE_READY="1"
+  export ROBOT_SCOPE_DDS_INTERFACE="eno1"
+  echo "[Robot Scope] wireless gateway profile ready; onboard Jetson target $ROBOT_IP"
 else
-  echo "[Robot Scope] Go2 environment helper unavailable; starting dashboard in offline viewer mode."
+  # Publish the startup DDS decision to the health API. ICMP reachability can
+  # recover after a cable is connected, but an rclpy participant created in
+  # fallback mode cannot retarget itself to the dedicated Go2 interface.
+  export ROBOT_SCOPE_DDS_MODE="offline_viewer"
+  export ROBOT_SCOPE_DDS_INTERFACE_READY="0"
+  unset ROBOT_SCOPE_DDS_INTERFACE
+  GO2_SETUP="$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
+  if [[ -f "$GO2_SETUP" ]]; then
+    if ! source "$GO2_SETUP"; then
+      export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      export ROS_LOCALHOST_ONLY=0
+      unset CYCLONEDDS_URI
+      echo "[Robot Scope] Go2 interface unavailable; starting dashboard in offline viewer mode."
+    else
+      export ROBOT_SCOPE_DDS_MODE="go2_interface"
+      export ROBOT_SCOPE_DDS_INTERFACE_READY="1"
+      ROBOT_SCOPE_DDS_INTERFACE="$ROBOT_SCOPE_GO2_INTERFACE"
+      export ROBOT_SCOPE_DDS_INTERFACE
+    fi
+  else
+    echo "[Robot Scope] Go2 environment helper unavailable; starting dashboard in offline viewer mode."
+  fi
 fi
 
 PYTHON_BIN="python3"

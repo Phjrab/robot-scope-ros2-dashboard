@@ -99,7 +99,8 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(appSource, /RobotProfiles\.connectionPayload/);
   assert.match(appSource, /activateRobotType\(ui\.robotType\.value, \{ discover: true, dirty: true \}\)/);
   assert.match(appSource, /미확인 호스트/);
-  assert.match(indexSource, /물리 네트워크·ROS\/DDS 프로세스·로봇 전원은 변경하지 않습니다/);
+  assert.match(indexSource, /탑재 Jetson을 고정 대상으로 선택/);
+  assert.match(indexSource, /ARM, 로봇 동작, XT16 매핑은 자동 시작하지 않습니다/);
   assert.match(appSource, /범용 URDF 근사 모델 · 제조사 공식 모델 아님/);
   assert.match(indexSource, /id="controlProfileNotice"[^>]+hidden/);
   assert.match(appSource, /profileSupports\?\.\(activeRobotProfile\(\), 'manual_control'\)/);
@@ -108,12 +109,15 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(appSource, /if \(response\.robot\?\.changed\) resetLiveRobotSessionView\(\)/);
   assert.match(appSource, /response\.robot\?\.restart_required/);
   assert.match(appSource, /ROS 재시작 전 기존 데이터 · 로봇 오버레이 숨김/);
+  assert.match(controlSessionSource, /탑재 Jetson 연결/);
   assert.match(controlSessionSource, /직접 ROS\/DDS 오프라인 뷰어/);
   assert.match(controlSessionSource, /직접 ROS\/DDS 인터페이스 준비/);
   assert.match(appSource, /if \(robotConnectionBusy\) return/);
   assert.match(appSource, /api\('\/api\/v1\/robot', \{ method: 'DELETE' \}\)/);
   assert.match(appSource, /robotTargetConnected = false/);
   assert.match(appSource, /resetLiveRobotSessionView\(\)/);
+  assert.match(appSource, /controlBridgeServiceFeature\?\.ensureStarted/);
+  assert.match(appSource, /connection_topology === 'onboard_gateway'/);
 });
 
 test('sensor cards keep all observed streams and rank unknown categories last', () => {

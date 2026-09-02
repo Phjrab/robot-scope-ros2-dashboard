@@ -9,7 +9,7 @@ import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraOb
 import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
-import { createReleaseAckTracker, renderHeaderConnections } from './features/control/session_contract.js';
+import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
@@ -910,6 +910,7 @@ function activateRobotType(typeId, { discover = false, dirty = false } = {}) {
     resetLiveRobotSessionView();
   }
   selectedRobotType = profile.id;
+  ui.connectButton.textContent = connectionButtonLabel(profile.id);
   robotTypeDirty = dirty;
   markJointsStale(true);
   ui.robotType.value = profile.id;
@@ -1038,15 +1039,6 @@ function overviewTelemetryLive(health) {
   return Boolean(health.agent_ready && targetConnected && health.robot_online);
 }
 
-function overviewUnavailableReason(health) {
-  health = health || {};
-  if (!health.agent_ready) return '에이전트 연결 끊김';
-  const targetConnected = health.robot_target_connected == null
-    ? Boolean(health.robot_ip)
-    : Boolean(health.robot_target_connected);
-  return targetConnected ? '로봇 오프라인' : '로봇 대상 연결 해제됨';
-}
-
 function renderOverviewUnavailable(reason, options) {
   const label = String(reason || '연결 확인 불가');
   const clearLive = options?.clearLive !== false;
@@ -1095,12 +1087,15 @@ function updateHealth(health) {
     activateRobotType(healthRobotType);
   }
   if (!robotIpDirty && document.activeElement !== ui.robotIp) ui.robotIp.value = health.robot_ip || '';
+  const gatewayMode = health.connection_topology === 'onboard_gateway';
   ui.connectedRobotTarget.textContent = robotTargetConnected
-    ? `${health.robot_type || selectedRobotType || 'robot'} · ${health.robot_ip || 'IP 확인 중'}`
+    ? robotTargetLabel(health, selectedRobotType)
     : '연결 안 됨';
   ui.disconnectButton.disabled = robotConnectionBusy || !robotTargetConnected;
   ui.linkMetric.textContent = online ? (health.robot_latency_ms != null ? `${health.robot_latency_ms} ms` : 'ONLINE') : 'OFFLINE';
-  ui.linkSub.textContent = health.robot_ip || 'IP not configured';
+  ui.linkSub.textContent = gatewayMode && health.robot_ip
+    ? `탑재 Jetson ${health.robot_ip}`
+    : health.robot_ip || 'IP not configured';
   if (health.last_error) console.warn('Robot Scope:', health.last_error);
 }
 
@@ -6498,10 +6493,14 @@ async function setRobotIp() {
     robotTypeDirty = false;
     robotIpDirty = false;
     if (response.robot_type && response.robot_type !== selectedRobotType) activateRobotType(response.robot_type);
-    const restartNote = response.robot?.restart_required
-      ? ' DDS 재연결을 위해 해당 프로필로 대시보드를 다시 시작해야 하며, 그 전에는 Go2 제어가 차단됩니다.'
-      : ' ROS 연결 설정은 별도로 확인하세요.';
-    showToast(`${activeRobotProfile()?.label || '로봇'} 표시·확인 대상을 변경했습니다.${restartNote}`);
+    const gatewayMode = response.robot?.connection_topology === 'onboard_gateway';
+    let gatewayBridgeState = '';
+    if (gatewayMode && response.robot?.control_target_supported === true) {
+      const bridgeResult = await controlBridgeServiceFeature?.ensureStarted?.();
+      gatewayBridgeState = bridgeResult?.state || '';
+    }
+    const restartNote = connectionOutcomeNote(response.robot, gatewayBridgeState);
+    showToast(`${activeRobotProfile()?.label || '로봇'} 연결 대상을 적용했습니다.${restartNote}`);
     await refreshState();
   } catch (error) {
     showToast(`IP 변경 실패: ${error.message}`, true);
@@ -6510,7 +6509,7 @@ async function setRobotIp() {
     robotConnectionBusy = false;
     ui.connectButton.disabled = false;
     ui.disconnectButton.disabled = !robotTargetConnected;
-    ui.connectButton.textContent = '연결';
+    ui.connectButton.textContent = connectionButtonLabel(selectedRobotType);
   }
 }
 
