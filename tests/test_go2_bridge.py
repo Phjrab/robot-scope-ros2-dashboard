@@ -328,44 +328,44 @@ class Go2BridgeCoreTests(unittest.TestCase):
                 self.assertEqual(requests[-1].api_id, API_STOP_MOVE)
 
     def test_go2_bare_dds_baseline_does_not_hide_named_competitors(self):
-        core = Go2BridgeCore(expected_bare_sport_publishers=9)
+        core = Go2BridgeCore(expected_bare_sport_publishers=10)
         ready = core.snapshot(
             now=self.now,
             lowstate_age_s=0.01,
             lowstate_publishers=1,
             sport_subscribers=1,
-            sport_publishers=10,
+            sport_publishers=11,
             own_sport_publishers=1,
             foreign_named_sport_publishers=0,
-            bare_unitree_sport_publishers=9,
+            bare_unitree_sport_publishers=10,
         )
         self.assertTrue(ready["ready"])
-        self.assertEqual(ready["sport_publishers"], 10)
+        self.assertEqual(ready["sport_publishers"], 11)
         self.assertEqual(ready["own_sport_publishers"], 1)
-        self.assertEqual(ready["bare_unitree_sport_publishers"], 9)
-        self.assertEqual(ready["expected_bare_sport_publishers"], 9)
+        self.assertEqual(ready["bare_unitree_sport_publishers"], 10)
+        self.assertEqual(ready["expected_bare_sport_publishers"], 10)
 
         for values in (
             {
-                "sport_publishers": 11,
+                "sport_publishers": 12,
                 "own_sport_publishers": 1,
                 "foreign_named_sport_publishers": 1,
-                "bare_unitree_sport_publishers": 9,
+                "bare_unitree_sport_publishers": 10,
             },
             {
-                "sport_publishers": 9,
+                "sport_publishers": 10,
                 "own_sport_publishers": 0,
                 "foreign_named_sport_publishers": 0,
+                "bare_unitree_sport_publishers": 10,
+            },
+            {
+                "sport_publishers": 10,
+                "own_sport_publishers": 1,
+                "foreign_named_sport_publishers": 0,
                 "bare_unitree_sport_publishers": 9,
             },
             {
-                "sport_publishers": 9,
-                "own_sport_publishers": 1,
-                "foreign_named_sport_publishers": 0,
-                "bare_unitree_sport_publishers": 8,
-            },
-            {
-                "sport_publishers": 9,
+                "sport_publishers": 11,
                 "own_sport_publishers": 1,
                 "foreign_named_sport_publishers": 0,
                 "bare_unitree_sport_publishers": 9,

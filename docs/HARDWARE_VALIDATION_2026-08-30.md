@@ -862,6 +862,23 @@ ten Sport publishers.
 
 ## Remaining wireless acceptance
 
+### Go2 v1.1.15 publisher-baseline follow-up — 2026-09-02
+
+After the operator updated the Go2 body from v1.1.11 to v1.1.15, a stationary
+robot-side Foxy graph audit observed one named Robot Scope publisher, zero
+foreign named publishers and ten anonymous Unitree publishers on
+`/api/sport/request` (eleven total). Five consecutive samples retained the
+same ten anonymous endpoint GIDs. The repository profile still expected nine,
+so the Bridge correctly stayed fail-closed and emitted only its periodic API
+1003 `StopMove`; no API 1008 `Move` or action was observed.
+
+The `go2` profile is therefore updated to the exact v1.1.15 baseline of ten.
+The equality check, named-publisher rejection, LowState gate, watchdog and
+velocity limits are unchanged. Regression coverage proves exact ten is ready
+and nine, eleven, missing-own, named-foreign and inconsistent-total cases are
+not ready. Deployment and stationary lifecycle revalidation remain separate
+hardware gates before C4 or any motion.
+
 - Run the deferred 60-minute Wi-Fi soak and interference test.
 - Design and validate a bounded wireless XT16/FAST-LIO data path, or explicitly
   colocate the mapping stack with the sensor, before external-dashboard mapping

@@ -128,7 +128,7 @@ request was sent.
 | Initial pose exactly once | `PASS` | accepted once; session count `1`; no retry or replay |
 | `map -> odom -> base_link` and `/amcl_pose` | `PASS` | localized checker passed before and after the bounded observation |
 | Lifecycle and both costmaps | `PASS` | required lifecycle nodes active; global/local costmap publishers each exactly one during localized NG1 |
-| 60-second localized NG1 | `PASS` | 60/60 one-second API samples retained localization/readiness and exact-zero control; typed Sport monitor received no sample |
+| 60-second localized NG1 | `PASS` | 60/60 one-second API samples retained localization/readiness and exact-zero control; the external Nav DDS graph received no C3-owned Sport sample |
 | Goal and Mission | `NOT_RUN` | prohibited in C3 |
 | Lease/ARM/deadman/motion | `PASS` | lease remained inactive, deadman false, dashboard command exact zero, `goal_allowed=false`, `motion_allowed=false`, nonzero raw-command count zero |
 | Reverse cleanup | `PASS` | localization session stopped, C3 Nav2/FAST-LIO/runtime owners exited, then production profile was restored to `go2-xt16-wireless` |
@@ -179,8 +179,20 @@ sample kept the exact map/revision, localized state, initial-pose count one,
 goal `idle`, motion disabled, lease inactive, deadman false, dashboard command
 exact zero, nonzero raw-command count zero and all required readiness fields
 true. A simultaneous typed `unitree_api/msg/Request` subscription observed no
-`/api/sport/request` message for 60 seconds and exited only on the expected
-timeout. No goal, Mission, ARM or robot motion was requested.
+`/api/sport/request` message in the external Nav DDS graph for 60 seconds and
+exited only on the expected timeout. No goal, Mission, ARM or robot motion was
+requested by C3.
+
+A later robot-side Foxy audit found that this external subscription was not a
+whole-robot Sport-topic monitor: the narrow wireless architecture does not
+carry the robot-side Go2 DDS graph to the external Nav graph. On the robot
+side, the pre-existing safety Bridge was publishing only API 1003 `StopMove`
+while its exact-cardinality check remained fail-closed at ten observed versus
+nine expected anonymous Unitree publishers. No API 1008 `Move` or action was
+observed. This does not invalidate the lease-free C3 localization result or
+authorize motion, but it narrows the claim to C3-owned command isolation and
+records that future motion acceptance must monitor the robot-side graph
+directly. The v1.1.15 baseline correction is a separate C4 prerequisite.
 
 The localization health summary was `READY` immediately after convergence.
 The final API sample reported `DEGRADED` while all readiness and checker
@@ -228,6 +240,8 @@ source files. The first Playwright attempt was blocked before test collection
 by the sandbox's local-port restriction; the permitted rerun passed all 32.
 
 This confirmation-gated C3 update also adds the deliberately unexecuted C4
-short-low-speed-goal prompt. C4 remains blocked until a fresh control-bridge
-publisher-cardinality issue (`10` observed bare Unitree publishers versus `9`
-expected) is resolved and a separate supervised-motion approval is received.
+short-low-speed-goal prompt. The repository now contains a strict Go2 v1.1.15
+baseline correction for the observed ten anonymous publishers, but C4 remains
+blocked until that focused commit is deployed to both control endpoints,
+stationary readiness is revalidated and a separate supervised-motion approval
+is received.

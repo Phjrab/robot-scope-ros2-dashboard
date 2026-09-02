@@ -123,6 +123,22 @@ Robot-side private environment is based on
 `deploy/robot-scope-control-bridge-robot-side.env.example` and receives the
 same Bridge shared key without logging or committing it.
 
+### Go2 v1.1.15 graph baseline
+
+The active `go2` profile pins `expected_bare_sport_publishers` to exactly
+`10`. This is a firmware-specific baseline for the operator-confirmed Go2
+body software v1.1.15. A stationary robot-side Foxy audit on 2026-09-02 found
+one Robot Scope publisher, zero foreign named publishers and the same ten
+anonymous Unitree DDS endpoint GIDs in five consecutive graph samples. The
+previous value of nine predated the v1.1.15 upgrade and held the Bridge
+fail-closed after that upgrade.
+
+This is not a range and is not learned at runtime. Nine or eleven anonymous
+publishers, any named foreign publisher, a missing Robot Scope publisher, or
+an inconsistent total still makes readiness false and prevents Move. A robot
+running another body firmware must receive a separately reviewed exact
+profile baseline; it must not reuse or automatically alter this value.
+
 ## Hardware acceptance gate
 
 Software tests do not authorize motion. With the robot stationary and the

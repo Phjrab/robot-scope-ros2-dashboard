@@ -19,9 +19,13 @@ change network configuration, delete/edit a map or start a Mission in C4.
 - C3 initial-pose-only and localized no-goal acceptance is `PASS` on the exact
   deployed commit and exact managed map/revision.
 - Resolve the existing Control Bridge publisher-cardinality mismatch first.
-  The bridge must be authenticated and ready with its expected publisher
-  counts; `manager_closed`, bridge unavailable or any foreign/ambiguous Sport
-  publisher blocks C4.
+  Repository configuration now pins the operator-confirmed Go2 v1.1.15
+  baseline to exactly ten anonymous Unitree publishers, but this does not
+  satisfy the gate until the same focused commit is deployed to both control
+  endpoints and a stationary lifecycle check proves one Robot Scope
+  publisher, zero foreign named publishers, ten anonymous Unitree publishers
+  and eleven total publishers. `manager_closed`, bridge unavailable or any
+  foreign/ambiguous Sport publisher blocks C4.
 - Robot battery, LowState and joint telemetry must be fresh. The robot must be
   standing and stationary in the confirmed map pose.
 - A physical remote/E-stop, safety observer and clear operating area must be

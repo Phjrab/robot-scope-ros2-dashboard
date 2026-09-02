@@ -63,7 +63,7 @@
     "bridge_command_timeout_s": 0.20,
     "bridge_status_timeout_s": 0.75,
     "telemetry_timeout_s": 0.5,
-    "expected_bare_sport_publishers": 9,
+    "expected_bare_sport_publishers": 10,
     "lease_timeout_s": 2.0,
     "bind_timeout_s": 4.0,
     "max_linear_accel": 0.8,

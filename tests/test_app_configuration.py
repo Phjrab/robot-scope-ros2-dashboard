@@ -1,3 +1,4 @@
+import json
 import stat
 import tempfile
 import unittest
@@ -91,6 +92,17 @@ class AppConfigurationTests(unittest.TestCase):
             Path(__file__).parents[1] / "config" / "go2.json"
         ).read_text(encoding="utf-8")
         self.assertIn('"pointcloud_frame_interval_s": 0.18', profile)
+
+    def test_go2_v115_profile_pins_exact_bare_sport_publisher_baseline(self):
+        profile = json.loads(
+            (Path(__file__).parents[1] / "config" / "go2.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            profile["control"]["expected_bare_sport_publishers"],
+            10,
+        )
 
 
 if __name__ == "__main__":
