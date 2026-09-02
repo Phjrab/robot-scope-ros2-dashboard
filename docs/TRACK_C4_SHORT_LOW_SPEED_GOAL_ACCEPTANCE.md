@@ -153,3 +153,8 @@ and prove NTP persistence. Separately resolve the 10 Hz health-margin problem
 without lowering the 10.0 Hz gate or republishing synthetic odometry. A new
 exact C4 approval is required after those prerequisites and a fresh route
 preview; this approval is consumed and must not be reused.
+
+Follow-up: the persistent network/NTP prerequisite was completed and verified
+after a real reboot on 2026-09-02. See
+`docs/MOUNTED_JETSON_NETWORK_TIME_ACCEPTANCE.md`. The separate 10 Hz
+controller-odometry margin remains unresolved.
