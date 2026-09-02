@@ -48,6 +48,13 @@ class FakeAgent:
                 "scan": True,
                 "odometry": True,
                 "tf": True,
+                "action_server": True,
+                "cmd_vel_publishers": 1,
+                "scan_publishers": 1,
+                "odometry_publishers": 1,
+                "controller_odometry_publishers": 1,
+                "runtime_health_publishers": 1,
+                "localization_publishers": 1,
             },
             "safety": {
                 "can_start": True,
@@ -726,6 +733,16 @@ class NavigationCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             "/robot_scope/nav/cmd_vel_raw",
         )
         self.assertFalse(view["localization_pipeline"]["owned_by_navigation"])
+        self.assertTrue(view["readiness"]["action_server"])
+        for key in (
+            "cmd_vel_publishers",
+            "scan_publishers",
+            "odometry_publishers",
+            "controller_odometry_publishers",
+            "runtime_health_publishers",
+            "localization_publishers",
+        ):
+            self.assertEqual(view["readiness"][key], 1)
 
     async def test_view_redacts_navigation_runtime_and_startup_diagnostics(self):
         private_path = "/private/robot-scope/navigation.yaml"

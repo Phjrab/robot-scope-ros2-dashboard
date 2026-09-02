@@ -2124,8 +2124,19 @@ class NavigationCoordinator:
                 "scan",
                 "odometry",
                 "tf",
+                "action_server",
             )
         }
+        for key in (
+            "cmd_vel_publishers",
+            "scan_publishers",
+            "odometry_publishers",
+            "controller_odometry_publishers",
+            "runtime_health_publishers",
+            "localization_publishers",
+        ):
+            value = runtime_readiness.get(key)
+            readiness[key] = value if type(value) is int else 0
         manager_available = bool(manager.get("available", False))
         runtime_available = bool(runtime.get("available", False))
         available = manager_available and runtime_available
