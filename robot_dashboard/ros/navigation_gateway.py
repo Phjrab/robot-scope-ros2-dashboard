@@ -1638,6 +1638,10 @@ class NavigationRosGateway:
             vx_limit = max(0.01, float(limits.get("vx_mps", 0.30)))
             vy_limit = max(0.01, float(limits.get("vy_mps", 0.20)))
             wz_limit = max(0.05, float(limits.get("wz_rps", 0.50)))
+            speed_scale = float(limits.get("default_speed_scale", 0.0))
+            if not math.isfinite(speed_scale) or not 0.10 <= speed_scale <= 1.0:
+                self.deactivate("navigation speed scale is invalid")
+                return
             bounded = {
                 "vx": max(-vx_limit, min(vx_limit, float(vx))),
                 "vy": max(-vy_limit, min(vy_limit, float(vy))),
@@ -1669,7 +1673,7 @@ class NavigationRosGateway:
                     vx=bounded["vx"] / vx_limit,
                     vy=bounded["vy"] / vy_limit,
                     wz=bounded["wz"] / wz_limit,
-                    speed_scale=1.0,
+                    speed_scale=speed_scale,
                     deadman=deadman,
                     client_age_s=0.0,
                 )
@@ -1677,7 +1681,10 @@ class NavigationRosGateway:
                 with self._navigation_lock:
                     if token == self._navigation_token:
                         self._navigation["last_cmd_at"] = now
-                        self._navigation["last_cmd"] = bounded
+                        self._navigation["last_cmd"] = {
+                            key: value * speed_scale
+                            for key, value in bounded.items()
+                        }
                         self._navigation["seq"] += 1
                 self._control_port.flush_outputs()
             except ControlError as exc:

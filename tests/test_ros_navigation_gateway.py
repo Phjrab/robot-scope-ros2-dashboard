@@ -35,7 +35,12 @@ class StubManager:
             "estop": {"latched": False},
             "action_guard": {"active": False},
             "lease": {"active": False, "input_source": None},
-            "limits": {"vx_mps": 0.30, "vy_mps": 0.20, "wz_rps": 0.50},
+            "limits": {
+                "vx_mps": 0.30,
+                "vy_mps": 0.20,
+                "wz_rps": 0.50,
+                "default_speed_scale": 0.35,
+            },
         }
 
     def snapshot(self):
@@ -232,6 +237,46 @@ class NavigationRosGatewayTests(unittest.TestCase):
         self.assertEqual(port.manager.submissions, [])
         self.assertEqual(port.published, [])
         self.assertEqual(port.events, [])
+
+    def test_active_navigation_applies_default_speed_scale_once(self):
+        port = StubControlPort()
+        navigation = gateway(port=port)
+        now = time.monotonic()
+        navigation._navigation_token = "navigation-test-token-long-enough"
+        navigation._navigation_binding = "navigation-binding"
+        navigation.state.update(
+            active=True,
+            state="armed",
+            goal={"state": "active", "goal_id": "g" * 32},
+        )
+        port.manager._snapshot["lease"] = {
+            "active": True,
+            "input_source": "navigation",
+        }
+        navigation._navigation_runtime_health_received = now
+        navigation._navigation_runtime_health.update(
+            ready=True,
+            cloud_fresh=True,
+            odom_fresh=True,
+            localized=True,
+        )
+        navigation._navigation_validated_receipts.update(
+            {
+                "/scan": now,
+                NAVIGATION_FAST_LIO_ODOM_TOPIC: now,
+                NAVIGATION_CONTROLLER_ODOM_TOPIC: now,
+                NAVIGATION_LOCALIZATION_POSE_TOPIC: now,
+            }
+        )
+
+        navigation.submit_velocity(0.20, 0.0, 0.0)
+
+        self.assertEqual(len(port.manager.submissions), 1)
+        _args, kwargs = port.manager.submissions[0]
+        self.assertAlmostEqual(kwargs["vx"], 0.20 / 0.30)
+        self.assertEqual(kwargs["speed_scale"], 0.35)
+        self.assertTrue(kwargs["deadman"])
+        self.assertAlmostEqual(navigation.state["last_cmd"]["vx"], 0.07)
 
     def test_ui_metric_ticks_cannot_open_validated_freshness_gate(self):
         ticks = []
