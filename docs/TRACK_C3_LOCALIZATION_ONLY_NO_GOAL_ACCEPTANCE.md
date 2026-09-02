@@ -6,8 +6,8 @@ Status date: 2026-09-02
 SOFTWARE_PASS
 DEPLOYMENT_STAGING_PASS
 C2_RECHECK_PASS
-INITIAL_POSE_ONCE_NOT_RUN
-LOCALIZED_NG1_NOT_RUN
+INITIAL_POSE_ONCE_PASS
+LOCALIZED_NG1_PASS
 GOAL_NOT_RUN
 LEASE_NOT_ACQUIRED
 MOTION_NOT_RUN
@@ -97,23 +97,23 @@ a control command.
 |---|---|
 | Exact live map/revision recheck | `PASS` — read from the production saved-map catalog on 2026-09-02 |
 | Resolution and image size | `PASS` — 0.05 m/cell, 297×156 |
-| Candidate x/y/yaw | `NOT_RUN` |
-| Cell value | `NOT_RUN` |
-| Robot-radius clearance | `NOT_RUN` |
-| Map preview | `NOT_RUN` |
-| Robot actual direction | `NOT_RUN` |
-| Exact request body shown | `NOT_RUN` |
-| Operator confirmation | `NOT_RUN` |
-| `/initialpose` publish count | `0` |
+| Candidate x/y/yaw | `PASS` — `(0.0, 0.0, 0.0)` |
+| Cell value | `PASS` — cell `(179, 41)` is free |
+| Robot-radius clearance | `PASS` — all 61 cells inside the configured 0.22 m radius are free |
+| Map preview | `PASS` — the managed-map geometry and exact candidate were shown before mutation |
+| Robot actual direction | `PASS` — operator confirmed the robot was at the mapping start and faced the same direction |
+| Exact request body shown | `PASS` — map ID/revision and nested x/y/yaw payload were shown before mutation |
+| Operator confirmation | `PASS` — exact confirmation `C3 초기 위치 x=0 y=0 yaw=0 발행 승인` received |
+| `/initialpose` publish count | `PASS` — runtime and application session both reported exactly `1` |
 
 No earlier general approval, C2 approval or automatically calculated pose is
 authorization to publish `/initialpose`.
 
-The map origin candidate `(x=0.0, y=0.0)` was evaluated without starting a
-localization session. Cell `(179, 41)` is free, and all 61 cells inside the
-configured 0.22 m robot radius are free. This geometric result is not an
-operator confirmation of the robot's physical location or heading; yaw and
-the final candidate remain `NOT_RUN` until that confirmation is received.
+The map origin candidate `(x=0.0, y=0.0)` was evaluated before starting the
+confirmation-gated session. Cell `(179, 41)` is free, and all 61 cells inside
+the configured 0.22 m robot radius are free. The operator then independently
+confirmed the robot's physical location and heading before the one-shot
+request was sent.
 
 ## Acceptance table
 
@@ -124,16 +124,16 @@ the final candidate remain `NOT_RUN` until that confirmation is received.
 | External dirty checkout preserved | `PASS` | read-only inventory; no in-place update or service switch |
 | Clean exact-commit staging | `PASS` | detached exact commit, source hashes checked; production checkout/service target unchanged |
 | C2 stationary NG0 recheck | `PASS` | staged checker returned `WAITING_FOR_INITIAL_POSE`, private raw command `quiet` |
-| Candidate pose validation and display | `NOT_RUN` | operator confirmation gate not reached |
-| Initial pose exactly once | `NOT_RUN` | publish count remains zero |
-| `map -> odom -> base_link` and `/amcl_pose` | `NOT_RUN` | requires confirmed initial pose |
-| Lifecycle and both costmaps | `NOT_RUN` | requires localized NG1 |
-| 60-second localized NG1 | `NOT_RUN` | requires confirmed initial pose |
+| Candidate pose validation and display | `PASS` | exact map/revision, `(0, 0, 0)`, free cell `(179, 41)` and 61/61 clearance cells shown before confirmation |
+| Initial pose exactly once | `PASS` | accepted once; session count `1`; no retry or replay |
+| `map -> odom -> base_link` and `/amcl_pose` | `PASS` | localized checker passed before and after the bounded observation |
+| Lifecycle and both costmaps | `PASS` | required lifecycle nodes active; global/local costmap publishers each exactly one during localized NG1 |
+| 60-second localized NG1 | `PASS` | 60/60 one-second API samples retained localization/readiness and exact-zero control; typed Sport monitor received no sample |
 | Goal and Mission | `NOT_RUN` | prohibited in C3 |
-| Lease/ARM/deadman/motion | `NOT_RUN` | prohibited; live evidence pending |
-| Reverse cleanup | `PASS` | pre-confirmation session stopped; external publishers/ports and mounted services returned inactive/zero |
-| Complete Python/JavaScript/e2e tests | `PASS` | Python 963, Playwright 32, Cockpit 86, Ruff, mypy and JS syntax PASS |
-| Commit and `origin main` push | `NOT_RUN` | only after acceptance evidence is complete |
+| Lease/ARM/deadman/motion | `PASS` | lease remained inactive, deadman false, dashboard command exact zero, `goal_allowed=false`, `motion_allowed=false`, nonzero raw-command count zero |
+| Reverse cleanup | `PASS` | localization session stopped, C3 Nav2/FAST-LIO/runtime owners exited, then production profile was restored to `go2-xt16-wireless` |
+| Complete Python/JavaScript/e2e tests | `PASS` | focused Python 29, venv Python 980, JavaScript 270, Playwright 32, Ruff and mypy PASS |
+| Commit and `origin main` push | `PASS` | this acceptance record and the unexecuted C4 prompt are committed together; exact SHA is retained in Git history and the final handoff |
 
 ## Live observation and cleanup
 
@@ -164,21 +164,70 @@ target with clean release `92117dd`; its post-deployment state was lease
 inactive, deadman false, exact-zero command, navigation `idle`, localization
 session `idle` and goal `idle`.
 
-`/amcl_pose`, localized TF/costmaps and NG1 remain `NOT_RUN`. During the later
-confirmation-gated run, any nonzero raw command or Sport request is an
-immediate `FAIL` and requires reverse cleanup. Missing or ambiguous evidence
-is `BLOCKED`, never `PASS`.
+The confirmation-gated run used the clean production release `92117dd` and
+the exact pinned map/revision above. The prelocalization checker first passed
+with `WAITING_FOR_INITIAL_POSE` and a quiet private raw-command topic. After
+the exact operator confirmation, the dashboard API published `(0, 0, 0)`
+once. The session moved through `localizing` to `localized`; its observed pose
+was approximately `(-0.0010, 0.0014, 0.00046)`. Both the immediate and final
+localized checker passed with connected `map -> odom -> base_link`, fresh
+`/amcl_pose`, active required lifecycle nodes, one publisher for each costmap
+and a quiet raw-command topic.
+
+The bounded observation collected 60/60 valid one-second API samples. Every
+sample kept the exact map/revision, localized state, initial-pose count one,
+goal `idle`, motion disabled, lease inactive, deadman false, dashboard command
+exact zero, nonzero raw-command count zero and all required readiness fields
+true. A simultaneous typed `unitree_api/msg/Request` subscription observed no
+`/api/sport/request` message for 60 seconds and exited only on the expected
+timeout. No goal, Mission, ARM or robot motion was requested.
+
+The localization health summary was `READY` immediately after convergence.
+The final API sample reported `DEGRADED` while all readiness and checker
+conditions remained valid; the adjacent cleanup snapshot showed odometry at
+9.985 Hz against a strict 10.0 Hz health threshold, with fresh age, low jitter,
+no jump/reset and connected TF. This is retained as a threshold-margin review
+item and was not hidden or used to relax any guard.
+
+The point-in-time resource snapshot reported about 156 MiB RSS for FAST-LIO,
+54 MiB for the navigation runtime and 21–29 MiB for each Nav2 child. The seven
+navigation runtime/child processes totalled about 197 MiB RSS. Dashboard CPU
+was 84.7%, FAST-LIO 30.3% and the navigation group about 49.3% at that instant;
+these are single multi-core samples, not averages, and require a later soak for
+capacity conclusions.
+
+Reverse cleanup set the localization session and shared pipeline to `idle`.
+All C3 Nav2, navigation-runtime, FAST-LIO and bridge processes were absent on
+the external host before operational restore. The temporary profile was
+restored from `go2-xt16-wireless-competition-fastlio` to
+`go2-xt16-wireless`, and the production service restarted from clean release
+`92117dd`. Its post-restore navigation session and goal are `idle`, lease is
+inactive, deadman false and command exact zero. The established dashboard
+startup policy then independently reacquired the XT16 preview path, so the
+Hesai UDP receiver and mounted XT16 relay are active under preview ownership;
+Nav2, FAST-LIO, wireless IMU sender and wireless odometry sender remain
+inactive. This preview reacquisition is not C3 residue.
 
 ## Changed files, tests, commit and push
 
 The preparatory map-pin update changed this acceptance record,
 `TRACK_C3_STATIONARY_INITIAL_POSE_NO_GOAL_PROMPT.md`, the exact constants in
 `scripts/check_competition_no_goal_ready.py`, and its C3 regression fixtures.
-Focused C3/C2 tests passed 29/29, JavaScript tests passed 270/270, and CI run
-`33609783794` passed. Local Python ran 976 tests with 975 passing and one
-pre-existing `fastapi` import error in `test_competition_state`; CI supplied
-the declared dependency and passed the full suite. Commit `92117dd` was pushed
-to `origin/main` and deployed as a clean release.
+Commit `92117dd` was pushed to `origin/main`, passed CI run `33609783794` and
+was deployed as a clean release. Documentation follow-up `6cdb9cb` passed CI
+run `33610758672` on both supported Python/Ubuntu jobs.
 
-The final hardware acceptance inventory and the later confirmation-gated C3
-commit will be recorded only after localized NG1 and reverse cleanup complete.
+For this confirmation-gated acceptance update, focused C2/C3 Python tests
+passed 29/29, JavaScript unit tests passed 270/270 and Playwright passed 32/32.
+The exact repository-workflow command using the host `python3` ran 976 tests:
+975 passed and `test_competition_state` could not import because that host
+interpreter lacks the declared `fastapi` dependency. The project virtual
+environment, which contains the declared dependencies, passed all 980 Python
+tests. Ruff reported all checks passed and mypy reported no issues in four
+source files. The first Playwright attempt was blocked before test collection
+by the sandbox's local-port restriction; the permitted rerun passed all 32.
+
+This confirmation-gated C3 update also adds the deliberately unexecuted C4
+short-low-speed-goal prompt. C4 remains blocked until a fresh control-bridge
+publisher-cardinality issue (`10` observed bare Unitree publishers versus `9`
+expected) is resolved and a separate supervised-motion approval is received.
