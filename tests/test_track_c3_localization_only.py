@@ -27,8 +27,8 @@ from robot_dashboard.ros.navigation_gateway import (
 )
 
 
-MAP_ID = "97bae189b35182c688cecb3c"
-MAP_REVISION = "60becc42ecb58aca30834c92ed4778e0a38d31562950524a5871808d225ae4ae"
+MAP_ID = "f292601e2c8b269eb635cb0f"
+MAP_REVISION = "7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93"
 PARAMETERS_REVISION = "a" * 64
 MAPPING_JOB_ID = "b" * 32
 NAVIGATION_JOB_ID = "c" * 32
@@ -214,7 +214,7 @@ class FakeJobs:
         self.map = {
             "id": map_id,
             "revision": map_revision,
-            "name": "map_20260813_125411",
+            "name": "map_20260902_161903_edited",
             "frame_id": "map",
         }
         return self.snapshot()
@@ -282,7 +282,7 @@ class FakeMaps:
         return types.SimpleNamespace(
             map_id=map_id,
             revision=revision,
-            name="map_20260813_125411",
+            name="map_20260902_161903_edited",
         )
 
     def resolve_annotation_goal(self, *_args):
@@ -551,7 +551,7 @@ class LocalizationGatewayTests(unittest.TestCase):
         return self.gateway.activate_localization_only(
             map_id=MAP_ID,
             map_revision=MAP_REVISION,
-            map_name="map_20260813_125411",
+            map_name="map_20260902_161903_edited",
         )
 
     def test_activation_never_acquires_control_lease(self):

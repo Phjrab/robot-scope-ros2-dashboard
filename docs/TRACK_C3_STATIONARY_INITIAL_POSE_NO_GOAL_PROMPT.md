@@ -17,8 +17,9 @@ fallback or start the onboard wireless odometry sender/receiver.
   rows must all be `PASS` on the deployed commit.
 - Robot is stationary with physical remote/E-stop and a safety observer.
 - Control lease inactive, DISARMED, deadman false and exact-zero command.
-- Exact managed map ID `97bae189b35182c688cecb3c` and revision
-  `60becc42ecb58aca30834c92ed4778e0a38d31562950524a5871808d225ae4ae`
+- Exact managed map `map_20260902_161903_edited`, ID
+  `f292601e2c8b269eb635cb0f` and revision
+  `7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93`
   are re-read from the live catalog. Abort if either changed.
 - A known-free initial pose with robot-radius clearance is selected and
   visually confirmed by the operator.

@@ -33,19 +33,19 @@ software-only evidence.
 
 | Item | Evidence |
 |---|---|
-| Repository baseline | `8406da8c174cda171d82f45c39724583e1ff0047` on `main` |
-| Baseline CI | GitHub Actions run `33571349263`, successful |
+| Repository baseline | `382a86585797d8735486f2e0990a5335cd137490` on `main` before the C3 map-pin update |
+| Baseline CI | GitHub Actions run `33606397403`, successful |
 | External production checkout | `/home/jetson_orin_nano/project/robot-scope`, old/dirty at `72e39c3f9517e9ba445ee2b8ddbcf6779bfe699b` |
-| Production symlink | `/home/jetson_orin_nano/robot-scope -> /home/jetson_orin_nano/project/robot-scope` |
-| Production service | temporarily stopped for the foreground candidate, then restored active from the unchanged old checkout; never redirected |
+| Production symlink | `/home/jetson_orin_nano/robot-scope -> /home/jetson_orin_nano/releases/robot-scope/382a865` |
+| Production service | active from clean release `382a865`; `ROBOT_SCOPE_DIR` and the reversible systemd release override point to that exact release |
 | Private environment | `/home/jetson_orin_nano/.config/robot-scope/control.env`, mode `0600`; content is not recorded here |
-| Clean staged path | `/home/jetson_orin_nano/releases/robot-scope/e28480efba9be8edc4294866159f2bbd71078137` |
-| Staged commit and hashes | `e28480efba9be8edc4294866159f2bbd71078137`; bundle SHA-256 `7345e3f970e0ede6a7a4735d5674b69491ae06085aabe58b41d77648696151e4` |
+| Clean production path | `/home/jetson_orin_nano/releases/robot-scope/382a865` |
+| Production commit | `382a86585797d8735486f2e0990a5335cd137490` |
 
 The old deployment checkout is preserved in place. C3 must not pull, reset,
-clean, overwrite or reuse it as a staging directory. The production service,
-default profile, symlink and port 8088 stay unchanged until a separate
-explicit production-switch decision.
+clean, overwrite or reuse it as a staging directory. The production service
+was switched separately after explicit operator approval; its default profile
+and port 8088 remain unchanged.
 
 ## Fixed bindings and pinned candidate
 
@@ -59,10 +59,10 @@ explicit production-switch decision.
 | Localization result | `/amcl_pose`, exactly one publisher required |
 | Private command monitor | `/robot_scope/nav/cmd_vel_raw` |
 | Sport monitor | `/api/sport/request` |
-| Managed map | `map_20260813_125411` |
-| Map ID | `97bae189b35182c688cecb3c` |
-| Map revision | `60becc42ecb58aca30834c92ed4778e0a38d31562950524a5871808d225ae4ae` |
-| Map metadata | 120×169, 0.05 m/cell; live revalidation still required |
+| Managed map | `map_20260902_161903_edited` |
+| Map ID | `f292601e2c8b269eb635cb0f` |
+| Map revision | `7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93` |
+| Map metadata | 297×156, 0.05 m/cell, origin (-8.97357559204, -2.05925989151, 0); 21,505 free, 24,827 occupied, 0 unknown cells |
 
 ## API and state contract
 
@@ -94,8 +94,8 @@ a control command.
 
 | Field | Value |
 |---|---|
-| Exact live map/revision recheck | `NOT_RUN` |
-| Resolution and image size | `NOT_RUN` |
+| Exact live map/revision recheck | `PASS` — read from the production saved-map catalog on 2026-09-02 |
+| Resolution and image size | `PASS` — 0.05 m/cell, 297×156 |
 | Candidate x/y/yaw | `NOT_RUN` |
 | Cell value | `NOT_RUN` |
 | Robot-radius clearance | `NOT_RUN` |

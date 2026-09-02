@@ -43,8 +43,8 @@ SPORT_TOPIC = "/api/sport/request"
 TIMEOUT = "/usr/bin/timeout"
 CONTROL_URL = "http://127.0.0.1:8088/api/v1/control"
 NAVIGATION_URL = "http://127.0.0.1:8088/api/v1/navigation"
-C3_MAP_ID = "97bae189b35182c688cecb3c"
-C3_MAP_REVISION = "60becc42ecb58aca30834c92ed4778e0a38d31562950524a5871808d225ae4ae"
+C3_MAP_ID = "f292601e2c8b269eb635cb0f"
+C3_MAP_REVISION = "7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93"
 
 
 class NoGoalError(RuntimeError):
