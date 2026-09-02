@@ -127,6 +127,32 @@
     return result;
   }
 
+  function replaceCellValue(grid, fromValue, toValue) {
+    if (!(grid instanceof Int8Array)) throw new TypeError('grid must be an Int8Array');
+    const beforeValue = normalizeCell(fromValue);
+    const afterValue = normalizeCell(toValue);
+    if (beforeValue === afterValue) return [];
+    const changes = [];
+    for (let index = 0; index < grid.length; index += 1) {
+      const before = normalizeCell(grid[index]);
+      if (before !== beforeValue) continue;
+      grid[index] = afterValue;
+      changes.push({ index, before, after: afterValue });
+    }
+    return changes;
+  }
+
+  function replaceUnknownWithConfirmation(grid, confirmAction) {
+    if (!(grid instanceof Int8Array)) throw new TypeError('grid must be an Int8Array');
+    if (typeof confirmAction !== 'function') throw new TypeError('confirmAction must be a function');
+    let count = 0;
+    for (const value of grid) count += normalizeCell(value) === CELL_UNKNOWN ? 1 : 0;
+    if (!count) return [];
+    const message = `미확인 셀 ${count.toLocaleString()}개를 모두 빈 공간으로 바꿀까요?\n\n`
+      + '미관측 장애물이 주행 가능 영역으로 해석될 수 있습니다. 실제 지도를 확인하고 필요한 영역을 다시 그린 뒤 별도 복사본으로 저장하세요. 원본 지도는 변경되지 않습니다.';
+    return confirmAction(message) ? replaceCellValue(grid, CELL_UNKNOWN, CELL_FREE) : [];
+  }
+
   return Object.freeze({
     CELL_UNKNOWN,
     CELL_FREE,
@@ -138,5 +164,7 @@
     interpolateCells,
     diffRuns,
     applyRuns,
+    replaceCellValue,
+    replaceUnknownWithConfirmation,
   });
 }));

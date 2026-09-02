@@ -44,6 +44,32 @@ test('edited cells serialize as compact ordered runs and reproduce the grid', ()
   assert.throws(() => editor.applyRuns(original, [{ start: 0, length: 1, value: 50 }]), /-1, 0 or 100/);
 });
 
+test('bulk replacement converts only current unknown cells and remains reversible', () => {
+  const original = Int8Array.from([-1, 0, 100, -1, 0, -1]);
+  const edited = original.slice();
+  const changes = editor.replaceCellValue(edited, editor.CELL_UNKNOWN, editor.CELL_FREE);
+  assert.deepEqual(Array.from(edited), [0, 0, 100, 0, 0, 0]);
+  assert.deepEqual(changes, [
+    { index: 0, before: -1, after: 0 },
+    { index: 3, before: -1, after: 0 },
+    { index: 5, before: -1, after: 0 },
+  ]);
+  for (const change of changes) edited[change.index] = change.before;
+  assert.deepEqual(Array.from(edited), Array.from(original));
+  assert.deepEqual(editor.replaceCellValue(edited, 0, 0), []);
+});
+
+test('unknown replacement confirmation warns before mutation and cancellation is inert', () => {
+  const cancelled = Int8Array.from([-1, 100]);
+  let warning = '';
+  assert.deepEqual(editor.replaceUnknownWithConfirmation(cancelled, (message) => { warning = message; return false; }), []);
+  assert.deepEqual(Array.from(cancelled), [-1, 100]);
+  assert.match(warning, /미관측 장애물이 주행 가능 영역으로 해석될 수 있습니다/);
+  const accepted = editor.replaceUnknownWithConfirmation(cancelled, () => true);
+  assert.deepEqual(accepted, [{ index: 0, before: -1, after: 0 }]);
+  assert.deepEqual(Array.from(cancelled), [0, 100]);
+});
+
 test('Saved Maps exposes PDF 09 conversion parameters, progress and safe background choice', () => {
   for (const id of [
     'mapConvertSource', 'mapConvertName', 'mapConvertZMin', 'mapConvertZMax',
@@ -99,7 +125,7 @@ test('conversion status is bound only to the reserved backend job id', () => {
 test('2D editor exposes brush, eraser, semantic values and non-destructive history', () => {
   for (const value of ['brush', 'eraser']) assert.match(indexSource, new RegExp(`data-map-editor-tool="${value}"`));
   for (const value of ['100', '0', '-1']) assert.match(indexSource, new RegExp(`data-map-editor-value="${value}"`));
-  for (const id of ['mapEditorBrushSize', 'mapEditorUndo', 'mapEditorRedo', 'mapEditorReset', 'mapEditorSaveName', 'mapEditorSave']) {
+  for (const id of ['mapEditorBrushSize', 'mapEditorUndo', 'mapEditorRedo', 'mapEditorReset', 'mapEditorUnknownToFree', 'mapEditorSaveName', 'mapEditorSave']) {
     assert.match(indexSource, new RegExp(`id="${id}"`));
   }
   assert.match(indexSource, /SAVE AS COPY/);
@@ -109,6 +135,21 @@ test('2D editor exposes brush, eraser, semantic values and non-destructive histo
   assert.match(appSource, /grid && \(!entry\.manageable \|\| entry\.editable !== true\) \? `\$\{fileLabel\} · 편집 불가`/);
   assert.match(appSource, /P5 8-bit trinary YAML·PGM 지도만 안전하게 편집/);
   assert.match(appSource, /안전을 위해 편집을 비활성화했습니다/);
+});
+
+test('unknown-to-free bulk action is explicit, warned, undoable and copy-only', () => {
+  assert.match(indexSource, /미확인 전체 → 빈 공간/);
+  assert.match(indexSource, /미관측 장애물도 주행 가능 영역으로 해석될 수 있습니다/);
+  const start = appSource.indexOf('function replaceUnknownMapEditorCells()');
+  const end = appSource.indexOf('\nasync function resetMapEditor()', start);
+  assert.ok(start >= 0 && end > start, 'bulk editor action must exist');
+  const action = appSource.slice(start, end);
+  assert.match(action, /window\.confirm/);
+  assert.match(action, /replaceUnknownWithConfirmation/);
+  assert.match(action, /session\.undo\.push\(patch\)/);
+  assert.match(action, /SAVE AS COPY/);
+  assert.doesNotMatch(action, /edited-copy|fetch\(|api\(/);
+  assert.match(appSource, /mapEditorUnknownToFree\.disabled = !interactive \|\| !session\?\.unknownCount/);
 });
 
 test('edited copy sends a strong source revision and compact runs, never a full grid', () => {

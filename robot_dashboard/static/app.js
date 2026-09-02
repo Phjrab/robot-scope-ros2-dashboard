@@ -189,7 +189,7 @@ const ui = {
   mapEditorBrushOutput: $('#mapEditorBrushOutput'),
   mapEditorUndo: $('#mapEditorUndo'),
   mapEditorRedo: $('#mapEditorRedo'),
-  mapEditorReset: $('#mapEditorReset'),
+  mapEditorReset: $('#mapEditorReset'), mapEditorUnknownToFree: $('#mapEditorUnknownToFree'),
   mapEditorSource: $('#mapEditorSource'),
   mapEditorStats: $('#mapEditorStats'),
   mapEditorSaveName: $('#mapEditorSaveName'),
@@ -1916,12 +1916,12 @@ function syncMapEditorUi() {
   ui.mapEditorBrushSize.disabled = !interactive;
   ui.mapEditorUndo.disabled = !interactive || !session?.undo.length;
   ui.mapEditorRedo.disabled = !interactive || !session?.redo.length;
-  ui.mapEditorReset.disabled = !interactive || !session?.changedCount;
+  ui.mapEditorReset.disabled = !interactive || !session?.changedCount; ui.mapEditorUnknownToFree.disabled = !interactive || !session?.unknownCount;
   ui.mapEditorSaveName.disabled = !interactive;
   ui.mapEditorSave.disabled = !interactive || !session?.changedCount || session?.sourceStale || !validSavedMapName(ui.mapEditorSaveName.value.trim());
   ui.mapEditorSource.textContent = available ? `SOURCE ${session.sourceName}` : 'SOURCE —';
   ui.mapEditorStats.textContent = available
-    ? `변경 ${session.changedCount.toLocaleString()} cells · ${session.width}×${session.height}`
+    ? `변경 ${session.changedCount.toLocaleString()} cells · 미확인 ${session.unknownCount.toLocaleString()} · ${session.width}×${session.height}`
     : '변경 0 cells';
   ui.mapEditorBrushOutput.textContent = `${ui.mapEditorBrushSize.value} cells`;
   if (mapEditorBusy) setStatePill(ui.mapEditorState, 'waiting', 'SAVING COPY');
@@ -1991,7 +1991,7 @@ function initializeMapEditor(meta, snapshot) {
       height: Number(snapshot.height),
       original: cells.slice(),
       cells,
-      changedCount: 0,
+      changedCount: 0, unknownCount: cells.reduce((count, value) => count + (value === mapEditorEngine.CELL_UNKNOWN ? 1 : 0), 0),
       undo: [],
       redo: [],
       stroke: null,
@@ -2036,7 +2036,7 @@ function recordMapEditorChanges(changes) {
     const original = session.original[change.index];
     const wasChanged = change.before !== original;
     const isChanged = change.after !== original;
-    if (wasChanged !== isChanged) session.changedCount += isChanged ? 1 : -1;
+    if (wasChanged !== isChanged) session.changedCount += isChanged ? 1 : -1; session.unknownCount += Number(change.after === mapEditorEngine.CELL_UNKNOWN) - Number(change.before === mapEditorEngine.CELL_UNKNOWN);
   }
   updateMapEditorSourcePixels(changes);
   scheduleMapEditorDraw();
@@ -2106,7 +2106,7 @@ function applyMapEditorPatch(patch, direction) {
     const original = session.original[item.index];
     const wasChanged = before !== original;
     const isChanged = after !== original;
-    if (wasChanged !== isChanged) session.changedCount += isChanged ? 1 : -1;
+    if (wasChanged !== isChanged) session.changedCount += isChanged ? 1 : -1; session.unknownCount += Number(after === mapEditorEngine.CELL_UNKNOWN) - Number(before === mapEditorEngine.CELL_UNKNOWN);
     session.cells[item.index] = after;
     changes.push({ index: item.index, before, after });
   }
@@ -2132,6 +2132,8 @@ function redoMapEditor() {
   session.undo.push(patch);
   syncMapEditorUi();
 }
+
+function replaceUnknownMapEditorCells() { const session = mapEditorSession; if (!session || mapEditorBusy || mapConversionPending || mapConversionCompleting || !session.unknownCount) return; const patch = mapEditorEngine.replaceUnknownWithConfirmation(session.cells, window.confirm.bind(window)); if (!patch.length) return; recordMapEditorChanges(patch); session.undo.push(patch); if (session.undo.length > 30) session.undo.shift(); session.redo = []; setMapEditorFeedback(`미확인 셀 ${patch.length.toLocaleString()}개를 빈 공간으로 바꿨습니다. 지도를 확인한 뒤 SAVE AS COPY로 저장하세요.`); syncMapEditorUi(); }
 
 async function resetMapEditor() {
   const session = mapEditorSession;
@@ -6670,7 +6672,7 @@ document.querySelectorAll('[data-map-editor-value]').forEach((button) => {
 ui.mapEditorBrushSize.addEventListener('input', syncMapEditorUi);
 ui.mapEditorUndo.addEventListener('click', undoMapEditor);
 ui.mapEditorRedo.addEventListener('click', redoMapEditor);
-ui.mapEditorReset.addEventListener('click', resetMapEditor);
+ui.mapEditorReset.addEventListener('click', resetMapEditor); ui.mapEditorUnknownToFree.addEventListener('click', replaceUnknownMapEditorCells);
 ui.mapEditorSaveName.addEventListener('input', syncMapEditorUi);
 ui.mapEditorSaveName.addEventListener('keydown', (event) => { if (event.key === 'Enter') saveMapEditorCopy(); });
 ui.mapEditorSave.addEventListener('click', saveMapEditorCopy);
