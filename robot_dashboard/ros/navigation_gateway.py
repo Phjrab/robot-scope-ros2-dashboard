@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import math
 import re
 import secrets
@@ -25,6 +26,9 @@ from ..localization_health import (
     build_calibration_assistant,
     classify_localization_health,
 )
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # Nav2 is remapped to this private ingress. A random/global /cmd_vel publisher
@@ -208,6 +212,23 @@ class NavigationRosGateway:
             "last_cmd": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
             "clear_costmaps": {"state": "idle", "error": None},
         }
+        self._localization_only: Dict[str, Any] = {
+            "active": False,
+            "mode": "localization_only",
+            "state": "idle",
+            "map_id": None,
+            "map_revision": None,
+            "map_name": "",
+            "initial_pose_count": 0,
+            "initial_pose": None,
+            "goal_allowed": False,
+            "motion_allowed": False,
+            "raw_command_count": 0,
+            "zero_command_count": 0,
+            "nonzero_command_count": 0,
+            "error": None,
+        }
+        self._localization_failure_callback: Callable[[str], None] | None = None
 
     @property
     def lock(self) -> threading.RLock:
@@ -537,6 +558,10 @@ class NavigationRosGateway:
                     raise LeaseBusy(
                         "another navigation session already owns the robot"
                     )
+                if self._localization_only.get("active"):
+                    raise LeaseBusy(
+                        "stop the localization-only session before navigation start"
+                    )
             control = self._control_port.manager.snapshot()
             if not control.get("configured") or control.get("closed"):
                 raise ControlDisabled("robot control is not configured")
@@ -587,6 +612,266 @@ class NavigationRosGateway:
             "ready": reason is None,
             "reason": None if reason is None else public_navigation_reason(reason),
         }
+
+    def localization_only_preflight(self) -> Dict[str, Any]:
+        """Validate a lease-free localization owner without arming control."""
+
+        with self._control_port.operation_lock:
+            self._control_port.ensure_target()
+            with self._navigation_lock:
+                if not self._navigation_transport_configured_locked():
+                    raise ControlDisabled("Nav2 ROS transport is unavailable")
+                goal_state = str(
+                    (self._navigation.get("goal") or {}).get("state", "idle")
+                )
+                if (
+                    self._navigation.get("active")
+                    or self._navigation_token
+                    or self._navigation_binding
+                    or goal_state in {"pending", "active", "canceling"}
+                ):
+                    raise LeaseBusy("a navigation session already owns the robot")
+                if self._localization_only.get("active"):
+                    raise LeaseBusy("a localization-only session is already active")
+                last_cmd = self._navigation.get("last_cmd") or {}
+                if any(
+                    float(last_cmd.get(key, 0.0) or 0.0) != 0.0
+                    for key in ("vx", "vy", "wz")
+                ):
+                    raise ControlNotReady("navigation command state is not zero")
+            control = self._control_port.manager.snapshot()
+            if control.get("closed"):
+                raise ControlDisabled("robot control manager is closed")
+            estop = control.get("estop") if isinstance(control.get("estop"), Mapping) else {}
+            if estop.get("latched"):
+                raise EmergencyStopLatched("dashboard software stop is latched")
+            action_guard = (
+                control.get("action_guard")
+                if isinstance(control.get("action_guard"), Mapping)
+                else {}
+            )
+            if action_guard.get("active"):
+                raise ControlNotReady("robot action safety window is active")
+            lease = control.get("lease") if isinstance(control.get("lease"), Mapping) else {}
+            if lease.get("active"):
+                raise LeaseBusy("another controller already owns the robot")
+            return {
+                "ready": True,
+                "lease_active": False,
+                "goal_allowed": False,
+                "motion_allowed": False,
+            }
+
+    def set_localization_failure_callback(
+        self,
+        callback: Callable[[str], None] | None,
+    ) -> None:
+        """Install the application owner notified after a fail-closed teardown."""
+
+        with self._navigation_lock:
+            self._localization_failure_callback = callback
+
+    def localization_only_state(self) -> Dict[str, Any]:
+        """Return the small lock-protected state used by control interlocks."""
+
+        with self._navigation_lock:
+            return {
+                "active": bool(self._localization_only.get("active")),
+                "state": str(self._localization_only.get("state", "idle")),
+            }
+
+    def fail_localization_only(self, reason: str) -> Dict[str, Any]:
+        """Close the runtime owner and synchronously notify its cleanup owner."""
+
+        with self._navigation_lock:
+            active = bool(self._localization_only.get("active"))
+            callback = self._localization_failure_callback
+        if not active:
+            return self.runtime_snapshot()
+        result = self.deactivate_localization_only(reason)
+        if callback is not None:
+            try:
+                callback(public_navigation_reason(reason))
+            except Exception:
+                LOGGER.exception("localization-only failure cleanup callback failed")
+        return result
+
+    def activate_localization_only(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        map_name: str = "",
+        ready_after: float = 0.0,
+    ) -> Dict[str, Any]:
+        """Bind one exact map for localization without acquiring any lease."""
+
+        identifier = str(map_id).strip()
+        revision = str(map_revision).strip().lower()
+        if not identifier or len(identifier) > 256:
+            raise CommandValidationError("localization map id is invalid")
+        if len(revision) != 64 or any(
+            char not in "0123456789abcdef" for char in revision
+        ):
+            raise CommandValidationError("localization map revision is invalid")
+        if (
+            isinstance(ready_after, bool)
+            or not isinstance(ready_after, (int, float))
+            or not math.isfinite(float(ready_after))
+            or float(ready_after) < 0.0
+        ):
+            raise CommandValidationError("localization readiness fence is invalid")
+        with self._control_port.operation_lock:
+            self.localization_only_preflight()
+            interlock = self._navigation_prelocalization_reason(
+                time.monotonic(),
+                ready_after=float(ready_after),
+            )
+            if interlock:
+                raise ControlNotReady(interlock)
+            with self._navigation_lock:
+                self._localization_only = {
+                    "active": True,
+                    "mode": "localization_only",
+                    "state": "waiting_initial_pose",
+                    "map_id": identifier,
+                    "map_revision": revision,
+                    "map_name": str(map_name)[:128],
+                    "initial_pose_count": 0,
+                    "initial_pose": None,
+                    "goal_allowed": False,
+                    "motion_allowed": False,
+                    "raw_command_count": 0,
+                    "zero_command_count": 0,
+                    "nonzero_command_count": 0,
+                    "error": None,
+                }
+                self._navigation["localization"] = {
+                    "state": "uninitialized",
+                    "pose": None,
+                }
+                self._navigation["seq"] += 1
+        return self.runtime_snapshot()
+
+    def deactivate_localization_only(
+        self,
+        reason: str = "localization_stop",
+    ) -> Dict[str, Any]:
+        """Clear only the lease-free localization owner and emit no command."""
+
+        public_reason = public_navigation_reason(reason)
+        normal_stop = reason in {"localization_stop", "operator_stop", "server_shutdown"}
+        with self._control_port.operation_lock:
+            with self._navigation_lock:
+                previous = dict(self._localization_only)
+                self._localization_only = {
+                    "active": False,
+                    "mode": "localization_only",
+                    "state": "idle" if normal_stop else "failed",
+                    "map_id": None,
+                    "map_revision": None,
+                    "map_name": "",
+                    "initial_pose_count": int(previous.get("initial_pose_count", 0) or 0),
+                    "initial_pose": previous.get("initial_pose"),
+                    "goal_allowed": False,
+                    "motion_allowed": False,
+                    "raw_command_count": int(previous.get("raw_command_count", 0) or 0),
+                    "zero_command_count": int(previous.get("zero_command_count", 0) or 0),
+                    "nonzero_command_count": int(previous.get("nonzero_command_count", 0) or 0),
+                    "error": None if normal_stop else public_reason,
+                }
+                self._navigation["localization"] = {
+                    "state": "uninitialized",
+                    "pose": None,
+                }
+                self._navigation["seq"] += 1
+        return self.runtime_snapshot()
+
+    def set_localization_only_initial_pose(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        x: object,
+        y: object,
+        yaw: object,
+    ) -> Dict[str, Any]:
+        """Publish one validated initial pose for the exact lease-free session."""
+
+        x_value, y_value, yaw_value = self.pose_values(x, y, yaw)
+        with self._control_port.operation_lock:
+            self.localization_only_preflight_active()
+            with self._navigation_lock:
+                session = self._localization_only
+                if (
+                    str(map_id) != str(session.get("map_id") or "")
+                    or str(map_revision).lower()
+                    != str(session.get("map_revision") or "").lower()
+                ):
+                    raise CommandValidationError(
+                        "localization map revision does not match the active session"
+                    )
+                if int(session.get("initial_pose_count", 0) or 0) != 0:
+                    raise CommandValidationError(
+                        "localization initial pose has already been published"
+                    )
+                if session.get("state") != "waiting_initial_pose":
+                    raise ControlDisabled("localization session is not waiting for an initial pose")
+                publisher = self._navigation_initial_pose_publisher
+            interlock = self._navigation_sensor_interlock_reason(
+                time.monotonic(),
+                require_localized=False,
+            )
+            if interlock:
+                raise ControlDisabled(interlock)
+            if publisher is None:
+                raise ControlDisabled("initial-pose publisher is unavailable")
+            node = self._node_getter()
+            try:
+                publisher_count = (
+                    int(node.count_publishers(NAVIGATION_INITIAL_POSE_TOPIC))
+                    if node
+                    else 0
+                )
+            except Exception:
+                publisher_count = 0
+            if publisher_count != 1:
+                raise ControlDisabled(
+                    "expected one initial-pose publisher, "
+                    f"found {publisher_count}"
+                )
+            message = self._new_stamped_pose(x_value, y_value, yaw_value)
+            message.pose.covariance = [0.0] * 36
+            message.pose.covariance[0] = 0.25
+            message.pose.covariance[7] = 0.25
+            message.pose.covariance[35] = 0.06853891945200942
+            publisher.publish(message)
+            with self._navigation_lock:
+                self._localization_only.update(
+                    state="localizing",
+                    initial_pose_count=1,
+                    initial_pose={"x": x_value, "y": y_value, "yaw": yaw_value},
+                )
+                self._navigation["localization"] = {
+                    "state": "localizing",
+                    "pose": {"x": x_value, "y": y_value, "yaw": yaw_value},
+                }
+                self._navigation["seq"] += 1
+        return self.runtime_snapshot()
+
+    def localization_only_preflight_active(self) -> Dict[str, Any]:
+        """Recheck the no-lease boundary for an existing localization owner."""
+
+        with self._navigation_lock:
+            if not self._localization_only.get("active"):
+                raise ControlDisabled("localization-only session is not active")
+            if self._navigation.get("active") or self._navigation_token:
+                raise LeaseBusy("navigation motion session is active")
+        control = self._control_port.manager.snapshot()
+        lease = control.get("lease") if isinstance(control.get("lease"), Mapping) else {}
+        if lease.get("active"):
+            raise LeaseBusy("a control lease is active")
+        return {"ready": True, "lease_active": False}
 
     @staticmethod
     def _navigation_cancel_handle(handle: Any) -> None:
@@ -752,8 +1037,15 @@ class NavigationRosGateway:
                 if topic in self._navigation_validated_receipts:
                     self._navigation_validated_receipts[topic] = 0.0
                 active = bool(self._navigation.get("active"))
+                localization_only_active = bool(
+                    self._localization_only.get("active")
+                )
             if active:
                 self.deactivate(f"invalid {topic} sample: {exc}")
+            elif localization_only_active:
+                self.fail_localization_only(
+                    f"invalid {topic} sample: {exc}"
+                )
             return
         self._tick(topic, observed_at)
 
@@ -1078,9 +1370,15 @@ class NavigationRosGateway:
                 self._navigation_validated_receipts[
                     NAVIGATION_LOCALIZATION_POSE_TOPIC
                 ] = 0.0
-            self.deactivate(
-                f"expected one localization pose publisher, found {publishers}"
-            )
+                active = bool(self._navigation.get("active"))
+                localization_only_active = bool(
+                    self._localization_only.get("active")
+                )
+            reason = f"expected one localization pose publisher, found {publishers}"
+            if active:
+                self.deactivate(reason)
+            elif localization_only_active:
+                self.fail_localization_only(reason)
             return
         try:
             pose = message.pose.pose
@@ -1107,20 +1405,31 @@ class NavigationRosGateway:
                     NAVIGATION_LOCALIZATION_POSE_TOPIC
                 ] = 0.0
                 active = bool(self._navigation.get("active"))
+                localization_only_active = bool(
+                    self._localization_only.get("active")
+                )
             if active:
                 self.deactivate(f"invalid localization pose: {exc}")
+            elif localization_only_active:
+                self.fail_localization_only(
+                    f"invalid localization pose: {exc}"
+                )
             return
         self._tick(NAVIGATION_LOCALIZATION_POSE_TOPIC, now)
         with self._navigation_lock:
             self._navigation_validated_receipts[
                 NAVIGATION_LOCALIZATION_POSE_TOPIC
             ] = now
-            if not self._navigation.get("active"):
+            if not self._navigation.get("active") and not self._localization_only.get(
+                "active"
+            ):
                 return
             self._navigation["localization"] = {
                 "state": "localized",
                 "pose": {"x": x, "y": y, "yaw": yaw},
             }
+            if self._localization_only.get("active"):
+                self._localization_only["state"] = "localized"
             self._navigation["seq"] += 1
 
     def _navigation_next_sequence_locked(self) -> int:
@@ -1384,7 +1693,14 @@ class NavigationRosGateway:
             if not all(math.isfinite(value) for value in values):
                 raise ValueError("non-finite Nav2 velocity")
         except (AttributeError, TypeError, ValueError):
-            self.deactivate("invalid Nav2 velocity")
+            with self._navigation_lock:
+                localization_only_active = bool(
+                    self._localization_only.get("active")
+                )
+            if localization_only_active:
+                self.fail_localization_only("invalid Nav2 velocity")
+            else:
+                self.deactivate("invalid Nav2 velocity")
             return
         node = self._node_getter()
         try:
@@ -1394,9 +1710,42 @@ class NavigationRosGateway:
         except Exception:
             publishers = 0
         if publishers != 1:
-            self.deactivate(
-                f"expected one Nav2 velocity publisher, found {publishers}"
+            with self._navigation_lock:
+                localization_only_active = bool(
+                    self._localization_only.get("active")
+                )
+            reason = f"expected one Nav2 velocity publisher, found {publishers}"
+            if localization_only_active:
+                self.fail_localization_only(reason)
+            else:
+                self.deactivate(reason)
+            return
+        with self._navigation_lock:
+            localization_only_active = bool(
+                self._localization_only.get("active")
             )
+            if localization_only_active:
+                self._localization_only["raw_command_count"] = min(
+                    int(self._localization_only.get("raw_command_count", 0) or 0)
+                    + 1,
+                    2**53 - 1,
+                )
+                nonzero = any(abs(value) > 1e-9 for value in values)
+                counter = (
+                    "nonzero_command_count" if nonzero else "zero_command_count"
+                )
+                self._localization_only[counter] = min(
+                    int(self._localization_only.get(counter, 0) or 0) + 1,
+                    2**53 - 1,
+                )
+                self._navigation["seq"] += 1
+            else:
+                nonzero = False
+        if localization_only_active:
+            if nonzero:
+                self.fail_localization_only(
+                    "non-zero Nav2 velocity observed during localization-only session"
+                )
             return
         self.submit_velocity(*values)
 
@@ -1918,6 +2267,7 @@ class NavigationRosGateway:
             control = self._control_port.manager.snapshot()
             with self._navigation_lock:
                 snapshot = copy.deepcopy(self._navigation)
+                localization_only = copy.deepcopy(self._localization_only)
                 configured = self._navigation_transport_configured_locked()
                 action_client = self._navigation_action_client
                 clear_clients = dict(self._navigation_clear_clients)
@@ -2010,10 +2360,11 @@ class NavigationRosGateway:
             and lease.get("input_source") in {"keyboard", "gamepad"}
         )
         active = bool(snapshot.get("active"))
+        localization_only_active = bool(localization_only.get("active"))
         localization_metrics = self._localization_metrics(runtime_health, now)
         localization_health = classify_localization_health(
             localization_metrics,
-            active=active,
+            active=active or localization_only_active,
             localized=str((snapshot.get("localization") or {}).get("state", "")) == "localized",
             thresholds=self._health_thresholds,
         )
@@ -2044,6 +2395,7 @@ class NavigationRosGateway:
             and bridge_ready
             and not manual_active
             and not active
+            and not localization_only_active
         )
         scan_ready = scan_fresh and topic_publishers["/scan"] == 1
         fast_odom_ready = (
@@ -2075,6 +2427,24 @@ class NavigationRosGateway:
             and fast_odom_ready
             and runtime_prelocalization_ready
         )
+        can_start_localization_only = bool(
+            configured
+            and target_supported
+            and not manual_active
+            and not active
+            and not localization_only_active
+            and not lease.get("active")
+        )
+        can_set_localization_only_initial_pose = bool(
+            localization_only_active
+            and localization_only.get("state") == "waiting_initial_pose"
+            and int(localization_only.get("initial_pose_count", 0) or 0) == 0
+            and scan_ready
+            and fast_odom_ready
+            and controller_odom_ready
+            and runtime_prelocalization_ready
+            and not lease.get("active")
+        )
         can_send_goal = bool(
             active
             and action_ready
@@ -2092,6 +2462,7 @@ class NavigationRosGateway:
         runtime_state = str(snapshot.get("state", "inactive"))
         cleanup_required = bool(
             active
+            or localization_only_active
             or navigation_lease_active
             or goal_state in {"pending", "active", "canceling"}
             or runtime_state in {"arming", "armed", "stopping"}
@@ -2147,8 +2518,20 @@ class NavigationRosGateway:
                     "can_start": can_start,
                     "can_set_initial_pose": can_set_initial_pose,
                     "can_send_goal": can_send_goal,
+                    "can_start_localization_only": can_start_localization_only,
+                    "can_set_localization_only_initial_pose": (
+                        can_set_localization_only_initial_pose
+                    ),
                     "blockers": blockers,
                 },
+                "session_mode": (
+                    "localization_only"
+                    if localization_only_active
+                    else "navigation"
+                    if active
+                    else "idle"
+                ),
+                "localization_session": localization_only,
                 "manual_control_active": manual_active,
                 "navigation_lease_active": navigation_lease_active,
                 "cleanup_required": cleanup_required,

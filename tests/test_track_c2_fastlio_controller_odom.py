@@ -61,6 +61,24 @@ def safe_control():
     }
 
 
+def safe_localization_navigation():
+    return {
+        "session_mode": "localization_only",
+        "localization_session": {
+            "active": True,
+            "mode": "localization_only",
+            "state": "localized",
+            "map_id": no_goal.C3_MAP_ID,
+            "map_revision": no_goal.C3_MAP_REVISION,
+            "initial_pose_count": 1,
+            "goal_allowed": False,
+            "motion_allowed": False,
+            "nonzero_command_count": 0,
+        },
+        "goal": {"state": "idle"},
+    }
+
+
 def sample(**changes):
     base = ControllerOdometrySample(
         stamp_ns=10_000_000_000,
@@ -285,7 +303,10 @@ class TrackC2NoGoalTests(unittest.TestCase):
         if values[:2] == (no_goal.TIMEOUT, "3") and "topic" in values:
             return completed(values, stdout="fresh sample\n")
         if "tf2_echo" in values:
-            if values[-2:] == ("odom", "base_link"):
+            if values[-2:] in {
+                ("odom", "base_link"),
+                ("map", "odom"),
+            }:
                 return completed(values, returncode=124, stdout="Translation:\nRotation:\n")
             return completed(values, returncode=124)
         if values[:2] == (no_goal.TIMEOUT, "2"):
@@ -309,6 +330,7 @@ class TrackC2NoGoalTests(unittest.TestCase):
                 environment=self.environment,
                 runner=self.runner,
                 control_fetcher=safe_control,
+                navigation_fetcher=safe_localization_navigation,
                 ros2="/opt/ros/humble/bin/ros2",
             )
 
@@ -339,6 +361,7 @@ class TrackC2NoGoalTests(unittest.TestCase):
                 environment=self.environment,
                 runner=staged_runner,
                 control_fetcher=safe_control,
+                navigation_fetcher=safe_localization_navigation,
                 ros2="/opt/ros/humble/bin/ros2",
             )
 

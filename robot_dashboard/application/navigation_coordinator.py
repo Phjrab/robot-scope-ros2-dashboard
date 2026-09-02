@@ -58,6 +58,17 @@ MANUAL_CONTROL_BLOCKING_PHASES = frozenset(
         "stopping",
     }
 )
+LOCALIZATION_SESSION_STATES = frozenset(
+    {
+        "idle",
+        "starting",
+        "waiting_initial_pose",
+        "localizing",
+        "localized",
+        "stopping",
+        "failed",
+    }
+)
 
 
 def _public_navigation_diagnostic(value: object) -> str | None:
@@ -84,6 +95,26 @@ def navigation_start_state() -> dict[str, Any]:
     }
 
 
+def localization_session_state() -> dict[str, Any]:
+    """Create one explicit lease-free localization session record."""
+
+    return {
+        "seq": 0,
+        "token": None,
+        "active": False,
+        "mode": "localization_only",
+        "state": "idle",
+        "map_id": None,
+        "map_revision": None,
+        "parameters_revision": None,
+        "initial_pose_count": 0,
+        "initial_pose": None,
+        "goal_allowed": False,
+        "motion_allowed": False,
+        "error": None,
+    }
+
+
 class NavigationAgentPort(Protocol):
     """Narrow application-facing port implemented by the RosAgent facade."""
 
@@ -99,6 +130,13 @@ class NavigationAgentPort(Protocol):
 
     def navigation_start_preflight(self) -> None: ...
 
+    def navigation_localization_only_preflight(self) -> dict[str, Any]: ...
+
+    def navigation_set_localization_failure_callback(
+        self,
+        callback: Callable[[str], None] | None,
+    ) -> None: ...
+
     def navigation_activate(
         self,
         *,
@@ -110,7 +148,32 @@ class NavigationAgentPort(Protocol):
 
     def navigation_deactivate(self, *, reason: str) -> dict[str, Any]: ...
 
+    def navigation_activate_localization_only(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        map_name: str,
+        ready_after: float,
+    ) -> dict[str, Any]: ...
+
+    def navigation_deactivate_localization_only(
+        self,
+        *,
+        reason: str,
+    ) -> dict[str, Any]: ...
+
     def navigation_set_initial_pose(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        x: float,
+        y: float,
+        yaw: float,
+    ) -> dict[str, Any]: ...
+
+    def navigation_set_localization_only_initial_pose(
         self,
         *,
         map_id: str,
@@ -253,11 +316,19 @@ class NavigationCoordinator:
         self._state_lock = threading.RLock()
         self._start = navigation_start_state()
         self._start_task: asyncio.Task[None] | None = None
+        self._localization_session = localization_session_state()
 
         previous_terminal = getattr(navigation_jobs, "on_terminal", None)
         if previous_terminal is not None and previous_terminal != self.handle_terminal:
             raise ValueError("navigation terminal callback already has another owner")
         navigation_jobs.on_terminal = self.handle_terminal
+        localization_failure_setter = getattr(
+            agent,
+            "navigation_set_localization_failure_callback",
+            None,
+        )
+        if callable(localization_failure_setter):
+            localization_failure_setter(self.handle_localization_failure)
 
     @property
     def coordination_lock(self) -> asyncio.Lock:
@@ -296,6 +367,97 @@ class NavigationCoordinator:
         with self._state_lock:
             return dict(self._start)
 
+    def localization_session(self) -> dict[str, Any]:
+        """Return the bounded public lease-free localization state."""
+
+        with self._state_lock:
+            result = dict(self._localization_session)
+        result.pop("token", None)
+        return result
+
+    def internal_localization_session(self) -> dict[str, Any]:
+        with self._state_lock:
+            return dict(self._localization_session)
+
+    def _update_localization_session(
+        self,
+        token: str,
+        state: str,
+        **updates: Any,
+    ) -> bool:
+        if state not in LOCALIZATION_SESSION_STATES:
+            raise ValueError("invalid localization-only state")
+        with self._state_lock:
+            if self._localization_session.get("token") != token:
+                return False
+            self._localization_session.update(
+                seq=int(self._localization_session.get("seq", 0) or 0) + 1,
+                state=state,
+                **updates,
+            )
+            return True
+
+    def _begin_localization_session(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        parameters_revision: str,
+    ) -> str:
+        token = self.begin_start()
+        with self._state_lock:
+            self._localization_session = {
+                "seq": int(self._localization_session.get("seq", 0) or 0) + 1,
+                "token": token,
+                "active": True,
+                "mode": "localization_only",
+                "state": "starting",
+                "map_id": map_id,
+                "map_revision": map_revision,
+                "parameters_revision": parameters_revision,
+                "initial_pose_count": 0,
+                "initial_pose": None,
+                "goal_allowed": False,
+                "motion_allowed": False,
+                "error": None,
+            }
+        return token
+
+    def _finish_localization_session(
+        self,
+        token: str | None,
+        *,
+        state: str,
+        error: str | None = None,
+        clear: bool = False,
+    ) -> None:
+        if state not in LOCALIZATION_SESSION_STATES:
+            raise ValueError("invalid localization-only state")
+        with self._state_lock:
+            current_token = self._localization_session.get("token")
+            if token is not None and current_token != token:
+                return
+            previous_seq = int(self._localization_session.get("seq", 0) or 0)
+            if clear:
+                previous = dict(self._localization_session)
+                self._localization_session = localization_session_state()
+                self._localization_session.update(
+                    seq=previous_seq + 1,
+                    state=state,
+                    initial_pose_count=int(
+                        previous.get("initial_pose_count", 0) or 0
+                    ),
+                    initial_pose=previous.get("initial_pose"),
+                    error=_public_navigation_diagnostic(error) if error else None,
+                )
+                return
+            self._localization_session.update(
+                seq=previous_seq + 1,
+                active=state not in {"idle", "failed"},
+                state=state,
+                error=_public_navigation_diagnostic(error) if error else None,
+            )
+
     def begin_start(self) -> str:
         """Reserve the one permitted localization/Nav2 startup transaction."""
 
@@ -305,6 +467,7 @@ class NavigationCoordinator:
                 or self._start.get("pending")
                 or self._start.get("phase") in {"active", "stopping"}
                 or self._start.get("mapping_owned")
+                or self._localization_session.get("active")
             ):
                 raise NavigationBusy("navigation is already active or starting")
             token = secrets.token_hex(16)
@@ -487,19 +650,23 @@ class NavigationCoordinator:
         """Report startup phases that must fence a new manual motion lease."""
 
         startup = self.internal_start_state()
+        localization = self.internal_localization_session()
         return bool(
             startup.get("pending")
             or startup.get("phase") in MANUAL_CONTROL_BLOCKING_PHASES
+            or localization.get("active")
         )
 
     def is_active(self) -> bool:
         """Return the complete cleanup union, failing closed on unreadable state."""
 
         startup = self.internal_start_state()
+        localization = self.internal_localization_session()
         startup_active = bool(
             startup.get("pending")
             or startup.get("mapping_owned")
             or startup.get("phase") in {"active", "stopping"}
+            or localization.get("active")
         )
         try:
             manager = self._jobs.snapshot()
@@ -667,10 +834,119 @@ class NavigationCoordinator:
             "navigation": await asyncio.to_thread(self.view),
         }
 
+    async def start_localization_only(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        parameters_revision: str,
+    ) -> dict[str, Any]:
+        """Start exact-map Nav2 localization without acquiring motion authority."""
+
+        manager = self._jobs
+        async with self._coordination_lock:
+            self._require_lifecycle_idle()
+            mapping_busy, _ = self._mapping.activity()
+            if mapping_busy:
+                raise NavigationBusy(
+                    "a mapping save, conversion, or pipeline transition is active"
+                )
+            preflight = await asyncio.to_thread(manager.snapshot)
+            pipeline_state = str(
+                (preflight.get("pipeline") or {}).get("state", "failed")
+            )
+            if pipeline_state in {"starting", "running", "stopping"}:
+                raise NavigationBusy("navigation is already active")
+            if not preflight.get("available"):
+                raise NavigationUnavailable("navigation prerequisites are unavailable")
+            if parameters_revision != preflight.get("parameters_revision"):
+                raise NavigationConflict(
+                    "navigation parameters changed; reload before starting"
+                )
+            source = await asyncio.to_thread(
+                self._saved_maps.resolve_navigation_map,
+                map_id,
+                map_revision,
+            )
+            await asyncio.to_thread(
+                self._agent.navigation_localization_only_preflight
+            )
+
+            mapping_snapshot = await asyncio.to_thread(self._mapping.snapshot)
+            mapping_pipeline = (
+                mapping_snapshot.get("pipeline")
+                if isinstance(mapping_snapshot.get("pipeline"), Mapping)
+                else {}
+            )
+            shared_pipeline_state = str(mapping_pipeline.get("state", "failed"))
+            if shared_pipeline_state == "stopped":
+                shared_pipeline_state = "idle"
+            if shared_pipeline_state not in {"idle", "failed", "running"}:
+                raise NavigationBusy("localization pipeline is changing state")
+            existing_mapping_job_id = mapping_pipeline.get("job_id")
+            if shared_pipeline_state == "running" and (
+                not isinstance(existing_mapping_job_id, str)
+                or JOB_ID_RE.fullmatch(existing_mapping_job_id) is None
+            ):
+                raise NavigationUnavailable(
+                    "localization pipeline ownership is unavailable"
+                )
+
+            token = self._begin_localization_session(
+                map_id=str(source.map_id),
+                map_revision=str(source.revision),
+                parameters_revision=parameters_revision,
+            )
+            if shared_pipeline_state == "running":
+                self.update_start(
+                    token,
+                    "waiting_localization",
+                    mapping_job_id=existing_mapping_job_id,
+                    mapping_owned=False,
+                )
+            coroutine = self._run_localization_only_start_operation(
+                token,
+                manager,
+                map_id=str(source.map_id),
+                map_revision=str(source.revision),
+                map_name=str(source.name),
+                parameters_revision=parameters_revision,
+                start_localization=shared_pipeline_state in {"idle", "failed"},
+                previous_mapping_job_id=(
+                    existing_mapping_job_id
+                    if isinstance(existing_mapping_job_id, str)
+                    else None
+                ),
+            )
+            try:
+                self._start_task = asyncio.create_task(
+                    coroutine,
+                    name="localization-only-start-operation",
+                )
+            except Exception:
+                coroutine.close()
+                self.reset_start(token)
+                self._finish_localization_session(
+                    token,
+                    state="failed",
+                    error="localization-only startup could not be scheduled",
+                    clear=True,
+                )
+                raise
+        return {
+            "accepted": True,
+            "pending": True,
+            "navigation": await asyncio.to_thread(self.view),
+        }
+
     async def stop(self) -> dict[str, Any]:
         """Fence, settle, and clean every START side effect before returning."""
 
         async with self._coordination_lock:
+            if self.internal_localization_session().get("active"):
+                raise NavigationConflict(
+                    "use localization stop for the localization-only session"
+                )
             token = self.request_start_cancel()
             task = self._start_task
             if task is not None and not task.done():
@@ -707,6 +983,109 @@ class NavigationCoordinator:
                 raise asyncio.CancelledError
         return {"navigation": await asyncio.to_thread(self.view)}
 
+    async def stop_localization_only(self) -> dict[str, Any]:
+        """Reverse-clean the lease-free session without issuing a robot stop."""
+
+        async with self._coordination_lock:
+            session = self.internal_localization_session()
+            token = session.get("token")
+            if not session.get("active") and not isinstance(token, str):
+                return {"navigation": await asyncio.to_thread(self.view)}
+            if isinstance(token, str):
+                self._update_localization_session(token, "stopping")
+            self.request_start_cancel()
+            task = self._start_task
+            if task is not None and not task.done():
+                task.cancel()
+                try:
+                    await asyncio.shield(task)
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
+                    self._logger.exception(
+                        "localization-only startup settlement failed"
+                    )
+            await self._perform_localization_only_cleanup(
+                token if isinstance(token, str) else None,
+                reason="localization_stop",
+            )
+        return {"navigation": await asyncio.to_thread(self.view)}
+
+    async def set_localization_only_initial_pose(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        x: object,
+        y: object,
+        yaw: object,
+        confirmed: bool,
+    ) -> dict[str, Any]:
+        """Validate and publish the session's sole operator-confirmed pose."""
+
+        if confirmed is not True:
+            raise NavigationPoseError(
+                "confirmed=true is required before publishing the initial pose"
+            )
+        async with self._coordination_lock:
+            self._require_lifecycle_idle()
+            session = self.internal_localization_session()
+            token = session.get("token")
+            if not session.get("active") or not isinstance(token, str):
+                raise NavigationBusy("localization-only session is not active")
+            if session.get("state") != "waiting_initial_pose":
+                raise NavigationConflict(
+                    "localization-only session is not waiting for an initial pose"
+                )
+            if int(session.get("initial_pose_count", 0) or 0) != 0:
+                raise NavigationConflict(
+                    "localization-only initial pose has already been published"
+                )
+            if (
+                map_id != session.get("map_id")
+                or map_revision != session.get("map_revision")
+            ):
+                raise NavigationConflict(
+                    "localization request does not match the pinned map"
+                )
+            if self._mapping.pipeline_state() != "running":
+                raise NavigationBusy(
+                    "shared Hesai + FAST-LIO localization pipeline is not running"
+                )
+            pose = await asyncio.to_thread(
+                self._jobs.validate_active_pose,
+                map_id=map_id,
+                map_revision=map_revision,
+                x=x,
+                y=y,
+                yaw=yaw,
+            )
+            runtime = await asyncio.to_thread(
+                self._agent.navigation_set_localization_only_initial_pose,
+                map_id=map_id,
+                map_revision=map_revision,
+                **pose,
+            )
+            runtime_session = (
+                runtime.get("localization_session")
+                if isinstance(runtime.get("localization_session"), Mapping)
+                else {}
+            )
+            if int(runtime_session.get("initial_pose_count", 0) or 0) != 1:
+                raise NavigationUnavailable(
+                    "localization runtime did not confirm exactly one initial pose"
+                )
+            self._update_localization_session(
+                token,
+                "localizing",
+                initial_pose_count=1,
+                initial_pose=dict(pose),
+            )
+        return {
+            "accepted": True,
+            "navigation": await asyncio.to_thread(self.view),
+        }
+
     async def set_initial_pose(
         self,
         *,
@@ -716,6 +1095,10 @@ class NavigationCoordinator:
         y: object,
         yaw: object,
     ) -> dict[str, Any]:
+        if self.internal_localization_session().get("active"):
+            raise NavigationConflict(
+                "use the localization-only initial-pose endpoint for this session"
+            )
         async with self._coordination_lock:
             self._require_lifecycle_idle()
             mapping_busy, _ = self._mapping.activity()
@@ -758,6 +1141,10 @@ class NavigationCoordinator:
         yaw: object,
         confirmed: bool,
     ) -> dict[str, Any]:
+        if self.internal_localization_session().get("active"):
+            raise NavigationConflict(
+                "navigation goal is unavailable during localization-only session"
+            )
         if confirmed is not True:
             raise NavigationPoseError(
                 "confirmed=true is required before sending a navigation goal"
@@ -786,6 +1173,10 @@ class NavigationCoordinator:
     ) -> dict[str, Any]:
         """Resolve a revision-pinned point then use the normal goal safety path."""
 
+        if self.internal_localization_session().get("active"):
+            raise NavigationConflict(
+                "navigation goal is unavailable during localization-only session"
+            )
         if confirmed is not True:
             raise NavigationPoseError(
                 "confirmed=true is required before sending a navigation goal"
@@ -1080,6 +1471,48 @@ class NavigationCoordinator:
         if manager_error is not None:
             raise manager_error
 
+    async def _perform_localization_only_cleanup(
+        self,
+        token: str | None,
+        *,
+        reason: str,
+    ) -> None:
+        """Stop only localization-owned processes and never emit motion output."""
+
+        try:
+            await asyncio.to_thread(
+                self._agent.navigation_deactivate_localization_only,
+                reason=reason,
+            )
+        except Exception:
+            self._logger.exception(
+                "localization-only stop could not reach the ROS agent"
+            )
+        manager_error: NavigationJobError | None = None
+        try:
+            await asyncio.to_thread(self._jobs.stop)
+        except NavigationJobError as exc:
+            manager_error = exc
+        cleanup_complete = True
+        if token is not None:
+            cleanup_complete = await self.cleanup_localization_dependency(token)
+        if cleanup_complete:
+            if token is not None:
+                self.reset_start(token)
+            self._finish_localization_session(
+                token,
+                state="idle",
+                clear=True,
+            )
+        else:
+            self._finish_localization_session(
+                token,
+                state="failed",
+                error="localization cleanup must be retried",
+            )
+        if manager_error is not None:
+            raise manager_error
+
     async def rollback_start(
         self,
         manager: NavigationJobsPort,
@@ -1095,6 +1528,25 @@ class NavigationCoordinator:
             await asyncio.to_thread(manager.stop)
         except Exception:
             self._logger.exception("navigation process rollback failed")
+
+    async def rollback_localization_only(
+        self,
+        token: str,
+        manager: NavigationJobsPort,
+        reason: str,
+    ) -> bool:
+        try:
+            await asyncio.to_thread(
+                self._agent.navigation_deactivate_localization_only,
+                reason=reason,
+            )
+        except Exception:
+            self._logger.exception("localization-only activation rollback failed")
+        try:
+            await asyncio.to_thread(manager.stop)
+        except Exception:
+            self._logger.exception("localization-only process rollback failed")
+        return await self.cleanup_localization_dependency(token)
 
     async def run_manager_start(
         self,
@@ -1128,6 +1580,34 @@ class NavigationCoordinator:
             raise
         except Exception:
             await self.rollback_start(manager, "navigation_start_failed")
+            raise
+
+    async def run_localization_only_manager_start(
+        self,
+        manager: NavigationJobsPort,
+        *,
+        map_id: str,
+        map_revision: str,
+        parameters_revision: str,
+    ) -> None:
+        """Settle the uncancellable manager start; outer owner performs cleanup."""
+
+        start_task = asyncio.create_task(
+            asyncio.to_thread(
+                manager.start,
+                map_id=map_id,
+                map_revision=map_revision,
+                parameters_revision=parameters_revision,
+            ),
+            name="localization-only-manager-start",
+        )
+        try:
+            await asyncio.shield(start_task)
+        except asyncio.CancelledError:
+            try:
+                await asyncio.shield(start_task)
+            except Exception:
+                pass
             raise
 
     async def run_activation(
@@ -1165,6 +1645,35 @@ class NavigationCoordinator:
             raise
         except Exception:
             await self.rollback_start(manager, "navigation_start_failed")
+            raise
+
+    async def run_localization_only_activation(
+        self,
+        manager: NavigationJobsPort,
+        *,
+        map_id: str,
+        map_revision: str,
+        map_name: str,
+        ready_after: float,
+    ) -> dict[str, Any]:
+        activation_task = asyncio.create_task(
+            asyncio.to_thread(
+                self._agent.navigation_activate_localization_only,
+                map_id=map_id,
+                map_revision=map_revision,
+                map_name=map_name,
+                ready_after=ready_after,
+            ),
+            name="localization-only-runtime-activate",
+        )
+        try:
+            await asyncio.shield(activation_task)
+            return await asyncio.to_thread(self.view)
+        except asyncio.CancelledError:
+            try:
+                await asyncio.shield(activation_task)
+            except Exception:
+                pass
             raise
 
     async def _run_start_operation(
@@ -1283,6 +1792,138 @@ class NavigationCoordinator:
             if self._start_task is asyncio.current_task():
                 self._start_task = None
 
+    async def _run_localization_only_start_operation(
+        self,
+        token: str,
+        manager: NavigationJobsPort,
+        *,
+        map_id: str,
+        map_revision: str,
+        map_name: str,
+        parameters_revision: str,
+        start_localization: bool,
+        previous_mapping_job_id: str | None,
+    ) -> None:
+        """Start no-command Nav2 and bind a distinct lease-free session."""
+
+        try:
+            if start_localization:
+                await self.start_localization_dependency(
+                    token,
+                    previous_job_id=previous_mapping_job_id,
+                )
+            if self.start_cancelled(token):
+                raise NavigationConflict("localization-only startup was stopped")
+            self.update_start(token, "waiting_localization")
+            self._update_localization_session(token, "starting")
+            await self.wait_localization_dependency(token)
+
+            if self.start_cancelled(token):
+                raise NavigationConflict("localization-only startup was stopped")
+            self.update_start(token, "starting_navigation")
+            start_fence = time.monotonic()
+            await self.run_localization_only_manager_start(
+                manager,
+                map_id=map_id,
+                map_revision=map_revision,
+                parameters_revision=parameters_revision,
+            )
+            started = await asyncio.to_thread(manager.snapshot)
+            started_pipeline = (
+                started.get("pipeline")
+                if isinstance(started.get("pipeline"), Mapping)
+                else {}
+            )
+            navigation_job_id = started_pipeline.get("job_id")
+            if (
+                str(started_pipeline.get("state", "failed")) != "running"
+                or not isinstance(navigation_job_id, str)
+                or JOB_ID_RE.fullmatch(navigation_job_id) is None
+            ):
+                raise NavigationUnavailable(
+                    "localization-only pipeline did not publish an ownership token"
+                )
+            if not self.update_start(
+                token,
+                "warming_navigation",
+                navigation_job_id=navigation_job_id,
+            ):
+                raise NavigationConflict("localization-only ownership expired")
+            await self.wait_prelocalization_ready(
+                manager,
+                ready_after=start_fence,
+            )
+            await self.wait_localization_dependency(token)
+            latest = await asyncio.to_thread(manager.snapshot)
+            if str((latest.get("pipeline") or {}).get("state", "failed")) != "running":
+                raise NavigationUnavailable(
+                    "localization-only pipeline stopped before activation"
+                )
+            await asyncio.to_thread(
+                self._agent.navigation_localization_only_preflight
+            )
+            if self.start_cancelled(token):
+                raise NavigationConflict("localization-only startup was stopped")
+            self.update_start(token, "activating")
+            await self.run_localization_only_activation(
+                manager,
+                map_id=map_id,
+                map_revision=map_revision,
+                map_name=map_name,
+                ready_after=start_fence,
+            )
+            if not self.commit_start(token):
+                raise NavigationConflict("localization-only startup was stopped")
+            if not self._update_localization_session(
+                token,
+                "waiting_initial_pose",
+            ):
+                raise NavigationConflict("localization-only ownership expired")
+        except asyncio.CancelledError:
+            cleanup_complete = await asyncio.shield(
+                self.rollback_localization_only(
+                    token,
+                    manager,
+                    "localization_start_cancelled",
+                )
+            )
+            self.finish_start_failure(
+                token,
+                "localization-only startup was stopped",
+                cleanup_complete=cleanup_complete,
+            )
+            self._finish_localization_session(
+                token,
+                state="failed",
+                error="localization-only startup was stopped",
+                clear=cleanup_complete,
+            )
+        except Exception as exc:
+            cleanup_complete = await self.rollback_localization_only(
+                token,
+                manager,
+                "localization_start_failed",
+            )
+            message = _public_navigation_diagnostic(exc) or "localization-only startup failed"
+            self.finish_start_failure(
+                token,
+                message,
+                cleanup_complete=cleanup_complete,
+            )
+            self._finish_localization_session(
+                token,
+                state="failed",
+                error=message,
+                clear=cleanup_complete,
+            )
+            self._logger.warning(
+                "localization-only background startup failed: %s",
+                message,
+            )
+        finally:
+            if self._start_task is asyncio.current_task():
+                self._start_task = None
+
     def handle_terminal(self, reason: str, job_id: str) -> None:
         """Synchronously close motion before one unexpected process teardown."""
 
@@ -1290,8 +1931,12 @@ class NavigationCoordinator:
         if fenced is None:
             return
         token, _ownership = fenced
+        localization_only = self.internal_localization_session()
         try:
-            self._agent.navigation_deactivate(reason=reason)
+            if localization_only.get("token") == token:
+                self._agent.navigation_deactivate_localization_only(reason=reason)
+            else:
+                self._agent.navigation_deactivate(reason=reason)
         except Exception:
             # A lost robot transport must never skip exact mapping cleanup.
             self._logger.exception("navigation terminal deactivation failed")
@@ -1301,6 +1946,42 @@ class NavigationCoordinator:
             reason,
             cleanup_complete=cleanup_complete,
             terminal_cleanup_owner=True,
+        )
+        if localization_only.get("token") == token:
+            self._finish_localization_session(
+                token,
+                state="failed",
+                error=reason,
+                clear=cleanup_complete,
+            )
+
+    def handle_localization_failure(self, reason: str) -> None:
+        """Synchronously reverse-clean a failed lease-free runtime session."""
+
+        localization = self.internal_localization_session()
+        token = localization.get("token")
+        if not localization.get("active") or not isinstance(token, str):
+            return
+        self.request_start_cancel()
+        manager_clean = True
+        try:
+            self._jobs.stop()
+        except Exception:
+            manager_clean = False
+            self._logger.exception("localization-only failure process cleanup failed")
+        cleanup_complete = (
+            self.cleanup_localization_dependency_sync(token) and manager_clean
+        )
+        self.finish_start_failure(
+            token,
+            reason,
+            cleanup_complete=cleanup_complete,
+        )
+        self._finish_localization_session(
+            token,
+            state="failed",
+            error=reason,
+            clear=cleanup_complete,
         )
 
     async def settle_startup(self) -> None:
@@ -1329,11 +2010,18 @@ class NavigationCoordinator:
         await self.settle_startup()
         startup = self.internal_start_state()
         token = startup.get("token")
+        localization = self.internal_localization_session()
         try:
-            await asyncio.to_thread(
-                self._agent.navigation_deactivate,
-                reason="server_shutdown",
-            )
+            if localization.get("active"):
+                await asyncio.to_thread(
+                    self._agent.navigation_deactivate_localization_only,
+                    reason="server_shutdown",
+                )
+            else:
+                await asyncio.to_thread(
+                    self._agent.navigation_deactivate,
+                    reason="server_shutdown",
+                )
         except Exception:
             self._logger.exception("navigation shutdown stop failed")
         await asyncio.to_thread(self._jobs.close)
@@ -1341,6 +2029,12 @@ class NavigationCoordinator:
             cleanup_complete = await self.cleanup_localization_dependency(token)
             if cleanup_complete:
                 self.reset_start(token)
+                if localization.get("token") == token:
+                    self._finish_localization_session(
+                        token,
+                        state="idle",
+                        clear=True,
+                    )
 
     def view(self) -> dict[str, Any]:
         """Merge process ownership and ROS readiness into the stable UI contract."""
@@ -1353,6 +2047,42 @@ class NavigationCoordinator:
             runtime = {}
 
         startup = self.start_state()
+        localization_session = self.localization_session()
+        runtime_localization_session = (
+            runtime.get("localization_session")
+            if isinstance(runtime.get("localization_session"), Mapping)
+            else {}
+        )
+        if localization_session.get("active") and runtime_localization_session.get(
+            "active"
+        ):
+            if (
+                runtime_localization_session.get("map_id")
+                == localization_session.get("map_id")
+                and runtime_localization_session.get("map_revision")
+                == localization_session.get("map_revision")
+            ):
+                runtime_state = str(runtime_localization_session.get("state", ""))
+                if runtime_state in LOCALIZATION_SESSION_STATES:
+                    localization_session["state"] = runtime_state
+                localization_session["initial_pose_count"] = int(
+                    runtime_localization_session.get("initial_pose_count", 0) or 0
+                )
+                localization_session["initial_pose"] = (
+                    runtime_localization_session.get("initial_pose")
+                    if isinstance(
+                        runtime_localization_session.get("initial_pose"), Mapping
+                    )
+                    else localization_session.get("initial_pose")
+                )
+                for key in (
+                    "raw_command_count",
+                    "zero_command_count",
+                    "nonzero_command_count",
+                ):
+                    localization_session[key] = int(
+                        runtime_localization_session.get(key, 0) or 0
+                    )
         startup_phase = str(startup.get("phase", "idle"))
         startup_pending = bool(startup.get("pending", False))
         manager_pipeline = (
@@ -1498,6 +2228,7 @@ class NavigationCoordinator:
             or runtime.get("map")
             or runtime_goal_active
             or runtime.get("navigation_lease_active")
+            or runtime_localization_session.get("active")
         )
         runtime_bindings = (
             runtime.get("bindings")
@@ -1535,8 +2266,26 @@ class NavigationCoordinator:
             ),
             "can_send_goal": bool(
                 running
+                and not localization_session.get("active")
                 and shared_mapping_state == "running"
                 and runtime_safety.get("can_send_goal", False)
+            ),
+            "can_start_localization_only": bool(
+                available
+                and not mapping_busy
+                and not startup_cleanup_required
+                and pipeline_state in {"idle", "failed"}
+                and runtime_safety.get("can_start_localization_only", False)
+            ),
+            "can_set_localization_only_initial_pose": bool(
+                running
+                and localization_session.get("active")
+                and localization_session.get("state") == "waiting_initial_pose"
+                and shared_mapping_state == "running"
+                and runtime_safety.get(
+                    "can_set_localization_only_initial_pose",
+                    False,
+                )
             ),
             "can_stop": bool(
                 manager_cleanup_required
@@ -1557,6 +2306,14 @@ class NavigationCoordinator:
             "readiness": readiness,
             "map": manager_map,
             "localization": localization_view,
+            "session_mode": (
+                "localization_only"
+                if localization_session.get("active")
+                else "navigation"
+                if runtime.get("active")
+                else "idle"
+            ),
+            "localization_session": localization_session,
             "goal": goal_view,
             "safety": safety,
             "command_topic": str(
@@ -1601,10 +2358,12 @@ class NavigationCoordinator:
 
 
 __all__ = [
+    "LOCALIZATION_SESSION_STATES",
     "MANUAL_CONTROL_BLOCKING_PHASES",
     "NAVIGATION_LOCALIZATION_READY_TIMEOUT_S",
     "NAVIGATION_START_READY_POLL_S",
     "NAVIGATION_START_READY_TIMEOUT_S",
     "NavigationCoordinator",
+    "localization_session_state",
     "navigation_start_state",
 ]

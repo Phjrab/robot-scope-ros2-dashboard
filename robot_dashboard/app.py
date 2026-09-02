@@ -51,6 +51,9 @@ from .api.models import (
     NavigationCancelRequest,
     NavigationClearCostmapsRequest,
     NavigationGoalRequest,
+    NavigationLocalizationPoseRequest,
+    NavigationLocalizationStartRequest,
+    NavigationLocalizationStopRequest,
     NavigationParameterPatchRequest,
     NavigationPoseRequest,
     NavigationStartRequest,
@@ -888,6 +891,69 @@ async def navigation_start(
         raise navigation_error(exc) from exc
     except ControlError as exc:
         raise navigation_agent_error(exc) from exc
+
+
+@app.post("/api/v1/navigation/localization/start", status_code=202)
+async def navigation_localization_start(
+    request: Request,
+    body: NavigationLocalizationStartRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    require_manual_operation_mode(RUNTIME)
+    require_mission_navigation_idle(
+        "active mission must stop before localization-only start"
+    )
+    try:
+        return await navigation_coordinator().start_localization_only(
+            map_id=body.map_id,
+            map_revision=body.map_revision,
+            parameters_revision=body.parameters_revision,
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SavedMapError as exc:
+        raise saved_map_error(exc) from exc
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
+    except ControlError as exc:
+        raise navigation_agent_error(exc) from exc
+
+
+@app.post("/api/v1/navigation/localization/initial-pose")
+async def navigation_localization_initial_pose(
+    request: Request,
+    body: NavigationLocalizationPoseRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    require_mission_navigation_idle(
+        "active mission must stop before localization initial pose"
+    )
+    try:
+        return await navigation_coordinator().set_localization_only_initial_pose(
+            map_id=body.map_id,
+            map_revision=body.map_revision,
+            confirmed=body.confirmed,
+            **body.pose.model_dump(),
+        )
+    except LifecycleTransitionBusy as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
+    except ControlError as exc:
+        raise navigation_agent_error(exc) from exc
+
+
+@app.post("/api/v1/navigation/localization/stop")
+async def navigation_localization_stop(
+    request: Request,
+    body: NavigationLocalizationStopRequest,
+) -> Dict[str, Any]:
+    del body
+    require_same_origin(request)
+    try:
+        return await navigation_coordinator().stop_localization_only()
+    except NavigationJobError as exc:
+        raise navigation_error(exc) from exc
 
 
 @app.post("/api/v1/navigation/stop")

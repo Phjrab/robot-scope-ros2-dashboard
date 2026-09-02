@@ -42,6 +42,9 @@ RAW_COMMAND_TOPIC = "/robot_scope/nav/cmd_vel_raw"
 SPORT_TOPIC = "/api/sport/request"
 TIMEOUT = "/usr/bin/timeout"
 CONTROL_URL = "http://127.0.0.1:8088/api/v1/control"
+NAVIGATION_URL = "http://127.0.0.1:8088/api/v1/navigation"
+C3_MAP_ID = "97bae189b35182c688cecb3c"
+C3_MAP_REVISION = "60becc42ecb58aca30834c92ed4778e0a38d31562950524a5871808d225ae4ae"
 
 
 class NoGoalError(RuntimeError):
@@ -50,6 +53,7 @@ class NoGoalError(RuntimeError):
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 ControlFetcher = Callable[[], Mapping[str, Any]]
+NavigationFetcher = Callable[[], Mapping[str, Any]]
 
 
 def _run(
@@ -83,6 +87,23 @@ def _fetch_control() -> Mapping[str, Any]:
     return payload
 
 
+def _fetch_navigation() -> Mapping[str, Any]:
+    try:
+        with urlopen(NAVIGATION_URL, timeout=3.0) as response:  # noqa: S310 - fixed loopback URL
+            if response.status != 200:
+                raise NoGoalError(
+                    "TRACK C NG1 BLOCKED: navigation status is unavailable"
+                )
+            payload = json.loads(response.read(1024 * 1024))
+    except (OSError, URLError, ValueError, json.JSONDecodeError) as exc:
+        raise NoGoalError(
+            "TRACK C NG1 BLOCKED: navigation status is unavailable"
+        ) from exc
+    if not isinstance(payload, Mapping):
+        raise NoGoalError("TRACK C NG1 BLOCKED: navigation status is invalid")
+    return payload
+
+
 def _control_is_stationary(fetcher: ControlFetcher) -> None:
     payload = fetcher()
     control = payload.get("control")
@@ -113,6 +134,44 @@ def _topic_has_publisher(topic: str, ros2: str, runner: Runner) -> None:
     match = re.search(r"^Publisher count:\s*(\d+)\s*$", result.stdout, re.MULTILINE)
     if result.returncode != 0 or match is None or int(match.group(1)) < 1:
         raise NoGoalError(f"TRACK C NO-GOAL BLOCKED: {topic} has no publisher")
+
+
+def _topic_has_exactly_one_publisher(topic: str, ros2: str, runner: Runner) -> None:
+    result = _run((ros2, "topic", "info", topic), runner=runner)
+    match = re.search(r"^Publisher count:\s*(\d+)\s*$", result.stdout, re.MULTILINE)
+    if result.returncode != 0 or match is None or int(match.group(1)) != 1:
+        raise NoGoalError(
+            f"TRACK C NO-GOAL BLOCKED: {topic} must have exactly one publisher"
+        )
+
+
+def _localization_session_is_safe(fetcher: NavigationFetcher) -> None:
+    payload = fetcher()
+    session = payload.get("localization_session")
+    goal = payload.get("goal")
+    if not isinstance(session, Mapping) or not isinstance(goal, Mapping):
+        raise NoGoalError("TRACK C NG1 BLOCKED: localization session status is invalid")
+    expected = {
+        "active": True,
+        "mode": "localization_only",
+        "state": "localized",
+        "map_id": C3_MAP_ID,
+        "map_revision": C3_MAP_REVISION,
+        "initial_pose_count": 1,
+        "goal_allowed": False,
+        "motion_allowed": False,
+    }
+    for key, value in expected.items():
+        if session.get(key) != value:
+            raise NoGoalError(
+                f"TRACK C NG1 BLOCKED: localization session {key} is invalid"
+            )
+    if str(payload.get("session_mode")) != "localization_only":
+        raise NoGoalError("TRACK C NG1 BLOCKED: session mode is not localization-only")
+    if str(goal.get("state", "idle")) != "idle":
+        raise NoGoalError("TRACK C NG1 BLOCKED: navigation goal state is not idle")
+    if int(session.get("nonzero_command_count", 0) or 0) != 0:
+        raise NoGoalError("TRACK C NG1 BLOCKED: non-zero raw command was observed")
 
 
 def _lifecycle_is_active(node: str, ros2: str, runner: Runner) -> None:
@@ -205,6 +264,7 @@ def check(
     environment: Mapping[str, str] = os.environ,
     runner: Runner = subprocess.run,
     control_fetcher: ControlFetcher = _fetch_control,
+    navigation_fetcher: NavigationFetcher = _fetch_navigation,
     ros2: str | None = None,
 ) -> dict[str, str]:
     if stage not in STAGES:
@@ -221,6 +281,8 @@ def check(
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: ros2 command is unavailable")
 
     _control_is_stationary(control_fetcher)
+    if stage == "localized" and profile == TRACK_C2_PROFILE:
+        _localization_session_is_safe(navigation_fetcher)
     _required_nodes_are_present(ros2_command, runner)
     active_nodes = (
         PRELOCALIZATION_ACTIVE_NODES if stage == "prelocalization" else LIFECYCLE_NODES
@@ -233,17 +295,20 @@ def check(
     )
     _topic_has_publisher("/map", ros2_command, runner)
     for topic in (*FRESH_TOPICS, controller_topic):
-        _topic_has_publisher(topic, ros2_command, runner)
+        _topic_has_exactly_one_publisher(topic, ros2_command, runner)
         _topic_has_fresh_sample(topic, ros2_command, runner)
 
     if not _transform_available("odom", "base_link", ros2_command, runner):
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: odom to base_link TF is disconnected")
     localized_tf = _transform_available("map", "base_link", ros2_command, runner)
     if stage == "localized":
+        if not _transform_available("map", "odom", ros2_command, runner):
+            raise NoGoalError("TRACK C NG1 BLOCKED: map to odom TF is disconnected")
         if not localized_tf:
             raise NoGoalError("TRACK C NG1 BLOCKED: map to base_link TF is disconnected")
         for topic in LOCALIZED_TOPICS:
-            _topic_has_publisher(topic, ros2_command, runner)
+            _topic_has_exactly_one_publisher(topic, ros2_command, runner)
+        _topic_has_fresh_sample("/amcl_pose", ros2_command, runner)
 
     raw_command_policy = _raw_command_is_quiet_or_zero(ros2_command, runner)
     _sport_request_is_quiet(ros2_command, runner)

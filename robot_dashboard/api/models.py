@@ -126,6 +126,14 @@ class NavigationStopRequest(StrictRequest):
     pass
 
 
+class NavigationLocalizationStartRequest(NavigationStartRequest):
+    pass
+
+
+class NavigationLocalizationStopRequest(StrictRequest):
+    pass
+
+
 class NavigationPose(StrictRequest):
     x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
     y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
@@ -136,6 +144,10 @@ class NavigationPoseRequest(StrictRequest):
     map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     pose: NavigationPose
+
+
+class NavigationLocalizationPoseRequest(NavigationPoseRequest):
+    confirmed: bool = Field(strict=True)
 
 
 class NavigationGoalRequest(NavigationPoseRequest):

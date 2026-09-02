@@ -13,7 +13,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
@@ -1018,6 +1018,36 @@ class RosAgent:
     def navigation_start_preflight(self) -> Dict[str, Any]:
         return self._navigation_gateway.start_preflight()
 
+    def navigation_localization_only_preflight(self) -> Dict[str, Any]:
+        return self._navigation_gateway.localization_only_preflight()
+
+    def navigation_set_localization_failure_callback(
+        self,
+        callback: Callable[[str], None] | None,
+    ) -> None:
+        self._navigation_gateway.set_localization_failure_callback(callback)
+
+    def navigation_activate_localization_only(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        map_name: str = "",
+        ready_after: float = 0.0,
+    ) -> Dict[str, Any]:
+        return self._navigation_gateway.activate_localization_only(
+            map_id=map_id,
+            map_revision=map_revision,
+            map_name=map_name,
+            ready_after=ready_after,
+        )
+
+    def navigation_deactivate_localization_only(
+        self,
+        reason: str = "localization_stop",
+    ) -> Dict[str, Any]:
+        return self._navigation_gateway.deactivate_localization_only(reason)
+
     def navigation_prelocalization_snapshot(
         self,
         *,
@@ -1139,6 +1169,23 @@ class RosAgent:
         yaw: object,
     ) -> Dict[str, Any]:
         return self._navigation_gateway.set_initial_pose(
+            map_id=map_id,
+            map_revision=map_revision,
+            x=x,
+            y=y,
+            yaw=yaw,
+        )
+
+    def navigation_set_localization_only_initial_pose(
+        self,
+        *,
+        map_id: str,
+        map_revision: str,
+        x: object,
+        y: object,
+        yaw: object,
+    ) -> Dict[str, Any]:
+        return self._navigation_gateway.set_localization_only_initial_pose(
             map_id=map_id,
             map_revision=map_revision,
             x=x,
@@ -1383,6 +1430,13 @@ class RosAgent:
         with self._navigation_lock:
             snapshot["navigation_active"] = bool(self._navigation.get("active"))
             snapshot["navigation_state"] = str(self._navigation.get("state", "inactive"))
+            localization_only = self._navigation_gateway.localization_only_state()
+            snapshot["localization_only_active"] = bool(
+                localization_only.get("active")
+            )
+            snapshot["localization_only_state"] = str(
+                localization_only.get("state", "idle")
+            )
         limits = snapshot.setdefault("limits", {})
         limits.update(
             {
@@ -1409,6 +1463,10 @@ class RosAgent:
                     if self._navigation.get("active"):
                         raise LeaseBusy(
                             "stop autonomous navigation before arming manual control"
+                        )
+                    if self._navigation_gateway.localization_only_state().get("active"):
+                        raise LeaseBusy(
+                            "stop localization-only before arming manual control"
                         )
                 return self._control_manager.acquire_lease(input_source)
             finally:

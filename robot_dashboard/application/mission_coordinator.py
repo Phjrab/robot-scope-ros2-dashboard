@@ -476,6 +476,13 @@ class MissionCoordinator:
 
     def _navigation_ready(self, mission: Mapping[str, Any]) -> dict[str, Any]:
         navigation = self._navigation.view()
+        localization_session = navigation.get("localization_session")
+        if isinstance(localization_session, Mapping) and localization_session.get(
+            "active"
+        ):
+            raise MissionConflict(
+                "mission start is unavailable during localization-only session"
+            )
         pipeline = navigation.get("pipeline") if isinstance(navigation.get("pipeline"), Mapping) else {}
         nav_map = navigation.get("map") if isinstance(navigation.get("map"), Mapping) else {}
         localization = navigation.get("localization") if isinstance(navigation.get("localization"), Mapping) else {}
@@ -550,6 +557,14 @@ class MissionCoordinator:
 
     async def start(self, mission_id: str) -> dict[str, Any]:
         async with self._operation_lock:
+            navigation = self._navigation.view()
+            localization_session = navigation.get("localization_session")
+            if isinstance(localization_session, Mapping) and localization_session.get(
+                "active"
+            ):
+                raise MissionConflict(
+                    "mission start is unavailable during localization-only session"
+                )
             mission = self._mission(mission_id)
             if mission["state"] in {"starting", "running"} and self._active_id == mission_id:
                 return {"mission": self._public(mission)}

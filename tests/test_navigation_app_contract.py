@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 APP_PATH = ROOT / "robot_dashboard" / "app.py"
+MODELS_PATH = ROOT / "robot_dashboard" / "api" / "models.py"
 NAVIGATION_COORDINATOR_PATH = (
     ROOT / "robot_dashboard" / "application" / "navigation_coordinator.py"
 )
@@ -52,6 +53,7 @@ class NavigationAppContractTests(unittest.TestCase):
         self.app_tree = parsed(APP_PATH)
         self.app_functions = functions(self.app_tree)
         self.navigation_tree = parsed(NAVIGATION_COORDINATOR_PATH)
+        self.models_tree = parsed(MODELS_PATH)
         self.navigation_methods = class_functions(
             self.navigation_tree,
             "NavigationCoordinator",
@@ -82,6 +84,9 @@ class NavigationAppContractTests(unittest.TestCase):
                 ("get", "/api/v1/navigation/parameters"),
                 ("patch", "/api/v1/navigation/parameters"),
                 ("post", "/api/v1/navigation/start"),
+                ("post", "/api/v1/navigation/localization/start"),
+                ("post", "/api/v1/navigation/localization/initial-pose"),
+                ("post", "/api/v1/navigation/localization/stop"),
                 ("post", "/api/v1/navigation/stop"),
                 ("post", "/api/v1/navigation/initial-pose"),
                 ("post", "/api/v1/navigation/goal"),
@@ -138,6 +143,9 @@ class NavigationAppContractTests(unittest.TestCase):
         mutations = (
             "update_navigation_parameters",
             "navigation_start",
+            "navigation_localization_start",
+            "navigation_localization_initial_pose",
+            "navigation_localization_stop",
             "navigation_stop",
             "navigation_initial_pose",
             "navigation_goal",
@@ -150,6 +158,28 @@ class NavigationAppContractTests(unittest.TestCase):
                 self.assertTrue(calls_name(node, "require_same_origin"))
                 self.assertIn("request", [argument.arg for argument in node.args.args])
 
+    def test_localization_only_api_is_explicit_and_confirmation_is_strict(self):
+        start = ast.unparse(self.app_functions["navigation_localization_start"])
+        pose = ast.unparse(
+            self.app_functions["navigation_localization_initial_pose"]
+        )
+        stop = ast.unparse(self.app_functions["navigation_localization_stop"])
+        self.assertIn("start_localization_only", start)
+        self.assertIn("require_manual_operation_mode", start)
+        self.assertIn("set_localization_only_initial_pose", pose)
+        self.assertIn("confirmed=body.confirmed", pose)
+        self.assertIn("stop_localization_only", stop)
+        self.assertNotIn("control_acquire", start + pose + stop)
+
+        model = next(
+            node
+            for node in self.models_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "NavigationLocalizationPoseRequest"
+        )
+        model_source = ast.unparse(model)
+        self.assertIn("confirmed: bool = Field(strict=True)", model_source)
+
     def test_both_pipeline_directions_use_one_coordination_lock(self):
         main_source = ast.unparse(self.app_functions["main"])
         shared_argument = "coordination_lock=RUNTIME.pipeline_coordination_lock"
@@ -159,6 +189,9 @@ class NavigationAppContractTests(unittest.TestCase):
 
         for name in (
             "start",
+            "start_localization_only",
+            "stop_localization_only",
+            "set_localization_only_initial_pose",
             "stop",
             "set_initial_pose",
             "send_goal",
