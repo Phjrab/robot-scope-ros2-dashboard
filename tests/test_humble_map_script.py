@@ -43,6 +43,25 @@ class HumbleMapScriptTests(unittest.TestCase):
             'source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"',
             self.script,
         )
+        self.assertIn(
+            'source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"',
+            self.script,
+        )
+
+    def test_ros_profile_is_allowlisted_and_defaults_to_direct(self):
+        self.assertIn('MAP_PROFILE="${3:-direct}"', self.script)
+        self.assertIn(
+            '[[ "$MAP_PROFILE" != "direct" && "$MAP_PROFILE" != "wireless" ]]',
+            self.script,
+        )
+        result = subprocess.run(
+            ["bash", str(SCRIPT), "/tmp/map", "pcd", "request-value"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must be direct or wireless", result.stderr)
 
     def test_2d_conversion_has_no_external_ros_node_dependency(self):
         self.assertIn('"$PYTHON_BIN" "$CONVERTER_SCRIPT"', self.script)

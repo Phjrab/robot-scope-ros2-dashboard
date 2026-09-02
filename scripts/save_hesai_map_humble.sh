@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "$#" -ne 2 ]]; then
-  echo "usage: save_hesai_map_humble.sh OUTPUT_PREFIX {pcd|pcd-and-2d}" >&2
+if [[ "$#" -ne 2 && "$#" -ne 3 ]]; then
+  echo "usage: save_hesai_map_humble.sh OUTPUT_PREFIX {pcd|pcd-and-2d} [direct|wireless]" >&2
   exit 2
 fi
 if [[ "$2" != "pcd" && "$2" != "pcd-and-2d" ]]; then
-  echo "usage: save_hesai_map_humble.sh OUTPUT_PREFIX {pcd|pcd-and-2d}" >&2
+  echo "usage: save_hesai_map_humble.sh OUTPUT_PREFIX {pcd|pcd-and-2d} [direct|wireless]" >&2
+  exit 2
+fi
+MAP_PROFILE="${3:-direct}"
+if [[ "$MAP_PROFILE" != "direct" && "$MAP_PROFILE" != "wireless" ]]; then
+  echo "map save ROS profile must be direct or wireless" >&2
   exit 2
 fi
 
@@ -34,9 +39,14 @@ esac
 # ROS 2 and colcon-generated setup files are not safe to source while Bash's
 # nounset option is enabled (for example, they probe AMENT_TRACE_SETUP_FILES
 # and COLCON_TRACE before those variables exist). Keep strict mode for this
-# script, but suspend nounset only while importing trusted environment files.
+# script, but suspend nounset only while importing one repository-owned,
+# startup-profile-selected environment. The browser cannot supply this value.
 set +u
-source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
+if [[ "$MAP_PROFILE" == "wireless" ]]; then
+  source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
+else
+  source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
+fi
 set -u
 
 echo "[Robot Scope] capturing the fresh /Laser_map snapshot"

@@ -111,6 +111,13 @@ ros2 topic hz /Odometry
   디렉터리의 이전 prototype을 runtime으로 사용하지 않습니다.
 - Laser map 저장은 `scripts/save_map.py`, 2D 변환은
   `scripts/convert_pcd_to_occupancy.py`를 사용합니다.
+- 무선 XT16 Mapping에서 저장 명령이 즉시 `status 1`로 끝나고
+  `Unitree workspace setup is missing`이 기록되면 저장 프로세스가 유선
+  ROS 환경을 사용한 것입니다. 저장 recipe는 대시보드 시작 시 고정된
+  Mapping profile을 따라야 하며, 무선 profile은
+  `setup_wireless_mapping_ros2_humble.sh`, 유선 profile은
+  `setup_go2_ros2_humble.sh`만 사용합니다. 브라우저 요청으로 이 선택을
+  변경할 수 없습니다.
 - 홈 디렉터리의 이전 prototype이 실행되고 있지 않은지 확인합니다.
 - FAST-LIO가 참조하는 `xt16.yaml`과 실제 bridge field layout을 함께 확인합니다.
 - `/Laser_map`은 publisher 존재만이 아니라 비어 있지 않은 새 sample이어야 합니다.

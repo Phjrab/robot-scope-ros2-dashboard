@@ -70,6 +70,17 @@ class AppConfigurationTests(unittest.TestCase):
         self.assertIn('os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"', source)
         self.assertIn("runtime.mapping.start_preview", source)
 
+    def test_map_saver_uses_the_fixed_startup_mapping_profile(self):
+        source = (
+            Path(__file__).parents[1] / "robot_dashboard" / "app.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("map_save_ros_profile", source)
+        self.assertIn(
+            "{WIRELESS_MAPPING_PROFILE, COMPETITION_FASTLIO_MAPPING_PROFILE}",
+            source,
+        )
+        self.assertEqual(source.count("map_save_ros_profile,"), 2)
+
     def test_go2_dashboard_bounds_idle_pointcloud_processing_rate(self):
         profile = (
             Path(__file__).parents[1] / "config" / "go2.json"

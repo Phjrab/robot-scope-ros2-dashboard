@@ -1345,6 +1345,12 @@ def main() -> None:
         managed_roots=[mapping_output_dir],
     )
     map_file_limit = catalog.max_file_bytes
+    map_save_ros_profile = (
+        "wireless"
+        if args.mapping_profile
+        in {WIRELESS_MAPPING_PROFILE, COMPETITION_FASTLIO_MAPPING_PROFILE}
+        else "direct"
+    )
     mapping_manager = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
         output_dir=mapping_output_dir,
@@ -1356,7 +1362,12 @@ def main() -> None:
         ),
         save_commands={
             "pointcloud3d": SaveCommandSpec(
-                (str(save_script), "{output_prefix}", "pcd"),
+                (
+                    str(save_script),
+                    "{output_prefix}",
+                    "pcd",
+                    map_save_ros_profile,
+                ),
                 (".pcd",),
                 cwd=project_dir,
                 timeout_seconds=35,
@@ -1364,7 +1375,12 @@ def main() -> None:
                 max_result_bytes=map_file_limit,
             ),
             "pointcloud3d_2d": SaveCommandSpec(
-                (str(save_script), "{output_prefix}", "pcd-and-2d"),
+                (
+                    str(save_script),
+                    "{output_prefix}",
+                    "pcd-and-2d",
+                    map_save_ros_profile,
+                ),
                 (".pcd", ".yaml", ".pgm"),
                 cwd=project_dir,
                 timeout_seconds=90,
