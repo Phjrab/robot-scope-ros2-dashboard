@@ -31,6 +31,11 @@ The dashboard starts one observation-only preview after its ROS agent is ready:
 2. external Hesai driver using `config/hesai_xt16_wireless.yaml`;
 3. external C++ cloud-only bridge publishing `/velodyne_points`.
 
+For the two fixed wireless Mapping profiles this preview relies on its own
+management-interface, firewall, relay and cloud readiness gates; it does not
+require the external host to own the direct `192.168.123.99/24` Go2 DDS
+interface. Wired profiles retain that direct-interface startup requirement.
+
 That preview contains no IMU receiver, FAST-LIO, map accumulation, save, Nav2,
 control lease or motion authority. It lets Cockpit display fresh XT16 points
 before Mapping starts and remains running after Mapping stops. Dashboard

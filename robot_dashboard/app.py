@@ -1345,11 +1345,12 @@ def main() -> None:
         managed_roots=[mapping_output_dir],
     )
     map_file_limit = catalog.max_file_bytes
+    wireless_mapping_profile = args.mapping_profile in {
+        WIRELESS_MAPPING_PROFILE,
+        COMPETITION_FASTLIO_MAPPING_PROFILE,
+    }
     map_save_ros_profile = (
-        "wireless"
-        if args.mapping_profile
-        in {WIRELESS_MAPPING_PROFILE, COMPETITION_FASTLIO_MAPPING_PROFILE}
-        else "direct"
+        "wireless" if wireless_mapping_profile else "direct"
     )
     mapping_manager = MappingJobManager.for_robot_scope(
         project_dir=project_dir,
@@ -1358,7 +1359,10 @@ def main() -> None:
         enable_preview=bool(
             isinstance(RUNTIME.agent.profile.get("xt16_preview"), dict)
             and RUNTIME.agent.profile["xt16_preview"].get("enabled") is True
-            and os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"
+            and (
+                wireless_mapping_profile
+                or os.environ.get("ROBOT_SCOPE_DDS_INTERFACE_READY") == "1"
+            )
         ),
         save_commands={
             "pointcloud3d": SaveCommandSpec(
