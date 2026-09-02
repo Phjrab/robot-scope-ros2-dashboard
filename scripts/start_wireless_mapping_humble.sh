@@ -124,7 +124,7 @@ source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh" || \
   fail 63 "HESAI DRIVER WAITING"
 /usr/bin/python3 "$PROJECT_DIR/scripts/check_wireless_mapping_preflight.py" --stage relay || \
   fail 62 "XT16 PACKETS STALE"
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage bridge \
+/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage preview \
   --timeout "${ROBOT_SCOPE_WIRELESS_CLOUD_READY_TIMEOUT_SECONDS:-8}" || \
   fail 67 "CLOUD BRIDGE STALE"
 

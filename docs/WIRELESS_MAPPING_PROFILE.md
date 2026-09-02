@@ -43,9 +43,10 @@ shutdown stops only the preview-owned processes and a relay service that the
 preview itself started; service enablement is never changed.
 
 Preview readiness therefore checks only fresh converted `/velodyne_points`.
-The Mapping transaction retains the stricter combined `/velodyne_points` plus
-`/imu/body` bridge gate before FAST-LIO starts, so the preview-only gate cannot
-make an IMU-less Mapping session ready.
+The Mapping transaction rechecks that cloud, then starts and verifies the
+authenticated `/imu/body` path before FAST-LIO starts. Both inputs remain
+mandatory, so the preview-only gate cannot make an IMU-less Mapping session
+ready.
 
 One explicit Mapping start reuses the ready preview and adds this order:
 

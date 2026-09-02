@@ -250,9 +250,10 @@ class WirelessMappingProfileTests(unittest.TestCase):
         )
         mapping_order = (
             "--stage host-with-preview",
-            "--stage bridge",
+            "--stage preview",
             "--service imu --action ensure-started",
             "run_wireless_imu_receiver_humble.sh",
+            'check_xt16_lidar_ready.py" --stage imu',
             "run_hesai_fastlio_wireless_humble.sh",
         )
         for source, order in ((preview, preview_order), (mapping, mapping_order)):
@@ -280,6 +281,7 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertNotIn("--stage bridge", preview)
         self.assertNotIn("run_hesai_driver_wireless_humble.sh", mapping)
         self.assertNotIn("run_xt16_cloud_bridge_humble.sh", mapping)
+        self.assertNotIn("--stage bridge", mapping)
         self.assertNotIn("--service relay --action stop", mapping)
 
     def test_remote_forced_command_and_sudoers_are_exact(self):
