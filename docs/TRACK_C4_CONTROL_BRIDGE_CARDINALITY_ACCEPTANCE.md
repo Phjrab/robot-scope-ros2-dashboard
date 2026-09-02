@@ -7,8 +7,8 @@ ROOT_CAUSE_PASS
 STRICT_PROFILE_UPDATE_PASS
 HARDWARE_FREE_TESTS_PASS
 REPOSITORY_PUBLICATION_PASS
-DEPLOYMENT_NOT_RUN
-STATIONARY_LIFECYCLE_NOT_RUN
+DEPLOYMENT_PASS
+STATIONARY_LIFECYCLE_PASS
 MOTION_NOT_RUN
 ```
 
@@ -51,8 +51,8 @@ or an inconsistent total remains not ready.
 | Exact-ten regression | `PASS` | focused Bridge/profile tests and complete suites passed |
 | Nine/eleven rejection regression | `PASS` | strict mismatch and named-foreign cases remain not ready |
 | Focused commit and push | `PASS` | the focused commit containing this record is published on `origin/main` |
-| Deploy same commit to external and robot-side endpoints | `NOT_RUN` | service deployment is separate from Git publication |
-| Stationary authenticated-ready lifecycle | `NOT_RUN` | requires explicit service deployment/restart approval |
+| Deploy same commit to external and robot-side endpoints | `PASS` | both active release links resolve to clean `140db78`; both services restarted from that release after explicit approval |
+| Stationary authenticated-ready lifecycle | `PASS` | five consecutive samples retained authenticated READY, 1/0/10/11 graph counts, fresh LowState, no lease, released deadman and exact zero |
 | C4 short low-speed goal | `NOT_RUN` | requires all C4 gates and separate supervised-motion approval |
 
 ## Deployment gate
@@ -75,3 +75,52 @@ zero command. Any mismatch remains `BLOCKED` and no motion may follow.
   macOS baseline import error remained because the host interpreter lacks the
   declared `fastapi` dependency. The dependency-complete project virtual
   environment passed the same coverage.
+
+## Stationary deployment evidence
+
+After the explicit `APPROVE_C4_CARDINALITY_DEPLOY` approval, the exact
+`140db7821d29bcb4e4327989156242732695f094` Git archive was transferred to
+both Jetsons. Its SHA-256 was
+`73433a653e090045b87a86515f1dc441cd2cf9e966140a3aa72eb0a1a85bfbb0`.
+The existing dirty checkouts and prior clean releases were not modified.
+
+The external dashboard and robot-side Bridge now resolve respectively to:
+
+- `/home/jetson_orin_nano/releases/robot-scope/140db78`
+- `/home/unitree/releases/robot-scope/140db78`
+
+The first external restart correctly remained fail-closed because its private
+`ROBOT_SCOPE_DIR` still pinned the previous release even though systemd ran
+the new supervisor. That single private path was updated atomically after an
+exact old-value check, its mode remained `0600`, and the dashboard was
+restarted. No other private value was displayed or changed.
+
+Five consecutive one-second API samples then reported:
+
+| Field | Value in all five samples |
+|---|---:|
+| Bridge ready/authenticated | `true` / `true` |
+| own / foreign named / anonymous / total publishers | `1 / 0 / 10 / 11` |
+| lease active / deadman | `false` / `false` |
+| command x / y / yaw | `0.0 / 0.0 / 0.0` |
+
+The same snapshot reported fresh LowState, `navigation=idle`, `goal=idle` and
+no localization-only session. Robot-side Foxy graph inspection independently
+reported eleven publishers and one subscriber. The Bridge process command
+used the new release profile and its startup log required exactly ten
+anonymous Unitree publishers. No ARM, deadman, lease, navigation goal or
+motion command was issued during deployment or validation.
+
+## Rollback inventory
+
+- External previous release: `92117dd`; its former systemd override is stored
+  at `/var/tmp/robot-scope.service.release.conf.pre-140db78`.
+- External private environment backup:
+  `/home/jetson_orin_nano/.config/robot-scope/control.env.pre-140db78`, mode
+  `0600`.
+- Robot-side previous release: `c107d87`; its former override is stored at
+  `/var/tmp/robot-scope-control-bridge.release.conf.pre-140db78`.
+
+Rollback must restore each host's matching release pointer and configuration
+as one reviewed operation; mixing old and new expected counts must remain
+fail-closed.

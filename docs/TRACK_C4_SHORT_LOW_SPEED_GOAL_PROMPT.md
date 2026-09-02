@@ -26,6 +26,9 @@ change network configuration, delete/edit a map or start a Mission in C4.
   publisher, zero foreign named publishers, ten anonymous Unitree publishers
   and eleven total publishers. `manager_closed`, bridge unavailable or any
   foreign/ambiguous Sport publisher blocks C4.
+  This cardinality deployment gate passed on clean release `140db78` on
+  2026-09-02, but it does not authorize the remaining C4 startup or motion
+  steps and must be rechecked immediately before any approved goal.
 - Robot battery, LowState and joint telemetry must be fresh. The robot must be
   standing and stationary in the confirmed map pose.
 - A physical remote/E-stop, safety observer and clear operating area must be
