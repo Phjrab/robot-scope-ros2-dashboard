@@ -492,6 +492,14 @@ class StageState:
                     minimum_rate_hz=10.0,
                 ),
             }
+        elif stage == "preview":
+            self.gates = {
+                "/velodyne_points": FreshSequenceGate(
+                    required_frames=5,
+                    max_gap_seconds=0.40,
+                    minimum_rate_hz=4.0,
+                ),
+            }
         elif stage == "bridge":
             self.gates = {
                 "/velodyne_points": FreshSequenceGate(
@@ -543,7 +551,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--stage",
-        choices=("raw", "imu", "bridge", "fastlio"),
+        choices=("raw", "imu", "preview", "bridge", "fastlio"),
         default="raw",
     )
     parser.add_argument("--timeout", type=float, default=15.0)
@@ -603,15 +611,16 @@ def wait_for_ros_stage(
                 self._readiness_subscriptions.append(
                     self.create_subscription(Imu, "/imu/body", self.on_imu, qos)
                 )
-            elif options.stage == "bridge":
-                self._readiness_subscriptions.extend(
-                    (
-                        self.create_subscription(
-                            PointCloud2, "/velodyne_points", self.on_velodyne, qos
-                        ),
-                        self.create_subscription(Imu, "/imu/body", self.on_imu, qos),
+            elif options.stage in {"preview", "bridge"}:
+                self._readiness_subscriptions.append(
+                    self.create_subscription(
+                        PointCloud2, "/velodyne_points", self.on_velodyne, qos
                     )
                 )
+                if options.stage == "bridge":
+                    self._readiness_subscriptions.append(
+                        self.create_subscription(Imu, "/imu/body", self.on_imu, qos)
+                    )
             else:
                 self._readiness_subscriptions.extend(
                     (

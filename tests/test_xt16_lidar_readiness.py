@@ -312,6 +312,9 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
         imu = readiness.StageState("imu")
         self.assertEqual(set(imu.gates), {"/imu/body"})
         self.assertFalse(imu.ready)
+        preview = readiness.StageState("preview")
+        self.assertEqual(set(preview.gates), {"/velodyne_points"})
+        self.assertFalse(preview.ready)
         bridge = readiness.StageState("bridge")
         self.assertEqual(
             set(bridge.gates), {"/velodyne_points", "/imu/body"}
@@ -320,6 +323,16 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
         fastlio = readiness.StageState("fastlio")
         self.assertEqual(set(fastlio.gates), {"/Odometry", "/Laser_map"})
         self.assertFalse(fastlio.ready)
+
+    def test_preview_readiness_does_not_weaken_mapping_bridge_gate(self):
+        preview = readiness.StageState("preview")
+        bridge = readiness.StageState("bridge")
+        self.assertNotIn("/imu/body", preview.gates)
+        self.assertIn("/imu/body", bridge.gates)
+        self.assertEqual(
+            preview.gates["/velodyne_points"].required_frames,
+            bridge.gates["/velodyne_points"].required_frames,
+        )
 
     def test_empty_laser_map_is_safe_but_never_ticks_the_readiness_gate(self):
         gate = readiness.StageState("fastlio").gates["/Laser_map"]

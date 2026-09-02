@@ -42,6 +42,11 @@ before Mapping starts and remains running after Mapping stops. Dashboard
 shutdown stops only the preview-owned processes and a relay service that the
 preview itself started; service enablement is never changed.
 
+Preview readiness therefore checks only fresh converted `/velodyne_points`.
+The Mapping transaction retains the stricter combined `/velodyne_points` plus
+`/imu/body` bridge gate before FAST-LIO starts, so the preview-only gate cannot
+make an IMU-less Mapping session ready.
+
 One explicit Mapping start reuses the ready preview and adds this order:
 
 1. robot-side `robot-scope-wireless-imu-sender.service`;

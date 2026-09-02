@@ -142,7 +142,7 @@ done
 
 start_local "cloud bridge" "$LOG_DIR/wireless_cloud_bridge.log" \
   "$PROJECT_DIR/scripts/run_xt16_cloud_bridge_humble.sh"
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage bridge \
+/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage preview \
   --timeout "${ROBOT_SCOPE_WIRELESS_CLOUD_READY_TIMEOUT_SECONDS:-20}" || \
   fail 67 "CLOUD BRIDGE STALE"
 

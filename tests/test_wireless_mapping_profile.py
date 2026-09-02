@@ -276,6 +276,8 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertIn("post-bind reports", preview)
         self.assertNotIn("run_hesai_fastlio_wireless_humble.sh", preview)
         self.assertNotIn("--service imu", preview)
+        self.assertIn("--stage preview", preview)
+        self.assertNotIn("--stage bridge", preview)
         self.assertNotIn("run_hesai_driver_wireless_humble.sh", mapping)
         self.assertNotIn("run_xt16_cloud_bridge_humble.sh", mapping)
         self.assertNotIn("--service relay --action stop", mapping)
