@@ -4,14 +4,14 @@ Status date: 2026-09-02
 
 ```text
 SOFTWARE_PASS
-DEPLOYMENT_STAGING_NOT_RUN
-C2_RECHECK_NOT_RUN
+DEPLOYMENT_STAGING_PASS
+C2_RECHECK_PASS
 INITIAL_POSE_ONCE_NOT_RUN
 LOCALIZED_NG1_NOT_RUN
 GOAL_NOT_RUN
 LEASE_NOT_ACQUIRED
 MOTION_NOT_RUN
-CLEANUP_NOT_RUN
+CLEANUP_PASS
 ```
 
 ## Scope and immutable safety boundary
@@ -37,10 +37,10 @@ software-only evidence.
 | Baseline CI | GitHub Actions run `33571349263`, successful |
 | External production checkout | `/home/jetson_orin_nano/project/robot-scope`, old/dirty at `72e39c3f9517e9ba445ee2b8ddbcf6779bfe699b` |
 | Production symlink | `/home/jetson_orin_nano/robot-scope -> /home/jetson_orin_nano/project/robot-scope` |
-| Production service | active from the old checkout; not restarted or redirected by C3 staging |
+| Production service | temporarily stopped for the foreground candidate, then restored active from the unchanged old checkout; never redirected |
 | Private environment | `/home/jetson_orin_nano/.config/robot-scope/control.env`, mode `0600`; content is not recorded here |
-| Clean staged path | `NOT_RUN` |
-| Staged commit and hashes | `NOT_RUN` |
+| Clean staged path | `/home/jetson_orin_nano/releases/robot-scope/e28480efba9be8edc4294866159f2bbd71078137` |
+| Staged commit and hashes | `e28480efba9be8edc4294866159f2bbd71078137`; bundle SHA-256 `7345e3f970e0ede6a7a4735d5674b69491ae06085aabe58b41d77648696151e4` |
 
 The old deployment checkout is preserved in place. C3 must not pull, reset,
 clean, overwrite or reuse it as a staging directory. The production service,
@@ -115,8 +115,8 @@ authorization to publish `/initialpose`.
 | Repository implementation | `PASS` | distinct coordinator/gateway/API owner with no lease or output path |
 | Hardware-free focused tests | `PASS` | exact-map, one-shot, interlock, command isolation, cleanup and C2 checker coverage |
 | External dirty checkout preserved | `PASS` | read-only inventory; no in-place update or service switch |
-| Clean exact-commit staging | `NOT_RUN` | pending staged release preparation |
-| C2 stationary NG0 recheck | `NOT_RUN` | must precede candidate confirmation |
+| Clean exact-commit staging | `PASS` | detached exact commit, source hashes checked; production checkout/service target unchanged |
+| C2 stationary NG0 recheck | `PASS` | staged checker returned `WAITING_FOR_INITIAL_POSE`, private raw command `quiet` |
 | Candidate pose validation and display | `NOT_RUN` | operator confirmation gate not reached |
 | Initial pose exactly once | `NOT_RUN` | publish count remains zero |
 | `map -> odom -> base_link` and `/amcl_pose` | `NOT_RUN` | requires confirmed initial pose |
@@ -124,17 +124,40 @@ authorization to publish `/initialpose`.
 | 60-second localized NG1 | `NOT_RUN` | requires confirmed initial pose |
 | Goal and Mission | `NOT_RUN` | prohibited in C3 |
 | Lease/ARM/deadman/motion | `NOT_RUN` | prohibited; live evidence pending |
-| Reverse cleanup | `NOT_RUN` | live session not started |
-| Complete Python/JavaScript/e2e tests | `NOT_RUN` | run after live acceptance |
+| Reverse cleanup | `PASS` | pre-confirmation session stopped; external publishers/ports and mounted services returned inactive/zero |
+| Complete Python/JavaScript/e2e tests | `PASS` | Python 963, Playwright 32, Cockpit 86, Ruff, mypy and JS syntax PASS |
 | Commit and `origin main` push | `NOT_RUN` | only after acceptance evidence is complete |
 
 ## Live observation and cleanup
 
-Topics, QoS, rates, TF, `/amcl_pose`, lifecycle, costmaps, raw command/Sport
-monitoring, resource use and reverse-cleanup evidence are `NOT_RUN`. During a
-live run, any nonzero raw command or Sport request is an immediate `FAIL` and
-requires reverse cleanup. Missing or ambiguous evidence is `BLOCKED`, never
-`PASS`.
+The pre-confirmation C2 run observed one publisher for the fixed scan,
+FAST-LIO and canonical controller-odometry inputs. Cloud and odometry were
+approximately 10 Hz, IMU was approximately 500 Hz, frames were
+`camera_init -> body` and `odom -> base_link`, accepted points were about
+14,884–14,896, and clock offsets were about 22–31 ms. The exact checker
+verified no lease, deadman false, exact-zero dashboard command, quiet private
+raw command, no Sport request and `WAITING_FOR_INITIAL_POSE`.
+
+The first staged attempt failed closed before Nav2 because the clean source
+checkout did not contain the Git-ignored C++ dependency workspace. Relay,
+Hesai and IMU were healthy; `wireless_cloud_bridge.log` reported the missing
+binary. The already validated binary was then referenced temporarily with
+SHA-256 `99a56c3ff62c9f9ece51b4da80f85e5590b41a663eddd52fd8fec1d86dd332ec`.
+That dependency link was removed after the accepted C2 run, restoring a clean
+staged Git status.
+
+The accepted pre-confirmation session was explicitly stopped. External
+publishers for `/lidar_points`, `/imu/body`, `/velodyne_points`, `/Odometry`,
+canonical odometry, `/scan`, `/map` and the private command all returned zero;
+the fixed UDP ports had no listener. Mounted relay, IMU, odometry and Control
+Bridge services were inactive. The foreground candidate dashboard was then
+stopped and the production service returned active from its original old
+checkout.
+
+`/amcl_pose`, localized TF/costmaps and NG1 remain `NOT_RUN`. During the later
+confirmation-gated run, any nonzero raw command or Sport request is an
+immediate `FAIL` and requires reverse cleanup. Missing or ambiguous evidence
+is `BLOCKED`, never `PASS`.
 
 ## Changed files, tests, commit and push
 
