@@ -5,6 +5,7 @@ from types import SimpleNamespace as NS
 from robot_dashboard.serializers import (
     GO2_JOINT_ORDER,
     classify_type,
+    extract_go2_battery,
     extract_odometry_pose,
     extract_go2_imu_rpy,
     extract_go2_joint_positions,
@@ -35,6 +36,36 @@ class SerializerTests(unittest.TestCase):
         self.assertEqual(len(result["motor_position_rad"]), 12)
         self.assertEqual(result["motor_joint_order"], list(GO2_JOINT_ORDER))
         self.assertEqual(result["imu_rpy"], [1.0, 2.0, 3.0])
+
+    def test_lowstate_battery_projection_is_finite_bounded_and_type_scoped(self):
+        message = NS(
+            bms_state=NS(soc=83, current=-1200),
+            power_v=29.4567,
+            power_a=1.2345,
+        )
+        self.assertEqual(
+            extract_go2_battery(message, "unitree_go/msg/LowState"),
+            {
+                "battery_soc": 83,
+                "battery_current_ma": -1200,
+                "power_v": 29.457,
+                "power_a": 1.234,
+            },
+        )
+        self.assertEqual(
+            extract_go2_battery(message, "sensor_msgs/msg/BatteryState"),
+            {},
+        )
+
+        invalid = NS(
+            bms_state=NS(soc=101, current=math.inf),
+            power_v=-0.1,
+            power_a=True,
+        )
+        self.assertEqual(
+            extract_go2_battery(invalid, "unitree_go/msg/LowState"),
+            {},
+        )
 
     def test_lowstate_joint_positions_use_unitree_order_and_urdf_limits(self):
         raw = [0.1, 0.8, -1.6, -0.2, 0.9, -1.7, 0.3, 0.7, -1.8, -0.4, 0.6, -1.9]

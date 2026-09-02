@@ -396,6 +396,77 @@ class ControlTransportTests(unittest.TestCase):
                 expected_bare_sport_publishers=8,
             )
 
+    def test_signed_fresh_battery_telemetry_is_projected_without_motion_readiness(self):
+        transport = self.transport(expected_bare_sport_publishers=9)
+        self.send_status(
+            transport,
+            ready=False,
+            sport_publishers=10,
+            bare_unitree_sport_publishers=9,
+            expected_bare_sport_publishers=9,
+            lowstate_age_ms=25.0,
+            telemetry={
+                "battery": {
+                    "battery_soc": 72,
+                    "battery_current_ma": -950,
+                    "power_v": 28.7654,
+                    "power_a": 1.2345,
+                }
+            },
+        )
+
+        self.assertFalse(transport.manager.snapshot()["ready"])
+        sensor = transport.battery_sensor_snapshot()
+        self.assertIsNotNone(sensor)
+        self.assertEqual(sensor["topic"], "bridge://go2/lowstate/battery")
+        self.assertEqual(sensor["category"], "battery")
+        self.assertEqual(
+            sensor["values"],
+            {
+                "battery_soc": 72,
+                "battery_current_ma": -950,
+                "power_v": 28.765,
+                "power_a": 1.234,
+            },
+        )
+
+    def test_bridge_battery_telemetry_rejects_invalid_values_and_expires(self):
+        transport = self.transport()
+        invalid_values = (
+            {"battery_soc": 101},
+            {"battery_soc": True},
+            {"battery_soc": 50, "unexpected": 1},
+        )
+        for battery in invalid_values:
+            with self.subTest(battery=battery):
+                self.send_status(transport, telemetry={"battery": battery})
+                self.assertFalse(transport.status.get("authenticated", False))
+                self.assertIsNone(transport.battery_sensor_snapshot())
+        with self.assertRaisesRegex(
+            ControlProtocolError,
+            "battery telemetry is invalid",
+        ):
+            ControlTransport.status_telemetry(
+                {"telemetry": {"battery": {"battery_soc": math.nan}}}
+            )
+
+        self.send_status(
+            transport,
+            telemetry={"battery": {"battery_soc": 50}},
+        )
+        self.assertIsNotNone(transport.battery_sensor_snapshot())
+        transport.status_received = (
+            time.monotonic() - transport.status_timeout_s - 0.001
+        )
+        self.assertIsNone(transport.battery_sensor_snapshot())
+
+        self.send_status(
+            transport,
+            lowstate_age_ms=transport.lowstate_timeout_s * 1_000.0 + 0.001,
+            telemetry={"battery": {"battery_soc": 50}},
+        )
+        self.assertIsNone(transport.battery_sensor_snapshot())
+
     def test_epoch_rotation_revokes_lease_and_signs_stop_with_new_epoch(self):
         transport, node, _ = self.ready_setup()
         acquired = transport.manager.acquire_lease("keyboard")

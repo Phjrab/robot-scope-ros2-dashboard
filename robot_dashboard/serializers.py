@@ -167,6 +167,34 @@ def extract_go2_imu_rpy(message: Any, type_name: str) -> Optional[List[float]]:
     return result
 
 
+def extract_go2_battery(message: Any, type_name: str) -> Dict[str, Any]:
+    """Return only finite, physically bounded Go2 LowState battery fields."""
+
+    if not type_name.casefold().endswith("/lowstate"):
+        return {}
+
+    def bounded(value: Any, lower: float, upper: float, *, digits: int = 3) -> Any:
+        if isinstance(value, bool) or not isinstance(value, numbers.Real):
+            return None
+        result = float(value)
+        if not math.isfinite(result) or not lower <= result <= upper:
+            return None
+        if isinstance(value, numbers.Integral):
+            return int(value)
+        return round(result, digits)
+
+    bms = getattr(message, "bms_state", None)
+    values = {
+        "battery_soc": bounded(getattr(bms, "soc", None), 0.0, 100.0, digits=0),
+        "battery_current_ma": bounded(
+            getattr(bms, "current", None), -100_000.0, 100_000.0, digits=0
+        ),
+        "power_v": bounded(getattr(message, "power_v", None), 0.0, 100.0),
+        "power_a": bounded(getattr(message, "power_a", None), -100.0, 100.0),
+    }
+    return {key: value for key, value in values.items() if value is not None}
+
+
 def go2_joint_state_payload(
     *,
     topic: str,
@@ -371,14 +399,14 @@ def summarize_message(message: Any, type_name: str) -> Dict[str, Any]:
     """Return a JSON-safe, compact message summary."""
     if type_name.endswith("/LowState"):
         imu = getattr(message, "imu_state", None)
-        bms = getattr(message, "bms_state", None)
         motors = list(getattr(message, "motor_state", []))
         joint_positions = extract_go2_joint_positions(message, type_name)
+        battery = extract_go2_battery(message, type_name)
         return {
-            "battery_soc": int(getattr(bms, "soc", 0)) if bms else None,
-            "battery_current_ma": int(getattr(bms, "current", 0)) if bms else None,
-            "power_v": _number(getattr(message, "power_v", 0.0)),
-            "power_a": _number(getattr(message, "power_a", 0.0)),
+            "battery_soc": battery.get("battery_soc"),
+            "battery_current_ma": battery.get("battery_current_ma"),
+            "power_v": battery.get("power_v"),
+            "power_a": battery.get("power_a"),
             "imu_rpy": extract_go2_imu_rpy(message, type_name),
             "gyro": _vector(getattr(imu, "gyroscope", []), 3) if imu else [],
             "accel": _vector(getattr(imu, "accelerometer", []), 3) if imu else [],

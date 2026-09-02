@@ -54,6 +54,7 @@ from .go2_bridge import (
     SportRequest,
     classify_sport_request_publishers,
 )
+from .serializers import extract_go2_battery
 
 
 COMMAND_TOPIC = "/robot_scope/control/command"
@@ -90,6 +91,7 @@ class Go2ControlBridge(Node):
         )
         self._callback_group = MutuallyExclusiveCallbackGroup()
         self._last_lowstate = 0.0
+        self._lowstate_battery: dict[str, Any] = {}
         self._last_status = 0.0
         self._closing = False
         # ROS callbacks run in executor threads while signal-driven shutdown
@@ -203,8 +205,12 @@ class Go2ControlBridge(Node):
             message.data = encoded
             self._command_callback(message)
 
-    def _lowstate_callback(self, _: LowState) -> None:
+    def _lowstate_callback(self, message: LowState) -> None:
         self._last_lowstate = time.monotonic()
+        self._lowstate_battery = extract_go2_battery(
+            message,
+            "unitree_go/msg/LowState",
+        )
 
     def _command_callback(self, message: String) -> None:
         with self._operation_lock:
@@ -289,6 +295,7 @@ class Go2ControlBridge(Node):
                 "command_topic": COMMAND_TOPIC,
                 "request_topic": SPORT_REQUEST_TOPIC,
                 "lowstate_topic": self._lowstate_topic,
+                "telemetry": {"battery": dict(self._lowstate_battery)},
             }
         )
         message = String()

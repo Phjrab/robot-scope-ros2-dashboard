@@ -40,17 +40,34 @@ still visible and Go2 Bridge remains explicitly blocked/offline.
 
 ## Operator-driven mapping
 
+The dashboard preview owns only the restricted onboard XT16 relay, external
+Hesai driver and cloud-only bridge. This bounded preview starts with the
+dashboard so Cockpit can display live XT16 points before mapping begins. It
+does not start the IMU bridge, FAST-LIO, map, Nav2 or any control path.
+
 Mapping remains an explicit action on the Mapping page. `새 맵 시작` invokes
-the already allowlisted wireless mapping launcher. That launcher starts the
-restricted onboard XT16 relay and IMU sender, then the external Hesai driver,
-cloud bridge and FAST-LIO in transactional order. Stop performs reverse
-cleanup. Map save remains a separate explicit action and no map is deleted by
-connection or dashboard startup.
+the allowlisted wireless mapping launcher after rechecking the existing
+preview. The mapping session owns only the onboard IMU sender, external IMU
+receiver and FAST-LIO. Stop performs reverse cleanup of those mapping-owned
+processes while leaving the preview available. Map save remains a separate
+explicit action and no map is deleted by connection or dashboard startup.
 
 For clean release directories, the Git-ignored C++ bridge may be read from the
 fixed absolute `ROBOT_SCOPE_DEPENDENCY_WORKSPACE_ROOT`. The path cannot be `/`
 or relative. It does not change the generated-map directory or permit a
 request-provided executable.
+
+## Battery projection
+
+The external Orin does not subscribe directly to the Go2 LowState topic in
+this topology. The onboard Control Bridge therefore includes only four
+bounded battery fields in its existing signed status envelope: state of
+charge, battery current, voltage and current. Robot Scope accepts those fields
+only while both the authenticated bridge status and its LowState sample are
+within the existing freshness limits. Stale, unsigned, non-finite or
+out-of-range values are omitted instead of retaining the previous reading.
+This telemetry projection does not change Bridge readiness, control leases,
+deadman handling, publisher cardinality checks or motion authority.
 
 ## Deferred work
 

@@ -433,6 +433,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "total_sport_publishers",
             "lowstate_publishers",
             "transport",
+            "telemetry",
         )
         if key in internal_bridge
     }

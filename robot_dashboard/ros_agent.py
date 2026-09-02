@@ -2387,12 +2387,19 @@ class RosAgent:
         return self._camera_hub.catalog_snapshot()
 
     def state_snapshot(self) -> Dict[str, Any]:
+        bridge_battery = self._control_transport.battery_sensor_snapshot()
         with self._lock:
             sensors = []
             for topic, summary in self._summaries.items():
                 item = dict(summary)
                 item.update(self._metric_snapshot(topic, summary.get("category", "")))
                 sensors.append(item)
+            if bridge_battery is not None and not any(
+                sensor.get("category") == "battery"
+                or sensor.get("values", {}).get("battery_soc") is not None
+                for sensor in sensors
+            ):
+                sensors.append(bridge_battery)
             sources = dict(self._sources)
             camera_meta = {
                 key: value for key, value in self._camera_snapshot_locked().items() if key != "data"

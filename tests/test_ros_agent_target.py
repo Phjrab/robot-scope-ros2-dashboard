@@ -333,6 +333,50 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertTrue(health["ros_offline_viewer"])
         self.assertTrue(health["ros_transport"]["dedicated_interface_required"])
 
+    def test_state_uses_only_fresh_signed_bridge_battery_when_direct_ros_is_absent(self):
+        now = time.monotonic()
+        self.agent._network_cache = (now, True, 1.0)
+        with self.agent._control_transport.transport_lock:
+            self.agent._control_transport.status_received = now
+            self.agent._control_transport.status = {
+                "authenticated": True,
+                "lowstate_age_ms": 20.0,
+                "telemetry": {
+                    "battery": {
+                        "battery_soc": 64,
+                        "battery_current_ma": -700,
+                        "power_v": 28.4,
+                    }
+                },
+            }
+
+        battery = [
+            sensor
+            for sensor in self.agent.state_snapshot()["sensors"]
+            if sensor.get("values", {}).get("battery_soc") is not None
+        ]
+        self.assertEqual(len(battery), 1)
+        self.assertEqual(
+            battery[0]["topic"],
+            "bridge://go2/lowstate/battery",
+        )
+        self.assertEqual(battery[0]["values"]["battery_soc"], 64)
+
+        with self.agent._lock:
+            self.agent._summaries["/lowstate"] = {
+                "topic": "/lowstate",
+                "type": "unitree_go/msg/LowState",
+                "category": "robot_state",
+                "values": {"battery_soc": 63},
+            }
+        battery = [
+            sensor
+            for sensor in self.agent.state_snapshot()["sensors"]
+            if sensor.get("values", {}).get("battery_soc") is not None
+        ]
+        self.assertEqual(len(battery), 1)
+        self.assertEqual(battery[0]["topic"], "/lowstate")
+
     def test_direct_camera_is_exposed_without_mutating_ros_source_selection(self):
         sources = self.agent.sources_snapshot()
         self.assertEqual(

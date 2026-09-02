@@ -390,6 +390,7 @@ class ControlTransport:
                 lowstate_timeout_s=self.lowstate_timeout_s,
                 expected_bare_sport_publishers=self.expected_bare_sport_publishers,
             )
+            telemetry = self.status_telemetry(payload)
         except (ControlProtocolError, TypeError, ValueError) as exc:
             self.set_unready(f"rejected bridge status: {exc}")
             return
@@ -397,6 +398,7 @@ class ControlTransport:
         now = time.monotonic()
         available = bridge_ready and lowstate_ready
         status = dict(payload)
+        status["telemetry"] = telemetry
         status.update(
             {
                 "authenticated": True,
@@ -422,6 +424,89 @@ class ControlTransport:
                 bridge_ready=bridge_ready,
                 lowstate_ready=lowstate_ready,
             )
+
+    @staticmethod
+    def status_telemetry(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Validate the optional bounded telemetry projection on signed status."""
+
+        telemetry = payload.get("telemetry")
+        if telemetry is None:
+            return {}
+        if not isinstance(telemetry, Mapping) or set(telemetry) - {"battery"}:
+            raise ControlProtocolError("bridge telemetry is invalid")
+        battery = telemetry.get("battery")
+        if battery is None:
+            return {}
+        if not isinstance(battery, Mapping) or set(battery) - {
+            "battery_soc",
+            "battery_current_ma",
+            "power_v",
+            "power_a",
+        }:
+            raise ControlProtocolError("bridge battery telemetry is invalid")
+        bounds = {
+            "battery_soc": (0.0, 100.0),
+            "battery_current_ma": (-100_000.0, 100_000.0),
+            "power_v": (0.0, 100.0),
+            "power_a": (-100.0, 100.0),
+        }
+        projected: Dict[str, float | int] = {}
+        for key, value in battery.items():
+            lower, upper = bounds[key]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not lower <= float(value) <= upper
+            ):
+                raise ControlProtocolError("bridge battery telemetry is invalid")
+            projected[key] = (
+                int(value)
+                if key.endswith(("soc", "_ma"))
+                else round(float(value), 3)
+            )
+        return {"battery": projected} if projected else {}
+
+    def battery_sensor_snapshot(self) -> Dict[str, Any] | None:
+        """Project fresh authenticated bridge battery data as one sensor."""
+
+        now = time.monotonic()
+        with self.transport_lock:
+            status = dict(self.status)
+            received = self.status_received
+        status_age = max(0.0, now - received) if received > 0.0 else None
+        lowstate_age_ms = status.get("lowstate_age_ms")
+        telemetry = status.get("telemetry")
+        battery = (
+            telemetry.get("battery") if isinstance(telemetry, Mapping) else None
+        )
+        fresh = (
+            status.get("authenticated") is True
+            and status_age is not None
+            and status_age <= self.status_timeout_s
+            and not isinstance(lowstate_age_ms, bool)
+            and isinstance(lowstate_age_ms, (int, float))
+            and math.isfinite(float(lowstate_age_ms))
+            and 0.0
+            <= float(lowstate_age_ms)
+            <= self.lowstate_timeout_s * 1_000.0
+            and isinstance(battery, Mapping)
+            and "battery_soc" in battery
+        )
+        if not fresh:
+            return None
+        age_s = max(status_age, float(lowstate_age_ms) / 1_000.0)
+        return {
+            "topic": "bridge://go2/lowstate/battery",
+            "type": "unitree_go/msg/LowState",
+            "category": "battery",
+            "state": "ok",
+            "age_s": round(age_s, 3),
+            "hz": None,
+            "samples": 1,
+            "values": dict(battery),
+            "transport": self.transport_mode,
+        }
 
     def set_readiness(
         self,
