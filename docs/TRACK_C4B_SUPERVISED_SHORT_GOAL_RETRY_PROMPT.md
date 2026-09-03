@@ -1,6 +1,8 @@
 # Track C4B — Supervised short low-speed goal retry
 
-Status: `NOT_RUN`
+Status: `BLOCKED` — the 2026-09-03 attempt failed closed before goal
+submission when an added DDS observer changed Sport subscription cardinality;
+see `TRACK_C4B_SUPERVISED_SHORT_GOAL_ACCEPTANCE.md`.
 
 This document is a future execution prompt only. It does not authorize a goal,
 normal navigation session, lease, ARM, deadman, non-zero command or robot
