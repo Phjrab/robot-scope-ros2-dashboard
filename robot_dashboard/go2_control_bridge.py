@@ -52,6 +52,7 @@ from .go2_bridge import (
     BridgeCommandError,
     Go2BridgeCore,
     SportRequest,
+    SportRequestEvidence,
     classify_sport_request_publishers,
 )
 from .serializers import (
@@ -109,6 +110,7 @@ class Go2ControlBridge(Node):
         self._datagram_thread: threading.Thread | None = None
         self._command_transport_failed = False
         self._status_transport_failed = False
+        self._request_evidence = SportRequestEvidence()
 
         reliable = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -287,6 +289,7 @@ class Go2ControlBridge(Node):
         message.header.identity.api_id = int(request.api_id)
         message.parameter = request.parameter
         self._sport_publisher.publish(message)
+        self._request_evidence.record(request, now=time.monotonic())
 
     def _publish_status(
         self,
@@ -316,6 +319,7 @@ class Go2ControlBridge(Node):
                 "command_topic": COMMAND_TOPIC,
                 "request_topic": SPORT_REQUEST_TOPIC,
                 "lowstate_topic": self._lowstate_topic,
+                "request_evidence": self._request_evidence.snapshot(now=now),
                 "telemetry": {
                     "battery": dict(self._lowstate_battery),
                     "joints": dict(self._lowstate_joints),

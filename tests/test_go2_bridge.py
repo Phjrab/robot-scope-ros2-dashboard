@@ -11,6 +11,10 @@ from robot_dashboard.go2_bridge import (
     Go2BridgeCore,
     SAFE_ACTION_API_IDS,
     SAFE_ACTION_GUARD_S,
+    SPORT_REQUEST_EVIDENCE_MAX_COUNT,
+    SPORT_REQUEST_EVIDENCE_SCHEMA,
+    SportRequest,
+    SportRequestEvidence,
     classify_sport_request_publishers,
 )
 
@@ -119,6 +123,127 @@ class Go2BridgeCoreTests(unittest.TestCase):
         self.assertIn("self._core.force_stop", publish_status)
         self.assertIn("except OSError", receive_commands)
         self.assertIn("continue", receive_commands)
+
+    def test_request_evidence_is_bridge_owned_and_records_after_publish(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "robot_dashboard"
+            / "go2_control_bridge.py"
+        ).read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        bridge = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Go2ControlBridge"
+        )
+        methods = {
+            node.name: ast.unparse(node)
+            for node in bridge.body
+            if isinstance(node, ast.FunctionDef)
+        }
+        publish_request = methods["_publish_request"]
+        self.assertLess(
+            publish_request.index("self._sport_publisher.publish(message)"),
+            publish_request.index("self._request_evidence.record"),
+        )
+        self.assertIn(
+            "'request_evidence': self._request_evidence.snapshot(now=now)",
+            methods["_publish_status"],
+        )
+
+        evidence_source = ast.unparse(
+            next(
+                node
+                for node in ast.parse(
+                    (
+                        Path(__file__).resolve().parents[1]
+                        / "robot_dashboard"
+                        / "go2_bridge.py"
+                    ).read_text(encoding="utf-8")
+                ).body
+                if isinstance(node, ast.ClassDef)
+                and node.name == "SportRequestEvidence"
+            )
+        )
+        for forbidden in (
+            "create_publisher",
+            "create_subscription",
+            "ControlManager",
+            "deadman",
+            "lease",
+            "rclpy",
+        ):
+            self.assertNotIn(forbidden, evidence_source)
+
+    def test_request_evidence_is_bounded_and_classifies_published_requests(self):
+        evidence = SportRequestEvidence()
+        empty = evidence.snapshot(now=10.0)
+        self.assertEqual(empty["schema"], SPORT_REQUEST_EVIDENCE_SCHEMA)
+        self.assertEqual(empty["scope"], "bridge_process")
+        self.assertEqual(empty["published_count"], 0)
+        self.assertIsNone(empty["last_api_id"])
+        self.assertIsNone(empty["last_publish_age_ms"])
+
+        zero_time = SportRequestEvidence()
+        zero_time.record(SportRequest(API_STOP_MOVE), now=0.0)
+        self.assertEqual(zero_time.snapshot(now=0.0)["last_publish_age_ms"], 0)
+
+        evidence.record(SportRequest(API_STOP_MOVE), now=10.0)
+        evidence.record(
+            SportRequest(API_MOVE, '{"x":0.0,"y":0.0,"z":0.0}'),
+            now=10.1,
+        )
+        evidence.record(
+            SportRequest(API_MOVE, '{"x":-0.03,"y":0.02,"z":-0.04}'),
+            now=10.2,
+        )
+        evidence.record(
+            SportRequest(SAFE_ACTION_API_IDS["balance_stand"]),
+            now=10.3,
+        )
+        snapshot = evidence.snapshot(now=10.35)
+        self.assertEqual(snapshot["published_count"], 4)
+        self.assertEqual(snapshot["stop_count"], 1)
+        self.assertEqual(snapshot["move_count"], 2)
+        self.assertEqual(snapshot["zero_move_count"], 1)
+        self.assertEqual(snapshot["nonzero_move_count"], 1)
+        self.assertEqual(snapshot["malformed_move_count"], 0)
+        self.assertEqual(snapshot["action_count"], 1)
+        self.assertEqual(snapshot["other_count"], 0)
+        self.assertEqual(snapshot["last_api_id"], SAFE_ACTION_API_IDS["balance_stand"])
+        self.assertEqual(snapshot["last_publish_age_ms"], 50)
+        self.assertEqual(snapshot["max_abs_linear_x"], 0.03)
+        self.assertEqual(snapshot["max_abs_linear_y"], 0.02)
+        self.assertEqual(snapshot["max_abs_angular_z"], 0.04)
+        self.assertEqual(snapshot["motion_run_id"], 1)
+        self.assertFalse(snapshot["motion_run_active"])
+        self.assertEqual(snapshot["motion_run_nonzero_move_count"], 1)
+        self.assertEqual(snapshot["motion_run_max_abs_linear_x"], 0.03)
+        self.assertEqual(snapshot["motion_run_max_abs_linear_y"], 0.02)
+        self.assertEqual(snapshot["motion_run_max_abs_angular_z"], 0.04)
+
+        tiny = SportRequestEvidence()
+        tiny.record(
+            SportRequest(API_MOVE, '{"x":1e-12,"y":0.0,"z":0.0}'),
+            now=10.0,
+        )
+        tiny_snapshot = tiny.snapshot(now=10.0)
+        self.assertEqual(tiny_snapshot["nonzero_move_count"], 1)
+        self.assertEqual(tiny_snapshot["max_abs_linear_x"], 1e-12)
+
+        evidence.record(SportRequest(API_MOVE, "invalid"), now=10.4)
+        evidence.record(
+            SportRequest(API_MOVE, '{"x":0.31,"y":0.0,"z":0.0}'),
+            now=10.45,
+        )
+        evidence.record(SportRequest(65_000), now=10.5)
+        rejected = evidence.snapshot(now=10.5)
+        self.assertEqual(rejected["malformed_move_count"], 2)
+        self.assertEqual(rejected["other_count"], 1)
+        self.assertEqual(
+            SportRequestEvidence._increment(SPORT_REQUEST_EVIDENCE_MAX_COUNT),
+            SPORT_REQUEST_EVIDENCE_MAX_COUNT,
+        )
 
     def test_startup_and_watchdog_publish_stop(self):
         requests = self.tick()

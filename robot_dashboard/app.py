@@ -450,6 +450,35 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         and "sport_publishers" in internal_bridge
     ):
         bridge["total_sport_publishers"] = internal_bridge["sport_publishers"]
+    internal_request_evidence = internal_bridge.get("request_evidence")
+    if isinstance(internal_request_evidence, dict):
+        bridge["request_evidence"] = {
+            key: internal_request_evidence[key]
+            for key in (
+                "schema",
+                "scope",
+                "published_count",
+                "stop_count",
+                "move_count",
+                "zero_move_count",
+                "nonzero_move_count",
+                "malformed_move_count",
+                "action_count",
+                "other_count",
+                "last_api_id",
+                "last_publish_age_ms",
+                "max_abs_linear_x",
+                "max_abs_linear_y",
+                "max_abs_angular_z",
+                "motion_run_id",
+                "motion_run_active",
+                "motion_run_nonzero_move_count",
+                "motion_run_max_abs_linear_x",
+                "motion_run_max_abs_linear_y",
+                "motion_run_max_abs_angular_z",
+            )
+            if key in internal_request_evidence
+        }
     bridge["message"] = public_diagnostic(
         internal_bridge.get("message", internal_bridge.get("last_error", ""))
     )

@@ -2,7 +2,10 @@
 
 Status: `BLOCKED` — the 2026-09-03 attempt failed closed before goal
 submission when an added DDS observer changed Sport subscription cardinality;
-see `TRACK_C4B_SUPERVISED_SHORT_GOAL_ACCEPTANCE.md`.
+see `TRACK_C4B_SUPERVISED_SHORT_GOAL_ACCEPTANCE.md`. The repository now has a
+Bridge-owned candidate evidence path, but it has not been deployed or accepted
+on hardware. A future run must first complete the gates in
+`TRACK_C4B_NONINTRUSIVE_SPORT_EVIDENCE.md`.
 
 This document is a future execution prompt only. It does not authorize a goal,
 normal navigation session, lease, ARM, deadman, non-zero command or robot
@@ -48,6 +51,11 @@ map, start mapping or run Mission.
    authenticated READY; exactly one Robot Scope Sport publisher, zero foreign
    named publishers, ten expected anonymous Unitree publishers and eleven
    total; no manual lease; deadman released; exact-zero command.
+   Require signed `robot-scope.sport-request-evidence.v1` in the control API,
+   record its process-lifetime counters and motion-run baseline, and fail closed
+   if it is absent, malformed, reset unexpectedly or reports any malformed or
+   unknown request. Do not attach another DDS subscriber to
+   `/api/sport/request`.
 5. Start the explicit `go2-xt16-wireless-competition-fastlio` normal navigation
    session with the pinned revisions. This is the only phase allowed to acquire
    the navigation lease. Never hold a manual-control lease concurrently.
@@ -73,9 +81,13 @@ map, start mapping or run Mission.
 Submit exactly one goal at `(0.25, 0.0, 0.0)`. Do not infer, adjust, retry or
 send a second goal. Continuously observe raw command, signed bridge output,
 TF, both costmaps, localization, controller progress, publisher cardinality
-and the physical robot. Record maximum requested/accepted velocity and confirm
-the 35% scale was applied once. On arrival, prove exact-zero output and record
-final pose/error and stop latency.
+and the physical robot. Record maximum controller-requested and Bridge-published
+velocity and confirm the 35% scale was applied once. The counters prove only
+successful Bridge publication; they do not claim robot-side execution or
+response. Bridge evidence must show one new motion-run ID,
+one or more bounded non-zero Move requests, zero malformed/unknown requests and
+an inactive motion run after a final StopMove. On arrival, prove exact-zero
+output and record final pose/error and stop latency.
 
 Immediately cancel through the fail-safe path, command zero and reverse-clean
 for unexpected direction/speed, obstacle/corridor violation, localization

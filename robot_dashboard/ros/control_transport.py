@@ -30,6 +30,13 @@ from ..control_protocol import (
     encode_signed,
     shared_key,
 )
+from ..go2_bridge import (
+    API_MOVE,
+    API_STOP_MOVE,
+    SAFE_ACTION_API_IDS,
+    SPORT_REQUEST_EVIDENCE_MAX_COUNT,
+    SPORT_REQUEST_EVIDENCE_SCHEMA,
+)
 from ..serializers import GO2_JOINT_LIMITS, GO2_JOINT_ORDER, go2_joint_state_payload
 
 
@@ -301,6 +308,7 @@ class ControlTransport:
 
         if payload.get("type") != "bridge_status":
             raise ControlProtocolError("unexpected bridge status type")
+        request_evidence = ControlTransport.status_request_evidence(payload)
         reported_ready = payload.get("ready")
         if not isinstance(reported_ready, bool):
             raise ControlProtocolError("bridge ready flag is invalid")
@@ -372,8 +380,186 @@ class ControlTransport:
             and publisher_counts["bare_unitree_sport_publishers"]
             == expected_bare_sport_publishers
             and publishers == 1
+            and (
+                not request_evidence
+                or (
+                    request_evidence["malformed_move_count"] == 0
+                    and request_evidence["other_count"] == 0
+                )
+            )
         )
         return bridge_ready, lowstate_ready, bridge_epoch
+
+    @staticmethod
+    def status_request_evidence(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Validate optional signed, bounded bridge-owned publish evidence."""
+
+        evidence = payload.get("request_evidence")
+        if evidence is None:
+            return {}
+        expected = {
+            "schema",
+            "scope",
+            "published_count",
+            "stop_count",
+            "move_count",
+            "zero_move_count",
+            "nonzero_move_count",
+            "malformed_move_count",
+            "action_count",
+            "other_count",
+            "last_api_id",
+            "last_publish_age_ms",
+            "max_abs_linear_x",
+            "max_abs_linear_y",
+            "max_abs_angular_z",
+            "motion_run_id",
+            "motion_run_active",
+            "motion_run_nonzero_move_count",
+            "motion_run_max_abs_linear_x",
+            "motion_run_max_abs_linear_y",
+            "motion_run_max_abs_angular_z",
+        }
+        if not isinstance(evidence, Mapping) or set(evidence) != expected:
+            raise ControlProtocolError("bridge request evidence is invalid")
+        if (
+            evidence.get("schema") != SPORT_REQUEST_EVIDENCE_SCHEMA
+            or evidence.get("scope") != "bridge_process"
+        ):
+            raise ControlProtocolError("bridge request evidence contract is invalid")
+
+        count_names = (
+            "published_count",
+            "stop_count",
+            "move_count",
+            "zero_move_count",
+            "nonzero_move_count",
+            "malformed_move_count",
+            "action_count",
+            "other_count",
+            "motion_run_id",
+            "motion_run_nonzero_move_count",
+        )
+        counts: Dict[str, int] = {}
+        for name in count_names:
+            value = evidence.get(name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 0 <= value <= SPORT_REQUEST_EVIDENCE_MAX_COUNT
+            ):
+                raise ControlProtocolError("bridge request evidence count is invalid")
+            counts[name] = value
+        classified = min(
+            SPORT_REQUEST_EVIDENCE_MAX_COUNT,
+            counts["stop_count"]
+            + counts["move_count"]
+            + counts["action_count"]
+            + counts["other_count"],
+        )
+        moves = min(
+            SPORT_REQUEST_EVIDENCE_MAX_COUNT,
+            counts["zero_move_count"]
+            + counts["nonzero_move_count"]
+            + counts["malformed_move_count"],
+        )
+        if counts["published_count"] != classified or counts["move_count"] != moves:
+            raise ControlProtocolError("bridge request evidence counts are inconsistent")
+
+        last_api_id = evidence.get("last_api_id")
+        last_age = evidence.get("last_publish_age_ms")
+        if counts["published_count"] == 0:
+            if last_api_id is not None or last_age is not None:
+                raise ControlProtocolError("empty bridge request evidence is inconsistent")
+        elif (
+            isinstance(last_api_id, bool)
+            or not isinstance(last_api_id, int)
+            or not 0 <= last_api_id <= 65_535
+            or isinstance(last_age, bool)
+            or not isinstance(last_age, int)
+            or not 0 <= last_age <= SPORT_REQUEST_EVIDENCE_MAX_COUNT
+        ):
+            raise ControlProtocolError("bridge request evidence last request is invalid")
+        if counts["published_count"]:
+            if (
+                (last_api_id == API_STOP_MOVE and counts["stop_count"] == 0)
+                or (last_api_id == API_MOVE and counts["move_count"] == 0)
+                or (
+                    last_api_id in SAFE_ACTION_API_IDS.values()
+                    and counts["action_count"] == 0
+                )
+                or (
+                    last_api_id not in {
+                        API_STOP_MOVE,
+                        API_MOVE,
+                        *SAFE_ACTION_API_IDS.values(),
+                    }
+                    and counts["other_count"] == 0
+                )
+            ):
+                raise ControlProtocolError(
+                    "bridge request evidence last request is inconsistent"
+                )
+
+        velocity_bounds = {
+            "max_abs_linear_x": 0.30,
+            "max_abs_linear_y": 0.20,
+            "max_abs_angular_z": 0.50,
+            "motion_run_max_abs_linear_x": 0.30,
+            "motion_run_max_abs_linear_y": 0.20,
+            "motion_run_max_abs_angular_z": 0.50,
+        }
+        velocities: Dict[str, float] = {}
+        for name, upper in velocity_bounds.items():
+            value = evidence.get(name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not 0.0 <= float(value) <= upper
+            ):
+                raise ControlProtocolError("bridge request evidence velocity is invalid")
+            velocities[name] = float(value)
+        if counts["nonzero_move_count"] == 0 and any(velocities.values()):
+            raise ControlProtocolError("bridge request evidence velocity is inconsistent")
+        motion_run_active = evidence.get("motion_run_active")
+        if not isinstance(motion_run_active, bool):
+            raise ControlProtocolError("bridge request evidence motion run is invalid")
+        run_id = counts["motion_run_id"]
+        run_count = counts["motion_run_nonzero_move_count"]
+        run_velocities = (
+            velocities["motion_run_max_abs_linear_x"],
+            velocities["motion_run_max_abs_linear_y"],
+            velocities["motion_run_max_abs_angular_z"],
+        )
+        if (
+            run_id > counts["nonzero_move_count"]
+            or run_count > counts["nonzero_move_count"]
+            or (run_id == 0 and (motion_run_active or run_count != 0 or any(run_velocities)))
+            or (run_id > 0 and (run_count == 0 or not any(run_velocities)))
+            or any(
+                run_velocity > velocities[cumulative_name]
+                for run_velocity, cumulative_name in zip(
+                    run_velocities,
+                    (
+                        "max_abs_linear_x",
+                        "max_abs_linear_y",
+                        "max_abs_angular_z",
+                    ),
+                )
+            )
+        ):
+            raise ControlProtocolError("bridge request evidence motion run is inconsistent")
+
+        return {
+            "schema": SPORT_REQUEST_EVIDENCE_SCHEMA,
+            "scope": "bridge_process",
+            **counts,
+            "last_api_id": last_api_id,
+            "last_publish_age_ms": last_age,
+            **velocities,
+            "motion_run_active": motion_run_active,
+        }
 
     def status_callback(self, message: String) -> None:
         key = self.bridge_key
@@ -392,6 +578,7 @@ class ControlTransport:
                 expected_bare_sport_publishers=self.expected_bare_sport_publishers,
             )
             telemetry = self.status_telemetry(payload)
+            request_evidence = self.status_request_evidence(payload)
         except (ControlProtocolError, TypeError, ValueError) as exc:
             self.set_unready(f"rejected bridge status: {exc}")
             return
@@ -400,6 +587,7 @@ class ControlTransport:
         available = bridge_ready and lowstate_ready
         status = dict(payload)
         status["telemetry"] = telemetry
+        status["request_evidence"] = request_evidence
         status.update(
             {
                 "authenticated": True,

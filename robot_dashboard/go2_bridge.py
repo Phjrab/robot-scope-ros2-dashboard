@@ -12,6 +12,8 @@ from typing import Any, Mapping
 
 API_STOP_MOVE = 1003
 API_MOVE = 1008
+SPORT_REQUEST_EVIDENCE_SCHEMA = "robot-scope.sport-request-evidence.v1"
+SPORT_REQUEST_EVIDENCE_MAX_COUNT = 2_147_483_647
 
 # This deliberately excludes Damp, flips, jumps, handstands, dances, direct
 # motor control, and deprecated sport APIs.
@@ -105,6 +107,145 @@ class SportRequest:
     api_id: int
     parameter: str = ""
     reason: str = ""
+
+
+class SportRequestEvidence:
+    """Bounded process-lifetime evidence for successfully published requests.
+
+    The bridge node calls :meth:`record` only after its existing publisher
+    returns successfully.  This class owns no ROS entity, transport, control
+    source or timer and cannot influence request selection.
+    """
+
+    def __init__(self) -> None:
+        self._published_count = 0
+        self._stop_count = 0
+        self._move_count = 0
+        self._zero_move_count = 0
+        self._nonzero_move_count = 0
+        self._malformed_move_count = 0
+        self._action_count = 0
+        self._other_count = 0
+        self._last_api_id: int | None = None
+        self._last_publish: float | None = None
+        self._max_abs_velocity = [0.0, 0.0, 0.0]
+        self._motion_run_id = 0
+        self._motion_run_active = False
+        self._motion_run_nonzero_move_count = 0
+        self._motion_run_max_abs_velocity = [0.0, 0.0, 0.0]
+
+    @staticmethod
+    def _increment(value: int) -> int:
+        return min(SPORT_REQUEST_EVIDENCE_MAX_COUNT, value + 1)
+
+    @staticmethod
+    def _move_axes(parameter: str) -> tuple[float, float, float] | None:
+        try:
+            payload = json.loads(parameter)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(payload, Mapping) or set(payload) != {"x", "y", "z"}:
+            return None
+        values = payload.get("x"), payload.get("y"), payload.get("z")
+        if any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in values
+        ):
+            return None
+        return float(values[0]), float(values[1]), float(values[2])
+
+    def record(self, request: SportRequest, *, now: float) -> None:
+        """Record one already-published request without changing bridge state."""
+
+        self._published_count = self._increment(self._published_count)
+        self._last_api_id = int(request.api_id)
+        self._last_publish = float(now)
+        if request.api_id == API_STOP_MOVE:
+            self._stop_count = self._increment(self._stop_count)
+            self._motion_run_active = False
+            return
+        if request.api_id == API_MOVE:
+            self._move_count = self._increment(self._move_count)
+            axes = self._move_axes(request.parameter)
+            if axes is None:
+                self._malformed_move_count = self._increment(
+                    self._malformed_move_count
+                )
+                return
+            limits = (
+                Go2BridgeCore.HARD_MAX_LINEAR_X,
+                Go2BridgeCore.HARD_MAX_LINEAR_Y,
+                Go2BridgeCore.HARD_MAX_ANGULAR_Z,
+            )
+            if any(abs(value) > limit for value, limit in zip(axes, limits)):
+                self._malformed_move_count = self._increment(
+                    self._malformed_move_count
+                )
+                return
+            if any(value != 0.0 for value in axes):
+                self._nonzero_move_count = self._increment(
+                    self._nonzero_move_count
+                )
+                if not self._motion_run_active:
+                    self._motion_run_id = self._increment(self._motion_run_id)
+                    self._motion_run_nonzero_move_count = 0
+                    self._motion_run_max_abs_velocity = [0.0, 0.0, 0.0]
+                    self._motion_run_active = True
+                self._motion_run_nonzero_move_count = self._increment(
+                    self._motion_run_nonzero_move_count
+                )
+            else:
+                self._zero_move_count = self._increment(self._zero_move_count)
+            for index, value in enumerate(axes):
+                self._max_abs_velocity[index] = max(
+                    self._max_abs_velocity[index], abs(value)
+                )
+                if self._motion_run_active:
+                    self._motion_run_max_abs_velocity[index] = max(
+                        self._motion_run_max_abs_velocity[index], abs(value)
+                    )
+            return
+        if request.api_id in SAFE_ACTION_API_IDS.values():
+            self._action_count = self._increment(self._action_count)
+            self._motion_run_active = False
+            return
+        self._motion_run_active = False
+        self._other_count = self._increment(self._other_count)
+
+    def snapshot(self, *, now: float) -> dict[str, Any]:
+        age_ms = (
+            None
+            if self._last_publish is None
+            else min(
+                SPORT_REQUEST_EVIDENCE_MAX_COUNT,
+                max(0, round((float(now) - self._last_publish) * 1_000)),
+            )
+        )
+        return {
+            "schema": SPORT_REQUEST_EVIDENCE_SCHEMA,
+            "scope": "bridge_process",
+            "published_count": self._published_count,
+            "stop_count": self._stop_count,
+            "move_count": self._move_count,
+            "zero_move_count": self._zero_move_count,
+            "nonzero_move_count": self._nonzero_move_count,
+            "malformed_move_count": self._malformed_move_count,
+            "action_count": self._action_count,
+            "other_count": self._other_count,
+            "last_api_id": self._last_api_id,
+            "last_publish_age_ms": age_ms,
+            "max_abs_linear_x": self._max_abs_velocity[0],
+            "max_abs_linear_y": self._max_abs_velocity[1],
+            "max_abs_angular_z": self._max_abs_velocity[2],
+            "motion_run_id": self._motion_run_id,
+            "motion_run_active": self._motion_run_active,
+            "motion_run_nonzero_move_count": self._motion_run_nonzero_move_count,
+            "motion_run_max_abs_linear_x": self._motion_run_max_abs_velocity[0],
+            "motion_run_max_abs_linear_y": self._motion_run_max_abs_velocity[1],
+            "motion_run_max_abs_angular_z": self._motion_run_max_abs_velocity[2],
+        }
 
 
 class Go2BridgeCore:

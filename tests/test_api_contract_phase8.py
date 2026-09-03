@@ -244,6 +244,30 @@ class Phase8ApiContractTests(unittest.TestCase):
                     "bare_unitree_sport_publishers": 9,
                     "expected_bare_sport_publishers": 9,
                     "transport": "udp",
+                    "request_evidence": {
+                        "schema": "robot-scope.sport-request-evidence.v1",
+                        "scope": "bridge_process",
+                        "published_count": 2,
+                        "stop_count": 1,
+                        "move_count": 1,
+                        "zero_move_count": 1,
+                        "nonzero_move_count": 0,
+                        "malformed_move_count": 0,
+                        "action_count": 0,
+                        "other_count": 0,
+                        "last_api_id": 1008,
+                        "last_publish_age_ms": 20,
+                        "max_abs_linear_x": 0.0,
+                        "max_abs_linear_y": 0.0,
+                        "max_abs_angular_z": 0.0,
+                        "motion_run_id": 0,
+                        "motion_run_active": False,
+                        "motion_run_nonzero_move_count": 0,
+                        "motion_run_max_abs_linear_x": 0.0,
+                        "motion_run_max_abs_linear_y": 0.0,
+                        "motion_run_max_abs_angular_z": 0.0,
+                        "private": "not-public",
+                    },
                     "bridge_epoch": "private-generation",
                     "bridge_pid": 1234,
                     "issued_at_ms": 999,
@@ -262,6 +286,8 @@ class Phase8ApiContractTests(unittest.TestCase):
         self.assertEqual(bridge["status_age_s"], 0.1)
         self.assertEqual(bridge["total_sport_publishers"], 10)
         self.assertEqual(bridge["transport"], "udp")
+        self.assertEqual(bridge["request_evidence"]["published_count"], 2)
+        self.assertNotIn("private", bridge["request_evidence"])
         for private in (
             "bridge_epoch",
             "bridge_pid",

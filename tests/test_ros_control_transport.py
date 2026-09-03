@@ -207,6 +207,34 @@ class ControlTransportTests(unittest.TestCase):
         payload.update(overrides)
         return payload
 
+    @staticmethod
+    def request_evidence(**overrides):
+        evidence = {
+            "schema": "robot-scope.sport-request-evidence.v1",
+            "scope": "bridge_process",
+            "published_count": 2,
+            "stop_count": 1,
+            "move_count": 1,
+            "zero_move_count": 1,
+            "nonzero_move_count": 0,
+            "malformed_move_count": 0,
+            "action_count": 0,
+            "other_count": 0,
+            "last_api_id": 1008,
+            "last_publish_age_ms": 20,
+            "max_abs_linear_x": 0.0,
+            "max_abs_linear_y": 0.0,
+            "max_abs_angular_z": 0.0,
+            "motion_run_id": 0,
+            "motion_run_active": False,
+            "motion_run_nonzero_move_count": 0,
+            "motion_run_max_abs_linear_x": 0.0,
+            "motion_run_max_abs_linear_y": 0.0,
+            "motion_run_max_abs_angular_z": 0.0,
+        }
+        evidence.update(overrides)
+        return evidence
+
     def send_status(self, transport, epoch="e" * 32, **overrides):
         message = String()
         message.data = encode_signed(self.status_payload(epoch, **overrides), KEY)
@@ -395,6 +423,95 @@ class ControlTransportTests(unittest.TestCase):
                 lowstate_timeout_s=0.5,
                 expected_bare_sport_publishers=8,
             )
+
+    def test_signed_request_evidence_is_validated_projected_and_fail_closed(self):
+        evidence = self.request_evidence()
+        payload = self.status_payload(request_evidence=evidence)
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                payload,
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+        self.assertEqual(
+            ControlTransport.status_request_evidence(payload),
+            evidence,
+        )
+        motion_evidence = self.request_evidence(
+            published_count=3,
+            move_count=2,
+            nonzero_move_count=1,
+            max_abs_linear_x=0.03,
+            motion_run_id=1,
+            motion_run_active=True,
+            motion_run_nonzero_move_count=1,
+            motion_run_max_abs_linear_x=0.03,
+        )
+        self.assertEqual(
+            ControlTransport.status_request_evidence(
+                self.status_payload(request_evidence=motion_evidence)
+            ),
+            motion_evidence,
+        )
+
+        transport = self.transport()
+        self.send_status(transport, request_evidence=evidence)
+        self.assertEqual(
+            transport.raw_snapshot()["bridge"]["request_evidence"],
+            evidence,
+        )
+
+        for invalid in (
+            {**evidence, "private": "not-allowed"},
+            {**evidence, "published_count": 3},
+            {**evidence, "move_count": 2},
+            {**evidence, "last_publish_age_ms": -1},
+            {**evidence, "last_api_id": 65_000},
+            {**evidence, "last_api_id": 1003, "stop_count": 0},
+            {**evidence, "max_abs_linear_x": 0.300001},
+            {**evidence, "nonzero_move_count": 0, "max_abs_linear_x": 0.01},
+            {**evidence, "motion_run_active": 0},
+            {**evidence, "motion_run_id": 1},
+            {
+                **evidence,
+                "motion_run_id": 1,
+                "motion_run_nonzero_move_count": 1,
+                "motion_run_max_abs_linear_x": 0.01,
+            },
+            {**motion_evidence, "motion_run_id": 2},
+            {
+                **motion_evidence,
+                "motion_run_max_abs_linear_x": 0.04,
+            },
+        ):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ControlProtocolError):
+                    ControlTransport.status_request_evidence(
+                        self.status_payload(request_evidence=invalid)
+                    )
+
+        malformed = self.request_evidence(
+            published_count=3,
+            move_count=2,
+            malformed_move_count=1,
+        )
+        unsafe = self.status_payload(request_evidence=malformed)
+        self.assertFalse(
+            ControlTransport.status_readiness(
+                unsafe,
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+
+    def test_request_evidence_remains_optional_for_rolling_deployment(self):
+        payload = self.status_payload()
+        self.assertEqual(ControlTransport.status_request_evidence(payload), {})
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                payload,
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
 
     def test_signed_fresh_battery_telemetry_is_projected_without_motion_readiness(self):
         transport = self.transport(expected_bare_sport_publishers=9)
