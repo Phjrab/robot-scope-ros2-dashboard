@@ -2,7 +2,7 @@
 
 Date: 2026-09-03
 
-Status: `STATIONARY HARDWARE ACCEPTED — C4B GOAL NOT AUTHORIZED`
+Status: `STATIONARY HARDWARE + C2 NG0 ACCEPTED — C3/C4B NOT AUTHORIZED`
 
 ## Purpose
 
@@ -142,6 +142,69 @@ independently reported eleven publishers and one subscriber. The active Bridge
 process used the new release profile and retained the expected ten anonymous
 Unitree-publisher baseline.
 
+## C2 NG0 stationary revalidation
+
+The operator separately approved the next C2 stationary no-goal gate on
+2026-09-03. The external dashboard was switched reversibly to
+`go2-xt16-wireless-competition-fastlio` using a mode-0600 private-environment
+backup. The clean `47b9151` release remained active on both Jetsons. The exact
+inputs were managed map `map_20260902_161903_edited`, map ID
+`f292601e2c8b269eb635cb0f`, map revision
+`7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93`,
+and the competition profile's active parameter revision
+`4327ec7817bbb226bf4a16ca4f64e0d73eeee3dc150c8947c206fc56172388ad`.
+An initial request using the pre-restart `go2-safe` revision failed closed with
+HTTP 409 before creating an owner; the active revision was then read back and
+pinned without changing any parameters.
+
+The lease-free localization-only owner reached `waiting_initial_pose` with
+`initial_pose_count=0`, `goal_allowed=false`, `motion_allowed=false`, goal
+`idle`, and zero non-zero raw-command observations. To preserve the original
+C2 command-isolation contract and avoid creating the extra Sport subscriber
+that blocked the earlier C4B attempt, the robot-side Control Bridge was stopped
+for the checker interval. Its process and Sport path were absent before the
+first checker invocation. No navigation command bridge was launched.
+
+The exact prelocalization checker passed 12/12 sequential samples, with five
+seconds between samples. Every sample reported
+`localization=WAITING_FOR_INITIAL_POSE` and `raw_command=quiet`, with the fixed
+Nav2 children, lifecycle state, one scan publisher, one FAST-LIO odometry
+publisher, one canonical controller-odometry publisher, fresh samples and
+`odom -> base_link` present. The final stationary health snapshot recorded:
+
+| Metric | Result |
+| --- | --- |
+| Controller odometry | 10.004759 Hz raw; mean period 0.099952 s |
+| Period distribution | median 0.100087 s; p95 0.110012 s; max gap 0.124399 s |
+| PointCloud | 9.998 Hz; age 0.0522 s |
+| Odometry / TF age | 0.0437 s / 0.0417 s |
+| FAST-LIO points | 16,000 input; 14,304 accepted |
+| Control state | no lease; deadman false; exact `(0.0, 0.0, 0.0)` |
+| Localization / goal | initial pose zero; goal idle; no motion authority |
+
+Localization-only stop then reverse-cleaned its Nav2 and mapping owners. The
+session, pipeline and goal returned idle; `/Odometry`, `/scan` and the private
+raw command each had zero publishers, and the competition controller-odometry
+topic and map topic were absent. The established preview policy reacquired only
+the XT16 preview path. The private environment was restored to
+`go2-xt16-wireless`, the dashboard restarted from `47b9151`, and the navigation
+parameter view returned the `go2-safe` revision
+`194c9c18648f9201df464802884022184095422d1b0b91e6d9a75917c9519d77`.
+
+That dashboard restart automatically started the robot-side Control Bridge,
+confirming the requested lifecycle behavior despite the unit itself remaining
+systemd-disabled. The final signed snapshot was authenticated-ready with fresh
+LowState, unchanged `1/0/10/11` Sport cardinality, 21/21 StopMove evidence,
+zero Move/action/malformed/unknown evidence, no active motion run, no lease,
+deadman false and exact-zero command. The XT16 preview relay was active; the
+wireless IMU and odometry senders were inactive.
+
+The post-run documentation verification passed the dependency-complete Python
+suite 1007/1007, the JavaScript suite 270/270 and `git diff --check`. The host
+Python 3.13 command ran 1003 tests but had one environment-only import error
+because that interpreter does not have the declared FastAPI dependency; the
+same test and complete suite passed in the repository virtual environment.
+
 ## Gate status after deployment
 
 | Gate | Status |
@@ -152,7 +215,7 @@ Unitree-publisher baseline.
 | Signed evidence public projection | `PASS` |
 | Unchanged Sport/LowState cardinality | `PASS` |
 | No lease, deadman, non-zero command or navigation owner | `PASS` |
-| C2 NG0 rerun | `NOT RUN` |
+| C2 NG0 rerun | `PASS` — 12/12 stationary prelocalization checks; initial pose, goal, lease and motion absent |
 | Lease-free C3 initial pose | `NOT RUN — requires a new exact pose confirmation` |
 | Normal C4 pre-goal session | `NOT RUN` |
 | C4B goal or robot motion | `NOT RUN — requires a new exact route and motion approval` |
