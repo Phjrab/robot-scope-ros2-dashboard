@@ -31,6 +31,10 @@ except ImportError:  # ROS 2 Foxy has no SignalHandlerOptions.
 from std_msgs.msg import String
 from unitree_api.msg import Request
 from unitree_go.msg import LowState
+try:
+    from unitree_go.msg import SportModeState
+except ImportError:  # Preserve operation with an older Unitree message package.
+    SportModeState = None  # type: ignore[assignment]
 
 from .control_protocol import (
     ControlProtocolError,
@@ -51,6 +55,8 @@ from .go2_bridge import (
     API_STOP_MOVE,
     BridgeCommandError,
     Go2BridgeCore,
+    SPORT_MODE_STATE_TOPICS,
+    SportModeStateObservation,
     SportRequest,
     SportRequestEvidence,
     classify_sport_request_publishers,
@@ -82,6 +88,11 @@ class Go2ControlBridge(Node):
         if configured_lowstate not in LOWSTATE_TOPICS:
             raise ValueError("control.lowstate_topic is not allowlisted")
         self._lowstate_topic = configured_lowstate
+        configured_sport_mode_state = str(
+            control.get("sport_mode_state_topic", "/sportmodestate")
+        )
+        if configured_sport_mode_state not in SPORT_MODE_STATE_TOPICS:
+            raise ValueError("control.sport_mode_state_topic is not allowlisted")
         self._key = key
         self._core = Go2BridgeCore(
             max_linear_x=control.get("max_linear_x", 0.30),
@@ -94,6 +105,11 @@ class Go2ControlBridge(Node):
                 "expected_bare_sport_publishers", 0
             ),
         )
+        self._sport_mode_state = SportModeStateObservation(
+            topic=configured_sport_mode_state,
+            stale_after_s=self._core.telemetry_timeout_s,
+        )
+        self._sport_mode_state_invalid = False
         self._callback_group = MutuallyExclusiveCallbackGroup()
         self._last_lowstate = 0.0
         self._lowstate_battery: dict[str, Any] = {}
@@ -165,6 +181,21 @@ class Go2ControlBridge(Node):
                 callback_group=self._callback_group,
             )
         )
+        self._sport_mode_state_subscription = (
+            self.create_subscription(
+                SportModeState,
+                self._sport_mode_state.topic,
+                self._sport_mode_state_callback,
+                best_effort,
+                callback_group=self._callback_group,
+            )
+            if SportModeState is not None
+            else None
+        )
+        if SportModeState is None:
+            self.get_logger().warning(
+                "Unitree SportModeState message is unavailable; status will remain waiting"
+            )
         self._timer = self.create_timer(
             0.05,
             self._tick,
@@ -234,6 +265,16 @@ class Go2ControlBridge(Node):
             message,
             "unitree_go/msg/LowState",
         )
+
+    def _sport_mode_state_callback(self, message: Any) -> None:
+        try:
+            self._sport_mode_state.observe(message, now=time.monotonic())
+        except (TypeError, ValueError) as exc:
+            if not self._sport_mode_state_invalid:
+                self.get_logger().warning(f"rejected SportModeState sample: {exc}")
+            self._sport_mode_state_invalid = True
+            return
+        self._sport_mode_state_invalid = False
 
     def _command_callback(self, message: String) -> None:
         with self._operation_lock:
@@ -319,6 +360,7 @@ class Go2ControlBridge(Node):
                 "command_topic": COMMAND_TOPIC,
                 "request_topic": SPORT_REQUEST_TOPIC,
                 "lowstate_topic": self._lowstate_topic,
+                "sport_mode_state": self._sport_mode_state.snapshot(now=now),
                 "request_evidence": self._request_evidence.snapshot(now=now),
                 "telemetry": {
                     "battery": dict(self._lowstate_battery),

@@ -15,7 +15,7 @@ LOCALIZATION_HEALTH_ABORT
 GOAL_CANCEL_PASS
 NAVIGATION_STOP_PASS
 REVERSE_CLEANUP_PASS
-PHYSICAL_OBSERVATION_PENDING
+PHYSICAL_FORWARD_MOTION_NO
 TRACK_C4B_ACCEPTANCE_BLOCKED
 ```
 
@@ -30,9 +30,22 @@ exact zero with no lease or active motion run.
 
 Track C4B remains `BLOCKED`.  This run is evidence that the one-shot motion
 path and fail-closed cleanup execute, not evidence that the short Nav2 goal is
-accepted.  The operator's physical observation of movement and final stop was
-still pending when this record was created, so it must not be inferred from
-software telemetry.
+accepted.  The operator subsequently confirmed that no physical forward
+motion was visible during the run.  This observation is now recorded
+explicitly and is consistent with the very small signed command envelope,
+but it does not prove whether the Go2 firmware accepted or rejected those
+requests.  Final software state after cleanup was exact zero; no separate
+physical final-stop observation is inferred from telemetry.
+
+The requested immediate 2.0 m retry was not sent.  Increasing only the goal
+distance would leave the same approximately 0.035 m/s effective velocity
+ceiling in place, while exceeding the C4 first-goal limit and the only
+validated 0.40 m stopping corridor.  The next supervised retry must first
+expose robot-side Sport mode/gait evidence, preserve the first health-fault
+snapshot, and validate low-speed cumulative progress.  If those checks pass,
+the shortest useful retry remains the same 0.25 m corridor with a separately
+approved parameter revision; a 2.0 m run belongs to a later long-route stage
+with its full route and stopping clearance verified.
 
 ## Fixed identity and approval
 
@@ -165,7 +178,8 @@ and the fixed dashboard lifecycle helper restarted only
 | Goal submission cardinality | `PASS` | one `goal_send`; one goal ID; no retry |
 | Low-speed command envelope | `PASS` | maximum 0.0301918 m/s forward and 0.0129765 rad/s yaw |
 | Goal completion | `FAIL` | canceled after localization health left READY |
-| Physical movement and stop observation | `PENDING` | requires operator report; not inferred from API data |
+| Physical forward movement | `FAIL` | operator reported no visible forward motion |
+| Final stop | `SOFTWARE PASS / PHYSICAL UNRECORDED` | exact-zero final command and idle session; no separate physical observation claimed |
 | Automatic safety abort | `PASS` | one cancel followed by Navigation stop |
 | Reverse cleanup | `PASS` | production profile; idle; no lease; exact zero; Bridge READY |
 | Track C4B acceptance | `BLOCKED` | health transition root cause and successful arrival remain unresolved |

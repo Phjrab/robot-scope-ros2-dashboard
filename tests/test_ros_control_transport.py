@@ -235,6 +235,21 @@ class ControlTransportTests(unittest.TestCase):
         evidence.update(overrides)
         return evidence
 
+    @staticmethod
+    def sport_mode_state(**overrides):
+        state = {
+            "topic": "/sportmodestate",
+            "mode": 5,
+            "gait_type": 3,
+            "velocity": [0.105, 0.0, -0.01],
+            "error_code": 0,
+            "age_ms": 25,
+            "stale_after_ms": 500,
+            "fresh": True,
+        }
+        state.update(overrides)
+        return state
+
     def send_status(self, transport, epoch="e" * 32, **overrides):
         message = String()
         message.data = encode_signed(self.status_payload(epoch, **overrides), KEY)
@@ -512,6 +527,75 @@ class ControlTransportTests(unittest.TestCase):
                 lowstate_timeout_s=0.5,
             )[0]
         )
+
+    def test_sport_mode_state_is_optional_bounded_and_not_a_safety_gate(self):
+        payload = self.status_payload()
+        self.assertEqual(ControlTransport.status_sport_mode_state(payload), {})
+
+        raw = self.sport_mode_state(error_code=4_294_967_295)
+        payload = self.status_payload(sport_mode_state=raw)
+        self.assertEqual(ControlTransport.status_sport_mode_state(payload), raw)
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                payload,
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+
+        transport = self.transport()
+        self.send_status(transport, sport_mode_state=raw)
+        self.assertTrue(transport.manager.snapshot()["ready"])
+        self.assertEqual(
+            transport.raw_snapshot()["bridge"]["sport_mode_state"],
+            raw,
+        )
+
+        stale = self.sport_mode_state(
+            mode=None,
+            gait_type=None,
+            velocity=None,
+            error_code=None,
+            age_ms=501,
+            fresh=False,
+        )
+        self.assertEqual(
+            ControlTransport.status_sport_mode_state(
+                self.status_payload(sport_mode_state=stale)
+            ),
+            stale,
+        )
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                self.status_payload(sport_mode_state=stale),
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+
+    def test_sport_mode_state_contract_rejects_malformed_or_stale_values(self):
+        valid = self.sport_mode_state()
+        invalid_states = (
+            {**valid, "private": 1},
+            {**valid, "topic": "/other"},
+            {**valid, "mode": True},
+            {**valid, "gait_type": 256},
+            {**valid, "velocity": [0.0, 0.0]},
+            {**valid, "velocity": [20.001, 0.0, 0.0]},
+            {**valid, "velocity": [0.0, math.nan, 0.0]},
+            {**valid, "error_code": 4_294_967_296},
+            {**valid, "age_ms": -1},
+            {**valid, "stale_after_ms": 1_001},
+            {**valid, "fresh": False},
+            {
+                **valid,
+                "age_ms": 501,
+                "fresh": False,
+            },
+        )
+        for state in invalid_states:
+            with self.subTest(state=state), self.assertRaises(ControlProtocolError):
+                ControlTransport.status_sport_mode_state(
+                    self.status_payload(sport_mode_state=state)
+                )
 
     def test_signed_fresh_battery_telemetry_is_projected_without_motion_readiness(self):
         transport = self.transport(expected_bare_sport_publishers=9)

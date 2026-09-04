@@ -36,6 +36,10 @@ from ..go2_bridge import (
     SAFE_ACTION_API_IDS,
     SPORT_REQUEST_EVIDENCE_MAX_COUNT,
     SPORT_REQUEST_EVIDENCE_SCHEMA,
+    SPORT_MODE_STATE_MAX_ABS_VELOCITY,
+    SPORT_MODE_STATE_MAX_AGE_MS,
+    SPORT_MODE_STATE_MAX_ERROR_CODE,
+    SPORT_MODE_STATE_TOPICS,
 )
 from ..serializers import GO2_JOINT_LIMITS, GO2_JOINT_ORDER, go2_joint_state_payload
 
@@ -309,6 +313,7 @@ class ControlTransport:
         if payload.get("type") != "bridge_status":
             raise ControlProtocolError("unexpected bridge status type")
         request_evidence = ControlTransport.status_request_evidence(payload)
+        ControlTransport.status_sport_mode_state(payload)
         reported_ready = payload.get("ready")
         if not isinstance(reported_ready, bool):
             raise ControlProtocolError("bridge ready flag is invalid")
@@ -561,6 +566,110 @@ class ControlTransport:
             "motion_run_active": motion_run_active,
         }
 
+    @staticmethod
+    def status_sport_mode_state(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Validate optional raw SportModeState data without gating on its values."""
+
+        state = payload.get("sport_mode_state")
+        if state is None:
+            return {}
+        expected = {
+            "topic",
+            "mode",
+            "gait_type",
+            "velocity",
+            "error_code",
+            "age_ms",
+            "stale_after_ms",
+            "fresh",
+        }
+        if not isinstance(state, Mapping) or set(state) != expected:
+            raise ControlProtocolError("bridge SportModeState is invalid")
+        if state.get("topic") not in SPORT_MODE_STATE_TOPICS:
+            raise ControlProtocolError("bridge SportModeState topic is invalid")
+        fresh = state.get("fresh")
+        age_ms = state.get("age_ms")
+        stale_after_ms = state.get("stale_after_ms")
+        if not isinstance(fresh, bool):
+            raise ControlProtocolError("bridge SportModeState freshness is invalid")
+        if (
+            isinstance(stale_after_ms, bool)
+            or not isinstance(stale_after_ms, int)
+            or not 200 <= stale_after_ms <= 1_000
+        ):
+            raise ControlProtocolError("bridge SportModeState freshness is invalid")
+        if age_ms is None:
+            if fresh or any(
+                state.get(name) is not None
+                for name in ("mode", "gait_type", "velocity", "error_code")
+            ):
+                raise ControlProtocolError("bridge SportModeState is inconsistent")
+        elif (
+            isinstance(age_ms, bool)
+            or not isinstance(age_ms, int)
+            or not 0 <= age_ms <= SPORT_MODE_STATE_MAX_AGE_MS
+        ):
+            raise ControlProtocolError("bridge SportModeState age is invalid")
+
+        values_visible = age_ms is not None and age_ms <= stale_after_ms
+        if fresh is not values_visible:
+            raise ControlProtocolError("bridge SportModeState freshness is inconsistent")
+        if not values_visible:
+            if any(
+                state.get(name) is not None
+                for name in ("mode", "gait_type", "velocity", "error_code")
+            ):
+                raise ControlProtocolError("stale bridge SportModeState is not hidden")
+            return {
+                "topic": state["topic"],
+                "mode": None,
+                "gait_type": None,
+                "velocity": None,
+                "error_code": None,
+                "age_ms": age_ms,
+                "stale_after_ms": stale_after_ms,
+                "fresh": False,
+            }
+
+        integers = {
+            "mode": 255,
+            "gait_type": 255,
+            "error_code": SPORT_MODE_STATE_MAX_ERROR_CODE,
+        }
+        projected: Dict[str, Any] = {}
+        for name, maximum in integers.items():
+            value = state.get(name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 0 <= value <= maximum
+            ):
+                raise ControlProtocolError("bridge SportModeState value is invalid")
+            projected[name] = value
+        velocity = state.get("velocity")
+        if not isinstance(velocity, list) or len(velocity) != 3:
+            raise ControlProtocolError("bridge SportModeState velocity is invalid")
+        safe_velocity: List[float] = []
+        for value in velocity:
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or abs(float(value)) > SPORT_MODE_STATE_MAX_ABS_VELOCITY
+            ):
+                raise ControlProtocolError("bridge SportModeState velocity is invalid")
+            safe_velocity.append(round(float(value), 6))
+        return {
+            "topic": state["topic"],
+            "mode": projected["mode"],
+            "gait_type": projected["gait_type"],
+            "velocity": safe_velocity,
+            "error_code": projected["error_code"],
+            "age_ms": age_ms,
+            "stale_after_ms": stale_after_ms,
+            "fresh": True,
+        }
+
     def status_callback(self, message: String) -> None:
         key = self.bridge_key
         if key is None:
@@ -579,6 +688,7 @@ class ControlTransport:
             )
             telemetry = self.status_telemetry(payload)
             request_evidence = self.status_request_evidence(payload)
+            sport_mode_state = self.status_sport_mode_state(payload)
         except (ControlProtocolError, TypeError, ValueError) as exc:
             self.set_unready(f"rejected bridge status: {exc}")
             return
@@ -588,6 +698,8 @@ class ControlTransport:
         status = dict(payload)
         status["telemetry"] = telemetry
         status["request_evidence"] = request_evidence
+        if sport_mode_state:
+            status["sport_mode_state"] = sport_mode_state
         status.update(
             {
                 "authenticated": True,

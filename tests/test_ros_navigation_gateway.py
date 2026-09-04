@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from robot_dashboard.control import CommandValidationError
+from robot_dashboard.localization_health import classify_localization_health
 from robot_dashboard.ros.navigation_gateway import (
     NAVIGATION_ACTION,
     NAVIGATION_CLEAR_SERVICES,
@@ -124,6 +125,90 @@ def gateway(*, port=None, node=None, ticks=None, navigation_profile=""):
 
 
 class NavigationRosGatewayTests(unittest.TestCase):
+    @staticmethod
+    def _prepare_active_goal(navigation, *, started_at=100.0):
+        navigation._navigation_goal_generation = 1
+        navigation._navigation["active"] = True
+        navigation._navigation["localization"] = {
+            "state": "localized",
+            "pose": {"x": 0.0, "y": 0.0, "yaw": 0.0},
+        }
+        navigation._navigation["goal"] = {
+            "state": "active",
+            "goal_id": "g" * 32,
+            "pose": {"x": 0.25, "y": 0.0, "yaw": 0.0},
+            "distance_remaining": None,
+            "initial_distance": None,
+            "navigation_time": None,
+            "recoveries": 0,
+            "error": None,
+        }
+        navigation._navigation_goal_progress = (
+            navigation._new_navigation_goal_progress(started_at)
+        )
+
+    @staticmethod
+    def _publish_goal_feedback(navigation, distance, *, observed_at):
+        message = SimpleNamespace(
+            feedback=SimpleNamespace(
+                distance_remaining=distance,
+                navigation_time=None,
+                number_of_recoveries=0,
+            )
+        )
+        with mock.patch(
+            "robot_dashboard.ros.navigation_gateway.time.monotonic",
+            return_value=observed_at,
+        ):
+            navigation._navigation_feedback_callback(
+                1,
+                "g" * 32,
+                message,
+            )
+
+    @staticmethod
+    def _healthy_runtime_health():
+        return {
+            "ready": True,
+            "cloud_fresh": True,
+            "odom_fresh": True,
+            "localized": True,
+            "cloud_frequency_hz": 10.0,
+            "cloud_jitter_s": 0.01,
+            "cloud_age_s": 0.1,
+            "age_s": 0.1,
+            "odometry_frequency_hz": 100.0,
+            "odometry_frequency_hz_raw": 100.0,
+            "odometry_max_gap_s": 0.01,
+            "odometry_jitter_s": 0.005,
+            "odometry_age_s": 0.02,
+            "odom_to_base_age_s": 0.02,
+            "map_to_odom_age_s": 0.02,
+            "accepted_points": 500,
+            "fresh_sequence_count": 3,
+            "last_jump_age_s": None,
+            "frame_error": "",
+            "source_error": "",
+            "lidar_extrinsic": {
+                "parent": "base_link",
+                "child": "hesai_lidar",
+            },
+        }
+
+    @classmethod
+    def _goal_health(cls, navigation, *, now):
+        metrics = navigation._localization_metrics(
+            cls._healthy_runtime_health(),
+            now,
+        )
+        return classify_localization_health(
+            metrics,
+            active=True,
+            localized=True,
+            thresholds=navigation._health_thresholds,
+            rate_policy=navigation._rate_policy,
+        )
+
     def test_runtime_health_tracks_only_advancing_fresh_sequences_and_bounds_metrics(self):
         navigation = gateway()
 
@@ -390,6 +475,155 @@ class NavigationRosGatewayTests(unittest.TestCase):
         self.assertEqual(kwargs["speed_scale"], 0.35)
         self.assertTrue(kwargs["deadman"])
         self.assertAlmostEqual(navigation.state["last_cmd"]["vx"], 0.07)
+
+    def test_cumulative_progress_accepts_c4_scaled_motion_at_ten_hz(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+
+        for sample in range(41):
+            self._publish_goal_feedback(
+                navigation,
+                1.0 - sample * 0.0035,
+                observed_at=100.0 + sample * 0.1,
+            )
+
+        progress = navigation._navigation_goal_progress
+        self.assertGreaterEqual(progress["progress_rate_mps"], 0.034)
+        self.assertGreater(progress["last_progress_at"], 103.7)
+        self.assertEqual(navigation._navigation["goal"]["distance_remaining"], 0.86)
+        health = self._goal_health(navigation, now=104.0)
+        self.assertEqual(health["state"], "READY", health)
+
+    def test_no_progress_fails_at_the_existing_three_second_boundary(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+        self._publish_goal_feedback(navigation, 1.0, observed_at=100.0)
+
+        before = self._goal_health(navigation, now=102.999)
+        at_boundary = self._goal_health(navigation, now=103.0)
+
+        self.assertEqual(before["state"], "READY", before)
+        self.assertEqual(at_boundary["state"], "DEGRADED", at_boundary)
+        self.assertEqual(at_boundary["reason_code"], "GOAL_PROGRESS_TOO_LOW")
+
+    def test_stationary_noise_reverse_and_below_minimum_progress_still_fail(self):
+        cases = {
+            "no_progress": lambda sample: 1.0,
+            "stationary_noise": lambda sample: 1.0 + (0.002 if sample % 2 else -0.002),
+            "reverse": lambda sample: 1.0 + sample * 0.0035,
+            "below_minimum_rate": lambda sample: 1.0 - sample * 0.0005,
+        }
+        for name, distance_at in cases.items():
+            with self.subTest(name=name):
+                navigation = gateway()
+                self._prepare_active_goal(navigation)
+                for sample in range(32):
+                    self._publish_goal_feedback(
+                        navigation,
+                        distance_at(sample),
+                        observed_at=100.0 + sample * 0.1,
+                    )
+
+                metrics = navigation._localization_metrics({}, 103.1)
+                self.assertGreaterEqual(
+                    metrics["controller_stall_duration_s"],
+                    navigation._health_thresholds.controller_stall_s,
+                )
+                self.assertLess(
+                    metrics["goal_progress_rate_mps"],
+                    navigation._health_thresholds.goal_progress_min_mps,
+                )
+                health = self._goal_health(navigation, now=103.1)
+                self.assertEqual(health["state"], "DEGRADED", health)
+                self.assertEqual(health["reason_code"], "GOAL_PROGRESS_TOO_LOW")
+
+    def test_first_active_goal_health_failure_survives_cancel_and_stop(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+        self._publish_goal_feedback(navigation, 1.0, observed_at=100.0)
+        runtime = self._healthy_runtime_health()
+        with navigation._navigation_lock:
+            navigation._update_localization_readiness_locked(103.0, runtime)
+            first = json.loads(
+                json.dumps(navigation._navigation_goal_first_nonready)
+            )
+
+            later = dict(runtime)
+            later["frame_error"] = "later frame fault"
+            navigation._update_localization_readiness_locked(103.1, later)
+            self.assertEqual(navigation._navigation_goal_first_nonready, first)
+
+        self.assertEqual(first["reason_code"], "GOAL_PROGRESS_TOO_LOW")
+        self.assertEqual(first["metrics"]["controller_stall_duration_s"], 3.0)
+        self.assertEqual(first["observed_at_monotonic_s"], 103.0)
+        self.assertLess(len(json.dumps(first)), 5_000)
+
+        with mock.patch(
+            "robot_dashboard.ros.navigation_gateway.time.monotonic",
+            return_value=104.0,
+        ):
+            canceled = navigation.cancel_goal(goal_id="g" * 32)
+            stopped = navigation.deactivate("navigation_stop")
+
+        for snapshot in (canceled, stopped):
+            public = snapshot["goal"]["first_nonready_health"]
+            self.assertEqual(public["reason_code"], "GOAL_PROGRESS_TOO_LOW")
+            self.assertEqual(public["captured_age_s"], 1.0)
+            self.assertNotIn("observed_at_monotonic_s", public)
+
+    def test_new_goal_initialization_resets_first_nonready_health(self):
+        class GoalMessage:
+            def __init__(self):
+                self.pose = SimpleNamespace(header=None, pose=None)
+
+        class ActionType:
+            Goal = GoalMessage
+
+        class PendingFuture:
+            def add_done_callback(self, callback):
+                self.callback = callback
+
+        class ReadyActionClient:
+            @staticmethod
+            def server_is_ready():
+                return True
+
+            @staticmethod
+            def send_goal_async(message, *, feedback_callback):
+                del message, feedback_callback
+                return PendingFuture()
+
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+        navigation._navigation["map"] = {
+            "id": "map",
+            "revision": "a" * 64,
+        }
+        navigation._navigation["goal"]["state"] = "idle"
+        navigation._navigation_goal_first_nonready = {
+            "state": "DEGRADED",
+            "reason_code": "OLD_GOAL_FAILURE",
+        }
+        navigation._navigation_action_type = ActionType
+        navigation._navigation_action_client = ReadyActionClient()
+        navigation._navigation_sensor_interlock_reason = (
+            lambda *_args, **_kwargs: None
+        )
+        navigation._new_stamped_pose = lambda *_args: SimpleNamespace(
+            header=SimpleNamespace(),
+            pose=SimpleNamespace(pose=SimpleNamespace()),
+        )
+
+        snapshot = navigation.send_goal(
+            map_id="map",
+            map_revision="a" * 64,
+            x=0.25,
+            y=0.0,
+            yaw=0.0,
+        )
+
+        self.assertIsNone(navigation._navigation_goal_first_nonready)
+        self.assertIsNone(snapshot["goal"]["first_nonready_health"])
 
     def test_ui_metric_ticks_cannot_open_validated_freshness_gate(self):
         ticks = []

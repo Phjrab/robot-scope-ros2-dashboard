@@ -1,4 +1,5 @@
 import ast
+import json
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,6 +14,9 @@ from robot_dashboard.go2_bridge import (
     SAFE_ACTION_GUARD_S,
     SPORT_REQUEST_EVIDENCE_MAX_COUNT,
     SPORT_REQUEST_EVIDENCE_SCHEMA,
+    SPORT_MODE_STATE_MAX_ERROR_CODE,
+    SPORT_MODE_STATE_TOPICS,
+    SportModeStateObservation,
     SportRequest,
     SportRequestEvidence,
     classify_sport_request_publishers,
@@ -174,6 +178,151 @@ class Go2BridgeCoreTests(unittest.TestCase):
             "rclpy",
         ):
             self.assertNotIn(forbidden, evidence_source)
+
+    def test_sport_mode_state_observation_is_bounded_fresh_and_read_only(self):
+        observation = SportModeStateObservation(
+            topic="/sportmodestate",
+            stale_after_s=0.5,
+        )
+        waiting = observation.snapshot(now=10.0)
+        self.assertEqual(waiting["topic"], "/sportmodestate")
+        self.assertFalse(waiting["fresh"])
+        self.assertIsNone(waiting["age_ms"])
+        self.assertIsNone(waiting["mode"])
+
+        observation.observe(
+            SimpleNamespace(
+                mode=5,
+                gait_type=3,
+                velocity=[0.1051234, -0.02, 0.0],
+                error_code=SPORT_MODE_STATE_MAX_ERROR_CODE,
+            ),
+            now=10.0,
+        )
+        fresh = observation.snapshot(now=10.125)
+        self.assertEqual(
+            fresh,
+            {
+                "topic": "/sportmodestate",
+                "mode": 5,
+                "gait_type": 3,
+                "velocity": [0.105123, -0.02, 0.0],
+                "error_code": SPORT_MODE_STATE_MAX_ERROR_CODE,
+                "age_ms": 125,
+                "stale_after_ms": 500,
+                "fresh": True,
+            },
+        )
+
+        boundary = observation.snapshot(now=10.5)
+        self.assertTrue(boundary["fresh"])
+        self.assertEqual(boundary["age_ms"], 500)
+
+        over_boundary = observation.snapshot(now=10.5004)
+        self.assertFalse(over_boundary["fresh"])
+        self.assertEqual(over_boundary["age_ms"], 501)
+        self.assertIsNone(over_boundary["mode"])
+
+        stale = observation.snapshot(now=10.501)
+        self.assertFalse(stale["fresh"])
+        self.assertEqual(stale["age_ms"], 501)
+        for field in ("mode", "gait_type", "velocity", "error_code"):
+            self.assertIsNone(stale[field])
+
+        observation_source = ast.unparse(
+            next(
+                node
+                for node in ast.parse(
+                    (
+                        Path(__file__).resolve().parents[1]
+                        / "robot_dashboard"
+                        / "go2_bridge.py"
+                    ).read_text(encoding="utf-8")
+                ).body
+                if isinstance(node, ast.ClassDef)
+                and node.name == "SportModeStateObservation"
+            )
+        )
+        for forbidden in (
+            "create_publisher",
+            "create_subscription",
+            "ControlManager",
+            "submit_drive",
+            "SportRequest",
+            "deadman",
+            "lease",
+        ):
+            self.assertNotIn(forbidden, observation_source)
+
+    def test_sport_mode_state_rejects_invalid_topic_values_and_time(self):
+        with self.assertRaisesRegex(ValueError, "topic is not allowlisted"):
+            SportModeStateObservation(topic="/other", stale_after_s=0.5)
+        self.assertEqual(
+            SPORT_MODE_STATE_TOPICS,
+            ("/sportmodestate", "/lf/sportmodestate"),
+        )
+        observation = SportModeStateObservation(
+            topic="/lf/sportmodestate",
+            stale_after_s=0.5,
+        )
+        valid = {
+            "mode": 1,
+            "gait_type": 2,
+            "velocity": [0.0, 0.0, 0.0],
+            "error_code": 0,
+        }
+        for changes in (
+            {"mode": True},
+            {"gait_type": 256},
+            {"velocity": [0.0, 0.0]},
+            {"velocity": [0.0, float("nan"), 0.0]},
+            {"velocity": [20.001, 0.0, 0.0]},
+            {"error_code": SPORT_MODE_STATE_MAX_ERROR_CODE + 1},
+        ):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                observation.observe(
+                    SimpleNamespace(**{**valid, **changes}),
+                    now=10.0,
+                )
+        with self.assertRaisesRegex(ValueError, "observation time"):
+            observation.observe(SimpleNamespace(**valid), now=float("nan"))
+
+    def test_control_bridge_subscribes_to_one_configured_sport_state_alias_only(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "robot_dashboard" / "go2_control_bridge.py").read_text(
+            encoding="utf-8"
+        )
+        tree = ast.parse(source)
+        bridge = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Go2ControlBridge"
+        )
+        methods = {
+            node.name: ast.unparse(node)
+            for node in bridge.body
+            if isinstance(node, ast.FunctionDef)
+        }
+        constructor = methods["__init__"]
+        callback = methods["_sport_mode_state_callback"]
+        self.assertIn("control.get('sport_mode_state_topic'", constructor)
+        self.assertIn("SportModeStateObservation", constructor)
+        self.assertIn("self.create_subscription(SportModeState", constructor)
+        self.assertIn("self._sport_mode_state.observe", callback)
+        self.assertNotIn("self._core", callback)
+        self.assertNotIn("_publish_request", callback)
+        self.assertIn(
+            "'sport_mode_state': self._sport_mode_state.snapshot(now=now)",
+            methods["_publish_status"],
+        )
+
+        profile = json.loads(
+            (root / "config" / "go2.json").read_text(encoding="utf-8")
+        )
+        self.assertIn(
+            profile["control"]["sport_mode_state_topic"],
+            SPORT_MODE_STATE_TOPICS,
+        )
 
     def test_request_evidence_is_bounded_and_classifies_published_requests(self):
         evidence = SportRequestEvidence()
