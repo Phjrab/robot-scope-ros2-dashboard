@@ -1,0 +1,8 @@
+# Opt-in only for the dedicated robot-side appliance. The default installer
+# must not install this drop-in or enable either service.
+[Unit]
+Wants=NetworkManager-wait-online.service
+After=NetworkManager-wait-online.service
+
+[Service]
+ExecStartPre=/usr/bin/python3 /usr/local/libexec/robot-scope/robot_scope_appliance_network_ready.py

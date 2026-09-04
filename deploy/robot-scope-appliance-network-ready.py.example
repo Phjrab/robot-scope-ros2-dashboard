@@ -1,0 +1,97 @@
+#!/usr/bin/python3
+"""Bounded, read-only readiness gate for the dedicated robot-side appliance."""
+
+from __future__ import annotations
+
+import fcntl
+import socket
+import struct
+import sys
+import time
+from collections.abc import Callable
+
+
+EXPECTED_INTERFACES = {
+    "eth0": ("192.168.123.18", "255.255.255.0"),
+    "wlan0": ("192.168.50.30", "255.255.255.0"),
+}
+TIMEOUT_SECONDS = 60.0
+POLL_SECONDS = 1.0
+
+_SIOCGIFFLAGS = 0x8913
+_SIOCGIFADDR = 0x8915
+_SIOCGIFNETMASK = 0x891B
+_IFF_UP = 0x1
+_IFF_RUNNING = 0x40
+
+
+def _ifreq(interface: str) -> bytes:
+    encoded = interface.encode("ascii")
+    if not encoded or len(encoded) >= 16:
+        raise ValueError("invalid fixed interface name")
+    return struct.pack("256s", encoded)
+
+
+def _interface_state(interface: str) -> tuple[bool, str, str] | None:
+    """Return link/address/netmask without changing NetworkManager or the link."""
+
+    request = _ifreq(interface)
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            flags_data = fcntl.ioctl(probe.fileno(), _SIOCGIFFLAGS, request)
+            flags = struct.unpack_from("H", flags_data, 16)[0]
+            address_data = fcntl.ioctl(probe.fileno(), _SIOCGIFADDR, request)
+            netmask_data = fcntl.ioctl(probe.fileno(), _SIOCGIFNETMASK, request)
+    except OSError:
+        return None
+
+    link_ready = (flags & (_IFF_UP | _IFF_RUNNING)) == (_IFF_UP | _IFF_RUNNING)
+    address = socket.inet_ntoa(address_data[20:24])
+    netmask = socket.inet_ntoa(netmask_data[20:24])
+    return link_ready, address, netmask
+
+
+def _all_interfaces_ready() -> bool:
+    for interface, expected in EXPECTED_INTERFACES.items():
+        state = _interface_state(interface)
+        if state is None or state != (True, *expected):
+            return False
+    return True
+
+
+def wait_until_ready(
+    *,
+    probe: Callable[[], bool] = _all_interfaces_ready,
+    monotonic: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> bool:
+    """Wait for the fixed links, but never longer than TIMEOUT_SECONDS."""
+
+    started = monotonic()
+    while True:
+        if probe():
+            return True
+        remaining = TIMEOUT_SECONDS - (monotonic() - started)
+        if remaining <= 0:
+            return False
+        sleep(min(POLL_SECONDS, remaining))
+
+
+def main() -> int:
+    if wait_until_ready():
+        print(
+            "Robot Scope fixed interfaces ready: "
+            "eth0=192.168.123.18/24 wlan0=192.168.50.30/24",
+            flush=True,
+        )
+        return 0
+    print(
+        "Robot Scope fixed interface readiness timed out after 60 seconds",
+        file=sys.stderr,
+        flush=True,
+    )
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

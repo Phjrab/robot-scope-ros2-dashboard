@@ -55,6 +55,18 @@ receiver and FAST-LIO. Stop performs reverse cleanup of those mapping-owned
 processes while leaving the preview available. Map save remains a separate
 explicit action and no map is deleted by connection or dashboard startup.
 
+For only `go2-xt16-wireless` and
+`go2-xt16-wireless-competition-fastlio`, the explicit
+`ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER=1` opt-in may retry a terminal `failed`
+observation preview with bounded 5→10→20→30-second backoff. Every other value
+keeps it disabled. A retry is skipped
+unless lifecycle, Navigation, the control lease, Dataset Capture, the Mapping
+pipeline (`idle`/`stopped`/terminal `failed`) and the map operation are safely idle. It restarts only the
+preview-owned XT16 relay/Hesai/cloud path; it never auto-starts Mapping, IMU,
+FAST-LIO, Nav2, localization, Mission, Dataset Capture, control, a lease or
+motion. A failed Mapping pipeline remains failed. Dashboard shutdown signals
+and settles the retry owner, including in-flight preview startup, before process cleanup.
+
 For clean release directories, the Git-ignored C++ bridge may be read from the
 fixed absolute `ROBOT_SCOPE_DEPENDENCY_WORKSPACE_ROOT`. The path cannot be `/`
 or relative. It does not change the generated-map directory or permit a

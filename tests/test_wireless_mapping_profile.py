@@ -284,6 +284,21 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertNotIn("--stage bridge", mapping)
         self.assertNotIn("--service relay --action stop", mapping)
 
+        # ensure-started reports "existing" for a relay that was already
+        # active.  Only an exact "started" result grants preview cleanup
+        # ownership, so an existing appliance relay cannot be stopped here.
+        self.assertIn("REMOTE_RELAY_STARTED=0", preview)
+        self.assertIn(
+            '[[ "$relay_state" == "started" ]] && REMOTE_RELAY_STARTED=1',
+            preview,
+        )
+        self.assertEqual(preview.count("REMOTE_RELAY_STARTED=1"), 1)
+        self.assertIn(
+            'if [[ "$REMOTE_RELAY_STARTED" -eq 1 ]]; then\n'
+            "    remote_lifecycle --service relay --action stop",
+            preview,
+        )
+
     def test_remote_forced_command_and_sudoers_are_exact(self):
         helper = (
             ROOT / "scripts" / "robot_scope_wireless_mapping_ssh_command.py"

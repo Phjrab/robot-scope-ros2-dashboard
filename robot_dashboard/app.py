@@ -160,8 +160,6 @@ async def lifespan(fastapi: FastAPI):
         try:
             await runtime.mapping.start_preview()
         except MappingJobError:
-            # Raw XT16 preview is optional observability. Keep the dashboard
-            # available and expose WAITING when fixed dependencies are absent.
             LOGGER.exception("XT16 point-cloud preview startup failed")
     try:
         yield
@@ -201,9 +199,11 @@ async def lifespan(fastapi: FastAPI):
             except Exception:
                 # Dataset durability must not skip the remaining ROS cleanup.
                 LOGGER.exception("dataset capture shutdown failed")
-        if runtime.mapping is not None:
-            await runtime.mapping.close()
-        runtime.agent.stop()
+        try:
+            if runtime.mapping is not None:
+                await runtime.mapping.close()
+        finally:
+            runtime.agent.stop()
 
 
 app = FastAPI(

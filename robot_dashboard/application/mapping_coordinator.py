@@ -18,6 +18,15 @@ from ..saved_maps import SavedMapCatalog, SavedMapError
 
 LOGGER = logging.getLogger(__name__)
 
+PREVIEW_RECOVERY_INITIAL_DELAY_S = 5.0
+PREVIEW_RECOVERY_MAX_DELAY_S = 30.0
+_PREVIEW_RECOVERY_PIPELINE_IDLE_STATES = frozenset(
+    {"idle", "stopped", "failed"}
+)
+_PREVIEW_RECOVERY_OPERATION_IDLE_STATES = frozenset(
+    {"idle", "succeeded", "failed"}
+)
+
 
 def _public_mapping_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     """Remove process-local identifiers from the browser-facing projection."""
@@ -81,8 +90,14 @@ class MappingCoordinator:
         self._control_lease_active = control_lease_active
         self._dataset_capture_active = dataset_capture_active
         self._require_lifecycle_idle = require_lifecycle_idle
+        self._preview_auto_recovery_enabled = (
+            getattr(manager, "preview_auto_recovery_enabled", False) is True
+        )
         self._logger = logger or LOGGER
         self._task: asyncio.Task[None] | None = None
+        self._preview_recovery_task: asyncio.Task[None] | None = None
+        self._preview_recovery_inflight: asyncio.Task[dict[str, Any]] | None = None
+        self._preview_recovery_stop = asyncio.Event()
 
     @property
     def coordination_lock(self) -> asyncio.Lock:
@@ -350,20 +365,233 @@ class MappingCoordinator:
     async def start_preview(self) -> dict[str, Any]:
         """Start only the manager's fixed optional observation preview."""
 
-        snapshot = await asyncio.to_thread(self._manager.start_preview)
+        try:
+            snapshot = await asyncio.to_thread(self._manager.start_preview)
+        except MappingJobError:
+            self._start_preview_auto_recovery_fail_soft()
+            raise
+        self._start_preview_auto_recovery_fail_soft()
         return _public_mapping_snapshot(snapshot)
+
+    def _start_preview_auto_recovery_fail_soft(self) -> None:
+        """Start the optional monitor without failing dashboard startup."""
+
+        try:
+            self.start_preview_auto_recovery()
+        except Exception:
+            self._logger.exception("XT16 preview recovery monitor startup failed")
+
+    def start_preview_auto_recovery(self) -> bool:
+        """Own one opt-in monitor for a failed observation-only preview.
+
+        The monitor never starts a mapping pipeline or any autonomy/control
+        owner.  Its retry transaction is additionally fenced by the same
+        cross-subsystem lock and idle providers used by mapping mutations.
+        """
+
+        if not self._preview_auto_recovery_enabled:
+            return False
+        if self._preview_recovery_stop.is_set():
+            return False
+        task = self._preview_recovery_task
+        if task is not None and not task.done():
+            return False
+        coroutine = self._run_preview_auto_recovery()
+        try:
+            self._preview_recovery_task = asyncio.create_task(
+                coroutine,
+                name="xt16-preview-auto-recovery",
+            )
+        except Exception:
+            coroutine.close()
+            raise
+        return True
+
+    async def stop_preview_auto_recovery(self) -> None:
+        """Stop and settle the single preview recovery monitor.
+
+        This is cooperative instead of cancelling ``to_thread`` work: task
+        cancellation cannot stop a worker thread, so waiting here guarantees
+        that an in-flight preview transaction finishes before manager cleanup.
+        """
+
+        self._preview_recovery_stop.set()
+        caller_cancelled = False
+        task = self._preview_recovery_task
+        if task is not None and not task.done():
+            caller_cancelled |= await self._settle_task_uninterruptibly(task)
+        if task is not None and task.done() and not task.cancelled():
+            # Retrieve any terminal exception before dropping ownership.
+            task.exception()
+        self._preview_recovery_task = None
+
+        # A task cancelled by an external loop owner cannot cancel work that
+        # already entered asyncio.to_thread(). Keep the explicit future until
+        # that fixed preview-start transaction has actually returned.
+        inflight = self._preview_recovery_inflight
+        if inflight is not None and not inflight.done():
+            try:
+                caller_cancelled |= await self._settle_task_uninterruptibly(
+                    inflight
+                )
+            except Exception:
+                self._logger.exception(
+                    "XT16 preview start settlement failed during shutdown"
+                )
+        if inflight is not None and inflight.done() and not inflight.cancelled():
+            inflight.exception()
+        self._preview_recovery_inflight = None
+        if caller_cancelled:
+            raise asyncio.CancelledError
 
     async def close(self, *, task_timeout: float = 2.0) -> None:
         """Close process ownership, then boundedly settle its async worker."""
 
-        await asyncio.to_thread(self._manager.close)
+        caller_cancelled = False
+        try:
+            await self.stop_preview_auto_recovery()
+        except asyncio.CancelledError:
+            # Preview settlement completed before the cancellation surfaced.
+            # Finish manager cleanup, then preserve caller cancellation.
+            caller_cancelled = True
+        close_coroutine = asyncio.to_thread(self._manager.close)
+        try:
+            manager_close = asyncio.create_task(
+                close_coroutine,
+                name="mapping-manager-close",
+            )
+        except Exception:
+            close_coroutine.close()
+            raise
+        caller_cancelled |= await self._settle_task_uninterruptibly(
+            manager_close
+        )
         task = self._task
         if task is None or task.done():
+            if caller_cancelled:
+                raise asyncio.CancelledError
             return
         try:
             await asyncio.wait_for(asyncio.shield(task), timeout=task_timeout)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            return
+        except asyncio.TimeoutError:
+            pass
+        except asyncio.CancelledError:
+            if not task.cancelled():
+                caller_cancelled = True
+        if caller_cancelled:
+            raise asyncio.CancelledError
+
+    @staticmethod
+    async def _settle_task_uninterruptibly(task: asyncio.Task[Any]) -> bool:
+        """Wait for owned work while recording, not propagating, caller cancel."""
+
+        caller_cancelled = False
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                if task.cancelled():
+                    break
+                caller_cancelled = True
+        return caller_cancelled
+
+    async def _run_preview_auto_recovery(self) -> None:
+        delay = PREVIEW_RECOVERY_INITIAL_DELAY_S
+        while not self._preview_recovery_stop.is_set():
+            try:
+                await asyncio.wait_for(
+                    self._preview_recovery_stop.wait(),
+                    timeout=delay,
+                )
+            except asyncio.TimeoutError:
+                pass
+            if self._preview_recovery_stop.is_set():
+                return
+            try:
+                recovered = await self._recover_failed_preview_if_safe()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                # State-provider and manager errors fail closed.  Retrying is
+                # bounded so an absent robot cannot create a tight loop.
+                self._logger.exception("XT16 preview recovery check failed")
+                recovered = False
+            delay = (
+                PREVIEW_RECOVERY_INITIAL_DELAY_S
+                if recovered
+                else min(delay * 2.0, PREVIEW_RECOVERY_MAX_DELAY_S)
+            )
+
+    async def _recover_failed_preview_if_safe(self) -> bool:
+        """Retry only a failed preview while every shared owner is idle."""
+
+        async with self._coordination_lock:
+            if self._preview_recovery_stop.is_set():
+                return False
+            snapshot = await asyncio.to_thread(self._manager.snapshot)
+            preview = snapshot.get("preview")
+            pipeline = snapshot.get("pipeline")
+            operation = snapshot.get("operation")
+            if not all(
+                isinstance(item, Mapping)
+                for item in (preview, pipeline, operation)
+            ):
+                return False
+            if str(preview.get("state", "unknown")) != "failed":
+                return False
+            if self.task_active():
+                return False
+            try:
+                self._require_lifecycle_idle()
+                self._require_navigation_idle(
+                    "navigation must stop before preview recovery"
+                )
+                self._require_inactive(
+                    self._control_lease_active,
+                    "control lease must be released before preview recovery",
+                )
+                self._require_inactive(
+                    self._dataset_capture_active,
+                    "dataset capture must stop before preview recovery",
+                )
+            except MappingCoordinatorConflict:
+                return False
+            except Exception:
+                # Lifecycle state is unreadable or transitioning.
+                return False
+            if str(pipeline.get("state", "unknown")) not in (
+                _PREVIEW_RECOVERY_PIPELINE_IDLE_STATES
+            ):
+                return False
+            if str(operation.get("state", "unknown")) not in (
+                _PREVIEW_RECOVERY_OPERATION_IDLE_STATES
+            ):
+                return False
+            if self._preview_recovery_stop.is_set():
+                return False
+            start_coroutine = asyncio.to_thread(self._manager.start_preview)
+            try:
+                inflight = asyncio.create_task(
+                    start_coroutine,
+                    name="xt16-preview-start-transaction",
+                )
+            except Exception:
+                start_coroutine.close()
+                raise
+            try:
+                self._preview_recovery_inflight = inflight
+                restarted = await asyncio.shield(inflight)
+            except MappingJobError:
+                return False
+            finally:
+                inflight = self._preview_recovery_inflight
+                if inflight is not None and inflight.done():
+                    self._preview_recovery_inflight = None
+            restarted_preview = restarted.get("preview")
+            return bool(
+                isinstance(restarted_preview, Mapping)
+                and restarted_preview.get("state") in {"starting", "running"}
+            )
 
     async def _run_map_save(self, name: str, kind: str) -> None:
         try:

@@ -1,0 +1,8 @@
+# Dedicated-appliance release indirection for robot-scope.service.
+# Install only after /home/jetson_orin_nano/robot-scope is an operator-reviewed
+# symlink to an immutable release directory. This file does not enable, start,
+# restart, arm, lease, or resume any service or robot work.
+[Service]
+WorkingDirectory=/home/jetson_orin_nano/robot-scope
+ExecStart=
+ExecStart=/home/jetson_orin_nano/robot-scope/scripts/run_go2_dashboard_supervisor.py

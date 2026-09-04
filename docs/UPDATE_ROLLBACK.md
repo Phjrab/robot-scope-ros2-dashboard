@@ -151,6 +151,138 @@ RealSense는 `.99` dashboard host에서 실제 `/stream`을 열어 완전한 JPE
 카메라 프레임 정상의 증거가 아닙니다. 정확한 curl/JPEG 검사 명령은
 [문제 해결의 카메라 절차](TROUBLESHOOTING.md#카메라-화면이-없음)를 사용합니다.
 
+## 전용 appliance enable 상태와 cold-boot 검증
+
+전용 appliance 정책을 적용한 배포는 업데이트 전에 active 상태와 별도로 다음 세 unit의
+enable 상태를 기록합니다. 이것만이 부팅 자동 시작 allowlist이며 installer는 업데이트나
+롤백 중 이 상태를 변경하지 않습니다.
+
+2026-09-04 사전 점검에서는 두 호스트의 필요한 NetworkManager profile이
+`connection.autoconnect=yes`였지만 `NetworkManager-wait-online.service`는 양쪽 모두
+`disabled`/`inactive`였습니다. 따라서 아래 세 Robot Scope unit을 enable하는 것만으로는 아직
+신뢰 가능한 cold-boot 자동 시작이 승인된 상태가 아닙니다. Wait-online 또는 동등한 bounded
+interface readiness를 검증하고 실제 cold boot acceptance를 통과할 때까지 이 상태를
+`NOT_ACCEPTED`로 유지합니다.
+
+| Host | 허용 unit | 전용 appliance 기대값 |
+| --- | --- | --- |
+| 외부 dashboard Orin | `robot-scope.service` | `enabled` |
+| 탑재 Jetson | `robot-scope-control-bridge.service` | `enabled` |
+| 탑재 Jetson | `robot-scope-xt16-wireless-relay.service` | `enabled` |
+
+각 호스트에서 업데이트 전·후 `systemctl is-enabled <exact-unit>`을 실행해 결과를 변경 기록에
+남깁니다. 이전에 `enabled`였던 unit만 exact `systemctl enable <exact-unit>`로 복원하고,
+이전 값이 `disabled`였던 일반 설치는 그대로 둡니다. 정책을 철회할 때도 아래 exact 이름만
+사용하며 wildcard를 사용하지 않습니다.
+
+외부 dashboard의 `robot-scope.service.d/release.conf`는 특정 과거 release 디렉터리가 아니라
+검토된 `/home/jetson_orin_nano/robot-scope` symlink를 사용해야 합니다. 업데이트·롤백은 먼저
+symlink를 검증된 immutable release로 전환하고 service 설정에는 같은 stable 경로를 유지합니다.
+Release 선택과 appliance readiness는 별도 drop-in으로 유지합니다. 다음 세 root-owned 파일의
+이전 사본도 enable 상태와 함께 보존합니다.
+
+- `/usr/local/libexec/robot-scope/robot_scope_dashboard_appliance_network_ready.py`
+- `/etc/systemd/system/robot-scope.service.d/10-appliance-network-ready.conf`
+- `/etc/systemd/system/robot-scope.service.d/release.conf`
+
+외부 helper는 network 설정을 변경하지 않고 link UP/RUNNING과
+`eno1=192.168.50.10/24`만 확인하며 시도당 60초 후 실패합니다. Appliance drop-in은
+`NetworkManager-wait-online.service`를 boot transaction에 포함하고 정확히
+`ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER=1`만 추가합니다. 이 opt-in은 실패한 관측 전용 preview만
+bounded recovery 대상으로 만들며 Mapping/Nav/Mission/Control 또는 이전 동작을 자동 복구하지
+않습니다. 업데이트 후 `systemctl cat robot-scope.service`로 release와 appliance 두 drop-in의
+합성 결과를 확인합니다. 롤백할 때는 보존한 세 사본을 함께 복원하고
+`systemctl daemon-reload`를 실행합니다.
+
+탑재 Jetson에서는 다음 세 root-owned 파일도 하나의 opt-in 묶음으로 기록하고 이전 사본을
+보존합니다.
+
+- `/usr/local/libexec/robot-scope/robot_scope_appliance_network_ready.py`
+- `/etc/systemd/system/robot-scope-control-bridge.service.d/10-appliance-network-ready.conf`
+- `/etc/systemd/system/robot-scope-xt16-wireless-relay.service.d/10-appliance-network-ready.conf`
+
+Helper는 network 설정을 변경하지 않고 link UP/RUNNING과
+`eth0=192.168.123.18/24`, `wlan0=192.168.50.30/24`만 확인하며 시도당 60초 후 실패합니다.
+두 drop-in은 disabled인 `NetworkManager-wait-online.service`를 boot transaction에 포함하지만
+기존 두 unit의 restart/start-limit 값은 덮어쓰지 않습니다. 업데이트 후 `systemctl cat`으로
+이 세 파일의 합성 결과를 확인하고, 롤백할 때는 보존한 세 사본을 함께 복원한 뒤
+`systemctl daemon-reload`를 실행합니다. 일반 설치에는 이 opt-in 묶음을 설치하지 않습니다.
+
+외부 dashboard Orin:
+
+~~~bash
+sudo systemctl disable robot-scope.service
+~~~
+
+탑재 Jetson:
+
+~~~bash
+sudo systemctl disable robot-scope-control-bridge.service
+sudo systemctl disable robot-scope-xt16-wireless-relay.service
+~~~
+
+전용 appliance 정책 자체를 철회할 때는 이전 사본과 현재 경로를 확인한 뒤 다음 exact 파일만
+제거합니다. External의 `release.conf`는 readiness/preview opt-in과 분리되어 있으므로 이
+철회 절차에서 제거하지 않습니다. Wildcard를 사용하지 않으며 현재 process를 restart하지
+않습니다.
+
+외부 dashboard Orin:
+
+~~~bash
+sudo rm -f \
+  /etc/systemd/system/robot-scope.service.d/10-appliance-network-ready.conf \
+  /usr/local/libexec/robot-scope/robot_scope_dashboard_appliance_network_ready.py
+sudo systemctl daemon-reload
+~~~
+
+탑재 Jetson:
+
+~~~bash
+sudo rm -f \
+  /etc/systemd/system/robot-scope-control-bridge.service.d/10-appliance-network-ready.conf \
+  /etc/systemd/system/robot-scope-xt16-wireless-relay.service.d/10-appliance-network-ready.conf \
+  /usr/local/libexec/robot-scope/robot_scope_appliance_network_ready.py
+sudo systemctl daemon-reload
+~~~
+
+`enable`/`disable`은 다음 부팅 정책만 바꾸며 현재 프로세스를 시작하거나 중지하지 않습니다.
+현재 서비스를 중지해야 한다면 먼저 로봇 정지, DISARMED, lease 없음, deadman 해제, exact-zero,
+Navigation/goal·Mapping operation·Dataset Capture idle을 별도로 확인합니다. Browser나 제한된
+SSH helper에 enable/disable 권한을 추가하거나 다른 unit을 함께 변경하지 않습니다.
+
+정책을 처음 적용하거나 enable 상태를 복원한 뒤에는 실제 cold boot에서 다음 순서로
+읽기 전용 확인을 수행합니다. 재부팅 자체와 현장 검증은 별도 승인을 받아야 하며, 이 절차는
+ARM, lease, initial pose, goal, motion 또는 Mapping start/save를 실행하지 않습니다.
+
+1. 두 호스트의 bounded helper와 `NetworkManager-wait-online.service` 합성 결과를 확인합니다.
+   외부 helper는 매 시도에서 60초 안에 `eno1=192.168.50.10/24`를 확인해야 합니다. 탑재
+   helper는 같은 제한 안에서 `eth0=192.168.123.18/24`와 `wlan0=192.168.50.30/24`를 동시에
+   확인해야 합니다. NetworkManager profile의 `autoconnect=yes`만으로 통과시키지 않습니다.
+2. 이 변경의 exact 세 unit이 `enabled`이고 `active`인지, MainPID가 하나인지, restart count가
+   안정적인지 확인합니다. 기존에 별도로 승인되어 enable된 camera unit 등의 상태는 그대로
+   기록·보존하고, 이 변경 때문에 다른 Robot Scope unit이 새로 enable되지 않았는지 확인합니다.
+3. dashboard의 GET 상태에서 control lease가 없고 deadman이 해제되었으며 command가 exact
+   `(0, 0, 0)`인지 확인합니다. Bridge status는 authenticated/fresh이어야 하고 LowState와
+   publisher cardinality를 모두 통과해야 합니다.
+4. Bridge-owned request evidence에서 Move, non-zero Move, action과 malformed Move가 모두 0인지
+   확인합니다. Startup·watchdog 때문에 StopMove count가 증가하는 것은 예상되는 안전 동작이며
+   로봇 motion의 증거로 해석하지 않습니다.
+5. XT16 relay의 accepted/forwarded sequence가 새로 증가하고 send error가 누적되지 않는지
+   확인합니다. `systemctl show robot-scope.service -p Environment`의 합성 설정뿐 아니라 실제
+   MainPID의 `/proc/<MainPID>/environ`도 전체 환경을 출력하지 않는 exact-value 필터로 검사해
+   `ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER=1`인지 확인합니다. `EnvironmentFile=`에 같은 key가
+   생기면 실제 process 값이 우선 증거입니다. Robot-side reboot처럼 외부 dashboard를 재시작하지
+   않은 복구에서도 failed preview만 bounded backoff로 다시 실행되고 PointCloud sequence가
+   증가하는지 확인합니다. Mapping operation, Navigation/localization session, goal, Mission과
+   Dataset Capture는 계속 idle이어야 합니다.
+6. Wi-Fi가 늦게 연결되는 cold boot에서도 두 탑재 unit이 start-limit에 걸리지 않는지
+   확인합니다. 하나라도 failed/stale이면 자동 시작을 PASS로 기록하지 않고 control과 Nav를
+   계속 fail-closed로 둡니다.
+
+검증 결과에는 두 호스트의 release commit, enable/active 상태, MainPID/restart count, signed
+Bridge freshness, exact-zero/request evidence와 relay counters를 함께 남깁니다. 이 증거 없이
+dashboard가 열리거나 host ping이 된 사실만으로 appliance 자동 시작을 PASS 처리하지 않습니다.
+
 ## 안전한 소스 롤백
 
 업데이트 전에 기록한 이전 commit이 있고 작업 트리가 깨끗할 때만 롤백합니다. `reset

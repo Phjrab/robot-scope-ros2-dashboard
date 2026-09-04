@@ -37,6 +37,7 @@ WIRED_MAPPING_PROFILE = "go2-xt16-wired"
 WIRELESS_MAPPING_PROFILE = "go2-xt16-wireless"
 COMPETITION_DIRECT_MAPPING_PROFILE = "competition-pdf-direct"
 COMPETITION_FASTLIO_MAPPING_PROFILE = "go2-xt16-wireless-competition-fastlio"
+PREVIEW_AUTO_RECOVERY_ENV = "ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER"
 WIRELESS_MAPPING_EXIT_REASONS = MappingProxyType(
     {
         61: "WIRELESS XT16 RELAY OFFLINE",
@@ -50,6 +51,21 @@ WIRELESS_MAPPING_EXIT_REASONS = MappingProxyType(
         69: "WIRELESS MAPPING PREFLIGHT BLOCKED",
     }
 )
+
+
+def wireless_preview_auto_recovery_enabled(
+    mapping_profile: str,
+    preview_enabled: bool,
+    environment: Mapping[str, str],
+) -> bool:
+    """Accept the observation-only retry opt-in for wireless previews only."""
+
+    return bool(
+        preview_enabled is True
+        and mapping_profile
+        in {WIRELESS_MAPPING_PROFILE, COMPETITION_FASTLIO_MAPPING_PROFILE}
+        and environment.get(PREVIEW_AUTO_RECOVERY_ENV) == "1"
+    )
 
 
 class MappingJobError(RuntimeError):
@@ -178,6 +194,7 @@ class MappingJobManager:
         require_pipeline_for_save: bool = True,
         failure_exit_reasons: Mapping[int, str] | None = None,
         readiness_runtime_marker: str | None = None,
+        preview_auto_recovery_enabled: bool = False,
     ) -> None:
         self.project_dir = project_dir.expanduser().resolve(strict=True)
         if not self.project_dir.is_dir():
@@ -219,6 +236,9 @@ class MappingJobManager:
         ):
             raise ValueError("unsupported mapping readiness marker")
         self.readiness_runtime_marker = readiness_runtime_marker
+        self.preview_auto_recovery_enabled = (
+            preview_auto_recovery_enabled is True
+        )
         self._lock = threading.RLock()
         self._logs: deque[dict[str, Any]] = deque(maxlen=int(log_capacity))
         self._seq = 0
@@ -280,6 +300,10 @@ class MappingJobManager:
     ) -> "MappingJobManager":
         """Build a manager using the repository's allowlisted Humble launcher."""
 
+        if "preview_auto_recovery_enabled" in kwargs:
+            raise TypeError(
+                "preview_auto_recovery_enabled is derived from the fixed profile"
+            )
         project = project_dir.expanduser().resolve(strict=True)
         if mapping_profile == WIRED_MAPPING_PROFILE:
             launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
@@ -325,6 +349,13 @@ class MappingJobManager:
             save_commands=save_commands,
             failure_exit_reasons=failure_exit_reasons,
             readiness_runtime_marker=readiness_runtime_marker,
+            preview_auto_recovery_enabled=(
+                wireless_preview_auto_recovery_enabled(
+                    mapping_profile,
+                    enable_preview,
+                    os.environ,
+                )
+            ),
             **kwargs,
         )
 

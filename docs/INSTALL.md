@@ -255,6 +255,109 @@ restrict,command="/usr/local/libexec/robot-scope/control-bridge-lifecycle-ssh" s
 START 후 authenticated status, LowState freshness와 graph cardinality를 모두 확인하기 전에는
 제어 가능 상태로 판정하지 않습니다.
 
+### 전용 appliance 부팅 자동 시작 opt-in
+
+공용 개발 호스트와 일반 설치에서는 모든 Robot Scope unit을 계속 `disabled`/수동 시작으로
+유지합니다. `scripts/install_ubuntu.sh`도 service를 설치할 수는 있지만 enable하거나
+시작하지 않습니다. 아래 정책은 고정 네트워크, 서비스별 private 환경 파일, strict SSH
+host key와 무동작 검증이 끝난 전용 Robot Scope appliance에서 관리자가 별도로 승인한 경우에만
+적용합니다.
+
+부팅 자동 시작 allowlist는 다음 세 unit으로 고정합니다.
+
+| Host | 부팅 자동 시작 허용 unit |
+| --- | --- |
+| 외부 dashboard Orin `192.168.50.10` | `robot-scope.service` |
+| 탑재 Jetson `192.168.50.30` | `robot-scope-control-bridge.service` |
+| 탑재 Jetson `192.168.50.30` | `robot-scope-xt16-wireless-relay.service` |
+
+먼저 두 호스트에서 unit의 root-owned 설치본, `network-online.target`, NetworkManager 자동 연결,
+DHCP 예약 주소와 `is-active` 수동 검증을 확인합니다. NetworkManager profile의
+`connection.autoconnect=yes`만으로는 `network-online.target`이 고정 주소 준비를 기다렸다는
+증거가 아닙니다. `NetworkManager-wait-online.service` 또는 동등한 bounded interface waiter와
+실제 cold boot 결과를 확인하기 전에는 enable 상태만으로 자동 시작을 신뢰하거나 PASS로
+기록하지 않습니다. 특히 탑재 Jetson의 `wlan0`이
+`192.168.50.30/24`, `eth0`이 `192.168.123.18/24`를 소유하기 전에 Bridge와 relay가 시작되면
+restart limit에 도달할 수 있으므로 cold boot 검증 전에는 정책을 완료로 판정하지 않습니다.
+승인 후 관리자가 각 호스트에서 다음 exact 명령만 실행합니다. `--now`를 사용하지 않으므로
+현재 실행 상태와 다음 부팅 정책을 섞지 않습니다.
+
+외부 dashboard Orin:
+
+~~~bash
+sudo install -d -o root -g root -m 0755 \
+  /usr/local/libexec/robot-scope \
+  /etc/systemd/system/robot-scope.service.d
+sudo install -o root -g root -m 0755 \
+  deploy/robot-scope-dashboard-appliance-network-ready.py.example \
+  /usr/local/libexec/robot-scope/robot_scope_dashboard_appliance_network_ready.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-dashboard-release-symlink.conf.example \
+  /etc/systemd/system/robot-scope.service.d/release.conf
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-dashboard-appliance.conf.example \
+  /etc/systemd/system/robot-scope.service.d/10-appliance-network-ready.conf
+sudo systemctl daemon-reload
+sudo systemctl enable robot-scope.service
+~~~
+
+`release.conf`는 검토된 `/home/jetson_orin_nano/robot-scope` release symlink만 사용합니다. 이전
+commit의 절대 release 디렉터리를 가리키는 기존 drop-in을 둔 채 enable하지 않으며, 설치 후
+`systemctl cat robot-scope.service`와 symlink 대상을 다시 확인합니다. 별도 appliance drop-in은
+disabled인 `NetworkManager-wait-online.service`를 boot transaction에 포함한 뒤, root 권한이나
+shell 없이 `eno1=192.168.50.10/24`와 link UP/RUNNING을 시도당 최대 60초 동안 읽기 전용으로
+확인합니다. 주소, link, route 또는 NetworkManager 상태는 변경하지 않습니다. 또한 전용
+appliance에서만 `ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER=1`을 명시해, 실패한 관측 전용 XT16
+preview의 bounded 복구를 허용합니다. 이 값은 Mapping/Nav/Mission/Control을 시작하거나 이전
+작업을 복구하지 않습니다. 두 drop-in은 서로 분리하며 기존 restart/start-limit 값은
+덮어쓰지 않습니다. 이 절차는 현재 dashboard process를 자동으로 restart하지 않습니다.
+
+탑재 Jetson:
+
+~~~bash
+sudo install -d -o root -g root -m 0755 \
+  /usr/local/libexec/robot-scope \
+  /etc/systemd/system/robot-scope-control-bridge.service.d \
+  /etc/systemd/system/robot-scope-xt16-wireless-relay.service.d
+sudo install -o root -g root -m 0755 \
+  deploy/robot-scope-appliance-network-ready.py.example \
+  /usr/local/libexec/robot-scope/robot_scope_appliance_network_ready.py
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-robot-side-appliance-network-ready.conf.example \
+  /etc/systemd/system/robot-scope-control-bridge.service.d/10-appliance-network-ready.conf
+sudo install -o root -g root -m 0644 \
+  deploy/robot-scope-robot-side-appliance-network-ready.conf.example \
+  /etc/systemd/system/robot-scope-xt16-wireless-relay.service.d/10-appliance-network-ready.conf
+sudo systemctl daemon-reload
+sudo systemctl enable robot-scope-control-bridge.service
+sudo systemctl enable robot-scope-xt16-wireless-relay.service
+~~~
+
+이 opt-in drop-in은 disabled인 `NetworkManager-wait-online.service`를 두 unit의 boot transaction에
+직접 포함하고, root 권한이나 shell 없이 고정된 두 interface가 동시에 준비됐는지만 읽습니다.
+조건은 `eth0=192.168.123.18/24`, `wlan0=192.168.50.30/24`, link UP/RUNNING이며 한 activation
+시도당 최대 60초만 기다립니다. 주소를 추가하거나 link/route/NetworkManager 상태를 변경하지
+않습니다. Timeout이면 기존 unit의 `Restart=on-failure`, `RestartSec=3`,
+`StartLimitIntervalSec=60`, `StartLimitBurst=5`가 그대로 적용됩니다. Drop-in은 이 restart bound를
+제거하거나 완화하지 않습니다. 설치 후 두 unit의 `systemctl cat`에 drop-in이 정확히 한 번씩
+합성되는지 확인한 다음 enable합니다.
+
+다른 `robot-scope-*` unit, camera relay, wireless IMU/odometry sender·receiver, FAST-LIO,
+Mapping, Navigation 또는 Mission unit을 이 정책에 추가하지 않습니다. Browser API와 제한된
+SSH lifecycle helper에도 `enable`/`disable`, wildcard, 임의 unit 이름 또는 host 선택 권한을
+추가하지 않습니다. 서로 다른 두 호스트의 unit을 `Requires=`로 결합하지 않습니다.
+
+부팅 시 dashboard는 로봇보다 먼저 올라와도 offline/fail-closed 상태로 대기해야 합니다.
+Control Bridge는 startup·watchdog의 exact StopMove만 발행할 수 있으며 signed Stop handoff,
+fresh LowState와 graph cardinality가 확인되기 전에는 control-ready가 될 수 없습니다. 자동
+시작은 lease를 획득하거나 ARM, deadman, Move/action, 비영점 명령 또는 이전 동작을 복구하는
+권한이 아닙니다. XT16 relay는 고정 peer로 센서 payload만 전달하며 Mapping/Nav/Mission,
+Dataset Capture 또는 goal을 시작하지 않습니다. 기존 relay가 이미 active이면 preview
+lifecycle은 이를 자기 소유로 간주하거나 cleanup에서 중지하면 안 됩니다.
+
+업데이트·롤백 시 enable 상태 보존과 cold-boot 확인은
+[업데이트와 롤백](UPDATE_ROLLBACK.md#전용-appliance-enable-상태와-cold-boot-검증)을 따릅니다.
+
 ## 2. 저장소 받기
 
 운영 설치는 임의 브랜치보다 검증된 release tag 또는 담당자가 지정한 commit을

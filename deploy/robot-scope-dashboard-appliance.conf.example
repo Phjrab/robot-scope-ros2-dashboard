@@ -1,0 +1,9 @@
+# Opt-in only for the dedicated external dashboard appliance. Keep release
+# symlink selection in the separate release.conf drop-in.
+[Unit]
+Wants=NetworkManager-wait-online.service
+After=NetworkManager-wait-online.service
+
+[Service]
+ExecStartPre=/usr/bin/python3 /usr/local/libexec/robot-scope/robot_scope_dashboard_appliance_network_ready.py
+Environment=ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER=1

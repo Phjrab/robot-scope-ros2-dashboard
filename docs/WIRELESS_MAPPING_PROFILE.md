@@ -70,13 +70,43 @@ not stopped. Local children are tracked by PID plus Linux process start
 identity; each runner is placed in its own session and only that owned process
 group is signalled. This includes a `ros2 run` wrapper and the native ROS node
 it starts, so cleanup cannot leave an orphaned child. There is no automatic
-retry after a terminal failure and no Mapping, Nav2 or Mission restoration.
+retry or restoration of Mapping, FAST-LIO, Nav2, Mission, Dataset Capture or
+control after a terminal failure. The observation-only preview has the narrow
+opt-in recovery exception described below.
 
 The launcher cannot create a control lease, ARM, publish a goal, start Nav2,
 save a map or run Dataset Capture. The application coordinator also refuses a
 Mapping start while a control lease or Dataset Capture is active. Physical
 stationarity remains an operator-supervised hardware precondition and is not
 inferred from stale ROS/DDS data.
+
+### Bounded failed-preview recovery
+
+`ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER=1` applies only to
+`go2-xt16-wireless` and `go2-xt16-wireless-competition-fastlio`; wired and
+direct profiles ignore it. Every other value, including `true`, leaves it off.
+When that exact opt-in and `xt16_preview.enabled=true` are both present, one
+dashboard-owned monitor may retry only a terminal `failed` observation preview. It waits 5 seconds before
+the first check and backs unsuccessful or safety-blocked checks off through
+10 and 20 seconds to a maximum of 30 seconds, so an absent robot cannot create
+a tight retry loop.
+
+Every attempt holds the shared coordination lock and proceeds only when the
+application lifecycle is idle, Navigation is idle, no control lease or Dataset
+Capture is active, no Mapping coordinator task is active, the Mapping pipeline
+is `idle`/`stopped`/terminal `failed`, and the map operation is in a terminal safe-idle state.
+Unreadable or transitioning lifecycle state fails closed and leaves the preview
+failed until a later bounded check. The retry owns only the existing preview
+transaction: the robot-side XT16 relay when it was not already running, the
+external Hesai driver and the cloud-only bridge. A pre-existing relay is not
+claimed or stopped and service enablement is unchanged.
+
+If the pipeline is already `failed`, it stays `failed`; only the observation
+preview is recreated. This monitor never starts or restores Mapping, IMU, FAST-LIO, Nav2,
+localization, Mission, Dataset Capture, control, a lease, ARM, deadman, a goal
+or motion. Dashboard shutdown signals and settles the monitor, including an
+in-flight preview transaction, before preview process cleanup. A new preview
+therefore cannot outlive application-owner shutdown.
 
 ## Preflight contract
 
