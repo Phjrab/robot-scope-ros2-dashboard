@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source": "traffic-team",
+  "frame_id": "base_link",
+  "observed_at_ns": 10000000000,
+  "sequence": 42,
+  "state": "READY",
+  "confidence": 0.96,
+  "traffic": [{"crosswalk_id": "NORTH", "signal": "GREEN", "confidence": 0.98, "consecutive_frames": 3}],
+  "crosswalks": [{"crosswalk_id": "NORTH", "visible": true, "lateral_offset_m": 0.02, "heading_error_rad": 0.01, "left_boundary_distance_m": 0.3, "right_boundary_distance_m": 0.3, "confidence": 0.95}],
+  "people": [{"crosswalk_id": "NORTH", "occupancy": "CLEAR", "nearest_distance_m": 5.0, "collision_risk": false, "confidence": 0.94}],
+  "aruco": [{"venue_id": "COEX", "zone_id": "ZONE_1", "docking_ready": true, "marker_ids": [10, 11], "target_pose": {"x": 0.4, "y": 0.0, "z": 0.0, "yaw": 0.0}, "confidence": 0.91}],
+  "underpass_blocked": false
+}

@@ -1,5 +1,9 @@
 # Route Planner Perception and Control Contracts
 
+The language-neutral v1 producer schema and examples are published under
+`docs/contracts/route_planner/`; see `docs/ROUTE_PLANNER_AI_TEAM_HANDOFF.md` for
+freshness, sequence, restart, and offline replay integration guidance.
+
 Track G consumes model-team snapshots. It does not train or run models and does not own control.
 
 ## Common envelope

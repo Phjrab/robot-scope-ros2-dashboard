@@ -10,6 +10,8 @@ from typing import Any, Mapping, Protocol
 
 
 MAX_SNAPSHOT_AGE_S = 1.0
+MAX_UINT64 = (1 << 64) - 1
+PERCEPTION_FRAME_IDS = frozenset({"base_link"})
 _TOKEN_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 
 
@@ -162,11 +164,18 @@ def normalize_perception_snapshot(value: Mapping[str, Any], *, now_ns: int | Non
         raise PerceptionContractError("perception snapshot schema is invalid")
     source = value.get("source")
     frame_id = value.get("frame_id")
-    if not isinstance(source, str) or not 1 <= len(source) <= 64 or not isinstance(frame_id, str) or not 1 <= len(frame_id) <= 128:
+    if not isinstance(source, str) or not 1 <= len(source) <= 64 or frame_id not in PERCEPTION_FRAME_IDS:
         raise PerceptionContractError("perception source or frame is invalid")
     observed = value.get("observed_at_ns")
     sequence = value.get("sequence")
-    if isinstance(observed, bool) or not isinstance(observed, int) or observed < 0 or isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 0:
+    if (
+        isinstance(observed, bool)
+        or not isinstance(observed, int)
+        or not 0 <= observed <= MAX_UINT64
+        or isinstance(sequence, bool)
+        or not isinstance(sequence, int)
+        or not 0 <= sequence <= MAX_UINT64
+    ):
         raise PerceptionContractError("perception timestamp or sequence is invalid")
     state = value.get("state")
     if state not in {"READY", "UNKNOWN", "FAILED"}:
@@ -188,7 +197,11 @@ def normalize_perception_snapshot(value: Mapping[str, Any], *, now_ns: int | Non
     if underpass is not None and not isinstance(underpass, bool):
         raise PerceptionContractError("underpass state is invalid")
     current_ns = int(now_ns if now_ns is not None else time.time_ns())
-    age_s = max(0.0, (current_ns - observed) / 1_000_000_000.0)
+    if not 0 <= current_ns <= MAX_UINT64:
+        raise PerceptionContractError("perception evaluation timestamp is invalid")
+    if observed > current_ns:
+        raise PerceptionContractError("perception timestamp is in the future")
+    age_s = (current_ns - observed) / 1_000_000_000.0
     fresh = state == "READY" and age_s <= MAX_SNAPSHOT_AGE_S
     return {
         "schema_version": 1,
@@ -219,7 +232,11 @@ def requirement_states(snapshot: Mapping[str, Any]) -> dict[str, str]:
     people = [str(item.get("occupancy", "UNKNOWN")) for item in snapshot.get("people", [])]
     crosswalks = list(snapshot.get("crosswalks", []))
     aruco = list(snapshot.get("aruco", []))
-    traffic_state = "READY" if traffic and all(item == "GREEN" for item in traffic) else "BLOCKED" if "RED" in traffic else "UNKNOWN"
+    stable_green = bool(snapshot.get("traffic")) and all(
+        item.get("signal") == "GREEN" and int(item.get("consecutive_frames", 2)) >= 2
+        for item in snapshot.get("traffic", [])
+    )
+    traffic_state = "READY" if stable_green else "BLOCKED" if "RED" in traffic else "UNKNOWN"
     people_state = "READY" if people and all(item == "CLEAR" for item in people) else "BLOCKED" if "OCCUPIED" in people else "UNKNOWN"
     alignment_state = "READY" if crosswalks and all(item.get("visible") is True and abs(float(item.get("lateral_offset_m", 99))) <= 0.15 and abs(float(item.get("heading_error_rad", 99))) <= 0.2 for item in crosswalks) else "UNKNOWN"
     boundary_state = "READY" if crosswalks and all(float(item.get("left_boundary_distance_m", -1)) >= 0 and float(item.get("right_boundary_distance_m", -1)) >= 0 for item in crosswalks) else "UNKNOWN"
@@ -255,6 +272,6 @@ class MockRoutePerceptionProvider:
 
 
 __all__ = [
-    "MAX_SNAPSHOT_AGE_S", "MockRoutePerceptionProvider", "PerceptionContractError",
+    "MAX_SNAPSHOT_AGE_S", "MAX_UINT64", "PERCEPTION_FRAME_IDS", "MockRoutePerceptionProvider", "PerceptionContractError",
     "RoutePerceptionProvider", "empty_perception_snapshot", "normalize_perception_snapshot", "requirement_states",
 ]

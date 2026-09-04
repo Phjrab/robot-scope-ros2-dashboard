@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "scenario_id": "order-capacity-exceeded",
+  "description": "An order above carrying capacity is rejected.",
+  "order": {
+    "label": "LOW competition order",
+    "destination_id": "COEX",
+    "lines": [
+      {
+        "sequence": 1,
+        "restaurant_id": "HANSOT",
+        "menu_id": "CHICKEN_MAYO",
+        "quantity": 3
+      },
+      {
+        "sequence": 2,
+        "restaurant_id": "EDIYA",
+        "menu_id": "AMERICANO",
+        "quantity": 3
+      }
+    ],
+    "order_started_at": null,
+    "locked": false
+  },
+  "graph_fixture": "competition-small-v1",
+  "start_node": "ZONE4_START",
+  "events": [],
+  "expected": {
+    "selected_route_profile": null,
+    "next_instruction": "GUIDANCE_PAUSED",
+    "special_edge_readiness": "NOT_APPLICABLE",
+    "manual_warning": "ORDER_INVALID",
+    "autonomous_eligibility": false,
+    "stale_or_invalid": "INVALID_ORDER",
+    "no_side_effects": true
+  }
+}

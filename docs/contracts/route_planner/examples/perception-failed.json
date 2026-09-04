@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source": "fusion-team",
+  "frame_id": "base_link",
+  "observed_at_ns": 10000000000,
+  "sequence": 43,
+  "state": "FAILED",
+  "confidence": 0.0,
+  "traffic": [],
+  "crosswalks": [],
+  "people": [],
+  "aruco": [],
+  "underpass_blocked": null
+}

@@ -1,0 +1,347 @@
+{
+  "schema_version": 1,
+  "fixture_id": "competition-small-v1",
+  "annotations": {
+    "schema_version": 1,
+    "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+    "map_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "annotation_revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "points": [
+      {
+        "id": "111111111111111111111111",
+        "type": "HOME",
+        "name": "ZONE4_START",
+        "pose": {
+          "x": 0,
+          "y": 0,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "222222222222222222222222",
+        "type": "POI",
+        "name": "HANSOT_DOCK",
+        "pose": {
+          "x": 1,
+          "y": 0,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "333333333333333333333333",
+        "type": "POI",
+        "name": "CROSSWALK_EXIT",
+        "pose": {
+          "x": 2,
+          "y": 0,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "444444444444444444444444",
+        "type": "POI",
+        "name": "EDIYA_DOCK",
+        "pose": {
+          "x": 3,
+          "y": 0,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "555555555555555555555555",
+        "type": "POI",
+        "name": "DOMINO_DOCK",
+        "pose": {
+          "x": 4,
+          "y": 0,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "666666666666666666666666",
+        "type": "POI",
+        "name": "COEX_DOCK",
+        "pose": {
+          "x": 5,
+          "y": 0,
+          "yaw": 0
+        }
+      },
+      {
+        "id": "777777777777777777777777",
+        "type": "POI",
+        "name": "GTX_DOCK",
+        "pose": {
+          "x": 6,
+          "y": 0,
+          "yaw": 0
+        }
+      }
+    ],
+    "polygons": []
+  },
+  "graph": {
+    "schema_version": 1,
+    "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+    "map_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "annotation_revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "nodes": [
+      {
+        "id": "ZONE4_START",
+        "annotation_id": "111111111111111111111111",
+        "role": "START",
+        "zone_id": null,
+        "venue_id": null,
+        "label": "ZONE4 START",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      },
+      {
+        "id": "HANSOT_DOCK",
+        "annotation_id": "222222222222222222222222",
+        "role": "RESTAURANT_DOCK",
+        "zone_id": null,
+        "venue_id": "HANSOT",
+        "label": "HANSOT DOCK",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      },
+      {
+        "id": "CROSSWALK_EXIT",
+        "annotation_id": "333333333333333333333333",
+        "role": "CROSSWALK_EXIT",
+        "zone_id": null,
+        "venue_id": null,
+        "label": "CROSSWALK EXIT",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      },
+      {
+        "id": "EDIYA_DOCK",
+        "annotation_id": "444444444444444444444444",
+        "role": "RESTAURANT_DOCK",
+        "zone_id": null,
+        "venue_id": "EDIYA",
+        "label": "EDIYA DOCK",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      },
+      {
+        "id": "DOMINO_DOCK",
+        "annotation_id": "555555555555555555555555",
+        "role": "RESTAURANT_DOCK",
+        "zone_id": null,
+        "venue_id": "DOMINO",
+        "label": "DOMINO DOCK",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      },
+      {
+        "id": "COEX_DOCK",
+        "annotation_id": "666666666666666666666666",
+        "role": "DESTINATION_DOCK",
+        "zone_id": null,
+        "venue_id": "COEX",
+        "label": "COEX DOCK",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      },
+      {
+        "id": "GTX_DOCK",
+        "annotation_id": "777777777777777777777777",
+        "role": "DESTINATION_DOCK",
+        "zone_id": null,
+        "venue_id": "GTX_SITE",
+        "label": "GTX DOCK",
+        "manual_guidance": true,
+        "autonomous_eligible": true
+      }
+    ],
+    "edges": [
+      {
+        "id": "START_TO_HANSOT",
+        "from": "ZONE4_START",
+        "to": "HANSOT_DOCK",
+        "type": "NORMAL_WALKWAY",
+        "bidirectional": true,
+        "polyline": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          }
+        ],
+        "distance_m": 1,
+        "nominal_speed_mps": 0.2,
+        "risk": 1,
+        "requirements": [],
+        "allow_manual": true,
+        "allow_autonomous": true,
+        "allow_replan": true,
+        "allow_turning": true,
+        "allow_lateral_motion": false,
+        "speed_limit_mps": 0.2,
+        "expected_wait_s": 0,
+        "penalty_risk": 0
+      },
+      {
+        "id": "HANSOT_TO_CROSSWALK",
+        "from": "HANSOT_DOCK",
+        "to": "CROSSWALK_EXIT",
+        "type": "CROSSWALK",
+        "bidirectional": true,
+        "polyline": [
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 2,
+            "y": 0
+          }
+        ],
+        "distance_m": 1,
+        "nominal_speed_mps": 0.2,
+        "risk": 1,
+        "requirements": [
+          "TRAFFIC_GREEN",
+          "PEDESTRIAN_CLEAR",
+          "CROSSWALK_ALIGNMENT",
+          "LANE_BOUNDARY_VALID"
+        ],
+        "allow_manual": true,
+        "allow_autonomous": true,
+        "allow_replan": true,
+        "allow_turning": true,
+        "allow_lateral_motion": false,
+        "speed_limit_mps": 0.2,
+        "expected_wait_s": 5,
+        "penalty_risk": 0
+      },
+      {
+        "id": "CROSSWALK_TO_EDIYA",
+        "from": "CROSSWALK_EXIT",
+        "to": "EDIYA_DOCK",
+        "type": "UNDERPASS",
+        "bidirectional": true,
+        "polyline": [
+          {
+            "x": 2,
+            "y": 0
+          },
+          {
+            "x": 3,
+            "y": 0
+          }
+        ],
+        "distance_m": 1,
+        "nominal_speed_mps": 0.2,
+        "risk": 1,
+        "requirements": [
+          "SPECIAL_GAIT"
+        ],
+        "allow_manual": true,
+        "allow_autonomous": true,
+        "allow_replan": true,
+        "allow_turning": true,
+        "allow_lateral_motion": false,
+        "speed_limit_mps": 0.2,
+        "expected_wait_s": 0,
+        "penalty_risk": 0
+      },
+      {
+        "id": "EDIYA_TO_DOMINO",
+        "from": "EDIYA_DOCK",
+        "to": "DOMINO_DOCK",
+        "type": "NORMAL_WALKWAY",
+        "bidirectional": true,
+        "polyline": [
+          {
+            "x": 3,
+            "y": 0
+          },
+          {
+            "x": 4,
+            "y": 0
+          }
+        ],
+        "distance_m": 1,
+        "nominal_speed_mps": 0.2,
+        "risk": 1,
+        "requirements": [],
+        "allow_manual": true,
+        "allow_autonomous": true,
+        "allow_replan": true,
+        "allow_turning": true,
+        "allow_lateral_motion": false,
+        "speed_limit_mps": 0.2,
+        "expected_wait_s": 0,
+        "penalty_risk": 0
+      },
+      {
+        "id": "DOMINO_TO_COEX",
+        "from": "DOMINO_DOCK",
+        "to": "COEX_DOCK",
+        "type": "DOCKING_APPROACH",
+        "bidirectional": true,
+        "polyline": [
+          {
+            "x": 4,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 0
+          }
+        ],
+        "distance_m": 1,
+        "nominal_speed_mps": 0.2,
+        "risk": 1,
+        "requirements": [
+          "ARUCO_DOCKING"
+        ],
+        "allow_manual": true,
+        "allow_autonomous": true,
+        "allow_replan": true,
+        "allow_turning": true,
+        "allow_lateral_motion": false,
+        "speed_limit_mps": 0.2,
+        "expected_wait_s": 0,
+        "penalty_risk": 0
+      },
+      {
+        "id": "COEX_TO_GTX",
+        "from": "COEX_DOCK",
+        "to": "GTX_DOCK",
+        "type": "NORMAL_WALKWAY",
+        "bidirectional": true,
+        "polyline": [
+          {
+            "x": 5,
+            "y": 0
+          },
+          {
+            "x": 6,
+            "y": 0
+          }
+        ],
+        "distance_m": 1,
+        "nominal_speed_mps": 0.2,
+        "risk": 1,
+        "requirements": [],
+        "allow_manual": true,
+        "allow_autonomous": true,
+        "allow_replan": true,
+        "allow_turning": true,
+        "allow_lateral_motion": false,
+        "speed_limit_mps": 0.2,
+        "expected_wait_s": 0,
+        "penalty_risk": 0
+      }
+    ]
+  }
+}
