@@ -4,6 +4,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
+
 from robot_dashboard.control import ACTION_GUARD_S, SAFE_ACTIONS
 from robot_dashboard.go2_bridge import (
     API_MOVE,
@@ -194,7 +196,8 @@ class Go2BridgeCoreTests(unittest.TestCase):
             SimpleNamespace(
                 mode=5,
                 gait_type=3,
-                velocity=[0.1051234, -0.02, 0.0],
+                # Foxy materializes fixed float arrays as numpy.float32 values.
+                velocity=[np.float32(0.1051234), np.float32(-0.02), np.float32(0.0)],
                 error_code=SPORT_MODE_STATE_MAX_ERROR_CODE,
             ),
             now=10.0,

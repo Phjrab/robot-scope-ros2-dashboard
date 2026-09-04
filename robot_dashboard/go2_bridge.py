@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import numbers
 import secrets
 from dataclasses import dataclass
 from hmac import compare_digest
@@ -149,7 +150,7 @@ class SportModeStateObservation:
             raise ValueError("SportModeState velocity is invalid")
         velocity: list[float] = []
         for item in items:
-            if isinstance(item, bool) or not isinstance(item, (int, float)):
+            if isinstance(item, bool) or not isinstance(item, numbers.Real):
                 raise ValueError("SportModeState velocity is invalid")
             number = float(item)
             if (
