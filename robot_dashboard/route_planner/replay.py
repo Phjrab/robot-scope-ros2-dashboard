@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
+from .behaviors import AdvisoryBehaviorCoordinator
 from .clock import VirtualClockError, VirtualMonotonicClock
 from .graph import RouteGraphError, normalize_graph
 from .guidance import project_guidance
@@ -505,6 +506,16 @@ def replay_scenario(scenario: Mapping[str, Any]) -> dict[str, Any]:
         revision_changed=revision_changed,
         restarted=restarted,
     )
+    behavior = AdvisoryBehaviorCoordinator().evaluate(
+        route=route,
+        guidance=guidance,
+        perception=perception,
+        now_ns=clock.now_ns(),
+        pose_fresh=pose is not None,
+        revisions_current=not revision_changed,
+        server_restarted=restarted,
+        external_fault=perception_error or order_error or route_error,
+    )
     expected = value["expected"]
     warnings = [actual["manual_warning"]] if actual["manual_warning"] else []
     route_state = (
@@ -529,6 +540,7 @@ def replay_scenario(scenario: Mapping[str, Any]) -> dict[str, Any]:
         },
         "warnings": warnings,
         "recommendation_id": route.get("id") if route else None,
+        "advisory_behavior": behavior,
         "expected_vs_actual": {
             "match": expected == actual,
             "expected": expected,

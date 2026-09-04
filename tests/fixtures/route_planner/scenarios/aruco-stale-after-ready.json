@@ -80,6 +80,12 @@
             "marker_ids": [
               10
             ],
+            "target_pose": {
+              "x": 0.1,
+              "y": 0.01,
+              "z": 0.0,
+              "yaw": 0.01
+            },
             "confidence": 0.91
           }
         ],
