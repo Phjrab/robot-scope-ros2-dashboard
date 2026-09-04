@@ -216,6 +216,6 @@ same test and complete suite passed in the repository virtual environment.
 | Unchanged Sport/LowState cardinality | `PASS` |
 | No lease, deadman, non-zero command or navigation owner | `PASS` |
 | C2 NG0 rerun | `PASS` — 12/12 stationary prelocalization checks; initial pose, goal, lease and motion absent |
-| Lease-free C3 initial pose | `NOT RUN — requires a new exact pose confirmation` |
+| Lease-free C3 initial pose | `PASS` — fresh exact confirmation, one publication, 60/60 READY localized samples, reverse cleanup |
 | Normal C4 pre-goal session | `NOT RUN` |
 | C4B goal or robot motion | `NOT RUN — requires a new exact route and motion approval` |

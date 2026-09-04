@@ -1,6 +1,6 @@
 # Track C3 lease-free localization-only no-goal acceptance
 
-Status date: 2026-09-02
+Status date: 2026-09-04 (revalidated)
 
 ```text
 SOFTWARE_PASS
@@ -245,3 +245,59 @@ baseline correction for the observed ten anonymous publishers, but C4 remains
 blocked until that focused commit is deployed to both control endpoints,
 stationary readiness is revalidated and a separate supervised-motion approval
 is received.
+
+## 2026-09-04 C4B prerequisite revalidation
+
+The operator supplied a fresh exact confirmation for managed map
+`map_20260902_161903_edited`, revision
+`7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93`,
+and pose `(0.0, 0.0, 0.0)`, while confirming the robot was stationary at the
+mapping start orientation with the physical E-stop available. Before consuming
+that confirmation, a new signed Bridge sample reported 99% battery, fresh
+LowState, unchanged `1/0/10/11` Sport cardinality, no lease, deadman false,
+exact-zero command, and zero Move/action evidence.
+
+The external dashboard was switched reversibly to the fixed competition
+FAST-LIO profile and pinned the active parameter revision
+`4327ec7817bbb226bf4a16ca4f64e0d73eeee3dc150c8947c206fc56172388ad`.
+The lease-free owner reached `waiting_initial_pose` with zero prior pose
+publications. The robot-side Control Bridge was then stopped so the C3 interval
+had no Sport publisher or command path. The exact prelocalization checker
+passed with `WAITING_FOR_INITIAL_POSE` and `raw_command=quiet`.
+
+The approved initial pose was published exactly once. The session immediately
+reported `initial_pose_count=1`, `goal_allowed=false`,
+`motion_allowed=false`, zero raw-command observations and goal `idle`. It
+converged to approximately `(0.00062, -0.00010, -0.00052)` before the bounded
+observation. Both the initial and final localized NG1 checkers passed with
+`localization=LOCALIZED` and `raw_command=quiet`.
+
+The 60-second observation accepted 60/60 one-second samples. Every sample kept
+the exact map/revision and one-shot pose count, all required Nav2 lifecycle,
+map, scan, odometry, TF, action-server and publisher-cardinality readiness,
+health `READY / HEALTHY_STABLE`, no hard fault, goal idle, no lease, deadman
+false and exact-zero dashboard command. The recorded checkpoints placed raw
+controller odometry between 9.967371 and 10.030136 Hz, maximum gap between
+0.112284 and 0.122502 seconds, cloud frequency between 9.967 and 10.032 Hz,
+and TF age between 0.0007 and 0.0093 seconds. These ranges describe the seven
+recorded checkpoints, not extrema for all 60 samples. The final pose was about
+`(-0.00766, 0.00065, -0.00072)` while the robot remained stationary.
+
+Reverse cleanup stopped the localization-only Nav2 owner and then its
+FAST-LIO/sensor owner. All C3 Nav2, FAST-LIO and AMCL processes were absent;
+`/Odometry`, `/scan`, `/robot_scope/nav/cmd_vel_raw` and `/amcl_pose` had zero
+publishers, while the competition controller-odometry, map and costmap topics
+were absent. The private profile was restored to `go2-xt16-wireless` and the
+dashboard restarted from clean release `47b9151`. Dashboard startup
+automatically restored only the signed Control Bridge and XT16 preview relay.
+The final snapshot reported 96% battery, 19/19 StopMove evidence, zero
+Move/action/malformed/unknown evidence, no active motion run, no lease,
+deadman false, exact-zero command, and navigation/session/goal idle. Wireless
+IMU and odometry senders remained inactive.
+
+Post-run repository verification completed with 1007/1007 Python tests in the
+dependency-complete virtual environment and 270/270 JavaScript tests. The host
+Python 3.13 environment ran 1003 tests with the single pre-existing collection
+error `ModuleNotFoundError: No module named 'fastapi'`; this is an environment
+baseline rather than a regression from these documentation-only changes.
+`git diff --check` also passed.
