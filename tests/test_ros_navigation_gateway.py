@@ -494,6 +494,154 @@ class NavigationRosGatewayTests(unittest.TestCase):
         health = self._goal_health(navigation, now=104.0)
         self.assertEqual(health["state"], "READY", health)
 
+    def test_startup_zero_feedback_does_not_poison_cumulative_progress(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+
+        self._publish_goal_feedback(navigation, 0.0, observed_at=100.01)
+        progress = navigation._navigation_goal_progress
+        goal = navigation._navigation["goal"]
+        self.assertIsNone(goal["initial_distance"])
+        self.assertIsNone(goal["distance_remaining"])
+        self.assertIsNone(progress["window_start_distance"])
+        self.assertIsNone(progress["best_distance"])
+        self.assertEqual(progress["last_progress_at"], 100.0)
+        self.assertEqual(progress["baseline_state"], "pending")
+        self.assertEqual(progress["startup_zero_feedback_count"], 1)
+
+        self._publish_goal_feedback(navigation, 0.275, observed_at=100.10)
+        self.assertEqual(navigation._navigation["goal"]["initial_distance"], 0.275)
+        self.assertEqual(progress["window_start_distance"], 0.275)
+        self.assertEqual(progress["best_distance"], 0.275)
+        self.assertEqual(progress["last_progress_at"], 100.10)
+        self.assertEqual(progress["baseline_state"], "ready")
+
+        self._publish_goal_feedback(navigation, 0.225, observed_at=100.30)
+        self.assertEqual(navigation._navigation["goal"]["distance_remaining"], 0.225)
+        self.assertEqual(progress["window_start_distance"], 0.225)
+        self.assertEqual(progress["best_distance"], 0.225)
+        self.assertEqual(progress["last_progress_at"], 100.30)
+        self.assertGreaterEqual(progress["progress_rate_mps"], 0.24)
+
+        # The accepted positive progress keeps the unchanged three-second
+        # stall gate open past the original goal-start deadline, but no longer.
+        self.assertEqual(self._goal_health(navigation, now=103.05)["state"], "READY")
+        stalled = self._goal_health(navigation, now=103.301)
+        self.assertEqual(stalled["state"], "DEGRADED", stalled)
+        self.assertEqual(stalled["reason_code"], "CONTROLLER_STALL_EXCEEDED")
+
+    def test_zero_only_feedback_fails_from_original_goal_start_deadline(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+
+        self._publish_goal_feedback(navigation, 0.0, observed_at=100.01)
+        self._publish_goal_feedback(navigation, 0.0000005, observed_at=102.90)
+
+        progress = navigation._navigation_goal_progress
+        metrics = navigation._localization_metrics({}, 103.0)
+        self.assertIsNone(navigation._navigation["goal"]["initial_distance"])
+        self.assertIsNone(navigation._navigation["goal"]["distance_remaining"])
+        self.assertEqual(progress["last_progress_at"], 100.0)
+        self.assertIsNone(progress["window_start_distance"])
+        self.assertEqual(progress["baseline_state"], "pending")
+        self.assertEqual(progress["startup_zero_feedback_count"], 2)
+        self.assertEqual(progress["ignored_zero_feedback_count"], 2)
+        self.assertEqual(metrics["goal_feedback_distance_raw_m"], 0.0000005)
+        self.assertEqual(metrics["goal_progress_baseline_state"], "pending")
+        self.assertEqual(metrics["goal_startup_zero_feedback_count"], 2)
+        self.assertEqual(metrics["goal_ignored_zero_feedback_count"], 2)
+
+        self.assertEqual(self._goal_health(navigation, now=102.999)["state"], "READY")
+        at_boundary = self._goal_health(navigation, now=103.0)
+        self.assertEqual(at_boundary["state"], "DEGRADED", at_boundary)
+        self.assertEqual(at_boundary["reason_code"], "GOAL_PROGRESS_TOO_LOW")
+
+        with navigation._navigation_lock:
+            navigation._update_localization_readiness_locked(
+                103.0,
+                self._healthy_runtime_health(),
+            )
+        captured = navigation._navigation_goal_first_nonready
+        self.assertIsNotNone(captured)
+        captured_metrics = captured["metrics"]
+        self.assertEqual(captured_metrics["goal_progress_baseline_state"], "pending")
+        self.assertEqual(captured_metrics["goal_startup_zero_feedback_count"], 2)
+        self.assertEqual(captured_metrics["goal_ignored_zero_feedback_count"], 2)
+        self.assertEqual(captured_metrics["goal_feedback_distance_raw_m"], 0.0000005)
+
+    def test_zero_after_positive_baseline_does_not_count_as_progress(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+
+        self._publish_goal_feedback(navigation, 0.275, observed_at=100.10)
+        self._publish_goal_feedback(navigation, 0.0, observed_at=100.20)
+
+        progress = navigation._navigation_goal_progress
+        self.assertEqual(navigation._navigation["goal"]["initial_distance"], 0.275)
+        self.assertEqual(navigation._navigation["goal"]["distance_remaining"], 0.275)
+        self.assertEqual(progress["last_distance"], 0.275)
+        self.assertEqual(progress["raw_distance"], 0.0)
+        self.assertEqual(progress["window_start_distance"], 0.275)
+        self.assertEqual(progress["best_distance"], 0.275)
+        self.assertEqual(progress["last_progress_at"], 100.10)
+        self.assertIsNone(progress["progress_rate_mps"])
+        self.assertEqual(progress["startup_zero_feedback_count"], 0)
+        self.assertEqual(progress["ignored_zero_feedback_count"], 1)
+
+        before = self._goal_health(navigation, now=103.099)
+        at_boundary = self._goal_health(navigation, now=103.101)
+        self.assertEqual(before["state"], "READY", before)
+        self.assertEqual(at_boundary["state"], "DEGRADED", at_boundary)
+        self.assertEqual(at_boundary["reason_code"], "GOAL_PROGRESS_TOO_LOW")
+
+    def test_terminal_success_authoritatively_resolves_provisional_zero(self):
+        navigation = gateway()
+        self._prepare_active_goal(navigation)
+        self._publish_goal_feedback(navigation, 0.0, observed_at=100.01)
+
+        navigation._navigation_result_callback(
+            1,
+            "g" * 32,
+            SimpleNamespace(result=lambda: SimpleNamespace(status=4)),
+        )
+
+        goal = navigation._navigation["goal"]
+        progress = navigation._navigation_goal_progress
+        metrics = navigation._localization_metrics({}, 101.0)
+        self.assertEqual(goal["state"], "succeeded")
+        self.assertEqual(goal["distance_remaining"], 0.0)
+        self.assertEqual(metrics["goal_remaining_distance_m"], 0.0)
+        self.assertIsNone(goal["initial_distance"])
+        self.assertEqual(progress["baseline_state"], "pending")
+        self.assertIsNone(progress["window_start_distance"])
+        self.assertIsNone(progress["best_distance"])
+        self.assertEqual(progress["last_progress_at"], 100.0)
+
+    def test_non_success_result_does_not_resolve_provisional_zero_as_arrival(self):
+        for status, expected_state in ((5, "canceled"), (6, "failed")):
+            with self.subTest(status=status):
+                navigation = gateway()
+                self._prepare_active_goal(navigation)
+                self._publish_goal_feedback(navigation, 0.0, observed_at=100.01)
+
+                navigation._navigation_result_callback(
+                    1,
+                    "g" * 32,
+                    SimpleNamespace(result=lambda s=status: SimpleNamespace(status=s)),
+                )
+
+                goal = navigation._navigation["goal"]
+                progress = navigation._navigation_goal_progress
+                metrics = navigation._localization_metrics({}, 101.0)
+                self.assertEqual(goal["state"], expected_state)
+                self.assertIsNone(goal["distance_remaining"])
+                self.assertIsNone(metrics["goal_remaining_distance_m"])
+                self.assertIsNone(goal["initial_distance"])
+                self.assertEqual(progress["baseline_state"], "pending")
+                self.assertIsNone(progress["window_start_distance"])
+                self.assertIsNone(progress["best_distance"])
+                self.assertEqual(progress["last_progress_at"], 100.0)
+
     def test_no_progress_fails_at_the_existing_three_second_boundary(self):
         navigation = gateway()
         self._prepare_active_goal(navigation)

@@ -129,3 +129,8 @@ The next goal must be the shortest route justified by newly confirmed free
 space.  A 2.0 m goal is deferred until the complete 2.0 m route plus stopping
 margin is verified and shorter supervised stages have passed.  A fresh exact
 route and physical-safety confirmation is required before any goal POST.
+
+The subsequent one-shot execution is recorded separately in
+`TRACK_C4B_20260904_SECOND_GOAL_PROGRESS_ABORT.md`. The deployment-phase
+zero-goal and zero-motion counts above remain the correct facts for this
+deployment record and are not retroactively changed by that later run.

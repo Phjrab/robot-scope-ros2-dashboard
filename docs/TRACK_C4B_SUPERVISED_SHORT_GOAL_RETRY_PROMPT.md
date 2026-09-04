@@ -1,15 +1,18 @@
 # Track C4B — Supervised short low-speed goal retry
 
-Status: `BLOCKED` — the 2026-09-03 attempt failed closed before goal
-submission when an added DDS observer changed Sport subscription cardinality;
-see `TRACK_C4B_SUPERVISED_SHORT_GOAL_ACCEPTANCE.md`. The repository now has a
-Bridge-owned candidate evidence path, but it has not been deployed or accepted
-on hardware. A future run must first complete the gates in
-`TRACK_C4B_NONINTRUSIVE_SPORT_EVIDENCE.md`.
+Status: `CONSUMED / SUPERSEDED` — do not replay this prompt. The 2026-09-03
+attempt failed closed before goal submission when an added DDS observer
+changed Sport subscription cardinality; see
+`TRACK_C4B_SUPERVISED_SHORT_GOAL_ACCEPTANCE.md`. A later one-shot used the
+deployed Bridge-owned evidence path but still failed closed on controller
+progress, with no physical forward motion; see
+`TRACK_C4B_20260904_SECOND_GOAL_PROGRESS_ABORT.md`. Any third attempt requires
+the new gates recorded there and fresh exact approvals.
 
-This document is a future execution prompt only. It does not authorize a goal,
-normal navigation session, lease, ARM, deadman, non-zero command or robot
-motion. Never reuse the C4A localization-only approval as C4B motion approval.
+This document is retained as a historical execution prompt only. It does not
+authorize a goal, normal navigation session, lease, ARM, deadman, non-zero
+command or robot motion. Never reuse the C4A localization-only approval as C4B
+motion approval.
 
 Use the then-current `origin/main` as source of truth. Start by reading
 `AGENTS.md`, checking HEAD, `origin/main`, the working tree and latest CI, then

@@ -71,6 +71,11 @@ NAVIGATION_ODOM_STAMP_MAX_FUTURE_S = 0.5
 # sample. At the C4 command ceiling (0.035 m/s), valid 10 Hz samples advance by
 # only 3.5 mm and therefore cannot satisfy a per-sample threshold.
 NAVIGATION_PROGRESS_SIGNIFICANT_DELTA_M = 0.005
+# Nav2 can emit a default-initialized zero distance before its first path is
+# available.  A zero while an active goal is still nonterminal is not proof of
+# either arrival or progress.  Keep only a tiny float-roundoff allowance here;
+# this is not a goal tolerance and does not weaken the existing stall gate.
+NAVIGATION_PROGRESS_PROVISIONAL_ZERO_EPSILON_M = 1e-6
 _GOAL_FIRST_NONREADY_METRIC_KEYS = (
     "cloud_frequency_hz",
     "cloud_jitter_s",
@@ -97,7 +102,11 @@ _GOAL_FIRST_NONREADY_METRIC_KEYS = (
     "input_points",
     "accepted_points",
     "goal_remaining_distance_m",
+    "goal_feedback_distance_raw_m",
     "goal_progress_rate_mps",
+    "goal_progress_baseline_state",
+    "goal_startup_zero_feedback_count",
+    "goal_ignored_zero_feedback_count",
     "goal_active",
     "controller_stall_duration_s",
     "costmap_clear_count",
@@ -1924,19 +1933,23 @@ class NavigationRosGateway:
     def _new_navigation_goal_progress(started_at: float = 0.0) -> Dict[str, Any]:
         return {
             "last_distance": None,
+            "raw_distance": None,
             "last_observed_at": 0.0,
             "last_progress_at": started_at,
             "progress_rate_mps": None,
             "window_start_distance": None,
             "window_started_at": 0.0,
             "best_distance": None,
+            "baseline_state": "pending",
+            "startup_zero_feedback_count": 0,
+            "ignored_zero_feedback_count": 0,
         }
 
     def _record_navigation_goal_progress_locked(
         self,
         distance_remaining: float,
         observed_at: float,
-    ) -> None:
+    ) -> bool:
         """Record significant forward progress across a bounded stall window.
 
         Nav2 feedback can arrive faster than five millimetres of travel per
@@ -1950,6 +1963,23 @@ class NavigationRosGateway:
         progress = self._navigation_goal_progress
         window_start = progress.get("window_start_distance")
         window_started_at = float(progress.get("window_started_at", 0.0) or 0.0)
+        progress["raw_distance"] = distance_remaining
+        if distance_remaining <= NAVIGATION_PROGRESS_PROVISIONAL_ZERO_EPSILON_M:
+            progress["last_observed_at"] = observed_at
+            progress["ignored_zero_feedback_count"] = min(
+                int(progress.get("ignored_zero_feedback_count", 0) or 0) + 1,
+                2**53 - 1,
+            )
+            if not isinstance(window_start, (int, float)):
+                progress["startup_zero_feedback_count"] = min(
+                    int(progress.get("startup_zero_feedback_count", 0) or 0) + 1,
+                    2**53 - 1,
+                )
+            # Do not initialize or advance the progress window from a
+            # nonterminal zero.  In particular, leave last_progress_at at the
+            # goal-start time so a zero-only stream still fails closed at the
+            # unchanged controller-stall deadline.
+            return False
         if not isinstance(window_start, (int, float)) or window_started_at < 0.0:
             progress.update(
                 {
@@ -1960,9 +1990,10 @@ class NavigationRosGateway:
                     "window_start_distance": distance_remaining,
                     "window_started_at": observed_at,
                     "best_distance": distance_remaining,
+                    "baseline_state": "ready",
                 }
             )
-            return
+            return True
 
         best_distance = progress.get("best_distance")
         if not isinstance(best_distance, (int, float)):
@@ -1995,6 +2026,7 @@ class NavigationRosGateway:
                     "best_distance": best_distance,
                 }
             )
+        return True
 
     def _navigation_feedback_callback(
         self,
@@ -2019,18 +2051,19 @@ class NavigationRosGateway:
                 )
                 if math.isfinite(distance):
                     distance_remaining_raw = min(20_000.0, max(0.0, distance))
-                    goal["distance_remaining"] = round(distance_remaining_raw, 3)
                 else:
                     goal["distance_remaining"] = None
             except (TypeError, ValueError):
                 goal["distance_remaining"] = None
             if distance_remaining_raw is not None:
-                if goal.get("initial_distance") is None:
-                    goal["initial_distance"] = goal["distance_remaining"]
-                self._record_navigation_goal_progress_locked(
+                accepted_for_progress = self._record_navigation_goal_progress_locked(
                     distance_remaining_raw,
                     observed_at,
                 )
+                if accepted_for_progress:
+                    goal["distance_remaining"] = round(distance_remaining_raw, 3)
+                    if goal.get("initial_distance") is None:
+                        goal["initial_distance"] = goal["distance_remaining"]
             goal["navigation_time"] = self._duration_seconds(
                 getattr(feedback, "navigation_time", None)
             )
@@ -2138,6 +2171,12 @@ class NavigationRosGateway:
             ):
                 return
             goal["state"] = state
+            if state == "succeeded":
+                # A terminal action result is authoritative arrival evidence,
+                # unlike a default-initialized zero feedback sample received
+                # while the goal is still pending or active.
+                goal["distance_remaining"] = 0.0
+                self._navigation_goal_progress["last_distance"] = 0.0
             goal["error"] = (
                 error if error else ("navigation aborted" if status == 6 else None)
             )
@@ -2578,7 +2617,15 @@ class NavigationRosGateway:
             "input_points": int(runtime_health.get("input_points", 0) or 0),
             "accepted_points": int(runtime_health.get("accepted_points", 0) or 0),
             "goal_remaining_distance_m": progress.get("last_distance"),
+            "goal_feedback_distance_raw_m": progress.get("raw_distance"),
             "goal_progress_rate_mps": progress.get("progress_rate_mps"),
+            "goal_progress_baseline_state": progress.get("baseline_state"),
+            "goal_startup_zero_feedback_count": int(
+                progress.get("startup_zero_feedback_count", 0) or 0
+            ),
+            "goal_ignored_zero_feedback_count": int(
+                progress.get("ignored_zero_feedback_count", 0) or 0
+            ),
             "goal_active": goal_state == "active",
             "controller_stall_duration_s": stall_duration,
             "costmap_clear_count": clear_count,
