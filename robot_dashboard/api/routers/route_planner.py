@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field
 
 from ...application.route_planner_coordinator import (
     RoutePlannerConflict,
@@ -31,6 +32,36 @@ from ..models import (
 
 
 router = APIRouter()
+
+
+class RehearsalStartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    route_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    route_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    scenario_id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+
+
+class RehearsalControlRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal[
+        "RESET",
+        "PLAY",
+        "PAUSE",
+        "STEP",
+        "SCRUB",
+        "SET_SPEED",
+        "OFF_ROUTE",
+        "CONFIRM_PICKUP",
+        "CONFIRM_DROPOFF",
+        "EXIT",
+    ]
+    speed: Literal[0.5, 1.0, 2.0, 5.0] | None = None
+    position_ms: int | None = Field(default=None, strict=True, ge=0, le=3_600_000)
+    enabled: bool | None = Field(default=None, strict=True)
+    venue_id: str | None = Field(default=None, pattern=r"^[A-Z][A-Z0-9_]{0,63}$")
+    destination_id: str | None = Field(default=None, pattern=r"^[A-Z][A-Z0-9_]{0,63}$")
 
 
 def _coordinator(runtime: ApplicationRuntime) -> RoutePlannerCoordinator:
@@ -191,6 +222,54 @@ async def route_preview(route_id: str, body: RouteSelectionRequest, request: Req
         if preview["route_revision"] != body.route_revision:
             raise RoutePlannerConflict("route revision changed")
         return preview
+    except RoutePlannerError as exc:
+        raise _error(exc) from exc
+
+
+@router.get("/api/v1/route-planner/rehearsal/scenarios")
+async def route_rehearsal_scenarios(request: Request) -> Dict[str, Any]:
+    try:
+        return _coordinator(runtime_from_request(request)).rehearsal_scenarios()
+    except RoutePlannerError as exc:
+        raise _error(exc) from exc
+
+
+@router.post("/api/v1/route-planner/rehearsal/start")
+async def route_rehearsal_start(body: RehearsalStartRequest, request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
+    _, coordinator = _mutation(request, "route planner rehearsal start")
+    try:
+        return await coordinator.begin_rehearsal(**body.model_dump())
+    except RoutePlannerError as exc:
+        raise _error(exc) from exc
+
+
+@router.post("/api/v1/route-planner/rehearsal/control")
+async def route_rehearsal_control(body: RehearsalControlRequest, request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
+    _, coordinator = _mutation(request, "route planner rehearsal control")
+    values = body.model_dump(exclude_none=True)
+    action = values.pop("action")
+    try:
+        return await coordinator.control_rehearsal(action=action, payload=values)
+    except RoutePlannerError as exc:
+        raise _error(exc) from exc
+
+
+@router.get("/api/v1/route-planner/rehearsal/report")
+async def route_rehearsal_report(request: Request) -> Dict[str, Any]:
+    try:
+        return _coordinator(runtime_from_request(request)).rehearsal_report()
+    except RoutePlannerError as exc:
+        raise _error(exc) from exc
+
+
+@router.post("/api/v1/route-planner/routes/{route_id}/mission-dry-run")
+async def route_mission_dry_run(route_id: str, body: RouteSelectionRequest, request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
+    _, coordinator = _mutation(request, "route mission dry-run")
+    try:
+        return coordinator.mission_dry_run(route_id, route_revision=body.route_revision)
     except RoutePlannerError as exc:
         raise _error(exc) from exc
 

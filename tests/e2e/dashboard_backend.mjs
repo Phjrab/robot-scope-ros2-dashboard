@@ -52,7 +52,50 @@ function baseRoutePlanner() {
     recommendations: [],
     guidance: { active: false, completed_pickups: [], dropoff_complete: false, current_segment_index: 0 },
     perception: { fresh: true, state: 'FRESH', age_s: 0.1 },
+    rehearsal: { enabled: false, active: false, mode: 'DISABLED', scenarios: [], side_effect_count: 0 },
     motion_authority: false,
+  };
+}
+
+const rehearsalSideEffects = () => ({ control_acquire: 0, arm: 0, deadman: 0, velocity: 0, navigation_activate: 0, navigation_goal: 0, mission_create: 0, mission_start: 0, sport: 0, service_restart: 0 });
+
+function readyRehearsal() {
+  return {
+    enabled: true, active: false, mode: 'READY', side_effect_count: 0,
+    scenarios: [
+      { scenario_id: 'traffic-red-to-green', description: 'RED to stable GREEN', event_count: 2, duration_ms: 100 },
+      { scenario_id: 'person-occupied', description: 'Person occupied crosswalk', event_count: 1, duration_ms: 100 },
+      { scenario_id: 'aruco-docking-ready', description: 'ArUco docking ready', event_count: 1, duration_ms: 100 },
+    ],
+  };
+}
+
+function activeRehearsal(scenarioId) {
+  const behavior = scenarioId === 'person-occupied'
+    ? { behavior: 'CROSSWALK', state: 'WAIT_PERSON', advisory: 'WAIT', reason_codes: ['PERSON_OCCUPIED'] }
+    : scenarioId === 'aruco-docking-ready'
+      ? { behavior: 'DOCKING', state: 'READY', advisory: 'DOCKING_READY', reason_codes: [] }
+      : { behavior: 'CROSSWALK', state: 'WAIT_SIGNAL', advisory: 'WAIT', reason_codes: ['TRAFFIC_RED'] };
+  return {
+    ...readyRehearsal(), active: true, mode: 'REHEARSAL', banner: 'REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE', virtual_data_only: true,
+    scenario: { scenario_id: scenarioId, description: scenarioId },
+    playback: { state: 'PAUSED', speed: 1, position_ms: 0, duration_ms: 100, event_index: 0, event_count: 2 },
+    events: [{ index: 0, at_ms: 0, kind: 'PERCEPTION', status: 'PENDING' }, { index: 1, at_ms: 100, kind: 'POSE', status: 'PENDING' }],
+    expected_actual: { match: false, expected: {}, actual: {} },
+    virtual_robot: { label: 'VIRTUAL ROBOT', source: 'VIRTUAL_ROUTE_REPLAY', frame_id: 'map', x: 0, y: 0, yaw: 0, segment_index: 0, segment_progress: 0, off_route: false, update_rate_hz: 10 },
+    overlay: { current_segment_index: 0, current_segment_progress: 0, completed_segment_indices: [], actual_nav2_path_status: 'UNAVAILABLE_IN_REHEARSAL' },
+    advisory_behavior: behavior, advisory_transitions: [],
+    delivery: {
+      state: 'EN_ROUTE_PICKUP', advisory: 'PROCEED_RECOMMENDED', cargo_count: 0, cargo_capacity: 5, next_venue_id: 'HANSOT', destination_id: 'COEX', destination_state: 'PENDING',
+      items: [
+        { sequence: 1, venue_id: 'HANSOT', menu_id: 'CHICKEN_MAYO', quantity: 2, estimated_ready_s: 40, arrival_estimate_s: 10, wait_estimate_s: 30, pickup_state: 'PENDING' },
+        { sequence: 2, venue_id: 'EDIYA', menu_id: 'AMERICANO', quantity: 1, estimated_ready_s: 60, arrival_estimate_s: 20, wait_estimate_s: 40, pickup_state: 'PENDING' },
+      ],
+    },
+    explainability: { template: 'DETERMINISTIC_METRICS_V1', reason: 'BALANCED: ETA 100.0s, distance 30.0m, risk 3.0.', score_breakdown: { travel_time_s: 35, food_wait_s: 60, signal_wait_s: 5, distance_m: 30, risk_score: 3, crosswalk_count: 1, underpass_count: 0, turn_count: 0, special_behavior_count: 2 }, alternatives: [] },
+    mission_dry_run: { eligibility: true, rejection_reason: null, waypoint_count: 3, resolved_annotation_ids: ['1'.repeat(24), '2'.repeat(24), '3'.repeat(24)], mission_created: false, mission_started: false, navigation_goal_submitted: false },
+    restrictions: { control_api_enabled: false, navigation_start_enabled: false, navigation_goal_enabled: false, mission_create_enabled: false, mission_start_enabled: false, real_service_state_included: false },
+    side_effect_count: 0, side_effect_counters: rehearsalSideEffects(), report_available: true,
   };
 }
 
@@ -107,11 +150,13 @@ function json(route, value, status = 200) {
 }
 
 export async function installDashboardBackend(page, options = {}) {
+  const routePlanner = baseRoutePlanner();
+  if (options.routePlannerRehearsal === true) routePlanner.rehearsal = readyRehearsal();
   const state = {
     online: options.online !== false,
     pointMax: 10_000,
     mapping: baseMapping(), navigation: baseNavigation(), control: baseControl(), dataset: baseDataset(),
-    routePlanner: baseRoutePlanner(),
+    routePlanner,
     competition: {
       schema_version: 'robot-scope.competition-state/v1', operation_mode: 'MANUAL',
       requested_mode: 'MANUAL', locked: false, revision: 1,
@@ -294,6 +339,7 @@ export async function installDashboardBackend(page, options = {}) {
       return json(route, state.competition);
     }
     if (path === '/api/v1/route-planner' && method === 'GET') return json(route, state.routePlanner);
+    if (path === '/api/v1/route-planner/rehearsal/scenarios' && method === 'GET') return json(route, readyRehearsal());
     if (path === '/api/v1/route-planner/orders' && method === 'POST') {
       state.routePlanner.order = {
         ...body, id: ROUTE_ORDER_ID, revision: ROUTE_ORDER_REVISION,
@@ -350,6 +396,36 @@ export async function installDashboardBackend(page, options = {}) {
     }
     const routePreview = path.match(/^\/api\/v1\/route-planner\/routes\/([0-9a-f]{32})\/preview$/);
     if (routePreview && method === 'POST') return json(route, { route_id: routePreview[1], live_nav2_preview: { status: 'BLOCKED', reason: 'SAFE_PLAN_ONLY_NAV2_INTERFACE_NOT_AVAILABLE' }, goal_submitted: false });
+    if (path === '/api/v1/route-planner/rehearsal/start' && method === 'POST') {
+      state.routePlanner.rehearsal = activeRehearsal(body.scenario_id);
+      return json(route, { rehearsal: state.routePlanner.rehearsal });
+    }
+    if (path === '/api/v1/route-planner/rehearsal/control' && method === 'POST') {
+      const rehearsal = state.routePlanner.rehearsal;
+      if (body.action === 'EXIT') state.routePlanner.rehearsal = readyRehearsal();
+      else if (body.action === 'RESET') state.routePlanner.rehearsal = activeRehearsal(rehearsal.scenario.scenario_id);
+      else if (body.action === 'STEP') {
+        rehearsal.playback.event_index = Math.min(rehearsal.playback.event_count, rehearsal.playback.event_index + 1);
+        rehearsal.playback.position_ms = rehearsal.playback.event_index ? 100 : 0;
+        rehearsal.events[0].status = 'APPLIED';
+        if (rehearsal.scenario.scenario_id === 'traffic-red-to-green') rehearsal.advisory_behavior = { behavior: 'CROSSWALK', state: 'READY', advisory: 'PROCEED_RECOMMENDED', reason_codes: [] };
+      } else if (body.action === 'PLAY' || body.action === 'PAUSE') rehearsal.playback.state = body.action === 'PLAY' ? 'PLAYING' : 'PAUSED';
+      else if (body.action === 'SET_SPEED') rehearsal.playback.speed = body.speed;
+      else if (body.action === 'SCRUB') { rehearsal.playback.position_ms = body.position_ms; rehearsal.playback.event_index = body.position_ms > 0 ? 1 : 0; }
+      else if (body.action === 'OFF_ROUTE') { rehearsal.virtual_robot.off_route = body.enabled; rehearsal.advisory_behavior = body.enabled ? { behavior: 'NORMAL_GUIDANCE', state: 'HOLD', advisory: 'REPLAN_RECOMMENDED', reason_codes: ['ROUTE_DEVIATION'] } : rehearsal.advisory_behavior; }
+      else if (body.action === 'CONFIRM_PICKUP') {
+        const item = rehearsal.delivery.items.find((entry) => entry.venue_id === body.venue_id);
+        if (item && item.pickup_state !== 'CONFIRMED') { item.pickup_state = 'CONFIRMED'; rehearsal.delivery.cargo_count += item.quantity; }
+        rehearsal.delivery.next_venue_id = rehearsal.delivery.items.find((entry) => entry.pickup_state !== 'CONFIRMED')?.venue_id || null;
+        rehearsal.delivery.state = rehearsal.delivery.next_venue_id ? 'EN_ROUTE_PICKUP' : 'EN_ROUTE_DESTINATION';
+      } else if (body.action === 'CONFIRM_DROPOFF') {
+        rehearsal.delivery.cargo_count = 0; rehearsal.delivery.destination_state = 'COMPLETE'; rehearsal.delivery.state = 'ORDER_COMPLETE';
+      }
+      return json(route, { rehearsal: state.routePlanner.rehearsal });
+    }
+    if (path === '/api/v1/route-planner/rehearsal/report' && method === 'GET') return json(route, { json: { kind: 'ROUTE_PLANNER_REHEARSAL_REPORT', side_effect_count: 0, side_effect_counters: rehearsalSideEffects() }, markdown: '# Route Planner Rehearsal Report\n\n- Side effects: 0\n- ROBOT WILL NOT MOVE' });
+    const routeDryRun = path.match(/^\/api\/v1\/route-planner\/routes\/([0-9a-f]{32})\/mission-dry-run$/);
+    if (routeDryRun && method === 'POST') return json(route, { kind: 'MISSION_DRAFT_DRY_RUN', route_id: routeDryRun[1], eligibility: true, rejection_reason: null, waypoint_count: 3, mission_created: false, mission_started: false, navigation_goal_submitted: false, side_effect_count: 0, side_effect_counters: rehearsalSideEffects() });
     const routeExport = path.match(/^\/api\/v1\/route-planner\/routes\/([0-9a-f]{32})\/export-mission$/);
     if (routeExport && method === 'POST') {
       state.routePlanner.state = 'MISSION_EXPORTED';

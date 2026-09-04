@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { createRoutePlannerClient, projectState } from '../robot_dashboard/static/features/cockpit/route_planner_client.js';
+import { createRoutePlannerClient, projectRehearsal, projectState } from '../robot_dashboard/static/features/cockpit/route_planner_client.js';
 import { createCockpitSceneHost } from '../robot_dashboard/static/features/cockpit/scene_host.js';
 
 const route = (id, profile, points = 3) => ({
@@ -27,6 +27,26 @@ function payload() {
     recommendations: [balanced, fastest, safest],
     guidance: { active: true, instruction_type: 'WAIT_TRAFFIC_GREEN', instruction: '신호 대기', current_segment_index: 0, remaining_distance_m: 1.2, eta_remaining_s: 12, cross_track_error_m: 0.04, requirements: { TRAFFIC_GREEN: 'UNKNOWN' }, completed_pickups: [], dropoff_complete: false },
     perception: { fresh: false, state: 'UNKNOWN', age_s: 2 },
+  };
+}
+
+function rehearsalPayload() {
+  return {
+    enabled: true, active: true, mode: 'REHEARSAL', banner: 'REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE', virtual_data_only: true,
+    scenarios: [{ scenario_id: 'traffic-red-to-green', description: 'Traffic transition', event_count: 4, duration_ms: 100 }],
+    scenario: { scenario_id: 'traffic-red-to-green', description: 'Traffic transition' },
+    playback: { state: 'PAUSED', speed: 2, position_ms: 50, duration_ms: 100, event_index: 2, event_count: 4 },
+    events: Array.from({ length: 300 }, (_, index) => ({ index, at_ms: index, kind: index === 2 ? 'PERCEPTION' : 'POSE', status: index < 2 ? 'APPLIED' : 'PENDING' })),
+    expected_actual: { match: false, expected: { stale_or_invalid: 'FRESH' }, actual: { stale_or_invalid: 'STALE' } },
+    virtual_robot: { label: 'VIRTUAL ROBOT', source: 'VIRTUAL_ROUTE_REPLAY', frame_id: 'map', x: 0.5, y: 2, yaw: 0, segment_index: 0, segment_progress: 0.5, off_route: true, update_rate_hz: 10 },
+    overlay: { current_segment_index: 0, current_segment_progress: 0.5, completed_segment_indices: [], actual_nav2_path_status: 'UNAVAILABLE_IN_REHEARSAL' },
+    advisory_behavior: { behavior: 'NORMAL_GUIDANCE', state: 'HOLD', advisory: 'REPLAN_RECOMMENDED', reason_codes: ['ROUTE_DEVIATION'] },
+    advisory_transitions: [{ position_ms: 50, behavior: 'NORMAL_GUIDANCE', state: 'HOLD', advisory: 'REPLAN_RECOMMENDED' }],
+    delivery: { state: 'EN_ROUTE_PICKUP', advisory: 'PROCEED_RECOMMENDED', cargo_count: 2, cargo_capacity: 5, next_venue_id: 'EDIYA', destination_id: 'COEX', destination_state: 'PENDING', items: [{ sequence: 1, venue_id: 'HANSOT', menu_id: 'CHICKEN_MAYO', quantity: 2, estimated_ready_s: 40, arrival_estimate_s: 10, wait_estimate_s: 30, pickup_state: 'CONFIRMED' }] },
+    explainability: { template: 'DETERMINISTIC_METRICS_V1', reason: 'BALANCED: ETA 35.0s, distance 2.0m, risk 1.0.', score_breakdown: { travel_time_s: 10, food_wait_s: 20, signal_wait_s: 5, distance_m: 2, risk_score: 1, crosswalk_count: 1, underpass_count: 0, turn_count: 0, special_behavior_count: 1 }, alternatives: [] },
+    mission_dry_run: { eligibility: true, rejection_reason: null, waypoint_count: 3, resolved_annotation_ids: ['1'.repeat(24)], mission_created: false, mission_started: false, navigation_goal_submitted: false },
+    restrictions: { control_api_enabled: false, navigation_start_enabled: false, navigation_goal_enabled: false, mission_create_enabled: false, mission_start_enabled: false, real_service_state_included: false },
+    side_effect_count: 0, side_effect_counters: { control_acquire: 0, arm: 0, deadman: 0, velocity: 0, navigation_activate: 0, navigation_goal: 0, mission_create: 0, mission_start: 0, sport: 0, service_restart: 0 }, report_available: true,
   };
 }
 
@@ -64,6 +84,62 @@ test('Route Planner client has one polling owner and emits no mission start, goa
   assert.match(paths, /\/export-mission/);
   first(); assert.equal(timers.size, 1); second(); assert.equal(timers.size, 0);
   client.destroy();
+});
+
+test('Rehearsal projection bounds timeline and keeps virtual pose separate from an unavailable Nav2 path', () => {
+  const value = payload(); value.rehearsal = rehearsalPayload();
+  const state = projectState(value);
+  assert.equal(state.rehearsal.events.length, 256);
+  assert.equal(state.rehearsal.virtualRobot.label, 'VIRTUAL ROBOT');
+  assert.equal(state.rehearsal.virtualRobot.offRoute, true);
+  assert.equal(state.rehearsal.overlay.actualNav2PathStatus, 'UNAVAILABLE_IN_REHEARSAL');
+  assert.equal(state.overlay.actualNav2Path.length, 0);
+  assert.ok(state.overlay.currentSegment.length > 1 && state.overlay.currentSegment.length < 128);
+  assert.equal(state.overlay.virtualRobot.source, 'VIRTUAL_ROUTE_REPLAY');
+  assert.equal(state.overlay.advisoryState.advisory, 'REPLAN_RECOMMENDED');
+});
+
+test('Rehearsal projection exposes deterministic explainability, cargo, and pure mission dry-run', () => {
+  const rehearsal = projectRehearsal(rehearsalPayload());
+  assert.equal(rehearsal.explainability.template, 'DETERMINISTIC_METRICS_V1');
+  assert.equal(rehearsal.explainability.scoreBreakdown.signal_wait_s, 5);
+  assert.equal(rehearsal.delivery.cargoCount, 2);
+  assert.equal(rehearsal.delivery.items[0].waitEstimateS, 30);
+  assert.equal(rehearsal.missionDryRun.eligibility, true);
+  assert.equal(rehearsal.missionDryRun.missionCreated, false);
+  assert.equal(rehearsal.sideEffectCount, 0);
+  assert.ok(Object.values(rehearsal.sideEffectCounters).every((value) => value === 0));
+});
+
+test('Rehearsal client uses only dedicated mock and dry-run endpoints', async () => {
+  const calls = [];
+  const value = payload(); value.rehearsal = rehearsalPayload();
+  const client = createRoutePlannerClient({ api: async (path, options = {}) => { calls.push([path, options]); return value; } });
+  const selected = projectState(value).selectedRoute;
+  await client.beginRehearsal(selected, 'traffic-red-to-green');
+  await client.controlRehearsal('STEP');
+  await client.controlRehearsal('SCRUB', { position_ms: 50 });
+  await client.controlRehearsal('OFF_ROUTE', { enabled: true });
+  await client.controlRehearsal('CONFIRM_PICKUP', { venue_id: 'HANSOT' });
+  await client.missionDryRun(selected);
+  await client.rehearsalReport();
+  const paths = calls.map(([path]) => path).join('\n');
+  assert.match(paths, /\/rehearsal\/start/);
+  assert.match(paths, /\/rehearsal\/control/);
+  assert.match(paths, /\/mission-dry-run/);
+  assert.match(paths, /\/rehearsal\/report/);
+  assert.doesNotMatch(paths, /\/export-mission|\/missions\/[^/]+\/(create|start)|\/navigation\/(start|goal)|\/api\/v1\/control|lease|arm|deadman|cmd_vel|sport/i);
+  client.destroy();
+});
+
+test('Rehearsal panel is server-flag hidden and visibly labels every virtual-only boundary', () => {
+  const panel = readFileSync(new URL('../robot_dashboard/static/features/cockpit/panels/route_planner_panel.js', import.meta.url), 'utf8');
+  assert.match(panel, /rehearsalSection\.hidden = !value\.enabled/);
+  assert.match(panel, /REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE/);
+  assert.match(panel, /VIRTUAL ROBOT/);
+  assert.match(panel, /UNAVAILABLE/);
+  assert.match(panel, /MISSION DRY-RUN/);
+  assert.doesNotMatch(panel, /new\s+(WebSocket|RobotScene3D)/);
 });
 
 test('Route overlay reuses the active Cockpit renderer and never creates a second renderer', () => {

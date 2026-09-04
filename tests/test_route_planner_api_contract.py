@@ -39,6 +39,11 @@ class RoutePlannerApiContractTests(unittest.TestCase):
             ("post", "/api/v1/route-planner/guidance/pickup"),
             ("post", "/api/v1/route-planner/guidance/dropoff"),
             ("post", "/api/v1/route-planner/routes/{route_id}/preview"),
+            ("get", "/api/v1/route-planner/rehearsal/scenarios"),
+            ("post", "/api/v1/route-planner/rehearsal/start"),
+            ("post", "/api/v1/route-planner/rehearsal/control"),
+            ("get", "/api/v1/route-planner/rehearsal/report"),
+            ("post", "/api/v1/route-planner/routes/{route_id}/mission-dry-run"),
             ("post", "/api/v1/route-planner/routes/{route_id}/export-mission"),
         })
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import os
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
@@ -14,6 +15,8 @@ from ..route_planner.guidance import project_guidance
 from ..route_planner.optimizer import RoutePlanningError, recommend_routes
 from ..route_planner.orders import OrderValidationError, normalize_order
 from ..route_planner.perception import RoutePerceptionProvider
+from ..route_planner.mission_dry_run import compile_mission_dry_run
+from ..route_planner.rehearsal import RehearsalError, RehearsalSession, available_scenarios
 from ..route_planner.state_store import RoutePlannerStateStore, RoutePlannerStorageError, empty_state
 
 
@@ -24,15 +27,6 @@ PLANNER_STATES = frozenset(
         "MISSION_EXPORTED", "STALE", "INVALID", "FAILED",
     }
 )
-MISSION_NODE_ROLES = frozenset(
-    {
-        "SAFE_HOLD", "RESTAURANT_APPROACH", "RESTAURANT_DOCK",
-        "DESTINATION_APPROACH", "DESTINATION_DOCK", "CROSSWALK_WAIT",
-        "CROSSWALK_EXIT", "UNDERPASS_ENTRY", "UNDERPASS_EXIT",
-    }
-)
-
-
 class RoutePlannerError(RuntimeError):
     pass
 
@@ -81,6 +75,7 @@ class RoutePlannerCoordinator:
         perception: RoutePerceptionProvider,
         now: Callable[[], float] = time.time,
         allow_custom_orders: bool = False,
+        allow_rehearsal: bool | None = None,
     ) -> None:
         self._saved_maps = saved_maps
         self._mission = mission
@@ -89,6 +84,14 @@ class RoutePlannerCoordinator:
         self._perception = perception
         self._now = now
         self._allow_custom_orders = allow_custom_orders
+        self._rehearsal_enabled = (
+            os.environ.get("ROBOT_SCOPE_ROUTE_PLANNER_REHEARSAL", "").strip().lower()
+            in {"1", "true", "yes"}
+            if allow_rehearsal is None
+            else allow_rehearsal is True
+        )
+        self._rehearsal_scenarios = available_scenarios() if self._rehearsal_enabled else []
+        self._rehearsal: RehearsalSession | None = None
         self._lock = asyncio.Lock()
         self._store: RoutePlannerStateStore | None = None
         self._storage_error = ""
@@ -125,6 +128,7 @@ class RoutePlannerCoordinator:
         return str(pipeline.get("state", "idle")).lower() in {"starting", "running", "stopping"} or str(goal.get("state", "idle")).lower() in {"pending", "active", "canceling"}
 
     def _require_editable(self, action: str, *, graph: bool = False) -> None:
+        self._require_not_rehearsing(action)
         if self._state.get("guidance", {}).get("active"):
             raise RoutePlannerConflict(f"{action} is blocked while guidance is active")
         if self._mission.blocks_navigation_goal():
@@ -134,6 +138,14 @@ class RoutePlannerCoordinator:
         mapping_active, _ = self._mapping_activity()
         if graph and mapping_active:
             raise RoutePlannerConflict(f"{action} is blocked while mapping is active")
+
+    def _require_not_rehearsing(self, action: str) -> None:
+        if self._rehearsal is not None:
+            raise RoutePlannerConflict(f"{action} is disabled in rehearsal mode")
+
+    def _require_rehearsal_enabled(self) -> None:
+        if not self._rehearsal_enabled:
+            raise RoutePlannerUnavailable("route planner rehearsal is disabled by server configuration")
 
     def _annotations(self, graph: Mapping[str, Any] | None = None) -> dict[str, Any]:
         target = graph or self._state.get("graph")
@@ -199,6 +211,20 @@ class RoutePlannerCoordinator:
                 "perception": self._perception.snapshot(),
                 "limits": {"max_recommendations": 3, "max_mission_waypoints": 32, "single_active_session": True},
                 "motion_authority": False,
+                "rehearsal": (
+                    {
+                        **self._rehearsal.snapshot(),
+                        "scenarios": copy.deepcopy(self._rehearsal_scenarios),
+                    }
+                    if self._rehearsal is not None
+                    else {
+                        "enabled": self._rehearsal_enabled,
+                        "active": False,
+                        "mode": "DISABLED" if not self._rehearsal_enabled else "READY",
+                        "scenarios": copy.deepcopy(self._rehearsal_scenarios),
+                        "side_effect_count": 0,
+                    }
+                ),
             }
         )
         if value.get("guidance", {}).get("active") and selected is not None:
@@ -366,6 +392,7 @@ class RoutePlannerCoordinator:
 
     async def start_guidance(self, *, route_id: str, route_revision: str) -> dict[str, Any]:
         async with self._lock:
+            self._require_not_rehearsing("manual guidance start")
             stale, reason = self._is_stale()
             if stale:
                 raise RoutePlannerConflict(f"route is stale: {reason}")
@@ -386,6 +413,7 @@ class RoutePlannerCoordinator:
 
     async def stop_guidance(self) -> dict[str, Any]:
         async with self._lock:
+            self._require_not_rehearsing("manual guidance stop")
             guidance = self._state.get("guidance", {})
             self._state["guidance"] = {
                 "active": False,
@@ -399,6 +427,7 @@ class RoutePlannerCoordinator:
 
     async def mark_pickup(self, venue_id: str) -> dict[str, Any]:
         async with self._lock:
+            self._require_not_rehearsing("manual pickup confirmation")
             if not self._state.get("guidance", {}).get("active"):
                 raise RoutePlannerConflict("guidance is not active")
             route = self._selected()
@@ -416,6 +445,7 @@ class RoutePlannerCoordinator:
 
     async def mark_dropoff(self, destination_id: str) -> dict[str, Any]:
         async with self._lock:
+            self._require_not_rehearsing("manual dropoff confirmation")
             if not self._state.get("guidance", {}).get("active"):
                 raise RoutePlannerConflict("guidance is not active")
             route = self._selected()
@@ -462,8 +492,117 @@ class RoutePlannerCoordinator:
             "goal_submitted": False,
         }
 
+    def mission_dry_run(self, route_id: str, *, route_revision: str) -> dict[str, Any]:
+        stale, reason = self._is_stale()
+        if stale:
+            raise RoutePlannerConflict(f"route is stale: {reason}")
+        route = self._selected(route_id)
+        if self._state.get("selected_route_id") != route_id or route.get("revision") != route_revision:
+            raise RoutePlannerConflict("selected route revision changed")
+        graph = self._state.get("graph")
+        order = self._state.get("order")
+        if not isinstance(graph, Mapping) or not isinstance(order, Mapping):
+            raise RoutePlannerConflict("route graph or order is unavailable")
+        return compile_mission_dry_run(
+            route=route,
+            graph=graph,
+            order=order,
+            annotations=self._annotations(graph),
+        )
+
+    def rehearsal_scenarios(self) -> dict[str, Any]:
+        self._require_rehearsal_enabled()
+        return {
+            "enabled": True,
+            "banner": "REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE",
+            "scenarios": copy.deepcopy(self._rehearsal_scenarios),
+        }
+
+    async def begin_rehearsal(
+        self, *, route_id: str, route_revision: str, scenario_id: str
+    ) -> dict[str, Any]:
+        async with self._lock:
+            self._require_rehearsal_enabled()
+            if self._state.get("guidance", {}).get("active"):
+                raise RoutePlannerConflict("stop manual guidance before rehearsal")
+            if self._mission.blocks_navigation_goal() or self._navigation_active():
+                raise RoutePlannerConflict("rehearsal requires idle mission and navigation")
+            mapping_active, _ = self._mapping_activity()
+            if mapping_active:
+                raise RoutePlannerConflict("rehearsal requires idle mapping")
+            route = self._selected(route_id)
+            if self._state.get("selected_route_id") != route_id or route.get("revision") != route_revision:
+                raise RoutePlannerConflict("selected route revision changed")
+            scenario = next(
+                (
+                    item
+                    for item in self._rehearsal_scenarios
+                    if item.get("scenario_id") == scenario_id
+                ),
+                None,
+            )
+            if scenario is None:
+                raise RoutePlannerNotFound("rehearsal scenario was not found")
+            dry_run = self.mission_dry_run(route_id, route_revision=route_revision)
+            self._rehearsal = RehearsalSession(
+                scenario_path=(
+                    Path(__file__).resolve().parents[2]
+                    / "tests"
+                    / "fixtures"
+                    / "route_planner"
+                    / "scenarios"
+                    / f"{scenario_id}.json"
+                ),
+                route=route,
+                alternatives=[
+                    item
+                    for item in self._state.get("recommendations", [])
+                    if item.get("id") != route_id
+                ],
+                order=self._state["order"],
+                mission_dry_run=dry_run,
+                now=self._now,
+            )
+            return {"rehearsal": self._rehearsal.snapshot()}
+
+    async def control_rehearsal(
+        self, *, action: str, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        async with self._lock:
+            self._require_rehearsal_enabled()
+            if self._rehearsal is None:
+                raise RoutePlannerConflict("rehearsal session is not active")
+            if action == "EXIT":
+                if payload:
+                    raise RoutePlannerValidationError("rehearsal exit payload must be empty")
+                self._rehearsal = None
+                return {
+                    "rehearsal": {
+                        "enabled": True,
+                        "active": False,
+                        "mode": "READY",
+                        "scenarios": copy.deepcopy(self._rehearsal_scenarios),
+                        "side_effect_count": 0,
+                    }
+                }
+            try:
+                rehearsal = self._rehearsal.control(action, payload)
+            except RehearsalError as exc:
+                raise RoutePlannerValidationError(str(exc)) from exc
+            return {"rehearsal": rehearsal}
+
+    def rehearsal_report(self) -> dict[str, Any]:
+        self._require_rehearsal_enabled()
+        if self._rehearsal is None:
+            raise RoutePlannerConflict("rehearsal session is not active")
+        try:
+            return self._rehearsal.report()
+        except RehearsalError as exc:
+            raise RoutePlannerValidationError(str(exc)) from exc
+
     async def export_mission(self, route_id: str, *, route_revision: str) -> dict[str, Any]:
         async with self._lock:
+            self._require_not_rehearsing("mission draft export")
             if self._mission.blocks_navigation_goal():
                 raise RoutePlannerConflict("mission export is blocked while a mission is active")
             stale, reason = self._is_stale()
@@ -478,29 +617,21 @@ class RoutePlannerCoordinator:
                         return {"mission": self._mission.snapshot(str(link["mission_id"]))["mission"], "link": copy.deepcopy(link), "created": False}
                     except Exception:
                         break
-            graph = self._state.get("graph")
             order = self._state.get("order")
-            if not isinstance(graph, Mapping) or not isinstance(order, Mapping):
+            if not isinstance(order, Mapping):
                 raise RoutePlannerConflict("route graph or order is unavailable")
-            nodes = {str(node["id"]): node for node in graph["nodes"]}
-            waypoint_nodes = []
-            for node_id in route["node_ids"]:
-                node = nodes.get(str(node_id))
-                if node and node["role"] in MISSION_NODE_ROLES and (not waypoint_nodes or waypoint_nodes[-1]["id"] != node["id"]):
-                    waypoint_nodes.append(node)
-            if not waypoint_nodes:
-                raise RoutePlannerConflict("route has no mission waypoint nodes")
-            if len(waypoint_nodes) > 32:
-                raise RoutePlannerConflict("MISSION_WAYPOINT_LIMIT")
+            dry_run = self.mission_dry_run(route_id, route_revision=route_revision)
+            if not dry_run["eligibility"]:
+                raise RoutePlannerConflict(str(dry_run["rejection_reason"]))
             waypoints = [
                 {
-                    "annotation_id": node["annotation_id"],
-                    "arrival_tolerance": None,
-                    "hold_seconds": 0.0,
-                    "requires_operator_confirmation": node["role"] in {"CROSSWALK_WAIT", "SAFE_HOLD", "RESTAURANT_DOCK", "DESTINATION_DOCK"},
-                    "label": str(node["label"])[:64],
+                    "annotation_id": item["annotation_id"],
+                    "arrival_tolerance": item["arrival_tolerance"],
+                    "hold_seconds": item["hold_seconds"],
+                    "requires_operator_confirmation": item["requires_operator_confirmation"],
+                    "label": item["label"],
                 }
-                for node in waypoint_nodes
+                for item in dry_run["waypoints"]
             ]
             response = await self._mission.create(
                 label=f"{order['label']} · {route['profile']}",
@@ -524,6 +655,7 @@ class RoutePlannerCoordinator:
 
     async def close(self) -> None:
         async with self._lock:
+            self._rehearsal = None
             guidance = self._state.get("guidance", {})
             if guidance.get("active"):
                 self._state["guidance"] = {

@@ -60,10 +60,34 @@ function createRoutePlannerPanelView(options = {}) {
   const segmentList = make(documentValue, 'ol', 'route-planner-segments');
   const message = make(documentValue, 'small', 'route-planner-message', 'SERVER-AUTHORITATIVE · NO MOTION AUTHORITY');
   guidance.append(guidanceAction, guidanceMetrics, requirementState, confirmations, guidanceButtons, segmentList, message);
-  root.append(header, orderSection, planningSection, guidance); options.host.append(root);
+
+  const rehearsalSection = make(documentValue, 'section', 'route-planner-rehearsal'); rehearsalSection.hidden = true;
+  const rehearsalBanner = make(documentValue, 'strong', 'route-rehearsal-banner', 'REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE');
+  const scenarioSelect = documentValue.createElement('select'); scenarioSelect.setAttribute('aria-label', 'Rehearsal scenario');
+  const rehearsalStart = make(documentValue, 'button', '', 'REHEARSAL 시작'); rehearsalStart.type = 'button'; rehearsalStart.dataset.routeRehearsalAction = 'START';
+  const rehearsalControls = make(documentValue, 'div', 'route-rehearsal-controls');
+  for (const [action, label] of [['RESET', 'RESET'], ['PLAY', 'PLAY'], ['PAUSE', 'PAUSE'], ['STEP', 'STEP'], ['OFF_ROUTE', 'OFF-ROUTE'], ['EXIT', 'EXIT']]) {
+    const button = make(documentValue, 'button', '', label); button.type = 'button'; button.dataset.routeRehearsalAction = action; rehearsalControls.append(button);
+  }
+  const speed = documentValue.createElement('select'); speed.setAttribute('aria-label', 'Rehearsal speed');
+  for (const value of [0.5, 1, 2, 5]) speed.append(option(documentValue, String(value), `${value}x`));
+  const timeline = documentValue.createElement('input'); timeline.type = 'range'; timeline.min = '0'; timeline.max = '1'; timeline.step = '1'; timeline.value = '0'; timeline.setAttribute('aria-label', 'Rehearsal timeline');
+  const playback = make(documentValue, 'small', 'route-rehearsal-playback', 'PAUSED · 0 / 0 ms');
+  const virtualPose = make(documentValue, 'div', 'route-rehearsal-virtual-pose', 'VIRTUAL ROBOT —');
+  const advisoryState = make(documentValue, 'div', 'route-rehearsal-advisory', 'ADVISORY —');
+  const expectedActual = make(documentValue, 'small', 'route-rehearsal-expected', 'EXPECTED / ACTUAL —');
+  const eventList = make(documentValue, 'ol', 'route-rehearsal-events');
+  const cargo = make(documentValue, 'div', 'route-rehearsal-cargo');
+  const missionDryRun = make(documentValue, 'div', 'route-rehearsal-mission', 'MISSION DRY-RUN —');
+  const rehearsalReport = make(documentValue, 'pre', 'route-rehearsal-report');
+  const dryRunButton = make(documentValue, 'button', '', 'MISSION DRY-RUN'); dryRunButton.type = 'button'; dryRunButton.dataset.routeRehearsalAction = 'DRY_RUN';
+  const reportButton = make(documentValue, 'button', '', 'REPORT JSON / MARKDOWN'); reportButton.type = 'button'; reportButton.dataset.routeRehearsalAction = 'REPORT';
+  rehearsalSection.append(make(documentValue, 'h3', '', 'Development / Rehearsal'), rehearsalBanner, scenarioSelect, rehearsalStart, rehearsalControls, speed, timeline, playback, virtualPose, advisoryState, expectedActual, eventList, cargo, missionDryRun, dryRunButton, reportButton, rehearsalReport);
+  root.append(header, orderSection, planningSection, guidance, rehearsalSection); options.host.append(root);
 
   let current = null;
   const lineRows = [];
+  let scenarioSignature = '';
 
   function syncMenus(row) {
     const prior = row.menu.value;
@@ -115,10 +139,46 @@ function createRoutePlannerPanelView(options = {}) {
       if (state.selectedRoute?.id === route.id) card.dataset.selected = 'true';
       const title = make(documentValue, 'strong', '', route.profiles.join(' · ') || route.profile);
       const metrics = make(documentValue, 'p', '', `${route.metrics.distance_m.toFixed(1)} m · ${route.metrics.eta_s.toFixed(0)}초 · 준비 대기 ${route.metrics.food_wait_s.toFixed(0)}초 · Risk ${route.metrics.risk_score.toFixed(1)}`);
-      const detail = make(documentValue, 'small', '', `횡단보도 ${route.metrics.crosswalk_count} · UNDERPASS ${route.metrics.underpass_count} · ${route.executable ? 'READY' : route.reason || 'ADVISORY'}`);
+      const detail = make(documentValue, 'small', '', `주행 ${route.metrics.travel_time_s.toFixed(0)}초 · 음식 ${route.metrics.food_wait_s.toFixed(0)}초 · 신호 ${route.metrics.signal_wait_s.toFixed(0)}초 · 거리 ${route.metrics.distance_m.toFixed(1)}m · 위험 ${route.metrics.risk_score.toFixed(1)}`);
+      const counts = make(documentValue, 'small', '', `횡단보도 ${route.metrics.crosswalk_count} · UNDERPASS ${route.metrics.underpass_count} · 회전 ${route.metrics.turn_count} · 특수 ${route.metrics.special_behavior_count} · ${route.executable ? 'READY' : route.reason || 'ADVISORY'}`);
       const select = make(documentValue, 'button', '', '선택'); select.type = 'button'; select.dataset.routeSelect = route.id;
-      card.append(title, metrics, detail, select); return card;
+      card.append(title, metrics, detail, counts, select); return card;
     }));
+  }
+
+  function renderRehearsal(state) {
+    const value = state.rehearsal;
+    rehearsalSection.hidden = !value.enabled;
+    if (!value.enabled) return;
+    const signature = value.scenarios.map((item) => item.id).join('|');
+    if (signature !== scenarioSignature) {
+      const selected = scenarioSelect.value;
+      scenarioSelect.replaceChildren(...value.scenarios.map((item) => option(documentValue, item.id, `${item.id} · ${item.description}`)));
+      if ([...scenarioSelect.children].some((item) => item.value === selected)) scenarioSelect.value = selected;
+      scenarioSignature = signature;
+    }
+    rehearsalBanner.textContent = value.banner || 'REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE';
+    rehearsalStart.disabled = state.busy || !state.selectedRoute || value.active || !scenarioSelect.value;
+    for (const button of rehearsalControls.children) button.disabled = state.busy || !value.active;
+    speed.disabled = state.busy || !value.active; speed.value = String(value.playback.speed);
+    timeline.disabled = state.busy || !value.active; timeline.max = String(Math.max(1, value.playback.durationMs)); timeline.value = String(Math.min(value.playback.durationMs, value.playback.positionMs));
+    playback.textContent = `${value.playback.state} · ${value.playback.positionMs} / ${value.playback.durationMs} ms · ${value.playback.speed}x · EVENT ${value.playback.eventIndex}/${value.playback.eventCount}`;
+    const pose = value.virtualRobot;
+    virtualPose.textContent = pose ? `${pose.label} · x ${pose.x.toFixed(2)} · y ${pose.y.toFixed(2)} · yaw ${pose.yaw.toFixed(2)} · SEG ${pose.segmentIndex + 1} ${(pose.segmentProgress * 100).toFixed(0)}%${pose.offRoute ? ' · OFF-ROUTE INJECTED' : ''}` : 'VIRTUAL ROBOT —';
+    advisoryState.textContent = value.active ? `ADVISORY ${value.advisory.behavior} · ${value.advisory.state} · ${value.advisory.advisory}${value.advisory.reasons.length ? ` · ${value.advisory.reasons.join('/')}` : ''}` : 'ADVISORY —';
+    expectedActual.textContent = value.active ? `EXPECTED / ACTUAL ${value.expectedActual.match ? 'MATCH' : 'DIFF'} · ${value.explainability.reason || 'DETERMINISTIC METRICS'}` : 'EXPECTED / ACTUAL —';
+    eventList.replaceChildren(...value.events.map((item) => {
+      const row = make(documentValue, 'li', '', `${item.atMs} ms · ${item.kind} · ${item.status}`); if (item.status === 'APPLIED') row.dataset.applied = 'true'; return row;
+    }));
+    cargo.replaceChildren(make(documentValue, 'strong', '', `CARGO ${value.delivery.cargoCount} / ${value.delivery.cargoCapacity} · ${value.delivery.state || 'WAITING'}`), ...value.delivery.items.map((item) => {
+      const row = make(documentValue, 'div', 'route-rehearsal-cargo-item', `${item.sequence}. ${item.venueId}/${item.menuId} ×${item.quantity} · READY ${item.estimatedReadyS.toFixed(0)}s · ARRIVAL ${item.arrivalEstimateS.toFixed(0)}s · WAIT ${item.waitEstimateS.toFixed(0)}s · ${item.pickupState}`);
+      if (value.active && item.venueId === value.delivery.nextVenueId) { const button = make(documentValue, 'button', '', 'PICKUP CONFIRM'); button.type = 'button'; button.dataset.routeRehearsalPickup = item.venueId; row.append(button); }
+      return row;
+    }));
+    if (value.active && !value.delivery.nextVenueId && value.delivery.destinationState !== 'COMPLETE') { const button = make(documentValue, 'button', '', `${value.delivery.destinationId} DROPOFF CONFIRM`); button.type = 'button'; button.dataset.routeRehearsalDropoff = value.delivery.destinationId; cargo.append(button); }
+    missionDryRun.textContent = value.active ? `MISSION DRY-RUN ${value.missionDryRun.eligibility ? 'ELIGIBLE' : value.missionDryRun.rejectionReason || 'REJECTED'} · WAYPOINTS ${value.missionDryRun.waypointCount} · MISSION CREATE ${value.missionDryRun.missionCreated ? '1' : '0'} · GOAL ${value.missionDryRun.navigationGoalSubmitted ? '1' : '0'} · NAV2 PATH ${value.overlay.actualNav2PathStatus || 'UNAVAILABLE'}` : 'MISSION DRY-RUN —';
+    dryRunButton.disabled = state.busy || !state.selectedRoute;
+    reportButton.disabled = state.busy || !value.active || !value.reportAvailable;
   }
 
   function render(state) {
@@ -126,10 +186,11 @@ function createRoutePlannerPanelView(options = {}) {
     status.textContent = `ROUTE PLANNER ${state.state}`;
     pins.textContent = `MAP ${state.graph?.map_revision?.slice(0, 8) || '—'} · GRAPH ${state.graph?.graph_revision?.slice(0, 8) || '—'}`;
     if (state.order && state.order.id !== previousOrderId) loadOrder(state.order);
+    const rehearsalActive = state.rehearsal.active;
     startNode.replaceChildren(...(state.graph?.nodes || []).filter((node) => node.role === 'START').map((node) => option(documentValue, node.id, node.label)));
-    saveOrder.disabled = state.busy || state.order?.locked === true; lockOrder.disabled = state.busy || !state.order || state.order.locked;
-    addLine.disabled = state.busy || lineRows.length >= 5 || state.order?.locked === true;
-    calculate.disabled = state.busy || !state.order || !state.graph || !startNode.value;
+    saveOrder.disabled = state.busy || rehearsalActive || state.order?.locked === true; lockOrder.disabled = state.busy || rehearsalActive || !state.order || state.order.locked;
+    addLine.disabled = state.busy || rehearsalActive || lineRows.length >= 5 || state.order?.locked === true;
+    calculate.disabled = state.busy || rehearsalActive || !state.order || !state.graph || !startNode.value;
     renderCards(state);
     const route = state.selectedRoute; const guide = state.guidance;
     guidanceAction.textContent = guide.active ? `${guide.instruction_type || 'GUIDANCE'} · ${guide.instruction || ''}` : 'GUIDANCE OFF';
@@ -144,28 +205,43 @@ function createRoutePlannerPanelView(options = {}) {
       ...uniquePickups.map((stop) => {
         const completed = guide.completed_pickups?.includes(stop.venue_id);
         const button = make(documentValue, 'button', '', completed ? `${stop.label} 픽업 완료` : `${stop.label} 픽업 확인`);
-        button.type = 'button'; button.dataset.routePickup = stop.venue_id; button.disabled = state.busy || !guide.active || completed; return button;
+        button.type = 'button'; button.dataset.routePickup = stop.venue_id; button.disabled = state.busy || rehearsalActive || !guide.active || completed; return button;
       }),
       ...(destinationStop ? (() => {
         const button = make(documentValue, 'button', '', guide.dropoff_complete ? `${destinationStop.label} 배송 완료` : `${destinationStop.label} 배송 확인`);
-        button.type = 'button'; button.dataset.routeDropoff = destinationStop.venue_id; button.disabled = state.busy || !guide.active || guide.dropoff_complete; return [button];
+        button.type = 'button'; button.dataset.routeDropoff = destinationStop.venue_id; button.disabled = state.busy || rehearsalActive || !guide.active || guide.dropoff_complete; return [button];
       })() : []),
     );
     const buttons = Object.fromEntries([...guidanceButtons.children].map((button) => [button.dataset.routeAction, button]));
-    buttons['start-guidance'].disabled = state.busy || !route || guide.active;
-    buttons['stop-guidance'].disabled = state.busy || !guide.active;
+    buttons['start-guidance'].disabled = state.busy || rehearsalActive || !route || guide.active;
+    buttons['stop-guidance'].disabled = state.busy || rehearsalActive || !guide.active;
     buttons.preview.disabled = state.busy || !route;
-    buttons.export.disabled = state.busy || !route;
+    buttons.export.disabled = state.busy || rehearsalActive || !route;
     segmentList.replaceChildren(...(route?.segments || []).map((segment, index) => {
       const item = make(documentValue, 'li', '', `${index + 1}. ${segment.label} · ${segment.distance_m.toFixed(1)}m${segment.requirements.length ? ` · ${segment.requirements.map((entry) => entry.id).join('/')}` : ''}`);
       if (guide.active && guide.current_segment_index === index) item.dataset.current = 'true'; return item;
     }));
     message.textContent = state.error || state.staleReason || (state.perception.fresh ? 'PERCEPTION FRESH · GUIDANCE ONLY' : 'PERCEPTION UNKNOWN/STALE · AUTO EDGE NOT READY');
     message.dataset.error = String(Boolean(state.error || state.staleReason));
+    renderRehearsal(state);
     renderOrderSummary();
   }
 
   root.addEventListener('click', async (event) => {
+    const rehearsalPickup = event.target.closest?.('[data-route-rehearsal-pickup]')?.dataset.routeRehearsalPickup;
+    if (rehearsalPickup) { await options.client.controlRehearsal('CONFIRM_PICKUP', { venue_id: rehearsalPickup }); return; }
+    const rehearsalDropoff = event.target.closest?.('[data-route-rehearsal-dropoff]')?.dataset.routeRehearsalDropoff;
+    if (rehearsalDropoff) { await options.client.controlRehearsal('CONFIRM_DROPOFF', { destination_id: rehearsalDropoff }); return; }
+    const rehearsalAction = event.target.closest?.('[data-route-rehearsal-action]')?.dataset.routeRehearsalAction;
+    if (rehearsalAction && current) {
+      const route = current.selectedRoute;
+      if (rehearsalAction === 'START' && route) await options.client.beginRehearsal(route, scenarioSelect.value);
+      else if (rehearsalAction === 'DRY_RUN' && route) { const value = await options.client.missionDryRun(route); rehearsalReport.textContent = value ? JSON.stringify(value, null, 2).slice(0, 16000) : ''; }
+      else if (rehearsalAction === 'REPORT') { const value = await options.client.rehearsalReport(); rehearsalReport.textContent = String(value?.markdown || '').slice(0, 16000); }
+      else if (rehearsalAction === 'OFF_ROUTE') await options.client.controlRehearsal('OFF_ROUTE', { enabled: !current.rehearsal.virtualRobot?.offRoute });
+      else await options.client.controlRehearsal(rehearsalAction);
+      return;
+    }
     const pickupId = event.target.closest?.('[data-route-pickup]')?.dataset.routePickup;
     if (pickupId) { await options.client.markPickup(pickupId); return; }
     const dropoffId = event.target.closest?.('[data-route-dropoff]')?.dataset.routeDropoff;
@@ -190,6 +266,9 @@ function createRoutePlannerPanelView(options = {}) {
     else if (action === 'preview') await options.client.preview(route);
     else if (action === 'export') await options.client.exportMission(route);
   });
+
+  speed.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SET_SPEED', { speed: Number(speed.value) }); });
+  timeline.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SCRUB', { position_ms: Math.max(0, Number(timeline.value) || 0) }); });
 
   addOrderLine('HANSOT', 'CHICKEN_MAYO', 2); addOrderLine('EDIYA', 'AMERICANO', 1);
   return Object.freeze({ render, destroy() { root.remove(); } });
