@@ -59,6 +59,7 @@
     "max_angular_z": 0.5,
     "default_speed_scale": 0.35,
     "lowstate_topic": "/lowstate",
+    "sport_mode_state_topic": "/sportmodestate",
     "command_timeout_s": 0.20,
     "bridge_command_timeout_s": 0.20,
     "bridge_status_timeout_s": 0.75,

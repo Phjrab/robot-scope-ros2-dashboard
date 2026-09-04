@@ -78,6 +78,7 @@ from .control import (
     LeaseInvalid,
     SequenceError,
 )
+from .go2_bridge import SPORT_MODE_STATE_PUBLIC_FIELDS
 from .competition import CompetitionStateManager
 from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
@@ -416,7 +417,6 @@ def require_mission_navigation_idle(detail: str) -> None:
 
 def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     """Translate the internal safety snapshot to the stable browser contract."""
-
     limits = snapshot.get("limits", {})
     readiness = snapshot.get("readiness", {})
     internal_bridge = dict(snapshot.get("bridge", {}))
@@ -475,6 +475,12 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
                 "motion_run_max_abs_angular_z",
             )
             if key in internal_request_evidence
+        }
+    internal_sport_mode_state = internal_bridge.get("sport_mode_state")
+    if isinstance(internal_sport_mode_state, dict):
+        bridge["sport_mode_state"] = {
+            key: internal_sport_mode_state[key] for key in SPORT_MODE_STATE_PUBLIC_FIELDS
+            if key in internal_sport_mode_state
         }
     bridge["message"] = public_diagnostic(
         internal_bridge.get("message", internal_bridge.get("last_error", ""))

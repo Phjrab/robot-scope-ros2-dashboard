@@ -744,6 +744,33 @@ class NavigationCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         ):
             self.assertEqual(view["readiness"][key], 1)
 
+    async def test_view_preserves_first_nonready_goal_health_evidence(self):
+        first_nonready = {
+            "goal_id": "goal-1",
+            "captured_age_s": 0.25,
+            "state": "DEGRADED",
+            "reason_code": "GOAL_PROGRESS_TOO_LOW",
+            "threshold_basis": "goal_progress_rate_mps<0.01",
+            "metrics": {
+                "goal_progress_rate_mps": 0.0,
+                "controller_stall_duration_s": 3.0,
+            },
+        }
+        self.agent.runtime["goal"] = {
+            "state": "canceled",
+            "goal_id": "goal-1",
+            "recoveries": 0,
+            "first_nonready_health": first_nonready,
+        }
+
+        view = self.coordinator.view()
+
+        self.assertEqual(view["goal"]["first_nonready_health"], first_nonready)
+        self.assertNotIn(
+            "observed_at_monotonic_s",
+            view["goal"]["first_nonready_health"],
+        )
+
     async def test_view_redacts_navigation_runtime_and_startup_diagnostics(self):
         private_path = "/private/robot-scope/navigation.yaml"
         private_secret = "navigation-password-do-not-expose"

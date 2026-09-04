@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from typing import Any, Dict
 
+from robot_dashboard.go2_bridge import SPORT_MODE_STATE_PUBLIC_FIELDS
 from robot_dashboard.public_diagnostics import public_diagnostic
 
 
@@ -235,6 +236,7 @@ class Phase8ApiContractTests(unittest.TestCase):
         namespace = {
             "Any": Any,
             "Dict": Dict,
+            "SPORT_MODE_STATE_PUBLIC_FIELDS": SPORT_MODE_STATE_PUBLIC_FIELDS,
             "public_diagnostic": public_diagnostic,
         }
         exec(compile(ast.Module(body=[function], type_ignores=[]), str(APP), "exec"), namespace)
@@ -276,6 +278,17 @@ class Phase8ApiContractTests(unittest.TestCase):
                         "motion_run_max_abs_angular_z": 0.0,
                         "private": "not-public",
                     },
+                    "sport_mode_state": {
+                        "topic": "/sportmodestate",
+                        "mode": 5,
+                        "gait_type": 3,
+                        "velocity": [0.105, 0.0, 0.0],
+                        "error_code": 123456,
+                        "age_ms": 25,
+                        "stale_after_ms": 500,
+                        "fresh": True,
+                        "private": "not-public",
+                    },
                     "bridge_epoch": "private-generation",
                     "bridge_pid": 1234,
                     "issued_at_ms": 999,
@@ -296,6 +309,19 @@ class Phase8ApiContractTests(unittest.TestCase):
         self.assertEqual(bridge["transport"], "udp")
         self.assertEqual(bridge["request_evidence"]["published_count"], 2)
         self.assertNotIn("private", bridge["request_evidence"])
+        self.assertEqual(
+            bridge["sport_mode_state"],
+            {
+                "topic": "/sportmodestate",
+                "mode": 5,
+                "gait_type": 3,
+                "velocity": [0.105, 0.0, 0.0],
+                "error_code": 123456,
+                "age_ms": 25,
+                "stale_after_ms": 500,
+                "fresh": True,
+            },
+        )
         for private in (
             "bridge_epoch",
             "bridge_pid",

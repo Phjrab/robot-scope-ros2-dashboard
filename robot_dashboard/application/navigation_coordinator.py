@@ -2217,6 +2217,11 @@ class NavigationCoordinator:
             "canceled",
         }:
             goal_state = "failed"
+        first_nonready_health = (
+            dict(goal.get("first_nonready_health"))
+            if isinstance(goal.get("first_nonready_health"), Mapping)
+            else None
+        )
         goal_view = {
             "state": goal_state,
             "goal_id": goal.get("goal_id"),
@@ -2226,6 +2231,7 @@ class NavigationCoordinator:
             "navigation_time": goal.get("navigation_time"),
             "recoveries": int(goal.get("recoveries", 0) or 0),
             "error": _public_navigation_diagnostic(goal.get("error")),
+            "first_nonready_health": first_nonready_health,
         }
         running = pipeline_state == "running" and manager_map is not None
         runtime_goal_active = goal_state in {"pending", "active", "canceling"}

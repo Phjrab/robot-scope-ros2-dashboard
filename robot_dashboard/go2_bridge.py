@@ -14,6 +14,14 @@ API_STOP_MOVE = 1003
 API_MOVE = 1008
 SPORT_REQUEST_EVIDENCE_SCHEMA = "robot-scope.sport-request-evidence.v1"
 SPORT_REQUEST_EVIDENCE_MAX_COUNT = 2_147_483_647
+SPORT_MODE_STATE_TOPICS = ("/sportmodestate", "/lf/sportmodestate")
+SPORT_MODE_STATE_MAX_AGE_MS = 2_147_483_647
+SPORT_MODE_STATE_MAX_ERROR_CODE = 4_294_967_295
+SPORT_MODE_STATE_MAX_ABS_VELOCITY = 20.0
+SPORT_MODE_STATE_PUBLIC_FIELDS = (
+    "topic", "mode", "gait_type", "velocity", "error_code", "age_ms",
+    "stale_after_ms", "fresh",
+)
 
 # This deliberately excludes Damp, flips, jumps, handstands, dances, direct
 # motor control, and deprecated sport APIs.
@@ -107,6 +115,107 @@ class SportRequest:
     api_id: int
     parameter: str = ""
     reason: str = ""
+
+
+class SportModeStateObservation:
+    """Bounded, read-only observation of one configured Unitree state topic."""
+
+    def __init__(self, *, topic: str, stale_after_s: float) -> None:
+        if topic not in SPORT_MODE_STATE_TOPICS:
+            raise ValueError("SportModeState topic is not allowlisted")
+        timeout = float(stale_after_s)
+        if not math.isfinite(timeout) or not 0.20 <= timeout <= 1.0:
+            raise ValueError("SportModeState freshness limit is invalid")
+        self.topic = topic
+        self.stale_after_ms = round(timeout * 1_000)
+        self._received_at: float | None = None
+        self._values: dict[str, Any] = {}
+
+    @staticmethod
+    def _unsigned(value: Any, *, label: str, maximum: int) -> int:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError(f"SportModeState {label} is invalid")
+        if not 0 <= value <= maximum:
+            raise ValueError(f"SportModeState {label} is invalid")
+        return value
+
+    @staticmethod
+    def _velocity(value: Any) -> list[float]:
+        try:
+            items = list(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("SportModeState velocity is invalid") from exc
+        if len(items) != 3:
+            raise ValueError("SportModeState velocity is invalid")
+        velocity: list[float] = []
+        for item in items:
+            if isinstance(item, bool) or not isinstance(item, (int, float)):
+                raise ValueError("SportModeState velocity is invalid")
+            number = float(item)
+            if (
+                not math.isfinite(number)
+                or abs(number) > SPORT_MODE_STATE_MAX_ABS_VELOCITY
+            ):
+                raise ValueError("SportModeState velocity is invalid")
+            velocity.append(round(number, 6))
+        return velocity
+
+    def observe(self, message: Any, *, now: float) -> None:
+        observed_at = float(now)
+        if not math.isfinite(observed_at) or observed_at < 0.0:
+            raise ValueError("SportModeState observation time is invalid")
+        values = {
+            "mode": self._unsigned(
+                getattr(message, "mode", None),
+                label="mode",
+                maximum=255,
+            ),
+            "gait_type": self._unsigned(
+                getattr(message, "gait_type", None),
+                label="gait type",
+                maximum=255,
+            ),
+            "velocity": self._velocity(getattr(message, "velocity", None)),
+            # Unitree publishes this raw field, but its values are not interpreted
+            # here because no authoritative error-code mapping is available.
+            "error_code": self._unsigned(
+                getattr(message, "error_code", None),
+                label="error code",
+                maximum=SPORT_MODE_STATE_MAX_ERROR_CODE,
+            ),
+        }
+        self._values = values
+        self._received_at = observed_at
+
+    def snapshot(self, *, now: float) -> dict[str, Any]:
+        observed_at = float(now)
+        if not math.isfinite(observed_at):
+            raise ValueError("SportModeState snapshot time is invalid")
+        age_s = (
+            None
+            if self._received_at is None
+            else max(0.0, observed_at - self._received_at)
+        )
+        age_ms = (
+            None
+            if age_s is None
+            else min(
+                SPORT_MODE_STATE_MAX_AGE_MS,
+                max(0, math.ceil(age_s * 1_000)),
+            )
+        )
+        fresh = age_ms is not None and age_ms <= self.stale_after_ms
+        visible = self._values if fresh else {}
+        return {
+            "topic": self.topic,
+            "mode": visible.get("mode"),
+            "gait_type": visible.get("gait_type"),
+            "velocity": visible.get("velocity"),
+            "error_code": visible.get("error_code"),
+            "age_ms": age_ms,
+            "stale_after_ms": self.stale_after_ms,
+            "fresh": fresh,
+        }
 
 
 class SportRequestEvidence:

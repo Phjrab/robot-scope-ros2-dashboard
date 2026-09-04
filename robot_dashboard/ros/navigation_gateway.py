@@ -66,6 +66,48 @@ NAVIGATION_CONTROLLER_ODOM_TOPICS = MappingProxyType(
 NAVIGATION_ACTION = "/navigate_to_pose"
 NAVIGATION_ODOM_STAMP_MAX_AGE_S = 1.5
 NAVIGATION_ODOM_STAMP_MAX_FUTURE_S = 0.5
+# Preserve the existing five-millimetre progress significance threshold, but
+# apply it to cumulative best distance instead of each individual feedback
+# sample. At the C4 command ceiling (0.035 m/s), valid 10 Hz samples advance by
+# only 3.5 mm and therefore cannot satisfy a per-sample threshold.
+NAVIGATION_PROGRESS_SIGNIFICANT_DELTA_M = 0.005
+_GOAL_FIRST_NONREADY_METRIC_KEYS = (
+    "cloud_frequency_hz",
+    "cloud_jitter_s",
+    "cloud_age_s",
+    "runtime_health_age_s",
+    "odometry_frequency_hz",
+    "odometry_frequency_hz_raw",
+    "odometry_mean_period_s",
+    "odometry_median_period_s",
+    "odometry_p95_period_s",
+    "odometry_max_gap_s",
+    "odometry_window_duration_s",
+    "odometry_sample_count",
+    "odometry_interval_count",
+    "odometry_jitter_s",
+    "odometry_age_s",
+    "tf_age_s",
+    "map_to_odom_age_s",
+    "odom_to_base_age_s",
+    "translation_jump_count",
+    "heading_jump_count",
+    "last_jump_reason",
+    "last_jump_age_s",
+    "input_points",
+    "accepted_points",
+    "goal_remaining_distance_m",
+    "goal_progress_rate_mps",
+    "goal_active",
+    "controller_stall_duration_s",
+    "costmap_clear_count",
+    "fresh_sequence_count",
+    "frame_error",
+    "source_error",
+    "host_clock_offsets_s",
+    "calibration_suspected",
+    "calibration_reason",
+)
 NAVIGATION_CLEAR_SERVICES = (
     "/global_costmap/clear_entirely_global_costmap",
     "/local_costmap/clear_entirely_local_costmap",
@@ -194,12 +236,8 @@ class NavigationRosGateway:
             NAVIGATION_FAST_LIO_ODOM_TOPIC: None,
             self._controller_odom_topic: None,
         }
-        self._navigation_goal_progress = {
-            "last_distance": None,
-            "last_observed_at": 0.0,
-            "last_progress_at": 0.0,
-            "progress_rate_mps": None,
-        }
+        self._navigation_goal_progress = self._new_navigation_goal_progress()
+        self._navigation_goal_first_nonready: Optional[Dict[str, Any]] = None
         self._navigation: Dict[str, Any] = {
             "seq": 0,
             "active": False,
@@ -1882,6 +1920,82 @@ class NavigationRosGateway:
                 self._navigation["seq"] += 1
         return self.runtime_snapshot()
 
+    @staticmethod
+    def _new_navigation_goal_progress(started_at: float = 0.0) -> Dict[str, Any]:
+        return {
+            "last_distance": None,
+            "last_observed_at": 0.0,
+            "last_progress_at": started_at,
+            "progress_rate_mps": None,
+            "window_start_distance": None,
+            "window_started_at": 0.0,
+            "best_distance": None,
+        }
+
+    def _record_navigation_goal_progress_locked(
+        self,
+        distance_remaining: float,
+        observed_at: float,
+    ) -> None:
+        """Record significant forward progress across a bounded stall window.
+
+        Nav2 feedback can arrive faster than five millimetres of travel per
+        sample. Keep the existing significance and minimum-rate thresholds,
+        while measuring cumulative decrease from the best distance observed
+        since the last accepted progress point. A bounded noise excursion can
+        refresh the timer at most once; stationary, reverse, and below-minimum
+        progress still reach the unchanged controller-stall timeout.
+        """
+
+        progress = self._navigation_goal_progress
+        window_start = progress.get("window_start_distance")
+        window_started_at = float(progress.get("window_started_at", 0.0) or 0.0)
+        if not isinstance(window_start, (int, float)) or window_started_at < 0.0:
+            progress.update(
+                {
+                    "last_distance": round(distance_remaining, 3),
+                    "last_observed_at": observed_at,
+                    "last_progress_at": observed_at,
+                    "progress_rate_mps": None,
+                    "window_start_distance": distance_remaining,
+                    "window_started_at": observed_at,
+                    "best_distance": distance_remaining,
+                }
+            )
+            return
+
+        best_distance = progress.get("best_distance")
+        if not isinstance(best_distance, (int, float)):
+            best_distance = float(window_start)
+        best_distance = min(float(best_distance), distance_remaining)
+        elapsed = observed_at - window_started_at
+        cumulative_delta = max(0.0, float(window_start) - best_distance)
+        progress_rate = None
+        if elapsed > 0.0:
+            progress_rate = max(-100.0, min(cumulative_delta / elapsed, 100.0))
+
+        progress.update(
+            {
+                "last_distance": round(distance_remaining, 3),
+                "last_observed_at": observed_at,
+                "progress_rate_mps": progress_rate,
+                "best_distance": best_distance,
+            }
+        )
+        if (
+            progress_rate is not None
+            and cumulative_delta > NAVIGATION_PROGRESS_SIGNIFICANT_DELTA_M
+            and progress_rate >= self._health_thresholds.goal_progress_min_mps
+        ):
+            progress.update(
+                {
+                    "last_progress_at": observed_at,
+                    "window_start_distance": best_distance,
+                    "window_started_at": observed_at,
+                    "best_distance": best_distance,
+                }
+            )
+
     def _navigation_feedback_callback(
         self,
         generation: int,
@@ -1898,38 +2012,25 @@ class NavigationRosGateway:
                 or goal.get("state") not in {"pending", "active"}
             ):
                 return
+            distance_remaining_raw = None
             try:
                 distance = float(
                     getattr(feedback, "distance_remaining", float("nan"))
                 )
-                goal["distance_remaining"] = (
-                    round(min(20_000.0, max(0.0, distance)), 3)
-                    if math.isfinite(distance)
-                    else None
-                )
+                if math.isfinite(distance):
+                    distance_remaining_raw = min(20_000.0, max(0.0, distance))
+                    goal["distance_remaining"] = round(distance_remaining_raw, 3)
+                else:
+                    goal["distance_remaining"] = None
             except (TypeError, ValueError):
                 goal["distance_remaining"] = None
-            distance_remaining = goal.get("distance_remaining")
-            if isinstance(distance_remaining, (int, float)):
+            if distance_remaining_raw is not None:
                 if goal.get("initial_distance") is None:
-                    goal["initial_distance"] = distance_remaining
-                progress = self._navigation_goal_progress
-                previous_distance = progress.get("last_distance")
-                previous_at = float(progress.get("last_observed_at", 0.0) or 0.0)
-                if isinstance(previous_distance, (int, float)) and previous_at > 0.0:
-                    elapsed = observed_at - previous_at
-                    delta = float(previous_distance) - float(distance_remaining)
-                    if elapsed > 0.0:
-                        progress["progress_rate_mps"] = round(
-                            max(-100.0, min(delta / elapsed, 100.0)),
-                            4,
-                        )
-                    if delta > 0.005:
-                        progress["last_progress_at"] = observed_at
-                else:
-                    progress["last_progress_at"] = observed_at
-                progress["last_distance"] = float(distance_remaining)
-                progress["last_observed_at"] = observed_at
+                    goal["initial_distance"] = goal["distance_remaining"]
+                self._record_navigation_goal_progress_locked(
+                    distance_remaining_raw,
+                    observed_at,
+                )
             goal["navigation_time"] = self._duration_seconds(
                 getattr(feedback, "navigation_time", None)
             )
@@ -2094,12 +2195,10 @@ class NavigationRosGateway:
                     "recoveries": 0,
                     "error": None,
                 }
-                self._navigation_goal_progress = {
-                    "last_distance": None,
-                    "last_observed_at": 0.0,
-                    "last_progress_at": time.monotonic(),
-                    "progress_rate_mps": None,
-                }
+                self._navigation_goal_progress = self._new_navigation_goal_progress(
+                    time.monotonic()
+                )
+                self._navigation_goal_first_nonready = None
                 self._navigation["seq"] += 1
                 action_type = self._navigation_action_type
             stamped = self._new_stamped_pose(x_value, y_value, yaw_value)
@@ -2253,6 +2352,95 @@ class NavigationRosGateway:
             )
         return self.runtime_snapshot()
 
+    @staticmethod
+    def _bounded_goal_health_scalar(value: Any) -> Any:
+        if value is None or isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return max(-(2**53 - 1), min(value, 2**53 - 1))
+        if isinstance(value, float):
+            if not math.isfinite(value):
+                return None
+            return max(-1_000_000_000_000.0, min(value, 1_000_000_000_000.0))
+        return str(value)[:240]
+
+    def _bounded_goal_health_metrics(
+        self,
+        metrics: Mapping[str, Any],
+    ) -> Dict[str, Any]:
+        public = self._public_rate_metrics(metrics)
+        bounded: Dict[str, Any] = {}
+        for key in _GOAL_FIRST_NONREADY_METRIC_KEYS:
+            value = public.get(key)
+            if key == "host_clock_offsets_s":
+                offsets = value if isinstance(value, Mapping) else {}
+                bounded[key] = {
+                    name: self._bounded_goal_health_scalar(offsets.get(name))
+                    for name in ("fast_lio", "controller")
+                }
+            else:
+                bounded[key] = self._bounded_goal_health_scalar(value)
+        return bounded
+
+    def _capture_first_goal_nonready_locked(
+        self,
+        health: Mapping[str, Any],
+        metrics: Mapping[str, Any],
+        observed_at: float,
+    ) -> None:
+        if self._navigation_goal_first_nonready is not None:
+            return
+        goal = self._navigation.get("goal") or {}
+        if str(goal.get("state") or "idle") != "active":
+            return
+        state = str(health.get("state") or "UNAVAILABLE")[:32]
+        if state == "READY":
+            return
+        observed = float(observed_at)
+        if not math.isfinite(observed) or observed < 0.0:
+            return
+        captured: Dict[str, Any] = {
+            "goal_id": str(goal.get("goal_id") or "")[:64],
+            "observed_at_monotonic_s": round(min(observed, 1_000_000_000_000.0), 6),
+            "state": state,
+            "metrics": self._bounded_goal_health_metrics(metrics),
+            "thresholds": self._health_thresholds.public(),
+            "rate_gate": self._rate_policy.public(),
+        }
+        for key in (
+            "reason_code",
+            "threshold_basis",
+            "instantaneous_state",
+            "instantaneous_reason_code",
+            "stable_ready_duration_s",
+            "enter_candidate_duration_s",
+            "exit_candidate_duration_s",
+            "rate_band",
+            "transition_count",
+            "last_transition_reason",
+            "hard_fault",
+        ):
+            captured[key] = self._bounded_goal_health_scalar(health.get(key))
+        self._navigation_goal_first_nonready = captured
+
+    @staticmethod
+    def _public_goal_first_nonready(
+        captured: Optional[Mapping[str, Any]],
+        now: float,
+    ) -> Optional[Dict[str, Any]]:
+        if not isinstance(captured, Mapping):
+            return None
+        public = copy.deepcopy(dict(captured))
+        observed = public.pop("observed_at_monotonic_s", None)
+        if isinstance(observed, (int, float)) and math.isfinite(float(observed)):
+            public["captured_age_s"] = round(
+                min(86_400.0, max(0.0, float(now) - float(observed))),
+                3,
+            )
+        else:
+            public["captured_age_s"] = None
+        return public
+
     def _reset_localization_readiness_locked(self, reason: str) -> None:
         self._readiness_session_generation += 1
         generation = (
@@ -2296,6 +2484,11 @@ class NavigationRosGateway:
             metrics,
             now=now,
             generation=generation,
+        )
+        self._capture_first_goal_nonready_locked(
+            self._localization_health,
+            metrics,
+            now,
         )
 
     @staticmethod
@@ -2551,6 +2744,19 @@ class NavigationRosGateway:
         )
         localization_health["thresholds"] = self._health_thresholds.public()
         localization_health["rate_gate"] = self._rate_policy.public()
+        with self._navigation_lock:
+            self._capture_first_goal_nonready_locked(
+                localization_health,
+                localization_metrics,
+                now,
+            )
+            first_nonready = self._public_goal_first_nonready(
+                self._navigation_goal_first_nonready,
+                now,
+            )
+        goal_snapshot = snapshot.get("goal")
+        if isinstance(goal_snapshot, dict):
+            goal_snapshot["first_nonready_health"] = first_nonready
         calibration_assistant = self._calibration_assistant(
             runtime_health,
             topic_publishers,
