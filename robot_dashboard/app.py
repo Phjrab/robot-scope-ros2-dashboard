@@ -29,6 +29,7 @@ from .application.mapping_coordinator import (
 )
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
+from .application.route_planner_coordinator import RoutePlannerCoordinator
 from .application.runtime import ApplicationRuntime
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
@@ -39,6 +40,7 @@ from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
 from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
+from .api.routers.route_planner import router as route_planner_router
 from .api.routers.system import router as system_router
 from .api.routers.telemetry import router as telemetry_router
 from .api.models import (
@@ -109,6 +111,7 @@ from .operator_events import (
     record_http_event,
 )
 from .perception import PerceptionBridgeClient, PerceptionPolicy, PerceptionStore
+from .route_planner.perception import MockRoutePerceptionProvider
 from .ros_agent import RosAgent
 from .saved_maps import (
     SavedMapCatalog,
@@ -127,8 +130,6 @@ from .saved_maps import (
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 LOGGER = logging.getLogger(__name__)
 RUNTIME = ApplicationRuntime()
-
-
 class DashboardStaticFiles(StaticFiles):
     """Prevent stale frontend code after an operator service restart."""
 
@@ -172,6 +173,11 @@ async def lifespan(fastapi: FastAPI):
                 await runtime.mission.close()
             except Exception:
                 LOGGER.exception("mission coordinator shutdown failed")
+        if runtime.route_planner is not None:
+            try:
+                await runtime.route_planner.close()
+            except Exception:
+                LOGGER.exception("route planner coordinator shutdown failed")
         # Fence and settle any background START before lifecycle observers are
         # closed, matching the original shutdown transaction boundary.
         if runtime.navigation is not None:
@@ -213,8 +219,6 @@ app = FastAPI(
 )
 app.state.runtime = RUNTIME
 app.mount("/static", DashboardStaticFiles(directory=STATIC_DIR), name="static")
-
-
 @app.middleware("http")
 async def api_response_security(request: Request, call_next: Any) -> Response:
     """Keep operational API responses out of browser and intermediary caches."""
@@ -261,8 +265,6 @@ def agent() -> RosAgent:
     if RUNTIME.agent is None:
         raise HTTPException(status_code=503, detail="ROS agent is not configured")
     return RUNTIME.agent
-
-
 def _encode_json(payload: Dict[str, Any]) -> bytes:
     """Serialize one bounded server-owned response without NaN values."""
 
@@ -291,8 +293,6 @@ def mission_coordinator() -> MissionCoordinator:
     if RUNTIME.mission is None:
         raise HTTPException(status_code=503, detail="missions are not configured")
     return RUNTIME.mission
-
-
 def lifecycle_coordinator() -> LifecycleCoordinator:
     if RUNTIME.lifecycle is None:
         raise HTTPException(
@@ -394,12 +394,9 @@ app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
 app.include_router(model_registry_router)
 app.include_router(perception_router)
-
-
+app.include_router(route_planner_router)
 def navigation_active() -> bool:
     return navigation_coordinator().is_active()
-
-
 def require_navigation_idle(detail: str) -> None:
     if navigation_active():
         raise HTTPException(status_code=409, detail=detail)
@@ -1527,6 +1524,11 @@ def main() -> None:
         catalog,
         Path(args.navigation_runtime_dir).expanduser().resolve() / "missions",
     )
+    RUNTIME.route_planner = RoutePlannerCoordinator(
+        catalog, RUNTIME.mission,
+        Path(args.navigation_runtime_dir).expanduser().resolve() / "route-planner",
+        navigation_view=RUNTIME.navigation.view, mapping_activity=RUNTIME.mapping.activity,
+        perception=MockRoutePerceptionProvider())
     RUNTIME.lifecycle = LifecycleCoordinator.from_environment(
         control_snapshot_provider=RUNTIME.agent.control_snapshot,
         navigation_runtime_snapshot_provider=(

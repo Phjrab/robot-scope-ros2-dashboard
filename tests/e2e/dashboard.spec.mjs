@@ -401,6 +401,47 @@ test('Cockpit map panel shows revision-pinned localization and toggles the bound
   expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
 });
 
+test('Competition Route Planner completes the software-only workflow without motion authority', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="route-planner.main"]').click();
+  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  const panel = page.locator('[data-panel-id="route-planner"]');
+  await expect(panel.locator('.cockpit-route-planner')).toBeVisible();
+  await expect(panel.locator('.route-planner-header')).toContainText('DRAFT');
+
+  await panel.locator('[data-route-action="save-order"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
+  await expect(panel.locator('.route-planner-header')).toContainText('ORDER_READY');
+
+  await panel.locator('[data-route-action="calculate"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/recommendations').length).toBe(1);
+  await expect(panel.locator('.route-planner-card')).toHaveCount(3);
+  await expect(panel.locator('.route-planner-card').first()).toContainText('BALANCED');
+
+  await panel.locator('.route-planner-card').first().locator('[data-route-select]').click();
+  await expect(panel.locator('.route-planner-card').first()).toHaveAttribute('data-selected', 'true');
+  await panel.locator('[data-route-action="start-guidance"]').click();
+  await expect(panel.locator('.route-guidance-action')).toContainText('CONTINUE_STRAIGHT');
+
+  await panel.locator('[data-route-pickup="HANSOT"]').click();
+  await expect(panel.locator('[data-route-pickup="HANSOT"]')).toContainText('픽업 완료');
+  await panel.locator('[data-route-pickup="EDIYA"]').click();
+  await panel.locator('[data-route-dropoff="COEX"]').click();
+  await expect(panel.locator('[data-route-dropoff="COEX"]')).toContainText('배송 완료');
+
+  await panel.locator('[data-route-action="preview"]').click();
+  await panel.locator('[data-route-action="export"]').click();
+  await expect.poll(() => backend.mutations(`/api/v1/route-planner/routes/${'1'.repeat(32)}/export-mission`).length).toBe(1);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/start')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.state.missions).toHaveLength(0);
+  const cockpit = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  expect(cockpit.workspace.scene.rendererCount).toBe(1);
+  expect(cockpit.workspace.scene.peakRenderers).toBe(1);
+});
+
 test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);
@@ -627,7 +668,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   const mapButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]');
   const controllerButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]');
-  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(6);
+  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(7);
   await expect(cameraButton).toContainText('360×240 · MIN 280×170');
 
   await toggle.click();

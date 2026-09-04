@@ -27,7 +27,7 @@ def route_inventory():
                     isinstance(decorator, ast.Call)
                     and isinstance(decorator.func, ast.Attribute)
                     and decorator.func.attr
-                    in {"get", "post", "patch", "delete", "websocket"}
+                    in {"get", "post", "put", "patch", "delete", "websocket"}
                     and decorator.args
                     and isinstance(decorator.args[0], ast.Constant)
                 ):
@@ -57,11 +57,14 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 83)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 82)
+        self.assertEqual(len(http), 99)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 98)
         self.assertEqual(
-            {method: sum(candidate == method for candidate, _ in http) for method in {"GET", "POST", "PATCH", "DELETE"}},
-            {"GET": 37, "POST": 41, "PATCH": 3, "DELETE": 2},
+            {
+                method: sum(candidate == method for candidate, _ in http)
+                for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
+            },
+            {"GET": 42, "POST": 50, "PUT": 1, "PATCH": 4, "DELETE": 2},
         )
         self.assertTrue(
             {
@@ -76,6 +79,11 @@ class Phase8ApiContractTests(unittest.TestCase):
                 ("POST", "/api/v1/competition/lock"),
                 ("POST", "/api/v1/competition/unlock"),
                 ("POST", "/api/v1/competition/mode"),
+                ("GET", "/api/v1/route-planner"),
+                ("PUT", "/api/v1/route-planner/graph"),
+                ("POST", "/api/v1/route-planner/recommendations"),
+                ("POST", "/api/v1/route-planner/guidance/pickup"),
+                ("POST", "/api/v1/route-planner/guidance/dropoff"),
             }.issubset(set(http))
         )
         self.assertEqual(
@@ -94,9 +102,9 @@ class Phase8ApiContractTests(unittest.TestCase):
         mutations = [
             entry
             for entry in route_inventory()
-            if entry[0] in {"POST", "PATCH", "DELETE"}
+            if entry[0] in {"POST", "PUT", "PATCH", "DELETE"}
         ]
-        self.assertEqual(len(mutations), 46)
+        self.assertEqual(len(mutations), 57)
         for method, path, _, function in mutations:
             with self.subTest(method=method, path=path):
                 self.assertTrue(calls_name(function, "require_same_origin"))

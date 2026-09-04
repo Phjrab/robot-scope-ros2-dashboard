@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from .mapping_coordinator import MappingCoordinator
     from .mission_coordinator import MissionCoordinator
     from .navigation_coordinator import NavigationCoordinator
+    from .route_planner_coordinator import RoutePlannerCoordinator
 
 
 @dataclass
@@ -38,6 +39,7 @@ class ApplicationRuntime:
     mapping: MappingCoordinator | None = None
     navigation: NavigationCoordinator | None = None
     mission: MissionCoordinator | None = None
+    route_planner: RoutePlannerCoordinator | None = None
     lifecycle: LifecycleCoordinator | None = None
     operator_events: OperatorEventTimeline | None = None
     diagnostics: DiagnosticsBundleService | None = None

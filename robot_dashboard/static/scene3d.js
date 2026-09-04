@@ -101,11 +101,20 @@
   function normalizedSpatialOverlay(value) {
     if (!value) return null;
     const bounded = (items, limit) => (Array.isArray(items) ? items : []).slice(-limit).map(normalizedPose).filter(Boolean);
-    const markers = (Array.isArray(value.markers) ? value.markers : []).slice(0, 2).map((marker) => {
+    const markers = (Array.isArray(value.markers) ? value.markers : []).slice(0, 64).map((marker) => {
       const pose = normalizedPose(marker?.pose);
       return pose ? { id: String(marker.id || '').slice(0, 64), type: String(marker.type || 'POI').slice(0, 32), name: String(marker.name || marker.type || 'POINT').slice(0, 64), pose } : null;
     }).filter(Boolean);
-    return { mapId: String(value.mapId || '').slice(0, 64), revision: String(value.revision || '').slice(0, 128), frameId: String(value.frameId || '').slice(0, 128), path: bounded(value.path, 512), trail: bounded(value.trail, 240), markers };
+    const routeStops = (Array.isArray(value.routeStops) ? value.routeStops : []).slice(0, 5).map((marker) => {
+      const pose = normalizedPose(marker?.pose);
+      return pose ? { id: String(marker.id || '').slice(0, 64), type: String(marker.type || 'STOP').slice(0, 32), name: String(marker.name || 'STOP').slice(0, 64), pose } : null;
+    }).filter(Boolean);
+    const alternatives = (Array.isArray(value.alternatives) ? value.alternatives : []).slice(0, 2).map((route) => ({ id: String(route?.id || '').slice(0, 64), profile: String(route?.profile || 'ALT').slice(0, 16), points: bounded(route?.points, 1024) }));
+    return {
+      mapId: String(value.mapId || '').slice(0, 64), revision: String(value.revision || '').slice(0, 128), frameId: String(value.frameId || '').slice(0, 128),
+      path: bounded(value.path, 512), trail: bounded(value.trail, 240), markers, selectedRoute: bounded(value.selectedRoute, 2048),
+      alternatives, routeStops, currentSegment: bounded(value.currentSegment, 128), actualNav2Path: bounded(value.actualNav2Path, 512),
+    };
   }
 
   function niceGridStep(span) {
@@ -1205,6 +1214,10 @@
       };
       drawLine(overlay.path, 'rgba(162, 139, 255, .9)', true);
       drawLine(overlay.trail, 'rgba(125, 240, 182, .82)', false);
+      overlay.alternatives.forEach((route, index) => drawLine(route.points, index ? 'rgba(255, 184, 107, .48)' : 'rgba(93, 222, 216, .48)', true));
+      drawLine(overlay.selectedRoute, 'rgba(255, 229, 104, .96)', false);
+      drawLine(overlay.currentSegment, 'rgba(255, 104, 122, 1)', false);
+      drawLine(overlay.actualNav2Path, 'rgba(110, 183, 255, .92)', true);
       overlay.markers.forEach((marker) => {
         const point = this._project([marker.pose.x, marker.pose.y, this.options.groundZ + 0.05]);
         if (!point) return;
@@ -1213,6 +1226,13 @@
         ctx.beginPath(); ctx.arc(point.x, point.y, 7, 0, TAU); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(point.x - 10, point.y); ctx.lineTo(point.x + 10, point.y); ctx.moveTo(point.x, point.y - 10); ctx.lineTo(point.x, point.y + 10); ctx.stroke();
         ctx.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.fillText(`${marker.type} · ${marker.name}`, point.x + 11, point.y - 8); ctx.restore();
+      });
+      overlay.routeStops.forEach((marker, index) => {
+        const point = this._project([marker.pose.x, marker.pose.y, this.options.groundZ + 0.07]);
+        if (!point) return;
+        ctx.save(); ctx.strokeStyle = '#ffe568'; ctx.fillStyle = '#ffe568'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, TAU); ctx.stroke();
+        ctx.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.fillText(`${index + 1} · ${marker.name}`, point.x + 12, point.y + 3); ctx.restore();
       });
     }
 

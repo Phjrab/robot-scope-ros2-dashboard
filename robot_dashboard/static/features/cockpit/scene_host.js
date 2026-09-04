@@ -31,6 +31,7 @@ export function createCockpitSceneHost(options = {}) {
   let trail = [];
   let joints = null;
   let mapState = null;
+  let routeState = null;
   let mapOverlayVisible = true;
   let freshness = 'WAITING';
   let robotOnline = null;
@@ -159,6 +160,7 @@ export function createCockpitSceneHost(options = {}) {
       layout: sceneSnapshot(),
       quality: Object.freeze({ mode: qualityMode, adaptive, nearField, heightColor, effectiveBudget: qualityBudget(), adaptiveLevel: adaptiveBudget.snapshot().level, lod: pointLod.diagnostics(), metrics: Object.freeze(qualityMetrics()) }),
       mapOverlay: Object.freeze({ enabled: mapOverlayVisible, revision: mapState?.map?.revision || '', pathPoints: mapState?.overlay?.path?.length || 0, trailPoints: mapState?.overlay?.trail?.length || 0, markerCount: mapState?.overlay?.markers?.length || 0 }),
+      routeOverlay: Object.freeze({ selectedPoints: routeState?.overlay?.selectedRoute?.length || 0, alternativeCount: routeState?.overlay?.alternatives?.length || 0, currentSegmentPoints: routeState?.overlay?.currentSegment?.length || 0 }),
     });
   }
 
@@ -190,7 +192,8 @@ export function createCockpitSceneHost(options = {}) {
     if (joints) renderer.setRobotJointPositions?.(joints);
     else renderer.resetRobotJointPositions?.();
     renderer.setStatus(rendererStatus(profile, freshness, robotOnline));
-    if (mapOverlayVisible && mapState?.overlay) renderer.setSpatialOverlay?.(mapState.overlay);
+    const overlay = spatialOverlay();
+    if (mapOverlayVisible && overlay) renderer.setSpatialOverlay?.(overlay);
     else renderer.clearSpatialOverlay?.();
     syncQualityControls();
   }
@@ -301,7 +304,34 @@ export function createCockpitSceneHost(options = {}) {
   function setMapState(nextState) {
     mapState = nextState || null;
     if (!active || !renderer) return;
-    if (mapOverlayVisible && mapState?.overlay) renderer.setSpatialOverlay?.(mapState.overlay);
+    const overlay = spatialOverlay();
+    if (mapOverlayVisible && overlay) renderer.setSpatialOverlay?.(overlay);
+    else renderer.clearSpatialOverlay?.();
+  }
+
+  function spatialOverlay() {
+    const mapOverlay = mapState?.overlay || null;
+    const routeOverlay = routeState?.overlay || null;
+    if (!mapOverlay && !routeOverlay) return null;
+    const exactRoute = routeOverlay && mapState?.map && routeOverlay.mapId === mapState.map.id && routeOverlay.revision === mapState.map.revision ? routeOverlay : null;
+    const markerIndex = new Map((mapState?.markers || []).map((marker) => [marker.id, marker]));
+    const routeStops = (exactRoute?.routeStops || []).map((stop) => {
+      const marker = markerIndex.get(stop.id);
+      return marker ? { ...stop, pose: marker.pose } : null;
+    }).filter(Boolean);
+    return {
+      mapId: mapOverlay?.mapId || exactRoute?.mapId || '', revision: mapOverlay?.revision || exactRoute?.revision || '',
+      frameId: mapOverlay?.frameId || exactRoute?.frameId || 'map', path: mapOverlay?.path || [], trail: mapOverlay?.trail || [],
+      markers: mapOverlay?.markers || [], selectedRoute: exactRoute?.selectedRoute || [], alternatives: exactRoute?.alternatives || [],
+      routeStops, currentSegment: exactRoute?.currentSegment || [], actualNav2Path: exactRoute?.actualNav2Path || [],
+    };
+  }
+
+  function setRouteState(nextState) {
+    routeState = nextState || null;
+    if (!active || !renderer) return;
+    const overlay = spatialOverlay();
+    if (mapOverlayVisible && overlay) renderer.setSpatialOverlay?.(overlay);
     else renderer.clearSpatialOverlay?.();
   }
 
@@ -371,6 +401,7 @@ export function createCockpitSceneHost(options = {}) {
     trail = [];
     joints = null;
     mapState = null;
+    routeState = null;
     controlDisposers.splice(0).forEach((dispose) => dispose());
   }
 
@@ -381,6 +412,7 @@ export function createCockpitSceneHost(options = {}) {
     setCloud,
     setRobotState,
     setMapState,
+    setRouteState,
     setPointLimit,
     applySceneLayout,
     sceneSnapshot,

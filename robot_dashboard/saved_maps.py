@@ -409,6 +409,30 @@ class SavedMapCatalog:
             geometry = self._annotation_geometry(record)
             return self._read_annotations(record, geometry)
 
+    def route_geometry(
+        self,
+        map_id: str,
+        expected_revision: str,
+    ) -> NavigationMapSnapshot:
+        """Return validated in-memory geometry for server-side route checks.
+
+        Filesystem paths remain private; Route Planner callers use only the
+        ``MapGeometry`` methods and exact map/revision fields.
+        """
+
+        if (
+            not isinstance(expected_revision, str)
+            or not REVISION_RE.fullmatch(expected_revision)
+        ):
+            raise SavedMapConflict("saved map revision is invalid")
+        with self._lock:
+            record = self._annotation_record(map_id)
+            if record.revision != expected_revision:
+                raise SavedMapConflict(
+                    "saved map changed; reload it before validating the route graph"
+                )
+            return self._annotation_geometry(record)
+
     def update_annotations(
         self,
         map_id: str,

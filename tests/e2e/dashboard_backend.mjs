@@ -9,6 +9,52 @@ const ANNOTATION_REVISION = 'c'.repeat(64);
 const ANNOTATION_ID = 'd'.repeat(24);
 const SECOND_ANNOTATION_ID = 'e'.repeat(24);
 const MISSION_ID = '9'.repeat(32);
+const ROUTE_ORDER_ID = '6'.repeat(32);
+const ROUTE_ORDER_REVISION = '7'.repeat(64);
+const ROUTE_GRAPH_REVISION = '8'.repeat(64);
+
+function routePlan(id, profile, distance, eta, risk) {
+  const routeId = id.repeat(32);
+  return {
+    id: routeId, revision: id.repeat(64), profile, profiles: [profile], operation_mode: 'AUTO_NAV2',
+    map_id: MAP_ID, map_revision: MAP_REVISION, annotation_revision: ANNOTATION_REVISION,
+    graph_revision: ROUTE_GRAPH_REVISION, start_node_id: 'START_NODE', executable: true, reason: '',
+    stops: [
+      { index: 0, node_id: 'HANSOT_DOCK', annotation_id: '1'.repeat(24), role: 'RESTAURANT_DOCK', venue_id: 'HANSOT', label: '한솟도시락' },
+      { index: 1, node_id: 'EDIYA_DOCK', annotation_id: '2'.repeat(24), role: 'RESTAURANT_DOCK', venue_id: 'EDIYA', label: '이디야커피' },
+      { index: 2, node_id: 'COEX_DOCK', annotation_id: '3'.repeat(24), role: 'DESTINATION_DOCK', venue_id: 'COEX', label: '코엑스' },
+    ],
+    node_ids: ['START_NODE', 'HANSOT_DOCK', 'EDIYA_DOCK', 'COEX_DOCK'],
+    segments: [
+      { index: 0, edge_id: 'START_HANSOT', from_node_id: 'START_NODE', to_node_id: 'HANSOT_DOCK', type: 'NORMAL_WALKWAY', label: 'Start → Hansot', distance_m: distance / 3, travel_time_s: 10, expected_wait_s: 0, risk: risk / 3, requirements: [], allow_replan: true, polyline: [{ x: 0, y: 0 }, { x: 1, y: 0 }] },
+      { index: 1, edge_id: 'HANSOT_EDIYA', from_node_id: 'HANSOT_DOCK', to_node_id: 'EDIYA_DOCK', type: 'CROSSWALK', label: 'Hansot → Ediya', distance_m: distance / 3, travel_time_s: 12, expected_wait_s: 5, risk: risk / 3, requirements: [{ id: 'TRAFFIC_GREEN', state: 'READY' }], allow_replan: true, polyline: [{ x: 1, y: 0 }, { x: 2, y: 0 }] },
+      { index: 2, edge_id: 'EDIYA_COEX', from_node_id: 'EDIYA_DOCK', to_node_id: 'COEX_DOCK', type: 'DOCKING_APPROACH', label: 'Ediya → COEX', distance_m: distance / 3, travel_time_s: 13, expected_wait_s: 0, risk: risk / 3, requirements: [{ id: 'ARUCO_DOCKING', state: 'READY' }], allow_replan: true, polyline: [{ x: 2, y: 0 }, { x: 3, y: 0 }] },
+    ],
+    metrics: { distance_m: distance, travel_time_s: 35, food_wait_s: 60, signal_wait_s: 5, risk_score: risk, eta_s: eta, crosswalk_count: 1, underpass_count: 0, turn_count: 0, special_behavior_count: 2 },
+  };
+}
+
+function baseRoutePlanner() {
+  return {
+    available: true, state: 'DRAFT', error: null, selected_route_id: null,
+    order: null,
+    graph: {
+      graph_revision: ROUTE_GRAPH_REVISION, map_id: MAP_ID, map_revision: MAP_REVISION,
+      annotation_revision: ANNOTATION_REVISION,
+      nodes: [
+        { id: 'START_NODE', role: 'START', label: 'E2E Start' },
+        { id: 'HANSOT_DOCK', role: 'RESTAURANT_DOCK', venue_id: 'HANSOT', label: '한솟도시락' },
+        { id: 'EDIYA_DOCK', role: 'RESTAURANT_DOCK', venue_id: 'EDIYA', label: '이디야커피' },
+        { id: 'COEX_DOCK', role: 'DESTINATION_DOCK', venue_id: 'COEX', label: '코엑스' },
+      ],
+      edges: [],
+    },
+    recommendations: [],
+    guidance: { active: false, completed_pickups: [], dropoff_complete: false, current_segment_index: 0 },
+    perception: { fresh: true, state: 'FRESH', age_s: 0.1 },
+    motion_authority: false,
+  };
+}
 
 const tunedNavigationValues = { ...navigationContract.TUNED_VALUES };
 
@@ -65,6 +111,7 @@ export async function installDashboardBackend(page, options = {}) {
     online: options.online !== false,
     pointMax: 10_000,
     mapping: baseMapping(), navigation: baseNavigation(), control: baseControl(), dataset: baseDataset(),
+    routePlanner: baseRoutePlanner(),
     competition: {
       schema_version: 'robot-scope.competition-state/v1', operation_mode: 'MANUAL',
       requested_mode: 'MANUAL', locked: false, revision: 1,
@@ -245,6 +292,68 @@ export async function installDashboardBackend(page, options = {}) {
       if (state.competition.locked || !['MANUAL', 'SHADOW'].includes(body?.mode)) return json(route, { detail: 'mode is blocked' }, 409);
       state.competition = { ...state.competition, requested_mode: body.mode, operation_mode: body.mode, revision: state.competition.revision + 1 };
       return json(route, state.competition);
+    }
+    if (path === '/api/v1/route-planner' && method === 'GET') return json(route, state.routePlanner);
+    if (path === '/api/v1/route-planner/orders' && method === 'POST') {
+      state.routePlanner.order = {
+        ...body, id: ROUTE_ORDER_ID, revision: ROUTE_ORDER_REVISION,
+        total_quantity: body.lines.reduce((sum, line) => sum + line.quantity, 0),
+        restaurant_count: new Set(body.lines.map((line) => line.restaurant_id)).size,
+        difficulty: 'LOW',
+        lines: body.lines.map((line, index) => ({ ...line, ready_at_s: body.lines.slice(0, index + 1).reduce((sum, item) => sum + item.quantity * 20, 0) })),
+      };
+      state.routePlanner.state = 'ORDER_READY';
+      return json(route, { order: state.routePlanner.order, route_planner: state.routePlanner }, 201);
+    }
+    const routeOrderUpdate = path.match(/^\/api\/v1\/route-planner\/orders\/([0-9a-f]{32})$/);
+    if (routeOrderUpdate && method === 'PATCH') {
+      state.routePlanner.order = { ...state.routePlanner.order, ...body, id: routeOrderUpdate[1], revision: ROUTE_ORDER_REVISION };
+      delete state.routePlanner.order.base_revision;
+      return json(route, { order: state.routePlanner.order, route_planner: state.routePlanner });
+    }
+    if (path === '/api/v1/route-planner/recommendations' && method === 'POST') {
+      state.routePlanner.recommendations = [
+        routePlan('1', 'BALANCED', 30, 100, 3),
+        routePlan('2', 'FASTEST', 28, 94, 5),
+        routePlan('3', 'SAFEST', 34, 108, 1),
+      ];
+      state.routePlanner.selected_route_id = null;
+      state.routePlanner.state = 'RECOMMENDATIONS_READY';
+      return json(route, { recommendations: state.routePlanner.recommendations, route_planner: state.routePlanner });
+    }
+    const routeSelect = path.match(/^\/api\/v1\/route-planner\/recommendations\/([0-9a-f]{32})\/select$/);
+    if (routeSelect && method === 'POST') {
+      state.routePlanner.selected_route_id = routeSelect[1]; state.routePlanner.state = 'ROUTE_SELECTED';
+      return json(route, { selected_route: state.routePlanner.recommendations.find((item) => item.id === routeSelect[1]), route_planner: state.routePlanner });
+    }
+    if (path === '/api/v1/route-planner/guidance/start' && method === 'POST') {
+      state.routePlanner.guidance = {
+        active: true, paused: false, instruction_type: 'CONTINUE_STRAIGHT', instruction: '직진',
+        current_segment_index: 0, remaining_distance_m: 29, eta_remaining_s: 96,
+        cross_track_error_m: 0.04, requirements: { TRAFFIC_GREEN: 'READY' },
+        completed_pickups: [], dropoff_complete: false,
+      };
+      state.routePlanner.state = 'GUIDANCE_ACTIVE';
+      return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
+    }
+    if (path === '/api/v1/route-planner/guidance/stop' && method === 'POST') {
+      state.routePlanner.guidance.active = false; state.routePlanner.state = 'ROUTE_SELECTED';
+      return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
+    }
+    if (path === '/api/v1/route-planner/guidance/pickup' && method === 'POST') {
+      if (!state.routePlanner.guidance.completed_pickups.includes(body.venue_id)) state.routePlanner.guidance.completed_pickups.push(body.venue_id);
+      return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
+    }
+    if (path === '/api/v1/route-planner/guidance/dropoff' && method === 'POST') {
+      state.routePlanner.guidance.dropoff_complete = true;
+      return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
+    }
+    const routePreview = path.match(/^\/api\/v1\/route-planner\/routes\/([0-9a-f]{32})\/preview$/);
+    if (routePreview && method === 'POST') return json(route, { route_id: routePreview[1], live_nav2_preview: { status: 'BLOCKED', reason: 'SAFE_PLAN_ONLY_NAV2_INTERFACE_NOT_AVAILABLE' }, goal_submitted: false });
+    const routeExport = path.match(/^\/api\/v1\/route-planner\/routes\/([0-9a-f]{32})\/export-mission$/);
+    if (routeExport && method === 'POST') {
+      state.routePlanner.state = 'MISSION_EXPORTED';
+      return json(route, { mission: { id: '5'.repeat(32), state: 'ready' }, created: true, mission_started: false, navigation_goal_submitted: false }, 201);
     }
     if (path === '/api/v1/models/active') return json(route, {
       active: {

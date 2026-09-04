@@ -3,8 +3,23 @@ import { createControllerPanel } from './panels/controller_panel.js';
 import { createMapPanel } from './panels/map_panel.js';
 import { createMissionPanel } from './panels/mission_panel.js';
 import { createNavigationPanel } from './panels/navigation_panel.js';
+import { createRoutePlannerPanel } from './panels/route_planner_panel.js';
 
 const PLACEHOLDER_DESCRIPTORS = Object.freeze([
+  Object.freeze({
+    id: 'route-planner',
+    panelType: 'route-planner.main',
+    title: 'Competition Route Planner',
+    label: 'Route Planner',
+    icon: '↝',
+    kind: 'route-planner',
+    singleton: true,
+    defaultVisible: false,
+    eyebrow: 'TRACK G · SERVER AUTHORITATIVE',
+    description: '주문서 추천 경로를 수동 Guidance와 Mission draft에 함께 사용합니다.',
+    defaultGeometry: Object.freeze({ x: 72, y: 58, width: 680, height: 650 }),
+    bounds: Object.freeze({ minWidth: 460, minHeight: 440, maxWidth: 1120, maxHeight: 860, compactWidth: 380, compactHeight: 58 }),
+  }),
   Object.freeze({
     id: 'camera-go2-front',
     panelType: 'camera.go2-front',
@@ -186,6 +201,9 @@ export function createPanelRegistry(options = {}) {
           navigationAdapter: options.navigationAdapter,
           getContext: options.getMissionContext,
         });
+      }
+      if (descriptor.kind === 'route-planner') {
+        return createRoutePlannerPanel({ descriptor, document: documentValue, client: options.routePlannerClient });
       }
       return createPlaceholderContent(descriptor, documentValue);
     },

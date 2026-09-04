@@ -597,6 +597,41 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .cockpit-workspace[data-layout-mode="operate"] .cockpit-layout-controls { opacity: 0.55; }
 .cockpit-panel-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
 
+.cockpit-route-planner { display: grid; gap: 10px; min-height: 100%; color: #edf4ff; }
+.route-planner-header,
+.route-planner-order-line,
+.route-guidance-buttons { display: flex; align-items: center; gap: 8px; }
+.route-planner-header { justify-content: space-between; font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.route-planner-order,
+.route-planner-planning,
+.route-planner-guidance { display: grid; gap: 7px; padding: 10px; border: 1px solid rgba(120, 154, 205, .22); border-radius: 10px; background: rgba(8, 16, 30, .76); }
+.route-planner-order h3,
+.route-planner-planning h3 { margin: 0; color: #9fb8df; font: 700 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.route-planner-order-lines,
+.route-planner-cards { display: grid; gap: 6px; }
+.route-planner-order-line { display: grid; grid-template-columns: 24px minmax(120px, 1fr) minmax(140px, 1.2fr) 58px 30px; }
+.route-planner-order-line input,
+.route-planner-order-line select,
+.route-planner-order > input,
+.route-planner-order > select,
+.route-planner-planning > select { min-width: 0; color: inherit; border: 1px solid rgba(141, 172, 219, .28); border-radius: 6px; background: rgba(12, 25, 44, .92); padding: 6px; }
+.route-planner-card { display: grid; gap: 4px; padding: 8px; border: 1px solid rgba(93, 222, 216, .22); border-radius: 8px; }
+.route-planner-card[data-selected="true"] { border-color: #ffe568; box-shadow: inset 3px 0 #ffe568; }
+.route-planner-card p,
+.route-planner-card small { margin: 0; }
+.route-guidance-action { color: #ffe568; font-size: 18px; }
+.route-guidance-action[data-warning="true"] { color: #ff687a; }
+.route-guidance-metrics,
+.route-guidance-requirements,
+.route-planner-message,
+.route-planner-order-summary { font: 600 10px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: #9fb8df; }
+.route-planner-message[data-error="true"],
+.route-planner-order-summary[data-valid="false"] { color: #ff8b98; }
+.route-planner-segments { max-height: 180px; margin: 0; padding-left: 24px; overflow: auto; }
+.route-planner-segments li[data-current="true"] { color: #ffe568; font-weight: 700; }
+.route-guidance-confirmations { display: flex; flex-wrap: wrap; gap: 6px; }
+.route-guidance-confirmations button:disabled { border-color: rgba(97, 255, 199, .38); color: #61ffc7; opacity: .75; }
+
 .cockpit-workspace[data-lifecycle="inactive"] .cockpit-scene-layer { visibility: hidden; }
 
 @media (max-width: 760px) {
@@ -623,4 +658,5 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
   .cockpit-panel-actions button[data-panel-action="pin"]::after { content: "P"; font-size: 9px; }
   .cockpit-panel-actions button[data-panel-action="lock"]::after { content: "L"; font-size: 9px; }
   .cockpit-camera-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .route-planner-order-line { grid-template-columns: 22px 1fr 1fr; }
 }

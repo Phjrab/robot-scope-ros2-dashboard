@@ -227,3 +227,114 @@ class CompetitionUnlockRequest(StrictRequest):
 class CompetitionModeRequest(StrictRequest):
     mode: Literal["MANUAL", "ASSISTED", "AUTO", "SAFE_STOP", "SHADOW"]
     confirmation: str = Field(min_length=4, max_length=9)
+
+
+class RouteOrderLineRequest(StrictRequest):
+    sequence: int = Field(strict=True, ge=1, le=5)
+    restaurant_id: Literal["DOMINO", "HANSOT", "EDIYA"]
+    menu_id: Literal[
+        "SUPER_SUPREME", "CHEESE_PIZZA", "SPAM_KIMCHI",
+        "CHICKEN_MAYO", "AMERICANO", "CAFE_LATTE",
+    ]
+    quantity: int = Field(strict=True, ge=1, le=5)
+
+
+class RouteOrderCreateRequest(StrictRequest):
+    label: str = Field(min_length=1, max_length=64)
+    destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"]
+    lines: list[RouteOrderLineRequest] = Field(min_length=2, max_length=5)
+    order_started_at: str | None = Field(default=None, max_length=32)
+    locked: bool = Field(default=False, strict=True)
+
+
+class RouteOrderUpdateRequest(RouteOrderCreateRequest):
+    base_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class RouteGraphPointRequest(StrictRequest):
+    x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+
+
+class RouteGraphNodeRequest(StrictRequest):
+    id: str = Field(pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    annotation_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    role: Literal[
+        "START", "INTERSECTION", "SAFE_HOLD", "RESTAURANT_APPROACH",
+        "RESTAURANT_DOCK", "DESTINATION_APPROACH", "DESTINATION_DOCK",
+        "CROSSWALK_WAIT", "CROSSWALK_ENTRY", "CROSSWALK_EXIT",
+        "UNDERPASS_ENTRY", "UNDERPASS_EXIT",
+    ]
+    zone_id: str | None = Field(default=None, pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    venue_id: str | None = Field(default=None, pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    label: str = Field(min_length=1, max_length=64)
+    manual_guidance: bool = Field(strict=True)
+    autonomous_eligible: bool = Field(strict=True)
+
+
+class RouteGraphEdgeRequest(StrictRequest):
+    id: str = Field(pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    from_: str = Field(alias="from", pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    to: str = Field(pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    type: Literal["NORMAL_WALKWAY", "CROSSWALK", "UNDERPASS", "DOCKING_APPROACH"]
+    bidirectional: bool = Field(strict=True)
+    polyline: list[RouteGraphPointRequest] = Field(min_length=2, max_length=128)
+    distance_m: float = Field(strict=True, gt=0.0, le=100_000.0)
+    nominal_speed_mps: float = Field(strict=True, ge=0.01, le=3.0)
+    risk: float = Field(strict=True, ge=0.0, le=100.0)
+    requirements: list[Literal[
+        "TRAFFIC_GREEN", "PEDESTRIAN_CLEAR", "CROSSWALK_ALIGNMENT",
+        "LANE_BOUNDARY_VALID", "ARUCO_DOCKING", "SPECIAL_GAIT",
+        "OPERATOR_CONFIRMATION",
+    ]] = Field(default_factory=list, max_length=7)
+    allow_manual: bool = Field(strict=True)
+    allow_autonomous: bool = Field(strict=True)
+    allow_replan: bool = Field(strict=True)
+    allow_turning: bool = Field(strict=True)
+    allow_lateral_motion: bool = Field(strict=True)
+    speed_limit_mps: float = Field(strict=True, ge=0.01, le=3.0)
+    expected_wait_s: float = Field(strict=True, ge=0.0, le=600.0)
+    penalty_risk: float = Field(strict=True, ge=0.0, le=100.0)
+
+
+class RouteGraphPutRequest(StrictRequest):
+    schema_version: Literal[1]
+    map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    annotation_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    base_graph_revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    nodes: list[RouteGraphNodeRequest] = Field(min_length=2, max_length=128)
+    edges: list[RouteGraphEdgeRequest] = Field(min_length=1, max_length=512)
+
+
+class RouteRecommendationRequest(StrictRequest):
+    order_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    order_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    graph_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    start_node_id: str = Field(pattern=r"^[A-Z][A-Z0-9_]{1,63}$")
+    operation_mode: Literal["MANUAL_GUIDANCE", "AUTO_NAV2"]
+
+
+class RouteSelectionRequest(StrictRequest):
+    route_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class RouteGuidanceStartRequest(StrictRequest):
+    route_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    route_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class RouteGuidanceStopRequest(StrictRequest):
+    pass
+
+
+class RoutePickupRequest(StrictRequest):
+    venue_id: Literal["DOMINO", "HANSOT", "EDIYA"]
+
+
+class RouteDropoffRequest(StrictRequest):
+    destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"]
+
+
+class RouteMissionExportRequest(StrictRequest):
+    route_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
