@@ -49,9 +49,11 @@ The selected route resolves only semantic waypoint nodes to annotation IDs, reje
 
 ## 2026-09-04 software verification
 
-- Base audit: branch started at `520a9b7`; latest `origin/main` advanced to `718a625`.
-- Main integration: `718a625` was merged into the feature branch only. Its C4 goal-progress,
-  localization-health evidence and SportModeState diagnostics remain intact.
+- Base audit: branch started at `520a9b7`; latest `origin/main` advanced through `718a625`
+  to `ee315d2`.
+- Main integration: both main updates were merged into the feature branch only. Their C4
+  goal-progress and localization-health evidence, bounded SportModeState diagnostics, and
+  Foxy `numpy.float32` telemetry compatibility remain intact.
 - Python: `1045/1045 PASS` under the repository-pinned quality environment and coverage runner.
 - JavaScript unit: `274/274 PASS`.
 - Playwright E2E: `33/33 PASS`, including the full Route Planner software-only workflow.
