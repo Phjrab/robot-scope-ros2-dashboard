@@ -126,8 +126,6 @@ from .saved_maps import (
     SavedMapReadOnly,
     prepare_private_map_root,
 )
-
-
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 LOGGER = logging.getLogger(__name__)
 RUNTIME = ApplicationRuntime()
@@ -1531,8 +1529,7 @@ def main() -> None:
         Path(args.navigation_runtime_dir).expanduser().resolve() / "missions",
     )
     RUNTIME.route_planner = RoutePlannerCoordinator(
-        catalog, RUNTIME.mission,
-        Path(args.navigation_runtime_dir).expanduser().resolve() / "route-planner",
+        catalog, RUNTIME.mission, Path(args.navigation_runtime_dir).expanduser().resolve() / "route-planner",
         navigation_view=RUNTIME.navigation.view, mapping_activity=RUNTIME.mapping.activity,
         perception=MockRoutePerceptionProvider())
     RUNTIME.lifecycle = LifecycleCoordinator.from_environment(

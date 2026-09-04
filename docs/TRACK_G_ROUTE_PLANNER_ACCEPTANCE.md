@@ -47,4 +47,19 @@ The selected route resolves only semantic waypoint nodes to annotation IDs, reje
 - DEADMAN_NOT_RUN
 - MOTION_NOT_RUN
 
-Test commands and final counts are recorded in the completion report after all repository suites and CI finish.
+## 2026-09-04 software verification
+
+- Base audit: branch started at `520a9b7`; latest `origin/main` advanced to `718a625`.
+- Main integration: `718a625` was merged into the feature branch only. Its C4 goal-progress,
+  localization-health evidence and SportModeState diagnostics remain intact.
+- Python: `1045/1045 PASS` under the repository-pinned quality environment and coverage runner.
+- JavaScript unit: `274/274 PASS`.
+- Playwright E2E: `33/33 PASS`, including the full Route Planner software-only workflow.
+- Frontend syntax: `55/55 modules PASS`.
+- Ruff, mypy, tracked-source secret scan and `git diff --check`: `PASS`.
+- Hardware/Nav2 execution: `NOT_RUN`. Mission start, Navigation goal, lease, ARM, deadman,
+  service restart and robot motion were not invoked.
+
+One pre-existing Go2 dashboard-supervisor test exceeded its three-second timeout on the first
+coverage run. It passed immediately in isolation and the complete `1045`-test coverage rerun
+passed, so no product assertion was relaxed.

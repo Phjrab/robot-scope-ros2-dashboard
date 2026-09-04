@@ -6,7 +6,7 @@ import { nextLauncherIndex } from '../robot_dashboard/static/features/cockpit/se
 
 test('registry exposes fixed route, camera, map, navigation, mission, and controller panels', () => {
   const registry = createPanelRegistry({ document: {}, cameraDemand: {} });
-  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Route Planner', 'Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Navigation', 'Mission', 'Controller']);
+  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Navigation', 'Mission', 'Route Planner', 'Controller']);
   assert.ok(registry.list().every((descriptor) => descriptor.singleton === true && descriptor.defaultVisible === false));
   assert.ok(registry.list().every((descriptor) => descriptor.icon && descriptor.defaultGeometry.width && descriptor.bounds.minWidth));
   assert.equal(registry.get('camera.go2-front').id, 'camera-go2-front');
