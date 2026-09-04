@@ -414,6 +414,7 @@ class Go2BridgeCore:
         self._source_id = ""
         self._last_seq_by_source: dict[str, int] = {}
         self._last_received = 0.0
+        self._last_command_ack: dict[str, Any] | None = None
         self._last_drive = 0.0
         self._target = (0.0, 0.0, 0.0)
         self._deadman = False
@@ -516,6 +517,23 @@ class Go2BridgeCore:
         self._source_id = source_id
         self._last_received = now
 
+    def _record_command_ack(
+        self,
+        *,
+        source_id: str,
+        sequence: int,
+        kind: str,
+        now: float,
+    ) -> None:
+        """Remember only a fully accepted signed command for status ACK."""
+
+        self._last_command_ack = {
+            "source_id": source_id,
+            "seq": sequence,
+            "type": kind,
+            "accepted_at": float(now),
+        }
+
     def accept(
         self,
         payload: Mapping[str, Any],
@@ -544,6 +562,12 @@ class Go2BridgeCore:
 
         if kind == "stop":
             self.force_stop(str(payload.get("reason", "dashboard stop")))
+            self._record_command_ack(
+                source_id=source_id,
+                sequence=seq,
+                kind=str(kind),
+                now=now,
+            )
             return
 
         if kind == "action":
@@ -562,6 +586,12 @@ class Go2BridgeCore:
             # flight.  Consume its sequence but do not let it cancel the
             # one-shot action before the ROS request has been published.
             self._action_guard_until = float(now) + 0.25
+            self._record_command_ack(
+                source_id=source_id,
+                sequence=seq,
+                kind=str(kind),
+                now=now,
+            )
             return
 
         if float(now) < max(self._action_guard_until, self._action_hold_until):
@@ -571,6 +601,12 @@ class Go2BridgeCore:
             raise BridgeCommandError("deadman must be boolean")
         if not deadman:
             self.force_stop("deadman released")
+            self._record_command_ack(
+                source_id=source_id,
+                sequence=seq,
+                kind=str(kind),
+                now=now,
+            )
             return
         x = self._finite(payload.get("linear_x"), "linear_x")
         y = self._finite(payload.get("linear_y"), "linear_y")
@@ -584,6 +620,12 @@ class Go2BridgeCore:
         self._last_drive = float(now) - transport_age
         self._pending_action = None
         self._action_guard_until = 0.0
+        self._record_command_ack(
+            source_id=source_id,
+            sequence=seq,
+            kind=str(kind),
+            now=now,
+        )
 
     def force_stop(self, reason: str = "stop") -> None:
         self._target = (0.0, 0.0, 0.0)
@@ -719,6 +761,23 @@ class Go2BridgeCore:
             )
         )
         command_age = None if not self._last_drive else max(0.0, now - self._last_drive)
+        command_ack = self._last_command_ack
+        projected_command_ack = (
+            None
+            if command_ack is None
+            else {
+                "source_id": command_ack["source_id"],
+                "seq": command_ack["seq"],
+                "type": command_ack["type"],
+                "age_ms": min(
+                    2_147_483_647,
+                    max(
+                        0,
+                        round((now - float(command_ack["accepted_at"])) * 1_000),
+                    ),
+                ),
+            }
+        )
         action_remaining = max(0.0, self._action_hold_until - now)
         control_ready = ready and action_remaining <= 0.0
         return {
@@ -750,6 +809,7 @@ class Go2BridgeCore:
             "command_age_ms": (
                 None if command_age is None else round(command_age * 1_000)
             ),
+            "command_ack": projected_command_ack,
             "last_error": self._last_error,
             "action_guard": {
                 "active": action_remaining > 0.0,

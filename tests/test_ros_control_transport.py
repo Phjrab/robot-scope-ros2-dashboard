@@ -145,12 +145,15 @@ class FakeDatagramEndpoint:
         self.config = config
         self.incoming = queue.Queue()
         self.sent = []
+        self.send_errors = []
         self.closed = False
         self.__class__.instances.append(self)
 
     def send_text(self, value):
         if self.closed:
             raise OSError("closed")
+        if self.send_errors:
+            raise self.send_errors.pop(0)
         self.sent.append(value)
 
     def receive_text(self):
@@ -250,6 +253,17 @@ class ControlTransportTests(unittest.TestCase):
         state.update(overrides)
         return state
 
+    @staticmethod
+    def command_ack(command, **overrides):
+        acknowledgement = {
+            "source_id": command["source_id"],
+            "seq": command["seq"],
+            "type": command["type"],
+            "age_ms": 1,
+        }
+        acknowledgement.update(overrides)
+        return acknowledgement
+
     def send_status(self, transport, epoch="e" * 32, **overrides):
         message = String()
         message.data = encode_signed(self.status_payload(epoch, **overrides), KEY)
@@ -308,11 +322,57 @@ class ControlTransportTests(unittest.TestCase):
                 encode_signed(self.status_payload(), KEY)
             )
             deadline = time.monotonic() + 0.5
-            while not transport.status.get("authenticated"):
+            while not endpoint.sent:
                 if time.monotonic() >= deadline:
-                    self.fail("signed datagram status was not accepted")
+                    self.fail("synchronization stop was not sent")
                 time.sleep(0.01)
 
+            self.assertEqual(len(endpoint.sent), 1)
+            synchronization = decode_signed(endpoint.sent[0], KEY)
+            self.assertEqual(
+                {
+                    key: synchronization[key]
+                    for key in (
+                        "bridge_epoch",
+                        "reason",
+                        "seq",
+                        "source_id",
+                        "type",
+                    )
+                },
+                {
+                    "bridge_epoch": "e" * 32,
+                    "reason": "dashboard_transport_synchronized",
+                    "seq": 0,
+                    "source_id": transport.source_id,
+                    "type": "stop",
+                },
+            )
+            self.assertFalse(transport.manager.snapshot()["lease"]["active"])
+            self.assertEqual(transport.manager.drain_outputs(), [])
+            endpoint.incoming.put(
+                encode_signed(
+                    self.status_payload(
+                        command_ack=self.command_ack(synchronization)
+                    ),
+                    KEY,
+                )
+            )
+            deadline = time.monotonic() + 0.5
+            while not transport.manager.snapshot()["ready"]:
+                if time.monotonic() >= deadline:
+                    self.fail("Bridge command handoff was not acknowledged")
+                time.sleep(0.01)
+            endpoint.incoming.put(
+                encode_signed(
+                    self.status_payload(
+                        command_ack=self.command_ack(synchronization)
+                    ),
+                    KEY,
+                )
+            )
+            time.sleep(0.05)
+            self.assertEqual(len(endpoint.sent), 1)
             self.assertEqual(node.publisher_calls, [])
             self.assertEqual(node.subscription_calls, [])
             self.assertEqual(len(node.timer_calls), 1)
@@ -349,6 +409,28 @@ class ControlTransportTests(unittest.TestCase):
         ):
             transport.setup(FakeNode(), lambda: None)
             endpoint = FakeDatagramEndpoint.instances[-1]
+            endpoint.incoming.put(encode_signed(self.status_payload(), KEY))
+            deadline = time.monotonic() + 0.5
+            while not endpoint.sent:
+                if time.monotonic() >= deadline:
+                    self.fail("initial synchronization stop was not sent")
+                time.sleep(0.01)
+            self.assertEqual(len(endpoint.sent), 1)
+            initial_stop = decode_signed(endpoint.sent[0], KEY)
+            endpoint.incoming.put(
+                encode_signed(
+                    self.status_payload(
+                        command_ack=self.command_ack(initial_stop)
+                    ),
+                    KEY,
+                )
+            )
+            deadline = time.monotonic() + 0.5
+            while not transport.manager.snapshot()["ready"]:
+                if time.monotonic() >= deadline:
+                    self.fail("initial synchronization was not acknowledged")
+                time.sleep(0.01)
+
             endpoint.incoming.put(OSError("network unreachable"))
             deadline = time.monotonic() + 0.5
             while transport.status.get("state") != "error":
@@ -358,13 +440,182 @@ class ControlTransportTests(unittest.TestCase):
 
             endpoint.incoming.put(encode_signed(self.status_payload(), KEY))
             deadline = time.monotonic() + 1.0
-            while not transport.status.get("authenticated"):
+            while len(endpoint.sent) < 2:
                 if time.monotonic() >= deadline:
-                    self.fail("signed status did not recover on the existing socket")
+                    self.fail("recovery synchronization stop was not sent")
                 time.sleep(0.01)
 
             self.assertTrue(transport.raw_snapshot()["transport_configured"])
             self.assertTrue(transport._datagram_thread.is_alive())
+            self.assertEqual(len(endpoint.sent), 2)
+            recovered_stop = decode_signed(endpoint.sent[1], KEY)
+            self.assertEqual(recovered_stop["type"], "stop")
+            self.assertEqual(
+                recovered_stop["reason"],
+                "dashboard_transport_synchronized",
+            )
+            self.assertFalse(transport.manager.snapshot()["ready"])
+            endpoint.incoming.put(
+                encode_signed(
+                    self.status_payload(
+                        command_ack=self.command_ack(recovered_stop)
+                    ),
+                    KEY,
+                )
+            )
+            deadline = time.monotonic() + 0.5
+            while not transport.manager.snapshot()["ready"]:
+                if time.monotonic() >= deadline:
+                    self.fail("recovery synchronization was not acknowledged")
+                time.sleep(0.01)
+            self.assertFalse(transport.manager.snapshot()["lease"]["active"])
+            transport.shutdown()
+
+    def test_udp_synchronization_retries_stop_only_and_rotates_with_bridge_epoch(self):
+        transport = ControlTransport(
+            self.profile(),
+            environ={
+                "ROBOT_SCOPE_CONTROL_ENABLED": "1",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_KEY": KEY,
+                "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_BIND_HOST": "192.168.50.10",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_PEER_HOST": "192.168.50.30",
+            },
+        )
+        FakeDatagramEndpoint.instances.clear()
+        with mock.patch.object(
+            control_transport_module,
+            "ConnectedControlDatagram",
+            FakeDatagramEndpoint,
+        ):
+            transport.setup(FakeNode(), lambda: None)
+            endpoint = FakeDatagramEndpoint.instances[-1]
+            endpoint.send_errors.append(ConnectionRefusedError("peer restarting"))
+
+            self.send_status(transport)
+            self.assertFalse(transport.manager.snapshot()["ready"])
+            self.assertEqual(endpoint.sent, [])
+            self.assertEqual(transport.status["state"], "error")
+
+            self.send_status(transport)
+            self.assertFalse(transport.manager.snapshot()["ready"])
+            self.assertEqual(len(endpoint.sent), 1)
+            first = decode_signed(endpoint.sent[0], KEY)
+            self.assertEqual(first["type"], "stop")
+            self.assertNotIn("deadman", first)
+            self.assertNotIn("action_id", first)
+            self.assertEqual(first["bridge_epoch"], "e" * 32)
+
+            # A locally successful UDP send is not enough. Without a matching
+            # signed Bridge ACK, readiness stays closed and the stop is retried.
+            with transport.transport_lock:
+                assert transport._datagram_sync_pending is not None
+                epoch, sequence, sent_at = transport._datagram_sync_pending
+                transport._datagram_sync_pending = (
+                    epoch,
+                    sequence,
+                    sent_at - 0.51,
+                )
+            self.send_status(transport)
+            self.assertFalse(transport.manager.snapshot()["ready"])
+            self.assertEqual(len(endpoint.sent), 2)
+            retried = decode_signed(endpoint.sent[1], KEY)
+            self.assertEqual(retried["type"], "stop")
+            self.assertGreater(retried["seq"], first["seq"])
+
+            self.send_status(
+                transport,
+                command_ack=self.command_ack(retried),
+            )
+            self.assertTrue(transport.manager.snapshot()["ready"])
+
+            self.send_status(transport, "n" * 32)
+            self.assertFalse(transport.manager.snapshot()["ready"])
+            self.assertEqual(len(endpoint.sent), 3)
+            rotated = decode_signed(endpoint.sent[2], KEY)
+            self.assertEqual(rotated["type"], "stop")
+            self.assertEqual(rotated["bridge_epoch"], "n" * 32)
+            self.assertGreater(rotated["seq"], retried["seq"])
+
+            # A delayed status from the retired epoch fails closed and cannot
+            # roll the active Bridge epoch backwards.
+            self.send_status(
+                transport,
+                "e" * 32,
+                command_ack=self.command_ack(retried),
+            )
+            self.assertEqual(transport.bridge_epoch, "n" * 32)
+            self.assertFalse(transport.manager.snapshot()["ready"])
+            self.assertIn("retired", transport.status["message"])
+
+            self.send_status(transport, "n" * 32)
+            self.assertEqual(len(endpoint.sent), 4)
+            rotated = decode_signed(endpoint.sent[3], KEY)
+            self.send_status(
+                transport,
+                "n" * 32,
+                command_ack=self.command_ack(rotated),
+            )
+            self.assertTrue(transport.manager.snapshot()["ready"])
+            self.assertFalse(transport.manager.snapshot()["lease"]["active"])
+            self.assertEqual(transport.manager.drain_outputs(), [])
+            transport.shutdown()
+
+    def test_udp_recovery_discards_pending_drive_and_sends_only_stops(self):
+        transport = ControlTransport(
+            self.profile(),
+            environ={
+                "ROBOT_SCOPE_CONTROL_ENABLED": "1",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_KEY": KEY,
+                "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_BIND_HOST": "192.168.50.10",
+                "ROBOT_SCOPE_CONTROL_DATAGRAM_PEER_HOST": "192.168.50.30",
+            },
+        )
+        FakeDatagramEndpoint.instances.clear()
+        with mock.patch.object(
+            control_transport_module,
+            "ConnectedControlDatagram",
+            FakeDatagramEndpoint,
+        ):
+            transport.setup(FakeNode(), lambda: None)
+            endpoint = FakeDatagramEndpoint.instances[-1]
+            self.send_status(transport)
+            initial_stop = decode_signed(endpoint.sent[-1], KEY)
+            self.send_status(
+                transport,
+                command_ack=self.command_ack(initial_stop),
+            )
+            self.assertTrue(transport.manager.snapshot()["ready"])
+
+            lease = transport.manager.acquire_lease("keyboard")
+            transport.manager.bind_lease(lease["token"], "websocket-a")
+            transport.manager.submit_drive(
+                lease["token"],
+                "websocket-a",
+                0,
+                vx=1.0,
+                vy=0.0,
+                wz=0.0,
+                speed_scale=1.0,
+                deadman=True,
+                client_age_s=0.0,
+            )
+
+            transport.set_unready("synthetic status loss")
+            self.assertFalse(transport.manager.snapshot()["lease"]["active"])
+            self.send_status(transport)
+            recovery_stop = decode_signed(endpoint.sent[-1], KEY)
+            self.send_status(
+                transport,
+                command_ack=self.command_ack(recovery_stop),
+            )
+            self.assertTrue(transport.manager.snapshot()["ready"])
+            self.assertTrue(endpoint.sent)
+            self.assertEqual(
+                {decode_signed(encoded, KEY)["type"] for encoded in endpoint.sent},
+                {"stop"},
+            )
             transport.shutdown()
 
     def test_blank_key_and_invalid_expected_publisher_baseline_fail_closed(self):
@@ -527,6 +778,41 @@ class ControlTransportTests(unittest.TestCase):
                 lowstate_timeout_s=0.5,
             )[0]
         )
+
+    def test_command_ack_is_optional_signed_bounded_and_strict(self):
+        payload = self.status_payload()
+        self.assertEqual(ControlTransport.status_command_ack(payload), {})
+
+        valid = {
+            "source_id": "dashboard-source-a",
+            "seq": 42,
+            "type": "stop",
+            "age_ms": 15,
+        }
+        payload = self.status_payload(command_ack=valid)
+        self.assertEqual(ControlTransport.status_command_ack(payload), valid)
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                payload,
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+
+        for invalid in (
+            {**valid, "private": True},
+            {**valid, "source_id": "short"},
+            {**valid, "seq": True},
+            {**valid, "seq": -1},
+            {**valid, "type": "unknown"},
+            {**valid, "age_ms": -1},
+            {**valid, "age_ms": 2_147_483_648},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(
+                ControlProtocolError
+            ):
+                ControlTransport.status_command_ack(
+                    self.status_payload(command_ack=invalid)
+                )
 
     def test_sport_mode_state_is_optional_bounded_and_not_a_safety_gate(self):
         payload = self.status_payload()

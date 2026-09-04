@@ -56,6 +56,36 @@ The Foxy compatibility branch changes only `rclpy` signal initialization. It
 still overrides the installed signal handlers before spinning so the ROS
 context remains valid for the shutdown StopMove sequence.
 
+Every dashboard process uses a new signed source ID. After the first
+authenticated UDP status for a Bridge epoch, the dashboard therefore sends
+one fresh signed `stop` envelope. Control remains unready until a later signed
+Bridge status acknowledges the exact source ID, sequence and `stop` type. A
+return from status loss and a Bridge epoch rotation require the same stop-only
+handoff again. A locally successful UDP send without that acknowledgement does
+not open readiness and is retried with a new sequence after a bounded delay.
+
+The Bridge already permits `stop`—and no drive or action—to replace a source
+inside the bounded two-second ownership window. This removes the restart race
+without creating a lease, arming control, holding deadman, replaying an earlier
+command, or weakening the independent watchdog. The acknowledgement records
+only a fully accepted signed Bridge command; it does not claim that the robot
+body executed motion. Queued drive or action messages are never replayed by
+this handoff.
+
+The dashboard retains a bounded set of retired Bridge epochs. A delayed signed
+UDP status from a retired epoch fails closed and cannot roll command signing
+back from the active Bridge instance. All existing freshness, lease, deadman,
+sequence, epoch, cardinality and watchdog checks remain authoritative.
+
+### Rolling deployment order
+
+Deploy the robot-side Bridge before the external dashboard. An older dashboard
+ignores the additional signed acknowledgement field and remains compatible.
+A newer dashboard intentionally keeps control unready when an older Bridge
+does not provide the exact acknowledgement; it must never bypass the handoff
+for availability. After the Bridge is verified, deploy or roll back the
+dashboard. Rollback uses the reverse order: dashboard first, then Bridge.
+
 ## Lifecycle decision
 
 The Controls-page lifecycle continues to expose only the fixed
@@ -86,6 +116,8 @@ private service environment values validated at process startup.
 | replay/old packet | timestamp, epoch, or sequence rejection; Bridge forced to stop |
 | LowState loss | Bridge readiness false and StopMove |
 | dashboard exit | final signed stop before its UDP socket closes |
+| dashboard start or status recovery | acknowledged signed stop-only source handoff before readiness |
+| delayed status from retired Bridge epoch | readiness revoked; active epoch never rolls backwards |
 | robot-side Bridge exit | three StopMove publishes before ROS shutdown |
 | lifecycle SSH loss | status unknown; no new mutation; stop remains retryable after link recovery |
 | wrong/missing key or host path | transport/lifecycle remains unconfigured |

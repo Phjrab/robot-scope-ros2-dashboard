@@ -149,6 +149,15 @@ class ControlTransport:
         self._datagram_endpoint: ConnectedControlDatagram | None = None
         self._datagram_stop = threading.Event()
         self._datagram_thread: threading.Thread | None = None
+        # A new dashboard process has a new signed source id while a running
+        # Bridge can still remember the previous source for its bounded
+        # ownership window.  The first authenticated UDP status therefore
+        # triggers one StopMove-only handoff before control becomes ready.
+        # Status loss requires the same fail-closed handoff again on recovery.
+        self._datagram_sync_epoch = ""
+        self._datagram_sync_required = self.transport_mode == CONTROL_TRANSPORT_UDP
+        self._datagram_sync_pending: tuple[str, int, float] | None = None
+        self._retired_bridge_epochs: List[str] = []
         self.status_received = 0.0
         self.status: Dict[str, Any] = {
             "state": "not_configured" if bridge_key_error else "waiting",
@@ -314,6 +323,7 @@ class ControlTransport:
             raise ControlProtocolError("unexpected bridge status type")
         request_evidence = ControlTransport.status_request_evidence(payload)
         ControlTransport.status_sport_mode_state(payload)
+        ControlTransport.status_command_ack(payload)
         reported_ready = payload.get("ready")
         if not isinstance(reported_ready, bool):
             raise ControlProtocolError("bridge ready flag is invalid")
@@ -394,6 +404,39 @@ class ControlTransport:
             )
         )
         return bridge_ready, lowstate_ready, bridge_epoch
+
+    @staticmethod
+    def status_command_ack(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Validate the Bridge's optional signed last-command acknowledgement."""
+
+        acknowledgement = payload.get("command_ack")
+        if acknowledgement is None:
+            return {}
+        expected = {"source_id", "seq", "type", "age_ms"}
+        if not isinstance(acknowledgement, Mapping) or set(acknowledgement) != expected:
+            raise ControlProtocolError("bridge command acknowledgement is invalid")
+        source_id = acknowledgement.get("source_id")
+        sequence = acknowledgement.get("seq")
+        kind = acknowledgement.get("type")
+        age_ms = acknowledgement.get("age_ms")
+        if not isinstance(source_id, str) or not 8 <= len(source_id) <= 128:
+            raise ControlProtocolError("bridge command acknowledgement is invalid")
+        if (
+            isinstance(sequence, bool)
+            or not isinstance(sequence, int)
+            or not 0 <= sequence <= 2_147_483_647
+            or kind not in {"stop", "drive", "action"}
+            or isinstance(age_ms, bool)
+            or not isinstance(age_ms, int)
+            or not 0 <= age_ms <= 2_147_483_647
+        ):
+            raise ControlProtocolError("bridge command acknowledgement is invalid")
+        return {
+            "source_id": source_id,
+            "seq": sequence,
+            "type": kind,
+            "age_ms": age_ms,
+        }
 
     @staticmethod
     def status_request_evidence(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -689,6 +732,7 @@ class ControlTransport:
             telemetry = self.status_telemetry(payload)
             request_evidence = self.status_request_evidence(payload)
             sport_mode_state = self.status_sport_mode_state(payload)
+            command_ack = self.status_command_ack(payload)
         except (ControlProtocolError, TypeError, ValueError) as exc:
             self.set_unready(f"rejected bridge status: {exc}")
             return
@@ -700,6 +744,8 @@ class ControlTransport:
         status["request_evidence"] = request_evidence
         if sport_mode_state:
             status["sport_mode_state"] = sport_mode_state
+        if command_ack:
+            status["command_ack"] = command_ack
         status.update(
             {
                 "authenticated": True,
@@ -715,12 +761,92 @@ class ControlTransport:
         with self.operation_lock:
             with self.transport_lock:
                 previous_epoch = self.bridge_epoch
+                retired_epoch = bool(
+                    previous_epoch
+                    and bridge_epoch != previous_epoch
+                    and bridge_epoch in self._retired_bridge_epochs
+                )
+            if retired_epoch:
+                # A delayed authenticated UDP status from an earlier Bridge
+                # must not roll the active epoch backwards and make all later
+                # command envelopes invalid at the running Bridge.
+                self.set_unready("rejected retired bridge epoch")
+                return
+            with self.transport_lock:
+                if previous_epoch and previous_epoch != bridge_epoch:
+                    if previous_epoch not in self._retired_bridge_epochs:
+                        self._retired_bridge_epochs.append(previous_epoch)
+                        self._retired_bridge_epochs = self._retired_bridge_epochs[-16:]
+                    self._datagram_sync_epoch = ""
+                    self._datagram_sync_required = True
+                    self._datagram_sync_pending = None
                 self.bridge_epoch = bridge_epoch
                 self.status_received = now
                 self.status = status
             if previous_epoch and previous_epoch != bridge_epoch:
                 # Revoke the old lease and publish with the newly observed epoch.
                 self.set_readiness(bridge_ready=False, lowstate_ready=False)
+            if self.transport_mode == CONTROL_TRANSPORT_UDP:
+                with self.transport_lock:
+                    pending = self._datagram_sync_pending
+                    acknowledged = bool(
+                        pending is not None
+                        and pending[0] == bridge_epoch
+                        and command_ack.get("source_id") == self.source_id
+                        and command_ack.get("seq") == pending[1]
+                        and command_ack.get("type") == "stop"
+                    )
+                    if acknowledged:
+                        self._datagram_sync_epoch = bridge_epoch
+                        self._datagram_sync_required = False
+                        self._datagram_sync_pending = None
+                    synchronized = (
+                        not self._datagram_sync_required
+                        and self._datagram_sync_epoch == bridge_epoch
+                    )
+                if not synchronized:
+                    # Stop is the only Bridge command allowed to take ownership
+                    # from a previous dashboard source.  It never creates a
+                    # lease, arms control, holds deadman, or resumes motion.
+                    # Keep readiness revoked until a later authenticated status
+                    # acknowledges this exact source, sequence and stop type.
+                    with self.transport_lock:
+                        self.status = {
+                            **self.status,
+                            "ready": False,
+                            "connected": False,
+                            "available": False,
+                            "message": "signed Go2 bridge command handoff waiting",
+                        }
+                    self.set_readiness(bridge_ready=False, lowstate_ready=False)
+                    with self.transport_lock:
+                        pending = self._datagram_sync_pending
+                        should_send = (
+                            pending is None
+                            or pending[0] != bridge_epoch
+                            or now - pending[2] >= 0.50
+                        )
+                    if should_send:
+                        sent = self._publish_outputs_result(
+                            [
+                                {
+                                    "type": "stop",
+                                    "reason": "dashboard_transport_synchronized",
+                                    "velocity": {
+                                        "vx": 0.0,
+                                        "vy": 0.0,
+                                        "wz": 0.0,
+                                    },
+                                    "created_at": now,
+                                }
+                            ]
+                        )
+                        with self.transport_lock:
+                            self._datagram_sync_required = True
+                            self._datagram_sync_pending = (
+                                (bridge_epoch, self.bridge_seq, now) if sent else None
+                            )
+                    return
             self.set_readiness(
                 bridge_ready=bridge_ready,
                 lowstate_ready=lowstate_ready,
@@ -920,6 +1046,10 @@ class ControlTransport:
     def set_unready(self, message: str) -> None:
         with self.operation_lock:
             with self.transport_lock:
+                if self.transport_mode == CONTROL_TRANSPORT_UDP:
+                    self._datagram_sync_required = True
+                    self._datagram_sync_epoch = ""
+                    self._datagram_sync_pending = None
                 self.status_received = 0.0
                 self.status = {
                     "state": "error",
@@ -945,6 +1075,10 @@ class ControlTransport:
                 or now - status_received > self.status_timeout_s
             )
             if stale and status_received > 0.0:
+                if self.transport_mode == CONTROL_TRANSPORT_UDP:
+                    self._datagram_sync_required = True
+                    self._datagram_sync_epoch = ""
+                    self._datagram_sync_pending = None
                 self.status = {
                     **self.status,
                     "state": "stale",
@@ -1017,22 +1151,22 @@ class ControlTransport:
             return envelope
         raise ValueError("unknown control manager output")
 
-    def publish_outputs(
+    def _publish_outputs_result(
         self,
         outputs: List[Dict[str, Any]],
         *,
         allow_shutdown: bool = False,
-    ) -> None:
+    ) -> bool:
         if not outputs:
-            return
+            return True
         with self.transport_lock:
             if self.shutdown_started and not allow_shutdown:
-                return
+                return False
             publisher = self.command_publisher
             key = self.bridge_key
             bridge_epoch = self.bridge_epoch
             if publisher is None or key is None or not bridge_epoch:
-                return
+                return False
             try:
                 for output in outputs:
                     self.bridge_seq += 1
@@ -1045,6 +1179,7 @@ class ControlTransport:
                     message = String()
                     message.data = encode_signed(envelope, key)
                     publisher.publish(message)
+                return True
             except (ControlProtocolError, TypeError, ValueError) as exc:
                 self.status = {
                     "state": "error",
@@ -1060,6 +1195,7 @@ class ControlTransport:
                     )
                 except ControlClosed:
                     pass
+                return False
             except Exception as exc:
                 self.status = {
                     "state": "error",
@@ -1075,6 +1211,15 @@ class ControlTransport:
                     )
                 except ControlClosed:
                     pass
+                return False
+
+    def publish_outputs(
+        self,
+        outputs: List[Dict[str, Any]],
+        *,
+        allow_shutdown: bool = False,
+    ) -> None:
+        self._publish_outputs_result(outputs, allow_shutdown=allow_shutdown)
 
     def flush_outputs(self) -> None:
         with self.operation_lock:

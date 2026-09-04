@@ -725,6 +725,45 @@ class Go2BridgeCoreTests(unittest.TestCase):
         action = self.tick(0.11)[-1]
         self.assertEqual(action.api_id, SAFE_ACTION_API_IDS["hello"])
 
+    def test_suppressed_or_replayed_drive_does_not_overwrite_command_ack(self):
+        self.core.accept(
+            self.command(kind="action", action_id="hello"),
+            now=self.now,
+        )
+        before = self.core.snapshot(
+            now=self.now,
+            lowstate_age_s=0.01,
+            lowstate_publishers=1,
+            sport_subscribers=1,
+            sport_publishers=1,
+        )["command_ack"]
+        self.assertEqual(before["type"], "action")
+
+        # The action guard deliberately consumes an in-flight sequence without
+        # allowing it to cancel the action. It must not advertise an unvalidated
+        # or suppressed drive as an accepted command.
+        self.core.accept(self.command(seq=2), now=self.now + 0.05)
+        after = self.core.snapshot(
+            now=self.now + 0.05,
+            lowstate_age_s=0.01,
+            lowstate_publishers=1,
+            sport_subscribers=1,
+            sport_publishers=1,
+        )["command_ack"]
+        self.assertEqual(after, {**before, "age_ms": 50})
+        with self.assertRaisesRegex(BridgeCommandError, "replayed"):
+            self.core.accept(self.command(seq=2), now=self.now + 0.05)
+        self.assertEqual(
+            self.core.snapshot(
+                now=self.now + 0.05,
+                lowstate_age_s=0.01,
+                lowstate_publishers=1,
+                sport_subscribers=1,
+                sport_publishers=1,
+            )["command_ack"],
+            after,
+        )
+
     def test_action_guard_suppresses_idle_stop_but_not_telemetry_stop(self):
         self.tick()
         self.core.accept(
@@ -770,6 +809,34 @@ class Go2BridgeCoreTests(unittest.TestCase):
         other.update({"type": "stop", "reason": "emergency", "seq": 2})
         self.core.accept(other, now=self.now)
         self.assertEqual(self.tick()[-1].api_id, API_STOP_MOVE)
+        other.update(
+            {
+                "type": "drive",
+                "seq": 3,
+                "deadman": True,
+                "linear_x": 0.1,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            }
+        )
+        self.core.accept(other, now=self.now)
+        self.assertEqual(self.tick()[-1].api_id, API_MOVE)
+        acknowledgement = self.core.snapshot(
+            now=self.now,
+            lowstate_age_s=0.01,
+            lowstate_publishers=1,
+            sport_subscribers=1,
+            sport_publishers=1,
+        )["command_ack"]
+        self.assertEqual(
+            acknowledgement,
+            {
+                "source_id": "dashboard-b",
+                "seq": 3,
+                "type": "drive",
+                "age_ms": 0,
+            },
+        )
 
 
 if __name__ == "__main__":
