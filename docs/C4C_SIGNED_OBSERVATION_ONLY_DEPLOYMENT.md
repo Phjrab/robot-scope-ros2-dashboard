@@ -381,3 +381,36 @@ sequence, watchdog, publisher cardinality, LowState, fixed velocity/duration,
 
 This blocked invocation consumed the operator's approval. Deploying the
 follow-up and any MP-030 retry each require their own new explicit approval.
+
+## `10a7fa9` deployment and partial MP-030 result
+
+The public-generation proof correction was published and passed CI as exact
+release `10a7fa9cec2c329f2c50edc9ad98de13a22689da`. The operator separately
+approved deployment with the Control Bridge inactive and no motion. One Git
+archive with SHA-256
+`8cfb5e5db9f9d8433d91115543d7384a12a11fe58a285833fd566ea614d4b5f0`
+was verified on both hosts before extraction. The external dashboard process
+cwd and both release symlinks were switched to the full SHA; rollback links
+preserve `6b1bd29...`.
+
+The automatic startup Bridge proved the new receiver-derived boolean true on
+the active signed generation. It emitted StopMove only and was immediately
+stopped. A deployed supervisor dry-run passed without motion. After a separate
+fresh MP-030 safety approval, a second Bridge lifecycle start and read-only
+preflight confirmed the exact release, fresh LowState, qualified observation,
+generation proof, graph cardinality and exact-zero initial state.
+
+The one authorized MP-030 invocation reached the signed command path and
+emitted four nonzero Move requests at `0.03 m/s`, but the deadline guard stopped
+the command phase at approximately 0.221 seconds rather than completing the
+nominal 0.70-second window. The operator confirmed physical movement and final
+complete stop. The supervisor result remains `FAIL`, not PASS, because it
+reported `runtime safety snapshot missed the command deadline`. HTTP disarm
+fallback established exact zero after a WebSocket release/lease-expiry race,
+and the Bridge was verified inactive afterward. Higher probes and Nav2 goals
+were not run.
+
+This result validates physical command reachability but does not authorize a
+retry or higher probe. The deadline behavior and release-acknowledgement race
+must be analyzed without relaxing the fixed velocity, watchdog, freshness,
+travel, lease, deadman or cleanup guards.

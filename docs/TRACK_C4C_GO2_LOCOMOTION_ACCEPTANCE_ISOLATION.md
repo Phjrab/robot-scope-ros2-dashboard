@@ -2,17 +2,16 @@
 
 Date: 2026-09-05
 
-Status: `STOCK-1 PASS — MP-030 BLOCKED PRE-COMMAND BY ODOMETRY CLOCK GUARD`
+Status: `STOCK-1 PASS — MP-030 PARTIAL COMMAND REACHED PHYSICAL LOCOMOTION — DEADLINE GUARD FAIL-CLOSED`
 
-This is a stationary-baseline checkpoint report, not a motion acceptance
-report. The C4C release was activated through the fixed service lifecycle,
-the S0/S1 read-only observations passed and one human-operated STOCK-1 motion
-was observed. MP-030 was authorized and invoked once, but its fixed supervisor
-failed closed before lease acquisition because no fresh odometry pose was
-available. No Bridge micro-probe motion, Nav2 goal, Robot Scope lease, ARM,
-deadman or Robot Scope non-zero command has been executed. Items that require
-Bridge movement evidence remain `NOT_RUN` or `BLOCKED`; no locomotion
-root-cause class has been selected.
+This report preserves the original stationary-baseline checkpoint and its
+blocked pre-command attempts, then records later follow-ups chronologically.
+The latest supervised MP-030 attempt on exact release `10a7fa9...` reached the
+signed Bridge and produced operator-confirmed physical movement, but the
+supervisor failed closed before the fixed 0.70-second command window completed.
+That attempt is not a complete MP-030 acceptance pass. No higher probe or Nav2
+goal has been executed, and the earlier C4B 59-Move nonmotion result remains a
+separate unresolved incident.
 
 ## 1. Repository and deployment identity
 
@@ -668,3 +667,79 @@ boolean and keeps the private epoch hidden. Missing or false proof blocks before
 lease; the lower signed transport still performs the exact generation equality
 check. A new exact-release deployment approval and a new MP-030 safety approval
 are required before any retry.
+
+## MP-030 partial live execution on `10a7fa9`
+
+After CI passed and the operator separately approved deployment, exact release
+`10a7fa9cec2c329f2c50edc9ad98de13a22689da` was activated on both Jetsons.
+The external dashboard process cwd and both active release symlinks resolved to
+that full SHA. Dedicated `robot-scope.pre-10a7fa9` links preserve rollback to
+`6b1bd29ed21d66726e6843c57cdfaedb7370652b`.
+
+Dashboard restart applied the existing automatic Bridge-start policy. Before
+cleanup the new public proof was `motion_observation_generation_verified=true`,
+the signed Bridge release matched `10a7fa9...`, and request evidence contained
+only StopMove. The Bridge was stopped through the fixed lifecycle API. The
+operator then supplied a new, literal MP-030 approval with the robot standing
+and fully stopped, at least 0.40 m clear space, physical remote/E-stop ready and
+a safety operator present.
+
+Immediately before the live invocation, all of the following were true:
+
+- both hosts and the running dashboard used exact release `10a7fa9...`;
+- Navigation, localization, Mapping and goal state were idle;
+- no lease or deadman was active and manager command was exact zero;
+- the signed Bridge was ready, authenticated and connected;
+- LowState age was 1 ms and the selected observation was `READY`;
+- observation source was
+  `unitree_go.sport_mode_state.position`, with generation proof true;
+- restricted request cardinality was one owned publisher, one subscriber and
+  zero foreign named publishers;
+- request evidence contained zero Move, nonzero-Move and action requests.
+
+The fixed MP-030 supervisor was invoked exactly once for `0.03 m/s` and a
+nominal `0.70 s` window. It emitted four signed nonzero Move requests at a
+maximum linear-x value of `0.03 m/s`; `motion_run_id` advanced from 0 to 1.
+The signed accepted command reflected `deadman=true, linear_x=0.03` during the
+run. The last recorded nonzero sample was approximately 0.221 seconds into the
+command phase. The supervisor then reported
+`runtime safety snapshot missed the command deadline`, stopped the run and
+returned `status=FAIL` with `locomotion_acceptance=NOT_EVALUATED`.
+
+Cleanup used the HTTP disarm fallback after the WebSocket release raced with an
+already-expired lease. Final exact zero was confirmed: lease inactive, deadman
+false, manager and accepted command zero, `motion_run_active=false`, and action
+count zero. Request evidence after cleanup was `published=115`, `stop=111`,
+`move=4`, `nonzero_move=4`, `action=0`. The robot-side Bridge was then stopped
+through the fixed lifecycle API and verified `inactive`; no probe process
+remained.
+
+The operator subsequently reported that the robot did physically move and was
+then completely stopped. Signed position evidence recorded a maximum planar
+displacement of approximately `0.001919 m` before cleanup. This establishes
+that the existing ControlManager -> signed transport -> Go2ControlBridge path
+can reach physical locomotion at MP-030. It does not establish the intended
+0.70-second MP-030 acceptance because the deadline guard ended the run early,
+and it does not explain the earlier C4B 59-Move nonmotion result.
+
+The private evidence is retained on the external Jetson at
+`/tmp/robot-scope-c4c-1000/c4c-1788593632727582996-1760613.json`, mode `0600`,
+with SHA-256
+`4558eb8a9532480295d011da1156ec67e82315c5a957aa7bce2c86d847e18129`.
+
+```text
+MP030_COMMAND_DELIVERY=PARTIAL_CONFIRMED
+MP030_PHYSICAL_MOTION=OPERATOR_CONFIRMED
+MP030_ACCEPTANCE=FAIL_DEADLINE_GUARD
+FINAL_PHYSICAL_STOP=OPERATOR_CONFIRMED
+FINAL_EXACT_ZERO=PASS
+FINAL_BRIDGE_STATE=INACTIVE
+HIGHER_PROBES=NOT_RUN
+NAV2_GOAL=NOT_RUN
+GO2_PREVIOUS_NONMOTION_ROOT_CAUSE=UNRESOLVED
+```
+
+Any retry requires analysis and correction of the deadline behavior, complete
+hardware-free regression, a new exact-release deployment decision and a new
+motion approval. This physical-motion confirmation must not be reused as such
+approval.
