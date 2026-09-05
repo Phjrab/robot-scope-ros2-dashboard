@@ -51,6 +51,10 @@ class OperatorEventTimelineTests(unittest.TestCase):
             ("POST", "/api/v1/control/bridge-service/start"): "bridge_service_start",
             ("POST", "/api/v1/control/bridge-service/stop"): "bridge_service_stop",
             ("POST", "/api/v1/system/diagnostics/export"): "diagnostics_export",
+            ("POST", "/api/v1/route-planner/guidance/start"): "route_guidance_start",
+            ("POST", "/api/v1/route-planner/guidance/stop"): "route_guidance_stop",
+            ("POST", "/api/v1/route-planner/guidance/pickup"): "route_pickup_confirm",
+            ("POST", "/api/v1/route-planner/guidance/dropoff"): "route_dropoff_confirm",
         }
         for (method, path), event_type in expected.items():
             with self.subTest(method=method, path=path):

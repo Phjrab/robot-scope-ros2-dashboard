@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "scenario_id": "traffic-red-to-green",
+  "description": "A later stable GREEN releases the traffic wait.",
+  "order": {
+    "label": "LOW competition order",
+    "destination_id": "COEX",
+    "lines": [
+      {
+        "sequence": 1,
+        "restaurant_id": "HANSOT",
+        "menu_id": "CHICKEN_MAYO",
+        "quantity": 2
+      },
+      {
+        "sequence": 2,
+        "restaurant_id": "EDIYA",
+        "menu_id": "AMERICANO",
+        "quantity": 1
+      }
+    ],
+    "order_started_at": null,
+    "locked": false
+  },
+  "graph_fixture": "competition-small-v1",
+  "start_node": "ZONE4_START",
+  "events": [
+    {
+      "at_ms": 0,
+      "kind": "POSE",
+      "payload": {
+        "x": 1.5,
+        "y": 0,
+        "yaw": 0
+      }
+    },
+    {
+      "at_ms": 0,
+      "kind": "PERCEPTION",
+      "payload": {
+        "schema_version": 1,
+        "source": "mock-team",
+        "frame_id": "base_link",
+        "observed_at_ns": 10000000000,
+        "sequence": 1,
+        "state": "READY",
+        "confidence": 0.95,
+        "traffic": [
+          {
+            "crosswalk_id": "NORTH",
+            "signal": "RED",
+            "consecutive_frames": 4
+          }
+        ],
+        "crosswalks": [
+          {
+            "crosswalk_id": "NORTH",
+            "visible": true,
+            "lateral_offset_m": 0.02,
+            "heading_error_rad": 0.01,
+            "left_boundary_distance_m": 0.3,
+            "right_boundary_distance_m": 0.3,
+            "confidence": 0.95
+          }
+        ],
+        "people": [
+          {
+            "crosswalk_id": "NORTH",
+            "occupancy": "CLEAR",
+            "nearest_distance_m": 5,
+            "collision_risk": false,
+            "confidence": 0.94
+          }
+        ],
+        "aruco": [
+          {
+            "venue_id": "COEX",
+            "docking_ready": true,
+            "marker_ids": [
+              10
+            ],
+            "confidence": 0.91
+          }
+        ],
+        "underpass_blocked": false
+      }
+    },
+    {
+      "at_ms": 500,
+      "kind": "PERCEPTION",
+      "payload": {
+        "schema_version": 1,
+        "source": "mock-team",
+        "frame_id": "base_link",
+        "observed_at_ns": 10500000000,
+        "sequence": 2,
+        "state": "READY",
+        "confidence": 0.95,
+        "traffic": [
+          {
+            "crosswalk_id": "NORTH",
+            "signal": "GREEN",
+            "confidence": 0.98,
+            "consecutive_frames": 3
+          }
+        ],
+        "crosswalks": [
+          {
+            "crosswalk_id": "NORTH",
+            "visible": true,
+            "lateral_offset_m": 0.02,
+            "heading_error_rad": 0.01,
+            "left_boundary_distance_m": 0.3,
+            "right_boundary_distance_m": 0.3,
+            "confidence": 0.95
+          }
+        ],
+        "people": [
+          {
+            "crosswalk_id": "NORTH",
+            "occupancy": "CLEAR",
+            "nearest_distance_m": 5,
+            "collision_risk": false,
+            "confidence": 0.94
+          }
+        ],
+        "aruco": [
+          {
+            "venue_id": "COEX",
+            "docking_ready": true,
+            "marker_ids": [
+              10
+            ],
+            "confidence": 0.91
+          }
+        ],
+        "underpass_blocked": false
+      }
+    }
+  ],
+  "expected": {
+    "selected_route_profile": "BALANCED",
+    "next_instruction": "CROSS_STRAIGHT",
+    "special_edge_readiness": "READY",
+    "manual_warning": null,
+    "autonomous_eligibility": true,
+    "stale_or_invalid": "FRESH",
+    "no_side_effects": true
+  }
+}

@@ -4,9 +4,9 @@ import test from 'node:test';
 import { createPanelRegistry, PLACEHOLDER_DESCRIPTORS } from '../robot_dashboard/static/features/cockpit/panel_registry.js';
 import { nextLauncherIndex } from '../robot_dashboard/static/features/cockpit/sensor_launcher.js';
 
-test('registry exposes fixed camera, map, navigation, mission, and controller panels', () => {
+test('registry exposes fixed route, camera, map, navigation, mission, and controller panels', () => {
   const registry = createPanelRegistry({ document: {}, cameraDemand: {} });
-  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Navigation', 'Mission', 'Controller']);
+  assert.deepEqual(registry.list().map((descriptor) => descriptor.label), ['Go2 Front Camera', 'RealSense Color Camera', 'Map', 'Navigation', 'Mission', 'Route Planner', 'Controller']);
   assert.ok(registry.list().every((descriptor) => descriptor.singleton === true && descriptor.defaultVisible === false));
   assert.ok(registry.list().every((descriptor) => descriptor.icon && descriptor.defaultGeometry.width && descriptor.bounds.minWidth));
   assert.equal(registry.get('camera.go2-front').id, 'camera-go2-front');
@@ -16,6 +16,7 @@ test('registry exposes fixed camera, map, navigation, mission, and controller pa
   assert.equal(registry.get('navigation.main').kind, 'navigation');
   assert.equal(registry.get('placeholder.controller').kind, 'controller');
   assert.equal(registry.get('mission.main').kind, 'mission');
+  assert.equal(registry.get('route-planner.main').id, 'route-planner');
   assert.equal(registry.get('unknown'), null);
 });
 

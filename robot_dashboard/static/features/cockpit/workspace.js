@@ -12,6 +12,7 @@ import { createCockpitMapStore } from './map_state.js';
 import { createCockpitNavigationAdapter } from './navigation_adapter.js';
 import { createMissionClient } from './mission_client.js';
 import { createCompetitionStatus } from './competition_status.js';
+import { createRoutePlannerClient } from './route_planner_client.js';
 
 export { initializeCockpitWindowMode } from './window_mode.js';
 
@@ -50,8 +51,9 @@ export function createCockpitWorkspace(options = {}) {
   const gamepadUi = createGamepadUiMapper({ now: options.now });
   const mapState = createCockpitMapStore();
   const missionClient = createMissionClient({ api: options.api || (() => Promise.reject(new Error('Mission API unavailable.'))) });
+  const routePlannerClient = createRoutePlannerClient({ api: options.api || (() => Promise.reject(new Error('Route Planner API unavailable.'))) });
   const navigationAdapter = createCockpitNavigationAdapter({ getSnapshot: () => ({ ...options.getNavigationSnapshot?.(), controller: controllerState.snapshot(), navigationEngine: options.navigationEngine, mission: missionClient.snapshot() }), actions: { ...options.navigationActions, abortMission: () => missionClient.abortActive() } });
-  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, perception: options.perception, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine, missionClient, getMissionContext: options.getNavigationSnapshot }) : null;
+  const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, perception: options.perception, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine, missionClient, routePlannerClient, getMissionContext: options.getNavigationSnapshot }) : null;
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
@@ -60,6 +62,7 @@ export function createCockpitWorkspace(options = {}) {
   let releaseCameraCatalog = null;
   let currentProfileId = '';
   let gamepadTimer = 0;
+  let releaseRouteScene = null;
 
   function syncLayoutMode(state = layoutMode.snapshot()) {
     const editable = state.mode === COCKPIT_LAYOUT_MODES.EDIT && !state.armed;
@@ -252,6 +255,7 @@ export function createCockpitWorkspace(options = {}) {
     active = true;
     root.dataset.lifecycle = 'active';
     sceneHost.activate();
+    if (!releaseRouteScene) releaseRouteScene = routePlannerClient.subscribe((state) => sceneHost.setRouteState(state));
     panelManager?.activate();
     safetyHud?.activate();
     competitionStatus?.activate();
@@ -272,6 +276,9 @@ export function createCockpitWorkspace(options = {}) {
     controllerState.update(projectControllerStatus());
     safetyHud?.deactivate();
     competitionStatus?.deactivate();
+    releaseRouteScene?.();
+    releaseRouteScene = null;
+    sceneHost.setRouteState(null);
     panelManager?.deactivate('workspace_inactive');
     sceneHost.deactivate();
     return diagnostics();
@@ -325,6 +332,7 @@ export function createCockpitWorkspace(options = {}) {
       map: mapState.diagnostics(),
       navigation: navigationAdapter.diagnostics(),
       mission: missionClient.diagnostics(),
+      routePlanner: routePlannerClient.diagnostics(),
     });
   }
 
@@ -340,6 +348,7 @@ export function createCockpitWorkspace(options = {}) {
     releaseMapScene();
     navigationAdapter.destroy();
     missionClient.destroy();
+    routePlannerClient.destroy();
     sceneHost.destroy();
     destroyed = true;
     root.dataset.lifecycle = 'destroyed';

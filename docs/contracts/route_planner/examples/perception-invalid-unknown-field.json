@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source": "traffic-team",
+  "frame_id": "base_link",
+  "observed_at_ns": 10000000000,
+  "sequence": 44,
+  "state": "READY",
+  "confidence": 1.0,
+  "traffic": [],
+  "crosswalks": [],
+  "people": [],
+  "aruco": [],
+  "underpass_blocked": null,
+  "command": "GO"
+}

@@ -401,6 +401,121 @@ test('Cockpit map panel shows revision-pinned localization and toggles the bound
   expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
 });
 
+test('Competition Route Planner completes the software-only workflow without motion authority', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="route-planner.main"]').click();
+  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  const panel = page.locator('[data-panel-id="route-planner"]');
+  await expect(panel.locator('.cockpit-route-planner')).toBeVisible();
+  await expect(panel.locator('.route-planner-rehearsal')).toBeHidden();
+  await expect(panel.locator('.route-planner-header')).toContainText('DRAFT');
+
+  await panel.locator('[data-route-action="save-order"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
+  await expect(panel.locator('.route-planner-header')).toContainText('ORDER_READY');
+
+  await panel.locator('[data-route-action="calculate"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/recommendations').length).toBe(1);
+  await expect(panel.locator('.route-planner-card')).toHaveCount(3);
+  await expect(panel.locator('.route-planner-card').first()).toContainText('BALANCED');
+
+  await panel.locator('.route-planner-card').first().locator('[data-route-select]').click();
+  await expect(panel.locator('.route-planner-card').first()).toHaveAttribute('data-selected', 'true');
+  await panel.locator('[data-route-action="start-guidance"]').click();
+  await expect(panel.locator('.route-guidance-action')).toContainText('CONTINUE_STRAIGHT');
+
+  await panel.locator('[data-route-pickup="HANSOT"]').click();
+  await expect(panel.locator('[data-route-pickup="HANSOT"]')).toContainText('픽업 완료');
+  await panel.locator('[data-route-pickup="EDIYA"]').click();
+  await panel.locator('[data-route-dropoff="COEX"]').click();
+  await expect(panel.locator('[data-route-dropoff="COEX"]')).toContainText('배송 완료');
+
+  await panel.locator('[data-route-action="preview"]').click();
+  await panel.locator('[data-route-action="export"]').click();
+  await expect.poll(() => backend.mutations(`/api/v1/route-planner/routes/${'1'.repeat(32)}/export-mission`).length).toBe(1);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/start')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.state.missions).toHaveLength(0);
+  const cockpit = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  expect(cockpit.workspace.scene.rendererCount).toBe(1);
+  expect(cockpit.workspace.scene.peakRenderers).toBe(1);
+});
+
+test('Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects', async ({ page }) => {
+  const backend = await openDashboard(page, { routePlannerRehearsal: true }, 'cockpit');
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="route-planner.main"]').click();
+  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  const panel = page.locator('[data-panel-id="route-planner"]');
+
+  await panel.locator('[data-route-action="save-order"]').click();
+  await expect(panel.locator('.route-planner-header')).toContainText('ORDER_READY');
+  await panel.locator('[data-route-action="calculate"]').click();
+  await expect(panel.locator('.route-planner-card')).toHaveCount(3);
+  await expect(panel.locator('.route-planner-card').first()).toContainText('주행');
+  await expect(panel.locator('.route-planner-card').first()).toContainText('신호');
+  await expect(panel.locator('.route-planner-card').first()).toContainText('특수');
+  await panel.locator('.route-planner-card').first().locator('[data-route-select]').click();
+
+  const rehearsal = panel.locator('.route-planner-rehearsal');
+  await expect(rehearsal).toBeVisible();
+  await expect(rehearsal.locator('.route-rehearsal-banner')).toHaveText('REHEARSAL — VIRTUAL DATA — ROBOT WILL NOT MOVE');
+  await rehearsal.locator('select[aria-label="Rehearsal scenario"]').selectOption('traffic-red-to-green');
+  await rehearsal.locator('[data-route-rehearsal-action="START"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-advisory')).toContainText('WAIT_SIGNAL');
+  await expect(rehearsal.locator('.route-rehearsal-virtual-pose')).toContainText('VIRTUAL ROBOT');
+  await expect(panel.locator('[data-route-action="export"]')).toBeDisabled();
+
+  await rehearsal.locator('[data-route-rehearsal-action="STEP"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-advisory')).toContainText('PROCEED_RECOMMENDED');
+  await rehearsal.locator('select[aria-label="Rehearsal speed"]').selectOption('2');
+  await rehearsal.locator('[data-route-rehearsal-action="PLAY"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-playback')).toContainText('PLAYING');
+  await rehearsal.locator('[data-route-rehearsal-action="PAUSE"]').click();
+  await rehearsal.locator('input[aria-label="Rehearsal timeline"]').fill('50');
+  await expect(rehearsal.locator('.route-rehearsal-playback')).toContainText('50 / 100 ms');
+  await rehearsal.locator('[data-route-rehearsal-action="OFF_ROUTE"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-virtual-pose')).toContainText('OFF-ROUTE INJECTED');
+  await expect(rehearsal.locator('.route-rehearsal-advisory')).toContainText('REPLAN_RECOMMENDED');
+
+  await rehearsal.locator('[data-route-rehearsal-action="EXIT"]').click();
+  await rehearsal.locator('select[aria-label="Rehearsal scenario"]').selectOption('person-occupied');
+  await rehearsal.locator('[data-route-rehearsal-action="START"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-advisory')).toContainText('WAIT_PERSON');
+  await rehearsal.locator('[data-route-rehearsal-action="EXIT"]').click();
+  await rehearsal.locator('select[aria-label="Rehearsal scenario"]').selectOption('aruco-docking-ready');
+  await rehearsal.locator('[data-route-rehearsal-action="START"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-advisory')).toContainText('DOCKING_READY');
+
+  await rehearsal.locator('[data-route-rehearsal-pickup="HANSOT"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-cargo')).toContainText('CARGO 2 / 5');
+  await rehearsal.locator('[data-route-rehearsal-pickup="EDIYA"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-cargo')).toContainText('CARGO 3 / 5');
+  await rehearsal.locator('[data-route-rehearsal-dropoff="COEX"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-cargo')).toContainText('ORDER_COMPLETE');
+  await expect(rehearsal.locator('.route-rehearsal-mission')).toContainText('MISSION DRY-RUN ELIGIBLE');
+  await expect(rehearsal.locator('.route-rehearsal-mission')).toContainText('MISSION CREATE 0');
+  await expect(rehearsal.locator('.route-rehearsal-mission')).toContainText('NAV2 PATH UNAVAILABLE');
+  await rehearsal.locator('[data-route-rehearsal-action="REPORT"]').click();
+  await expect(rehearsal.locator('.route-rehearsal-report')).toContainText('Side effects: 0');
+
+  const dangerousPaths = [
+    '/api/v1/control/acquire', '/api/v1/control/arm', '/api/v1/control/deadman',
+    '/api/v1/navigation/start', '/api/v1/navigation/goal',
+    '/api/v1/system/service/restart',
+    `/api/v1/route-planner/routes/${'1'.repeat(32)}/export-mission`,
+  ];
+  for (const path of dangerousPaths) expect(backend.mutations(path), path).toHaveLength(0);
+  expect(backend.state.missions).toHaveLength(0);
+  expect(backend.state.routePlanner.rehearsal.side_effect_count).toBe(0);
+  expect(Object.values(backend.state.routePlanner.rehearsal.side_effect_counters)).toEqual(new Array(10).fill(0));
+  const cockpit = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
+  expect(cockpit.workspace.scene.rendererCount).toBe(1);
+  expect(cockpit.workspace.scene.peakRenderers).toBe(1);
+});
+
 test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);
@@ -627,7 +742,7 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
   const realsenseButton = page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]');
   const mapButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]');
   const controllerButton = page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]');
-  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(6);
+  await expect(page.locator('.cockpit-launcher-item')).toHaveCount(7);
   await expect(cameraButton).toContainText('360×240 · MIN 280×170');
 
   await toggle.click();

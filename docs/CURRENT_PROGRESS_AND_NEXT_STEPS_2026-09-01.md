@@ -269,3 +269,16 @@ Sport topic은 없었고 lease/deadman/속도는 계속 false/false/zero였다.
 다음 단계는 `TRACK_C3_STATIONARY_INITIAL_POSE_NO_GOAL_PROMPT.md`에 따라 exact map
 revision을 다시 고정하고, known-free initial pose 한 번과 localized no-goal을 별도 감독
 승인으로 수행하는 것이다. C3에서도 goal과 motion은 금지된다.
+
+## 2026-09-04 Track G Competition Route Planner
+
+`feature/competition-route-planner`에서 software-only Route Planner를 구현했다. 주문서
+규칙과 20초 순차 준비 시간, exact map/annotation revision에 고정된 그래프,
+BALANCED/FASTEST/SAFEST 최적화, 단일 Cockpit 3D renderer의 경로 overlay, 수동
+guidance, 픽업·배송 운영자 확인, Mission `ready` draft export를 추가했다.
+
+Route Planner는 control/lease/ARM/deadman/이동 명령을 소유하지 않는다. 기존 gateway에
+goal 전송과 분리된 안전한 plan-only Nav2 계약이 없으므로 live Nav2 path preview는
+`SAFE_PLAN_ONLY_NAV2_INTERFACE_NOT_AVAILABLE`로 명시적으로 차단했다. 로봇,
+Jetson, ROS, 서비스, initial pose, Navigation goal, Mission start와 물리 움직임은
+실행하지 않았다. 실장비/Nav2 통합은 승인된 별도 후속 트랙으로 남긴다.

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robot-scope.local/contracts/route-planner/scenario-v1.schema.json",
+  "title": "Route Planner Offline Replay Scenario v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scenario_id", "description", "order", "graph_fixture", "start_node", "events", "expected"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "scenario_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"},
+    "description": {"type": "string", "minLength": 1, "maxLength": 240},
+    "order": {"type": "object"},
+    "graph_fixture": {"const": "competition-small-v1"},
+    "start_node": {"const": "ZONE4_START"},
+    "events": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["at_ms", "kind", "payload"],
+        "properties": {
+          "at_ms": {"type": "integer", "minimum": 0, "maximum": 3600000},
+          "kind": {"enum": ["POSE", "PERCEPTION", "ORDER_STATUS", "PICKUP_CONFIRM", "DROPOFF_CONFIRM", "TIME_ADVANCE", "SERVER_RESTART", "MAP_REVISION_CHANGE", "GRAPH_REVISION_CHANGE"]},
+          "payload": {"type": "object"}
+        }
+      }
+    },
+    "expected": {
+      "type": "object", "additionalProperties": false,
+      "required": ["selected_route_profile", "next_instruction", "special_edge_readiness", "manual_warning", "autonomous_eligibility", "stale_or_invalid", "no_side_effects"],
+      "properties": {
+        "selected_route_profile": {"type": ["string", "null"]},
+        "next_instruction": {"type": "string"},
+        "special_edge_readiness": {"type": "string"},
+        "manual_warning": {"type": ["string", "null"]},
+        "autonomous_eligibility": {"type": "boolean"},
+        "stale_or_invalid": {"type": "string"},
+        "no_side_effects": {"const": true}
+      }
+    }
+  }
+}
