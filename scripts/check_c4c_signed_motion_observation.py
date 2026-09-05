@@ -24,6 +24,7 @@ MAX_HTTP_BYTES = 1024 * 1024
 POLL_S = 0.10
 DURATIONS_S = {"stationary": 300.0, "dynamic": 20.0}
 MAX_STATIONARY_DRIFT_M = 0.005
+MIN_DYNAMIC_DISPLACEMENT_M = 0.005
 MAX_DYNAMIC_DISPLACEMENT_M = 0.30
 OUTPUT_DIRECTORY = Path.home() / ".robot-scope" / "c4c-observations"
 
@@ -234,6 +235,13 @@ class ObservationRun:
         if self.first is None or self.previous is None or self.progress_count == 0:
             raise SignedObservationError(
                 "no progressing signed observation was captured"
+            )
+        if (
+            self.mode == "dynamic"
+            and self.max_displacement_m < MIN_DYNAMIC_DISPLACEMENT_M
+        ):
+            raise SignedObservationError(
+                "dynamic observation did not reach significant displacement"
             )
         return {
             "schema": SCHEMA,

@@ -188,3 +188,22 @@ dynamic accuracy, approve this source for motion, resolve the earlier 59-Move
 non-motion cause, or authorize MP-030. A signed dynamic stock-controller
 comparison still requires a new supervised approval and must stop after that
 comparison without sending a Robot Scope motion command.
+
+### First signed dynamic window: no movement observed
+
+The first separately approved 20-second signed dynamic window on 2026-09-05
+preserved one generation and valid progressing samples but measured only
+`0.000206 m` maximum planar displacement. This is stationary-scale noise, not
+the approved 0.10--0.20 m stock-controller movement, so the attempt is
+`NO_DYNAMIC_MOTION` and does not change `DYNAMIC_OBSERVATION_VALIDATED` or
+`MOTION_USE_APPROVED`. Request evidence remained zero and the observer was
+stopped after the window. The private evidence SHA-256 is
+`7a981a7a0f6432ab7308b06f885e42bb73bc922312ad19408b097c8040ad86bf`.
+
+The checker previously reported transport-contract `PASS` whenever source
+samples progressed, even when dynamic displacement was not significant. The
+follow-up software guard requires at least the unchanged `0.005 m`
+significance threshold in dynamic mode. This closes the false-positive result
+without increasing the 0.30 m dynamic observation bound or changing any
+command-path guard. A new dynamic attempt requires a fresh exact-release
+deployment and a new supervised approval.

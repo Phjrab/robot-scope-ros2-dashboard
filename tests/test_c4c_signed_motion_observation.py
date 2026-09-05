@@ -144,6 +144,31 @@ class C4CSignedMotionObservationTests(unittest.TestCase):
         with self.assertRaises(module.SignedObservationError):
             regressed.add(self.snapshot(sequence=19, stamp_ns=1_900_000_001))
 
+    def test_dynamic_run_requires_five_millimetres_of_significant_displacement(self):
+        no_motion = module.ObservationRun(
+            expected_release=self.release,
+            mode="dynamic",
+        )
+        no_motion.add(self.snapshot())
+        no_motion.add(
+            self.snapshot(sequence=21, stamp_ns=2_010_000_001, x=1.0002)
+        )
+        with self.assertRaisesRegex(
+            module.SignedObservationError,
+            "did not reach significant displacement",
+        ):
+            no_motion.result(duration_s=20.0)
+
+        significant = module.ObservationRun(
+            expected_release=self.release,
+            mode="dynamic",
+        )
+        significant.add(self.snapshot())
+        significant.add(
+            self.snapshot(sequence=21, stamp_ns=2_010_000_001, x=1.006)
+        )
+        self.assertEqual(significant.result(duration_s=20.0)["status"], "PASS")
+
     def test_default_invocation_is_hardware_free_dry_run(self):
         result = subprocess.run(
             [sys.executable, str(SCRIPT)],
