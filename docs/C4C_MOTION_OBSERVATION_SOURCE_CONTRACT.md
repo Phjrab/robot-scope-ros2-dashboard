@@ -1,7 +1,8 @@
 # C4C Motion Observation Source Contract
 
-- Status: software validated; deployment, stationary qualification, dynamic
-  qualification and motion use are not approved
+- Status: software, stationary and signed dynamic qualification passed;
+  motion-observation use is approved only for a future freshly authorized
+  C4C micro-probe
 - Scope: the fixed C4C Go2 locomotion micro-probes only
 - Selected source: `unitree_go.sport_mode_state.position`
 - Automatic fallback: forbidden
@@ -209,18 +210,21 @@ first-acceptance timeout, scheduler no-catch-up rule, HMAC, epoch/sequence,
 cleanup contracts are unchanged. Mode, gait and error remain raw diagnostics;
 no mode 3 or gait 1 requirement exists.
 
-`MOTION_USE_APPROVED` remains false. The public live CLI therefore refuses all
-four probes even when old confirmation flags are supplied. Software tests may
-exercise the pure supervisor with mock data, but no prior approval can open
-the live gate.
+`MOTION_USE_APPROVED` is true after the signed observation-only path passed
+both stationary and supervised dynamic qualification. This opens only the
+source-qualification gate for MP-030: MP-050/080/100 remain code-gated pending
+review of the preceding probe. The public live CLI still requires one fixed
+probe, the literal source ID and every fresh confirmation flag, and the
+supervisor still applies every fail-closed runtime preflight and cleanup check.
+No prior operator approval is reused and no probe was executed by this change.
 
 ## 7. Validation states
 
 ```text
 SOFTWARE_VALIDATED=PASS
 STATIONARY_OBSERVATION_VALIDATED=PASS
-DYNAMIC_OBSERVATION_VALIDATED=PARTIAL_SOURCE_ONLY
-MOTION_USE_APPROVED=NO
+DYNAMIC_OBSERVATION_VALIDATED=PASS_SIGNED_END_TO_END
+MOTION_USE_APPROVED=YES_FOR_FUTURE_FRESHLY_AUTHORIZED_MP030
 ```
 
 Software validation does not qualify the source clock, coordinate origin or
@@ -346,30 +350,48 @@ displacement:
 - SHA-256: `c2c1820472c699ffed3d808fc9267f7c6fd3523fa2cec78db11d6c35218e0cc9`
 
 This qualifies live dynamic response and stationary recovery of the selected
-vendor source itself. It does not constitute a live dynamic traversal of the
-new signed Bridge-to-dashboard transport because the Bridge intentionally
-remained inactive to avoid its request publisher interfering with the stock
-controller. The earlier stationary run qualifies the signed transport only
-while stationary. Therefore overall dynamic validation remains
-`PARTIAL_SOURCE_ONLY`, not `PASS`, and `MOTION_USE_APPROVED` remains false.
+vendor source itself. At this checkpoint it did not yet constitute a live
+dynamic traversal of the signed Bridge-to-dashboard transport because the
+normal Bridge intentionally remained inactive to avoid request-publisher
+interference. The later observation-only run below supplies that missing
+signed end-to-end evidence.
 
 ## 10. Remaining qualification
 
-Stationary validation and dynamic source response have passed. A separately
-approved observation-only signed end-to-end comparison is still required; it
-must add no request publisher and must establish that the same source, origin
-and generation reach the dashboard without reset. Only then may a focused
-change set set `MOTION_USE_APPROVED=true`, followed by a new exact-release
-deployment and a fresh MP-030 approval. MP-030, MP-050/080/100 and Nav2 goals
-remain not run by this work.
+Stationary validation, dynamic source response and the separately approved
+observation-only signed end-to-end comparison have passed. The comparison
+added no request publisher and preserved one source, origin and producer
+generation without reset. This focused change therefore sets
+`MOTION_USE_APPROVED=true`. MP-030 still requires deployment of this exact
+release plus a new explicit safety approval; MP-030, MP-050/080/100 and Nav2
+goals remain not run by this work.
 
-The software boundary for that comparison is now implemented and remains
-undeployed. It adds an explicit, dual-opt-in `motion_observer` role to the
+The comparison uses an explicit, dual-opt-in `motion_observer` role in the
 existing signed status transport. The role creates no command receiver and no
 Sport request publisher, is never control-ready, skips UDP command handoff,
 and is rejected by a dashboard without the local opt-in. A fixed read-only
 checker validates release/source/generation/progression, exact-zero control,
 zero request evidence, graph isolation, freshness and bounded displacement.
 The deployment sequence and rollback are recorded in
-`docs/C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT.md`. This code-ready state does
-not change the validation or motion-approval values above.
+`docs/C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT.md`.
+
+The successful signed dynamic run used exact deployed release
+`81b1f5d775be7983a7f6ab7a3f981682f1c2b2da`. The checker ran for
+`20.099338` seconds with 185 samples and 71 progressing observations. Source
+sequence advanced from 7,008 to 12,627 under one producer generation,
+`xNyidjHMnECQh-8eBVlc7il9UOTmsN3smaImBo-DgZI`, and maximum planar
+displacement was `0.107737 m`. Maximum callback age was 9 ms and maximum
+dashboard receiver-status age was 307 ms. It recorded
+`motion_command_created=false`; request evidence, lease, ARM, deadman and
+Robot Scope non-zero command remained zero or absent. The operator confirmed
+the robot was physically stopped afterward.
+
+Private evidence remains on the external host at
+`/home/jetson_orin_nano/.robot-scope/c4c-observations/c4c-signed-dynamic-20260905T063142.018883Z.json`
+with SHA-256
+`59cdeb73116fc879b1d3f8d04a9ddc44db18c88f049f722743dc735b0680525b`.
+The observer was stopped, the normal Bridge remained `inactive/dead`, and
+Navigation, localization and goals remained idle. This qualifies the selected
+observation source for a future C4C micro-probe; it is not an MP-030 motion
+approval or evidence that the previous 59 Move requests were accepted by the
+robot.

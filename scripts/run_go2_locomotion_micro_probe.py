@@ -40,7 +40,11 @@ DASHBOARD_UNIT = "robot-scope.service"
 EXPECTED_PROFILE = "go2-xt16-wireless"
 MOTION_OBSERVATION_SOURCE = "unitree_go.sport_mode_state.position"
 MOTION_OBSERVATION_SCHEMA = "robot-scope.motion-observation"
-MOTION_USE_APPROVED = False
+# Opened only after the signed observation-only path passed both stationary and
+# supervised dynamic qualification. Live execution still requires every fixed
+# CLI confirmation and all fail-closed runtime preflight checks below.
+MOTION_USE_APPROVED = True
+APPROVED_PROBE_IDS = frozenset({"MP-030"})
 API_STOP_MOVE = 1003
 API_MOVE = 1008
 DRIVE_WINDOW_S = 0.70
@@ -1652,6 +1656,10 @@ def selected_probe(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
         parser.error(
             "C4C motion use is not approved; stationary and dynamic observation "
             "qualification are still required"
+        )
+    if selected[0] not in APPROVED_PROBE_IDS:
+        parser.error(
+            f"{selected[0]} is not approved; complete and review the preceding probe first"
         )
     return PROBES[selected[0]]
 

@@ -1,6 +1,6 @@
 # C4C Signed Observation-Only Deployment Gate
 
-Status: `STATIONARY_SIGNED_PATH_PASS / DYNAMIC_NOT_RUN / MOTION_NOT_APPROVED`
+Status: `STATIONARY_SIGNED_PATH_PASS / DYNAMIC_SIGNED_PATH_PASS / MOTION_SOURCE_APPROVED`
 
 This document defines the deployment gate for the C4C signed dynamic
 observation comparison. It is not approval for MP-030, a navigation goal, a
@@ -99,9 +99,9 @@ Navigation state.
 ```text
 SOFTWARE_VALIDATED=PASS
 STATIONARY_OBSERVATION_VALIDATED=PASS_SIGNED_OBSERVER
-DYNAMIC_OBSERVATION_VALIDATED=PARTIAL_SOURCE_ONLY
-SIGNED_OBSERVATION_ONLY_END_TO_END=PASS_STATIONARY
-MOTION_USE_APPROVED=NO
+DYNAMIC_OBSERVATION_VALIDATED=PASS_SIGNED_END_TO_END
+SIGNED_OBSERVATION_ONLY_END_TO_END=PASS_DYNAMIC
+MOTION_USE_APPROVED=YES_FOR_FUTURE_FRESHLY_AUTHORIZED_MP030
 MP030_MOTION=NOT_RUN
 HIGHER_PROBES=NOT_RUN
 NAV2_GOAL=NOT_RUN
@@ -255,3 +255,36 @@ must start the checker in the background, allow it to collect its stationary
 baseline, and only then issue the human-visible move signal. It requires a new
 supervised approval. `DYNAMIC_OBSERVATION_VALIDATED` remains
 `PARTIAL_SOURCE_ONLY` and `MOTION_USE_APPROVED` remains `NO`.
+
+### Successful signed dynamic retry
+
+After another fresh supervised approval, the checker was started in the
+background before the operator move signal. The observation-only process and
+dashboard both ran exact release
+`81b1f5d775be7983a7f6ab7a3f981682f1c2b2da`; the normal Control Bridge stayed
+inactive. The operator then moved the robot forward once with the stock remote
+and confirmed final physical stop.
+
+The fixed checker passed after `20.099338` seconds with 185 samples and 71
+progressing observations. Source sequence advanced from 7,008 to 12,627 under
+one generation, `xNyidjHMnECQh-8eBVlc7il9UOTmsN3smaImBo-DgZI`. Maximum
+planar displacement was `0.107737 m`, maximum callback age was 9 ms and
+maximum dashboard receiver-status age was 307 ms. The run recorded
+`motion_command_created=false`.
+
+The private mode-0600 evidence file is
+`/home/jetson_orin_nano/.robot-scope/c4c-observations/c4c-signed-dynamic-20260905T063142.018883Z.json`
+with SHA-256
+`59cdeb73116fc879b1d3f8d04a9ddc44db18c88f049f722743dc735b0680525b`.
+Preflight and cleanup both showed zero request evidence, no lease, ARM or
+deadman, exact-zero manager and accepted commands, zero Robot Scope Sport
+request publishers, and idle Navigation/localization/goal state. The manually
+started observer was stopped after capture and the normal Bridge remained
+`inactive/dead`.
+
+This closes the signed dynamic observation qualification and permits the
+focused software gate to set `MOTION_USE_APPROVED=true`. It does not execute or
+authorize MP-030 by itself. A new exact-release deployment and a fresh MP-030
+safety approval remain mandatory. The live selector permits only MP-030;
+MP-050/080/100 stay code-gated pending review of the preceding probe, and Nav2
+goals remain unexecuted.

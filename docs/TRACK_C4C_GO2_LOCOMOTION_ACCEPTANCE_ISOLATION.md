@@ -526,9 +526,10 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | STATIONARY_SOAK | NOT_RUN |
 | C4C_MOTION_OBSERVATION_STATIONARY | PASS |
 | C4C_MOTION_OBSERVATION_DYNAMIC_SOURCE | PASS |
-| C4C_SIGNED_DYNAMIC_END_TO_END | NOT_RUN |
+| C4C_SIGNED_DYNAMIC_END_TO_END | PASS — exact `81b1f5d` observation-only path, no Robot Scope motion |
 | C4C_SIGNED_OBSERVATION_ONLY_SOFTWARE | PASS |
-| C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT | PASS — stationary manual-process path on exact release `a09264c` |
+| C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT | PASS — stationary and dynamic manual-process paths; latest exact release `81b1f5d` |
+| C4C_MOTION_OBSERVATION_USE | PASS — MP-030 only; fresh deployment and approval still required |
 | NAV2_GOAL | NOT_RUN |
 | ROBOT_MOTION | PASS |
 | CLEANUP | PASS |
@@ -574,6 +575,69 @@ confirmed final stop; a following S0 capture measured only 0.187 mm
 first-to-last planar drift. This qualifies the vendor source's dynamic
 response but not live signed Bridge-to-dashboard delivery during movement
 because the Bridge remained inactive to avoid request-publisher interference.
-Overall dynamic qualification is therefore `PARTIAL_SOURCE_ONLY`, and the live
-probe gate remains closed. MP-030 and all higher probes remain unexecuted by
-the follow-up.
+That source-only result was later complemented by an exact-release signed
+observation-only dynamic run. The checker observed `0.107737 m` maximum planar
+displacement over `20.099338 s`, with source sequence `7008 -> 12627`, one
+producer generation, 9 ms maximum callback age and 307 ms maximum receiver
+age. Request evidence remained zero, the operator confirmed final physical
+stop, and the observer was removed afterward. The private evidence SHA-256 is
+`59cdeb73116fc879b1d3f8d04a9ddc44db18c88f049f722743dc735b0680525b`.
+This qualifies the C4C observation source and opens only the software
+source-use gate. MP-030 and all higher probes remain unexecuted and require a
+new exact-release deployment plus fresh safety approval.
+
+## 19. Signed dynamic qualification and focused source-use gate
+
+The final supervised retry corrected only the human/checker sequencing: the
+fixed checker began collecting before the operator was told to move. Exact
+release `81b1f5d775be7983a7f6ab7a3f981682f1c2b2da` then produced a signed
+end-to-end PASS over 20.099338 seconds, 185 samples and 71 advancing
+observations. Source sequence advanced from 7,008 to 12,627 under one producer
+generation. Maximum planar displacement was 0.107737 m, maximum callback age
+was 9 ms and maximum receiver-status age was 307 ms. The evidence recorded
+`motion_command_created=false`, and the operator explicitly confirmed final
+physical stop.
+
+The private evidence file is
+`/home/jetson_orin_nano/.robot-scope/c4c-observations/c4c-signed-dynamic-20260905T063142.018883Z.json`
+with SHA-256
+`59cdeb73116fc879b1d3f8d04a9ddc44db18c88f049f722743dc735b0680525b`.
+
+The focused repository change opens the qualified observation-source gate for
+MP-030 only. MP-050, MP-080 and MP-100 remain code-gated until the preceding
+probe is executed and reviewed. Every live invocation still requires the
+literal source ID, all explicit confirmation flags, exact-release agreement,
+fresh advancing LowState and observation evidence, fixed cardinality, exact
+zero before motion and verified cleanup. No actual micro-probe was run while
+making this change.
+
+Post-observation read-only inspection showed the external dashboard active on
+`81b1f5d...`, the normal Control Bridge `inactive`, the observation-only
+process absent, XT16 relay active, Navigation/localization/goal idle, no lease
+or deadman and exact-zero manager and accepted command. The retained stale
+observer snapshot contains zero published, Move, nonzero-Move and action
+requests. It is retained as evidence and is not treated as a live Bridge.
+
+Current regression results for the focused gate are:
+
+- C4C micro-probe: 35 tests passed;
+- repository virtual environment: 1,130 tests passed;
+- JavaScript unit: 270 tests passed;
+- Cockpit JavaScript: 86 tests passed;
+- Playwright hardware-free browser: 32 tests passed;
+- Ruff, mypy, tracked-source secret scan, frontend syntax and
+  `git diff --check`: passed;
+- system Python 3.13: 1,126 tests ran with one pre-existing collection error
+  because `fastapi` is not installed; the repository virtual environment
+  passes that test.
+
+```text
+SOFTWARE_VALIDATION=PASS
+STATIONARY_VALIDATION=PASS_SIGNED_END_TO_END
+DYNAMIC_VALIDATION=PASS_SIGNED_END_TO_END
+MOTION_USE_APPROVAL=PASS_MP030_SOURCE_GATE_ONLY
+MP030_MOTION=NOT_RUN
+HIGHER_PROBES=NOT_RUN
+NAV2_GOAL=NOT_RUN
+GO2_PREVIOUS_NONMOTION_ROOT_CAUSE=UNRESOLVED
+```

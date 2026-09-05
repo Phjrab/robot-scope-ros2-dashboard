@@ -446,9 +446,20 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
             "--execute-mp-030", *flags,
             "--observation-source", probe.MOTION_OBSERVATION_SOURCE,
         ])
-        with self.assertRaises(SystemExit):
-            probe.selected_probe(args, parser)
-        self.assertFalse(probe.MOTION_USE_APPROVED)
+        self.assertIs(probe.selected_probe(args, parser), probe.PROBES["MP-030"])
+        self.assertTrue(probe.MOTION_USE_APPROVED)
+        self.assertEqual(probe.APPROVED_PROBE_IDS, frozenset({"MP-030"}))
+
+        for option in ("--execute-mp-050", "--execute-mp-080", "--execute-mp-100"):
+            with self.subTest(option=option):
+                args = parser.parse_args([
+                    option,
+                    *flags,
+                    "--observation-source",
+                    probe.MOTION_OBSERVATION_SOURCE,
+                ])
+                with self.assertRaises(SystemExit):
+                    probe.selected_probe(args, parser)
 
     def test_preflight_accepts_only_idle_authoritative_bridge_state(self):
         result = probe.validate_preflight(snapshots(), expected_release=RELEASE)
