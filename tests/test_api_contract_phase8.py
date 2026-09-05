@@ -240,6 +240,8 @@ class Phase8ApiContractTests(unittest.TestCase):
             {
                 "bridge": {
                     "state": "ready",
+                    "bridge_role": "motion_observer",
+                    "observation_connected": True,
                     "authenticated": True,
                     "ready": True,
                     "message": "ready",
@@ -356,6 +358,8 @@ class Phase8ApiContractTests(unittest.TestCase):
         )
         bridge = projected["bridge"]
         self.assertTrue(bridge["authenticated"])
+        self.assertEqual(bridge["bridge_role"], "motion_observer")
+        self.assertTrue(bridge["observation_connected"])
         self.assertEqual(bridge["status_age_s"], 0.1)
         self.assertEqual(bridge["total_sport_publishers"], 10)
         self.assertEqual(bridge["transport"], "udp")

@@ -362,3 +362,14 @@ and generation reach the dashboard without reset. Only then may a focused
 change set set `MOTION_USE_APPROVED=true`, followed by a new exact-release
 deployment and a fresh MP-030 approval. MP-030, MP-050/080/100 and Nav2 goals
 remain not run by this work.
+
+The software boundary for that comparison is now implemented and remains
+undeployed. It adds an explicit, dual-opt-in `motion_observer` role to the
+existing signed status transport. The role creates no command receiver and no
+Sport request publisher, is never control-ready, skips UDP command handoff,
+and is rejected by a dashboard without the local opt-in. A fixed read-only
+checker validates release/source/generation/progression, exact-zero control,
+zero request evidence, graph isolation, freshness and bounded displacement.
+The deployment sequence and rollback are recorded in
+`docs/C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT.md`. This code-ready state does
+not change the validation or motion-approval values above.

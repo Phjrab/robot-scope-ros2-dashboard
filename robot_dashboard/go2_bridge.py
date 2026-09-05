@@ -15,6 +15,8 @@ from typing import Any, Mapping
 
 API_STOP_MOVE = 1003
 API_MOVE = 1008
+BRIDGE_ROLE_CONTROL = "control"
+BRIDGE_ROLE_MOTION_OBSERVER = "motion_observer"
 SPORT_REQUEST_EVIDENCE_SCHEMA = "robot-scope.sport-request-evidence.v1"
 SPORT_REQUEST_EVIDENCE_MAX_COUNT = 2_147_483_647
 SPORT_MODE_STATE_TOPICS = ("/sportmodestate", "/lf/sportmodestate")

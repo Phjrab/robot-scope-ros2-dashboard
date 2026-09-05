@@ -53,6 +53,8 @@ from .control_datagram import (
 )
 from .go2_bridge import (
     API_STOP_MOVE,
+    BRIDGE_ROLE_CONTROL,
+    BRIDGE_ROLE_MOTION_OBSERVER,
     BridgeCommandError,
     Go2BridgeCore,
     SPORT_MODE_STATE_TOPICS,
@@ -82,8 +84,14 @@ class Go2ControlBridge(Node):
         key: bytes,
         *,
         datagram_config: ControlDatagramConfig | None = None,
+        observation_only: bool = False,
     ) -> None:
-        super().__init__("robot_scope_go2_control_bridge")
+        node_name = (
+            "robot_scope_go2_motion_observer"
+            if observation_only
+            else "robot_scope_go2_control_bridge"
+        )
+        super().__init__(node_name)
         control = profile.get("control", {})
         configured_lowstate = str(control.get("lowstate_topic", "/lowstate"))
         if configured_lowstate not in LOWSTATE_TOPICS:
@@ -95,6 +103,12 @@ class Go2ControlBridge(Node):
         if configured_sport_mode_state not in SPORT_MODE_STATE_TOPICS:
             raise ValueError("control.sport_mode_state_topic is not allowlisted")
         self._key = key
+        self._observation_only = bool(observation_only)
+        self._bridge_role = (
+            BRIDGE_ROLE_MOTION_OBSERVER
+            if self._observation_only
+            else BRIDGE_ROLE_CONTROL
+        )
         self._core = Go2BridgeCore(
             max_linear_x=control.get("max_linear_x", 0.30),
             max_linear_y=control.get("max_linear_y", 0.20),
@@ -143,12 +157,14 @@ class Go2ControlBridge(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
         )
-        self._sport_publisher = self.create_publisher(
-            Request,
-            SPORT_REQUEST_TOPIC,
-            reliable,
-            callback_group=self._callback_group,
-        )
+        self._sport_publisher = None
+        if not self._observation_only:
+            self._sport_publisher = self.create_publisher(
+                Request,
+                SPORT_REQUEST_TOPIC,
+                reliable,
+                callback_group=self._callback_group,
+            )
         if datagram_config is None:
             self._status_publisher = self.create_publisher(
                 String,
@@ -156,25 +172,29 @@ class Go2ControlBridge(Node):
                 reliable,
                 callback_group=self._callback_group,
             )
-            self._command_subscription = self.create_subscription(
-                String,
-                COMMAND_TOPIC,
-                self._command_callback,
-                reliable,
-                callback_group=self._callback_group,
-            )
+            self._command_subscription = None
+            if not self._observation_only:
+                self._command_subscription = self.create_subscription(
+                    String,
+                    COMMAND_TOPIC,
+                    self._command_callback,
+                    reliable,
+                    callback_group=self._callback_group,
+                )
         else:
             endpoint = ConnectedControlDatagram(datagram_config)
-            receiver = threading.Thread(
-                target=self._receive_datagram_commands,
-                args=(endpoint,),
-                name="control-datagram-command",
-                daemon=True,
-            )
             self._datagram_endpoint = endpoint
-            self._datagram_thread = receiver
             self._status_publisher = DatagramStringPublisher(endpoint)
-            self._command_subscription = endpoint
+            self._command_subscription = None
+            if not self._observation_only:
+                receiver = threading.Thread(
+                    target=self._receive_datagram_commands,
+                    args=(endpoint,),
+                    name="control-datagram-command",
+                    daemon=True,
+                )
+                self._datagram_thread = receiver
+                self._command_subscription = endpoint
         self._lowstate_subscription = (
             self.create_subscription(
                 LowState,
@@ -204,13 +224,19 @@ class Go2ControlBridge(Node):
             self._tick,
             callback_group=self._callback_group,
         )
-        self.get_logger().info(
-            "Go2 control watchdog ready; waiting for exactly one "
-            f"{self._lowstate_topic} publisher, one bridge-owned sport publisher, "
-            "no foreign named sport publishers, "
-            f"{self._core.expected_bare_sport_publishers} trusted bare Unitree "
-            "sport publishers, and one sport subscriber"
-        )
+        if self._observation_only:
+            self.get_logger().info(
+                "Go2 signed motion observer ready; no command receiver or "
+                "sport request publisher was created"
+            )
+        else:
+            self.get_logger().info(
+                "Go2 control watchdog ready; waiting for exactly one "
+                f"{self._lowstate_topic} publisher, one bridge-owned sport publisher, "
+                "no foreign named sport publishers, "
+                f"{self._core.expected_bare_sport_publishers} trusted bare Unitree "
+                "sport publishers, and one sport subscriber"
+            )
         if self._datagram_thread is not None:
             self._datagram_thread.start()
 
@@ -281,7 +307,7 @@ class Go2ControlBridge(Node):
 
     def _command_callback(self, message: String) -> None:
         with self._operation_lock:
-            if self._closing:
+            if self._closing or self._observation_only:
                 return
             self._accept_command(message)
 
@@ -333,6 +359,8 @@ class Go2ControlBridge(Node):
         )
 
     def _publish_request(self, request: SportRequest) -> None:
+        if self._observation_only or self._sport_publisher is None:
+            raise RuntimeError("motion observer cannot publish sport requests")
         message = Request()
         message.header.identity.api_id = int(request.api_id)
         message.parameter = request.parameter
@@ -363,9 +391,14 @@ class Go2ControlBridge(Node):
         snapshot.update(
             {
                 "type": "bridge_status",
+                "bridge_role": self._bridge_role,
                 "bridge_pid": os.getpid(),
-                "command_topic": COMMAND_TOPIC,
-                "request_topic": SPORT_REQUEST_TOPIC,
+                "command_topic": (
+                    None if self._observation_only else COMMAND_TOPIC
+                ),
+                "request_topic": (
+                    None if self._observation_only else SPORT_REQUEST_TOPIC
+                ),
                 "release_commit": self._release_commit,
                 "lowstate_topic": self._lowstate_topic,
                 "sport_mode_state": self._sport_mode_state.snapshot(now=now),
@@ -381,6 +414,21 @@ class Go2ControlBridge(Node):
                 },
             }
         )
+        if self._observation_only:
+            snapshot.update(
+                {
+                    "ready": False,
+                    "state": "observation_only",
+                    "accepted_command": {
+                        "deadman": False,
+                        "linear_x": 0.0,
+                        "linear_y": 0.0,
+                        "angular_z": 0.0,
+                    },
+                    "command_ack": None,
+                    "last_error": "",
+                }
+            )
         message = String()
         message.data = encode_signed(snapshot, self._key)
         try:
@@ -415,17 +463,18 @@ class Go2ControlBridge(Node):
             foreign_named_sport_publishers,
             bare_unitree_sport_publishers,
         ) = self._environment(now)
-        for request in self._core.tick(
-            now=now,
-            lowstate_age_s=lowstate_age,
-            lowstate_publishers=lowstate_publishers,
-            sport_subscribers=sport_subscribers,
-            sport_publishers=sport_publishers,
-            own_sport_publishers=own_sport_publishers,
-            foreign_named_sport_publishers=foreign_named_sport_publishers,
-            bare_unitree_sport_publishers=bare_unitree_sport_publishers,
-        ):
-            self._publish_request(request)
+        if not self._observation_only:
+            for request in self._core.tick(
+                now=now,
+                lowstate_age_s=lowstate_age,
+                lowstate_publishers=lowstate_publishers,
+                sport_subscribers=sport_subscribers,
+                sport_publishers=sport_publishers,
+                own_sport_publishers=own_sport_publishers,
+                foreign_named_sport_publishers=foreign_named_sport_publishers,
+                bare_unitree_sport_publishers=bare_unitree_sport_publishers,
+            ):
+                self._publish_request(request)
         if self._status_update_requested or now - self._last_status >= 0.25:
             self._publish_status(
                 now,
@@ -448,17 +497,18 @@ class Go2ControlBridge(Node):
                 return
             self._closing = True
             self._timer.cancel()
-            self._core.force_stop("bridge shutdown")
-            for _ in range(3):
-                try:
-                    self._publish_request(
-                        SportRequest(API_STOP_MOVE, "", "shutdown")
-                    )
-                except Exception as exc:
-                    self.get_logger().error(
-                        f"StopMove publish failed during shutdown: {exc}"
-                    )
-                time.sleep(0.04)
+            if not self._observation_only:
+                self._core.force_stop("bridge shutdown")
+                for _ in range(3):
+                    try:
+                        self._publish_request(
+                            SportRequest(API_STOP_MOVE, "", "shutdown")
+                        )
+                    except Exception as exc:
+                        self.get_logger().error(
+                            f"StopMove publish failed during shutdown: {exc}"
+                        )
+                    time.sleep(0.04)
             self._datagram_stop.set()
             endpoint = self._datagram_endpoint
             receiver = self._datagram_thread
@@ -499,6 +549,11 @@ def parse_args() -> argparse.Namespace:
         description="Robot Scope standalone Go2 control watchdog bridge"
     )
     parser.add_argument("--profile", required=True)
+    parser.add_argument(
+        "--observation-only",
+        action="store_true",
+        help="publish signed C4C motion evidence without any command endpoint",
+    )
     return parser.parse_args()
 
 
@@ -510,6 +565,12 @@ def main() -> None:
         raise SystemExit("control is disabled in the selected profile")
     if os.environ.get("ROBOT_SCOPE_CONTROL_ENABLED") != "1":
         raise SystemExit("ROBOT_SCOPE_CONTROL_ENABLED=1 is required")
+    if args.observation_only and os.environ.get(
+        "ROBOT_SCOPE_C4C_OBSERVATION_ONLY"
+    ) != "1":
+        raise SystemExit(
+            "ROBOT_SCOPE_C4C_OBSERVATION_ONLY=1 is required for observation-only mode"
+        )
     try:
         key = shared_key(os.environ.get("ROBOT_SCOPE_CONTROL_BRIDGE_KEY", ""))
         process_lock = acquire_process_lock()
@@ -547,7 +608,12 @@ def main() -> None:
     node: Go2ControlBridge | None = None
     executor: MultiThreadedExecutor | None = None
     try:
-        node = Go2ControlBridge(profile, key, datagram_config=datagram_config)
+        node = Go2ControlBridge(
+            profile,
+            key,
+            datagram_config=datagram_config,
+            observation_only=args.observation_only,
+        )
         executor = MultiThreadedExecutor(num_threads=2)
         executor.add_node(node)
         executor.spin()

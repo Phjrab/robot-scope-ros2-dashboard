@@ -1,0 +1,23 @@
+[Unit]
+Description=Robot Scope C4C signed motion observer (no control publisher)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=unitree
+WorkingDirectory=/home/unitree/project/robot-scope
+EnvironmentFile=/home/unitree/.config/robot-scope/control-bridge.env
+Environment=ROBOT_SCOPE_C4C_OBSERVATION_ONLY=1
+ExecStart=/home/unitree/project/robot-scope/scripts/run_go2_motion_observer_foxy.sh
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=2
+KillMode=control-group
+Environment=HOME=/home/unitree
+Environment=PYTHONUNBUFFERED=1
+
+# Deliberately no installation section: this diagnostic unit cannot be enabled at boot.

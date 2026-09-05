@@ -505,6 +505,37 @@ class Go2BridgeCoreTests(unittest.TestCase):
             SPORT_MODE_STATE_TOPICS,
         )
 
+    def test_observation_only_role_has_no_command_or_sport_request_endpoint(self):
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "robot_dashboard"
+            / "go2_control_bridge.py"
+        ).read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        bridge = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Go2ControlBridge"
+        )
+        methods = {
+            node.name: ast.unparse(node)
+            for node in bridge.body
+            if isinstance(node, ast.FunctionDef)
+        }
+        constructor = methods["__init__"]
+        tick = methods["_tick_locked"]
+        shutdown = methods["stop_safely"]
+        self.assertIn("if not self._observation_only", constructor)
+        self.assertIn("self._sport_publisher = None", constructor)
+        self.assertIn("if not self._observation_only", tick)
+        self.assertIn("if not self._observation_only", shutdown)
+        self.assertIn(
+            "motion observer cannot publish sport requests",
+            methods["_publish_request"],
+        )
+        self.assertIn("--observation-only", source)
+        self.assertIn("ROBOT_SCOPE_C4C_OBSERVATION_ONLY", source)
+
     def test_request_evidence_is_bounded_and_classifies_published_requests(self):
         evidence = SportRequestEvidence()
         empty = evidence.snapshot(now=10.0)

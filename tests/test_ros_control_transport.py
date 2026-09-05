@@ -191,6 +191,16 @@ class ControlTransportTests(unittest.TestCase):
             },
         )
 
+    def observation_transport(self):
+        return ControlTransport(
+            self.profile(),
+            environ={
+                "ROBOT_SCOPE_CONTROL_ENABLED": "1",
+                "ROBOT_SCOPE_CONTROL_BRIDGE_KEY": KEY,
+                "ROBOT_SCOPE_C4C_OBSERVATION_ONLY": "1",
+            },
+        )
+
     @staticmethod
     def status_payload(epoch="e" * 32, **overrides):
         payload = {
@@ -237,6 +247,40 @@ class ControlTransportTests(unittest.TestCase):
         }
         evidence.update(overrides)
         return evidence
+
+    def observation_request_evidence(self):
+        return self.request_evidence(
+            published_count=0,
+            stop_count=0,
+            move_count=0,
+            zero_move_count=0,
+            nonzero_move_count=0,
+            malformed_move_count=0,
+            action_count=0,
+            other_count=0,
+            last_api_id=None,
+            last_publish_age_ms=None,
+            motion_run_id=0,
+            motion_run_active=False,
+            motion_run_nonzero_move_count=0,
+        )
+
+    def observation_status(self, **overrides):
+        payload = self.status_payload(
+            bridge_role="motion_observer",
+            state="observation_only",
+            ready=False,
+            command_topic=None,
+            request_topic=None,
+            sport_publishers=0,
+            own_sport_publishers=0,
+            request_evidence=self.observation_request_evidence(),
+            accepted_command=self.accepted_command(),
+            release_commit="a" * 40,
+            motion_observation=self.motion_observation(),
+        )
+        payload.update(overrides)
+        return payload
 
     @staticmethod
     def sport_mode_state(**overrides):
@@ -1225,6 +1269,66 @@ class ControlTransportTests(unittest.TestCase):
                 )["quality"],
                 value["quality"],
             )
+
+    def test_observation_only_status_is_opt_in_authenticated_and_never_ready(self):
+        transport = self.observation_transport()
+        publish_outputs = mock.Mock()
+        transport._publish_outputs_result = publish_outputs
+
+        self.send_status(transport, **self.observation_status())
+
+        bridge = transport.raw_snapshot()["bridge"]
+        self.assertEqual(bridge["bridge_role"], "motion_observer")
+        self.assertTrue(bridge["authenticated"])
+        self.assertTrue(bridge["observation_connected"])
+        self.assertFalse(bridge["ready"])
+        self.assertFalse(bridge["connected"])
+        self.assertFalse(bridge["available"])
+        self.assertFalse(transport.manager.snapshot()["ready"])
+        self.assertTrue(
+            all(not call.args[0] for call in publish_outputs.call_args_list)
+        )
+
+    def test_observation_only_status_without_local_opt_in_is_rejected(self):
+        transport = self.transport()
+        self.send_status(transport, **self.observation_status())
+        bridge = transport.raw_snapshot()["bridge"]
+        self.assertEqual(bridge["state"], "error")
+        self.assertFalse(bridge["authenticated"])
+        self.assertIn("explicit local opt-in", bridge["message"])
+
+    def test_observation_only_status_fails_closed_on_any_control_evidence(self):
+        cases = (
+            {"ready": True},
+            {"command_topic": CONTROL_COMMAND_TOPIC},
+            {"request_topic": "/api/sport/request"},
+            {"own_sport_publishers": 1, "sport_publishers": 1},
+            {
+                "command_ack": self.command_ack(
+                    {"source_id": "s" * 16, "seq": 1, "type": "stop"}
+                )
+            },
+            {"accepted_command": self.accepted_command(deadman=True)},
+            {
+                "request_evidence": {
+                    **self.observation_request_evidence(),
+                    "stop_count": 1,
+                    "published_count": 1,
+                    "last_api_id": 1003,
+                    "last_publish_age_ms": 1,
+                }
+            },
+        )
+        for changes in cases:
+            with self.subTest(changes=changes):
+                transport = self.observation_transport()
+                self.send_status(
+                    transport,
+                    **self.observation_status(**changes),
+                )
+                bridge = transport.raw_snapshot()["bridge"]
+                self.assertEqual(bridge["state"], "error")
+                self.assertFalse(bridge["authenticated"])
 
     def test_signed_fresh_battery_telemetry_is_projected_without_motion_readiness(self):
         transport = self.transport(expected_bare_sport_publishers=9)

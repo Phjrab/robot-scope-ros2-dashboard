@@ -448,6 +448,26 @@ class Go2SystemdExampleTests(unittest.TestCase):
             r"ROBOT_SCOPE_CONTROL_BRIDGE_KEY=.+",
         )
 
+    def test_c4c_motion_observer_is_manual_foxy_udp_and_has_no_boot_install(self):
+        unit = (
+            ROOT / "deploy" / "robot-scope-c4c-motion-observer.service.example"
+        ).read_text(encoding="utf-8")
+        runner = (
+            ROOT / "scripts" / "run_go2_motion_observer_foxy.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("User=unitree", unit)
+        self.assertIn("run_go2_motion_observer_foxy.sh", unit)
+        self.assertNotIn("[Install]", unit)
+        self.assertNotIn("WantedBy=", unit)
+        self.assertNotIn("robot-scope-control-bridge.service", unit)
+        self.assertIn('ROBOT_SCOPE_C4C_OBSERVATION_ONLY:-0}', runner)
+        self.assertIn('ROBOT_SCOPE_CONTROL_TRANSPORT:-}', runner)
+        self.assertIn('!= "udp"', runner)
+        self.assertIn("setup_go2_ros2_foxy.sh", runner)
+        self.assertIn("--observation-only", runner)
+        self.assertNotIn("systemctl", runner)
+
 
 class Go2ControlBridgeSupervisorTests(unittest.TestCase):
     def test_bridge_runner_starts_only_after_interface_waiter_succeeds(self):

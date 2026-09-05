@@ -33,6 +33,8 @@ from ..control_protocol import (
 from ..go2_bridge import (
     API_MOVE,
     API_STOP_MOVE,
+    BRIDGE_ROLE_CONTROL,
+    BRIDGE_ROLE_MOTION_OBSERVER,
     RELEASE_COMMIT_RE,
     MOTION_OBSERVATION_CALLBACK_CLOCK,
     MOTION_OBSERVATION_COORDINATE_SPACE,
@@ -113,6 +115,10 @@ class ControlTransport:
                 "from 0 to 64"
             )
         self.expected_bare_sport_publishers = expected_bare_sport_publishers
+        self.observation_only_allowed = (
+            str(environment.get("ROBOT_SCOPE_C4C_OBSERVATION_ONLY", "")).strip()
+            == "1"
+        )
 
         try:
             self.bridge_key: Optional[bytes] = shared_key(
@@ -320,6 +326,27 @@ class ControlTransport:
             self.status_callback(message)
 
     @staticmethod
+    def status_bridge_role(payload: Mapping[str, Any]) -> str:
+        """Validate whether signed status owns control or observation only."""
+
+        role = payload.get("bridge_role", BRIDGE_ROLE_CONTROL)
+        if role not in {BRIDGE_ROLE_CONTROL, BRIDGE_ROLE_MOTION_OBSERVER}:
+            raise ControlProtocolError("bridge role is invalid")
+        command_topic = payload.get("command_topic")
+        request_topic = payload.get("request_topic")
+        if role == BRIDGE_ROLE_MOTION_OBSERVER:
+            if command_topic is not None or request_topic is not None:
+                raise ControlProtocolError(
+                    "motion observer advertised a command endpoint"
+                )
+        else:
+            if command_topic not in {None, CONTROL_COMMAND_TOPIC}:
+                raise ControlProtocolError("bridge command topic is invalid")
+            if request_topic not in {None, "/api/sport/request"}:
+                raise ControlProtocolError("bridge request topic is invalid")
+        return role
+
+    @staticmethod
     def status_readiness(
         payload: Dict[str, Any],
         *,
@@ -330,6 +357,7 @@ class ControlTransport:
 
         if payload.get("type") != "bridge_status":
             raise ControlProtocolError("unexpected bridge status type")
+        role = ControlTransport.status_bridge_role(payload)
         request_evidence = ControlTransport.status_request_evidence(payload)
         ControlTransport.status_sport_mode_state(payload)
         ControlTransport.status_release_commit(payload)
@@ -408,22 +436,59 @@ class ControlTransport:
             lowstate_ready = (
                 float(lowstate_age_ms) <= float(lowstate_timeout_s) * 1_000.0
             )
-        bridge_ready = (
-            reported_ready
-            and subscribers == 1
-            and publisher_counts["own_sport_publishers"] == 1
-            and publisher_counts["foreign_named_sport_publishers"] == 0
-            and publisher_counts["bare_unitree_sport_publishers"]
-            == expected_bare_sport_publishers
-            and publishers == 1
-            and (
-                not request_evidence
-                or (
-                    request_evidence["malformed_move_count"] == 0
-                    and request_evidence["other_count"] == 0
+        if role == BRIDGE_ROLE_MOTION_OBSERVER:
+            zero_evidence_fields = (
+                "published_count", "stop_count", "move_count",
+                "zero_move_count", "nonzero_move_count",
+                "malformed_move_count", "action_count", "other_count",
+                "motion_run_id", "motion_run_nonzero_move_count",
+            )
+            zero_command = bool(
+                accepted_command
+                and accepted_command["deadman"] is False
+                and all(
+                    accepted_command[field] == 0.0
+                    for field in ("linear_x", "linear_y", "angular_z")
                 )
             )
-        )
+            if (
+                reported_ready
+                or payload.get("state") != "observation_only"
+                or publisher_counts["own_sport_publishers"] != 0
+                or publisher_counts["foreign_named_sport_publishers"] != 0
+                or publisher_counts["bare_unitree_sport_publishers"]
+                != expected_bare_sport_publishers
+                or not request_evidence
+                or request_evidence.get("last_api_id") is not None
+                or request_evidence.get("motion_run_active") is not False
+                or any(
+                    request_evidence.get(field) != 0
+                    for field in zero_evidence_fields
+                )
+                or command_ack
+                or not zero_command
+            ):
+                raise ControlProtocolError(
+                    "motion observer control isolation is invalid"
+                )
+            bridge_ready = False
+        else:
+            bridge_ready = (
+                reported_ready
+                and subscribers == 1
+                and publisher_counts["own_sport_publishers"] == 1
+                and publisher_counts["foreign_named_sport_publishers"] == 0
+                and publisher_counts["bare_unitree_sport_publishers"]
+                == expected_bare_sport_publishers
+                and publishers == 1
+                and (
+                    not request_evidence
+                    or (
+                        request_evidence["malformed_move_count"] == 0
+                        and request_evidence["other_count"] == 0
+                    )
+                )
+            )
         return bridge_ready, lowstate_ready, bridge_epoch
 
     @staticmethod
@@ -954,6 +1019,14 @@ class ControlTransport:
                 key,
                 max_age_s=max(1.0, self.status_timeout_s * 2.0),
             )
+            bridge_role = self.status_bridge_role(payload)
+            if (
+                bridge_role == BRIDGE_ROLE_MOTION_OBSERVER
+                and not self.observation_only_allowed
+            ):
+                raise ControlProtocolError(
+                    "motion observer status requires explicit local opt-in"
+                )
             bridge_ready, lowstate_ready, bridge_epoch = self.status_readiness(
                 payload,
                 lowstate_timeout_s=self.lowstate_timeout_s,
@@ -972,6 +1045,11 @@ class ControlTransport:
 
         now = time.monotonic()
         available = bridge_ready and lowstate_ready
+        observation_connected = bool(
+            bridge_role == BRIDGE_ROLE_MOTION_OBSERVER
+            and lowstate_ready
+            and motion_observation.get("quality") == "READY"
+        )
         status = dict(payload)
         status["telemetry"] = telemetry
         status["request_evidence"] = request_evidence
@@ -1001,9 +1079,12 @@ class ControlTransport:
                 "authenticated": True,
                 "connected": available,
                 "available": available,
+                "observation_connected": observation_connected,
                 "message": (
                     "signed Go2 bridge ready"
                     if available
+                    else "signed Go2 motion observer ready"
+                    if observation_connected
                     else str(payload.get("last_error") or "Go2 bridge is not ready")
                 ),
             }
@@ -1036,6 +1117,11 @@ class ControlTransport:
             if previous_epoch and previous_epoch != bridge_epoch:
                 # Revoke the old lease and publish with the newly observed epoch.
                 self.set_readiness(bridge_ready=False, lowstate_ready=False)
+            if bridge_role == BRIDGE_ROLE_MOTION_OBSERVER:
+                # Authenticated observation never enters command handoff or
+                # control readiness. The manager remains fail-closed.
+                self.set_readiness(bridge_ready=False, lowstate_ready=False)
+                return
             if self.transport_mode == CONTROL_TRANSPORT_UDP:
                 with self.transport_lock:
                     pending = self._datagram_sync_pending

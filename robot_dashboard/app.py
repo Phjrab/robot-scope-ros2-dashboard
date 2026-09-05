@@ -433,7 +433,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "ready",
             "authenticated",
             "connected",
-            "available",
+            "available", "bridge_role", "observation_connected",
             "status_age_s",
             "lowstate_age_ms",
             "sport_subscribers",
