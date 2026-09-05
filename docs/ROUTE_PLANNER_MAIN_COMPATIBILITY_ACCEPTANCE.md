@@ -56,3 +56,41 @@ limited to the external dashboard host; onboard Jetson deployment is deferred.
 
 No Jetson command, service transition, Navigation goal, Mission start, lease,
 ARM, deadman or robot motion occurred during repository compatibility testing.
+
+## External dashboard deployment
+
+The merge commit `3d62e254decaafda9b793bb43901141fd237ae48`
+passed CI run `33969563051` on both supported Ubuntu/Python jobs before
+deployment. Its Git archive SHA-256 is
+`3825e035d06eca5be82d84bf676f2c4199b982dbcf38aac490b72da55be89a5f`.
+
+Only the external dashboard Jetson at `192.168.50.10` was changed. The archive
+was verified before extraction into the immutable release directory
+`/home/jetson_orin_nano/releases/robot-scope/3d62e254decaafda9b793bb43901141fd237ae48`.
+The stable `robot-scope` symlink was switched atomically from exact release
+`10a7fa9cec2c329f2c50edc9ad98de13a22689da`; the rollback symlink
+`robot-scope.pre-3d62e25` preserves that release. The dashboard-only lifecycle
+API reported no blockers and restarted `robot-scope.service`. The active
+symlink and process working directory then both resolved to the new exact
+release.
+
+Post-deployment verification established:
+
+- dashboard service active and root page HTTP 200;
+- deployed OpenAPI inventory: 104 HTTP operations, 103 under `/api/v1/`, 60
+  mutations and 21 Route Planner operations;
+- deployed Route Planner panel SHA-256
+  `2bc0bcd8599287fe0e41aa3777f21d50811d72ff1815f2f4c6cbc042632c1cd8`,
+  identical to the committed source;
+- Route Planner available in `EMPTY` state with `motion_authority=false`;
+- perception explicitly `UNKNOWN`/not fresh and rehearsal disabled/inactive
+  with side-effect count zero;
+- no Control lease, deadman or non-zero manager command;
+- Navigation pipeline, localization session and goal all idle;
+- Mapping pipeline and operation idle.
+
+The robot was offline during this external-only deployment, so the Control
+Bridge and XT16 preview remained unavailable. This is not a Route Planner
+failure and no attempt was made to start either one. The onboard Jetson was
+not contacted, modified, restarted or pointed at this release; its deployment
+remains explicitly deferred.
