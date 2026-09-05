@@ -2,14 +2,15 @@
 
 Date: 2026-09-05
 
-Status: `S0/S1 PASS — STOCK-1 AWAITING FRESH APPROVAL`
+Status: `STOCK-1 PASS — MP-030 AWAITING FRESH APPROVAL`
 
 This is a stationary-baseline checkpoint report, not a motion acceptance
-report. The C4C release was activated through the fixed service lifecycle and
-the S0/S1 read-only observations passed, but no C4C stock motion, Bridge
-micro-probe, Nav2 goal, lease, ARM, deadman or non-zero command has been
-executed. Items that require movement evidence remain `NOT_RUN` or `BLOCKED`;
-no locomotion root-cause class has been selected.
+report. The C4C release was activated through the fixed service lifecycle,
+the S0/S1 read-only observations passed and one human-operated STOCK-1 motion
+was observed. No Bridge micro-probe, Nav2 goal, Robot Scope lease, ARM,
+deadman or Robot Scope non-zero command has been executed. Items that require
+Bridge movement evidence remain `NOT_RUN` or `BLOCKED`; no locomotion
+root-cause class has been selected.
 
 ## 1. Repository and deployment identity
 
@@ -169,15 +170,55 @@ does not by itself make SportModeState authoritative for physical movement.
 
 ## 5. Stock baseline
 
-`NOT_RUN`.
+`PASS` for stock-controller locomotion, with an operator-distance procedure
+deviation recorded separately.
 
-STOCK-1 requires the Bridge to complete StopMove cleanup and become inactive,
-Nav2 and every Robot Scope lease to remain inactive, the robot to be standing
-in a clear corridor of at least 0.40 m, a physical remote/E-stop and safety
-operator to be ready, and only the read-only SportModeState observer to run.
-After those facts are shown, a new confirmation is required for one
-human-operated 0.10–0.20 m forward attempt. Codex will not generate the stock
-motion command.
+Preflight established exact release `103ed69`, Bridge inactive, Nav2 idle, no
+Robot Scope request publisher, ten expected bare request publishers, one
+`/sportmodestate` publisher, robot standing, clear corridor, physical
+remote/E-stop ready and safety operator present. Codex created no motion
+command; the operator used the stock remote.
+
+The first 20-second observer run completed with no remote input because the
+operator could not act inside the window. It was retained as valid read-only
+no-motion evidence but was not counted as the authorized motion attempt. A
+fresh retry instruction then produced the following motion evidence:
+
+| Evidence | STOCK-1 result |
+| --- | ---: |
+| Observation quality | `PASS` |
+| Actual duration | 20.000533 s |
+| Samples / rejected | 5,954 / 0 |
+| Observed rate | 297.692070 Hz |
+| Maximum sample gap | 0.020466 s |
+| Final sample age | 0.000122 s |
+| Publisher count min/max | 1 / 1 |
+| Physical observation | robot moved approximately 0.30–0.40 m and then fully stopped |
+| Maximum vector speed | 1.033427 m/s |
+| Position span x/y/z | 0.276652 / 0.350337 / 0.013701 m |
+| First-to-last x/y/z | -0.272898 / -0.343941 / 0.002611 m |
+| First-to-last vector magnitude | approximately 0.439 m |
+| Mode/gait/error | remained `0 / 0 / 100`; zero transitions |
+
+Private evidence:
+
+- no-input run: `/home/unitree/.robot-scope/locomotion-observations/go2-locomotion-stock-1-20260905T005420.281355Z.json`
+- motion run: `/home/unitree/.robot-scope/locomotion-observations/go2-locomotion-stock-1-20260905T005625.741811Z.json`
+- post-motion S0: `/home/unitree/.robot-scope/locomotion-observations/go2-locomotion-s0-20260905T005926.805755Z.json`
+
+The approved target was 0.10–0.20 m. The operator reported intentionally
+holding the stock input longer and estimated 0.30–0.40 m of physical travel;
+the larger displacement is therefore an operator procedure deviation, not
+evidence of autonomous overshoot. The stock-controller locomotion question is
+nevertheless answered: the Go2 body can walk through its stock control path.
+
+The post-motion 10-second S0 observation passed with 2,980 samples at
+297.988914 Hz, no rejected samples, no mode/gait transition, 0.014212-second
+maximum gap and 0.002086-second final age. Position span was
+0.000816 / 0.000461 / 0.001155 m and first-to-last displacement was
+0.000691 / -0.000249 / 0.000102 m, below the existing 5 mm movement
+significance boundary. The operator confirmed the robot was fully stopped.
+Bridge remained inactive and the observer left no process or command endpoint.
 
 ## 6. Bridge probe results
 
@@ -194,12 +235,18 @@ must stop after the first physical success.
 
 ## 7. Mode, gait and error changes
 
-The preceding C4B run and both C4C stationary observations reported `mode=0`,
-`gait_type=0`, `error_code=100`. S0 and S1 each recorded zero mode/gait
-transitions. Their maximum vector speed was 0.000001 m/s and all per-axis
-position spans stayed below 0.36 mm. This is the measured stationary noise
-floor; STOCK-1 remains `NOT_RUN`, so SportModeState authority and time-to-gait
-are not yet established.
+The preceding C4B run, both initial C4C stationary observations, the successful
+STOCK-1 movement and the post-motion stationary observation all reported
+`mode=0`, `gait_type=0`, `error_code=100`, with zero mode/gait transitions.
+During STOCK-1, however, the same message stream reported 1.033427 m/s maximum
+vector speed and approximately 0.439 m first-to-last position displacement,
+while the operator observed approximately 0.30–0.40 m physical movement.
+
+Therefore `/sportmodestate` is a live body-state evidence source for velocity
+and position on this deployed firmware, but its mode/gait fields are not an
+authoritative locomotion-state indicator. No time-to-gait or gait-entry enum
+transition can be derived from this evidence. `error_code=100` remains opaque
+and unchanged; no meaning is inferred.
 
 The new read-only observer has three fixed modes: S0 for 10 seconds, S1 for
 10 seconds and STOCK-1 for 20 seconds. It prints `OBSERVER_READY` only after
@@ -227,20 +274,27 @@ terminal/session log.
 
 ## 8. Actual movement evidence
 
-C4C physical movement: `NOT_RUN`.
+C4C stock-controller physical movement: `PASS`.
 
-The preceding C4B operator observation was no movement, and its FAST-LIO
-variation was below the 5 mm significance boundary. That evidence does not
-replace the required C4C stock baseline or a fixed Bridge micro-probe. A future
-movement decision must combine the safety operator's observation with
-SportModeState/position or validated localization displacement.
+The operator observed approximately 0.30–0.40 m of intentional stock-remote
+movement and confirmed the robot fully stopped. SportModeState independently
+reported approximately 0.439 m first-to-last displacement and a 1.033427 m/s
+maximum vector speed. The post-motion S0 position span returned below 1.2 mm,
+inside the existing 5 mm significance boundary.
+
+This proves the body and stock controller can produce locomotion. It does not
+prove that the Robot Scope Bridge request path is accepted. The preceding C4B
+operator observation remains no movement despite 59 signed Move requests; a
+fixed Bridge micro-probe is still required to isolate that boundary.
 
 ## 9. Threshold interval
 
-No gait-entry threshold interval has been established.
+No Bridge gait-entry threshold interval has been established.
 
 - prior highest observed non-moving signed x: `0.0291743403 m/s` in the Nav2
   C4B chain;
+- stock-controller movement: confirmed, but its command magnitude is neither
+  exposed nor comparable to the Bridge's physical x request;
 - highest confirmed non-moving fixed Bridge probe: `UNKNOWN`;
 - lowest confirmed moving Bridge probe: `UNKNOWN`;
 - uncertainty interval: `UNKNOWN`;
@@ -257,9 +311,9 @@ No specific root-cause class is selected. The Section 17 checkpoint value is:
 ROOT_CAUSE=UNRESOLVED
 ```
 
-The next minimum discriminating evidence is STOCK-1. If it passes, MP-030 may
-be proposed under a separate approval. No Nav2 parameter or safety threshold
-is changed without that evidence.
+STOCK-1 passed, so the next minimum discriminating evidence is MP-030 under a
+new, separate approval. No Nav2 parameter or safety threshold is changed
+without fixed Bridge-probe evidence.
 
 ## 11. Changed code
 
@@ -357,24 +411,26 @@ The post-S1 cleanup audit found:
   expected ten bare publishers;
 - S0 and final inactive graph checks showed the expected ten bare request
   publishers, one subscriber and no Robot Scope publisher;
-- S0/S1 private evidence exists at the exact paths in Section 4 and the
-  observer left no command endpoint or process residue;
+- S0/S1 and STOCK-1 private evidence exists at the exact paths in Sections 4
+  and 5 and the observer left no command endpoint or process residue;
 - both S0 and S1 showed mode/gait `0/0`, error code `100`, no transition and
   sub-millimetre stationary variation, without inferring firmware semantics.
 
 The release activation and S1 intentionally stopped and started the Bridge and
 restarted the dashboard. They did not acquire a lease, arm, engage deadman,
 send a non-zero command, start Navigation or send a goal. No physical movement
-was commanded or observed during S0/S1. The final Bridge-inactive state is
-deliberate preparation for the separately gated STOCK-1 baseline.
+was commanded or observed during S0/S1. STOCK-1 used only the human-operated
+stock remote while the Bridge remained inactive. Post-motion S0 and the
+operator both confirmed final stop; the Bridge remained inactive and the
+request graph returned to ten bare publishers with no Robot Scope publisher.
 
 ## 14. Next prompt
 
-No C4E prompt has been created. The hardware-free supervisor tests and S0/S1
-stationary baselines are green, and the exact release is deployed. The next
-permitted motion gate is the exact STOCK-1 procedure and a fresh user
-confirmation. MP-030 can be
-proposed only after STOCK-1 PASS; every higher probe requires its own approval.
+No C4E prompt has been created. The hardware-free supervisor tests, S0/S1
+stationary baselines and STOCK-1 locomotion baseline are green, and the exact
+release is deployed. The next permitted motion gate is MP-030, which requires
+its own fresh approval. Every higher probe also requires a separate approval,
+and the ladder stops after the first successful Bridge-driven movement.
 
 `docs/TRACK_C4E_SUPERVISED_NAV2_RETRY_PROMPT.md` may be written only after C4C
 has evidence for a root-cause class and a characterized effective command.
@@ -404,25 +460,27 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | STARTUP_ZERO_FIX | PASS |
 | OBSERVER_SOFTWARE | PASS |
 | STATIONARY_BODY_BASELINE | PASS |
-| STOCK_CONTROLLER_BASELINE | NOT_RUN |
+| STOCK_CONTROLLER_BASELINE | PASS |
 | MP_030 | NOT_RUN |
 | MP_050 | NOT_RUN |
 | MP_080 | NOT_RUN |
 | MP_100 | NOT_RUN |
 | GAIT_ENTRY_THRESHOLD | BLOCKED |
-| SPORT_MODE_AUTHORITATIVE | BLOCKED |
+| SPORT_MODE_AUTHORITATIVE | FAIL |
 | GO2_REQUEST_ACCEPTANCE | BLOCKED |
 | NAV2_SCALING_ROOT_CAUSE | BLOCKED |
 | SOFTWARE_CORRECTION | NOT_RUN |
 | STATIONARY_SOAK | NOT_RUN |
 | NAV2_GOAL | NOT_RUN |
-| ROBOT_MOTION | NOT_RUN |
+| ROBOT_MOTION | PASS |
 | CLEANUP | PASS |
 
 `STARTUP_ZERO_FIX=PASS` now covers the deployed full-SHA release.
-`CLEANUP=PASS` means release activation and S0/S1 left no session, lease,
-deadman, non-zero command, motion-run or observer residue. It does not claim
-physical motion acceptance.
+`SPORT_MODE_AUTHORITATIVE=FAIL` is limited to the mode/gait fields as a
+locomotion-state indicator: the position and velocity fields did reflect the
+operator-observed movement. `CLEANUP=PASS` means release activation, S0/S1 and
+STOCK-1 left no Robot Scope session, lease, deadman, non-zero command,
+motion-run or observer residue.
 
 ## 17. Final decision
 
@@ -430,7 +488,7 @@ physical motion acceptance.
 ROOT_CAUSE=UNRESOLVED
 ```
 
-This value records insufficient movement evidence, not a diagnosis. The next
-minimum motion probe is STOCK-1 under a new, explicit approval. No C4E prompt,
-software correction, Nav2 retry or Bridge motion escalation is authorized by
-this checkpoint.
+This value records insufficient Bridge-acceptance evidence, not a diagnosis.
+Stock locomotion is confirmed; the next minimum motion probe is MP-030 under a
+new, explicit approval. No C4E prompt, software correction, Nav2 retry or
+higher Bridge motion probe is authorized by this checkpoint.
