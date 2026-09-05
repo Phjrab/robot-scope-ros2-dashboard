@@ -207,3 +207,51 @@ significance threshold in dynamic mode. This closes the false-positive result
 without increasing the 0.30 m dynamic observation bound or changing any
 command-path guard. A new dynamic attempt requires a fresh exact-release
 deployment and a new supervised approval.
+
+### `81b1f5d` deployment and second dynamic-window timing failure
+
+After CI run `33948786832` passed on both supported Ubuntu/Python jobs, the
+operator separately approved deployment of exact commit
+`81b1f5d775be7983a7f6ab7a3f981682f1c2b2da`. Its Git archive SHA-256 was
+`38f28d7a0008d702ad2bdc42a0d6d18572f3ba22cc8c31020f2d60da42db130b`.
+Both hosts verified that archive before extracting immutable release
+directories, and both active release links were changed from `a09264c...` to
+`81b1f5d...`. Dedicated `robot-scope.pre-81b1f5d` rollback links preserve the
+previous `a09264c...` release.
+
+Restarting the external dashboard activated the existing production policy
+that automatically starts the normal Control Bridge. This was outside the
+approved final state but did not create a non-zero command: the Bridge
+reported no lease or deadman, exact-zero accepted command, zero Move/action
+requests and only repeated StopMove requests. It was immediately stopped
+through the existing dashboard lifecycle API and remained `inactive/dead`.
+The dashboard continued from the exact `81b1f5d...` release. This event is not
+motion evidence and does not relax the requirement to keep the normal Bridge
+inactive during a stock-controller observation.
+
+Following a fresh supervised dynamic-observation approval, the manual
+observation-only process ran from exact release `81b1f5d...`. Preflight showed
+role `motion_observer`, source quality `READY`, one source subscriber, zero
+Robot Scope Sport request publishers, ten trusted bare Unitree publishers,
+zero request evidence, no lease or deadman and exact-zero accepted command.
+The corrected 20-second checker rejected the run with
+`dynamic observation did not reach significant displacement`; therefore no
+PASS evidence file was written and the result is `TIMING_FAILURE`, not dynamic
+qualification.
+
+The signed snapshot immediately before the operator signal was
+`(0.005040, -0.002299) m`. The last signed snapshot retained before observer
+cleanup was `(0.074916, -0.093066) m`, a planar difference of `0.114548 m`.
+That difference is consistent with the approved stock-controller movement
+having occurred before the checker's first qualified baseline or after its
+20-second sampling window. It does not prove movement timing inside that
+window and cannot be promoted to signed dynamic end-to-end PASS. The operator
+subsequently confirmed physical stop.
+
+The observer was stopped after the rejected run. The normal Bridge remained
+`inactive/dead`; Navigation, localization and goal remained idle; lease,
+deadman and Robot Scope non-zero command remained absent. The next attempt
+must start the checker in the background, allow it to collect its stationary
+baseline, and only then issue the human-visible move signal. It requires a new
+supervised approval. `DYNAMIC_OBSERVATION_VALIDATED` remains
+`PARTIAL_SOURCE_ONLY` and `MOTION_USE_APPROVED` remains `NO`.
