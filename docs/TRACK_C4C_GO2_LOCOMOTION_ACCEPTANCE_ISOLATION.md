@@ -529,7 +529,7 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | C4C_SIGNED_DYNAMIC_END_TO_END | PASS — exact `81b1f5d` observation-only path, no Robot Scope motion |
 | C4C_SIGNED_OBSERVATION_ONLY_SOFTWARE | PASS |
 | C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT | PASS — stationary and dynamic manual-process paths; latest exact release `81b1f5d` |
-| C4C_MOTION_OBSERVATION_USE | PASS — MP-030 only; fresh deployment and approval still required |
+| C4C_MOTION_OBSERVATION_USE | PASS — MP-030 only; exact `6b1bd29` deployed, fresh motion approval required |
 | NAV2_GOAL | NOT_RUN |
 | ROBOT_MOTION | PASS |
 | CLEANUP | PASS |
@@ -583,8 +583,10 @@ age. Request evidence remained zero, the operator confirmed final physical
 stop, and the observer was removed afterward. The private evidence SHA-256 is
 `59cdeb73116fc879b1d3f8d04a9ddc44db18c88f049f722743dc735b0680525b`.
 This qualifies the C4C observation source and opens only the software
-source-use gate. MP-030 and all higher probes remain unexecuted and require a
-new exact-release deployment plus fresh safety approval.
+source-use gate. Exact source-gate release `6b1bd29...` was subsequently
+deployed to both hosts as recorded in
+`docs/C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT.md`. MP-030 and all higher probes
+remain unexecuted and require fresh safety approval.
 
 ## 19. Signed dynamic qualification and focused source-use gate
 
@@ -617,6 +619,14 @@ process absent, XT16 relay active, Navigation/localization/goal idle, no lease
 or deadman and exact-zero manager and accepted command. The retained stale
 observer snapshot contains zero published, Move, nonzero-Move and action
 requests. It is retained as evidence and is not treated as a live Bridge.
+
+The subsequent source-gate deployment moved both release symlinks and the
+external dashboard process cwd to exact
+`6b1bd29ed21d66726e6843c57cdfaedb7370652b`. Its automatic normal-Bridge
+startup was immediately cleaned up through the fixed lifecycle API after
+showing StopMove-only request evidence. Final Bridge state is
+`inactive/dead`, Navigation/localization/goal remain idle, and rollback links
+on both hosts preserve exact release `81b1f5d...`.
 
 Current regression results for the focused gate are:
 

@@ -288,3 +288,60 @@ authorize MP-030 by itself. A new exact-release deployment and a fresh MP-030
 safety approval remain mandatory. The live selector permits only MP-030;
 MP-050/080/100 stay code-gated pending review of the preceding probe, and Nav2
 goals remain unexecuted.
+
+## `6b1bd29` MP-030 source-gate deployment
+
+After CI run `33950549320` passed on Ubuntu 22.04/Python 3.10 and Ubuntu
+24.04/Python 3.12, the operator approved continuation to the exact source-gate
+release. Commit `6b1bd29ed21d66726e6843c57cdfaedb7370652b` was exported as
+one Git archive with SHA-256
+`3aab31b92ef5f4973d5bf93663914ebe61e7069d160467df044d154d033a1536`.
+Both hosts verified the same archive before extraction into:
+
+- external Jetson:
+  `/home/jetson_orin_nano/releases/robot-scope/6b1bd29ed21d66726e6843c57cdfaedb7370652b`;
+- robot Jetson:
+  `/home/unitree/releases/robot-scope/6b1bd29ed21d66726e6843c57cdfaedb7370652b`.
+
+The deployed micro-probe SHA-256 is
+`54c1ed3c7a6863ecf3206c5cdee2a48879392161087d33c5d9442b24ca503ea3`
+and its focused test SHA-256 is
+`160b03a58e776625d3f48d3e585fa3ab0df093d9df4dcc15deb659722eeed0cd`.
+Both fingerprints matched the repository and both deployed copies.
+
+Dedicated `robot-scope.pre-6b1bd29` symlinks on both hosts preserve rollback
+to exact release `81b1f5d775be7983a7f6ab7a3f981682f1c2b2da`. The robot release
+pointer was switched first while the Control Bridge was `inactive/dead`; no
+robot-side service was started or restarted for that pointer change.
+
+The external release pointer was then switched. A direct non-interactive
+dashboard restart was unavailable because that shell has no passwordless
+generic `systemctl restart` authority, so the operation stopped without
+retrying or requesting a password. The existing fixed dashboard lifecycle API
+reported no blockers and scheduled the restart through its allowlisted helper.
+The new dashboard process cwd and active symlink both resolved to the exact
+`6b1bd29...` release.
+
+Dashboard startup applied the existing production policy that automatically
+starts the normal Control Bridge. Before cleanup the signed Bridge reported
+exact release `6b1bd29...`, no lease or deadman, exact-zero manager and
+accepted commands, and request evidence `published=32`, `stop=32`, `move=0`,
+`nonzero_move=0`, `action=0`. It was immediately stopped through the fixed
+dashboard lifecycle API. The terminal signed snapshot recorded 35 StopMove
+requests and still zero Move, nonzero-Move and action requests.
+
+Final state:
+
+- external dashboard active with process cwd on exact `6b1bd29...`;
+- robot and external release symlinks both on exact `6b1bd29...`;
+- normal Control Bridge `inactive/dead` and observation-only process absent;
+- lease inactive, deadman false, manager and accepted command exact zero;
+- Navigation, localization and goal idle;
+- XT16 wireless relay left active in its pre-existing state;
+- external exact-release micro-probe dry-run completed with
+  `status=DRY_RUN` and no physical motion;
+- MP-030, higher probes and Nav2 goal were not executed.
+
+The deployment opens only the technical prerequisite for a later MP-030. A
+fresh supervised MP-030 approval remains required and cannot be inferred from
+the deployment instruction or any earlier motion/observation approval.
