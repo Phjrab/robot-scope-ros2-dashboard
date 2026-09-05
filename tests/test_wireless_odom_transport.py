@@ -326,6 +326,11 @@ class RuntimeContractTests(unittest.TestCase):
                 BASE_REALTIME + protocol.MAX_FUTURE_SKEW_NS + 1,
                 BASE_REALTIME,
             )
+        with self.assertRaisesRegex(protocol.WirelessOdomError, "stale"):
+            sender.validate_source_clock(
+                BASE_REALTIME - 3_788_000_000,
+                BASE_REALTIME,
+            )
         for invalid in (0, -1, 1.5, True, 0x10000000000000000):
             with self.subTest(invalid=invalid):
                 with self.assertRaisesRegex(protocol.WirelessOdomError, "timestamp"):

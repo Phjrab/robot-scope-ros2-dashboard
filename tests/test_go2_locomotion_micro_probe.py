@@ -53,6 +53,7 @@ def snapshots() -> dict:
         "angular_z": 0.0,
     }
     bridge = {
+        "bridge_epoch": "e" * 32,
         "release_commit": RELEASE,
         "ready": True,
         "authenticated": True,
@@ -87,6 +88,35 @@ def snapshots() -> dict:
             "velocity": [0.0, 0.0, 0.0],
             "error_code": 100,
             "age_ms": 1,
+        },
+        "motion_observation": {
+            "schema": probe.MOTION_OBSERVATION_SCHEMA,
+            "schema_version": 1,
+            "source_id": probe.MOTION_OBSERVATION_SOURCE,
+            "producer_generation": "e" * 32,
+            "release_commit": RELEASE,
+            "source_sequence": 10,
+            "source_stamp_ns": 1_000_000_000,
+            "source_clock_domain": "unitree_go.timespec.unverified",
+            "source_age_ms": None,
+            "sample_progression": "source_stamp_strict_increase",
+            "callback_receive_age_ms": 1,
+            "last_callback_gap_ms": 10,
+            "max_callback_gap_ms": 12,
+            "callback_clock_domain": "bridge_process.monotonic",
+            "stale_after_ms": 500,
+            "coordinate_space": "unitree_go.sport_mode_state.local",
+            "frame_id": None,
+            "origin": "vendor_local_origin_unverified",
+            "position_xyz": [0.0, 0.0, 0.0],
+            "orientation_xyzw": None,
+            "quality": "READY",
+            "invalid_reason": "",
+            "origin_reset_detected": False,
+            "accepted_sample_count": 10,
+            "rejected_sample_count": 0,
+            "receiver_status_age_ms": 10.0,
+            "receiver_clock_domain": "dashboard_process.monotonic",
         },
     }
     return {
@@ -281,6 +311,12 @@ class FakeAdapter:
             self.state["control"]["control"]["bridge"]["telemetry"]["joints"][
                 "seq"
             ] += 1
+            observation = self.state["control"]["control"]["bridge"][
+                "motion_observation"
+            ]
+            observation["source_sequence"] += 1
+            observation["accepted_sample_count"] += 1
+            observation["source_stamp_ns"] += 10_000_000
         return copy.deepcopy(self.state)
 
     def arm(self) -> object:
@@ -405,8 +441,13 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
             parser.parse_args(["--execute-mp-030", "--execute-mp-050"])
 
         flags = ["--" + value.replace("_", "-") for value in probe.CONFIRMATION_FLAGS]
-        args = parser.parse_args(["--execute-mp-030", *flags])
-        self.assertEqual(probe.selected_probe(args, parser).probe_id, "MP-030")
+        args = parser.parse_args([
+            "--execute-mp-030", *flags,
+            "--observation-source", probe.MOTION_OBSERVATION_SOURCE,
+        ])
+        with self.assertRaises(SystemExit):
+            probe.selected_probe(args, parser)
+        self.assertFalse(probe.MOTION_USE_APPROVED)
 
     def test_preflight_accepts_only_idle_authoritative_bridge_state(self):
         result = probe.validate_preflight(snapshots(), expected_release=RELEASE)
@@ -414,6 +455,25 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
         self.assertEqual(result["mode"], 0)
         self.assertEqual(result["gait_type"], 0)
         self.assertEqual(result["error_code"], 100)
+
+    def test_legacy_waiting_pose_remains_blocked_but_is_not_silently_redefined(self):
+        waiting = probe._pose_sample(
+            {"state": "waiting", "topic": "", "seq": 0, "age_s": None}
+        )
+        with self.assertRaisesRegex(probe.ProbeError, "fresh odometry pose"):
+            probe._validate_pose_travel(
+                waiting,
+                baseline_pose=waiting,
+                maximum_m=probe.MAX_PRECOMMAND_DRIFT_M,
+            )
+        value = snapshots()
+        value["pose"] = {"state": "waiting", "topic": "", "seq": 0, "age_s": None}
+        result = probe.validate_preflight(value, expected_release=RELEASE)
+        self.assertEqual(result["legacy_pose"]["state"], "waiting")
+        self.assertEqual(
+            result["motion_observation"]["source_id"],
+            probe.MOTION_OBSERVATION_SOURCE,
+        )
 
     def test_preflight_accepts_old_idle_ack_but_runtime_requires_fresh_drive_ack(self):
         value = snapshots()
@@ -450,6 +510,115 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
             mutate(value)
             with self.subTest(mutate=mutate), self.assertRaises(probe.ProbeError):
                 probe.validate_preflight(value, expected_release=RELEASE)
+
+    def test_motion_observation_faults_block_before_lease_or_drive(self):
+        def motion(value):
+            return value["control"]["control"]["bridge"]["motion_observation"]
+
+        mutations = (
+            lambda value: motion(value).update(source_id="other"),
+            lambda value: motion(value).update(frame_id="odom"),
+            lambda value: motion(value).update(
+                quality="STALE",
+                invalid_reason="callback_receive_stale",
+                callback_receive_age_ms=501,
+            ),
+            lambda value: motion(value).update(source_stamp_ns=-1_000_000_000),
+            lambda value: motion(value).update(source_sequence=9),
+            lambda value: motion(value).update(producer_generation="n" * 32),
+            lambda value: motion(value).update(
+                quality="INVALID", invalid_reason="source_stamp_duplicate"
+            ),
+            lambda value: motion(value).update(receiver_status_age_ms=751),
+            lambda value: motion(value).update(position_xyz=[float("nan"), 0.0, 0.0]),
+        )
+        for mutate in mutations:
+            with self.subTest(mutate=mutate):
+                adapter = FakeAdapter()
+                mutate(adapter.state)
+                with self.assertRaises(probe.ProbeError):
+                    probe.ProbeSupervisor(
+                        adapter,
+                        release_provider=lambda: RELEASE,
+                    ).run(probe.PROBES["MP-030"])
+                self.assertEqual(adapter.arm_count, 0)
+                self.assertEqual(adapter.stream.payloads, [])
+                self.assertEqual(adapter.disarm_count, 0)
+
+    def test_planar_travel_includes_lateral_and_preserves_max_after_return(self):
+        value = snapshots()
+        baseline = probe.validate_preflight(value, expected_release=RELEASE)
+        value["control"]["control"]["lease"] = {
+            "active": True,
+            "source": "keyboard",
+        }
+        observation = value["control"]["control"]["bridge"]["motion_observation"]
+        observation["source_sequence"] += 1
+        observation["accepted_sample_count"] += 1
+        observation["source_stamp_ns"] += 10_000_000
+        observation["position_xyz"][1] = 0.08
+        first = probe.safe_sample(value, elapsed_s=0.1)
+        cursor = probe.validate_runtime_sample(
+            first,
+            spec=probe.PROBES["MP-100"],
+            baseline=baseline,
+            require_motion_evidence=False,
+            previous=probe._baseline_cursor(baseline),
+            require_ack_advance=False,
+        )
+        self.assertEqual(first["observed_travel_m"], 0.08)
+        self.assertEqual(cursor.max_observed_travel_m, 0.08)
+
+        observation["source_sequence"] += 1
+        observation["accepted_sample_count"] += 1
+        observation["source_stamp_ns"] += 10_000_000
+        observation["position_xyz"][1] = 0.0
+        returned = probe.safe_sample(value, elapsed_s=0.2)
+        cursor = probe.validate_runtime_sample(
+            returned,
+            spec=probe.PROBES["MP-100"],
+            baseline=baseline,
+            require_motion_evidence=False,
+            previous=cursor,
+            require_ack_advance=False,
+        )
+        self.assertEqual(returned["observed_travel_m"], 0.0)
+        self.assertEqual(returned["max_observed_travel_m"], 0.08)
+        self.assertEqual(cursor.max_observed_travel_m, 0.08)
+
+    def test_motion_travel_boundaries_remain_five_mm_and_ten_cm(self):
+        baseline = {
+            "source_id": probe.MOTION_OBSERVATION_SOURCE,
+            "producer_generation": "e" * 32,
+            "release_commit": RELEASE,
+            "coordinate_space": "unitree_go.sport_mode_state.local",
+            "origin": "vendor_local_origin_unverified",
+            "source_sequence": 1,
+            "source_stamp_ns": 1,
+            "position_xyz": [0.0, 0.0, 0.0],
+        }
+        for bound in (probe.MAX_PRECOMMAND_DRIFT_M, probe.MAX_OBSERVED_TRAVEL_M):
+            at_bound = {
+                **baseline,
+                "source_sequence": 2,
+                "source_stamp_ns": 2,
+                "position_xyz": [bound, 0.0, 0.0],
+            }
+            self.assertEqual(
+                probe._validate_observed_travel(
+                    at_bound,
+                    baseline_observation=baseline,
+                    maximum_m=bound,
+                ),
+                bound,
+            )
+            above = {**at_bound, "position_xyz": [bound + 0.000001, 0.0, 0.0]}
+            with self.assertRaisesRegex(probe.ProbeError, "observed travel exceeded"):
+                probe._validate_observed_travel(
+                    above,
+                    baseline_observation=baseline,
+                    maximum_m=bound,
+                )
 
     def test_active_preexisting_motion_run_blocks_arm(self):
         adapter = FakeAdapter()
@@ -531,7 +700,9 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
         class PostArmDriftAdapter(FakeAdapter):
             def arm(self) -> object:
                 lease = super().arm()
-                self.state["pose"]["position"]["x"] = 0.0051
+                self.state["control"]["control"]["bridge"]["motion_observation"][
+                    "position_xyz"
+                ][0] = 0.0051
                 return lease
 
         adapter = PostArmDriftAdapter()
@@ -735,6 +906,9 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
                     stale_bridge["telemetry"] = copy.deepcopy(
                         current_bridge["telemetry"]
                     )
+                    stale_bridge["motion_observation"] = copy.deepcopy(
+                        current_bridge["motion_observation"]
+                    )
                     result["control"]["control"]["bridge"] = stale_bridge
                 return result
 
@@ -843,7 +1017,9 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
         def send_and_move(payload: dict) -> None:
             original_send(payload)
             if payload["deadman"]:
-                adapter.state["pose"]["position"]["x"] = 0.101
+                adapter.state["control"]["control"]["bridge"][
+                    "motion_observation"
+                ]["position_xyz"][0] = 0.101
 
         adapter.stream.send_twist = send_and_move  # type: ignore[method-assign]
         clock = FakeClock()

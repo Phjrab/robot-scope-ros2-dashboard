@@ -38,6 +38,9 @@ MAPPING_PATH = "/api/v1/mapping/control"
 CONTROL_WS = "ws://127.0.0.1:8088/api/v1/ws/control"
 DASHBOARD_UNIT = "robot-scope.service"
 EXPECTED_PROFILE = "go2-xt16-wireless"
+MOTION_OBSERVATION_SOURCE = "unitree_go.sport_mode_state.position"
+MOTION_OBSERVATION_SCHEMA = "robot-scope.motion-observation"
+MOTION_USE_APPROVED = False
 API_STOP_MOVE = 1003
 API_MOVE = 1008
 DRIVE_WINDOW_S = 0.70
@@ -98,6 +101,8 @@ class RuntimeCursor:
     motion_run_id: int
     motion_run_nonzero_move_count: int
     joint_seq: int
+    observation_seq: int
+    max_observed_travel_m: float
     drive_stop_count: int | None = None
 
 
@@ -396,6 +401,154 @@ def _validate_pose_travel(
     return displacement
 
 
+def _motion_observation(bridge: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate the explicit C4C-only relative-position projection."""
+
+    value = _mapping(bridge.get("motion_observation"), "motion observation")
+    if (
+        value.get("schema") != MOTION_OBSERVATION_SCHEMA
+        or value.get("schema_version") != 1
+        or value.get("source_id") != MOTION_OBSERVATION_SOURCE
+        or value.get("source_clock_domain") != "unitree_go.timespec.unverified"
+        or value.get("source_age_ms") is not None
+        or value.get("sample_progression") != "source_stamp_strict_increase"
+        or value.get("callback_clock_domain") != "bridge_process.monotonic"
+        or value.get("receiver_clock_domain") != "dashboard_process.monotonic"
+        or value.get("coordinate_space") != "unitree_go.sport_mode_state.local"
+        or value.get("frame_id") is not None
+        or value.get("origin") != "vendor_local_origin_unverified"
+        or value.get("orientation_xyzw") is not None
+    ):
+        raise ProbeError("motion observation contract is invalid")
+    if value.get("quality") != "READY" or value.get("invalid_reason") != "":
+        raise ProbeError("qualified motion observation is unavailable")
+    if value.get("origin_reset_detected") is not False:
+        raise ProbeError("motion observation origin reset")
+    generation = value.get("producer_generation")
+    if not isinstance(generation, str) or not 16 <= len(generation) <= 128:
+        raise ProbeError("motion observation generation is invalid")
+    release = value.get("release_commit")
+    if not isinstance(release, str) or FULL_COMMIT_RE.fullmatch(release) is None:
+        raise ProbeError("motion observation release is invalid")
+    sequence = value.get("source_sequence")
+    accepted_count = value.get("accepted_sample_count")
+    rejected_count = value.get("rejected_sample_count")
+    if (
+        isinstance(sequence, bool)
+        or not isinstance(sequence, int)
+        or sequence <= 0
+        or sequence != accepted_count
+        or isinstance(rejected_count, bool)
+        or not isinstance(rejected_count, int)
+        or rejected_count < 0
+    ):
+        raise ProbeError("motion observation progression is invalid")
+    stamp = value.get("source_stamp_ns")
+    if isinstance(stamp, bool) or not isinstance(stamp, int) or stamp <= 0:
+        raise ProbeError("motion observation source stamp is invalid")
+    callback_age_ms = _finite(
+        value.get("callback_receive_age_ms"), "motion observation callback age"
+    )
+    last_gap_ms = _finite(
+        value.get("last_callback_gap_ms"), "motion observation callback gap"
+    )
+    max_gap_ms = _finite(
+        value.get("max_callback_gap_ms"), "motion observation maximum callback gap"
+    )
+    receiver_age_ms = _finite(
+        value.get("receiver_status_age_ms"), "motion observation receiver age"
+    )
+    stale_after_ms = _finite(
+        value.get("stale_after_ms"), "motion observation stale limit"
+    )
+    if (
+        not 200.0 <= stale_after_ms <= 1_000.0
+        or not 0.0 <= callback_age_ms <= min(500.0, stale_after_ms)
+        or not 0.0 <= last_gap_ms <= min(500.0, stale_after_ms)
+        or not last_gap_ms <= max_gap_ms <= min(500.0, stale_after_ms)
+        or not 0.0 <= receiver_age_ms <= 750.0
+    ):
+        raise ProbeError("motion observation is stale")
+    position = value.get("position_xyz")
+    if not isinstance(position, list) or len(position) != 3:
+        raise ProbeError("motion observation position is invalid")
+    safe_position = [
+        _finite(item, f"motion observation position {axis}")
+        for item, axis in zip(position, "xyz")
+    ]
+    return {
+        "source_id": value["source_id"],
+        "producer_generation": generation,
+        "release_commit": release,
+        "source_sequence": sequence,
+        "source_stamp_ns": stamp,
+        "callback_receive_age_ms": callback_age_ms,
+        "last_callback_gap_ms": last_gap_ms,
+        "max_callback_gap_ms": max_gap_ms,
+        "receiver_status_age_ms": receiver_age_ms,
+        "coordinate_space": value["coordinate_space"],
+        "origin": value["origin"],
+        "position_xyz": safe_position,
+        "quality": "READY",
+        "rejected_sample_count": rejected_count,
+    }
+
+
+def _validate_observed_travel(
+    observation: Mapping[str, Any],
+    *,
+    baseline_observation: Mapping[str, Any],
+    maximum_m: float,
+) -> float:
+    """Validate one fixed-source sample and its planar start displacement."""
+
+    stable_fields = (
+        "source_id", "producer_generation", "release_commit",
+        "coordinate_space", "origin",
+    )
+    if any(
+        observation.get(name) != baseline_observation.get(name)
+        for name in stable_fields
+    ):
+        raise ProbeError("motion observation source or origin changed")
+    sequence = observation.get("source_sequence")
+    baseline_sequence = baseline_observation.get("source_sequence")
+    stamp = observation.get("source_stamp_ns")
+    baseline_stamp = baseline_observation.get("source_stamp_ns")
+    if (
+        isinstance(sequence, bool)
+        or not isinstance(sequence, int)
+        or isinstance(baseline_sequence, bool)
+        or not isinstance(baseline_sequence, int)
+        or sequence < baseline_sequence
+        or isinstance(stamp, bool)
+        or not isinstance(stamp, int)
+        or isinstance(baseline_stamp, bool)
+        or not isinstance(baseline_stamp, int)
+        or (sequence > baseline_sequence and stamp <= baseline_stamp)
+        or (sequence == baseline_sequence and stamp != baseline_stamp)
+    ):
+        raise ProbeError("motion observation sequence or stamp reset")
+    position = observation.get("position_xyz")
+    baseline_position = baseline_observation.get("position_xyz")
+    if (
+        not isinstance(position, list)
+        or len(position) != 3
+        or not isinstance(baseline_position, list)
+        or len(baseline_position) != 3
+    ):
+        raise ProbeError("motion observation position is invalid")
+    displacement = math.hypot(
+        _finite(position[0], "motion observation x")
+        - _finite(baseline_position[0], "baseline motion observation x"),
+        _finite(position[1], "motion observation y")
+        - _finite(baseline_position[1], "baseline motion observation y"),
+    )
+    if displacement > maximum_m + 1e-9:
+        raise ProbeError("observed travel exceeded the fixed probe envelope")
+    return displacement
+
+
 def _validate_bridge(bridge: Mapping[str, Any]) -> None:
     if any(
         bridge.get(key) is not True
@@ -445,10 +598,14 @@ def validate_preflight(
     ack = _command_ack(bridge)
     if ack["type"] != "stop" or ack["source_matches_dashboard"] is not True:
         raise ProbeError("Bridge is not idle on the dashboard Stop acknowledgement")
-    robot_pose = _pose_sample(_mapping(snapshots.get("pose"), "pose snapshot"))
-    _validate_pose_travel(
-        robot_pose,
-        baseline_pose=robot_pose,
+    motion_observation = _motion_observation(bridge)
+    if motion_observation["producer_generation"] != bridge.get("bridge_epoch"):
+        raise ProbeError("motion observation does not belong to the active Bridge")
+    if motion_observation["release_commit"] != expected_release:
+        raise ProbeError("motion observation release does not match the dashboard")
+    _validate_observed_travel(
+        motion_observation,
+        baseline_observation=motion_observation,
         maximum_m=MAX_PRECOMMAND_DRIFT_M,
     )
     return {
@@ -469,7 +626,8 @@ def validate_preflight(
         "gait_type": state["gait_type"],
         "error_code": state["error_code"],
         "ack_seq": ack["seq"],
-        "robot_pose": robot_pose,
+        "motion_observation": motion_observation,
+        "legacy_pose": _pose_sample(_mapping(snapshots.get("pose"), "pose snapshot")),
         **telemetry,
     }
 
@@ -506,7 +664,8 @@ def safe_sample(snapshots: Mapping[str, Mapping[str, Any]], *, elapsed_s: float)
             for key in ("topic", "mode", "gait_type", "velocity", "error_code", "age_ms")
         },
         "bridge_telemetry": telemetry,
-        "robot_pose": _pose_sample(_mapping(snapshots.get("pose"), "pose snapshot")),
+        "motion_observation": _motion_observation(bridge),
+        "legacy_pose": _pose_sample(_mapping(snapshots.get("pose"), "pose snapshot")),
     }
 
 
@@ -529,13 +688,21 @@ def validate_runtime_sample(
         raise ProbeError("Bridge release changed during the probe")
     if sport_state.get("error_code") != baseline.get("error_code"):
         raise ProbeError("SportModeState error evidence changed during the probe")
-    observed_travel_m = _validate_pose_travel(
-        _mapping(sample.get("robot_pose"), "robot pose"),
-        baseline_pose=_mapping(baseline.get("robot_pose"), "baseline robot pose"),
+    observation = _mapping(sample.get("motion_observation"), "motion observation")
+    observed_travel_m = _validate_observed_travel(
+        observation,
+        baseline_observation=_mapping(
+            baseline.get("motion_observation"), "baseline motion observation"
+        ),
         maximum_m=MAX_OBSERVED_TRAVEL_M,
+    )
+    maximum_observed_travel_m = max(
+        previous.max_observed_travel_m,
+        observed_travel_m,
     )
     if isinstance(sample, dict):
         sample["observed_travel_m"] = round(observed_travel_m, 6)
+        sample["max_observed_travel_m"] = round(maximum_observed_travel_m, 6)
     for command in (manager, accepted):
         if not isinstance(command.get("deadman"), bool):
             raise ProbeError("command evidence is not authoritative")
@@ -644,6 +811,8 @@ def validate_runtime_sample(
         motion_run_id=run_id,
         motion_run_nonzero_move_count=counts["motion_run_nonzero_move_count"],
         joint_seq=joint_seq,
+        observation_seq=int(observation["source_sequence"]),
+        max_observed_travel_m=maximum_observed_travel_m,
         drive_stop_count=drive_stop_count,
     )
 
@@ -658,6 +827,8 @@ def _baseline_cursor(baseline: Mapping[str, Any]) -> RuntimeCursor:
         motion_run_id=baseline["motion_run_id"],
         motion_run_nonzero_move_count=baseline["motion_run_nonzero_move_count"],
         joint_seq=baseline["joint_seq"],
+        observation_seq=baseline["motion_observation"]["source_sequence"],
+        max_observed_travel_m=0.0,
     )
 
 
@@ -698,9 +869,11 @@ def validate_post_arm_sample(
         or ack.get("seq") < baseline["ack_seq"]
     ):
         raise ProbeError("post-ARM Stop acknowledgement is not authoritative")
-    displacement = _validate_pose_travel(
-        _mapping(sample.get("robot_pose"), "robot pose"),
-        baseline_pose=_mapping(baseline.get("robot_pose"), "baseline robot pose"),
+    displacement = _validate_observed_travel(
+        _mapping(sample.get("motion_observation"), "motion observation"),
+        baseline_observation=_mapping(
+            baseline.get("motion_observation"), "baseline motion observation"
+        ),
         maximum_m=MAX_PRECOMMAND_DRIFT_M,
     )
     if isinstance(sample, dict):
@@ -763,9 +936,8 @@ def cleanup_sample(
         "accepted_command": dict(
             _mapping(bridge.get("accepted_command"), "Bridge accepted command")
         ),
-        "robot_pose": _pose_sample(
-            _mapping(snapshots.get("pose"), "pose snapshot")
-        ),
+        "motion_observation": _motion_observation(bridge),
+        "legacy_pose": _pose_sample(_mapping(snapshots.get("pose"), "pose snapshot")),
         "sport_mode_state": {
             key: state[key]
             for key in (
@@ -911,7 +1083,11 @@ class ProbeSupervisor:
                     previous=runtime_cursor,
                 )
                 samples.append(post_arm)
-                if runtime_cursor.joint_seq > baseline["joint_seq"]:
+                if (
+                    runtime_cursor.joint_seq > baseline["joint_seq"]
+                    and runtime_cursor.observation_seq
+                    > baseline["motion_observation"]["source_sequence"]
+                ):
                     break
                 now = self.monotonic()
                 if now >= lowstate_deadline:
@@ -1134,10 +1310,14 @@ class ProbeSupervisor:
 
         if cleanup_confirmed:
             try:
-                final_travel_m = _validate_pose_travel(
-                    _mapping(final_sample.get("robot_pose"), "final robot pose"),
-                    baseline_pose=_mapping(
-                        baseline.get("robot_pose"), "baseline robot pose"
+                final_travel_m = _validate_observed_travel(
+                    _mapping(
+                        final_sample.get("motion_observation"),
+                        "final motion observation",
+                    ),
+                    baseline_observation=_mapping(
+                        baseline.get("motion_observation"),
+                        "baseline motion observation",
                     ),
                     maximum_m=MAX_OBSERVED_TRAVEL_M,
                 )
@@ -1179,6 +1359,7 @@ class ProbeSupervisor:
             "predicted_max_travel_m": round(spec.predicted_max_travel_m, 6),
             "release": release,
             "profile": EXPECTED_PROFILE,
+            "observation_source": MOTION_OBSERVATION_SOURCE,
             "baseline": baseline,
             "samples": _bounded_report_samples(samples),
             "cleanup": {
@@ -1418,6 +1599,8 @@ def dry_run(spec: ProbeSpec | None = None) -> dict[str, Any]:
             "nav2": False,
             "direct_ros_or_sdk": False,
             "watchdog_tail_s": WATCHDOG_TAIL_S,
+            "motion_observation_source": MOTION_OBSERVATION_SOURCE,
+            "automatic_observation_fallback": False,
         },
     }
 
@@ -1437,6 +1620,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--confirm-corridor-clear", action="store_true")
     parser.add_argument("--confirm-estop-ready", action="store_true")
     parser.add_argument("--confirm-safety-operator", action="store_true")
+    parser.add_argument(
+        "--observation-source",
+        choices=(MOTION_OBSERVATION_SOURCE,),
+        help="required fixed C4C relative-position evidence source for live probes",
+    )
     return parser
 
 
@@ -1445,12 +1633,21 @@ def selected_probe(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
     if args.dry_run and selected:
         parser.error("--dry-run cannot be combined with a live probe")
     if not selected:
-        if any(getattr(args, flag) for flag in CONFIRMATION_FLAGS):
+        if any(getattr(args, flag) for flag in CONFIRMATION_FLAGS) or args.observation_source:
             parser.error("live confirmations require one fixed live probe")
         return None
     missing = [flag.replace("_", "-") for flag in CONFIRMATION_FLAGS if not getattr(args, flag)]
     if missing:
         parser.error("live probe requires: " + ", ".join("--" + value for value in missing))
+    if args.observation_source != MOTION_OBSERVATION_SOURCE:
+        parser.error(
+            "live probe requires --observation-source " + MOTION_OBSERVATION_SOURCE
+        )
+    if not MOTION_USE_APPROVED:
+        parser.error(
+            "C4C motion use is not approved; stationary and dynamic observation "
+            "qualification are still required"
+        )
     return PROBES[selected[0]]
 
 
@@ -1474,6 +1671,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "predicted_max_travel_m": round(spec.predicted_max_travel_m, 6),
                 "release": None,
                 "profile": EXPECTED_PROFILE,
+                "observation_source": MOTION_OBSERVATION_SOURCE,
                 "status_scope": "SIGNED_COMMAND_PATH_ONLY",
                 "locomotion_acceptance": "NOT_EVALUATED",
                 "physical_motion": "NOT_EVALUATED",

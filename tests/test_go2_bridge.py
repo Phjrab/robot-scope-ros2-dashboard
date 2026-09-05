@@ -275,9 +275,9 @@ class Go2BridgeCoreTests(unittest.TestCase):
             "submit_drive",
             "SportRequest",
             "deadman",
-            "lease",
         ):
             self.assertNotIn(forbidden, observation_source)
+        self.assertNotIn("'lease'", observation_source)
 
     def test_sport_mode_state_rejects_invalid_topic_values_and_time(self):
         with self.assertRaisesRegex(ValueError, "topic is not allowlisted"):
@@ -311,6 +311,142 @@ class Go2BridgeCoreTests(unittest.TestCase):
                 )
         with self.assertRaisesRegex(ValueError, "observation time"):
             observation.observe(SimpleNamespace(**valid), now=float("nan"))
+
+    @staticmethod
+    def motion_message(*, stamp_ns=1_000_000_001, position=(1.0, 2.0, 0.0)):
+        return SimpleNamespace(
+            mode=0,
+            gait_type=0,
+            velocity=np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            position=np.array(position, dtype=np.float32),
+            error_code=100,
+            stamp=SimpleNamespace(
+                sec=stamp_ns // 1_000_000_000,
+                nanosec=stamp_ns % 1_000_000_000,
+            ),
+        )
+
+    def test_motion_observation_tracks_underlying_stamp_not_status_heartbeat(self):
+        observation = SportModeStateObservation(
+            topic="/sportmodestate", stale_after_s=0.5
+        )
+        generation = "g" * 32
+        release = "a" * 40
+        waiting = observation.motion_snapshot(
+            now=10.0, producer_generation=generation, release_commit=release
+        )
+        self.assertEqual(waiting["quality"], "WAITING")
+        self.assertEqual(waiting["source_sequence"], 0)
+
+        observation.observe(self.motion_message(), now=10.0)
+        first = observation.motion_snapshot(
+            now=10.1, producer_generation=generation, release_commit=release
+        )
+        self.assertEqual(first["quality"], "READY")
+        self.assertEqual(first["source_sequence"], 1)
+        self.assertEqual(first["source_stamp_ns"], 1_000_000_001)
+        self.assertIsNone(first["last_callback_gap_ms"])
+        self.assertIsNone(first["max_callback_gap_ms"])
+        self.assertIsNone(first["source_age_ms"])
+        self.assertEqual(first["position_xyz"], [1.0, 2.0, 0.0])
+
+        # Repackaging status does not advance the underlying sample or reset age.
+        repacked = observation.motion_snapshot(
+            now=10.4, producer_generation=generation, release_commit=release
+        )
+        self.assertEqual(repacked["source_sequence"], 1)
+        self.assertEqual(repacked["callback_receive_age_ms"], 401)
+        stale = observation.motion_snapshot(
+            now=10.501, producer_generation=generation, release_commit=release
+        )
+        self.assertEqual(stale["quality"], "STALE")
+        self.assertEqual(stale["position_xyz"], [1.0, 2.0, 0.0])
+
+    def test_motion_observation_accepts_stationary_progress_and_latches_reset(self):
+        observation = SportModeStateObservation(
+            topic="/sportmodestate", stale_after_s=0.5
+        )
+        observation.observe(self.motion_message(stamp_ns=2_000_000_001), now=2.0)
+        observation.observe(self.motion_message(stamp_ns=2_010_000_001), now=2.01)
+        ready = observation.motion_snapshot(
+            now=2.02, producer_generation="g" * 32, release_commit="a" * 40
+        )
+        self.assertEqual(ready["quality"], "READY")
+        self.assertEqual(ready["source_sequence"], 2)
+        self.assertEqual(ready["last_callback_gap_ms"], 10)
+        self.assertEqual(ready["max_callback_gap_ms"], 10)
+
+        observation.observe(self.motion_message(stamp_ns=2_000_000_001), now=2.03)
+        invalid = observation.motion_snapshot(
+            now=2.04, producer_generation="g" * 32, release_commit="a" * 40
+        )
+        self.assertEqual(invalid["quality"], "INVALID")
+        self.assertEqual(invalid["invalid_reason"], "source_stamp_regressed")
+        self.assertTrue(invalid["origin_reset_detected"])
+        observation.observe(self.motion_message(stamp_ns=2_020_000_001), now=2.05)
+        self.assertEqual(
+            observation.motion_snapshot(
+                now=2.06,
+                producer_generation="g" * 32,
+                release_commit="a" * 40,
+            )["quality"],
+            "INVALID",
+        )
+
+    def test_motion_observation_rejects_nonfixed_or_unsafe_position_and_stamp(self):
+        class IteratorOnly:
+            def __iter__(self):
+                return iter((0.0, 0.0, 0.0))
+
+        cases = (
+            {"position": "000"},
+            {"position": [False, 0.0, 0.0]},
+            {"position": [float("nan"), 0.0, 0.0]},
+            {"position": [float("inf"), 0.0, 0.0]},
+            {"position": IteratorOnly()},
+            {"stamp": SimpleNamespace(sec=1, nanosec=1_000_000_000)},
+            {"stamp": SimpleNamespace(sec=False, nanosec=0)},
+        )
+        for changes in cases:
+            with self.subTest(changes=changes):
+                observation = SportModeStateObservation(
+                    topic="/sportmodestate", stale_after_s=0.5
+                )
+                message = self.motion_message()
+                for name, value in changes.items():
+                    setattr(message, name, value)
+                observation.observe(message, now=1.0)
+                evidence = observation.motion_snapshot(
+                    now=1.0,
+                    producer_generation="g" * 32,
+                    release_commit="a" * 40,
+                )
+                self.assertEqual(evidence["quality"], "INVALID")
+                self.assertEqual(evidence["source_sequence"], 0)
+
+    def test_motion_observation_rejects_future_progress_and_evidence_gap(self):
+        for stamp_ns, now, reason in (
+            (2_000_000_001, 1.01, "source_stamp_future_progress"),
+            (1_010_000_001, 1.51, "evidence_gap"),
+        ):
+            with self.subTest(reason=reason):
+                observation = SportModeStateObservation(
+                    topic="/sportmodestate", stale_after_s=0.5
+                )
+                observation.observe(self.motion_message(), now=1.0)
+                observation.observe(
+                    self.motion_message(stamp_ns=stamp_ns),
+                    now=now,
+                )
+                evidence = observation.motion_snapshot(
+                    now=now,
+                    producer_generation="g" * 32,
+                    release_commit="a" * 40,
+                )
+                self.assertEqual(evidence["quality"], "INVALID")
+                self.assertEqual(evidence["invalid_reason"], reason)
+                self.assertTrue(evidence["origin_reset_detected"])
+                self.assertEqual(evidence["source_sequence"], 1)
 
     def test_control_bridge_subscribes_to_one_configured_sport_state_alias_only(self):
         root = Path(__file__).resolve().parents[1]

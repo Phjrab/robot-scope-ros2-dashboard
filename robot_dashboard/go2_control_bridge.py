@@ -369,6 +369,11 @@ class Go2ControlBridge(Node):
                 "release_commit": self._release_commit,
                 "lowstate_topic": self._lowstate_topic,
                 "sport_mode_state": self._sport_mode_state.snapshot(now=now),
+                "motion_observation": self._sport_mode_state.motion_snapshot(
+                    now=now,
+                    producer_generation=self._core.bridge_epoch,
+                    release_commit=self._release_commit,
+                ),
                 "request_evidence": self._request_evidence.snapshot(now=now),
                 "telemetry": {
                     "battery": dict(self._lowstate_battery),

@@ -21,6 +21,16 @@ SPORT_MODE_STATE_TOPICS = ("/sportmodestate", "/lf/sportmodestate")
 SPORT_MODE_STATE_MAX_AGE_MS = 2_147_483_647
 SPORT_MODE_STATE_MAX_ERROR_CODE = 4_294_967_295
 SPORT_MODE_STATE_MAX_ABS_VELOCITY = 20.0
+MOTION_OBSERVATION_SCHEMA = "robot-scope.motion-observation"
+MOTION_OBSERVATION_SCHEMA_VERSION = 1
+MOTION_OBSERVATION_SOURCE_ID = "unitree_go.sport_mode_state.position"
+MOTION_OBSERVATION_COORDINATE_SPACE = "unitree_go.sport_mode_state.local"
+MOTION_OBSERVATION_SOURCE_CLOCK = "unitree_go.timespec.unverified"
+MOTION_OBSERVATION_CALLBACK_CLOCK = "bridge_process.monotonic"
+MOTION_OBSERVATION_MAX_ABS_POSITION_M = 1_000_000.0
+MOTION_OBSERVATION_MAX_SAMPLE_JUMP_M = 1.0
+MOTION_OBSERVATION_MAX_SOURCE_PROGRESS_LEAD_MS = 250
+MOTION_OBSERVATION_MAX_COUNT = 2_147_483_647
 SPORT_MODE_STATE_PUBLIC_FIELDS = (
     "topic", "mode", "gait_type", "velocity", "error_code", "age_ms",
     "stale_after_ms", "fresh",
@@ -141,6 +151,16 @@ class SportModeStateObservation:
         self.stale_after_ms = round(timeout * 1_000)
         self._received_at: float | None = None
         self._values: dict[str, Any] = {}
+        self._motion_received_at: float | None = None
+        self._motion_last_callback_gap_ms: int | None = None
+        self._motion_max_callback_gap_ms: int | None = None
+        self._motion_position: tuple[float, float, float] | None = None
+        self._motion_source_stamp_ns: int | None = None
+        self._motion_source_sequence = 0
+        self._motion_accepted_count = 0
+        self._motion_rejected_count = 0
+        self._motion_invalid_reason = ""
+        self._motion_reset_detected = False
 
     @staticmethod
     def _unsigned(value: Any, *, label: str, maximum: int) -> int:
@@ -171,6 +191,129 @@ class SportModeStateObservation:
             velocity.append(round(number, 6))
         return velocity
 
+    @staticmethod
+    def _fixed_vector(
+        value: Any, *, label: str, maximum_abs: float
+    ) -> tuple[float, float, float]:
+        """Accept ROS fixed arrays without accepting arbitrary iterables."""
+
+        if isinstance(value, (str, bytes, bytearray, memoryview)):
+            raise ValueError(f"SportModeState {label} is invalid")
+        try:
+            length = len(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"SportModeState {label} is invalid") from exc
+        if length != 3:
+            raise ValueError(f"SportModeState {label} is invalid")
+        values: list[float] = []
+        for index in range(3):
+            try:
+                item = value[index]
+            except (TypeError, ValueError, IndexError, KeyError, OverflowError) as exc:
+                raise ValueError(f"SportModeState {label} is invalid") from exc
+            if isinstance(item, bool) or not isinstance(item, numbers.Real):
+                raise ValueError(f"SportModeState {label} is invalid")
+            number = float(item)
+            if not math.isfinite(number) or abs(number) > maximum_abs:
+                raise ValueError(f"SportModeState {label} is invalid")
+            values.append(number)
+        return values[0], values[1], values[2]
+
+    @staticmethod
+    def _source_stamp_ns(message: Any) -> int:
+        stamp = getattr(message, "stamp", None)
+        seconds = getattr(stamp, "sec", None)
+        nanoseconds = getattr(stamp, "nanosec", None)
+        if (
+            isinstance(seconds, bool)
+            or not isinstance(seconds, numbers.Integral)
+            or isinstance(nanoseconds, bool)
+            or not isinstance(nanoseconds, numbers.Integral)
+        ):
+            raise ValueError("SportModeState source stamp is invalid")
+        seconds = int(seconds)
+        nanoseconds = int(nanoseconds)
+        if seconds < 0 or not 0 <= nanoseconds < 1_000_000_000:
+            raise ValueError("SportModeState source stamp is invalid")
+        result = seconds * 1_000_000_000 + nanoseconds
+        if result <= 0 or result > 0x7FFF_FFFF_FFFF_FFFF:
+            raise ValueError("SportModeState source stamp is invalid")
+        return result
+
+    def _reject_motion(self, reason: str, *, reset: bool = False) -> None:
+        self._motion_rejected_count = min(
+            MOTION_OBSERVATION_MAX_COUNT,
+            self._motion_rejected_count + 1,
+        )
+        # A malformed, duplicate or regressed source sample invalidates this
+        # process generation. It is never silently adopted as a new origin.
+        self._motion_invalid_reason = str(reason)[:80]
+        self._motion_reset_detected = self._motion_reset_detected or reset
+
+    def _observe_motion(self, message: Any, *, now: float) -> None:
+        if self._motion_invalid_reason:
+            self._reject_motion(self._motion_invalid_reason)
+            return
+        try:
+            position = self._fixed_vector(
+                getattr(message, "position", None),
+                label="position",
+                maximum_abs=MOTION_OBSERVATION_MAX_ABS_POSITION_M,
+            )
+            source_stamp_ns = self._source_stamp_ns(message)
+            previous_stamp = self._motion_source_stamp_ns
+            previous_position = self._motion_position
+            if previous_stamp is not None and source_stamp_ns == previous_stamp:
+                raise ValueError("source_stamp_duplicate")
+            if previous_stamp is not None and source_stamp_ns < previous_stamp:
+                self._reject_motion("source_stamp_regressed", reset=True)
+                return
+            if previous_stamp is not None and self._motion_received_at is not None:
+                callback_delta_ns = max(
+                    0,
+                    round((now - self._motion_received_at) * 1_000_000_000),
+                )
+                source_delta_ns = source_stamp_ns - previous_stamp
+                if source_delta_ns > callback_delta_ns + (
+                    MOTION_OBSERVATION_MAX_SOURCE_PROGRESS_LEAD_MS * 1_000_000
+                ):
+                    self._reject_motion("source_stamp_future_progress", reset=True)
+                    return
+            if previous_position is not None:
+                jump = math.sqrt(
+                    sum(
+                        (value - previous) ** 2
+                        for value, previous in zip(position, previous_position)
+                    )
+                )
+                if jump > MOTION_OBSERVATION_MAX_SAMPLE_JUMP_M:
+                    self._reject_motion("position_jump", reset=True)
+                    return
+        except ValueError as exc:
+            self._reject_motion(str(exc))
+            return
+        if self._motion_received_at is not None:
+            callback_gap_ms = max(0, math.ceil((now - self._motion_received_at) * 1_000))
+            if callback_gap_ms > self.stale_after_ms:
+                self._reject_motion("evidence_gap", reset=True)
+                return
+            self._motion_last_callback_gap_ms = callback_gap_ms
+            self._motion_max_callback_gap_ms = max(
+                callback_gap_ms,
+                self._motion_max_callback_gap_ms or 0,
+            )
+        self._motion_source_sequence = min(
+            MOTION_OBSERVATION_MAX_COUNT,
+            self._motion_source_sequence + 1,
+        )
+        self._motion_accepted_count = min(
+            MOTION_OBSERVATION_MAX_COUNT,
+            self._motion_accepted_count + 1,
+        )
+        self._motion_position = position
+        self._motion_source_stamp_ns = source_stamp_ns
+        self._motion_received_at = now
+
     def observe(self, message: Any, *, now: float) -> None:
         observed_at = float(now)
         if not math.isfinite(observed_at) or observed_at < 0.0:
@@ -197,6 +340,7 @@ class SportModeStateObservation:
         }
         self._values = values
         self._received_at = observed_at
+        self._observe_motion(message, now=observed_at)
 
     def snapshot(self, *, now: float) -> dict[str, Any]:
         observed_at = float(now)
@@ -226,6 +370,70 @@ class SportModeStateObservation:
             "age_ms": age_ms,
             "stale_after_ms": self.stale_after_ms,
             "fresh": fresh,
+        }
+
+    def motion_snapshot(
+        self,
+        *,
+        now: float,
+        producer_generation: str,
+        release_commit: str | None,
+    ) -> dict[str, Any]:
+        """Return C4C-only relative-position evidence; never general odometry."""
+
+        observed_at = float(now)
+        if not math.isfinite(observed_at):
+            raise ValueError("MotionObservation snapshot time is invalid")
+        age_ms = (
+            None
+            if self._motion_received_at is None
+            else min(
+                SPORT_MODE_STATE_MAX_AGE_MS,
+                max(0, math.ceil((observed_at - self._motion_received_at) * 1_000)),
+            )
+        )
+        if self._motion_invalid_reason:
+            quality = "INVALID"
+            reason = self._motion_invalid_reason
+        elif self._motion_position is None:
+            quality = "WAITING"
+            reason = "sample_unavailable"
+        elif age_ms is None or age_ms > self.stale_after_ms:
+            quality = "STALE"
+            reason = "callback_receive_stale"
+        else:
+            quality = "READY"
+            reason = ""
+        return {
+            "schema": MOTION_OBSERVATION_SCHEMA,
+            "schema_version": MOTION_OBSERVATION_SCHEMA_VERSION,
+            "source_id": MOTION_OBSERVATION_SOURCE_ID,
+            "producer_generation": producer_generation,
+            "release_commit": release_commit,
+            "source_sequence": self._motion_source_sequence,
+            "source_stamp_ns": self._motion_source_stamp_ns,
+            "source_clock_domain": MOTION_OBSERVATION_SOURCE_CLOCK,
+            "source_age_ms": None,
+            "sample_progression": "source_stamp_strict_increase",
+            "callback_receive_age_ms": age_ms,
+            "last_callback_gap_ms": self._motion_last_callback_gap_ms,
+            "max_callback_gap_ms": self._motion_max_callback_gap_ms,
+            "callback_clock_domain": MOTION_OBSERVATION_CALLBACK_CLOCK,
+            "stale_after_ms": self.stale_after_ms,
+            "coordinate_space": MOTION_OBSERVATION_COORDINATE_SPACE,
+            "frame_id": None,
+            "origin": "vendor_local_origin_unverified",
+            "position_xyz": (
+                None
+                if self._motion_position is None
+                else [round(value, 6) for value in self._motion_position]
+            ),
+            "orientation_xyzw": None,
+            "quality": quality,
+            "invalid_reason": reason,
+            "origin_reset_detected": self._motion_reset_detected,
+            "accepted_sample_count": self._motion_accepted_count,
+            "rejected_sample_count": self._motion_rejected_count,
         }
 
 

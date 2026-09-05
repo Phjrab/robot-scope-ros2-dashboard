@@ -254,6 +254,38 @@ class ControlTransportTests(unittest.TestCase):
         return state
 
     @staticmethod
+    def motion_observation(**overrides):
+        value = {
+            "schema": "robot-scope.motion-observation",
+            "schema_version": 1,
+            "source_id": "unitree_go.sport_mode_state.position",
+            "producer_generation": "e" * 32,
+            "release_commit": "a" * 40,
+            "source_sequence": 20,
+            "source_stamp_ns": 2_000_000_001,
+            "source_clock_domain": "unitree_go.timespec.unverified",
+            "source_age_ms": None,
+            "sample_progression": "source_stamp_strict_increase",
+            "callback_receive_age_ms": 25,
+            "last_callback_gap_ms": 10,
+            "max_callback_gap_ms": 12,
+            "callback_clock_domain": "bridge_process.monotonic",
+            "stale_after_ms": 500,
+            "coordinate_space": "unitree_go.sport_mode_state.local",
+            "frame_id": None,
+            "origin": "vendor_local_origin_unverified",
+            "position_xyz": [1.0, 2.0, 0.0],
+            "orientation_xyzw": None,
+            "quality": "READY",
+            "invalid_reason": "",
+            "origin_reset_detected": False,
+            "accepted_sample_count": 20,
+            "rejected_sample_count": 0,
+        }
+        value.update(overrides)
+        return value
+
+    @staticmethod
     def command_ack(command, **overrides):
         acknowledgement = {
             "source_id": command["source_id"],
@@ -1102,6 +1134,95 @@ class ControlTransportTests(unittest.TestCase):
                 ControlTransport.status_sport_mode_state(
                     self.status_payload(sport_mode_state=state)
                 )
+
+    def test_motion_observation_is_optional_strict_and_receiver_age_is_local(self):
+        payload = self.status_payload(release_commit="a" * 40)
+        self.assertEqual(ControlTransport.status_motion_observation(payload), {})
+        motion = self.motion_observation()
+        payload["motion_observation"] = motion
+        self.assertEqual(
+            ControlTransport.status_motion_observation(payload), motion
+        )
+
+        transport = self.transport()
+        self.send_status(
+            transport,
+            release_commit="a" * 40,
+            motion_observation=motion,
+        )
+        projected = transport.raw_snapshot()["bridge"]["motion_observation"]
+        self.assertEqual(projected["source_sequence"], 20)
+        self.assertEqual(
+            projected["receiver_clock_domain"], "dashboard_process.monotonic"
+        )
+        self.assertGreaterEqual(projected["receiver_status_age_ms"], 0.0)
+        self.assertNotIn("receiver_status_age_ms", motion)
+
+    def test_motion_observation_rejects_unknown_fields_wrong_identity_and_values(self):
+        valid = self.motion_observation()
+        cases = (
+            {**valid, "private": 1},
+            {**valid, "source_id": "other"},
+            {**valid, "producer_generation": "x" * 32},
+            {**valid, "release_commit": "b" * 40},
+            {**valid, "source_sequence": True},
+            {**valid, "accepted_sample_count": 19},
+            {**valid, "source_stamp_ns": 0},
+            {**valid, "source_stamp_ns": 0x8000_0000_0000_0000},
+            {**valid, "position_xyz": [True, 0.0, 0.0]},
+            {**valid, "position_xyz": [float("nan"), 0.0, 0.0]},
+            {**valid, "position_xyz": [float("inf"), 0.0, 0.0]},
+            {**valid, "frame_id": "odom"},
+            {**valid, "orientation_xyzw": [0.0, 0.0, 0.0, 1.0]},
+            {**valid, "source_age_ms": 1},
+            {**valid, "last_callback_gap_ms": True},
+            {**valid, "last_callback_gap_ms": 13},
+            {**valid, "source_sequence": 1, "accepted_sample_count": 1},
+            {**valid, "source_sequence": 0, "accepted_sample_count": 0},
+            {**valid, "quality": "READY", "callback_receive_age_ms": 501},
+            {**valid, "quality": "INVALID", "invalid_reason": ""},
+        )
+        for value in cases:
+            with self.subTest(value=value), self.assertRaises(ControlProtocolError):
+                ControlTransport.status_motion_observation(
+                    self.status_payload(
+                        release_commit="a" * 40,
+                        motion_observation=value,
+                    )
+                )
+
+    def test_motion_observation_distinguishes_stale_invalid_and_waiting(self):
+        stale = self.motion_observation(
+            quality="STALE",
+            invalid_reason="callback_receive_stale",
+            callback_receive_age_ms=501,
+        )
+        invalid = self.motion_observation(
+            quality="INVALID",
+            invalid_reason="source_stamp_duplicate",
+            rejected_sample_count=1,
+        )
+        waiting = self.motion_observation(
+            quality="WAITING",
+            invalid_reason="sample_unavailable",
+            source_sequence=0,
+            accepted_sample_count=0,
+            source_stamp_ns=None,
+            callback_receive_age_ms=None,
+            last_callback_gap_ms=None,
+            max_callback_gap_ms=None,
+            position_xyz=None,
+        )
+        for value in (stale, invalid, waiting):
+            self.assertEqual(
+                ControlTransport.status_motion_observation(
+                    self.status_payload(
+                        release_commit="a" * 40,
+                        motion_observation=value,
+                    )
+                )["quality"],
+                value["quality"],
+            )
 
     def test_signed_fresh_battery_telemetry_is_projected_without_motion_readiness(self):
         transport = self.transport(expected_bare_sport_publishers=9)

@@ -34,6 +34,14 @@ from ..go2_bridge import (
     API_MOVE,
     API_STOP_MOVE,
     RELEASE_COMMIT_RE,
+    MOTION_OBSERVATION_CALLBACK_CLOCK,
+    MOTION_OBSERVATION_COORDINATE_SPACE,
+    MOTION_OBSERVATION_MAX_ABS_POSITION_M,
+    MOTION_OBSERVATION_MAX_COUNT,
+    MOTION_OBSERVATION_SCHEMA,
+    MOTION_OBSERVATION_SCHEMA_VERSION,
+    MOTION_OBSERVATION_SOURCE_CLOCK,
+    MOTION_OBSERVATION_SOURCE_ID,
     SAFE_ACTION_API_IDS,
     SPORT_REQUEST_EVIDENCE_MAX_COUNT,
     SPORT_REQUEST_EVIDENCE_SCHEMA,
@@ -325,6 +333,7 @@ class ControlTransport:
         request_evidence = ControlTransport.status_request_evidence(payload)
         ControlTransport.status_sport_mode_state(payload)
         ControlTransport.status_release_commit(payload)
+        ControlTransport.status_motion_observation(payload)
         command_ack = ControlTransport.status_command_ack(payload)
         accepted_command = ControlTransport.status_accepted_command(payload)
         if (
@@ -496,6 +505,166 @@ class ControlTransport:
         if not isinstance(release, str) or RELEASE_COMMIT_RE.fullmatch(release) is None:
             raise ControlProtocolError("bridge release identity is invalid")
         return release
+
+    @staticmethod
+    def status_motion_observation(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Strictly validate optional C4C relative-position evidence."""
+
+        value = payload.get("motion_observation")
+        if value is None:
+            return {}
+        expected = {
+            "schema", "schema_version", "source_id", "producer_generation",
+            "release_commit", "source_sequence", "source_stamp_ns",
+            "source_clock_domain", "source_age_ms", "sample_progression",
+            "callback_receive_age_ms", "callback_clock_domain",
+            "last_callback_gap_ms", "max_callback_gap_ms",
+            "stale_after_ms", "coordinate_space", "frame_id", "origin",
+            "position_xyz", "orientation_xyzw", "quality", "invalid_reason",
+            "origin_reset_detected", "accepted_sample_count",
+            "rejected_sample_count",
+        }
+        if not isinstance(value, Mapping) or set(value) != expected:
+            raise ControlProtocolError("bridge motion observation is invalid")
+        if (
+            value.get("schema") != MOTION_OBSERVATION_SCHEMA
+            or value.get("schema_version") != MOTION_OBSERVATION_SCHEMA_VERSION
+            or value.get("source_id") != MOTION_OBSERVATION_SOURCE_ID
+            or value.get("source_clock_domain") != MOTION_OBSERVATION_SOURCE_CLOCK
+            or value.get("sample_progression") != "source_stamp_strict_increase"
+            or value.get("callback_clock_domain") != MOTION_OBSERVATION_CALLBACK_CLOCK
+            or value.get("coordinate_space") != MOTION_OBSERVATION_COORDINATE_SPACE
+            or value.get("frame_id") is not None
+            or value.get("origin") != "vendor_local_origin_unverified"
+            or value.get("orientation_xyzw") is not None
+            or value.get("source_age_ms") is not None
+        ):
+            raise ControlProtocolError("bridge motion observation contract is invalid")
+        generation = value.get("producer_generation")
+        if (
+            not isinstance(generation, str)
+            or not 16 <= len(generation) <= 128
+            or generation != payload.get("bridge_epoch")
+        ):
+            raise ControlProtocolError("bridge motion observation generation is invalid")
+        release = value.get("release_commit")
+        if release != payload.get("release_commit") or (
+            release is not None
+            and (not isinstance(release, str) or RELEASE_COMMIT_RE.fullmatch(release) is None)
+        ):
+            raise ControlProtocolError("bridge motion observation release is invalid")
+        counts: Dict[str, int] = {}
+        for name in (
+            "source_sequence", "accepted_sample_count", "rejected_sample_count"
+        ):
+            item = value.get(name)
+            if (
+                isinstance(item, bool)
+                or not isinstance(item, int)
+                or not 0 <= item <= MOTION_OBSERVATION_MAX_COUNT
+            ):
+                raise ControlProtocolError("bridge motion observation count is invalid")
+            counts[name] = item
+        if counts["source_sequence"] != counts["accepted_sample_count"]:
+            raise ControlProtocolError("bridge motion observation sequence is inconsistent")
+        stale_after_ms = value.get("stale_after_ms")
+        age_ms = value.get("callback_receive_age_ms")
+        if (
+            isinstance(stale_after_ms, bool)
+            or not isinstance(stale_after_ms, int)
+            or not 200 <= stale_after_ms <= 1_000
+            or (
+                age_ms is not None
+                and (
+                    isinstance(age_ms, bool)
+                    or not isinstance(age_ms, int)
+                    or not 0 <= age_ms <= SPORT_MODE_STATE_MAX_AGE_MS
+                )
+            )
+        ):
+            raise ControlProtocolError("bridge motion observation age is invalid")
+        last_gap_ms = value.get("last_callback_gap_ms")
+        max_gap_ms = value.get("max_callback_gap_ms")
+        for gap_ms in (last_gap_ms, max_gap_ms):
+            if gap_ms is not None and (
+                isinstance(gap_ms, bool)
+                or not isinstance(gap_ms, int)
+                or not 0 <= gap_ms <= SPORT_MODE_STATE_MAX_AGE_MS
+            ):
+                raise ControlProtocolError("bridge motion observation gap is invalid")
+        if (
+            (last_gap_ms is None) != (max_gap_ms is None)
+            or (
+                last_gap_ms is not None
+                and max_gap_ms is not None
+                and last_gap_ms > max_gap_ms
+            )
+            or (counts["source_sequence"] <= 1 and last_gap_ms is not None)
+            or (counts["source_sequence"] > 1 and last_gap_ms is None)
+        ):
+            raise ControlProtocolError("bridge motion observation gap is inconsistent")
+        stamp = value.get("source_stamp_ns")
+        if stamp is not None and (
+            isinstance(stamp, bool)
+            or not isinstance(stamp, int)
+            or not 0 < stamp <= 0x7FFF_FFFF_FFFF_FFFF
+        ):
+            raise ControlProtocolError("bridge motion observation stamp is invalid")
+        position = value.get("position_xyz")
+        safe_position: List[float] | None = None
+        if position is not None:
+            if not isinstance(position, list) or len(position) != 3:
+                raise ControlProtocolError("bridge motion observation position is invalid")
+            safe_position = []
+            for item in position:
+                if (
+                    isinstance(item, bool)
+                    or not isinstance(item, (int, float))
+                    or not math.isfinite(float(item))
+                    or abs(float(item)) > MOTION_OBSERVATION_MAX_ABS_POSITION_M
+                ):
+                    raise ControlProtocolError("bridge motion observation position is invalid")
+                safe_position.append(round(float(item), 6))
+        quality = value.get("quality")
+        reason = value.get("invalid_reason")
+        reset = value.get("origin_reset_detected")
+        if (
+            quality not in {"WAITING", "READY", "STALE", "INVALID"}
+            or not isinstance(reason, str)
+            or len(reason) > 80
+            or not isinstance(reset, bool)
+        ):
+            raise ControlProtocolError("bridge motion observation quality is invalid")
+        sample_parts = (
+            counts["source_sequence"] > 0,
+            stamp is not None,
+            age_ms is not None,
+            safe_position is not None,
+        )
+        if any(sample_parts) and not all(sample_parts):
+            raise ControlProtocolError("bridge motion observation sample is incomplete")
+        has_sample = all(sample_parts)
+        if quality == "WAITING" and (
+            has_sample
+            or counts["rejected_sample_count"] != 0
+            or reason != "sample_unavailable"
+            or reset
+        ):
+            raise ControlProtocolError("waiting bridge motion observation is inconsistent")
+        if quality == "READY" and (
+            not has_sample or age_ms > stale_after_ms or reason or reset
+        ):
+            raise ControlProtocolError("ready bridge motion observation is inconsistent")
+        if quality == "STALE" and (
+            not has_sample or age_ms <= stale_after_ms or reason != "callback_receive_stale"
+        ):
+            raise ControlProtocolError("stale bridge motion observation is inconsistent")
+        if quality == "INVALID" and not reason:
+            raise ControlProtocolError("invalid bridge motion observation is inconsistent")
+        return {
+            **dict(value),
+            "position_xyz": safe_position,
+        }
 
     @staticmethod
     def status_request_evidence(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -791,6 +960,7 @@ class ControlTransport:
             telemetry = self.status_telemetry(payload)
             request_evidence = self.status_request_evidence(payload)
             sport_mode_state = self.status_sport_mode_state(payload)
+            motion_observation = self.status_motion_observation(payload)
             command_ack = self.status_command_ack(payload)
             accepted_command = self.status_accepted_command(payload)
             release_commit = self.status_release_commit(payload)
@@ -805,6 +975,8 @@ class ControlTransport:
         status["request_evidence"] = request_evidence
         if sport_mode_state:
             status["sport_mode_state"] = sport_mode_state
+        if motion_observation:
+            status["motion_observation"] = motion_observation
         if command_ack:
             status["command_ack"] = {
                 "seq": command_ack["seq"],
@@ -1331,6 +1503,20 @@ class ControlTransport:
             if received <= 0.0
             else round(max(0.0, time.monotonic() - received), 3)
         )
+        motion_observation = bridge.get("motion_observation")
+        if isinstance(motion_observation, Mapping):
+            projected_observation = dict(motion_observation)
+            projected_observation.update(
+                {
+                    "receiver_status_age_ms": (
+                        None
+                        if bridge["status_age_s"] is None
+                        else round(float(bridge["status_age_s"]) * 1_000, 3)
+                    ),
+                    "receiver_clock_domain": "dashboard_process.monotonic",
+                }
+            )
+            bridge["motion_observation"] = projected_observation
         snapshot["bridge"] = bridge
         snapshot["transport_configured"] = transport_configured
         return snapshot

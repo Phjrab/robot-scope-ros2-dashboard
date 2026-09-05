@@ -261,7 +261,8 @@ odometry sender and receiver found the immediate blocker without weakening it.
 The sender received `/utlidar/robot_odom` but sent zero packets because the
 source stamps were consistently about `3788 ms` old; all samples were rejected
 as `source_stale`. The receiver therefore received and published zero packets.
-This exceeds the preserved 100 ms source-clock guard. Both temporary processes
+This exceeds the preserved 500 ms past-direction source-stamp guard. The
+separate 100 ms limit applies only to future skew. Both temporary processes
 were stopped in reverse order, UDP port 46030 was released, and the Bridge was
 stopped through the fixed lifecycle. Final state was Bridge `inactive/dead`,
 Navigation idle, no lease and no temporary process residue.
@@ -354,8 +355,9 @@ ROOT_CAUSE=UNRESOLVED
 
 STOCK-1 passed. MP-030 was safely blocked before command because strict
 wireless odometry rejected source stamps approximately 3.788 seconds old. The
-next minimum work is to correct that source-clock provenance without relaxing
-the 100 ms guard, then obtain a new, separate MP-030 approval. No Nav2
+next minimum work is to provide a separately qualified C4C motion-observation
+source without relaxing the 500 ms past or 100 ms future strict-odometry
+guards, then obtain a new, separate MP-030 approval. No Nav2
 parameter or safety threshold is changed without fixed Bridge-probe evidence.
 
 ## 11. Changed code
@@ -475,10 +477,12 @@ exact-release odometry sender and receiver were stopped in reverse order, port
 No C4E prompt has been created. The hardware-free supervisor tests, S0/S1
 stationary baselines and STOCK-1 locomotion baseline are green, and the exact
 release is deployed. The authorized MP-030 invocation was blocked before
-motion by unavailable fresh odometry. The next engineering gate is a narrow
-source-clock correction that preserves the strict 100 ms guard. Only after
-that correction is tested and deployed may MP-030 be considered again, with a
-new fresh approval. Every higher probe also requires a separate approval, and
+motion by unavailable fresh odometry. The next engineering gate is a qualified
+C4C-only relative-position observation path. Strict odometry source-clock
+remediation remains a separate blocked track and is not assumed to be the only
+solution. Only after software, stationary and dynamic observation
+qualification may MP-030 be considered again, with a new fresh approval. Every
+higher probe also requires a separate approval, and
 the ladder stops after the first successful Bridge-driven movement.
 
 `docs/TRACK_C4E_SUPERVISED_NAV2_RETRY_PROMPT.md` may be written only after C4C
@@ -540,7 +544,20 @@ ROOT_CAUSE=UNRESOLVED
 
 This value records insufficient Bridge-acceptance evidence, not a diagnosis.
 Stock locomotion is confirmed; MP-030 did not reach its motion phase because
-the strict source-clock guard rejected approximately 3.788-second-old
-odometry. The source-clock provenance must be corrected without relaxing that
-guard before a newly approved MP-030 retry. No C4E prompt, Nav2 retry or higher
+the strict 500 ms past-direction source-stamp guard rejected approximately
+3.788-second-old odometry; the 100 ms constant is the future-skew guard. The
+cause remains unknown among publisher clock offset, queue/processing delay and
+sender-host clock error. A separately qualified C4C observation source may
+remove the probe dependency without changing strict odometry. No C4E prompt,
+Nav2 retry or higher
 Bridge motion probe is authorized by this checkpoint.
+
+## 18. Follow-up: C4C motion-observation dependency
+
+The follow-up design and software result are recorded in
+`docs/C4C_MOTION_OBSERVATION_SOURCE_CONTRACT.md`. It preserves this blocked
+MP-030 record, leaves `/api/v1/pose` unchanged, and selects the existing
+Bridge-owned SportModeState position only as explicit C4C relative-travel
+evidence. The new path is software validated but not deployed, stationary
+qualified, dynamically qualified or approved for motion. The live probe gate
+therefore remains closed.
