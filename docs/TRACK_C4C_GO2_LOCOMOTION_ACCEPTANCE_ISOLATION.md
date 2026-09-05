@@ -2,12 +2,14 @@
 
 Date: 2026-09-05
 
-Status: `STOCK-1 PASS — MP-030 AWAITING FRESH APPROVAL`
+Status: `STOCK-1 PASS — MP-030 BLOCKED PRE-COMMAND BY ODOMETRY CLOCK GUARD`
 
 This is a stationary-baseline checkpoint report, not a motion acceptance
 report. The C4C release was activated through the fixed service lifecycle,
 the S0/S1 read-only observations passed and one human-operated STOCK-1 motion
-was observed. No Bridge micro-probe, Nav2 goal, Robot Scope lease, ARM,
+was observed. MP-030 was authorized and invoked once, but its fixed supervisor
+failed closed before lease acquisition because no fresh odometry pose was
+available. No Bridge micro-probe motion, Nav2 goal, Robot Scope lease, ARM,
 deadman or Robot Scope non-zero command has been executed. Items that require
 Bridge movement evidence remain `NOT_RUN` or `BLOCKED`; no locomotion
 root-cause class has been selected.
@@ -224,14 +226,50 @@ Bridge remained inactive and the observer left no process or command endpoint.
 
 | Probe | Physical x target | Fixed window | Conservative maximum predicted travel | Result |
 | --- | ---: | ---: | ---: | --- |
-| MP-030 | 0.03 m/s | 0.70 s | 0.0285 m | `NOT_RUN` |
+| MP-030 | 0.03 m/s | 0.70 s | 0.0285 m | `BLOCKED PRE-COMMAND` |
 | MP-050 | 0.05 m/s | 0.70 s | 0.0475 m | `NOT_RUN` |
 | MP-080 | 0.08 m/s | 0.70 s | 0.0760 m | `NOT_RUN` |
 | MP-100 | 0.10 m/s | 0.70 s | 0.0950 m | `NOT_RUN` |
 
-Each live probe remains individually gated by STOCK-1 PASS and a fresh
-confirmation. No probe may retry or advance automatically, and the ladder
-must stop after the first physical success.
+The operator supplied the exact MP-030 safety approval. The Bridge was started
+through the fixed dashboard lifecycle and preflight established exact release
+`103ed69`, authenticated/connected/ready state, fresh LowState, exact-zero
+accepted command, no lease, deadman released, motion run inactive, one owned
+request publisher, zero foreign named request publishers, the expected ten
+bare publishers, and idle Navigation/Mission/mapping state. The fixed local
+dry-run passed.
+
+The single live supervisor invocation returned exit status 2 and wrote this
+private evidence before it could acquire a lease:
+
+- `/tmp/robot-scope-c4c-1000/c4c-1788570525883782343-1463456.json`
+- `status=BLOCKED`
+- `error="fresh odometry pose is unavailable"`
+- `locomotion_acceptance=NOT_EVALUATED`
+- `physical_motion=NOT_EVALUATED`
+- fixed predicted maximum travel `0.0285 m`
+
+The dashboard pose endpoint remained `waiting`, with no topic and sequence
+zero. Consequently the supervisor could not enforce its unchanged 0.5-second
+pose-age, 5 mm pre-command drift and 0.10 m observed-travel gates and correctly
+refused to continue. Bridge-owned request evidence after the invocation showed
+zero Move, zero action and zero motion-run count; no lease, ARM, deadman or
+non-zero command occurred.
+
+A temporary exact-release diagnostic start of the existing strict wireless
+odometry sender and receiver found the immediate blocker without weakening it.
+The sender received `/utlidar/robot_odom` but sent zero packets because the
+source stamps were consistently about `3788 ms` old; all samples were rejected
+as `source_stale`. The receiver therefore received and published zero packets.
+This exceeds the preserved 100 ms source-clock guard. Both temporary processes
+were stopped in reverse order, UDP port 46030 was released, and the Bridge was
+stopped through the fixed lifecycle. Final state was Bridge `inactive/dead`,
+Navigation idle, no lease and no temporary process residue.
+
+MP-030 was therefore consumed only as a supervisor invocation, not as a motion
+attempt. It must not be retried automatically. Each remaining live probe and
+any MP-030 retry require a new, separate approval. No probe may advance
+automatically, and the ladder must stop after the first physical success.
 
 ## 7. Mode, gait and error changes
 
@@ -284,8 +322,10 @@ inside the existing 5 mm significance boundary.
 
 This proves the body and stock controller can produce locomotion. It does not
 prove that the Robot Scope Bridge request path is accepted. The preceding C4B
-operator observation remains no movement despite 59 signed Move requests; a
-fixed Bridge micro-probe is still required to isolate that boundary.
+operator observation remains no movement despite 59 signed Move requests. The
+authorized MP-030 supervisor stopped before a Move request because its bounded
+odometry safety input was unavailable, so a successfully armed fixed Bridge
+micro-probe is still required to isolate that boundary.
 
 ## 9. Threshold interval
 
@@ -295,7 +335,8 @@ No Bridge gait-entry threshold interval has been established.
   C4B chain;
 - stock-controller movement: confirmed, but its command magnitude is neither
   exposed nor comparable to the Bridge's physical x request;
-- highest confirmed non-moving fixed Bridge probe: `UNKNOWN`;
+- highest confirmed non-moving fixed Bridge probe: `UNKNOWN` (MP-030 emitted no
+  Move and did not evaluate physical motion);
 - lowest confirmed moving Bridge probe: `UNKNOWN`;
 - uncertainty interval: `UNKNOWN`;
 - time-to-gait and time-to-motion: `UNKNOWN`.
@@ -311,9 +352,11 @@ No specific root-cause class is selected. The Section 17 checkpoint value is:
 ROOT_CAUSE=UNRESOLVED
 ```
 
-STOCK-1 passed, so the next minimum discriminating evidence is MP-030 under a
-new, separate approval. No Nav2 parameter or safety threshold is changed
-without fixed Bridge-probe evidence.
+STOCK-1 passed. MP-030 was safely blocked before command because strict
+wireless odometry rejected source stamps approximately 3.788 seconds old. The
+next minimum work is to correct that source-clock provenance without relaxing
+the 100 ms guard, then obtain a new, separate MP-030 approval. No Nav2
+parameter or safety threshold is changed without fixed Bridge-probe evidence.
 
 ## 11. Changed code
 
@@ -396,7 +439,7 @@ not a C4C regression.
 
 ## 13. Service, process, lease and final safety state
 
-The post-S1 cleanup audit found:
+The post-MP-030 cleanup audit found:
 
 - external dashboard active on the full-SHA `103ed69e43e263020af426c06e6d7bb7d12b4e99` release;
 - robot-side stable release link on the same full-SHA release, with the Control
@@ -412,25 +455,31 @@ The post-S1 cleanup audit found:
 - S0 and final inactive graph checks showed the expected ten bare request
   publishers, one subscriber and no Robot Scope publisher;
 - S0/S1 and STOCK-1 private evidence exists at the exact paths in Sections 4
-  and 5 and the observer left no command endpoint or process residue;
+  and 5; the MP-030 pre-command block evidence exists at the path in Section 6;
+  the observer and supervisor left no command endpoint or process residue;
 - both S0 and S1 showed mode/gait `0/0`, error code `100`, no transition and
   sub-millimetre stationary variation, without inferring firmware semantics.
 
-The release activation and S1 intentionally stopped and started the Bridge and
-restarted the dashboard. They did not acquire a lease, arm, engage deadman,
-send a non-zero command, start Navigation or send a goal. No physical movement
-was commanded or observed during S0/S1. STOCK-1 used only the human-operated
-stock remote while the Bridge remained inactive. Post-motion S0 and the
-operator both confirmed final stop; the Bridge remained inactive and the
-request graph returned to ten bare publishers with no Robot Scope publisher.
+The release activation, S1 and MP-030 preflight intentionally stopped and
+started the Bridge. The dashboard was restarted only during release activation.
+None acquired a lease, armed, engaged deadman, sent a non-zero command, started
+Navigation or sent a goal. No physical movement was commanded or observed
+during S0/S1 or the blocked MP-030 invocation. STOCK-1 used only the
+human-operated stock remote while the Bridge remained inactive. Post-motion S0
+and the operator both confirmed final stop. After MP-030 blocked, the temporary
+exact-release odometry sender and receiver were stopped in reverse order, port
+46030 had no listener, and the Bridge lifecycle reached `inactive/dead`.
 
 ## 14. Next prompt
 
 No C4E prompt has been created. The hardware-free supervisor tests, S0/S1
 stationary baselines and STOCK-1 locomotion baseline are green, and the exact
-release is deployed. The next permitted motion gate is MP-030, which requires
-its own fresh approval. Every higher probe also requires a separate approval,
-and the ladder stops after the first successful Bridge-driven movement.
+release is deployed. The authorized MP-030 invocation was blocked before
+motion by unavailable fresh odometry. The next engineering gate is a narrow
+source-clock correction that preserves the strict 100 ms guard. Only after
+that correction is tested and deployed may MP-030 be considered again, with a
+new fresh approval. Every higher probe also requires a separate approval, and
+the ladder stops after the first successful Bridge-driven movement.
 
 `docs/TRACK_C4E_SUPERVISED_NAV2_RETRY_PROMPT.md` may be written only after C4C
 has evidence for a root-cause class and a characterized effective command.
@@ -461,7 +510,7 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | OBSERVER_SOFTWARE | PASS |
 | STATIONARY_BODY_BASELINE | PASS |
 | STOCK_CONTROLLER_BASELINE | PASS |
-| MP_030 | NOT_RUN |
+| MP_030 | BLOCKED |
 | MP_050 | NOT_RUN |
 | MP_080 | NOT_RUN |
 | MP_100 | NOT_RUN |
@@ -478,9 +527,10 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 `STARTUP_ZERO_FIX=PASS` now covers the deployed full-SHA release.
 `SPORT_MODE_AUTHORITATIVE=FAIL` is limited to the mode/gait fields as a
 locomotion-state indicator: the position and velocity fields did reflect the
-operator-observed movement. `CLEANUP=PASS` means release activation, S0/S1 and
-STOCK-1 left no Robot Scope session, lease, deadman, non-zero command,
-motion-run or observer residue.
+operator-observed movement. `CLEANUP=PASS` means release activation, S0/S1,
+STOCK-1 and the blocked MP-030 invocation left no Robot Scope session, lease,
+deadman, non-zero command, motion-run, observer, supervisor or temporary
+odometry process residue.
 
 ## 17. Final decision
 
@@ -489,6 +539,8 @@ ROOT_CAUSE=UNRESOLVED
 ```
 
 This value records insufficient Bridge-acceptance evidence, not a diagnosis.
-Stock locomotion is confirmed; the next minimum motion probe is MP-030 under a
-new, explicit approval. No C4E prompt, software correction, Nav2 retry or
-higher Bridge motion probe is authorized by this checkpoint.
+Stock locomotion is confirmed; MP-030 did not reach its motion phase because
+the strict source-clock guard rejected approximately 3.788-second-old
+odometry. The source-clock provenance must be corrected without relaxing that
+guard before a newly approved MP-030 retry. No C4E prompt, Nav2 retry or higher
+Bridge motion probe is authorized by this checkpoint.
