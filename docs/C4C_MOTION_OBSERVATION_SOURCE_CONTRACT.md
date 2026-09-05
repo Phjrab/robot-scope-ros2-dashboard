@@ -219,7 +219,7 @@ the live gate.
 ```text
 SOFTWARE_VALIDATED=PASS
 STATIONARY_OBSERVATION_VALIDATED=PASS
-DYNAMIC_OBSERVATION_VALIDATED=NOT_RUN
+DYNAMIC_OBSERVATION_VALIDATED=PARTIAL_SOURCE_ONLY
 MOTION_USE_APPROVED=NO
 ```
 
@@ -312,12 +312,53 @@ reverse order, verify process cwd/fingerprints and exact zero, and leave the
 Bridge inactive unless a new operational approval says otherwise. Git
 publication is not deployment approval.
 
-## 9. Remaining qualification
+## 9. Dynamic source observation
 
-Stationary validation has passed. A separately approved human-operated dynamic
-comparison is still required. Dynamic validation must establish that this
-vendor-local stream detects bounded real movement promptly and consistently
-without source/origin reset. Only then may a focused change set
-`MOTION_USE_APPROVED=true`, followed
-by a new exact-release deployment and a fresh MP-030 approval. MP-030,
-MP-050/080/100 and Nav2 goals remain not run by this work.
+On 2026-09-05 the operator separately approved one human-controlled stock
+remote movement of 0.10--0.20 m with the robot standing, a 0.30 m clear
+corridor, physical remote/E-stop and safety operator present. The Control
+Bridge, strict odometry sender/receiver and all Navigation owners remained
+inactive. Codex created no publisher and sent no motion command.
+
+The first 20-second window contained no operator input. It remains valid
+no-motion evidence and is not counted as the dynamic attempt:
+
+- evidence: `/home/unitree/.robot-scope/locomotion-observations/go2-locomotion-stock-1-20260905T032659.778616Z.json`
+- SHA-256: `2e7cc59fc3288efd4da53b1b951e9e4386b3bb490058da8ebf3106adb3f3cfc9`
+- 5,944 samples, zero rejected, and 0.364 mm maximum axis span.
+
+After a fresh retry request, the existing read-only SportModeState observer
+captured one operator-controlled movement:
+
+- evidence: `/home/unitree/.robot-scope/locomotion-observations/go2-locomotion-stock-1-20260905T032818.165696Z.json`
+- SHA-256: `6c29e09440ace87879f6d9028db6ccb778ba99d270a5de14efb1e906520ce206`
+- 20.000236 seconds, 5,920 samples, zero rejected, 295.996512 Hz;
+- one stable source publisher and 0.027778-second maximum sample gap;
+- 0.118920 m first-to-last planar displacement, inside the approved range;
+- 0.531308 m/s maximum reported velocity and no mode/gait transition.
+
+The operator confirmed final physical stop. A following 10-second S0 capture
+passed with 2,976 samples, zero rejected, 297.588902 Hz, 0.017920-second
+maximum gap, 0.376 mm maximum axis span and 0.187 mm first-to-last planar
+displacement:
+
+- evidence: `/home/unitree/.robot-scope/locomotion-observations/go2-locomotion-s0-20260905T032856.481049Z.json`
+- SHA-256: `c2c1820472c699ffed3d808fc9267f7c6fd3523fa2cec78db11d6c35218e0cc9`
+
+This qualifies live dynamic response and stationary recovery of the selected
+vendor source itself. It does not constitute a live dynamic traversal of the
+new signed Bridge-to-dashboard transport because the Bridge intentionally
+remained inactive to avoid its request publisher interfering with the stock
+controller. The earlier stationary run qualifies the signed transport only
+while stationary. Therefore overall dynamic validation remains
+`PARTIAL_SOURCE_ONLY`, not `PASS`, and `MOTION_USE_APPROVED` remains false.
+
+## 10. Remaining qualification
+
+Stationary validation and dynamic source response have passed. A separately
+approved observation-only signed end-to-end comparison is still required; it
+must add no request publisher and must establish that the same source, origin
+and generation reach the dashboard without reset. Only then may a focused
+change set set `MOTION_USE_APPROVED=true`, followed by a new exact-release
+deployment and a fresh MP-030 approval. MP-030, MP-050/080/100 and Nav2 goals
+remain not run by this work.

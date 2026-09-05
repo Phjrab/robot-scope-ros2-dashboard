@@ -525,6 +525,8 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | SOFTWARE_CORRECTION | NOT_RUN |
 | STATIONARY_SOAK | NOT_RUN |
 | C4C_MOTION_OBSERVATION_STATIONARY | PASS |
+| C4C_MOTION_OBSERVATION_DYNAMIC_SOURCE | PASS |
+| C4C_SIGNED_DYNAMIC_END_TO_END | NOT_RUN |
 | NAV2_GOAL | NOT_RUN |
 | ROBOT_MOTION | PASS |
 | CLEANUP | PASS |
@@ -564,6 +566,12 @@ evidence. The exact release
 both hosts and passed a five-minute stationary observation with all 1,201
 samples `READY`, zero rejected samples or resets, a 41 ms maximum signed
 callback gap and 0.076 mm maximum planar displacement. This changes only the
-stationary qualification state. The path is not dynamically qualified or
-approved for motion, so the live probe gate remains closed. MP-030 and all
-higher probes remain unexecuted by the follow-up.
+stationary qualification state. A later approved stock-remote observation
+measured 0.118920 m planar movement from 5,920 valid samples and the operator
+confirmed final stop; a following S0 capture measured only 0.187 mm
+first-to-last planar drift. This qualifies the vendor source's dynamic
+response but not live signed Bridge-to-dashboard delivery during movement
+because the Bridge remained inactive to avoid request-publisher interference.
+Overall dynamic qualification is therefore `PARTIAL_SOURCE_ONLY`, and the live
+probe gate remains closed. MP-030 and all higher probes remain unexecuted by
+the follow-up.
