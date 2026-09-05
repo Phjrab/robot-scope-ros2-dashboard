@@ -2,12 +2,13 @@
 
 Date: 2026-09-05
 
-Status: `HARDWARE-FREE GATE COMPLETE — STOCK-1 NOT AUTHORIZED`
+Status: `FULL-SHA RELEASE DEPLOYED — S0/S1 AWAITING PHYSICAL CONFIRMATION`
 
-This is a checkpoint report, not a motion acceptance report. No C4C stock
-motion, Bridge micro-probe, Nav2 goal, lease, ARM, deadman or non-zero command
-has been executed. Items that require physical evidence remain `NOT_RUN` or
-`BLOCKED`; no locomotion root-cause class has been selected.
+This is a deployment checkpoint report, not a motion acceptance report. The
+C4C release was activated through the fixed service lifecycle, but no C4C
+stock motion, Bridge micro-probe, Nav2 goal, lease, ARM, deadman or non-zero
+command has been executed. Items that require physical evidence remain
+`NOT_RUN` or `BLOCKED`; no locomotion root-cause class has been selected.
 
 ## 1. Repository and deployment identity
 
@@ -16,18 +17,18 @@ has been executed. Items that require physical evidence remain `NOT_RUN` or
 | Repository baseline HEAD | `fa717cf32d4495692d9c57a9fb5f294c6a31ac8a` |
 | `origin/main` at C4C audit | `fa717cf32d4495692d9c57a9fb5f294c6a31ac8a` |
 | Worktree before C4C | clean, `main...origin/main` |
-| C4C change set before publication | focused C4C-only implementation, tests and documentation |
+| Published C4C implementation | `e69718ad8e084a219fb171d6aa442f5877543e5f` |
 | Startup-zero correction | present at repository baseline HEAD |
-| Latest CI at audit | run `33862858679`: Ubuntu 22 functional job passed; overall failed in the Ubuntu 24 packaging-audit job when the remote npm audit endpoint rejected the dependency tree |
+| Latest CI for deployed commit | run `33931698822`: Ubuntu 22.04/Python 3.10 and Ubuntu 24.04/Python 3.12 both passed, including hardware-free browser E2E |
 | Last fully green predecessor | `f83f3fff08f0280954839f4e5b87110f314c6271` |
 
 Deployment was checked independently of Git metadata:
 
 | Host | Audited production state |
 | --- | --- |
-| external Orin `192.168.50.10` | `robot-scope.service` active/enabled; process cwd `/home/jetson_orin_nano/releases/robot-scope/f83f3ff`; dashboard release resolves to `f83f3fff08f0280954839f4e5b87110f314c6271` |
-| robot-side Orin `192.168.50.30` | `robot-scope-control-bridge.service` active/enabled; process cwd `/home/unitree/releases/robot-scope/f83f3ff`; XT16 relay active/enabled |
-| both hosts | wireless IMU/odometry sender/receiver inactive/disabled at audit |
+| external Orin `192.168.50.10` | `robot-scope.service` active/enabled; process cwd `/home/jetson_orin_nano/releases/robot-scope/e69718ad8e084a219fb171d6aa442f5877543e5f` |
+| robot-side Orin `192.168.50.30` | `robot-scope-control-bridge.service` active/enabled; process cwd `/home/unitree/releases/robot-scope/e69718ad8e084a219fb171d6aa442f5877543e5f`; XT16 relay active/enabled |
+| both hosts | exact full-SHA release identity matched; service restart count `0` after activation |
 
 The external development checkout was old and dirty at `72e39c3`. It was not
 used as release evidence and was not modified. The external dashboard process
@@ -35,21 +36,28 @@ also carried a stale `ROBOT_SCOPE_GIT_COMMIT` environment value while its
 actual cwd was the `f83f3ff` release. Process cwd and immutable release
 fingerprints are therefore authoritative; that stale environment value is not.
 
-Both production hosts still run `f83f3ff`. The startup-zero correction at
-`fa717cf` and all C4C diagnostics/supervisor work are **not deployed**. The old
-release is not eligible for a C4C live probe because it cannot provide the new
-authoritative accepted-command evidence.
+The exact Git archive for `e69718ad8e084a219fb171d6aa442f5877543e5f`
+had SHA-256
+`77aab8026fbed0d8bbd5d78a69d653ac6465ff9dbbeae0722dbcf3184a3b5a4b`.
+That hash was independently verified after transfer to both hosts. The archive
+was extracted into previously absent full-40-character release directories;
+neither dirty development checkout was pulled, reset or used as a release.
 
-Any future C4C candidate must be installed in an immutable release directory
-whose basename is the complete 40-character lowercase commit SHA, and each
-service process cwd must resolve to that same directory. The existing
-seven-character `f83f3ff` directory convention cannot satisfy the live probe's
-release-identity gate and must not be reused for that deployment.
+Activation used the required Bridge-first order. The old Bridge emitted its
+StopMove cleanup and reached inactive before the robot-side stable symlink was
+atomically switched. The fixed dashboard lifecycle then started the new
+Bridge, whose process cwd and release identity were verified before the
+external dashboard symlink was atomically switched and its service restarted.
+Rollback symlinks on both hosts preserve the prior `f83f3ff` release.
 
-After the robot was powered back on, a final read-only audit at
-`2026-09-04T23:35:35Z` reconfirmed the same immutable release on both hosts.
-The external dashboard and robot-side Bridge were active, but no deployment,
-service transition or control mutation was performed.
+Post-activation evidence at `2026-09-05T00:18Z` reported Bridge
+authenticated/connected/ready, accepted command exactly `(0,0,0)`, dashboard
+command exactly `(0,0,0)`, no lease, deadman released, motion run inactive,
+one request subscriber, one owned publisher, zero foreign named publishers and
+the expected ten bare publishers. The new Bridge had published 279 StopMove,
+zero Move and zero action requests. Navigation, localization and goal remained
+idle. These are service and telemetry facts; physical standing/stopped state
+is still awaiting fresh operator confirmation.
 
 ## 2. Previous C4B evidence
 
@@ -265,41 +273,34 @@ not a C4C regression.
 
 ## 12. Service, process, lease and final safety state
 
-The latest read-only deployment audit, repeated after the robot was powered
-back on, found:
+The post-activation audit found:
 
-- external dashboard active on the immutable `f83f3ff` release;
-- robot-side Control Bridge active on the immutable `f83f3ff` release;
+- external dashboard active on the full-SHA `e69718ad8e084a219fb171d6aa442f5877543e5f` release;
+- robot-side Control Bridge active on that same full-SHA release;
 - Navigation pipeline, localization-only session and goal idle;
 - no Navigation or manual lease;
-- dashboard command exact zero, deadman released and Bridge motion run inactive;
+- dashboard and Bridge accepted commands exact zero, deadman released and Bridge motion run inactive;
 - latest signed request StopMove;
 - authenticated Bridge, LowState and SportModeState fresh at audit;
 - request cardinality one subscriber, one owned publisher, zero foreign named
   publishers and the expected ten bare publishers;
-- Bridge process-lifetime evidence at the final audit showed 322 StopMove,
+- Bridge process-lifetime evidence after activation showed 279 StopMove,
   zero Move and zero action requests; `mode=0`, `gait_type=0` and
   `error_code=100` remained observational values with no inferred meaning.
 
-The deployed release cannot expose the new Bridge accepted-command field, so
-an authoritative deployed `accepted_command=[0,0,0]` has **not** been claimed.
-The last C4B operator report confirmed no motion and stop, but C4C has not yet
-obtained a fresh physical-state confirmation. No C4C service, process, lease,
-command or robot state was mutated, so there is no C4C live session residue to
-clean up. No Nav2 goal was sent.
-
-The user later powered the Go2 back on. Only the read-only final audit above
-was performed after that update. No deployment activation, service restart,
-stationary observer capture, lease, ARM, deadman, non-zero command or motion
-test was attempted. A fresh physical stopped/standing confirmation was not
-provided, so no physical state is inferred from telemetry.
+The release activation intentionally stopped and started the Bridge and
+restarted the dashboard. It did not acquire a lease, arm, engage deadman, send
+a non-zero command, start Navigation or send a goal. S0/S1 stationary observer
+capture has not yet started because C4C still lacks a fresh physical
+standing/stopped confirmation; no physical state is inferred from telemetry.
 
 ## 13. Next prompt
 
-No C4E prompt has been created. The hardware-free supervisor tests are green.
-The next preparation step is a clean exact-release deployment and stationary
-S0/S1 capture; the next permitted motion gate is then the exact STOCK-1
-procedure and a fresh user confirmation. MP-030 can be
+No C4E prompt has been created. The hardware-free supervisor tests are green
+and the exact release is deployed. The next preparation step is stationary
+S0/S1 capture after fresh physical standing/stopped confirmation; the next
+permitted motion gate is then the exact STOCK-1 procedure and a fresh user
+confirmation. MP-030 can be
 proposed only after STOCK-1 PASS; every higher probe requires its own approval.
 
 `docs/TRACK_C4E_SUPERVISED_NAV2_RETRY_PROMPT.md` may be written only after C4C
@@ -311,15 +312,14 @@ This C4C work does not send a Nav2 goal.
 Repository rollback should use a normal revert of the focused C4C commit,
 whose published SHA is recorded in the Git/CI completion report. The baseline
 before this change is `fa717cf32d4495692d9c57a9fb5f294c6a31ac8a`.
-Deployment rollback, if a future clean C4C release is activated, must
-atomically restore the prior
-immutable release on each affected host and then verify process cwd, latest
-signed StopMove, exact zero, deadman released and no lease. The dirty external
-development checkout must never be reset or used as a deployment or rollback
-target.
-
-At this checkpoint no C4C deployment or service mutation occurred, so the
-production rollback action is `NOT_REQUIRED`.
+Deployment rollback must first verify exact zero, deadman released and no
+lease, restore the external dashboard symlink to its preserved `f83f3ff`
+release and restart it, then stop the Bridge through the fixed lifecycle,
+restore the robot-side rollback symlink and start it again. Process cwd, latest
+signed StopMove, exact zero and no lease must then be reverified. The dirty
+external development checkout must never be reset or used as a deployment or
+rollback target. Rollback is not currently required because the new services
+are active, zero-command and healthy.
 
 ## 15. Acceptance status
 
@@ -345,9 +345,10 @@ production rollback action is `NOT_REQUIRED`.
 | ROBOT_MOTION | NOT_RUN |
 | CLEANUP | PASS |
 
-`STARTUP_ZERO_FIX=PASS` is repository-level only; deployment remains on the
-pre-fix `f83f3ff` release. `CLEANUP=PASS` is scoped to the fact that C4C has
-performed no live mutation and left no session, lease or command residue.
+`STARTUP_ZERO_FIX=PASS` now covers the deployed full-SHA release.
+`CLEANUP=PASS` means release activation left no session, lease, deadman,
+non-zero command or motion-run residue; it does not claim S0/S1 or physical
+motion acceptance.
 
 ## 16. Final decision
 
@@ -356,6 +357,6 @@ ROOT_CAUSE=UNRESOLVED
 ```
 
 This value records insufficient evidence, not a diagnosis. The next minimum
-motion probe is STOCK-1 after clean deployment and stationary S0/S1 evidence.
-No C4E prompt, software correction, Nav2 retry or motion escalation is
-authorized by this checkpoint.
+motion probe is STOCK-1 after stationary S0/S1 evidence. No C4E prompt,
+software correction, Nav2 retry or motion escalation is authorized by this
+checkpoint.
