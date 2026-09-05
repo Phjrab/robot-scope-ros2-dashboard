@@ -76,7 +76,7 @@ from .control import (
     LeaseInvalid,
     SequenceError,
 )
-from .go2_bridge import SPORT_MODE_STATE_PUBLIC_FIELDS
+from .go2_bridge import MOTION_OBSERVATION_PUBLIC_FIELDS, SPORT_MODE_STATE_PUBLIC_FIELDS
 from .competition import CompetitionStateManager
 from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
@@ -483,6 +483,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         }
     for field, fields in (
         ("sport_mode_state", SPORT_MODE_STATE_PUBLIC_FIELDS),
+        ("motion_observation", MOTION_OBSERVATION_PUBLIC_FIELDS),
         ("accepted_command", ("deadman", "linear_x", "linear_y", "angular_z")),
         ("command_ack", ("seq", "type", "age_ms", "source_matches_dashboard")),
     ):

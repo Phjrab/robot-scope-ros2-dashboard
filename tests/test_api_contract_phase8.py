@@ -3,7 +3,10 @@ import unittest
 from pathlib import Path
 from typing import Any, Dict
 
-from robot_dashboard.go2_bridge import SPORT_MODE_STATE_PUBLIC_FIELDS
+from robot_dashboard.go2_bridge import (
+    MOTION_OBSERVATION_PUBLIC_FIELDS,
+    SPORT_MODE_STATE_PUBLIC_FIELDS,
+)
 from robot_dashboard.public_diagnostics import public_diagnostic
 
 
@@ -229,6 +232,7 @@ class Phase8ApiContractTests(unittest.TestCase):
             "Any": Any,
             "Dict": Dict,
             "SPORT_MODE_STATE_PUBLIC_FIELDS": SPORT_MODE_STATE_PUBLIC_FIELDS,
+            "MOTION_OBSERVATION_PUBLIC_FIELDS": MOTION_OBSERVATION_PUBLIC_FIELDS,
             "public_diagnostic": public_diagnostic,
         }
         exec(compile(ast.Module(body=[function], type_ignores=[]), str(APP), "exec"), namespace)
@@ -282,6 +286,36 @@ class Phase8ApiContractTests(unittest.TestCase):
                         "fresh": True,
                         "private": "not-public",
                     },
+                    "motion_observation": {
+                        "schema": "robot-scope.motion-observation",
+                        "schema_version": 1,
+                        "source_id": "unitree_go.sport_mode_state.position",
+                        "producer_generation": "e" * 32,
+                        "release_commit": "a" * 40,
+                        "source_sequence": 20,
+                        "source_stamp_ns": 2_000_000_001,
+                        "source_clock_domain": "unitree_go.timespec.unverified",
+                        "source_age_ms": None,
+                        "sample_progression": "source_stamp_strict_increase",
+                        "callback_receive_age_ms": 25,
+                        "last_callback_gap_ms": 4,
+                        "max_callback_gap_ms": 8,
+                        "callback_clock_domain": "bridge_process.monotonic",
+                        "receiver_status_age_ms": 100.0,
+                        "receiver_clock_domain": "dashboard_process.monotonic",
+                        "stale_after_ms": 500,
+                        "coordinate_space": "unitree_go.sport_mode_state.local",
+                        "frame_id": None,
+                        "origin": "vendor_local_origin_unverified",
+                        "position_xyz": [1.0, 2.0, 0.0],
+                        "orientation_xyzw": None,
+                        "quality": "READY",
+                        "invalid_reason": "",
+                        "origin_reset_detected": False,
+                        "accepted_sample_count": 20,
+                        "rejected_sample_count": 0,
+                        "private": "not-public",
+                    },
                     "accepted_command": {
                         "deadman": True,
                         "linear_x": 0.03,
@@ -327,6 +361,11 @@ class Phase8ApiContractTests(unittest.TestCase):
         self.assertEqual(bridge["release_commit"], "a" * 40)
         self.assertEqual(bridge["request_evidence"]["published_count"], 2)
         self.assertNotIn("private", bridge["request_evidence"])
+        self.assertEqual(
+            set(bridge["motion_observation"]),
+            set(MOTION_OBSERVATION_PUBLIC_FIELDS),
+        )
+        self.assertNotIn("private", bridge["motion_observation"])
         self.assertEqual(
             bridge["sport_mode_state"],
             {

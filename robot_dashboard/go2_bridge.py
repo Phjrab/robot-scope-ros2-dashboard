@@ -31,6 +31,16 @@ MOTION_OBSERVATION_MAX_ABS_POSITION_M = 1_000_000.0
 MOTION_OBSERVATION_MAX_SAMPLE_JUMP_M = 1.0
 MOTION_OBSERVATION_MAX_SOURCE_PROGRESS_LEAD_MS = 250
 MOTION_OBSERVATION_MAX_COUNT = 2_147_483_647
+MOTION_OBSERVATION_PUBLIC_FIELDS = (
+    "schema", "schema_version", "source_id", "producer_generation",
+    "release_commit", "source_sequence", "source_stamp_ns",
+    "source_clock_domain", "source_age_ms", "sample_progression",
+    "callback_receive_age_ms", "last_callback_gap_ms", "max_callback_gap_ms",
+    "callback_clock_domain", "receiver_status_age_ms", "receiver_clock_domain",
+    "stale_after_ms", "coordinate_space", "frame_id", "origin",
+    "position_xyz", "orientation_xyzw", "quality", "invalid_reason",
+    "origin_reset_detected", "accepted_sample_count", "rejected_sample_count",
+)
 SPORT_MODE_STATE_PUBLIC_FIELDS = (
     "topic", "mode", "gait_type", "velocity", "error_code", "age_ms",
     "stale_after_ms", "fresh",
