@@ -344,6 +344,7 @@ class Go2BridgeCoreTests(unittest.TestCase):
         )
         self.assertEqual(first["quality"], "READY")
         self.assertEqual(first["source_sequence"], 1)
+        self.assertEqual(first["duplicate_sample_count"], 0)
         self.assertEqual(first["source_stamp_ns"], 1_000_000_001)
         self.assertIsNone(first["last_callback_gap_ms"])
         self.assertIsNone(first["max_callback_gap_ms"])
@@ -361,6 +362,25 @@ class Go2BridgeCoreTests(unittest.TestCase):
         )
         self.assertEqual(stale["quality"], "STALE")
         self.assertEqual(stale["position_xyz"], [1.0, 2.0, 0.0])
+
+    def test_motion_observation_duplicate_does_not_refresh_underlying_sample(self):
+        observation = SportModeStateObservation(
+            topic="/sportmodestate", stale_after_s=0.5
+        )
+        observation.observe(self.motion_message(), now=1.0)
+        observation.observe(self.motion_message(), now=1.4)
+        duplicate = observation.motion_snapshot(
+            now=1.4, producer_generation="g" * 32, release_commit="a" * 40
+        )
+        self.assertEqual(duplicate["quality"], "READY")
+        self.assertEqual(duplicate["source_sequence"], 1)
+        self.assertEqual(duplicate["duplicate_sample_count"], 1)
+        self.assertEqual(duplicate["callback_receive_age_ms"], 400)
+        stale = observation.motion_snapshot(
+            now=1.501, producer_generation="g" * 32, release_commit="a" * 40
+        )
+        self.assertEqual(stale["quality"], "STALE")
+        self.assertEqual(stale["source_sequence"], 1)
 
     def test_motion_observation_accepts_stationary_progress_and_latches_reset(self):
         observation = SportModeStateObservation(

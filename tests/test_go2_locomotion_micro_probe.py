@@ -114,6 +114,7 @@ def snapshots() -> dict:
             "invalid_reason": "",
             "origin_reset_detected": False,
             "accepted_sample_count": 10,
+            "duplicate_sample_count": 0,
             "rejected_sample_count": 0,
             "receiver_status_age_ms": 10.0,
             "receiver_clock_domain": "dashboard_process.monotonic",

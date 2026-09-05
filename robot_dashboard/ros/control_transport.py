@@ -522,7 +522,7 @@ class ControlTransport:
             "stale_after_ms", "coordinate_space", "frame_id", "origin",
             "position_xyz", "orientation_xyzw", "quality", "invalid_reason",
             "origin_reset_detected", "accepted_sample_count",
-            "rejected_sample_count",
+            "duplicate_sample_count", "rejected_sample_count",
         }
         if not isinstance(value, Mapping) or set(value) != expected:
             raise ControlProtocolError("bridge motion observation is invalid")
@@ -555,7 +555,8 @@ class ControlTransport:
             raise ControlProtocolError("bridge motion observation release is invalid")
         counts: Dict[str, int] = {}
         for name in (
-            "source_sequence", "accepted_sample_count", "rejected_sample_count"
+            "source_sequence", "accepted_sample_count", "duplicate_sample_count",
+            "rejected_sample_count",
         ):
             item = value.get(name)
             if (
@@ -646,6 +647,7 @@ class ControlTransport:
         has_sample = all(sample_parts)
         if quality == "WAITING" and (
             has_sample
+            or counts["duplicate_sample_count"] != 0
             or counts["rejected_sample_count"] != 0
             or reason != "sample_unavailable"
             or reset

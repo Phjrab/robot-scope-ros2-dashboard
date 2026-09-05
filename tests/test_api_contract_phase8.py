@@ -313,6 +313,7 @@ class Phase8ApiContractTests(unittest.TestCase):
                         "invalid_reason": "",
                         "origin_reset_detected": False,
                         "accepted_sample_count": 20,
+                        "duplicate_sample_count": 1,
                         "rejected_sample_count": 0,
                         "private": "not-public",
                     },

@@ -432,12 +432,16 @@ def _motion_observation(bridge: Mapping[str, Any]) -> dict[str, Any]:
         raise ProbeError("motion observation release is invalid")
     sequence = value.get("source_sequence")
     accepted_count = value.get("accepted_sample_count")
+    duplicate_count = value.get("duplicate_sample_count")
     rejected_count = value.get("rejected_sample_count")
     if (
         isinstance(sequence, bool)
         or not isinstance(sequence, int)
         or sequence <= 0
         or sequence != accepted_count
+        or isinstance(duplicate_count, bool)
+        or not isinstance(duplicate_count, int)
+        or duplicate_count < 0
         or isinstance(rejected_count, bool)
         or not isinstance(rejected_count, int)
         or rejected_count < 0
@@ -490,6 +494,7 @@ def _motion_observation(bridge: Mapping[str, Any]) -> dict[str, Any]:
         "origin": value["origin"],
         "position_xyz": safe_position,
         "quality": "READY",
+        "duplicate_sample_count": duplicate_count,
         "rejected_sample_count": rejected_count,
     }
 

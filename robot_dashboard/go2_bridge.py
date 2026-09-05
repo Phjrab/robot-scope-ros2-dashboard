@@ -39,7 +39,8 @@ MOTION_OBSERVATION_PUBLIC_FIELDS = (
     "callback_clock_domain", "receiver_status_age_ms", "receiver_clock_domain",
     "stale_after_ms", "coordinate_space", "frame_id", "origin",
     "position_xyz", "orientation_xyzw", "quality", "invalid_reason",
-    "origin_reset_detected", "accepted_sample_count", "rejected_sample_count",
+    "origin_reset_detected", "accepted_sample_count", "duplicate_sample_count",
+    "rejected_sample_count",
 )
 SPORT_MODE_STATE_PUBLIC_FIELDS = (
     "topic", "mode", "gait_type", "velocity", "error_code", "age_ms",
@@ -168,6 +169,7 @@ class SportModeStateObservation:
         self._motion_source_stamp_ns: int | None = None
         self._motion_source_sequence = 0
         self._motion_accepted_count = 0
+        self._motion_duplicate_count = 0
         self._motion_rejected_count = 0
         self._motion_invalid_reason = ""
         self._motion_reset_detected = False
@@ -274,7 +276,14 @@ class SportModeStateObservation:
             previous_stamp = self._motion_source_stamp_ns
             previous_position = self._motion_position
             if previous_stamp is not None and source_stamp_ns == previous_stamp:
-                raise ValueError("source_stamp_duplicate")
+                self._motion_duplicate_count = min(
+                    MOTION_OBSERVATION_MAX_COUNT,
+                    self._motion_duplicate_count + 1,
+                )
+                # A duplicate callback is not new evidence. Do not advance the
+                # sequence or refresh callback age; persistent duplicates
+                # therefore become STALE rather than appearing fresh.
+                return
             if previous_stamp is not None and source_stamp_ns < previous_stamp:
                 self._reject_motion("source_stamp_regressed", reset=True)
                 return
@@ -443,6 +452,7 @@ class SportModeStateObservation:
             "invalid_reason": reason,
             "origin_reset_detected": self._motion_reset_detected,
             "accepted_sample_count": self._motion_accepted_count,
+            "duplicate_sample_count": self._motion_duplicate_count,
             "rejected_sample_count": self._motion_rejected_count,
         }
 

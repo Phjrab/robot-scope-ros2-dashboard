@@ -280,6 +280,7 @@ class ControlTransportTests(unittest.TestCase):
             "invalid_reason": "",
             "origin_reset_detected": False,
             "accepted_sample_count": 20,
+            "duplicate_sample_count": 0,
             "rejected_sample_count": 0,
         }
         value.update(overrides)
@@ -1167,6 +1168,7 @@ class ControlTransportTests(unittest.TestCase):
             {**valid, "release_commit": "b" * 40},
             {**valid, "source_sequence": True},
             {**valid, "accepted_sample_count": 19},
+            {**valid, "duplicate_sample_count": True},
             {**valid, "source_stamp_ns": 0},
             {**valid, "source_stamp_ns": 0x8000_0000_0000_0000},
             {**valid, "position_xyz": [True, 0.0, 0.0]},

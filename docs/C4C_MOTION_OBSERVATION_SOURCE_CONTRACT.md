@@ -168,13 +168,15 @@ Quality behavior:
 - `READY`: a valid source-stamp-advancing sample is within the robot callback
   freshness limit;
 - `STALE`: the last valid sample is retained, but callback age is over limit;
-- `INVALID`: malformed data, duplicate/regressed/future-progressing stamp,
-  evidence gap, reset or implausible adjacent jump was seen.
+- `INVALID`: malformed data, regressed/future-progressing stamp, evidence gap,
+  reset or implausible adjacent jump was seen.
 
-Duplicate/regressed stamps, generation/source/origin changes, non-finite data
-and an adjacent jump over 1 m invalidate the generation. The component never
-automatically chooses a new origin. A new probe requires a new qualified
-session.
+A duplicate source stamp increments a bounded diagnostic counter but is not
+new evidence: it does not advance sequence or refresh callback age, so a
+persistently repeated sample becomes `STALE`. Regressed stamps,
+generation/source/origin changes, non-finite data and an adjacent jump over
+1 m invalidate the generation. The component never automatically chooses a
+new origin. A new probe requires a new qualified session.
 
 ## 6. Supervisor contract
 
