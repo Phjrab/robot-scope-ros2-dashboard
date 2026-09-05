@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from array import array
 from contextlib import redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -187,6 +188,19 @@ class Go2LocomotionObserverTests(unittest.TestCase):
         self.assertEqual(evidence["sample_count"], 0)
         self.assertEqual(evidence["rejected_count"], 4)
         self.assertIsNone(evidence["first_sample"])
+
+    def test_ros_fixed_numeric_arrays_are_accepted_without_sequence_contract(self):
+        sample = observer.validate_sample(
+            message(
+                velocity=array("f", [0.01, -0.02, 0.03]),
+                position=array("d", [1.0, 2.0, 3.0]),
+            ),
+            0.0,
+        )
+        self.assertAlmostEqual(sample.velocity[0], 0.01, places=6)
+        self.assertEqual(sample.position, (1.0, 2.0, 3.0))
+        with self.assertRaises(observer.ObservationError):
+            observer.validate_sample(message(velocity="000"), 0.0)
 
     def test_non_monotonic_elapsed_time_is_rejected(self):
         accumulator = observer.ObservationAccumulator()

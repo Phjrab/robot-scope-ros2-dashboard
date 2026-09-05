@@ -80,33 +80,55 @@ def _bounded_integer(value: Any, label: str, maximum: int) -> int:
     return result
 
 
+def _fixed_numeric_vector(
+    value: Any,
+    *,
+    label: str,
+    maximum_abs: float,
+) -> tuple[float, float, float]:
+    """Accept ROS fixed arrays without accepting arbitrary iterables."""
+
+    if isinstance(value, (str, bytes, bytearray, memoryview)):
+        raise ObservationError(f"{label} must contain exactly three values")
+    try:
+        length = len(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ObservationError(
+            f"{label} must contain exactly three values"
+        ) from exc
+    if length != 3:
+        raise ObservationError(f"{label} must contain exactly three values")
+
+    converted: list[float] = []
+    for index in range(3):
+        try:
+            item = value[index]
+        except (TypeError, ValueError, IndexError, KeyError, OverflowError) as exc:
+            raise ObservationError(f"{label} values must be numeric") from exc
+        if isinstance(item, bool) or not isinstance(item, numbers.Real):
+            raise ObservationError(f"{label} values must be numeric")
+        number = float(item)
+        if not math.isfinite(number) or abs(number) > maximum_abs:
+            raise ObservationError(
+                f"{label} contains a non-finite or unsafe value"
+            )
+        converted.append(number)
+    return converted[0], converted[1], converted[2]
+
+
 def validate_sample(message: Any, elapsed_s: float) -> StateSample:
     if not math.isfinite(elapsed_s) or elapsed_s < 0.0:
         raise ObservationError("elapsed_s must be finite and non-negative")
-    raw_velocity = getattr(message, "velocity", None)
-    if not isinstance(raw_velocity, Sequence) or len(raw_velocity) != 3:
-        raise ObservationError("velocity must contain exactly three values")
-    try:
-        velocity = tuple(float(value) for value in raw_velocity)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ObservationError("velocity values must be numeric") from exc
-    if any(
-        not math.isfinite(value) or abs(value) > MAX_ABS_VELOCITY_MPS
-        for value in velocity
-    ):
-        raise ObservationError("velocity contains a non-finite or unsafe value")
-    raw_position = getattr(message, "position", None)
-    if not isinstance(raw_position, Sequence) or len(raw_position) != 3:
-        raise ObservationError("position must contain exactly three values")
-    try:
-        position = tuple(float(value) for value in raw_position)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ObservationError("position values must be numeric") from exc
-    if any(
-        not math.isfinite(value) or abs(value) > MAX_ABS_POSITION_M
-        for value in position
-    ):
-        raise ObservationError("position contains a non-finite or unsafe value")
+    velocity = _fixed_numeric_vector(
+        getattr(message, "velocity", None),
+        label="velocity",
+        maximum_abs=MAX_ABS_VELOCITY_MPS,
+    )
+    position = _fixed_numeric_vector(
+        getattr(message, "position", None),
+        label="position",
+        maximum_abs=MAX_ABS_POSITION_M,
+    )
     return StateSample(
         elapsed_s=elapsed_s,
         mode=_bounded_integer(getattr(message, "mode", None), "mode", 255),
@@ -116,8 +138,8 @@ def validate_sample(message: Any, elapsed_s: float) -> StateSample:
         error_code=_bounded_integer(
             getattr(message, "error_code", None), "error_code", 0xFFFFFFFF
         ),
-        velocity=velocity,  # type: ignore[arg-type]
-        position=position,  # type: ignore[arg-type]
+        velocity=velocity,
+        position=position,
     )
 
 
