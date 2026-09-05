@@ -743,3 +743,39 @@ Any retry requires analysis and correction of the deadline behavior, complete
 hardware-free regression, a new exact-release deployment decision and a new
 motion approval. This physical-motion confirmation must not be reused as such
 approval.
+
+## MP-030 deadline and release-race correction
+
+The failed live evidence isolated the scheduler defect without weakening a
+safety threshold. `LoopbackDashboardAdapter.snapshots()` fetched seven fixed
+read-only endpoints serially for every runtime safety sample. The command
+cadence is 50 ms and each later frame allows only the existing 25 ms late
+tolerance. The live first acceptance arrived at approximately 0.1003 seconds;
+the following complete safety snapshot arrived at approximately 0.221 seconds,
+after its absolute frame deadline. The supervisor therefore correctly failed
+closed after four Move requests.
+
+That delay also explains the observed release acknowledgement race. While the
+supervisor was blocked in the serial read-only batch, the unchanged 200 ms
+command watchdog could expire the active lease before the queued explicit zero
+and release were processed. The existing same-origin HTTP disarm endpoint
+intentionally treats an already-released or expired lease as successful cleanup,
+and the signed final snapshot proved exact zero. This fallback remains intact;
+a missing WebSocket release acknowledgement is not reclassified as success.
+
+The narrow software correction keeps the complete fixed snapshot allowlist:
+health, legacy pose, control, Navigation, competition, Mission and Mapping.
+Those seven GETs are now issued concurrently by a bounded seven-worker batch.
+Any member failure still rejects the whole sample before another drive frame.
+No runtime endpoint, command path, cadence, deadline, timeout, clamp, travel
+bound, cardinality rule, lease, deadman, watchdog or cleanup rule changed.
+
+New hardware-free regressions prove that all seven fixed GET-only members begin
+as one concurrent batch and that one failed member fails the batch. Existing
+tests continue to prove that every follow-up frame requires current consistent
+Bridge evidence, late scheduling never catches up or bursts, and release races
+retain the HTTP-disarm/exact-zero fail-closed path.
+
+This correction is repository-only. It has not been deployed and no additional
+MP-030 or other motion was executed. Any deployment and live retry require
+their own explicit approvals.

@@ -11,6 +11,7 @@ publisher or subscriber and never addresses the Unitree Sport request topic.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import math
 import os
@@ -35,6 +36,15 @@ POSE_PATH = "/api/v1/pose"
 COMPETITION_PATH = "/api/v1/competition"
 MISSIONS_PATH = "/api/v1/missions"
 MAPPING_PATH = "/api/v1/mapping/control"
+SNAPSHOT_PATHS = (
+    ("health", HEALTH_PATH),
+    ("pose", POSE_PATH),
+    ("control", CONTROL_PATH),
+    ("navigation", NAVIGATION_PATH),
+    ("competition", COMPETITION_PATH),
+    ("missions", MISSIONS_PATH),
+    ("mapping", MAPPING_PATH),
+)
 CONTROL_WS = "ws://127.0.0.1:8088/api/v1/ws/control"
 DASHBOARD_UNIT = "robot-scope.service"
 EXPECTED_PROFILE = "go2-xt16-wireless"
@@ -1455,15 +1465,21 @@ class LoopbackDashboardAdapter:
         return payload
 
     def snapshots(self) -> Mapping[str, Mapping[str, Any]]:
-        return {
-            "health": self._request(HEALTH_PATH),
-            "pose": self._request(POSE_PATH),
-            "control": self._request(CONTROL_PATH),
-            "navigation": self._request(NAVIGATION_PATH),
-            "competition": self._request(COMPETITION_PATH),
-            "missions": self._request(MISSIONS_PATH),
-            "mapping": self._request(MAPPING_PATH),
-        }
+        # A runtime safety sample must retain every exclusion check, but seven
+        # sequential loopback requests cannot fit inside the fixed 50 ms drive
+        # cadence. Fetch this immutable, read-only allowlist concurrently. The
+        # batch remains fail-closed: any request failure rejects the complete
+        # snapshot, and the executor is bounded to exactly the allowlisted
+        # endpoint count.
+        with ThreadPoolExecutor(
+            max_workers=len(SNAPSHOT_PATHS),
+            thread_name_prefix="c4c-snapshot",
+        ) as executor:
+            futures = {
+                name: executor.submit(self._request, path)
+                for name, path in SNAPSHOT_PATHS
+            }
+            return {name: futures[name].result() for name, _path in SNAPSHOT_PATHS}
 
     def arm(self) -> str:
         payload = self._request(

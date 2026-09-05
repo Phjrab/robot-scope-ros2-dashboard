@@ -7,6 +7,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -391,6 +392,60 @@ class FakeAdapter:
 
 
 class Go2LocomotionMicroProbeTests(unittest.TestCase):
+    def test_loopback_snapshot_fetches_complete_fixed_allowlist_concurrently(self):
+        adapter = probe.LoopbackDashboardAdapter()
+        barrier = threading.Barrier(len(probe.SNAPSHOT_PATHS), timeout=1.0)
+        lock = threading.Lock()
+        calls: list[tuple[str, str, object]] = []
+
+        def fixed_request(
+            path: str,
+            *,
+            method: str = "GET",
+            body: object = None,
+        ) -> dict:
+            with lock:
+                calls.append((path, method, body))
+            barrier.wait()
+            return {"path": path}
+
+        with mock.patch.object(adapter, "_request", side_effect=fixed_request):
+            result = adapter.snapshots()
+
+        expected = dict(probe.SNAPSHOT_PATHS)
+        self.assertEqual(set(result), set(expected))
+        self.assertEqual(
+            {name: value["path"] for name, value in result.items()},
+            expected,
+        )
+        self.assertCountEqual(
+            calls,
+            [(path, "GET", None) for _name, path in probe.SNAPSHOT_PATHS],
+        )
+
+    def test_loopback_snapshot_rejects_one_failed_read_only_member(self):
+        adapter = probe.LoopbackDashboardAdapter()
+        barrier = threading.Barrier(len(probe.SNAPSHOT_PATHS), timeout=1.0)
+
+        def one_failure(
+            path: str,
+            *,
+            method: str = "GET",
+            body: object = None,
+        ) -> dict:
+            self.assertEqual(method, "GET")
+            self.assertIsNone(body)
+            barrier.wait()
+            if path == probe.MISSIONS_PATH:
+                raise probe.ProbeError("fixed read-only snapshot failed")
+            return {"path": path}
+
+        with (
+            mock.patch.object(adapter, "_request", side_effect=one_failure),
+            self.assertRaisesRegex(probe.ProbeError, "snapshot failed"),
+        ):
+            adapter.snapshots()
+
     def test_bounded_report_always_retains_final_cleanup_evidence(self):
         samples = [
             {"phase": "runtime", "index": index}

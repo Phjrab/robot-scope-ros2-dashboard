@@ -414,3 +414,22 @@ This result validates physical command reachability but does not authorize a
 retry or higher probe. The deadline behavior and release-acknowledgement race
 must be analyzed without relaxing the fixed velocity, watchdog, freshness,
 travel, lease, deadman or cleanup guards.
+
+## Repository-only scheduler correction after MP-030
+
+The subsequent audit found that the fixed supervisor retained all seven safety
+endpoints but fetched them sequentially inside a 50 ms drive cadence. Live
+evidence showed the complete runtime batch crossing the frame's unchanged
+absolute deadline. The same delay allowed the 200 ms command watchdog to expire
+the lease before WebSocket release acknowledgement, after which the existing
+HTTP disarm fallback and signed exact-zero check completed cleanup.
+
+The correction changes only the acquisition topology of the fixed read-only
+snapshot: the same seven allowlisted GETs run in one bounded concurrent batch,
+and failure of any member still aborts before a later drive frame. All command
+and safety limits remain unchanged. The WebSocket release error is still
+retained as evidence and is not hidden by successful fallback cleanup.
+
+This change has hardware-free coverage but is not a deployment decision or
+motion approval. The deployed Jetsons remain on `10a7fa9...` until a separate
+exact-release deployment is approved.
