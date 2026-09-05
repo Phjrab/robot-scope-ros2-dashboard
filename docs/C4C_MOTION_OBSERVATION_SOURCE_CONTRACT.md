@@ -218,7 +218,7 @@ the live gate.
 
 ```text
 SOFTWARE_VALIDATED=PASS
-STATIONARY_OBSERVATION_VALIDATED=NOT_RUN
+STATIONARY_OBSERVATION_VALIDATED=PASS
 DYNAMIC_OBSERVATION_VALIDATED=NOT_RUN
 MOTION_USE_APPROVED=NO
 ```
@@ -227,9 +227,15 @@ Software validation does not qualify the source clock, coordinate origin or
 dynamic distance accuracy. Existing STOCK-1 files can support replay tests but
 cannot replace a live end-to-end dynamic qualification of the new signed path.
 
-## 8. Deployment and stationary-validation plan (not executed)
+The stationary result was collected on 2026-09-05 from the exact release
+`a8b88b80a66d5173914c4a3b21754f1155b222e1`. It qualifies only continuity,
+freshness and stationary noise of this signed path. It does not qualify the
+vendor-local coordinate scale during motion and does not open the probe gate.
 
-Separate approval is required before this plan starts.
+## 8. Deployment and stationary-validation execution
+
+The operator approved this deployment and stationary-only observation. No
+motion authority was obtained and no nonzero command was sent.
 
 1. Build one archive from the eventual exact full SHA and record its SHA-256.
 2. Stage clean immutable release directories on robot `192.168.50.30` and
@@ -250,21 +256,68 @@ Separate approval is required before this plan starts.
 9. Stop only processes started by this validation, or retain production state
    only if that exact final state was approved.
 
-Expected incremental load is bounded serialization of one small status field
-at the existing status cadence; no extra ROS process or DDS endpoint is added.
-Actual CPU/RAM/network figures remain `NOT_MEASURED` until stationary
-validation.
+The immutable release archive SHA-256 was
+`bf27af806edcab008ca1e458bb99c047bbc3f6eda3020f35e7950b9175d84b0f`.
+Both staged copies matched it. The Bridge was transitioned first, followed by
+the dashboard. Process cwd on each host resolved to the same full-SHA release,
+and both services reported zero restarts during the observation.
 
-Rollback restores both immutable symlinks to
-`103ed69e43e263020af426c06e6d7bb7d12b4e99` in reverse order, verifies process
-cwd/fingerprints and exact zero, and leaves the Bridge inactive unless its
-prior approved state was active. Git publication is not deployment approval.
+The signed API observation ran for 300.024055 seconds and sampled the control
+view 1,201 times plus the Navigation, Mapping and Mission views 301 times.
+Every motion observation was `READY`; HTTP failures, validation errors,
+rejected samples and reset detections were all zero. Source sequence advanced
+from 79,194 to 168,729, an observed rate of 298.426071 Hz. There were 54
+duplicate source stamps; none advanced sequence or refreshed freshness. The
+maximum callback receive age was 18 ms, maximum signed callback gap 41 ms and
+maximum dashboard receiver-status age 282 ms. Maximum planar displacement
+from the first stationary sample was 0.000076 m. XYZ spans were 0.000092 m,
+0.000092 m and 0.000021 m.
+
+The dashboard service memory snapshot changed from 199,262,208 to 210,276,352
+bytes and its cumulative CPU counter increased by 257.542 seconds over the
+measurement bracket. External interface counters changed by approximately
+1.180 GB received and 6.51 MB transmitted. The robot Bridge end snapshot was
+42,344,448 bytes, 26 tasks and 107% process CPU; robot interface counters
+changed by approximately 0.75 MB received and 1.164 GB transmitted. These
+network and CPU figures include the already-running XT16 preview and therefore
+must not be attributed solely to the small status-field addition.
+
+The private evidence JSON is stored on the external host as
+`/home/jetson_orin_nano/.robot-scope/c4c-observations/c4c-stationary-a8b88b8-20260905.json`
+with SHA-256
+`b1418349f8ca3e3664eee264c1bbbb9aab56d4fc29f92b4c3ee51f7f882afb88`.
+It contains no command or secret material.
+
+Before cleanup, the manager and accepted commands were exact zero, lease and
+motion run were inactive, and Move/nonzero-Move/action counts were all zero.
+Navigation, localization and goals remained idle; Mapping pipeline and save
+operation remained idle; Mission remained inactive. The pre-existing XT16
+preview remained running. The Bridge was then stopped through the fixed
+dashboard lifecycle API and reached `inactive/dead`; the dashboard and preview
+were left active. The strict odometry sender and receiver remained inactive.
+
+An intermediate deployment exposed two fail-closed integration issues before
+the successful observation. Commit `d425a67bafc3752408b3cddb2bf8af9fa371d599`
+added the signed observation to the intentionally bounded public control
+projection. Commit `a8b88b80a66d5173914c4a3b21754f1155b222e1`
+then corrected duplicate source-stamp handling: a duplicate is no progress and
+does not refresh age, while a persistent repeat becomes stale. Regressions,
+future progression, reset, evidence gap and implausible jump remain invalid.
+
+The immediate pre-`a8b88b8` rollback links preserve
+`d425a67bafc3752408b3cddb2bf8af9fa371d599`; the earlier
+`103ed69e43e263020af426c06e6d7bb7d12b4e99` release also remains available.
+Any rollback must select an exact immutable release explicitly, transition in
+reverse order, verify process cwd/fingerprints and exact zero, and leave the
+Bridge inactive unless a new operational approval says otherwise. Git
+publication is not deployment approval.
 
 ## 9. Remaining qualification
 
-Stationary validation must pass before a human-operated dynamic comparison is
-designed. Dynamic validation must establish that this vendor-local stream
-detects bounded real movement promptly and consistently without source/origin
-reset. Only then may a focused change set `MOTION_USE_APPROVED=true`, followed
+Stationary validation has passed. A separately approved human-operated dynamic
+comparison is still required. Dynamic validation must establish that this
+vendor-local stream detects bounded real movement promptly and consistently
+without source/origin reset. Only then may a focused change set
+`MOTION_USE_APPROVED=true`, followed
 by a new exact-release deployment and a fresh MP-030 approval. MP-030,
 MP-050/080/100 and Nav2 goals remain not run by this work.

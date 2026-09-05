@@ -524,6 +524,7 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | NAV2_SCALING_ROOT_CAUSE | BLOCKED |
 | SOFTWARE_CORRECTION | NOT_RUN |
 | STATIONARY_SOAK | NOT_RUN |
+| C4C_MOTION_OBSERVATION_STATIONARY | PASS |
 | NAV2_GOAL | NOT_RUN |
 | ROBOT_MOTION | PASS |
 | CLEANUP | PASS |
@@ -558,6 +559,11 @@ The follow-up design and software result are recorded in
 `docs/C4C_MOTION_OBSERVATION_SOURCE_CONTRACT.md`. It preserves this blocked
 MP-030 record, leaves `/api/v1/pose` unchanged, and selects the existing
 Bridge-owned SportModeState position only as explicit C4C relative-travel
-evidence. The new path is software validated but not deployed, stationary
-qualified, dynamically qualified or approved for motion. The live probe gate
-therefore remains closed.
+evidence. The exact release
+`a8b88b80a66d5173914c4a3b21754f1155b222e1` was subsequently deployed to
+both hosts and passed a five-minute stationary observation with all 1,201
+samples `READY`, zero rejected samples or resets, a 41 ms maximum signed
+callback gap and 0.076 mm maximum planar displacement. This changes only the
+stationary qualification state. The path is not dynamically qualified or
+approved for motion, so the live probe gate remains closed. MP-030 and all
+higher probes remain unexecuted by the follow-up.
