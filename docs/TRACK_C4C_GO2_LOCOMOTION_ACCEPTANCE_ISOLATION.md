@@ -528,7 +528,7 @@ healthy and the Bridge completed exact-zero cleanup before becoming inactive.
 | C4C_MOTION_OBSERVATION_DYNAMIC_SOURCE | PASS |
 | C4C_SIGNED_DYNAMIC_END_TO_END | NOT_RUN |
 | C4C_SIGNED_OBSERVATION_ONLY_SOFTWARE | PASS |
-| C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT | NOT_RUN |
+| C4C_SIGNED_OBSERVATION_ONLY_DEPLOYMENT | PASS — stationary manual-process path on exact release `a09264c` |
 | NAV2_GOAL | NOT_RUN |
 | ROBOT_MOTION | PASS |
 | CLEANUP | PASS |
