@@ -60,6 +60,7 @@ from .go2_bridge import (
     SportRequest,
     SportRequestEvidence,
     classify_sport_request_publishers,
+    runtime_release_commit,
 )
 from .serializers import (
     extract_go2_battery,
@@ -116,6 +117,7 @@ class Go2ControlBridge(Node):
         self._lowstate_joints: dict[str, Any] = {}
         self._lowstate_seq = 0
         self._last_status = 0.0
+        self._status_update_requested = False
         self._closing = False
         # ROS callbacks run in executor threads while signal-driven shutdown
         # runs in the main thread. Serialize every core mutation and sport
@@ -127,6 +129,7 @@ class Go2ControlBridge(Node):
         self._command_transport_failed = False
         self._status_transport_failed = False
         self._request_evidence = SportRequestEvidence()
+        self._release_commit = runtime_release_commit()
 
         reliable = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -296,6 +299,10 @@ class Go2ControlBridge(Node):
                 now=now,
                 transport_age_s=transport_age_s,
             )
+            # Publish signed acceptance on the next existing 50 ms tick while
+            # commands are arriving. Idle status retains the 250 ms cadence;
+            # command selection and watchdog timing are unchanged.
+            self._status_update_requested = True
         except (ControlProtocolError, BridgeCommandError, TypeError, ValueError) as exc:
             self._core.force_stop(f"rejected command: {exc}")
             self.get_logger().warning(str(exc))
@@ -359,6 +366,7 @@ class Go2ControlBridge(Node):
                 "bridge_pid": os.getpid(),
                 "command_topic": COMMAND_TOPIC,
                 "request_topic": SPORT_REQUEST_TOPIC,
+                "release_commit": self._release_commit,
                 "lowstate_topic": self._lowstate_topic,
                 "sport_mode_state": self._sport_mode_state.snapshot(now=now),
                 "request_evidence": self._request_evidence.snapshot(now=now),
@@ -413,7 +421,7 @@ class Go2ControlBridge(Node):
             bare_unitree_sport_publishers=bare_unitree_sport_publishers,
         ):
             self._publish_request(request)
-        if now - self._last_status >= 0.25:
+        if self._status_update_requested or now - self._last_status >= 0.25:
             self._publish_status(
                 now,
                 lowstate_age,
@@ -425,6 +433,7 @@ class Go2ControlBridge(Node):
                 bare_unitree_sport_publishers,
             )
             self._last_status = now
+            self._status_update_requested = False
 
     def stop_safely(self) -> None:
         endpoint: ConnectedControlDatagram | None = None

@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import math
 import numbers
+import re
 import secrets
 from dataclasses import dataclass
 from hmac import compare_digest
+from pathlib import Path
 from typing import Any, Mapping
 
 
@@ -23,6 +25,7 @@ SPORT_MODE_STATE_PUBLIC_FIELDS = (
     "topic", "mode", "gait_type", "velocity", "error_code", "age_ms",
     "stale_after_ms", "fresh",
 )
+RELEASE_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
 # This deliberately excludes Damp, flips, jumps, handstands, dances, direct
 # motor control, and deprecated sport APIs.
@@ -66,6 +69,13 @@ class BridgeCommandError(ValueError):
 
 
 BARE_DDS_NODE_NAME = "_CREATED_BY_BARE_DDS_APP_"
+
+
+def runtime_release_commit(module_file: str | Path = __file__) -> str | None:
+    """Return the immutable release directory SHA, never an environment hint."""
+
+    release_name = Path(module_file).resolve().parents[1].name
+    return release_name if RELEASE_COMMIT_RE.fullmatch(release_name) else None
 
 
 def classify_sport_request_publishers(
@@ -678,6 +688,14 @@ class Go2BridgeCore:
         )
         requests: list[SportRequest] = []
 
+        if not ready and (
+            self._deadman or any(value != 0.0 for value in self._target)
+        ):
+            # An accepted drive must never survive a transient readiness loss,
+            # even when no non-zero Move has yet made ``_moving`` true and the
+            # ordinary idle Stop heartbeat is still inside its 500 ms throttle.
+            self.force_stop("telemetry unavailable")
+
         if now < self._action_hold_until and not ready:
             self.force_stop("telemetry unavailable during action")
 
@@ -809,6 +827,12 @@ class Go2BridgeCore:
             "command_age_ms": (
                 None if command_age is None else round(command_age * 1_000)
             ),
+            "accepted_command": {
+                "deadman": self._deadman,
+                "linear_x": self._target[0],
+                "linear_y": self._target[1],
+                "angular_z": self._target[2],
+            },
             "command_ack": projected_command_ack,
             "last_error": self._last_error,
             "action_guard": {

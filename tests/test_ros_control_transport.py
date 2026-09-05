@@ -264,6 +264,17 @@ class ControlTransportTests(unittest.TestCase):
         acknowledgement.update(overrides)
         return acknowledgement
 
+    @staticmethod
+    def accepted_command(**overrides):
+        command = {
+            "deadman": False,
+            "linear_x": 0.0,
+            "linear_y": 0.0,
+            "angular_z": 0.0,
+        }
+        command.update(overrides)
+        return command
+
     def send_status(self, transport, epoch="e" * 32, **overrides):
         message = String()
         message.data = encode_signed(self.status_payload(epoch, **overrides), KEY)
@@ -800,6 +811,7 @@ class ControlTransportTests(unittest.TestCase):
 
         for invalid in (
             {**valid, "private": True},
+            {**valid, "source_matches_dashboard": True},
             {**valid, "source_id": "short"},
             {**valid, "seq": True},
             {**valid, "seq": -1},
@@ -813,6 +825,214 @@ class ControlTransportTests(unittest.TestCase):
                 ControlTransport.status_command_ack(
                     self.status_payload(command_ack=invalid)
                 )
+
+    def test_accepted_command_is_optional_bounded_and_strict(self):
+        payload = self.status_payload()
+        self.assertEqual(ControlTransport.status_accepted_command(payload), {})
+
+        valid = self.accepted_command(
+            deadman=True,
+            linear_x=0.30,
+            linear_y=-0.20,
+            angular_z=0.50,
+        )
+        self.assertEqual(
+            ControlTransport.status_accepted_command(
+                self.status_payload(accepted_command=valid)
+            ),
+            valid,
+        )
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                self.status_payload(accepted_command=valid),
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+
+        for invalid in (
+            {**valid, "private": True},
+            {**valid, "deadman": 1},
+            {name: value for name, value in valid.items() if name != "linear_x"},
+            {**valid, "linear_x": True},
+            {**valid, "linear_x": "0.1"},
+            {**valid, "linear_x": math.nan},
+            {**valid, "linear_x": math.inf},
+            {**valid, "linear_x": 10**400},
+            {**valid, "linear_x": 0.300001},
+            {**valid, "linear_y": -0.200001},
+            {**valid, "angular_z": 0.500001},
+            self.accepted_command(deadman=False, linear_x=0.01),
+            self.accepted_command(deadman=False, linear_y=0.01),
+            self.accepted_command(deadman=False, angular_z=0.01),
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(
+                ControlProtocolError
+            ):
+                ControlTransport.status_accepted_command(
+                    self.status_payload(accepted_command=invalid)
+                )
+
+        for ack_type in ("stop", "action"):
+            with self.subTest(ack_type=ack_type), self.assertRaisesRegex(
+                ControlProtocolError,
+                "inconsistent",
+            ):
+                ControlTransport.status_readiness(
+                    self.status_payload(
+                        accepted_command=valid,
+                        command_ack={
+                            "source_id": "dashboard-source-a",
+                            "seq": 42,
+                            "type": ack_type,
+                            "age_ms": 15,
+                        },
+                    ),
+                    lowstate_timeout_s=0.5,
+                )
+
+        self.assertTrue(
+            ControlTransport.status_readiness(
+                self.status_payload(
+                    accepted_command=self.accepted_command(),
+                    command_ack={
+                        "source_id": "dashboard-source-a",
+                        "seq": 42,
+                        "type": "drive",
+                        "age_ms": 15,
+                    },
+                ),
+                lowstate_timeout_s=0.5,
+            )[0]
+        )
+
+    def test_bridge_release_identity_is_optional_exact_and_bounded(self):
+        self.assertIsNone(
+            ControlTransport.status_release_commit(self.status_payload())
+        )
+        release = "a" * 40
+        self.assertEqual(
+            ControlTransport.status_release_commit(
+                self.status_payload(release_commit=release)
+            ),
+            release,
+        )
+        for invalid in ("a" * 7, "A" * 40, "g" * 40, True, 42, "a" * 41):
+            with self.subTest(invalid=invalid), self.assertRaises(
+                ControlProtocolError
+            ):
+                ControlTransport.status_release_commit(
+                    self.status_payload(release_commit=invalid)
+                )
+
+    def test_status_projects_safe_ack_identity_and_validated_accepted_command(self):
+        transport = self.transport()
+        accepted = self.accepted_command(deadman=True, linear_x=0.03)
+        matching_ack = {
+            "source_id": transport.source_id,
+            "seq": 42,
+            "type": "drive",
+            "age_ms": 15,
+        }
+        self.send_status(
+            transport,
+            command_ack=matching_ack,
+            accepted_command=accepted,
+            release_commit="a" * 40,
+        )
+        bridge = transport.raw_snapshot()["bridge"]
+        self.assertEqual(bridge["release_commit"], "a" * 40)
+        self.assertEqual(bridge["accepted_command"], accepted)
+        self.assertEqual(
+            bridge["command_ack"],
+            {
+                "seq": 42,
+                "type": "drive",
+                "age_ms": 15,
+                "source_matches_dashboard": True,
+            },
+        )
+        self.assertNotIn("source_id", bridge["command_ack"])
+        self.assertNotIn("bridge_epoch", bridge["command_ack"])
+
+        self.send_status(
+            transport,
+            command_ack={**matching_ack, "source_id": "another-dashboard-source"},
+            accepted_command=self.accepted_command(),
+        )
+        bridge = transport.raw_snapshot()["bridge"]
+        self.assertFalse(bridge["command_ack"]["source_matches_dashboard"])
+        self.assertEqual(bridge["accepted_command"], self.accepted_command())
+
+    def test_malformed_accepted_command_status_revokes_an_active_lease(self):
+        transport, _, _ = self.ready_setup()
+        lease = transport.manager.acquire_lease("keyboard")
+        token = lease["token"]
+        transport.manager.bind_lease(token, "diagnostic-test-session")
+        transport.manager.submit_drive(
+            token,
+            "diagnostic-test-session",
+            1,
+            vx=1.0,
+            vy=0.0,
+            wz=0.0,
+            deadman=True,
+        )
+        transport.manager.tick()
+
+        self.send_status(
+            transport,
+            accepted_command=self.accepted_command(deadman=False, linear_x=0.01),
+        )
+        snapshot = transport.raw_snapshot()
+        self.assertFalse(snapshot["bridge"]["authenticated"])
+        self.assertFalse(snapshot["lease"]["active"])
+        self.assertEqual(
+            snapshot["command"],
+            {
+                "source": "keyboard",
+                "deadman": False,
+                "linear_x": 0.0,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            },
+        )
+
+    def test_overflowing_accepted_command_status_revokes_an_active_lease(self):
+        transport, _, _ = self.ready_setup()
+        lease = transport.manager.acquire_lease("keyboard")
+        token = lease["token"]
+        transport.manager.bind_lease(token, "overflow-test-session")
+        transport.manager.submit_drive(
+            token,
+            "overflow-test-session",
+            1,
+            vx=1.0,
+            vy=0.0,
+            wz=0.0,
+            deadman=True,
+        )
+        transport.manager.tick()
+
+        self.send_status(
+            transport,
+            accepted_command=self.accepted_command(
+                deadman=True,
+                linear_x=10**400,
+            ),
+        )
+        snapshot = transport.raw_snapshot()
+        self.assertFalse(snapshot["bridge"]["authenticated"])
+        self.assertFalse(snapshot["lease"]["active"])
+        self.assertEqual(
+            snapshot["command"],
+            {
+                "source": "keyboard",
+                "deadman": False,
+                "linear_x": 0.0,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            },
+        )
 
     def test_sport_mode_state_is_optional_bounded_and_not_a_safety_gate(self):
         payload = self.status_payload()

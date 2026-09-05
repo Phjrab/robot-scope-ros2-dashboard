@@ -368,6 +368,8 @@ class ControlManager:
         self._actions: deque[dict[str, Any]] = deque()
         self._outputs: deque[dict[str, Any]] = deque()
         self._last_velocity = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
+        self._last_command_source: str | None = None
+        self._last_command_deadman = False
         self._last_tick: float | None = None
         self._motion_active = False
         self._stop_emitted = True
@@ -809,6 +811,7 @@ class ControlManager:
 
     def _emit_stop(self, reason: str, now: float, *, force: bool = False) -> None:
         self._last_velocity = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
+        self._last_command_deadman = False
         self._motion_active = False
         if force or not self._stop_emitted:
             self._outputs.append(
@@ -866,6 +869,8 @@ class ControlManager:
                 ),
             }
             self._last_velocity = velocity
+            self._last_command_source = str(drive["input_source"])
+            self._last_command_deadman = True
             self._motion_active = any(abs(value) > 1e-9 for value in velocity.values())
             self._stop_emitted = not self._motion_active
             self._outputs.append(
@@ -917,6 +922,13 @@ class ControlManager:
                     "remaining_s": round(self._action_guard_remaining(now), 2),
                 },
                 "lease": self._lease_public(now),
+                "command": {
+                    "source": self._last_command_source,
+                    "deadman": self._last_command_deadman,
+                    "linear_x": self._last_velocity["vx"],
+                    "linear_y": self._last_velocity["vy"],
+                    "angular_z": self._last_velocity["wz"],
+                },
                 "limits": {
                     "vx_mps": self._vx_limit,
                     "vy_mps": self._vy_limit,

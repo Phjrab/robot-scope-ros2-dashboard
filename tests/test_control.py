@@ -192,6 +192,56 @@ class ControlManagerTests(unittest.TestCase):
         second = manager.tick()[0]
         self.assertAlmostEqual(second["velocity"]["vx"], -0.09)
 
+    def test_snapshot_reports_only_the_last_manager_output(self):
+        manager, token = self.leased()
+        zero = {
+            "source": None,
+            "deadman": False,
+            "linear_x": 0.0,
+            "linear_y": 0.0,
+            "angular_z": 0.0,
+        }
+        self.assertEqual(manager.snapshot()["command"], zero)
+
+        self.drive(manager, token, seq=0, vx=1.0, vy=-1.0, wz=1.0)
+        # An accepted intent is not advertised as a manager output before tick.
+        self.assertEqual(manager.snapshot()["command"], zero)
+        emitted = manager.tick()[-1]
+        self.assertEqual(
+            manager.snapshot()["command"],
+            {
+                "source": "keyboard",
+                "deadman": True,
+                "linear_x": emitted["velocity"]["vx"],
+                "linear_y": emitted["velocity"]["vy"],
+                "angular_z": emitted["velocity"]["wz"],
+            },
+        )
+
+        manager.release_lease(token, BINDING)
+        self.assertEqual(
+            manager.snapshot()["command"],
+            {**zero, "source": "keyboard"},
+        )
+
+    def test_snapshot_command_is_exact_zero_after_watchdog(self):
+        manager, token = self.leased()
+        self.drive(manager, token)
+        manager.tick()
+        self.clock.advance(0.20)
+        snapshot = manager.snapshot()
+        self.assertFalse(snapshot["lease"]["active"])
+        self.assertEqual(
+            snapshot["command"],
+            {
+                "source": "keyboard",
+                "deadman": False,
+                "linear_x": 0.0,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            },
+        )
+
     def test_command_timeout_boundary_bypasses_ramp(self):
         manager, token = self.leased()
         self.drive(manager, token)
@@ -280,6 +330,7 @@ class ControlManagerTests(unittest.TestCase):
             drives = [output for output in outputs if output["type"] == "drive"]
             self.assertEqual(len(drives), 1)
             self.assertEqual(drives[0]["velocity"], {"vx": 0.0, "vy": 0.0, "wz": 0.0})
+            self.assertTrue(manager.snapshot()["command"]["deadman"])
 
         # A real frame loss still fails closed at the unchanged 200 ms limit.
         self.clock.advance(0.20)

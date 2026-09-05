@@ -22,6 +22,7 @@ from robot_dashboard.go2_bridge import (
     SportRequest,
     SportRequestEvidence,
     classify_sport_request_publishers,
+    runtime_release_commit,
 )
 
 
@@ -60,6 +61,20 @@ class Go2BridgeCoreTests(unittest.TestCase):
     def test_dashboard_and_watchdog_action_allowlists_match(self):
         self.assertEqual(SAFE_ACTION_API_IDS, SAFE_ACTIONS)
         self.assertEqual(SAFE_ACTION_GUARD_S, ACTION_GUARD_S)
+
+    def test_release_identity_uses_only_an_exact_immutable_directory_name(self):
+        commit = "a" * 40
+        self.assertEqual(
+            runtime_release_commit(
+                Path("/srv/robot-scope") / commit / "robot_dashboard" / "go2_bridge.py"
+            ),
+            commit,
+        )
+        self.assertIsNone(
+            runtime_release_commit(
+                Path("/srv/robot-scope") / "main" / "robot_dashboard" / "go2_bridge.py"
+            )
+        )
 
     def test_bridge_keeps_ros_context_alive_for_shutdown_stop(self):
         source = (
@@ -109,6 +124,13 @@ class Go2BridgeCoreTests(unittest.TestCase):
         self.assertIn("ConnectedControlDatagram", source)
         self.assertIn("self._accept_command(message)", source)
         self.assertIn("DatagramStringPublisher(endpoint)", source)
+        self.assertIn("self._release_commit = runtime_release_commit()", source)
+        self.assertIn('"release_commit": self._release_commit', source)
+        self.assertIn("self._status_update_requested = True", source)
+        self.assertIn(
+            "if self._status_update_requested or now - self._last_status >= 0.25",
+            source,
+        )
         self.assertNotIn("/api/sport/response", source)
         self.assertNotIn("create_generic", source)
 
@@ -414,6 +436,101 @@ class Go2BridgeCoreTests(unittest.TestCase):
         self.assertIn('"x":0.2', requests[-1].parameter)
         requests = self.tick(0.002)
         self.assertEqual(requests[-1].api_id, API_STOP_MOVE)
+
+    def test_snapshot_exposes_bounded_accepted_command_and_exact_stops(self):
+        def accepted_command():
+            return self.core.snapshot(
+                now=self.now,
+                lowstate_age_s=0.01,
+                lowstate_publishers=1,
+                sport_subscribers=1,
+                sport_publishers=1,
+            )["accepted_command"]
+
+        zero = {
+            "deadman": False,
+            "linear_x": 0.0,
+            "linear_y": 0.0,
+            "angular_z": 0.0,
+        }
+        self.assertEqual(accepted_command(), zero)
+
+        self.core.accept(
+            self.command(
+                deadman=True,
+                linear_x=99.0,
+                linear_y=-99.0,
+                angular_z=99.0,
+            ),
+            now=self.now,
+        )
+        self.assertEqual(
+            accepted_command(),
+            {
+                "deadman": True,
+                "linear_x": 0.30,
+                "linear_y": -0.20,
+                "angular_z": 0.50,
+            },
+        )
+
+        self.core.accept(self.command(kind="stop", seq=2), now=self.now)
+        self.assertEqual(accepted_command(), zero)
+
+        self.core.accept(
+            self.command(
+                seq=3,
+                deadman=True,
+                linear_x=0.10,
+                linear_y=0.0,
+                angular_z=0.0,
+            ),
+            now=self.now,
+        )
+        self.tick()
+        self.assertEqual(self.tick(0.201)[-1].api_id, API_STOP_MOVE)
+        self.assertEqual(accepted_command(), zero)
+
+    def test_readiness_loss_clears_an_accepted_drive_before_first_move(self):
+        self.assertEqual(self.tick()[-1].api_id, API_STOP_MOVE)
+
+        for seq, command, tick_kwargs in (
+            (
+                1,
+                {"linear_x": 0.10, "linear_y": 0.0, "angular_z": 0.0},
+                {"age": 0.6},
+            ),
+            (
+                2,
+                {"linear_x": 0.0, "linear_y": 0.0, "angular_z": 0.0},
+                {"subscribers": 0},
+            ),
+        ):
+            with self.subTest(seq=seq, tick_kwargs=tick_kwargs):
+                self.core.accept(
+                    self.command(seq=seq, deadman=True, **command),
+                    now=self.now,
+                )
+                request = self.tick(0.05, **tick_kwargs)
+                self.assertEqual([item.api_id for item in request], [API_STOP_MOVE])
+                self.assertEqual(
+                    self.core.snapshot(
+                        now=self.now,
+                        lowstate_age_s=0.01,
+                        lowstate_publishers=1,
+                        sport_subscribers=1,
+                        sport_publishers=1,
+                    )["accepted_command"],
+                    {
+                        "deadman": False,
+                        "linear_x": 0.0,
+                        "linear_y": 0.0,
+                        "angular_z": 0.0,
+                    },
+                )
+
+        # Readiness recovery cannot resurrect either accepted command.
+        self.assertFalse(any(item.api_id == API_MOVE for item in self.tick(0.05)))
 
     def test_command_watchdog_is_capped_at_200_ms(self):
         core = Go2BridgeCore(command_timeout_s=99)

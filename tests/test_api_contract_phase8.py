@@ -246,6 +246,7 @@ class Phase8ApiContractTests(unittest.TestCase):
                     "bare_unitree_sport_publishers": 9,
                     "expected_bare_sport_publishers": 9,
                     "transport": "udp",
+                    "release_commit": "a" * 40,
                     "request_evidence": {
                         "schema": "robot-scope.sport-request-evidence.v1",
                         "scope": "bridge_process",
@@ -281,6 +282,22 @@ class Phase8ApiContractTests(unittest.TestCase):
                         "fresh": True,
                         "private": "not-public",
                     },
+                    "accepted_command": {
+                        "deadman": True,
+                        "linear_x": 0.03,
+                        "linear_y": 0.0,
+                        "angular_z": 0.0,
+                        "private": "not-public",
+                    },
+                    "command_ack": {
+                        "source_id": "private-dashboard-source",
+                        "seq": 42,
+                        "type": "drive",
+                        "age_ms": 15,
+                        "source_matches_dashboard": True,
+                        "bridge_epoch": "private-generation",
+                        "private": "not-public",
+                    },
                     "bridge_epoch": "private-generation",
                     "bridge_pid": 1234,
                     "issued_at_ms": 999,
@@ -292,6 +309,14 @@ class Phase8ApiContractTests(unittest.TestCase):
                 "estop": {},
                 "lease": {},
                 "action_guard": {},
+                "command": {
+                    "source": "keyboard",
+                    "deadman": True,
+                    "linear_x": 0.03,
+                    "linear_y": 0.0,
+                    "angular_z": 0.0,
+                    "private": "not-public",
+                },
             }
         )
         bridge = projected["bridge"]
@@ -299,6 +324,7 @@ class Phase8ApiContractTests(unittest.TestCase):
         self.assertEqual(bridge["status_age_s"], 0.1)
         self.assertEqual(bridge["total_sport_publishers"], 10)
         self.assertEqual(bridge["transport"], "udp")
+        self.assertEqual(bridge["release_commit"], "a" * 40)
         self.assertEqual(bridge["request_evidence"]["published_count"], 2)
         self.assertNotIn("private", bridge["request_evidence"])
         self.assertEqual(
@@ -314,6 +340,36 @@ class Phase8ApiContractTests(unittest.TestCase):
                 "fresh": True,
             },
         )
+        self.assertEqual(
+            bridge["accepted_command"],
+            {
+                "deadman": True,
+                "linear_x": 0.03,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            },
+        )
+        self.assertEqual(
+            bridge["command_ack"],
+            {
+                "seq": 42,
+                "type": "drive",
+                "age_ms": 15,
+                "source_matches_dashboard": True,
+            },
+        )
+        self.assertNotIn("source_id", bridge["command_ack"])
+        self.assertNotIn("bridge_epoch", bridge["command_ack"])
+        self.assertEqual(
+            projected["command"],
+            {
+                "source": "keyboard",
+                "deadman": True,
+                "linear_x": 0.03,
+                "linear_y": 0.0,
+                "angular_z": 0.0,
+            },
+        )
         for private in (
             "bridge_epoch",
             "bridge_pid",
@@ -323,6 +379,18 @@ class Phase8ApiContractTests(unittest.TestCase):
             "unexpected_secret",
         ):
             self.assertNotIn(private, bridge)
+
+        without_command = namespace["control_view"](
+            {
+                "bridge": {},
+                "limits": {},
+                "readiness": {},
+                "estop": {},
+                "lease": {},
+                "action_guard": {},
+            }
+        )
+        self.assertEqual(without_command["command"], {})
 
 
 if __name__ == "__main__":

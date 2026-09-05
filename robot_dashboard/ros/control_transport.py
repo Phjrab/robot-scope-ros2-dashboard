@@ -33,6 +33,7 @@ from ..control_protocol import (
 from ..go2_bridge import (
     API_MOVE,
     API_STOP_MOVE,
+    RELEASE_COMMIT_RE,
     SAFE_ACTION_API_IDS,
     SPORT_REQUEST_EVIDENCE_MAX_COUNT,
     SPORT_REQUEST_EVIDENCE_SCHEMA,
@@ -323,7 +324,18 @@ class ControlTransport:
             raise ControlProtocolError("unexpected bridge status type")
         request_evidence = ControlTransport.status_request_evidence(payload)
         ControlTransport.status_sport_mode_state(payload)
-        ControlTransport.status_command_ack(payload)
+        ControlTransport.status_release_commit(payload)
+        command_ack = ControlTransport.status_command_ack(payload)
+        accepted_command = ControlTransport.status_accepted_command(payload)
+        if (
+            command_ack
+            and accepted_command
+            and command_ack["type"] in {"stop", "action"}
+            and accepted_command["deadman"]
+        ):
+            raise ControlProtocolError(
+                "bridge command acknowledgement and accepted command are inconsistent"
+            )
         reported_ready = payload.get("ready")
         if not isinstance(reported_ready, bool):
             raise ControlProtocolError("bridge ready flag is invalid")
@@ -437,6 +449,53 @@ class ControlTransport:
             "type": kind,
             "age_ms": age_ms,
         }
+
+    @staticmethod
+    def status_accepted_command(payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Validate the Bridge's optional bounded accepted command state."""
+
+        command = payload.get("accepted_command")
+        if command is None:
+            return {}
+        expected = {"deadman", "linear_x", "linear_y", "angular_z"}
+        if not isinstance(command, Mapping) or set(command) != expected:
+            raise ControlProtocolError("bridge accepted command is invalid")
+        deadman = command.get("deadman")
+        if not isinstance(deadman, bool):
+            raise ControlProtocolError("bridge accepted command is invalid")
+        bounds = {
+            "linear_x": 0.30,
+            "linear_y": 0.20,
+            "angular_z": 0.50,
+        }
+        velocities: Dict[str, float] = {}
+        for name, bound in bounds.items():
+            value = command.get(name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ControlProtocolError("bridge accepted command is invalid")
+            try:
+                number = float(value)
+            except (OverflowError, TypeError, ValueError) as exc:
+                raise ControlProtocolError(
+                    "bridge accepted command is invalid"
+                ) from exc
+            if not math.isfinite(number) or abs(number) > bound:
+                raise ControlProtocolError("bridge accepted command is invalid")
+            velocities[name] = number
+        if not deadman and any(value != 0.0 for value in velocities.values()):
+            raise ControlProtocolError("stopped bridge accepted command is not zero")
+        return {"deadman": deadman, **velocities}
+
+    @staticmethod
+    def status_release_commit(payload: Mapping[str, Any]) -> str | None:
+        """Validate the optional path-derived immutable Bridge release identity."""
+
+        release = payload.get("release_commit")
+        if release is None:
+            return None
+        if not isinstance(release, str) or RELEASE_COMMIT_RE.fullmatch(release) is None:
+            raise ControlProtocolError("bridge release identity is invalid")
+        return release
 
     @staticmethod
     def status_request_evidence(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -733,7 +792,9 @@ class ControlTransport:
             request_evidence = self.status_request_evidence(payload)
             sport_mode_state = self.status_sport_mode_state(payload)
             command_ack = self.status_command_ack(payload)
-        except (ControlProtocolError, TypeError, ValueError) as exc:
+            accepted_command = self.status_accepted_command(payload)
+            release_commit = self.status_release_commit(payload)
+        except (ControlProtocolError, OverflowError, TypeError, ValueError) as exc:
             self.set_unready(f"rejected bridge status: {exc}")
             return
 
@@ -745,7 +806,22 @@ class ControlTransport:
         if sport_mode_state:
             status["sport_mode_state"] = sport_mode_state
         if command_ack:
-            status["command_ack"] = command_ack
+            status["command_ack"] = {
+                "seq": command_ack["seq"],
+                "type": command_ack["type"],
+                "age_ms": command_ack["age_ms"],
+                "source_matches_dashboard": command_ack["source_id"] == self.source_id,
+            }
+        else:
+            status.pop("command_ack", None)
+        if accepted_command:
+            status["accepted_command"] = accepted_command
+        else:
+            status.pop("accepted_command", None)
+        if release_commit:
+            status["release_commit"] = release_commit
+        else:
+            status.pop("release_commit", None)
         status.update(
             {
                 "authenticated": True,

@@ -422,6 +422,9 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     """Translate the internal safety snapshot to the stable browser contract."""
     limits = snapshot.get("limits", {})
     readiness = snapshot.get("readiness", {})
+    internal_command = snapshot.get("command")
+    if not isinstance(internal_command, dict):
+        internal_command = {}
     internal_bridge = dict(snapshot.get("bridge", {}))
     bridge = {
         key: internal_bridge[key]
@@ -440,8 +443,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "expected_bare_sport_publishers",
             "total_sport_publishers",
             "lowstate_publishers",
-            "transport",
-            "telemetry",
+            "transport", "telemetry", "release_commit",
         )
         if key in internal_bridge
     }
@@ -479,12 +481,14 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             )
             if key in internal_request_evidence
         }
-    internal_sport_mode_state = internal_bridge.get("sport_mode_state")
-    if isinstance(internal_sport_mode_state, dict):
-        bridge["sport_mode_state"] = {
-            key: internal_sport_mode_state[key] for key in SPORT_MODE_STATE_PUBLIC_FIELDS
-            if key in internal_sport_mode_state
-        }
+    for field, fields in (
+        ("sport_mode_state", SPORT_MODE_STATE_PUBLIC_FIELDS),
+        ("accepted_command", ("deadman", "linear_x", "linear_y", "angular_z")),
+        ("command_ack", ("seq", "type", "age_ms", "source_matches_dashboard")),
+    ):
+        internal = internal_bridge.get(field)
+        if isinstance(internal, dict):
+            bridge[field] = {key: internal[key] for key in fields if key in internal}
     bridge["message"] = public_diagnostic(
         internal_bridge.get("message", internal_bridge.get("last_error", ""))
     )
@@ -552,16 +556,11 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "command_timeout_s": float(limits.get("command_timeout_s", 0.20)),
             "bind_timeout_s": float(limits.get("bind_timeout_s", 4.0)),
         },
-        "command": snapshot.get(
-            "command",
-            {
-                "source": lease.get("source") or "keyboard",
-                "deadman": False,
-                "linear_x": 0.0,
-                "linear_y": 0.0,
-                "angular_z": 0.0,
-            },
-        ),
+        "command": {
+            key: internal_command[key]
+            for key in ("source", "deadman", "linear_x", "linear_y", "angular_z")
+            if key in internal_command
+        },
         "actions": snapshot.get("actions", []),
     }
 
