@@ -1057,6 +1057,9 @@ class ControlTransport:
             status["sport_mode_state"] = sport_mode_state
         if motion_observation:
             status["motion_observation"] = motion_observation
+            status["motion_observation_generation_verified"] = True
+        else:
+            status.pop("motion_observation_generation_verified", None)
         if command_ack:
             status["command_ack"] = {
                 "seq": command_ack["seq"],

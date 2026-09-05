@@ -336,6 +336,7 @@ class Phase8ApiContractTests(unittest.TestCase):
                         "private": "not-public",
                     },
                     "bridge_epoch": "private-generation",
+                    "motion_observation_generation_verified": True,
                     "bridge_pid": 1234,
                     "issued_at_ms": 999,
                     "mac": "private-signature",
@@ -364,6 +365,7 @@ class Phase8ApiContractTests(unittest.TestCase):
         self.assertEqual(bridge["total_sport_publishers"], 10)
         self.assertEqual(bridge["transport"], "udp")
         self.assertEqual(bridge["release_commit"], "a" * 40)
+        self.assertTrue(bridge["motion_observation_generation_verified"])
         self.assertEqual(bridge["request_evidence"]["published_count"], 2)
         self.assertNotIn("private", bridge["request_evidence"])
         self.assertEqual(

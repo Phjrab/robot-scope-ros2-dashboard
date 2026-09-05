@@ -345,3 +345,39 @@ Final state:
 The deployment opens only the technical prerequisite for a later MP-030. A
 fresh supervised MP-030 approval remains required and cannot be inferred from
 the deployment instruction or any earlier motion/observation approval.
+
+## `6b1bd29` MP-030 public-generation proof block
+
+The operator subsequently supplied a fresh MP-030 safety approval with the
+robot standing and stopped, a clear 0.40 m forward corridor, the physical
+remote/E-stop ready and a safety operator present. The dashboard started the
+normal Bridge through its fixed lifecycle API. Before invoking the supervisor,
+the signed status was `ready`, authenticated and connected on exact release
+`6b1bd29...`; LowState and the selected motion observation were fresh, graph
+cardinality matched the fixed profile, no lease or deadman existed, and both
+manager and accepted commands were exact zero.
+
+The supervisor exited `BLOCKED` during read-only preflight with
+`physical_motion=NOT_EVALUATED` and `motion observation does not belong to the
+active Bridge`. It acquired no lease and emitted no Move or action request.
+The terminal signed snapshot before Bridge cleanup retained `move_count=0`,
+`nonzero_move_count=0`, `motion_run_id=0`, and exact-zero accepted command.
+The Bridge was stopped through the fixed lifecycle API; final robot-side
+service state was `inactive` and the dashboard still reported no lease or
+deadman. StopMove count advanced from startup-only cleanup traffic to 104 while
+Move, nonzero-Move and action counts remained zero.
+
+The direct cause was a projection-contract mismatch, not a sensor-generation
+mismatch. Signed transport already rejects a motion observation unless its
+`producer_generation` exactly matches the private signed `bridge_epoch`.
+`control_view()` deliberately removes that private epoch, but the supervisor
+attempted to compare the public observation generation to the removed field and
+therefore compared it to `None`. The narrow follow-up preserves the private
+epoch boundary and exposes only a derived boolean proving that the receiver
+validated the generation binding. The supervisor requires that proof to be
+exactly `true`; a missing or false proof remains a pre-lease block. HMAC, epoch,
+sequence, watchdog, publisher cardinality, LowState, fixed velocity/duration,
+5 mm drift, 10 cm travel and exact-zero cleanup constraints are unchanged.
+
+This blocked invocation consumed the operator's approval. Deploying the
+follow-up and any MP-030 retry each require their own new explicit approval.

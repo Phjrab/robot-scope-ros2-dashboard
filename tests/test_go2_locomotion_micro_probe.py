@@ -53,7 +53,7 @@ def snapshots() -> dict:
         "angular_z": 0.0,
     }
     bridge = {
-        "bridge_epoch": "e" * 32,
+        "motion_observation_generation_verified": True,
         "release_commit": RELEASE,
         "ready": True,
         "authenticated": True,
@@ -537,7 +537,15 @@ class Go2LocomotionMicroProbeTests(unittest.TestCase):
             ),
             lambda value: motion(value).update(source_stamp_ns=-1_000_000_000),
             lambda value: motion(value).update(source_sequence=9),
-            lambda value: motion(value).update(producer_generation="n" * 32),
+            lambda value: (
+                motion(value).update(producer_generation="n" * 32),
+                value["control"]["control"]["bridge"].update(
+                    motion_observation_generation_verified=False
+                ),
+            ),
+            lambda value: value["control"]["control"]["bridge"].pop(
+                "motion_observation_generation_verified"
+            ),
             lambda value: motion(value).update(
                 quality="INVALID", invalid_reason="source_stamp_duplicate"
             ),

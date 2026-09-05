@@ -1196,6 +1196,11 @@ class ControlTransportTests(unittest.TestCase):
             motion_observation=motion,
         )
         projected = transport.raw_snapshot()["bridge"]["motion_observation"]
+        self.assertTrue(
+            transport.raw_snapshot()["bridge"][
+                "motion_observation_generation_verified"
+            ]
+        )
         self.assertEqual(projected["source_sequence"], 20)
         self.assertEqual(
             projected["receiver_clock_domain"], "dashboard_process.monotonic"

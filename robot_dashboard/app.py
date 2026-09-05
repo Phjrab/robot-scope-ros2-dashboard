@@ -443,7 +443,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "expected_bare_sport_publishers",
             "total_sport_publishers",
             "lowstate_publishers",
-            "transport", "telemetry", "release_commit",
+            "transport", "telemetry", "release_commit", "motion_observation_generation_verified",
         )
         if key in internal_bridge
     }

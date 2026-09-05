@@ -608,7 +608,7 @@ def validate_preflight(
     if ack["type"] != "stop" or ack["source_matches_dashboard"] is not True:
         raise ProbeError("Bridge is not idle on the dashboard Stop acknowledgement")
     motion_observation = _motion_observation(bridge)
-    if motion_observation["producer_generation"] != bridge.get("bridge_epoch"):
+    if bridge.get("motion_observation_generation_verified") is not True:
         raise ProbeError("motion observation does not belong to the active Bridge")
     if motion_observation["release_commit"] != expected_release:
         raise ProbeError("motion observation release does not match the dashboard")

@@ -651,3 +651,20 @@ HIGHER_PROBES=NOT_RUN
 NAV2_GOAL=NOT_RUN
 GO2_PREVIOUS_NONMOTION_ROOT_CAUSE=UNRESOLVED
 ```
+
+## MP-030 public-generation proof preflight block
+
+A fresh supervised MP-030 invocation on deployed release `6b1bd29...` stopped
+before lease acquisition because the public control projection intentionally
+omitted private `bridge_epoch` while the supervisor tried to use that field to
+bind the already-validated motion observation to the active Bridge. No Move,
+nonzero command, action, motion run, lease or deadman occurred. The fixed
+lifecycle cleanup left the robot-side Bridge `inactive` with exact-zero retained
+evidence. This is separate from the earlier missing-pose block and from the
+unresolved C4B 59-Move nonmotion result.
+
+The focused correction exports only a receiver-derived generation-verification
+boolean and keeps the private epoch hidden. Missing or false proof blocks before
+lease; the lower signed transport still performs the exact generation equality
+check. A new exact-release deployment approval and a new MP-030 safety approval
+are required before any retry.
