@@ -550,14 +550,34 @@ class MapRuntimeArtifactTests(unittest.TestCase):
             points=40,
         )
         with tempfile.TemporaryDirectory() as temporary:
-            prefix = Path(temporary) / "room"
+            root = Path(temporary)
+            publication_root = root / "published"
+            publication_root.mkdir(mode=0o700)
+            prefix = root / "room"
             saver.write_pcd_exclusive(prefix.with_suffix(".pcd"), snapshot)
-            result = converter.convert_staged_pcd(prefix)
+            result = converter.convert_staged_pcd(
+                prefix, publication_root=publication_root
+            )
             self.assertEqual(set(result["files"]), {"room.yaml", "room.pgm"})
             yaml_text = prefix.with_suffix(".yaml").read_text(encoding="utf-8")
             self.assertIn("image: room.pgm", yaml_text)
             self.assertIn("mode: trinary", yaml_text)
             self.assertTrue(prefix.with_suffix(".pgm").read_bytes().startswith(b"P5\n"))
+            lineage = json.loads(
+                (root / "room.map-family.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                lineage["source"]["pcd_map_id"],
+                converter.SavedMapCatalog._opaque_id(
+                    "pointcloud3d", publication_root.resolve() / "room.pcd"
+                ),
+            )
+            self.assertEqual(
+                lineage["occupancy"]["map_id"],
+                converter.SavedMapCatalog._opaque_id(
+                    "occupancy2d", publication_root.resolve() / "room.yaml"
+                ),
+            )
 
     def test_malformed_or_oversized_map_layout_is_rejected(self):
         message = laser_map()

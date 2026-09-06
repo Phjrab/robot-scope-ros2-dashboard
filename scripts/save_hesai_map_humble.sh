@@ -69,5 +69,6 @@ echo "[Robot Scope] converting PCD locally to a 0.05 m/cell occupancy map"
   --z-min "$Z_MIN" \
   --z-max "$Z_MAX" \
   --noise-radius 0.1 \
-  --min-neighbors 10
+  --min-neighbors 10 \
+  --publication-root "$MAPS_DIR"
 echo "[Robot Scope] 3D PCD and 2D map saved"

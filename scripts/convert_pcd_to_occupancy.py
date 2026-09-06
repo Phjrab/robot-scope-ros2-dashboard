@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import stat
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -18,6 +20,10 @@ from robot_dashboard.saved_maps import (  # noqa: E402
     SavedMapCatalog,
     SavedMapError,
     SavedMapFormatError,
+)
+from robot_dashboard.map_lineage import (  # noqa: E402
+    build_family_document,
+    serialize_family_document,
 )
 
 
@@ -50,6 +56,7 @@ def convert_staged_pcd(
     resolution: float = 0.05,
     noise_radius: float = 0.1,
     min_neighbors: int = 10,
+    publication_root: Path | None = None,
 ) -> dict[str, Any]:
     """Create ``.yaml``/``.pgm`` beside an already staged ``.pcd``."""
 
@@ -90,7 +97,7 @@ def convert_staged_pcd(
     )
     if source is None:
         raise SavedMapFormatError("staged PCD did not pass catalog validation")
-    return catalog.convert_pcd_to_2d(
+    result = catalog.convert_pcd_to_2d(
         str(source["id"]),
         prefix.name,
         z_min=z_min,
@@ -101,6 +108,65 @@ def convert_staged_pcd(
         background="unknown",
         expected_revision=str(source["revision"]),
     )
+    if publication_root is not None:
+        final_root = publication_root.expanduser().resolve(strict=True)
+        if final_root == Path("/") or final_root.is_symlink() or not final_root.is_dir():
+            raise SavedMapFormatError("publication root must be a real non-root directory")
+        family = result["map"]["map_family"]
+        parameters = {
+            key: family["conversion"][key]
+            for key in (
+                "z_min", "z_max", "resolution", "noise_radius",
+                "min_neighbors", "background",
+            )
+        }
+        repinned = build_family_document(
+            family_id=family["family_id"],
+            mapping_session_id=family["source"]["mapping_session_id"],
+            pcd_map_id=SavedMapCatalog._opaque_id(
+                "pointcloud3d", final_root / f"{prefix.name}.pcd"
+            ),
+            pcd_revision=family["source"]["pcd_revision"],
+            source_frame_id=family["source"]["frame_id"],
+            occupancy_map_id=SavedMapCatalog._opaque_id(
+                "occupancy2d", final_root / f"{prefix.name}.yaml"
+            ),
+            occupancy_revision=family["occupancy"]["map_revision"],
+            occupancy_frame_id=family["occupancy"]["frame_id"],
+            resolution=family["occupancy"]["resolution"],
+            width=family["occupancy"]["width"],
+            height=family["occupancy"]["height"],
+            origin=family["occupancy"]["origin"],
+            parameters=parameters,
+            created_at=family["created_at"],
+        )
+        sidecar = prefix.with_name(f"{prefix.name}.map-family.json")
+        temporary = sidecar.with_name(f".{sidecar.name}.{uuid.uuid4().hex}.tmp")
+        descriptor = -1
+        try:
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            content = serialize_family_document(repinned)
+            view = memoryview(content)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise OSError("map-family write made no progress")
+                view = view[written:]
+            os.fsync(descriptor)
+            os.close(descriptor)
+            descriptor = -1
+            os.replace(temporary, sidecar)
+            directory_fd = os.open(sidecar.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+            temporary.unlink(missing_ok=True)
+        result["map"]["map_family"] = repinned
+    return result
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -113,6 +179,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--resolution", type=float, default=0.05)
     parser.add_argument("--noise-radius", type=float, default=0.1)
     parser.add_argument("--min-neighbors", type=int, default=10)
+    parser.add_argument("--publication-root", type=Path)
     return parser
 
 
@@ -126,6 +193,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             resolution=options.resolution,
             noise_radius=options.noise_radius,
             min_neighbors=options.min_neighbors,
+            publication_root=options.publication_root,
         )
     except SavedMapError as exc:
         print(f"[Robot Scope] PCD conversion rejected: {exc}", file=sys.stderr)

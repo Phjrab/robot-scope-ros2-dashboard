@@ -65,6 +65,7 @@ class HumbleMapScriptTests(unittest.TestCase):
 
     def test_2d_conversion_has_no_external_ros_node_dependency(self):
         self.assertIn('"$PYTHON_BIN" "$CONVERTER_SCRIPT"', self.script)
+        self.assertIn('--publication-root "$MAPS_DIR"', self.script)
         for forbidden in (
             "pcd2pgm",
             "map_saver_cli",

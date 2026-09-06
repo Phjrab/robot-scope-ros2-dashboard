@@ -19,6 +19,7 @@ from robot_dashboard.saved_maps import (
     SavedMapPointLimitError,
     SavedMapReadOnly,
 )
+from robot_dashboard.map_lineage import conversion_parameters_hash
 
 
 def write_pcd(path: Path, points):
@@ -737,6 +738,175 @@ class SavedMapCatalogTests(unittest.TestCase):
         self.assertIn(100, decoded)
         self.assertNotIn(0, decoded)
         self.assertFalse((self.root / ".robot_scope_transactions").exists())
+
+    def test_conversion_publishes_private_exact_map_family_lineage(self):
+        source = self._clustered_pcd("family_source.pcd")
+        parameters = {
+            "z_min": -0.2,
+            "z_max": 0.8,
+            "resolution": 0.05,
+            "noise_radius": 0.1,
+            "min_neighbors": 10,
+            "background": "unknown",
+        }
+
+        result = self.managed_catalog.convert_pcd_to_2d(
+            source["id"], "family_2d", **parameters
+        )
+        family = result["map"]["map_family"]
+        sidecar = self.root / "family_2d.map-family.json"
+
+        self.assertEqual(family["schema"], "robot-scope.map-family.v1")
+        self.assertRegex(family["family_id"], r"^[0-9a-f]{24}$")
+        self.assertNotEqual(family["family_id"], result["map"]["id"])
+        self.assertEqual(family["source"]["pcd_map_id"], source["id"])
+        self.assertEqual(family["source"]["pcd_revision"], source["revision"])
+        self.assertEqual(family["source"]["frame_id"], "camera_init")
+        self.assertEqual(family["occupancy"]["map_id"], result["map"]["id"])
+        self.assertEqual(family["occupancy"]["map_revision"], result["map"]["revision"])
+        self.assertEqual(family["occupancy"]["resolution"], 0.05)
+        self.assertEqual(
+            family["conversion"]["parameters_hash"],
+            conversion_parameters_hash(parameters),
+        )
+        self.assertEqual(sidecar.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn(str(self.root), json.dumps(family))
+
+        by_source = self.managed_catalog.map_family(source["id"])
+        by_occupancy = self.managed_catalog.map_family(result["map"]["id"])
+        by_family = self.managed_catalog.map_family_by_id(family["family_id"])
+        self.assertEqual(by_source["status"], "linked")
+        self.assertEqual(by_occupancy["families"], [family])
+        self.assertEqual(by_family["members"], [family])
+
+    def test_parameter_hash_is_semantic_and_deterministic(self):
+        first = {
+            "z_min": -0.2,
+            "z_max": 0.8,
+            "resolution": 0.05,
+            "noise_radius": 0.1,
+            "min_neighbors": 10,
+            "background": "unknown",
+        }
+        second = dict(reversed(tuple(first.items())))
+        self.assertEqual(
+            conversion_parameters_hash(first), conversion_parameters_hash(second)
+        )
+        self.assertNotEqual(
+            conversion_parameters_hash(first),
+            conversion_parameters_hash({**first, "background": "free"}),
+        )
+
+    def test_edited_copy_preserves_family_and_navigation_pins_it(self):
+        source = self._clustered_pcd("edit_family_source.pcd")
+        converted = self.managed_catalog.convert_pcd_to_2d(
+            source["id"],
+            "edit_family_2d",
+            z_min=-0.2,
+            z_max=0.8,
+            resolution=0.05,
+            noise_radius=0.1,
+            min_neighbors=10,
+        )
+        edited = self.managed_catalog.save_edited_copy(
+            converted["map"]["id"],
+            "edit_family_copy",
+            converted["map"]["revision"],
+            [{"start": 0, "length": 1, "value": 100}],
+        )
+        original_family = converted["map"]["map_family"]
+        edited_family = edited["map_family"]
+        self.assertEqual(edited_family["family_id"], original_family["family_id"])
+        self.assertEqual(edited_family["source"], original_family["source"])
+        self.assertNotEqual(
+            edited_family["occupancy"]["map_revision"],
+            original_family["occupancy"]["map_revision"],
+        )
+        self.assertEqual(
+            edited_family["derived_from_family_revision"],
+            original_family["family_revision"],
+        )
+
+        private = self.root / "family-navigation-job"
+        private.mkdir()
+        snapshot = self.managed_catalog.snapshot_navigation_map(
+            edited["id"], edited["revision"], private
+        )
+        self.assertEqual(snapshot.family_id, edited_family["family_id"])
+        self.assertEqual(snapshot.source_pcd_id, source["id"])
+        snapshot.require_map_family(
+            family_id=edited_family["family_id"],
+            family_revision=edited_family["family_revision"],
+            source_pcd_id=source["id"],
+            source_pcd_revision=source["revision"],
+        )
+        with self.assertRaises(ValueError):
+            snapshot.require_map_family(
+                family_id="f" * 24,
+                family_revision=edited_family["family_revision"],
+                source_pcd_id=source["id"],
+                source_pcd_revision=source["revision"],
+            )
+
+    def test_unlinked_history_and_similar_names_are_never_inferred(self):
+        floor = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        write_pcd(self.root / "floor.pcd", [(0.0, 0.0, 0.0)] * 3)
+        self.assertEqual(self.managed_catalog.map_family(floor["id"])["status"], "unlinked")
+        similarly_named = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.pcd"
+        )
+        self.assertEqual(
+            self.managed_catalog.map_family(similarly_named["id"])["status"],
+            "unlinked",
+        )
+
+    def test_lineage_rename_and_delete_are_pair_scoped(self):
+        source = self._clustered_pcd("rename_family_source.pcd")
+        converted = self.managed_catalog.convert_pcd_to_2d(
+            source["id"], "rename_family_2d", z_min=-0.2, z_max=0.8,
+            resolution=0.05, noise_radius=0.1, min_neighbors=10,
+        )
+        old_family = converted["map"]["map_family"]
+        renamed = self.managed_catalog.rename(converted["map"]["id"], "renamed_family_2d")
+        new_family = self.managed_catalog.map_family(renamed["id"])["families"][0]
+        self.assertEqual(new_family["family_id"], old_family["family_id"])
+        self.assertEqual(new_family["source"], old_family["source"])
+        self.assertEqual(new_family["derived_from_family_revision"], old_family["family_revision"])
+        self.assertFalse((self.root / "rename_family_2d.map-family.json").exists())
+        self.assertTrue((self.root / "renamed_family_2d.map-family.json").is_file())
+
+        self.managed_catalog.delete(renamed["id"])
+        self.assertFalse((self.root / "renamed_family_2d.map-family.json").exists())
+        self.assertTrue((self.root / "rename_family_source.pcd").is_file())
+
+    def test_unsafe_or_corrupt_lineage_sidecar_fails_closed(self):
+        floor = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        sidecar = self.root / "floor.map-family.json"
+        sidecar.write_bytes(b"{}")
+        sidecar.chmod(0o600)
+        with self.assertRaises(SavedMapFormatError):
+            self.managed_catalog.map_family(floor["id"])
+        sidecar.unlink()
+
+        outside = self.root.parent / "outside-lineage.json"
+        outside.write_text("{}", encoding="utf-8")
+        try:
+            sidecar.symlink_to(outside)
+            with self.assertRaises(SavedMapReadOnly):
+                self.managed_catalog.map_family(floor["id"])
+        finally:
+            sidecar.unlink(missing_ok=True)
+            outside.unlink(missing_ok=True)
 
     def test_free_background_is_an_explicit_pdf_compatible_option(self):
         source = self._clustered_pcd("free_source.pcd")

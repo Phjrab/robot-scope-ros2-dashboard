@@ -5,6 +5,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = ROOT / "robot_dashboard" / "app.py"
+MAP_FAMILIES_ROUTER_PATH = (
+    ROOT / "robot_dashboard" / "api" / "routers" / "map_families.py"
+)
 COORDINATOR_PATH = (
     ROOT / "robot_dashboard" / "application" / "mapping_coordinator.py"
 )
@@ -51,7 +54,7 @@ def mapping_coordinator_methods(node: ast.AST) -> set[str]:
 
 def declared_app_routes(tree: ast.Module) -> set[tuple[str, str]]:
     result = set()
-    for node in tree.body:
+    for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         for decorator in node.decorator_list:
@@ -59,7 +62,7 @@ def declared_app_routes(tree: ast.Module) -> set[tuple[str, str]]:
                 isinstance(decorator, ast.Call)
                 and isinstance(decorator.func, ast.Attribute)
                 and isinstance(decorator.func.value, ast.Name)
-                and decorator.func.value.id == "app"
+                and decorator.func.value.id in {"app", "router"}
                 and decorator.func.attr in {"get", "post", "patch", "delete"}
                 and decorator.args
                 and isinstance(decorator.args[0], ast.Constant)
@@ -73,6 +76,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app_tree = parsed(APP_PATH)
+        cls.map_families_router_tree = parsed(MAP_FAMILIES_ROUTER_PATH)
         cls.app_functions = functions(cls.app_tree)
         cls.coordinator_tree = parsed(COORDINATOR_PATH)
         coordinator_class = next(
@@ -96,6 +100,8 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             ("post", "/api/v1/saved-maps/{map_id}/convert-2d"),
             ("post", "/api/v1/saved-maps/{map_id}/edited-copy"),
             ("get", "/api/v1/saved-maps/{map_id}"),
+            ("get", "/api/v1/saved-maps/{map_id}/family"),
+            ("get", "/api/v1/map-families/{family_id}"),
             ("get", "/api/v1/saved-maps/{map_id}/annotations"),
             ("patch", "/api/v1/saved-maps/{map_id}/annotations"),
             ("patch", "/api/v1/saved-maps/{map_id}"),
@@ -104,9 +110,13 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
         }
         actual = {
             route
-            for route in declared_app_routes(self.app_tree)
+            for route in (
+                declared_app_routes(self.app_tree)
+                | declared_app_routes(self.map_families_router_tree)
+            )
             if route[1].startswith("/api/v1/mapping")
             or route[1].startswith("/api/v1/saved-maps")
+            or route[1].startswith("/api/v1/map-families")
         }
         self.assertEqual(actual, expected)
 

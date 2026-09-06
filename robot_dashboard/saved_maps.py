@@ -15,6 +15,7 @@ import json
 import math
 import os
 import re
+import secrets
 import shutil
 import stat
 import threading
@@ -36,6 +37,14 @@ from .map_annotations import (
     parse_annotation_document,
     resolve_annotation_goal,
     serialized_annotation_document,
+)
+from .map_lineage import (
+    MAX_DOCUMENT_BYTES as MAX_LINEAGE_DOCUMENT_BYTES,
+    MapLineageError,
+    build_family_document,
+    parse_family_document,
+    public_family_document,
+    serialize_family_document,
 )
 
 
@@ -155,6 +164,7 @@ class NavigationMapSource:
     image_path: Path
     yaml_signature: tuple[int, int, int, int]
     image_signature: tuple[int, int, int, int]
+    family: Optional[Dict[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -178,6 +188,12 @@ class NavigationMapSnapshot:
     resolution: float
     origin: tuple[float, float, float]
     occupancy: bytes
+    family_id: Optional[str] = None
+    family_revision: Optional[str] = None
+    source_pcd_id: Optional[str] = None
+    source_pcd_revision: Optional[str] = None
+    occupancy_map_id: Optional[str] = None
+    occupancy_map_revision: Optional[str] = None
 
     def __post_init__(self) -> None:
         if (
@@ -266,6 +282,35 @@ class NavigationMapSnapshot:
                 if self.occupancy[cell_y * self.width + cell_x] != 0:
                     return False
         return True
+
+    def require_map_family(
+        self,
+        *,
+        family_id: str,
+        family_revision: str,
+        source_pcd_id: str,
+        source_pcd_revision: str,
+    ) -> None:
+        """Fail closed when a future relocalization candidate is not exact."""
+
+        expected = (
+            family_id,
+            family_revision,
+            source_pcd_id,
+            source_pcd_revision,
+            self.map_id,
+            self.revision,
+        )
+        actual = (
+            self.family_id,
+            self.family_revision,
+            self.source_pcd_id,
+            self.source_pcd_revision,
+            self.occupancy_map_id,
+            self.occupancy_map_revision,
+        )
+        if actual != expected:
+            raise ValueError("navigation map family does not match the candidate")
 
     def contains(self, x: float, y: float) -> bool:
         """Return true when a finite map-frame point lies inside the grid."""
@@ -400,6 +445,50 @@ class SavedMapCatalog:
     def metadata(self, map_id: str) -> Dict[str, Any]:
         with self._lock:
             return self._find(map_id).public()
+
+    def map_family(self, map_id: str) -> Dict[str, Any]:
+        """Return bounded lineage for one catalog ID without exposing paths."""
+
+        with self._lock:
+            record = self._find(map_id)
+            direct = (
+                self._read_lineage(record)
+                if record.format == "map-server-pgm"
+                else None
+            )
+            matches = (
+                [direct]
+                if direct is not None
+                else [
+                    document
+                    for document in self._scan_lineage_documents()
+                    if document["source"]["pcd_map_id"] == map_id
+                ]
+            )
+            matches.sort(key=lambda item: (item["created_at"], item["family_revision"]))
+            return {
+                "map_id": record.map_id,
+                "map_revision": record.revision,
+                "status": "linked" if matches else "unlinked",
+                "families": [public_family_document(item) for item in matches],
+            }
+
+    def map_family_by_id(self, family_id: str) -> Dict[str, Any]:
+        if not isinstance(family_id, str) or not re.fullmatch(r"[0-9a-f]{24}", family_id):
+            raise SavedMapNotFound("map family not found")
+        with self._lock:
+            matches = [
+                document
+                for document in self._scan_lineage_documents()
+                if document["family_id"] == family_id
+            ]
+            if not matches:
+                raise SavedMapNotFound("map family not found")
+            matches.sort(key=lambda item: (item["created_at"], item["family_revision"]))
+            return {
+                "family_id": family_id,
+                "members": [public_family_document(item) for item in matches],
+            }
 
     def annotations(self, map_id: str) -> Dict[str, Any]:
         """Return one validated, revision-pinned annotation document."""
@@ -537,6 +626,7 @@ class SavedMapCatalog:
                 raise SavedMapFormatError(
                     "navigation requires a managed trinary P5/255 occupancy map"
                 )
+            family = self._read_lineage(record)
             return NavigationMapSource(
                 map_id=record.map_id,
                 revision=record.revision,
@@ -546,6 +636,7 @@ class SavedMapCatalog:
                 image_path=record.auxiliary_path,
                 yaml_signature=self._regular_signature(record.path),
                 image_signature=self._regular_signature(record.auxiliary_path),
+                family=family,
             )
 
     def snapshot_navigation_map(
@@ -647,6 +738,7 @@ class SavedMapCatalog:
                     255 if int(value) == -1 else int(value)
                     for value in grid.reshape(-1)
                 )
+                family = source.family
                 return NavigationMapSnapshot(
                     map_id=source.map_id,
                     revision=source.revision,
@@ -659,6 +751,18 @@ class SavedMapCatalog:
                     resolution=float(metadata["resolution"]),
                     origin=tuple(float(value) for value in metadata["origin"]),
                     occupancy=encoded,
+                    family_id=family["family_id"] if family else None,
+                    family_revision=family["family_revision"] if family else None,
+                    source_pcd_id=family["source"]["pcd_map_id"] if family else None,
+                    source_pcd_revision=(
+                        family["source"]["pcd_revision"] if family else None
+                    ),
+                    occupancy_map_id=(
+                        family["occupancy"]["map_id"] if family else None
+                    ),
+                    occupancy_map_revision=(
+                        family["occupancy"]["map_revision"] if family else None
+                    ),
                 )
             except SavedMapError:
                 for path in reversed(created):
@@ -729,6 +833,92 @@ class SavedMapCatalog:
     @staticmethod
     def _annotation_path(record: SavedMapRecord) -> Path:
         return record.path.with_name(f"{record.path.stem}.annotations.json")
+
+    @staticmethod
+    def _lineage_path(record: SavedMapRecord) -> Path:
+        return record.path.with_name(f"{record.path.stem}.map-family.json")
+
+    @staticmethod
+    def _lineage_target(root: Path, name: str) -> Path:
+        return root / f"{name}.map-family.json"
+
+    def _read_lineage_path(self, root: Path, path: Path) -> Dict[str, Any]:
+        try:
+            candidate = path.lstat()
+            if (
+                not stat.S_ISREG(candidate.st_mode)
+                or path.is_symlink()
+                or candidate.st_uid != os.geteuid()
+                or stat.S_IMODE(candidate.st_mode) & 0o077
+                or candidate.st_size <= 0
+                or candidate.st_size > MAX_LINEAGE_DOCUMENT_BYTES
+                or path.resolve(strict=True).parent != root
+            ):
+                raise SavedMapReadOnly("map-family sidecar is unsafe")
+            flags = os.O_RDONLY
+            if hasattr(os, "O_NOFOLLOW"):
+                flags |= os.O_NOFOLLOW
+            descriptor = os.open(path, flags)
+            try:
+                current = os.fstat(descriptor)
+                if self._stat_signature(current) != self._stat_signature(candidate):
+                    raise SavedMapConflict("map-family sidecar changed while reading")
+                payload = os.read(descriptor, current.st_size + 1)
+                if len(payload) != current.st_size:
+                    raise SavedMapFormatError("map-family sidecar is truncated")
+            finally:
+                os.close(descriptor)
+            return parse_family_document(json.loads(payload.decode("utf-8")))
+        except SavedMapError:
+            raise
+        except MapLineageError as exc:
+            raise SavedMapFormatError(str(exc)) from exc
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise SavedMapFormatError("map-family sidecar could not be read safely") from exc
+
+    def _read_lineage(self, record: SavedMapRecord) -> Optional[Dict[str, Any]]:
+        path = self._lineage_path(record)
+        if not os.path.lexists(path):
+            return None
+        document = self._read_lineage_path(record.root, path)
+        occupancy = document["occupancy"]
+        if occupancy["map_id"] != record.map_id or occupancy["map_revision"] != record.revision:
+            raise SavedMapConflict("map-family occupancy pin does not match the saved map")
+        return document
+
+    def _scan_lineage_documents(self) -> list[Dict[str, Any]]:
+        documents: list[Dict[str, Any]] = []
+        maximum = max(1, self.max_files)
+        for root in self.managed_roots:
+            count = 0
+            for current, directories, files in os.walk(root, followlinks=False):
+                current_path = Path(current)
+                depth = len(current_path.relative_to(root).parts)
+                directories[:] = [
+                    name
+                    for name in directories
+                    if not name.startswith(".") and depth < self.max_depth
+                ]
+                if depth > self.max_depth:
+                    continue
+                for name in files:
+                    if name.startswith(".") or not name.endswith(".map-family.json"):
+                        continue
+                    documents.append(self._read_lineage_path(root, current_path / name))
+                    count += 1
+                    if count >= maximum:
+                        break
+                if count >= maximum:
+                    break
+        return documents
+
+    def _stage_lineage(self, transaction: Path, document: Dict[str, Any]) -> Path:
+        staged = transaction / "map-family.json"
+        try:
+            self._write_exclusive(staged, serialize_family_document(document))
+        except MapLineageError as exc:
+            raise SavedMapFormatError(str(exc)) from exc
+        return staged
 
     def _annotation_geometry(self, record: SavedMapRecord) -> NavigationMapSnapshot:
         metadata = self._read_map_yaml(record.path)
@@ -920,10 +1110,18 @@ class SavedMapCatalog:
             if target_auxiliary is not None:
                 targets.append(target_auxiliary)
             annotation_document: Dict[str, Any] | None = None
+            lineage_document: Dict[str, Any] | None = None
             source_annotation: Path | None = None
+            source_lineage: Path | None = None
             target_annotation: Path | None = None
+            target_lineage: Path | None = None
             annotation_geometry: NavigationMapSnapshot | None = None
             if record.format == "map-server-pgm":
+                lineage_document = self._read_lineage(record)
+                if lineage_document is not None:
+                    source_lineage = self._lineage_path(record)
+                    target_lineage = self._lineage_target(record.root, safe_name)
+                    targets.append(target_lineage)
                 source_annotation = self._annotation_path(record)
                 if os.path.lexists(source_annotation):
                     annotation_geometry = self._annotation_geometry(record)
@@ -946,11 +1144,15 @@ class SavedMapCatalog:
                 sources.append(record.auxiliary_path)
             if source_annotation is not None and annotation_document is not None:
                 sources.append(source_annotation)
+            if source_lineage is not None and lineage_document is not None:
+                sources.append(source_lineage)
             remove_sources = [record.path]
             if record.auxiliary_path is not None and not shared_auxiliary:
                 remove_sources.append(record.auxiliary_path)
             if source_annotation is not None and annotation_document is not None:
                 remove_sources.append(source_annotation)
+            if source_lineage is not None and lineage_document is not None:
+                remove_sources.append(source_lineage)
 
             transaction_root, transaction = self._create_transaction(record.root)
             backups: Dict[Path, Path] = {}
@@ -969,6 +1171,37 @@ class SavedMapCatalog:
                         transaction,
                         target_auxiliary.name,
                     )
+                    if lineage_document is not None and target_lineage is not None:
+                        renamed_lineage = build_family_document(
+                            family_id=lineage_document["family_id"],
+                            mapping_session_id=lineage_document["source"]["mapping_session_id"],
+                            pcd_map_id=lineage_document["source"]["pcd_map_id"],
+                            pcd_revision=lineage_document["source"]["pcd_revision"],
+                            source_frame_id=lineage_document["source"]["frame_id"],
+                            occupancy_map_id=self._opaque_id(record.kind, target_primary),
+                            occupancy_revision=self._signature_revision(
+                                (staged_yaml, record.auxiliary_path)
+                            ),
+                            occupancy_frame_id=lineage_document["occupancy"]["frame_id"],
+                            resolution=lineage_document["occupancy"]["resolution"],
+                            width=lineage_document["occupancy"]["width"],
+                            height=lineage_document["occupancy"]["height"],
+                            origin=lineage_document["occupancy"]["origin"],
+                            parameters={
+                                key: lineage_document["conversion"][key]
+                                for key in (
+                                    "z_min", "z_max", "resolution", "noise_radius",
+                                    "min_neighbors", "background",
+                                )
+                            },
+                            derived_from_family_revision=lineage_document["family_revision"],
+                        )
+                        staged_lineage = self._stage_lineage(
+                            transaction, renamed_lineage
+                        )
+                        published[target_lineage] = self._publish_link(
+                            staged_lineage, target_lineage
+                        )
                     if (
                         annotation_document is not None
                         and annotation_geometry is not None
@@ -1032,6 +1265,8 @@ class SavedMapCatalog:
                         renamed,
                         self._annotation_geometry(renamed),
                     )
+                if lineage_document is not None:
+                    self._read_lineage(renamed)
                 for source in remove_sources:
                     self._unlink_verified(source, source_identities[source])
             except SavedMapError:
@@ -1070,6 +1305,10 @@ class SavedMapCatalog:
             if record.auxiliary_path is not None and not shared_auxiliary:
                 sources.append(record.auxiliary_path)
             if record.format == "map-server-pgm":
+                lineage_path = self._lineage_path(record)
+                if os.path.lexists(lineage_path):
+                    self._read_lineage(record)
+                    sources.append(lineage_path)
                 annotation_path = self._annotation_path(record)
                 if os.path.lexists(annotation_path):
                     # Validate pins, ownership, type and permissions before
@@ -1207,7 +1446,7 @@ class SavedMapCatalog:
                 )
             if self._operation_cancelled(cancelled):
                 raise SavedMapMutationError("PCD conversion was cancelled")
-            targets = self._occupancy_targets(record.root, safe_name)
+            targets = (*self._occupancy_targets(record.root, safe_name), self._lineage_target(record.root, safe_name))
             self._ensure_targets_absent(targets)
             source_signature = self._regular_signature(record.path)
             source_revision = record.revision
@@ -1236,6 +1475,24 @@ class SavedMapCatalog:
                 occupied_thresh=0.65,
                 free_thresh=0.196,
             )
+            target_yaml, _ = self._occupancy_targets(record.root, safe_name)
+            target_revision = self._signature_revision((staged_yaml, staged_pgm))
+            lineage = build_family_document(
+                family_id=secrets.token_hex(12),
+                mapping_session_id=secrets.token_hex(12),
+                pcd_map_id=record.map_id,
+                pcd_revision=source_revision,
+                source_frame_id=str(record.details.get("frame_id", "camera_init")),
+                occupancy_map_id=self._opaque_id("occupancy2d", target_yaml),
+                occupancy_revision=target_revision,
+                occupancy_frame_id="map",
+                resolution=parameters["resolution"],
+                width=int(details["width"]),
+                height=int(details["height"]),
+                origin=(float(details["origin_x"]), float(details["origin_y"]), 0.0),
+                parameters=parameters,
+            )
+            staged_lineage = self._stage_lineage(transaction, lineage)
 
             with self._lock:
                 if self._regular_signature(record.path) != source_signature:
@@ -1246,6 +1503,10 @@ class SavedMapCatalog:
                         raise SavedMapMutationError(
                             "PCD conversion was cancelled before publication"
                         )
+                    lineage_target = self._lineage_target(record.root, safe_name)
+                    published[lineage_target] = self._publish_link(
+                        staged_lineage, lineage_target
+                    )
                     created = self._publish_occupancy_pair(
                         record.root,
                         safe_name,
@@ -1259,6 +1520,10 @@ class SavedMapCatalog:
                             raise SavedMapMutationError(
                                 "PCD conversion was cancelled before publication"
                             )
+                        lineage_target = self._lineage_target(record.root, safe_name)
+                        published[lineage_target] = self._publish_link(
+                            staged_lineage, lineage_target
+                        )
                         created = self._publish_occupancy_pair(
                             record.root,
                             safe_name,
@@ -1295,6 +1560,7 @@ class SavedMapCatalog:
                 **parameters,
             }
             public = created.public()
+            public["map_family"] = public_family_document(lineage)
             public["conversion"] = conversion
             return {
                 "map": public,
@@ -1325,7 +1591,8 @@ class SavedMapCatalog:
             self._require_editable_record(record)
             if source_revision != record.revision:
                 raise SavedMapConflict("saved map changed; reload it before saving edits")
-            targets = self._occupancy_targets(record.root, safe_name)
+            source_lineage = self._read_lineage(record)
+            targets = (*self._occupancy_targets(record.root, safe_name), self._lineage_target(record.root, safe_name))
             self._ensure_targets_absent(targets)
 
             yaml_signature = self._regular_signature(record.path)
@@ -1379,6 +1646,33 @@ class SavedMapCatalog:
                 free_thresh=metadata["free_thresh"],
                 negate=metadata["negate"],
             )
+            lineage: Optional[Dict[str, Any]] = None
+            staged_lineage: Optional[Path] = None
+            if source_lineage is not None:
+                target_yaml, _ = self._occupancy_targets(record.root, safe_name)
+                lineage = build_family_document(
+                    family_id=source_lineage["family_id"],
+                    mapping_session_id=source_lineage["source"]["mapping_session_id"],
+                    pcd_map_id=source_lineage["source"]["pcd_map_id"],
+                    pcd_revision=source_lineage["source"]["pcd_revision"],
+                    source_frame_id=source_lineage["source"]["frame_id"],
+                    occupancy_map_id=self._opaque_id("occupancy2d", target_yaml),
+                    occupancy_revision=self._signature_revision((staged_yaml, staged_pgm)),
+                    occupancy_frame_id=str(record.details.get("frame_id", "map")),
+                    resolution=float(metadata["resolution"]),
+                    width=width,
+                    height=height,
+                    origin=tuple(float(value) for value in metadata["origin"]),
+                    parameters={
+                        key: source_lineage["conversion"][key]
+                        for key in (
+                            "z_min", "z_max", "resolution", "noise_radius",
+                            "min_neighbors", "background",
+                        )
+                    },
+                    derived_from_family_revision=source_lineage["family_revision"],
+                )
+                staged_lineage = self._stage_lineage(transaction, lineage)
 
             with self._lock:
                 if (
@@ -1387,6 +1681,11 @@ class SavedMapCatalog:
                 ):
                     raise SavedMapMutationError("2D map changed while applying edits")
                 self._ensure_targets_absent(targets)
+                if staged_lineage is not None:
+                    lineage_target = self._lineage_target(record.root, safe_name)
+                    published[lineage_target] = self._publish_link(
+                        staged_lineage, lineage_target
+                    )
                 created = self._publish_occupancy_pair(
                     record.root,
                     safe_name,
@@ -1420,6 +1719,8 @@ class SavedMapCatalog:
                 "run_count": len(normalized_runs),
                 "edited_cells": edited_cells,
             }
+            if lineage is not None:
+                public["map_family"] = public_family_document(lineage)
             return public
 
     @staticmethod
@@ -2196,6 +2497,7 @@ class SavedMapCatalog:
                 if (
                     name.startswith(".")
                     or name.endswith(".annotations.json")
+                    or name.endswith(".map-family.json")
                     or path.is_symlink()
                 ):
                     continue

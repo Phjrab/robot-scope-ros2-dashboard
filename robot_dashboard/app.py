@@ -17,10 +17,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from .application.lifecycle_coordinator import (
-    LifecycleCoordinator,
-    LifecycleTransitionBusy,
-)
+from .application.lifecycle_coordinator import LifecycleCoordinator, LifecycleTransitionBusy
 from .application.mapping_coordinator import (
     MappingCoordinator,
     MappingCoordinatorConflict,
@@ -38,6 +35,7 @@ from .api.routers.competition import router as competition_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
+from .api.routers.map_families import create_router as create_map_families_router
 from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
 from .api.routers.route_planner import router as route_planner_router
@@ -595,6 +593,7 @@ def saved_map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, SavedMapMutationError):
         return HTTPException(status_code=500, detail="saved map mutation failed")
     return HTTPException(status_code=500, detail="saved map operation failed")
+app.include_router(create_map_families_router(saved_maps, saved_map_error))
 
 
 def parse_saved_point_limit(value: str) -> int | None:
@@ -1423,7 +1422,7 @@ def main() -> None:
                     "pcd-and-2d",
                     map_save_ros_profile,
                 ),
-                (".pcd", ".yaml", ".pgm"),
+                (".pcd", ".yaml", ".pgm", ".map-family.json"),
                 cwd=project_dir,
                 timeout_seconds=90,
                 min_result_bytes=4,

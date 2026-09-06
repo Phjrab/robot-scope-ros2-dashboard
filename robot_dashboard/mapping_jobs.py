@@ -27,6 +27,11 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence
 
 from .public_diagnostics import public_diagnostic
+from .map_lineage import (
+    MAX_DOCUMENT_BYTES as MAX_LINEAGE_DOCUMENT_BYTES,
+    MapLineageError,
+    parse_family_document,
+)
 
 
 MAP_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
@@ -1270,6 +1275,15 @@ class MappingJobManager:
                 magic = stream.read(2)
             if magic not in {b"P2", b"P5"}:
                 raise SaveResultError("occupancy image is not a PGM file")
+        elif path.name.endswith(".map-family.json"):
+            try:
+                if path.stat().st_size > MAX_LINEAGE_DOCUMENT_BYTES:
+                    raise MapLineageError("map-family result exceeds its size limit")
+                with path.open("r", encoding="utf-8") as stream:
+                    payload = json.load(stream)
+                parse_family_document(payload)
+            except (OSError, UnicodeError, json.JSONDecodeError, MapLineageError) as exc:
+                raise SaveResultError("map-family result is invalid") from exc
         elif suffix == ".json":
             try:
                 with path.open("r", encoding="utf-8") as stream:
