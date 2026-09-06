@@ -36,6 +36,8 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 | [Track C2 no-goal acceptance](docs/TRACK_C2_COMPETITION_FASTLIO_NO_GOAL_ACCEPTANCE.md) | stationary 센서·controller odometry·NG0 실행 및 cleanup 판정 |
 | [3D/2D map-family lineage ADR](docs/ADR_3D_2D_MAP_FAMILY_LINEAGE.md) | PCD와 파생 Nav2 지도 사이의 private exact-revision 계보 계약 |
 | [Track D0 map lineage acceptance](docs/TRACK_D0_MAP_LINEAGE_ACCEPTANCE.md) | hardware-free 계보 저장·편집·snapshot 검증 결과와 D1 gate |
+| [Offline 3D relocalization engine ADR](docs/ADR_3D_RELOCALIZATION_REGISTRATION_ENGINE.md) | bounded C++17 3DoF registration과 strict process boundary |
+| [Track D1 offline registration acceptance](docs/TRACK_D1_OFFLINE_REGISTRATION_ACCEPTANCE.md) | synthetic corpus 정확도·성능과 live-use gate |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | 포함된 공식 robot model의 출처와 라이선스 |
 
 처음 설치하는 사용자는 가장 작은 `observer` 모드에서 시작해 필요한 하드웨어 기능만

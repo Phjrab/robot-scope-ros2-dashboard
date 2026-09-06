@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>robot_scope_registration</name>
+  <version>0.1.0</version>
+  <description>Bounded ROS-independent offline 3DoF registration core for Robot Scope.</description>
+  <maintainer email="robot-scope@example.invalid">Robot Scope maintainers</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
