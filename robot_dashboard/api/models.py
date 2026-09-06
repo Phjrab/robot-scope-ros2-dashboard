@@ -170,6 +170,27 @@ class NavigationClearCostmapsRequest(StrictRequest):
     scope: Literal["both"]
 
 
+class RelocalizationSeedRequest(StrictRequest):
+    mode: Literal["REGION", "POSE", "NONE"]
+    x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    yaw: float = Field(strict=True, ge=-3.141592653589793, le=3.141592653589793)
+    radius_m: float = Field(strict=True, ge=0.0, le=10.0)
+    yaw_half_range: float = Field(strict=True, ge=0.0, le=3.141592653589793)
+
+
+class RelocalizationStartRequest(StrictRequest):
+    map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_pcd_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    source_pcd_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    seed: RelocalizationSeedRequest
+
+
+class RelocalizationCancelRequest(StrictRequest):
+    pass
+
+
 class MissionWaypointRequest(StrictRequest):
     annotation_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     arrival_tolerance: float | None = Field(default=None, strict=True, ge=0.05, le=2.0)

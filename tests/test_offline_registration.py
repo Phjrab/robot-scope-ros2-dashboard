@@ -19,6 +19,7 @@ from robot_dashboard.relocalization.models import (
 from robot_dashboard.relocalization.process_adapter import (
     OfflineRegistrationProcess,
     RegistrationBusy,
+    RegistrationCanceled,
     RegistrationProcessError,
 )
 from robot_dashboard.relocalization.scoring import confidence_for
@@ -388,6 +389,20 @@ class OfflineRegistrationTests(unittest.TestCase):
         thread.join(timeout=3)
         self.assertFalse(thread.is_alive())
         self.assertEqual(len(errors), 1)
+
+    def test_cancel_event_terminates_owned_process_group(self):
+        slow = self.root / "cancel-slow"
+        slow.write_text("#!/bin/sh\nsleep 5\n", encoding="utf-8")
+        slow.chmod(0o700)
+        adapter = OfflineRegistrationProcess(slow, [self.root])
+        cancel = threading.Event()
+        timer = threading.Timer(0.05, cancel.set)
+        timer.start()
+        self.addCleanup(timer.cancel)
+        started = time.monotonic()
+        with self.assertRaises(RegistrationCanceled):
+            adapter.run(request(self.reference, self.query), cancel_event=cancel)
+        self.assertLess(time.monotonic() - started, 1.0)
 
 
 if __name__ == "__main__":

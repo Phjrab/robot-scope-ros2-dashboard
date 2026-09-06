@@ -781,6 +781,90 @@ class SavedMapCatalog:
                     "navigation map snapshot could not be created"
                 ) from exc
 
+    def snapshot_relocalization_family(
+        self,
+        map_id: str,
+        map_revision: str,
+        source_pcd_id: str,
+        source_pcd_revision: str,
+        destination: Path,
+    ) -> Any:
+        """Pin one exact D0 family into a private relocalization job directory.
+
+        The returned bundle is internal-only and therefore may contain its
+        private snapshot path. HTTP projections must never serialize it.
+        """
+
+        from .relocalization.manager import RelocalizationMapBundle
+
+        target = Path(destination)
+        occupancy_dir = target / "occupancy"
+        reference = target / "reference.pcd"
+        try:
+            occupancy_dir.mkdir(mode=0o700)
+        except OSError as exc:
+            raise SavedMapMutationError("relocalization snapshot directory is unavailable") from exc
+        with self._lock:
+            navigation = self.snapshot_navigation_map(map_id, map_revision, occupancy_dir)
+            if (
+                navigation.family_id is None
+                or navigation.family_revision is None
+                or navigation.source_pcd_id != source_pcd_id
+                or navigation.source_pcd_revision != source_pcd_revision
+                or navigation.occupancy_map_id != map_id
+                or navigation.occupancy_map_revision != map_revision
+            ):
+                raise SavedMapConflict("map and source PCD do not match one exact family")
+            source = self._find(source_pcd_id)
+            if source.format != "pcd-binary" or source.revision != source_pcd_revision:
+                raise SavedMapConflict("source PCD changed or is not binary PCD")
+            signature = self._regular_signature(source.path)
+            self._copy_regular_snapshot(source.path, reference, signature)
+            if (
+                self._regular_signature(source.path) != signature
+                or self._signature_revision((source.path,)) != source_pcd_revision
+            ):
+                reference.unlink(missing_ok=True)
+                raise SavedMapConflict("source PCD changed while preparing relocalization")
+            annotations = self._read_annotations(
+                self._annotation_record(map_id), navigation
+            )
+            return RelocalizationMapBundle(
+                family_id=navigation.family_id,
+                family_revision=navigation.family_revision,
+                map_id=map_id,
+                map_revision=map_revision,
+                source_pcd_id=source_pcd_id,
+                source_pcd_revision=source_pcd_revision,
+                reference_pcd=reference,
+                reference_points=int(source.details.get("point_count", 0)),
+                geometry=navigation,
+                annotations=annotations,
+            )
+
+    def relocalization_family_is_current(self, bundle: Any) -> bool:
+        """Recheck every exact family pin after an offline registration run."""
+
+        try:
+            with self._lock:
+                navigation = self.resolve_navigation_map(
+                    str(bundle.map_id), str(bundle.map_revision)
+                )
+                source = self._find(str(bundle.source_pcd_id))
+                family = navigation.family
+                return bool(
+                    source.revision == bundle.source_pcd_revision
+                    and family is not None
+                    and family["family_id"] == bundle.family_id
+                    and family["family_revision"] == bundle.family_revision
+                    and family["source"]["pcd_map_id"] == bundle.source_pcd_id
+                    and family["source"]["pcd_revision"] == bundle.source_pcd_revision
+                    and family["occupancy"]["map_id"] == bundle.map_id
+                    and family["occupancy"]["map_revision"] == bundle.map_revision
+                )
+        except (AttributeError, KeyError, SavedMapError):
+            return False
+
     def data(
         self,
         map_id: str,

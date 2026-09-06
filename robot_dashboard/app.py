@@ -27,7 +27,7 @@ from .application.mapping_coordinator import (
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
-from .application.runtime import ApplicationRuntime
+from .application.runtime import ApplicationRuntime, close_relocalization
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -39,6 +39,7 @@ from .api.routers.map_families import create_router as create_map_families_route
 from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
 from .api.routers.route_planner import router as route_planner_router
+from .api.routers.relocalization import router as relocalization_router
 from .api.routers.system import router as system_router
 from .api.routers.telemetry import router as telemetry_router
 from .api.models import (
@@ -161,6 +162,7 @@ async def lifespan(fastapi: FastAPI):
     try:
         yield
     finally:
+        await close_relocalization(runtime, LOGGER)
         # Mission state is persisted and active goals are canceled before the
         # lower-level navigation owner begins its terminal cleanup.
         if runtime.mission is not None:
@@ -392,10 +394,9 @@ app.include_router(missions_router)
 app.include_router(model_registry_router)
 app.include_router(perception_router)
 app.include_router(route_planner_router)
-def navigation_active() -> bool:
-    return navigation_coordinator().is_active()
+app.include_router(relocalization_router)
 def require_navigation_idle(detail: str) -> None:
-    if navigation_active():
+    if navigation_coordinator().is_active():
         raise HTTPException(status_code=409, detail=detail)
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 from ..discovery import LocalRobotDiscovery
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from ..model_registry import ModelRegistry
     from ..ros_agent import RosAgent
     from ..saved_maps import SavedMapCatalog
+    from ..relocalization.manager import StationaryRelocalizationManager
     from .lifecycle_coordinator import LifecycleCoordinator
     from .mapping_coordinator import MappingCoordinator
     from .mission_coordinator import MissionCoordinator
@@ -46,6 +47,7 @@ class ApplicationRuntime:
     perception: PerceptionBridgeClient | None = None
     model_registry: ModelRegistry | None = None
     competition: CompetitionStateManager | None = None
+    relocalization: StationaryRelocalizationManager | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)
@@ -58,3 +60,14 @@ class ApplicationRuntime:
         if self.agent is None:
             raise RuntimeError("ROS agent is not configured")
         return self.agent
+
+
+async def close_relocalization(runtime: ApplicationRuntime, logger: Any) -> None:
+    """Close the optional worker without preventing remaining safety cleanup."""
+
+    if runtime.relocalization is None:
+        return
+    try:
+        await asyncio.to_thread(runtime.relocalization.close)
+    except Exception:
+        logger.exception("relocalization manager shutdown failed")

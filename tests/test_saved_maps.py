@@ -797,6 +797,44 @@ class SavedMapCatalogTests(unittest.TestCase):
             conversion_parameters_hash({**first, "background": "free"}),
         )
 
+    def test_relocalization_snapshot_pins_exact_family_and_private_pcd(self):
+        source = self._clustered_pcd("relocalization_source.pcd")
+        converted = self.managed_catalog.convert_pcd_to_2d(
+            source["id"],
+            "relocalization_2d",
+            z_min=-0.2,
+            z_max=0.8,
+            resolution=0.05,
+            noise_radius=0.1,
+            min_neighbors=10,
+        )
+        private = self.root / "relocalization-job"
+        private.mkdir()
+        bundle = self.managed_catalog.snapshot_relocalization_family(
+            converted["map"]["id"],
+            converted["map"]["revision"],
+            source["id"],
+            source["revision"],
+            private,
+        )
+
+        self.assertEqual(bundle.family_id, converted["map"]["map_family"]["family_id"])
+        self.assertEqual(bundle.source_pcd_revision, source["revision"])
+        self.assertEqual(bundle.reference_pcd, private / "reference.pcd")
+        self.assertEqual(bundle.reference_pcd.read_bytes(), (self.root / "relocalization_source.pcd").read_bytes())
+        self.assertTrue(self.managed_catalog.relocalization_family_is_current(bundle))
+
+        with self.assertRaises(SavedMapConflict):
+            other = self.root / "other-job"
+            other.mkdir()
+            self.managed_catalog.snapshot_relocalization_family(
+                converted["map"]["id"],
+                converted["map"]["revision"],
+                source["id"],
+                "f" * 64,
+                other,
+            )
+
     def test_edited_copy_preserves_family_and_navigation_pins_it(self):
         source = self._clustered_pcd("edit_family_source.pcd")
         converted = self.managed_catalog.convert_pcd_to_2d(

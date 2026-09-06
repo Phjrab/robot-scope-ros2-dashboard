@@ -10,6 +10,7 @@ import stat
 import subprocess
 import tempfile
 import threading
+import time
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -36,6 +37,10 @@ class RegistrationProcessError(RuntimeError):
     """The bounded child failed or timed out."""
 
 
+class RegistrationCanceled(RegistrationProcessError):
+    """The owning relocalization job canceled the bounded child."""
+
+
 class OfflineRegistrationProcess:
     def __init__(self, executable: Path, allowed_roots: Iterable[Path]) -> None:
         self._executable = self._validate_executable(executable)
@@ -45,7 +50,12 @@ class OfflineRegistrationProcess:
         self._roots = roots
         self._lock = threading.Lock()
 
-    def run(self, payload: Any) -> dict[str, Any]:
+    def run(
+        self,
+        payload: Any,
+        *,
+        cancel_event: threading.Event | None = None,
+    ) -> dict[str, Any]:
         try:
             encoded = json.dumps(payload, allow_nan=False, separators=(",", ":")).encode()
         except (TypeError, ValueError) as exc:
@@ -62,12 +72,16 @@ class OfflineRegistrationProcess:
         if not self._lock.acquire(blocking=False):
             raise RegistrationBusy("offline registration is already active")
         try:
-            return self._run_locked(request, reference, query)
+            return self._run_locked(request, reference, query, cancel_event)
         finally:
             self._lock.release()
 
     def _run_locked(
-        self, request: RegistrationRequest, reference: Path, query: Path
+        self,
+        request: RegistrationRequest,
+        reference: Path,
+        query: Path,
+        cancel_event: threading.Event | None,
     ) -> dict[str, Any]:
         with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
             process = subprocess.Popen(
@@ -79,12 +93,15 @@ class OfflineRegistrationProcess:
                 shell=False,
                 preexec_fn=_child_limits,
             )
-            try:
-                process.wait(timeout=request.timeout_ms / 1000.0)
-            except subprocess.TimeoutExpired as exc:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=2.0)
-                raise RegistrationProcessError("offline registration timed out") from exc
+            deadline = time.monotonic() + request.timeout_ms / 1000.0
+            while process.poll() is None:
+                if cancel_event is not None and cancel_event.is_set():
+                    _terminate_process_group(process)
+                    raise RegistrationCanceled("offline registration was canceled")
+                if time.monotonic() >= deadline:
+                    _terminate_process_group(process)
+                    raise RegistrationProcessError("offline registration timed out")
+                time.sleep(0.01)
             stdout_file.seek(0, os.SEEK_END)
             stdout_size = stdout_file.tell()
             stderr_file.seek(0, os.SEEK_END)
@@ -178,3 +195,22 @@ def _child_limits() -> None:
     os.setsid()
     resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_OUTPUT_BYTES, MAX_OUTPUT_BYTES))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+
+
+def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
+    """Bounded TERM-to-KILL cleanup for the exact owned process group."""
+
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=0.25)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    process.wait(timeout=2.0)
