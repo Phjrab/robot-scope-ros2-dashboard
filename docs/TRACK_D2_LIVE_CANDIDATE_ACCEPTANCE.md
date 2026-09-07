@@ -1,10 +1,11 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_RUNTIME_WIRING_SOFTWARE_PASS`; live source qualified; candidate not run
+Status: `D2_RUNTIME_DEPLOYED`; live source qualified; candidate not run
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
 D2_RUNTIME_WIRING_SOFTWARE_PASS
+D2_RUNTIME_DEPLOYED
 D2_LIVE_SOURCE_QUALIFIED
 STATIONARY_LIVE_CANDIDATE_NOT_RUN
 CANDIDATE_APPLIED=false
@@ -371,3 +372,66 @@ release, retain the current external release as rollback, enable only the new
 external dashboard flag and restart only that dashboard while Control remains
 disarmed and motion-free. A subsequent live candidate run requires another
 fresh stationary safety confirmation with the exact linked family revisions.
+
+## Runtime opt-in external deployment — 2026-09-07
+
+The operator explicitly approved external-dashboard-only deployment of exact
+release `ebbcf5a17e1973ccb9c2a76b99b79a6d88d8ac98`, activation of the D2
+runtime opt-in and one dashboard restart. Candidate execution and every
+Control, Localization, Nav2, goal and motion action remained prohibited.
+
+```text
+external target = 192.168.50.10
+deployed release = ebbcf5a17e1973ccb9c2a76b99b79a6d88d8ac98
+rollback release = b8fe0c5a749eafc9c507157b101ba289e393e60d
+archive sha256 = 9ad99654283602967845ceb5ee51b7847547970791782818b35c28eef42a981e
+runtime wiring sha256 = 4d22767ad6d3afd5d3e77679a29d03018055e573713d04c0d87b92ec7be828f5
+registration executable sha256 = 2b5db260035b9c69c91ca29fc56775e2d939087db31249b59b98fdddd3e543b1
+profile = go2-xt16-wireless-competition-fastlio
+observer opt-in = ROBOT_SCOPE_D2_STATIONARY_OBSERVER=1
+runtime opt-in = ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION=1
+dashboard active = 2026-09-07T13:03:06+09:00
+```
+
+The archive hash was verified before extraction into a new release directory.
+The aarch64 registration core rebuilt with GCC 11.4 and CTest passed 1/1.
+The runtime-wiring Python import also passed. The private environment file and
+the previous release symlink were retained as exact rollback artifacts before
+the stable release link was atomically switched. Temporary local and remote
+archives and the one-use transition script were removed after verification.
+
+Only `robot-scope.service` was restarted through its existing fixed lifecycle
+API. The new process cwd and stable symlink both resolved to the exact full
+SHA; systemd reported `active (running)`, restart count zero and a clean new
+application startup. The retiring process exceeded its graceful WebSocket
+shutdown interval and logged cancelled WebSocket tasks. Those messages came
+from the previous `b8fe0c5...` PID during the requested transition; no error or
+restart loop was observed in the new process.
+
+The live relocalization snapshot reported schema
+`robot-scope.relocalization.v1`, `active=null`, `latest=null` and
+`candidate_apply_supported=false`. No registration executable or
+localization/Nav2 process was running. Navigation pipeline, localization
+session and goal remained idle with zero command-topic publishers. The normal
+preview recovered under the pre-existing dashboard policy; this did not start
+FAST-LIO or a D2 candidate job.
+
+Control remained authenticated and exact zero throughout the post-deployment
+check: lease inactive, deadman false, no action guard, accepted velocity all
+zero, fresh Sport velocity all zero, `move_count=0`,
+`nonzero_move_count=0` and `action_count=0`. The robot-side Bridge release and
+service were not changed or restarted by this deployment.
+
+```text
+D2_RUNTIME_DEPLOYED=PASS
+STATIONARY_LIVE_CANDIDATE=NOT_RUN
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```
+
+The next action is not automatic. A live candidate collection requires a new
+stationary safety confirmation and a preflight that pins the exact linked
+family/map/PCD revisions, proves the fixed observation pipeline and fresh
+sources, and rechecks every no-lease/no-motion gate.
