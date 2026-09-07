@@ -7,6 +7,7 @@ import { createPointcloudTransport } from './features/sensors/pointcloud_transpo
 import { createCameraDemandController } from './features/sensors/camera_demand.js';
 import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraObservability } from './features/sensors/camera_observability.js';
 import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
+import './features/route_planner/dashboard_page.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
@@ -14,7 +15,6 @@ import { initializeNavigationLogFeature } from './features/navigation/log_contro
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
 import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
-
 // Exposed for the lightweight Node contract test and browser diagnostics.
 window.RobotLidarSourceIdentity = LidarSourceIdentity;
 
@@ -617,7 +617,6 @@ const cockpitWorkspace = initializeCockpitWorkspace({
     navigation: navigationSnapshot, navigationAvailable: navigationApiAvailable }),
   onGamepadUiZeroIntent: () => failSafeDisarm('cockpit_gamepad_ui_zero'), onGamepadDisconnect: () => { if (controlLeaseSource === 'gamepad') failSafeDisarm('gamepad_disconnected', { notify: true }); }, onSoftwareStop: () => triggerEmergencyStop('cockpit_hud'), onPointBudgetRequest: (budget) => applyLivePointLimit(budget, false), onError: (error) => console.warn('Cockpit scene:', error),
 });
-
 const pointcloudTransport = window.RobotPointCloudStream?.decodeFrame
   ? createPointcloudTransport({
       decodeFrame: window.RobotPointCloudStream.decodeFrame,
@@ -950,6 +949,7 @@ const PAGE_META = {
   topics: ['ROS Graph', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
   controls: ['Robot Controls', 'ARM 버튼으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
   navigation: ['Nav2 Navigation', '저장된 2D 지도에서 초기 위치와 목표를 지정하고 Go2 자율주행을 관리합니다.'],
+  'route-planner': ['Route Planner', '주문을 구성하고 서버가 계산한 추천 경로와 수동 안내를 독립 화면에서 확인합니다.'],
   settings: ['Settings', '로봇 유형을 고르고 네트워크에서 연결 대상을 찾은 뒤 ROS 2 데이터 소스를 선택합니다.'],
 };
 const cockpitWindowMode = initializeCockpitWindowMode({
@@ -979,7 +979,7 @@ function activatePage(page, updateHash = false) {
   });
   const [title, description] = PAGE_META[activePage];
   ui.pageTitle.textContent = title;
-  ui.pageDescription.textContent = description;
+  ui.pageDescription.textContent = description; document.dispatchEvent(new CustomEvent('robot-scope:page-change', { detail: { activePage } }));
   if (cockpitWindowMode.shouldReplaceHash(updateHash) && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
   if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
   if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();

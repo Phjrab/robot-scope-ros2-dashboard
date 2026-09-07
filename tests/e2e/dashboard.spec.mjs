@@ -443,6 +443,38 @@ test('Competition Route Planner completes the software-only workflow without mot
   expect(cockpit.workspace.scene.peakRenderers).toBe(1);
 });
 
+test('standalone dashboard Route Planner is reachable and releases polling when closed', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'route-planner');
+  await expect(page.locator('[data-nav="route-planner"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#pageTitle')).toHaveText('Route Planner');
+  const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
+  await expect(planner).toBeVisible();
+  await expect(planner.locator('.route-planner-header')).toContainText('DRAFT');
+  await expect(page.locator('.route-planner-safety-banner')).toContainText('NO MOTION AUTHORITY');
+
+  await planner.locator('[data-route-action="save-order"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
+  await planner.locator('[data-route-action="calculate"]').click();
+  await expect(planner.locator('.route-planner-card')).toHaveCount(3);
+  await planner.locator('.route-planner-card').first().locator('[data-route-select]').click();
+  await planner.locator('[data-route-action="start-guidance"]').click();
+  await expect(planner.locator('.route-guidance-action')).toContainText('CONTINUE_STRAIGHT');
+
+  const active = await page.evaluate(() => window.RobotScopeRoutePlanner.diagnostics());
+  expect(active.client.subscribers).toBe(1);
+  expect(active.client.polling).toBe(true);
+  expect(active.panel.active).toBe(true);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/start')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+
+  await page.locator('[data-nav="overview"]').click();
+  await expect.poll(async () => (await page.evaluate(() => window.RobotScopeRoutePlanner.diagnostics())).client.polling).toBe(false);
+  const inactive = await page.evaluate(() => window.RobotScopeRoutePlanner.diagnostics());
+  expect(inactive.client.subscribers).toBe(0);
+  expect(inactive.panel.active).toBe(false);
+});
+
 test('Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects', async ({ page }) => {
   const backend = await openDashboard(page, { routePlannerRehearsal: true }, 'cockpit');
   await enterLayoutEdit(page);

@@ -43,7 +43,8 @@
         <a class="nav-item" href="#topics" data-nav="topics"><i>05</i><span><b>ROS Graph</b><small>토픽 탐색</small></span></a>
         <a class="nav-item" href="#controls" data-nav="controls"><i>06</i><span><b>Controls</b><small>주행·모션 실행</small></span></a>
         <a class="nav-item" href="#navigation" data-nav="navigation"><i>07</i><span><b>Navigation</b><small>Nav2 자율주행</small></span></a>
-        <a class="nav-item" href="#settings" data-nav="settings"><i>08</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
+        <a class="nav-item" href="#route-planner" data-nav="route-planner"><i>08</i><span><b>Route Planner</b><small>주문·추천 경로</small></span></a>
+        <a class="nav-item" href="#settings" data-nav="settings"><i>09</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
       </nav>
 
       <section class="side-section read-only-note">
@@ -81,6 +82,7 @@
           <a href="#topics" class="route-card"><span>ROS 2</span><strong>ROS Graph</strong><small>발견된 토픽, 타입, 수신률과 지연을 조회합니다.</small><b>열기 →</b></a>
           <a href="#controls" class="route-card control-route-card"><span>ARM REQUIRED</span><strong>Robot Controls</strong><small>키보드·게임패드 주행과 서버가 허용한 Go2 모션을 실행합니다.</small><b>열기 →</b></a>
           <a href="#navigation" class="route-card navigation-route-card"><span>NAV2</span><strong>Autonomous Navigation</strong><small>정적 지도에서 초기 위치와 목표를 지정하고 Nav2 상태를 추적합니다.</small><b>열기 →</b></a>
+          <a href="#route-planner" class="route-card route-planner-route-card"><span>ADVISORY ONLY</span><strong>Route Planner</strong><small>주문을 구성하고 서버가 계산한 추천 경로와 수동 안내를 독립 화면에서 확인합니다.</small><b>열기 →</b></a>
         </section>
       </section>
 
@@ -549,6 +551,20 @@
           </div>
           <div class="control-action-notice">서버 설정에 등록된 동작만 표시됩니다. 동작 전 로봇 주변 공간과 바닥 상태를 확인하세요.</div>
           <div class="control-action-grid" id="controlActions"><div class="control-action-empty">허용된 모션 목록을 불러오고 있습니다.</div></div>
+        </article>
+      </section>
+
+      <section class="page-view route-planner-page" data-page="route-planner" hidden>
+        <div class="route-planner-safety-banner" role="note">
+          <span aria-hidden="true">◇</span>
+          <div><strong>SERVER-AUTHORITATIVE · NO MOTION AUTHORITY</strong><p>이 화면은 주문·추천 경로·수동 안내를 관리합니다. 로봇 제어 권한, Nav2 goal, ARM 또는 deadman을 획득하지 않습니다.</p></div>
+        </div>
+        <article class="panel route-planner-dashboard-panel">
+          <div class="panel-header">
+            <div><div class="eyebrow">COMPETITION ROUTE WORKSPACE</div><h2>Route Planner</h2></div>
+            <span class="muted">Cockpit과 동일한 서버 상태</span>
+          </div>
+          <div id="dashboardRoutePlannerHost" class="route-planner-dashboard-host"></div>
         </article>
       </section>
 
