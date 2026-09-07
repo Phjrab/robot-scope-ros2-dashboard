@@ -61,6 +61,8 @@ class FixedCloudRegisteredCollector:
         points: list[tuple[float, float, float]] = []
         raw_points = 0
         last_seq: int | None = None
+        cloud_generation: int | None = None
+        motion_generations: tuple[int, int] | None = None
         start_pose: tuple[float, float, float] | None = None
         end_pose: tuple[float, float, float] | None = None
         maximum_twist = 0.0
@@ -78,6 +80,13 @@ class FixedCloudRegisteredCollector:
                 raise RelocalizationConflict("cloud source identity changed")
             if cloud.get("publisher_count") != 1 or cloud.get("fresh") is not True or cloud.get("qos_valid") is not True:
                 raise RelocalizationUnavailable("cloud source readiness failed")
+            current_cloud_generation = _positive_generation(
+                cloud.get("generation"), "cloud"
+            )
+            if cloud_generation is None:
+                cloud_generation = current_cloud_generation
+            elif current_cloud_generation != cloud_generation:
+                raise RelocalizationConflict("cloud source generation changed")
             seq = cloud.get("seq")
             if not isinstance(seq, int) or isinstance(seq, bool) or seq <= 0:
                 raise RelocalizationUnavailable("cloud source sequence is unavailable")
@@ -97,6 +106,11 @@ class FixedCloudRegisteredCollector:
                 stamps.append(stamp)
                 last_seq = seq
                 motion = self._motion_provider()
+                current_motion_generations = _motion_generations(motion)
+                if motion_generations is None:
+                    motion_generations = current_motion_generations
+                elif current_motion_generations != motion_generations:
+                    raise RelocalizationConflict("motion evidence generation changed")
                 pose = _motion_pose(motion)
                 start_pose = pose if start_pose is None else start_pose
                 end_pose = pose
@@ -164,6 +178,25 @@ def _motion_pose(value: Mapping[str, Any]) -> tuple[float, float, float]:
     if not all(math.isfinite(item) for item in result):
         raise RelocalizationUnavailable("base pose evidence is invalid")
     return result
+
+
+def _positive_generation(value: Any, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise RelocalizationUnavailable(f"{label} source generation is unavailable")
+    return value
+
+
+def _motion_generations(value: Mapping[str, Any]) -> tuple[int, int]:
+    if not isinstance(value, Mapping):
+        raise RelocalizationUnavailable("motion evidence is unavailable")
+    odometry = value.get("odometry")
+    imu = value.get("imu")
+    if not isinstance(odometry, Mapping) or not isinstance(imu, Mapping):
+        raise RelocalizationUnavailable("motion source generation is unavailable")
+    return (
+        _positive_generation(odometry.get("generation"), "odometry"),
+        _positive_generation(imu.get("generation"), "IMU"),
+    )
 
 
 def _finite_nonnegative(value: Any, label: str) -> float:

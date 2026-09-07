@@ -1137,3 +1137,94 @@ INITIAL_POSE=NOT_RUN
 NAV2_GOAL=NOT_RUN
 MOTION=NOT_RUN
 ```
+
+## New operator map and fail-closed estimator-continuity result — 2026-09-08
+
+The operator created a new map while retaining every earlier map family.  The
+edited occupancy map was selected because it contains reviewed known-free
+space and the confirmed mapping start pose has the required fixed clearance:
+
+```text
+name = map_20260908_072712_edited
+occupancy_map_id = 8050fff44b44ce106dc5a210
+occupancy_revision = 9e72787f2443b714ed3045fda62c08c53e85294c7d02e26b8e74ce0cc30fc8ac
+family_id = 9c0d4b61b0ae56f51fc58282
+family_revision = 00ec2270739659dd6e25fd35885e77257df44adeffd25e0223b4d712cb822b50
+source_pcd_id = a0c90ce578dced8ee5a6751f
+source_pcd_revision = c39b41c367c93c4834acf864f78104ef853ec32f5a8d627306ef2a91e5374574
+source_pcd_frame = camera_init
+source_pcd_points = 501135
+occupancy_size = 295 x 205
+occupancy_resolution = 0.05 m
+known_free_cells = 54936
+occupied_cells = 5539
+unknown_cells = 0
+seed_clearance = PASS at x=0 y=0 radius=0.35 m
+```
+
+The external dashboard ran exact release
+`0970f05a35a9f6620b2617289e74a3ae5973ec13`; the onboard signed Control
+Bridge remained on `10a7fa9cec2c329f2c50edc9ad98de13a22689da` and was not
+restarted.  The operator confirmed the standing robot was stationary at the
+mapping start pose and direction with the physical remote/E-stop ready.  A
+pre-existing observation-only Mapping pipeline was reused rather than starting
+a second owner.  Exactly one D2 request was submitted as job
+`32412e4611296d328affd47a` with REGION seed `(0, 0, 0)`, radius `3.0 m` and
+yaw half-range `1.57 rad`.
+
+Map and bounded collection gates passed through 26 frames, 391,685 raw points
+and 1,503 filtered points.  Registration was not started because the unchanged
+5 mm stationary translation gate rejected the collection as
+`robot moved during stationary collection`.  No candidate or preview was
+created and nothing was applied.
+
+Read-only evidence proves this was estimator divergence rather than physical
+motion.  Two `/Odometry` samples twelve seconds apart changed from
+approximately `(472.58, 1591.42, -12768.73)` to
+`(-340.74, 1335.81, -20438.32)`.  FAST-LIO logged repeated
+`No Effective Points!` messages.  At the same time, the onboard authenticated
+IMU sender stopped receiving its fixed `/lowstate` input for roughly 50
+seconds: its received and sent counters both stopped, `input_ready` became
+false, `send_errors` stayed zero, and the clock/authentication rejection
+counters stayed zero.  The external receiver showed the same packet gap while
+NetworkManager and kernel logs showed no Wi-Fi interface transition.
+
+This localizes the observed interruption upstream of the onboard IMU sender,
+at the `/lowstate` publisher/input boundary.  It does not yet identify why that
+publisher disappeared.  It also does not establish a generic wireless UDP
+failure.  Once input resumed, the old FAST-LIO process continued with a
+corrupted estimate, which the D2 displacement gate correctly rejected.
+
+The unstable operation-owned Mapping pipeline was stopped through its normal
+lifecycle and reached `stopped` with exit code 130.  The saved map and PCD were
+preserved.  Persistent XT16 preview and relay stayed active.  Final Control
+state remained lease-free, deadman false and exact zero; signed Bridge evidence
+showed zero Move, non-zero Move and action requests.  Navigation,
+Localization, initial pose and goal remained idle.
+
+The D2 evidence owner now records an explicit publisher generation for each of
+the fixed cloud, odometry and IMU inputs.  A receipt gap over the existing
+0.50-second freshness limit, a non-progressing source stamp, invalid source
+sample or publisher-cardinality transition latches the evidence invalid.  New
+packets cannot silently clear that latch.  Only a verified transition to a new
+single-publisher generation resets it, which in this lifecycle requires a
+fresh observation-pipeline generation.  The collector pins all three source
+generations and rejects any change during its collection window.  The existing
+5 mm, twist, IMU, source-age, QoS, cardinality and map-safety limits are
+unchanged.
+
+```text
+D2_NEW_MAP_ELIGIBILITY=PASS
+D2_NEW_MAP_LIVE_JOB=FAIL_PRE_REGISTRATION_ESTIMATOR_DIVERGENCE
+D2_IMU_GAP_BOUNDARY=ONBOARD_LOWSTATE_INPUT
+D2_IMU_GAP_ROOT_CAUSE=UNKNOWN
+D2_EVIDENCE_CONTINUITY_GUARD=SOFTWARE_VALIDATED
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=STOPPED
+FINAL_PREVIEW_STATE=RUNNING
+```

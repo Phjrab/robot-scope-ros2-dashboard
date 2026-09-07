@@ -29,6 +29,7 @@ ODOMETRY_CHILD_FRAME = "body"
 MAX_SOURCE_POINTS = 100_000
 MAX_SOURCE_AGE_S = 0.50
 MAX_SOURCE_FUTURE_S = 0.10
+MAX_SOURCE_GAP_S = MAX_SOURCE_AGE_S
 
 FIXED_TOPICS: Mapping[str, str] = {
     CLOUD_TOPIC: CLOUD_TYPE,
@@ -57,17 +58,12 @@ class RelocalizationEvidenceHub:
                 "type": type_name,
                 "publisher_count": 0,
                 "qos_valid": False,
+                "generation": 0,
             }
             for topic, type_name in FIXED_TOPICS.items()
         }
         self._samples: dict[str, dict[str, Any]] = {
-            topic: {
-                "seq": 0,
-                "stamp_ns": 0,
-                "received_monotonic": 0.0,
-                "invalid_reason": "waiting",
-            }
-            for topic in FIXED_TOPICS
+            topic: self._waiting_sample(0) for topic in FIXED_TOPICS
         }
 
     @property
@@ -87,10 +83,22 @@ class RelocalizationEvidenceHub:
         expected = FIXED_TOPICS[topic]
         count = publisher_count if isinstance(publisher_count, int) and not isinstance(publisher_count, bool) else 0
         with self._lock:
+            previous = self._contracts[topic]
+            generation = int(previous.get("generation", 0))
+            previous_count = int(previous.get("publisher_count", 0))
+            if count == 1 and previous_count != 1:
+                generation += 1
+                self._samples[topic] = self._waiting_sample(generation)
+            elif count != 1 and previous_count == 1:
+                self._samples[topic]["continuity_broken"] = True
+                self._samples[topic]["invalid_reason"] = (
+                    "source publisher cardinality changed"
+                )
             self._contracts[topic] = {
                 "type": str(type_name),
                 "publisher_count": max(0, count),
                 "qos_valid": bool(qos_valid and type_name == expected),
+                "generation": generation,
             }
 
     def ingest(self, topic: str, type_name: str, message: Any) -> bool:
@@ -107,7 +115,19 @@ class RelocalizationEvidenceHub:
                 sample = self._imu_sample(message)
             with self._lock:
                 previous = self._samples[topic]
+                if previous.get("continuity_broken") is True:
+                    return False
+                previous_received = float(previous.get("received_monotonic", 0.0))
+                if (
+                    previous_received > 0.0
+                    and received - previous_received > MAX_SOURCE_GAP_S
+                ):
+                    previous["continuity_broken"] = True
+                    previous["last_gap_s"] = received - previous_received
+                    previous["invalid_reason"] = "source receipt continuity gap"
+                    return False
                 if stamp_ns <= int(previous.get("stamp_ns", 0)):
+                    previous["continuity_broken"] = True
                     previous["invalid_reason"] = "source stamp did not progress"
                     return False
                 self._samples[topic] = {
@@ -116,11 +136,15 @@ class RelocalizationEvidenceHub:
                     "stamp_ns": stamp_ns,
                     "source_age_at_receive_s": source_age_s,
                     "received_monotonic": received,
+                    "generation": int(previous.get("generation", 0)),
+                    "continuity_broken": False,
+                    "last_gap_s": received - previous_received if previous_received > 0.0 else None,
                     "invalid_reason": "",
                 }
             return True
         except (AttributeError, TypeError, ValueError, OverflowError) as exc:
             with self._lock:
+                self._samples[topic]["continuity_broken"] = True
                 self._samples[topic]["invalid_reason"] = str(exc)[:160] or "invalid source sample"
             return False
 
@@ -134,6 +158,7 @@ class RelocalizationEvidenceHub:
             "enabled": self._enabled,
             "topic": CLOUD_TOPIC,
             "frame_id": sample.get("frame_id", ""),
+            "generation": sample.get("generation", 0),
             "seq": sample.get("seq", 0),
             "stamp_ns": sample.get("stamp_ns", 0),
             "source_points": sample.get("source_points", 0),
@@ -169,6 +194,7 @@ class RelocalizationEvidenceHub:
                 "topic": ODOMETRY_TOPIC,
                 "frame_id": odometry.get("frame_id", ""),
                 "child_frame_id": odometry.get("child_frame_id", ""),
+                "generation": odometry.get("generation", 0),
                 "seq": odometry.get("seq", 0),
                 "stamp_ns": odometry.get("stamp_ns", 0),
                 "publisher_count": odometry_contract["publisher_count"],
@@ -177,6 +203,7 @@ class RelocalizationEvidenceHub:
             },
             "imu": {
                 "topic": IMU_TOPIC,
+                "generation": imu.get("generation", 0),
                 "seq": imu.get("seq", 0),
                 "stamp_ns": imu.get("stamp_ns", 0),
                 "publisher_count": imu_contract["publisher_count"],
@@ -207,6 +234,8 @@ class RelocalizationEvidenceHub:
         invalid_reason = str(sample.get("invalid_reason", ""))
         if not self._enabled:
             invalid_reason = "observer disabled"
+        elif sample.get("continuity_broken") is True:
+            invalid_reason = invalid_reason or "source continuity is broken"
         elif contract.get("type") != FIXED_TOPICS[topic]:
             invalid_reason = "source type mismatch"
         elif contract.get("publisher_count") != 1:
@@ -238,6 +267,19 @@ class RelocalizationEvidenceHub:
             "invalid_reason": invalid_reason,
             "receipt_age_s": receipt_age_s,
             "source_age_s": source_age_s,
+            "last_gap_s": sample.get("last_gap_s"),
+        }
+
+    @staticmethod
+    def _waiting_sample(generation: int) -> dict[str, Any]:
+        return {
+            "seq": 0,
+            "stamp_ns": 0,
+            "received_monotonic": 0.0,
+            "generation": generation,
+            "continuity_broken": False,
+            "last_gap_s": None,
+            "invalid_reason": "waiting",
         }
 
     def _validated_stamp(self, message: Any) -> tuple[int, float]:
@@ -340,6 +382,7 @@ __all__ = [
     "IMU_TYPE",
     "MAX_SOURCE_AGE_S",
     "MAX_SOURCE_FUTURE_S",
+    "MAX_SOURCE_GAP_S",
     "ODOMETRY_CHILD_FRAME",
     "ODOMETRY_TOPIC",
     "ODOMETRY_TYPE",

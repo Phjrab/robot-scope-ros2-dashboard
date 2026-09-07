@@ -36,6 +36,7 @@ from robot_dashboard.ros.relocalization_evidence import (
     CLOUD_TYPE,
     IMU_TOPIC,
     IMU_TYPE,
+    MAX_SOURCE_GAP_S,
     ODOMETRY_TOPIC,
     ODOMETRY_TYPE,
     RelocalizationEvidenceHub,
@@ -121,6 +122,17 @@ def imu_message(clock, *, angular=0.01, age_s=0.01):
         header=message_header(clock, frame_id="body", age_s=age_s),
         angular_velocity=SimpleNamespace(x=angular, y=0.0, z=0.0),
     )
+
+
+def motion_evidence(*, odometry_generation=1, imu_generation=1):
+    return {
+        "fresh": True,
+        "base_pose_odom": [0.0, 0.0, 0.0],
+        "fastlio_twist_mps": 0.0,
+        "imu_angular_rate_rps": 0.0,
+        "odometry": {"generation": odometry_generation},
+        "imu": {"generation": imu_generation},
+    }
 
 
 class Geometry:
@@ -606,6 +618,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
                 nonlocal index
                 index += 1
                 return {
+                    "generation": 1,
                     "seq": index,
                     "stamp_ns": 1 if change == "reordered" else index,
                     "topic": "/cloud_registered",
@@ -619,7 +632,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
 
             collector = FixedCloudRegisteredCollector(
                 cloud,
-                lambda: {"fresh": True, "base_pose_odom": [0.0, 0.0, 0.0], "fastlio_twist_mps": 0.0, "imu_angular_rate_rps": 0.0},
+                motion_evidence,
                 duration_s=0.1,
                 poll_interval_s=0.001,
             )
@@ -653,9 +666,12 @@ class StationaryRelocalizationTests(unittest.TestCase):
         self.assertTrue(cloud["fresh"])
         self.assertEqual(cloud["topic"], "/cloud_registered")
         self.assertEqual(cloud["frame_id"], "camera_init")
+        self.assertEqual(cloud["generation"], 1)
         self.assertEqual(cloud["source_points"], 3)
         self.assertEqual(len(cloud["points_bytes"]), 36)
         self.assertTrue(motion["fresh"])
+        self.assertEqual(motion["odometry"]["generation"], 1)
+        self.assertEqual(motion["imu"]["generation"], 1)
         self.assertEqual(motion["base_pose_odom"], (0.0, 0.0, 0.0))
         self.assertEqual(motion["fastlio_twist_mps"], 0.0)
         self.assertAlmostEqual(motion["imu_angular_rate_rps"], 0.01)
@@ -711,6 +727,52 @@ class StationaryRelocalizationTests(unittest.TestCase):
         clock.realtime_ns += 501_000_000
         self.assertFalse(observer.motion_snapshot()["fresh"])
 
+    def test_evidence_gap_latches_until_a_new_publisher_generation(self):
+        clock = EvidenceClock()
+        observer = self._evidence_observer(clock)
+        self.assertTrue(observer.ingest(IMU_TOPIC, IMU_TYPE, imu_message(clock)))
+        clock.monotonic += MAX_SOURCE_GAP_S + 0.001
+        clock.realtime_ns += int((MAX_SOURCE_GAP_S + 0.001) * 1_000_000_000)
+        self.assertFalse(observer.ingest(IMU_TOPIC, IMU_TYPE, imu_message(clock)))
+        failed = observer.motion_snapshot()["imu"]
+        self.assertFalse(failed["fresh"])
+        self.assertEqual(failed["invalid_reason"], "source receipt continuity gap")
+        self.assertGreater(failed["last_gap_s"], MAX_SOURCE_GAP_S)
+
+        clock.monotonic += 0.01
+        clock.realtime_ns += 10_000_000
+        self.assertFalse(observer.ingest(IMU_TOPIC, IMU_TYPE, imu_message(clock)))
+        observer.update_contract(
+            IMU_TOPIC, IMU_TYPE, publisher_count=0, qos_valid=False
+        )
+        observer.update_contract(
+            IMU_TOPIC, IMU_TYPE, publisher_count=1, qos_valid=True
+        )
+        clock.monotonic += 0.01
+        clock.realtime_ns += 10_000_000
+        self.assertTrue(observer.ingest(IMU_TOPIC, IMU_TYPE, imu_message(clock)))
+        recovered = observer.motion_snapshot()["imu"]
+        self.assertTrue(recovered["fresh"])
+        self.assertEqual(recovered["generation"], 2)
+
+    def test_invalid_sample_latches_instead_of_becoming_fresh_again(self):
+        clock = EvidenceClock()
+        observer = self._evidence_observer(clock)
+        self.assertTrue(observer.ingest(CLOUD_TOPIC, CLOUD_TYPE, cloud_message(clock)))
+        clock.monotonic += 0.01
+        clock.realtime_ns += 10_000_000
+        self.assertFalse(
+            observer.ingest(
+                CLOUD_TOPIC,
+                CLOUD_TYPE,
+                cloud_message(clock, frame_id="map"),
+            )
+        )
+        clock.monotonic += 0.01
+        clock.realtime_ns += 10_000_000
+        self.assertFalse(observer.ingest(CLOUD_TOPIC, CLOUD_TYPE, cloud_message(clock)))
+        self.assertFalse(observer.cloud_snapshot()["fresh"])
+
     def test_collector_fails_if_readiness_changes_while_sequence_is_unchanged(self):
         packed = b"".join(struct.pack("<fff", *point) for point in points())
         calls = 0
@@ -719,6 +781,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
             nonlocal calls
             calls += 1
             return {
+                "generation": 1,
                 "seq": 1,
                 "stamp_ns": 1,
                 "topic": "/cloud_registered",
@@ -732,12 +795,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
 
         collector = FixedCloudRegisteredCollector(
             cloud,
-            lambda: {
-                "fresh": True,
-                "base_pose_odom": [0.0, 0.0, 0.0],
-                "fastlio_twist_mps": 0.0,
-                "imu_angular_rate_rps": 0.0,
-            },
+            motion_evidence,
             duration_s=0.1,
             poll_interval_s=0.001,
         )
@@ -753,6 +811,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
             nonlocal sequence
             sequence += 1
             return {
+                "generation": 1,
                 "seq": sequence,
                 "stamp_ns": sequence,
                 "topic": "/cloud_registered",
@@ -772,12 +831,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
 
         collector = FixedCloudRegisteredCollector(
             cloud,
-            lambda: {
-                "fresh": True,
-                "base_pose_odom": [0.0, 0.0, 0.0],
-                "fastlio_twist_mps": 0.0,
-                "imu_angular_rate_rps": 0.0,
-            },
+            motion_evidence,
             safety_check=safety_check,
             duration_s=0.1,
             poll_interval_s=0.001,
@@ -797,6 +851,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
             nonlocal now
             now = 0.2
             return {
+                "generation": 1,
                 "seq": 1,
                 "stamp_ns": 1,
                 "topic": "/cloud_registered",
@@ -816,12 +871,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
 
         collector = FixedCloudRegisteredCollector(
             cloud,
-            lambda: {
-                "fresh": True,
-                "base_pose_odom": [0.0, 0.0, 0.0],
-                "fastlio_twist_mps": 0.0,
-                "imu_angular_rate_rps": 0.0,
-            },
+            motion_evidence,
             safety_check=safety_check,
             clock=clock,
             duration_s=0.1,
@@ -830,6 +880,42 @@ class StationaryRelocalizationTests(unittest.TestCase):
         with self.assertRaisesRegex(RelocalizationUnavailable, "goal"):
             collector.collect(threading.Event())
         self.assertEqual(safety_checks, 2)
+
+    def test_collector_rejects_source_generation_change(self):
+        packed = b"".join(struct.pack("<fff", *point) for point in points())
+        sequence = 0
+
+        def cloud():
+            nonlocal sequence
+            sequence += 1
+            return {
+                "generation": 1,
+                "seq": sequence,
+                "stamp_ns": sequence,
+                "topic": "/cloud_registered",
+                "frame_id": "camera_init",
+                "publisher_count": 1,
+                "fresh": True,
+                "qos_valid": True,
+                "source_points": 600,
+                "points_bytes": packed,
+            }
+
+        motion_calls = 0
+
+        def motion():
+            nonlocal motion_calls
+            motion_calls += 1
+            return motion_evidence(imu_generation=1 if motion_calls == 1 else 2)
+
+        collector = FixedCloudRegisteredCollector(
+            cloud,
+            motion,
+            duration_s=0.1,
+            poll_interval_s=0.001,
+        )
+        with self.assertRaisesRegex(RelocalizationConflict, "generation changed"):
+            collector.collect(threading.Event())
 
     def test_runtime_wiring_is_exact_opt_in_and_projects_fail_closed_state(self):
         class Agent:
