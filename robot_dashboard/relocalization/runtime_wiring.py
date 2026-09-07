@@ -9,9 +9,11 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Protocol
 
+from ..saved_maps import SavedMapError, SavedMapNotFound
 from .collector import FixedCloudRegisteredCollector
 from .manager import (
     PROFILE,
+    RelocalizationConflict,
     StationaryRelocalizationManager,
     require_stationary_preflight,
     sport_velocity_is_stationary,
@@ -97,9 +99,34 @@ def build_stationary_relocalization_manager(
         agent.relocalization_motion_snapshot,
         safety_check=safety_check,
     )
+
+    def snapshot_exact_family(
+        map_id: str,
+        map_revision: str,
+        source_pcd_id: str,
+        source_pcd_revision: str,
+        destination: Path,
+    ) -> Any:
+        try:
+            return catalog.snapshot_relocalization_family(
+                map_id,
+                map_revision,
+                source_pcd_id,
+                source_pcd_revision,
+                destination,
+            )
+        except SavedMapNotFound as exc:
+            raise RelocalizationConflict(
+                "exact saved map or source PCD is unavailable"
+            ) from exc
+        except SavedMapError as exc:
+            raise RelocalizationConflict(
+                "exact saved-map lineage is unavailable or changed"
+            ) from exc
+
     return StationaryRelocalizationManager(
         root,
-        snapshotter=catalog.snapshot_relocalization_family,
+        snapshotter=snapshot_exact_family,
         current_checker=catalog.relocalization_family_is_current,
         collector=collector,
         registration=registration,

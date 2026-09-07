@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+from robot_dashboard.saved_maps import SavedMapConflict, SavedMapNotFound
 from robot_dashboard.relocalization.collector import FixedCloudRegisteredCollector
 from robot_dashboard.relocalization.manager import (
     LiveCollection,
@@ -770,7 +771,11 @@ class StationaryRelocalizationTests(unittest.TestCase):
                 return self.active
 
         class Catalog:
+            snapshot_error = None
+
             def snapshot_relocalization_family(self, *args):
+                if self.snapshot_error is not None:
+                    raise self.snapshot_error
                 raise AssertionError("not called")
 
             def relocalization_family_is_current(self, bundle):
@@ -780,6 +785,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
         mapping = MappingOwner()
         navigation = Navigation()
         dataset = Dataset()
+        catalog = Catalog()
         profile = "go2-xt16-wireless-competition-fastlio"
         snapshot = stationary_runtime_snapshot(
             mapping_profile=profile,
@@ -866,7 +872,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
                 "runtime_root": runtime_root,
                 "mapping_profile": profile,
                 "agent": agent,
-                "catalog": Catalog(),
+                "catalog": catalog,
                 "mapping": mapping,
                 "navigation": navigation,
                 "dataset_capture": dataset,
@@ -880,6 +886,19 @@ class StationaryRelocalizationTests(unittest.TestCase):
             self.assertIsInstance(manager, StationaryRelocalizationManager)
             self.addCleanup(manager.close)
             self.assertEqual(runtime_root.stat().st_mode & 0o777, 0o700)
+
+            for snapshot_error, expected in (
+                (SavedMapNotFound("internal map lookup detail"), "exact saved map or source PCD is unavailable"),
+                (SavedMapConflict("internal lineage detail"), "exact saved-map lineage is unavailable or changed"),
+            ):
+                with self.subTest(snapshot_error=type(snapshot_error).__name__):
+                    catalog.snapshot_error = snapshot_error
+                    started = manager.start(request())
+                    failed = self._wait(manager, started["job_id"])
+                    self.assertEqual(failed["state"], "failed")
+                    self.assertEqual(failed["error"], expected)
+                    self.assertNotIn("internal", failed["error"])
+            catalog.snapshot_error = None
 
             agent.observer_enabled = False
             with self.assertRaisesRegex(RuntimeError, "observer"):

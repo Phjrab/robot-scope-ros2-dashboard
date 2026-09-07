@@ -1,6 +1,6 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_STATIONARY_ENVELOPE_DEPLOYED`; candidate not run
+Status: `D2_LIVE_CANDIDATE_FAILED_MISSING_LINEAGE`; no candidate produced
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
@@ -9,7 +9,7 @@ D2_RUNTIME_DEPLOYED
 D2_STATIONARY_ENVELOPE_SOFTWARE_PASS
 D2_STATIONARY_ENVELOPE_DEPLOYED
 D2_LIVE_SOURCE_QUALIFIED
-STATIONARY_LIVE_CANDIDATE_NOT_RUN
+STATIONARY_LIVE_CANDIDATE_FAILED_PRECOLLECTION
 CANDIDATE_APPLIED=false
 LOCALIZED_NG1_NOT_RUN
 GOAL_NOT_RUN
@@ -529,3 +529,62 @@ MOTION=NOT_RUN
 The earlier live-candidate approval was consumed by the fail-closed preflight
 attempt and is not reused. Candidate collection requires a new stationary
 safety confirmation against this exact deployed release.
+
+## Live candidate pre-collection lineage failure — 2026-09-07
+
+The operator issued a fresh stationary-only approval for exact release
+`9693ebd51ccd73decdba3eb3cd5030cd8e769629`, the exact linked D0 revisions
+recorded above and REGION seed `(0, 0, 0)`, radius `3.0 m`, yaw half-range
+`1.57 rad`. Candidate apply, initial pose, Nav2, goal and motion remained
+forbidden.
+
+Fresh preflight confirmed the exact deployed process cwd, authenticated Bridge,
+inactive lease, false deadman, exact-zero accepted command, idle Navigation and
+Localization, and zero Move/non-zero Move/action counts. The approved
+observation-only Mapping owner then started once and reached ready with the
+fixed wireless sensor and FAST-LIO sources.
+
+One malformed shell-quoted candidate request was rejected with HTTP 422 during
+JSON parsing and did not allocate a job. The corrected request was accepted
+once as job `a20a721dd662c58f7af0188e`, generation 1. It failed before entering
+collection: `family_id`, `family_revision`, collection and candidates all
+remained null or empty. No registration process ran.
+
+The failure was an exact-lineage availability failure, not a stationary-source
+failure. The saved-map catalog no longer contained occupancy map
+`85fa623a8a859c351ec47912`; the currently present historical edited map is the
+different, deliberately unlinked map `f292601e2c8b269eb635cb0f`. The operator
+event timeline records an accepted `map_delete` for the exact D2 occupancy ID
+at `2026-09-07T06:21:03.790Z` (`15:21:03.790 KST`). The managed map directory
+contains neither `map_20260902_161903_d2` nor a map-family sidecar. Deleting the
+lineage-aware occupancy correctly retained its source PCD, so the PCD remains
+present but cannot be paired with another occupancy map by filename.
+
+The deployed runtime converted this expected `SavedMapNotFound` into the
+generic public error `relocalization job failed`. A narrow repository
+correction now maps catalog not-found and lineage-conflict failures at the D2
+runtime boundary to bounded, path-free relocalization conflict reasons. It
+does not loosen revision pinning, infer lineage, change the legacy map API or
+make a missing family usable.
+
+Reverse cleanup stopped only the approved Mapping owner at
+`2026-09-07T07:48:54.000Z`; the existing preview remained. The final audit
+showed the dashboard active from exact `9693ebd5...`, no FAST-LIO,
+registration or Nav2 child, no active relocalization job, inactive lease,
+false deadman, exact-zero command, and Bridge Move/non-zero Move/action counts
+all zero.
+
+```text
+D2_LIVE_CANDIDATE=FAIL_PRECOLLECTION_EXACT_MAP_UNAVAILABLE
+CANDIDATE_JOB_COUNT=1
+CANDIDATE_OUTPUT=NONE
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=IDLE
+```
+
+No automatic retry is permitted. A future attempt must first create a new
+lineage-aware occupancy from the still-pinned PCD, record its newly generated
+map/family revisions, and obtain a new exact stationary candidate approval.
