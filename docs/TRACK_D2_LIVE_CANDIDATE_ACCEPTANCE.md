@@ -4,7 +4,7 @@ Status: `D2_REPOSITORY_SOFTWARE_PASS`; live acceptance not run
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
-STATIONARY_LIVE_CANDIDATE_NOT_RUN
+STATIONARY_LIVE_CANDIDATE_BLOCKED
 CANDIDATE_APPLIED=false
 LOCALIZED_NG1_NOT_RUN
 GOAL_NOT_RUN
@@ -60,6 +60,54 @@ The runtime therefore leaves `ApplicationRuntime.relocalization` unconfigured.
 The new endpoints fail with 503 instead of borrowing the UI preview source or
 claiming live readiness.
 
+## Read-only live audit and aarch64 evidence — 2026-09-07
+
+Repository and deployment identities were deliberately kept separate:
+
+```text
+repository/origin main = 86304406d128c149493380189b01409448225a3a
+external production release = 3d62e254decaafda9b793bb43901141fd237ae48
+external development checkout = 72e39c3f9517e9ba445ee2b8ddbcf6779bfe699b (dirty; untouched)
+robot-side release = NOT READABLE; onboard host unreachable
+```
+
+The external dashboard remained active. Mapping, Localization, Navigation,
+Mission, control lease and non-zero command ownership were not started. The
+read-only graph audit found:
+
+| Topic | Publishers | Advertised QoS | Payload result |
+|---|---:|---|---|
+| `/cloud_registered` | 1 | RELIABLE, VOLATILE, depth 20 | Humble/CycloneDDS deserialization rejected |
+| `/Laser_map` | 1 | RELIABLE, VOLATILE, depth 20 | not selected as a local observation |
+| `/Odometry` | 1 | RELIABLE, VOLATILE, depth 20 | Humble/CycloneDDS deserialization rejected |
+| `/velodyne_points` | 0 | n/a | unavailable |
+| `/imu/body` | 0 | n/a | unavailable |
+
+The fixed onboard management address was unreachable from the external Orin:
+neighbour state `INCOMPLETE`, ICMP host unreachable, and TCP/22 unavailable.
+The apparent DDS endpoints therefore do not establish live producer health.
+Frame, stamp progression, rate, bounded-cloud semantics, fresh odom transform,
+and independent IMU stationary evidence remain unverified. No dedicated D2
+subscriber or provider was enabled.
+
+The exact repository revision was built only in temporary external-Orin
+staging. GCC 11.4/aarch64 build and CTest passed. The existing portable backend
+produced:
+
+```text
+cases = 10
+points/case = 2530
+translation median/p95 = 0.005111 / 0.016583 m
+yaw median/p95 = 0.173053 / 0.280628 deg
+runtime p50/p95 = 937.776 / 982.801 ms
+child peak RSS = 13,404 KiB
+```
+
+The production symlink remained on `3d62e254...`, the dashboard remained
+active, and temporary build staging was removed. Although PCL 1.12.1 and Eigen
+3.4 are installed, this repository has no PCL NDT/GICP executable to compare;
+their benchmark status remains `NOT_RUN`.
+
 ## Exact next approval gate
 
 Before any deployment, present and approve:
@@ -74,3 +122,8 @@ Before any deployment, present and approve:
 
 After that approval, perform stationary collection only. No candidate may be
 applied, and no initial pose, goal or motion is permitted in D2.
+
+Before that deployment gate can be presented, restore read-only access to the
+onboard host and prove a deserializable live source. Do not wire
+`ApplicationRuntime.relocalization`, start a persistent observer, or deploy the
+D2 release while this prerequisite is blocked.

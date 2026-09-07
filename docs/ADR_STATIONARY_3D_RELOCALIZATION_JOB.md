@@ -1,6 +1,6 @@
 # ADR: stationary 3D relocalization candidate job
 
-Status: accepted for hardware-free D2 implementation; live source qualification pending
+Status: accepted for hardware-free D2 implementation; live source qualification blocked
 
 ## Decision
 
@@ -35,6 +35,31 @@ The existing operator-selected point-cloud preview is not an acceptable data
 owner. A dedicated profile-fixed provider must feed
 `FixedCloudRegisteredCollector`; the repository does not silently enable or
 construct that provider in D2 software acceptance.
+
+## 2026-09-07 external-Orin audit
+
+The read-only graph audit used the ROS environment of the running external
+dashboard. It found one RELIABLE/VOLATILE publisher with depth 20 for each of
+`/cloud_registered`, `/Laser_map`, and `/Odometry`; `/velodyne_points` and
+`/imu/body` had no publisher. Both `/cloud_registered` and `/Odometry` failed
+to deserialize in the external Humble CLI with CycloneDDS reporting
+`string data is not null-terminated` followed by `invalid data size`.
+
+The onboard Jetson at the fixed management address was not reachable from the
+external Orin: its neighbour entry remained incomplete, ICMP returned host
+unreachable, and TCP/22 failed. Therefore the graph endpoints cannot be
+qualified as current live producers, their frame and stamps could not be
+validated, and the provisional `/cloud_registered` choice remains closed.
+Publisher cardinality by itself is not live-source evidence.
+
+The exact `86304406d128c149493380189b01409448225a3a` portable reference backend
+was separately staged under a temporary external-Orin directory, built with
+GCC 11.4 on aarch64, and passed its CTest. The ten-case 2,530-point synthetic
+benchmark measured translation median/p95 0.005111/0.016583 m, yaw median/p95
+0.173053/0.280628 degrees, runtime p50/p95 937.776/982.801 ms, and child peak
+RSS 13,404 KiB. The temporary staging was removed and the production release
+and service were unchanged. PCL 1.12.1 was installed, but no PCL NDT/GICP
+backend exists in the repository, so no PCL comparison is claimed.
 
 ## Ownership and state
 
