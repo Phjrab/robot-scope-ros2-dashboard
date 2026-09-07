@@ -38,19 +38,36 @@ construct that provider in D2 software acceptance.
 
 ## 2026-09-07 external-Orin audit
 
-The read-only graph audit used the ROS environment of the running external
-dashboard. It found one RELIABLE/VOLATILE publisher with depth 20 for each of
+The first read-only graph audit used the ROS environment of the running
+external dashboard. It found one advertised publisher for each of
 `/cloud_registered`, `/Laser_map`, and `/Odometry`; `/velodyne_points` and
 `/imu/body` had no publisher. Both `/cloud_registered` and `/Odometry` failed
 to deserialize in the external Humble CLI with CycloneDDS reporting
 `string data is not null-terminated` followed by `invalid data size`.
 
-The onboard Jetson at the fixed management address was not reachable from the
-external Orin: its neighbour entry remained incomplete, ICMP returned host
-unreachable, and TCP/22 failed. Therefore the graph endpoints cannot be
-qualified as current live producers, their frame and stamps could not be
-validated, and the provisional `/cloud_registered` choice remains closed.
-Publisher cardinality by itself is not live-source evidence.
+After the onboard Jetson rejoined Wi-Fi, a fresh `--no-daemon` audit still saw
+the three publisher endpoints, but their node names and namespaces were
+`UNKNOWN`, node enumeration itself failed in the RMW layer, and the same
+CycloneDDS decoding errors occurred. The onboard Foxy graph had none of the
+five topics and no sensor or FAST-LIO process; only the fixed XT16 relay and
+Control Bridge were active. The external dashboard's existing preview owner
+was repeatedly starting its Hesai process, but no raw cloud became ready.
+Consequently the advertised endpoints are discovery-corruption or otherwise
+unattributed endpoint evidence, not proof of a live compatible publisher. The
+earlier error must not be described as a proven live-wire serialization
+incompatibility.
+
+The onboard host was reachable at `192.168.50.30` over Wi-Fi and both the XT16
+at `192.168.123.20` and Go2 body at `192.168.123.161` answered bounded ICMP.
+However, the fixed relay captured hundreds of thousands of packets while
+accepting and forwarding zero. Its counters increased only in `packet_type`
+and `ip_address` rejections; the required
+`192.168.123.20:10000 -> 192.168.123.18:2368` stream was not observed. A
+bounded privileged header capture is still required to identify the actual
+XT16 destination without changing it. Frame, stamp progression, rate and
+bounded-current-cloud semantics therefore remain unverified, and the
+provisional `/cloud_registered` choice remains closed. Publisher cardinality
+by itself is not live-source evidence.
 
 The exact `86304406d128c149493380189b01409448225a3a` portable reference backend
 was separately staged under a temporary external-Orin directory, built with

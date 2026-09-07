@@ -1,6 +1,6 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_REPOSITORY_SOFTWARE_PASS`; live acceptance not run
+Status: `D2_REPOSITORY_SOFTWARE_PASS`; live source qualification blocked
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
@@ -65,10 +65,10 @@ claiming live readiness.
 Repository and deployment identities were deliberately kept separate:
 
 ```text
-repository/origin main = 86304406d128c149493380189b01409448225a3a
+repository/origin main at initial audit = 86304406d128c149493380189b01409448225a3a
 external production release = 3d62e254decaafda9b793bb43901141fd237ae48
 external development checkout = 72e39c3f9517e9ba445ee2b8ddbcf6779bfe699b (dirty; untouched)
-robot-side release = NOT READABLE; onboard host unreachable
+robot-side release after Wi-Fi recovery = 10a7fa9cec2c329f2c50edc9ad98de13a22689da
 ```
 
 The external dashboard remained active. Mapping, Localization, Navigation,
@@ -77,18 +77,37 @@ read-only graph audit found:
 
 | Topic | Publishers | Advertised QoS | Payload result |
 |---|---:|---|---|
-| `/cloud_registered` | 1 | RELIABLE, VOLATILE, depth 20 | Humble/CycloneDDS deserialization rejected |
-| `/Laser_map` | 1 | RELIABLE, VOLATILE, depth 20 | not selected as a local observation |
-| `/Odometry` | 1 | RELIABLE, VOLATILE, depth 20 | Humble/CycloneDDS deserialization rejected |
+| `/cloud_registered` | 1 advertised, unattributed | endpoint node identity `UNKNOWN` | no qualified live payload |
+| `/Laser_map` | 1 advertised, unattributed | endpoint node identity `UNKNOWN` | not selected as a local observation |
+| `/Odometry` | 1 advertised, unattributed | endpoint node identity `UNKNOWN` | no qualified live payload |
 | `/velodyne_points` | 0 | n/a | unavailable |
 | `/imu/body` | 0 | n/a | unavailable |
 
-The fixed onboard management address was unreachable from the external Orin:
-neighbour state `INCOMPLETE`, ICMP host unreachable, and TCP/22 unavailable.
-The apparent DDS endpoints therefore do not establish live producer health.
-Frame, stamp progression, rate, bounded-cloud semantics, fresh odom transform,
+The initial fixed onboard management-address check failed with neighbour state
+`INCOMPLETE`, ICMP host unreachable and TCP/22 unavailable. After Wi-Fi was
+restored, SSH and bounded ICMP succeeded. The onboard Foxy graph nevertheless
+contained none of the five candidate topics, and there was no sensor or
+FAST-LIO process. The external `--no-daemon` graph still returned malformed
+node discovery data and `UNKNOWN` publisher identity. The earlier CLI
+deserialization result is therefore not evidence of a currently running
+incompatible publisher; it is an unattributed/malformed DDS discovery result.
+
+The existing dashboard preview owner then retried automatically without any
+new lifecycle command from this audit. It started the fixed external Hesai
+driver, but raw-cloud readiness repeatedly timed out. The onboard relay was
+active and the XT16 (`192.168.123.20`) and Go2 body (`192.168.123.161`) were
+reachable, yet relay counters showed `accepted=0` and `forwarded=0` while
+`packet_type` and `ip_address` rejections continually increased. Thus the
+required fixed XT16 tuple
+`192.168.123.20:10000 -> 192.168.123.18:2368` was not present in the relay's
+accepted input. A bounded privileged packet-header inspection must determine
+the actual destination before any configuration change is proposed.
+
+Frame, stamp progression, rate, bounded-cloud semantics, fresh odom transform
 and independent IMU stationary evidence remain unverified. No dedicated D2
-subscriber or provider was enabled.
+subscriber or provider was enabled, and no service was started, stopped or
+restarted by this audit. Control remained lease-free, deadman false and exact
+zero; Navigation, Localization and Mapping pipeline state remained idle.
 
 The exact repository revision was built only in temporary external-Orin
 staging. GCC 11.4/aarch64 build and CTest passed. The existing portable backend
@@ -123,7 +142,10 @@ Before any deployment, present and approve:
 After that approval, perform stationary collection only. No candidate may be
 applied, and no initial pose, goal or motion is permitted in D2.
 
-Before that deployment gate can be presented, restore read-only access to the
-onboard host and prove a deserializable live source. Do not wire
-`ApplicationRuntime.relocalization`, start a persistent observer, or deploy the
-D2 release while this prerequisite is blocked.
+Before that deployment gate can be presented, identify why the fixed XT16
+input tuple is absent, restore the existing preview's raw cloud, then qualify
+the current-scan and odometry sources. The next diagnostic is a bounded,
+header-only capture on onboard `eth0`; it requires separate privileged
+operator authorization and makes no network change. Do not wire
+`ApplicationRuntime.relocalization`, start a persistent D2 observer, or deploy
+the D2 release while this prerequisite is blocked.
