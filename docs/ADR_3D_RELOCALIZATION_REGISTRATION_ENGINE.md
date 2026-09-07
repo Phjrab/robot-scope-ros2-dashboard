@@ -116,8 +116,8 @@ policy. The server chooses one exact executable from a fixed environment-owned
 allowlist before constructing the manager. HTTP callers cannot select a
 backend, and the default remains `bounded-se2-icp`.
 
-Both PCL executables are available for offline comparison only; neither is in
-the D2 runtime selection allowlist. A failed refinement, exception or non-finite
+GICP is available for offline comparison only and is not in the D2 runtime
+selection allowlist. A failed refinement, exception or non-finite
 or out-of-plane transform is converted to a rejected candidate using the
 original bounded seed for diagnostics. Such a failure can never be repackaged
 as a converged result or trigger a fallback to another backend.
@@ -144,3 +144,11 @@ reference/query input reproduced the no-overlap failure. GICP had already
 shown that malformed optimizer state can terminate inside PCL before a C++
 exception is available. Both backends consequently remain build-time offline
 experiments; the runtime allowlist is again the portable bounded backend only.
+
+A bounded grid sweep then tested 2.0 m and 4.0 m cells without changing the
+extent, iteration ceiling, timeout or any acceptance threshold. The 2.0 m
+build again produced zero converged cases. The fixed 4.0 m build produced ten
+converged and ten policy-accepted cases, with translation median/p95 of
+0.001277/0.003105 m and yaw median/p95 of 0.028152/0.097858 degrees. NDT2D may
+therefore be selected explicitly only with this compiled grid; the portable
+backend remains the default and GICP remains excluded.

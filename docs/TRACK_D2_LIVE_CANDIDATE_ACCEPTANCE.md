@@ -1101,3 +1101,39 @@ NAV2_GOAL=NOT_RUN
 MOTION=NOT_RUN
 PRODUCTION_RELEASE_UNCHANGED=fee0b39e307ec76818820e57940405847fff49a6
 ```
+
+## Fixed-grid NDT2D qualification — 2026-09-08
+
+The no-overlap result was isolated to the NDT2D grid density. A 2.0 m fixed
+grid remained fail-closed with zero converged cases. A 4.0 m fixed grid, with
+the same 20 m extent, three bounded coarse seeds, 30-iteration ceiling,
+15-second process timeout and unchanged confidence/error limits, passed the
+same exact aarch64 corpus:
+
+```text
+cases = 10
+converged_cases = 10
+accepted_cases = 10
+acceptance_pass = true
+translation median/p95 = 0.001277 / 0.003105 m
+yaw median/p95 = 0.028152 / 0.097858 deg
+runtime p50/p95 = 7464.705 / 8297.440 ms
+```
+
+The source now compiles that exact grid value. `pcl-ndt2d` may be selected
+only by the server-owned environment allowlist, while the default remains
+`bounded-se2-icp`. GICP remains offline-only. This qualification authorizes a
+new exact-release build and stationary candidate attempt; it does not apply a
+pose, start localization/Nav2, acquire control authority or move the robot.
+
+```text
+D2_PCL_NDT2D_STRICT_CORPUS=PASS_FIXED_GRID
+D2_PCL_GICP_RUNTIME_ALLOWED=false
+D2_PCL_NDT2D_RUNTIME_ELIGIBLE=true
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```

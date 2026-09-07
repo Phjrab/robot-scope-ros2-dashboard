@@ -191,6 +191,7 @@ class OfflineRegistrationTests(unittest.TestCase):
         self.assertIn("pcl-ndt2d", source)
         self.assertIn("pcl-gicp", source)
         self.assertIn("kMaximumIterations = 30", source)
+        self.assertIn("setGridStep(Eigen::Vector2f(4.0F, 4.0F))", source)
         self.assertIn("kMaximumZCorrectionM = 0.25", source)
         self.assertIn("kMaximumTiltCorrectionRad = 0.15", source)
         self.assertIn("catch (const std::exception&)", source)

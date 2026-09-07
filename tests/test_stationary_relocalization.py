@@ -1016,11 +1016,23 @@ class StationaryRelocalizationTests(unittest.TestCase):
             self.addCleanup(manager.close)
             self.assertEqual(runtime_root.stat().st_mode & 0o777, 0o700)
 
+            pcl_executable = root / "project" / REGISTRATION_BACKENDS["pcl-ndt2d"]
+            pcl_executable.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+            pcl_executable.chmod(0o700)
             with mock.patch.dict(
                 os.environ,
                 {REGISTRATION_BACKEND_ENV: "pcl-ndt2d"},
-            ), self.assertRaisesRegex(RuntimeError, "allowlist"):
-                build_stationary_relocalization_manager(enabled=True, **kwargs)
+            ):
+                pcl_manager = build_stationary_relocalization_manager(
+                    enabled=True,
+                    **kwargs,
+                )
+            self.assertIsInstance(pcl_manager, StationaryRelocalizationManager)
+            self.assertEqual(
+                pcl_manager._registration._expected_backend,
+                "pcl-ndt2d",
+            )
+            pcl_manager.close()
             with mock.patch.dict(
                 os.environ,
                 {REGISTRATION_BACKEND_ENV: "unlisted"},

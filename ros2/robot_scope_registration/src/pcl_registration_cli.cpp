@@ -134,7 +134,7 @@ rsr::RegistrationCandidate refine_candidate(
   registration.setMaximumIterations(kMaximumIterations);
   registration.setTransformationEpsilon(1e-4);
   registration.setGridCentre(Eigen::Vector2f(0.0F, 0.0F));
-  registration.setGridStep(Eigen::Vector2f(0.5F, 0.5F));
+  registration.setGridStep(Eigen::Vector2f(4.0F, 4.0F));
   registration.setGridExtent(Eigen::Vector2f(20.0F, 20.0F));
   registration.setOptimizationStepSize(Eigen::Vector3d(1.0, 1.0, 1.0));
   registration.align(aligned, initial_transform(initial_pose));
