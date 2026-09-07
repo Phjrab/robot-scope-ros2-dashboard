@@ -74,3 +74,42 @@ MOTION=NOT_RUN
 FINAL_PIPELINE_STATE=STOPPED
 FINAL_PREVIEW_STATE=RUNNING
 ```
+
+## Exact optimized release deployment
+
+Commit `fb0555f7a94715cf82743512df0451139e6913cf` was pushed to `origin/main`.
+CI run `34147692182` passed both Ubuntu 22.04/Python 3.10 and Ubuntu
+24.04/Python 3.12 matrices. The exact archive SHA-256 was
+`07f3deea79f9e57820109b85573f7a67e4fa5324eb2202ed51c968bd0f4de767`.
+
+The inactive external-Orin release rebuilt both PCL binaries, passed CTest
+1/1 and reproduced the strict NDT2D benchmark with 10/10 converged and
+accepted cases. Its runtime p50/p95 was 957.273/1,002.529 ms. The external
+dashboard alone was switched through its fixed lifecycle API. It became ready
+from the exact release with PID 189848, instance
+`ee0898bb6bea43cc98317f068668d3e5`, and `NRestarts=0`. Release `3388718...`
+and the pre-switch environment remain available for rollback.
+
+The persistent preview recovered, but the robot-side management host
+`192.168.50.30` subsequently became unreachable (`Host is down`). The prior
+battery observation had fallen to 3 percent. The external dashboard therefore
+reported signed Bridge status waiting. Because the D2 stationary preflight
+requires an authenticated ready Bridge and fresh stationary evidence, no
+second live candidate job was created. The fail-closed gate was preserved.
+
+```text
+D2_EXACT_FB0555F_DEPLOYMENT=PASS_EXTERNAL_ONLY
+D2_EXACT_FB0555F_CI=PASS
+D2_EXACT_FB0555F_AARCH64_BUILD=PASS
+D2_EXACT_FB0555F_LIVE_CANDIDATE=NOT_RUN_ROBOT_HOST_UNAVAILABLE
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_DASHBOARD_STATE=ACTIVE_EXACT_RELEASE
+FINAL_MAPPING_PIPELINE_STATE=IDLE
+FINAL_PREVIEW_STATE=RUNNING
+FINAL_CONTROL_STATE=DISARMED_ZERO_BRIDGE_WAITING
+```
