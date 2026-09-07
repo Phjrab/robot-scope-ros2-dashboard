@@ -656,3 +656,73 @@ MOTION=NOT_RUN
 
 The next action remains a new, exact stationary candidate approval. Deployment
 approval and every previous candidate approval are not reused.
+
+## XT16 destination recovery and exact candidate attempt — 2026-09-07
+
+The operator supplied a fresh combined approval for the fixed XT16 destination
+repair and exactly one stationary candidate attempt. Read-only inspection first
+showed that the XT16 was reachable and out of standby, but its configured UDP
+destination was `192.168.123.99:2368`. The deployed wireless relay deliberately
+accepts only the established stream addressed to the robot-side Jetson at
+`192.168.123.18:2368`; its counters consequently remained at zero accepted and
+zero forwarded packets while rejecting unrelated traffic.
+
+The approved device setting was changed to `192.168.123.18:2368` while retaining
+GPS port 10110. The device returned success and an immediate read-back matched
+the requested values, so the rollback to `.99` was not required. The existing
+robot-side relay was not restarted. Its counters advanced from zero to more than
+one million accepted and forwarded packets, with zero sequence loss, duplicate
+or reorder counts. The next existing preview attempt reached raw and preview
+readiness and remained running.
+
+The observation-only Mapping owner was then started once as job
+`6cc5c5346e924389b8c68a156b4c318b`. Wireless IMU, FAST-LIO, odometry and
+`/cloud_registered` readiness all passed. Immediately before this operation,
+Control remained authenticated, lease-free, deadman false and exact zero, with
+Bridge Move, non-zero Move and action counters all zero.
+
+Exactly one candidate request was submitted as job
+`b7a656e65836a0d72846d30e`, generation 1, with the following immutable inputs:
+
+```text
+map_id = 5ba0ac7a28fcc1c7b81cc58e
+map_revision = 4ed9f19aec8cb338e2cdfa3e54946432e6231991ef87f8ea05e89dd242a4b979
+source_pcd_id = e1252aeb1793d7bb78847e5e
+source_pcd_revision = 86df7447267f0c1107e7fe7b8524a112a849ea3070dd4a8d292e2df8a00c0c80
+seed = REGION x=0 y=0 yaw=0 radius=3.0m yaw_half_range=1.57rad
+```
+
+The server's stationary preflight passed, but collection then failed before the
+registration executable ran with `collection filtered point count is invalid`.
+There was no candidate output or preview layer and nothing was applied. The
+preprocessor has a distinct overflow error above 100,000 voxels, so this error
+path means the deterministic 0.15 m voxel result was below the fixed minimum of
+500 points. The exact filtered count is not retained by the current failure
+projection and remains unknown. The 500-point acceptance minimum and all
+stationary limits were left unchanged; no automatic retry was attempted.
+
+Reverse cleanup stopped the Mapping-owned FAST-LIO and external/robot-side IMU
+processes. The persistent XT16 preview and relay remained active, and the
+repaired XT16 destination remained `.18`. Navigation, Localization and goal
+remained idle. Final Control evidence still showed no lease or deadman, exact
+zero, and zero Move, non-zero Move and action requests.
+
+```text
+XT16_DESTINATION_RESTORED=PASS
+XT16_WIRELESS_RELAY=PASS
+D2_OBSERVATION_PIPELINE_READY=PASS
+D2_LIVE_CANDIDATE=FAIL_PRE_REGISTRATION_FILTERED_POINTS_BELOW_MINIMUM
+CANDIDATE_JOB_COUNT=1
+CANDIDATE_OUTPUT=NONE
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=IDLE
+FINAL_PREVIEW_STATE=RUNNING
+```
+
+The next step is hardware-free diagnosis of the live-query density and a
+bounded failure projection that records raw and filtered counts without
+weakening the fixed 500-point gate. Any later collection or candidate retry
+requires a new explicit approval.
