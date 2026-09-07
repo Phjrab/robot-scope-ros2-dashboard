@@ -588,3 +588,71 @@ FINAL_PIPELINE_STATE=IDLE
 No automatic retry is permitted. A future attempt must first create a new
 lineage-aware occupancy from the still-pinned PCD, record its newly generated
 map/family revisions, and obtain a new exact stationary candidate approval.
+
+## Exact-lineage recovery and bounded external deployment — 2026-09-07
+
+Before creating another map, the catalog was checked again. A later Mapping
+save had already produced a complete, linked `robot-scope.map-family.v1`
+family, so no duplicate conversion or map mutation was performed. The exact
+family selected for the next separately approved D2 attempt is:
+
+```text
+name = map_20260907_175720
+family_id = 23a29b9668a8a51e59a7f1b2
+family_revision = befd68fa917f93f3731855b172b06e799a03f6e7f982e7d4361684ccd72fcd8e
+pcd_map_id = e1252aeb1793d7bb78847e5e
+pcd_revision = 86df7447267f0c1107e7fe7b8524a112a849ea3070dd4a8d292e2df8a00c0c80
+pcd_frame = camera_init
+occupancy_map_id = 5ba0ac7a28fcc1c7b81cc58e
+occupancy_revision = 4ed9f19aec8cb338e2cdfa3e54946432e6231991ef87f8ea05e89dd242a4b979
+occupancy_frame = map
+conversion_parameters_hash = 199419f60916ec1414b17f102209f3d1a42ef2b496e41d4fc189b1be4ba625c8
+```
+
+The operator then separately approved external-dashboard-only deployment of
+the narrow missing-lineage error correction at exact release
+`6285408fb17edf59a03c89cbee29d94a91db1bd2`. The robot-side Bridge release,
+services and configuration were not changed or restarted.
+
+```text
+external target = 192.168.50.10
+deployed release = 6285408fb17edf59a03c89cbee29d94a91db1bd2
+rollback release = 9693ebd51ccd73decdba3eb3cd5030cd8e769629
+archive sha256 = e1b471f309b0b40b51e4a6a4dc75442e6597125664cb8db4b1e58679d24e6153
+runtime wiring sha256 = 8cea0e8e1a2882201ba3abec5caa298697176484497946fdd5402cb28266d3d7
+registration executable sha256 = 89be25926a9bc1c66576d227473de520fde9b1cad9946e8ea060f8fca21b8ee5
+dashboard active = 2026-09-07T23:24:00+09:00
+```
+
+The archive hash was verified before extraction into a new mode-0700 release.
+The registration source was unchanged from the rollback release, so its
+previously verified aarch64 executable was copied with the same exact hash.
+The changed Python module hash matched the repository and imported
+successfully before the release transition. The stable symlink and the live
+process cwd both resolved to the new full SHA after one dashboard-only restart.
+Systemd reported `active/running`, PID 9039, invocation
+`f37046ec9a394fb18a1c87daa71f9d2a` and `NRestarts=0`. The deployment archives
+were removed from the local and remote temporary directories; the rollback
+release remains intact.
+
+Post-deployment Control remained authenticated and motion-free: lease
+inactive, deadman false, accepted command exact zero, action guard inactive,
+Bridge `move_count=0`, `nonzero_move_count=0`, and `action_count=0`. Battery and
+joint telemetry were fresh. Navigation, Localization, goal and relocalization
+candidate state remained idle. No FAST-LIO, registration or candidate process
+was started. The existing XT16 relay remained active on the robot-side host;
+the observation-only FAST-LIO/IMU pipeline remained stopped pending a new
+candidate approval.
+
+```text
+D2_MISSING_LINEAGE_ERROR_DEPLOYED=PASS
+D2_EXACT_LINKED_FAMILY_AVAILABLE=PASS
+STATIONARY_LIVE_CANDIDATE=NOT_RUN
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```
+
+The next action remains a new, exact stationary candidate approval. Deployment
+approval and every previous candidate approval are not reused.
