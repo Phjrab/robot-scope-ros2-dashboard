@@ -921,3 +921,90 @@ MOTION=NOT_RUN
 FINAL_PIPELINE_STATE=IDLE
 FINAL_PREVIEW_STATE=RUNNING
 ```
+
+## Free-background review map and convergence isolation — 2026-09-08
+
+After CI run `34139275304` passed both matrices, exact release
+`fee0b39e307ec76818820e57940405847fff49a6` was installed on the
+external Jetson only. Its archive SHA-256 was
+`0fcaf1506e978f0ba1880e05169b47c0701b1f7194f1203fe68243549e09602f`.
+The dashboard was restarted through the fixed lifecycle API and ran from the
+exact release with PID 78743, invocation
+`1807b56bf4cc4f8a86a1d9ef42f994c0`, and `NRestarts=0`. The onboard
+Bridge release and services were not changed or restarted.
+
+The original conservative occupancy map was retained. A separate, explicitly
+named review artifact was generated from the same exact PCD with the existing
+fixed conversion and `background=free` option:
+
+```text
+name = map_20260907_175720_d2_free_review
+occupancy_map_id = 1d3919f3566bc6b06fd5ee2c
+occupancy_revision = 047db8a83e823227d0e6dac465d258caa246ab16522846a3744daccf02007837
+family_id = f302795bf3383bab2812e4ad
+family_revision = e88c7036f78faac1a19bff5cf0dafe0a77193176fe5ad10bb394a6e16074a096
+source_pcd_id = e1252aeb1793d7bb78847e5e
+source_pcd_revision = 86df7447267f0c1107e7fe7b8524a112a849ea3070dd4a8d292e2df8a00c0c80
+conversion_parameters_hash = d42e4f111b3f3c4a6382660dd1aeac4e1884b10ff051a2bdfa3a9445086b7d82
+known_free_cells = 526539
+occupied_cells = 8496
+```
+
+This artifact is a review candidate, not an active navigation map. The source
+PCD and the earlier unknown-background family remain unchanged. No candidate,
+initial pose or navigation state was applied from it.
+
+With the robot still stationary, the observation-only owner was started and
+reached readiness. Exactly one D2 candidate job,
+`659d57cd7c7fa4231b8de54e`, used the new exact family and the unchanged
+REGION seed. Map preflight reported `eligible` with 526,539 known-free cells.
+Collection again passed without relaxing any limit:
+
+```text
+duration = 3.1242 s
+frames = 26
+raw_points = 380976
+filtered_points = 1189
+reference_points = 182949
+```
+
+The top result was approximately `(-0.1148, -0.6597, 1.5875)`, with fitness
+`0.08396`, overlap `0.98402`, 1,189 query points, and ambiguity margin
+`0.00956`. Its footprint was known-free, proving that the previous footprint
+failure was solely the map's zero-free-cell condition. The result remained
+`REJECTED` because the registration backend reported `converged=false`.
+The second result was also footprint-valid but spatially distinct; the third
+result remained footprint-invalid. Nothing was applied.
+
+A path-free current preview was retained for offline diagnosis. Replaying the
+same bounded query against the exact reference reproduced `converged=false`
+for the original REGION search, an exact top-pose seed, and a tight local seed.
+An independent iteration audit reproduced the backend's final pose exactly.
+Across all 30 refinement iterations, the translation correction never fell
+below the fixed 0.1 mm convergence threshold; after the initial correction it
+continued at approximately 3.35--7.68 mm per iteration along the ambiguous
+geometry. This is persistent nearest-neighbour drift, not a near-converged
+result that should be rounded into acceptance. The low `0.00956` ambiguity
+margin and separated alternatives independently support keeping the current
+fail-closed outcome. No convergence threshold, confidence threshold, search
+bound or footprint rule was changed.
+
+Reverse cleanup stopped the operation-owned FAST-LIO and IMU processes. The
+persistent preview and onboard XT16 relay remained running. The temporary
+remote replay PCD was removed. Final state retained inactive lease, false
+deadman, exact-zero command, zero Move/non-zero Move/action requests, idle
+Navigation/Localization/goal, and no candidate apply.
+
+```text
+D2_ZERO_FREE_PREFLIGHT_DEPLOYED=PASS
+D2_FREE_REVIEW_MAP_CREATED=PASS_NOT_ACTIVE
+D2_MAP_ELIGIBILITY=PASS
+D2_DENSE_COLLECTION=PASS
+D2_REGISTRATION_CONVERGENCE=FAIL_AMBIGUOUS_DRIFT
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=IDLE
+FINAL_PREVIEW_STATE=RUNNING
+```
