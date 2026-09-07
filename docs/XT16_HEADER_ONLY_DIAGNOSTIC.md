@@ -89,3 +89,24 @@ boot. The relay now waits read-only for at most 60 seconds for that exact
 configured address before preserving the existing `BIND_ADDRESS_MISSING`
 failure. It never adds an address, changes a route or modifies NetworkManager,
 and it remains subject to the existing systemd restart bounds.
+
+### Cold-boot verification
+
+The internal Jetson was rebooted only after the dashboard showed no control
+lease, released deadman, exact-zero command, zero non-zero Move requests, idle
+Mapping operation/pipeline and idle Navigation/Localization/goal. After the
+new boot ID appeared on wireless management address `192.168.50.30`, the
+Control Bridge, XT16 relay, Go2 camera relay and RealSense relay were all both
+enabled and active. RealSense entered active state with `NRestarts=0`, retained
+the reviewed file SHA-256
+`f172c47e7aaee7466cd5c9acb53e6f6733aa3eca867d80f4325571fd56799df0`,
+and listened only on `192.168.50.30:8090`.
+
+The external dashboard recovered its observation-only XT16 preview under a
+new job ID while the Mapping pipeline stayed idle. A post-boot sample again
+contained 16,000 source points and 8,000 display points in frame
+`hesai_lidar`. One fresh 1280x720 Go2 JPEG and one fresh 640x480 RealSense JPEG
+were received. The post-boot control snapshot still had no lease, released
+deadman, exact-zero command, zero non-zero Move requests and idle Bridge state.
+No Mapping start/save, Localization, Nav2 goal, Mission, ARM or motion was
+executed during this cold-boot test.
