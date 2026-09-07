@@ -11,6 +11,8 @@ User=unitree
 Group=unitree
 SupplementaryGroups=video
 WorkingDirectory=/
+# The relay itself waits at most 60 seconds for its exact configured bind
+# address.  It does not modify links, addresses, routes, or NetworkManager.
 # A missing deployment contract is a startup error. Install the reviewed
 # mode-0600 copy before starting this unit; no source edit is required.
 EnvironmentFile=/home/unitree/.config/robot-scope/realsense-camera.env

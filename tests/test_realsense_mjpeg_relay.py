@@ -65,6 +65,8 @@ class RealSenseRelayTests(unittest.TestCase):
         self.assertEqual(relay.REALSENSE_VIDEO_INDEX, "0")
         self.assertEqual(relay.METRIC_WINDOW_S, 5.0)
         self.assertEqual(relay.MAX_METRIC_SAMPLES, 120)
+        self.assertEqual(relay.LOCAL_BIND_WAIT_S, 60.0)
+        self.assertEqual(relay.LOCAL_BIND_POLL_S, 1.0)
 
     def test_listener_can_rebind_after_restart_without_parallel_port_sharing(self):
         self.assertTrue(relay.RelayServer.allow_reuse_address)
@@ -188,6 +190,33 @@ class RealSenseRelayTests(unittest.TestCase):
             local_bind_check=lambda host: host == "192.168.50.30",
         )
         self.assertEqual(config.bind_host, "192.168.50.30")
+
+    def test_startup_waits_bounded_time_for_configured_bind_address(self):
+        checks = iter((False, False, True))
+        times = iter((100.0, 100.0, 101.0))
+        sleeps = []
+        self.assertTrue(
+            relay.wait_for_local_bind(
+                "192.168.50.30",
+                check=lambda _host: next(checks),
+                monotonic=lambda: next(times),
+                sleep=sleeps.append,
+            )
+        )
+        self.assertEqual(sleeps, [1.0, 1.0])
+
+    def test_startup_bind_wait_times_out_without_network_mutation(self):
+        times = iter((0.0, 0.0, 60.0))
+        sleeps = []
+        self.assertFalse(
+            relay.wait_for_local_bind(
+                "192.168.50.30",
+                check=lambda _host: False,
+                monotonic=lambda: next(times),
+                sleep=sleeps.append,
+            )
+        )
+        self.assertEqual(sleeps, [1.0])
 
     def test_optional_wifi_interface_is_validated_without_shell_input(self):
         config = relay.relay_configuration(

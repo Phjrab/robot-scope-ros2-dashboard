@@ -60,3 +60,32 @@ sudo /usr/bin/python3 scripts/inspect_xt16_udp_headers.py
 
 After recording the bounded text output, remove any temporary copy. Do not
 install a packet-capture package solely for this check.
+
+## 2026-09-07 wireless acceptance evidence
+
+External release `6ce4b1dad5b2fdd75710022264683dd65fa6e9d4` was staged as an
+immutable release and selected by the dashboard service. With the wireless
+profile isolated to localhost DDS, the runtime graph contained exactly one
+`/lidar_points` publisher (`hesai_ros_driver_node`) and one subscriber
+(`robot_scope_xt16_cloud_bridge`), followed by exactly one
+`/velodyne_points` publisher and one dashboard subscriber. The converted cloud
+ran at approximately 10 Hz. The browser-facing `/api/v1/pointcloud` sequence
+advanced continuously on `/velodyne_points`, frame `hesai_lidar`, with 16,000
+source points and a bounded 8,000-point display payload.
+
+The robot-side relay counters advanced by about 25,000 accepted and forwarded
+packets per five-second interval. Its cumulative `send_errors` value remained
+constant during the final observation, so the earlier receiver-restart errors
+were not continuing. Mapping remained `cloud_only`; Localization, Navigation,
+Mission, lease, ARM and deadman were not started. The signed Control Bridge
+continued to report an exact-zero accepted command and zero non-zero Move
+requests.
+
+The Go2 and RealSense camera paths were also opened for one bounded frame each
+and then closed. The dashboard received a 1280x720 Go2 JPEG and a 640x480
+RealSense JPEG. The RealSense service had previously exhausted its restart
+burst because its fixed `192.168.50.30` bind address was not present early in
+boot. The relay now waits read-only for at most 60 seconds for that exact
+configured address before preserving the existing `BIND_ADDRESS_MISSING`
+failure. It never adds an address, changes a route or modifies NetworkManager,
+and it remains subject to the existing systemd restart bounds.

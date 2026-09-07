@@ -64,6 +64,8 @@ WIFI_PROBE_TIMEOUT_S = 1.0
 MAX_WIFI_PROBE_OUTPUT_BYTES = 4096
 WIFI_INTERFACE_PATTERN = re.compile(r"[A-Za-z0-9_.-]{1,32}\Z")
 IW_EXECUTABLES = ("/usr/sbin/iw", "/usr/bin/iw")
+LOCAL_BIND_WAIT_S = 60.0
+LOCAL_BIND_POLL_S = 1.0
 
 
 @dataclass(frozen=True)
@@ -133,6 +135,28 @@ def _local_bind_available(bind_host: str) -> bool:
     finally:
         probe.close()
     return True
+
+
+def wait_for_local_bind(
+    bind_host: str,
+    *,
+    check: Optional[Callable[[str], bool]] = None,
+    monotonic: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+    timeout_s: float = LOCAL_BIND_WAIT_S,
+    poll_s: float = LOCAL_BIND_POLL_S,
+) -> bool:
+    """Wait a bounded time for the configured address without changing the network."""
+
+    checker = check or _local_bind_available
+    started = monotonic()
+    while True:
+        if checker(bind_host):
+            return True
+        elapsed = max(0.0, monotonic() - started)
+        if elapsed >= timeout_s:
+            return False
+        sleep(min(poll_s, timeout_s - elapsed))
 
 
 def relay_configuration(
@@ -989,7 +1013,12 @@ def main(argv: Sequence[str] = ()) -> int:
     if argv:
         print("realsense_mjpeg_relay.py accepts no arguments", file=os.sys.stderr)
         return 2
-    config = relay_configuration(validate_local_bind=True)
+    config = relay_configuration()
+    if not wait_for_local_bind(config.bind_host):
+        raise RelaySetupError(
+            "BIND_ADDRESS_MISSING",
+            f"{RELAY_BIND_HOST_ENV} is not assigned to a local interface",
+        )
     # Fail before binding so a missing/ambiguous USB camera is explicit.
     device = resolve_realsense_device()
     gstreamer_command(device, config)
