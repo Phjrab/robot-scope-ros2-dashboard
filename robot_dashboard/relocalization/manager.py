@@ -34,6 +34,7 @@ MAX_FRAMES = 50
 MAX_RAW_POINTS = 1_000_000
 MIN_FILTERED_POINTS = 500
 MAX_FILTERED_POINTS = 100_000
+FILTER_VOXEL_SIZE_M = 0.15
 REFERENCE_PREVIEW_LIMIT = 50_000
 CURRENT_PREVIEW_LIMIT = 30_000
 ALIGNED_PREVIEW_LIMIT = 30_000
@@ -186,6 +187,7 @@ class StationaryRelocalizationManager:
                 "family_revision": None,
                 "source": {"topic": SOURCE_TOPIC, "frame_id": SOURCE_FRAME},
                 "collection": None,
+                "collection_diagnostics": _empty_collection_diagnostics(),
                 "candidates": [],
                 "candidate_applied": False,
                 "created_monotonic": time.monotonic(),
@@ -284,6 +286,7 @@ class StationaryRelocalizationManager:
             )
             self._transition(job_id, generation, "collecting", "collecting fixed live source")
             collection = self._collector.collect(cancel_event)
+            self._record_collection_diagnostics(job_id, generation, collection)
             _validate_collection(collection)
             self._check_cancel(cancel_event)
             query_path = job_dir / "current.pcd"
@@ -363,6 +366,20 @@ class StationaryRelocalizationManager:
                 raise _Canceled()
             job["state"] = state
             job["message"] = message
+            job["updated_monotonic"] = time.monotonic()
+
+    def _record_collection_diagnostics(
+        self,
+        job_id: str,
+        generation: int,
+        collection: LiveCollection,
+    ) -> None:
+        diagnostics = _collection_diagnostics(collection)
+        with self._lock:
+            job = self._owned(job_id, generation)
+            if job["state"] == "canceling":
+                raise _Canceled()
+            job["collection_diagnostics"] = diagnostics
             job["updated_monotonic"] = time.monotonic()
 
     def _owned(self, job_id: str, generation: int) -> dict[str, Any]:
@@ -529,6 +546,59 @@ def _validate_collection(value: LiveCollection) -> None:
         or value.maximum_imu_angular_rate_rps > MAX_STATIONARY_IMU_RPS
     ):
         raise RelocalizationConflict("robot moved during stationary collection")
+
+
+def _empty_collection_diagnostics() -> dict[str, Any]:
+    return {
+        "schema": "robot-scope.relocalization-collection-diagnostics.v1",
+        "count_state": "waiting",
+        "raw_points": None,
+        "filtered_points": None,
+        "frames": None,
+        "minimum_frames": MIN_FRAMES,
+        "maximum_frames": MAX_FRAMES,
+        "minimum_filtered_points": MIN_FILTERED_POINTS,
+        "maximum_filtered_points": MAX_FILTERED_POINTS,
+        "voxel_size_m": FILTER_VOXEL_SIZE_M,
+        "count_reason": "waiting",
+    }
+
+
+def _collection_diagnostics(value: LiveCollection) -> dict[str, Any]:
+    """Project only bounded counts needed to diagnose a rejected collection."""
+
+    diagnostics = _empty_collection_diagnostics()
+    raw_points = value.raw_points
+    filtered_points = len(value.points)
+    frames = len(value.frame_stamps_ns)
+
+    raw_bounded = bool(
+        isinstance(raw_points, int)
+        and not isinstance(raw_points, bool)
+        and 0 <= raw_points <= MAX_RAW_POINTS
+    )
+    raw_valid = bool(raw_bounded and raw_points > 0)
+    filtered_bounded = 0 <= filtered_points <= MAX_FILTERED_POINTS
+    frames_bounded = 0 <= frames <= MAX_FRAMES
+    frames_valid = MIN_FRAMES <= frames <= MAX_FRAMES
+
+    diagnostics["raw_points"] = raw_points if raw_bounded else None
+    diagnostics["filtered_points"] = filtered_points if filtered_bounded else None
+    diagnostics["frames"] = frames if frames_bounded else None
+
+    if not raw_valid:
+        state, reason = "invalid", "raw_points_out_of_bounds"
+    elif not filtered_bounded:
+        state, reason = "invalid", "filtered_points_above_maximum"
+    elif filtered_points < MIN_FILTERED_POINTS:
+        state, reason = "rejected", "filtered_points_below_minimum"
+    elif not frames_valid:
+        state, reason = "invalid", "frame_count_out_of_bounds"
+    else:
+        state, reason = "within_bounds", ""
+    diagnostics["count_state"] = state
+    diagnostics["count_reason"] = reason
+    return diagnostics
 
 
 def _write_binary_pcd(path: Path, points: Sequence[tuple[float, float, float]]) -> None:

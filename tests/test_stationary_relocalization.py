@@ -307,6 +307,22 @@ class StationaryRelocalizationTests(unittest.TestCase):
         self.assertFalse(result["candidate_applied"])
         self.assertEqual(result["family_revision"], "6" * 64)
         self.assertEqual(result["collection"]["frames"], 25)
+        self.assertEqual(
+            result["collection_diagnostics"],
+            {
+                "schema": "robot-scope.relocalization-collection-diagnostics.v1",
+                "count_state": "within_bounds",
+                "raw_points": 15_000,
+                "filtered_points": 600,
+                "frames": 25,
+                "minimum_frames": 20,
+                "maximum_frames": 50,
+                "minimum_filtered_points": 500,
+                "maximum_filtered_points": 100_000,
+                "voxel_size_m": 0.15,
+                "count_reason": "",
+            },
+        )
         self.assertNotIn("physical_safety_confirmed", result)
         self.assertEqual(set(result["preview_layers"]), {"reference", "current", "aligned"})
         self.assertEqual(harness.registration.calls[0]["reference_pcd"].split("/")[-1], "reference.pcd")
@@ -360,6 +376,44 @@ class StationaryRelocalizationTests(unittest.TestCase):
             with self.subTest(collection=collection):
                 result = Harness(self, collector=FakeCollector(collection)).run()
                 self.assertEqual(result["state"], "failed")
+
+    def test_insufficient_collection_exposes_only_bounded_count_diagnostics(self):
+        result = Harness(
+            self,
+            collector=FakeCollector(valid_collection(points=points(499))),
+        ).run()
+        self.assertEqual(result["state"], "failed")
+        self.assertIsNone(result["collection"])
+        self.assertEqual(result["candidates"], [])
+        self.assertEqual(result["preview_layers"], [])
+        self.assertEqual(
+            result["collection_diagnostics"],
+            {
+                "schema": "robot-scope.relocalization-collection-diagnostics.v1",
+                "count_state": "rejected",
+                "raw_points": 15_000,
+                "filtered_points": 499,
+                "frames": 25,
+                "minimum_frames": 20,
+                "maximum_frames": 50,
+                "minimum_filtered_points": 500,
+                "maximum_filtered_points": 100_000,
+                "voxel_size_m": 0.15,
+                "count_reason": "filtered_points_below_minimum",
+            },
+        )
+        self.assertNotIn("points", result["collection_diagnostics"])
+
+    def test_invalid_collection_counts_are_not_coerced_to_public_zero(self):
+        result = Harness(
+            self,
+            collector=FakeCollector(valid_collection(raw_points=-1)),
+        ).run()
+        diagnostics = result["collection_diagnostics"]
+        self.assertEqual(result["state"], "failed")
+        self.assertIsNone(diagnostics["raw_points"])
+        self.assertEqual(diagnostics["count_state"], "invalid")
+        self.assertEqual(diagnostics["count_reason"], "raw_points_out_of_bounds")
 
     def test_preflight_unknown_or_out_of_envelope_state_blocks_before_job(self):
         temp = tempfile.TemporaryDirectory(prefix="robot-scope-d2-preflight-")

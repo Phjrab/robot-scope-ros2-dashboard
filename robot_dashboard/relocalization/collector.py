@@ -10,6 +10,7 @@ from typing import Any, Callable, Mapping
 
 from .manager import (
     COLLECTION_DURATION_S,
+    FILTER_VOXEL_SIZE_M,
     MAX_FILTERED_POINTS,
     MAX_FRAMES,
     MAX_RAW_POINTS,
@@ -142,7 +143,11 @@ def _preprocess(points: list[tuple[float, float, float]]) -> list[tuple[float, f
         radius = math.hypot(x, y)
         if radius < 0.5 or radius > 20.0 or z < -2.0 or z > 3.0:
             continue
-        cell = (math.floor(x / 0.15), math.floor(y / 0.15), math.floor(z / 0.15))
+        cell = (
+            math.floor(x / FILTER_VOXEL_SIZE_M),
+            math.floor(y / FILTER_VOXEL_SIZE_M),
+            math.floor(z / FILTER_VOXEL_SIZE_M),
+        )
         voxels.setdefault(cell, point)
         if len(voxels) > MAX_FILTERED_POINTS:
             raise RelocalizationValidationError("filtered point accumulator exceeded its bound")
