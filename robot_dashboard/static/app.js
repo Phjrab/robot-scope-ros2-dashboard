@@ -13,6 +13,7 @@ import { initializeControlBridgeServiceFeature } from './features/control/bridge
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
+import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
 import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
 // Exposed for the lightweight Node contract test and browser diagnostics.
@@ -164,7 +165,7 @@ const ui = {
   savedMapSource: $('#savedMapSource'),
   savedMapDetailFrame: $('#savedMapDetailFrame'),
   savedMapDetailPoints: $('#savedMapDetailPoints'),
-  savedMapBounds: $('#savedMapBounds'),
+  savedMapBounds: $('#savedMapBounds'), savedMapSize: $('#savedMapSize'), savedMapDownload: $('#savedMapDownload'),
   savedMapNameInput: $('#savedMapNameInput'),
   savedMapRenameButton: $('#savedMapRenameButton'),
   savedMapDeleteButton: $('#savedMapDeleteButton'),
@@ -1522,7 +1523,6 @@ function updateSavedMapOverview() {
     selectedSavedMapMeta = entries[0];
     selectedSavedMapId = entries[0].id;
   }
-  ui.savedMapCount.textContent = `${entries.length} map${entries.length === 1 ? '' : 's'}`;
   ui.savedMapList.innerHTML = entries.length ? entries.map((entry) => {
     const grid = entry.kind === 'occupancy2d';
     const count = grid ? `${entry.width || '—'}×${entry.height || '—'}` : `${Number(entry.point_count || 0).toLocaleString()} pts`;
@@ -1532,7 +1532,7 @@ function updateSavedMapOverview() {
   }).join('') : '<div class="sensor-placeholder">저장 지도가 없습니다.</div>';
 
   const showingGrid = selectedSavedMapMeta?.kind === 'occupancy2d';
-  const selected = showingGrid ? savedOccupancySnapshot : cloud;
+  const selected = showingGrid ? savedOccupancySnapshot : cloud; renderSavedMapDownloadState({ countNode: ui.savedMapCount, sizeNode: ui.savedMapSize, linkNode: ui.savedMapDownload, catalog: savedMapCatalog, selected: selectedSavedMapMeta });
   if (showingGrid && selected) {
     ui.savedMapTitle.textContent = selectedSavedMapMeta?.name || selected.name || 'Saved 2D map';
     ui.savedMapSource.textContent = selectedSavedMapMeta?.file_name || selected.topic || '/saved/map';
@@ -3006,7 +3006,7 @@ async function refreshSavedMaps() {
   try {
     const payload = await api('/api/v1/saved-maps');
     const maps = Array.isArray(payload.maps) ? payload.maps : [];
-    savedMapCatalog = maps;
+    savedMapCatalog = maps; savedMapCatalog.totalSizeBytes = payload.total_size_bytes;
     await syncNavigationMapOptions();
     const preserved = maps.find((entry) => entry.id === selectedSavedMapId);
     if (editorHasUnsavedChanges() && mapEditorSession?.sourceId === selectedSavedMapId &&

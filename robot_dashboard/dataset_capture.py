@@ -1178,12 +1178,12 @@ class DatasetCaptureManager:
                 raise DatasetCaptureUnavailable("dataset export source is incomplete")
             metadata_path = sample_dir / "metadata.json"
             metadata_info = self._regular_file_info(metadata_path, MAX_MANIFEST_BYTES)
-            plan.append((metadata_path, f"samples/{sample_name}/metadata.json", metadata_info.st_size))
+            plan.append((metadata_path, f"metadata/{sample_name}.json", metadata_info.st_size))
             total_bytes += metadata_info.st_size
             for source_id in sources:
                 image_path = sample_dir / f"{source_id}.jpg"
                 image_info = self._regular_file_info(image_path, MAX_JPEG_BYTES)
-                plan.append((image_path, f"samples/{sample_name}/{source_id}.jpg", image_info.st_size))
+                plan.append((image_path, f"images/{sample_name}_{source_id}.jpg", image_info.st_size))
                 total_bytes += image_info.st_size
             if total_bytes > min(self._session_quota_bytes, MAX_EXPORT_BYTES):
                 raise DatasetCaptureUnavailable("dataset export size exceeds its limit")
@@ -1268,6 +1268,7 @@ class DatasetCaptureManager:
                 checksums = []
                 exported_manifest = dict(manifest)
                 exported_manifest["output_path"] = "managed-dataset-root"
+                exported_manifest["archive_layout"] = "flat-images-v1"
                 manifest_bytes = json.dumps(
                     exported_manifest,
                     ensure_ascii=False,
@@ -1303,6 +1304,7 @@ class DatasetCaptureManager:
                         {
                             "schema_version": "robot-scope.dataset-export/v1",
                             "session_id": session_id,
+                            "archive_layout": "flat-images-v1",
                             "files": checksums,
                         },
                         allow_nan=False,
@@ -1332,6 +1334,7 @@ class DatasetCaptureManager:
                     "sha256": archive_sha.hexdigest(),
                     "created_at": _utc_now(),
                     "finalized": True,
+                    "archive_layout": "flat-images-v1",
                 }
                 self._atomic_json(metadata_path, public)
                 return public

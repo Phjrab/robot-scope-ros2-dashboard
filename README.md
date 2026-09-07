@@ -527,6 +527,8 @@ FAST-LIO 전용 고정 런처만 실행합니다.
 저장된 PCD 3D 지도와 map_server YAML + PGM 2D 지도를 별도 화면에서 관리합니다.
 
 - POINTS에서 빠른 미리보기 또는 ALL 선택
+- 지도별 용량과 현재 목록의 중복 제거된 총 저장 용량 확인
+- 선택 지도를 경로 정보 없는 ZIP으로 다운로드(PCD 또는 YAML+PGM)
 - 관리 허용 폴더의 지도 이름 변경
 - PCD 단일 파일 또는 YAML + PGM 묶음 삭제
 - 읽기 전용 경로와 번들 데모 데이터 보호
@@ -1079,6 +1081,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | GET /api/v1/map | 최신 OccupancyGrid |
 | GET /api/v1/saved-maps | 저장 지도 목록 |
 | GET /api/v1/saved-maps/{id}/data | 저장 지도 렌더링 데이터 |
+| GET /api/v1/saved-maps/{id}/download | revision 고정 지도 ZIP(PCD 또는 재배치 가능한 YAML+PGM) |
 | PATCH/DELETE /api/v1/saved-maps/{id} | 지도 이름 변경과 삭제 |
 | POST /api/v1/saved-maps/{id}/convert-2d | 저장 PCD를 새 PGM+YAML로 비동기 변환 |
 | POST /api/v1/saved-maps/{id}/edited-copy | RLE 브러시 편집을 새 2D 지도 복사본으로 저장 |

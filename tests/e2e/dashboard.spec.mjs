@@ -28,9 +28,21 @@ test('offline viewer keeps saved maps available while live telemetry fails close
   await expect(page.locator('#connectionLabel')).toContainText('연결 끊김');
   await expect(page.locator('#batteryMetric')).toHaveText('OFFLINE');
   await page.locator('[data-nav="maps"]').click();
-  await expect(page.locator('#savedMapCount')).toHaveText('1 map');
+  await expect(page.locator('#savedMapCount')).toHaveText('1 map · 4.00 KiB');
   await page.locator('.saved-map-item').first().click();
   await expect(page.locator('#savedMapTitle')).toContainText('e2e_static_map');
+});
+
+test('Saved Maps shows storage size and downloads the selected map bundle', async ({ page }) => {
+  await openDashboard(page, {}, 'maps');
+  await expect(page.locator('#savedMapCount')).toHaveText('1 map · 4.00 KiB');
+  await page.locator('.saved-map-item').first().click();
+  await expect(page.locator('#savedMapSize')).toHaveText('4.00 KiB');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#savedMapDownload').click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('robot-scope-map-e2e_static_map.zip');
 });
 
 test('camera and pointcloud reconnect, then release transports on page switch', async ({ page }) => {

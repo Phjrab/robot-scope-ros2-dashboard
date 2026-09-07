@@ -101,6 +101,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             ("post", "/api/v1/saved-maps/{map_id}/edited-copy"),
             ("get", "/api/v1/saved-maps/{map_id}"),
             ("get", "/api/v1/saved-maps/{map_id}/family"),
+            ("get", "/api/v1/saved-maps/{map_id}/download"),
             ("get", "/api/v1/map-families/{family_id}"),
             ("get", "/api/v1/saved-maps/{map_id}/annotations"),
             ("patch", "/api/v1/saved-maps/{map_id}/annotations"),

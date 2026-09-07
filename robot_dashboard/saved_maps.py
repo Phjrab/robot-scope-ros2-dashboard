@@ -18,8 +18,10 @@ import re
 import secrets
 import shutil
 import stat
+import tempfile
 import threading
 import uuid
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -436,15 +438,176 @@ class SavedMapCatalog:
     def list_snapshot(self) -> Dict[str, Any]:
         with self._lock:
             records = self._scan()
+            artifacts: Dict[tuple[int, int], int] = {}
+            for record in records:
+                for path in (record.path, record.auxiliary_path):
+                    if path is None:
+                        continue
+                    try:
+                        signature = self._regular_signature(path)
+                    except (OSError, SavedMapError):
+                        continue
+                    artifacts[(signature[0], signature[1])] = signature[2]
             return {
                 "enabled": self.enabled,
                 "count": len(records),
+                "total_size_bytes": sum(artifacts.values()),
                 "maps": [record.public() for record in records],
             }
 
     def metadata(self, map_id: str) -> Dict[str, Any]:
         with self._lock:
             return self._find(map_id).public()
+
+    @staticmethod
+    def _read_download_source(
+        source: Path,
+        expected: tuple[int, int, int, int],
+    ) -> bytes:
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = -1
+        try:
+            descriptor = os.open(source, flags)
+            if SavedMapCatalog._stat_signature(os.fstat(descriptor)) != expected:
+                raise SavedMapConflict("saved map changed while preparing download")
+            chunks: list[bytes] = []
+            remaining = expected[2]
+            while remaining:
+                chunk = os.read(descriptor, min(64 * 1024, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            if remaining or SavedMapCatalog._stat_signature(os.fstat(descriptor)) != expected:
+                raise SavedMapConflict("saved map changed while preparing download")
+            payload = b"".join(chunks)
+        except SavedMapError:
+            raise
+        except OSError as exc:
+            raise SavedMapFormatError("saved map could not be read safely") from exc
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+        if SavedMapCatalog._regular_signature(source) != expected:
+            raise SavedMapConflict("saved map changed while preparing download")
+        return payload
+
+    @staticmethod
+    def _write_download_source(
+        archive: zipfile.ZipFile,
+        source: Path,
+        archive_name: str,
+        expected: tuple[int, int, int, int],
+    ) -> Dict[str, Any]:
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = -1
+        digest = hashlib.sha256()
+        copied = 0
+        try:
+            descriptor = os.open(source, flags)
+            if SavedMapCatalog._stat_signature(os.fstat(descriptor)) != expected:
+                raise SavedMapConflict("saved map changed while preparing download")
+            entry = zipfile.ZipInfo(archive_name)
+            entry.compress_type = zipfile.ZIP_STORED
+            entry.external_attr = 0o600 << 16
+            with archive.open(entry, "w", force_zip64=True) as output:
+                while copied < expected[2]:
+                    chunk = os.read(descriptor, min(256 * 1024, expected[2] - copied))
+                    if not chunk:
+                        break
+                    output.write(chunk)
+                    digest.update(chunk)
+                    copied += len(chunk)
+            if copied != expected[2] or SavedMapCatalog._stat_signature(os.fstat(descriptor)) != expected:
+                raise SavedMapConflict("saved map changed while preparing download")
+        except SavedMapError:
+            raise
+        except OSError as exc:
+            raise SavedMapFormatError("saved map could not be read safely") from exc
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+        if SavedMapCatalog._regular_signature(source) != expected:
+            raise SavedMapConflict("saved map changed while preparing download")
+        return {"path": archive_name, "bytes": copied, "sha256": digest.hexdigest()}
+
+    def download_bundle(self, map_id: str) -> tuple[Any, Dict[str, Any]]:
+        """Build a bounded, path-free ZIP for one catalog-owned map record."""
+
+        with self._lock:
+            record = self._find(map_id)
+            self._validate_record(record)
+            primary_signature = self._regular_signature(record.path)
+            auxiliary_signature = (
+                self._regular_signature(record.auxiliary_path)
+                if record.auxiliary_path is not None
+                else None
+            )
+            expected_revision = record.revision
+            output = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+            try:
+                checksums: list[Dict[str, Any]] = []
+                with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
+                    if record.format == "map-server-pgm":
+                        if record.auxiliary_path is None or auxiliary_signature is None:
+                            raise SavedMapFormatError("saved occupancy map image is unavailable")
+                        yaml_bytes = self._read_download_source(
+                            record.path,
+                            primary_signature,
+                        )
+                        rewritten = self._rewrite_yaml_image(
+                            yaml_bytes.decode("utf-8"),
+                            "map.pgm",
+                        ).encode("utf-8")
+                        archive.writestr("map.yaml", rewritten)
+                        checksums.append({
+                            "path": "map.yaml",
+                            "bytes": len(rewritten),
+                            "sha256": hashlib.sha256(rewritten).hexdigest(),
+                        })
+                        checksums.append(self._write_download_source(
+                            archive, record.auxiliary_path, "map.pgm", auxiliary_signature
+                        ))
+                    else:
+                        extension = ".pcd" if record.format == "pcd-binary" else ".json"
+                        checksums.append(self._write_download_source(
+                            archive, record.path, f"map{extension}", primary_signature
+                        ))
+                    public = record.public()
+                    manifest = json.dumps({
+                        "schema_version": "robot-scope.saved-map-download/v1",
+                        "map": public,
+                        "files": checksums,
+                    }, ensure_ascii=False, allow_nan=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+                    archive.writestr("manifest.json", manifest)
+                if (
+                    self._regular_signature(record.path) != primary_signature
+                    or (
+                        record.auxiliary_path is not None
+                        and self._regular_signature(record.auxiliary_path) != auxiliary_signature
+                    )
+                    or self._signature_revision(
+                        (record.path, record.auxiliary_path)
+                        if record.auxiliary_path is not None
+                        else (record.path,)
+                    ) != expected_revision
+                ):
+                    raise SavedMapConflict("saved map changed while preparing download")
+                size = output.tell()
+                output.seek(0)
+                safe_name = re.sub(r"[^A-Za-z0-9_-]+", "_", record.name).strip("_")[:64]
+                return output, {
+                    "filename": f"robot-scope-map-{safe_name or record.map_id}.zip",
+                    "bytes": size,
+                    "revision": expected_revision,
+                }
+            except Exception:
+                output.close()
+                raise
 
     def map_family(self, map_id: str) -> Dict[str, Any]:
         """Return bounded lineage for one catalog ID without exposing paths."""

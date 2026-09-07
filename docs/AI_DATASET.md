@@ -38,7 +38,8 @@ checkout 안에 두어야 한다면 해당 경로를 `.gitignore`에 명시적�
 
 HTTP 요청은 경로나 파일명을 받지 않습니다. 서버가 세션 ID와 샘플 번호를 만들며,
 각 샘플은 같은 파일시스템의 임시 디렉터리에 완성한 뒤 원자적으로 게시합니다. 대략적인
-구조는 다음과 같습니다.
+서버 내부 구조는 다음과 같습니다. 이 구조는 중단 복구를 위한 것이며 다운로드 ZIP의
+구조와는 다릅니다.
 
 ~~~text
 runtime/datasets/
@@ -48,6 +49,21 @@ runtime/datasets/
         ├── go2_front.jpg          # 선택한 경우
         ├── realsense_color.jpg    # 선택한 경우
         └── metadata.json
+~~~
+
+완료된 세션을 `EXPORT FINALIZED ZIP`으로 받으면 사진마다 하위 폴더를 만들지 않습니다.
+모든 JPEG는 `images/` 한 폴더에 `<8자리 샘플번호>_<소스>.jpg` 이름으로, 대응
+메타데이터는 `metadata/` 한 폴더에 `<8자리 샘플번호>.json` 이름으로 들어갑니다.
+
+~~~text
+robot-scope-dataset-<session-id>.zip
+├── manifest.json
+├── SHA256SUMS.json
+├── images/
+│   ├── 00000001_go2_front.jpg
+│   └── 00000001_realsense_color.jpg
+└── metadata/
+    └── 00000001.json
 ~~~
 
 두 카메라를 선택하면 대시보드 호스트에서 관측한 시각이 가까운 두 프레임만 한 샘플로

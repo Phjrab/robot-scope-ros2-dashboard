@@ -274,14 +274,25 @@ class DatasetCaptureTests(unittest.TestCase):
                 names = bundle.namelist()
                 self.assertIn("manifest.json", names)
                 self.assertIn("SHA256SUMS.json", names)
-                self.assertIn("samples/00000001/go2_front.jpg", names)
+                self.assertIn("images/00000001_go2_front.jpg", names)
+                self.assertIn("metadata/00000001.json", names)
+                self.assertFalse(any(name.startswith("samples/") for name in names))
+                image_parents = {
+                    Path(name).parent.as_posix()
+                    for name in names
+                    if name.endswith(".jpg")
+                }
+                self.assertEqual(image_parents, {"images"})
                 checksums = json.loads(bundle.read("SHA256SUMS.json"))
                 self.assertEqual(
                     checksums["schema_version"],
                     "robot-scope.dataset-export/v1",
                 )
+                self.assertEqual(checksums["archive_layout"], "flat-images-v1")
                 exported_manifest = json.loads(bundle.read("manifest.json"))
                 self.assertEqual(exported_manifest["output_path"], "managed-dataset-root")
+                self.assertEqual(exported_manifest["archive_layout"], "flat-images-v1")
+                self.assertEqual(exported["archive_layout"], "flat-images-v1")
             self.assertFalse(any(manager.exports_dir.glob(".*.tmp")))
 
     def test_export_rejects_unfinished_traversal_low_disk_and_cleans_partial(self):

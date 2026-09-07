@@ -54,13 +54,18 @@ completed session. The server creates the name and opaque export ID. Export:
 - checks the existing filesystem reserve before and during publication;
 - stores entries without decompression ambiguity;
 - writes `SHA256SUMS.json` for every exported file;
+- flattens JPEGs into one `images/` directory and sample JSON into one
+  `metadata/` directory, using the zero-padded sample index and fixed source ID
+  to prevent collisions;
 - replaces the private temporary archive atomically, then publishes metadata;
 - removes temporary, archive and sidecar artifacts on cancellation or failure;
 - counts as Dataset work, so dashboard lifecycle stop/restart remains blocked.
 
 The browser receives only an opaque download URL, filename, size and hashes.
 The exported manifest replaces the dashboard's private filesystem path with
-`managed-dataset-root`.
+`managed-dataset-root` and declares `archive_layout=flat-images-v1`. The private
+server session still uses per-sample directories for atomic publication and
+recovery; that internal layout is not copied into the downloadable ZIP.
 
 ## Laptop handoff
 

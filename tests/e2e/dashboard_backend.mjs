@@ -451,13 +451,18 @@ export async function installDashboardBackend(page, options = {}) {
       return json(route, { max_points: state.pointMax, all_points: false, min_points: 1_000, max_custom_points: 1_000_000 });
     }
     if (path === '/api/v1/pointcloud.bin' || path === '/api/v1/pointcloud' || path === '/api/v1/map') return route.fulfill({ status: 204, body: '' });
-    if (path === '/api/v1/saved-maps') return json(route, { maps: [{
+    if (path === '/api/v1/saved-maps') return json(route, { total_size_bytes: 4096, maps: [{
       id: MAP_ID, revision: state.mapRevision, name: 'e2e_static_map', kind: 'occupancy2d',
       format: 'map-server-pgm', file_name: 'e2e_static_map.yaml', frame_id: 'map',
-      width: 4, height: 4, resolution: 0.25, origin: [0, 0, 0], manageable: true, editable: true,
+      width: 4, height: 4, resolution: 0.25, origin: [0, 0, 0], size_bytes: 4096, manageable: true, editable: true,
       data_url: `/api/v1/saved-maps/${MAP_ID}/data`,
       annotations_url: `/api/v1/saved-maps/${MAP_ID}/annotations`,
     }] });
+    if (path === `/api/v1/saved-maps/${MAP_ID}/download`) return route.fulfill({
+      status: 200, contentType: 'application/zip',
+      headers: { 'Content-Disposition': 'attachment; filename="robot-scope-map-e2e_static_map.zip"' },
+      body: 'mock-map-zip',
+    });
     if (path === `/api/v1/saved-maps/${MAP_ID}/data`) return json(route, {
       id: MAP_ID, revision: state.mapRevision, name: 'e2e_static_map', frame_id: 'map',
       width: 4, height: 4, resolution: 0.25, origin: [0, 0, 0], data_b64: 'AAAAAAAAAAAAAAAAAAAAAA==',

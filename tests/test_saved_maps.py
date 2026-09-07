@@ -3,6 +3,7 @@ import struct
 import tempfile
 import threading
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -96,6 +97,57 @@ class SavedMapCatalogTests(unittest.TestCase):
         serialized = json.dumps(snapshot)
         self.assertNotIn(str(self.root), serialized)
         self.assertTrue(all(len(item["id"]) == 24 for item in snapshot["maps"]))
+        self.assertEqual(
+            snapshot["total_size_bytes"],
+            sum(path.stat().st_size for path in self.root.iterdir()),
+        )
+
+    def test_download_bundles_are_flat_revision_pinned_and_path_free(self):
+        records = self.catalog.list_snapshot()["maps"]
+        occupancy = next(item for item in records if item["kind"] == "occupancy2d")
+        pointcloud = next(item for item in records if item["file_name"] == "room.pcd")
+
+        for record, expected_files in (
+            (occupancy, {"map.yaml", "map.pgm", "manifest.json"}),
+            (pointcloud, {"map.pcd", "manifest.json"}),
+        ):
+            handle, metadata = self.catalog.download_bundle(record["id"])
+            try:
+                self.assertEqual(metadata["revision"], record["revision"])
+                self.assertRegex(metadata["filename"], r"^robot-scope-map-[A-Za-z0-9_-]+\.zip$")
+                self.assertGreater(metadata["bytes"], 0)
+                with zipfile.ZipFile(handle) as bundle:
+                    self.assertEqual(set(bundle.namelist()), expected_files)
+                    self.assertFalse(any("/" in name for name in bundle.namelist()))
+                    manifest = json.loads(bundle.read("manifest.json"))
+                    self.assertEqual(
+                        manifest["schema_version"],
+                        "robot-scope.saved-map-download/v1",
+                    )
+                    self.assertEqual(manifest["map"]["id"], record["id"])
+                    self.assertNotIn(str(self.root), json.dumps(manifest))
+                    if record["kind"] == "occupancy2d":
+                        self.assertIn("image: map.pgm", bundle.read("map.yaml").decode("utf-8"))
+            finally:
+                handle.close()
+
+    def test_download_rejects_unknown_map_and_detects_source_replacement(self):
+        with self.assertRaises(SavedMapNotFound):
+            self.catalog.download_bundle("f" * 24)
+        room = next(
+            item for item in self.catalog.list_snapshot()["maps"]
+            if item["file_name"] == "room.pcd"
+        )
+        original = self.catalog._write_download_source
+
+        def replace_after_write(archive, source, archive_name, expected):
+            result = original(archive, source, archive_name, expected)
+            source.write_bytes(source.read_bytes() + b"changed")
+            return result
+
+        with patch.object(self.catalog, "_write_download_source", side_effect=replace_after_write):
+            with self.assertRaises(SavedMapConflict):
+                self.catalog.download_bundle(room["id"])
 
     def test_pcd_custom_limit_is_normalized_for_scene_renderer(self):
         record = next(item for item in self.catalog.list_snapshot()["maps"] if item["file_name"] == "room.pcd")
