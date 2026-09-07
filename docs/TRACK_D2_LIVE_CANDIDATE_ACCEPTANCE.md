@@ -1051,3 +1051,53 @@ INITIAL_POSE=NOT_RUN
 NAV2_GOAL=NOT_RUN
 MOTION=NOT_RUN
 ```
+
+## PCL qualification rejection — 2026-09-08
+
+The opt-in implementation was published for review at `0f1fd15`, but it was
+not activated. An exact inactive aarch64 staging build exposed an NDT2D
+no-overlap failure in the deterministic corpus and an unsafe internal GICP
+optimizer failure. Production remained on `fee0b39`; no environment setting,
+stable release link or running service was changed.
+
+Follow-up `bc3b7c9e0e137b7c385befe41aaa91d8b1bfdfac` converts catchable PCL
+refinement failures and invalid out-of-plane transforms into explicitly
+rejected bounded-seed diagnostics. It also adds strict benchmark accounting,
+where all cases must converge, remain policy-accepted and meet the published
+D1 median/p95 error limits. Its exact release archive SHA-256 was
+`0a7ac2d19f8942a6c2813de861c5d41b460b3fb6b0dc23613ec24cc608e6bda0`.
+The external Orin built both optional PCL executables and passed the C++ test.
+
+The strict NDT2D result was:
+
+```text
+cases = 10
+converged_cases = 0
+accepted_cases = 0
+acceptance_pass = false
+translation median/p95 = 0.005111 / 0.016583 m
+yaw median/p95 = 0.173053 / 0.280629 deg
+runtime p50/p95 = 7319.814 / 7679.981 ms
+```
+
+The error numbers are the preserved bounded-seed diagnostics after NDT2D
+failure, not successful PCL estimates. An identical-cloud check also produced
+three no-overlap failures and no converged candidate. NDT2D therefore cannot
+be selected for D2 live use. GICP was not rerun after its prior internal PCL
+assertion because a process abort is already disqualifying evidence. The final
+runtime allowlist contains only `bounded-se2-icp`; both PCL executables remain
+offline diagnostic builds.
+
+```text
+D2_PCL_AARCH64_BUILD=PASS
+D2_PCL_NDT2D_STRICT_CORPUS=FAIL
+D2_PCL_GICP_RUNTIME_QUALIFICATION=FAIL_NOT_RERUN
+D2_PCL_RUNTIME_ALLOWED=false
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+PRODUCTION_RELEASE_UNCHANGED=fee0b39e307ec76818820e57940405847fff49a6
+```

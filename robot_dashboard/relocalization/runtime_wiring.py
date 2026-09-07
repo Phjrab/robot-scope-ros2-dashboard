@@ -29,9 +29,6 @@ REGISTRATION_RELATIVE_PATH = Path(
 REGISTRATION_BACKEND_ENV = "ROBOT_SCOPE_D2_REGISTRATION_BACKEND"
 REGISTRATION_BACKENDS = {
     BACKEND: REGISTRATION_RELATIVE_PATH,
-    "pcl-ndt2d": Path(
-        "build/robot_scope_registration/robot_scope_offline_registration_pcl_ndt2d"
-    ),
 }
 
 

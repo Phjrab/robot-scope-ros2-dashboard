@@ -116,8 +116,8 @@ policy. The server chooses one exact executable from a fixed environment-owned
 allowlist before constructing the manager. HTTP callers cannot select a
 backend, and the default remains `bounded-se2-icp`.
 
-The GICP executable is available for offline comparison only; it is not in the
-D2 runtime selection allowlist. A failed refinement, exception or non-finite
+Both PCL executables are available for offline comparison only; neither is in
+the D2 runtime selection allowlist. A failed refinement, exception or non-finite
 or out-of-plane transform is converted to a rejected candidate using the
 original bounded seed for diagnostics. Such a failure can never be repackaged
 as a converged result or trigger a fallback to another backend.
@@ -134,3 +134,13 @@ existing ordering. This correctly remains an advisory ambiguous result. It is
 evidence that the previous `converged=false` condition can be isolated without
 weakening the portable engine's convergence threshold; it is not evidence for
 automatic pose application or navigation readiness.
+
+The exact `bc3b7c9e0e137b7c385befe41aaa91d8b1bfdfac` aarch64 release then
+re-ran the deterministic ten-case corpus with the strict acceptance switch.
+NDT2D safely returned rejected bounded-seed diagnostics for all ten cases:
+zero converged and zero policy-accepted cases. Its small aggregate error is
+therefore not an NDT2D result and cannot qualify the backend. Even identical
+reference/query input reproduced the no-overlap failure. GICP had already
+shown that malformed optimizer state can terminate inside PCL before a C++
+exception is available. Both backends consequently remain build-time offline
+experiments; the runtime allowlist is again the portable bounded backend only.
