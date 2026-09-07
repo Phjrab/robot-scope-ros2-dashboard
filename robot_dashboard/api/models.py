@@ -212,6 +212,49 @@ class MissionActionRequest(StrictRequest):
     pass
 
 
+class SpatialRouteMapFamilyRequest(StrictRequest):
+    family_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    family_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    pcd_map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    pcd_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    occupancy_map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    occupancy_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class SpatialRoutePolicyRequest(StrictRequest):
+    mode: Literal["FLEXIBLE", "CORRIDOR", "STRICT"]
+    corridor_width_m: float = Field(strict=True, ge=0.1, le=5.0)
+    blocked_behavior: Literal["REPLAN", "STOP", "REQUIRE_OPERATOR"]
+
+
+class SpatialRoutePoseRequest(StrictRequest):
+    x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
+    yaw: float = Field(strict=True, ge=-3.141592653589793, le=3.141592653589793)
+    z: float | None = Field(default=None, strict=True, ge=-1_000.0, le=1_000.0)
+    arrival_tolerance: float = Field(default=0.35, strict=True, ge=0.05, le=2.0)
+    speed_scale: float = Field(default=0.5, strict=True, ge=0.05, le=1.0)
+    hold_seconds: float = Field(default=0.0, strict=True, ge=0.0, le=300.0)
+    requires_operator_confirmation: bool = Field(default=False, strict=True)
+
+
+class SpatialRouteCreateRequest(StrictRequest):
+    label: str = Field(min_length=1, max_length=64)
+    map_family: SpatialRouteMapFamilyRequest
+    authoring_source: Literal["POINT_CLICK", "GHOST_DRIVE", "IMPORT"]
+    policy: SpatialRoutePolicyRequest
+    poses: list[SpatialRoutePoseRequest] = Field(min_length=1, max_length=4_096)
+
+
+class SpatialRouteUpdateRequest(SpatialRouteCreateRequest):
+    base_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class SpatialRouteCopyRequest(StrictRequest):
+    base_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    label: str = Field(min_length=1, max_length=64)
+
+
 class ServiceLifecycleRequest(StrictRequest):
     confirmed: bool = Field(strict=True)
 

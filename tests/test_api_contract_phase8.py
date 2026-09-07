@@ -61,14 +61,14 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 111)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 110)
+        self.assertEqual(len(http), 117)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 116)
         self.assertEqual(
             {
                 method: sum(candidate == method for candidate, _ in http)
                 for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             },
-            {"GET": 49, "POST": 55, "PUT": 1, "PATCH": 4, "DELETE": 2},
+            {"GET": 51, "POST": 57, "PUT": 1, "PATCH": 5, "DELETE": 3},
         )
         self.assertTrue(
             {
@@ -98,6 +98,12 @@ class Phase8ApiContractTests(unittest.TestCase):
                 ("GET", "/api/v1/relocalization/{job_id}"),
                 ("POST", "/api/v1/relocalization/{job_id}/cancel"),
                 ("GET", "/api/v1/relocalization/{job_id}/preview"),
+                ("GET", "/api/v1/routes"),
+                ("POST", "/api/v1/routes"),
+                ("GET", "/api/v1/routes/{route_id}"),
+                ("PATCH", "/api/v1/routes/{route_id}"),
+                ("DELETE", "/api/v1/routes/{route_id}"),
+                ("POST", "/api/v1/routes/{route_id}/copy"),
             }.issubset(set(http))
         )
         self.assertEqual(
@@ -118,7 +124,7 @@ class Phase8ApiContractTests(unittest.TestCase):
             for entry in route_inventory()
             if entry[0] in {"POST", "PUT", "PATCH", "DELETE"}
         ]
-        self.assertEqual(len(mutations), 62)
+        self.assertEqual(len(mutations), 66)
         for method, path, _, function in mutations:
             with self.subTest(method=method, path=path):
                 self.assertTrue(calls_name(function, "require_same_origin"))

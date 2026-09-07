@@ -38,7 +38,7 @@ from .api.routers.missions import router as missions_router
 from .api.routers.map_families import create_router as create_map_families_router
 from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
-from .api.routers.route_planner import router as route_planner_router
+from .api.routers.route_catalogs import router as route_planner_router
 from .api.routers.relocalization import router as relocalization_router
 from .api.routers.system import router as system_router
 from .api.routers.telemetry import router as telemetry_router
@@ -125,6 +125,7 @@ from .saved_maps import (
     SavedMapReadOnly,
     prepare_private_map_root,
 )
+from .spatial_routes import SpatialRouteCatalog
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 LOGGER = logging.getLogger(__name__)
 RUNTIME = ApplicationRuntime()
@@ -1323,10 +1324,8 @@ def parse_args() -> argparse.Namespace:
         "--dataset-output-dir",
         default=str(Path(__file__).resolve().parents[1] / "runtime" / "datasets"),
     )
-    parser.add_argument(
-        "--navigation-runtime-dir",
-        default="~/.local/state/robot-scope/navigation",
-    )
+    parser.add_argument("--navigation-runtime-dir", default="~/.local/state/robot-scope/navigation")
+    parser.add_argument("--spatial-route-dir", default="~/.local/state/robot-scope/spatial-routes")
     parser.add_argument(
         "--operator-event-dir",
         default=str(
@@ -1436,6 +1435,7 @@ def main() -> None:
         require_pipeline_for_save=False,
     )
     RUNTIME.saved_maps = catalog
+    RUNTIME.spatial_routes = SpatialRouteCatalog(Path(args.spatial_route_dir).expanduser().resolve(), catalog)
     def dataset_metadata_snapshot() -> Dict[str, Any]:
         metadata = RUNTIME.agent.pose_snapshot()
         if RUNTIME.perception is not None:
