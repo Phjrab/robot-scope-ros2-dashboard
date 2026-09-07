@@ -71,3 +71,16 @@ async def close_relocalization(runtime: ApplicationRuntime, logger: Any) -> None
         await asyncio.to_thread(runtime.relocalization.close)
     except Exception:
         logger.exception("relocalization manager shutdown failed")
+
+
+def configure_stationary_relocalization(
+    runtime: ApplicationRuntime,
+    args: Any,
+    project_dir: Any,
+    catalog: Any,
+) -> None:
+    """Delegate optional D2 construction outside the application hotspot."""
+
+    from ..relocalization.runtime_wiring import configure_stationary_relocalization
+
+    configure_stationary_relocalization(runtime, args, project_dir, catalog)

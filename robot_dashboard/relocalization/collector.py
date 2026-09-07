@@ -24,6 +24,7 @@ from .manager import (
 
 CloudProvider = Callable[[], Mapping[str, Any]]
 MotionProvider = Callable[[], Mapping[str, Any]]
+SafetyCheck = Callable[[], None]
 
 
 class FixedCloudRegisteredCollector:
@@ -38,6 +39,7 @@ class FixedCloudRegisteredCollector:
         cloud_provider: CloudProvider,
         motion_provider: MotionProvider,
         *,
+        safety_check: SafetyCheck | None = None,
         clock: Callable[[], float] = time.monotonic,
         duration_s: float = COLLECTION_DURATION_S,
         poll_interval_s: float = 0.01,
@@ -46,6 +48,7 @@ class FixedCloudRegisteredCollector:
             raise RelocalizationValidationError("collector timing is invalid")
         self._cloud_provider = cloud_provider
         self._motion_provider = motion_provider
+        self._safety_check = safety_check
         self._clock = clock
         self._duration_s = duration_s
         self._poll_interval_s = poll_interval_s
@@ -65,6 +68,8 @@ class FixedCloudRegisteredCollector:
         while self._clock() < deadline and len(stamps) < MAX_FRAMES:
             if cancel_event.is_set():
                 raise RelocalizationConflict("collection canceled")
+            if self._safety_check is not None:
+                self._safety_check()
             cloud = self._cloud_provider()
             if not isinstance(cloud, Mapping):
                 raise RelocalizationUnavailable("cloud source readiness failed")
@@ -98,6 +103,8 @@ class FixedCloudRegisteredCollector:
                 maximum_imu = max(maximum_imu, _finite_nonnegative(motion.get("imu_angular_rate_rps"), "IMU angular rate"))
                 maximum_yaw_delta = max(maximum_yaw_delta, abs(_angle_delta(pose[2], start_pose[2])))
             time.sleep(self._poll_interval_s)
+        if self._safety_check is not None:
+            self._safety_check()
         if start_pose is None or end_pose is None:
             raise RelocalizationUnavailable("no live cloud frames were collected")
         dx, dy = end_pose[0] - start_pose[0], end_pose[1] - start_pose[1]

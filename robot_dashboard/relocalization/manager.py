@@ -158,7 +158,12 @@ class StationaryRelocalizationManager:
 
     def start(self, request: Mapping[str, Any]) -> dict[str, Any]:
         normalized = _parse_request(request, self._global_search_enabled)
-        _require_stationary_preflight(self._safety_provider())
+        require_stationary_preflight(
+            self._safety_provider(),
+            physical_safety_confirmed=normalized.pop(
+                "physical_safety_confirmed"
+            ),
+        )
         with self._lock:
             if self._active_job_id is not None:
                 raise RelocalizationBusy("a relocalization job is already active")
@@ -393,9 +398,20 @@ class _Canceled(RuntimeError):
 
 
 def _parse_request(payload: Mapping[str, Any], global_search_enabled: bool) -> dict[str, Any]:
-    expected = {"map_id", "map_revision", "source_pcd_id", "source_pcd_revision", "seed"}
+    expected = {
+        "map_id",
+        "map_revision",
+        "source_pcd_id",
+        "source_pcd_revision",
+        "seed",
+        "physical_safety_confirmed",
+    }
     if not isinstance(payload, Mapping) or set(payload) != expected:
         raise RelocalizationValidationError("relocalization request schema is invalid")
+    if payload.get("physical_safety_confirmed") is not True:
+        raise RelocalizationValidationError(
+            "fresh physical safety confirmation is required"
+        )
     for key, length in (("map_id", 24), ("source_pcd_id", 24), ("map_revision", 64), ("source_pcd_revision", 64)):
         value = payload.get(key)
         if not isinstance(value, str) or len(value) != length or any(c not in "0123456789abcdef" for c in value):
@@ -418,15 +434,34 @@ def _parse_request(payload: Mapping[str, Any], global_search_enabled: bool) -> d
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or not minimum <= float(value) <= maximum:
             raise RelocalizationValidationError(f"seed {key} is invalid")
         normalized_seed[key] = float(value)
-    return {key: str(payload[key]) for key in expected - {"seed"}} | {"seed": normalized_seed}
+    identity_keys = {
+        "map_id",
+        "map_revision",
+        "source_pcd_id",
+        "source_pcd_revision",
+    }
+    return {key: str(payload[key]) for key in identity_keys} | {
+        "seed": normalized_seed,
+        "physical_safety_confirmed": True,
+    }
 
 
-def _require_stationary_preflight(value: Mapping[str, Any]) -> None:
+def require_stationary_preflight(
+    value: Mapping[str, Any],
+    *,
+    physical_safety_confirmed: bool,
+) -> None:
+    if physical_safety_confirmed is not True:
+        raise RelocalizationUnavailable(
+            "fresh physical safety confirmation is required"
+        )
     required = {
         "profile": PROFILE, "stationary": True, "control_disarmed": True,
         "control_lease_active": False, "navigation_lease_active": False,
         "deadman": False, "goal_idle": True, "mapping_active": False,
-        "dataset_active": False, "physical_safety_ready": True,
+        "dataset_active": False, "observation_pipeline_running": True,
+        "motion_evidence_fresh": True, "control_bridge_ready": True,
+        "software_stop_latched": False,
         "source_topic": SOURCE_TOPIC, "source_frame": SOURCE_FRAME,
         "source_publishers": 1, "source_fresh": True, "source_qos_valid": True,
     }

@@ -185,6 +185,7 @@ class RelocalizationStartRequest(StrictRequest):
     source_pcd_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     source_pcd_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     seed: RelocalizationSeedRequest
+    physical_safety_confirmed: bool = Field(strict=True)
 
 
 class RelocalizationCancelRequest(StrictRequest):

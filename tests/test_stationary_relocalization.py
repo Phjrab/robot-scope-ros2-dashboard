@@ -20,6 +20,11 @@ from robot_dashboard.relocalization.manager import (
     _compose_pose,
 )
 from robot_dashboard.relocalization.process_adapter import RegistrationProcessError
+from robot_dashboard.relocalization.runtime_wiring import (
+    REGISTRATION_RELATIVE_PATH,
+    build_stationary_relocalization_manager,
+    stationary_runtime_snapshot,
+)
 from robot_dashboard.ros.relocalization_evidence import (
     CLOUD_TOPIC,
     CLOUD_TYPE,
@@ -188,7 +193,10 @@ def safety(**updates):
         "goal_idle": True,
         "mapping_active": False,
         "dataset_active": False,
-        "physical_safety_ready": True,
+        "observation_pipeline_running": True,
+        "motion_evidence_fresh": True,
+        "control_bridge_ready": True,
+        "software_stop_latched": False,
         "source_topic": "/cloud_registered",
         "source_frame": "camera_init",
         "source_publishers": 1,
@@ -206,6 +214,7 @@ def request(**updates):
         "map_revision": MAP_REVISION,
         "source_pcd_id": PCD_ID,
         "source_pcd_revision": PCD_REVISION,
+        "physical_safety_confirmed": True,
         "seed": {
             "mode": "REGION",
             "x": 0.0,
@@ -296,6 +305,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
         self.assertFalse(result["candidate_applied"])
         self.assertEqual(result["family_revision"], "6" * 64)
         self.assertEqual(result["collection"]["frames"], 25)
+        self.assertNotIn("physical_safety_confirmed", result)
         self.assertEqual(set(result["preview_layers"]), {"reference", "current", "aligned"})
         self.assertEqual(harness.registration.calls[0]["reference_pcd"].split("/")[-1], "reference.pcd")
 
@@ -357,6 +367,10 @@ class StationaryRelocalizationTests(unittest.TestCase):
             safety(velocity={"vx": 0.001, "vy": 0.0, "wz": 0.0}),
             safety(control_lease_active=True),
             safety(source_fresh=False),
+            safety(observation_pipeline_running=False),
+            safety(motion_evidence_fresh=False),
+            safety(control_bridge_ready=False),
+            safety(software_stop_latched=True),
             {},
         ):
             manager = StationaryRelocalizationManager(
@@ -410,10 +424,14 @@ class StationaryRelocalizationTests(unittest.TestCase):
 
     def test_request_is_strict_and_global_search_disabled(self):
         harness = Harness(self)
+        missing_confirmation = request()
+        missing_confirmation.pop("physical_safety_confirmed")
         for candidate in (
             request(extra=True),
             request(seed={**request()["seed"], "mode": "NONE"}),
             request(source_pcd_id="outside/path"),
+            request(physical_safety_confirmed=False),
+            missing_confirmation,
         ):
             with self.assertRaises(RelocalizationValidationError):
                 harness.manager.start(candidate)
@@ -594,6 +612,229 @@ class StationaryRelocalizationTests(unittest.TestCase):
         )
         with self.assertRaises(RelocalizationUnavailable):
             collector.collect(threading.Event())
+
+    def test_collector_rechecks_runtime_safety_during_collection(self):
+        packed = b"".join(struct.pack("<fff", *point) for point in points())
+        sequence = 0
+        safety_checks = 0
+
+        def cloud():
+            nonlocal sequence
+            sequence += 1
+            return {
+                "seq": sequence,
+                "stamp_ns": sequence,
+                "topic": "/cloud_registered",
+                "frame_id": "camera_init",
+                "publisher_count": 1,
+                "fresh": True,
+                "qos_valid": True,
+                "source_points": 600,
+                "points_bytes": packed,
+            }
+
+        def safety_check():
+            nonlocal safety_checks
+            safety_checks += 1
+            if safety_checks == 2:
+                raise RelocalizationUnavailable("control lease became active")
+
+        collector = FixedCloudRegisteredCollector(
+            cloud,
+            lambda: {
+                "fresh": True,
+                "base_pose_odom": [0.0, 0.0, 0.0],
+                "fastlio_twist_mps": 0.0,
+                "imu_angular_rate_rps": 0.0,
+            },
+            safety_check=safety_check,
+            duration_s=0.1,
+            poll_interval_s=0.001,
+        )
+        with self.assertRaisesRegex(RelocalizationUnavailable, "lease"):
+            collector.collect(threading.Event())
+
+    def test_collector_rechecks_runtime_safety_after_collection_window(self):
+        packed = b"".join(struct.pack("<fff", *point) for point in points())
+        now = 0.0
+        safety_checks = 0
+
+        def clock():
+            return now
+
+        def cloud():
+            nonlocal now
+            now = 0.2
+            return {
+                "seq": 1,
+                "stamp_ns": 1,
+                "topic": "/cloud_registered",
+                "frame_id": "camera_init",
+                "publisher_count": 1,
+                "fresh": True,
+                "qos_valid": True,
+                "source_points": 600,
+                "points_bytes": packed,
+            }
+
+        def safety_check():
+            nonlocal safety_checks
+            safety_checks += 1
+            if safety_checks == 2:
+                raise RelocalizationUnavailable("goal became active")
+
+        collector = FixedCloudRegisteredCollector(
+            cloud,
+            lambda: {
+                "fresh": True,
+                "base_pose_odom": [0.0, 0.0, 0.0],
+                "fastlio_twist_mps": 0.0,
+                "imu_angular_rate_rps": 0.0,
+            },
+            safety_check=safety_check,
+            clock=clock,
+            duration_s=0.1,
+            poll_interval_s=0.001,
+        )
+        with self.assertRaisesRegex(RelocalizationUnavailable, "goal"):
+            collector.collect(threading.Event())
+        self.assertEqual(safety_checks, 2)
+
+    def test_runtime_wiring_is_exact_opt_in_and_projects_fail_closed_state(self):
+        class Agent:
+            observer_enabled = True
+
+            def control_snapshot(self):
+                return {
+                    "lease": {"active": False, "input_source": None},
+                    "command": {
+                        "deadman": False,
+                        "linear_x": 0.0,
+                        "linear_y": 0.0,
+                        "angular_z": 0.0,
+                    },
+                    "action_guard": {"active": False},
+                    "estop_latched": False,
+                    "bridge": {
+                        "ready": True,
+                        "authenticated": True,
+                        "connected": True,
+                        "sport_mode_state": {
+                            "fresh": True,
+                            "velocity": [0.0, -0.0, 0.0],
+                        },
+                    },
+                }
+
+            def relocalization_cloud_snapshot(self):
+                return {
+                    "topic": "/cloud_registered",
+                    "frame_id": "camera_init",
+                    "publisher_count": 1,
+                    "fresh": True,
+                    "qos_valid": True,
+                }
+
+            def relocalization_motion_snapshot(self):
+                return {"fresh": True}
+
+            def relocalization_evidence_snapshot(self):
+                return {"enabled": self.observer_enabled}
+
+        class MappingOwner:
+            active = False
+            state = "running"
+
+            def activity(self):
+                return self.active, ([] if not self.active else ["saving"])
+
+            def pipeline_state(self):
+                return self.state
+
+        class Navigation:
+            active = False
+
+            def is_active(self):
+                return self.active
+
+            def view(self):
+                return {"goal": {"state": "idle"}}
+
+        class Dataset:
+            active = False
+
+            def is_active(self):
+                return self.active
+
+        class Catalog:
+            def snapshot_relocalization_family(self, *args):
+                raise AssertionError("not called")
+
+            def relocalization_family_is_current(self, bundle):
+                return False
+
+        agent = Agent()
+        mapping = MappingOwner()
+        navigation = Navigation()
+        dataset = Dataset()
+        profile = "go2-xt16-wireless-competition-fastlio"
+        snapshot = stationary_runtime_snapshot(
+            mapping_profile=profile,
+            agent=agent,
+            mapping=mapping,
+            navigation=navigation,
+            dataset_capture=dataset,
+        )
+        self.assertEqual(snapshot, safety())
+
+        mapping.state = "idle"
+        self.assertFalse(
+            stationary_runtime_snapshot(
+                mapping_profile=profile,
+                agent=agent,
+                mapping=mapping,
+                navigation=navigation,
+                dataset_capture=dataset,
+            )["observation_pipeline_running"]
+        )
+        mapping.state = "running"
+
+        with tempfile.TemporaryDirectory(prefix="robot-scope-d2-wiring-") as temporary:
+            root = Path(temporary)
+            executable = root / "project" / REGISTRATION_RELATIVE_PATH
+            executable.parent.mkdir(parents=True)
+            executable.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+            executable.chmod(0o700)
+            runtime_root = root / "runtime"
+            kwargs = {
+                "project_dir": root / "project",
+                "runtime_root": runtime_root,
+                "mapping_profile": profile,
+                "agent": agent,
+                "catalog": Catalog(),
+                "mapping": mapping,
+                "navigation": navigation,
+                "dataset_capture": dataset,
+            }
+            self.assertIsNone(
+                build_stationary_relocalization_manager(enabled=False, **kwargs)
+            )
+            manager = build_stationary_relocalization_manager(
+                enabled=True, **kwargs
+            )
+            self.assertIsInstance(manager, StationaryRelocalizationManager)
+            self.addCleanup(manager.close)
+            self.assertEqual(runtime_root.stat().st_mode & 0o777, 0o700)
+
+            agent.observer_enabled = False
+            with self.assertRaisesRegex(RuntimeError, "observer"):
+                build_stationary_relocalization_manager(enabled=True, **kwargs)
+            agent.observer_enabled = True
+            with self.assertRaisesRegex(RuntimeError, "profile"):
+                build_stationary_relocalization_manager(
+                    enabled=True,
+                    **{**kwargs, "mapping_profile": "go2-xt16-wireless"},
+                )
 
     @staticmethod
     def _evidence_observer(

@@ -1,9 +1,10 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_REPOSITORY_SOFTWARE_PASS`; live source qualified; candidate not run
+Status: `D2_RUNTIME_WIRING_SOFTWARE_PASS`; live source qualified; candidate not run
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
+D2_RUNTIME_WIRING_SOFTWARE_PASS
 D2_LIVE_SOURCE_QUALIFIED
 STATIONARY_LIVE_CANDIDATE_NOT_RUN
 CANDIDATE_APPLIED=false
@@ -329,3 +330,44 @@ publisher.  Control ended lease-free, deadman false and exact zero, with the
 Bridge non-zero Move count still zero.  Navigation, Localization and goal
 remained idle.  The relocalization manager is still unconfigured, so candidate
 execution remains closed.
+
+## Runtime wiring software acceptance — 2026-09-07
+
+The repository now contains the missing fail-closed runtime construction, but
+it remains disabled in every deployed environment. The manager requires the
+exact competition FAST-LIO profile, the existing observer opt-in and the
+additional explicit opt-in
+`ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION=1`. The executable and private
+runtime paths are server-owned; clients cannot select a process, topic, frame,
+host, port or filesystem path.
+
+Each candidate request now carries a strict, fresh
+`physical_safety_confirmed=true` value. The value is consumed before the job
+worker starts and is not retained in the public result. Runtime facts must
+also prove: authenticated ready Bridge, no lease/deadman/action, exact-zero
+command and fresh Sport velocity, no software-stop latch, idle Navigation,
+goal and Dataset Capture, no conflicting Mapping action, a running fixed
+observation pipeline, fresh motion evidence and one fresh QoS-valid
+`/cloud_registered` publisher in `camera_init`.
+
+The same gate is checked throughout collection and after its final polling
+interval. Hardware-free regressions cover false/missing confirmation, wrong
+profile, missing observer, pipeline or Bridge loss, software stop, lease and
+source readiness changes. Existing `/api/v1/pose`, strict wireless odometry,
+C2 controller odometry and all Control/Nav safety behavior are unchanged.
+
+```text
+RUNTIME_MANAGER_DEFAULT=DISABLED
+DEPLOYMENT=NOT_RUN
+LIVE_CANDIDATE=NOT_RUN
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```
+
+Deployment remains a separate approval gate. It must pin the exact clean
+release, retain the current external release as rollback, enable only the new
+external dashboard flag and restart only that dashboard while Control remains
+disarmed and motion-free. A subsequent live candidate run requires another
+fresh stationary safety confirmation with the exact linked family revisions.

@@ -223,6 +223,22 @@ class Phase8ApiContractTests(unittest.TestCase):
             },
             {"strict": True},
         )
+        relocalization = classes["RelocalizationStartRequest"]
+        assignment = next(
+            node
+            for node in relocalization.body
+            if isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "physical_safety_confirmed"
+        )
+        self.assertIsInstance(assignment.value, ast.Call)
+        self.assertEqual(
+            {
+                keyword.arg: ast.literal_eval(keyword.value)
+                for keyword in assignment.value.keywords
+            },
+            {"strict": True},
+        )
         source = classes["SourceSelection"]
         fields = {
             node.target.id: node

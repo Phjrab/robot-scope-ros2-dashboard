@@ -27,7 +27,7 @@ from .application.mapping_coordinator import (
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
-from .application.runtime import ApplicationRuntime, close_relocalization
+from .application.runtime import ApplicationRuntime, close_relocalization, configure_stationary_relocalization
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -1545,6 +1545,7 @@ def main() -> None:
         ),
         dataset_capture_active_provider=RUNTIME.dataset_capture.is_active,
     )
+    configure_stationary_relocalization(RUNTIME, args, project_dir, catalog)
     def competition_blockers() -> Dict[str, bool]:
         control = RUNTIME.agent.control_snapshot()
         lease = control.get("lease", {})

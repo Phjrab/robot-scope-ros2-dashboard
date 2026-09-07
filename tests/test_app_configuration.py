@@ -104,6 +104,29 @@ class AppConfigurationTests(unittest.TestCase):
             10,
         )
 
+    def test_stationary_relocalization_manager_is_explicitly_opt_in(self):
+        root = Path(__file__).parents[1]
+        source = (root / "robot_dashboard" / "app.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("configure_stationary_relocalization", source)
+        wiring = (
+            root / "robot_dashboard" / "relocalization" / "runtime_wiring.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("build_stationary_relocalization_manager", wiring)
+        self.assertIn(
+            'os.environ.get(RELOCALIZATION_ENABLE_ENV) == "1"',
+            wiring,
+        )
+        environment = (root / "deploy" / "robot-scope.env.example").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("ROBOT_SCOPE_D2_STATIONARY_OBSERVER=0", environment)
+        self.assertIn(
+            "ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION=0",
+            environment,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

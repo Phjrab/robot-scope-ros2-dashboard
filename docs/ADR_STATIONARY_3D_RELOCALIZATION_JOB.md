@@ -1,6 +1,6 @@
 # ADR: stationary 3D relocalization candidate job
 
-Status: accepted; live source qualified; dedicated D2 provider not yet deployed
+Status: accepted; live source qualified; runtime wiring software complete but not deployed
 
 ## Decision
 
@@ -173,6 +173,37 @@ stationary collection.  The 5 mm limit remains unchanged, the candidate
 manager remains unconfigured, and no registration or apply operation ran.
 Reverse cleanup removed only the Mapping-owned FAST-LIO and IMU processes and
 kept the existing point-cloud preview active.
+
+## Runtime construction boundary
+
+The runtime manager is now constructed only when both fixed opt-ins are
+present. `ROBOT_SCOPE_D2_STATIONARY_OBSERVER=1` enables the fixed evidence
+owner, and `ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION=1` enables the candidate
+manager. The second flag is false by default, requires the exact
+`go2-xt16-wireless-competition-fastlio` profile and refuses startup if the
+observer is absent. The registration executable path is server-owned and
+fixed beneath the exact release; its existing adapter rejects symlinks and
+paths outside the private relocalization runtime root.
+
+Every start request must contain the strict boolean
+`physical_safety_confirmed=true`. It is checked before the worker starts and
+is deliberately removed from the stored/public job result, so it cannot be
+reused as persistent authority. The runtime gate additionally requires an
+authenticated ready Control Bridge, no control or navigation lease, deadman
+released, exact-zero command and fresh Sport velocity, no action guard, no
+software stop latch, idle Navigation/goal and Dataset Capture, and the fixed
+Mapping observation pipeline running without a conflicting mapping action.
+
+The collector re-evaluates that runtime gate before every source poll and once
+more after the bounded collection window. A lease, goal, pipeline loss,
+publisher change, stale source or non-zero velocity therefore fails the job
+closed rather than being hidden by a cached cloud. The manager still has no
+candidate-apply route and does not publish an initial pose or mutate Mapping,
+Navigation, Mission or Control state.
+
+This construction has passed hardware-free tests only. The manager opt-in has
+not been added to either deployed Jetson environment, no service has been
+restarted for it and no live candidate has been generated.
 
 ## Ownership and state
 
