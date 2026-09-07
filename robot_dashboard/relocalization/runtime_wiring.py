@@ -14,6 +14,7 @@ from .manager import (
     PROFILE,
     StationaryRelocalizationManager,
     require_stationary_preflight,
+    sport_velocity_is_stationary,
 )
 from .process_adapter import OfflineRegistrationProcess
 
@@ -168,8 +169,7 @@ def stationary_runtime_snapshot(
     )
     stationary = bool(
         sport.get("fresh") is True
-        and velocity
-        and all(velocity[axis] == 0.0 for axis in ("vx", "vy", "wz"))
+        and sport_velocity_is_stationary(velocity)
     )
     lease_active = lease.get("active") is True
     deadman = command.get("deadman") is True

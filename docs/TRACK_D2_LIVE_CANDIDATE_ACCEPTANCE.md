@@ -1,11 +1,12 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_RUNTIME_DEPLOYED`; live source qualified; candidate not run
+Status: `D2_RUNTIME_DEPLOYED`; stationary-envelope software fix pending deployment; candidate not run
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
 D2_RUNTIME_WIRING_SOFTWARE_PASS
 D2_RUNTIME_DEPLOYED
+D2_STATIONARY_ENVELOPE_SOFTWARE_PASS
 D2_LIVE_SOURCE_QUALIFIED
 STATIONARY_LIVE_CANDIDATE_NOT_RUN
 CANDIDATE_APPLIED=false
@@ -435,3 +436,41 @@ The next action is not automatic. A live candidate collection requires a new
 stationary safety confirmation and a preflight that pins the exact linked
 family/map/PCD revisions, proves the fixed observation pipeline and fresh
 sources, and rechecks every no-lease/no-motion gate.
+
+## First candidate preflight block and stationary envelope — 2026-09-07
+
+After a fresh stationary candidate approval, the pre-command read-only gate
+stopped before starting the observation pipeline or submitting a job. Control
+was lease-free, deadman false and exact zero, and Navigation, Localization and
+goal were idle. The signed, fresh Sport state nevertheless reported
+`[0.003695, -0.003542, -0.031734]` while the physically stationary robot had
+no Robot Scope Move request. The deployed `ebbcf5a...` runtime required each
+raw state-estimator velocity component to equal floating-point zero.
+
+A subsequent fixed ten-second, 20-sample read-only observation contained no
+exact-zero sample. Maximum observed planar velocity was approximately
+`0.0208 m/s` and maximum absolute yaw rate was `0.0323 rad/s`. This is treated
+as an observed stationary state-estimator noise envelope, not as evidence that
+the robot moved and not as authority to relax any command or collection limit.
+
+The repository fix remains specific to the opt-in D2 runtime:
+
+- signed Sport state must remain fresh and all three values finite;
+- planar Sport velocity must be at most `0.025 m/s`;
+- absolute Sport yaw rate must be at most `0.04 rad/s`;
+- missing, boolean, NaN, infinite or out-of-envelope values fail closed;
+- `0.03 m/s`, the smallest C4C micro-probe command, remains outside the D2
+  envelope and is rejected;
+- Control command exact-zero, no lease/deadman/action, authenticated Bridge,
+  no software stop and all existing idle-owner gates remain unchanged;
+- the collector still rechecks the whole preflight on every poll and after the
+  collection window;
+- the independent collection limits remain 5 mm translation, 0.01 rad yaw,
+  `0.01 m/s` FAST-LIO twist and `0.05 rad/s` IMU angular rate.
+
+Hardware-free tests cover the accepted observed noise, both exact boundaries,
+the rejected `0.03 m/s` linear value, excessive yaw and malformed/non-finite
+values. No observation pipeline, candidate job, registration process, apply,
+initial pose, Nav2 goal or motion was started during the blocked attempt or
+this software correction. The deployed runtime remains `ebbcf5a...` until a
+new exact-release deployment is separately approved.

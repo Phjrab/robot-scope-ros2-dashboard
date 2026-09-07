@@ -18,6 +18,7 @@ from robot_dashboard.relocalization.manager import (
     RelocalizationValidationError,
     StationaryRelocalizationManager,
     _compose_pose,
+    require_stationary_preflight,
 )
 from robot_dashboard.relocalization.process_adapter import RegistrationProcessError
 from robot_dashboard.relocalization.runtime_wiring import (
@@ -359,12 +360,12 @@ class StationaryRelocalizationTests(unittest.TestCase):
                 result = Harness(self, collector=FakeCollector(collection)).run()
                 self.assertEqual(result["state"], "failed")
 
-    def test_preflight_unknown_or_nonzero_state_blocks_before_job(self):
+    def test_preflight_unknown_or_out_of_envelope_state_blocks_before_job(self):
         temp = tempfile.TemporaryDirectory(prefix="robot-scope-d2-preflight-")
         self.addCleanup(temp.cleanup)
         for unsafe in (
             safety(stationary=False),
-            safety(velocity={"vx": 0.001, "vy": 0.0, "wz": 0.0}),
+            safety(velocity={"vx": 0.03, "vy": 0.0, "wz": 0.0}),
             safety(control_lease_active=True),
             safety(source_fresh=False),
             safety(observation_pipeline_running=False),
@@ -703,15 +704,17 @@ class StationaryRelocalizationTests(unittest.TestCase):
     def test_runtime_wiring_is_exact_opt_in_and_projects_fail_closed_state(self):
         class Agent:
             observer_enabled = True
+            sport_velocity = [0.0, -0.0, 0.0]
+            command_velocity = [0.0, 0.0, 0.0]
 
             def control_snapshot(self):
                 return {
                     "lease": {"active": False, "input_source": None},
                     "command": {
                         "deadman": False,
-                        "linear_x": 0.0,
-                        "linear_y": 0.0,
-                        "angular_z": 0.0,
+                        "linear_x": self.command_velocity[0],
+                        "linear_y": self.command_velocity[1],
+                        "angular_z": self.command_velocity[2],
                     },
                     "action_guard": {"active": False},
                     "estop_latched": False,
@@ -721,7 +724,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
                         "connected": True,
                         "sport_mode_state": {
                             "fresh": True,
-                            "velocity": [0.0, -0.0, 0.0],
+                            "velocity": self.sport_velocity,
                         },
                     },
                 }
@@ -787,6 +790,58 @@ class StationaryRelocalizationTests(unittest.TestCase):
         )
         self.assertEqual(snapshot, safety())
 
+        agent.sport_velocity = [0.00816, 0.01912, -0.032295]
+        noisy_snapshot = stationary_runtime_snapshot(
+            mapping_profile=profile,
+            agent=agent,
+            mapping=mapping,
+            navigation=navigation,
+            dataset_capture=dataset,
+        )
+        self.assertTrue(noisy_snapshot["stationary"])
+        require_stationary_preflight(
+            noisy_snapshot,
+            physical_safety_confirmed=True,
+        )
+
+        agent.command_velocity = [0.001, 0.0, 0.0]
+        commanded_snapshot = stationary_runtime_snapshot(
+            mapping_profile=profile,
+            agent=agent,
+            mapping=mapping,
+            navigation=navigation,
+            dataset_capture=dataset,
+        )
+        self.assertFalse(commanded_snapshot["control_disarmed"])
+        with self.assertRaisesRegex(
+            RelocalizationUnavailable,
+            "control_disarmed",
+        ):
+            require_stationary_preflight(
+                commanded_snapshot,
+                physical_safety_confirmed=True,
+            )
+        agent.command_velocity = [0.0, 0.0, 0.0]
+
+        agent.sport_velocity = [0.03, 0.0, 0.0]
+        moving_snapshot = stationary_runtime_snapshot(
+            mapping_profile=profile,
+            agent=agent,
+            mapping=mapping,
+            navigation=navigation,
+            dataset_capture=dataset,
+        )
+        self.assertFalse(moving_snapshot["stationary"])
+        with self.assertRaisesRegex(
+            RelocalizationUnavailable,
+            "stationary",
+        ):
+            require_stationary_preflight(
+                moving_snapshot,
+                physical_safety_confirmed=True,
+            )
+        agent.sport_velocity = [0.0, -0.0, 0.0]
+
         mapping.state = "idle"
         self.assertFalse(
             stationary_runtime_snapshot(
@@ -835,6 +890,29 @@ class StationaryRelocalizationTests(unittest.TestCase):
                     enabled=True,
                     **{**kwargs, "mapping_profile": "go2-xt16-wireless"},
                 )
+
+    def test_d2_sport_velocity_envelope_rejects_motion_and_invalid_values(self):
+        require_stationary_preflight(
+            safety(velocity={"vx": 0.015, "vy": 0.020, "wz": 0.04}),
+            physical_safety_confirmed=True,
+        )
+
+        for velocity in (
+            {"vx": 0.03, "vy": 0.0, "wz": 0.0},
+            {"vx": 0.0, "vy": 0.0, "wz": 0.041},
+            {"vx": float("nan"), "vy": 0.0, "wz": 0.0},
+            {"vx": True, "vy": 0.0, "wz": 0.0},
+            {"vx": 0.0, "vy": 0.0},
+        ):
+            with self.subTest(velocity=velocity):
+                with self.assertRaisesRegex(
+                    RelocalizationUnavailable,
+                    "Sport velocity outside stationary envelope",
+                ):
+                    require_stationary_preflight(
+                        safety(velocity=velocity),
+                        physical_safety_confirmed=True,
+                    )
 
     @staticmethod
     def _evidence_observer(

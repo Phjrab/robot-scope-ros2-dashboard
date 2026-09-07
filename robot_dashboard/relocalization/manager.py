@@ -42,6 +42,8 @@ MAX_STATIONARY_TRANSLATION_M = 0.005
 MAX_STATIONARY_YAW_RAD = 0.01
 MAX_STATIONARY_TWIST_MPS = 0.01
 MAX_STATIONARY_IMU_RPS = 0.05
+MAX_STATIONARY_SPORT_LINEAR_MPS = 0.025
+MAX_STATIONARY_SPORT_YAW_RPS = 0.04
 MAX_JOBS_RETAINED = 8
 TERMINAL_STATES = frozenset({"candidate_ready", "ambiguous", "rejected", "failed"})
 
@@ -470,9 +472,32 @@ def require_stationary_preflight(
     for key, expected in required.items():
         if value.get(key) != expected:
             raise RelocalizationUnavailable(f"stationary preflight failed: {key}")
-    velocity = value.get("velocity")
-    if not isinstance(velocity, Mapping) or any(velocity.get(axis) != 0.0 for axis in ("vx", "vy", "wz")):
-        raise RelocalizationUnavailable("stationary preflight failed: exact-zero velocity")
+    if not sport_velocity_is_stationary(value.get("velocity")):
+        raise RelocalizationUnavailable(
+            "stationary preflight failed: Sport velocity outside stationary envelope"
+        )
+
+
+def sport_velocity_is_stationary(value: Any) -> bool:
+    """Accept only finite, bounded Go2 state-estimator noise while disarmed."""
+
+    if not isinstance(value, Mapping):
+        return False
+    components: dict[str, float] = {}
+    for axis in ("vx", "vy", "wz"):
+        item = value.get(axis)
+        if (
+            isinstance(item, bool)
+            or not isinstance(item, (int, float))
+            or not math.isfinite(float(item))
+        ):
+            return False
+        components[axis] = float(item)
+    return bool(
+        math.hypot(components["vx"], components["vy"])
+        <= MAX_STATIONARY_SPORT_LINEAR_MPS
+        and abs(components["wz"]) <= MAX_STATIONARY_SPORT_YAW_RPS
+    )
 
 
 def _validate_collection(value: LiveCollection) -> None:
