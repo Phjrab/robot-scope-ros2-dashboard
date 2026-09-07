@@ -428,8 +428,19 @@ class WirelessMappingProfileTests(unittest.TestCase):
             self.assertIn(value, setup)
         self.assertIn("unset CYCLONEDDS_URI", setup)
         self.assertNotIn("NetworkInterface name=", setup)
+        self.assertIn(
+            'source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"',
+            fastlio,
+        )
+        self.assertIn('ROBOT_SCOPE_FASTLIO_DDS_MODE="local"', fastlio)
         self.assertIn('ROBOT_SCOPE_GO2_INTERFACE="eno1"', fastlio)
         self.assertIn('ROBOT_SCOPE_GO2_INTERFACE_CIDR="192.168.50.10/24"', fastlio)
+        self.assertIn(
+            'FASTLIO_DDS_MODE="${ROBOT_SCOPE_FASTLIO_DDS_MODE:-direct}"',
+            wired,
+        )
+        self.assertIn('if [[ "${ROS_LOCALHOST_ONLY:-0}" != "1" ]]', wired)
+        self.assertIn("FAST-LIO DDS mode is not allowlisted", wired)
         self.assertIn("192.168.123.99/24", wired)
         self.assertNotIn("192.168.50.10/24", wired)
 

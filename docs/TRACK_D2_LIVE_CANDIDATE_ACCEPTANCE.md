@@ -723,6 +723,58 @@ FINAL_PIPELINE_STATE=IDLE
 FINAL_PREVIEW_STATE=RUNNING
 ```
 
+## Wireless FAST-LIO DDS isolation correction — 2026-09-08
+
+The continuity guard was deployed on the external Orin as exact release
+`89e1de320782e062ee4aee190d45607af310235a`.  A stationary observation-only
+pipeline was started after the operator's fresh safety confirmation.  Control
+remained lease-free with deadman false and an exact-zero command; Navigation,
+Localization, initial pose, candidate apply, goal and motion remained idle.
+
+The runtime exposed a second, independent input-boundary defect.  The
+dashboard-owned Hesai and XT16 cloud bridge processes retained the intended
+wireless `ROS_LOCALHOST_ONLY=1` graph and continued converting exactly 50
+clouds per five-second log interval.  The generic FAST-LIO runner, however,
+cleared that inherited DDS setup and installed the direct-wired `eno1`
+`CYCLONEDDS_URI`.  Inspection from the FAST-LIO DDS environment showed one
+`/velodyne_points` subscription but zero publishers.  FAST-LIO consequently
+published approximately 10 Hz odometry from continuing IMU input without a
+continuing LiDAR publisher; no `/cloud_registered` samples were observed.
+The IMU path itself remained healthy at approximately 490--499 Hz with no
+authentication, clock or send failures.
+
+This was not an XT16 relay outage: the onboard relay's accepted/forwarded
+counters progressed continuously and its latest accepted/forwarded age stayed
+near zero.  The defect was the wireless FAST-LIO child overwriting the local
+DDS isolation selected by `setup_wireless_mapping_ros2_humble.sh`.  The
+pipeline was stopped through the normal Mapping lifecycle with exit code 130;
+the persistent preview remained running and no candidate request was made.
+
+The wireless wrapper now explicitly re-sources the fixed wireless ROS setup
+and selects an allowlisted `local` DDS mode.  The shared FAST-LIO runner keeps
+its existing direct-wired behavior as the default, while the local mode
+requires `ROS_LOCALHOST_ONLY=1` and rejects any inherited interface-specific
+CycloneDDS URI.  Unknown modes fail closed.  No topic, timestamp, freshness,
+publisher-cardinality, map-safety or Control threshold was changed.
+
+```text
+D2_CONTINUITY_RELEASE=89e1de320782e062ee4aee190d45607af310235a
+D2_STATIONARY_PIPELINE_START=PASS
+D2_WIRELESS_FASTLIO_INPUT=FAIL_DDS_GRAPH_SPLIT
+D2_XT16_RELAY_CONTINUITY=PASS
+D2_IMU_CONTINUITY=PASS
+D2_CANDIDATE_REQUEST=NOT_RUN
+D2_DDS_ROOT_CAUSE=FASTLIO_CHILD_OVERRODE_LOCAL_GRAPH
+D2_DDS_FIX=SOFTWARE_IMPLEMENTED
+DIRECT_WIRED_PROFILE_DEFAULT=UNCHANGED
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=STOPPED
+FINAL_PREVIEW_STATE=RUNNING
+```
+
 The next step is hardware-free diagnosis of the live-query density and a
 bounded failure projection that records raw and filtered counts without
 weakening the fixed 500-point gate. Any later collection or candidate retry

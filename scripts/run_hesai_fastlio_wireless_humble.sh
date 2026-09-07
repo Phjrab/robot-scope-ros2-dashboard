@@ -8,6 +8,11 @@ fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
+source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
+# The generic runner also supports the direct-wired profile.  Pin this wrapper
+# to the local-only DDS branch so it cannot replace the wireless graph's
+# localhost isolation with an eno1 CycloneDDS binding.
+export ROBOT_SCOPE_FASTLIO_DDS_MODE="local"
 export ROBOT_SCOPE_GO2_INTERFACE="eno1"
 export ROBOT_SCOPE_GO2_INTERFACE_CIDR="192.168.50.10/24"
 case "${ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION:-0}" in

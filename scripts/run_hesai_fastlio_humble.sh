@@ -45,25 +45,41 @@ source "$WORKSPACE_ROOT/ws/livox/ws_livox/install/setup.bash"
 source "$WORKSPACE_ROOT/ws/fastlio_ws/install/setup.bash"
 
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-LIDAR_CIDR="${ROBOT_SCOPE_GO2_INTERFACE_CIDR:-192.168.123.99/24}"
-LIDAR_IFACE="${ROBOT_SCOPE_GO2_INTERFACE:-}"
-if [[ -z "$LIDAR_IFACE" ]]; then
-  LIDAR_IFACE="$(
-    ip -o -4 addr show 2>/dev/null |
-      awk -v cidr="$LIDAR_CIDR" '$4 == cidr {print $2; exit}'
-  )"
-fi
-if [[ ! "$LIDAR_IFACE" =~ ^[A-Za-z0-9_.:-]{1,32}$ ]] ||
-  [[ ! -d "/sys/class/net/$LIDAR_IFACE" ]]; then
-  echo "[Robot Scope] configured LiDAR interface is missing or invalid" >&2
-  exit 1
-fi
-if ! ip -o -4 addr show dev "$LIDAR_IFACE" 2>/dev/null |
-  awk -v cidr="$LIDAR_CIDR" '$4 == cidr {found=1} END {exit !found}'; then
-  echo "[Robot Scope] $LIDAR_IFACE does not own required address $LIDAR_CIDR" >&2
-  exit 1
-fi
-export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"$LIDAR_IFACE\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+FASTLIO_DDS_MODE="${ROBOT_SCOPE_FASTLIO_DDS_MODE:-direct}"
+case "$FASTLIO_DDS_MODE" in
+  direct)
+    LIDAR_CIDR="${ROBOT_SCOPE_GO2_INTERFACE_CIDR:-192.168.123.99/24}"
+    LIDAR_IFACE="${ROBOT_SCOPE_GO2_INTERFACE:-}"
+    if [[ -z "$LIDAR_IFACE" ]]; then
+      LIDAR_IFACE="$(
+        ip -o -4 addr show 2>/dev/null |
+          awk -v cidr="$LIDAR_CIDR" '$4 == cidr {print $2; exit}'
+      )"
+    fi
+    if [[ ! "$LIDAR_IFACE" =~ ^[A-Za-z0-9_.:-]{1,32}$ ]] ||
+      [[ ! -d "/sys/class/net/$LIDAR_IFACE" ]]; then
+      echo "[Robot Scope] configured LiDAR interface is missing or invalid" >&2
+      exit 1
+    fi
+    if ! ip -o -4 addr show dev "$LIDAR_IFACE" 2>/dev/null |
+      awk -v cidr="$LIDAR_CIDR" '$4 == cidr {found=1} END {exit !found}'; then
+      echo "[Robot Scope] $LIDAR_IFACE does not own required address $LIDAR_CIDR" >&2
+      exit 1
+    fi
+    export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"$LIDAR_IFACE\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+    ;;
+  local)
+    if [[ "${ROS_LOCALHOST_ONLY:-0}" != "1" ]]; then
+      echo "[Robot Scope] local FAST-LIO requires ROS_LOCALHOST_ONLY=1" >&2
+      exit 1
+    fi
+    unset CYCLONEDDS_URI
+    ;;
+  *)
+    echo "[Robot Scope] FAST-LIO DDS mode is not allowlisted" >&2
+    exit 1
+    ;;
+esac
 
 exec ros2 launch fast_lio mapping.launch.py \
   config_path:="$FASTLIO_CONFIG_PATH" \
