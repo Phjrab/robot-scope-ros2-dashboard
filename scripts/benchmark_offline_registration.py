@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from robot_dashboard.relocalization.models import SUPPORTED_BACKENDS  # noqa: E402
 from robot_dashboard.relocalization.process_adapter import OfflineRegistrationProcess  # noqa: E402
 
 
@@ -78,6 +79,11 @@ def percentile(values: list[float], fraction: float) -> float:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--executable", type=Path, required=True)
+    parser.add_argument(
+        "--backend",
+        choices=sorted(SUPPORTED_BACKENDS),
+        default="bounded-se2-icp",
+    )
     args = parser.parse_args()
     translation_errors: list[float] = []
     yaw_errors: list[float] = []
@@ -87,7 +93,11 @@ def main() -> int:
         root = Path(directory)
         reference = root / "reference.pcd"
         write_pcd(reference, source)
-        adapter = OfflineRegistrationProcess(args.executable.resolve(strict=True), [root])
+        adapter = OfflineRegistrationProcess(
+            args.executable.resolve(strict=True),
+            [root],
+            expected_backend=args.backend,
+        )
         for index, truth in enumerate(CASES):
             query = root / f"query-{index}.pcd"
             write_pcd(query, inverse(source, truth))

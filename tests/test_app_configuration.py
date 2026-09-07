@@ -126,6 +126,10 @@ class AppConfigurationTests(unittest.TestCase):
             "ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION=0",
             environment,
         )
+        self.assertIn(
+            "ROBOT_SCOPE_D2_REGISTRATION_BACKEND=bounded-se2-icp",
+            environment,
+        )
 
 
 if __name__ == "__main__":

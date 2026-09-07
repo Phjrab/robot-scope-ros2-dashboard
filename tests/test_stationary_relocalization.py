@@ -1,10 +1,12 @@
 import ast
 import math
+import os
 import struct
 import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -23,6 +25,8 @@ from robot_dashboard.relocalization.manager import (
 )
 from robot_dashboard.relocalization.process_adapter import RegistrationProcessError
 from robot_dashboard.relocalization.runtime_wiring import (
+    REGISTRATION_BACKEND_ENV,
+    REGISTRATION_BACKENDS,
     REGISTRATION_RELATIVE_PATH,
     build_stationary_relocalization_manager,
     stationary_runtime_snapshot,
@@ -308,7 +312,22 @@ class StationaryRelocalizationTests(unittest.TestCase):
         self.assertEqual(result["state"], "candidate_ready")
         self.assertFalse(result["candidate_applied"])
         self.assertEqual(result["family_revision"], "6" * 64)
+        self.assertEqual(result["seed"], request()["seed"])
         self.assertEqual(result["collection"]["frames"], 25)
+        self.assertEqual(
+            result["registration"],
+            {
+                "schema": "robot-scope.relocalization-registration-diagnostics.v1",
+                "state": "complete",
+                "backend": "bounded-se2-icp",
+                "timing_ms": {
+                    "preprocess": 1.0,
+                    "coarse": 2.0,
+                    "refine": 3.0,
+                    "total": 6.0,
+                },
+            },
+        )
         self.assertEqual(
             result["collection_diagnostics"],
             {
@@ -381,6 +400,21 @@ class StationaryRelocalizationTests(unittest.TestCase):
         result = harness.run()
         self.assertEqual(result["state"], "failed")
         self.assertIn("changed", result["error"])
+
+    def test_registration_rejection_exposes_convergence_reason(self):
+        rejected = registration_result(confidence="REJECTED")
+        rejected["results"][0]["converged"] = False
+        rejected["results"][0]["ambiguity_margin"] = 0.0
+        result = Harness(
+            self,
+            registration=FakeRegistration(rejected),
+        ).run()
+        self.assertEqual(result["state"], "rejected")
+        self.assertFalse(result["candidates"][0]["converged"])
+        self.assertEqual(
+            result["candidates"][0]["reasons"],
+            ["registration_rejected", "registration_not_converged"],
+        )
 
     def test_occupied_unknown_clearance_and_keep_out_candidates_reject(self):
         cases = [
@@ -981,6 +1015,29 @@ class StationaryRelocalizationTests(unittest.TestCase):
             self.assertIsInstance(manager, StationaryRelocalizationManager)
             self.addCleanup(manager.close)
             self.assertEqual(runtime_root.stat().st_mode & 0o777, 0o700)
+
+            pcl_executable = root / "project" / REGISTRATION_BACKENDS["pcl-ndt2d"]
+            pcl_executable.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+            pcl_executable.chmod(0o700)
+            with mock.patch.dict(
+                os.environ,
+                {REGISTRATION_BACKEND_ENV: "pcl-ndt2d"},
+            ):
+                pcl_manager = build_stationary_relocalization_manager(
+                    enabled=True,
+                    **kwargs,
+                )
+            self.assertIsInstance(pcl_manager, StationaryRelocalizationManager)
+            self.assertEqual(
+                pcl_manager._registration._expected_backend,
+                "pcl-ndt2d",
+            )
+            pcl_manager.close()
+            with mock.patch.dict(
+                os.environ,
+                {REGISTRATION_BACKEND_ENV: "unlisted"},
+            ), self.assertRaisesRegex(RuntimeError, "allowlist"):
+                build_stationary_relocalization_manager(enabled=True, **kwargs)
 
             for snapshot_error, expected in (
                 (SavedMapNotFound("internal map lookup detail"), "exact saved map or source PCD is unavailable"),

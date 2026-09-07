@@ -93,3 +93,32 @@ known-free/clearance checks remain D2/D3 work.
 
 Track A/B/C, strict wireless odometry/time guards, C2 FAST-LIO, C3
 localization-only ownership and the D0 family contract are unchanged.
+
+## Aarch64 PCL follow-up — 2026-09-08
+
+The external Orin resolves `libpcl-dev 1.12.1+dfsg-3build1` and
+`libeigen3-dev 3.4.0-2ubuntu2`. A retained, path-free stationary D2 query was
+compared offline against the exact source PCD. PCL GICP and unconstrained
+six-degree-of-freedom NDT both reported optimizer convergence, but their
+solutions varied materially by seed. The six-degree-of-freedom result also
+cannot be admitted as a 3DoF result merely by dropping z, roll and pitch.
+
+The package therefore adds two compile-time-only PCL executables behind
+`ROBOT_SCOPE_BUILD_PCL_BACKENDS=OFF`:
+
+- `pcl-ndt2d`, using PCL's x/y/yaw-only NDT implementation;
+- `pcl-gicp`, retaining explicit z/roll/pitch correction rejection.
+
+Both reuse the existing bounded SE2 search results as at most three refinement
+seeds. They retain the 30-iteration ceiling, 0.75 m correspondence bound,
+point-count limits, process timeout, strict result contract and confidence
+policy. The server chooses one exact executable from a fixed environment-owned
+allowlist before constructing the manager. HTTP callers cannot select a
+backend, and the default remains `bounded-se2-icp`.
+
+On the retained live query, `pcl-ndt2d` produced converged candidates, but the
+top two were spatially distinct and had no positive fitness margin under the
+existing ordering. This correctly remains an advisory ambiguous result. It is
+evidence that the previous `converged=false` condition can be isolated without
+weakening the portable engine's convergence threshold; it is not evidence for
+automatic pose application or navigation readiness.

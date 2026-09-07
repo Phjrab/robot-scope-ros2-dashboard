@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 RESULT_SCHEMA = "robot-scope.relocalization-result.v1"
 BACKEND = "bounded-se2-icp"
+SUPPORTED_BACKENDS = frozenset({BACKEND, "pcl-ndt2d", "pcl-gicp"})
 CONFIDENCE_VALUES = {"HIGH", "MEDIUM", "LOW", "REJECTED"}
 MAX_INPUT_BYTES = 16 * 1024
 MAX_OUTPUT_BYTES = 64 * 1024
@@ -104,12 +105,25 @@ class RegistrationResultSet:
     payload: dict[str, Any]
 
     @classmethod
-    def parse(cls, payload: Any) -> "RegistrationResultSet":
+    def parse(
+        cls,
+        payload: Any,
+        *,
+        expected_backend: str = BACKEND,
+    ) -> "RegistrationResultSet":
+        if (
+            not isinstance(expected_backend, str)
+            or expected_backend not in SUPPORTED_BACKENDS
+        ):
+            raise RegistrationContractError("expected registration backend is invalid")
         if not isinstance(payload, Mapping) or set(payload) != {
             "schema", "backend", "results", "timing"
         }:
             raise RegistrationContractError("registration result schema is invalid")
-        if payload.get("schema") != RESULT_SCHEMA or payload.get("backend") != BACKEND:
+        if (
+            payload.get("schema") != RESULT_SCHEMA
+            or payload.get("backend") != expected_backend
+        ):
             raise RegistrationContractError("registration result identity is invalid")
         results = payload.get("results")
         timing = payload.get("timing")
@@ -130,7 +144,7 @@ class RegistrationResultSet:
             normalized_results.append(_parse_candidate(item, index))
         return cls({
             "schema": RESULT_SCHEMA,
-            "backend": BACKEND,
+            "backend": expected_backend,
             "results": normalized_results,
             "timing": normalized_timing,
         })

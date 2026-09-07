@@ -15,12 +15,14 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .models import (
+    BACKEND,
     MAX_ERROR_BYTES,
     MAX_INPUT_BYTES,
     MAX_OUTPUT_BYTES,
     RegistrationContractError,
     RegistrationRequest,
     RegistrationResultSet,
+    SUPPORTED_BACKENDS,
 )
 
 
@@ -42,8 +44,20 @@ class RegistrationCanceled(RegistrationProcessError):
 
 
 class OfflineRegistrationProcess:
-    def __init__(self, executable: Path, allowed_roots: Iterable[Path]) -> None:
+    def __init__(
+        self,
+        executable: Path,
+        allowed_roots: Iterable[Path],
+        *,
+        expected_backend: str = BACKEND,
+    ) -> None:
         self._executable = self._validate_executable(executable)
+        if (
+            not isinstance(expected_backend, str)
+            or expected_backend not in SUPPORTED_BACKENDS
+        ):
+            raise RegistrationContractError("expected registration backend is invalid")
+        self._expected_backend = expected_backend
         roots = tuple(Path(root).resolve(strict=True) for root in allowed_roots)
         if not roots:
             raise RegistrationContractError("at least one allowed root is required")
@@ -119,7 +133,10 @@ class OfflineRegistrationProcess:
                 decoded = json.loads(raw_output)
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 raise RegistrationProcessError("offline registration returned invalid JSON") from exc
-            return RegistrationResultSet.parse(decoded).payload
+            return RegistrationResultSet.parse(
+                decoded,
+                expected_backend=self._expected_backend,
+            ).payload
 
     def _validate_pcd(self, path: Path, maximum_bytes: int, maximum_points: int) -> Path:
         if not path.is_absolute() or path.is_symlink():

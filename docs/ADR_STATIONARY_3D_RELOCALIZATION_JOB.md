@@ -185,6 +185,13 @@ observer is absent. The registration executable path is server-owned and
 fixed beneath the exact release; its existing adapter rejects symlinks and
 paths outside the private relocalization runtime root.
 
+The backend is also fixed before construction. The optional
+`ROBOT_SCOPE_D2_REGISTRATION_BACKEND` value is accepted only from the
+environment-owned allowlist (`bounded-se2-icp`, `pcl-ndt2d`, `pcl-gicp`). It
+selects a distinct fixed executable beneath the release and is never accepted
+from an HTTP request. The default remains `bounded-se2-icp`; PCL executables
+exist only in builds that explicitly enable them.
+
 Every start request must contain the strict boolean
 `physical_safety_confirmed=true`. It is checked before the worker starts and
 is deliberately removed from the stored/public job result, so it cannot be

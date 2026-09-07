@@ -13,7 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from robot_dashboard.relocalization.models import MAX_INPUT_BYTES  # noqa: E402
+from robot_dashboard.relocalization.models import (  # noqa: E402
+    MAX_INPUT_BYTES,
+    SUPPORTED_BACKENDS,
+)
 from robot_dashboard.relocalization.process_adapter import (  # noqa: E402
     OfflineRegistrationProcess,
 )
@@ -23,6 +26,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run one offline registration JSON request")
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--allowed-root", type=Path, action="append", required=True)
+    parser.add_argument(
+        "--backend",
+        choices=sorted(SUPPORTED_BACKENDS),
+        default="bounded-se2-icp",
+    )
     args = parser.parse_args()
     raw = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
     if len(raw) > MAX_INPUT_BYTES:
@@ -30,7 +38,11 @@ def main() -> int:
         return 2
     try:
         payload = json.loads(raw)
-        result = OfflineRegistrationProcess(args.executable, args.allowed_root).run(payload)
+        result = OfflineRegistrationProcess(
+            args.executable,
+            args.allowed_root,
+            expected_backend=args.backend,
+        ).run(payload)
     except Exception:
         print("offline registration rejected", file=sys.stderr)
         return 2

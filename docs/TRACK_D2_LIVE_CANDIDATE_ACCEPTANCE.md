@@ -1008,3 +1008,46 @@ MOTION=NOT_RUN
 FINAL_PIPELINE_STATE=IDLE
 FINAL_PREVIEW_STATE=RUNNING
 ```
+
+## Opt-in PCL backend isolation — 2026-09-08
+
+The external Orin package audit found PCL 1.12.1 and Eigen 3.4.0 already
+installed. No package, OS, firmware or service configuration was changed. The
+retained query from job `659d57cd7c7fa4231b8de54e` and the exact immutable
+source PCD were evaluated only as local offline files on that host.
+
+Unconstrained PCL NDT and GICP converged from several seeds, but produced
+materially different transforms. An integrated six-degree-of-freedom NDT
+result was rejected by the unchanged out-of-plane correction bounds. The
+follow-up implementation therefore provides PCL NDT2D as a separately built,
+explicit opt-in x/y/yaw backend; PCL GICP remains an opt-in comparison backend
+and must satisfy the same out-of-plane bounds. The portable
+`bounded-se2-icp` executable remains the build and runtime default.
+
+With the existing 30-iteration ceiling and the same bounded coarse seeds, the
+temporary aarch64 NDT2D build returned three converged results. The top result
+was approximately `(-0.2894, -0.7796, 1.6322)` with fitness `0.08915`, overlap
+`0.98734`, and confidence `LOW`. The next result was spatially distinct and
+the fitness margin was `0`; therefore the existing ambiguity gate would mark
+the result `AMBIGUOUS`, never apply it. This was an offline replay, not a new
+live candidate job.
+
+The API job projection now preserves the exact requested seed, selected
+backend, bounded stage timings and an explicit `converged` flag. Rejected
+registration results retain the compatibility reason `registration_rejected`
+and add either `registration_not_converged` or
+`registration_quality_rejected`. This supplies D3 with exact diagnostic text
+without changing acceptance policy.
+
+```text
+D2_PCL_DEPENDENCY_AUDIT=PASS
+D2_PCL_NDT_GICP_OFFLINE_COMPARISON=PASS
+D2_PCL_NDT2D_AARCH64_BUILD=PASS_TEMPORARY
+D2_PCL_NDT2D_LIVE_JOB=NOT_RUN
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```

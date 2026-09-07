@@ -179,6 +179,21 @@ class OfflineRegistrationTests(unittest.TestCase):
         self.assertNotIn("rclcpp", source)
         self.assertNotIn("sensor_msgs", source)
 
+    def test_pcl_backends_are_compile_time_opt_in_and_default_is_unchanged(self):
+        cmake = (PACKAGE / "CMakeLists.txt").read_text(encoding="utf-8")
+        source = (PACKAGE / "src" / "pcl_registration_cli.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'option(ROBOT_SCOPE_BUILD_PCL_BACKENDS "Build fixed PCL registration backends" OFF)',
+            cmake,
+        )
+        self.assertIn("pcl-ndt2d", source)
+        self.assertIn("pcl-gicp", source)
+        self.assertIn("kMaximumIterations = 30", source)
+        self.assertIn("kMaximumZCorrectionM = 0.25", source)
+        self.assertIn("kMaximumTiltCorrectionRad = 0.15", source)
+
     def test_process_adapter_runs_fixed_argv_and_validates_ranked_result(self):
         adapter = OfflineRegistrationProcess(self.cli, [self.root])
         result = adapter.run(request(self.reference, self.query))
@@ -326,6 +341,17 @@ class OfflineRegistrationTests(unittest.TestCase):
             "timing": {"preprocess_ms": 1.0, "coarse_ms": 2.0, "refine_ms": 2.0},
         }
         RegistrationResultSet.parse(valid)
+        pcl = json.loads(json.dumps(valid))
+        pcl["backend"] = "pcl-ndt2d"
+        RegistrationResultSet.parse(pcl, expected_backend="pcl-ndt2d")
+        with self.assertRaises(RegistrationContractError):
+            RegistrationResultSet.parse(pcl)
+        with self.assertRaises(RegistrationContractError):
+            OfflineRegistrationProcess(
+                self.cli,
+                [self.root],
+                expected_backend="unlisted",
+            )
         for mutate in (
             lambda value: value.update(path="/tmp/leak"),
             lambda value: value["results"][0].update(confidence="HIGH", ambiguity_margin=0.0),

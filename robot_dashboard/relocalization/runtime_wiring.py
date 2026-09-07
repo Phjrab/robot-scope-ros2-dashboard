@@ -11,6 +11,7 @@ from typing import Any, Protocol
 
 from ..saved_maps import SavedMapError, SavedMapNotFound
 from .collector import FixedCloudRegisteredCollector
+from .models import BACKEND
 from .manager import (
     PROFILE,
     RelocalizationConflict,
@@ -25,6 +26,16 @@ RELOCALIZATION_ENABLE_ENV = "ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION"
 REGISTRATION_RELATIVE_PATH = Path(
     "build/robot_scope_registration/robot_scope_offline_registration"
 )
+REGISTRATION_BACKEND_ENV = "ROBOT_SCOPE_D2_REGISTRATION_BACKEND"
+REGISTRATION_BACKENDS = {
+    BACKEND: REGISTRATION_RELATIVE_PATH,
+    "pcl-ndt2d": Path(
+        "build/robot_scope_registration/robot_scope_offline_registration_pcl_ndt2d"
+    ),
+    "pcl-gicp": Path(
+        "build/robot_scope_registration/robot_scope_offline_registration_pcl_gicp"
+    ),
+}
 
 
 class AgentPort(Protocol):
@@ -76,8 +87,16 @@ def build_stationary_relocalization_manager(
         raise RuntimeError("D2 relocalization requires the fixed observer opt-in")
 
     root = _prepare_private_runtime_root(Path(runtime_root))
-    executable = Path(project_dir) / REGISTRATION_RELATIVE_PATH
-    registration = OfflineRegistrationProcess(executable, (root,))
+    backend = os.environ.get(REGISTRATION_BACKEND_ENV, BACKEND)
+    executable_path = REGISTRATION_BACKENDS.get(backend)
+    if executable_path is None:
+        raise RuntimeError("D2 registration backend is not in the fixed allowlist")
+    executable = Path(project_dir) / executable_path
+    registration = OfflineRegistrationProcess(
+        executable,
+        (root,),
+        expected_backend=backend,
+    )
 
     def safety_snapshot() -> dict[str, Any]:
         return stationary_runtime_snapshot(

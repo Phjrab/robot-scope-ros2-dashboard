@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-from .models import RegistrationContractError
+from .models import RegistrationContractError, SUPPORTED_BACKENDS
 from .process_adapter import RegistrationCanceled, RegistrationProcessError
 
 
@@ -185,12 +185,14 @@ class StationaryRelocalizationManager:
                 "map_revision": normalized["map_revision"],
                 "source_pcd_id": normalized["source_pcd_id"],
                 "source_pcd_revision": normalized["source_pcd_revision"],
+                "seed": copy.deepcopy(normalized["seed"]),
                 "family_id": None,
                 "family_revision": None,
                 "source": {"topic": SOURCE_TOPIC, "frame_id": SOURCE_FRAME},
                 "collection": None,
                 "collection_diagnostics": _empty_collection_diagnostics(),
                 "map_diagnostics": _empty_map_diagnostics(),
+                "registration": _empty_registration_diagnostics(),
                 "candidates": [],
                 "candidate_applied": False,
                 "created_monotonic": time.monotonic(),
@@ -318,6 +320,7 @@ class StationaryRelocalizationManager:
             self._transition(job_id, generation, "coarse_search", "bounded coarse search")
             self._transition(job_id, generation, "refining", "bounded candidate refinement")
             result = self._registration.run(payload, cancel_event=cancel_event)
+            self._record_registration_diagnostics(job_id, generation, result)
             self._check_cancel(cancel_event)
             if not self._current_checker(bundle):
                 raise RelocalizationConflict("map family or revision changed during registration")
@@ -402,6 +405,20 @@ class StationaryRelocalizationManager:
             if job["state"] == "canceling":
                 raise _Canceled()
             job["map_diagnostics"] = diagnostics
+            job["updated_monotonic"] = time.monotonic()
+
+    def _record_registration_diagnostics(
+        self,
+        job_id: str,
+        generation: int,
+        result: Mapping[str, Any],
+    ) -> None:
+        diagnostics = _registration_diagnostics(result)
+        with self._lock:
+            job = self._owned(job_id, generation)
+            if job["state"] == "canceling":
+                raise _Canceled()
+            job["registration"] = diagnostics
             job["updated_monotonic"] = time.monotonic()
 
     def _owned(self, job_id: str, generation: int) -> dict[str, Any]:
@@ -615,6 +632,57 @@ def _map_diagnostics(bundle: RelocalizationMapBundle) -> dict[str, Any]:
     }
 
 
+def _empty_registration_diagnostics() -> dict[str, Any]:
+    return {
+        "schema": "robot-scope.relocalization-registration-diagnostics.v1",
+        "state": "waiting",
+        "backend": None,
+        "timing_ms": {
+            "preprocess": None,
+            "coarse": None,
+            "refine": None,
+            "total": None,
+        },
+    }
+
+
+def _registration_diagnostics(result: Mapping[str, Any]) -> dict[str, Any]:
+    backend = result.get("backend")
+    timing = result.get("timing")
+    if not isinstance(backend, str) or backend not in SUPPORTED_BACKENDS:
+        raise RelocalizationValidationError("registration backend identity is invalid")
+    if not isinstance(timing, Mapping) or set(timing) != {
+        "preprocess_ms",
+        "coarse_ms",
+        "refine_ms",
+    }:
+        raise RelocalizationValidationError("registration timing is invalid")
+    values: dict[str, float] = {}
+    for public_key, source_key in (
+        ("preprocess", "preprocess_ms"),
+        ("coarse", "coarse_ms"),
+        ("refine", "refine_ms"),
+    ):
+        value = timing.get(source_key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or not 0.0 <= float(value) <= 15_000.0
+        ):
+            raise RelocalizationValidationError("registration timing is invalid")
+        values[public_key] = float(value)
+    total = sum(values.values())
+    if total > 15_000.0:
+        raise RelocalizationValidationError("registration timing is invalid")
+    return {
+        "schema": "robot-scope.relocalization-registration-diagnostics.v1",
+        "state": "complete",
+        "backend": backend,
+        "timing_ms": values | {"total": total},
+    }
+
+
 def _collection_diagnostics(value: LiveCollection) -> dict[str, Any]:
     """Project only bounded counts needed to diagnose a rejected collection."""
 
@@ -693,6 +761,11 @@ def _validate_candidates(
         confidence = str(item.get("confidence"))
         if confidence == "REJECTED":
             reasons.append("registration_rejected")
+            reasons.append(
+                "registration_not_converged"
+                if item.get("converged") is False
+                else "registration_quality_rejected"
+            )
         if not bundle.geometry.contains(map_base[0], map_base[1]):
             reasons.append("outside_occupancy_map")
         elif not bundle.geometry.known_free(map_base[0], map_base[1], clearance_radius=ROBOT_CLEARANCE_M):
@@ -704,6 +777,7 @@ def _validate_candidates(
         candidates.append({
             "rank": int(item["rank"]),
             "state": state,
+            "converged": item.get("converged") is True,
             "pose": {"x": map_base[0], "y": map_base[1], "yaw": map_base[2]},
             "transform_map_odom": {"x": map_odom[0], "y": map_odom[1], "yaw": map_odom[2]},
             "metrics": dict(item["metrics"]),
