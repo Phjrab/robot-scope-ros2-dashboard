@@ -217,3 +217,51 @@ Before candidate execution, present and approve:
 Candidate execution remains a separate stationary-only deployment action.
 `CANDIDATE_APPLIED=false`, and initial pose, Nav2, goal and motion remain
 forbidden in D2.
+
+## Observer-only external deployment — 2026-09-07
+
+The exact repository release below was deployed to the external Orin after the
+live-source qualification.  The previous production release remains available
+as the rollback target and the dirty development checkout was not modified.
+
+```text
+external target = 192.168.50.10
+deployed release = b8fe0c5a749eafc9c507157b101ba289e393e60d
+rollback release = 6ce4b1dad5b2fdd75710022264683dd65fa6e9d4
+archive sha256 = 303af41e81f45f0b7de09bbf368a6761204fcf8db225d1200580f829d32c9ce9
+registration executable sha256 = 89be25926a9bc1c66576d227473de520fde9b1cad9946e8ea060f8fca21b8ee5
+profile = go2-xt16-wireless-competition-fastlio
+observer opt-in = ROBOT_SCOPE_D2_STATIONARY_OBSERVER=1
+```
+
+The aarch64 registration core rebuilt with GCC 11.4 and its CTest passed
+1/1.  The dashboard restarted from the exact release and remained healthy.
+Control was lease-free, deadman false and exact zero; the authenticated Bridge
+reported zero non-zero Move requests.  Navigation, Localization and goal
+state remained idle.  The relocalization manager remains deliberately
+unconfigured and its status endpoint returns 503.
+
+The normal preview recovered and remained the only sensor process owner.
+FAST-LIO and the wireless IMU receiver were not started, so the three D2
+sources had no active producer and the graph-dependent observer did not create
+its fixed subscriptions.  No candidate collection or registration was run.
+Starting the stationary FAST-LIO source path requires a fresh physical-safety
+confirmation.
+
+The requested map cannot yet be used by D2:
+
+```text
+occupancy map = map_20260902_161903_edited
+occupancy id = f292601e2c8b269eb635cb0f
+occupancy revision = 7c48dd9d8d1d11fbc7ff39ccd6b854d58c7dc5863072bb548eba570e5044ea93
+source PCD candidate = map_20260902_161903.pcd
+source PCD id = dabd3853721e237f99d15399
+source PCD revision = 74bfe16b9576656d976d5d8d4caf118ee4bedf4ebbf184f83a12ba45f2ea26e5
+lineage status = unlinked
+```
+
+Both the original occupancy map and the similarly named PCD are historical
+unlinked artifacts.  D0 expressly prohibits inferring their relationship from
+filenames, so D2 remains fail-closed.  A new explicit PCD-to-2D conversion must
+create a lineage-aware map, followed by a lineage-preserving edited copy if
+the unknown-to-free edit is still required.  Existing maps remain untouched.

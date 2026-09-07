@@ -144,6 +144,16 @@ manager still requires an explicit non-persistent physical-safety confirmation
 boundary and fixed registration binary before it may be constructed and
 deployed.
 
+The observer-only `b8fe0c5a749eafc9c507157b101ba289e393e60d`
+release was subsequently installed on the external Orin with the exact
+competition profile and opt-in.  Its aarch64 registration core passed CTest,
+but the manager stayed unconfigured.  Because the stationary FAST-LIO source
+path was not started, no D2 source publisher was present and the observer
+remained waiting rather than manufacturing readiness.  The selected edited
+occupancy map and similarly named PCD were also confirmed to be legacy
+`unlinked` artifacts.  They cannot be paired by name; a new explicit
+lineage-aware conversion is required before candidate execution.
+
 ## Ownership and state
 
 One `StationaryRelocalizationManager` owns one worker, cancellation token and
