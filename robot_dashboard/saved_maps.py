@@ -548,7 +548,9 @@ class SavedMapCatalog:
                 else None
             )
             expected_revision = record.revision
-            output = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+            # TemporaryFile exposes the complete seekable IO contract on the
+            # Python 3.10 runtime used by the Foxy-side compatibility matrix.
+            output = tempfile.TemporaryFile(mode="w+b")
             try:
                 checksums: list[Dict[str, Any]] = []
                 with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
