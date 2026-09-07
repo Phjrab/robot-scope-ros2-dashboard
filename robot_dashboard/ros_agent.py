@@ -65,6 +65,11 @@ from .ros.navigation_gateway import (
     public_navigation_reason as _public_navigation_reason,
 )
 from .ros.pointcloud import PointCloudHub
+from .ros.relocalization_evidence import (
+    FIXED_TOPICS as RELOCALIZATION_FIXED_TOPICS,
+    PROFILE as RELOCALIZATION_PROFILE,
+    RelocalizationEvidenceHub,
+)
 from .ros.runtime import RosRuntime
 from .ros.sources import (
     SOURCE_CATEGORIES,
@@ -123,6 +128,7 @@ class RosAgent:
         cloud_max_points: Optional[int] = 18000,
         source_selection_path: Optional[str] = None,
         navigation_profile: str = "",
+        enable_stationary_relocalization_observer: Optional[bool] = None,
     ) -> None:
         self.robot_ip = self._valid_ip(robot_ip)
         normalized_cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
@@ -156,6 +162,18 @@ class RosAgent:
         self._ros_runtime = RosRuntime()
         self._lock = self._ros_runtime.lock
         self._graph_monitor = RosGraphMonitor(self._lock)
+        relocalization_observer_requested = (
+            os.environ.get("ROBOT_SCOPE_D2_STATIONARY_OBSERVER") == "1"
+            if enable_stationary_relocalization_observer is None
+            else enable_stationary_relocalization_observer is True
+        )
+        self._relocalization_evidence = RelocalizationEvidenceHub(
+            self._lock,
+            enabled=(
+                relocalization_observer_requested
+                and navigation_profile == RELOCALIZATION_PROFILE
+            ),
+        )
         joint_stale_after = max(
             0.2,
             min(float(self.profile.get("joint_state_stale_after_s", 1.0)), 10.0),
@@ -1573,6 +1591,7 @@ class RosAgent:
             with self._lock:
                 self._graph = discovered
                 self._pick_default_sources_locked()
+            self._sync_relocalization_subscriptions()
             self._sync_special_subscriptions()
             self._sync_joint_subscription()
             self._sync_observable_subscriptions()
@@ -1647,6 +1666,60 @@ class RosAgent:
                 if self._create_subscription(f"special:{category}", wanted, callback):
                     with self._lock:
                         self._special_subscription_topics[category] = wanted
+
+    def _sync_relocalization_subscriptions(self) -> None:
+        """Own fixed D2 evidence subscriptions independently from UI sources."""
+
+        if not self._relocalization_evidence.enabled:
+            for topic in RELOCALIZATION_FIXED_TOPICS:
+                self._destroy_subscription(f"relocalization:{topic}")
+            return
+        for topic, expected_type in RELOCALIZATION_FIXED_TOPICS.items():
+            key = f"relocalization:{topic}"
+            with self._lock:
+                descriptor = dict(self._graph.get(topic, {}))
+                subscribed = key in self._subscriptions
+            type_name = str(descriptor.get("type", ""))
+            publisher_count = descriptor.get("publishers", 0)
+            self._relocalization_evidence.update_contract(
+                topic,
+                type_name,
+                publisher_count=publisher_count,
+                qos_valid=self._relocalization_qos_valid(topic),
+            )
+            wanted = bool(
+                self._relocalization_evidence.enabled
+                and type_name == expected_type
+                and isinstance(publisher_count, int)
+                and not isinstance(publisher_count, bool)
+                and publisher_count > 0
+            )
+            if subscribed and not wanted:
+                self._destroy_subscription(key)
+            elif wanted and not subscribed:
+                self._create_subscription(
+                    key,
+                    topic,
+                    self._relocalization_callback,
+                )
+
+    def _relocalization_qos_valid(self, topic: str) -> bool:
+        node = self._node
+        if node is None:
+            return False
+        try:
+            offers = list(node.get_publishers_info_by_topic(topic))
+            if len(offers) != 1:
+                return False
+            qos = offers[0].qos_profile
+            return bool(
+                qos.reliability == ReliabilityPolicy.RELIABLE
+                and qos.durability == DurabilityPolicy.VOLATILE
+                and qos.history == HistoryPolicy.KEEP_LAST
+                and int(qos.depth) >= 1
+            )
+        except (AttributeError, TypeError, ValueError):
+            return False
 
     def _preferred_joint_source_locked(self) -> str:
         """Select one real joint source, preferring named JointState data."""
@@ -1900,6 +1973,16 @@ class RosAgent:
         except Exception as exc:
             with self._lock:
                 self._last_error = f"pointcloud {topic}: {exc}"
+
+    def _relocalization_callback(
+        self,
+        topic: str,
+        type_name: str,
+        message: Any,
+    ) -> None:
+        """Store bounded D2 evidence without updating UI-selected metrics."""
+
+        self._relocalization_evidence.ingest(topic, type_name, message)
 
     def _map_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
@@ -2490,6 +2573,15 @@ class RosAgent:
         if topic:
             snapshot.update(pointcloud_source_metadata(topic))
         return snapshot
+
+    def relocalization_cloud_snapshot(self) -> Dict[str, Any]:
+        return self._relocalization_evidence.cloud_snapshot()
+
+    def relocalization_motion_snapshot(self) -> Dict[str, Any]:
+        return self._relocalization_evidence.motion_snapshot()
+
+    def relocalization_evidence_snapshot(self) -> Dict[str, Any]:
+        return self._relocalization_evidence.status_snapshot()
 
     def map_snapshot(self) -> Dict[str, Any]:
         return self._telemetry_hub.map_snapshot()

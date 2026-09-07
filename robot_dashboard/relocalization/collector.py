@@ -66,18 +66,24 @@ class FixedCloudRegisteredCollector:
             if cancel_event.is_set():
                 raise RelocalizationConflict("collection canceled")
             cloud = self._cloud_provider()
-            seq = cloud.get("seq") if isinstance(cloud, Mapping) else None
-            if isinstance(seq, int) and not isinstance(seq, bool) and seq != last_seq:
+            if not isinstance(cloud, Mapping):
+                raise RelocalizationUnavailable("cloud source readiness failed")
+            if cloud.get("topic") != SOURCE_TOPIC or cloud.get("frame_id") != SOURCE_FRAME:
+                raise RelocalizationConflict("cloud source identity changed")
+            if cloud.get("publisher_count") != 1 or cloud.get("fresh") is not True or cloud.get("qos_valid") is not True:
+                raise RelocalizationUnavailable("cloud source readiness failed")
+            seq = cloud.get("seq")
+            if not isinstance(seq, int) or isinstance(seq, bool) or seq <= 0:
+                raise RelocalizationUnavailable("cloud source sequence is unavailable")
+            if last_seq is not None and seq < last_seq:
+                raise RelocalizationConflict("cloud source sequence reset")
+            if seq != last_seq:
                 sample_points, source_points = _cloud_points(cloud)
                 stamp = cloud.get("stamp_ns")
                 if not isinstance(stamp, int) or isinstance(stamp, bool) or stamp <= 0:
                     raise RelocalizationUnavailable("cloud source stamp is unavailable")
                 if stamps and stamp <= stamps[-1]:
                     raise RelocalizationConflict("cloud source stamp did not progress")
-                if cloud.get("topic") != SOURCE_TOPIC or cloud.get("frame_id") != SOURCE_FRAME:
-                    raise RelocalizationConflict("cloud source identity changed")
-                if cloud.get("publisher_count") != 1 or cloud.get("fresh") is not True or cloud.get("qos_valid") is not True:
-                    raise RelocalizationUnavailable("cloud source readiness failed")
                 raw_points += source_points
                 if raw_points > MAX_RAW_POINTS:
                     raise RelocalizationValidationError("raw point accumulator exceeded its bound")

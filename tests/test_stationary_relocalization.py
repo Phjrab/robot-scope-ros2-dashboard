@@ -6,6 +6,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from robot_dashboard.relocalization.collector import FixedCloudRegisteredCollector
 from robot_dashboard.relocalization.manager import (
@@ -19,6 +20,15 @@ from robot_dashboard.relocalization.manager import (
     _compose_pose,
 )
 from robot_dashboard.relocalization.process_adapter import RegistrationProcessError
+from robot_dashboard.ros.relocalization_evidence import (
+    CLOUD_TOPIC,
+    CLOUD_TYPE,
+    IMU_TOPIC,
+    IMU_TYPE,
+    ODOMETRY_TOPIC,
+    ODOMETRY_TYPE,
+    RelocalizationEvidenceHub,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +51,65 @@ def write_pcd(path, cloud):
         f"COUNT 1 1 1\nWIDTH {len(cloud)}\nHEIGHT 1\nPOINTS {len(cloud)}\nDATA binary\n"
     ).encode("ascii")
     path.write_bytes(header + b"".join(struct.pack("<fff", *point) for point in cloud))
+
+
+class EvidenceClock:
+    def __init__(self):
+        self.monotonic = 100.0
+        self.realtime_ns = 1_800_000_000_000_000_000
+
+
+def message_header(clock, *, frame_id="camera_init", age_s=0.01):
+    stamp_ns = clock.realtime_ns - int(age_s * 1_000_000_000)
+    return SimpleNamespace(
+        frame_id=frame_id,
+        stamp=SimpleNamespace(
+            sec=stamp_ns // 1_000_000_000,
+            nanosec=stamp_ns % 1_000_000_000,
+        ),
+    )
+
+
+def cloud_message(clock, *, frame_id="camera_init", values=None, age_s=0.01):
+    cloud = values or ((1.0, 0.0, 0.0), (1.2, 0.1, 0.2), (1.4, -0.1, 0.3))
+    return SimpleNamespace(
+        header=message_header(clock, frame_id=frame_id, age_s=age_s),
+        width=len(cloud),
+        height=1,
+        point_step=12,
+        row_step=len(cloud) * 12,
+        is_bigendian=False,
+        fields=[
+            SimpleNamespace(name=name, offset=index * 4, datatype=7)
+            for index, name in enumerate(("x", "y", "z"))
+        ],
+        data=b"".join(struct.pack("<fff", *value) for value in cloud),
+    )
+
+
+def odometry_message(clock, *, x=0.0, y=0.0, vx=0.0, age_s=0.01):
+    return SimpleNamespace(
+        header=message_header(clock, age_s=age_s),
+        child_frame_id="body",
+        pose=SimpleNamespace(
+            pose=SimpleNamespace(
+                position=SimpleNamespace(x=x, y=y, z=0.0),
+                orientation=SimpleNamespace(x=0.0, y=0.0, z=0.0, w=1.0),
+            )
+        ),
+        twist=SimpleNamespace(
+            twist=SimpleNamespace(
+                linear=SimpleNamespace(x=vx, y=0.0, z=0.0),
+            )
+        ),
+    )
+
+
+def imu_message(clock, *, angular=0.01, age_s=0.01):
+    return SimpleNamespace(
+        header=message_header(clock, frame_id="body", age_s=age_s),
+        angular_velocity=SimpleNamespace(x=angular, y=0.0, z=0.0),
+    )
 
 
 class Geometry:
@@ -407,6 +476,150 @@ class StationaryRelocalizationTests(unittest.TestCase):
             )
             with self.subTest(change=change), self.assertRaises((RelocalizationConflict, RelocalizationUnavailable)):
                 collector.collect(threading.Event())
+
+    def test_fixed_evidence_observer_is_opt_in_and_ui_source_independent(self):
+        clock = EvidenceClock()
+        disabled = RelocalizationEvidenceHub(
+            threading.RLock(),
+            enabled=False,
+            monotonic=lambda: clock.monotonic,
+            realtime_ns=lambda: clock.realtime_ns,
+        )
+        disabled.update_contract(
+            CLOUD_TOPIC,
+            CLOUD_TYPE,
+            publisher_count=1,
+            qos_valid=True,
+        )
+        self.assertFalse(disabled.ingest(CLOUD_TOPIC, CLOUD_TYPE, cloud_message(clock)))
+        self.assertFalse(disabled.cloud_snapshot()["fresh"])
+        self.assertEqual(disabled.status_snapshot()["publisher_count"], 0)
+
+        observer = self._evidence_observer(clock)
+        self.assertTrue(observer.ingest(CLOUD_TOPIC, CLOUD_TYPE, cloud_message(clock)))
+        self.assertTrue(observer.ingest(ODOMETRY_TOPIC, ODOMETRY_TYPE, odometry_message(clock)))
+        self.assertTrue(observer.ingest(IMU_TOPIC, IMU_TYPE, imu_message(clock)))
+        cloud = observer.cloud_snapshot()
+        motion = observer.motion_snapshot()
+        self.assertTrue(cloud["fresh"])
+        self.assertEqual(cloud["topic"], "/cloud_registered")
+        self.assertEqual(cloud["frame_id"], "camera_init")
+        self.assertEqual(cloud["source_points"], 3)
+        self.assertEqual(len(cloud["points_bytes"]), 36)
+        self.assertTrue(motion["fresh"])
+        self.assertEqual(motion["base_pose_odom"], (0.0, 0.0, 0.0))
+        self.assertEqual(motion["fastlio_twist_mps"], 0.0)
+        self.assertAlmostEqual(motion["imu_angular_rate_rps"], 0.01)
+
+    def test_fixed_evidence_fails_closed_on_contract_stamp_and_payload(self):
+        cases = (
+            ("publisher", lambda clock: cloud_message(clock)),
+            ("qos", lambda clock: cloud_message(clock)),
+            ("frame", lambda clock: cloud_message(clock, frame_id="map")),
+            ("stale", lambda clock: cloud_message(clock, age_s=0.501)),
+            ("future", lambda clock: cloud_message(clock, age_s=-0.101)),
+            (
+                "nonfinite",
+                lambda clock: cloud_message(clock, values=((float("nan"), 0.0, 0.0),)),
+            ),
+        )
+        for name, factory in cases:
+            with self.subTest(name=name):
+                clock = EvidenceClock()
+                observer = self._evidence_observer(
+                    clock,
+                    cloud_publishers=2 if name == "publisher" else 1,
+                    cloud_qos=name != "qos",
+                )
+                observer.ingest(CLOUD_TOPIC, CLOUD_TYPE, factory(clock))
+                self.assertFalse(observer.cloud_snapshot()["fresh"])
+
+        clock = EvidenceClock()
+        observer = self._evidence_observer(clock)
+        message = cloud_message(clock)
+        self.assertTrue(observer.ingest(CLOUD_TOPIC, CLOUD_TYPE, message))
+        self.assertFalse(observer.ingest(CLOUD_TOPIC, CLOUD_TYPE, message))
+        self.assertFalse(observer.cloud_snapshot()["fresh"])
+
+    def test_motion_evidence_requires_both_progressing_fixed_sources(self):
+        clock = EvidenceClock()
+        observer = self._evidence_observer(clock)
+        self.assertTrue(
+            observer.ingest(
+                ODOMETRY_TOPIC,
+                ODOMETRY_TYPE,
+                odometry_message(clock, x=0.1, y=-0.2, vx=0.004),
+            )
+        )
+        self.assertFalse(observer.motion_snapshot()["fresh"])
+        self.assertTrue(observer.ingest(IMU_TOPIC, IMU_TYPE, imu_message(clock, angular=0.02)))
+        motion = observer.motion_snapshot()
+        self.assertTrue(motion["fresh"])
+        self.assertEqual(motion["base_pose_odom"], (0.1, -0.2, 0.0))
+        self.assertAlmostEqual(motion["fastlio_twist_mps"], 0.004)
+        self.assertAlmostEqual(motion["imu_angular_rate_rps"], 0.02)
+        clock.monotonic += 0.501
+        clock.realtime_ns += 501_000_000
+        self.assertFalse(observer.motion_snapshot()["fresh"])
+
+    def test_collector_fails_if_readiness_changes_while_sequence_is_unchanged(self):
+        packed = b"".join(struct.pack("<fff", *point) for point in points())
+        calls = 0
+
+        def cloud():
+            nonlocal calls
+            calls += 1
+            return {
+                "seq": 1,
+                "stamp_ns": 1,
+                "topic": "/cloud_registered",
+                "frame_id": "camera_init",
+                "publisher_count": 1,
+                "fresh": calls == 1,
+                "qos_valid": True,
+                "source_points": 600,
+                "points_bytes": packed,
+            }
+
+        collector = FixedCloudRegisteredCollector(
+            cloud,
+            lambda: {
+                "fresh": True,
+                "base_pose_odom": [0.0, 0.0, 0.0],
+                "fastlio_twist_mps": 0.0,
+                "imu_angular_rate_rps": 0.0,
+            },
+            duration_s=0.1,
+            poll_interval_s=0.001,
+        )
+        with self.assertRaises(RelocalizationUnavailable):
+            collector.collect(threading.Event())
+
+    @staticmethod
+    def _evidence_observer(
+        clock,
+        *,
+        cloud_publishers=1,
+        cloud_qos=True,
+    ):
+        observer = RelocalizationEvidenceHub(
+            threading.RLock(),
+            enabled=True,
+            monotonic=lambda: clock.monotonic,
+            realtime_ns=lambda: clock.realtime_ns,
+        )
+        for topic, type_name in (
+            (CLOUD_TOPIC, CLOUD_TYPE),
+            (ODOMETRY_TOPIC, ODOMETRY_TYPE),
+            (IMU_TOPIC, IMU_TYPE),
+        ):
+            observer.update_contract(
+                topic,
+                type_name,
+                publisher_count=(cloud_publishers if topic == CLOUD_TOPIC else 1),
+                qos_valid=(cloud_qos if topic == CLOUD_TOPIC else True),
+            )
+        return observer
 
     @staticmethod
     def _wait(manager, job_id):

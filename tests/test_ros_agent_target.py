@@ -146,6 +146,40 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(target["ip"], "192.168.50.30")
         self.assertTrue(target["control_target_supported"])
 
+    def test_d2_evidence_observer_requires_exact_profile_and_explicit_opt_in(self):
+        default = RosAgent(
+            robot_ip="192.168.50.30",
+            profile_path=str(ROOT / "config" / "go2.json"),
+            navigation_profile="go2-xt16-wireless-competition-fastlio",
+        )
+        wrong_profile = RosAgent(
+            robot_ip="192.168.50.30",
+            profile_path=str(ROOT / "config" / "go2.json"),
+            navigation_profile="go2-xt16-wireless",
+            enable_stationary_relocalization_observer=True,
+        )
+        enabled = RosAgent(
+            robot_ip="192.168.50.30",
+            profile_path=str(ROOT / "config" / "go2.json"),
+            navigation_profile="go2-xt16-wireless-competition-fastlio",
+            enable_stationary_relocalization_observer=True,
+        )
+        with patch.dict(
+            os.environ,
+            {"ROBOT_SCOPE_D2_STATIONARY_OBSERVER": "1"},
+            clear=False,
+        ):
+            environment_enabled = RosAgent(
+                robot_ip="192.168.50.30",
+                profile_path=str(ROOT / "config" / "go2.json"),
+                navigation_profile="go2-xt16-wireless-competition-fastlio",
+            )
+        self.assertFalse(default.relocalization_evidence_snapshot()["enabled"])
+        self.assertFalse(wrong_profile.relocalization_evidence_snapshot()["enabled"])
+        self.assertTrue(enabled.relocalization_evidence_snapshot()["enabled"])
+        self.assertTrue(environment_enabled.relocalization_evidence_snapshot()["enabled"])
+        self.assertEqual(enabled.relocalization_evidence_snapshot()["publisher_count"], 0)
+
     def test_target_change_revokes_lease_and_non_go2_blocks_all_enabling_mutators(self):
         lease = self.agent.control_acquire("keyboard")["token"]
         self.agent.control_bind(lease, "target-test-websocket")

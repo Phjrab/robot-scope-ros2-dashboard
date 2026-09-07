@@ -1,6 +1,6 @@
 # ADR: stationary 3D relocalization candidate job
 
-Status: accepted for hardware-free D2 implementation; live source qualification blocked
+Status: accepted; live source qualified; dedicated D2 provider not yet deployed
 
 ## Decision
 
@@ -21,8 +21,8 @@ as a current observation and avoids accumulating raw `/velodyne_points`
 without a separately qualified transform owner. Each registered cloud is
 expected to already use the fixed FAST-LIO local frame.
 
-This selection is provisional until a read-only graph/frame/QoS audit and an
-external-Orin build prove:
+This selection was provisional until a read-only graph/frame/QoS audit and an
+external-Orin build proved:
 
 - exactly one publisher and fresh increasing stamps;
 - the actual `/cloud_registered` frame is `camera_init`;
@@ -31,7 +31,8 @@ external-Orin build prove:
 - controller odometry, FAST-LIO twist and body IMU provide independent
   stationary evidence.
 
-The existing operator-selected point-cloud preview is not an acceptable data
+The 2026-09-07 stationary audit below qualifies the source contract. The
+existing operator-selected point-cloud preview is still not an acceptable data
 owner. A dedicated profile-fixed provider must feed
 `FixedCloudRegisteredCollector`; the repository does not silently enable or
 construct that provider in D2 software acceptance.
@@ -77,6 +78,71 @@ benchmark measured translation median/p95 0.005111/0.016583 m, yaw median/p95
 RSS 13,404 KiB. The temporary staging was removed and the production release
 and service were unchanged. PCL 1.12.1 was installed, but no PCL NDT/GICP
 backend exists in the repository, so no PCL comparison is claimed.
+
+## 2026-09-07 stationary source qualification
+
+After the fixed XT16 wireless path and its cold-boot recovery had been
+accepted, the operator gave a fresh stationary-only hardware approval. The
+external dashboard was still running release
+`6ce4b1dad5b2fdd75710022264683dd65fa6e9d4`; the onboard release symlink was
+`10a7fa9cec2c329f2c50edc9ad98de13a22689da`. The repository under assessment
+was `2adb329c674d166fe06d59f4c1b8d1998cbaf672`.
+
+The existing fixed Mapping launcher was used only as an observation owner. It
+reused the already-running Hesai preview driver and XT16 conversion process,
+then started the remote wireless IMU sender, external IMU receiver and
+FAST-LIO. No map save, initial pose, Nav2 session, goal, lease, ARM, deadman or
+non-zero command was issued.
+
+The qualified graph was:
+
+| Topic | Publisher | Frame / child | Offered QoS | Observed rate |
+|---|---|---|---|---:|
+| `/cloud_registered` | one `laser_mapping` | `camera_init` | reliable, keep-last 20, volatile | 9.993 Hz final |
+| `/Laser_map` | one `laser_mapping` | `camera_init` | reliable, keep-last 20, volatile | growing map; not selected |
+| `/Odometry` | one `laser_mapping` | `camera_init` / `body` | reliable, keep-last 20, volatile | 9.994 Hz final |
+| `/imu/body` | one `robot_scope_wireless_imu_receiver` | body IMU source | reliable, keep-last 5, volatile | approximately 499 Hz |
+
+Five `/cloud_registered` payloads contained 350--359 source points. Three
+`/Laser_map` payloads grew from 19,607 to 21,028 points. This distinguishes the
+selected topic as the bounded current registered scan and the rejected topic
+as the accumulated map. Source stamps progressed and the final cloud/odometry
+period measurements were bounded (cloud 0.084--0.119 s, odometry
+0.083--0.117 s).
+
+Two stationary odometry samples taken 15 seconds apart had a planar delta of
+approximately 3.75 mm. Sampled FAST-LIO twist was exactly zero and body IMU
+angular-rate magnitudes were approximately 0.0137 and 0.0114 rad/s. These are
+inside the existing 5 mm, 0.01 m/s and 0.05 rad/s D2 limits for this bounded
+qualification interval. This evidence qualifies the live input; it does not
+constitute a registration candidate run or prove a dynamic localization
+result.
+
+During the audit, process use was approximately 34% CPU/49.8 MiB RSS for the
+IMU receiver, 30%/140 MiB for FAST-LIO, 28%/111.5 MiB for the Hesai driver and
+10.6%/15 MiB for the XT16 bridge. System memory remained about
+2.2--2.6 GiB of 7.6 GiB with no swap use; GPU use was zero and temperature was
+approximately 39--41 C. The diagnostic CLI sampling itself caused a temporary
+CPU burst, so those peak per-core values are not attributed to the steady
+pipeline.
+
+Cleanup stopped only the audit-owned Mapping pipeline. FAST-LIO, the external
+IMU receiver and onboard wireless IMU sender were absent afterward;
+`/cloud_registered`, `/Laser_map`, `/Odometry` and `/imu/body` had no live
+publisher. The browser preview remained healthy on `/velodyne_points` with its
+single publisher. Control remained disarmed, lease-free, deadman false and
+exact zero throughout, with zero non-zero Move requests.
+
+The source decision is therefore closed as `/cloud_registered` in
+`camera_init` for the exact competition FAST-LIO profile. Runtime candidate
+generation remains disabled. A dedicated profile-fixed evidence owner now
+exists behind the exact server opt-in
+`ROBOT_SCOPE_D2_STATIONARY_OBSERVER=1`; the wrong profile or a missing opt-in
+creates no D2 subscription. It validates the three fixed live sources without
+publishing anything and never follows the UI-selected preview source. The
+manager still requires an explicit non-persistent physical-safety confirmation
+boundary and fixed registration binary before it may be constructed and
+deployed.
 
 ## Ownership and state
 

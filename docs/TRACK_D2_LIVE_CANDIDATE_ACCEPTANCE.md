@@ -1,10 +1,11 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_REPOSITORY_SOFTWARE_PASS`; live source qualification blocked
+Status: `D2_REPOSITORY_SOFTWARE_PASS`; live source qualified; candidate not run
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
-STATIONARY_LIVE_CANDIDATE_BLOCKED
+D2_LIVE_SOURCE_QUALIFIED
+STATIONARY_LIVE_CANDIDATE_NOT_RUN
 CANDIDATE_APPLIED=false
 LOCALIZED_NG1_NOT_RUN
 GOAL_NOT_RUN
@@ -27,6 +28,12 @@ MOTION_NOT_RUN
 - top-three results, ambiguity handling and bounded path-free previews;
 - same-origin mutations and Competition Lock start policy;
 - no apply endpoint and no control/navigation mutation dependency.
+- opt-in, exact-profile D2 evidence owner for fixed `/cloud_registered`,
+  `/Odometry` and `/imu/body` subscriptions, with no publisher;
+- source cardinality, reliable/volatile QoS, frame, finite payload, original
+  timestamp, progression and 500 ms past/100 ms future validation;
+- collection-time readiness checks even while the last source sequence is
+  unchanged, preventing a stale cached sample from surviving a graph fault.
 
 ## Hardware-free acceptance matrix
 
@@ -47,18 +54,22 @@ MOTION_NOT_RUN
 | no candidate apply route | PASS |
 | no lease/ARM/deadman/goal dependency | PASS |
 
-## Why live acceptance remains closed
+## Why candidate acceptance remains closed
 
-The authorized work did not start a ROS observer or alter either Jetson. The
-repository and prior C2 evidence establish `/velodyne_points` and `/Odometry`
-at approximately 10 Hz, but do not yet prove the current
-`/cloud_registered` frame, QoS, publisher cardinality or bounded scan
-semantics. The D1 portable backend has also not been built or compared with
-PCL NDT/GICP on aarch64.
+The original hardware-free acceptance did not start a ROS observer or alter
+either Jetson. The later stationary audit below now proves the current
+`/cloud_registered` frame, QoS, publisher cardinality and bounded current-scan
+semantics, and the D1 portable backend has been built and benchmarked on
+aarch64. The repository still has no PCL NDT/GICP backend, so no comparison is
+claimed.
 
-The runtime therefore leaves `ApplicationRuntime.relocalization` unconfigured.
-The new endpoints fail with 503 instead of borrowing the UI preview source or
-claiming live readiness.
+The runtime continues to leave `ApplicationRuntime.relocalization`
+unconfigured. The endpoints fail with 503 instead of borrowing the UI preview
+source or bypassing the explicit physical-safety boundary. The new dedicated
+observer is disabled by default and requires both the exact competition
+FAST-LIO profile and `ROBOT_SCOPE_D2_STATIONARY_OBSERVER=1`. A fixed
+registration process and non-persistent physical-safety confirmation boundary
+must still be wired before a candidate job can run.
 
 ## Read-only live audit and aarch64 evidence — 2026-09-07
 
@@ -149,3 +160,60 @@ header-only capture on onboard `eth0`; it requires separate privileged
 operator authorization and makes no network change. Do not wire
 `ApplicationRuntime.relocalization`, start a persistent D2 observer, or deploy
 the D2 release while this prerequisite is blocked.
+
+The prerequisite described above is historical. Commits after this audit
+restored and accepted the fixed wireless XT16 path, including cold-boot
+recovery. It must not be used as the current D2 status.
+
+## Stationary live-input acceptance — 2026-09-07
+
+Fresh operator approval authorized a stationary sensor-input test only. The
+robot was reported completely stopped with remote/E-stop ready. Map save,
+initial pose, Nav2, goal and motion remained forbidden.
+
+```text
+repository = 2adb329c674d166fe06d59f4c1b8d1998cbaf672
+external dashboard release = 6ce4b1dad5b2fdd75710022264683dd65fa6e9d4
+onboard release = 10a7fa9cec2c329f2c50edc9ad98de13a22689da
+pipeline ready = 2026-09-07T02:18:49.836867Z
+pipeline stopped = 2026-09-07T02:21:28.782288Z
+```
+
+| Check | Result |
+|---|---|
+| `/cloud_registered` identity | PASS — exactly one `laser_mapping` publisher |
+| frame | PASS — `camera_init` |
+| source semantics | PASS — 350--359-point bounded current scans |
+| stamp progression and rate | PASS — increasing; final 9.993 Hz |
+| offered QoS | PASS — reliable, keep-last 20, volatile |
+| `/Odometry` | PASS — one publisher, `camera_init -> body`, final 9.994 Hz |
+| `/imu/body` | PASS — one receiver publisher, approximately 499 Hz |
+| accumulated `/Laser_map` excluded | PASS — grew 19,607 -> 21,028 points |
+| stationary translation | PASS — approximately 3.75 mm over 15 s |
+| FAST-LIO twist | PASS — sampled exact zero |
+| body IMU angular rate | PASS — approximately 0.0137/0.0114 rad/s |
+| control isolation | PASS — disarmed, no lease/deadman, exact zero, non-zero Move count 0 |
+| prohibited operations | PASS — no save, initial pose, Nav2, goal or motion |
+| reverse cleanup | PASS — audit-owned pipeline stopped; preview retained |
+
+The source decision is now accepted as `/cloud_registered` in `camera_init`
+under `go2-xt16-wireless-competition-fastlio`. This is
+`D2_LIVE_SOURCE_QUALIFIED`, not `STATIONARY_LIVE_CANDIDATE_PASS`: no D2
+dedicated subscriber collected a submap, no registration process ran and no
+candidate was generated.
+
+## Revised next approval gate
+
+Before candidate execution, present and approve:
+
+1. a clean exact release containing the dedicated profile-fixed D2 observer;
+2. explicit observer opt-in and proof of its three subscriptions/zero publishers;
+3. an explicit, non-persistent physical-safety confirmation boundary;
+4. the fixed aarch64 registration executable and allowed staging roots;
+5. expected steady load and the temporary diagnostic overhead distinction;
+6. external dashboard restart order and rollback SHA;
+7. exact D0 family, occupancy map and source PCD revisions for the run.
+
+Candidate execution remains a separate stationary-only deployment action.
+`CANDIDATE_APPLIED=false`, and initial pose, Nav2, goal and motion remain
+forbidden in D2.
