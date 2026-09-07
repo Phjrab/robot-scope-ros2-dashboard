@@ -838,6 +838,7 @@ class SavedMapCatalog:
                 source_pcd_revision=source_pcd_revision,
                 reference_pcd=reference,
                 reference_points=int(source.details.get("point_count", 0)),
+                known_free_cells=navigation.occupancy.count(0),
                 geometry=navigation,
                 annotations=annotations,
             )

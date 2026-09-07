@@ -46,6 +46,7 @@ MAX_STATIONARY_IMU_RPS = 0.05
 MAX_STATIONARY_SPORT_LINEAR_MPS = 0.025
 MAX_STATIONARY_SPORT_YAW_RPS = 0.04
 MAX_JOBS_RETAINED = 8
+MAX_OCCUPANCY_CELLS = 64_000_000
 TERMINAL_STATES = frozenset({"candidate_ready", "ambiguous", "rejected", "failed"})
 
 
@@ -88,6 +89,7 @@ class RelocalizationMapBundle:
     source_pcd_revision: str
     reference_pcd: Path
     reference_points: int
+    known_free_cells: int
     geometry: Geometry
     annotations: Mapping[str, Any]
 
@@ -188,6 +190,7 @@ class StationaryRelocalizationManager:
                 "source": {"topic": SOURCE_TOPIC, "frame_id": SOURCE_FRAME},
                 "collection": None,
                 "collection_diagnostics": _empty_collection_diagnostics(),
+                "map_diagnostics": _empty_map_diagnostics(),
                 "candidates": [],
                 "candidate_applied": False,
                 "created_monotonic": time.monotonic(),
@@ -284,6 +287,11 @@ class StationaryRelocalizationManager:
                 request["map_id"], request["map_revision"],
                 request["source_pcd_id"], request["source_pcd_revision"], job_dir,
             )
+            self._record_map_diagnostics(job_id, generation, bundle)
+            if bundle.known_free_cells == 0:
+                raise RelocalizationValidationError(
+                    "occupancy map has no known-free cells"
+                )
             self._transition(job_id, generation, "collecting", "collecting fixed live source")
             collection = self._collector.collect(cancel_event)
             self._record_collection_diagnostics(job_id, generation, collection)
@@ -380,6 +388,20 @@ class StationaryRelocalizationManager:
             if job["state"] == "canceling":
                 raise _Canceled()
             job["collection_diagnostics"] = diagnostics
+            job["updated_monotonic"] = time.monotonic()
+
+    def _record_map_diagnostics(
+        self,
+        job_id: str,
+        generation: int,
+        bundle: RelocalizationMapBundle,
+    ) -> None:
+        diagnostics = _map_diagnostics(bundle)
+        with self._lock:
+            job = self._owned(job_id, generation)
+            if job["state"] == "canceling":
+                raise _Canceled()
+            job["map_diagnostics"] = diagnostics
             job["updated_monotonic"] = time.monotonic()
 
     def _owned(self, job_id: str, generation: int) -> dict[str, Any]:
@@ -561,6 +583,35 @@ def _empty_collection_diagnostics() -> dict[str, Any]:
         "maximum_filtered_points": MAX_FILTERED_POINTS,
         "voxel_size_m": FILTER_VOXEL_SIZE_M,
         "count_reason": "waiting",
+    }
+
+
+def _empty_map_diagnostics() -> dict[str, Any]:
+    return {
+        "schema": "robot-scope.relocalization-map-diagnostics.v1",
+        "known_free_cells": None,
+        "required_clearance_m": ROBOT_CLEARANCE_M,
+        "eligibility": "waiting",
+        "reason": "waiting",
+    }
+
+
+def _map_diagnostics(bundle: RelocalizationMapBundle) -> dict[str, Any]:
+    cells = bundle.known_free_cells
+    if (
+        isinstance(cells, bool)
+        or not isinstance(cells, int)
+        or not 0 <= cells <= MAX_OCCUPANCY_CELLS
+    ):
+        raise RelocalizationValidationError(
+            "occupancy known-free cell count is invalid"
+        )
+    return {
+        "schema": "robot-scope.relocalization-map-diagnostics.v1",
+        "known_free_cells": cells,
+        "required_clearance_m": ROBOT_CLEARANCE_M,
+        "eligibility": "eligible" if cells > 0 else "ineligible",
+        "reason": "" if cells > 0 else "no_known_free_cells",
     }
 
 

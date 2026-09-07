@@ -1,6 +1,6 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_LIVE_CANDIDATE_FAILED_MISSING_LINEAGE`; no candidate produced
+Status: `D2_LIVE_CANDIDATE_REJECTED_MAP_NOT_ELIGIBLE`; candidate not applied
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
@@ -9,7 +9,8 @@ D2_RUNTIME_DEPLOYED
 D2_STATIONARY_ENVELOPE_SOFTWARE_PASS
 D2_STATIONARY_ENVELOPE_DEPLOYED
 D2_LIVE_SOURCE_QUALIFIED
-STATIONARY_LIVE_CANDIDATE_FAILED_PRECOLLECTION
+D2_DENSE_QUERY_COLLECTION_PASS
+STATIONARY_LIVE_CANDIDATE_REJECTED
 CANDIDATE_APPLIED=false
 LOCALIZED_NG1_NOT_RUN
 GOAL_NOT_RUN
@@ -812,6 +813,107 @@ D2_BOUNDED_COUNT_EVIDENCE=PASS
 D2_DENSE_QUERY_SOFTWARE=PASS
 D2_DENSE_QUERY_DEPLOYMENT=NOT_RUN
 D2_DENSE_QUERY_LIVE_CANDIDATE=NOT_RUN
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=IDLE
+FINAL_PREVIEW_STATE=RUNNING
+```
+
+## Dense-query deployment and stationary candidate result — 2026-09-08
+
+The dense-query correction was committed as exact release
+`db4a9a9a81f49ed94915bd8d873c878ca6233f94`. GitHub Actions run
+`34137638936` passed both Ubuntu/Python matrices before deployment. The exact
+archive SHA-256 was
+`7f8ce37654cdbb9bcc16307bc6913f150ea8e5194d80ed13f434aa67a4371c2e`.
+Only the external dashboard was transitioned and restarted; the onboard
+release remained `10a7fa9cec2c329f2c50edc9ad98de13a22689da` and its Bridge
+was not restarted. The copied aarch64 registration executable retained
+SHA-256
+`89be25926a9bc1c66576d227473de520fde9b1cad9946e8ea060f8fca21b8ee5`.
+
+The D2-only config, base runner and wireless runner hashes were respectively:
+
+```text
+776ed3e1ecba65629bbc47b422287a66f105dfcfdafcde1d2d6a1668397ad4df
+0822b7826232ec44fe0956b06ef151ef975de27f2ffe31e26a34737c2babca37
+4c756b550c8f8702e67286289443a48cf10b1e421fb1e5fa0124645f0803ede8
+```
+
+The dashboard process cwd resolved to the exact release, systemd reported
+`NRestarts=0`, and Control preflight showed inactive lease, false deadman,
+exact-zero accepted command and zero Move/non-zero Move/action requests.
+Navigation, Localization and goal remained idle. The observation-only owner
+then reached fixed XT16, IMU, FAST-LIO and D2 source readiness.
+
+Exactly one candidate request was submitted as job
+`fdf9613a575f47d54a025871` with the same pinned family and REGION seed. The
+dense collection passed every fixed count and stationary gate:
+
+```text
+duration = 3.1798 s
+frames = 25
+raw_points = 366290
+filtered_points = 1199
+reference_points = 182949
+source = /cloud_registered
+frame = camera_init
+local_origin = odom_at_collection_start
+query_voxel = 0.15 m
+```
+
+The registration backend returned three bounded candidates, so the original
+455-point problem is resolved. The top result had map-base pose approximately
+`(-0.1225, -0.6186, 1.6001)`, fitness `0.08559`, overlap `0.97998` and
+ambiguity margin `0.02258`. The next two results remained spatially distinct.
+The result contract labeled all three `REJECTED`; because their point count,
+overlap and fitness passed the rejection thresholds, the remaining exact
+registration predicate is `converged=false`. This is not overridden by the
+high overlap.
+
+Every candidate also failed `footprint_not_known_free`. A byte-exact offline
+inspection of the pinned 795 x 673 occupancy PGM using its trinary thresholds
+found:
+
+```text
+total cells = 535035
+known-free cells = 0
+occupied cells = 8496
+unknown cells = 526539
+top candidate 0.35 m footprint = 0 free, 0 occupied, 183 unknown cells
+seed (0,0) 0.35 m footprint = 0 free, 0 occupied, 183 unknown cells
+```
+
+This is consistent with the fixed PCD conversion's conservative unknown
+background: it projects occupied returns but does not invent ray-traced free
+space from a point cloud that contains no sensor trajectory. Consequently no
+pose anywhere in this exact occupancy map can satisfy the known-free footprint
+gate. The gate behaved correctly and was not weakened. Converting unknown
+space to free is an explicit operator-reviewed map edit or a separate
+`background=free` conversion; it is not safe to perform implicitly during
+relocalization.
+
+The operation-owned Mapping/FAST-LIO/IMU processes were stopped in reverse
+order. Persistent preview and the onboard XT16 relay remained active. Final
+Navigation and Localization state was idle, candidate apply remained false,
+and Control remained lease-free, deadman false and exact zero with no Move or
+action request.
+
+A narrow follow-up now counts known-free cells in the immutable occupancy
+snapshot before collecting sensors. A zero-free-cell map fails before the
+collector and registration child run, and exposes only bounded map
+diagnostics (`known_free_cells`, required 0.35 m clearance, eligibility and a
+fixed reason). It does not mark unknown as free, change the legacy map API,
+relax the footprint gate, apply a candidate or start navigation.
+
+```text
+D2_DENSE_QUERY_DEPLOYMENT=PASS
+D2_DENSE_QUERY_COLLECTION=PASS
+D2_REGISTRATION_CONVERGENCE=FAIL
+D2_OCCUPANCY_KNOWN_FREE_ELIGIBILITY=FAIL_ZERO_FREE_CELLS
+CANDIDATE_JOB_COUNT=1
 CANDIDATE_APPLIED=false
 INITIAL_POSE=NOT_RUN
 NAV2_GOAL=NOT_RUN

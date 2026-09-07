@@ -136,8 +136,10 @@ class FakeCollector:
         self.collection = collection or valid_collection()
         self.block = block
         self.error = error
+        self.calls = 0
 
     def collect(self, cancel_event):
+        self.calls += 1
         if self.error:
             raise self.error
         while self.block and not cancel_event.wait(0.01):
@@ -274,7 +276,7 @@ class Harness:
             write_pcd(reference, points())
             return RelocalizationMapBundle(
                 "5" * 24, "6" * 64, map_id, map_revision, pcd_id, pcd_revision,
-                reference, 600, self.geometry, self.annotations,
+                reference, 600, 1, self.geometry, self.annotations,
             )
 
         self.manager = StationaryRelocalizationManager(
@@ -324,6 +326,16 @@ class StationaryRelocalizationTests(unittest.TestCase):
             },
         )
         self.assertNotIn("physical_safety_confirmed", result)
+        self.assertEqual(
+            result["map_diagnostics"],
+            {
+                "schema": "robot-scope.relocalization-map-diagnostics.v1",
+                "known_free_cells": 1,
+                "required_clearance_m": 0.35,
+                "eligibility": "eligible",
+                "reason": "",
+            },
+        )
         self.assertEqual(set(result["preview_layers"]), {"reference", "current", "aligned"})
         self.assertEqual(harness.registration.calls[0]["reference_pcd"].split("/")[-1], "reference.pcd")
 
@@ -334,6 +346,35 @@ class StationaryRelocalizationTests(unittest.TestCase):
         result = self._wait(harness.manager, started["job_id"])
         self.assertEqual(result["state"], "failed")
         self.assertIn("family mismatch", result["error"])
+
+    def test_map_without_known_free_cells_fails_before_collection(self):
+        harness = Harness(self)
+        original = harness.manager._snapshotter
+
+        def no_free_snapshot(*args):
+            bundle = original(*args)
+            return RelocalizationMapBundle(
+                bundle.family_id,
+                bundle.family_revision,
+                bundle.map_id,
+                bundle.map_revision,
+                bundle.source_pcd_id,
+                bundle.source_pcd_revision,
+                bundle.reference_pcd,
+                bundle.reference_points,
+                0,
+                bundle.geometry,
+                bundle.annotations,
+            )
+
+        harness.manager._snapshotter = no_free_snapshot
+        result = harness.run()
+        self.assertEqual(result["state"], "failed")
+        self.assertEqual(result["error"], "occupancy map has no known-free cells")
+        self.assertEqual(result["map_diagnostics"]["eligibility"], "ineligible")
+        self.assertEqual(result["map_diagnostics"]["reason"], "no_known_free_cells")
+        self.assertEqual(harness.collector.calls, 0)
+        self.assertEqual(harness.registration.calls, [])
 
     def test_map_revision_change_after_registration_rejects(self):
         harness = Harness(self, current=False)
