@@ -152,3 +152,15 @@ converged and ten policy-accepted cases, with translation median/p95 of
 0.001277/0.003105 m and yaw median/p95 of 0.028152/0.097858 degrees. NDT2D may
 therefore be selected explicitly only with this compiled grid; the portable
 backend remains the default and GICP remains excluded.
+
+The first exact-release live attempt also exposed a bounded performance bug:
+the NDT2D target grid was rebuilt independently for each of the three bounded
+refinement seeds. The 182,949-point live reference therefore exceeded the
+unchanged 15-second child timeout even though collection and map eligibility
+passed. NDT2D now constructs the fixed target/source representation once per
+child and reuses it for the same three seed refinements. It does not cache
+across jobs or inputs. The seed count, grid, extent, iteration ceiling,
+timeout, result ordering, convergence, confidence and out-of-plane checks are
+unchanged. On the same aarch64 ten-case corpus, runtime p50/p95 fell from
+7,465/8,297 ms to 956/1,003 ms while all ten cases retained the identical
+published error summary and remained converged and policy-accepted.

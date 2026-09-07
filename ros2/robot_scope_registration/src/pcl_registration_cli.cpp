@@ -121,14 +121,23 @@ rsr::RegistrationCandidate evaluate(
           converged && overlap >= 0.20 && std::isfinite(fitness)};
 }
 
-rsr::RegistrationCandidate refine_candidate(
+rsr::RegistrationCandidate evaluate_refinement(
     const Cloud::Ptr& reference, const Cloud::Ptr& query,
-    const rsr::Pose3DoF& initial_pose) {
-  Cloud aligned;
-  Eigen::Matrix4f final_transform = Eigen::Matrix4f::Identity();
-  bool converged = false;
+    const rsr::Pose3DoF& initial_pose,
+    const Eigen::Matrix4f& final_transform, bool converged) {
+  if (!out_of_plane_is_bounded(final_transform)) {
+    return evaluate(reference, query, initial_transform(initial_pose), false);
+  }
+  return evaluate(reference, query, planar_transform(final_transform), converged);
+}
+
 #if defined(ROBOT_SCOPE_PCL_BACKEND_NDT2D)
-  pcl::NormalDistributionsTransform2D<pcl::PointXYZ, pcl::PointXYZ> registration;
+using FixedRegistration =
+    pcl::NormalDistributionsTransform2D<pcl::PointXYZ, pcl::PointXYZ>;
+
+void configure_registration(FixedRegistration& registration,
+                            const Cloud::Ptr& reference,
+                            const Cloud::Ptr& query) {
   registration.setInputSource(query);
   registration.setInputTarget(reference);
   registration.setMaximumIterations(kMaximumIterations);
@@ -137,10 +146,22 @@ rsr::RegistrationCandidate refine_candidate(
   registration.setGridStep(Eigen::Vector2f(4.0F, 4.0F));
   registration.setGridExtent(Eigen::Vector2f(20.0F, 20.0F));
   registration.setOptimizationStepSize(Eigen::Vector3d(1.0, 1.0, 1.0));
+}
+
+rsr::RegistrationCandidate refine_candidate(
+    FixedRegistration& registration, const Cloud::Ptr& reference,
+    const Cloud::Ptr& query, const rsr::Pose3DoF& initial_pose) {
+  Cloud aligned;
   registration.align(aligned, initial_transform(initial_pose));
-  final_transform = registration.getFinalTransformation();
-  converged = registration.hasConverged();
+  return evaluate_refinement(
+      reference, query, initial_pose, registration.getFinalTransformation(),
+      registration.hasConverged());
+}
 #else
+rsr::RegistrationCandidate refine_candidate(
+    const Cloud::Ptr& reference, const Cloud::Ptr& query,
+    const rsr::Pose3DoF& initial_pose) {
+  Cloud aligned;
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> registration;
   registration.setInputSource(query);
   registration.setInputTarget(reference);
@@ -149,14 +170,11 @@ rsr::RegistrationCandidate refine_candidate(
   registration.setTransformationEpsilon(1e-6);
   registration.setEuclideanFitnessEpsilon(1e-6);
   registration.align(aligned, initial_transform(initial_pose));
-  final_transform = registration.getFinalTransformation();
-  converged = registration.hasConverged();
-#endif
-  if (!out_of_plane_is_bounded(final_transform)) {
-    return evaluate(reference, query, initial_transform(initial_pose), false);
-  }
-  return evaluate(reference, query, planar_transform(final_transform), converged);
+  return evaluate_refinement(
+      reference, query, initial_pose, registration.getFinalTransformation(),
+      registration.hasConverged());
 }
+#endif
 
 const char* backend() {
 #if defined(ROBOT_SCOPE_PCL_BACKEND_NDT2D)
@@ -213,9 +231,18 @@ int main(int argc, char** argv) {
     const auto refine_start = std::chrono::steady_clock::now();
     std::vector<rsr::RegistrationCandidate> candidates;
     candidates.reserve(seeds.candidates.size());
+#if defined(ROBOT_SCOPE_PCL_BACKEND_NDT2D)
+    FixedRegistration registration;
+    configure_registration(registration, reference, query);
+#endif
     for (const auto& candidate : seeds.candidates) {
       try {
+#if defined(ROBOT_SCOPE_PCL_BACKEND_NDT2D)
+        candidates.push_back(
+            refine_candidate(registration, reference, query, candidate.pose));
+#else
         candidates.push_back(refine_candidate(reference, query, candidate.pose));
+#endif
       } catch (const std::exception&) {
         candidates.push_back(evaluate(
             reference, query, initial_transform(candidate.pose), false));

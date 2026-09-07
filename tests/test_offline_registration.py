@@ -196,6 +196,10 @@ class OfflineRegistrationTests(unittest.TestCase):
         self.assertIn("kMaximumTiltCorrectionRad = 0.15", source)
         self.assertIn("catch (const std::exception&)", source)
         self.assertIn("initial_transform(candidate.pose), false", source)
+        self.assertLess(
+            source.index("configure_registration(registration, reference, query);"),
+            source.index("for (const auto& candidate : seeds.candidates)"),
+        )
 
     def test_benchmark_can_require_the_published_d1_acceptance_limits(self):
         completed = subprocess.run(
