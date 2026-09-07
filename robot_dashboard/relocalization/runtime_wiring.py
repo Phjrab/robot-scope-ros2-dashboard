@@ -32,9 +32,6 @@ REGISTRATION_BACKENDS = {
     "pcl-ndt2d": Path(
         "build/robot_scope_registration/robot_scope_offline_registration_pcl_ndt2d"
     ),
-    "pcl-gicp": Path(
-        "build/robot_scope_registration/robot_scope_offline_registration_pcl_gicp"
-    ),
 }
 
 

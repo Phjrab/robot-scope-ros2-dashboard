@@ -193,6 +193,27 @@ class OfflineRegistrationTests(unittest.TestCase):
         self.assertIn("kMaximumIterations = 30", source)
         self.assertIn("kMaximumZCorrectionM = 0.25", source)
         self.assertIn("kMaximumTiltCorrectionRad = 0.15", source)
+        self.assertIn("catch (const std::exception&)", source)
+        self.assertIn("initial_transform(candidate.pose), false", source)
+
+    def test_benchmark_can_require_the_published_d1_acceptance_limits(self):
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "benchmark_offline_registration.py"),
+                "--executable",
+                str(self.cli),
+                "--require-acceptance",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        result = json.loads(completed.stdout)
+        self.assertTrue(result["acceptance_pass"])
+        self.assertEqual(result["converged_cases"], result["cases"])
+        self.assertEqual(result["accepted_cases"], result["cases"])
 
     def test_process_adapter_runs_fixed_argv_and_validates_ranked_result(self):
         adapter = OfflineRegistrationProcess(self.cli, [self.root])

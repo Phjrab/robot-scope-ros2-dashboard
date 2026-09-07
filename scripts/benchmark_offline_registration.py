@@ -35,6 +35,11 @@ CASES = (
     (-0.40, 0.15, 0.12),
 )
 
+MAX_TRANSLATION_MEDIAN_M = 0.15
+MAX_TRANSLATION_P95_M = 0.30
+MAX_YAW_MEDIAN_DEG = 3.0
+MAX_YAW_P95_DEG = 8.0
+
 
 def cloud() -> list[tuple[float, float, float]]:
     points: list[tuple[float, float, float]] = []
@@ -84,10 +89,17 @@ def main() -> int:
         choices=sorted(SUPPORTED_BACKENDS),
         default="bounded-se2-icp",
     )
+    parser.add_argument(
+        "--require-acceptance",
+        action="store_true",
+        help="exit non-zero unless every case converges and D1 error limits pass",
+    )
     args = parser.parse_args()
     translation_errors: list[float] = []
     yaw_errors: list[float] = []
     runtimes: list[float] = []
+    converged_cases = 0
+    accepted_cases = 0
     source = cloud()
     with tempfile.TemporaryDirectory(prefix="robot-scope-d1-benchmark-") as directory:
         root = Path(directory)
@@ -108,6 +120,8 @@ def main() -> int:
                 "limits": {"max_reference_points": 100_000, "max_query_points": 100_000, "timeout_ms": 15_000},
             })
             best = result["results"][0]
+            converged_cases += int(best["converged"] is True)
+            accepted_cases += int(best["confidence"] != "REJECTED")
             translation_errors.append(math.hypot(best["pose"]["x"] - truth[0], best["pose"]["y"] - truth[1]))
             yaw_errors.append(math.degrees(abs(math.atan2(
                 math.sin(best["pose"]["yaw"] - truth[2]),
@@ -115,19 +129,35 @@ def main() -> int:
             ))))
             runtimes.append(best["metrics"]["runtime_ms"])
     usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    translation_median = statistics.median(translation_errors)
+    translation_p95 = percentile(translation_errors, 0.95)
+    yaw_median = statistics.median(yaw_errors)
+    yaw_p95 = percentile(yaw_errors, 0.95)
+    acceptance_pass = (
+        converged_cases == len(CASES)
+        and accepted_cases == len(CASES)
+        and translation_median <= MAX_TRANSLATION_MEDIAN_M
+        and translation_p95 <= MAX_TRANSLATION_P95_M
+        and yaw_median <= MAX_YAW_MEDIAN_DEG
+        and yaw_p95 <= MAX_YAW_P95_DEG
+    )
     print(json.dumps({
         "schema": "robot-scope.registration-benchmark.v1",
+        "backend": args.backend,
         "cases": len(CASES),
+        "converged_cases": converged_cases,
+        "accepted_cases": accepted_cases,
+        "acceptance_pass": acceptance_pass,
         "input_points": len(source),
-        "translation_median_m": statistics.median(translation_errors),
-        "translation_p95_m": percentile(translation_errors, 0.95),
-        "yaw_median_deg": statistics.median(yaw_errors),
-        "yaw_p95_deg": percentile(yaw_errors, 0.95),
+        "translation_median_m": translation_median,
+        "translation_p95_m": translation_p95,
+        "yaw_median_deg": yaw_median,
+        "yaw_p95_deg": yaw_p95,
         "runtime_p50_ms": statistics.median(runtimes),
         "runtime_p95_ms": percentile(runtimes, 0.95),
         "child_peak_rss_platform_units": usage.ru_maxrss,
     }, sort_keys=True))
-    return 0
+    return 0 if acceptance_pass or not args.require_acceptance else 1
 
 
 if __name__ == "__main__":

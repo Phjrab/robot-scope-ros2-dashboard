@@ -134,7 +134,7 @@ rsr::RegistrationCandidate refine_candidate(
   registration.setMaximumIterations(kMaximumIterations);
   registration.setTransformationEpsilon(1e-4);
   registration.setGridCentre(Eigen::Vector2f(0.0F, 0.0F));
-  registration.setGridStep(Eigen::Vector2f(1.0F, 1.0F));
+  registration.setGridStep(Eigen::Vector2f(0.5F, 0.5F));
   registration.setGridExtent(Eigen::Vector2f(20.0F, 20.0F));
   registration.setOptimizationStepSize(Eigen::Vector3d(1.0, 1.0, 1.0));
   registration.align(aligned, initial_transform(initial_pose));
@@ -152,9 +152,10 @@ rsr::RegistrationCandidate refine_candidate(
   final_transform = registration.getFinalTransformation();
   converged = registration.hasConverged();
 #endif
-  const bool bounded = out_of_plane_is_bounded(final_transform);
-  return evaluate(reference, query, planar_transform(final_transform),
-                  converged && bounded);
+  if (!out_of_plane_is_bounded(final_transform)) {
+    return evaluate(reference, query, initial_transform(initial_pose), false);
+  }
+  return evaluate(reference, query, planar_transform(final_transform), converged);
 }
 
 const char* backend() {
@@ -213,7 +214,12 @@ int main(int argc, char** argv) {
     std::vector<rsr::RegistrationCandidate> candidates;
     candidates.reserve(seeds.candidates.size());
     for (const auto& candidate : seeds.candidates) {
-      candidates.push_back(refine_candidate(reference, query, candidate.pose));
+      try {
+        candidates.push_back(refine_candidate(reference, query, candidate.pose));
+      } catch (const std::exception&) {
+        candidates.push_back(evaluate(
+            reference, query, initial_transform(candidate.pose), false));
+      }
     }
     std::sort(candidates.begin(), candidates.end(), [](const auto& left, const auto& right) {
       if (left.overlap_ratio != right.overlap_ratio) {

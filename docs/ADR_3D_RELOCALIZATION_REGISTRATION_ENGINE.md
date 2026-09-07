@@ -116,6 +116,18 @@ policy. The server chooses one exact executable from a fixed environment-owned
 allowlist before constructing the manager. HTTP callers cannot select a
 backend, and the default remains `bounded-se2-icp`.
 
+The GICP executable is available for offline comparison only; it is not in the
+D2 runtime selection allowlist. A failed refinement, exception or non-finite
+or out-of-plane transform is converted to a rejected candidate using the
+original bounded seed for diagnostics. Such a failure can never be repackaged
+as a converged result or trigger a fallback to another backend.
+
+The deterministic comparison tool reports converged and policy-accepted case
+counts separately from aggregate error. With `--require-acceptance`, it exits
+non-zero unless every case converges, every top candidate is non-rejected and
+the published D1 median/p95 translation and yaw limits all pass. A clean child
+exit therefore cannot be mistaken for backend qualification.
+
 On the retained live query, `pcl-ndt2d` produced converged candidates, but the
 top two were spatially distinct and had no positive fitness margin under the
 existing ordering. This correctly remains an advisory ambiguous result. It is

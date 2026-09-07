@@ -187,7 +187,7 @@ paths outside the private relocalization runtime root.
 
 The backend is also fixed before construction. The optional
 `ROBOT_SCOPE_D2_REGISTRATION_BACKEND` value is accepted only from the
-environment-owned allowlist (`bounded-se2-icp`, `pcl-ndt2d`, `pcl-gicp`). It
+environment-owned allowlist (`bounded-se2-icp`, `pcl-ndt2d`). It
 selects a distinct fixed executable beneath the release and is never accepted
 from an HTTP request. The default remains `bounded-se2-icp`; PCL executables
 exist only in builds that explicitly enable them.

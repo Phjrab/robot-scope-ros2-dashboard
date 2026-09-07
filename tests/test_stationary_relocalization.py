@@ -1038,6 +1038,11 @@ class StationaryRelocalizationTests(unittest.TestCase):
                 {REGISTRATION_BACKEND_ENV: "unlisted"},
             ), self.assertRaisesRegex(RuntimeError, "allowlist"):
                 build_stationary_relocalization_manager(enabled=True, **kwargs)
+            with mock.patch.dict(
+                os.environ,
+                {REGISTRATION_BACKEND_ENV: "pcl-gicp"},
+            ), self.assertRaisesRegex(RuntimeError, "allowlist"):
+                build_stationary_relocalization_manager(enabled=True, **kwargs)
 
             for snapshot_error, expected in (
                 (SavedMapNotFound("internal map lookup detail"), "exact saved map or source PCD is unavailable"),
