@@ -30,6 +30,27 @@ identify the actual tuple before proposing any configuration change. Its
 result does not authorize a relay, LiDAR, Mapping, D2 provider, Nav2 or control
 mutation.
 
+The read-only XT16 Web Control audit subsequently found destination
+`192.168.123.99:2368`, while the current robot-side receiver is
+`192.168.123.18:2368`. Restoring only that destination produced advancing
+accepted and forwarded relay counters immediately; the device's separate
+Stream IP setting did not require a change. This establishes configuration
+drift as the missing raw-packet cause, without weakening the relay tuple
+allowlist.
+
+The first external preview restart then failed the one-publisher gate. A
+bounded DDS header audit tied the extra endpoint GUID to another team's
+multi-homed wired workstation, advertised from both `192.168.50.110` and its
+sensor NIC `192.168.123.99`. The other workstation was not changed. Wireless
+Robot Scope processes now use `ROS_LOCALHOST_ONLY=1`: `eno1=192.168.50.10/24`
+remains mandatory for the fixed authenticated/bounded transports, while DDS
+discovery and the local Hesai -> cloud bridge -> FAST-LIO/Nav2 graph remain on
+the external Jetson. Direct-wired profiles retain their existing DDS binding.
+
+This matches the ROS 2 environment contract for classrooms or shared networks,
+where localhost-only discovery prevents same-name topics from other computers:
+<https://docs.ros.org/en/foxy/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html#the-ros-localhost-only-variable>.
+
 Run from the exact repository release or copy only this reviewed script to a
 private temporary path, then execute:
 

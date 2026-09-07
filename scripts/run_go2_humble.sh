@@ -58,7 +58,7 @@ if [[ "$MAPPING_PROFILE" == "go2-xt16-wireless" ||
   source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"
   export ROBOT_SCOPE_DDS_MODE="wireless_gateway"
   export ROBOT_SCOPE_DDS_INTERFACE_READY="1"
-  export ROBOT_SCOPE_DDS_INTERFACE="eno1"
+  export ROBOT_SCOPE_DDS_INTERFACE="lo"
   echo "[Robot Scope] wireless gateway profile ready; onboard Jetson target $ROBOT_IP"
 else
   # Publish the startup DDS decision to the health API. ICMP reachability can

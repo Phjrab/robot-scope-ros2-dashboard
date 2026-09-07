@@ -390,8 +390,10 @@ class WirelessMappingProfileTests(unittest.TestCase):
             ROOT / "scripts" / "run_hesai_fastlio_wireless_humble.sh"
         ).read_text()
         wired = (ROOT / "scripts" / "run_hesai_fastlio_humble.sh").read_text()
-        for value in ("eno1", "192.168.50.10/24", "SocketReceiveBufferSize"):
+        for value in ("eno1", "192.168.50.10/24", "ROS_LOCALHOST_ONLY=1"):
             self.assertIn(value, setup)
+        self.assertIn("unset CYCLONEDDS_URI", setup)
+        self.assertNotIn("NetworkInterface name=", setup)
         self.assertIn('ROBOT_SCOPE_GO2_INTERFACE="eno1"', fastlio)
         self.assertIn('ROBOT_SCOPE_GO2_INTERFACE_CIDR="192.168.50.10/24"', fastlio)
         self.assertIn("192.168.123.99/24", wired)

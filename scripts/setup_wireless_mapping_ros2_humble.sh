@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Source this file to bind only the wireless mapping ROS graph to eno1/.50.10.
+# Source this file to keep the wireless mapping ROS graph local to the external
+# Jetson.  eno1/.50.10 remains a required fixed transport interface for the
+# bounded XT16, IMU and odometry UDP receivers, but it is not a DDS discovery
+# bus.  This prevents an unrelated ROS workstation on the shared competition
+# LAN from contributing same-name publishers to the safety-cardinality gates.
 
 WIRELESS_MAPPING_INTERFACE="eno1"
 WIRELESS_MAPPING_CIDR="192.168.50.10/24"
@@ -20,7 +24,9 @@ fi
 
 source /opt/ros/humble/setup.bash
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export ROS_LOCALHOST_ONLY=0
-export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"$WIRELESS_MAPPING_INTERFACE\" priority=\"default\" multicast=\"default\" /></Interfaces></General><Discovery><MaxAutoParticipantIndex>80</MaxAutoParticipantIndex></Discovery><Internal><SocketReceiveBufferSize max=\"8 MiB\" /></Internal></Domain></CycloneDDS>"
+export ROS_LOCALHOST_ONLY=1
+# A service EnvironmentFile may contain the direct-wired CycloneDDS binding.
+# Do not let it override ROS_LOCALHOST_ONLY for this explicit wireless profile.
+unset CYCLONEDDS_URI
 
 unset WIRELESS_MAPPING_INTERFACE WIRELESS_MAPPING_CIDR
