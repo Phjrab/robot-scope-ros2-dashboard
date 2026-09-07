@@ -265,3 +265,67 @@ unlinked artifacts.  D0 expressly prohibits inferring their relationship from
 filenames, so D2 remains fail-closed.  A new explicit PCD-to-2D conversion must
 create a lineage-aware map, followed by a lineage-preserving edited copy if
 the unknown-to-free edit is still required.  Existing maps remain untouched.
+
+## Lineage-aware map conversion and deployed observer check — 2026-09-07
+
+Fresh operator approval authorized only the stationary FAST-LIO observation
+owner and a new lineage-aware 2D conversion of the pinned PCD.  Initial pose,
+Localization, Nav2, goal, lease, ARM, deadman and motion remained forbidden.
+
+The server-side fixed conversion completed successfully without changing or
+deleting any existing map:
+
+```text
+source PCD id = dabd3853721e237f99d15399
+source PCD revision = 74bfe16b9576656d976d5d8d4caf118ee4bedf4ebbf184f83a12ba45f2ea26e5
+source points = 46140
+new occupancy name = map_20260902_161903_d2
+new occupancy id = 85fa623a8a859c351ec47912
+new occupancy revision = cbfc70e3c79ccc1fb365c68f4d0705bda0b822e9d063138eb19052995e81d219
+family id = bff5cbc6eaf6e7ba2d9c62a7
+family revision = b129314b331405e2b324cc64818de9117ec0f40d869377862754309267f1ca07
+family status = linked
+conversion parameters hash = 199419f60916ec1414b17f102209f3d1a42ef2b496e41d4fc189b1be4ba625c8
+```
+
+The fixed parameters were z `[-0.2, 0.8]` m, 0.05 m resolution, 0.10 m noise
+radius, ten minimum neighbours and unknown background.  The conversion kept
+21,038 points in the z slice, selected 19,940 points and produced a 297 x 156
+map with 5,656 occupied cells.  The family endpoint pins the exact PCD ID and
+revision and records the explicit `camera_init` to `map`
+`planar_xy_identity` projection.  The legacy edited and original occupancy
+maps remain present and unchanged.
+
+The approved observation-only Mapping owner then ran from
+`2026-09-07T03:11:53Z` until reverse cleanup at
+`2026-09-07T03:16:30Z`.  The deployed D2 observer created its fixed
+subscriptions after the publishers appeared:
+
+| Topic | Publisher/cardinality | D2 subscription | Observed payload |
+|---|---|---|---|
+| `/cloud_registered` | one `laser_mapping` | present, reliable/volatile | `camera_init`, 354 points, final 9.975 Hz |
+| `/Odometry` | one `laser_mapping` | present | `camera_init -> body`, final 9.986 Hz |
+| `/imu/body` | one `robot_scope_wireless_imu_receiver` | present | `body_imu`, final 500.306 Hz |
+
+The D2 evidence hub itself still owns no publisher.  The enclosing
+`robot_scope_agent` retains its pre-existing `/initialpose`, parameter-event
+and logging publishers, but no initial-pose message was sent.  This distinction
+prevents the node-level publisher list from being misreported as D2 output.
+
+Two diagnostic odometry samples approximately 20 seconds apart changed by
+about 6.44 mm in the plane.  FAST-LIO linear twist was zero at both samples and
+body IMU angular-rate magnitude remained approximately 0.0126--0.0129 rad/s.
+The translation result is above the fixed 5 mm D2 collection limit for treating
+that sampled interval as stationary evidence.  No limit was relaxed and no
+candidate collection or registration was attempted.  A future candidate run
+must obtain fresh bounded 2--5 second evidence through the manager and pass the
+same 5 mm check; this longer diagnostic interval is not reused as a candidate
+baseline.
+
+Reverse cleanup stopped FAST-LIO, the external IMU receiver and the onboard
+sender owned by the Mapping session.  Their source publisher counts returned
+to zero.  The existing `/velodyne_points` preview remained running with one
+publisher.  Control ended lease-free, deadman false and exact zero, with the
+Bridge non-zero Move count still zero.  Navigation, Localization and goal
+remained idle.  The relocalization manager is still unconfigured, so candidate
+execution remains closed.

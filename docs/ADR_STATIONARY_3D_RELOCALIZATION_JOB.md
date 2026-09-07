@@ -154,6 +154,26 @@ occupancy map and similarly named PCD were also confirmed to be legacy
 `unlinked` artifacts.  They cannot be paired by name; a new explicit
 lineage-aware conversion is required before candidate execution.
 
+The approved follow-up conversion created
+`map_20260902_161903_d2` (`85fa623a8a859c351ec47912`, revision
+`cbfc70e3c79ccc1fb365c68f4d0705bda0b822e9d063138eb19052995e81d219`)
+from the exact pinned PCD ID and revision.  Its family status is `linked`; the
+family metadata preserves the explicit planar projection and conversion
+parameters.  Existing map artifacts were retained.
+
+The same follow-up started the fixed FAST-LIO Mapping owner while stationary
+and proved that the deployed opt-in observer attaches to
+`/cloud_registered`, `/Odometry` and `/imu/body` only after their fixed
+publishers exist.  Each source had exactly one publisher and the observed
+rates were approximately 10/10/500 Hz with the expected frames.  The observer
+does not publish; the normal RosAgent's unrelated publishers do not change
+that contract.  A longer diagnostic pair showed about 6.44 mm planar FAST-LIO
+position change over approximately 20 seconds, so it was not accepted as a D2
+stationary collection.  The 5 mm limit remains unchanged, the candidate
+manager remains unconfigured, and no registration or apply operation ran.
+Reverse cleanup removed only the Mapping-owned FAST-LIO and IMU processes and
+kept the existing point-cloud preview active.
+
 ## Ownership and state
 
 One `StationaryRelocalizationManager` owns one worker, cancellation token and
