@@ -384,6 +384,40 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertIn("config/hesai_xt16_wireless.yaml", source)
         self.assertNotIn('config/hesai_xt16.yaml"', source)
 
+    def test_d2_dense_query_profile_is_explicit_and_otherwise_identical(self):
+        base = (ROOT / "config" / "fastlio_xt16.yaml").read_text()
+        d2 = (ROOT / "config" / "fastlio_xt16_d2_relocalization.yaml").read_text()
+
+        def semantic_lines(source):
+            return [
+                line.strip()
+                for line in source.splitlines()
+                if line.strip() and not line.lstrip().startswith("#")
+            ]
+
+        d2_lines = semantic_lines(d2)
+        self.assertIn("dense_publish_en: true", d2_lines)
+        normalized_d2 = [
+            "dense_publish_en: false" if line == "dense_publish_en: true" else line
+            for line in d2_lines
+        ]
+        self.assertEqual(normalized_d2, semantic_lines(base))
+
+        wireless = (
+            ROOT / "scripts" / "run_hesai_fastlio_wireless_humble.sh"
+        ).read_text()
+        runner = (ROOT / "scripts" / "run_hesai_fastlio_humble.sh").read_text()
+        self.assertIn('case "${ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION:-0}"', wireless)
+        self.assertIn(
+            'ROBOT_SCOPE_FASTLIO_CONFIG_FILE="fastlio_xt16_d2_relocalization.yaml"',
+            wireless,
+        )
+        self.assertIn(
+            "fastlio_xt16.yaml|fastlio_xt16_d2_relocalization.yaml",
+            runner,
+        )
+        self.assertIn("FAST-LIO config selection is not allowlisted", runner)
+
     def test_wireless_ros_graph_is_pinned_without_weakening_wired_preflight(self):
         setup = (ROOT / "scripts" / "setup_wireless_mapping_ros2_humble.sh").read_text()
         fastlio = (

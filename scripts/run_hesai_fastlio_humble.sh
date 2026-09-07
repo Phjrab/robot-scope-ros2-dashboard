@@ -14,6 +14,16 @@ if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
 fi
 FASTLIO_CONFIG_PATH="$PROJECT_DIR/config"
 FASTLIO_CONFIG_FILE="fastlio_xt16.yaml"
+if [[ -n "${ROBOT_SCOPE_FASTLIO_CONFIG_FILE:-}" ]]; then
+  FASTLIO_CONFIG_FILE="$ROBOT_SCOPE_FASTLIO_CONFIG_FILE"
+fi
+case "$FASTLIO_CONFIG_FILE" in
+  fastlio_xt16.yaml|fastlio_xt16_d2_relocalization.yaml) ;;
+  *)
+    echo "[Robot Scope] FAST-LIO config selection is not allowlisted" >&2
+    exit 1
+    ;;
+esac
 FASTLIO_RVIZ="${FASTLIO_RVIZ:-false}"
 [[ -f "$FASTLIO_CONFIG_PATH/$FASTLIO_CONFIG_FILE" ]] || {
   echo "[Robot Scope] repository FAST-LIO config is missing" >&2

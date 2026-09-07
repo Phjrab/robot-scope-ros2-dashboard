@@ -726,3 +726,96 @@ The next step is hardware-free diagnosis of the live-query density and a
 bounded failure projection that records raw and filtered counts without
 weakening the fixed 500-point gate. Any later collection or candidate retry
 requires a new explicit approval.
+
+## Bounded count evidence and dense D2 query correction — 2026-09-08
+
+Exact release `4d330116d4d1af519734697510455eaae3dd2748` added a
+path-free, bounded collection diagnostic projection while retaining the
+existing failed-job behavior. GitHub Actions run `34135991412` passed both
+Ubuntu/Python matrices before deployment. The external dashboard was then
+transitioned from `6285408fb17edf59a03c89cbee29d94a91db1bd2` to the exact
+release with archive SHA-256
+`97d529434f9199f0e77960160fee4063def47c3f0221d94e5e33bb04b38b27f7`.
+The existing registration executable was retained at SHA-256
+`89be25926a9bc1c66576d227473de520fde9b1cad9946e8ea060f8fca21b8ee5`.
+Only the external dashboard restarted; the robot-side release and services
+were unchanged.
+
+With the robot stationary and Control lease-free, deadman false and exact
+zero, the observation-only Mapping owner reached FAST-LIO readiness. Exactly
+one candidate request was submitted as job `6d0f95d66ab629dde62ffaba` against
+the same immutable map/PCD revisions and REGION seed as the preceding attempt.
+It failed before registration with the following bounded evidence:
+
+```text
+frames = 26 (accepted range 20..50)
+raw_points = 9307 (accepted maximum 1000000)
+filtered_points = 455 (accepted range 500..100000)
+query_voxel = 0.15 m
+reason = filtered_points_below_minimum
+```
+
+This proves that the transport and collector received progressing frames. The
+failure is specifically a 45-point shortfall after deterministic query
+voxelization, not a missing XT16 stream, frame-count failure or registration
+failure. The general competition FAST-LIO profile publishes a pre-thinned
+registered scan (`dense_publish_en: false` with the unchanged 0.5 m FAST-LIO
+surface/map filters). Applying the D1 0.15 m query filter to that already sparse
+static output leaves insufficient unique geometry in this scene.
+
+A narrow software correction adds a fixed D2-only FAST-LIO parameter file. It
+is selected only when the existing exact D2 relocalization opt-in equals `1`.
+It is semantically identical to `fastlio_xt16.yaml` except that
+`dense_publish_en` is true. The base runner accepts only the two repository
+filenames and rejects every other selection; an invalid D2 flag also fails
+closed. There is no caller-supplied path and no runtime fallback. The normal
+FAST-LIO profile, point filtering, frames, topics, odometry, IMU, clock and map
+writer settings remain unchanged.
+
+The correction does **not** lower or bypass the D1 contract: query voxel remains
+0.15 m, minimum filtered query remains 500, maximum raw/filtered points remain
+1,000,000/100,000, collection remains 20--50 frames, and all stationary,
+cardinality, freshness and QoS checks remain active. It only prevents the D2
+query source from being unnecessarily thinned before those checks.
+
+Hardware-free verification on the focused tree:
+
+```text
+wireless mapping profile tests = 16 PASS
+stationary relocalization tests = 26 PASS
+mapping runtime artifact tests = 25 PASS
+full Python suite = 1342 PASS
+JavaScript unit suite = 278 PASS
+Playwright = 34 PASS
+Ruff = PASS
+mypy = PASS (4 source files)
+frontend syntax = PASS (55 modules)
+secret scan = PASS
+git diff --check = PASS
+```
+
+The first system-Python full-suite attempt was not an acceptance result because
+that interpreter lacked repository dependencies (`fastapi` and `ruff`). The
+complete result above used a fresh repository-only environment with both
+requirements files installed. The browser suite was rerun outside the file
+sandbox after its first local web-server bind was denied with `EPERM`.
+
+After the live measurement, the operation-owned Mapping/FAST-LIO/IMU processes
+were stopped in reverse order. Persistent preview and XT16 relay remained
+running. Navigation, Localization, initial pose and goal stayed idle; candidate
+apply remained unsupported. Final Control evidence retained inactive lease,
+released deadman, exact-zero accepted command and zero Move/non-zero/action
+requests.
+
+```text
+D2_BOUNDED_COUNT_EVIDENCE=PASS
+D2_DENSE_QUERY_SOFTWARE=PASS
+D2_DENSE_QUERY_DEPLOYMENT=NOT_RUN
+D2_DENSE_QUERY_LIVE_CANDIDATE=NOT_RUN
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=IDLE
+FINAL_PREVIEW_STATE=RUNNING
+```
