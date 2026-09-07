@@ -1,12 +1,13 @@
 # Track D2 stationary live candidate acceptance
 
-Status: `D2_RUNTIME_DEPLOYED`; stationary-envelope software fix pending deployment; candidate not run
+Status: `D2_STATIONARY_ENVELOPE_DEPLOYED`; candidate not run
 
 ```text
 D2_REPOSITORY_SOFTWARE_PASS
 D2_RUNTIME_WIRING_SOFTWARE_PASS
 D2_RUNTIME_DEPLOYED
 D2_STATIONARY_ENVELOPE_SOFTWARE_PASS
+D2_STATIONARY_ENVELOPE_DEPLOYED
 D2_LIVE_SOURCE_QUALIFIED
 STATIONARY_LIVE_CANDIDATE_NOT_RUN
 CANDIDATE_APPLIED=false
@@ -472,5 +473,59 @@ Hardware-free tests cover the accepted observed noise, both exact boundaries,
 the rejected `0.03 m/s` linear value, excessive yaw and malformed/non-finite
 values. No observation pipeline, candidate job, registration process, apply,
 initial pose, Nav2 goal or motion was started during the blocked attempt or
-this software correction. The deployed runtime remains `ebbcf5a...` until a
-new exact-release deployment is separately approved.
+this software correction. The deployed runtime remained `ebbcf5a...` until
+the separately approved exact-release deployment recorded below.
+
+## Stationary-envelope external deployment — 2026-09-07
+
+The operator separately approved external-dashboard-only deployment of exact
+release `9693ebd51ccd73decdba3eb3cd5030cd8e769629`. The existing D2 observer
+and relocalization opt-ins were preserved; no robot-side release or service was
+changed.
+
+```text
+external target = 192.168.50.10
+deployed release = 9693ebd51ccd73decdba3eb3cd5030cd8e769629
+rollback release = ebbcf5a17e1973ccb9c2a76b99b79a6d88d8ac98
+archive sha256 = d63f72baf071643386ab5f55315fa884c0af2dff26e8b903810f072ce8b47f99
+stationary manager sha256 = d6c1760125c91e58bb18b1a83bb3209488d3b28a76c5e238ba0c1df85873ec79
+runtime wiring sha256 = 255ab2362f91a242ec9b4b88923de2ffa6a33d526d15f9585f76f590f8e1dbbb
+registration executable sha256 = 89be25926a9bc1c66576d227473de520fde9b1cad9946e8ea060f8fca21b8ee5
+dashboard active = 2026-09-07T14:04:44+09:00
+```
+
+The archive hash was verified before extraction into a new immutable release.
+The aarch64 registration core rebuilt with GCC 11.4 and passed CTest 1/1.
+The stable release symlink and the new service process cwd both resolved to the
+exact full SHA. The dashboard restarted once through its existing fixed
+lifecycle API and systemd reported `active`, a new PID and `NRestarts=0`.
+
+One initial lifecycle request contained malformed shell-quoted JSON and was
+rejected with HTTP 422 before an operation was scheduled. The corrected strict
+body was then accepted once with HTTP 202. This did not cause an additional
+service restart. As in the prior transition, the retiring dashboard exceeded
+its graceful WebSocket shutdown interval and cancelled open stream tasks; the
+new process completed startup without an error or restart loop.
+
+Post-deployment evidence remained motion-free: Control lease inactive,
+deadman false, accepted command exact zero, action guard inactive, and Bridge
+`move_count=0`, `nonzero_move_count=0`, and `action_count=0`. Navigation,
+Localization and goal remained idle with zero command-topic publishers. The
+relocalization endpoint reported `active=null`, `latest=null`, and
+`candidate_apply_supported=false`. No FAST-LIO, registration, candidate,
+initial-pose, Nav2 or motion process was started. Temporary local and remote
+deployment archives were removed; the previous release remains intact for
+rollback.
+
+```text
+D2_STATIONARY_ENVELOPE_DEPLOYED=PASS
+STATIONARY_LIVE_CANDIDATE=NOT_RUN
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```
+
+The earlier live-candidate approval was consumed by the fail-closed preflight
+attempt and is not reused. Candidate collection requires a new stationary
+safety confirmation against this exact deployed release.
