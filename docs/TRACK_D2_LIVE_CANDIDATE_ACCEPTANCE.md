@@ -1280,3 +1280,55 @@ MOTION=NOT_RUN
 FINAL_PIPELINE_STATE=STOPPED
 FINAL_PREVIEW_STATE=RUNNING
 ```
+
+## New-map local-DDS recovery and one-shot candidate result — 2026-09-08
+
+Exact external release
+`f1c9edb97b01bcea1da98482bc36f18b114611a1` preserved the wireless local
+DDS graph for the FAST-LIO child.  A freshly confirmed stationary run then
+showed exactly one publisher for each fixed input/output.  The measured rates
+were approximately 10.00 Hz for `/velodyne_points`, 9.99 Hz for `/Odometry`,
+9.95--10.00 Hz for `/cloud_registered`, and 493--500 Hz for `/imu/body`.
+Observed maximum gaps were respectively 0.125 s, 0.169 s, 0.167 s and
+0.009 s.  Frames remained `hesai_lidar`, `camera_init`, `camera_init` and
+`body_imu`.  Control remained lease-free, deadman false and exact zero;
+Navigation and Localization remained idle.
+
+After an exact lineage preflight, job `2a1b88bd81dcc4b02baad4c6` was submitted
+exactly once for `map_20260908_072712_edited`, REGION seed `(0, 0, 0)`, radius
+3.0 m and yaw half-range 1.57 rad.  Collection and map eligibility passed:
+
+```text
+frames = 21
+raw_points = 315049
+filtered_points = 1392
+known_free_cells = 54936
+required_clearance = 0.35 m
+```
+
+The job failed closed before producing candidates because the opt-in PCL
+NDT2D executable returned syntactically invalid JSON.  Code-path audit found
+that its zero-correspondence diagnostic used positive infinity as `fitness`
+and serialized the C++ stream token `inf`, which is not JSON.  The fixed result
+contract already supports a non-converged, zero-overlap `REJECTED` candidate,
+so the producer now uses the finite squared correspondence ceiling as that
+diagnostic fitness.  This does not mark the candidate converged, increase
+overlap, lower any confidence threshold, accept a pose, or change registration
+bounds.  The strict consumer continues to reject all non-finite numbers and
+malformed JSON.
+
+No automatic retry was attempted.  Candidate apply, initial pose, Nav2, goal,
+lease, ARM, deadman, non-zero command and robot motion were not executed.
+
+```text
+D2_LOCAL_DDS_GRAPH=PASS
+D2_NEW_MAP_COLLECTION=PASS
+D2_NEW_MAP_ELIGIBILITY=PASS
+D2_CANDIDATE_JOB_COUNT=1
+D2_CANDIDATE_RESULT=FAIL_INVALID_PCL_JSON
+D2_PCL_ZERO_CORRESPONDENCE_JSON_FIX=SOFTWARE_IMPLEMENTED
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+```

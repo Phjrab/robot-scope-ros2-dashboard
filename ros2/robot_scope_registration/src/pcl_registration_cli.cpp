@@ -15,7 +15,6 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -30,6 +29,11 @@ namespace {
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 constexpr double kCorrespondenceM = 0.75;
+// A candidate with no correspondences is a valid rejected diagnostic, not a
+// successful estimate.  Keep its score finite so the fixed JSON boundary can
+// report that rejection without emitting the non-JSON token `inf`.
+constexpr double kNoCorrespondenceFitness =
+    kCorrespondenceM * kCorrespondenceM;
 constexpr double kMaximumZCorrectionM = 0.25;
 constexpr double kMaximumTiltCorrectionRad = 0.15;
 constexpr int kMaximumIterations = 30;
@@ -113,7 +117,7 @@ rsr::RegistrationCandidate evaluate(
                              ? 0.0
                              : static_cast<double>(inliers) / moved.size();
   const double fitness = inliers == 0
-                             ? std::numeric_limits<double>::infinity()
+                             ? kNoCorrespondenceFitness
                              : squared_error / inliers;
   const double yaw = std::atan2(transform(1, 0), transform(0, 0));
   return {{transform(0, 3), transform(1, 3), yaw}, fitness, overlap, overlap,
