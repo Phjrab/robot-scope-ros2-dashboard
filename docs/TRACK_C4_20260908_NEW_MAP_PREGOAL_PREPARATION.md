@@ -2,7 +2,7 @@
 
 Date: 2026-09-08
 
-Status: `EXTERNAL_DEPLOYED_AWAITING_NAV_SESSION_APPROVAL`
+Status: `C4_PREGOAL_BLOCKED_ODOMETRY_GAP_CLEANUP_PASS`
 
 Motion status: `NOT_RUN`
 
@@ -91,7 +91,7 @@ The first Playwright invocation was blocked by the local sandbox from binding
 its test port. The identical suite passed outside that restriction; this was
 an environment failure, not a product-test failure.
 
-## Next mandatory gates
+## Original mandatory gates at preparation time
 
 1. Publish the focused commit and wait for CI.
 2. Show the exact clean release, both-host compatibility, deployment order,
@@ -163,15 +163,72 @@ preflight must either build and test this exact native target before switching
 the production symlink or carry a verified compatible artifact produced from
 the same exact source release.
 
-## Remaining mandatory gates after deployment
+## Gates completed during the supervised attempt
 
-1. Reconfirm the robot is standing and completely stationary at `(0,0,0)`,
-   facing the mapping-start direction, with at least 0.40 m of clear physical
-   space ahead and a physical remote/E-stop in hand.
-2. Obtain a new approval for one normal Navigation no-goal session. Starting
-   that session is allowed to acquire only the Navigation lease; no initial
-   pose or goal is included.
-3. Show the exact map/revision/parameter revision again and obtain a separate
-   initial-pose approval before publishing it exactly once.
-4. Require stable C4 READY for at least 10 seconds with an idle goal and exact
-   zero command, then stop and obtain a separate one-shot goal approval.
+1. Physical stationary state, clear space, remote/E-stop, and safety operator
+   were reconfirmed.
+2. A normal Navigation no-goal session was separately approved and started.
+3. The exact map/revision/parameter revision and `(0,0,0)` pose were separately
+   approved; the initial pose was submitted once.
+4. The formal pre-goal checker remained mandatory and blocked the attempt; no
+   one-shot goal approval was requested or reused.
+
+## Supervised no-goal and initial-pose result
+
+The operator separately confirmed the physical safety conditions and approved
+one normal Navigation no-goal session. The exact map and parameter revisions
+above were pinned. The session acquired the Navigation-only lease and reached
+`pipeline=running` with no initial pose, idle goal, released deadman, exact-zero
+command, and zero Bridge Move/action evidence.
+
+After a second exact-map confirmation, `(x=0, y=0, yaw=0)` was submitted once
+through the existing normal Navigation initial-pose endpoint. The request was
+accepted once. Localization converged within a few millimetres of the approved
+pose, all required readiness booleans became true, and health completed its
+10-second enter dwell. Live polling observed `READY / HEALTHY_STABLE` for more
+than 24 seconds while the goal remained idle and both dashboard and accepted
+commands remained exact zero.
+
+The formal C4 checker subsequently failed closed because localization health
+was no longer READY. Read-only diagnostics identified
+`ODOMETRY_MAX_GAP_EXCEEDED`: the raw odometry frequency remained approximately
+10 Hz, but the recent window contained a 0.297107-second maximum gap, exceeding
+the unchanged 0.25-second limit. Once that sample rolled out, health recovered
+to READY for 18.61 seconds with a 0.207711-second maximum gap. A fresh formal
+checker invocation again found health non-READY, so the transient recovery was
+not accepted as durable pre-goal evidence. The threshold and checker were not
+relaxed or bypassed.
+
+The goal was not submitted. The Navigation session was stopped and reverse
+cleanup was verified:
+
+- Navigation pipeline, shared localization pipeline, and goal: idle.
+- Navigation lease: released.
+- Deadman: released.
+- Dashboard and Bridge accepted command: exact zero.
+- Bridge non-zero Move count: 0.
+- Bridge action count: 0.
+- Active motion run: false.
+
+This result does not invalidate the accepted initial-pose path. It blocks C4
+goal readiness on intermittent controller-odometry delivery gaps. A new
+session and a new one-time initial-pose approval will be required after the gap
+source is diagnosed and the unchanged readiness contract can be satisfied
+reliably.
+
+## Remaining gates after the blocked attempt
+
+1. Diagnose the intermittent controller-odometry gap without increasing the
+   0.25-second maximum-gap threshold or weakening the stable-READY checker.
+2. Re-run hardware-free regressions for any focused correction, then commit,
+   push, pass CI, and deploy the exact corrected external release under a new
+   approval.
+3. Reconfirm physical safety and obtain a new approval for a fresh normal
+   Navigation no-goal session.
+4. Obtain a new exact-map initial-pose approval and publish it once in that new
+   session.
+5. Pass the formal C4 checker while READY remains stable, the goal is idle,
+   command is exact zero, and all existing cardinality/freshness constraints
+   remain satisfied.
+6. Only then present the fixed 0.25 m goal and request a new one-shot motion
+   approval.
