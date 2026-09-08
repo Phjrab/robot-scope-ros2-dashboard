@@ -1,6 +1,6 @@
 # Track C2 competition FAST-LIO no-goal acceptance
 
-Status date: 2026-09-02
+Status date: 2026-09-08
 
 ```text
 SOFTWARE_PASS
@@ -118,3 +118,56 @@ second. External sensor/Nav/C2 topics all returned publisher count zero; the
 fixed UDP ports had no listener. The mounted Jetson's Control Bridge, XT16
 relay, IMU sender and odometry sender were all inactive with no related socket.
 Final Control state was no lease, deadman false and `[0.0, 0.0, 0.0]`.
+
+## 2026-09-08 current-map NG0 regression
+
+The external Orin was deployed from exact release
+`5bf184d63247186faa23dc5197e1c21a470a7d41`. The pinned inputs were managed
+map `map_20260908_072712_edited`, map ID `8050fff44b44ce106dc5a210`, map
+revision `9e72787f2443b714ed3045fda62c08c53e85294c7d02e26b8e74ce0cc30fc8ac`
+and parameter revision
+`4327ec7817bbb226bf4a16ca4f64e0d73eeee3dc150c8947c206fc56172388ad`.
+No map file or onboard release was changed.
+
+The first current-map start failed before readiness because CycloneDDS 0.10.5
+could not allocate another domain participant. An isolated sequential probe
+reproduced the boundary: five of twelve additional `map_server` processes
+survived with the loopback/unicast default, and processes six through twelve
+aborted with `Failed to find a free participant index for domain 0`. The
+wireless setup now sets only `Discovery/MaxAutoParticipantIndex=32`; it keeps
+`ROS_LOCALHOST_ONLY=1`, does not bind DDS to the competition LAN, and does not
+change any control, timestamp, cardinality or watchdog gate. The same isolated
+probe then retained twelve of twelve processes.
+
+A second validation-only issue was an old Fast DDS `ros2 daemon` from the
+retired wired workflow. The dashboard's own CycloneDDS graph was healthy, but
+the CLI checker queried that unrelated daemon. The checker now passes the
+Humble `--no-daemon` option to every node, lifecycle and topic discovery/read
+command. A regression fixture proves every graph command bypasses an unrelated
+daemon. The operator separately authorized stopping the retired daemon; the
+checker remains independent of daemon state.
+
+The accepted localization-only session reached `waiting_initial_pose` with
+all fixed Nav2 children present, map/controller lifecycle active, exactly one
+publisher for `/scan`, `/Odometry` and
+`/robot_scope/nav/controller_odom_fastlio`, fresh samples and
+`odom -> base_link`. It completed twelve of twelve exact NG0 checks over 411
+seconds. Every check returned `WAITING_FOR_INITIAL_POSE` and `raw_command=quiet`.
+Every paired API assertion retained `initial_pose_count=0`, goal `idle`,
+`goal_allowed=false`, `motion_allowed=false`, `nonzero_command_count=0`, no
+control lease, deadman false and exact-zero dashboard velocity. The signed
+Bridge evidence retained both Move and nonzero-Move counts at zero.
+
+Reverse cleanup stopped the localization-only/Nav2 owner. Final state was
+navigation pipeline `idle`, localization pipeline `idle`, session `idle`, goal
+`idle`, zero command publishers and no Nav2 child/runtime process. The external
+dashboard remained active on the exact release with zero service restarts; the
+signed Control Bridge remained connected but unleased, deadman false and
+exact-zero. No initial pose, navigation goal, ARM, deadman or motion command
+was issued during this regression.
+
+Repository validation for the checker change completed with 1,366/1,366 tests
+passing in the project virtual environment and CI run `34177566591` passing.
+The system Python run executed 1,349 tests and retained the two known
+environment-only import errors for absent `fastapi` and `pydantic`; the same
+tests pass in the locked project environment.
