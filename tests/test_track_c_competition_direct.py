@@ -1,5 +1,4 @@
 import importlib.util
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -234,6 +233,60 @@ class TrackCCompetitionDirectTests(unittest.TestCase):
                 },
                 ros2="/opt/ros/humble/bin/ros2",
             )
+
+    def test_no_goal_checker_bypasses_an_unrelated_ros2_daemon(self):
+        commands = []
+
+        def runner(argv, **_kwargs):
+            values = tuple(argv)
+            commands.append(values)
+            if values[1:3] == ("node", "list"):
+                return completed(values, stdout="\n".join(no_goal.LIFECYCLE_NODES) + "\n")
+            if values[1:3] == ("topic", "list"):
+                return completed(values, stdout=f"{no_goal.RAW_COMMAND_TOPIC}\n")
+            if values[:2] == (no_goal.TIMEOUT, "3") and "lifecycle" in values:
+                return completed(values, stdout="active [3]\n")
+            if values[1:3] == ("topic", "info"):
+                return completed(values, stdout="Publisher count: 1\n")
+            if "tf2_echo" in values:
+                return completed(values, returncode=124, stdout="Translation:\nRotation:\n")
+            if values[:2] == (no_goal.TIMEOUT, "3") and "topic" in values:
+                return completed(values, stdout="fresh sample\n")
+            if values[:2] == (no_goal.TIMEOUT, "2"):
+                return completed(values, returncode=124)
+            raise AssertionError(values)
+
+        no_goal.check(
+            stage="prelocalization",
+            environment={
+                "ROBOT_SCOPE_MAPPING_PROFILE": no_goal.TRACK_C2_PROFILE,
+                "ROS_DISTRO": "humble",
+            },
+            runner=runner,
+            control_fetcher=lambda: {
+                "control": {
+                    "lease": {"active": False},
+                    "command": {
+                        "deadman": False,
+                        "linear_x": 0.0,
+                        "linear_y": 0.0,
+                        "angular_z": 0.0,
+                    },
+                }
+            },
+            ros2="/opt/ros/humble/bin/ros2",
+        )
+
+        graph_commands = [
+            command
+            for command in commands
+            if "node" in command
+            or "topic" in command
+            or "lifecycle" in command
+        ]
+        self.assertTrue(graph_commands)
+        for command in graph_commands:
+            self.assertIn("--no-daemon", command)
 
     def test_wireless_clock_guards_remain_exact(self):
         source = (ROOT / "scripts" / "wireless_odom_protocol.py").read_text(

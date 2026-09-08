@@ -340,7 +340,7 @@ class TrackC2NoGoalTests(unittest.TestCase):
             if (
                 values[:2] == (no_goal.TIMEOUT, "3")
                 and "lifecycle" in values
-                and values[-1] == "/planner_server"
+                and "/planner_server" in values
             ):
                 return completed(values, stdout="inactive [2]\n")
             if "tf2_echo" in values:
@@ -405,9 +405,9 @@ class TrackC2NoGoalTests(unittest.TestCase):
                     values,
                     stdout=f"{no_goal.RAW_COMMAND_TOPIC}\n{no_goal.SPORT_TOPIC}\n",
                 )
-            if values[1:3] == ("topic", "info") and values[-1] == no_goal.SPORT_TOPIC:
+            if values[1:3] == ("topic", "info") and no_goal.SPORT_TOPIC in values:
                 return completed(values, stdout="Publisher count: 1\n")
-            if values[:2] == (no_goal.TIMEOUT, "2") and values[-2] == no_goal.SPORT_TOPIC:
+            if values[:2] == (no_goal.TIMEOUT, "2") and no_goal.SPORT_TOPIC in values:
                 return completed(values, stdout="api_id: 1008\n")
             return self.runner(argv, **kwargs)
 

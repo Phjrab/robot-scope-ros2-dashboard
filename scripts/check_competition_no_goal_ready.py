@@ -130,14 +130,14 @@ def _control_is_stationary(fetcher: ControlFetcher) -> None:
 
 
 def _topic_has_publisher(topic: str, ros2: str, runner: Runner) -> None:
-    result = _run((ros2, "topic", "info", topic), runner=runner)
+    result = _run((ros2, "topic", "info", topic, "--no-daemon"), runner=runner)
     match = re.search(r"^Publisher count:\s*(\d+)\s*$", result.stdout, re.MULTILINE)
     if result.returncode != 0 or match is None or int(match.group(1)) < 1:
         raise NoGoalError(f"TRACK C NO-GOAL BLOCKED: {topic} has no publisher")
 
 
 def _topic_has_exactly_one_publisher(topic: str, ros2: str, runner: Runner) -> None:
-    result = _run((ros2, "topic", "info", topic), runner=runner)
+    result = _run((ros2, "topic", "info", topic, "--no-daemon"), runner=runner)
     match = re.search(r"^Publisher count:\s*(\d+)\s*$", result.stdout, re.MULTILINE)
     if result.returncode != 0 or match is None or int(match.group(1)) != 1:
         raise NoGoalError(
@@ -176,7 +176,7 @@ def _localization_session_is_safe(fetcher: NavigationFetcher) -> None:
 
 def _lifecycle_is_active(node: str, ros2: str, runner: Runner) -> None:
     result = _run(
-        (TIMEOUT, "3", ros2, "lifecycle", "get", node),
+        (TIMEOUT, "3", ros2, "lifecycle", "get", node, "--no-daemon"),
         runner=runner,
         timeout=5.0,
     )
@@ -185,7 +185,7 @@ def _lifecycle_is_active(node: str, ros2: str, runner: Runner) -> None:
 
 
 def _required_nodes_are_present(ros2: str, runner: Runner) -> None:
-    result = _run((ros2, "node", "list"), runner=runner)
+    result = _run((ros2, "node", "list", "--no-daemon"), runner=runner)
     nodes = {line.strip() for line in result.stdout.splitlines() if line.strip()}
     if result.returncode != 0 or not set(LIFECYCLE_NODES).issubset(nodes):
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: a Nav2 child node is missing")
@@ -193,7 +193,16 @@ def _required_nodes_are_present(ros2: str, runner: Runner) -> None:
 
 def _topic_has_fresh_sample(topic: str, ros2: str, runner: Runner) -> None:
     result = _run(
-        (TIMEOUT, "3", ros2, "topic", "echo", topic, "--once"),
+        (
+            TIMEOUT,
+            "3",
+            ros2,
+            "topic",
+            "echo",
+            topic,
+            "--once",
+            "--no-daemon",
+        ),
         runner=runner,
         timeout=5.0,
     )
@@ -214,7 +223,16 @@ def _transform_available(parent: str, child: str, ros2: str, runner: Runner) -> 
 
 def _raw_command_is_quiet_or_zero(ros2: str, runner: Runner) -> str:
     result = _run(
-        (TIMEOUT, "2", ros2, "topic", "echo", RAW_COMMAND_TOPIC, "--once"),
+        (
+            TIMEOUT,
+            "2",
+            ros2,
+            "topic",
+            "echo",
+            RAW_COMMAND_TOPIC,
+            "--once",
+            "--no-daemon",
+        ),
         runner=runner,
         timeout=4.0,
     )
@@ -235,20 +253,31 @@ def _raw_command_is_quiet_or_zero(ros2: str, runner: Runner) -> str:
 
 
 def _sport_request_is_quiet(ros2: str, runner: Runner) -> None:
-    listed = _run((ros2, "topic", "list"), runner=runner)
+    listed = _run((ros2, "topic", "list", "--no-daemon"), runner=runner)
     topics = {line.strip() for line in listed.stdout.splitlines() if line.strip()}
     if listed.returncode != 0:
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: cannot list sport requests")
     if SPORT_TOPIC not in topics:
         return
-    info = _run((ros2, "topic", "info", SPORT_TOPIC), runner=runner)
+    info = _run(
+        (ros2, "topic", "info", SPORT_TOPIC, "--no-daemon"), runner=runner
+    )
     match = re.search(r"^Publisher count:\s*(\d+)\s*$", info.stdout, re.MULTILINE)
     if info.returncode != 0 or match is None:
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: cannot inspect sport requests")
     if int(match.group(1)) == 0:
         return
     result = _run(
-        (TIMEOUT, "2", ros2, "topic", "echo", SPORT_TOPIC, "--once"),
+        (
+            TIMEOUT,
+            "2",
+            ros2,
+            "topic",
+            "echo",
+            SPORT_TOPIC,
+            "--once",
+            "--no-daemon",
+        ),
         runner=runner,
         timeout=4.0,
     )
