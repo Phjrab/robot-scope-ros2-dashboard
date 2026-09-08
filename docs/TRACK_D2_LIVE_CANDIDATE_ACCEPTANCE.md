@@ -1332,3 +1332,57 @@ INITIAL_POSE=NOT_RUN
 NAV2_GOAL=NOT_RUN
 MOTION=NOT_RUN
 ```
+
+## Exact finite-JSON release deployment — 2026-09-08
+
+After both GitHub Actions matrices passed, the operator explicitly authorized
+an external-dashboard-only deployment of exact release
+`fccd003410c53065120340e4c14b52a6fe17b68d`.  The release archive SHA-256 was
+`b8cd0772a8a5c2a1b3fc52faad729a5e938f5fefa13157e182e7a838f483dbb6`.
+It was extracted to a new release directory without modifying the retained
+rollback release `f1c9edb97b01bcea1da98482bc36f18b114611a1`.
+
+On the external aarch64 Jetson, PCL NDT2D was rebuilt from the exact release.
+CTest passed 1/1.  The strict fixed-grid benchmark parsed the executable output
+as JSON and passed all ten cases:
+
+```text
+cases = 10
+converged_cases = 10
+accepted_cases = 10
+acceptance_pass = true
+translation median/p95 = 0.001277 / 0.003105 m
+yaw median/p95 = 0.028152 / 0.097857 deg
+runtime p50/p95 = 956.050 / 1001.532 ms
+```
+
+Only the external release symlink was switched and only
+`robot-scope.service` was restarted.  The resulting process cwd and stable
+symlink both resolved to the exact `fccd003...` release; the dashboard was
+active with PID 403070 and `NRestarts=0`.  The external local Control Bridge
+service remained inactive, and the onboard Jetson and signed robot-side
+Bridge were not changed or restarted.
+
+Post-switch checks showed no active or retained relocalization job.  The
+persistent preview recovered to `running`, while the mapping pipeline and
+mapping operation were `idle`.  Navigation, Localization and goal were idle.
+Control retained no lease, deadman false and exact-zero x/y/yaw commands.  The
+selected map remained `map_20260908_072712_edited` with revision
+`9e72787f2443b714ed3045fda62c08c53e85294c7d02e26b8e74ce0cc30fc8ac`.
+No candidate, initial pose, Nav2 goal or motion was executed by this
+deployment.
+
+```text
+D2_EXACT_FCCD003_EXTERNAL_DEPLOYMENT=PASS
+D2_EXACT_FCCD003_AARCH64_BUILD=PASS
+D2_EXACT_FCCD003_CTEST=PASS_1_OF_1
+D2_EXACT_FCCD003_STRICT_JSON_CORPUS=PASS_10_OF_10
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=IDLE
+FINAL_PREVIEW_STATE=RUNNING
+```
