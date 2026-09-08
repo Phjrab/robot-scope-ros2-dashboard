@@ -334,6 +334,31 @@ class TrackC2NoGoalTests(unittest.TestCase):
                 ros2="/opt/ros/humble/bin/ros2",
             )
 
+    def test_ng1_pins_the_operator_selected_map_without_changing_legacy_default(self):
+        map_id = "8" * 24
+        map_revision = "9" * 64
+        navigation = safe_localization_navigation()
+        navigation["localization_session"]["map_id"] = map_id
+        navigation["localization_session"]["map_revision"] = map_revision
+
+        no_goal._localization_session_is_safe(
+            lambda: navigation,
+            expected_map_id=map_id,
+            expected_map_revision=map_revision,
+        )
+        with self.assertRaisesRegex(no_goal.NoGoalError, "map_revision"):
+            no_goal._localization_session_is_safe(
+                lambda: navigation,
+                expected_map_id=map_id,
+                expected_map_revision="a" * 64,
+            )
+        with self.assertRaisesRegex(no_goal.NoGoalError, "map ID is invalid"):
+            no_goal._localization_session_is_safe(
+                lambda: navigation,
+                expected_map_id="../runtime/map.yaml",
+                expected_map_revision=map_revision,
+            )
+
     def test_ng0_allows_prelocolization_lifecycle_but_ng1_requires_all_active(self):
         def staged_runner(argv, **kwargs):
             values = tuple(argv)

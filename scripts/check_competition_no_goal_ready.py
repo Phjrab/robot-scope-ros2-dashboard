@@ -145,7 +145,16 @@ def _topic_has_exactly_one_publisher(topic: str, ros2: str, runner: Runner) -> N
         )
 
 
-def _localization_session_is_safe(fetcher: NavigationFetcher) -> None:
+def _localization_session_is_safe(
+    fetcher: NavigationFetcher,
+    *,
+    expected_map_id: str = C3_MAP_ID,
+    expected_map_revision: str = C3_MAP_REVISION,
+) -> None:
+    if re.fullmatch(r"[0-9a-f]{24}", expected_map_id) is None:
+        raise NoGoalError("TRACK C NG1 BLOCKED: expected map ID is invalid")
+    if re.fullmatch(r"[0-9a-f]{64}", expected_map_revision) is None:
+        raise NoGoalError("TRACK C NG1 BLOCKED: expected map revision is invalid")
     payload = fetcher()
     session = payload.get("localization_session")
     goal = payload.get("goal")
@@ -155,8 +164,8 @@ def _localization_session_is_safe(fetcher: NavigationFetcher) -> None:
         "active": True,
         "mode": "localization_only",
         "state": "localized",
-        "map_id": C3_MAP_ID,
-        "map_revision": C3_MAP_REVISION,
+        "map_id": expected_map_id,
+        "map_revision": expected_map_revision,
         "initial_pose_count": 1,
         "goal_allowed": False,
         "motion_allowed": False,
@@ -295,6 +304,8 @@ def check(
     control_fetcher: ControlFetcher = _fetch_control,
     navigation_fetcher: NavigationFetcher = _fetch_navigation,
     ros2: str | None = None,
+    expected_map_id: str = C3_MAP_ID,
+    expected_map_revision: str = C3_MAP_REVISION,
 ) -> dict[str, str]:
     if stage not in STAGES:
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: checker stage is invalid")
@@ -311,7 +322,11 @@ def check(
 
     _control_is_stationary(control_fetcher)
     if stage == "localized" and profile == TRACK_C2_PROFILE:
-        _localization_session_is_safe(navigation_fetcher)
+        _localization_session_is_safe(
+            navigation_fetcher,
+            expected_map_id=expected_map_id,
+            expected_map_revision=expected_map_revision,
+        )
     _required_nodes_are_present(ros2_command, runner)
     active_nodes = (
         PRELOCALIZATION_ACTIVE_NODES if stage == "prelocalization" else LIFECYCLE_NODES
@@ -353,9 +368,15 @@ def check(
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Robot Scope staged no-goal checker")
     parser.add_argument("--stage", choices=STAGES, required=True)
+    parser.add_argument("--map-id", default=C3_MAP_ID)
+    parser.add_argument("--map-revision", default=C3_MAP_REVISION)
     args = parser.parse_args(argv)
     try:
-        result = check(stage=args.stage)
+        result = check(
+            stage=args.stage,
+            expected_map_id=args.map_id,
+            expected_map_revision=args.map_revision,
+        )
     except NoGoalError as exc:
         print(f"[Robot Scope] {exc}")
         return 2
