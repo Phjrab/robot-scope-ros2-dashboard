@@ -185,15 +185,26 @@ class TrackC4NavigationReadyTests(unittest.TestCase):
             return completed(values, returncode=124)
         raise AssertionError(values)
 
-    def check(self, *, control=None, navigation=None, runner=None):
+    def check(
+        self,
+        *,
+        control=None,
+        navigation=None,
+        runner=None,
+        map_id=c4.MAP_ID,
+        map_revision=c4.MAP_REVISION,
+        map_data=None,
+    ):
         return c4.check(
             environment=self.environment,
             runner=runner or self.runner,
             control_fetcher=lambda: control or safe_control(),
             navigation_fetcher=lambda: navigation or safe_navigation(),
             parameters_fetcher=safe_parameters,
-            map_data_fetcher=safe_map_data,
+            map_data_fetcher=lambda: map_data or safe_map_data(),
             ros2="/opt/ros/humble/bin/ros2",
+            expected_map_id=map_id,
+            expected_map_revision=map_revision,
         )
 
     def test_normal_localized_navigation_with_exclusive_lease_is_ready(self):
@@ -201,6 +212,37 @@ class TrackC4NavigationReadyTests(unittest.TestCase):
         self.assertEqual(result["goal"], "IDLE")
         self.assertEqual(result["raw_command"], "quiet")
         self.assertEqual(result["map_revision"], c4.MAP_REVISION)
+
+    def test_runtime_map_pins_support_a_new_operator_selected_map(self):
+        map_id = "8" * 24
+        map_revision = "9" * 64
+        navigation = safe_navigation()
+        navigation["map"] = {"id": map_id, "revision": map_revision}
+        map_data = safe_map_data()
+        map_data["map_id"] = map_id
+        map_data["revision"] = map_revision
+
+        result = self.check(
+            navigation=navigation,
+            map_id=map_id,
+            map_revision=map_revision,
+            map_data=map_data,
+        )
+
+        self.assertEqual(result["map_id"], map_id)
+        self.assertEqual(result["map_revision"], map_revision)
+
+    def test_runtime_map_pins_are_strict_and_cross_checked(self):
+        for map_id, map_revision in (
+            ("../runtime/map.yaml", "9" * 64),
+            ("8" * 24, "not-a-revision"),
+        ):
+            with self.subTest(map_id=map_id, map_revision=map_revision):
+                with self.assertRaises(c4.C4ReadyError):
+                    self.check(map_id=map_id, map_revision=map_revision)
+
+        with self.assertRaisesRegex(c4.C4ReadyError, "route map or revision"):
+            self.check(map_id="8" * 24, map_revision="9" * 64)
 
     def test_localization_only_or_existing_goal_is_rejected(self):
         for changes in (

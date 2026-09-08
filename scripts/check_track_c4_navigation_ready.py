@@ -27,7 +27,6 @@ TIMEOUT = "/usr/bin/timeout"
 CONTROL_URL = "http://127.0.0.1:8088/api/v1/control"
 NAVIGATION_URL = "http://127.0.0.1:8088/api/v1/navigation"
 PARAMETERS_URL = "http://127.0.0.1:8088/api/v1/navigation/parameters"
-MAP_DATA_URL = f"http://127.0.0.1:8088/api/v1/saved-maps/{MAP_ID}/data"
 EXPECTED_SPEED_SCALE = 0.35
 START_POSE = (0.0, 0.0, 0.0)
 GOAL_POSE = (0.25, 0.0, 0.0)
@@ -115,8 +114,18 @@ def _fetch_parameters() -> Mapping[str, Any]:
     return _fetch(PARAMETERS_URL, "navigation parameters")
 
 
-def _fetch_map_data() -> Mapping[str, Any]:
-    return _fetch(MAP_DATA_URL, "pinned map data")
+def _fetch_map_data(map_id: str = MAP_ID) -> Mapping[str, Any]:
+    return _fetch(
+        f"http://127.0.0.1:8088/api/v1/saved-maps/{map_id}/data",
+        "pinned map data",
+    )
+
+
+def _validate_map_pins(map_id: str, map_revision: str) -> None:
+    if re.fullmatch(r"[0-9a-f]{24}", map_id) is None:
+        raise C4ReadyError("TRACK C4 BLOCKED: expected map ID is invalid")
+    if re.fullmatch(r"[0-9a-f]{64}", map_revision) is None:
+        raise C4ReadyError("TRACK C4 BLOCKED: expected map revision is invalid")
 
 
 def _finite_number(value: Any, label: str) -> float:
@@ -213,9 +222,17 @@ def _parameters_are_c4_safe(fetcher: Fetcher) -> str:
     return revision
 
 
-def _route_clearance(fetcher: Fetcher) -> float:
+def _route_clearance(
+    fetcher: Fetcher,
+    *,
+    expected_map_id: str = MAP_ID,
+    expected_map_revision: str = MAP_REVISION,
+) -> float:
     payload = fetcher()
-    if payload.get("map_id") != MAP_ID or payload.get("revision") != MAP_REVISION:
+    if (
+        payload.get("map_id") != expected_map_id
+        or payload.get("revision") != expected_map_revision
+    ):
         raise C4ReadyError("TRACK C4 BLOCKED: route map or revision is invalid")
     if payload.get("data_encoding") != "int8-base64":
         raise C4ReadyError("TRACK C4 BLOCKED: route map encoding is invalid")
@@ -299,7 +316,12 @@ def _route_clearance(fetcher: Fetcher) -> float:
     return minimum_clearance
 
 
-def _navigation_is_localized_and_idle(fetcher: Fetcher) -> dict[str, float | str]:
+def _navigation_is_localized_and_idle(
+    fetcher: Fetcher,
+    *,
+    expected_map_id: str = MAP_ID,
+    expected_map_revision: str = MAP_REVISION,
+) -> dict[str, float | str]:
     payload = fetcher()
     pipeline = payload.get("pipeline")
     map_state = payload.get("map")
@@ -338,7 +360,10 @@ def _navigation_is_localized_and_idle(fetcher: Fetcher) -> dict[str, float | str
         raise C4ReadyError("TRACK C4 BLOCKED: normal navigation session is not running")
     if localization_session.get("active") is not False:
         raise C4ReadyError("TRACK C4 BLOCKED: localization-only session is still active")
-    if map_state.get("id") != MAP_ID or map_state.get("revision") != MAP_REVISION:
+    if (
+        map_state.get("id") != expected_map_id
+        or map_state.get("revision") != expected_map_revision
+    ):
         raise C4ReadyError("TRACK C4 BLOCKED: pinned map or revision is invalid")
     if localization.get("state") != "localized":
         raise C4ReadyError("TRACK C4 BLOCKED: localization is not stable")
@@ -510,9 +535,12 @@ def check(
     control_fetcher: Fetcher = _fetch_control,
     navigation_fetcher: Fetcher = _fetch_navigation,
     parameters_fetcher: Fetcher = _fetch_parameters,
-    map_data_fetcher: Fetcher = _fetch_map_data,
+    map_data_fetcher: Fetcher | None = None,
     ros2: str | None = None,
+    expected_map_id: str = MAP_ID,
+    expected_map_revision: str = MAP_REVISION,
 ) -> dict[str, str]:
+    _validate_map_pins(expected_map_id, expected_map_revision)
     if environment.get("ROBOT_SCOPE_MAPPING_PROFILE") != PROFILE:
         raise C4ReadyError("TRACK C4 BLOCKED: explicit competition profile is required")
     if environment.get("ROS_DISTRO") != "humble":
@@ -523,8 +551,19 @@ def check(
 
     _control_is_ready_and_zero(control_fetcher)
     parameters_revision = _parameters_are_c4_safe(parameters_fetcher)
-    route_clearance = _route_clearance(map_data_fetcher)
-    rate_evidence = _navigation_is_localized_and_idle(navigation_fetcher)
+    selected_map_fetcher = map_data_fetcher or (
+        lambda: _fetch_map_data(expected_map_id)
+    )
+    route_clearance = _route_clearance(
+        selected_map_fetcher,
+        expected_map_id=expected_map_id,
+        expected_map_revision=expected_map_revision,
+    )
+    rate_evidence = _navigation_is_localized_and_idle(
+        navigation_fetcher,
+        expected_map_id=expected_map_id,
+        expected_map_revision=expected_map_revision,
+    )
     _required_nodes_are_active(ros2_command, runner)
     _topics_are_fresh(ros2_command, runner)
     for parent, child in (
@@ -536,8 +575,8 @@ def check(
     raw_command = _raw_command_is_quiet_or_zero(ros2_command, runner)
     return {
         "profile": PROFILE,
-        "map_id": MAP_ID,
-        "map_revision": MAP_REVISION,
+        "map_id": expected_map_id,
+        "map_revision": expected_map_revision,
         "controller_odometry": CONTROLLER_ODOM,
         "parameters_revision": parameters_revision,
         "route_clearance_m": f"{route_clearance:.3f}",
@@ -556,9 +595,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Robot Scope Track C4 normal-navigation pre-goal checker"
     )
-    parser.parse_args(argv)
+    parser.add_argument("--map-id", default=MAP_ID)
+    parser.add_argument("--map-revision", default=MAP_REVISION)
+    args = parser.parse_args(argv)
     try:
-        result = check()
+        result = check(
+            expected_map_id=args.map_id,
+            expected_map_revision=args.map_revision,
+        )
     except C4ReadyError as exc:
         print(f"[Robot Scope] {exc}")
         return 2
