@@ -301,3 +301,72 @@ Python 3.13 environment ran 1003 tests with the single pre-existing collection
 error `ModuleNotFoundError: No module named 'fastapi'`; this is an environment
 baseline rather than a regression from these documentation-only changes.
 `git diff --check` also passed.
+
+## 2026-09-08 new-map C3 revalidation
+
+The operator created and edited `map_20260908_072712_edited`. The managed map
+catalog resolved it to ID `8050fff44b44ce106dc5a210` and revision
+`9e72787f2443b714ed3045fda62c08c53e85294c7d02e26b8e74ce0cc30fc8ac`.
+The candidate `(0.0, 0.0, 0.0)` mapped to free cell `(210, 85)` in the
+295 by 205, 0.05 m/cell map. All 78 checked cells in the configured 0.22 m
+robot footprint were known free and the nearest non-free clearance was about
+0.794 m. The operator separately confirmed the robot was stationary at the
+mapping start orientation with the physical E-stop available.
+
+The production dashboard remained on clean release
+`5bf184d63247186faa23dc5197e1c21a470a7d41`. The current-map checker changes
+were executed from separately staged exact release
+`7a545f47d88c6e3647f7dff2593fab98186253f6`; its checker file SHA-256 was
+`42a427095f587dc70e82c82e5aa70f6737f5e243699408256262439c12bc39d9`.
+No dashboard service switch or restart was required for this checker-only
+staging.
+
+An initial live attempt was deliberately stopped before acceptance when the
+checker was found to contain an old temporary subscriber for the restricted
+robot-side `/api/sport/request` command topic. Commit `7a545f4` removed that
+subscriber from the wireless competition path. The replacement fails closed
+on the already authenticated Bridge projection and requires zero Move,
+non-zero Move, action, other and active motion-run evidence. The direct profile
+retains graph-metadata-only publisher inspection and does not create a command
+topic subscriber. Hardware-free validation passed 1,367 Python tests, 284
+JavaScript tests and 36 Playwright tests; Ruff, mypy, secret scan, frontend
+syntax and `git diff --check` also passed before the live retry.
+
+After the robot rebooted, the signed Bridge reported connected and
+authenticated, fresh LowState, no lease, deadman false, exact-zero command,
+and zero Move/non-zero/action evidence. A new localization-only session pinned
+the exact map revision and parameter revision
+`4327ec7817bbb226bf4a16ca4f64e0d73eeee3dc150c8947c206fc56172388ad`.
+It reached `waiting_initial_pose` with pose count zero. Only after the fresh,
+session-scoped operator confirmation was `(0.0, 0.0, 0.0)` published exactly
+once. The session reported `localized`, pose count one,
+`goal_allowed=false`, `motion_allowed=false`, zero raw/non-zero command counts,
+and goal `idle`.
+
+The revised NG1 checker completed two full end-to-end samples over 102 seconds,
+exceeding the required 60-second interval. Both samples passed exact map and
+revision identity, the localization-only session contract, required lifecycle
+nodes, fresh `/scan`, `/Odometry`, canonical controller odometry and
+`/amcl_pose`, connected `map -> odom -> base_link`, exactly one required
+publisher, both costmaps, and a quiet private raw-command topic. The signed
+Bridge evidence remained zero for Move, non-zero Move and action requests.
+No goal, Mission, lease, ARM, deadman or motion was requested.
+
+The exit trap reverse-cleaned the session. The final snapshot reported
+navigation pipeline `idle`, localization session inactive and `idle`, goal
+`idle`, no lease, deadman false, command `(0.0, 0.0, 0.0)`, no active motion
+run, and zero Move/non-zero/action evidence. The retained historical
+`initial_pose_count=1` is the expected audit record for the completed session,
+not an active publication owner.
+
+```text
+NEW_MAP_EXACT_PIN=PASS
+INITIAL_POSE_ONCE=PASS
+LOCALIZED_NG1_102_SECONDS=PASS
+RESTRICTED_SPORT_TOPIC_SUBSCRIBER=NOT_CREATED
+SIGNED_BRIDGE_MOTION_EVIDENCE=ZERO
+GOAL=NOT_RUN
+LEASE_ARM_DEADMAN=NOT_ACQUIRED
+MOTION=NOT_RUN
+REVERSE_CLEANUP=PASS
+```
