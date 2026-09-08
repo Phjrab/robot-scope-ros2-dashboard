@@ -426,8 +426,14 @@ class WirelessMappingProfileTests(unittest.TestCase):
         wired = (ROOT / "scripts" / "run_hesai_fastlio_humble.sh").read_text()
         for value in ("eno1", "192.168.50.10/24", "ROS_LOCALHOST_ONLY=1"):
             self.assertIn(value, setup)
-        self.assertIn("unset CYCLONEDDS_URI", setup)
+        self.assertIn("MaxAutoParticipantIndex>32", setup)
+        self.assertIn("export CYCLONEDDS_URI=", setup)
+        self.assertNotIn("unset CYCLONEDDS_URI", setup)
         self.assertNotIn("NetworkInterface name=", setup)
+        self.assertLess(
+            setup.index("export ROS_LOCALHOST_ONLY=1"),
+            setup.index("export CYCLONEDDS_URI="),
+        )
         self.assertIn(
             'source "$PROJECT_DIR/scripts/setup_wireless_mapping_ros2_humble.sh"',
             fastlio,

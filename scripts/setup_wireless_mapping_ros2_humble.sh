@@ -26,7 +26,11 @@ source /opt/ros/humble/setup.bash
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export ROS_LOCALHOST_ONLY=1
 # A service EnvironmentFile may contain the direct-wired CycloneDDS binding.
-# Do not let it override ROS_LOCALHOST_ONLY for this explicit wireless profile.
-unset CYCLONEDDS_URI
+# Replace it with a loopback-safe override for this explicit wireless profile.
+# CycloneDDS 0.10 defaults to only ten auto participant indices when loopback
+# cannot multicast.  The fixed sensor, FAST-LIO and Nav2 processes exceed that
+# limit; expanding only the local participant search prevents domain creation
+# failure without opening DDS discovery on the competition LAN.
+export CYCLONEDDS_URI="<CycloneDDS><Domain><Discovery><MaxAutoParticipantIndex>32</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
 
 unset WIRELESS_MAPPING_INTERFACE WIRELESS_MAPPING_CIDR
