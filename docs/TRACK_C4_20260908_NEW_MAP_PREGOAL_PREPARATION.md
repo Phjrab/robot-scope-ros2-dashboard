@@ -2,7 +2,7 @@
 
 Date: 2026-09-08
 
-Status: `PREPARED_AWAITING_DEPLOYMENT_AND_NAV_SESSION_APPROVAL`
+Status: `EXTERNAL_DEPLOYED_AWAITING_NAV_SESSION_APPROVAL`
 
 Motion status: `NOT_RUN`
 
@@ -109,3 +109,69 @@ an environment failure, not a product-test failure.
 No prior C3, C4, C4A, C4B, or general approval can be reused for the motion
 step. Any mismatch or loss of health requires reverse cleanup and a new
 session; no goal may be retried automatically.
+
+## Approved external deployment result
+
+The operator approved only the external dashboard exact-release transition
+and dashboard restart. The onboard Bridge, map contents, Navigation session,
+initial pose, goal, and motion were explicitly outside the approved change.
+
+The first external transition exposed a fail-closed packaging dependency: the
+Git archive did not contain the generated PCL NDT2D executable required by the
+already enabled D2 relocalization runtime. The dashboard failed during startup
+with the executable missing from the exact release. The production symlink was
+immediately returned to
+`5bf184d63247186faa23dc5197e1c21a470a7d41`, and the dashboard recovered before
+any Navigation or control operation. This failed transition did not start a
+Navigation session, publish an initial pose, submit a goal, acquire a lease,
+engage deadman, or publish a non-zero command.
+
+The native registration tree was then configured and built inside the exact
+`6f0a99b62e22f9f96ecf3561a451ce7426d6b1fe` release with the PCL backends and
+tests enabled. Its native CTest passed 1/1. The resulting NDT2D executable has
+SHA-256
+`ec761c181fe8ecdae0c31522a9cf2edca9cb3d7150696414f29a41af72cf94f3`.
+After this prerequisite existed, the external dashboard alone was switched
+and restarted successfully.
+
+Final deployed state:
+
+- External production symlink and live process cwd:
+  `6f0a99b62e22f9f96ecf3561a451ce7426d6b1fe`.
+- External service: active, PID 96608, restart count 0 for the successful
+  invocation.
+- Rollback symlink:
+  `5bf184d63247186faa23dc5197e1c21a470a7d41`.
+- Onboard signed Control Bridge release, unchanged:
+  `10a7fa9cec2c329f2c50edc9ad98de13a22689da`.
+- Bridge: connected, authenticated, ready, fresh LowState, one owned Sport
+  publisher, one Sport subscriber, zero foreign named Sport publishers.
+- Control: no lease, deadman released, accepted command exact zero, Move 0,
+  non-zero Move 0, action 0, other 0, active motion run false.
+- Navigation pipeline and shared localization pipeline: idle; localization
+  uninitialized; localization-only session inactive with initial-pose count 0;
+  goal idle and goal submission disabled.
+- Selected map remains `map_20260908_072712_edited`, ID
+  `8050fff44b44ce106dc5a210`, revision
+  `9e72787f2443b714ed3045fda62c08c53e85294c7d02e26b8e74ce0cc30fc8ac`.
+- No map, onboard service, Navigation session, initial pose, goal, lease,
+  deadman, action, or motion command was changed by this deployment.
+
+The deployment incident also confirms that a source archive alone is not a
+complete release artifact while the D2 PCL backend is enabled. Future release
+preflight must either build and test this exact native target before switching
+the production symlink or carry a verified compatible artifact produced from
+the same exact source release.
+
+## Remaining mandatory gates after deployment
+
+1. Reconfirm the robot is standing and completely stationary at `(0,0,0)`,
+   facing the mapping-start direction, with at least 0.40 m of clear physical
+   space ahead and a physical remote/E-stop in hand.
+2. Obtain a new approval for one normal Navigation no-goal session. Starting
+   that session is allowed to acquire only the Navigation lease; no initial
+   pose or goal is included.
+3. Show the exact map/revision/parameter revision again and obtain a separate
+   initial-pose approval before publishing it exactly once.
+4. Require stable C4 READY for at least 10 seconds with an idle goal and exact
+   zero command, then stop and obtain a separate one-shot goal approval.
