@@ -723,6 +723,65 @@ FINAL_PIPELINE_STATE=IDLE
 FINAL_PREVIEW_STATE=RUNNING
 ```
 
+## Finite-JSON live candidate result — 2026-09-08
+
+With exact external release
+`fccd003410c53065120340e4c14b52a6fe17b68d` active and the robot-side Bridge
+unchanged, the operator provided a fresh stationary D2 approval.  Read-only
+preflight confirmed an authenticated ready Bridge, fresh Sport state inside
+the stationary velocity envelope, no lease, deadman false, exact-zero command,
+idle Navigation/Localization/goal, and the exact approved map family.  The
+observation-only pipeline then reached readiness before any candidate request.
+
+Exactly one request was submitted as job `3bca382178b4a70f621e581d` for
+`map_20260908_072712_edited`, REGION seed `(0, 0, 0)`, radius `3.0 m` and yaw
+half-range `1.57 rad`.  Collection and map eligibility passed:
+
+```text
+frames = 25
+raw_points = 375332
+filtered_points = 1340
+reference_points = 501135
+known_free_cells = 54936
+required_clearance = 0.35 m
+```
+
+The PCL NDT2D child returned valid JSON in about 1.536 seconds.  This live job
+exercised the previously broken boundary directly: two zero-correspondence
+results were serialized with finite `fitness=0.5625`, parsed successfully and
+retained as non-converged `REJECTED` diagnostics.  The invalid `inf` token did
+not recur.
+
+The leading result converged near `(-5.3061, -0.4624, -2.8834)` with fitness
+`0.18698`, overlap `0.49254` and ambiguity margin `0.66759`.  It failed the
+unchanged registration quality policy and was rejected.  The other two results
+were also rejected and outside the occupancy map.  The job therefore finished
+`rejected`; it did not produce an accepted localization pose and applied
+nothing.
+
+Reverse cleanup stopped only the operation-owned observation pipeline.  The
+persistent preview remained running.  Final Control evidence retained no
+lease, deadman false, exact-zero command, and zero Move, non-zero Move and
+action requests.  Navigation, Localization, initial pose and goal remained
+idle.  The dashboard stayed active on the exact release with no service
+restart.
+
+```text
+D2_FINITE_JSON_LIVE_BOUNDARY=PASS
+D2_LIVE_COLLECTION=PASS
+D2_LIVE_MAP_ELIGIBILITY=PASS
+D2_LIVE_REGISTRATION_EXECUTION=PASS
+D2_LIVE_REGISTRATION_QUALITY=FAIL_REJECTED
+D2_LIVE_CANDIDATE_PASS=NOT_YET
+D3_READY=false
+CANDIDATE_APPLIED=false
+INITIAL_POSE=NOT_RUN
+NAV2_GOAL=NOT_RUN
+MOTION=NOT_RUN
+FINAL_PIPELINE_STATE=STOPPED
+FINAL_PREVIEW_STATE=RUNNING
+```
+
 ## Wireless FAST-LIO DDS isolation correction — 2026-09-08
 
 The continuity guard was deployed on the external Orin as exact release
