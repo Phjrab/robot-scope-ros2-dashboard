@@ -104,7 +104,11 @@ def _fetch_navigation() -> Mapping[str, Any]:
     return payload
 
 
-def _control_is_stationary(fetcher: ControlFetcher) -> None:
+def _control_is_stationary(
+    fetcher: ControlFetcher,
+    *,
+    require_bridge_evidence: bool,
+) -> None:
     payload = fetcher()
     control = payload.get("control")
     if not isinstance(control, Mapping):
@@ -127,6 +131,33 @@ def _control_is_stationary(fetcher: ControlFetcher) -> None:
             raise NoGoalError("TRACK C NO-GOAL BLOCKED: command velocity is invalid") from exc
         if not math.isfinite(number) or number != 0.0:
             raise NoGoalError("TRACK C NO-GOAL BLOCKED: command velocity is non-zero")
+
+    if not require_bridge_evidence:
+        return
+    bridge = control.get("bridge")
+    if not isinstance(bridge, Mapping):
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: bridge status is invalid")
+    if bridge.get("authenticated") is not True or bridge.get("connected") is not True:
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: signed bridge status is unavailable")
+    evidence = bridge.get("request_evidence")
+    if not isinstance(evidence, Mapping):
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: bridge request evidence is unavailable")
+    if evidence.get("schema") != "robot-scope.sport-request-evidence.v1":
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: bridge request evidence is invalid")
+    for key in (
+        "move_count",
+        "nonzero_move_count",
+        "action_count",
+        "other_count",
+        "motion_run_nonzero_move_count",
+    ):
+        value = evidence.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value != 0:
+            raise NoGoalError(
+                f"TRACK C NO-GOAL BLOCKED: bridge {key} is not zero"
+            )
+    if evidence.get("motion_run_active") is not False:
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: bridge motion run is active")
 
 
 def _topic_has_publisher(topic: str, ros2: str, runner: Runner) -> None:
@@ -261,7 +292,8 @@ def _raw_command_is_quiet_or_zero(ros2: str, runner: Runner) -> str:
     return "zero_only"
 
 
-def _sport_request_is_quiet(ros2: str, runner: Runner) -> None:
+def _sport_request_has_no_publishers(ros2: str, runner: Runner) -> None:
+    """Inspect only graph metadata; never create a command-topic subscriber."""
     listed = _run((ros2, "topic", "list", "--no-daemon"), runner=runner)
     topics = {line.strip() for line in listed.stdout.splitlines() if line.strip()}
     if listed.returncode != 0:
@@ -273,27 +305,9 @@ def _sport_request_is_quiet(ros2: str, runner: Runner) -> None:
     )
     match = re.search(r"^Publisher count:\s*(\d+)\s*$", info.stdout, re.MULTILINE)
     if info.returncode != 0 or match is None:
-        raise NoGoalError("TRACK C NO-GOAL BLOCKED: cannot inspect sport requests")
-    if int(match.group(1)) == 0:
-        return
-    result = _run(
-        (
-            TIMEOUT,
-            "2",
-            ros2,
-            "topic",
-            "echo",
-            SPORT_TOPIC,
-            "--once",
-            "--no-daemon",
-        ),
-        runner=runner,
-        timeout=4.0,
-    )
-    if result.returncode == 0:
-        raise NoGoalError("TRACK C NO-GOAL BLOCKED: unexpected sport request")
-    if result.returncode != 124:
-        raise NoGoalError("TRACK C NO-GOAL BLOCKED: cannot monitor sport requests")
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: cannot inspect sport publishers")
+    if int(match.group(1)) != 0:
+        raise NoGoalError("TRACK C NO-GOAL BLOCKED: sport request publisher is present")
 
 
 def check(
@@ -320,7 +334,10 @@ def check(
     if not ros2_command or not Path(ros2_command).is_absolute():
         raise NoGoalError("TRACK C NO-GOAL BLOCKED: ros2 command is unavailable")
 
-    _control_is_stationary(control_fetcher)
+    _control_is_stationary(
+        control_fetcher,
+        require_bridge_evidence=profile == TRACK_C2_PROFILE,
+    )
     if stage == "localized" and profile == TRACK_C2_PROFILE:
         _localization_session_is_safe(
             navigation_fetcher,
@@ -355,7 +372,8 @@ def check(
         _topic_has_fresh_sample("/amcl_pose", ros2_command, runner)
 
     raw_command_policy = _raw_command_is_quiet_or_zero(ros2_command, runner)
-    _sport_request_is_quiet(ros2_command, runner)
+    if profile == PROFILE:
+        _sport_request_has_no_publishers(ros2_command, runner)
     return {
         "stage": stage,
         "profile": str(profile),

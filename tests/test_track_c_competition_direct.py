@@ -272,6 +272,19 @@ class TrackCCompetitionDirectTests(unittest.TestCase):
                         "linear_y": 0.0,
                         "angular_z": 0.0,
                     },
+                    "bridge": {
+                        "authenticated": True,
+                        "connected": True,
+                        "request_evidence": {
+                            "schema": "robot-scope.sport-request-evidence.v1",
+                            "move_count": 0,
+                            "nonzero_move_count": 0,
+                            "action_count": 0,
+                            "other_count": 0,
+                            "motion_run_active": False,
+                            "motion_run_nonzero_move_count": 0,
+                        },
+                    },
                 }
             },
             ros2="/opt/ros/humble/bin/ros2",

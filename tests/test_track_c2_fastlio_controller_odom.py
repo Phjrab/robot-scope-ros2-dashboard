@@ -57,6 +57,19 @@ def safe_control():
                 "linear_y": 0.0,
                 "angular_z": 0.0,
             },
+            "bridge": {
+                "authenticated": True,
+                "connected": True,
+                "request_evidence": {
+                    "schema": "robot-scope.sport-request-evidence.v1",
+                    "move_count": 0,
+                    "nonzero_move_count": 0,
+                    "action_count": 0,
+                    "other_count": 0,
+                    "motion_run_active": False,
+                    "motion_run_nonzero_move_count": 0,
+                },
+            },
         }
     }
 
@@ -413,35 +426,37 @@ class TrackC2NoGoalTests(unittest.TestCase):
                 ros2="/opt/ros/humble/bin/ros2",
             )
 
-    def test_ng0_detects_sport_output_but_accepts_an_absent_bridge_topic(self):
-        absent = no_goal.check(
+    def test_ng0_uses_signed_bridge_evidence_without_sport_topic_subscriber(self):
+        result = no_goal.check(
             stage="prelocalization",
             environment=self.environment,
             runner=self.runner,
             control_fetcher=safe_control,
             ros2="/opt/ros/humble/bin/ros2",
         )
-        self.assertEqual(absent["stage"], "prelocalization")
+        self.assertEqual(result["stage"], "prelocalization")
+        source = (ROOT / "scripts" / "check_competition_no_goal_ready.py").read_text()
+        self.assertNotIn("topic\", \"echo\",\n            SPORT_TOPIC", source)
 
-        def sport_runner(argv, **kwargs):
-            values = tuple(argv)
-            if values[1:3] == ("topic", "list"):
-                return completed(
-                    values,
-                    stdout=f"{no_goal.RAW_COMMAND_TOPIC}\n{no_goal.SPORT_TOPIC}\n",
-                )
-            if values[1:3] == ("topic", "info") and no_goal.SPORT_TOPIC in values:
-                return completed(values, stdout="Publisher count: 1\n")
-            if values[:2] == (no_goal.TIMEOUT, "2") and no_goal.SPORT_TOPIC in values:
-                return completed(values, stdout="api_id: 1008\n")
-            return self.runner(argv, **kwargs)
-
-        with self.assertRaisesRegex(no_goal.NoGoalError, "unexpected sport request"):
+        unsafe = safe_control()
+        unsafe["control"]["bridge"]["request_evidence"]["move_count"] = 1
+        with self.assertRaisesRegex(no_goal.NoGoalError, "move_count is not zero"):
             no_goal.check(
                 stage="prelocalization",
                 environment=self.environment,
-                runner=sport_runner,
-                control_fetcher=safe_control,
+                runner=self.runner,
+                control_fetcher=lambda: unsafe,
+                ros2="/opt/ros/humble/bin/ros2",
+            )
+
+        missing = safe_control()
+        del missing["control"]["bridge"]["request_evidence"]
+        with self.assertRaisesRegex(no_goal.NoGoalError, "request evidence is unavailable"):
+            no_goal.check(
+                stage="prelocalization",
+                environment=self.environment,
+                runner=self.runner,
+                control_fetcher=lambda: missing,
                 ros2="/opt/ros/humble/bin/ros2",
             )
 
