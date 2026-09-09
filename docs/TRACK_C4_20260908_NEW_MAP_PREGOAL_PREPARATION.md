@@ -437,3 +437,66 @@ Post-activation evidence:
 This deployment only installs the bounded scheduler diagnostics and narrowed
 manager-owned child cleanup. It neither relaxes the 0.25-second odometry
 maximum-gap gate nor authorizes the next stationary Navigation session.
+
+## Bounded scheduler diagnostic on exact release `e63587f`
+
+After a separate operator approval, one normal Navigation no-goal session was
+started against map `map_20260908_072712_edited`, map ID
+`8050fff44b44ce106dc5a210`, map revision
+`9e72787f2443b714ed3045fda62c08c53e85294c7d02e26b8e74ce0cc30fc8ac`,
+and parameter revision
+`4327ec7817bbb226bf4a16ca4f64e0d73eeee3dc150c8947c206fc56172388ad`.
+The session acquired only the normal Navigation lease. Initial pose, goal,
+deadman, non-zero command and robot motion remained prohibited.
+
+A bounded 180-second monitor collected 360 snapshots. Every snapshot retained
+`session_mode=navigation`, `initial_pose_count=0`, an idle goal, released
+deadman, exact-zero dashboard and accepted commands, and unchanged Bridge
+Move/non-zero/Action/other/motion-run evidence. All health samples correctly
+reported `INITIAL_POSE_REQUIRED`; no attempt was made to bypass that expected
+pre-localization state.
+
+Maximum observed timing values were:
+
+| Metric | Maximum |
+| --- | ---: |
+| controller-odometry callback arrival gap | 0.266048 s |
+| FAST-LIO source-header gap | 0.100145 s |
+| PointCloud callback execution | 0.021755 s |
+| odometry callback execution | 0.017161 s |
+| health-timer interval | 0.108288 s |
+| complete health callback execution | 0.015483 s |
+| publisher-count query inside health callback | 0.005674 s |
+
+The arrival-based maximum again exceeded the unchanged 0.25-second gate while
+the source gap stayed near the nominal 0.1-second period. Neither the measured
+PointCloud or odometry callback, the health timer, the complete health callback
+nor its publisher-cardinality query had a duration capable of explaining the
+0.266048-second arrival gap. This evidence narrows the remaining hypotheses to
+DDS delivery or unmeasured host/executor scheduling before the odometry
+callback begins; it does not yet distinguish between them and does not justify
+changing the gate.
+
+No warning-or-higher dashboard or kernel journal entry appeared in the session
+interval. The external wired interface reported zero receive errors, receive
+drops, missed packets, transmit errors and transmit drops when inspected after
+the run. Those cumulative interface counters do not exclude application-level
+DDS queueing.
+
+Reverse cleanup completed normally:
+
+- Navigation pipeline/session/localization session/goal returned to idle;
+- the Navigation lease was released and deadman remained released;
+- dashboard and Bridge accepted commands remained exact zero;
+- Bridge Move, non-zero Move and action counts remained zero;
+- no Nav2, AMCL, FAST-LIO, launcher or navigation-runtime child remained;
+- the manager-owned FAST-LIO pipeline reported a normal operator stop with no
+  error, and no child remained after the bounded eight-second settle check;
+- Mapping operation remained idle and the persistent XT16 preview was
+  preserved.
+
+The bounded cleanup correction is therefore validated for this run. C4 remains
+blocked before initial pose and goal because controller-odometry arrival gaps
+can still cross the unchanged 0.25-second readiness boundary. A focused DDS or
+executor-scheduling diagnostic is required before requesting a new initial-pose
+approval.
