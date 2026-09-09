@@ -545,3 +545,65 @@ Interpretation for a future separately approved stationary run is bounded:
 This section records software design and hardware-free validation only. The
 change is not deployed by its Git push; external release activation and a
 stationary no-goal run require a new explicit deployment approval.
+
+## RMW timing diagnostic external deployment
+
+The operator separately approved external-only deployment of exact commit
+`95992ba3201cec0b016b274856c2501690711c4a`. The approved scope allowed the
+external immutable-release switch and a restart of `robot-scope.service` only.
+It preserved the onboard Bridge at `10a7fa9cec2c329f2c50edc9ad98de13a22689da`
+and prohibited an initial pose, goal, deadman, non-zero command and robot
+motion.
+
+The exact Git archive had compressed SHA-256
+`0dae72100603e68ef4deca04674780b1855ac7c4ab5e739e03e1bdbad772391b`.
+It was verified before extraction into
+`/home/jetson_orin_nano/releases/robot-scope/95992ba3201cec0b016b274856c2501690711c4a`.
+The two timing-source files in that inactive release also matched the exact
+Git-object fingerprints before any activation.
+
+To preserve the already deployed D2 registration capability, the PCL backend
+was built inside the inactive exact release with `CMAKE_BUILD_TYPE=Release`,
+`BUILD_TESTING=ON` and `ROBOT_SCOPE_BUILD_PCL_BACKENDS=ON`. Native CTest passed
+1/1. The NDT2D acceptance benchmark passed all 10/10 trials, with translation
+median/p95 `0.00127733896/0.00310484265 m`, yaw median/p95
+`0.0281525/0.0978575 degrees`, and runtime p50/p95
+`960.461/1074.294 ms`. The resulting NDT2D executable retained SHA-256
+`ec761c181fe8ecdae0c31522a9cf2edca9cb3d7150696414f29a41af72cf94f3`.
+
+The production symlink was changed only after rechecking that the active
+target was exact prior release
+`e63587fa972eb3a4b35a59a853aa6d2a60ce67cf`. A rollback symlink was retained
+at `/home/jetson_orin_nano/robot-scope.pre-95992ba`. The existing restricted
+same-origin lifecycle endpoint accepted the confirmed dashboard-only restart;
+no direct service or onboard lifecycle command was used.
+
+Post-activation evidence:
+
+- external production symlink and dashboard process cwd both resolved to exact
+  release `95992ba3201cec0b016b274856c2501690711c4a`;
+- `robot-scope.service` was active as PID `616056`, with `NRestarts=0`, and was
+  listening on `0.0.0.0:8088`;
+- both loopback and LAN health checks passed, and no warning-or-higher dashboard
+  journal entry appeared in the inspected post-restart interval;
+- onboard `robot-scope-control-bridge.service` remained active as its existing
+  PID `1478`, with `NRestarts=0` and cwd in exact release
+  `10a7fa9cec2c329f2c50edc9ad98de13a22689da`;
+- the signed Bridge remained ready, authenticated and connected; its release
+  identity remained exact `10a7fa9`, the control lease stayed inactive,
+  deadman stayed released, and dashboard and accepted commands stayed exact
+  zero;
+- Bridge evidence remained Move 0, non-zero Move 0, action 0 and inactive
+  motion run;
+- Navigation pipeline/session/localization session/goal remained idle,
+  initial-pose count remained 0, and goal submission remained disabled;
+- Mapping pipeline and operation remained idle. The configured persistent XT16
+  preview alone recovered to running during normal dashboard startup;
+- Dataset capture and export remained idle;
+- onboard Bridge, map data, Navigation state and robot motion were not changed.
+
+This deployment installs bounded receive-versus-dispatch diagnostics only. It
+does not change the existing readiness calculation, relax the 0.25-second
+odometry maximum-gap gate, or authorize a stationary Navigation session,
+initial pose, goal or motion. A fresh approval remains required for the next
+stationary no-goal evidence run.
