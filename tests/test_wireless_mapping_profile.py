@@ -283,6 +283,12 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertNotIn("run_xt16_cloud_bridge_humble.sh", mapping)
         self.assertNotIn("--stage bridge", mapping)
         self.assertNotIn("--service relay --action stop", mapping)
+        self.assertIn("if ! wait_local_children 1; then", mapping)
+        self.assertNotIn("if ! wait_local_children 5; then", mapping)
+        self.assertIn(
+            "Keep the complete local\n  # child escalation inside that window",
+            mapping,
+        )
 
         # ensure-started reports "existing" for a relay that was already
         # active.  Only an exact "started" result grants preview cleanup

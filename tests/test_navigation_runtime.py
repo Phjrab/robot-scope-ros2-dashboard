@@ -252,6 +252,8 @@ class NavigationLauncherSafetyTests(unittest.TestCase):
         self.assertIn('"/robot_scope/nav/runtime_health"', source)
         self.assertIn("odometry_frames_are_expected(parent_frame, child_frame)", source)
         self.assertIn('self.count_publishers(topic)', source)
+        self.assertIn("self._health_timer_rate.observe(started_at)", source)
+        self.assertIn("self._publisher_count_durations.observe(", source)
         self.assertIn('self._publisher_counts["/velodyne_points"] == 1', source)
         self.assertIn('self._publisher_counts["/Odometry"] == 1', source)
         self.assertIn("rclpy.init(args=[])", source)

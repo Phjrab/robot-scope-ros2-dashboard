@@ -251,6 +251,17 @@ class NavigationRosGatewayTests(unittest.TestCase):
                 "odometry_callback_p95_s": 0.002,
                 "odometry_callback_max_s": 0.003,
                 "odometry_callback_sample_count": 32,
+                "health_timer_max_gap_s": 0.112,
+                "health_timer_sample_count": 32,
+                "health_timer_interval_count": 31,
+                "health_callback_latest_s": 0.003,
+                "health_callback_p95_s": 0.006,
+                "health_callback_max_s": 0.008,
+                "health_callback_sample_count": 32,
+                "publisher_count_callback_latest_s": 0.001,
+                "publisher_count_callback_p95_s": 0.002,
+                "publisher_count_callback_max_s": 0.004,
+                "publisher_count_callback_sample_count": 32,
                 "odom_to_base_age_s": 0.01,
                 "map_to_odom_age_s": 0.01,
                 "translation_jump_count": 0,
@@ -350,6 +361,17 @@ class NavigationRosGatewayTests(unittest.TestCase):
                 "odometry_callback_p95_s": 0.002,
                 "odometry_callback_max_s": 0.003,
                 "odometry_callback_sample_count": 32,
+                "health_timer_max_gap_s": 0.112,
+                "health_timer_sample_count": 32,
+                "health_timer_interval_count": 31,
+                "health_callback_latest_s": 0.003,
+                "health_callback_p95_s": 0.006,
+                "health_callback_max_s": 0.008,
+                "health_callback_sample_count": 32,
+                "publisher_count_callback_latest_s": 0.001,
+                "publisher_count_callback_p95_s": 0.002,
+                "publisher_count_callback_max_s": 0.004,
+                "publisher_count_callback_sample_count": 32,
                 "odom_to_base_age_s": 0.01,
                 "map_to_odom_age_s": 0.01,
                 "translation_jump_count": 0,
@@ -404,6 +426,10 @@ class NavigationRosGatewayTests(unittest.TestCase):
         )
         self.assertEqual(health["metrics"]["cloud_callback_max_s"], 0.009)
         self.assertEqual(health["metrics"]["odometry_callback_max_s"], 0.003)
+        self.assertEqual(health["metrics"]["health_timer_max_gap_s"], 0.112)
+        self.assertEqual(
+            health["metrics"]["publisher_count_callback_max_s"], 0.004
+        )
 
         incomplete = payload(105)
         incomplete.pop("cloud_callback_p95_s")
@@ -413,6 +439,19 @@ class NavigationRosGatewayTests(unittest.TestCase):
         ):
             navigation._navigation_runtime_health_callback(
                 SimpleNamespace(data=json.dumps(incomplete))
+            )
+            rejected = navigation.runtime_snapshot()["localization_health"]
+        self.assertEqual(rejected["state"], "UNAVAILABLE")
+        self.assertTrue(rejected["hard_fault"])
+
+        incomplete_scheduler = payload(107)
+        incomplete_scheduler.pop("health_callback_p95_s")
+        with mock.patch(
+            "robot_dashboard.ros.navigation_gateway.time.monotonic",
+            return_value=110.6,
+        ):
+            navigation._navigation_runtime_health_callback(
+                SimpleNamespace(data=json.dumps(incomplete_scheduler))
             )
             rejected = navigation.runtime_snapshot()["localization_health"]
         self.assertEqual(rejected["state"], "UNAVAILABLE")

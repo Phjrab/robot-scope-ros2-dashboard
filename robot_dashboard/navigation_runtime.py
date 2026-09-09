@@ -861,6 +861,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._odom_source_rate = BoundedRateWindow()
             self._cloud_callback_durations = BoundedDurationWindow()
             self._odom_callback_durations = BoundedDurationWindow()
+            self._health_timer_rate = BoundedRateWindow()
+            self._health_callback_durations = BoundedDurationWindow()
+            self._publisher_count_durations = BoundedDurationWindow()
             self._cloud_sequence = 0
             self._odom_sequence = 0
             self._last_odom_tf_monotonic = 0.0
@@ -1231,10 +1234,26 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._pose_publisher.publish(pose_message)
 
         def _on_health_timer(self) -> None:
-            self._publisher_counts = {
-                topic: int(self.count_publishers(topic))
-                for topic in self._publisher_counts
-            }
+            started_at = time.monotonic()
+            self._health_timer_rate.observe(started_at)
+            try:
+                self._process_health_timer()
+            finally:
+                self._health_callback_durations.observe(
+                    max(0.0, time.monotonic() - started_at)
+                )
+
+        def _process_health_timer(self) -> None:
+            publisher_count_started_at = time.monotonic()
+            try:
+                self._publisher_counts = {
+                    topic: int(self.count_publishers(topic))
+                    for topic in self._publisher_counts
+                }
+            finally:
+                self._publisher_count_durations.observe(
+                    max(0.0, time.monotonic() - publisher_count_started_at)
+                )
             cloud_fresh = self._cloud_fresh()
             odom_fresh = self._odom_fresh()
             localized = self._map_to_odom is not None and odom_fresh
@@ -1257,6 +1276,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             odom_source_rate = self._odom_source_rate.snapshot(ros_now_s)
             cloud_callback = self._cloud_callback_durations.snapshot()
             odom_callback = self._odom_callback_durations.snapshot()
+            health_timer_rate = self._health_timer_rate.snapshot(observed_at)
+            health_callback = self._health_callback_durations.snapshot()
+            publisher_count_callback = self._publisher_count_durations.snapshot()
             odom_tf_age = (
                 None
                 if self._last_odom_tf_monotonic <= 0.0
@@ -1347,6 +1369,21 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "odometry_callback_p95_s": odom_callback["p95_s"],
                 "odometry_callback_max_s": odom_callback["max_s"],
                 "odometry_callback_sample_count": odom_callback["sample_count"],
+                "health_timer_max_gap_s": health_timer_rate["max_gap_s"],
+                "health_timer_sample_count": health_timer_rate["sample_count"],
+                "health_timer_interval_count": health_timer_rate["interval_count"],
+                "health_callback_latest_s": health_callback["latest_s"],
+                "health_callback_p95_s": health_callback["p95_s"],
+                "health_callback_max_s": health_callback["max_s"],
+                "health_callback_sample_count": health_callback["sample_count"],
+                "publisher_count_callback_latest_s": publisher_count_callback[
+                    "latest_s"
+                ],
+                "publisher_count_callback_p95_s": publisher_count_callback["p95_s"],
+                "publisher_count_callback_max_s": publisher_count_callback["max_s"],
+                "publisher_count_callback_sample_count": publisher_count_callback[
+                    "sample_count"
+                ],
                 "odom_to_base_age_s": odom_tf_age,
                 "map_to_odom_age_s": map_tf_age,
                 "translation_jump_count": self._translation_jump_count,
@@ -1376,6 +1413,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     "localization_odometry": "host_ros",
                     "odometry_source_interval": "message_header.host_ros",
                     "callback_duration": "runtime_process.monotonic",
+                    "health_timer_interval": "runtime_process.monotonic",
                 },
                 "cloud_error": self._last_cloud_error if not cloud_fresh else "",
                 "odom_error": self._last_odom_error if not odom_fresh else "",

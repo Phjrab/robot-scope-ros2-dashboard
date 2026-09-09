@@ -1244,6 +1244,7 @@ class NavigationRosGateway:
             "localization_odometry",
             "odometry_source_interval",
             "callback_duration",
+            "health_timer_interval",
         }
         return {
             key: str(value.get(key, ""))[:64]
@@ -1447,6 +1448,71 @@ class NavigationRosGateway:
                     )
                     if (samples == 0) != all(value is None for value in durations):
                         raise ValueError(f"health {prefix} window is inconsistent")
+            scheduler_float_keys = {
+                "health_timer_max_gap_s": 60.0,
+                "health_callback_latest_s": 60.0,
+                "health_callback_p95_s": 60.0,
+                "health_callback_max_s": 60.0,
+                "publisher_count_callback_latest_s": 60.0,
+                "publisher_count_callback_p95_s": 60.0,
+                "publisher_count_callback_max_s": 60.0,
+            }
+            scheduler_integer_keys = (
+                "health_timer_sample_count",
+                "health_timer_interval_count",
+                "health_callback_sample_count",
+                "publisher_count_callback_sample_count",
+            )
+            scheduler_keys = set(scheduler_float_keys).union(
+                scheduler_integer_keys
+            )
+            scheduler_present = any(key in payload for key in scheduler_keys)
+            if scheduler_present and not all(key in payload for key in scheduler_keys):
+                raise ValueError("health scheduler diagnostics are incomplete")
+            scheduler_diagnostics: Dict[str, Any] = {}
+            if scheduler_present:
+                for key, maximum in scheduler_float_keys.items():
+                    value = payload[key]
+                    if value is None:
+                        scheduler_diagnostics[key] = None
+                        continue
+                    number = float(value)
+                    if (
+                        not math.isfinite(number)
+                        or number < 0.0
+                        or number > maximum
+                    ):
+                        raise ValueError(f"health {key} is invalid")
+                    scheduler_diagnostics[key] = number
+                for key in scheduler_integer_keys:
+                    value = payload[key]
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, int)
+                        or value < 0
+                        or value > 256
+                    ):
+                        raise ValueError(f"health {key} is invalid")
+                    scheduler_diagnostics[key] = value
+                timer_samples = scheduler_diagnostics["health_timer_sample_count"]
+                timer_intervals = scheduler_diagnostics[
+                    "health_timer_interval_count"
+                ]
+                if timer_intervals != max(0, timer_samples - 1):
+                    raise ValueError("health timer window is invalid")
+                if timer_samples >= 2 and scheduler_diagnostics[
+                    "health_timer_max_gap_s"
+                ] is None:
+                    raise ValueError("health timer maximum gap is missing")
+                for prefix in ("health_callback", "publisher_count_callback"):
+                    samples = scheduler_diagnostics[f"{prefix}_sample_count"]
+                    durations = (
+                        scheduler_diagnostics[f"{prefix}_latest_s"],
+                        scheduler_diagnostics[f"{prefix}_p95_s"],
+                        scheduler_diagnostics[f"{prefix}_max_s"],
+                    )
+                    if (samples == 0) != all(value is None for value in durations):
+                        raise ValueError(f"health {prefix} window is inconsistent")
             bounded_integers: Dict[str, int] = {}
             for key in (
                 "cloud_sequence",
@@ -1510,6 +1576,7 @@ class NavigationRosGateway:
             **bounded_metrics,
             **raw_rate_metrics,
             **timing_diagnostics,
+            **scheduler_diagnostics,
             **bounded_integers,
             "process_generation": process_generation,
             "last_jump_reason": public_navigation_reason(payload.get("last_jump_reason"))[:80] if payload.get("last_jump_reason") else "",
@@ -2641,6 +2708,13 @@ class NavigationRosGateway:
             "odometry_callback_latest_s",
             "odometry_callback_p95_s",
             "odometry_callback_max_s",
+            "health_timer_max_gap_s",
+            "health_callback_latest_s",
+            "health_callback_p95_s",
+            "health_callback_max_s",
+            "publisher_count_callback_latest_s",
+            "publisher_count_callback_p95_s",
+            "publisher_count_callback_max_s",
         ):
             value = public.get(key)
             if isinstance(value, (int, float)) and math.isfinite(float(value)):
@@ -2752,6 +2826,39 @@ class NavigationRosGateway:
             ),
             "odometry_callback_sample_count": int(
                 runtime_health.get("odometry_callback_sample_count", 0) or 0
+            ),
+            "health_timer_max_gap_s": runtime_health.get(
+                "health_timer_max_gap_s"
+            ),
+            "health_timer_sample_count": int(
+                runtime_health.get("health_timer_sample_count", 0) or 0
+            ),
+            "health_timer_interval_count": int(
+                runtime_health.get("health_timer_interval_count", 0) or 0
+            ),
+            "health_callback_latest_s": runtime_health.get(
+                "health_callback_latest_s"
+            ),
+            "health_callback_p95_s": runtime_health.get(
+                "health_callback_p95_s"
+            ),
+            "health_callback_max_s": runtime_health.get(
+                "health_callback_max_s"
+            ),
+            "health_callback_sample_count": int(
+                runtime_health.get("health_callback_sample_count", 0) or 0
+            ),
+            "publisher_count_callback_latest_s": runtime_health.get(
+                "publisher_count_callback_latest_s"
+            ),
+            "publisher_count_callback_p95_s": runtime_health.get(
+                "publisher_count_callback_p95_s"
+            ),
+            "publisher_count_callback_max_s": runtime_health.get(
+                "publisher_count_callback_max_s"
+            ),
+            "publisher_count_callback_sample_count": int(
+                runtime_health.get("publisher_count_callback_sample_count", 0) or 0
             ),
             "tf_age_s": round(max(finite_tf_ages), 4) if finite_tf_ages else None,
             "map_to_odom_age_s": map_tf_age,

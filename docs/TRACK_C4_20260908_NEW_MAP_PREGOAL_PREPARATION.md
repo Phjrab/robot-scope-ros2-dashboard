@@ -332,3 +332,52 @@ Post-activation evidence:
 This deployment installs diagnostics only. It does not resolve or relax the
 0.25-second odometry maximum-gap gate and does not authorize the next stationary
 Navigation run.
+
+## Stationary no-goal timing diagnosis
+
+After the operator approved a stationary diagnostic session, the exact
+`3bb35729f4db73c304ee6e5160ca2a63e9111eec` external release started one normal
+Navigation session with the pinned edited map and parameter revision. The
+session acquired only its normal Navigation lease. Initial pose, goal,
+deadman, non-zero command and motion remained prohibited and were not used.
+
+A bounded three-minute monitor collected 329 snapshots and failed closed on
+any control, goal, pose or command-side effect. Its maxima were:
+
+- odometry callback-arrival gap: 0.272708 seconds;
+- FAST-LIO source-header gap: 0.100163 seconds;
+- cloud callback execution: 0.020276 seconds;
+- odometry callback execution: 0.015348 seconds;
+- arrival windows above 0.25 seconds: 21;
+- source windows above 0.25 seconds: 0;
+- safety violations: none.
+
+The data excludes a FAST-LIO source publication gap for the observed failures
+and does not show a long cloud or odometry callback. It does not yet distinguish
+DDS delivery or host scheduling from work in the runtime's unmeasured 100 ms
+health callback. The follow-up therefore measures the health-timer interval,
+the complete health callback and its publisher-cardinality query separately.
+These are bounded diagnostics only; the existing arrival-based 0.25-second
+readiness gate remains unchanged.
+
+The session stopped with Navigation, localization and goal idle, its lease
+released, deadman released, exact-zero accepted command, and zero Bridge Move,
+non-zero and action counts. During cleanup, the mapping manager reported the
+FAST-LIO owner stopped with exit status -15, but the launcher and its FAST-LIO
+child remained in a separate `setsid` process group. Both were exact children
+created by this diagnostic session and were terminated by that exact group;
+the persistent XT16 preview was preserved.
+
+Code audit found a bounded cleanup mismatch: the wireless mapping launcher's
+local child cleanup could wait approximately eight seconds, while
+`MappingJobManager` escalates the launcher group after four seconds. That can
+terminate the shell while its cleanup trap is still waiting, leaving the
+separate FAST-LIO group alive. The focused correction completes INT/TERM/KILL
+escalation for manager-owned local child groups inside three seconds. It does
+not broaden process matching, stop the persistent preview, or alter control,
+Navigation, mapping-save or sensor-readiness policy.
+
+This result remains pre-goal. A new exact-release deployment and another
+stationary no-goal run are required to collect the added scheduler metrics and
+verify both the timing hypothesis and clean child teardown. No initial pose or
+goal is authorized by this evidence.

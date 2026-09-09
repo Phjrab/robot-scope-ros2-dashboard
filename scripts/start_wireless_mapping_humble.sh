@@ -69,13 +69,16 @@ cleanup() {
     FINAL_STATUS="$incoming_status"
   fi
   stop_local_children INT
-  if ! wait_local_children 5; then
-    stop_local_children TERM
-    wait_local_children 2 || true
-  fi
+  # MappingJobManager grants this launcher four seconds to finish its SIGINT
+  # cleanup before escalating the launcher group.  Keep the complete local
+  # child escalation inside that window; otherwise the manager can terminate
+  # this trap while a setsid-owned FAST-LIO group is still alive.
   if ! wait_local_children 1; then
-    stop_local_children KILL
-    wait_local_children 1 || true
+    stop_local_children TERM
+    if ! wait_local_children 1; then
+      stop_local_children KILL
+      wait_local_children 1 || true
+    fi
   fi
   local pid
   for pid in "${LOCAL_PIDS[@]}"; do wait "$pid" 2>/dev/null || true; done
