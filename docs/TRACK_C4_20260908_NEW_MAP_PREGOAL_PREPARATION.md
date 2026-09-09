@@ -216,6 +216,50 @@ session and a new one-time initial-pose approval will be required after the gap
 source is diagnosed and the unchanged readiness contract can be satisfied
 reliably.
 
+## Follow-up gap diagnosis and instrumentation
+
+Read-only host inspection after cleanup found no Navigation child crash, thermal
+pressure, memory exhaustion, NIC error or active UDP receive-buffer-drop
+increase. The external Jetson remained in its maximum-performance power mode.
+These observations exclude those conditions for the inspected interval, but do
+not prove where the earlier 0.297107-second gap originated.
+
+The existing maximum-gap metric measures monotonic callback-handling timestamps
+inside `robot_scope_navigation_runtime`; it does not measure the FAST-LIO source
+header interval. The same single-threaded runtime also parses and projects each
+16,000-point cloud before servicing the next callback. Therefore the prior
+evidence cannot distinguish an upstream FAST-LIO publication gap from DDS or
+executor delay. Callback contention is a supported hypothesis, not a confirmed
+root cause.
+
+The focused follow-up adds bounded, read-only timing evidence without changing
+the C4 policy or command path:
+
+- FAST-LIO source-stamp frequency, periods and maximum gap;
+- PointCloud callback latest, p95 and maximum execution duration;
+- odometry callback latest, p95 and maximum execution duration;
+- bounded sample counts for every new window.
+
+The gateway accepts either the complete timing diagnostic set or none for
+rolling compatibility, rejects partial, non-finite or out-of-range diagnostic
+payloads, and exposes the sanitized values in localization-health metrics. The
+existing arrival-based `odometry_max_gap_s` remains the only maximum-gap input
+to the unchanged 0.25-second C4 readiness gate. No automatic source fallback,
+threshold increase, executor change or motion authorization is introduced.
+
+On the next separately approved stationary run, the evidence is interpreted as
+follows:
+
+- source and arrival gaps both exceed 0.25 seconds: investigate FAST-LIO or its
+  upstream sensor scheduling;
+- source gap stays within 0.25 seconds while arrival gap exceeds it and a
+  callback duration spikes: investigate single-executor callback contention;
+- source gap stays within 0.25 seconds and callbacks remain short while arrival
+  gap exceeds it: investigate DDS delivery or host scheduling.
+
+Instrumentation alone does not authorize a new Navigation session, initial
+pose, goal or motion.
+
 ## Remaining gates after the blocked attempt
 
 1. Diagnose the intermittent controller-odometry gap without increasing the

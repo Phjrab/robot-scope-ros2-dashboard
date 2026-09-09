@@ -11,7 +11,11 @@ from robot_dashboard.localization_health import (
     build_calibration_assistant,
     classify_localization_health,
 )
-from robot_dashboard.navigation_runtime import BoundedRateWindow, NavigationRuntimeError
+from robot_dashboard.navigation_runtime import (
+    BoundedDurationWindow,
+    BoundedRateWindow,
+    NavigationRuntimeError,
+)
 
 
 def healthy_metrics(**updates):
@@ -186,6 +190,42 @@ class BoundedRateWindowTests(unittest.TestCase):
         self.assertEqual(snapshot["interval_count"], 3)
         self.assertAlmostEqual(snapshot["max_gap_s"], 0.26)
         self.assertAlmostEqual(snapshot["window_duration_s"], 0.46)
+
+    def test_source_and_callback_windows_distinguish_executor_delay(self):
+        source = BoundedRateWindow(4)
+        callback = BoundedRateWindow(4)
+        for stamp in (100.0, 100.1, 100.2, 100.3):
+            source.observe(stamp)
+        for arrival in (10.0, 10.1, 10.4, 10.41):
+            callback.observe(arrival)
+
+        self.assertAlmostEqual(source.snapshot(100.31)["max_gap_s"], 0.1)
+        self.assertAlmostEqual(callback.snapshot(10.42)["max_gap_s"], 0.3)
+
+
+class BoundedDurationWindowTests(unittest.TestCase):
+    def test_duration_statistics_are_bounded_and_deterministic(self):
+        window = BoundedDurationWindow(3)
+        for duration in (0.01, 0.02, 0.03, 0.04):
+            window.observe(duration)
+        self.assertEqual(
+            window.snapshot(),
+            {
+                "latest_s": 0.04,
+                "p95_s": 0.04,
+                "max_s": 0.04,
+                "sample_count": 3,
+            },
+        )
+
+    def test_duration_window_rejects_invalid_values(self):
+        with self.assertRaises(NavigationRuntimeError):
+            BoundedDurationWindow(2)
+        window = BoundedDurationWindow()
+        with self.assertRaises(NavigationRuntimeError):
+            window.observe(-0.001)
+        with self.assertRaises(NavigationRuntimeError):
+            window.observe(float("nan"))
 
 
 class LocalizationReadinessStabilizerTests(unittest.TestCase):

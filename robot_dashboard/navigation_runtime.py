@@ -129,6 +129,38 @@ class BoundedRateWindow:
         }
 
 
+class BoundedDurationWindow:
+    """Track recent callback execution durations without changing readiness."""
+
+    def __init__(self, maximum_samples: int = 32) -> None:
+        if maximum_samples < 3 or maximum_samples > 256:
+            raise NavigationRuntimeError("duration window must contain 3 to 256 samples")
+        self._durations: deque[float] = deque(maxlen=maximum_samples)
+
+    def observe(self, duration_s: float) -> None:
+        value = _finite_number(duration_s, "callback duration")
+        if value < 0.0:
+            raise NavigationRuntimeError("callback duration must not be negative")
+        self._durations.append(value)
+
+    def snapshot(self) -> dict[str, float | int | None]:
+        if not self._durations:
+            return {
+                "latest_s": None,
+                "p95_s": None,
+                "max_s": None,
+                "sample_count": 0,
+            }
+        ordered = sorted(self._durations)
+        p95 = ordered[max(0, math.ceil(0.95 * len(ordered)) - 1)]
+        return {
+            "latest_s": self._durations[-1],
+            "p95_s": p95,
+            "max_s": ordered[-1],
+            "sample_count": len(self._durations),
+        }
+
+
 FASTLIO_CONTROLLER_ODOM_TOPIC = "/robot_scope/nav/controller_odom_fastlio"
 STRICT_CONTROLLER_ODOM_TOPIC = "/utlidar/robot_odom"
 CONTROLLER_ODOM_MAX_PAST_S = 0.50
@@ -826,6 +858,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._last_scan_bins = 0
             self._cloud_rate = BoundedRateWindow()
             self._odom_rate = BoundedRateWindow()
+            self._odom_source_rate = BoundedRateWindow()
+            self._cloud_callback_durations = BoundedDurationWindow()
+            self._odom_callback_durations = BoundedDurationWindow()
             self._cloud_sequence = 0
             self._odom_sequence = 0
             self._last_odom_tf_monotonic = 0.0
@@ -908,6 +943,15 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._static_tf_broadcaster.sendTransform(transform)
 
         def _on_cloud(self, message: Any) -> None:
+            started_at = time.monotonic()
+            try:
+                self._process_cloud(message)
+            finally:
+                self._cloud_callback_durations.observe(
+                    max(0.0, time.monotonic() - started_at)
+                )
+
+        def _process_cloud(self, message: Any) -> None:
             if self._publisher_counts["/velodyne_points"] != 1:
                 self._last_cloud_monotonic = 0.0
                 self._last_cloud_error = "PointCloud2 source is not unique"
@@ -970,6 +1014,15 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._last_cloud_error = ""
 
         def _on_odometry(self, message: Any) -> None:
+            started_at = time.monotonic()
+            try:
+                self._process_odometry(message)
+            finally:
+                self._odom_callback_durations.observe(
+                    max(0.0, time.monotonic() - started_at)
+                )
+
+        def _process_odometry(self, message: Any) -> None:
             if self._publisher_counts["/Odometry"] != 1:
                 self._last_odom_monotonic = 0.0
                 self._last_odom_error = "Odometry source is not unique"
@@ -1065,6 +1118,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._odom_quaternion = yaw_to_quaternion(yaw)
             self._last_odom_monotonic = now
             self._odom_rate.observe(now)
+            self._odom_source_rate.observe(_stamp_seconds(message.header.stamp))
             self._odom_sequence += 1
             self._last_odom_error = ""
             self._odom_frame_error = ""
@@ -1199,6 +1253,10 @@ def _build_ros_runtime_node_class() -> type[Any]:
             observed_at = time.monotonic()
             cloud_rate = self._cloud_rate.snapshot(observed_at)
             odom_rate = self._odom_rate.snapshot(observed_at)
+            ros_now_s = float(self.get_clock().now().nanoseconds) * 1e-9
+            odom_source_rate = self._odom_source_rate.snapshot(ros_now_s)
+            cloud_callback = self._cloud_callback_durations.snapshot()
+            odom_callback = self._odom_callback_durations.snapshot()
             odom_tf_age = (
                 None
                 if self._last_odom_tf_monotonic <= 0.0
@@ -1264,6 +1322,31 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "odometry_interval_count": odom_rate["interval_count"],
                 "odometry_jitter_s": odom_rate["jitter_s"],
                 "odometry_age_s": odom_rate["age_s"],
+                "odometry_source_frequency_hz_raw": odom_source_rate[
+                    "frequency_hz_raw"
+                ],
+                "odometry_source_mean_period_s": odom_source_rate["mean_period_s"],
+                "odometry_source_median_period_s": odom_source_rate[
+                    "median_period_s"
+                ],
+                "odometry_source_p95_period_s": odom_source_rate["p95_period_s"],
+                "odometry_source_max_gap_s": odom_source_rate["max_gap_s"],
+                "odometry_source_window_duration_s": odom_source_rate[
+                    "window_duration_s"
+                ],
+                "odometry_source_age_s": odom_source_rate["age_s"],
+                "odometry_source_sample_count": odom_source_rate["sample_count"],
+                "odometry_source_interval_count": odom_source_rate[
+                    "interval_count"
+                ],
+                "cloud_callback_latest_s": cloud_callback["latest_s"],
+                "cloud_callback_p95_s": cloud_callback["p95_s"],
+                "cloud_callback_max_s": cloud_callback["max_s"],
+                "cloud_callback_sample_count": cloud_callback["sample_count"],
+                "odometry_callback_latest_s": odom_callback["latest_s"],
+                "odometry_callback_p95_s": odom_callback["p95_s"],
+                "odometry_callback_max_s": odom_callback["max_s"],
+                "odometry_callback_sample_count": odom_callback["sample_count"],
                 "odom_to_base_age_s": odom_tf_age,
                 "map_to_odom_age_s": map_tf_age,
                 "translation_jump_count": self._translation_jump_count,
@@ -1291,6 +1374,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "clock_domains": {
                     "pointcloud": "host_ros_normalized",
                     "localization_odometry": "host_ros",
+                    "odometry_source_interval": "message_header.host_ros",
+                    "callback_duration": "runtime_process.monotonic",
                 },
                 "cloud_error": self._last_cloud_error if not cloud_fresh else "",
                 "odom_error": self._last_odom_error if not odom_fresh else "",

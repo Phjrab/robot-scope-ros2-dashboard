@@ -1239,7 +1239,12 @@ class NavigationRosGateway:
     def _sanitize_clock_domains(value: Any) -> Dict[str, str]:
         if not isinstance(value, Mapping):
             return {}
-        allowed = {"pointcloud", "localization_odometry"}
+        allowed = {
+            "pointcloud",
+            "localization_odometry",
+            "odometry_source_interval",
+            "callback_duration",
+        }
         return {
             key: str(value.get(key, ""))[:64]
             for key in allowed
@@ -1360,6 +1365,88 @@ class NavigationRosGateway:
                 if not math.isfinite(number) or number < 0.0 or number > maximum:
                     raise ValueError(f"health {key} is invalid")
                 raw_rate_metrics[key] = number
+            diagnostic_float_keys = {
+                "odometry_source_frequency_hz_raw": 2_000.0,
+                "odometry_source_mean_period_s": 60.0,
+                "odometry_source_median_period_s": 60.0,
+                "odometry_source_p95_period_s": 60.0,
+                "odometry_source_max_gap_s": 60.0,
+                "odometry_source_window_duration_s": 3_600.0,
+                "odometry_source_age_s": 3_600.0,
+                "cloud_callback_latest_s": 60.0,
+                "cloud_callback_p95_s": 60.0,
+                "cloud_callback_max_s": 60.0,
+                "odometry_callback_latest_s": 60.0,
+                "odometry_callback_p95_s": 60.0,
+                "odometry_callback_max_s": 60.0,
+            }
+            diagnostic_integer_keys = (
+                "odometry_source_sample_count",
+                "odometry_source_interval_count",
+                "cloud_callback_sample_count",
+                "odometry_callback_sample_count",
+            )
+            diagnostic_keys = set(diagnostic_float_keys).union(
+                diagnostic_integer_keys
+            )
+            diagnostics_present = any(key in payload for key in diagnostic_keys)
+            if diagnostics_present and not all(key in payload for key in diagnostic_keys):
+                raise ValueError("health timing diagnostics are incomplete")
+            timing_diagnostics: Dict[str, Any] = {}
+            if diagnostics_present:
+                for key, maximum in diagnostic_float_keys.items():
+                    value = payload[key]
+                    if value is None:
+                        timing_diagnostics[key] = None
+                        continue
+                    number = float(value)
+                    if (
+                        not math.isfinite(number)
+                        or number < 0.0
+                        or number > maximum
+                    ):
+                        raise ValueError(f"health {key} is invalid")
+                    timing_diagnostics[key] = number
+                for key in diagnostic_integer_keys:
+                    value = payload[key]
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, int)
+                        or value < 0
+                        or value > 256
+                    ):
+                        raise ValueError(f"health {key} is invalid")
+                    timing_diagnostics[key] = value
+                source_samples = timing_diagnostics[
+                    "odometry_source_sample_count"
+                ]
+                source_intervals = timing_diagnostics[
+                    "odometry_source_interval_count"
+                ]
+                if source_intervals != max(0, source_samples - 1):
+                    raise ValueError("health odometry source window is invalid")
+                source_interval_metrics = (
+                    "odometry_source_frequency_hz_raw",
+                    "odometry_source_mean_period_s",
+                    "odometry_source_median_period_s",
+                    "odometry_source_p95_period_s",
+                    "odometry_source_max_gap_s",
+                    "odometry_source_window_duration_s",
+                )
+                if source_samples >= 2 and any(
+                    timing_diagnostics[key] is None
+                    for key in source_interval_metrics
+                ):
+                    raise ValueError("health odometry source metrics are incomplete")
+                for prefix in ("cloud_callback", "odometry_callback"):
+                    samples = timing_diagnostics[f"{prefix}_sample_count"]
+                    durations = (
+                        timing_diagnostics[f"{prefix}_latest_s"],
+                        timing_diagnostics[f"{prefix}_p95_s"],
+                        timing_diagnostics[f"{prefix}_max_s"],
+                    )
+                    if (samples == 0) != all(value is None for value in durations):
+                        raise ValueError(f"health {prefix} window is inconsistent")
             bounded_integers: Dict[str, int] = {}
             for key in (
                 "cloud_sequence",
@@ -1422,6 +1509,7 @@ class NavigationRosGateway:
             "accepted_points": accepted_points,
             **bounded_metrics,
             **raw_rate_metrics,
+            **timing_diagnostics,
             **bounded_integers,
             "process_generation": process_generation,
             "last_jump_reason": public_navigation_reason(payload.get("last_jump_reason"))[:80] if payload.get("last_jump_reason") else "",
@@ -2540,6 +2628,19 @@ class NavigationRosGateway:
             "odometry_p95_period_s",
             "odometry_max_gap_s",
             "odometry_window_duration_s",
+            "odometry_source_frequency_hz_raw",
+            "odometry_source_mean_period_s",
+            "odometry_source_median_period_s",
+            "odometry_source_p95_period_s",
+            "odometry_source_max_gap_s",
+            "odometry_source_window_duration_s",
+            "odometry_source_age_s",
+            "cloud_callback_latest_s",
+            "cloud_callback_p95_s",
+            "cloud_callback_max_s",
+            "odometry_callback_latest_s",
+            "odometry_callback_p95_s",
+            "odometry_callback_max_s",
         ):
             value = public.get(key)
             if isinstance(value, (int, float)) and math.isfinite(float(value)):
@@ -2607,6 +2708,51 @@ class NavigationRosGateway:
             ),
             "odometry_jitter_s": runtime_health.get("odometry_jitter_s"),
             "odometry_age_s": runtime_health.get("odometry_age_s"),
+            "odometry_source_frequency_hz_raw": runtime_health.get(
+                "odometry_source_frequency_hz_raw"
+            ),
+            "odometry_source_mean_period_s": runtime_health.get(
+                "odometry_source_mean_period_s"
+            ),
+            "odometry_source_median_period_s": runtime_health.get(
+                "odometry_source_median_period_s"
+            ),
+            "odometry_source_p95_period_s": runtime_health.get(
+                "odometry_source_p95_period_s"
+            ),
+            "odometry_source_max_gap_s": runtime_health.get(
+                "odometry_source_max_gap_s"
+            ),
+            "odometry_source_window_duration_s": runtime_health.get(
+                "odometry_source_window_duration_s"
+            ),
+            "odometry_source_age_s": runtime_health.get("odometry_source_age_s"),
+            "odometry_source_sample_count": int(
+                runtime_health.get("odometry_source_sample_count", 0) or 0
+            ),
+            "odometry_source_interval_count": int(
+                runtime_health.get("odometry_source_interval_count", 0) or 0
+            ),
+            "cloud_callback_latest_s": runtime_health.get(
+                "cloud_callback_latest_s"
+            ),
+            "cloud_callback_p95_s": runtime_health.get("cloud_callback_p95_s"),
+            "cloud_callback_max_s": runtime_health.get("cloud_callback_max_s"),
+            "cloud_callback_sample_count": int(
+                runtime_health.get("cloud_callback_sample_count", 0) or 0
+            ),
+            "odometry_callback_latest_s": runtime_health.get(
+                "odometry_callback_latest_s"
+            ),
+            "odometry_callback_p95_s": runtime_health.get(
+                "odometry_callback_p95_s"
+            ),
+            "odometry_callback_max_s": runtime_health.get(
+                "odometry_callback_max_s"
+            ),
+            "odometry_callback_sample_count": int(
+                runtime_health.get("odometry_callback_sample_count", 0) or 0
+            ),
             "tf_age_s": round(max(finite_tf_ages), 4) if finite_tf_ages else None,
             "map_to_odom_age_s": map_tf_age,
             "odom_to_base_age_s": odom_tf_age,
