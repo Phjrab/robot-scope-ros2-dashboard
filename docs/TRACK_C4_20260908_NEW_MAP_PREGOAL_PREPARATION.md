@@ -381,3 +381,59 @@ This result remains pre-goal. A new exact-release deployment and another
 stationary no-goal run are required to collect the added scheduler metrics and
 verify both the timing hypothesis and clean child teardown. No initial pose or
 goal is authorized by this evidence.
+
+## Bounded timing and cleanup release external deployment
+
+The operator separately approved external-only deployment of exact commit
+`e63587fa972eb3a4b35a59a853aa6d2a60ce67cf`. The approved scope preserved the
+onboard Bridge release, allowed only the external immutable-release switch and
+dashboard restart, and prohibited a Navigation session, initial pose, goal and
+robot motion.
+
+The Git archive transferred to the external Jetson had compressed SHA-256
+`90ba91ee856ada7750b856095ef2139265500d46230e4104b469ca422fd4f663`.
+It was extracted into
+`/home/jetson_orin_nano/releases/robot-scope/e63587fa972eb3a4b35a59a853aa6d2a60ce67cf`.
+The D2 PCL registration backend was built inside that exact release with
+`CMAKE_BUILD_TYPE=Release`, `BUILD_TESTING=ON` and
+`ROBOT_SCOPE_BUILD_PCL_BACKENDS=ON`. Native CTest passed 1/1. The acceptance
+benchmark passed all 10/10 trials, with translation median/p95
+`0.00127733896/0.00310484265 m`, yaw median/p95
+`0.0281525/0.0978575 degrees`, and runtime p50/p95
+`958.447/1003.528 ms`. The resulting NDT2D executable retained SHA-256
+`ec761c181fe8ecdae0c31522a9cf2edca9cb3d7150696414f29a41af72cf94f3`.
+
+The production symlink was changed only after verifying that its prior target
+was exact release `3bb35729f4db73c304ee6e5160ca2a63e9111eec`. A rollback symlink was retained
+at `/home/jetson_orin_nano/robot-scope.pre-e63587f`. The first lifecycle request
+contained malformed JSON and was rejected with HTTP 422, so it scheduled no
+service operation. The corrected, confirmed request was accepted with HTTP 202
+by the existing restricted same-origin lifecycle endpoint.
+
+Post-activation evidence:
+
+- external production symlink and dashboard process cwd both resolved to exact
+  release `e63587fa972eb3a4b35a59a853aa6d2a60ce67cf`;
+- `robot-scope.service` was active as PID `455720`, with `NRestarts=0`, and was
+  listening on `0.0.0.0:8088`;
+- the dashboard responded through its LAN address
+  `http://192.168.50.10:8088/api/v1/health`;
+- no warning-or-higher dashboard journal entry appeared in the inspected
+  post-restart interval;
+- the onboard signed Bridge process remained in exact release
+  `10a7fa9cec2c329f2c50edc9ad98de13a22689da`, active with `NRestarts=0`;
+- the signed Bridge stayed authenticated, connected and ready; the control
+  lease was inactive, deadman was released, and accepted command was exact
+  zero;
+- Bridge evidence remained Move 0, non-zero Move 0, action 0 and inactive
+  motion run;
+- Navigation pipeline/session/localization session/goal all remained idle,
+  initial-pose count remained 0, and no Navigation, AMCL or FAST-LIO child was
+  running;
+- Mapping pipeline and operation remained idle. The configured persistent XT16
+  preview alone recovered to running as part of normal dashboard startup;
+- onboard Bridge, map data, Navigation state and robot motion were not changed.
+
+This deployment only installs the bounded scheduler diagnostics and narrowed
+manager-owned child cleanup. It neither relaxes the 0.25-second odometry
+maximum-gap gate nor authorizes the next stationary Navigation session.
