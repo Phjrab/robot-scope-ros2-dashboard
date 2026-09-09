@@ -243,6 +243,21 @@ class NavigationRosGatewayTests(unittest.TestCase):
                 "odometry_source_age_s": 0.015,
                 "odometry_source_sample_count": 32,
                 "odometry_source_interval_count": 31,
+                "odometry_rmw_receive_frequency_hz_raw": 10.000002,
+                "odometry_rmw_receive_mean_period_s": 0.09999998,
+                "odometry_rmw_receive_median_period_s": 0.1,
+                "odometry_rmw_receive_p95_period_s": 0.102,
+                "odometry_rmw_receive_max_gap_s": 0.107,
+                "odometry_rmw_receive_window_duration_s": 3.1,
+                "odometry_rmw_receive_age_s": 0.012,
+                "odometry_rmw_receive_sample_count": 32,
+                "odometry_rmw_receive_interval_count": 31,
+                "odometry_executor_queue_latest_s": 0.002,
+                "odometry_executor_queue_p95_s": 0.004,
+                "odometry_executor_queue_max_s": 0.006,
+                "odometry_executor_queue_sample_count": 32,
+                "odometry_rmw_metadata_rejected_count": 0,
+                "odometry_rmw_metadata_missing_count": 0,
                 "cloud_callback_latest_s": 0.004,
                 "cloud_callback_p95_s": 0.006,
                 "cloud_callback_max_s": 0.009,
@@ -353,6 +368,21 @@ class NavigationRosGatewayTests(unittest.TestCase):
                 "odometry_source_age_s": 0.015,
                 "odometry_source_sample_count": 32,
                 "odometry_source_interval_count": 31,
+                "odometry_rmw_receive_frequency_hz_raw": 10.000002,
+                "odometry_rmw_receive_mean_period_s": 0.09999998,
+                "odometry_rmw_receive_median_period_s": 0.1,
+                "odometry_rmw_receive_p95_period_s": 0.102,
+                "odometry_rmw_receive_max_gap_s": 0.107,
+                "odometry_rmw_receive_window_duration_s": 3.1,
+                "odometry_rmw_receive_age_s": 0.012,
+                "odometry_rmw_receive_sample_count": 32,
+                "odometry_rmw_receive_interval_count": 31,
+                "odometry_executor_queue_latest_s": 0.002,
+                "odometry_executor_queue_p95_s": 0.004,
+                "odometry_executor_queue_max_s": 0.006,
+                "odometry_executor_queue_sample_count": 32,
+                "odometry_rmw_metadata_rejected_count": 0,
+                "odometry_rmw_metadata_missing_count": 0,
                 "cloud_callback_latest_s": 0.004,
                 "cloud_callback_p95_s": 0.006,
                 "cloud_callback_max_s": 0.009,
@@ -424,6 +454,12 @@ class NavigationRosGatewayTests(unittest.TestCase):
         self.assertEqual(
             health["metrics"]["odometry_source_max_gap_s"], 0.105
         )
+        self.assertEqual(
+            health["metrics"]["odometry_rmw_receive_max_gap_s"], 0.107
+        )
+        self.assertEqual(
+            health["metrics"]["odometry_executor_queue_max_s"], 0.006
+        )
         self.assertEqual(health["metrics"]["cloud_callback_max_s"], 0.009)
         self.assertEqual(health["metrics"]["odometry_callback_max_s"], 0.003)
         self.assertEqual(health["metrics"]["health_timer_max_gap_s"], 0.112)
@@ -452,6 +488,19 @@ class NavigationRosGatewayTests(unittest.TestCase):
         ):
             navigation._navigation_runtime_health_callback(
                 SimpleNamespace(data=json.dumps(incomplete_scheduler))
+            )
+            rejected = navigation.runtime_snapshot()["localization_health"]
+        self.assertEqual(rejected["state"], "UNAVAILABLE")
+        self.assertTrue(rejected["hard_fault"])
+
+        incomplete_rmw = payload(108)
+        incomplete_rmw.pop("odometry_executor_queue_p95_s")
+        with mock.patch(
+            "robot_dashboard.ros.navigation_gateway.time.monotonic",
+            return_value=110.7,
+        ):
+            navigation._navigation_runtime_health_callback(
+                SimpleNamespace(data=json.dumps(incomplete_rmw))
             )
             rejected = navigation.runtime_snapshot()["localization_health"]
         self.assertEqual(rejected["state"], "UNAVAILABLE")

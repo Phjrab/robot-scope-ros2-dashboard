@@ -1243,6 +1243,8 @@ class NavigationRosGateway:
             "pointcloud",
             "localization_odometry",
             "odometry_source_interval",
+            "odometry_rmw_receive_interval",
+            "odometry_executor_queue",
             "callback_duration",
             "health_timer_interval",
         }
@@ -1448,6 +1450,91 @@ class NavigationRosGateway:
                     )
                     if (samples == 0) != all(value is None for value in durations):
                         raise ValueError(f"health {prefix} window is inconsistent")
+            rmw_float_keys = {
+                "odometry_rmw_receive_frequency_hz_raw": 2_000.0,
+                "odometry_rmw_receive_mean_period_s": 60.0,
+                "odometry_rmw_receive_median_period_s": 60.0,
+                "odometry_rmw_receive_p95_period_s": 60.0,
+                "odometry_rmw_receive_max_gap_s": 60.0,
+                "odometry_rmw_receive_window_duration_s": 3_600.0,
+                "odometry_rmw_receive_age_s": 3_600.0,
+                "odometry_executor_queue_latest_s": 10.0,
+                "odometry_executor_queue_p95_s": 10.0,
+                "odometry_executor_queue_max_s": 10.0,
+            }
+            rmw_integer_keys = (
+                "odometry_rmw_receive_sample_count",
+                "odometry_rmw_receive_interval_count",
+                "odometry_executor_queue_sample_count",
+                "odometry_rmw_metadata_rejected_count",
+                "odometry_rmw_metadata_missing_count",
+            )
+            rmw_keys = set(rmw_float_keys).union(rmw_integer_keys)
+            rmw_present = any(key in payload for key in rmw_keys)
+            if rmw_present and not all(key in payload for key in rmw_keys):
+                raise ValueError("health RMW timing diagnostics are incomplete")
+            rmw_diagnostics: Dict[str, Any] = {}
+            if rmw_present:
+                for key, maximum in rmw_float_keys.items():
+                    value = payload[key]
+                    if value is None:
+                        rmw_diagnostics[key] = None
+                        continue
+                    number = float(value)
+                    if (
+                        not math.isfinite(number)
+                        or number < 0.0
+                        or number > maximum
+                    ):
+                        raise ValueError(f"health {key} is invalid")
+                    rmw_diagnostics[key] = number
+                for key in rmw_integer_keys:
+                    value = payload[key]
+                    maximum = (
+                        256
+                        if key.endswith(("sample_count", "interval_count"))
+                        else 2**53 - 1
+                    )
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, int)
+                        or value < 0
+                        or value > maximum
+                    ):
+                        raise ValueError(f"health {key} is invalid")
+                    rmw_diagnostics[key] = value
+                rmw_samples = rmw_diagnostics[
+                    "odometry_rmw_receive_sample_count"
+                ]
+                rmw_intervals = rmw_diagnostics[
+                    "odometry_rmw_receive_interval_count"
+                ]
+                if rmw_intervals != max(0, rmw_samples - 1):
+                    raise ValueError("health RMW receive window is invalid")
+                rmw_interval_metrics = (
+                    "odometry_rmw_receive_frequency_hz_raw",
+                    "odometry_rmw_receive_mean_period_s",
+                    "odometry_rmw_receive_median_period_s",
+                    "odometry_rmw_receive_p95_period_s",
+                    "odometry_rmw_receive_max_gap_s",
+                    "odometry_rmw_receive_window_duration_s",
+                )
+                if rmw_samples >= 2 and any(
+                    rmw_diagnostics[key] is None for key in rmw_interval_metrics
+                ):
+                    raise ValueError("health RMW receive metrics are incomplete")
+                queue_samples = rmw_diagnostics[
+                    "odometry_executor_queue_sample_count"
+                ]
+                queue_durations = (
+                    rmw_diagnostics["odometry_executor_queue_latest_s"],
+                    rmw_diagnostics["odometry_executor_queue_p95_s"],
+                    rmw_diagnostics["odometry_executor_queue_max_s"],
+                )
+                if (queue_samples == 0) != all(
+                    value is None for value in queue_durations
+                ):
+                    raise ValueError("health executor queue window is inconsistent")
             scheduler_float_keys = {
                 "health_timer_max_gap_s": 60.0,
                 "health_callback_latest_s": 60.0,
@@ -1576,6 +1663,7 @@ class NavigationRosGateway:
             **bounded_metrics,
             **raw_rate_metrics,
             **timing_diagnostics,
+            **rmw_diagnostics,
             **scheduler_diagnostics,
             **bounded_integers,
             "process_generation": process_generation,
@@ -2702,6 +2790,16 @@ class NavigationRosGateway:
             "odometry_source_max_gap_s",
             "odometry_source_window_duration_s",
             "odometry_source_age_s",
+            "odometry_rmw_receive_frequency_hz_raw",
+            "odometry_rmw_receive_mean_period_s",
+            "odometry_rmw_receive_median_period_s",
+            "odometry_rmw_receive_p95_period_s",
+            "odometry_rmw_receive_max_gap_s",
+            "odometry_rmw_receive_window_duration_s",
+            "odometry_rmw_receive_age_s",
+            "odometry_executor_queue_latest_s",
+            "odometry_executor_queue_p95_s",
+            "odometry_executor_queue_max_s",
             "cloud_callback_latest_s",
             "cloud_callback_p95_s",
             "cloud_callback_max_s",
@@ -2806,6 +2904,51 @@ class NavigationRosGateway:
             ),
             "odometry_source_interval_count": int(
                 runtime_health.get("odometry_source_interval_count", 0) or 0
+            ),
+            "odometry_rmw_receive_frequency_hz_raw": runtime_health.get(
+                "odometry_rmw_receive_frequency_hz_raw"
+            ),
+            "odometry_rmw_receive_mean_period_s": runtime_health.get(
+                "odometry_rmw_receive_mean_period_s"
+            ),
+            "odometry_rmw_receive_median_period_s": runtime_health.get(
+                "odometry_rmw_receive_median_period_s"
+            ),
+            "odometry_rmw_receive_p95_period_s": runtime_health.get(
+                "odometry_rmw_receive_p95_period_s"
+            ),
+            "odometry_rmw_receive_max_gap_s": runtime_health.get(
+                "odometry_rmw_receive_max_gap_s"
+            ),
+            "odometry_rmw_receive_window_duration_s": runtime_health.get(
+                "odometry_rmw_receive_window_duration_s"
+            ),
+            "odometry_rmw_receive_age_s": runtime_health.get(
+                "odometry_rmw_receive_age_s"
+            ),
+            "odometry_rmw_receive_sample_count": int(
+                runtime_health.get("odometry_rmw_receive_sample_count", 0) or 0
+            ),
+            "odometry_rmw_receive_interval_count": int(
+                runtime_health.get("odometry_rmw_receive_interval_count", 0) or 0
+            ),
+            "odometry_executor_queue_latest_s": runtime_health.get(
+                "odometry_executor_queue_latest_s"
+            ),
+            "odometry_executor_queue_p95_s": runtime_health.get(
+                "odometry_executor_queue_p95_s"
+            ),
+            "odometry_executor_queue_max_s": runtime_health.get(
+                "odometry_executor_queue_max_s"
+            ),
+            "odometry_executor_queue_sample_count": int(
+                runtime_health.get("odometry_executor_queue_sample_count", 0) or 0
+            ),
+            "odometry_rmw_metadata_rejected_count": int(
+                runtime_health.get("odometry_rmw_metadata_rejected_count", 0) or 0
+            ),
+            "odometry_rmw_metadata_missing_count": int(
+                runtime_health.get("odometry_rmw_metadata_missing_count", 0) or 0
             ),
             "cloud_callback_latest_s": runtime_health.get(
                 "cloud_callback_latest_s"

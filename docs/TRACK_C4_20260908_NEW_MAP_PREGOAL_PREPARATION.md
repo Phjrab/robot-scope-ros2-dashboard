@@ -500,3 +500,48 @@ blocked before initial pose and goal because controller-odometry arrival gaps
 can still cross the unchanged 0.25-second readiness boundary. A focused DDS or
 executor-scheduling diagnostic is required before requesting a new initial-pose
 approval.
+
+## DDS receive versus executor-dispatch diagnostic
+
+The next focused software change preserves the receive metadata that ROS 2
+Humble's `Executor._take_subscription()` obtains from RMW and otherwise drops
+before invoking a message-only Python callback. The runtime continues to use a
+single-threaded executor and the same fixed `/Odometry` subscription. It does
+not add a DDS endpoint, subscriber, topic, timer or command path.
+
+The bounded health projection now separates three clocks:
+
+| Evidence | Clock/domain | Safety use |
+| --- | --- | --- |
+| FAST-LIO source-header intervals | message header, host ROS clock | existing source diagnostic |
+| RMW receive intervals | `received_timestamp`, local system time | new diagnostic only |
+| callback arrival intervals | runtime monotonic clock | unchanged readiness input |
+| executor queue duration | callback-start system time minus RMW receive time | new diagnostic only |
+
+Only finite, positive integer RMW timestamps are accepted. Duplicate or
+non-progressing receive timestamps do not create a false receive interval.
+Negative or greater-than-ten-second queue values, absent metadata and
+malformed metadata are counted and excluded. Histories remain bounded to 32
+samples, with at most eight pending message identities. A missing diagnostic
+never changes `odom_fresh`, the rate hysteresis, the fixed 0.25-second maximum
+gap, TF freshness, publisher cardinality or any Control Bridge guard.
+
+The dashboard consumer accepts the new diagnostics as an optional
+complete-or-none group so it remains compatible with the currently deployed
+`e63587f` producer. When present, every field is range checked, sample and
+interval cardinality must agree, and incomplete or non-finite groups fail
+closed at the health-schema boundary.
+
+Interpretation for a future separately approved stationary run is bounded:
+
+- RMW receive gap near 0.1 seconds plus a large executor queue maximum supports
+  executor/host scheduling after DDS receipt;
+- an RMW receive gap matching the callback gap with a small queue maximum
+  supports a delay before the message becomes available to rclpy;
+- missing or rejected metadata leaves the cause unresolved;
+- none of these outcomes authorizes a higher gap limit, initial pose, goal or
+  robot motion.
+
+This section records software design and hardware-free validation only. The
+change is not deployed by its Git push; external release activation and a
+stationary no-goal run require a new explicit deployment approval.

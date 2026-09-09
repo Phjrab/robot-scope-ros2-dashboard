@@ -30,7 +30,7 @@ import os
 import signal
 import sys
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -158,6 +158,88 @@ class BoundedDurationWindow:
             "p95_s": p95,
             "max_s": ordered[-1],
             "sample_count": len(self._durations),
+        }
+
+
+class RmwSubscriptionTiming:
+    """Preserve bounded RMW receive evidence discarded by Humble rclpy.
+
+    The metrics are diagnostic only.  They never participate in readiness or
+    freshness decisions, which continue to use the existing monotonic callback
+    arrival and source-header clocks.
+    """
+
+    _MAX_PENDING = 8
+    _MAX_QUEUE_DELAY_NS = 10_000_000_000
+    _MAX_COUNTER = 2**53 - 1
+
+    def __init__(self, maximum_samples: int = 32) -> None:
+        self._receive_rate = BoundedRateWindow(maximum_samples)
+        self._queue_durations = BoundedDurationWindow(maximum_samples)
+        self._pending_received_ns: OrderedDict[int, int] = OrderedDict()
+        self._rejected_count = 0
+        self._missing_count = 0
+
+    @staticmethod
+    def _timestamp_ns(value: Any, label: str) -> int:
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise NavigationRuntimeError(f"{label} must be a positive integer")
+        return value
+
+    def _increment(self, attribute: str) -> None:
+        value = int(getattr(self, attribute))
+        setattr(self, attribute, min(self._MAX_COUNTER, value + 1))
+
+    def capture(self, message: Any, metadata: Any) -> bool:
+        """Capture one local RMW receive timestamp before callback dispatch."""
+
+        try:
+            if not isinstance(metadata, Mapping):
+                raise NavigationRuntimeError("RMW metadata is not a mapping")
+            received_ns = self._timestamp_ns(
+                metadata.get("received_timestamp"),
+                "RMW received timestamp",
+            )
+        except NavigationRuntimeError:
+            self._increment("_rejected_count")
+            return False
+
+        self._receive_rate.observe(received_ns * 1e-9)
+        token = id(message)
+        self._pending_received_ns[token] = received_ns
+        self._pending_received_ns.move_to_end(token)
+        while len(self._pending_received_ns) > self._MAX_PENDING:
+            self._pending_received_ns.popitem(last=False)
+        return True
+
+    def begin_callback(self, message: Any, callback_system_ns: int) -> bool:
+        """Match one callback with its RMW receive timestamp."""
+
+        received_ns = self._pending_received_ns.pop(id(message), None)
+        if received_ns is None:
+            self._increment("_missing_count")
+            return False
+        try:
+            callback_ns = self._timestamp_ns(
+                callback_system_ns,
+                "callback system timestamp",
+            )
+            queue_delay_ns = callback_ns - received_ns
+            if queue_delay_ns < 0 or queue_delay_ns > self._MAX_QUEUE_DELAY_NS:
+                raise NavigationRuntimeError("RMW-to-callback delay is invalid")
+            self._queue_durations.observe(queue_delay_ns * 1e-9)
+        except NavigationRuntimeError:
+            self._increment("_rejected_count")
+            return False
+        return True
+
+    def snapshot(self, now_system_ns: int) -> dict[str, Any]:
+        now_ns = self._timestamp_ns(now_system_ns, "snapshot system timestamp")
+        return {
+            "receive": self._receive_rate.snapshot(now_ns * 1e-9),
+            "queue": self._queue_durations.snapshot(),
+            "rejected_count": self._rejected_count,
+            "missing_count": self._missing_count,
         }
 
 
@@ -859,6 +941,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._cloud_rate = BoundedRateWindow()
             self._odom_rate = BoundedRateWindow()
             self._odom_source_rate = BoundedRateWindow()
+            self._odom_rmw_timing = RmwSubscriptionTiming()
             self._cloud_callback_durations = BoundedDurationWindow()
             self._odom_callback_durations = BoundedDurationWindow()
             self._health_timer_rate = BoundedRateWindow()
@@ -1017,6 +1100,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._last_cloud_error = ""
 
         def _on_odometry(self, message: Any) -> None:
+            self._odom_rmw_timing.begin_callback(message, time.time_ns())
             started_at = time.monotonic()
             try:
                 self._process_odometry(message)
@@ -1024,6 +1108,13 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._odom_callback_durations.observe(
                     max(0.0, time.monotonic() - started_at)
                 )
+
+        def _capture_odometry_rmw_metadata(
+            self,
+            message: Any,
+            metadata: Any,
+        ) -> None:
+            self._odom_rmw_timing.capture(message, metadata)
 
         def _process_odometry(self, message: Any) -> None:
             if self._publisher_counts["/Odometry"] != 1:
@@ -1274,6 +1365,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             odom_rate = self._odom_rate.snapshot(observed_at)
             ros_now_s = float(self.get_clock().now().nanoseconds) * 1e-9
             odom_source_rate = self._odom_source_rate.snapshot(ros_now_s)
+            odom_rmw_timing = self._odom_rmw_timing.snapshot(time.time_ns())
+            odom_rmw_receive = odom_rmw_timing["receive"]
+            odom_executor_queue = odom_rmw_timing["queue"]
             cloud_callback = self._cloud_callback_durations.snapshot()
             odom_callback = self._odom_callback_durations.snapshot()
             health_timer_rate = self._health_timer_rate.snapshot(observed_at)
@@ -1361,6 +1455,43 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "odometry_source_interval_count": odom_source_rate[
                     "interval_count"
                 ],
+                "odometry_rmw_receive_frequency_hz_raw": odom_rmw_receive[
+                    "frequency_hz_raw"
+                ],
+                "odometry_rmw_receive_mean_period_s": odom_rmw_receive[
+                    "mean_period_s"
+                ],
+                "odometry_rmw_receive_median_period_s": odom_rmw_receive[
+                    "median_period_s"
+                ],
+                "odometry_rmw_receive_p95_period_s": odom_rmw_receive[
+                    "p95_period_s"
+                ],
+                "odometry_rmw_receive_max_gap_s": odom_rmw_receive["max_gap_s"],
+                "odometry_rmw_receive_window_duration_s": odom_rmw_receive[
+                    "window_duration_s"
+                ],
+                "odometry_rmw_receive_age_s": odom_rmw_receive["age_s"],
+                "odometry_rmw_receive_sample_count": odom_rmw_receive[
+                    "sample_count"
+                ],
+                "odometry_rmw_receive_interval_count": odom_rmw_receive[
+                    "interval_count"
+                ],
+                "odometry_executor_queue_latest_s": odom_executor_queue[
+                    "latest_s"
+                ],
+                "odometry_executor_queue_p95_s": odom_executor_queue["p95_s"],
+                "odometry_executor_queue_max_s": odom_executor_queue["max_s"],
+                "odometry_executor_queue_sample_count": odom_executor_queue[
+                    "sample_count"
+                ],
+                "odometry_rmw_metadata_rejected_count": odom_rmw_timing[
+                    "rejected_count"
+                ],
+                "odometry_rmw_metadata_missing_count": odom_rmw_timing[
+                    "missing_count"
+                ],
                 "cloud_callback_latest_s": cloud_callback["latest_s"],
                 "cloud_callback_p95_s": cloud_callback["p95_s"],
                 "cloud_callback_max_s": cloud_callback["max_s"],
@@ -1412,6 +1543,10 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     "pointcloud": "host_ros_normalized",
                     "localization_odometry": "host_ros",
                     "odometry_source_interval": "message_header.host_ros",
+                    "odometry_rmw_receive_interval": "rmw_received_timestamp.system_time",
+                    "odometry_executor_queue": (
+                        "runtime_process.system_time-rmw_received_timestamp"
+                    ),
                     "callback_duration": "runtime_process.monotonic",
                     "health_timer_interval": "runtime_process.monotonic",
                 },
@@ -1426,6 +1561,40 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._health_publisher.publish(message)
 
     return NavigationRuntimeNode
+
+
+def _build_rmw_timing_executor_class() -> type[Any]:
+    """Build a Humble executor that preserves read-only subscription metadata."""
+
+    from rclpy.executors import SingleThreadedExecutor
+
+    class RmwTimingSingleThreadedExecutor(SingleThreadedExecutor):
+        def __init__(self, timing_node: Any) -> None:
+            super().__init__()
+            self._timing_node = timing_node
+
+        def _take_subscription(self, subscription: Any) -> Any:
+            # ROS 2 Humble returns ``(message, metadata)`` here but its stock
+            # executor forwards only the message to Python callbacks.  Keep the
+            # upstream take/dispatch behavior and preserve metadata solely for
+            # bounded timing diagnostics on the fixed /Odometry subscription.
+            with subscription.handle:
+                message_info = subscription.handle.take_message(
+                    subscription.msg_type,
+                    subscription.raw,
+                )
+                if message_info is not None:
+                    message = message_info[0]
+                    if subscription.topic_name == "/Odometry":
+                        metadata = message_info[1] if len(message_info) == 2 else None
+                        self._timing_node._capture_odometry_rmw_metadata(
+                            message,
+                            metadata,
+                        )
+                    return message
+            return None
+
+    return RmwTimingSingleThreadedExecutor
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
@@ -1481,11 +1650,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     node_type = _build_ros_runtime_node_class()
+    executor_type = _build_rmw_timing_executor_class()
     # The wrapper's private params-snapshot flag is consumed above and must
     # never leak into rclpy's ROS argument parser.  This runtime intentionally
     # accepts no ROS remaps or topic overrides.
     rclpy.init(args=[])
     node = node_type(options)
+    executor = executor_type(node)
+    executor.add_node(node)
 
     def request_shutdown(_signum: int, _frame: Any) -> None:
         if rclpy.ok():
@@ -1494,10 +1666,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     signal.signal(signal.SIGINT, request_shutdown)
     signal.signal(signal.SIGTERM, request_shutdown)
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
+        executor.remove_node(node)
+        executor.shutdown()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

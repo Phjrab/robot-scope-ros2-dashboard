@@ -2,15 +2,19 @@ import ast
 import math
 import struct
 import subprocess
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
 from robot_dashboard.navigation_runtime import (
     NavigationRuntimeError,
     PlanarTransform,
+    RmwSubscriptionTiming,
     ScanGeometry,
     bounded_pose_position,
     load_runtime_filter_settings,
@@ -21,6 +25,7 @@ from robot_dashboard.navigation_runtime import (
     quaternion_to_yaw,
     xyz_from_pointcloud2_layout,
     yaw_to_quaternion,
+    _build_rmw_timing_executor_class,
 )
 
 
@@ -240,6 +245,127 @@ class TransformMathTests(unittest.TestCase):
         )
 
 
+class RmwSubscriptionTimingTests(unittest.TestCase):
+    def test_humble_executor_forwards_message_and_captures_only_fixed_odometry(self):
+        class FakeExecutor:
+            def __init__(self):
+                self.initialized = True
+
+        fake_executors = types.ModuleType("rclpy.executors")
+        fake_executors.SingleThreadedExecutor = FakeExecutor
+        fake_rclpy = types.ModuleType("rclpy")
+        node = mock.Mock()
+        message = object()
+
+        class FakeHandle:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def take_message(self, _message_type, _raw):
+                return message, {
+                    "source_timestamp": 900_000_000,
+                    "received_timestamp": 1_000_000_000,
+                }
+
+        with mock.patch.dict(
+            sys.modules,
+            {"rclpy": fake_rclpy, "rclpy.executors": fake_executors},
+        ):
+            executor_type = _build_rmw_timing_executor_class()
+        executor = executor_type(node)
+        subscription = types.SimpleNamespace(
+            handle=FakeHandle(),
+            msg_type=object,
+            raw=False,
+            topic_name="/Odometry",
+        )
+        self.assertIs(executor._take_subscription(subscription), message)
+        node._capture_odometry_rmw_metadata.assert_called_once_with(
+            message,
+            {
+                "source_timestamp": 900_000_000,
+                "received_timestamp": 1_000_000_000,
+            },
+        )
+
+        node.reset_mock()
+        subscription.topic_name = "/velodyne_points"
+        self.assertIs(executor._take_subscription(subscription), message)
+        node._capture_odometry_rmw_metadata.assert_not_called()
+
+    def test_receive_and_executor_queue_windows_are_separate(self):
+        timing = RmwSubscriptionTiming(maximum_samples=4)
+        messages = [object(), object(), object()]
+        received = [1_000_000_000, 1_100_000_000, 1_200_000_000]
+        queued = [2_000_000, 4_000_000, 3_000_000]
+        for message, received_ns, queue_ns in zip(messages, received, queued):
+            self.assertTrue(
+                timing.capture(
+                    message,
+                    {
+                        "source_timestamp": received_ns - 10_000_000,
+                        "received_timestamp": received_ns,
+                    },
+                )
+            )
+            self.assertTrue(
+                timing.begin_callback(message, received_ns + queue_ns)
+            )
+        snapshot = timing.snapshot(1_205_000_000)
+        self.assertAlmostEqual(
+            snapshot["receive"]["frequency_hz_raw"], 10.0, places=9
+        )
+        self.assertAlmostEqual(snapshot["receive"]["max_gap_s"], 0.1, places=9)
+        self.assertAlmostEqual(snapshot["queue"]["latest_s"], 0.003, places=9)
+        self.assertAlmostEqual(snapshot["queue"]["max_s"], 0.004, places=9)
+        self.assertEqual(snapshot["rejected_count"], 0)
+        self.assertEqual(snapshot["missing_count"], 0)
+
+    def test_metadata_is_fail_closed_but_diagnostic_only(self):
+        timing = RmwSubscriptionTiming()
+        for metadata in (
+            None,
+            {},
+            {"received_timestamp": True},
+            {"received_timestamp": "100"},
+            {"received_timestamp": 0},
+        ):
+            self.assertFalse(timing.capture(object(), metadata))
+        missing = object()
+        self.assertFalse(timing.begin_callback(missing, 1_000_000_000))
+        too_early = object()
+        self.assertTrue(
+            timing.capture(too_early, {"received_timestamp": 2_000_000_000})
+        )
+        self.assertFalse(timing.begin_callback(too_early, 1_999_999_999))
+        too_late = object()
+        self.assertTrue(
+            timing.capture(too_late, {"received_timestamp": 1_000_000_000})
+        )
+        self.assertFalse(timing.begin_callback(too_late, 11_000_000_001))
+        snapshot = timing.snapshot(12_000_000_000)
+        self.assertEqual(snapshot["rejected_count"], 7)
+        self.assertEqual(snapshot["missing_count"], 1)
+        self.assertEqual(snapshot["queue"]["sample_count"], 0)
+
+    def test_duplicate_receive_timestamp_does_not_fake_progression(self):
+        timing = RmwSubscriptionTiming()
+        first = object()
+        second = object()
+        metadata = {"received_timestamp": 1_000_000_000}
+        timing.capture(first, metadata)
+        timing.begin_callback(first, 1_001_000_000)
+        timing.capture(second, metadata)
+        timing.begin_callback(second, 1_002_000_000)
+        snapshot = timing.snapshot(1_003_000_000)
+        self.assertEqual(snapshot["receive"]["sample_count"], 1)
+        self.assertEqual(snapshot["receive"]["interval_count"], 0)
+        self.assertEqual(snapshot["queue"]["sample_count"], 2)
+
+
 class NavigationLauncherSafetyTests(unittest.TestCase):
     def test_python_module_has_no_unitree_sport_publisher_or_dynamic_topics(self):
         source = MODULE.read_text(encoding="utf-8")
@@ -254,9 +380,14 @@ class NavigationLauncherSafetyTests(unittest.TestCase):
         self.assertIn('self.count_publishers(topic)', source)
         self.assertIn("self._health_timer_rate.observe(started_at)", source)
         self.assertIn("self._publisher_count_durations.observe(", source)
+        self.assertIn("class RmwTimingSingleThreadedExecutor", source)
+        self.assertIn("message_info[1]", source)
+        self.assertIn("rmw_received_timestamp.system_time", source)
         self.assertIn('self._publisher_counts["/velodyne_points"] == 1', source)
         self.assertIn('self._publisher_counts["/Odometry"] == 1', source)
         self.assertIn("rclpy.init(args=[])", source)
+        self.assertIn("executor.spin()", source)
+        self.assertNotIn("rclpy.spin(node)", source)
         self.assertNotIn("rclpy.init(args=None)", source)
 
     def test_launcher_syntax_and_fixed_raw_command_remap(self):
