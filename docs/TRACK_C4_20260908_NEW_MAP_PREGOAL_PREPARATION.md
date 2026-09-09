@@ -276,3 +276,59 @@ pose, goal or motion.
    remain satisfied.
 6. Only then present the fixed 0.25 m goal and request a new one-shot motion
    approval.
+
+## Timing-instrumentation external deployment
+
+The operator separately approved deployment of exact commit
+`3bb35729f4db73c304ee6e5160ca2a63e9111eec` to the external Jetson only. The
+approved scope permitted switching the external immutable release and
+restarting only `robot-scope.service`. It prohibited an onboard Bridge change,
+a Navigation or localization session, initial pose, goal, lease, deadman,
+non-zero command, and robot motion.
+
+The exact Git archive had SHA-256
+`450ad5b18563f5f312cbd51e6d1b87378b09fc9e233df2bede779b4d4fab8a90`.
+It was verified before extraction into
+`/home/jetson_orin_nano/releases/robot-scope/3bb35729f4db73c304ee6e5160ca2a63e9111eec`.
+Because the D2 PCL backend remains enabled, the registration tree was built in
+that exact release with `CMAKE_BUILD_TYPE=Release`, `BUILD_TESTING=ON`, and
+`ROBOT_SCOPE_BUILD_PCL_BACKENDS=ON`. Native CTest passed 1/1. The resulting
+NDT2D executable retained SHA-256
+`ec761c181fe8ecdae0c31522a9cf2edca9cb3d7150696414f29a41af72cf94f3`.
+
+A first activation attempt used `sudo -n systemctl restart` after selecting the
+new symlink. The external account did not have non-interactive sudo for that
+direct command, so no restart occurred. The production symlink was immediately
+returned to the prior release while the existing dashboard process continued
+running from its original cwd. No service or robot operation was performed by
+that failed attempt.
+
+The successful activation used the existing restricted dashboard lifecycle
+endpoint. That endpoint rechecked same-origin, confirmation, Competition Lock,
+and runtime blockers before dispatching only the allowlisted dashboard restart.
+
+Post-activation evidence:
+
+- external production symlink and process cwd:
+  `3bb35729f4db73c304ee6e5160ca2a63e9111eec`;
+- external dashboard PID: `385356`, `NRestarts=0`, service active and enabled;
+- rollback symlink:
+  `/home/jetson_orin_nano/robot-scope.pre-3bb3572` ->
+  `6f0a99b62e22f9f96ecf3561a451ce7426d6b1fe`;
+- deployed timing-source files matched the local exact-release SHA-256 values;
+- onboard signed Bridge remained
+  `10a7fa9cec2c329f2c50edc9ad98de13a22689da`, authenticated, connected, and
+  ready;
+- control lease inactive, deadman released, dashboard command exact zero,
+  Bridge Move 0, non-zero Move 0, action 0, and motion run inactive;
+- Navigation pipeline/session/localization session/goal idle, initial-pose
+  count 0, and goal submission disabled;
+- Mapping pipeline and operation idle; the pre-existing observation-only XT16
+  preview recovered to running after dashboard startup;
+- Dataset capture and export idle;
+- no warning-or-higher dashboard journal entry appeared in the inspected
+  post-restart interval.
+
+This deployment installs diagnostics only. It does not resolve or relax the
+0.25-second odometry maximum-gap gate and does not authorize the next stationary
+Navigation run.
