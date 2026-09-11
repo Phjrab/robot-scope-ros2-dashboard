@@ -612,6 +612,8 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .route-planner-order-line { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr) 58px 30px; width: 100%; min-width: 0; padding: 7px; border: 1px solid rgba(120, 154, 205, .16); border-radius: 8px; }
 .route-planner-order-line > strong { color: #9fb8df; font: 700 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
 .route-planner-order-line > * { min-width: 0; max-width: 100%; }
+.route-planner-sheet-items { grid-column: 1 / -1; display: grid; gap: 6px; }
+.route-planner-sheet-items .route-planner-order-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 58px 70px; }
 .route-planner-order-line input,
 .route-planner-order-line select,
 .route-planner-order > input,

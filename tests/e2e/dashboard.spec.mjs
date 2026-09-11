@@ -521,8 +521,8 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   await planner.locator('[data-route-action="save-order"]').click();
   await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
   const orderRequest = backend.mutations('/api/v1/route-planner/orders')[0].body;
-  expect(orderRequest.lines).toHaveLength(5);
-  expect(orderRequest.lines.every((line) => line.destination_id && line.restaurant_id && line.menu_id && line.quantity === 1)).toBe(true);
+  expect(orderRequest.orders).toHaveLength(5);
+  expect(orderRequest.orders.every((sheet) => sheet.destination_id && sheet.lines.length === 1 && sheet.lines.every((line) => line.restaurant_id && line.menu_id && line.quantity === 1))).toBe(true);
   await planner.locator('[data-route-action="calculate"]').click();
   await expect(planner.locator('.route-planner-card')).toHaveCount(3);
   await planner.locator('.route-planner-card').first().locator('[data-route-select]').click();
@@ -542,6 +542,28 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   const inactive = await page.evaluate(() => window.RobotScopeRoutePlanner.diagnostics());
   expect(inactive.client.subscribers).toBe(0);
   expect(inactive.panel.active).toBe(false);
+});
+
+test('Route Planner stores five sheets with five menu items each', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'route-planner');
+  const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
+  for (let i = 1; i < 5; i += 1) await planner.locator('[data-route-action="add-line"]').click();
+  const addItems = planner.getByRole('button', { name: '+ 메뉴 항목 추가', exact: true });
+  await expect(addItems).toHaveCount(5);
+  for (let sheet = 0; sheet < 5; sheet += 1) {
+    for (let i = 1; i < 5; i += 1) await addItems.nth(sheet).click();
+    await expect(addItems.nth(sheet)).toBeDisabled();
+  }
+  await expect(planner.locator('[data-route-action="add-line"]')).toBeDisabled();
+  await expect(planner.locator('.route-planner-order-summary')).toContainText('메뉴 항목 25/25');
+  await planner.locator('[data-route-action="save-order"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
+  const payload = backend.mutations('/api/v1/route-planner/orders')[0].body;
+  expect(payload.orders).toHaveLength(5);
+  expect(payload.orders.every((sheet) => sheet.lines.length === 5)).toBe(true);
+  await expect(addItems).toHaveCount(5);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
 });
 
 test('Route Planner destination start survives polling and missing graph is explained', async ({ page }) => {

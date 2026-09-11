@@ -70,6 +70,7 @@ def _batch_difficulty(order_count: int) -> str:
 
 def _canonical(value: Mapping[str, Any]) -> dict[str, Any]:
     return {
+        **({"orders": value["orders"]} if "orders" in value else {}),
         "schema_version": ORDER_SCHEMA_VERSION,
         "id": value["id"],
         "label": value["label"],
@@ -102,6 +103,8 @@ def normalize_order(
 
     if not isinstance(payload, Mapping):
         raise OrderValidationError("order must be an object")
+    if "orders" in payload:
+        return _normalize_sheets(payload, order_id=order_id, identifier_factory=identifier_factory)
     allowed = {"label", "destination_id", "lines", "order_started_at", "locked"}
     if set(payload) - allowed:
         raise OrderValidationError("order contains unsupported or derived fields")
@@ -214,6 +217,53 @@ def normalize_order(
     }
     value["revision"] = order_revision(value)
     return value
+
+
+def _normalize_sheets(payload, *, order_id=None, identifier_factory=None):
+    """Bounded grouped input, with legacy-normalized lines for route consumers."""
+    if set(payload) - {"label", "orders", "order_started_at", "locked"}:
+        raise OrderValidationError("grouped orders cannot mix legacy or derived fields")
+    sheets = payload["orders"]
+    if not isinstance(sheets, list) or not 1 <= len(sheets) <= MAX_ORDERS:
+        raise OrderValidationError("batch must contain 1 to 5 order sheets")
+    grouped, flattened = [], []
+    seed = None
+    for number, sheet in enumerate(sheets, 1):
+        if not isinstance(sheet, Mapping) or set(sheet) != {"destination_id", "lines"}:
+            raise OrderValidationError("order sheet schema is invalid")
+        items = sheet["lines"]
+        if not isinstance(items, list) or not 1 <= len(items) <= MAX_LINES:
+            raise OrderValidationError("each order sheet must contain 1 to 5 menu lines")
+        normalized = []
+        for index, item in enumerate(items, 1):
+            if not isinstance(item, Mapping) or set(item) != {"sequence", "restaurant_id", "menu_id", "quantity"}:
+                raise OrderValidationError("menu line schema is invalid")
+            if isinstance(item["sequence"], bool) or not isinstance(item["sequence"], int) or item["sequence"] != index:
+                raise OrderValidationError("menu sequences must be continuous integers")
+            validated = normalize_order({
+                "label": payload.get("label", "Competition orders"),
+                "locked": payload.get("locked", False),
+                "order_started_at": payload.get("order_started_at"),
+                "lines": [{**item, "sequence": 1, "destination_id": sheet["destination_id"]}],
+            }, order_id=seed["id"] if seed else order_id, identifier_factory=identifier_factory)
+            seed = validated
+            normalized.append(dict(item))
+            flattened.append({**validated["lines"][0], "sequence": len(flattened) + 1,
+                              "order_sequence": number, "menu_sequence": index})
+        grouped.append({"destination_id": sheet["destination_id"], "lines": normalized})
+    total = 0
+    for line in flattened:
+        total += line["quantity"]
+        line["ready_at_s"] = total * int(competition_catalog()["production"]["seconds_per_item"])
+    destinations = list(dict.fromkeys(line["destination_id"] for line in flattened))
+    seed.update(orders=grouped, lines=flattened, order_mode="GROUPED_SHEETS",
+                order_count=len(grouped), total_quantity=total,
+                destination_ids=destinations,
+                destination_id=destinations[0] if len(destinations) == 1 else None,
+                restaurant_count=len({line["restaurant_id"] for line in flattened}),
+                difficulty=_batch_difficulty(len(grouped)))
+    seed["revision"] = order_revision(seed)
+    return seed
 
 
 __all__ = [

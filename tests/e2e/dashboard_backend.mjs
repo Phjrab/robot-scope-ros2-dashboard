@@ -382,12 +382,14 @@ export async function installDashboardBackend(page, options = {}) {
     if (path === '/api/v1/route-planner' && method === 'GET') return json(route, state.routePlanner);
     if (path === '/api/v1/route-planner/rehearsal/scenarios' && method === 'GET') return json(route, readyRehearsal());
     if (path === '/api/v1/route-planner/orders' && method === 'POST') {
+      const inputLines = body.orders ? body.orders.flatMap((sheet) => sheet.lines.map((line) => ({ ...line, destination_id: sheet.destination_id }))) : body.lines;
       state.routePlanner.order = {
         ...body, id: ROUTE_ORDER_ID, revision: ROUTE_ORDER_REVISION,
-        total_quantity: body.lines.reduce((sum, line) => sum + line.quantity, 0),
-        restaurant_count: new Set(body.lines.map((line) => line.restaurant_id)).size,
+        order_count: body.orders?.length || inputLines.length,
+        total_quantity: inputLines.reduce((sum, line) => sum + line.quantity, 0),
+        restaurant_count: new Set(inputLines.map((line) => line.restaurant_id)).size,
         difficulty: 'LOW',
-        lines: body.lines.map((line, index) => ({ ...line, ready_at_s: body.lines.slice(0, index + 1).reduce((sum, item) => sum + item.quantity * 20, 0) })),
+        lines: inputLines.map((line, index) => ({ ...line, sequence: index + 1, ready_at_s: inputLines.slice(0, index + 1).reduce((sum, item) => sum + item.quantity * 20, 0) })),
       };
       state.routePlanner.state = 'ORDER_READY';
       return json(route, { order: state.routePlanner.order, route_planner: state.routePlanner }, 201);

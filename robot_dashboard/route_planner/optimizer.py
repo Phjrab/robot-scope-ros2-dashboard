@@ -292,6 +292,8 @@ def recommend_routes(
 
     if operation_mode not in OPERATION_MODES:
         raise RoutePlanningError("ORDER_INVALID", "operation mode is invalid")
+    if order.get("total_quantity", 0) > int(competition_catalog()["capacity"]):
+        raise RoutePlanningError("ORDER_INVALID", "적재 한도 5개 초과: 주문은 저장되지만 분할 배송이 필요합니다")
     nodes = {str(node["id"]): node for node in graph.get("nodes", [])}
     if start_node_id not in nodes:
         raise RoutePlanningError("NO_START_NODE", "start node does not exist")

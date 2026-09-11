@@ -62,7 +62,7 @@ class RoutePlannerApiContractTests(unittest.TestCase):
         classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
         order = classes["RouteOrderCreateRequest"]
         fields = {node.target.id for node in order.body if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)}
-        self.assertEqual(fields, {"label", "destination_id", "lines", "order_started_at", "locked"})
+        self.assertEqual(fields, {"label", "destination_id", "lines", "orders", "order_started_at", "locked"})
         self.assertTrue(all(field not in fields for field in {"difficulty", "filesystem_path", "ros_topic", "x", "y", "yaw"}))
         unlock = classes["RouteOrderUnlockRequest"]
         unlock_fields = {node.target.id for node in unlock.body if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)}
@@ -85,7 +85,9 @@ class RoutePlannerApiContractTests(unittest.TestCase):
         )
         source = MODELS.read_text(encoding="utf-8")
         order_source = ast.get_source_segment(source, classes["RouteOrderCreateRequest"])
-        self.assertIn("Field(min_length=1, max_length=5)", order_source)
+        self.assertEqual(order_source.count("Field(default=None, min_length=1, max_length=5)"), 2)
+        sheet_source = ast.get_source_segment(source, classes["RouteOrderSheetRequest"])
+        self.assertIn("Field(min_length=1, max_length=5)", sheet_source)
 
     def test_runtime_and_app_own_exactly_one_route_planner_coordinator(self):
         self.assertIsNone(ApplicationRuntime().route_planner)

@@ -95,6 +95,22 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         selected = (await self.coordinator.select(routes[0]["id"], route_revision=routes[0]["revision"]))["selected_route"]
         return order, graph, selected
 
+    async def test_grouped_order_update_lock_unlock_preserves_all_items(self):
+        payload = {"label": "Grouped", "orders": [{"destination_id": "COEX", "lines": [
+            {"sequence": 1, "restaurant_id": "HANSOT", "menu_id": "CHICKEN_MAYO", "quantity": 1},
+            {"sequence": 2, "restaurant_id": "EDIYA", "menu_id": "AMERICANO", "quantity": 1},
+        ]}]}
+        order = (await self.coordinator.create_order(payload))["order"]
+        payload["orders"][0]["lines"][0]["quantity"] = 2
+        payload["locked"] = True
+        updated = (await self.coordinator.update_order(order["id"], base_revision=order["revision"], payload=payload))["order"]
+        self.assertEqual(updated["total_quantity"], 3)
+        unlocked = (await self.coordinator.unlock_order(updated["id"], base_revision=updated["revision"]))["order"]
+        self.assertEqual(unlocked["orders"], payload["orders"])
+        self.assertEqual(unlocked["order_count"], 1)
+        self.assertFalse(unlocked["locked"])
+
+
     async def test_single_session_cas_and_private_atomic_store(self):
         order = (await self.coordinator.create_order(order_payload()))["order"]
         state_file = self.root / "route-planner.json"

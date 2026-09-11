@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class StrictRequest(BaseModel):
@@ -323,12 +323,26 @@ class RouteOrderLineRequest(StrictRequest):
     quantity: int = Field(strict=True, ge=1, le=5)
 
 
+class RouteOrderSheetRequest(StrictRequest):
+    destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"]
+    lines: list[RouteOrderLineRequest] = Field(min_length=1, max_length=5)
+
+
 class RouteOrderCreateRequest(StrictRequest):
     label: str = Field(min_length=1, max_length=64)
     destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"] | None = None
-    lines: list[RouteOrderLineRequest] = Field(min_length=1, max_length=5)
+    lines: list[RouteOrderLineRequest] | None = Field(default=None, min_length=1, max_length=5)
+    orders: list[RouteOrderSheetRequest] | None = Field(default=None, min_length=1, max_length=5)
     order_started_at: str | None = Field(default=None, max_length=32)
     locked: bool = Field(default=False, strict=True)
+
+    @model_validator(mode="after")
+    def require_one_order_shape(self):
+        if (self.lines is None) == (self.orders is None):
+            raise ValueError("provide exactly one of lines or orders")
+        if self.orders is not None and self.destination_id is not None:
+            raise ValueError("grouped orders own their destinations")
+        return self
 
 
 class RouteOrderUpdateRequest(RouteOrderCreateRequest):

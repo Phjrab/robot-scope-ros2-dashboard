@@ -131,25 +131,51 @@ function createRoutePlannerPanelView(options = {}) {
     const quantityInput = documentValue.createElement('input'); quantityInput.type = 'number'; quantityInput.min = '1'; quantityInput.max = '5'; quantityInput.value = String(quantity); quantityInput.setAttribute('aria-label', `수량 ${lineRows.length + 1}`);
     const remove = make(documentValue, 'button', '', '×'); remove.type = 'button'; remove.dataset.routeRemoveLine = 'true';
     const row = { root: rowRoot, sequence, destination: destinationInput, restaurant, menu, quantity: quantityInput, remove };
+    row.items = [{ restaurant, menu, quantity: quantityInput }];
+    row.extra = make(documentValue, 'div', 'route-planner-sheet-items');
+    row.addItem = make(documentValue, 'button', '', '+ 메뉴 항목 추가'); row.addItem.type = 'button';
+    row.addItem.addEventListener('click', () => addMenuItem(row));
     lineRows.push(row); syncMenus(row); if (menuId) menu.value = menuId;
     restaurant.addEventListener('change', () => { syncMenus(row); renderOrderSummary(); });
     quantityInput.addEventListener('input', renderOrderSummary);
     remove.addEventListener('click', () => { if (lineRows.length <= 1) return; const index = lineRows.indexOf(row); if (index >= 0) lineRows.splice(index, 1); rowRoot.remove(); lineRows.forEach((item, rowIndex) => { item.sequence.textContent = `주문서 ${rowIndex + 1}`; }); renderOrderSummary(); });
-    rowRoot.append(sequence, destinationInput, restaurant, menu, quantityInput, remove); lines.append(rowRoot); renderOrderSummary();
+    rowRoot.append(sequence, destinationInput, restaurant, menu, quantityInput, remove, row.extra, row.addItem); lines.append(rowRoot); renderOrderSummary();
+    return row;
+  }
+
+  function addMenuItem(sheet, item = {}) {
+    if (sheet.items.length >= 5) return;
+    const root = make(documentValue, 'div', 'route-planner-order-line');
+    const restaurant = documentValue.createElement('select');
+    restaurant.setAttribute('aria-label', `주문서 ${lineRows.indexOf(sheet) + 1} 음식점 ${sheet.items.length + 1}`);
+    restaurant.append(...RESTAURANTS.map(([value, label]) => option(documentValue, value, label)));
+    restaurant.value = item.restaurant_id || 'HANSOT';
+    const menu = documentValue.createElement('select');
+    menu.setAttribute('aria-label', `주문서 ${lineRows.indexOf(sheet) + 1} 메뉴 ${sheet.items.length + 1}`);
+    const quantity = documentValue.createElement('input'); quantity.type = 'number'; quantity.min = '1'; quantity.max = '5'; quantity.value = String(item.quantity || 1);
+    quantity.setAttribute('aria-label', `주문서 ${lineRows.indexOf(sheet) + 1} 수량 ${sheet.items.length + 1}`);
+    const remove = make(documentValue, 'button', '', '메뉴 삭제'); remove.type = 'button';
+    const row = { restaurant, menu, quantity, remove };
+    syncMenus(row); if (item.menu_id) menu.value = item.menu_id;
+    restaurant.addEventListener('change', () => { syncMenus(row); renderOrderSummary(); });
+    quantity.addEventListener('input', renderOrderSummary);
+    remove.addEventListener('click', () => { sheet.items.splice(sheet.items.indexOf(row), 1); root.remove(); renderOrderSummary(); });
+    sheet.items.push(row); root.append(restaurant, menu, quantity, remove); sheet.extra.append(root); renderOrderSummary();
   }
 
   function draftPayload(locked = false) {
     return {
       label: labelInput.value.trim() || 'Competition orders', order_started_at: null, locked,
-      lines: lineRows.map((row, index) => ({ sequence: index + 1, destination_id: row.destination.value, restaurant_id: row.restaurant.value, menu_id: row.menu.value, quantity: Math.max(1, Math.min(5, Number(row.quantity.value) || 1)) })),
+      orders: lineRows.map((row) => ({ destination_id: row.destination.value, lines: row.items.map((item, index) => ({ sequence: index + 1, restaurant_id: item.restaurant.value, menu_id: item.menu.value, quantity: Math.max(1, Math.min(5, Number(item.quantity.value) || 1)) })) })),
     };
   }
 
   function renderOrderSummary() {
-    const total = lineRows.reduce((sum, row) => sum + Math.max(1, Math.min(5, Number(row.quantity.value) || 1)), 0);
-    const restaurantCount = new Set(lineRows.map((row) => row.restaurant.value)).size;
-    orderSummary.textContent = `주문서 ${lineRows.length}/5 · 총 ${total}개 / 적재 한도 5 · 음식점 ${restaurantCount}곳 · 20초 순차 생성`;
-    orderSummary.dataset.valid = String(lineRows.length >= 1 && lineRows.length <= 5 && total >= 1 && total <= 5);
+    const items = lineRows.flatMap((row) => row.items);
+    const total = items.reduce((sum, row) => sum + Math.max(1, Math.min(5, Number(row.quantity.value) || 1)), 0);
+    const restaurantCount = new Set(items.map((row) => row.restaurant.value)).size;
+    orderSummary.textContent = `주문서 ${lineRows.length}/5 · 메뉴 항목 ${items.length}/25 (주문서당 최대 5) · 총 ${total}개 / 1회 적재 한도 5 · 음식점 ${restaurantCount}곳${total > 5 ? ' · 분할 배송 필요' : ''}`;
+    orderSummary.dataset.valid = String(lineRows.length >= 1 && lineRows.length <= 5 && items.length <= 25 && total >= 1);
     syncOrderEditorControls();
   }
 
@@ -157,7 +183,13 @@ function createRoutePlannerPanelView(options = {}) {
     if (!order) return;
     labelInput.value = order.label;
     while (lineRows.length) lineRows.pop().root.remove();
-    for (const line of order.lines) addOrderLine(line.destination_id || order.destination_id || 'COEX', line.restaurant_id, line.menu_id, line.quantity);
+    if (order.orders) {
+      for (const sheet of order.orders) {
+        const first = sheet.lines[0];
+        const row = addOrderLine(sheet.destination_id, first.restaurant_id, first.menu_id, first.quantity);
+        for (const item of sheet.lines.slice(1)) addMenuItem(row, item);
+      }
+    } else for (const line of order.lines) addOrderLine(line.destination_id || order.destination_id || 'COEX', line.restaurant_id, line.menu_id, line.quantity);
   }
 
   function loadDefaultDraft() {
@@ -178,6 +210,11 @@ function createRoutePlannerPanelView(options = {}) {
       row.menu.disabled = editorDisabled;
       row.quantity.disabled = editorDisabled;
       row.remove.disabled = editorDisabled || lineRows.length <= 1;
+      row.addItem.disabled = editorDisabled || row.items.length >= 5;
+      for (const item of row.items) {
+        item.restaurant.disabled = editorDisabled; item.menu.disabled = editorDisabled; item.quantity.disabled = editorDisabled;
+        if (item.remove) item.remove.disabled = editorDisabled;
+      }
     }
     saveOrder.disabled = editorDisabled || !orderValid;
     lockOrder.disabled = editorDisabled || !orderValid || draftingNewOrder || !current?.order;
@@ -191,7 +228,7 @@ function createRoutePlannerPanelView(options = {}) {
     orderNotice.dataset.state = draftingNewOrder ? 'draft' : locked ? 'locked' : '';
     orderNotice.textContent = draftingNewOrder
       ? '새 주문 초안 · 저장 전까지 기존의 잠긴 주문은 유지됩니다.'
-      : locked ? `주문 잠김 · 서버 저장본 ${current.order.lines.length}개 주문서입니다. 잠금 해제 후 수정하거나 새 주문을 작성하세요.` : '';
+      : locked ? `주문 잠김 · 서버 저장본 ${current.order.order_count || current.order.lines.length}개 주문서입니다. 잠금 해제 후 수정하거나 새 주문을 작성하세요.` : '';
     orderSection.dataset.locked = String(locked);
   }
 

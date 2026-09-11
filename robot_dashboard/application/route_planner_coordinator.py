@@ -318,6 +318,9 @@ class RoutePlannerCoordinator:
                 "order_started_at": current.get("order_started_at"),
                 "locked": False,
             }
+            if "orders" in current:
+                payload.pop("lines", None)
+                payload["orders"] = current["orders"]
             try:
                 order = normalize_order(payload, order_id=order_id, allow_custom=self._allow_custom_orders)
             except OrderValidationError as exc:
