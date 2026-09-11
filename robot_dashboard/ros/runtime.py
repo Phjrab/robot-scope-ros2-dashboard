@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
+import traceback
 from typing import Any, Callable
 
 
@@ -34,6 +36,24 @@ class RosRuntime:
 
     def request_stop(self) -> None:
         self.stop_event.set()
+
+    def record_failure(self, exc: Exception) -> None:
+        """Keep the status error and journal a value-free fatal call path.
+
+        Do not log exception text, source lines or locals: callbacks can carry
+        credentials and operator input. This records evidence, not a retry.
+        """
+        with self.lock:
+            self.last_error = f"{type(exc).__name__}: {exc}"
+        frames = traceback.extract_tb(exc.__traceback__)
+        call_path = " -> ".join(
+            f"{frame.filename}:{frame.lineno}:{frame.name}" for frame in frames
+        )
+        logging.getLogger(__name__).error(
+            "ROS runtime exited: %s; call_path=%s",
+            type(exc).__name__,
+            call_path or "unavailable",
+        )
 
     def shutdown_executor(self, timeout_s: float = 2.0) -> None:
         executor = self.executor

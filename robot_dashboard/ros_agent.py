@@ -981,8 +981,7 @@ class RosAgent:
             while rclpy.ok() and not self._stop_event.is_set():
                 executor.spin_once(timeout_sec=0.2)
         except Exception as exc:
-            with self._lock:
-                self._last_error = f"{type(exc).__name__}: {exc}"
+            self._ros_runtime.record_failure(exc)
         finally:
             self.navigation_deactivate("ros_runtime_exit")
             self.shutdown_control()

@@ -878,5 +878,37 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(self.agent._network_cache, (0.0, False, None))
 
 
+class RosRuntimeFailureTests(unittest.TestCase):
+    def test_spin_failure_is_logged_and_still_deactivates_control_without_retry(self):
+        agent = object.__new__(RosAgent)
+        agent._ros_runtime = RosRuntime()
+        agent._lock = agent._ros_runtime.lock
+        agent._setup_control_transport = Mock()
+        agent._setup_navigation_transport = Mock()
+        agent._refresh_graph = Mock()
+        agent.navigation_deactivate = Mock()
+        agent.shutdown_control = Mock()
+        node = Mock()
+        executor = Mock()
+        executor.spin_once.side_effect = RuntimeError("destroy requested")
+        with (
+            patch("robot_dashboard.ros_agent.Node", return_value=node),
+            patch("robot_dashboard.ros_agent.MultiThreadedExecutor", return_value=executor),
+            patch("robot_dashboard.ros_agent.rclpy.init"),
+            patch("robot_dashboard.ros_agent.rclpy.ok", return_value=True),
+            patch("robot_dashboard.ros_agent.rclpy.shutdown") as shutdown,
+            self.assertLogs("robot_dashboard.ros.runtime", level="ERROR") as logs,
+        ):
+            agent._run()
+        executor.spin_once.assert_called_once_with(timeout_sec=0.2)
+        agent.navigation_deactivate.assert_called_once_with("ros_runtime_exit")
+        agent.shutdown_control.assert_called_once_with()
+        node.destroy_node.assert_called_once_with()
+        shutdown.assert_called_once_with()
+        self.assertFalse(agent._ready)
+        self.assertEqual(agent._last_error, "RuntimeError: destroy requested")
+        self.assertIn(":_run", logs.output[0])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -86,6 +86,31 @@ class FakeDecoder:
 
 
 class RosObservabilityComponentTests(unittest.TestCase):
+    def test_runtime_failure_records_call_path_without_exception_values(self):
+        runtime = RosRuntime()
+
+        def failing_callback():
+            raise RuntimeError("private-operator-value")
+
+        with self.assertLogs("robot_dashboard.ros.runtime", level="ERROR") as logs:
+            try:
+                failing_callback()
+            except RuntimeError as exc:
+                runtime.record_failure(exc)
+        self.assertEqual(runtime.last_error, "RuntimeError: private-operator-value")
+        rendered = " ".join(logs.output)
+        self.assertIn("RuntimeError", rendered)
+        self.assertIn("failing_callback", rendered)
+        self.assertIn("test_ros_observability_components.py:", rendered)
+        self.assertNotIn("private-operator-value", rendered)
+        self.assertIsNone(runtime.thread)
+
+    def test_runtime_failure_without_traceback_is_supported(self):
+        runtime = RosRuntime()
+        with self.assertLogs("robot_dashboard.ros.runtime", level="ERROR") as logs:
+            runtime.record_failure(ValueError("test"))
+        self.assertIn("call_path=unavailable", logs.output[0])
+
     def test_runtime_instances_own_independent_threads_locks_and_status(self):
         first = RosRuntime()
         second = RosRuntime()
