@@ -241,6 +241,7 @@
               <span>SELECTED</span><strong id="savedMapTitle">—</strong>
               <dl><div><dt>Source</dt><dd id="savedMapSource">—</dd></div><div><dt>Size</dt><dd id="savedMapSize">—</dd></div><div><dt>Frame</dt><dd id="savedMapDetailFrame">—</dd></div><div><dt>Points</dt><dd id="savedMapDetailPoints">—</dd></div><div><dt>Bounds</dt><dd id="savedMapBounds">—</dd></div></dl>
               <a id="savedMapDownload" class="saved-map-download" aria-disabled="true">선택 지도 다운로드 (.zip)</a>
+              <a id="savedMapAnnotate" class="saved-map-place-link" href="#navigation">선택한 2D 지도에 장소 이름 지정</a>
               <div class="saved-map-management">
                 <label for="savedMapNameInput">지도 이름</label>
                 <div><input id="savedMapNameInput" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name"><button id="savedMapRenameButton" type="button">이름 변경</button></div>
@@ -629,13 +630,13 @@
             </div>
             <section class="map-annotation-panel" aria-labelledby="mapAnnotationHeading">
               <div class="map-annotation-header">
-                <div><div class="eyebrow">REVISION-PINNED MAP OPERATIONS</div><h3 id="mapAnnotationHeading">POI, Home & safety zones</h3></div>
+                <div><div class="eyebrow">REVISION-PINNED MAP OPERATIONS</div><h3 id="mapAnnotationHeading">음식점·배달 장소 이름 지정</h3></div>
                 <div class="panel-state waiting" id="mapAnnotationState"><span></span>NO MAP</div>
               </div>
               <p class="map-annotation-note">주석은 원본 PGM/YAML과 분리해 저장됩니다. KEEP OUT·SLOW·WAIT 영역은 현재 표시·미션 선택용이며 Nav2 costmap을 자동 변경하지 않습니다.</p>
               <div class="map-annotation-editor">
                 <label><span>종류</span><select id="mapAnnotationType">
-                  <option value="POI">POI</option><option value="HOME">HOME</option><option value="DOCK">DOCK</option><option value="INSPECTION_POINT">INSPECTION POINT</option>
+                  <option value="POI">음식점 / 일반 장소 (POI)</option><option value="DOCK">배달 장소 (DOCK)</option><option value="HOME">로봇 기준 출발점 (HOME)</option><option value="INSPECTION_POINT">점검 장소</option>
                   <option value="KEEP_OUT">KEEP OUT ZONE</option><option value="SLOW_ZONE">SLOW ZONE</option><option value="WAIT_ZONE">WAIT ZONE</option>
                 </select></label>
                 <label><span>이름</span><input id="mapAnnotationName" maxlength="64" placeholder="예: 출입구 점검" autocomplete="off"></label>

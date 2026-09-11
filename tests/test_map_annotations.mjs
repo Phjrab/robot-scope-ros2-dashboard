@@ -109,6 +109,9 @@ test('Navigation UI exposes bounded annotation editing and revision-pinned goal 
     'mapAnnotationList', 'mapAnnotationDiscard', 'mapAnnotationSave',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
   assert.match(indexSource, /costmap을 자동 변경하지 않습니다/);
+  assert.match(indexSource, /id="savedMapAnnotate"[^>]+href="#navigation"/);
+  assert.match(indexSource, /음식점 \/ 일반 장소 \(POI\)/);
+  assert.match(indexSource, /배달 장소 \(DOCK\)/);
   assert.match(stylesSource, /\.map-annotation-panel/);
   assert.ok(moduleSource.includes('/api/v1/saved-maps/${encodeURIComponent(meta.id)}/annotations'));
   assert.ok(moduleSource.includes('/api/v1/navigation/goal/annotation'));
