@@ -456,6 +456,7 @@ test('Competition Route Planner completes the software-only workflow without mot
 });
 
 test('standalone dashboard Route Planner is reachable and releases polling when closed', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
   const backend = await openDashboard(page, {}, 'route-planner');
   await expect(page.locator('[data-nav="route-planner"]')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#pageTitle')).toHaveText('Route Planner');
@@ -463,6 +464,30 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   await expect(planner).toBeVisible();
   await expect(planner.locator('.route-planner-header')).toContainText('DRAFT');
   await expect(page.locator('.route-planner-safety-banner')).toContainText('NO MOTION AUTHORITY');
+
+  const bounds = await planner.evaluate((root) => {
+    const order = root.querySelector('.route-planner-order');
+    const planning = root.querySelector('.route-planner-planning');
+    const contained = (element, container) => {
+      const childRect = element.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      return childRect.left >= containerRect.left - 0.5 && childRect.right <= containerRect.right + 0.5;
+    };
+    return {
+      rootContained: root.scrollWidth <= root.clientWidth,
+      orderContained: order.scrollWidth <= order.clientWidth,
+      orderChildrenContained: [...order.querySelectorAll('input, select, .route-planner-order-line')]
+        .every((element) => contained(element, order)),
+      planningChildrenContained: [...planning.querySelectorAll('select')]
+        .every((element) => contained(element, planning)),
+    };
+  });
+  expect(bounds).toEqual({
+    rootContained: true,
+    orderContained: true,
+    orderChildrenContained: true,
+    planningChildrenContained: true,
+  });
 
   await planner.locator('[data-route-action="save-order"]').click();
   await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);

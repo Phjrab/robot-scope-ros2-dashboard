@@ -860,7 +860,7 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .route-planner-safety-banner p { margin-top:5px; color:#9189b6; font-size:9px; line-height:1.45; }
 .route-planner-dashboard-panel { margin-bottom:12px; }
 .route-planner-dashboard-host { min-height:560px; padding:18px; }
-.route-planner-dashboard-host .cockpit-route-planner { grid-template-columns:minmax(300px,.75fr) minmax(380px,1.25fr); align-items:start; }
+.route-planner-dashboard-host .cockpit-route-planner { grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr); align-items:start; }
 .route-planner-dashboard-host .route-planner-header { grid-column:1/-1; min-height:36px; padding:0 4px; }
 .route-planner-dashboard-host .route-planner-order { grid-column:1; }
 .route-planner-dashboard-host .route-planner-planning { grid-column:2; grid-row:2/span 2; }
