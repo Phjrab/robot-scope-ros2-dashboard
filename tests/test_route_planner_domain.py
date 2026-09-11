@@ -171,6 +171,15 @@ class OptimizerAndGuidanceTests(unittest.TestCase):
         safest = next(route for route in routes if "SAFEST" in route["profiles"])
         self.assertIn("SAFE_HOLD", safest["node_ids"])
 
+    def test_destination_can_be_start_before_pickups_and_return_delivery(self):
+        routes = recommend_routes(order=self.order, graph=self.graph, annotations=annotations(), start_node_id="COEX_DOCK", operation_mode="MANUAL_GUIDANCE", perception=self.perception)
+        self.assertTrue(routes)
+        for route in routes:
+            self.assertEqual(route["start_node_id"], "COEX_DOCK")
+            self.assertEqual(route["segments"][0]["from_node_id"], "COEX_DOCK")
+            self.assertEqual(route["stops"][-1]["venue_id"], "COEX")
+            self.assertGreater(route["metrics"]["distance_m"], 0)
+
     def test_unknown_perception_blocks_auto_special_edge_but_never_manual_guidance(self):
         stale = MockRoutePerceptionProvider(now_ns=lambda: 5_000_000_000).snapshot()
         routes = recommend_routes(order=self.order, graph=self.graph, annotations=annotations(), start_node_id="START_NODE", operation_mode="AUTO_NAV2", perception=stale)

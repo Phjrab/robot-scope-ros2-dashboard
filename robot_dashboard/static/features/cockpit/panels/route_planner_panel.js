@@ -18,6 +18,19 @@ function option(documentValue, value, label) {
   const item = documentValue.createElement('option'); item.value = value; item.textContent = label; return item;
 }
 
+export function routeStartChoices(graph) {
+  const nodes = graph?.nodes || [];
+  return [
+    ...nodes.filter((node) => node.role === 'START').map((node) => ({ value: node.id, label: node.label, nodeId: node.id })),
+    ...DESTINATIONS.map(([venue, label]) => {
+      const docks = nodes.filter((node) => node.venue_id === venue && node.role === 'DESTINATION_DOCK');
+      const approaches = nodes.filter((node) => node.venue_id === venue && node.role === 'DESTINATION_APPROACH');
+      const matches = docks.length ? docks : approaches;
+      return { value: `venue:${venue}`, label, nodeId: matches.length === 1 ? matches[0].id : '' };
+    }),
+  ];
+}
+
 function createRoutePlannerPanelView(options = {}) {
   const documentValue = options.document || globalThis.document;
   const root = make(documentValue, 'section', 'cockpit-route-planner');
@@ -45,11 +58,14 @@ function createRoutePlannerPanelView(options = {}) {
   const startNodeLabel = make(documentValue, 'label', 'route-planner-field-label', '로봇 출발점');
   const startNode = documentValue.createElement('select'); startNode.setAttribute('aria-label', 'Route start node');
   startNodeLabel.append(startNode);
+  const startStatus = make(documentValue, 'p', 'route-planner-start-status');
+  startStatus.setAttribute('role', 'status');
+  const mapSetup = make(documentValue, 'a', '', 'Saved Maps에서 장소 등록'); mapSetup.href = '#maps';
   const operationMode = documentValue.createElement('select'); operationMode.setAttribute('aria-label', 'Route operation mode');
   operationMode.append(option(documentValue, 'AUTO_NAV2', '수동 안내 + Mission 호환'), option(documentValue, 'MANUAL_GUIDANCE', '수동 안내 전용'));
   const calculate = make(documentValue, 'button', '', '추천 경로 계산'); calculate.type = 'button'; calculate.dataset.routeAction = 'calculate';
   const cards = make(documentValue, 'div', 'route-planner-cards');
-  planningSection.append(startNodeLabel, operationMode, calculate, cards);
+  planningSection.append(startNodeLabel, startStatus, mapSetup, operationMode, calculate, cards);
 
   const guidance = make(documentValue, 'section', 'route-planner-guidance');
   guidance.setAttribute('aria-label', 'Manual route guidance');
@@ -238,16 +254,24 @@ function createRoutePlannerPanelView(options = {}) {
     }
     if (!state.order && !draftingNewOrder) loadedOrderSignature = '';
     const rehearsalActive = state.rehearsal.active;
-    const startNodes = (state.graph?.nodes || []).filter((node) => node.role === 'START');
-    const nextStartSignature = startNodes.map((node) => `${node.id}:${node.label}`).join('|');
+    const startNodes = routeStartChoices(state.graph);
+    const nextStartSignature = startNodes.map((node) => `${node.value}:${node.label}:${node.nodeId}`).join('|');
     if (nextStartSignature !== startNodeSignature) {
-      startNode.replaceChildren(...startNodes.map((node) => option(documentValue, node.id, node.label)));
-      if (startNodes.some((node) => node.id === selectedStartNodeId)) startNode.value = selectedStartNodeId;
-      else selectedStartNodeId = startNode.value;
+      startNode.replaceChildren(option(documentValue, '', '출발 장소를 선택하세요'), ...startNodes.map((node) => option(documentValue, node.value, node.label)));
+      if (startNodes.some((node) => node.value === selectedStartNodeId)) startNode.value = selectedStartNodeId;
+      else if (!selectedStartNodeId && startNodes[0]?.nodeId && !startNodes[0].value.startsWith('venue:')) startNode.value = startNodes[0].value;
+      else startNode.value = '';
+      selectedStartNodeId = startNode.value;
       startNodeSignature = nextStartSignature;
     }
+    const selectedStart = startNodes.find((node) => node.value === startNode.value);
+    startStatus.textContent = !selectedStart ? '출발점 미설정 — 배달 장소 4곳 중 하나를 선택하세요.'
+      : !state.graph ? `출발점: ${selectedStart.label} · 지도 연결 필요 — 장소 좌표와 연결 도로가 등록된 경로 그래프가 없습니다.`
+        : !selectedStart.nodeId ? `출발점: ${selectedStart.label} · 지도에서 이 장소의 출발 위치를 하나로 연결해야 합니다.`
+          : `출발점: ${selectedStart.label} · 지도 연결 완료${state.order ? ' · 추천 경로 계산 가능' : ' · 주문 저장 필요'}`;
+    mapSetup.hidden = Boolean(selectedStart?.nodeId);
     syncOrderEditorControls();
-    calculate.disabled = state.busy || rehearsalActive || draftingNewOrder || !state.order || !state.graph || !startNode.value;
+    calculate.disabled = state.busy || rehearsalActive || draftingNewOrder || !state.order || !state.graph || !selectedStart?.nodeId;
     renderCards(state);
     const route = state.selectedRoute; const guide = state.guidance;
     guidanceAction.textContent = guide.active ? `${guide.instruction_type || 'GUIDANCE'} · ${guide.instruction || ''}` : 'GUIDANCE OFF';
@@ -333,7 +357,9 @@ function createRoutePlannerPanelView(options = {}) {
     }
     if (action === 'lock-order' && current.order) { await options.client.updateOrder(current.order.id, { ...draftPayload(true), base_revision: current.order.revision }); return; }
     if (action === 'calculate' && current.order && current.graph) {
-      await options.client.calculate({ order_id: current.order.id, order_revision: current.order.revision, graph_revision: current.graph.graph_revision, start_node_id: startNode.value, operation_mode: operationMode.value }); return;
+      const selectedStart = routeStartChoices(current.graph).find((node) => node.value === startNode.value);
+      if (!current.graph || !selectedStart?.nodeId) return;
+      await options.client.calculate({ order_id: current.order.id, order_revision: current.order.revision, graph_revision: current.graph.graph_revision, start_node_id: selectedStart.nodeId, operation_mode: operationMode.value }); return;
     }
     const route = current.selectedRoute; if (!route) return;
     if (action === 'start-guidance') await options.client.startGuidance(route);
@@ -344,7 +370,7 @@ function createRoutePlannerPanelView(options = {}) {
 
   speed.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SET_SPEED', { speed: Number(speed.value) }); });
   timeline.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SCRUB', { position_ms: Math.max(0, Number(timeline.value) || 0) }); });
-  startNode.addEventListener('change', () => { selectedStartNodeId = startNode.value; });
+  startNode.addEventListener('change', () => { selectedStartNodeId = startNode.value; if (current) render(current); });
 
   loadDefaultDraft();
   return Object.freeze({ render, destroy() { root.remove(); } });

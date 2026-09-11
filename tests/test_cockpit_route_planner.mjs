@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { routeStartChoices } from '../robot_dashboard/static/features/cockpit/panels/route_planner_panel.js';
+
+test('four destination starts stay explicit and resolve only unique graph locations', () => {
+  const empty = routeStartChoices(null);
+  assert.equal(empty.length, 4);
+  assert.ok(empty.every((item) => item.nodeId === ''));
+  const nodes = empty.map((item, index) => ({ id: `DOCK_${index}`, venue_id: item.value.slice(6), role: 'DESTINATION_DOCK' }));
+  assert.deepEqual(routeStartChoices({ nodes }).map((item) => item.nodeId), ['DOCK_0', 'DOCK_1', 'DOCK_2', 'DOCK_3']);
+  assert.equal(routeStartChoices({ nodes: [...nodes, { ...nodes[0], id: 'AMBIGUOUS' }] })[0].nodeId, '');
+  assert.equal(routeStartChoices({ nodes: [{ ...nodes[0], role: 'DESTINATION_APPROACH' }] })[0].nodeId, 'DOCK_0');
+});
 
 import { createRoutePlannerClient, projectRehearsal, projectState } from '../robot_dashboard/static/features/cockpit/route_planner_client.js';
 import { createCockpitSceneHost } from '../robot_dashboard/static/features/cockpit/scene_host.js';

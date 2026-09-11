@@ -544,6 +544,27 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   expect(inactive.panel.active).toBe(false);
 });
 
+test('Route Planner destination start survives polling and missing graph is explained', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'route-planner');
+  const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
+  const start = planner.getByLabel('Route start node', { exact: true });
+  await start.selectOption('venue:COEX');
+  await expect(planner.locator('.route-planner-start-status')).toContainText('출발점: 코엑스 · 지도 연결 완료');
+  await planner.locator('[data-route-action="save-order"]').click();
+  await planner.locator('[data-route-action="calculate"]').click();
+  await expect(planner.locator('.route-planner-card')).toHaveCount(3);
+  expect(backend.mutations('/api/v1/route-planner/recommendations')[0].body.start_node_id).toBe('COEX_DOCK');
+  backend.state.routePlanner.graph = null;
+  await expect(planner.locator('.route-planner-start-status')).toContainText('지도 연결 필요');
+  await expect(start).toHaveValue('venue:COEX');
+  for (const value of ['WHIMOON', 'GANGNAM_POLICE', 'GTX_SITE']) {
+    await start.selectOption(`venue:${value}`);
+    await expect(planner.locator('[data-route-action="calculate"]')).toBeDisabled();
+  }
+  expect(backend.mutations('/api/v1/route-planner/recommendations')).toHaveLength(1);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+});
+
 test('locked Route Planner order stays server-synchronized and offers an isolated new-order draft', async ({ page }) => {
   const backend = await openDashboard(page, { routePlannerLocked: true }, 'route-planner');
   const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
