@@ -42,3 +42,32 @@ After robot power-up, separately verify mapping state, fresh FAST-LIO output
 and registered cloud/pose frame agreement. Deployment and live visual
 verification remain pending; no claim is made that the displayed sensor
 preview is a measured world position.
+
+## Authorized external deployment and stationary input check
+
+Following operator approval, deployed `d345c0f393fc54e3fe593fce21b01acedfe426c7`.
+CI run 34572196991 passed both Ubuntu/Python matrices. Archive SHA-256:
+`5a4b705fac0c1647ff4e9e77e355b9140c7d769639b7b3396bb6d557fce00afe`.
+
+The first activation failed because the archive lacked the native D2 build.
+Rolled back immediately to `fbe8cd0`, verified HTTP service recovery, then built
+the exact-release registration core, CLI and PCL NDT2D backend. CTest passed
+1/1. Re-activation succeeded: PID 276539, NRestarts=0, process cwd matched the
+new release. scene3d.js SHA-256 matched local and deployed files:
+`1db84155c330cb9227662e4541a1e0701b48ec604109413132fdb25cbdb6b264`.
+Future archive deployments must prepare these native artifacts before activation.
+
+Started the allowlisted mapping pipeline at 07:09:50 UTC. Raw cloud, IMU and
+FAST-LIO readiness passed. Two pose snapshots approximately 31.6 seconds apart
+advanced from seq 74 to 389, with ages 27ms and 13ms, both `ok`,
+`camera_init -> body`. Raw cloud remained `/velodyne_points`, `hesai_lidar`,
+8000 displayed / 16000 source points. Thus the raw cloud is not a world-frame
+trajectory canvas even when odometry is fresh.
+
+Control evidence: no lease, deadman false, accepted command exact zero,
+Move count 0 and action count 0. Onboard Bridge release remained `10a7fa9`.
+Stopped only the test mapping pipeline at 07:10:59 UTC (state stopped,
+exit 130, no error). Preview remained running; no map saved, initial pose,
+Navigation goal or motion requested. Odometry becoming stale after this
+intentional stop is expected. Browser visual verification remains separate
+from these API and deployed-file checks.
