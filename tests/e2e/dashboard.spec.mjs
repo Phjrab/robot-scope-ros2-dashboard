@@ -77,6 +77,25 @@ test('Sensors camera observability shows Wi-Fi, source, transport, decode and cl
   await expect(page.locator('#cameraPerceptionHud span')).toContainText('INPUT AGE');
 });
 
+test('RealSense resolution selection survives polling and applies exactly once', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'sensors');
+  const selector = page.locator('#realsenseProfileSelect');
+  const apply = page.locator('#realsenseProfileApply');
+  await expect(selector).toHaveValue('640x480');
+  await selector.selectOption('1280x720');
+  await expect(selector).toHaveValue('1280x720');
+  await expect(apply).toBeEnabled();
+  await page.waitForTimeout(5_200);
+  await expect(selector).toHaveValue('1280x720');
+  await expect(apply).toBeEnabled();
+  await apply.click();
+  await expect(page.locator('#realsenseProfileStatus')).toContainText('현재 1280 × 720');
+  expect(backend.mutations('/api/v1/cameras/realsense/profile')).toHaveLength(1);
+  expect(backend.mutations('/api/v1/cameras/realsense/profile')[0].body).toEqual({
+    resolution: '1280x720', confirmed: true,
+  });
+});
+
 test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   await expect(page.locator('#cockpitWorkspace')).toBeVisible();

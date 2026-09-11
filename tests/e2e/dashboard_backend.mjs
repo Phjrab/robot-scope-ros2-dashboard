@@ -197,6 +197,7 @@ export async function installDashboardBackend(page, options = {}) {
     cameraConnectionsBySource: { go2_front: 0, realsense_color: 0 },
     cameraClosesBySource: { go2_front: 0, realsense_color: 0 },
     cameraStreaming: { go2_front: true, realsense_color: true },
+    realsenseProfile: '640x480',
   };
   const handlers = new Map();
 
@@ -317,6 +318,30 @@ export async function installDashboardBackend(page, options = {}) {
       options: { camera: ['/camera/image'], pointcloud: ['/cloud_registered'], odometry: ['/Odometry'], occupancy_grid: ['/map'] },
       metadata: { pointcloud: [{ id: '/cloud_registered', topic: '/cloud_registered', sensor_id: 'xt16', pipeline_stage: 'registered' }] },
     });
+    if (path === '/api/v1/cameras/realsense/profile') {
+      const profiles = {
+        '320x240': { width: 320, height: 240 },
+        '640x480': { width: 640, height: 480 },
+        '1280x720': { width: 1280, height: 720 },
+      };
+      if (method === 'POST') {
+        if (body?.confirmed !== true || !profiles[body?.resolution]) {
+          return json(route, { detail: 'invalid RealSense profile request' }, 422);
+        }
+        state.realsenseProfile = body.resolution;
+      }
+      const selected = profiles[state.realsenseProfile];
+      return json(route, {
+        source_id: 'realsense_color', enabled: true, configured: true, available: true,
+        profiles: Object.entries(profiles).map(([id, dimensions]) => ({ id, ...dimensions })),
+        selected: {
+          schema: 'robot-scope.realsense-profile.v1', profile: state.realsenseProfile,
+          ...selected, fps: 15, jpeg_quality: 72,
+          service: { load: 'loaded', active: 'active', sub: 'running' },
+        },
+        blockers: [], can_apply: true, last_error: '',
+      });
+    }
     if (path === '/api/v1/cameras') return json(route, {
       max_active: 2,
       sources: options.cameraSources || [

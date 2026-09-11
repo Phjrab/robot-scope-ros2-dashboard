@@ -11,6 +11,7 @@ let snapshot = null;
 let busy = false;
 let generation = 0;
 let initialized = false;
+let selectionDirty = false;
 let getActivePage = () => '';
 let showToast = () => {};
 let onApplied = () => {};
@@ -33,7 +34,11 @@ function renderOptions(profiles, selected) {
       return option;
     }));
   }
-  if (selected && ids.includes(selected)) ui.select.value = selected;
+  if (
+    selected
+    && ids.includes(selected)
+    && (!selectionDirty || !ids.includes(ui.select.value))
+  ) ui.select.value = selected;
 }
 
 function render() {
@@ -92,6 +97,7 @@ async function applySelected() {
       method: 'POST',
       body: JSON.stringify({ resolution, confirmed: true }),
     });
+    selectionDirty = false;
     showToast(`RealSense 해상도를 ${resolution}로 적용했습니다.`);
     onApplied();
   } catch (error) {
@@ -109,7 +115,13 @@ export function initializeRealSenseProfileFeature(options = {}) {
   getActivePage = options.getActivePage || getActivePage;
   showToast = options.showToast || showToast;
   onApplied = options.onApplied || onApplied;
-  ui.select?.addEventListener('change', render);
+  ui.select?.addEventListener('change', () => {
+    selectionDirty = Boolean(
+      snapshot?.selected?.profile
+      && ui.select.value !== snapshot.selected.profile
+    );
+    render();
+  });
   ui.apply?.addEventListener('click', applySelected);
   setInterval(refresh, 5000);
   render();

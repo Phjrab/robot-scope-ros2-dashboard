@@ -35,3 +35,10 @@ test('dataset capture and remote status blockers are rendered fail closed', () =
   assert.match(feature, /ui\.select\.disabled = busy \|\| !snapshot\?\.can_apply/);
   assert.match(feature, /ui\.apply\.disabled = busy \|\| !snapshot\?\.can_apply \|\| !changed/);
 });
+
+test('operator resolution selection survives render and polling until apply succeeds', () => {
+  assert.match(feature, /let selectionDirty = false/);
+  assert.match(feature, /!selectionDirty \|\| !ids\.includes\(ui\.select\.value\)/);
+  assert.match(feature, /selectionDirty = Boolean\([\s\S]*?ui\.select\.value !== snapshot\.selected\.profile/);
+  assert.match(feature, /snapshot = await api\([\s\S]*?selectionDirty = false/);
+});
