@@ -607,3 +607,72 @@ does not change the existing readiness calculation, relax the 0.25-second
 odometry maximum-gap gate, or authorize a stationary Navigation session,
 initial pose, goal or motion. A fresh approval remains required for the next
 stationary no-goal evidence run.
+
+## Map-library scrolling release external deployment
+
+The operator separately approved external-only deployment of exact commit
+`e33cf33e98a4494524a82840ac9056f50df17e9f` after manually stopping the active
+mapping pipeline. The approved scope allowed the external immutable-release
+switch and a restart of `robot-scope.service` only. It preserved the onboard
+Bridge at `10a7fa9cec2c329f2c50edc9ad98de13a22689da` and prohibited map-data
+changes, candidate generation, initial pose, Navigation session, goal,
+deadman, non-zero command and robot motion.
+
+The exact Git archive had compressed SHA-256
+`0423e1da83609cdc4be7ed18c6d5d204469e3c40c081fac081fa384dba8ae2865032a2`.
+It was verified before extraction into
+`/home/jetson_orin_nano/releases/robot-scope/e33cf33e98a4494524a82840ac9056f50df17e9f`.
+The deployed Map Library UI fingerprints were:
+
+- `robot_dashboard/static/index.html`:
+  `3c24988d7570fb8b05fe5df176ba6b8671b14ea1664790e55d8ad55972052049`;
+- `robot_dashboard/static/styles.css`:
+  `5bb056a4f0e9f0dbba5aa863a8cc583fde3abd78e4a31ef64631f26e53f61abb`.
+
+The PCL registration backend was rebuilt in the inactive exact release with
+`CMAKE_BUILD_TYPE=Release`, `BUILD_TESTING=ON` and
+`ROBOT_SCOPE_BUILD_PCL_BACKENDS=ON`. Native CTest passed 1/1. The NDT2D
+acceptance benchmark passed 10/10 trials; runtime p50/p95 was
+`954.015/1076.294 ms`, translation median/p95 was
+`0.00127734/0.00310484 m`, and yaw median/p95 was
+`0.0281525/0.0978575 degrees`. The resulting executable SHA-256 was
+`ec761c181fe8ecdae0c31522a9cf2edca9cb3d7150696414f29a41af72cf94f3`.
+
+The production symlink was changed only after the mapping pipeline and
+operation were confirmed idle and the lifecycle endpoint reported no blocker.
+The prior exact release was
+`95992ba3201cec0b016b274856c2501690711c4a`; rollback is retained at
+`/home/jetson_orin_nano/robot-scope.pre-e33cf33`. The restricted same-origin
+lifecycle endpoint accepted the confirmed dashboard-only restart with HTTP
+202. No direct service or onboard lifecycle command was used.
+
+Post-activation evidence:
+
+- the external production symlink and dashboard process cwd both resolved to
+  exact release `e33cf33e98a4494524a82840ac9056f50df17e9f`;
+- `robot-scope.service` was active as PID `78044`, with `NRestarts=0`, and was
+  listening on `0.0.0.0:8088`; loopback and LAN health checks passed, and no
+  warning-or-higher dashboard journal entry appeared in the inspected
+  post-restart interval;
+- onboard `robot-scope-control-bridge.service` remained active as its existing
+  PID `6243`, with `NRestarts=0` and cwd in exact release
+  `10a7fa9cec2c329f2c50edc9ad98de13a22689da`;
+- the signed Bridge remained ready, authenticated and connected; the control
+  lease stayed inactive, deadman stayed released, and dashboard and accepted
+  commands stayed exact zero;
+- Bridge evidence remained Move 0, non-zero Move 0 and action 0;
+- Navigation pipeline/session/localization session/goal remained idle,
+  initial-pose count remained 0, and no goal was submitted;
+- Mapping pipeline and operation remained idle. The configured persistent XT16
+  preview alone recovered to running during normal dashboard startup;
+- Dataset capture remained idle;
+- saved map `map_20260911_111611_edited` remained present as map ID
+  `8ed16228e2bbace6e74a4631`, revision
+  `ad167a5bc431e02b0786f198e36dbba22b1ab4b23fd49e67f86afae8ee2344d4`,
+  size `348933` bytes;
+- onboard Bridge, map data, Navigation state and robot motion were not changed.
+
+This deployment changes only the Map Library presentation boundary: a bounded,
+keyboard-focusable internal scroll region replaces unbounded page growth. It
+does not authorize D2 candidate generation, localization or C4 motion. Those
+steps still require their own current-map evidence and fresh safety approval.
