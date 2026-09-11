@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const require = createRequire(import.meta.url);
 const editor = require('../robot_dashboard/static/map_editor.js');
+const cropModule = await import('../robot_dashboard/static/features/maps/crop.js');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 
@@ -12,6 +13,21 @@ test('occupancy base64 decodes to canonical unknown, free and obstacle cells', (
   const encoded = Buffer.from([255, 0, 42, 100]).toString('base64');
   assert.deepEqual(Array.from(editor.decodeGrid(encoded, 2, 2)), [-1, 0, 0, 100]);
   assert.throws(() => editor.decodeGrid(encoded, 3, 2), /cell count/);
+});
+
+test('crop UI is copy-only, revision-pinned, and exposes bounded output naming', () => {
+  for (const id of ['mapCropState', 'mapCropSelect', 'mapCropCancel', 'mapCropCanvas', 'mapCropName', 'mapCropSave']) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.match(indexSource, /원본 YAML·PGM·PCD는 변경하지 않습니다/);
+  assert.equal(cropModule.validSavedMapName('arena_crop'), true);
+  assert.equal(cropModule.validSavedMapName('../arena'), false);
+  assert.equal(cropModule.suggestedDerivedMapName({ name: 'arena' }, '_crop'), 'arena_crop');
+  const cropSource = readFileSync(new URL('../robot_dashboard/static/features/maps/crop.js', import.meta.url), 'utf8');
+  assert.match(cropSource, /source_revision: current\.meta\.revision/);
+  assert.match(cropSource, /\/cropped-copy/);
+  assert.match(cropSource, /window\.confirm/);
+  assert.doesNotMatch(cropSource, /\/mapping\/start|\/navigation\/goal|\/control\/lease/);
 });
 
 test('brush painting is bounded and eraser resolvers can restore original cells', () => {

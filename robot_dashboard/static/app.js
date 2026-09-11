@@ -15,6 +15,7 @@ import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, 
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
+import { initializeMapCropFeature, suggestedDerivedMapName, validSavedMapName } from './features/maps/crop.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
 import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
 // Exposed for the lightweight Node contract test and browser diagnostics.
@@ -497,7 +498,7 @@ let navigationMapTool = '';
 let navigationStagedPose = null;
 let navigationPointer = null;
 let navigationRenderFrame = 0;
-let mapAnnotationFeature = null;
+let mapAnnotationFeature = null, mapCropFeature = null;
 let serviceLifecycleFeature = null;
 let controlBridgeServiceFeature = null;
 let datasetFeature = null;
@@ -1563,6 +1564,7 @@ function updateSavedMapOverview() {
   }
   updateSavedPointBudgetAvailability();
   updateSavedMapManagement();
+  mapCropFeature?.sync();
   syncMapConversionPanel();
 }
 
@@ -1588,16 +1590,6 @@ function updateSavedMapManagement() {
   else if (!manageable) ui.savedMapManageNote.textContent = '번들 데모 또는 읽기 전용 지도는 변경할 수 없습니다.';
   else if (selectedSavedMapMeta.kind === 'occupancy2d') ui.savedMapManageNote.textContent = '이름 변경·삭제 시 YAML과 연결된 PGM을 함께 처리합니다.';
   else ui.savedMapManageNote.textContent = '선택한 저장 지도 파일의 이름을 변경하거나 삭제합니다.';
-}
-
-function validSavedMapName(value) {
-  return /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(String(value || ''));
-}
-
-function suggestedDerivedMapName(source, suffix) {
-  const base = String(source?.name || source?.file_name || 'map').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_-]+/g, '_');
-  const normalized = /^[A-Za-z0-9]/.test(base) ? base : `map_${base}`;
-  return `${normalized.slice(0, Math.max(1, 64 - suffix.length))}${suffix}`;
 }
 
 function conversionCloudMaps() {
@@ -6679,6 +6671,7 @@ ui.mapEditorSave.addEventListener('click', saveMapEditorCopy);
 ui.mapEditorCanvas.addEventListener('pointerdown', beginMapEditorStroke);
 ui.mapEditorCanvas.addEventListener('pointermove', moveMapEditorStroke);
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((name) => ui.mapEditorCanvas.addEventListener(name, finishMapEditorStroke));
+mapCropFeature = initializeMapCropFeature({ api, showToast, setStatePill, getSource: () => ({ meta: selectedSavedMapMeta, snapshot: savedOccupancySnapshot }), refreshSavedMaps, selectSavedMap });
 mapAnnotationFeature = mapAnnotationEngine?.createFeature({
   ui: {
     state: ui.mapAnnotationState,

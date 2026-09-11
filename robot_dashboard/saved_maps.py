@@ -25,7 +25,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Dict, Iterable, Optional
+from typing import Any, Callable, ContextManager, Dict, Iterable, Mapping, Optional
 
 import numpy as np
 
@@ -1830,6 +1830,34 @@ class SavedMapCatalog:
     ) -> Dict[str, Any]:
         """Publish bounded RLE brush edits as a new occupancy-map pair."""
 
+        return self._save_occupancy_copy(
+            map_id, name, source_revision, runs, crop=None
+        )
+
+    def save_cropped_copy(
+        self,
+        map_id: str,
+        name: str,
+        source_revision: str,
+        crop: Mapping[str, Any],
+    ) -> Dict[str, Any]:
+        """Publish a cell-aligned rectangular crop as a new map pair."""
+
+        return self._save_occupancy_copy(
+            map_id, name, source_revision, (), crop=crop
+        )
+
+    def _save_occupancy_copy(
+        self,
+        map_id: str,
+        name: str,
+        source_revision: str,
+        runs: Iterable[Dict[str, Any]],
+        *,
+        crop: Optional[Mapping[str, Any]],
+    ) -> Dict[str, Any]:
+        """Publish validated edits and an optional crop without altering source."""
+
         safe_name = self.validate_map_name(name)
         if not isinstance(source_revision, str) or not REVISION_RE.fullmatch(source_revision):
             raise SavedMapFormatError("source_revision must be a 64-character lowercase hex string")
@@ -1877,7 +1905,11 @@ class SavedMapCatalog:
             if (width, height) != (header_width, header_height):
                 raise SavedMapFormatError("occupancy image header changed during editing")
             assert source_pixels is not None
-            normalized_runs = self._validate_edit_runs(runs, width * height)
+            run_items = list(runs)
+            normalized_runs = (
+                [] if crop is not None and not run_items
+                else self._validate_edit_runs(run_items, width * height)
+            )
             output_pixels = np.rint(source_pixels * 255.0).astype(np.uint8)
             edited_cells = self._apply_edit_runs(
                 output_pixels,
@@ -1886,12 +1918,39 @@ class SavedMapCatalog:
                 normalized_runs,
                 metadata,
             )
+            crop_details: Optional[Dict[str, int]] = None
+            output_origin = tuple(float(value) for value in metadata["origin"])
+            source_width, source_height = width, height
+            if crop is not None:
+                min_x, min_y, max_x, max_y = self._validate_crop_bounds(
+                    crop, width, height
+                )
+                crop_details = {
+                    "min_x": min_x,
+                    "min_y": min_y,
+                    "max_x": max_x,
+                    "max_y": max_y,
+                    "source_width": source_width,
+                    "source_height": source_height,
+                }
+                output_pixels = np.ascontiguousarray(
+                    output_pixels[height - max_y : height - min_y, min_x:max_x]
+                )
+                yaw = output_origin[2]
+                dx = min_x * metadata["resolution"]
+                dy = min_y * metadata["resolution"]
+                output_origin = (
+                    output_origin[0] + math.cos(yaw) * dx - math.sin(yaw) * dy,
+                    output_origin[1] + math.sin(yaw) * dx + math.cos(yaw) * dy,
+                    yaw,
+                )
+                width, height = max_x - min_x, max_y - min_y
             staged_yaml, staged_pgm = self._stage_occupancy_pair(
                 transaction,
                 safe_name,
                 output_pixels,
                 resolution=metadata["resolution"],
-                origin=tuple(metadata["origin"]),
+                origin=output_origin,
                 occupied_thresh=metadata["occupied_thresh"],
                 free_thresh=metadata["free_thresh"],
                 negate=metadata["negate"],
@@ -1912,7 +1971,7 @@ class SavedMapCatalog:
                     resolution=float(metadata["resolution"]),
                     width=width,
                     height=height,
-                    origin=tuple(float(value) for value in metadata["origin"]),
+                    origin=output_origin,
                     parameters={
                         key: source_lineage["conversion"][key]
                         for key in (
@@ -1969,9 +2028,36 @@ class SavedMapCatalog:
                 "run_count": len(normalized_runs),
                 "edited_cells": edited_cells,
             }
+            if crop_details is not None:
+                public["crop"] = {
+                    **crop_details,
+                    "width": width,
+                    "height": height,
+                    "origin": list(output_origin),
+                }
             if lineage is not None:
                 public["map_family"] = public_family_document(lineage)
             return public
+
+    @staticmethod
+    def _validate_crop_bounds(
+        crop: Mapping[str, Any], width: int, height: int
+    ) -> tuple[int, int, int, int]:
+        if not isinstance(crop, Mapping):
+            raise SavedMapFormatError("crop must be an object")
+        if set(crop) != {"min_x", "min_y", "max_x", "max_y"}:
+            raise SavedMapFormatError("crop must contain exactly four cell bounds")
+        values = tuple(crop[key] for key in ("min_x", "min_y", "max_x", "max_y"))
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
+            raise SavedMapFormatError("crop bounds must be integers")
+        min_x, min_y, max_x, max_y = values
+        if not (0 <= min_x < max_x <= width and 0 <= min_y < max_y <= height):
+            raise SavedMapFormatError("crop bounds must be ordered inside the source map")
+        if max_x - min_x < 2 or max_y - min_y < 2:
+            raise SavedMapFormatError("cropped map must be at least 2 by 2 cells")
+        if (min_x, min_y, max_x, max_y) == (0, 0, width, height):
+            raise SavedMapFormatError("crop must be smaller than the source map")
+        return min_x, min_y, max_x, max_y
 
     @staticmethod
     def validate_map_name(name: str) -> str:

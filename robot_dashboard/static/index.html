@@ -320,6 +320,27 @@
             </div>
             <p id="mapEditorMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM은 변경하지 않습니다. 편집 결과는 새 지도 복사본으로만 저장됩니다.</p>
           </article>
+          <article class="panel map-crop-panel">
+            <div class="panel-header compact">
+              <div><div class="eyebrow">NON-DESTRUCTIVE BOUNDARY</div><h2>2D 경기장 지도 크롭</h2></div>
+              <div class="panel-state waiting" id="mapCropState"><span></span>NO MAP</div>
+            </div>
+            <div class="map-crop-toolbar">
+              <div><strong id="mapCropSource">SOURCE —</strong><small id="mapCropDimensions">영역 미선택</small></div>
+              <button id="mapCropSelect" type="button" disabled>CROP AREA 선택</button>
+              <button id="mapCropCancel" type="button" disabled>선택 취소</button>
+            </div>
+            <div class="map-crop-stage">
+              <canvas id="mapCropCanvas" aria-label="저장된 2D 지도 크롭 영역 선택"></canvas>
+              <div class="map-editor-empty" id="mapCropEmpty">크롭할 관리 가능 2D 지도를 선택하세요.</div>
+            </div>
+            <div class="map-editor-save-row">
+              <div><strong>새 지도 복사본</strong><small>YAML origin 자동 보정</small></div>
+              <label><span>복사본 이름</span><input id="mapCropName" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name_crop"></label>
+              <button id="mapCropSave" class="map-primary-action" type="button" disabled>SAVE CROPPED COPY</button>
+            </div>
+            <p id="mapCropMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM·PCD는 변경하지 않습니다. 사각형 밖 영역만 제외한 새 2D 지도를 생성합니다.</p>
+          </article>
         </section>
       </section>
 

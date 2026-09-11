@@ -209,6 +209,7 @@ class NavigationAppContractTests(unittest.TestCase):
             "save",
             "convert_pcd_to_2d",
             "save_edited_copy",
+            "save_cropped_copy",
             "rename",
             "delete",
         ):

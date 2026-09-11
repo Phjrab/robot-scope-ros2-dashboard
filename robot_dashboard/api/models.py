@@ -63,6 +63,19 @@ class SavedMapEditedCopyRequest(StrictRequest):
     runs: list[SavedMapEditRun] = Field(min_length=1, max_length=10_000)
 
 
+class SavedMapCropBounds(StrictRequest):
+    min_x: int = Field(strict=True, ge=0, le=1_000_000)
+    min_y: int = Field(strict=True, ge=0, le=1_000_000)
+    max_x: int = Field(strict=True, ge=1, le=1_000_000)
+    max_y: int = Field(strict=True, ge=1, le=1_000_000)
+
+
+class SavedMapCroppedCopyRequest(StrictRequest):
+    name: str
+    source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    crop: SavedMapCropBounds
+
+
 class MapAnnotationPose(StrictRequest):
     x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
     y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)

@@ -8,6 +8,7 @@ APP_PATH = ROOT / "robot_dashboard" / "app.py"
 MAP_FAMILIES_ROUTER_PATH = (
     ROOT / "robot_dashboard" / "api" / "routers" / "map_families.py"
 )
+MAP_CROP_ROUTER_PATH = ROOT / "robot_dashboard" / "api" / "routers" / "map_crop.py"
 COORDINATOR_PATH = (
     ROOT / "robot_dashboard" / "application" / "mapping_coordinator.py"
 )
@@ -46,7 +47,7 @@ def mapping_coordinator_methods(node: ast.AST) -> set[str]:
         if (
             isinstance(owner, ast.Call)
             and isinstance(owner.func, ast.Name)
-            and owner.func.id == "mapping_coordinator"
+            and owner.func.id in {"mapping_coordinator", "_mapping"}
         ):
             result.add(child.func.attr)
     return result
@@ -77,7 +78,9 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app_tree = parsed(APP_PATH)
         cls.map_families_router_tree = parsed(MAP_FAMILIES_ROUTER_PATH)
+        cls.map_crop_router_tree = parsed(MAP_CROP_ROUTER_PATH)
         cls.app_functions = functions(cls.app_tree)
+        cls.transport_functions = {**cls.app_functions, **functions(cls.map_crop_router_tree)}
         cls.coordinator_tree = parsed(COORDINATOR_PATH)
         coordinator_class = next(
             node
@@ -99,6 +102,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             ("get", "/api/v1/saved-maps"),
             ("post", "/api/v1/saved-maps/{map_id}/convert-2d"),
             ("post", "/api/v1/saved-maps/{map_id}/edited-copy"),
+            ("post", "/api/v1/saved-maps/{map_id}/cropped-copy"),
             ("get", "/api/v1/saved-maps/{map_id}"),
             ("get", "/api/v1/saved-maps/{map_id}/family"),
             ("get", "/api/v1/saved-maps/{map_id}/download"),
@@ -114,6 +118,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             for route in (
                 declared_app_routes(self.app_tree)
                 | declared_app_routes(self.map_families_router_tree)
+                | declared_app_routes(self.map_crop_router_tree)
             )
             if route[1].startswith("/api/v1/mapping")
             or route[1].startswith("/api/v1/saved-maps")
@@ -139,6 +144,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             "mapping_save": "save",
             "convert_saved_pcd_to_2d": "convert_pcd_to_2d",
             "save_edited_map_copy": "save_edited_copy",
+            "save_cropped_map_copy": "save_cropped_copy",
             "rename_saved_map": "rename",
             "delete_saved_map": "delete",
             "update_saved_map_annotations": "update_annotations",
@@ -156,7 +162,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
         }
         for name, method in expected_method.items():
             with self.subTest(route=name):
-                node = self.app_functions[name]
+                node = self.transport_functions[name]
                 calls = called_names(node)
                 self.assertIn("require_same_origin", calls)
                 self.assertIn("request", [argument.arg for argument in node.args.args])
@@ -173,12 +179,13 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             "mapping_save",
             "convert_saved_pcd_to_2d",
             "save_edited_map_copy",
+            "save_cropped_map_copy",
             "rename_saved_map",
             "delete_saved_map",
             "update_saved_map_annotations",
         }
         for name in new_work:
-            source = ast.unparse(self.app_functions[name])
+            source = ast.unparse(self.transport_functions[name])
             self.assertIn("LifecycleTransitionBusy", source, name)
             self.assertIn("mapping_coordination_error", source, name)
 
@@ -202,6 +209,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             "save",
             "convert_pcd_to_2d",
             "save_edited_copy",
+            "save_cropped_copy",
             "rename",
             "delete",
             "update_annotations",

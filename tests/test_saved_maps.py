@@ -1,4 +1,5 @@
 import json
+import math
 import struct
 import tempfile
 import threading
@@ -1211,6 +1212,52 @@ class SavedMapCatalogTests(unittest.TestCase):
                 [{"start": 0, "length": 1, "value": 0}],
             )
         self.assertFalse((self.root / "stale_edit.yaml").exists())
+
+    def test_cropped_copy_preserves_source_pixels_and_rotates_new_origin(self):
+        pixels = bytes([10, 11, 12, 13, 20, 21, 22, 23, 30, 31, 32, 33])
+        (self.root / "arena.pgm").write_bytes(b"P5\n4 3\n255\n" + pixels)
+        (self.root / "arena.yaml").write_text(
+            "image: arena.pgm\nmode: trinary\nresolution: 0.5\n"
+            "origin: [1.0, 2.0, 1.5707963267948966]\nnegate: 0\n"
+            "occupied_thresh: 0.65\nfree_thresh: 0.25\n",
+            encoding="utf-8",
+        )
+        source = next(
+            item for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "arena.yaml"
+        )
+        result = self.managed_catalog.save_cropped_copy(
+            source["id"], source["name"] + "_crop", source["revision"],
+            {"min_x": 1, "min_y": 0, "max_x": 4, "max_y": 2},
+        )
+        width, height, cropped = self.managed_catalog._read_pgm(
+            self.root / "arena_crop.pgm", pixels=True
+        )
+        metadata = self.managed_catalog._read_map_yaml(self.root / "arena_crop.yaml")
+        self.assertEqual((width, height), (3, 2))
+        self.assertEqual(np.rint(cropped * 255).astype(int).tolist(), [[21, 22, 23], [31, 32, 33]])
+        self.assertAlmostEqual(metadata["origin"][0], 1.0, places=9)
+        self.assertAlmostEqual(metadata["origin"][1], 2.5, places=9)
+        self.assertAlmostEqual(metadata["origin"][2], math.pi / 2, places=9)
+        self.assertEqual(result["crop"]["source_width"], 4)
+        self.assertEqual(result["crop"]["source_height"], 3)
+        self.assertEqual((self.root / "arena.pgm").read_bytes()[-12:], pixels)
+
+    def test_crop_rejects_full_out_of_bounds_and_tiny_rectangles(self):
+        source = next(
+            item for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        for index, crop in enumerate((
+            {"min_x": 0, "min_y": 0, "max_x": 2, "max_y": 2},
+            {"min_x": 0, "min_y": 0, "max_x": 1, "max_y": 2},
+            {"min_x": 0, "min_y": 0, "max_x": 3, "max_y": 2},
+        )):
+            with self.subTest(crop=crop), self.assertRaises(SavedMapFormatError):
+                self.managed_catalog.save_cropped_copy(
+                    source["id"], f"bad_crop_{index}", source["revision"], crop
+                )
+            self.assertFalse((self.root / f"bad_crop_{index}.yaml").exists())
 
     def test_threshold_aware_pixels_round_trip_unknown_for_narrow_valid_gap(self):
         metadata = {

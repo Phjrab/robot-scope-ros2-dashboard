@@ -313,6 +313,27 @@ class MappingCoordinator:
                 list(runs),
             )
 
+    async def save_cropped_copy(
+        self,
+        map_id: str,
+        name: str,
+        source_revision: str,
+        crop: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        async with self._coordination_lock:
+            self._require_lifecycle_idle()
+            self._require_navigation_idle(
+                "navigation must stop before cropping a map"
+            )
+            self._require_task_idle("map operation must finish before cropping")
+            return await asyncio.to_thread(
+                self._catalog.save_cropped_copy,
+                map_id,
+                name,
+                source_revision,
+                dict(crop),
+            )
+
     async def update_annotations(
         self,
         map_id: str,

@@ -145,6 +145,10 @@ class FakeSavedMapCatalog:
         self.calls.append(("edited", map_id, name, source_revision, runs))
         return {"id": "edited-map", "revision": "c" * 64}
 
+    def save_cropped_copy(self, map_id, name, source_revision, crop):
+        self.calls.append(("cropped", map_id, name, source_revision, crop))
+        return {"id": "cropped-map", "revision": "e" * 64}
+
     def rename(self, map_id, name):
         self.calls.append(("rename", map_id, name))
         return {"id": map_id, "name": name}
@@ -385,12 +389,17 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             "d" * 64,
             [{"row": 4, "start": 5, "end": 7, "value": 100}],
         )
+        cropped = await self.coordinator.save_cropped_copy(
+            "opaque-source", "cropped-copy", "d" * 64,
+            {"min_x": 1, "min_y": 2, "max_x": 3, "max_y": 4},
+        )
         renamed = await self.coordinator.rename("opaque-edited", "new-name")
         deleted = await self.coordinator.delete("opaque-old")
         self.assertEqual(edited["id"], "edited-map")
+        self.assertEqual(cropped["id"], "cropped-map")
         self.assertEqual(renamed["name"], "new-name")
         self.assertEqual(deleted["id"], "opaque-old")
-        self.assertEqual(self.lifecycle_calls, 3)
+        self.assertEqual(self.lifecycle_calls, 4)
 
         self.navigation_is_active = True
         before = list(self.catalog.calls)

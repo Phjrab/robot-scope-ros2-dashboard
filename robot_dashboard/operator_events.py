@@ -78,6 +78,7 @@ _HTTP_EVENTS: tuple[tuple[str, re.Pattern[str], str], ...] = (
     ("POST", re.compile(r"^/api/v1/system/diagnostics/export$"), "diagnostics_export"),
     ("POST", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/convert-2d$"), "map_convert"),
     ("POST", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/edited-copy$"), "map_edit"),
+    ("POST", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/cropped-copy$"), "map_crop"),
     ("PATCH", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})/annotations$"), "map_annotations_update"),
     ("PATCH", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})$"), "map_rename"),
     ("DELETE", re.compile(r"^/api/v1/saved-maps/(?P<map_id>[0-9a-f]{24})$"), "map_delete"),

@@ -36,6 +36,7 @@ from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
 from .api.routers.map_families import create_router as create_map_families_router
+from .api.routers.map_crop import router as map_crop_router
 from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
 from .api.routers.route_catalogs import router as route_planner_router
@@ -392,6 +393,7 @@ app.include_router(competition_router)
 app.include_router(discovery_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
+app.include_router(map_crop_router)
 app.include_router(model_registry_router)
 app.include_router(perception_router)
 app.include_router(route_planner_router)
