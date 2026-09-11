@@ -35,8 +35,11 @@ function createRoutePlannerPanelView(options = {}) {
   const addLine = make(documentValue, 'button', '', '+ 주문 항목'); addLine.type = 'button'; addLine.dataset.routeAction = 'add-line';
   const saveOrder = make(documentValue, 'button', '', '주문 저장'); saveOrder.type = 'button'; saveOrder.dataset.routeAction = 'save-order';
   const lockOrder = make(documentValue, 'button', '', '주문 잠금'); lockOrder.type = 'button'; lockOrder.dataset.routeAction = 'lock-order';
+  const newOrder = make(documentValue, 'button', '', '새 주문 작성'); newOrder.type = 'button'; newOrder.dataset.routeAction = 'new-order'; newOrder.hidden = true;
   const orderSummary = make(documentValue, 'small', 'route-planner-order-summary', '총 0개 / 적재 한도 5');
-  orderSection.append(labelInput, destination, lines, addLine, orderSummary, saveOrder, lockOrder);
+  const orderNotice = make(documentValue, 'small', 'route-planner-order-notice'); orderNotice.hidden = true; orderNotice.setAttribute('role', 'status');
+  const orderActions = make(documentValue, 'div', 'route-planner-order-actions'); orderActions.append(addLine, saveOrder, lockOrder, newOrder);
+  orderSection.append(labelInput, destination, lines, orderSummary, orderNotice, orderActions);
 
   const planningSection = make(documentValue, 'section', 'route-planner-planning');
   planningSection.append(make(documentValue, 'h3', '', '추천 경로'));
@@ -88,6 +91,8 @@ function createRoutePlannerPanelView(options = {}) {
   let current = null;
   const lineRows = [];
   let scenarioSignature = '';
+  let loadedOrderSignature = '';
+  let draftingNewOrder = false;
 
   function syncMenus(row) {
     const prior = row.menu.value;
@@ -104,7 +109,7 @@ function createRoutePlannerPanelView(options = {}) {
     const menu = documentValue.createElement('select'); menu.setAttribute('aria-label', `메뉴 ${lineRows.length + 1}`);
     const quantityInput = documentValue.createElement('input'); quantityInput.type = 'number'; quantityInput.min = '1'; quantityInput.max = '5'; quantityInput.value = String(quantity); quantityInput.setAttribute('aria-label', `수량 ${lineRows.length + 1}`);
     const remove = make(documentValue, 'button', '', '×'); remove.type = 'button'; remove.dataset.routeRemoveLine = 'true';
-    const row = { root: rowRoot, sequence, restaurant, menu, quantity: quantityInput };
+    const row = { root: rowRoot, sequence, restaurant, menu, quantity: quantityInput, remove };
     lineRows.push(row); syncMenus(row); if (menuId) menu.value = menuId;
     restaurant.addEventListener('change', () => { syncMenus(row); renderOrderSummary(); });
     quantityInput.addEventListener('input', renderOrderSummary);
@@ -124,6 +129,7 @@ function createRoutePlannerPanelView(options = {}) {
     const restaurantCount = new Set(lineRows.map((row) => row.restaurant.value)).size;
     orderSummary.textContent = `총 ${total}개 / 적재 한도 5 · 음식점 ${restaurantCount}곳 · 20초 순차 생성`;
     orderSummary.dataset.valid = String(total >= 3 && total <= 5 && restaurantCount >= 2);
+    syncOrderEditorControls();
   }
 
   function loadOrder(order) {
@@ -131,6 +137,38 @@ function createRoutePlannerPanelView(options = {}) {
     labelInput.value = order.label; destination.value = order.destination_id;
     while (lineRows.length) lineRows.pop().root.remove();
     for (const line of order.lines) addOrderLine(line.restaurant_id, line.menu_id, line.quantity);
+  }
+
+  function loadDefaultDraft() {
+    labelInput.value = 'Competition order'; destination.value = 'COEX';
+    while (lineRows.length) lineRows.pop().root.remove();
+    addOrderLine('HANSOT', 'CHICKEN_MAYO', 2);
+    addOrderLine('EDIYA', 'AMERICANO', 1);
+  }
+
+  function syncOrderEditorControls() {
+    const rehearsalActive = current?.rehearsal.active === true;
+    const locked = !draftingNewOrder && current?.order?.locked === true;
+    const editorDisabled = current?.busy === true || rehearsalActive || locked;
+    labelInput.disabled = editorDisabled; destination.disabled = editorDisabled;
+    for (const row of lineRows) {
+      row.restaurant.disabled = editorDisabled;
+      row.menu.disabled = editorDisabled;
+      row.quantity.disabled = editorDisabled;
+      row.remove.disabled = editorDisabled || lineRows.length <= 2;
+    }
+    saveOrder.disabled = editorDisabled;
+    lockOrder.disabled = editorDisabled || draftingNewOrder || !current?.order;
+    addLine.disabled = editorDisabled || lineRows.length >= 5;
+    newOrder.hidden = !locked && !draftingNewOrder;
+    newOrder.disabled = current?.busy === true || rehearsalActive;
+    newOrder.textContent = draftingNewOrder ? '잠긴 주문으로 돌아가기' : '새 주문 작성';
+    orderNotice.hidden = !locked && !draftingNewOrder;
+    orderNotice.dataset.state = draftingNewOrder ? 'draft' : locked ? 'locked' : '';
+    orderNotice.textContent = draftingNewOrder
+      ? '새 주문 초안 · 저장 전까지 기존의 잠긴 주문은 유지됩니다.'
+      : locked ? `주문 잠김 · 서버 저장본 ${current.order.lines.length}개 항목은 수정할 수 없습니다.` : '';
+    orderSection.dataset.locked = String(locked);
   }
 
   function renderCards(state) {
@@ -141,7 +179,7 @@ function createRoutePlannerPanelView(options = {}) {
       const metrics = make(documentValue, 'p', '', `${route.metrics.distance_m.toFixed(1)} m · ${route.metrics.eta_s.toFixed(0)}초 · 준비 대기 ${route.metrics.food_wait_s.toFixed(0)}초 · Risk ${route.metrics.risk_score.toFixed(1)}`);
       const detail = make(documentValue, 'small', '', `주행 ${route.metrics.travel_time_s.toFixed(0)}초 · 음식 ${route.metrics.food_wait_s.toFixed(0)}초 · 신호 ${route.metrics.signal_wait_s.toFixed(0)}초 · 거리 ${route.metrics.distance_m.toFixed(1)}m · 위험 ${route.metrics.risk_score.toFixed(1)}`);
       const counts = make(documentValue, 'small', '', `횡단보도 ${route.metrics.crosswalk_count} · UNDERPASS ${route.metrics.underpass_count} · 회전 ${route.metrics.turn_count} · 특수 ${route.metrics.special_behavior_count} · ${route.executable ? 'READY' : route.reason || 'ADVISORY'}`);
-      const select = make(documentValue, 'button', '', '선택'); select.type = 'button'; select.dataset.routeSelect = route.id;
+      const select = make(documentValue, 'button', '', '선택'); select.type = 'button'; select.dataset.routeSelect = route.id; select.disabled = state.busy || draftingNewOrder;
       card.append(title, metrics, detail, counts, select); return card;
     }));
   }
@@ -182,15 +220,19 @@ function createRoutePlannerPanelView(options = {}) {
   }
 
   function render(state) {
-    const previousOrderId = current?.order?.id; current = state;
+    current = state;
     status.textContent = `ROUTE PLANNER ${state.state}`;
     pins.textContent = `MAP ${state.graph?.map_revision?.slice(0, 8) || '—'} · GRAPH ${state.graph?.graph_revision?.slice(0, 8) || '—'}`;
-    if (state.order && state.order.id !== previousOrderId) loadOrder(state.order);
+    const orderSignature = state.order ? `${state.order.id}:${state.order.revision}` : '';
+    if (!draftingNewOrder && state.order && orderSignature !== loadedOrderSignature) {
+      loadOrder(state.order);
+      loadedOrderSignature = orderSignature;
+    }
+    if (!state.order && !draftingNewOrder) loadedOrderSignature = '';
     const rehearsalActive = state.rehearsal.active;
     startNode.replaceChildren(...(state.graph?.nodes || []).filter((node) => node.role === 'START').map((node) => option(documentValue, node.id, node.label)));
-    saveOrder.disabled = state.busy || rehearsalActive || state.order?.locked === true; lockOrder.disabled = state.busy || rehearsalActive || !state.order || state.order.locked;
-    addLine.disabled = state.busy || rehearsalActive || lineRows.length >= 5 || state.order?.locked === true;
-    calculate.disabled = state.busy || rehearsalActive || !state.order || !state.graph || !startNode.value;
+    syncOrderEditorControls();
+    calculate.disabled = state.busy || rehearsalActive || draftingNewOrder || !state.order || !state.graph || !startNode.value;
     renderCards(state);
     const route = state.selectedRoute; const guide = state.guidance;
     guidanceAction.textContent = guide.active ? `${guide.instruction_type || 'GUIDANCE'} · ${guide.instruction || ''}` : 'GUIDANCE OFF';
@@ -213,10 +255,10 @@ function createRoutePlannerPanelView(options = {}) {
       })() : []),
     );
     const buttons = Object.fromEntries([...guidanceButtons.children].map((button) => [button.dataset.routeAction, button]));
-    buttons['start-guidance'].disabled = state.busy || rehearsalActive || !route || guide.active;
+    buttons['start-guidance'].disabled = state.busy || rehearsalActive || draftingNewOrder || !route || guide.active;
     buttons['stop-guidance'].disabled = state.busy || rehearsalActive || !guide.active;
-    buttons.preview.disabled = state.busy || !route;
-    buttons.export.disabled = state.busy || rehearsalActive || !route;
+    buttons.preview.disabled = state.busy || draftingNewOrder || !route;
+    buttons.export.disabled = state.busy || rehearsalActive || draftingNewOrder || !route;
     segmentList.replaceChildren(...(route?.segments || []).map((segment, index) => {
       const item = make(documentValue, 'li', '', `${index + 1}. ${segment.label} · ${segment.distance_m.toFixed(1)}m${segment.requirements.length ? ` · ${segment.requirements.map((entry) => entry.id).join('/')}` : ''}`);
       if (guide.active && guide.current_segment_index === index) item.dataset.current = 'true'; return item;
@@ -251,9 +293,22 @@ function createRoutePlannerPanelView(options = {}) {
     const action = event.target.closest?.('[data-route-action]')?.dataset.routeAction;
     if (!action || !current) return;
     if (action === 'add-line') { addOrderLine('EDIYA'); return; }
+    if (action === 'new-order') {
+      draftingNewOrder = !draftingNewOrder;
+      if (draftingNewOrder) loadDefaultDraft();
+      else if (current.order) loadOrder(current.order);
+      render(current);
+      return;
+    }
     if (action === 'save-order') {
-      if (current.order) await options.client.updateOrder(current.order.id, { ...draftPayload(false), base_revision: current.order.revision });
-      else await options.client.createOrder(draftPayload(false));
+      const result = draftingNewOrder || !current.order
+        ? await options.client.createOrder(draftPayload(false))
+        : await options.client.updateOrder(current.order.id, { ...draftPayload(false), base_revision: current.order.revision });
+      if (result && draftingNewOrder) {
+        draftingNewOrder = false;
+        loadedOrderSignature = '';
+        render(current);
+      }
       return;
     }
     if (action === 'lock-order' && current.order) { await options.client.updateOrder(current.order.id, { ...draftPayload(true), base_revision: current.order.revision }); return; }
@@ -270,7 +325,7 @@ function createRoutePlannerPanelView(options = {}) {
   speed.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SET_SPEED', { speed: Number(speed.value) }); });
   timeline.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SCRUB', { position_ms: Math.max(0, Number(timeline.value) || 0) }); });
 
-  addOrderLine('HANSOT', 'CHICKEN_MAYO', 2); addOrderLine('EDIYA', 'AMERICANO', 1);
+  loadDefaultDraft();
   return Object.freeze({ render, destroy() { root.remove(); } });
 }
 

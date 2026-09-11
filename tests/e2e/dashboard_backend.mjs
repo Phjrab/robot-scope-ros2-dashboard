@@ -57,6 +57,22 @@ function baseRoutePlanner() {
   };
 }
 
+function lockedRoutePlanner() {
+  const value = baseRoutePlanner();
+  value.state = 'ORDER_READY';
+  value.order = {
+    id: ROUTE_ORDER_ID, revision: ROUTE_ORDER_REVISION, label: 'Locked competition order', destination_id: 'GTX_SITE',
+    total_quantity: 4, restaurant_count: 2, difficulty: 'MEDIUM', locked: true, order_started_at: null,
+    lines: [
+      { sequence: 1, restaurant_id: 'HANSOT', menu_id: 'CHICKEN_MAYO', quantity: 1, ready_at_s: 20 },
+      { sequence: 2, restaurant_id: 'HANSOT', menu_id: 'SPAM_KIMCHI', quantity: 1, ready_at_s: 40 },
+      { sequence: 3, restaurant_id: 'EDIYA', menu_id: 'AMERICANO', quantity: 1, ready_at_s: 60 },
+      { sequence: 4, restaurant_id: 'EDIYA', menu_id: 'CAFE_LATTE', quantity: 1, ready_at_s: 80 },
+    ],
+  };
+  return value;
+}
+
 const rehearsalSideEffects = () => ({ control_acquire: 0, arm: 0, deadman: 0, velocity: 0, navigation_activate: 0, navigation_goal: 0, mission_create: 0, mission_start: 0, sport: 0, service_restart: 0 });
 
 function readyRehearsal() {
@@ -150,7 +166,7 @@ function json(route, value, status = 200) {
 }
 
 export async function installDashboardBackend(page, options = {}) {
-  const routePlanner = baseRoutePlanner();
+  const routePlanner = options.routePlannerLocked === true ? lockedRoutePlanner() : baseRoutePlanner();
   if (options.routePlannerRehearsal === true) routePlanner.rehearsal = readyRehearsal();
   const state = {
     online: options.online !== false,

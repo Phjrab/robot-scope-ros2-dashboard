@@ -627,6 +627,11 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .route-planner-order-summary { font: 600 10px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: #9fb8df; }
 .route-planner-message[data-error="true"],
 .route-planner-order-summary[data-valid="false"] { color: #ff8b98; }
+.route-planner-order-notice { padding: 7px 9px; border: 1px solid rgba(255, 207, 101, .35); border-radius: 7px; color: #ffe09a; background: rgba(67, 48, 13, .42); font: 600 9px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.route-planner-order-notice[data-state="draft"] { border-color: rgba(97, 255, 199, .3); color: #a8ffe0; background: rgba(12, 63, 48, .35); }
+.route-planner-order-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.route-planner-order[data-locked="true"] input:disabled,
+.route-planner-order[data-locked="true"] select:disabled { opacity: .72; cursor: not-allowed; }
 .route-planner-segments { max-height: 180px; margin: 0; padding-left: 24px; overflow: auto; }
 .route-planner-segments li[data-current="true"] { color: #ffe568; font-weight: 700; }
 .route-guidance-confirmations { display: flex; flex-wrap: wrap; gap: 6px; }

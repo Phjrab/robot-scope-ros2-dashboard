@@ -487,6 +487,39 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   expect(inactive.panel.active).toBe(false);
 });
 
+test('locked Route Planner order stays server-synchronized and offers an isolated new-order draft', async ({ page }) => {
+  const backend = await openDashboard(page, { routePlannerLocked: true }, 'route-planner');
+  const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
+
+  await expect(planner.locator('.route-planner-order-line')).toHaveCount(4);
+  await expect(planner.locator('.route-planner-order-notice')).toContainText('주문 잠김');
+  await expect(planner.locator('input[aria-label="주문 이름"]')).toBeDisabled();
+  const lockedSelects = planner.locator('.route-planner-order-line select');
+  const lockedRemoveButtons = planner.locator('[data-route-remove-line]');
+  await expect(lockedSelects).toHaveCount(8);
+  await expect(lockedRemoveButtons).toHaveCount(4);
+  expect(await lockedSelects.evaluateAll((items) => items.every((item) => item.disabled))).toBe(true);
+  expect(await lockedRemoveButtons.evaluateAll((items) => items.every((item) => item.disabled))).toBe(true);
+  await expect(planner.locator('[data-route-action="add-line"]')).toBeDisabled();
+  await expect(planner.locator('[data-route-action="save-order"]')).toBeDisabled();
+  await expect(planner.locator('[data-route-action="lock-order"]')).toBeDisabled();
+
+  await planner.locator('[data-route-action="new-order"]').click();
+  await expect(planner.locator('.route-planner-order-notice')).toContainText('새 주문 초안');
+  await expect(planner.locator('.route-planner-order-line')).toHaveCount(2);
+  await expect(planner.locator('input[aria-label="주문 이름"]')).toBeEnabled();
+  await expect(planner.locator('[data-route-action="add-line"]')).toBeEnabled();
+  await expect(planner.locator('[data-route-action="save-order"]')).toBeEnabled();
+  expect(backend.mutations('/api/v1/route-planner/orders')).toHaveLength(0);
+
+  await planner.locator('[data-route-action="save-order"]').click();
+  await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
+  await expect(planner.locator('.route-planner-order-notice')).toBeHidden();
+  await expect(planner.locator('[data-route-action="lock-order"]')).toBeEnabled();
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+});
+
 test('Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects', async ({ page }) => {
   const backend = await openDashboard(page, { routePlannerRehearsal: true }, 'cockpit');
   await enterLayoutEdit(page);
