@@ -2349,9 +2349,9 @@ function quaternionRpy(quaternion) {
   const sinPitch = Math.max(-1, Math.min(1, 2 * (w * y - z * x)));
   return [roll, Math.asin(sinPitch), quaternionYaw({ x, y, z, w })];
 }
-
 function clearLivePose() {
   poseLive = false;
+  poseTrail = [];
   targetPose = null;
   currentPose = null;
   poseImuAnchor = null;

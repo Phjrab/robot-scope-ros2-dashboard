@@ -433,6 +433,9 @@
 
     _drawTrail(ctx) {
       if (this.trail.length < 2) return;
+      const frame = this.projection.frameId;
+      if (!this.pose || !frame || this.pose.frameId !== frame
+          || this.trail.some((pose) => pose.frameId !== frame)) return;
       ctx.save();
       ctx.beginPath();
       this.trail.forEach((pose, index) => {
@@ -448,6 +451,7 @@
 
     _drawRobot(ctx) {
       if (!this.pose) return;
+      if (!this.projection.frameId || this.pose.frameId !== this.projection.frameId) return;
       const point = worldToCanvas(this.view, this.width, this.height, this.pose.x, this.pose.y);
       const size = 9 * this.pixelRatio;
       ctx.save();

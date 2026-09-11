@@ -107,6 +107,22 @@ function controlHarness() {
   };
 }
 
+test('trail requires a live pose and a single explicit cloud coordinate frame', () => {
+  const { scene } = sceneHarness();
+  scene.cloud.frameId = 'hesai_lidar';
+  scene.trail = [{ x: 3, y: 2, z: 0, frameId: 'camera_init' }];
+  scene.robotPose = null;
+  assert.equal(scene._displayTrail().length, 0);
+  scene.robotPose = { x: 3, y: 2, z: 0, frameId: 'camera_init' };
+  assert.equal(scene._displayTrail().length, 0);
+  scene.cloud.frameId = 'camera_init';
+  assert.equal(scene._displayTrail().length, 1);
+  scene.trail.push({ x: 0, y: 0, z: 0, frameId: 'odom' });
+  assert.equal(scene._displayTrail().length, 0);
+  scene.cloud.frameId = '';
+  assert.equal(scene._displayTrail().length, 0);
+});
+
 test('XYZ axes default to the existing visible behavior and persist only their preference', () => {
   const { scene, preference } = sceneHarness();
   assert.equal(scene.axesVisible, true);

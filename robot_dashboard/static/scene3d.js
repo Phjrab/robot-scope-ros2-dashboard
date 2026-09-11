@@ -1165,16 +1165,12 @@
     _displayTrail() {
       if (!this.trail.length) return [];
       const pose = this.robotPose;
-      const mismatch = Boolean(pose && this.cloud.frameId && pose.frameId && this.cloud.frameId !== pose.frameId);
-      if (!mismatch) return this.trail;
-      const anchor = this._effectiveRobotPose();
-      if (!anchor || anchor.sensorRelative) return [];
-      return this.trail.map((point) => ({
-        ...point,
-        x: anchor.x + point.x - pose.x,
-        y: anchor.y + point.y - pose.y,
-        z: anchor.z + point.z - pose.z,
-      }));
+      // A sensor extrinsic is not a world-to-sensor TF. Never translate a
+      // world trail onto a raw scan, including when the live pose is lost.
+      const frame = this.cloud.frameId;
+      if (!pose || !frame || pose.frameId !== frame) return [];
+      if (this.trail.some((point) => point.frameId !== frame)) return [];
+      return this.trail;
     }
 
     _drawTrail() {
