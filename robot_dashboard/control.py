@@ -357,6 +357,7 @@ class ControlManager:
             self._allowed_actions = dict(SAFE_ACTIONS)
 
         self._lease: dict[str, Any] | None = None
+        self._lease_end_reason = ""
         self._bridge_seen: float | None = None
         self._lowstate_seen: float | None = None
         self._estop_latched = False
@@ -472,6 +473,7 @@ class ControlManager:
                 "heartbeat_at": now,
                 "last_seq": -1,
             }
+            self._lease_end_reason = ""
             return {"token": token, "lease": self._lease_public(now)}
 
     def acquire_lease(self, input_source: str) -> dict[str, Any]:
@@ -527,7 +529,9 @@ class ControlManager:
         if self._lease is None or not hmac.compare_digest(
             str(token), str(self._lease["token"])
         ):
-            raise LeaseInvalid("invalid or expired control lease")
+            reason = self._lease_end_reason if self._lease is None else ""
+            suffix = f": {reason}" if reason else ""
+            raise LeaseInvalid(f"invalid or expired control lease{suffix}")
         if binding is not None:
             expected = self._lease["binding"]
             if expected is None:
@@ -810,6 +814,15 @@ class ControlManager:
         return max(current - delta, min(target, current + delta))
 
     def _emit_stop(self, reason: str, now: float, *, force: bool = False) -> None:
+        # Preserve the first fixed cause after revocation, even if later stop
+        # requests drain the queue or overwrite operational status. Never echo
+        # caller-supplied text or attribute an old fault to a new active lease.
+        if self._lease is None and not self._lease_end_reason and reason in {
+            "command_timeout", "lease_expired", "lease_released",
+            "readiness_stale", "bridge_not_ready", "lowstate_not_ready",
+            "readiness_lost", "emergency_stop", "manager_closed",
+        }:
+            self._lease_end_reason = reason
         self._last_velocity = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
         self._last_command_deadman = False
         self._motion_active = False

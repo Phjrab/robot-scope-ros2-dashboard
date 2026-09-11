@@ -267,6 +267,30 @@ class ControlManagerTests(unittest.TestCase):
         with self.assertRaises(LeaseInvalid):
             self.drive(manager, token, seq=1)
 
+    def test_command_expiry_reason_survives_tick_and_output_drain(self):
+        manager, token = self.leased()
+        self.drive(manager, token)
+        self.clock.advance(0.201)
+        manager.tick()
+        manager.drain_outputs()
+        with self.assertRaisesRegex(LeaseInvalid, 'control lease: command_timeout'):
+            self.drive(manager, token, seq=1)
+        manager.set_readiness(bridge_ready=False, lowstate_ready=False)
+        with self.assertRaisesRegex(LeaseInvalid, 'control lease: command_timeout'):
+            self.drive(manager, token, seq=2)
+        manager.set_readiness(bridge_ready=True, lowstate_ready=True)
+        manager.acquire_lease('keyboard')
+        with self.assertRaises(LeaseInvalid) as caught:
+            self.drive(manager, 'wrong-token', seq=3)
+        self.assertEqual(str(caught.exception), 'invalid or expired control lease')
+
+    def test_command_expiry_during_submit_reports_first_cause(self):
+        manager, token = self.leased()
+        self.drive(manager, token)
+        self.clock.advance(0.201)
+        with self.assertRaisesRegex(LeaseInvalid, 'control lease: command_timeout'):
+            self.drive(manager, token, seq=1)
+
     def test_fresh_frame_cannot_replace_an_expired_drive_before_tick(self):
         manager, token = self.leased()
         self.drive(manager, token, seq=0)
