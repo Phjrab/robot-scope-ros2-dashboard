@@ -193,6 +193,9 @@ class RmwSubscriptionTiming:
     def capture(self, message: Any, metadata: Any) -> bool:
         """Capture one local RMW receive timestamp before callback dispatch."""
 
+        # Humble rmw_cyclonedds returns received_timestamp=0 (unsupported).
+        # Keep it unavailable: source time or take time cannot stand in for
+        # DDS receipt and would falsely attribute transport delay to dispatch.
         try:
             if not isinstance(metadata, Mapping):
                 raise NavigationRuntimeError("RMW metadata is not a mapping")

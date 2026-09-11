@@ -35,11 +35,36 @@ local_alive() {
   [[ -n "$identity" && "$(process_identity "$pid")" == "$identity" && "$state" != "Z" ]]
 }
 
+local_group_alive() {
+  local index="$1"
+  local pid="${LOCAL_PIDS[$index]}"
+  local identity="${LOCAL_IDENTITIES[$index]}"
+  local current
+  [[ "$pid" =~ ^[0-9]+$ && "$identity" =~ ^[0-9]+$ ]] || return 1
+  current="$(process_identity "$pid")"
+  # Never signal a recycled leader. A session/group ID remains reserved while
+  # its orphaned descendants survive, even after the original leader is reaped.
+  [[ -z "$current" || "$current" == "$identity" ]] || return 1
+  awk -v group="$pid" -v started="$identity" '
+    BEGIN {
+      for (i=1; i<ARGC; i++) {
+        if ((getline line < ARGV[i]) > 0) {
+          sub(/^.*\) /, "", line); split(line, fields, " ");
+          if (fields[1] != "Z" && fields[3] == group &&
+              fields[4] == group && fields[20] >= started) found=1
+        }
+        close(ARGV[i])
+      }
+      exit !found
+    }
+  ' /proc/[0-9]*/stat 2>/dev/null
+}
+
 stop_local_children() {
   local signal="$1"
   local index
   for ((index=${#LOCAL_PIDS[@]} - 1; index >= 0; index--)); do
-    local_alive "$index" && \
+    local_group_alive "$index" && \
       kill "-$signal" -- "-${LOCAL_PIDS[$index]}" 2>/dev/null || true
   done
 }
@@ -50,7 +75,7 @@ wait_local_children() {
   while (( SECONDS < deadline )); do
     alive=0
     for ((index=0; index < ${#LOCAL_PIDS[@]}; index++)); do
-      local_alive "$index" && alive=1
+      local_group_alive "$index" && alive=1
     done
     [[ "$alive" -eq 0 ]] && return 0
     sleep 0.2
