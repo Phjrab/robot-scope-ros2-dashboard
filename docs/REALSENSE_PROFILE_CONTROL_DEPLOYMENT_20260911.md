@@ -89,3 +89,44 @@ assignments and cycles only `robot-scope-realsense-camera.service`. Dataset
 capture blocks the mutation. A failed transition restores the original private
 environment file and reports failure. Service enable/disable policy is not
 changed.
+
+## Follow-up selector-state deployment
+
+Feature commit `fbe8cd0bb4960b1aa7f96103d81a2a7b27b56174` fixes a
+browser-only state bug where the five-second profile poll replaced an
+operator's pending resolution selection with the currently active server
+profile before **Apply** could be used. The server allowlist, confirmation,
+Dataset capture blocker, rollback behavior, and camera-service lifecycle
+boundary are unchanged.
+
+GitHub Actions run `34566718623` passed both supported matrices for the exact
+feature commit. Its deployment archive had SHA-256
+`11e7fcf16a9209f49e475397a91940f31a725d51c3f6605d7f318e0a26dcfdd6`.
+The external release was staged at
+`/home/jetson_orin_nano/releases/robot-scope/fbe8cd0bb4960b1aa7f96103d81a2a7b27b56174`;
+the staged Python profile suite passed 8/8 and Python byte compilation passed.
+The deployed selector file SHA-256 is
+`13704ce295c8285a7283f9e4a33546c491109db7b10629013d11654bd7be35ec`.
+
+The pre-restart check found an operator Dataset capture in progress. No stop
+request was sent. Activation waited for its natural completion at 212 samples
+and 26,064,528 bytes before invoking the dashboard lifecycle restart. No
+resolution apply request was sent.
+
+Post-activation evidence:
+
+- production symlink and process cwd both resolve to exact release `fbe8cd0`;
+- `robot-scope.service` is active with PID `228881`, `NRestarts=0`, listening
+  on `0.0.0.0:8088`;
+- rollback symlink `robot-scope.pre-fbe8cd0` resolves to `1e22182`;
+- the profile API remains at `640x480`, 15 FPS, Q72 and reports no blocker with
+  `can_apply=true`;
+- onboard RealSense relay PID `1277` and Control Bridge PID `2264` remained
+  unchanged across the external dashboard restart, both with `NRestarts=0`;
+- Control has no lease, deadman is released, accepted command is exact zero,
+  and Bridge request evidence reports zero Move, nonzero Move, and action
+  requests for the running Bridge process;
+- Navigation, localization session, and goal remain idle; no initial pose,
+  goal, or motion command was issued;
+- Mapping pipeline and operation remain idle; the configured persistent
+  point-cloud preview owner resumed with the dashboard.
