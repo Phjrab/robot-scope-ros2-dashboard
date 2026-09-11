@@ -106,6 +106,13 @@ class RealSenseProfileManagerTests(unittest.TestCase):
 
 
 class RobotSideRealSenseProfileTests(unittest.TestCase):
+    def test_install_document_targets_the_forced_authorized_key_helper(self) -> None:
+        install = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "/usr/local/libexec/robot-scope/wireless-mapping-lifecycle-ssh",
+            install,
+        )
+
     def fixture(self, root: Path) -> Path:
         path = root / "realsense-camera.env"
         path.write_text(

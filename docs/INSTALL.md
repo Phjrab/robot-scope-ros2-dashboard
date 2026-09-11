@@ -175,7 +175,7 @@ opt-in합니다. 이 기능은 `320x240`, `640x480`, `1280x720` 중 하나만 �
 # robot-side Jetson
 sudo install -o root -g root -m 0755 \
   scripts/robot_scope_wireless_mapping_ssh_command.py \
-  /usr/local/libexec/robot-scope/robot_scope_wireless_mapping_ssh_command.py
+  /usr/local/libexec/robot-scope/wireless-mapping-lifecycle-ssh
 sudo install -o root -g root -m 0440 \
   deploy/robot-scope-wireless-mapping-remote.sudoers.example \
   /etc/sudoers.d/robot-scope-wireless-mapping-remote
