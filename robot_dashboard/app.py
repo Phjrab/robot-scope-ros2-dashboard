@@ -27,7 +27,7 @@ from .application.mapping_coordinator import (
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
-from .application.runtime import ApplicationRuntime, close_relocalization, configure_stationary_relocalization
+from .application.runtime import ApplicationRuntime, close_relocalization, configure_realsense_profile, configure_stationary_relocalization
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -399,13 +399,10 @@ app.include_router(relocalization_router)
 def require_navigation_idle(detail: str) -> None:
     if navigation_coordinator().is_active():
         raise HTTPException(status_code=409, detail=detail)
-
-
 def navigation_view() -> Dict[str, Any]:
     """Compatibility projection delegated to the navigation coordinator."""
 
     return navigation_coordinator().view()
-
 
 def require_mission_navigation_idle(detail: str) -> None:
     mission = RUNTIME.mission
@@ -1481,6 +1478,7 @@ def main() -> None:
         metadata_snapshot=dataset_metadata_snapshot,
         session_context_snapshot=dataset_session_context_snapshot,
     )
+    configure_realsense_profile(RUNTIME)
 
     def require_lifecycle_idle_application() -> None:
         lifecycle = RUNTIME.lifecycle

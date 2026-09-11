@@ -359,6 +359,16 @@
               <article><span>DECODE</span><strong id="cameraDecodeHealthStatus" data-state="offline">OFFLINE</strong><small id="cameraDecodeHealthDetail">OK 0 · FAIL 0 · DROP 0 · Q0</small></article>
               <p id="cameraLatencyDomain">E2E LATENCY · UNVERIFIED_CLOCK_DOMAIN</p>
             </section>
+            <section class="realsense-profile-control" aria-labelledby="realsenseProfileHeading">
+              <div class="realsense-profile-copy">
+                <span>ROBOT-SIDE CAPTURE PROFILE</span>
+                <strong id="realsenseProfileHeading">RealSense 해상도</strong>
+                <small id="realsenseProfileStatus" role="status" aria-live="polite">탑재 Jetson 설정을 확인하고 있습니다.</small>
+              </div>
+              <label><span>RESOLUTION</span><select id="realsenseProfileSelect" aria-label="RealSense 캡처 해상도" disabled><option value="">확인 중…</option></select></label>
+              <button id="realsenseProfileApply" type="button" disabled>해상도 적용</button>
+              <p>적용 시 RealSense relay만 잠시 재시작되고 영상은 자동으로 다시 연결됩니다. 데이터셋 녹화 중에는 변경할 수 없습니다.</p>
+            </section>
             <div class="camera-media-toolbar" aria-label="카메라 캡처 및 녹화">
               <div class="camera-media-readout">
                 <span class="camera-record-indicator" aria-hidden="true"></span>

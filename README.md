@@ -733,7 +733,10 @@ RealSense USB --> robot-side Jetson GStreamer --> fixed HTTP MJPEG :8090
 Dashboard Jetson <---------------------------------+
 ~~~
 
-640×480, 최대 15fps, JPEG 품질 72로 제한하며 최대 viewer는 4개입니다. 첫 viewer가
+기본값은 640×480·15fps·JPEG 품질 72이며 최대 viewer는 4개입니다. 명시적으로 설치한
+restricted profile-control 경로가 있을 때 Sensors 화면에서 320×240, 640×480 또는
+1280×720을 선택할 수 있습니다. 해상도 적용은 robot-side RealSense relay만 잠시
+stop/start하고, FPS·JPEG 품질·주소·포트와 service enable 정책은 변경하지 않습니다. 첫 viewer가
 연결될 때만 GStreamer producer가 시작되고 마지막 viewer가 떠난 3초 뒤 멈춥니다. 각
 viewer에는 누적 queue가 아닌 최신 프레임만 전달하므로 느린 연결이 전체 영상을 지연시키지
 않습니다. Dashboard의 단일/2화면 선택은 이 relay를 직접 브라우저에 공개하지 않고
@@ -1053,6 +1056,7 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 - ROBOT_SCOPE_CONTROL_BRIDGE_KEY: 두 로컬 프로세스 사이 서명용 32바이트 이상 비밀키
 - ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED: `1`일 때만 서비스 관리 API opt-in
 - ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED: `1`일 때만 고정 제어 브리지 start/stop API opt-in
+- ROBOT_SCOPE_REALSENSE_PROFILE_CONTROL_ENABLED: `1`일 때만 Sensors의 고정 RealSense 해상도 선택 opt-in
 
 ## 주요 API
 
@@ -1061,6 +1065,8 @@ CLI preflight와 UI 작업 시작은 하나의 서버 transaction이 아니므�
 | GET /api/v1/health | 에이전트와 로봇 연결 상태 |
 | GET /api/v1/state | 센서, 카메라, 매핑 요약 |
 | GET /api/v1/cameras | Go2·RealSense 고정 카메라 catalog와 소스별 상태 |
+| GET /api/v1/cameras/realsense/profile | 허용된 RealSense 해상도와 robot-side relay 상태 |
+| POST /api/v1/cameras/realsense/profile | 명시적 확인 후 허용된 해상도 적용; 데이터셋 캡처 중 차단 |
 | GET /api/v1/datasets/capture | 서버 데이터셋 캡처와 디스크 상태 |
 | POST /api/v1/datasets/capture/start | 고정 카메라 선택과 저장률로 서버 캡처 시작 |
 | POST /api/v1/datasets/capture/stop | 일치하는 활성 세션을 중지하고 manifest 마무리 |

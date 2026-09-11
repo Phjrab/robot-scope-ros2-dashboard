@@ -361,6 +361,10 @@ html[data-workspace-window="cockpit"] .workspace-window-button { display:none; }
 .camera-link-observability strong[data-state="stale"], .camera-link-observability strong[data-state="offline"] { color:var(--danger); border-color:rgba(255,122,127,.32); }
 .camera-link-observability small { min-width:0; overflow:hidden; color:#89a098; font:700 var(--type-secondary) ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow:ellipsis; white-space:nowrap; }
 .camera-link-observability p { grid-column:1/-1; margin:0; padding:7px 13px; color:#7f7361; background:rgba(255,198,109,.035); font:700 var(--type-micro) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.06em; }
+.realsense-profile-control { display:grid; grid-template-columns:minmax(220px,1fr) minmax(170px,220px) auto; align-items:end; gap:10px 14px; padding:13px 16px; border-top:1px solid var(--line); background:rgba(6,18,15,.96); }
+.realsense-profile-copy { display:grid; gap:3px; min-width:0; }.realsense-profile-copy > span, .realsense-profile-control label > span { color:#6f857d; font:800 var(--type-micro) ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.08em; }.realsense-profile-copy strong { color:#d6eee6; font-size:13px; letter-spacing:.03em; }.realsense-profile-copy small { min-width:0; overflow:hidden; color:#8aa199; font:700 var(--type-secondary) ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow:ellipsis; white-space:nowrap; }.realsense-profile-copy small[data-state="ok"] { color:var(--green); }.realsense-profile-copy small[data-state="error"] { color:var(--danger); }
+.realsense-profile-control label { display:grid; gap:5px; }.realsense-profile-control select { min-height:38px; padding:0 36px 0 11px; border:1px solid var(--line); border-radius:7px; color:#d7eee7; background:var(--panel-strong); font:800 12px ui-monospace,SFMono-Regular,Menlo,monospace; }.realsense-profile-control button { min-height:38px; padding:0 16px; border:1px solid rgba(125,240,182,.42); border-radius:7px; color:var(--green); background:rgba(125,240,182,.08); font:800 11px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.05em; }.realsense-profile-control button:hover:not(:disabled) { background:rgba(125,240,182,.16); }.realsense-profile-control button:disabled, .realsense-profile-control select:disabled { opacity:.38; cursor:not-allowed; }
+.realsense-profile-control > p { grid-column:1/-1; margin:0; color:#72877f; font:700 var(--type-micro) ui-monospace,SFMono-Regular,Menlo,monospace; line-height:1.5; }
 .camera-media-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px; min-height:76px; padding:13px 16px; border-top:1px solid var(--line); background:rgba(6,18,15,.94); }
 .camera-media-readout { min-width:0; display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:9px; }
 .camera-record-indicator { width:8px; height:8px; border:1px solid rgba(156,201,190,.3); border-radius:50%; background:#30413c; }
@@ -1407,6 +1411,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .route-grid, .mapping-support-grid { grid-template-columns:1fr; }
   .camera-view-grid[data-view-mode="dual"] { grid-template-columns:1fr; }
   .camera-link-observability { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .realsense-profile-control { grid-template-columns:minmax(0,1fr) minmax(170px,220px); }.realsense-profile-control button { grid-column:2; }.realsense-profile-control > p { grid-column:1/-1; }
   .dataset-capture-layout, .dataset-library-layout { grid-template-columns:1fr; }.dataset-capture-readout { border-top:1px solid var(--line); border-left:0; }.dataset-session-list { max-height:260px; border-right:0; border-bottom:1px solid var(--line); }
   .camera-stage, .sensor-page-grid .camera-stage { height:300px; }.map-stage, .live-map-stage, .saved-map-stage { height:440px; min-height:380px; }.sensor-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .map-conversion-parameters, .map-conversion-advanced > div { grid-template-columns:1fr; }
@@ -1456,6 +1461,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .brand small { display:none; }.connection-chip { min-width:0; }.connection-chip #connectionLabel, .connection-chip #controlConnectionLabel { display:none; }
   .kpi-grid { grid-template-columns:1fr; }.sensor-grid, .sensor-page-grid .sensor-grid, .source-settings-grid, .settings-detail { grid-template-columns:1fr; }
   .camera-link-observability { grid-template-columns:1fr; }
+  .realsense-profile-control { grid-template-columns:1fr; align-items:stretch; }.realsense-profile-control button { grid-column:auto; }
   .pose-layout { grid-template-columns:1fr; }.axis-visual { display:none; }.page-heading p { max-width:280px; }
   .mapping-job-summary { grid-template-columns:1fr; }
   .map-legend { max-width:290px; gap:6px; }.scene-controls button { min-width:36px; padding:5px 6px; }

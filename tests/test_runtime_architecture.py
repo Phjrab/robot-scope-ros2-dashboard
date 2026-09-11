@@ -39,6 +39,7 @@ class ApplicationRuntimeOwnershipTests(unittest.TestCase):
         self.assertIsNone(first.navigation)
         self.assertIsNone(first.mission)
         self.assertIsNone(first.lifecycle)
+        self.assertIsNone(first.realsense_profile)
         self.assertIsNone(first.competition)
         self.assertIsNot(first.pipeline_coordination_lock, second.pipeline_coordination_lock)
         self.assertIsNot(first.json_cache, second.json_cache)
@@ -144,6 +145,8 @@ class DomainRouterContractTests(unittest.TestCase):
             ("get", "/api/v1/sources"),
             ("post", "/api/v1/sources"),
             ("get", "/api/v1/cameras"),
+            ("get", "/api/v1/cameras/realsense/profile"),
+            ("post", "/api/v1/cameras/realsense/profile"),
             ("get", "/api/v1/pointcloud"),
             ("get", "/api/v1/pointcloud.bin"),
             ("get", "/api/v1/pointcloud/settings"),

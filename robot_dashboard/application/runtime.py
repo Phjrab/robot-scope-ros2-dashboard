@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from ..diagnostics import DiagnosticsBundleService
     from ..operator_events import OperatorEventTimeline
     from ..perception import PerceptionBridgeClient
+    from ..realsense_profile import RealSenseProfileManager
     from ..model_registry import ModelRegistry
     from ..ros_agent import RosAgent
     from ..saved_maps import SavedMapCatalog
@@ -46,6 +47,7 @@ class ApplicationRuntime:
     operator_events: OperatorEventTimeline | None = None
     diagnostics: DiagnosticsBundleService | None = None
     perception: PerceptionBridgeClient | None = None
+    realsense_profile: RealSenseProfileManager | None = None
     model_registry: ModelRegistry | None = None
     competition: CompetitionStateManager | None = None
     relocalization: StationaryRelocalizationManager | None = None
@@ -86,3 +88,14 @@ def configure_stationary_relocalization(
     from ..relocalization.runtime_wiring import configure_stationary_relocalization
 
     configure_stationary_relocalization(runtime, args, project_dir, catalog)
+
+
+def configure_realsense_profile(runtime: ApplicationRuntime) -> None:
+    """Wire optional fixed RealSense profile control after dataset ownership."""
+
+    from ..realsense_profile import RealSenseProfileManager
+
+    dataset = runtime.dataset_capture
+    runtime.realsense_profile = RealSenseProfileManager.from_environment(
+        dataset_active=(dataset.is_active if dataset is not None else lambda: True),
+    )

@@ -6,6 +6,7 @@ import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
 import { createPointcloudTransport } from './features/sensors/pointcloud_transport.js';
 import { createCameraDemandController } from './features/sensors/camera_demand.js';
 import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraObservability } from './features/sensors/camera_observability.js';
+import { initializeRealSenseProfileFeature } from './features/sensors/realsense_profile.js';
 import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import './features/route_planner/dashboard_page.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
@@ -5713,7 +5714,6 @@ function connectCameraSlot(slot) {
 function connectCamera() {
   for (const slot of Object.values(getCameraSlots())) connectCameraSlot(slot);
 }
-
 function syncCameraTransport() {
   for (const slot of Object.values(getCameraSlots())) {
     if (cameraSlotTransportWanted(slot)) connectCameraSlot(slot);
@@ -6825,12 +6825,12 @@ window.addEventListener('resize', () => {
     drawNavigationMap();
   }
 });
-
 startClock();
 bindSensorPerception(perceptionClient, getCameraSlots);
 perceptionClient.start();
 initializeCameraMediaControls();
 initializeCameraStreams();
+initializeRealSenseProfileFeature({ showToast, getActivePage: () => activePage, onApplied: refreshCameraCatalog }).refresh(true);
 datasetFeature = createDatasetFeature({ showToast });
 datasetFeature.start();
 window.RobotScopeDatasetCapture = datasetFeature;

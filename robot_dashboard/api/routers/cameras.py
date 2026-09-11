@@ -6,17 +6,28 @@ import asyncio
 import json
 from typing import Any, Dict
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from ...application.runtime import ApplicationRuntime
 from ...ros_agent import RosAgent
+from ...realsense_profile import (
+    RealSenseProfileBlocked,
+    RealSenseProfileBusy,
+    RealSenseProfileConfirmationRequired,
+    RealSenseProfileError,
+    RealSenseProfileManager,
+    RealSenseProfileUnavailable,
+)
 from ...websocket_stream import stream_until_disconnect
 from ..dependencies import (
+    require_competition_unlocked,
     require_component,
+    require_same_origin,
     runtime_from_request,
     runtime_from_websocket,
     websocket_same_origin,
 )
+from ..models import RealSenseProfileRequest
 
 
 router = APIRouter()
@@ -28,10 +39,52 @@ def _agent(runtime: ApplicationRuntime) -> RosAgent:
     return require_component(runtime.agent, "ROS agent is not configured")
 
 
+def _realsense_profile(runtime: ApplicationRuntime) -> RealSenseProfileManager:
+    return require_component(
+        runtime.realsense_profile,
+        "RealSense profile control is not configured",
+    )
+
+
+def _profile_error(exc: RealSenseProfileError) -> HTTPException:
+    if isinstance(exc, (RealSenseProfileBlocked, RealSenseProfileBusy)):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, RealSenseProfileConfirmationRequired):
+        return HTTPException(status_code=422, detail=str(exc))
+    if isinstance(exc, RealSenseProfileUnavailable):
+        return HTTPException(status_code=503, detail=str(exc))
+    return HTTPException(status_code=500, detail="RealSense profile change failed")
+
+
 @router.get("/api/v1/cameras")
 async def cameras(request: Request) -> Dict[str, Any]:
     runtime = runtime_from_request(request)
     return await asyncio.to_thread(_agent(runtime).cameras_snapshot)
+
+
+@router.get("/api/v1/cameras/realsense/profile")
+async def realsense_profile(request: Request) -> Dict[str, Any]:
+    runtime = runtime_from_request(request)
+    return await asyncio.to_thread(_realsense_profile(runtime).snapshot)
+
+
+@router.post("/api/v1/cameras/realsense/profile")
+async def set_realsense_profile(
+    request: Request,
+    body: RealSenseProfileRequest,
+) -> Dict[str, Any]:
+    require_same_origin(request)
+    runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, "RealSense resolution change")
+    async with runtime.pipeline_coordination_lock:
+        try:
+            return await asyncio.to_thread(
+                _realsense_profile(runtime).apply,
+                body.resolution,
+                confirmed=body.confirmed,
+            )
+        except RealSenseProfileError as exc:
+            raise _profile_error(exc) from exc
 
 
 async def _camera_stream_source(websocket: WebSocket, source_id: str) -> None:

@@ -263,6 +263,11 @@ class ControlBridgeLifecycleRequest(StrictRequest):
     confirmed: bool = Field(strict=True)
 
 
+class RealSenseProfileRequest(StrictRequest):
+    resolution: Literal["320x240", "640x480", "1280x720"]
+    confirmed: bool = Field(strict=True)
+
+
 class DatasetCaptureStartRequest(StrictRequest):
     sources: Literal["go2_front", "realsense_color", "both"]
     capture_hz: float = Field(default=1.0, ge=0.2, le=5.0)

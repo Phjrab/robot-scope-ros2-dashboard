@@ -166,6 +166,29 @@ sudo systemctl disable robot-scope-realsense-camera.service
 sudo systemctl start robot-scope-realsense-camera.service
 ~~~
 
+Sensors 화면에서 해상도를 변경하려면 기존 wireless observation SSH key의 forced-command
+helper와 sudoers를 같은 exact release에서 함께 설치하고 dashboard host에서 명시적으로
+opt-in합니다. 이 기능은 `320x240`, `640x480`, `1280x720` 중 하나만 선택하며 FPS·JPEG
+품질·주소·포트는 브라우저가 변경할 수 없습니다.
+
+~~~bash
+# robot-side Jetson
+sudo install -o root -g root -m 0755 \
+  scripts/robot_scope_wireless_mapping_ssh_command.py \
+  /usr/local/libexec/robot-scope/robot_scope_wireless_mapping_ssh_command.py
+sudo install -o root -g root -m 0440 \
+  deploy/robot-scope-wireless-mapping-remote.sudoers.example \
+  /etc/sudoers.d/robot-scope-wireless-mapping-remote
+sudo visudo -cf /etc/sudoers.d/robot-scope-wireless-mapping-remote
+
+# dashboard host의 mode-0600 robot-scope.env
+ROBOT_SCOPE_REALSENSE_PROFILE_CONTROL_ENABLED=1
+~~~
+
+적용 요청은 데이터셋 캡처 중 차단됩니다. 설정 파일은 같은 디렉터리에서 mode-0600
+임시 파일로 원자 교체하고, relay stop/start 또는 확인이 실패하면 원래 파일로 복구한 뒤
+실패로 보고합니다. 기존 카메라 service의 enable/disable 부팅 정책은 바꾸지 않습니다.
+
 잘못된 bind 주소로 인한 영구 재시작을 막기 위해 service는 60초 동안 5회 실패하면 추가
 재시작을 중단합니다. 주소를 수정한 뒤 `reset-failed`하고 다시 수동 시작하세요.
 

@@ -316,6 +316,7 @@ class WirelessMappingProfileTests(unittest.TestCase):
             "robot-scope-xt16-wireless-relay.service",
             "robot-scope-wireless-imu-sender.service",
             "robot-scope-wireless-odom-sender.service",
+            "robot-scope-realsense-camera.service",
         ):
             self.assertIn(service, helper)
             self.assertIn(service, sudoers)
@@ -323,6 +324,8 @@ class WirelessMappingProfileTests(unittest.TestCase):
         self.assertIn('"32"', helper)
         self.assertIn("--since\\=-15s -n 32", sudoers)
         self.assertIn("_relay_health_lines", helper)
+        self.assertIn("realsense-profile-status", helper)
+        self.assertIn("_atomic_replace_realsense_environment", helper)
         for forbidden in (
             '"restart"',
             '"enable"',
