@@ -29,6 +29,7 @@ class RoutePlannerApiContractTests(unittest.TestCase):
             ("post", "/api/v1/route-planner/orders"),
             ("patch", "/api/v1/route-planner/orders/{order_id}"),
             ("get", "/api/v1/route-planner/orders/{order_id}"),
+            ("post", "/api/v1/route-planner/orders/{order_id}/unlock"),
             ("get", "/api/v1/route-planner/graph"),
             ("put", "/api/v1/route-planner/graph"),
             ("post", "/api/v1/route-planner/recommendations"),
@@ -63,6 +64,9 @@ class RoutePlannerApiContractTests(unittest.TestCase):
         fields = {node.target.id for node in order.body if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)}
         self.assertEqual(fields, {"label", "destination_id", "lines", "order_started_at", "locked"})
         self.assertTrue(all(field not in fields for field in {"difficulty", "filesystem_path", "ros_topic", "x", "y", "yaw"}))
+        unlock = classes["RouteOrderUnlockRequest"]
+        unlock_fields = {node.target.id for node in unlock.body if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)}
+        self.assertEqual(unlock_fields, {"base_revision", "confirmation"})
         strict = classes["StrictRequest"]
         strict_source = ast.get_source_segment(MODELS.read_text(encoding="utf-8"), strict)
         self.assertIn('extra="forbid"', strict_source)

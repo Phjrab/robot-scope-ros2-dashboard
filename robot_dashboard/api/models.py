@@ -316,6 +316,11 @@ class RouteOrderUpdateRequest(RouteOrderCreateRequest):
     base_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class RouteOrderUnlockRequest(StrictRequest):
+    base_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmation: Literal["UNLOCK"]
+
+
 class RouteGraphPointRequest(StrictRequest):
     x: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)
     y: float = Field(strict=True, ge=-1_000_000.0, le=1_000_000.0)

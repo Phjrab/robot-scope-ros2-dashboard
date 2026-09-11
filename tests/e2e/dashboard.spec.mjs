@@ -520,6 +520,26 @@ test('locked Route Planner order stays server-synchronized and offers an isolate
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 });
 
+test('locked Route Planner order can be explicitly unlocked without control or navigation authority', async ({ page }) => {
+  const backend = await openDashboard(page, { routePlannerLocked: true }, 'route-planner');
+  const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
+  const unlock = planner.locator('[data-route-action="unlock-order"]');
+
+  await expect(unlock).toBeVisible();
+  await expect(unlock).toBeEnabled();
+  await unlock.click();
+  await expect.poll(() => backend.mutations(`/api/v1/route-planner/orders/${'6'.repeat(32)}/unlock`).length).toBe(1);
+  const request = backend.mutations(`/api/v1/route-planner/orders/${'6'.repeat(32)}/unlock`)[0];
+  expect(request.body).toEqual({ base_revision: '7'.repeat(64), confirmation: 'UNLOCK' });
+  await expect(planner.locator('.route-planner-order-notice')).toBeHidden();
+  await expect(planner.locator('input[aria-label="주문 이름"]')).toBeEnabled();
+  await expect(planner.locator('[data-route-action="save-order"]')).toBeEnabled();
+  await expect(planner.locator('[data-route-action="lock-order"]')).toBeEnabled();
+  expect(backend.state.routePlanner.order.locked).toBe(false);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+});
+
 test('Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects', async ({ page }) => {
   const backend = await openDashboard(page, { routePlannerRehearsal: true }, 'cockpit');
   await enterLayoutEdit(page);

@@ -246,10 +246,19 @@ class RoutePlannerCoordinator:
                 self._save()
                 raise RoutePlannerValidationError(str(exc)) from exc
             self._state.update(
-                state="ORDER_READY", order=order, recommendations=[], selected_route_id=None,
+                state="ORDER_READY",
+                order=order,
+                recommendations=[],
+                selected_route_id=None,
                 selected_context=None,
-                guidance={"active": False, "completed_pickups": [], "dropoff_complete": False, "current_segment_index": 0},
-                mission_links=[], error=None,
+                guidance={
+                    "active": False,
+                    "completed_pickups": [],
+                    "dropoff_complete": False,
+                    "current_segment_index": 0,
+                },
+                mission_links=[],
+                error=None,
             )
             self._save()
             return {"order": copy.deepcopy(order), "route_planner": self.snapshot()}
@@ -282,6 +291,44 @@ class RoutePlannerCoordinator:
         if not isinstance(current, Mapping) or current.get("id") != order_id:
             raise RoutePlannerNotFound("order was not found")
         return {"order": copy.deepcopy(current)}
+
+    async def unlock_order(self, order_id: str, *, base_revision: str) -> dict[str, Any]:
+        async with self._lock:
+            self._require_editable("order unlock")
+            current = self._state.get("order")
+            if not isinstance(current, Mapping) or current.get("id") != order_id:
+                raise RoutePlannerNotFound("order was not found")
+            if current.get("revision") != base_revision:
+                raise RoutePlannerConflict("order revision changed")
+            if current.get("locked") is not True:
+                raise RoutePlannerConflict("order is not locked")
+            payload = {
+                "label": current.get("label"),
+                "destination_id": current.get("destination_id"),
+                "lines": [
+                    {
+                        "sequence": line.get("sequence"),
+                        "restaurant_id": line.get("restaurant_id"),
+                        "menu_id": line.get("menu_id"),
+                        "quantity": line.get("quantity"),
+                    }
+                    for line in current.get("lines", [])
+                ],
+                "order_started_at": current.get("order_started_at"),
+                "locked": False,
+            }
+            try:
+                order = normalize_order(payload, order_id=order_id, allow_custom=self._allow_custom_orders)
+            except OrderValidationError as exc:
+                raise RoutePlannerValidationError(str(exc)) from exc
+            self._state.update(
+                state="ORDER_READY", order=order, recommendations=[], selected_route_id=None,
+                selected_context=None,
+                guidance={"active": False, "completed_pickups": [], "dropoff_complete": False, "current_segment_index": 0},
+                mission_links=[], error=None,
+            )
+            self._save()
+            return {"order": copy.deepcopy(order), "route_planner": self.snapshot()}
 
     async def put_graph(self, payload: Mapping[str, Any], *, base_graph_revision: str | None) -> dict[str, Any]:
         async with self._lock:

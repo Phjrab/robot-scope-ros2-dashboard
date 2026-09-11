@@ -373,6 +373,17 @@ export async function installDashboardBackend(page, options = {}) {
       delete state.routePlanner.order.base_revision;
       return json(route, { order: state.routePlanner.order, route_planner: state.routePlanner });
     }
+    const routeOrderUnlock = path.match(/^\/api\/v1\/route-planner\/orders\/([0-9a-f]{32})\/unlock$/);
+    if (routeOrderUnlock && method === 'POST') {
+      if (body?.confirmation !== 'UNLOCK' || body?.base_revision !== state.routePlanner.order?.revision || routeOrderUnlock[1] !== state.routePlanner.order?.id) {
+        return json(route, { detail: 'order unlock conflict' }, 409);
+      }
+      state.routePlanner.order = { ...state.routePlanner.order, locked: false, revision: '9'.repeat(64) };
+      state.routePlanner.recommendations = [];
+      state.routePlanner.selected_route_id = null;
+      state.routePlanner.state = 'ORDER_READY';
+      return json(route, { order: state.routePlanner.order, route_planner: state.routePlanner });
+    }
     if (path === '/api/v1/route-planner/recommendations' && method === 'POST') {
       state.routePlanner.recommendations = [
         routePlan('1', 'BALANCED', 30, 100, 3),

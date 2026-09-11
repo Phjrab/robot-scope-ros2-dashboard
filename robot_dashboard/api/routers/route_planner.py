@@ -24,6 +24,7 @@ from ..models import (
     RouteGuidanceStopRequest,
     RouteMissionExportRequest,
     RouteOrderCreateRequest,
+    RouteOrderUnlockRequest,
     RouteOrderUpdateRequest,
     RoutePickupRequest,
     RouteRecommendationRequest,
@@ -122,6 +123,16 @@ async def route_order_update(order_id: str, body: RouteOrderUpdateRequest, reque
 async def route_order_detail(order_id: str, request: Request) -> Dict[str, Any]:
     try:
         return _coordinator(runtime_from_request(request)).order(order_id)
+    except RoutePlannerError as exc:
+        raise _error(exc) from exc
+
+
+@router.post("/api/v1/route-planner/orders/{order_id}/unlock")
+async def route_order_unlock(order_id: str, body: RouteOrderUnlockRequest, request: Request) -> Dict[str, Any]:
+    require_same_origin(request)
+    _, coordinator = _mutation(request, "route planner order unlock")
+    try:
+        return await coordinator.unlock_order(order_id, base_revision=body.base_revision)
     except RoutePlannerError as exc:
         raise _error(exc) from exc
 

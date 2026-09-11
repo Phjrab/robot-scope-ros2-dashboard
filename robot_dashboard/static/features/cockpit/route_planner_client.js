@@ -251,6 +251,7 @@ export function createRoutePlannerClient(options = {}) {
     subscribe, refresh, snapshot: () => state,
     createOrder: (payload) => mutate('/api/v1/route-planner/orders', payload),
     updateOrder: (id, payload) => mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}`, payload, 'PATCH'),
+    unlockOrder: (id, revision) => mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}/unlock`, { base_revision: revision, confirmation: 'UNLOCK' }),
     calculate: (payload) => mutate('/api/v1/route-planner/recommendations', payload),
     select: (route) => mutate(`/api/v1/route-planner/recommendations/${encodeURIComponent(route.id)}/select`, { route_revision: route.revision }),
     startGuidance: (route) => mutate('/api/v1/route-planner/guidance/start', { route_id: route.id, route_revision: route.revision }),

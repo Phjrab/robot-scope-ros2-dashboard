@@ -35,10 +35,11 @@ function createRoutePlannerPanelView(options = {}) {
   const addLine = make(documentValue, 'button', '', '+ 주문 항목'); addLine.type = 'button'; addLine.dataset.routeAction = 'add-line';
   const saveOrder = make(documentValue, 'button', '', '주문 저장'); saveOrder.type = 'button'; saveOrder.dataset.routeAction = 'save-order';
   const lockOrder = make(documentValue, 'button', '', '주문 잠금'); lockOrder.type = 'button'; lockOrder.dataset.routeAction = 'lock-order';
+  const unlockOrder = make(documentValue, 'button', '', '주문 잠금 해제'); unlockOrder.type = 'button'; unlockOrder.dataset.routeAction = 'unlock-order'; unlockOrder.hidden = true;
   const newOrder = make(documentValue, 'button', '', '새 주문 작성'); newOrder.type = 'button'; newOrder.dataset.routeAction = 'new-order'; newOrder.hidden = true;
   const orderSummary = make(documentValue, 'small', 'route-planner-order-summary', '총 0개 / 적재 한도 5');
   const orderNotice = make(documentValue, 'small', 'route-planner-order-notice'); orderNotice.hidden = true; orderNotice.setAttribute('role', 'status');
-  const orderActions = make(documentValue, 'div', 'route-planner-order-actions'); orderActions.append(addLine, saveOrder, lockOrder, newOrder);
+  const orderActions = make(documentValue, 'div', 'route-planner-order-actions'); orderActions.append(addLine, saveOrder, lockOrder, unlockOrder, newOrder);
   orderSection.append(labelInput, destination, lines, orderSummary, orderNotice, orderActions);
 
   const planningSection = make(documentValue, 'section', 'route-planner-planning');
@@ -160,6 +161,8 @@ function createRoutePlannerPanelView(options = {}) {
     saveOrder.disabled = editorDisabled;
     lockOrder.disabled = editorDisabled || draftingNewOrder || !current?.order;
     addLine.disabled = editorDisabled || lineRows.length >= 5;
+    unlockOrder.hidden = !locked;
+    unlockOrder.disabled = current?.busy === true || rehearsalActive;
     newOrder.hidden = !locked && !draftingNewOrder;
     newOrder.disabled = current?.busy === true || rehearsalActive;
     newOrder.textContent = draftingNewOrder ? '잠긴 주문으로 돌아가기' : '새 주문 작성';
@@ -167,7 +170,7 @@ function createRoutePlannerPanelView(options = {}) {
     orderNotice.dataset.state = draftingNewOrder ? 'draft' : locked ? 'locked' : '';
     orderNotice.textContent = draftingNewOrder
       ? '새 주문 초안 · 저장 전까지 기존의 잠긴 주문은 유지됩니다.'
-      : locked ? `주문 잠김 · 서버 저장본 ${current.order.lines.length}개 항목은 수정할 수 없습니다.` : '';
+      : locked ? `주문 잠김 · 서버 저장본 ${current.order.lines.length}개 항목입니다. 잠금 해제 후 수정하거나 새 주문을 작성하세요.` : '';
     orderSection.dataset.locked = String(locked);
   }
 
@@ -293,6 +296,10 @@ function createRoutePlannerPanelView(options = {}) {
     const action = event.target.closest?.('[data-route-action]')?.dataset.routeAction;
     if (!action || !current) return;
     if (action === 'add-line') { addOrderLine('EDIYA'); return; }
+    if (action === 'unlock-order' && current.order?.locked === true) {
+      await options.client.unlockOrder(current.order.id, current.order.revision);
+      return;
+    }
     if (action === 'new-order') {
       draftingNewOrder = !draftingNewOrder;
       if (draftingNewOrder) loadDefaultDraft();

@@ -108,16 +108,35 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(graph["graph_revision"]), 64)
 
     async def test_locked_order_active_navigation_and_mapping_interlocks(self):
-        payload = order_payload(); payload["locked"] = True
+        payload = order_payload()
+        payload["locked"] = True
         order = (await self.coordinator.create_order(payload))["order"]
         with self.assertRaises(RoutePlannerConflict):
             await self.coordinator.update_order(order["id"], base_revision=order["revision"], payload=order_payload())
         self.navigation["pipeline"]["state"] = "running"
         with self.assertRaises(RoutePlannerConflict):
             await self.coordinator.create_order(order_payload())
-        self.navigation["pipeline"]["state"] = "idle"; self.mapping_active = True
+        self.navigation["pipeline"]["state"] = "idle"
+        self.mapping_active = True
         with self.assertRaises(RoutePlannerConflict):
             await self.coordinator.put_graph(graph_payload(), base_graph_revision=None)
+
+    async def test_locked_order_requires_exact_revision_and_explicit_unlock_path(self):
+        payload = order_payload()
+        payload["locked"] = True
+        order = (await self.coordinator.create_order(payload))["order"]
+        self.navigation["pipeline"]["state"] = "running"
+        with self.assertRaises(RoutePlannerConflict):
+            await self.coordinator.unlock_order(order["id"], base_revision=order["revision"])
+        self.navigation["pipeline"]["state"] = "idle"
+        with self.assertRaises(RoutePlannerConflict):
+            await self.coordinator.unlock_order(order["id"], base_revision="0" * 64)
+        unlocked = (await self.coordinator.unlock_order(order["id"], base_revision=order["revision"]))["order"]
+        self.assertEqual(unlocked["id"], order["id"])
+        self.assertNotEqual(unlocked["revision"], order["revision"])
+        self.assertFalse(unlocked["locked"])
+        with self.assertRaises(RoutePlannerConflict):
+            await self.coordinator.unlock_order(unlocked["id"], base_revision=unlocked["revision"])
 
     async def test_route_is_reused_for_guidance_preview_and_mission_draft_without_motion(self):
         _, _, route = await self.ready()
