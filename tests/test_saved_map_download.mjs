@@ -5,6 +5,7 @@ import test from 'node:test';
 import { renderSavedMapDownloadState } from '../robot_dashboard/static/features/maps/download.js';
 
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
+const stylesSource = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
 function node() {
   return {
@@ -39,4 +40,12 @@ test('Mapping links to the Saved Maps size and download controls', () => {
   assert.match(indexSource, /class="mapping-download-link" href="#maps"/);
   assert.match(indexSource, /id="savedMapSize"/);
   assert.match(indexSource, /id="savedMapDownload"/);
+});
+
+test('Map Library stays bounded and scrollable as saved maps accumulate', () => {
+  assert.match(indexSource, /class="saved-map-list"[^>]*role="region"[^>]*aria-label="저장 지도 목록"[^>]*tabindex="0"/);
+  assert.match(stylesSource, /\.saved-map-list \{[^}]*max-height:clamp\(220px,38vh,360px\)/);
+  assert.match(stylesSource, /\.saved-map-list \{[^}]*overflow-y:auto/);
+  assert.match(stylesSource, /\.saved-map-list \{[^}]*overscroll-behavior:contain/);
+  assert.match(stylesSource, /\.saved-map-list \{[^}]*scrollbar-gutter:stable/);
 });
