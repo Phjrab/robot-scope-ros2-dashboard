@@ -340,7 +340,11 @@ class RehearsalSession:
             "cargo_capacity": 5,
             "next_venue_id": self._delivery.next_venue_id,
             "items": items,
-            "destination_id": str(self._order.get("destination_id", ""))[:32],
+            "destination_id": str(self._delivery.next_destination_id or "")[:32],
+            "destination_ids": [
+                str(item)[:32]
+                for item in self._order.get("destination_ids", [])[:4]
+            ],
             "destination_state": "COMPLETE"
             if snapshot["state"] == "ORDER_COMPLETE"
             else "PENDING",
@@ -428,7 +432,7 @@ class RehearsalSession:
             destination = payload.get("destination_id")
             if (
                 set(payload) != {"destination_id"}
-                or destination != self._order.get("destination_id")
+                or destination != self._delivery.next_destination_id
                 or self._delivery.next_venue_id is not None
             ):
                 raise RehearsalError("drop-off confirmation is invalid")
@@ -515,7 +519,11 @@ class RehearsalSession:
             "kind": "ROUTE_PLANNER_REHEARSAL_REPORT",
             "order_summary": {
                 "label": str(self._order.get("label", ""))[:64],
-                "destination_id": str(self._order.get("destination_id", ""))[:32],
+                "destination_id": str(self._order.get("destination_id") or "")[:32],
+                "destination_ids": [
+                    str(item)[:32]
+                    for item in self._order.get("destination_ids", [])[:4]
+                ],
                 "total_quantity": int(self._order.get("total_quantity", 0)),
             },
             "selected_route": {

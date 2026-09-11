@@ -790,6 +790,30 @@ class DeliveryTransitionTests(unittest.TestCase):
         )
         self.assertEqual((value["state"], flow.cargo_count), ("ORDER_COMPLETE", 0))
 
+    def test_multiple_destinations_are_confirmed_separately_without_early_completion(self) -> None:
+        value = order()
+        value["destination_id"] = None
+        value["destination_ids"] = ["COEX", "WHIMOON"]
+        value["lines"][0]["destination_id"] = "COEX"
+        value["lines"][1]["destination_id"] = "WHIMOON"
+        flow = DeliveryWorkflow(value)
+        flow.transition("START", now_ns=1)
+        for now, venue in ((2, "HANSOT"), (6, "EDIYA")):
+            flow.transition("ARRIVE_PICKUP", now_ns=now, payload={"venue_id": venue})
+            flow.transition("PICKUP_DOCKED", now_ns=now + 1)
+            flow.transition("CONFIRM_PICKUP", now_ns=now + 2, payload={"venue_id": venue})
+            flow.transition("DEPART_PICKUP", now_ns=now + 3)
+        flow.transition("ARRIVE_DESTINATION", now_ns=10, payload={"destination_id": "COEX"})
+        flow.transition("DROPOFF_DOCKED", now_ns=11)
+        first = flow.transition("CONFIRM_DROPOFF", now_ns=12, payload={"destination_id": "COEX"})
+        self.assertEqual(first["state"], "EN_ROUTE_DESTINATION")
+        self.assertEqual(flow.next_destination_id, "WHIMOON")
+        self.assertGreater(flow.cargo_count, 0)
+        flow.transition("ARRIVE_DESTINATION", now_ns=13, payload={"destination_id": "WHIMOON"})
+        flow.transition("DROPOFF_DOCKED", now_ns=14)
+        final = flow.transition("CONFIRM_DROPOFF", now_ns=15, payload={"destination_id": "WHIMOON"})
+        self.assertEqual((final["state"], flow.cargo_count), ("ORDER_COMPLETE", 0))
+
     def test_restart_pauses_without_resume(self) -> None:
         flow = DeliveryWorkflow(order())
         flow.transition("START", now_ns=1)

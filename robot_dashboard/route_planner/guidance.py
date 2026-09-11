@@ -95,12 +95,14 @@ def project_guidance(
     *,
     previous_segment_index: int = 0,
     completed_pickups: list[str] | None = None,
+    completed_dropoffs: list[str] | None = None,
     dropoff_complete: bool = False,
 ) -> dict[str, Any]:
     """Project pose onto route polylines; never produce a control command."""
 
     segments = list(route.get("segments", []))[:512]
     completed = list(dict.fromkeys(completed_pickups or []))[:5]
+    delivered = list(dict.fromkeys(completed_dropoffs or []))[:4]
     if not segments:
         return {
             "active": False,
@@ -108,6 +110,7 @@ def project_guidance(
             "reason": "ROUTE_EMPTY",
             "instruction": "GUIDANCE PAUSED",
             "completed_pickups": completed,
+            "completed_dropoffs": delivered,
             "dropoff_complete": dropoff_complete,
         }
     if not isinstance(pose, Mapping) or _point(pose) is None:
@@ -115,6 +118,7 @@ def project_guidance(
             "active": True, "paused": True, "reason": "MAP_POSE_UNAVAILABLE", "instruction_type": "OFF_ROUTE",
             "instruction": "GUIDANCE PAUSED · map pose unavailable", "current_segment_index": min(previous_segment_index, len(segments) - 1),
             "completed_pickups": completed,
+            "completed_dropoffs": delivered,
             "dropoff_complete": dropoff_complete,
             "control_authority": False,
         }
@@ -157,6 +161,7 @@ def project_guidance(
         "off_route": off_route,
         "replan_available": replan,
         "completed_pickups": completed,
+        "completed_dropoffs": delivered,
         "dropoff_complete": dropoff_complete,
         "control_authority": False,
     }

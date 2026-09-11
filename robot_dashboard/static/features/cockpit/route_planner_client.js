@@ -33,7 +33,7 @@ function projectRoute(value) {
     operation_mode: text(value.operation_mode, 24), map_id: text(value.map_id, 24), map_revision: text(value.map_revision, 64),
     annotation_revision: text(value.annotation_revision, 64), graph_revision: text(value.graph_revision, 64),
     start_node_id: text(value.start_node_id, 64), executable: value.executable === true, reason: text(value.reason, 64),
-    stops: Object.freeze((Array.isArray(value.stops) ? value.stops : []).slice(0, 5).map((stop) => Object.freeze({
+    stops: Object.freeze((Array.isArray(value.stops) ? value.stops : []).slice(0, 10).map((stop) => Object.freeze({
       index: Number(stop?.index) || 0, node_id: text(stop?.node_id, 64), annotation_id: text(stop?.annotation_id, 24),
       role: text(stop?.role, 32), venue_id: text(stop?.venue_id, 64), label: text(stop?.label, 64),
     }))),
@@ -50,11 +50,13 @@ function projectRoute(value) {
 function projectOrder(value) {
   if (!value || !HEX32.test(String(value.id || '')) || !HEX64.test(String(value.revision || ''))) return null;
   return Object.freeze({
-    id: String(value.id), revision: String(value.revision), label: text(value.label, 64), destination_id: text(value.destination_id, 32),
+    id: String(value.id), revision: String(value.revision), label: text(value.label, 64), destination_id: text(value.destination_id, 32) || null,
+    destination_ids: Object.freeze((Array.isArray(value.destination_ids) ? value.destination_ids : value.destination_id ? [value.destination_id] : []).slice(0, 4).map((item) => text(item, 32))),
+    order_count: Math.max(0, Math.min(5, Number(value.order_count) || (Array.isArray(value.lines) ? value.lines.length : 0))),
     total_quantity: Math.max(0, Number(value.total_quantity) || 0), restaurant_count: Math.max(0, Number(value.restaurant_count) || 0),
     difficulty: text(value.difficulty, 16), locked: value.locked === true, order_started_at: text(value.order_started_at, 32) || null,
     lines: Object.freeze((Array.isArray(value.lines) ? value.lines : []).slice(0, 5).map((line) => Object.freeze({
-      sequence: Number(line?.sequence) || 0, restaurant_id: text(line?.restaurant_id, 32), menu_id: text(line?.menu_id, 32),
+      sequence: Number(line?.sequence) || 0, destination_id: text(line?.destination_id || value.destination_id, 32), restaurant_id: text(line?.restaurant_id, 32), menu_id: text(line?.menu_id, 32),
       quantity: Math.max(0, Number(line?.quantity) || 0), ready_at_s: Math.max(0, Number(line?.ready_at_s) || 0),
     }))),
   });
@@ -178,8 +180,9 @@ function projectState(payload, busy = false, error = '') {
     off_route: payload.guidance.off_route === true, replan_available: payload.guidance.replan_available === true,
     requirements: Object.freeze({ ...(payload.guidance.requirements || {}) }),
     completed_pickups: Object.freeze((Array.isArray(payload.guidance.completed_pickups) ? payload.guidance.completed_pickups : []).slice(0, 5).map((item) => text(item, 32))),
+    completed_dropoffs: Object.freeze((Array.isArray(payload.guidance.completed_dropoffs) ? payload.guidance.completed_dropoffs : []).slice(0, 4).map((item) => text(item, 32))),
     dropoff_complete: payload.guidance.dropoff_complete === true,
-  }) : Object.freeze({ active: false, paused: false, completed_pickups: Object.freeze([]), dropoff_complete: false });
+  }) : Object.freeze({ active: false, paused: false, completed_pickups: Object.freeze([]), completed_dropoffs: Object.freeze([]), dropoff_complete: false });
   const rehearsal = projectRehearsal(payload?.rehearsal);
   const state = {
     available: payload?.available === true, busy, error: text(error || payload?.error, 200),

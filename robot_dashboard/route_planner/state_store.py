@@ -60,6 +60,7 @@ def empty_state() -> dict[str, Any]:
         "guidance": {
             "active": False,
             "completed_pickups": [],
+            "completed_dropoffs": [],
             "dropoff_complete": False,
             "current_segment_index": 0,
         },
@@ -97,6 +98,7 @@ class RoutePlannerStateStore:
         value["guidance"] = {
             "active": False,
             "completed_pickups": list(guidance.get("completed_pickups", []))[:5],
+            "completed_dropoffs": list(guidance.get("completed_dropoffs", []))[:4],
             "dropoff_complete": guidance.get("dropoff_complete") is True,
             "current_segment_index": max(0, int(guidance.get("current_segment_index", 0))),
         }

@@ -11,18 +11,17 @@ This guide covers software-only planning. It does not authorize robot motion.
 
 ## Enter the order
 
-Choose one destination and enter two to five ordered lines. The UI displays total items, restaurant count, 20-second production timing and capacity. The server independently checks every rule and derives difficulty. Lock the order after review if it should no longer change.
+Create one to five order sheets. Each sheet has a destination, restaurant, menu and quantity. The UI displays sheet count, total items, restaurant count, 20-second production timing and the shared cargo capacity. The combined quantity cannot exceed five. The server independently checks every rule and derives difficulty. Lock the batch after review if it should no longer change.
 
-Example acceptance order:
+Example order batch:
 
-- Destination: COEX
-- 1: HANSOT / CHICKEN_MAYO ×2 (ready estimate 40 s)
-- 2: EDIYA / AMERICANO ×1 (ready estimate 60 s)
-- Result: LOW, three items, two restaurants
+- 1: COEX / HANSOT / CHICKEN_MAYO ×2 (ready estimate 40 s)
+- 2: WHIMOON / EDIYA / AMERICANO ×1 (ready estimate 60 s)
+- Result: LOW, two order sheets, three items
 
 ## Recommend and select
 
-Select a start annotation node and calculate. Up to three cards show BALANCED, FASTEST and SAFEST badges plus distance, ETA, food wait, signal wait, risk, crosswalks, UNDERPASS use, turns and special requirements. If profiles choose the same node path, one card carries multiple badges.
+Select the visible **로봇 출발점** field from the exact start annotations and calculate. The selection only defines the route origin; it does not publish an initial pose or move the robot. Up to three cards show BALANCED, FASTEST and SAFEST badges plus distance, ETA, food wait, signal wait, risk, crosswalks, UNDERPASS use, turns and special requirements. If profiles choose the same node path, one card carries multiple badges.
 
 Select exactly one server recommendation. The yellow 3D line is the selected graph route; translucent lines are alternatives; red is the current guidance segment; blue dashed is an actual Nav2 path when one is independently available. These overlays are not a Nav2 plan.
 

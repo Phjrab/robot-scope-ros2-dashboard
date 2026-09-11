@@ -29,9 +29,6 @@ class DeliveryWorkflow:
     def __init__(self, order: Mapping[str, Any]) -> None:
         lines = order.get("lines") if isinstance(order, Mapping) else None
         total = order.get("total_quantity") if isinstance(order, Mapping) else None
-        destination = (
-            order.get("destination_id") if isinstance(order, Mapping) else None
-        )
         if (
             not isinstance(lines, list)
             or not lines
@@ -40,11 +37,16 @@ class DeliveryWorkflow:
             or not 1 <= total <= 5
         ):
             raise BehaviorContractError("normalized order is invalid")
-        self._destination_id = token(destination, "destination")
         quantities: dict[str, int] = {}
+        destination_quantities: dict[str, int] = {}
         venue_order: list[str] = []
+        destination_order: list[str] = []
         for line in sorted(lines, key=lambda item: int(item.get("sequence", 0))):
             venue = token(line.get("restaurant_id"), "restaurant")
+            destination = token(
+                line.get("destination_id", order.get("destination_id")),
+                "destination",
+            )
             quantity = line.get("quantity")
             if (
                 isinstance(quantity, bool)
@@ -56,10 +58,17 @@ class DeliveryWorkflow:
                 venue_order.append(venue)
                 quantities[venue] = 0
             quantities[venue] += quantity
+            if destination not in destination_quantities:
+                destination_order.append(destination)
+                destination_quantities[destination] = 0
+            destination_quantities[destination] += quantity
         if sum(quantities.values()) != total or not 1 <= len(venue_order) <= 5:
             raise BehaviorContractError("order totals are inconsistent")
         self._quantities = quantities
+        self._destination_quantities = destination_quantities
         self._remaining = venue_order
+        self._remaining_destinations = destination_order
+        self._completed_destinations: list[str] = []
         self._picked: list[str] = []
         self._cargo_count = 0
         self._state = "ORDER_READY"
@@ -80,6 +89,10 @@ class DeliveryWorkflow:
     @property
     def next_venue_id(self) -> str | None:
         return self._remaining[0] if self._remaining else None
+
+    @property
+    def next_destination_id(self) -> str | None:
+        return self._remaining_destinations[0] if self._remaining_destinations else None
 
     def audit(self) -> list[dict[str, Any]]:
         return copy.deepcopy(self._audit)
@@ -184,7 +197,7 @@ class DeliveryWorkflow:
         elif (
             event_name == "ARRIVE_DESTINATION" and self._state == "EN_ROUTE_DESTINATION"
         ):
-            if data not in ({}, {"destination_id": self._destination_id}):
+            if data not in ({}, {"destination_id": self.next_destination_id}):
                 return self._fail("DESTINATION_MISMATCH", now, event_name)
             self._state = "DROPOFF_DOCK_REQUIRED"
         elif event_name == "DROPOFF_DOCKED" and self._state == "DROPOFF_DOCK_REQUIRED":
@@ -193,10 +206,19 @@ class DeliveryWorkflow:
             event_name == "CONFIRM_DROPOFF"
             and self._state == "DROPOFF_CONFIRMATION_REQUIRED"
         ):
-            if data not in ({}, {"destination_id": self._destination_id}):
+            destination = self.next_destination_id
+            if destination is None or data not in ({}, {"destination_id": destination}):
                 return self._fail("DESTINATION_MISMATCH", now, event_name)
-            self._cargo_count = 0
-            self._state = "ORDER_COMPLETE"
+            self._cargo_count = max(
+                0, self._cargo_count - self._destination_quantities[destination]
+            )
+            self._completed_destinations.append(destination)
+            self._remaining_destinations.pop(0)
+            self._state = (
+                "EN_ROUTE_DESTINATION"
+                if self._remaining_destinations
+                else "ORDER_COMPLETE"
+            )
         elif event_name == "FAIL":
             return self._fail("EXTERNAL_ACTION_FAILED", now, event_name)
         else:
@@ -238,7 +260,8 @@ class DeliveryWorkflow:
                 "cargo_capacity": 5,
                 "remaining_restaurants": len(self._remaining),
                 "next_venue": self.next_venue_id,
-                "destination": self._destination_id,
+                "destination": self.next_destination_id,
+                "remaining_destinations": len(self._remaining_destinations),
                 "resume_requires_evidence": self._resume_requires_evidence,
             },
             updated_at_ns=now,

@@ -464,6 +464,16 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   await expect(planner).toBeVisible();
   await expect(planner.locator('.route-planner-header')).toContainText('DRAFT');
   await expect(page.locator('.route-planner-safety-banner')).toContainText('NO MOTION AUTHORITY');
+  await expect(planner.locator('.route-planner-field-label')).toContainText('로봇 출발점');
+  await expect(planner.locator('select[aria-label="Route start node"]')).toHaveValue('START_NODE');
+
+  for (let index = 0; index < 4; index += 1) await planner.locator('[data-route-action="add-line"]').click();
+  await expect(planner.locator('.route-planner-order-line')).toHaveCount(5);
+  await expect(planner.locator('[data-route-action="add-line"]')).toBeDisabled();
+  await expect(planner.locator('select[aria-label^="도착장소"]')).toHaveCount(5);
+  await expect(planner.locator('select[aria-label^="음식점"]')).toHaveCount(5);
+  await expect(planner.locator('select[aria-label^="메뉴"]')).toHaveCount(5);
+  await expect(planner.locator('input[aria-label^="수량"]')).toHaveCount(5);
 
   const bounds = await planner.evaluate((root) => {
     const order = root.querySelector('.route-planner-order');
@@ -491,6 +501,9 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
 
   await planner.locator('[data-route-action="save-order"]').click();
   await expect.poll(() => backend.mutations('/api/v1/route-planner/orders').length).toBe(1);
+  const orderRequest = backend.mutations('/api/v1/route-planner/orders')[0].body;
+  expect(orderRequest.lines).toHaveLength(5);
+  expect(orderRequest.lines.every((line) => line.destination_id && line.restaurant_id && line.menu_id && line.quantity === 1)).toBe(true);
   await planner.locator('[data-route-action="calculate"]').click();
   await expect(planner.locator('.route-planner-card')).toHaveCount(3);
   await planner.locator('.route-planner-card').first().locator('[data-route-select]').click();
@@ -521,7 +534,7 @@ test('locked Route Planner order stays server-synchronized and offers an isolate
   await expect(planner.locator('input[aria-label="주문 이름"]')).toBeDisabled();
   const lockedSelects = planner.locator('.route-planner-order-line select');
   const lockedRemoveButtons = planner.locator('[data-route-remove-line]');
-  await expect(lockedSelects).toHaveCount(8);
+  await expect(lockedSelects).toHaveCount(12);
   await expect(lockedRemoveButtons).toHaveCount(4);
   expect(await lockedSelects.evaluateAll((items) => items.every((item) => item.disabled))).toBe(true);
   expect(await lockedRemoveButtons.evaluateAll((items) => items.every((item) => item.disabled))).toBe(true);
@@ -531,7 +544,7 @@ test('locked Route Planner order stays server-synchronized and offers an isolate
 
   await planner.locator('[data-route-action="new-order"]').click();
   await expect(planner.locator('.route-planner-order-notice')).toContainText('새 주문 초안');
-  await expect(planner.locator('.route-planner-order-line')).toHaveCount(2);
+  await expect(planner.locator('.route-planner-order-line')).toHaveCount(1);
   await expect(planner.locator('input[aria-label="주문 이름"]')).toBeEnabled();
   await expect(planner.locator('[data-route-action="add-line"]')).toBeEnabled();
   await expect(planner.locator('[data-route-action="save-order"]')).toBeEnabled();

@@ -102,7 +102,7 @@ async def route_order_create(body: RouteOrderCreateRequest, request: Request) ->
     require_same_origin(request)
     _, coordinator = _mutation(request, "route planner order creation")
     try:
-        return await coordinator.create_order(body.model_dump())
+        return await coordinator.create_order(body.model_dump(exclude_none=True))
     except RoutePlannerError as exc:
         raise _error(exc) from exc
 
@@ -111,7 +111,7 @@ async def route_order_create(body: RouteOrderCreateRequest, request: Request) ->
 async def route_order_update(order_id: str, body: RouteOrderUpdateRequest, request: Request) -> Dict[str, Any]:
     require_same_origin(request)
     _, coordinator = _mutation(request, "route planner order update")
-    payload = body.model_dump()
+    payload = body.model_dump(exclude_none=True)
     base_revision = payload.pop("base_revision")
     try:
         return await coordinator.update_order(order_id, base_revision=base_revision, payload=payload)

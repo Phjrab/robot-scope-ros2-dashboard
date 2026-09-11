@@ -32,14 +32,18 @@ The 3D overlay is explanatory. Feasibility is validated from the exact 2D occupa
 
 ## Order contract
 
-- Exactly one registered destination.
-- Two to five lines, two or more distinct restaurants, and three to five items.
-- The destination-zone restaurant is forbidden.
+- The current contract accepts one to five independent order sheets in one bounded delivery batch.
+- Every sheet contains its own registered destination, restaurant, menu and quantity.
+- Total cargo remains limited to five items across the whole batch.
+- The destination-zone restaurant is forbidden for each sheet.
 - Menus must belong to their restaurant.
 - Sequences are unique and continuous from 1.
-- Difficulty is derived: LOW `(2,3)`, MEDIUM `(2,4)`, HIGH `(3,5)`.
+- Difficulty is derived from the bounded sheet count: LOW `1–2`, MEDIUM `3–4`, HIGH `5`.
 - Production readiness follows `ORDER_SEQUENCE_20S`: cumulative ordered items × 20 seconds.
-- Capacity is five. HTTP callers cannot supply `difficulty`, totals, coordinates, paths, topics, or plugins.
+- The prior one-destination payload remains accepted as a legacy compatibility input and retains its original competition-shape validation. New responses normalize destination identity onto every line.
+- HTTP callers cannot supply `difficulty`, totals, coordinates, paths, topics, or plugins.
+
+The operator explicitly selects the robot start node from the exact revision-pinned Route Graph. This value is planning context, not a robot pose command, and Route Planner still has no localization or motion authority.
 
 ## Route Graph
 

@@ -13,10 +13,11 @@ from typing import Any, Callable, Mapping
 from .catalog import CATALOG_REVISION, competition_catalog
 
 
-ORDER_SCHEMA_VERSION = 1
+ORDER_SCHEMA_VERSION = 2
 ORDER_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 REVISION_RE = re.compile(r"^[0-9a-f]{64}$")
 MAX_LINES = 5
+MAX_ORDERS = MAX_LINES
 MAX_LABEL_CHARS = 64
 
 
@@ -59,13 +60,24 @@ def _difficulty(restaurants: int, items: int) -> str:
     return "CUSTOM"
 
 
+def _batch_difficulty(order_count: int) -> str:
+    if order_count <= 2:
+        return "LOW"
+    if order_count <= 4:
+        return "MEDIUM"
+    return "HIGH"
+
+
 def _canonical(value: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": ORDER_SCHEMA_VERSION,
         "id": value["id"],
         "label": value["label"],
         "destination_id": value["destination_id"],
+        "destination_ids": value["destination_ids"],
         "lines": value["lines"],
+        "order_count": value["order_count"],
+        "order_mode": value["order_mode"],
         "total_quantity": value["total_quantity"],
         "difficulty": value["difficulty"],
         "order_started_at": value["order_started_at"],
@@ -99,18 +111,29 @@ def normalize_order(
     catalog = competition_catalog()
     destinations = catalog["destinations"]
     restaurants = catalog["restaurants"]
-    destination_id = payload.get("destination_id")
-    if destination_id not in destinations:
-        raise OrderValidationError("destination is not registered")
     lines = payload.get("lines")
-    if not isinstance(lines, list) or not 2 <= len(lines) <= MAX_LINES:
-        raise OrderValidationError("order must contain 2 to 5 lines")
-    destination_zone = destinations[destination_id]["zone_id"]
+    if not isinstance(lines, list) or not 1 <= len(lines) <= MAX_LINES:
+        raise OrderValidationError("order batch must contain 1 to 5 order sheets")
+    legacy_destination_id = payload.get("destination_id")
+    line_destination_presence = [
+        isinstance(line, Mapping) and "destination_id" in line for line in lines
+    ]
+    if any(line_destination_presence):
+        if not all(line_destination_presence) or legacy_destination_id is not None:
+            raise OrderValidationError("use either one legacy destination or one destination per order sheet")
+        order_mode = "MULTI_DESTINATION"
+    else:
+        if legacy_destination_id not in destinations:
+            raise OrderValidationError("destination is not registered")
+        order_mode = "LEGACY_SINGLE_DESTINATION"
     normalized_lines: list[dict[str, Any]] = []
     seen_sequences: set[int] = set()
     cumulative_quantity = 0
     for line in lines:
-        if not isinstance(line, Mapping) or set(line) != {"sequence", "restaurant_id", "menu_id", "quantity"}:
+        expected_fields = {"sequence", "restaurant_id", "menu_id", "quantity"}
+        if order_mode == "MULTI_DESTINATION":
+            expected_fields.add("destination_id")
+        if not isinstance(line, Mapping) or set(line) != expected_fields:
             raise OrderValidationError("order line schema is invalid")
         sequence = line.get("sequence")
         quantity = line.get("quantity")
@@ -123,6 +146,14 @@ def normalize_order(
             raise OrderValidationError("order line quantity must be a positive integer")
         restaurant_id = line.get("restaurant_id")
         menu_id = line.get("menu_id")
+        destination_id = (
+            line.get("destination_id")
+            if order_mode == "MULTI_DESTINATION"
+            else legacy_destination_id
+        )
+        if destination_id not in destinations:
+            raise OrderValidationError("destination is not registered")
+        destination_zone = destinations[destination_id]["zone_id"]
         restaurant = restaurants.get(restaurant_id)
         if restaurant is None:
             raise OrderValidationError("restaurant is not registered")
@@ -133,6 +164,7 @@ def normalize_order(
         normalized_lines.append(
             {
                 "sequence": sequence,
+                "destination_id": destination_id,
                 "restaurant_id": restaurant_id,
                 "menu_id": menu_id,
                 "quantity": quantity,
@@ -146,13 +178,21 @@ def normalize_order(
         cumulative_quantity += int(item["quantity"])
         item["ready_at_s"] = cumulative_quantity * int(catalog["production"]["seconds_per_item"])
     restaurant_count = len({item["restaurant_id"] for item in normalized_lines})
-    if restaurant_count < int(catalog["minimum_restaurants"]):
-        raise OrderValidationError("order must include at least two restaurants")
-    if not int(catalog["minimum_items"]) <= cumulative_quantity <= int(catalog["capacity"]):
-        raise OrderValidationError("total quantity must be between 3 and 5")
-    difficulty = _difficulty(restaurant_count, cumulative_quantity)
-    if difficulty == "CUSTOM" and not allow_custom:
-        raise OrderValidationError("order does not match a competition difficulty shape")
+    if order_mode == "LEGACY_SINGLE_DESTINATION":
+        if restaurant_count < int(catalog["minimum_restaurants"]):
+            raise OrderValidationError("order must include at least two restaurants")
+        if not int(catalog["minimum_items"]) <= cumulative_quantity <= int(catalog["capacity"]):
+            raise OrderValidationError("total quantity must be between 3 and 5")
+        difficulty = _difficulty(restaurant_count, cumulative_quantity)
+        if difficulty == "CUSTOM" and not allow_custom:
+            raise OrderValidationError("order does not match a competition difficulty shape")
+    else:
+        if cumulative_quantity > int(catalog["capacity"]):
+            raise OrderValidationError("total quantity must be between 1 and 5")
+        difficulty = _batch_difficulty(len(normalized_lines))
+    destination_ids = list(
+        dict.fromkeys(str(item["destination_id"]) for item in normalized_lines)
+    )
     locked = payload.get("locked", False)
     if not isinstance(locked, bool):
         raise OrderValidationError("locked must be boolean")
@@ -160,8 +200,11 @@ def normalize_order(
         "schema_version": ORDER_SCHEMA_VERSION,
         "id": identifier,
         "label": _label(payload.get("label", "Competition order")),
-        "destination_id": destination_id,
+        "destination_id": destination_ids[0] if len(destination_ids) == 1 else None,
+        "destination_ids": destination_ids,
         "lines": normalized_lines,
+        "order_count": len(normalized_lines),
+        "order_mode": order_mode,
         "total_quantity": cumulative_quantity,
         "restaurant_count": restaurant_count,
         "difficulty": difficulty,
@@ -175,6 +218,7 @@ def normalize_order(
 
 __all__ = [
     "MAX_LINES",
+    "MAX_ORDERS",
     "ORDER_ID_RE",
     "ORDER_SCHEMA_VERSION",
     "OrderValidationError",

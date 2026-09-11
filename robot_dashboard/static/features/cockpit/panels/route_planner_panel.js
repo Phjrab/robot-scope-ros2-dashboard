@@ -27,12 +27,10 @@ function createRoutePlannerPanelView(options = {}) {
   const pins = make(documentValue, 'span', '', 'MAP — · GRAPH —'); header.append(status, pins);
 
   const orderSection = make(documentValue, 'section', 'route-planner-order');
-  orderSection.append(make(documentValue, 'h3', '', '주문 정보'));
-  const labelInput = documentValue.createElement('input'); labelInput.maxLength = 64; labelInput.value = 'Competition order'; labelInput.setAttribute('aria-label', '주문 이름');
-  const destination = documentValue.createElement('select'); destination.setAttribute('aria-label', '배송지');
-  destination.append(...DESTINATIONS.map(([value, label]) => option(documentValue, value, label)));
+  orderSection.append(make(documentValue, 'h3', '', '주문서 (최대 5개)'));
+  const labelInput = documentValue.createElement('input'); labelInput.maxLength = 64; labelInput.value = 'Competition orders'; labelInput.setAttribute('aria-label', '주문 이름'); labelInput.placeholder = '주문 묶음 이름';
   const lines = make(documentValue, 'div', 'route-planner-order-lines');
-  const addLine = make(documentValue, 'button', '', '+ 주문 항목'); addLine.type = 'button'; addLine.dataset.routeAction = 'add-line';
+  const addLine = make(documentValue, 'button', '', '+ 주문서 추가'); addLine.type = 'button'; addLine.dataset.routeAction = 'add-line';
   const saveOrder = make(documentValue, 'button', '', '주문 저장'); saveOrder.type = 'button'; saveOrder.dataset.routeAction = 'save-order';
   const lockOrder = make(documentValue, 'button', '', '주문 잠금'); lockOrder.type = 'button'; lockOrder.dataset.routeAction = 'lock-order';
   const unlockOrder = make(documentValue, 'button', '', '주문 잠금 해제'); unlockOrder.type = 'button'; unlockOrder.dataset.routeAction = 'unlock-order'; unlockOrder.hidden = true;
@@ -40,16 +38,18 @@ function createRoutePlannerPanelView(options = {}) {
   const orderSummary = make(documentValue, 'small', 'route-planner-order-summary', '총 0개 / 적재 한도 5');
   const orderNotice = make(documentValue, 'small', 'route-planner-order-notice'); orderNotice.hidden = true; orderNotice.setAttribute('role', 'status');
   const orderActions = make(documentValue, 'div', 'route-planner-order-actions'); orderActions.append(addLine, saveOrder, lockOrder, unlockOrder, newOrder);
-  orderSection.append(labelInput, destination, lines, orderSummary, orderNotice, orderActions);
+  orderSection.append(labelInput, lines, orderSummary, orderNotice, orderActions);
 
   const planningSection = make(documentValue, 'section', 'route-planner-planning');
   planningSection.append(make(documentValue, 'h3', '', '추천 경로'));
+  const startNodeLabel = make(documentValue, 'label', 'route-planner-field-label', '로봇 출발점');
   const startNode = documentValue.createElement('select'); startNode.setAttribute('aria-label', 'Route start node');
+  startNodeLabel.append(startNode);
   const operationMode = documentValue.createElement('select'); operationMode.setAttribute('aria-label', 'Route operation mode');
   operationMode.append(option(documentValue, 'AUTO_NAV2', '수동 안내 + Mission 호환'), option(documentValue, 'MANUAL_GUIDANCE', '수동 안내 전용'));
   const calculate = make(documentValue, 'button', '', '추천 경로 계산'); calculate.type = 'button'; calculate.dataset.routeAction = 'calculate';
   const cards = make(documentValue, 'div', 'route-planner-cards');
-  planningSection.append(startNode, operationMode, calculate, cards);
+  planningSection.append(startNodeLabel, operationMode, calculate, cards);
 
   const guidance = make(documentValue, 'section', 'route-planner-guidance');
   guidance.setAttribute('aria-label', 'Manual route guidance');
@@ -94,6 +94,8 @@ function createRoutePlannerPanelView(options = {}) {
   let scenarioSignature = '';
   let loadedOrderSignature = '';
   let draftingNewOrder = false;
+  let startNodeSignature = '';
+  let selectedStartNodeId = '';
 
   function syncMenus(row) {
     const prior = row.menu.value;
@@ -101,65 +103,68 @@ function createRoutePlannerPanelView(options = {}) {
     if ([...row.menu.children].some((item) => item.value === prior)) row.menu.value = prior;
   }
 
-  function addOrderLine(restaurantId = 'HANSOT', menuId = '', quantity = 1) {
+  function addOrderLine(destinationId = 'COEX', restaurantId = 'HANSOT', menuId = '', quantity = 1) {
     if (lineRows.length >= 5) return;
     const rowRoot = make(documentValue, 'div', 'route-planner-order-line');
-    const sequence = make(documentValue, 'span', '', String(lineRows.length + 1));
+    const sequence = make(documentValue, 'strong', '', `주문서 ${lineRows.length + 1}`);
+    const destinationInput = documentValue.createElement('select'); destinationInput.setAttribute('aria-label', `도착장소 ${lineRows.length + 1}`);
+    destinationInput.append(...DESTINATIONS.map(([value, label]) => option(documentValue, value, label))); destinationInput.value = destinationId;
     const restaurant = documentValue.createElement('select'); restaurant.setAttribute('aria-label', `음식점 ${lineRows.length + 1}`);
     restaurant.append(...RESTAURANTS.map(([value, label]) => option(documentValue, value, label))); restaurant.value = restaurantId;
     const menu = documentValue.createElement('select'); menu.setAttribute('aria-label', `메뉴 ${lineRows.length + 1}`);
     const quantityInput = documentValue.createElement('input'); quantityInput.type = 'number'; quantityInput.min = '1'; quantityInput.max = '5'; quantityInput.value = String(quantity); quantityInput.setAttribute('aria-label', `수량 ${lineRows.length + 1}`);
     const remove = make(documentValue, 'button', '', '×'); remove.type = 'button'; remove.dataset.routeRemoveLine = 'true';
-    const row = { root: rowRoot, sequence, restaurant, menu, quantity: quantityInput, remove };
+    const row = { root: rowRoot, sequence, destination: destinationInput, restaurant, menu, quantity: quantityInput, remove };
     lineRows.push(row); syncMenus(row); if (menuId) menu.value = menuId;
     restaurant.addEventListener('change', () => { syncMenus(row); renderOrderSummary(); });
     quantityInput.addEventListener('input', renderOrderSummary);
-    remove.addEventListener('click', () => { if (lineRows.length <= 2) return; const index = lineRows.indexOf(row); if (index >= 0) lineRows.splice(index, 1); rowRoot.remove(); lineRows.forEach((item, rowIndex) => { item.sequence.textContent = String(rowIndex + 1); }); renderOrderSummary(); });
-    rowRoot.append(sequence, restaurant, menu, quantityInput, remove); lines.append(rowRoot); renderOrderSummary();
+    remove.addEventListener('click', () => { if (lineRows.length <= 1) return; const index = lineRows.indexOf(row); if (index >= 0) lineRows.splice(index, 1); rowRoot.remove(); lineRows.forEach((item, rowIndex) => { item.sequence.textContent = `주문서 ${rowIndex + 1}`; }); renderOrderSummary(); });
+    rowRoot.append(sequence, destinationInput, restaurant, menu, quantityInput, remove); lines.append(rowRoot); renderOrderSummary();
   }
 
   function draftPayload(locked = false) {
     return {
-      label: labelInput.value.trim() || 'Competition order', destination_id: destination.value, order_started_at: null, locked,
-      lines: lineRows.map((row, index) => ({ sequence: index + 1, restaurant_id: row.restaurant.value, menu_id: row.menu.value, quantity: Math.max(1, Math.min(5, Number(row.quantity.value) || 1)) })),
+      label: labelInput.value.trim() || 'Competition orders', order_started_at: null, locked,
+      lines: lineRows.map((row, index) => ({ sequence: index + 1, destination_id: row.destination.value, restaurant_id: row.restaurant.value, menu_id: row.menu.value, quantity: Math.max(1, Math.min(5, Number(row.quantity.value) || 1)) })),
     };
   }
 
   function renderOrderSummary() {
     const total = lineRows.reduce((sum, row) => sum + Math.max(1, Math.min(5, Number(row.quantity.value) || 1)), 0);
     const restaurantCount = new Set(lineRows.map((row) => row.restaurant.value)).size;
-    orderSummary.textContent = `총 ${total}개 / 적재 한도 5 · 음식점 ${restaurantCount}곳 · 20초 순차 생성`;
-    orderSummary.dataset.valid = String(total >= 3 && total <= 5 && restaurantCount >= 2);
+    orderSummary.textContent = `주문서 ${lineRows.length}/5 · 총 ${total}개 / 적재 한도 5 · 음식점 ${restaurantCount}곳 · 20초 순차 생성`;
+    orderSummary.dataset.valid = String(lineRows.length >= 1 && lineRows.length <= 5 && total >= 1 && total <= 5);
     syncOrderEditorControls();
   }
 
   function loadOrder(order) {
     if (!order) return;
-    labelInput.value = order.label; destination.value = order.destination_id;
+    labelInput.value = order.label;
     while (lineRows.length) lineRows.pop().root.remove();
-    for (const line of order.lines) addOrderLine(line.restaurant_id, line.menu_id, line.quantity);
+    for (const line of order.lines) addOrderLine(line.destination_id || order.destination_id || 'COEX', line.restaurant_id, line.menu_id, line.quantity);
   }
 
   function loadDefaultDraft() {
-    labelInput.value = 'Competition order'; destination.value = 'COEX';
+    labelInput.value = 'Competition orders';
     while (lineRows.length) lineRows.pop().root.remove();
-    addOrderLine('HANSOT', 'CHICKEN_MAYO', 2);
-    addOrderLine('EDIYA', 'AMERICANO', 1);
+    addOrderLine('COEX', 'HANSOT', 'CHICKEN_MAYO', 1);
   }
 
   function syncOrderEditorControls() {
     const rehearsalActive = current?.rehearsal.active === true;
     const locked = !draftingNewOrder && current?.order?.locked === true;
     const editorDisabled = current?.busy === true || rehearsalActive || locked;
-    labelInput.disabled = editorDisabled; destination.disabled = editorDisabled;
+    const orderValid = orderSummary.dataset.valid !== 'false';
+    labelInput.disabled = editorDisabled;
     for (const row of lineRows) {
+      row.destination.disabled = editorDisabled;
       row.restaurant.disabled = editorDisabled;
       row.menu.disabled = editorDisabled;
       row.quantity.disabled = editorDisabled;
-      row.remove.disabled = editorDisabled || lineRows.length <= 2;
+      row.remove.disabled = editorDisabled || lineRows.length <= 1;
     }
-    saveOrder.disabled = editorDisabled;
-    lockOrder.disabled = editorDisabled || draftingNewOrder || !current?.order;
+    saveOrder.disabled = editorDisabled || !orderValid;
+    lockOrder.disabled = editorDisabled || !orderValid || draftingNewOrder || !current?.order;
     addLine.disabled = editorDisabled || lineRows.length >= 5;
     unlockOrder.hidden = !locked;
     unlockOrder.disabled = current?.busy === true || rehearsalActive;
@@ -170,7 +175,7 @@ function createRoutePlannerPanelView(options = {}) {
     orderNotice.dataset.state = draftingNewOrder ? 'draft' : locked ? 'locked' : '';
     orderNotice.textContent = draftingNewOrder
       ? '새 주문 초안 · 저장 전까지 기존의 잠긴 주문은 유지됩니다.'
-      : locked ? `주문 잠김 · 서버 저장본 ${current.order.lines.length}개 항목입니다. 잠금 해제 후 수정하거나 새 주문을 작성하세요.` : '';
+      : locked ? `주문 잠김 · 서버 저장본 ${current.order.lines.length}개 주문서입니다. 잠금 해제 후 수정하거나 새 주문을 작성하세요.` : '';
     orderSection.dataset.locked = String(locked);
   }
 
@@ -233,7 +238,14 @@ function createRoutePlannerPanelView(options = {}) {
     }
     if (!state.order && !draftingNewOrder) loadedOrderSignature = '';
     const rehearsalActive = state.rehearsal.active;
-    startNode.replaceChildren(...(state.graph?.nodes || []).filter((node) => node.role === 'START').map((node) => option(documentValue, node.id, node.label)));
+    const startNodes = (state.graph?.nodes || []).filter((node) => node.role === 'START');
+    const nextStartSignature = startNodes.map((node) => `${node.id}:${node.label}`).join('|');
+    if (nextStartSignature !== startNodeSignature) {
+      startNode.replaceChildren(...startNodes.map((node) => option(documentValue, node.id, node.label)));
+      if (startNodes.some((node) => node.id === selectedStartNodeId)) startNode.value = selectedStartNodeId;
+      else selectedStartNodeId = startNode.value;
+      startNodeSignature = nextStartSignature;
+    }
     syncOrderEditorControls();
     calculate.disabled = state.busy || rehearsalActive || draftingNewOrder || !state.order || !state.graph || !startNode.value;
     renderCards(state);
@@ -245,17 +257,18 @@ function createRoutePlannerPanelView(options = {}) {
     requirementState.textContent = `신호 ${requirements.TRAFFIC_GREEN || '—'} · 사람 ${requirements.PEDESTRIAN_CLEAR || '—'} · 정렬 ${requirements.CROSSWALK_ALIGNMENT || '—'} · 도킹 ${requirements.ARUCO_DOCKING || '—'}`;
     const pickupStops = (route?.stops || []).filter((stop) => ['RESTAURANT_APPROACH', 'RESTAURANT_DOCK'].includes(stop.role));
     const uniquePickups = [...new Map(pickupStops.map((stop) => [stop.venue_id, stop])).values()];
-    const destinationStop = (route?.stops || []).find((stop) => ['DESTINATION_APPROACH', 'DESTINATION_DOCK'].includes(stop.role));
+    const destinationStops = [...new Map((route?.stops || []).filter((stop) => ['DESTINATION_APPROACH', 'DESTINATION_DOCK'].includes(stop.role)).map((stop) => [stop.venue_id, stop])).values()];
     confirmations.replaceChildren(
       ...uniquePickups.map((stop) => {
         const completed = guide.completed_pickups?.includes(stop.venue_id);
         const button = make(documentValue, 'button', '', completed ? `${stop.label} 픽업 완료` : `${stop.label} 픽업 확인`);
         button.type = 'button'; button.dataset.routePickup = stop.venue_id; button.disabled = state.busy || rehearsalActive || !guide.active || completed; return button;
       }),
-      ...(destinationStop ? (() => {
-        const button = make(documentValue, 'button', '', guide.dropoff_complete ? `${destinationStop.label} 배송 완료` : `${destinationStop.label} 배송 확인`);
-        button.type = 'button'; button.dataset.routeDropoff = destinationStop.venue_id; button.disabled = state.busy || rehearsalActive || !guide.active || guide.dropoff_complete; return [button];
-      })() : []),
+      ...destinationStops.map((stop) => {
+        const completed = guide.completed_dropoffs?.includes(stop.venue_id);
+        const button = make(documentValue, 'button', '', completed ? `${stop.label} 배송 완료` : `${stop.label} 배송 확인`);
+        button.type = 'button'; button.dataset.routeDropoff = stop.venue_id; button.disabled = state.busy || rehearsalActive || !guide.active || completed; return button;
+      }),
     );
     const buttons = Object.fromEntries([...guidanceButtons.children].map((button) => [button.dataset.routeAction, button]));
     buttons['start-guidance'].disabled = state.busy || rehearsalActive || draftingNewOrder || !route || guide.active;
@@ -295,7 +308,7 @@ function createRoutePlannerPanelView(options = {}) {
     if (selectId && current) { const route = current.recommendations.find((item) => item.id === selectId); if (route) await options.client.select(route); return; }
     const action = event.target.closest?.('[data-route-action]')?.dataset.routeAction;
     if (!action || !current) return;
-    if (action === 'add-line') { addOrderLine('EDIYA'); return; }
+    if (action === 'add-line') { addOrderLine('COEX', 'EDIYA'); return; }
     if (action === 'unlock-order' && current.order?.locked === true) {
       await options.client.unlockOrder(current.order.id, current.order.revision);
       return;
@@ -331,6 +344,7 @@ function createRoutePlannerPanelView(options = {}) {
 
   speed.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SET_SPEED', { speed: Number(speed.value) }); });
   timeline.addEventListener('change', async () => { if (current?.rehearsal.active) await options.client.controlRehearsal('SCRUB', { position_ms: Math.max(0, Number(timeline.value) || 0) }); });
+  startNode.addEventListener('change', () => { selectedStartNodeId = startNode.value; });
 
   loadDefaultDraft();
   return Object.freeze({ render, destroy() { root.remove(); } });

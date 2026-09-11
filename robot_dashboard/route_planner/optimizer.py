@@ -114,15 +114,34 @@ def _candidate(
     graph: Mapping[str, Any],
     annotations: Mapping[str, Any],
     start_node_id: str,
-    permutation: tuple[str, ...],
+    restaurant_permutation: tuple[str, ...],
+    destination_permutation: tuple[str, ...],
     profile: str,
     operation_mode: str,
     perception: Mapping[str, Any],
 ) -> dict[str, Any]:
     nodes = {str(node["id"]): node for node in graph["nodes"]}
-    restaurant_nodes = {venue: _venue_node(graph, venue, {"RESTAURANT_DOCK", "RESTAURANT_APPROACH"}, operation_mode) for venue in permutation}
-    destination_node = _venue_node(graph, str(order["destination_id"]), {"DESTINATION_DOCK", "DESTINATION_APPROACH"}, operation_mode)
-    stop_nodes = [restaurant_nodes[venue] for venue in permutation] + [destination_node]
+    restaurant_nodes = {
+        venue: _venue_node(
+            graph,
+            venue,
+            {"RESTAURANT_DOCK", "RESTAURANT_APPROACH"},
+            operation_mode,
+        )
+        for venue in restaurant_permutation
+    }
+    destination_nodes = {
+        venue: _venue_node(
+            graph,
+            venue,
+            {"DESTINATION_DOCK", "DESTINATION_APPROACH"},
+            operation_mode,
+        )
+        for venue in destination_permutation
+    }
+    stop_nodes = [restaurant_nodes[venue] for venue in restaurant_permutation] + [
+        destination_nodes[venue] for venue in destination_permutation
+    ]
     current = start_node_id
     edge_path: list[tuple[Mapping[str, Any], bool]] = []
     stop_edge_indexes: list[int] = []
@@ -186,9 +205,10 @@ def _candidate(
             }
         )
         completed_edges = index + 1
-        if completed_edges in stop_edge_indexes[:-1]:
+        pickup_edge_indexes = stop_edge_indexes[: len(restaurant_permutation)]
+        if completed_edges in pickup_edge_indexes:
             stop_position = stop_edge_indexes.index(completed_edges)
-            venue = permutation[stop_position]
+            venue = restaurant_permutation[stop_position]
             ready_at = max(float(line["ready_at_s"]) for line in order["lines"] if line["restaurant_id"] == venue)
             wait = max(0.0, ready_at - elapsed)
             food_wait += wait
@@ -276,22 +296,38 @@ def recommend_routes(
     if start_node_id not in nodes:
         raise RoutePlanningError("NO_START_NODE", "start node does not exist")
     restaurant_ids = sorted({str(line["restaurant_id"]) for line in order["lines"]})
-    if not 2 <= len(restaurant_ids) <= 3:
+    destination_ids = sorted(
+        {
+            str(line.get("destination_id") or order.get("destination_id"))
+            for line in order["lines"]
+        }
+    )
+    if not 1 <= len(restaurant_ids) <= 3:
         raise RoutePlanningError("ORDER_INVALID", "order restaurant count is invalid")
+    if not 1 <= len(destination_ids) <= 4 or "None" in destination_ids:
+        raise RoutePlanningError("ORDER_INVALID", "order destination count is invalid")
     results: list[dict[str, Any]] = []
     for profile in PROFILES:
         candidates = []
         errors: list[RoutePlanningError] = []
-        for permutation in itertools.permutations(restaurant_ids):
-            try:
-                candidates.append(
-                    _candidate(
-                        order=order, graph=graph, annotations=annotations, start_node_id=start_node_id,
-                        permutation=permutation, profile=profile, operation_mode=operation_mode, perception=perception,
+        for restaurant_permutation in itertools.permutations(restaurant_ids):
+            for destination_permutation in itertools.permutations(destination_ids):
+                try:
+                    candidates.append(
+                        _candidate(
+                            order=order,
+                            graph=graph,
+                            annotations=annotations,
+                            start_node_id=start_node_id,
+                            restaurant_permutation=restaurant_permutation,
+                            destination_permutation=destination_permutation,
+                            profile=profile,
+                            operation_mode=operation_mode,
+                            perception=perception,
+                        )
                     )
-                )
-            except RoutePlanningError as exc:
-                errors.append(exc)
+                except RoutePlanningError as exc:
+                    errors.append(exc)
         if not candidates:
             if errors:
                 raise errors[0]

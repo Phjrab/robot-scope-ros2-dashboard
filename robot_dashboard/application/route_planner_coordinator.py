@@ -254,6 +254,7 @@ class RoutePlannerCoordinator:
                 guidance={
                     "active": False,
                     "completed_pickups": [],
+                    "completed_dropoffs": [],
                     "dropoff_complete": False,
                     "current_segment_index": 0,
                 },
@@ -280,7 +281,7 @@ class RoutePlannerCoordinator:
             self._state.update(
                 state="ORDER_READY", order=order, recommendations=[], selected_route_id=None,
                 selected_context=None,
-                guidance={"active": False, "completed_pickups": [], "dropoff_complete": False, "current_segment_index": 0},
+                guidance={"active": False, "completed_pickups": [], "completed_dropoffs": [], "dropoff_complete": False, "current_segment_index": 0},
                 mission_links=[], error=None,
             )
             self._save()
@@ -304,10 +305,10 @@ class RoutePlannerCoordinator:
                 raise RoutePlannerConflict("order is not locked")
             payload = {
                 "label": current.get("label"),
-                "destination_id": current.get("destination_id"),
                 "lines": [
                     {
                         "sequence": line.get("sequence"),
+                        "destination_id": line.get("destination_id", current.get("destination_id")),
                         "restaurant_id": line.get("restaurant_id"),
                         "menu_id": line.get("menu_id"),
                         "quantity": line.get("quantity"),
@@ -324,7 +325,7 @@ class RoutePlannerCoordinator:
             self._state.update(
                 state="ORDER_READY", order=order, recommendations=[], selected_route_id=None,
                 selected_context=None,
-                guidance={"active": False, "completed_pickups": [], "dropoff_complete": False, "current_segment_index": 0},
+                guidance={"active": False, "completed_pickups": [], "completed_dropoffs": [], "dropoff_complete": False, "current_segment_index": 0},
                 mission_links=[], error=None,
             )
             self._save()
@@ -348,7 +349,7 @@ class RoutePlannerCoordinator:
                 raise RoutePlannerValidationError("route graph map geometry is unavailable") from exc
             self._state.update(
                 graph=graph, recommendations=[], selected_route_id=None, selected_context=None,
-                guidance={"active": False, "completed_pickups": [], "dropoff_complete": False, "current_segment_index": 0},
+                guidance={"active": False, "completed_pickups": [], "completed_dropoffs": [], "dropoff_complete": False, "current_segment_index": 0},
                 mission_links=[], state="ORDER_READY" if self._state.get("order") else "DRAFT", error=None,
             )
             self._save()
@@ -399,7 +400,7 @@ class RoutePlannerCoordinator:
             }
             self._state.update(
                 recommendations=routes, selected_route_id=None, selected_context=context,
-                guidance={"active": False, "completed_pickups": [], "dropoff_complete": False, "current_segment_index": 0},
+                guidance={"active": False, "completed_pickups": [], "completed_dropoffs": [], "dropoff_complete": False, "current_segment_index": 0},
                 mission_links=[], state="RECOMMENDATIONS_READY", error=None,
             )
             self._save()
@@ -434,6 +435,7 @@ class RoutePlannerCoordinator:
             route, self._current_pose(), self._perception.snapshot(),
             previous_segment_index=int(state.get("current_segment_index", 0)),
             completed_pickups=list(state.get("completed_pickups", [])),
+            completed_dropoffs=list(state.get("completed_dropoffs", [])),
             dropoff_complete=state.get("dropoff_complete") is True,
         )
 
@@ -451,6 +453,7 @@ class RoutePlannerCoordinator:
             self._state["guidance"] = {
                 "active": True,
                 "completed_pickups": [],
+                "completed_dropoffs": [],
                 "dropoff_complete": False,
                 "current_segment_index": 0,
             }
@@ -465,6 +468,7 @@ class RoutePlannerCoordinator:
             self._state["guidance"] = {
                 "active": False,
                 "completed_pickups": list(guidance.get("completed_pickups", []))[:5],
+                "completed_dropoffs": list(guidance.get("completed_dropoffs", []))[:4],
                 "dropoff_complete": guidance.get("dropoff_complete") is True,
                 "current_segment_index": int(guidance.get("current_segment_index", 0)),
             }
@@ -503,7 +507,11 @@ class RoutePlannerCoordinator:
             }
             if destination_id not in destination_ids:
                 raise RoutePlannerValidationError("dropoff destination is not on the selected route")
-            self._state["guidance"]["dropoff_complete"] = True
+            completed = list(self._state["guidance"].get("completed_dropoffs", []))
+            if destination_id not in completed:
+                completed.append(destination_id)
+            self._state["guidance"]["completed_dropoffs"] = completed[:4]
+            self._state["guidance"]["dropoff_complete"] = destination_ids.issubset(completed)
             projection = self.guidance_snapshot(selected=route)
             self._state["guidance"]["current_segment_index"] = int(
                 projection.get("current_segment_index", 0)
@@ -708,6 +716,7 @@ class RoutePlannerCoordinator:
                 self._state["guidance"] = {
                     "active": False,
                     "completed_pickups": list(guidance.get("completed_pickups", []))[:5],
+                    "completed_dropoffs": list(guidance.get("completed_dropoffs", []))[:4],
                     "dropoff_complete": guidance.get("dropoff_complete") is True,
                     "current_segment_index": int(guidance.get("current_segment_index", 0)),
                 }

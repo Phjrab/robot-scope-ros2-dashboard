@@ -71,6 +71,22 @@ class RoutePlannerApiContractTests(unittest.TestCase):
         strict_source = ast.get_source_segment(MODELS.read_text(encoding="utf-8"), strict)
         self.assertIn('extra="forbid"', strict_source)
 
+    def test_order_transport_declares_destination_per_sheet_and_one_to_five_bound(self):
+        tree = ast.parse(MODELS.read_text(encoding="utf-8"))
+        classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
+        line_fields = {
+            node.target.id
+            for node in classes["RouteOrderLineRequest"].body
+            if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)
+        }
+        self.assertEqual(
+            line_fields,
+            {"sequence", "destination_id", "restaurant_id", "menu_id", "quantity"},
+        )
+        source = MODELS.read_text(encoding="utf-8")
+        order_source = ast.get_source_segment(source, classes["RouteOrderCreateRequest"])
+        self.assertIn("Field(min_length=1, max_length=5)", order_source)
+
     def test_runtime_and_app_own_exactly_one_route_planner_coordinator(self):
         self.assertIsNone(ApplicationRuntime().route_planner)
         source = APP.read_text(encoding="utf-8")

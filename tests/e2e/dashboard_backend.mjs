@@ -50,7 +50,7 @@ function baseRoutePlanner() {
       edges: [],
     },
     recommendations: [],
-    guidance: { active: false, completed_pickups: [], dropoff_complete: false, current_segment_index: 0 },
+    guidance: { active: false, completed_pickups: [], completed_dropoffs: [], dropoff_complete: false, current_segment_index: 0 },
     perception: { fresh: true, state: 'FRESH', age_s: 0.1 },
     rehearsal: { enabled: false, active: false, mode: 'DISABLED', scenarios: [], side_effect_count: 0 },
     motion_authority: false,
@@ -404,7 +404,7 @@ export async function installDashboardBackend(page, options = {}) {
         active: true, paused: false, instruction_type: 'CONTINUE_STRAIGHT', instruction: '직진',
         current_segment_index: 0, remaining_distance_m: 29, eta_remaining_s: 96,
         cross_track_error_m: 0.04, requirements: { TRAFFIC_GREEN: 'READY' },
-        completed_pickups: [], dropoff_complete: false,
+        completed_pickups: [], completed_dropoffs: [], dropoff_complete: false,
       };
       state.routePlanner.state = 'GUIDANCE_ACTIVE';
       return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
@@ -418,6 +418,7 @@ export async function installDashboardBackend(page, options = {}) {
       return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
     }
     if (path === '/api/v1/route-planner/guidance/dropoff' && method === 'POST') {
+      if (!state.routePlanner.guidance.completed_dropoffs.includes(body.destination_id)) state.routePlanner.guidance.completed_dropoffs.push(body.destination_id);
       state.routePlanner.guidance.dropoff_complete = true;
       return json(route, { guidance: state.routePlanner.guidance, route_planner: state.routePlanner });
     }

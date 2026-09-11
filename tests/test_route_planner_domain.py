@@ -65,6 +65,41 @@ class OrderSheetTests(unittest.TestCase):
         with self.assertRaisesRegex(OrderValidationError, "destination-zone"):
             normalize_order(payload)
 
+    def test_multi_destination_batch_accepts_one_to_five_complete_order_sheets(self):
+        payload = {
+            "label": "대회 주문 묶음",
+            "lines": [
+                {"sequence": 1, "destination_id": "COEX", "restaurant_id": "HANSOT", "menu_id": "CHICKEN_MAYO", "quantity": 1},
+                {"sequence": 2, "destination_id": "WHIMOON", "restaurant_id": "EDIYA", "menu_id": "AMERICANO", "quantity": 1},
+                {"sequence": 3, "destination_id": "GANGNAM_POLICE", "restaurant_id": "HANSOT", "menu_id": "SPAM_KIMCHI", "quantity": 1},
+                {"sequence": 4, "destination_id": "GTX_SITE", "restaurant_id": "DOMINO", "menu_id": "CHEESE_PIZZA", "quantity": 1},
+                {"sequence": 5, "destination_id": "COEX", "restaurant_id": "EDIYA", "menu_id": "CAFE_LATTE", "quantity": 1},
+            ],
+        }
+        value = normalize_order(payload, identifier_factory=lambda: "f" * 32)
+        self.assertEqual(value["schema_version"], 2)
+        self.assertEqual(value["order_mode"], "MULTI_DESTINATION")
+        self.assertEqual(value["order_count"], 5)
+        self.assertEqual(value["total_quantity"], 5)
+        self.assertEqual(value["destination_ids"], ["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"])
+        self.assertIsNone(value["destination_id"])
+
+        single = normalize_order({"label": "한 건", "lines": [payload["lines"][0]]})
+        self.assertEqual(single["order_count"], 1)
+        self.assertEqual(single["destination_id"], "COEX")
+
+    def test_multi_destination_batch_rejects_mixed_schema_capacity_and_sixth_sheet(self):
+        line = {"sequence": 1, "destination_id": "COEX", "restaurant_id": "HANSOT", "menu_id": "CHICKEN_MAYO", "quantity": 1}
+        with self.assertRaises(OrderValidationError):
+            normalize_order({"label": "혼합", "destination_id": "COEX", "lines": [line]})
+        too_many = [dict(line, sequence=index + 1) for index in range(5)]
+        too_many[0]["quantity"] = 2
+        with self.assertRaisesRegex(OrderValidationError, "total quantity"):
+            normalize_order({"label": "과적", "lines": too_many})
+        six = [dict(line, sequence=index + 1) for index in range(6)]
+        with self.assertRaisesRegex(OrderValidationError, "1 to 5"):
+            normalize_order({"label": "여섯 건", "lines": six})
+
 
 class RouteGraphTests(unittest.TestCase):
     def test_graph_is_exactly_pinned_and_revision_is_deterministic(self):
@@ -103,6 +138,33 @@ class OptimizerAndGuidanceTests(unittest.TestCase):
         self.assertLessEqual(len(first), 3)
         self.assertEqual({profile for route in first for profile in route["profiles"]}, {"BALANCED", "FASTEST", "SAFEST"})
         self.assertTrue(all({"distance_m", "travel_time_s", "food_wait_s", "signal_wait_s", "risk_score", "eta_s"} <= set(route["metrics"]) for route in first))
+
+    def test_multi_destination_order_visits_every_pickup_and_dropoff_from_explicit_start(self):
+        order = normalize_order({
+            "label": "두 배송지",
+            "lines": [
+                {"sequence": 1, "destination_id": "COEX", "restaurant_id": "HANSOT", "menu_id": "CHICKEN_MAYO", "quantity": 1},
+                {"sequence": 2, "destination_id": "WHIMOON", "restaurant_id": "EDIYA", "menu_id": "AMERICANO", "quantity": 1},
+            ],
+        })
+        graph = copy.deepcopy(self.graph)
+        graph["nodes"].append({
+            "id": "WHIMOON_DOCK", "annotation_id": "4" * 24, "role": "DESTINATION_DOCK",
+            "zone_id": None, "venue_id": "WHIMOON", "label": "Whimoon Dock",
+            "manual_guidance": True, "autonomous_eligible": True,
+        })
+        graph["edges"].append({
+            "id": "COEX_TO_WHIMOON", "from": "COEX_DOCK", "to": "WHIMOON_DOCK", "type": "NORMAL_WALKWAY",
+            "bidirectional": True, "polyline": [{"x": 3.0, "y": 0.0}, {"x": 4.0, "y": 0.0}],
+            "distance_m": 1.0, "nominal_speed_mps": 0.2, "risk": 1.0, "requirements": [],
+            "allow_manual": True, "allow_autonomous": True, "allow_replan": True,
+            "allow_turning": True, "allow_lateral_motion": False, "speed_limit_mps": 0.2,
+            "expected_wait_s": 0.0, "penalty_risk": 0.0,
+        })
+        routes = recommend_routes(order=order, graph=graph, annotations=annotations(), start_node_id="START_NODE", operation_mode="MANUAL_GUIDANCE", perception=self.perception)
+        stop_ids = {stop["venue_id"] for stop in routes[0]["stops"]}
+        self.assertEqual(stop_ids, {"HANSOT", "EDIYA", "COEX", "WHIMOON"})
+        self.assertEqual(routes[0]["start_node_id"], "START_NODE")
 
     def test_safest_avoids_high_risk_direct_edge(self):
         routes = recommend_routes(order=self.order, graph=self.graph, annotations=annotations(), start_node_id="START_NODE", operation_mode="AUTO_NAV2", perception=self.perception)

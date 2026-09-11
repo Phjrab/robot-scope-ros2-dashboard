@@ -301,6 +301,7 @@ class CompetitionModeRequest(StrictRequest):
 
 class RouteOrderLineRequest(StrictRequest):
     sequence: int = Field(strict=True, ge=1, le=5)
+    destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"] | None = None
     restaurant_id: Literal["DOMINO", "HANSOT", "EDIYA"]
     menu_id: Literal[
         "SUPER_SUPREME", "CHEESE_PIZZA", "SPAM_KIMCHI",
@@ -311,8 +312,8 @@ class RouteOrderLineRequest(StrictRequest):
 
 class RouteOrderCreateRequest(StrictRequest):
     label: str = Field(min_length=1, max_length=64)
-    destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"]
-    lines: list[RouteOrderLineRequest] = Field(min_length=2, max_length=5)
+    destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"] | None = None
+    lines: list[RouteOrderLineRequest] = Field(min_length=1, max_length=5)
     order_started_at: str | None = Field(default=None, max_length=32)
     locked: bool = Field(default=False, strict=True)
 
