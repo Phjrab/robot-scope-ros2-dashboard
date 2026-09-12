@@ -18,7 +18,7 @@ test('PDF 11 navigation parameter whitelist has complete typed tuned values', ()
   assert.equal(navigation.FIELDS.length, 27);
   assert.equal(new Set(navigation.FIELD_KEYS).size, navigation.FIELDS.length);
   assert.equal(navigation.TUNED_VALUES.desired_linear_vel, 0.25);
-  assert.equal(navigation.FIELD_BY_KEY.desired_linear_vel.maximum, 0.3);
+  assert.equal(navigation.FIELD_BY_KEY.desired_linear_vel.maximum, 1.0);
   assert.equal(navigation.TUNED_VALUES.rotate_to_heading_angular_vel, 0.5);
   assert.equal(navigation.FIELD_BY_KEY.rotate_to_heading_angular_vel.maximum, 0.5);
   assert.equal(navigation.TUNED_VALUES.max_angular_accel, 1.2);
@@ -67,7 +67,8 @@ test('parameter snapshots fail closed on missing, unknown or unsafe values', () 
     /at least robot_radius/,
   );
   assert.throws(() => navigation.parameterValues(tuned({ closed_loop: true })), /locked/);
-  assert.throws(() => navigation.parameterValues(tuned({ desired_linear_vel: 0.31 })), /between/);
+  assert.equal(navigation.parameterValues(tuned({ desired_linear_vel: 1.0 })).desired_linear_vel, 1.0);
+  assert.throws(() => navigation.parameterValues(tuned({ desired_linear_vel: 1.000001 })), /between/);
   assert.throws(() => navigation.parameterValues(tuned({ controller_frequency: 9 })), /between/);
 });
 

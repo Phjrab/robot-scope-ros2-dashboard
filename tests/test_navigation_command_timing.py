@@ -43,6 +43,7 @@ class ReplayLock:
 
 class NavigationCommandTimingTests(unittest.TestCase):
     timeout_s = 0.30
+    expected_speed = 0.035
 
     def make_profile(self):
         return {"control": {"enabled": True}}
@@ -135,8 +136,8 @@ class NavigationCommandTimingTests(unittest.TestCase):
             self.assertTrue(self.manager.snapshot()["lease"]["active"])
         drives = [entry for entry in self.outputs if entry["type"] == "drive"]
         self.assertEqual(len(drives), 101)
-        self.assertAlmostEqual(drives[-1]["velocity"]["vx"], 0.035)
-        self.assertTrue(all(0.0 <= item["velocity"]["vx"] <= 0.035 for item in drives))
+        self.assertAlmostEqual(drives[-1]["velocity"]["vx"], self.expected_speed)
+        self.assertTrue(all(0.0 <= item["velocity"]["vx"] <= self.expected_speed for item in drives))
         self.assertEqual(self.navigation.state["goal"]["state"], "active")
         self.assertEqual(self.cancel_output_counts, [])
 
@@ -212,11 +213,41 @@ class Go2NavigationCommandTimingTests(NavigationCommandTimingTests):
     """Run the same gateway/manager checks against the user's Go2 profile."""
 
     timeout_s = 0.30
+    expected_speed = 0.10
 
     def make_profile(self):
         return json.loads(
             (Path(__file__).resolve().parents[1] / "config/go2.json").read_text()
         )
+
+    def test_nav2_one_mps_both_directions_preserves_caps_slew_and_timeout(self):
+        for direction in (1.0, -1.0):
+            self.message.linear.x = direction * 9.0
+            initial = self.clock.now
+            for step in range(81):
+                self.clock.now = initial + step * 0.05
+                self.refresh_inputs()
+                if step % 2 == 0:
+                    self.command()
+                self.assertIsNone(self.navigation.keepalive_locked(self.clock()))
+                self.tick()
+            self.assertAlmostEqual(self.outputs[-1]["velocity"]["vx"], direction)
+        drives = [item for item in self.outputs if item["type"] == "drive"]
+        self.assertTrue(all(abs(item["velocity"]["vx"]) <= 1.0 for item in drives))
+        for previous, current in zip(drives, drives[1:]):
+            self.assertLessEqual(abs(current["velocity"]["vx"] - previous["velocity"]["vx"]), 0.040001)
+        self.clock.now += 0.301
+        self.refresh_inputs()
+        self.tick()
+        self.assertFalse(self.manager.snapshot()["lease"]["active"])
+        self.assertEqual(self.manager.snapshot()["command"]["linear_x"], 0.0)
+
+    def test_navigation_scaling_is_independent_of_manual_default(self):
+        limits = self.manager.snapshot()["limits"]
+        self.assertEqual(limits["default_speed_scale"], 0.35)
+        self.assertEqual(limits["navigation_speed_scale"], 1.0)
+        self.assertEqual(limits["vy_mps"], 0.2)
+        self.assertEqual(limits["wz_rps"], 0.5)
 
     def test_one_missed_ten_hz_input_is_tolerated_and_second_miss_stops(self):
         self.command()

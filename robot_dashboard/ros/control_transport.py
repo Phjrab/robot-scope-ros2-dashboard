@@ -33,6 +33,7 @@ from ..control_protocol import (
 from ..go2_bridge import (
     API_MOVE,
     API_STOP_MOVE,
+    Go2BridgeCore,
     BRIDGE_ROLE_CONTROL,
     BRIDGE_ROLE_MOTION_OBSERVER,
     RELEASE_COMMIT_RE,
@@ -538,7 +539,7 @@ class ControlTransport:
         if not isinstance(deadman, bool):
             raise ControlProtocolError("bridge accepted command is invalid")
         bounds = {
-            "linear_x": 0.30,
+            "linear_x": Go2BridgeCore.HARD_MAX_LINEAR_X,
             "linear_y": 0.20,
             "angular_z": 0.50,
         }
@@ -845,10 +846,10 @@ class ControlTransport:
                 )
 
         velocity_bounds = {
-            "max_abs_linear_x": 0.30,
+            "max_abs_linear_x": Go2BridgeCore.HARD_MAX_LINEAR_X,
             "max_abs_linear_y": 0.20,
             "max_abs_angular_z": 0.50,
-            "motion_run_max_abs_linear_x": 0.30,
+            "motion_run_max_abs_linear_x": Go2BridgeCore.HARD_MAX_LINEAR_X,
             "motion_run_max_abs_linear_y": 0.20,
             "motion_run_max_abs_angular_z": 0.50,
         }

@@ -54,10 +54,11 @@
   },
   "control": {
     "enabled": true,
-    "max_linear_x": 0.3,
+    "max_linear_x": 1.0,
     "max_linear_y": 0.2,
     "max_angular_z": 0.5,
     "default_speed_scale": 0.35,
+    "navigation_speed_scale": 1.0,
     "lowstate_topic": "/lowstate",
     "sport_mode_state_topic": "/sportmodestate",
     "command_timeout_s": 0.20,

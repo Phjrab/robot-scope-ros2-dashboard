@@ -161,7 +161,7 @@ class NavigationJobManagerTests(unittest.TestCase):
             {"use_rotate_to_heading": True},
             {"rotation_shim_enabled": False},
             {"desired_linear_vel": float("nan")},
-            {"desired_linear_vel": 0.31},
+            {"desired_linear_vel": 1.000001},
             {"controller_frequency": 9.99},
             {"inflation_radius": 0.16, "robot_radius": 0.30},
             {"min_obstacle_height": 0.8, "max_obstacle_height": 0.5},
@@ -170,6 +170,14 @@ class NavigationJobManagerTests(unittest.TestCase):
         for patch in invalid:
             with self.subTest(patch=patch), self.assertRaises(NavigationParameterError):
                 self.manager.update_parameters(revision, patch)
+
+    def test_one_mps_navigation_speed_roundtrips_and_higher_speed_is_rejected(self):
+        revision = self.manager.parameters_snapshot()["revision"]
+        self.manager.update_parameters(revision, {"desired_linear_vel": 1.0})
+        snapshot = self.manager.parameters_snapshot()
+        self.assertEqual(snapshot["values"]["desired_linear_vel"], 1.0)
+        with self.assertRaises(NavigationParameterError):
+            self.manager.update_parameters(snapshot["revision"], {"desired_linear_vel": 1.000001})
 
     def test_start_uses_private_snapshots_single_process_group_and_no_public_paths(self):
         revision = self.manager.parameters_snapshot()["revision"]

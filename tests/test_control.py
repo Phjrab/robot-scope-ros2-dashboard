@@ -573,7 +573,7 @@ class ControlManagerTests(unittest.TestCase):
         token = manager.acquire_lease("keyboard")["token"]
         manager.bind_lease(token, BINDING)
         snapshot = manager.snapshot()
-        self.assertEqual(snapshot["limits"]["vx_mps"], 0.30)
+        self.assertEqual(snapshot["limits"]["vx_mps"], 1.0)
         self.assertEqual(snapshot["limits"]["vy_mps"], 0.08)
         self.assertEqual(snapshot["limits"]["wz_rps"], 0.25)
         self.assertEqual(snapshot["limits"]["default_speed_scale"], 0.4)

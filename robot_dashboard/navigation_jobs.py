@@ -214,7 +214,7 @@ PARAMETER_SPECS: Mapping[str, ParameterSpec] = {
     "use_rotate_to_heading": ParameterSpec("bool", locked=False),
     "rotation_shim_enabled": ParameterSpec("bool", locked=True),
     "rotate_to_goal_heading": ParameterSpec("bool", locked=True),
-    "desired_linear_vel": ParameterSpec("number", 0.05, 0.30),
+    "desired_linear_vel": ParameterSpec("number", 0.05, 1.0),
     "controller_frequency": ParameterSpec("number", 10.0, 20.0),
     "lookahead_time": ParameterSpec("number", 0.2, 2.0),
     "min_lookahead_dist": ParameterSpec("number", 0.10, 0.60),
@@ -575,7 +575,7 @@ class NavigationJobManager:
                         "label": "Go2 실내 안전 튜닝",
                         "description": (
                             "PDF 11 튜닝을 기반으로 하되 dashboard safety cap을 적용합니다: "
-                            "linear 0.30 m/s, rotation 0.50 rad/s, angular accel 1.20 rad/s²."
+                            "기본 linear 0.25 m/s (상한 1.0), rotation 0.50 rad/s, angular accel 1.20 rad/s²."
                         ),
                         "values": dict(SAFE_TUNED_PARAMETERS),
                     }

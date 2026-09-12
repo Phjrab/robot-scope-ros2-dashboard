@@ -594,7 +594,7 @@ class Go2BridgeCoreTests(unittest.TestCase):
 
         evidence.record(SportRequest(API_MOVE, "invalid"), now=10.4)
         evidence.record(
-            SportRequest(API_MOVE, '{"x":0.31,"y":0.0,"z":0.0}'),
+            SportRequest(API_MOVE, '{"x":1.01,"y":0.0,"z":0.0}'),
             now=10.45,
         )
         evidence.record(SportRequest(65_000), now=10.5)
@@ -807,6 +807,19 @@ class Go2BridgeCoreTests(unittest.TestCase):
         self.assertIn('"z":0.5', request.parameter)
         request = self.tick(0.05, age=0.6)[-1]
         self.assertEqual(request.api_id, API_STOP_MOVE)
+
+    def test_one_mps_profile_rechecks_both_directions_and_watchdog(self):
+        for direction in (1.0, -1.0):
+            self.core = Go2BridgeCore(max_linear_x=9.0)
+            self.core.accept(self.command(deadman=True, linear_x=direction * 9,
+                                           linear_y=9, angular_z=-9), now=self.now)
+            request = self.tick()[-1]
+            self.assertEqual(json.loads(request.parameter), {"x": direction, "y": 0.2, "z": -0.5})
+            evidence = SportRequestEvidence()
+            evidence.record(request, now=self.now)
+            self.assertEqual(evidence.snapshot(now=self.now)["malformed_move_count"], 0)
+            self.assertEqual(evidence.snapshot(now=self.now)["max_abs_linear_x"], 1.0)
+            self.assertEqual(self.tick(0.201)[-1].api_id, API_STOP_MOVE)
 
     def test_deadman_release_stop_and_replay_rejected(self):
         self.core.accept(

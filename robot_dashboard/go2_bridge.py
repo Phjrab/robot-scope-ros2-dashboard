@@ -601,7 +601,7 @@ class SportRequestEvidence:
 class Go2BridgeCore:
     """Last-line motion watchdog, independent from the web process."""
 
-    HARD_MAX_LINEAR_X = 0.30
+    HARD_MAX_LINEAR_X = 1.0
     HARD_MAX_LINEAR_Y = 0.20
     HARD_MAX_ANGULAR_Z = 0.50
     HARD_MAX_COMMAND_TIMEOUT_S = 0.20
@@ -609,7 +609,7 @@ class Go2BridgeCore:
     def __init__(
         self,
         *,
-        max_linear_x: float = HARD_MAX_LINEAR_X,
+        max_linear_x: float = 0.30,
         max_linear_y: float = HARD_MAX_LINEAR_Y,
         max_angular_z: float = HARD_MAX_ANGULAR_Z,
         command_timeout_s: float = HARD_MAX_COMMAND_TIMEOUT_S,

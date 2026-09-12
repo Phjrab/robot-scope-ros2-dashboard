@@ -256,6 +256,7 @@ class ControlManager:
     LEASE_BIND_S = 4.0
 
     VX_LIMIT = 0.30
+    HARD_VX_LIMIT = 1.0
     VY_LIMIT = 0.20
     WZ_LIMIT = 0.50
     MIN_SPEED_SCALE = 0.10
@@ -286,7 +287,7 @@ class ControlManager:
         self._configured = self._enabled
 
         self._vx_limit = _bounded_float(
-            control.get("max_linear_x"), default=self.VX_LIMIT, low=0.01, high=self.VX_LIMIT
+            control.get("max_linear_x"), default=self.VX_LIMIT, low=0.01, high=self.HARD_VX_LIMIT
         )
         self._vy_limit = _bounded_float(
             control.get("max_linear_y"), default=self.VY_LIMIT, low=0.01, high=self.VY_LIMIT
@@ -297,6 +298,14 @@ class ControlManager:
         self._default_speed_scale = _bounded_float(
             control.get("default_speed_scale"),
             default=0.35,
+            low=self.MIN_SPEED_SCALE,
+            high=self.MAX_SPEED_SCALE,
+        )
+        # Nav2 already supplies physical velocities. Go2 explicitly opts into
+        # unity scaling; older profiles retain their existing attenuation.
+        self._navigation_speed_scale = _bounded_float(
+            control.get("navigation_speed_scale"),
+            default=self._default_speed_scale,
             low=self.MIN_SPEED_SCALE,
             high=self.MAX_SPEED_SCALE,
         )
@@ -961,6 +970,7 @@ class ControlManager:
                     "vy_mps": self._vy_limit,
                     "wz_rps": self._wz_limit,
                     "default_speed_scale": self._default_speed_scale,
+                    "navigation_speed_scale": self._navigation_speed_scale,
                     "speed_scale": [self.MIN_SPEED_SCALE, self.MAX_SPEED_SCALE],
                     "command_timeout_s": self._command_timeout_s,
                     "navigation_command_timeout_s": self._navigation_command_timeout_s,

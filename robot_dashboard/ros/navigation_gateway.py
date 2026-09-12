@@ -1997,7 +1997,7 @@ class NavigationRosGateway:
             vx_limit = max(0.01, float(limits.get("vx_mps", 0.30)))
             vy_limit = max(0.01, float(limits.get("vy_mps", 0.20)))
             wz_limit = max(0.05, float(limits.get("wz_rps", 0.50)))
-            speed_scale = float(limits.get("default_speed_scale", 0.0))
+            speed_scale = float(limits.get("navigation_speed_scale", limits.get("default_speed_scale", 0.0)))
             if not math.isfinite(speed_scale) or not 0.10 <= speed_scale <= 1.0:
                 self.deactivate("navigation speed scale is invalid")
                 return

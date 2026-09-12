@@ -26,7 +26,7 @@
     booleanField('rotation_shim_enabled', 'core', 'Rotation Shim controller', true, '주행 전 방향 정렬은 별도 Shim이 담당합니다. Go2 안전 profile 고정값입니다.', true),
     booleanField('rotate_to_goal_heading', 'core', 'Rotate at goal', true, '도착 위치에서 목표 yaw까지 정렬합니다. Go2 안전 profile 고정값입니다.', true),
 
-    numberField('desired_linear_vel', 'controller', 'Desired linear velocity', 0.25, 0.05, 0.3, 0.01, 'm/s', 'Go2 실내 보행 안전속도이며 bridge 상한 0.30 m/s를 넘을 수 없습니다.'),
+    numberField('desired_linear_vel', 'controller', 'Desired linear velocity', 0.25, 0.05, 1.0, 0.01, 'm/s', '전후진 상한 1.0 m/s. 목표 속도와 실제 속도는 다르므로 증속 전 현장 검증이 필요합니다.'),
     numberField('controller_frequency', 'controller', 'Controller frequency', 10, 10, 20, 1, 'Hz', '200 ms watchdog보다 충분히 빠른 10–20 Hz 범위입니다.'),
     numberField('lookahead_time', 'controller', 'Lookahead time', 0.8, 0.2, 2, 0.05, 's', '작을수록 경로에 더 밀착합니다.'),
     numberField('min_lookahead_dist', 'controller', 'Minimum lookahead', 0.25, 0.1, 0.6, 0.01, 'm', '저속에서도 유지할 최소 전방주시 거리입니다.'),

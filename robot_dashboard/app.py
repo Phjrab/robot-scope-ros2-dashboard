@@ -547,7 +547,7 @@ def control_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
             "max_linear_x": float(limits.get("vx_mps", limits.get("max_linear_x", 0.0))),
             "max_linear_y": float(limits.get("vy_mps", limits.get("max_linear_y", 0.0))),
             "max_angular_z": float(limits.get("wz_rps", limits.get("max_angular_z", 0.0))),
-            "default_speed_scale": float(limits.get("default_speed_scale", 0.35)),
+            **{name: float(limits.get(name, limits.get("default_speed_scale", 0.35))) for name in ("default_speed_scale", "navigation_speed_scale")},
             "command_timeout_s": float(limits.get("command_timeout_s", 0.20)),
             "bind_timeout_s": float(limits.get("bind_timeout_s", 4.0)),
         },

@@ -906,6 +906,10 @@ class ControlTransportTests(unittest.TestCase):
     def test_accepted_command_is_optional_bounded_and_strict(self):
         payload = self.status_payload()
         self.assertEqual(ControlTransport.status_accepted_command(payload), {})
+        for vx in (-1.0, 1.0):
+            command = self.accepted_command(deadman=True, linear_x=vx)
+            self.assertEqual(ControlTransport.status_accepted_command(
+                self.status_payload(accepted_command=command)), command)
 
         valid = self.accepted_command(
             deadman=True,
@@ -935,7 +939,8 @@ class ControlTransportTests(unittest.TestCase):
             {**valid, "linear_x": math.nan},
             {**valid, "linear_x": math.inf},
             {**valid, "linear_x": 10**400},
-            {**valid, "linear_x": 0.300001},
+            {**valid, "linear_x": 1.000001},
+            {**valid, "linear_x": -1.000001},
             {**valid, "linear_y": -0.200001},
             {**valid, "angular_z": 0.500001},
             self.accepted_command(deadman=False, linear_x=0.01),
