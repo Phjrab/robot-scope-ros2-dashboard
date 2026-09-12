@@ -33,3 +33,6 @@ rosbag2_*/
 
 # Local map snapshots are runtime data, not source code.
 robot_dashboard/static/data/go2_saved_map.json
+
+# Private reference pack; public redistribution permission is unverified.
+robot_dashboard/static/assets/competition/gangnam2026/

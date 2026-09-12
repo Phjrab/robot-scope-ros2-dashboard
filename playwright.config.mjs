@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: 'schematic_real.spec.mjs', // Real Python backend uses playwright.schematic.config.mjs.
   fullyParallel: false,
   workers: 1,
   timeout: 20_000,

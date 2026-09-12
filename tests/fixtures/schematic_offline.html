@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Robot Scope · 도식 수동 안내 / 로컬 무주행 검증</title>
+<link rel="stylesheet" href="/static/styles.css"><link rel="stylesheet" href="/static/features/cockpit/cockpit.css">
+<style>body{padding:20px;background:#0b1420;color:#e5edf5;overflow:auto}main{max-width:1400px;margin:auto}#dashboardRoutePlannerHost{min-width:0}#cockpitTestHost{width:390px;max-width:100%;height:740px;overflow:auto;margin:auto}button{cursor:pointer}h1{font-size:24px}</style>
+<main><h1>도식 수동 안내 · 로컬 검증</h1><p>Go2·ROS·Jetson 미연결 · 모든 실제 명령 포트 차단</p>
+<button id="dashboardTab">대시보드 Route Planner</button><button id="cockpitTab">좁은 Cockpit 공통 패널</button><button id="closeTab">패널 닫기</button>
+<div id="dashboardRoutePlannerHost"></div><div id="cockpitTestHost" hidden></div></main>
+<script type="module">
+import { api } from '/static/core/api.js';
+import { createRoutePlannerClient } from '/static/features/cockpit/route_planner_client.js';
+import { createRoutePlannerPanel } from '/static/features/cockpit/panels/route_planner_panel.js';
+const client=createRoutePlannerClient({api});
+const panels=['dashboardRoutePlannerHost','cockpitTestHost'].map(id=>{const panel=createRoutePlannerPanel({client,document});panel.mount(document.getElementById(id));return panel;});
+function show(index){panels.forEach((p,i)=>{p.deactivate();document.getElementById(i?'cockpitTestHost':'dashboardRoutePlannerHost').hidden=i!==index;});panels[index]?.activate();}
+document.getElementById('dashboardTab').onclick=()=>show(0);document.getElementById('cockpitTab').onclick=()=>show(1);document.getElementById('closeTab').onclick=()=>show(-1);
+window.schematicTest={client,panels,show};show(0);
+window.addEventListener('pagehide',()=>panels.forEach(p=>p.deactivate()));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)panels.forEach(p=>p.deactivate());});
+</script></html>

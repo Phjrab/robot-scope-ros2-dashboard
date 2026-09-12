@@ -1,3 +1,5 @@
+import { createSchematicControls } from '../../route_planner/schematic_controls.js';
+
 const DESTINATIONS = Object.freeze([
   ['COEX', '코엑스'], ['WHIMOON', '휘문고등학교'], ['GANGNAM_POLICE', '강남경찰서'], ['GTX_SITE', 'GTX 공사현장'],
 ]);
@@ -103,7 +105,9 @@ function createRoutePlannerPanelView(options = {}) {
   const dryRunButton = make(documentValue, 'button', '', 'MISSION DRY-RUN'); dryRunButton.type = 'button'; dryRunButton.dataset.routeRehearsalAction = 'DRY_RUN';
   const reportButton = make(documentValue, 'button', '', 'REPORT JSON / MARKDOWN'); reportButton.type = 'button'; reportButton.dataset.routeRehearsalAction = 'REPORT';
   rehearsalSection.append(make(documentValue, 'h3', '', 'Development / Rehearsal'), rehearsalBanner, scenarioSelect, rehearsalStart, rehearsalControls, speed, timeline, playback, virtualPose, advisoryState, expectedActual, eventList, cargo, missionDryRun, dryRunButton, reportButton, rehearsalReport);
-  root.append(header, orderSection, planningSection, guidance, rehearsalSection); options.host.append(root);
+  root.append(header);
+  const schematicView = createSchematicControls(root, options.client, documentValue);
+  root.append(orderSection, planningSection, guidance, rehearsalSection); options.host.append(root);
 
   let current = null;
   const lineRows = [];
@@ -112,6 +116,7 @@ function createRoutePlannerPanelView(options = {}) {
   let draftingNewOrder = false;
   let startNodeSignature = '';
   let selectedStartNodeId = '';
+  let loadedContext = 'SAVED_OCCUPANCY';
 
   function syncMenus(row) {
     const prior = row.menu.value;
@@ -201,7 +206,8 @@ function createRoutePlannerPanelView(options = {}) {
   function syncOrderEditorControls() {
     const rehearsalActive = current?.rehearsal.active === true;
     const locked = !draftingNewOrder && current?.order?.locked === true;
-    const editorDisabled = current?.busy === true || rehearsalActive || locked;
+    const schematicBlocked = current?.context !== 'SAVED_OCCUPANCY' && (current?.schematic?.guidance?.active === true || current?.schematic?.available === false);
+    const editorDisabled = current?.busy === true || rehearsalActive || locked || schematicBlocked;
     const orderValid = orderSummary.dataset.valid !== 'false';
     labelInput.disabled = editorDisabled;
     for (const row of lineRows) {
@@ -220,9 +226,10 @@ function createRoutePlannerPanelView(options = {}) {
     lockOrder.disabled = editorDisabled || !orderValid || draftingNewOrder || !current?.order;
     addLine.disabled = editorDisabled || lineRows.length >= 5;
     unlockOrder.hidden = !locked;
-    unlockOrder.disabled = current?.busy === true || rehearsalActive;
+    unlockOrder.disabled = current?.busy === true || rehearsalActive || schematicBlocked;
     newOrder.hidden = !locked && !draftingNewOrder;
-    newOrder.disabled = current?.busy === true || rehearsalActive;
+    newOrder.disabled = current?.busy === true || rehearsalActive || schematicBlocked;
+    if (current?.context !== 'SAVED_OCCUPANCY') newOrder.hidden = true;
     newOrder.textContent = draftingNewOrder ? '잠긴 주문으로 돌아가기' : '새 주문 작성';
     orderNotice.hidden = !locked && !draftingNewOrder;
     orderNotice.dataset.state = draftingNewOrder ? 'draft' : locked ? 'locked' : '';
@@ -282,6 +289,14 @@ function createRoutePlannerPanelView(options = {}) {
 
   function render(state) {
     current = state;
+    schematicView.render(state);
+    const schematic = state.schematic?.map_kind === 'SCHEMATIC_MANUAL';
+    root.dataset.mapKind = schematic ? 'SCHEMATIC_MANUAL' : 'SAVED_OCCUPANCY';
+    planningSection.hidden = schematic; guidance.hidden = schematic;
+    if (loadedContext !== state.context) {
+      loadedContext = state.context; loadedOrderSignature = ''; draftingNewOrder = false;
+      if (!state.order) loadDefaultDraft();
+    }
     status.textContent = `ROUTE PLANNER ${state.state}`;
     pins.textContent = `MAP ${state.graph?.map_revision?.slice(0, 8) || '—'} · GRAPH ${state.graph?.graph_revision?.slice(0, 8) || '—'}`;
     const orderSignature = state.order ? `${state.order.id}:${state.order.revision}` : '';
@@ -290,6 +305,12 @@ function createRoutePlannerPanelView(options = {}) {
       loadedOrderSignature = orderSignature;
     }
     if (!state.order && !draftingNewOrder) loadedOrderSignature = '';
+    if (schematic) {
+      pins.textContent = `${state.schematic.usage} · SCHEMATIC_MANUAL · ${state.schematic.layout_revision.slice(0, 8)}`;
+      rehearsalSection.hidden = true;
+      syncOrderEditorControls();
+      return;
+    }
     const rehearsalActive = state.rehearsal.active;
     const startNodes = routeStartChoices(state.graph);
     const nextStartSignature = startNodes.map((node) => `${node.value}:${node.label}:${node.nodeId}`).join('|');
@@ -410,7 +431,7 @@ function createRoutePlannerPanelView(options = {}) {
   startNode.addEventListener('change', () => { selectedStartNodeId = startNode.value; if (current) render(current); });
 
   loadDefaultDraft();
-  return Object.freeze({ render, destroy() { root.remove(); } });
+  return Object.freeze({ render, destroy() { schematicView.destroy(); root.remove(); } });
 }
 
 export function createRoutePlannerPanel(options = {}) {

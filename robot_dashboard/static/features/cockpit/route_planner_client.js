@@ -167,6 +167,12 @@ function overlayFor(state) {
 }
 
 function projectState(payload, busy = false, error = '') {
+  if (payload?.schematic?.map_kind === 'SCHEMATIC_MANUAL') {
+    const schematic = payload.schematic;
+    const base = projectState({ available: schematic.available, state: 'EMPTY', order: schematic.order }, busy, error);
+    // Never project schematic pixels into the ROS map overlay or coerce null metrics.
+    return Object.freeze({ ...base, state: schematic.state, schematic, context: schematic.context });
+  }
   const recommendations = (Array.isArray(payload?.recommendations) ? payload.recommendations : []).slice(0, 3).map(projectRoute).filter(Boolean);
   const selectedId = text(payload?.selected_route_id, 32);
   const selectedRoute = recommendations.find((route) => route.id === selectedId) || null;
@@ -185,6 +191,7 @@ function projectState(payload, busy = false, error = '') {
   }) : Object.freeze({ active: false, paused: false, completed_pickups: Object.freeze([]), completed_dropoffs: Object.freeze([]), dropoff_complete: false });
   const rehearsal = projectRehearsal(payload?.rehearsal);
   const state = {
+    schematic: payload?.schematic || null, context: 'SAVED_OCCUPANCY',
     available: payload?.available === true, busy, error: text(error || payload?.error, 200),
     state: STATES.has(String(payload?.state || '')) ? String(payload.state) : 'FAILED',
     staleReason: text(payload?.stale_reason, 96), order: projectOrder(payload?.order), graph: payload?.graph && HEX64.test(String(payload.graph.graph_revision || '')) ? Object.freeze({
@@ -206,11 +213,11 @@ export function createRoutePlannerClient(options = {}) {
   const subscribers = new Set();
   let lastPayload = { available: null, state: 'EMPTY' };
   let state = projectState(lastPayload);
-  let generation = 0; let timer = 0; let busy = false; let destroyed = false;
+  let generation = 0; let timer = 0; let busy = false; let destroyed = false; let mutationError = '';
 
   function publish(payload = null, error = '') {
     if (payload) lastPayload = payload;
-    state = projectState(lastPayload, busy, error);
+    state = projectState(lastPayload, busy, error || mutationError);
     for (const subscriber of subscribers) subscriber(state);
     return state;
   }
@@ -222,21 +229,21 @@ export function createRoutePlannerClient(options = {}) {
       const payload = await api('/api/v1/route-planner');
       if (!destroyed && requestGeneration === generation) publish(payload);
     } catch (error) {
-      if (!destroyed && requestGeneration === generation) publish({ available: false, state: 'FAILED' }, error?.message || error);
+      if (!destroyed && requestGeneration === generation) publish({ ...lastPayload, available: false, state: 'FAILED', schematic: lastPayload.schematic ? { ...lastPayload.schematic, available: false } : null }, error?.message || error);
     }
     return state;
   }
 
   async function mutate(path, body, method = 'POST') {
     if (destroyed || busy) return null;
-    busy = true; const requestGeneration = ++generation; publish();
+    busy = true; mutationError = ''; const requestGeneration = ++generation; publish();
     try {
       const response = await api(path, { method, body: JSON.stringify(body || {}) });
       if (destroyed || requestGeneration !== generation) return null;
       await refresh(true);
       return response;
     } catch (error) {
-      if (!destroyed && requestGeneration === generation) publish(null, error?.message || error);
+      if (!destroyed && requestGeneration === generation) { mutationError = String(error?.message || error); await refresh(true); publish(null, mutationError); }
       return null;
     } finally {
       if (!destroyed) { busy = false; publish(); }
@@ -250,22 +257,42 @@ export function createRoutePlannerClient(options = {}) {
     return () => { subscribers.delete(callback); if (!subscribers.size && timer) { clearIntervalValue?.(timer); timer = 0; generation += 1; } };
   }
 
+  function schematicCommand(action, data = {}) {
+    return mutate('/api/v1/route-planner/schematic', { action, data, context: state.schematic?.context || 'SAVED_OCCUPANCY', expected_revision: state.schematic?.revision ?? 0 });
+  }
+  function schematicOrder(payload) {
+    const { base_revision, ...order } = payload;
+    return schematicCommand('ORDER', { order });
+  }
+  function schematicEvent(action, venueId) {
+    const s = state.schematic; const route = s?.recommendations?.find((r) => r.id === s.selected_route_id);
+    if (!route) return Promise.resolve(null);
+    // LAN HTTP dashboards do not expose secure-context-only randomUUID().
+    const eventId = Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return schematicCommand(action, { event_id: eventId, route_id: route.id, route_revision: route.revision,
+      expected_progress_revision: s.guidance.progress_revision, expected_segment_index: s.guidance.current_segment_index,
+      ...(venueId ? { venue_id: venueId } : {}) });
+  }
+  const isSchematic = () => state.context !== 'SAVED_OCCUPANCY';
+  const noSchematic = (path, body) => isSchematic() ? Promise.resolve(null) : mutate(path, body);
+
   return Object.freeze({
     subscribe, refresh, snapshot: () => state,
-    createOrder: (payload) => mutate('/api/v1/route-planner/orders', payload),
-    updateOrder: (id, payload) => mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}`, payload, 'PATCH'),
-    unlockOrder: (id, revision) => mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}/unlock`, { base_revision: revision, confirmation: 'UNLOCK' }),
-    calculate: (payload) => mutate('/api/v1/route-planner/recommendations', payload),
-    select: (route) => mutate(`/api/v1/route-planner/recommendations/${encodeURIComponent(route.id)}/select`, { route_revision: route.revision }),
-    startGuidance: (route) => mutate('/api/v1/route-planner/guidance/start', { route_id: route.id, route_revision: route.revision }),
-    stopGuidance: () => mutate('/api/v1/route-planner/guidance/stop', {}),
-    markPickup: (venueId) => mutate('/api/v1/route-planner/guidance/pickup', { venue_id: venueId }),
-    markDropoff: (destinationId) => mutate('/api/v1/route-planner/guidance/dropoff', { destination_id: destinationId }),
-    preview: (route) => mutate(`/api/v1/route-planner/routes/${encodeURIComponent(route.id)}/preview`, { route_revision: route.revision }),
-    exportMission: (route) => mutate(`/api/v1/route-planner/routes/${encodeURIComponent(route.id)}/export-mission`, { route_revision: route.revision }),
-    beginRehearsal: (route, scenarioId) => mutate('/api/v1/route-planner/rehearsal/start', { route_id: route.id, route_revision: route.revision, scenario_id: scenarioId }),
+    schematicCommand, schematicEvent,
+    createOrder: (payload) => isSchematic() ? schematicOrder(payload) : mutate('/api/v1/route-planner/orders', payload),
+    updateOrder: (id, payload) => isSchematic() ? schematicOrder(payload) : mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}`, payload, 'PATCH'),
+    unlockOrder: (id, revision) => isSchematic() ? schematicCommand('UNLOCK') : mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}/unlock`, { base_revision: revision, confirmation: 'UNLOCK' }),
+    calculate: (payload) => isSchematic() ? schematicCommand('RECOMMEND') : mutate('/api/v1/route-planner/recommendations', payload),
+    select: (route) => isSchematic() ? schematicCommand('SELECT', { route_id: route.id, route_revision: route.revision }) : mutate(`/api/v1/route-planner/recommendations/${encodeURIComponent(route.id)}/select`, { route_revision: route.revision }),
+    startGuidance: (route) => isSchematic() ? schematicCommand('START', { route_id: route.id, route_revision: route.revision }) : mutate('/api/v1/route-planner/guidance/start', { route_id: route.id, route_revision: route.revision }),
+    stopGuidance: () => isSchematic() ? schematicCommand('END') : mutate('/api/v1/route-planner/guidance/stop', {}),
+    markPickup: (venueId) => isSchematic() ? schematicEvent('PICKUP', venueId) : mutate('/api/v1/route-planner/guidance/pickup', { venue_id: venueId }),
+    markDropoff: (destinationId) => isSchematic() ? schematicEvent('DROPOFF', destinationId) : mutate('/api/v1/route-planner/guidance/dropoff', { destination_id: destinationId }),
+    preview: (route) => noSchematic(`/api/v1/route-planner/routes/${encodeURIComponent(route.id)}/preview`, { route_revision: route.revision }),
+    exportMission: (route) => noSchematic(`/api/v1/route-planner/routes/${encodeURIComponent(route.id)}/export-mission`, { route_revision: route.revision }),
+    beginRehearsal: (route, scenarioId) => noSchematic('/api/v1/route-planner/rehearsal/start', { route_id: route.id, route_revision: route.revision, scenario_id: scenarioId }),
     controlRehearsal: (action, payload = {}) => mutate('/api/v1/route-planner/rehearsal/control', { action, ...payload }),
-    missionDryRun: (route) => mutate(`/api/v1/route-planner/routes/${encodeURIComponent(route.id)}/mission-dry-run`, { route_revision: route.revision }),
+    missionDryRun: (route) => noSchematic(`/api/v1/route-planner/routes/${encodeURIComponent(route.id)}/mission-dry-run`, { route_revision: route.revision }),
     rehearsalReport: async () => api('/api/v1/route-planner/rehearsal/report'),
     diagnostics: () => Object.freeze({ destroyed, busy, subscribers: subscribers.size, polling: Boolean(timer), rendererCount: 0 }),
     destroy() { destroyed = true; generation += 1; subscribers.clear(); if (timer) clearIntervalValue?.(timer); timer = 0; },

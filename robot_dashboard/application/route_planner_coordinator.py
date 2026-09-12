@@ -18,6 +18,7 @@ from ..route_planner.perception import RoutePerceptionProvider
 from ..route_planner.mission_dry_run import compile_mission_dry_run
 from ..route_planner.rehearsal import RehearsalError, RehearsalSession, available_scenarios
 from ..route_planner.state_store import RoutePlannerStateStore, RoutePlannerStorageError, empty_state
+from ..route_planner.schematic_session import SchematicSession
 
 
 PLANNER_STATES = frozenset(
@@ -93,6 +94,8 @@ class RoutePlannerCoordinator:
         self._rehearsal_scenarios = available_scenarios() if self._rehearsal_enabled else []
         self._rehearsal: RehearsalSession | None = None
         self._lock = asyncio.Lock()
+        self._schematic = None
+        self._schematic_root = Path(state_root)
         self._store: RoutePlannerStateStore | None = None
         self._storage_error = ""
         try:
@@ -127,8 +130,10 @@ class RoutePlannerCoordinator:
         goal = value.get("goal") if isinstance(value.get("goal"), Mapping) else {}
         return str(pipeline.get("state", "idle")).lower() in {"starting", "running", "stopping"} or str(goal.get("state", "idle")).lower() in {"pending", "active", "canceling"}
 
-    def _require_editable(self, action: str, *, graph: bool = False) -> None:
+    def _require_editable(self, action: str, *, graph: bool = False, schematic: bool = False) -> None:
         self._require_not_rehearsing(action)
+        if not schematic:
+            self._require_saved_context()
         if self._state.get("guidance", {}).get("active"):
             raise RoutePlannerConflict(f"{action} is blocked while guidance is active")
         if self._mission.blocks_navigation_goal():
@@ -164,6 +169,7 @@ class RoutePlannerCoordinator:
         return annotations
 
     def _selected(self, route_id: str | None = None) -> dict[str, Any]:
+        self._require_saved_context()
         identifier = route_id or self._state.get("selected_route_id")
         for route in self._state.get("recommendations", []):
             if route.get("id") == identifier:
@@ -229,7 +235,35 @@ class RoutePlannerCoordinator:
         )
         if value.get("guidance", {}).get("active") and selected is not None:
             value["guidance"] = self.guidance_snapshot(selected=selected)
+        value["schematic"] = self.schematic_snapshot()
         return value
+
+    def schematic_snapshot(self):
+        if self._schematic is None:
+            # Optional private assets must not make the legacy planner unavailable.
+            try:
+                self._schematic = SchematicSession(self._schematic_root)
+            except (OSError, ValueError, TypeError, KeyError, RoutePlannerStorageError):
+                return dict(available=False, context="SAVED_OCCUPANCY", revision=0,
+                            error="schematic local assets/storage unavailable", motion_authority=False, control_authority=False)
+        return self._schematic.snapshot()
+
+    def _require_saved_context(self):
+        # Fail closed on a persisted schematic context even before the first GET.
+        view = self.schematic_snapshot()
+        if view["context"] != "SAVED_OCCUPANCY":
+            raise RoutePlannerConflict("schematic context cannot use SavedMap, Mission, preview or pose guidance operations")
+
+    async def schematic_command(self, action, expected_revision, context, data):
+        async with self._lock:
+            self._require_editable("schematic " + action, graph=True, schematic=True)
+            if not self.schematic_snapshot()["available"]:
+                raise RoutePlannerUnavailable("schematic local assets/storage unavailable")
+            result = self._schematic.execute(action, expected_revision, context, data)
+            if action == "CONTEXT":
+                self._state.update(state="STALE", recommendations=[], selected_route_id=None, selected_context=None)
+                self._save()
+            return result
 
     @staticmethod
     def catalog() -> dict[str, Any]:

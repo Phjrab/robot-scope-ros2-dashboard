@@ -1,0 +1,29 @@
+.schematic-controls { min-width: 0; padding: 12px; border: 1px solid #496174; border-radius: 10px; background: #142232; color: #e5edf5; }
+.schematic-controls [hidden], .cockpit-route-planner [hidden] { display: none !important; }
+.schematic-controls p { line-height: 1.55; overflow-wrap: anywhere; margin: 8px 0; }
+.schematic-controls strong { display: block; color: #ffdc94; }
+.schematic-controls label { display: inline-flex; flex-direction: column; gap: 4px; margin: 5px; min-width: 0; }
+.schematic-controls button, .schematic-controls select, .schematic-controls input, .schematic-controls textarea { max-width: 100%; color: #e5edf5; background: #223648; border: 1px solid #70869c; border-radius: 5px; padding: 8px; font: inherit; }
+.schematic-controls button { margin: 4px; cursor: pointer; }
+.schematic-controls button:disabled { opacity: .45; cursor: default; }
+.schematic-controls :focus-visible { outline: 3px solid #ffdc94; outline-offset: 2px; }
+.schematic-controls textarea { width: 100%; box-sizing: border-box; font: 12px monospace; }
+.schematic-controls summary { cursor: pointer; padding: 12px 0; }
+.schematic-controls article, .schematic-controls fieldset { padding: 10px; margin: 8px 0; border: 1px solid #496174; border-radius: 6px; min-width: 0; }
+.schematic-controls [role=alert] { color: #ffbbb0; }
+.schematic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.competition-map-view svg { display: block; width: 100%; height: auto; aspect-ratio: 1135/812; max-height: 58vh; touch-action: none; background: #0d1625; }
+.competition-map-view img { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
+.competition-map-view > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.competition-map-view label { flex-direction: row; align-items: center; white-space: nowrap; }
+.competition-map-view input[type=checkbox] { width: auto; min-width: 16px; }
+.schematic-controls ol { max-height: 220px; overflow: auto; padding-left: 26px; }
+.route-planner-dashboard-host .schematic-controls { grid-column: 1 / -1; }
+@media (min-width: 801px) {
+  .route-planner-dashboard-host .schematic-controls { grid-row: 2; }
+  .route-planner-dashboard-host .route-planner-planning { grid-row: 3 / span 2; }
+  .route-planner-dashboard-host .route-planner-order { grid-row: 3; }
+  .route-planner-dashboard-host [data-map-kind=SCHEMATIC_MANUAL] .route-planner-order { grid-column: 1 / -1; }
+}
+.competition-map-view > div { position: sticky; top: 0; z-index: 1; background: #142232; padding: 4px 0; }
+.competition-map-badge { flex-basis: 100%; color: #ffdc94; font-weight: 700; }

@@ -71,6 +71,16 @@ def _adjacency(graph: Mapping[str, Any], operation_mode: str) -> dict[str, list[
 
 def _shortest(graph: Mapping[str, Any], source: str, target: str, profile: str, operation_mode: str) -> list[tuple[Mapping[str, Any], bool]]:
     adjacency = _adjacency(graph, operation_mode)
+    return shortest_path(adjacency, source, target, lambda edge: _edge_cost(edge, profile))
+
+
+def visit_orders(restaurant_ids, destination_ids):
+    """Shared bounded pickup-before-delivery ordering, independent of cost units."""
+    return itertools.product(itertools.permutations(sorted(restaurant_ids)), itertools.permutations(sorted(destination_ids)))
+
+
+def shortest_path(adjacency, source, target, edge_cost):
+    """Deterministic traversal; providers retain ownership of geometry and units."""
     heap: list[tuple[float, tuple[str, ...], str, list[tuple[Mapping[str, Any], bool]]]] = [(0.0, (source,), source, [])]
     best: dict[str, tuple[float, tuple[str, ...]]] = {}
     while heap:
@@ -82,7 +92,7 @@ def _shortest(graph: Mapping[str, Any], source: str, target: str, profile: str, 
         if current == target:
             return path
         for neighbor, edge, reverse in adjacency.get(current, []):
-            next_cost = cost + _edge_cost(edge, profile)
+            next_cost = cost + edge_cost(edge)
             heapq.heappush(heap, (next_cost, sequence + (neighbor,), neighbor, path + [(edge, reverse)]))
     raise RoutePlanningError("GRAPH_DISCONNECTED", f"no route from {source} to {target}")
 
@@ -312,24 +322,23 @@ def recommend_routes(
     for profile in PROFILES:
         candidates = []
         errors: list[RoutePlanningError] = []
-        for restaurant_permutation in itertools.permutations(restaurant_ids):
-            for destination_permutation in itertools.permutations(destination_ids):
-                try:
-                    candidates.append(
-                        _candidate(
-                            order=order,
-                            graph=graph,
-                            annotations=annotations,
-                            start_node_id=start_node_id,
-                            restaurant_permutation=restaurant_permutation,
-                            destination_permutation=destination_permutation,
-                            profile=profile,
-                            operation_mode=operation_mode,
-                            perception=perception,
-                        )
+        for restaurant_permutation, destination_permutation in visit_orders(restaurant_ids, destination_ids):
+            try:
+                candidates.append(
+                    _candidate(
+                        order=order,
+                        graph=graph,
+                        annotations=annotations,
+                        start_node_id=start_node_id,
+                        restaurant_permutation=restaurant_permutation,
+                        destination_permutation=destination_permutation,
+                        profile=profile,
+                        operation_mode=operation_mode,
+                        perception=perception,
                     )
-                except RoutePlanningError as exc:
-                    errors.append(exc)
+                )
+            except RoutePlanningError as exc:
+                errors.append(exc)
         if not candidates:
             if errors:
                 raise errors[0]

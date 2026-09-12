@@ -75,8 +75,17 @@ class RoutePlannerStateStore:
         self.path = self.root / "route-planner.json"
 
     def load(self) -> dict[str, Any]:
-        if not self.path.exists():
+        value = self.load_document()
+        if value is None:
             return empty_state()
+        return self._restore(value)
+
+    def load_document(self) -> dict[str, Any] | None:
+        """Read a bounded private document; each provider owns its schema."""
+        if not self.path.exists():
+            if self.path.is_symlink():
+                raise RoutePlannerStorageError("route planner state file cannot be a symlink")
+            return None
         if self.path.is_symlink():
             raise RoutePlannerStorageError("route planner state file cannot be a symlink")
         info = self.path.stat()
@@ -88,6 +97,10 @@ class RoutePlannerStateStore:
             value = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise RoutePlannerStorageError("route planner state file is unreadable") from exc
+        return value
+
+    @staticmethod
+    def _restore(value):
         expected = set(empty_state())
         if not isinstance(value, dict) or set(value) != expected or value.get("schema_version") != STATE_SCHEMA_VERSION:
             raise RoutePlannerStorageError("route planner state document is invalid")
