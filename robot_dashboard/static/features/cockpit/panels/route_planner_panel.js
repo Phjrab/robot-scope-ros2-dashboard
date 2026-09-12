@@ -7,7 +7,7 @@ const RESTAURANTS = Object.freeze([
   ['DOMINO', '도미노피자'], ['HANSOT', '한솥도시락'], ['EDIYA', '이디야커피'],
 ]);
 const MENUS = Object.freeze({
-  DOMINO: Object.freeze([['SUPER_SUPREME', '슈퍼슈프림피자'], ['CHEESE_PIZZA', '치즈피자']]),
+  DOMINO: Object.freeze([['SUPER_SUPREME', '슈퍼슈프림피자'], ['CHEESE_PIZZA', '포테이토피자']]),
   HANSOT: Object.freeze([['SPAM_KIMCHI', '스팸김치도시락'], ['CHICKEN_MAYO', '치킨마요도시락']]),
   EDIYA: Object.freeze([['AMERICANO', '아메리카노'], ['CAFE_LATTE', '카페라떼']]),
 });

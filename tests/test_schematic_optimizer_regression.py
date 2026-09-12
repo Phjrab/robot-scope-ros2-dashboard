@@ -15,8 +15,8 @@ class SavedProviderGoldenTests(unittest.TestCase):
         graph = normalize_graph(graph_payload(), annotations=annotations(), geometry=Geometry())
         perception = normalize_perception_snapshot(ready_perception(), now_ns=1_000_000_000)
         for mode, expected in {
-            'MANUAL_GUIDANCE': '71fbe88719ac5c23f6a7c08f82ae29721a095a407c451b03301efa0a6ea1acd5',
-            'AUTO_NAV2': 'bbd46f10bceafa20608135218cd3f8ce5a5e6f2cf8549bdf8316e1d46cc87107',
+            'MANUAL_GUIDANCE': 'df544dffec64a74bdccd866eef79367f256341f8cb147e8c67c480f0ce226614',
+            'AUTO_NAV2': 'cb5a0b39abf3321a8c7ab901736fd0e86742c24ebad485aef805181b150370ea',
         }.items():
             result = recommend_routes(order=order, graph=graph, annotations=annotations(), start_node_id='START_NODE', operation_mode=mode, perception=perception)
             self.assertEqual(hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest(), expected)

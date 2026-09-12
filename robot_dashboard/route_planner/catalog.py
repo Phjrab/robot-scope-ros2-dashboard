@@ -24,7 +24,7 @@ _CATALOG: dict[str, Any] = {
             "zone_id": "ZONE_1",
             "menu": {
                 "SUPER_SUPREME": "슈퍼슈프림피자",
-                "CHEESE_PIZZA": "치즈피자",
+                "CHEESE_PIZZA": "포테이토피자",
             },
         },
         "HANSOT": {

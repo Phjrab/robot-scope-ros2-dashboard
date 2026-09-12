@@ -53,6 +53,7 @@ class OrderSheetTests(unittest.TestCase):
         self.assertEqual(catalog["production"], {"seconds_per_item": 20, "policy": "ORDER_SEQUENCE_20S"})
         self.assertEqual(catalog["underpass_semantic"], "UNDERPASS")
         self.assertEqual(catalog["zones"][3]["restaurant_id"], None)
+        self.assertEqual(catalog["restaurants"]["DOMINO"]["menu"]["CHEESE_PIZZA"], "포테이토피자")
 
     def test_low_order_derives_quantity_difficulty_and_ready_times(self):
         value = normalize_order(order_payload(), identifier_factory=lambda: "f" * 32)
