@@ -493,7 +493,9 @@ class Go2ControlBridgeSupervisorTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 env=environ,
-                timeout=2,
+                # This test asserts launch ordering, not a realtime deadline.
+                # Allow cold/loaded hosts to spawn the three shell processes.
+                timeout=10,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(

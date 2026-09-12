@@ -18,9 +18,10 @@ and zero command were confirmed. No replacement goal was sent.
 
 ## Confirmed versus unknown
 
-ControlManager expires an outstanding deadman drive when its age reaches
-0.2 seconds. A later submission checks this expiration before accepting a new
-drive. Lease heartbeat and drive freshness are separate: merely increasing
+At the time of this recorded run, ControlManager expired an outstanding Nav2
+deadman drive when its age reached 0.2 seconds. A later submission checked this
+expiration before accepting a new drive. Lease heartbeat and drive freshness
+are separate: merely increasing
 heartbeat frequency is not a demonstrated fix. The inactive localization-health
 snapshot after cancellation is a consequence of deactivation, not proof that
 localization caused this cancellation.
@@ -48,6 +49,11 @@ submission, redaction and one submission followed by deactivation.
 
 Next live evidence requires deploying this diagnostic change and an explicitly
 supervised operator goal. Publication alone does not update the Jetson service.
+
+The operator subsequently applied a separate 300 ms Nav2 input timeout and
+requested that the Nav2 default and replay assumptions also use 300 ms. See
+`NAV2_OFFLINE_TIMING_REPLAY_20260912.md` for the current contract. The 200 ms
+observation above is historical evidence, not the current Nav2 assumption.
 
 ## Local verification
 

@@ -61,6 +61,7 @@
     "lowstate_topic": "/lowstate",
     "sport_mode_state_topic": "/sportmodestate",
     "command_timeout_s": 0.20,
+    "navigation_command_timeout_s": 0.30,
     "bridge_command_timeout_s": 0.20,
     "bridge_status_timeout_s": 0.75,
     "telemetry_timeout_s": 0.5,

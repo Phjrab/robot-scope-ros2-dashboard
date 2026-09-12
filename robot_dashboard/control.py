@@ -246,6 +246,9 @@ class ControlManager:
     # The ROS watchdog runs every 50 ms.  Expiring the browser intent after
     # 200 ms leaves one watchdog cycle to dispatch StopMove near 250 ms.
     COMMAND_TIMEOUT_S = 0.20
+    # Internal Nav2 input defaults to a separate 300 ms freshness budget.
+    # Browser input and the independent robot-side Bridge watchdog stay at 200 ms.
+    NAVIGATION_COMMAND_TIMEOUT_S = 0.30
     LEASE_HEARTBEAT_S = 2.0
     # An unbound lease cannot issue commands.  Give the browser enough time to
     # complete its WebSocket handshake, then switch to the shorter heartbeat
@@ -302,6 +305,12 @@ class ControlManager:
             default=self.COMMAND_TIMEOUT_S,
             low=0.10,
             high=self.COMMAND_TIMEOUT_S,
+        )
+        self._navigation_command_timeout_s = _bounded_float(
+            control.get("navigation_command_timeout_s"),
+            default=self.NAVIGATION_COMMAND_TIMEOUT_S,
+            low=0.10,
+            high=self.NAVIGATION_COMMAND_TIMEOUT_S,
         )
         self._lease_heartbeat_s = _bounded_float(
             control.get("lease_timeout_s"),
@@ -615,7 +624,7 @@ class ControlManager:
             if (
                 not math.isfinite(command_age)
                 or command_age < 0.0
-                or command_age > self._command_timeout_s
+                or command_age > self._command_timeout_for_source(lease["input_source"])
             ):
                 raise CommandValidationError("client_age_s exceeds the command timeout")
             self._validate_seq(lease, seq)
@@ -734,13 +743,18 @@ class ControlManager:
         self._emit_stop("lease_expired", now, force=True)
         return True
 
+    def _command_timeout_for_source(self, input_source: str) -> float:
+        if input_source == INTERNAL_NAVIGATION_SOURCE:
+            return self._navigation_command_timeout_s
+        return self._command_timeout_s
+
     def _expire_command_if_needed(self, now: float) -> bool:
         drive = self._drive
         if (
             self._lease is None
             or drive is None
             or not drive.get("deadman")
-            or now - float(drive["at"]) < self._command_timeout_s
+            or now - float(drive["at"]) < self._command_timeout_for_source(drive["input_source"])
         ):
             return False
         self._lease = None
@@ -949,6 +963,7 @@ class ControlManager:
                     "default_speed_scale": self._default_speed_scale,
                     "speed_scale": [self.MIN_SPEED_SCALE, self.MAX_SPEED_SCALE],
                     "command_timeout_s": self._command_timeout_s,
+                    "navigation_command_timeout_s": self._navigation_command_timeout_s,
                     "heartbeat_timeout_s": self._lease_heartbeat_s,
                     "bind_timeout_s": self._lease_bind_s,
                 },
