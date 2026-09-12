@@ -111,6 +111,20 @@ class MissionCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         )
         return response["mission"]
 
+    async def test_arrival_action_persists_but_cannot_acquire_navigation(self):
+        route = [waypoint(FIRST), {**waypoint(SECOND), "arrival_action": "sit_then_rise"}]
+        mission = await self.create(route)
+        self.assertEqual(mission["waypoints"][0]["arrival_action"], "none")
+        restored = MissionCoordinator(self.navigation, self.saved_maps, self.root)
+        self.assertEqual(restored.snapshot(mission["id"])["mission"]["waypoints"][1]["arrival_action"], "sit_then_rise")
+        with self.assertRaises(MissionConflict):
+            await self.coordinator.start(mission["id"])
+        self.assertEqual(self.navigation.sent, [])
+        self.assertIsNone(self.coordinator.snapshot()["active_mission_id"])
+        self.assertEqual(self.coordinator.snapshot(mission["id"])["mission"]["state"], "ready")
+        with self.assertRaises(MissionValidationError):
+            await self.create([{**waypoint(FIRST), "arrival_action": "arbitrary_script"}])
+
     async def test_schema_is_bounded_and_every_annotation_is_validated_at_creation(self):
         with self.assertRaises(MissionValidationError):
             await self.coordinator.create(
@@ -124,6 +138,20 @@ class MissionCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(mission["waypoints"]), 2)
         self.assertEqual(mission["state"], "ready")
         self.assertNotIn("path", str(mission).lower())
+
+    async def test_repeated_annotation_visits_are_distinct_and_persist_without_motion(self):
+        ids = [FIRST, SECOND, FIRST, SECOND, SECOND]
+        mission = await self.create([waypoint(identifier) for identifier in ids])
+        self.assertEqual([w["annotation_id"] for w in mission["waypoints"]], ids)
+        self.assertEqual(self.navigation.sent, [])
+        restored = MissionCoordinator(self.navigation, self.saved_maps, self.root, poll_interval_s=0.01)
+        try:
+            saved = restored.snapshot(mission["id"])["mission"]
+            self.assertEqual([w["annotation_id"] for w in saved["waypoints"]], ids)
+            self.assertEqual(saved["state"], "ready")
+            self.assertEqual(self.navigation.sent, [])
+        finally:
+            await restored.close()
 
     async def test_corrupt_persisted_state_disables_missions_without_submitting_navigation(self):
         await self.create()

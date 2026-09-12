@@ -774,8 +774,7 @@ test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and n
 });
 
 test('Cockpit runs a server-owned two-waypoint mission and restores it after reload', async ({ page }) => {
-  const backend = await openDashboard(page, {}, 'cockpit');
-  backend.state.annotations.points.push({ id: backend.secondAnnotationId, type: 'INSPECTION_POINT', name: 'E2E Inspect', pose: { x: 0.75, y: 0.5, yaw: 0 } });
+  const backend = await openDashboard(page, { includeSecondAnnotation: true }, 'cockpit');
   await page.locator('#refreshButton').click();
   await enterLayoutEdit(page);
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
@@ -789,6 +788,8 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   backend.state.navigation.goal = { state: 'idle', goal_id: null };
   backend.state.navigation.safety.can_send_goal = true;
 
+  await page.locator('[data-cockpit-layout-action="apply"]').click();
+  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
   await missionPanel.locator('[data-mission-draft-id]').nth(1).click();

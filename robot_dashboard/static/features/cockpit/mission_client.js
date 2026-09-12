@@ -8,6 +8,7 @@ function projectMission(value) {
   const state = MISSION_STATES.has(String(value.state || '')) ? String(value.state) : 'failed';
   const waypoints = (Array.isArray(value.waypoints) ? value.waypoints : []).slice(0, 32).map((item) => Object.freeze({
     annotation_id: text(item?.annotation_id, 24), label: text(item?.label, 64), status: text(item?.status, 16),
+    arrival_action: text(item?.arrival_action || 'none', 32),
     hold_seconds: Number(item?.hold_seconds) || 0, requires_operator_confirmation: item?.requires_operator_confirmation === true,
     goal_id: text(item?.goal_id, 128) || null, attempts: Math.max(0, Number(item?.attempts) || 0),
   }));

@@ -615,6 +615,17 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .route-planner-order-line > strong { color: #9fb8df; font: 700 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
 .route-planner-order-line > * { min-width: 0; max-width: 100%; }
 .route-planner-sheet-items { grid-column: 1 / -1; display: grid; gap: 6px; }
+.route-planner-order-line.route-planner-order-sheet { grid-template-columns: minmax(0, 1fr); }
+.route-planner-sheet-destination { display: grid; grid-template-columns: 70px minmax(0, 1fr) 30px; gap: 6px; align-items: center; }
+.route-planner-menu-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) 58px 70px; gap: 6px; align-items: center; }
+.route-planner-menu-row > *, .route-planner-sheet-destination > * { min-width: 0; max-width: 100%; }
+.spatial-route-editor { grid-column: 1 / -1; min-width: 0; padding: 16px; border: 1px solid #345047; border-radius: 10px; }
+.spatial-route-editor summary { cursor: pointer; font-size: 1rem; font-weight: 700; }
+.spatial-route-editor label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .875rem; }
+.spatial-route-editor button { padding: 8px 12px; color: #e3eee8; background: #17372e; border: 1px solid #476258; border-radius: 6px; font: inherit; cursor: pointer; }
+.spatial-route-editor :is(input, select) { color: #e3eee8; background: #10241e; border: 1px solid #476258; border-radius: 6px; padding: 6px; font: inherit; }
+.spatial-route-editor button:disabled { opacity: .5; cursor: default; }
+.spatial-route-editor svg { margin-top: 12px; border: 1px solid #476258; border-radius: 6px; }
 .route-planner-sheet-items .route-planner-order-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 58px 70px; }
 .route-planner-order-line input,
 .route-planner-order-line select,

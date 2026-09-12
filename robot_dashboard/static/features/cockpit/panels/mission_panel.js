@@ -14,7 +14,7 @@ function createMissionPanelView(options = {}) {
   const annotationChoices = make(documentValue, 'div', 'cockpit-mission-choices');
   const draftOrder = make(documentValue, 'ol', 'cockpit-mission-order');
   const createButton = make(documentValue, 'button', '', 'CREATE PINNED MISSION'); createButton.type = 'button'; createButton.dataset.missionAction = 'create';
-  draft.append(labelInput, annotationChoices, draftOrder, createButton);
+  draft.append(labelInput, make(documentValue, 'p', '', 'HOME을 먼저 추가한 뒤 POI와 DOCK을 방문 순서대로 추가하세요. 같은 지점을 여러 번 추가할 수 있습니다 (최대 32회). HOME 추가는 초기위치 설정이 아니라 첫 방문 지점 지정입니다.'), annotationChoices, draftOrder, createButton);
   const actions = make(documentValue, 'div', 'cockpit-mission-actions');
   const buttons = Object.fromEntries([
     ['start', 'START'], ['pause', 'PAUSE'], ['resume', 'RESUME'], ['skip', 'SKIP'], ['retry', 'RETRY'], ['abort', 'ABORT'], ['takeover', 'MANUAL TAKEOVER'],
@@ -34,13 +34,21 @@ function createMissionPanelView(options = {}) {
   function draftPoint(id) { return annotationPoints().find((point) => point.id === id); }
 
   function renderDraft() {
-    const points = annotationPoints(); draftIds = draftIds.filter((id) => points.some((point) => point.id === id)).slice(0, 32);
+    const points = annotationPoints(); draftIds = draftIds.filter((entry) => points.some((point) => point.id === entry.id)).slice(0, 32);
     annotationChoices.replaceChildren(...points.map((point) => {
-      const button = make(documentValue, 'button', '', `${draftIds.includes(point.id) ? '✓ ' : '+ '}${point.type} · ${point.name}`);
-      button.type = 'button'; button.dataset.missionDraftId = point.id; button.setAttribute('aria-pressed', String(draftIds.includes(point.id))); return button;
+      const count = draftIds.filter((entry) => entry.id === point.id).length;
+      const button = make(documentValue, 'button', '', `+ ${point.type} · ${point.name}${count ? ` · ${count}회 추가됨` : ''}`);
+      button.type = 'button'; button.dataset.missionDraftId = point.id; button.disabled = current?.busy || draftIds.length >= 32; return button;
     }));
-    draftOrder.replaceChildren(...draftIds.map((id, index) => {
+    draftOrder.replaceChildren(...draftIds.map(({ id, arrival_action }, index) => {
       const point = draftPoint(id); const item = make(documentValue, 'li', '', `${index + 1}. ${point?.name || id}`);
+      const arrival = documentValue.createElement('select');
+      arrival.setAttribute('aria-label', `${index + 1}번 방문 도착 동작`);
+      arrival.dataset.missionArrivalIndex = String(index); arrival.disabled = current?.busy === true;
+      for (const [value, label] of [['none', '도착 동작 없음'], ['sit_then_rise', '배달 완료: 앉기 → 일어서기 (검증 대기)']]) {
+        const option = make(documentValue, 'option', '', label); option.value = value; arrival.append(option);
+      }
+      arrival.value = arrival_action; item.append(arrival);
       const controls = make(documentValue, 'span');
       for (const [move, label] of [['up', '↑'], ['down', '↓'], ['remove', '×']]) { const button = make(documentValue, 'button', '', label); button.type = 'button'; button.dataset.missionDraftMove = move; button.dataset.missionDraftIndex = String(index); controls.append(button); }
       item.append(controls); return item;
@@ -59,20 +67,28 @@ function createMissionPanelView(options = {}) {
     buttons.resume.disabled = state.busy || mission?.state !== 'paused'; buttons.skip.disabled = state.busy || !['running', 'paused', 'failed'].includes(mission?.state);
     buttons.retry.disabled = state.busy || mission?.state !== 'failed' || mission?.outcome === 'aborted'; buttons.abort.disabled = state.busy || !active;
     buttons.takeover.disabled = state.busy || !(active || context().navigationActive);
+    const arrivalPending = mission?.waypoints?.some((waypoint) => waypoint.arrival_action === 'sit_then_rise');
+    if (arrivalPending) for (const action of ['start', 'resume', 'retry', 'skip']) buttons[action].disabled = true;
     const rows = [
       ['CURRENT', mission ? `${Math.min(mission.current_index + 1, mission.waypoints.length)} / ${mission.waypoints.length}` : '—'],
       ['DONE', mission ? `${mission.completed_count} / ${mission.waypoints.length}` : '—'], ['REMAINING', mission?.remaining_count ?? '—'],
       ['ELAPSED', mission ? `${mission.elapsed_seconds.toFixed(1)} s` : '—'],
     ];
     metrics.replaceChildren(...rows.map(([label, value]) => { const item = make(documentValue, 'div'); item.append(make(documentValue, 'span', '', label), make(documentValue, 'strong', '', String(value))); return item; }));
-    route.replaceChildren(...(mission?.waypoints || []).map((waypoint, index) => { const item = make(documentValue, 'li', '', `${index + 1}. ${waypoint.label} · ${waypoint.status.toUpperCase()}${waypoint.hold_seconds ? ` · HOLD ${waypoint.hold_seconds}s` : ''}${waypoint.requires_operator_confirmation ? ' · CONFIRM' : ''}`); if (index === mission.current_index) item.dataset.current = 'true'; return item; }));
+    route.replaceChildren(...(mission?.waypoints || []).map((waypoint, index) => { const item = make(documentValue, 'li', '', `${index + 1}. ${waypoint.label} · ${waypoint.status.toUpperCase()}${waypoint.arrival_action === 'sit_then_rise' ? ' · 도착 후 앉기 → 일어서기 (검증 대기)' : ''}${waypoint.hold_seconds ? ` · HOLD ${waypoint.hold_seconds}s` : ''}${waypoint.requires_operator_confirmation ? ' · CONFIRM' : ''}`); if (index === mission.current_index) item.dataset.current = 'true'; return item; }));
     logs.textContent = (mission?.logs || []).map((entry) => `[${entry.seq}] ${entry.event}${entry.waypoint_index == null ? '' : ` · WP ${entry.waypoint_index + 1}`}`).join('\n') || 'BOUNDED SERVER MISSION LOG · WAITING';
     error.textContent = state.error || mission?.error || (mission?.pause_reason ? `PAUSED · ${mission.pause_reason}` : 'SERVER-AUTHORITATIVE · NO AUTO ARM · NO SCRIPT ACTIONS');
     error.dataset.error = String(Boolean(state.error || mission?.error)); renderDraft();
+    if (arrivalPending && !state.error && !mission?.error) error.textContent = '앉기 → 일어서기 동작은 검증 대기 중입니다. 미션 저장은 가능하며 실행은 아직 비활성입니다.';
   }
 
   missionSelect.addEventListener('change', () => options.client.select(missionSelect.value));
-  annotationChoices.addEventListener('click', (event) => { const id = event.target.closest?.('[data-mission-draft-id]')?.dataset.missionDraftId; if (!id) return; draftIds = draftIds.includes(id) ? draftIds.filter((item) => item !== id) : [...draftIds, id].slice(0, 32); renderDraft(); });
+  annotationChoices.addEventListener('click', (event) => { const id = event.target.closest?.('[data-mission-draft-id]')?.dataset.missionDraftId; if (!id || current?.busy || !draftPoint(id) || draftIds.length >= 32) return; draftIds = [...draftIds, { id, arrival_action: 'none' }]; renderDraft(); });
+  draftOrder.addEventListener('change', (event) => {
+    const select = event.target.closest?.('[data-mission-arrival-index]'); if (!select || current?.busy) return;
+    const entry = draftIds[Number(select.dataset.missionArrivalIndex)];
+    if (entry && ['none', 'sit_then_rise'].includes(select.value)) entry.arrival_action = select.value;
+  });
   draftOrder.addEventListener('click', (event) => {
     const button = event.target.closest?.('[data-mission-draft-move]'); if (!button) return; const index = Number(button.dataset.missionDraftIndex); const move = button.dataset.missionDraftMove;
     if (move === 'remove') draftIds.splice(index, 1); else { const target = move === 'up' ? index - 1 : index + 1; if (target >= 0 && target < draftIds.length) [draftIds[index], draftIds[target]] = [draftIds[target], draftIds[index]]; } renderDraft();
@@ -82,7 +98,7 @@ function createMissionPanelView(options = {}) {
     if (action === 'create') {
       const value = context(); const points = new Map(annotationPoints().map((point) => [point.id, point]));
       await options.client.create({ label: labelInput.value.trim() || 'Competition route', map_id: value.mapMeta.id, map_revision: value.mapMeta.revision, annotation_revision: value.annotations.annotation_revision,
-        waypoints: draftIds.map((id) => ({ annotation_id: id, arrival_tolerance: null, hold_seconds: 0.0, requires_operator_confirmation: false, label: String(points.get(id)?.name || 'Waypoint').slice(0, 64) })) });
+        waypoints: draftIds.map(({ id, arrival_action }) => ({ annotation_id: id, arrival_action, arrival_tolerance: null, hold_seconds: 0.0, requires_operator_confirmation: false, label: String(points.get(id)?.name || 'Waypoint').slice(0, 64) })) });
       return;
     }
     if (action === 'takeover') { options.navigationAdapter.requestTakeover(); return; }

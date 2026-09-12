@@ -15,7 +15,7 @@ class MissionSchemaTests(unittest.TestCase):
         classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
         waypoint = classes["MissionWaypointRequest"]
         fields = {node.target.id for node in waypoint.body if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)}
-        self.assertEqual(fields, {"annotation_id", "arrival_tolerance", "hold_seconds", "requires_operator_confirmation", "label"})
+        self.assertEqual(fields, {"annotation_id", "arrival_action", "arrival_tolerance", "hold_seconds", "requires_operator_confirmation", "label"})
         create = classes["MissionCreateRequest"]
         create_fields = {node.target.id for node in create.body if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)}
         self.assertEqual(create_fields, {"label", "map_id", "map_revision", "annotation_revision", "waypoints"})

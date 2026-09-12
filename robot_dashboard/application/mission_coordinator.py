@@ -247,7 +247,7 @@ class MissionCoordinator:
 
     @staticmethod
     def _normalize_waypoint(value: Mapping[str, Any]) -> dict[str, Any]:
-        allowed = {"annotation_id", "arrival_tolerance", "hold_seconds", "requires_operator_confirmation", "label", "status", "goal_id", "attempts"}
+        allowed = {"annotation_id", "arrival_action", "arrival_tolerance", "hold_seconds", "requires_operator_confirmation", "label", "status", "goal_id", "attempts"}
         if not isinstance(value, Mapping) or set(value) - allowed:
             raise MissionValidationError("mission waypoint contains unsupported fields")
         annotation_id = value.get("annotation_id")
@@ -264,8 +264,12 @@ class MissionCoordinator:
         confirmation = value.get("requires_operator_confirmation", False)
         if not isinstance(confirmation, bool):
             raise MissionValidationError("requires_operator_confirmation must be boolean")
+        arrival_action = value.get("arrival_action", "none")
+        if arrival_action not in ("none", "sit_then_rise"):
+            raise MissionValidationError("unsupported mission arrival action")
         return {
             "annotation_id": annotation_id,
+            "arrival_action": arrival_action,
             "arrival_tolerance": tolerance,
             "hold_seconds": round(float(hold), 3),
             "requires_operator_confirmation": confirmation,
@@ -497,6 +501,7 @@ class MissionCoordinator:
         return navigation
 
     async def _dispatch_current_locked(self, mission: dict[str, Any], *, operator_confirmed: bool) -> None:
+        self._require_arrival_actions_ready(mission)
         if mission["current_index"] >= len(mission["waypoints"]):
             self._complete_locked(mission)
             return
@@ -570,6 +575,7 @@ class MissionCoordinator:
                 return {"mission": self._public(mission)}
             if mission["state"] != "ready":
                 raise MissionConflict("only a ready mission can start")
+            self._require_arrival_actions_ready(mission)
             if self._active_id and self._active_id != mission_id:
                 raise MissionConflict("another mission owns navigation")
             self._active_id = mission_id
@@ -580,6 +586,14 @@ class MissionCoordinator:
             if mission["state"] == "running":
                 self._start_monitor_locked(mission)
             return {"mission": self._public(mission)}
+
+    @staticmethod
+    def _require_arrival_actions_ready(mission: Mapping[str, Any]) -> None:
+        # Go2 action acceptance is not physical completion. Keep these drafts
+        # non-executable until the completion-aware executor is implemented and
+        # field-validated; never silently turn a delivery action into a no-op.
+        if any(point.get("arrival_action", "none") != "none" for point in mission["waypoints"]):
+            raise MissionConflict("앉기 → 일어서기 자동 동작은 검증 대기 중입니다. 이 미션은 저장만 가능하며 아직 실행할 수 없습니다.")
 
     async def _cancel_current_locked(self, mission: dict[str, Any]) -> str:
         waypoint = mission["waypoints"][mission["current_index"]] if mission["current_index"] < len(mission["waypoints"]) else None

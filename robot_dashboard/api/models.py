@@ -219,6 +219,7 @@ class RelocalizationCancelRequest(StrictRequest):
 
 class MissionWaypointRequest(StrictRequest):
     annotation_id: str = Field(pattern=r"^[0-9a-f]{24}$")
+    arrival_action: Literal["none", "sit_then_rise"] = "none"
     arrival_tolerance: float | None = Field(default=None, strict=True, ge=0.05, le=2.0)
     hold_seconds: float = Field(default=0.0, strict=True, ge=0.0, le=300.0)
     requires_operator_confirmation: bool = Field(default=False, strict=True)

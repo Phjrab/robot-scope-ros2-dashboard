@@ -284,6 +284,26 @@ export function createRoutePlannerClient(options = {}) {
 
   return Object.freeze({
     subscribe, refresh, snapshot: () => state,
+    spatialMaps: () => api('/api/v1/saved-maps'),
+    spatialRoutes: () => api('/api/v1/routes'),
+    spatialRoute: (id) => {
+      if (isSchematic() || !HEX24.test(id)) return Promise.reject(new Error('실제 저장 지도 경로를 선택하세요.'));
+      return api(`/api/v1/routes/${id}`);
+    },
+    spatialMap: async (id) => {
+      if (isSchematic() || !HEX24.test(id)) throw new Error('실제 저장 지도를 선택하세요.');
+      const [data, family, annotations] = await Promise.all([
+        api(`/api/v1/saved-maps/${id}/data`), api(`/api/v1/saved-maps/${id}/family`), api(`/api/v1/saved-maps/${id}/annotations`),
+      ]);
+      return { data, family, annotations };
+    },
+    saveSpatialRoute: (payload, previous = null) => {
+      if (isSchematic()) return Promise.reject(new Error('참고 지도에서는 실제 지도 경로를 저장할 수 없습니다.'));
+      if (previous && (!HEX24.test(previous.route_id) || !HEX64.test(previous.revision))) return Promise.reject(new Error('저장 경로 버전이 올바르지 않습니다.'));
+      return api(previous ? `/api/v1/routes/${previous.route_id}` : '/api/v1/routes', {
+        method: previous ? 'PATCH' : 'POST', body: JSON.stringify(previous ? { ...payload, base_revision: previous.revision } : payload),
+      });
+    },
     schematicCommand, schematicEvent,
     createOrder: (payload) => isSchematic() ? schematicOrder(payload) : mutate('/api/v1/route-planner/orders', payload),
     updateOrder: (id, payload) => isSchematic() ? schematicOrder(payload) : mutate(`/api/v1/route-planner/orders/${encodeURIComponent(id)}`, payload, 'PATCH'),

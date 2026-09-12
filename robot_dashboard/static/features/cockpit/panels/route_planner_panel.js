@@ -1,4 +1,5 @@
 import { createSchematicControls } from '../../route_planner/schematic_controls.js';
+import { createSpatialEditor } from '../../route_planner/spatial_editor.js';
 
 const DESTINATIONS = Object.freeze([
   ['COEX', '코엑스'], ['WHIMOON', '휘문고등학교'], ['GANGNAM_POLICE', '강남경찰서'], ['GTX_SITE', 'GTX 공사현장'],
@@ -111,6 +112,7 @@ function createRoutePlannerPanelView(options = {}) {
   root.append(header);
   const schematicView = createSchematicControls(root, options.client, documentValue);
   root.append(orderSection, planningSection, guidance, rehearsalSection); options.host.append(root);
+  const spatialEditor = createSpatialEditor(root, options.client, documentValue);
 
   let current = null;
   const lineRows = [];
@@ -129,7 +131,7 @@ function createRoutePlannerPanelView(options = {}) {
 
   function addOrderLine(destinationId = 'COEX', restaurantId = 'HANSOT', menuId = '', quantity = 1) {
     if (lineRows.length >= MAX_ORDER_SHEETS) return;
-    const rowRoot = make(documentValue, 'div', 'route-planner-order-line');
+    const rowRoot = make(documentValue, 'div', 'route-planner-order-line route-planner-order-sheet');
     const sequence = make(documentValue, 'strong', '', `주문서 ${lineRows.length + 1}`);
     const destinationInput = documentValue.createElement('select'); destinationInput.setAttribute('aria-label', `도착장소 ${lineRows.length + 1}`);
     destinationInput.append(...DESTINATIONS.map(([value, label]) => option(documentValue, value, label))); destinationInput.value = destinationId;
@@ -147,13 +149,17 @@ function createRoutePlannerPanelView(options = {}) {
     restaurant.addEventListener('change', () => { syncMenus(row); renderOrderSummary(); });
     quantityInput.addEventListener('input', renderOrderSummary);
     remove.addEventListener('click', () => { if (lineRows.length <= 1) return; const index = lineRows.indexOf(row); if (index >= 0) lineRows.splice(index, 1); rowRoot.remove(); lineRows.forEach((item, rowIndex) => { item.sequence.textContent = `주문서 ${rowIndex + 1}`; }); renderOrderSummary(); });
-    rowRoot.append(sequence, destinationInput, restaurant, menu, quantityInput, remove, row.extra, row.addItem); lines.append(rowRoot); renderOrderSummary();
+    const destinationRow = make(documentValue, 'div', 'route-planner-sheet-destination');
+    destinationRow.append(sequence, destinationInput, remove);
+    const firstMenuRow = make(documentValue, 'div', 'route-planner-menu-row');
+    firstMenuRow.append(restaurant, menu, quantityInput);
+    rowRoot.append(destinationRow, firstMenuRow, row.extra, row.addItem); lines.append(rowRoot); renderOrderSummary();
     return row;
   }
 
   function addMenuItem(sheet, item = {}) {
     if (sheet.items.length >= MAX_MENU_LINES_PER_SHEET) return;
-    const root = make(documentValue, 'div', 'route-planner-order-line');
+    const root = make(documentValue, 'div', 'route-planner-menu-row');
     const restaurant = documentValue.createElement('select');
     restaurant.setAttribute('aria-label', `주문서 ${lineRows.indexOf(sheet) + 1} 음식점 ${sheet.items.length + 1}`);
     restaurant.append(...RESTAURANTS.map(([value, label]) => option(documentValue, value, label)));
@@ -293,6 +299,7 @@ function createRoutePlannerPanelView(options = {}) {
   function render(state) {
     current = state;
     schematicView.render(state);
+    spatialEditor.render(state);
     const schematic = state.schematic?.map_kind === 'SCHEMATIC_MANUAL';
     root.dataset.mapKind = schematic ? 'SCHEMATIC_MANUAL' : 'SAVED_OCCUPANCY';
     planningSection.hidden = schematic; guidance.hidden = schematic;
@@ -434,7 +441,7 @@ function createRoutePlannerPanelView(options = {}) {
   startNode.addEventListener('change', () => { selectedStartNodeId = startNode.value; if (current) render(current); });
 
   loadDefaultDraft();
-  return Object.freeze({ render, destroy() { schematicView.destroy(); root.remove(); } });
+  return Object.freeze({ render, destroy() { spatialEditor.destroy(); schematicView.destroy(); root.remove(); } });
 }
 
 export function createRoutePlannerPanel(options = {}) {
