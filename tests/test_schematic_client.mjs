@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createRoutePlannerClient, projectState } from '../robot_dashboard/static/features/cockpit/route_planner_client.js';
 import { schematicPoint } from '../robot_dashboard/static/features/route_planner/competition_map_view.js';
+import { connectedApproachNodeIds } from '../robot_dashboard/static/features/route_planner/schematic_controls.js';
 
 function payload() { return { available: true, schematic: { available: true, context: 'DEMO', map_kind: 'SCHEMATIC_MANUAL', state: 'READY', revision: 3, distance_m: null, eta_s: null, recommendations: [], guidance: { current_segment_index: 0, progress_revision: 0 } } }; }
 test('schematic preserves unknown units and never produces a ROS map overlay', () => {
@@ -32,6 +33,26 @@ test('schematic clicks use inverse SVG screen matrix, not CSS pixel calibration'
   const svg = { getScreenCTM: () => ({ inverse: () => ({ scale: .5 }) }), createSVGPoint: () => ({ matrixTransform(m) { return { x: this.x*m.scale, y: this.y*m.scale }; } }) };
   assert.deepEqual(schematicPoint(svg, 400, 200), { x: 200, y: 100 });
   assert.equal(schematicPoint({ ...svg, getScreenCTM: () => null }, 0, 0), null);
+});
+
+test('venue setup restores two distinct access nodes from legacy and numbered access edges', () => {
+  const layout = {
+    nodes: [
+      { id: 'A', label: 'A', x_px: 10, y_px: 10, role: 'INTERSECTION' },
+      { id: 'B', label: 'B', x_px: 20, y_px: 10, role: 'INTERSECTION' },
+      { id: 'COEX', label: 'COEX', x_px: 15, y_px: 5, role: 'DESTINATION', venue_id: 'COEX' },
+    ],
+    edges: [
+      { id: 'ACCESS_COEX_2', from: 'B', to: 'COEX' },
+      { id: 'ACCESS_COEX_1', from: 'A', to: 'COEX' },
+    ],
+  };
+  assert.deepEqual(connectedApproachNodeIds(layout, {
+    venue_id: 'COEX', approach_point_px: [10, 10],
+  }), ['A', 'B']);
+  assert.deepEqual(connectedApproachNodeIds(layout, {
+    venue_id: 'COEX', approach_point_px: [15, 5],
+  }), ['A', 'B']);
 });
 
 test('manual records support LAN HTTP without crypto.randomUUID', async () => {

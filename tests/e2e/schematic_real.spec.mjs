@@ -110,9 +110,11 @@ test('competition map FIELD setup uses explicit form inputs and separately appro
     await host.getByLabel(`${v.id} 정지 y_px`, { exact: true }).fill(String(n.y_px));
     await host.getByLabel(`${v.id} yaw_rad`, { exact: true }).fill('0');
   }
+  await host.getByLabel('COEX 추가 접근 노드', { exact: true }).selectOption('TNW');
   await host.getByLabel('조종 경기 음식별 사전준비 2개 규칙 확인', { exact: true }).check();
   await host.getByLabel('주최 측 정적 참고 지도 사용 허용 확인', { exact: true }).check();
   await host.getByRole('button', { name: '배치·연결 저장 (승인 해제)' }).click();
+  await expect(host.getByLabel('도식 노드·통행 연결 JSON')).toHaveValue(/ACCESS_COEX_2/);
   await expect(host.getByRole('button', { name: '현재 FIELD revision 승인' })).toBeEnabled();
   await host.getByLabel('현장 배치 확인자 이름', { exact: true }).fill('TEST FIXTURE ONLY');
   await host.getByRole('button', { name: '현재 FIELD revision 승인' }).click();

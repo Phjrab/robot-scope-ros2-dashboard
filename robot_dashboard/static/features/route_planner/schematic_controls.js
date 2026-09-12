@@ -1,5 +1,31 @@
 import { createCompetitionMapView } from './competition_map_view.js';
 
+const MAX_VENUE_APPROACHES = 2;
+
+function accessEdgePrefix(venueId) { return `ACCESS_${venueId}`; }
+
+export function connectedApproachNodeIds(layout, binding) {
+  const nodes = Array.isArray(layout?.nodes) ? layout.nodes : [];
+  const edges = Array.isArray(layout?.edges) ? layout.edges : [];
+  const venueNode = nodes.find((node) => node.venue_id === binding?.venue_id);
+  const result = [];
+  const add = (node) => {
+    if (!node || node.id === venueNode?.id || node.venue_id || result.includes(node.id)) return;
+    result.push(node.id);
+  };
+  const primary = nodes.find((node) => binding?.approach_point_px
+    && node.x_px === binding.approach_point_px[0] && node.y_px === binding.approach_point_px[1]);
+  add(primary);
+  if (venueNode) {
+    edges
+      .filter((edge) => (edge.id === accessEdgePrefix(binding.venue_id) || edge.id.startsWith(`${accessEdgePrefix(binding.venue_id)}_`))
+        && (edge.from === venueNode.id || edge.to === venueNode.id))
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .forEach((edge) => add(nodes.find((node) => node.id === (edge.from === venueNode.id ? edge.to : edge.from))));
+  }
+  return result.slice(0, MAX_VENUE_APPROACHES);
+}
+
 // Shared by the dashboard and Cockpit panel; no timer, fetch, ROS or control owner.
 export function createSchematicControls(host, client, doc = globalThis.document) {
   const el = (tag, text = '') => { const n = doc.createElement(tag); n.textContent = text; return n; };
@@ -46,10 +72,12 @@ export function createSchematicControls(host, client, doc = globalThis.document)
     for (const b of s.layout.bindings) {
       const row = el('fieldset'); row.append(el('legend', b.venue_id)); row.className = 'schematic-grid';
       const corner = select(`${b.venue_id} 코너`, [['', '미확인'], ...['A', 'B', 'C', 'D'].map((c) => [c, c])]); corner.value = b.corner || '';
-      const approach = select(`${b.venue_id} 접근 노드`, [['', '미확인'], ...s.layout.nodes.map((n) => [n.id, `${n.label} (${n.id})`])]);
-      approach.value = s.layout.nodes.find((n) => b.approach_point_px && n.x_px === b.approach_point_px[0] && n.y_px === b.approach_point_px[1])?.id || '';
+      const approachChoices = [['', '미확인'], ...s.layout.nodes.filter((n) => !n.venue_id).map((n) => [n.id, `${n.label} (${n.id})`])];
+      const approachIds = connectedApproachNodeIds(s.layout, b);
+      const approach = select(`${b.venue_id} 접근 노드`, approachChoices); approach.value = approachIds[0] || '';
+      const alternateApproach = select(`${b.venue_id} 추가 접근 노드`, [['', '사용 안 함'], ...approachChoices.slice(1)]); alternateApproach.value = approachIds[1] || '';
       const x = input(`${b.venue_id} 정지 x_px`, b.dock_point_px?.[0], 'number'); const y = input(`${b.venue_id} 정지 y_px`, b.dock_point_px?.[1], 'number'); const yaw = input(`${b.venue_id} yaw_rad`, b.dock_yaw_rad, 'number');
-      row.append(field('코너', corner), field('접근점 (연결 노드)', approach), field('정지 x_px', x), field('정지 y_px', y), field('yaw_rad', yaw)); rows.push({ b, corner, approach, x, y, yaw }); setupBody.append(row);
+      row.append(field('코너', corner), field('접근점 1 (연결 노드)', approach), field('접근점 2 (선택)', alternateApproach), field('정지 x_px', x), field('정지 y_px', y), field('yaw_rad', yaw)); rows.push({ b, corner, approach, alternateApproach, x, y, yaw }); setupBody.append(row);
     }
     const graph = el('textarea'); graph.setAttribute('aria-label', '도식 노드·통행 연결 JSON'); graph.rows = 12;
     graph.value = JSON.stringify({ nodes: s.layout.nodes, edges: s.layout.edges }, null, 2);
@@ -63,21 +91,24 @@ export function createSchematicControls(host, client, doc = globalThis.document)
         if (Object.keys(geometry).sort().join(',') !== 'edges,nodes') throw new Error('nodes / edges만 입력하세요');
         const layout = { ...s.layout, ...geometry, corner_zones: Object.fromEntries(Object.entries(zoneFields).map(([c, n]) => [c, n.value || null])),
           rules_profile: rules.checked ? 'MANUAL_PREPARED_2_CONFIRMED' : 'UNCONFIRMED', static_reference_allowed: permission.checked, underpass_verified: underpass.checked };
-        layout.bindings = rows.map(({ b, corner, approach, x, y, yaw }) => {
-          const a = layout.nodes.find((n) => n.id === approach.value); const px = numberOrNull(x.value); const py = numberOrNull(y.value);
+        layout.bindings = rows.map(({ b, corner, approach, alternateApproach, x, y, yaw }) => {
+          if (!approach.value && alternateApproach.value) throw new Error(`${b.venue_id}: 접근점 1을 먼저 선택하세요`);
+          if (approach.value && approach.value === alternateApproach.value) throw new Error(`${b.venue_id}: 서로 다른 접근 노드를 선택하세요`);
+          const approachNodes = [approach.value, alternateApproach.value].filter(Boolean).map((id) => layout.nodes.find((n) => n.id === id));
+          if (approachNodes.some((node) => !node || node.venue_id)) throw new Error(`${b.venue_id}: 접근점은 통행 노드여야 합니다`);
+          const px = numberOrNull(x.value); const py = numberOrNull(y.value);
           if ((px === null) !== (py === null)) throw new Error(`${b.venue_id}: x와 y를 함께 입력하세요`);
           const dock = px === null ? null : [px, py];
-          if (dock && a) {
+          const prefix = accessEdgePrefix(b.venue_id);
+          layout.edges = layout.edges.filter((e) => e.id !== prefix && !e.id.startsWith(`${prefix}_`));
+          if (dock && approachNodes.length) {
             let n = layout.nodes.find((n) => n.venue_id === b.venue_id);
             if (!n) { n = { id: b.venue_id, label: b.venue_id, role: ['DOMINO', 'HANSOT', 'EDIYA'].includes(b.venue_id) ? 'RESTAURANT' : 'DESTINATION', venue_id: b.venue_id }; layout.nodes.push(n); }
             n.x_px = px; n.y_px = py;
-            if (a.id !== n.id) {
-              const edgeId = `ACCESS_${b.venue_id}`;
-              layout.edges = layout.edges.filter((e) => e.id !== edgeId);
-              layout.edges.push({ id: edgeId, from: a.id, to: n.id, type: 'WALKWAY', enabled: true, bidirectional: true, polyline_px: [[a.x_px, a.y_px], dock] });
-            }
+            approachNodes.forEach((a, index) => layout.edges.push({ id: `${prefix}_${index + 1}`, from: a.id, to: n.id, type: 'WALKWAY', enabled: true, bidirectional: true, polyline_px: [[a.x_px, a.y_px], dock] }));
           }
-          return { venue_id: b.venue_id, corner: corner.value || null, approach_point_px: a ? [a.x_px, a.y_px] : null, dock_point_px: dock, dock_yaw_rad: numberOrNull(yaw.value) };
+          const primary = approachNodes[0];
+          return { venue_id: b.venue_id, corner: corner.value || null, approach_point_px: primary ? [primary.x_px, primary.y_px] : null, dock_point_px: dock, dock_yaw_rad: numberOrNull(yaw.value) };
         });
         await command('LAYOUT', { layout });
       } catch (e) { error.textContent = e.message; }

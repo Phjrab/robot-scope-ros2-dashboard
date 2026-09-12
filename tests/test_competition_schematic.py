@@ -153,6 +153,54 @@ class SchematicTests(unittest.TestCase):
             l = template("DEMO"); mutate(l)
             with self.assertRaises((SchematicError, ValueError)): validate_layout(l)
 
+    def test_two_access_edges_can_reach_one_venue_dock(self):
+        layout = template("DEMO")
+        primary = next(edge for edge in layout["edges"] if edge["id"] == "ACCESS_COEX")
+        primary["enabled"] = False
+        nodes = {node["id"]: node for node in layout["nodes"]}
+        layout["nodes"].append(
+            {
+                "id": "COEX_ALT_APPROACH",
+                "label": "COEX alternate approach",
+                "x_px": 130,
+                "y_px": 130,
+                "role": "INTERSECTION",
+            }
+        )
+        layout["edges"].append(
+            {
+                "id": "WALK_COEX_ALT",
+                "from": "A",
+                "to": "COEX_ALT_APPROACH",
+                "type": "WALKWAY",
+                "bidirectional": True,
+                "enabled": True,
+                "polyline_px": [
+                    [nodes["A"]["x_px"], nodes["A"]["y_px"]],
+                    [130, 130],
+                ],
+            }
+        )
+        layout["edges"].append(
+            {
+                "id": "ACCESS_COEX_2",
+                "from": "COEX_ALT_APPROACH",
+                "to": "COEX",
+                "type": "WALKWAY",
+                "bidirectional": True,
+                "enabled": True,
+                "polyline_px": [
+                    [130, 130],
+                    [nodes["COEX"]["x_px"], nodes["COEX"]["y_px"]],
+                ],
+            }
+        )
+        validated = validate_layout(layout)
+        self.assertEqual(
+            [edge["id"] for edge in validated["edges"] if edge["id"].startswith("ACCESS_COEX")],
+            ["ACCESS_COEX", "ACCESS_COEX_2"],
+        )
+
     def test_storage_is_private_bounded_and_symlink_rejected(self):
         path = self.session.store.path
         self.assertEqual(path.stat().st_mode & 0o777, 0o600)
