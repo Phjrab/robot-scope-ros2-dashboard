@@ -619,6 +619,32 @@ class NavigationRosGatewayTests(unittest.TestCase):
         self.assertTrue(kwargs["deadman"])
         self.assertAlmostEqual(navigation.state["last_cmd"]["vx"], 0.07)
 
+    def test_rejected_command_logs_timings_without_retry_or_secret(self):
+        for previous, expected in ((9.0, "1.500000"), (0.0, "unavailable")):
+            with self.subTest(previous=previous):
+                port = StubControlPort()
+                navigation = gateway(port=port)
+                navigation.state.update(
+                    active=True, goal={"state": "active"}, last_cmd_at=previous,
+                )
+                navigation._navigation_token = "private-test-token"
+                navigation._navigation_binding = "private-test-binding"
+                with (
+                    mock.patch.object(navigation, "_navigation_sensor_interlock_reason", return_value=None),
+                    mock.patch.object(navigation, "deactivate") as deactivate,
+                    mock.patch.object(port.manager, "submit_drive", side_effect=CommandValidationError("private-test-value")) as submit,
+                    mock.patch("robot_dashboard.ros.navigation_gateway.time.monotonic", side_effect=[10.0, 10.1, 10.2, 10.5]),
+                    self.assertLogs("robot_dashboard.ros.navigation_gateway", level="WARNING") as logs,
+                ):
+                    navigation.submit_velocity(0.1, 0.0, 0.0)
+                submit.assert_called_once()
+                deactivate.assert_called_once_with("navigation command rejected: private-test-value")
+                text = " ".join(logs.output)
+                self.assertIn("lock_wait_s=0.100000", text)
+                self.assertIn("processing_s=0.400000", text)
+                self.assertIn("previous_submit_age_s=" + expected, text)
+                self.assertNotIn("private-test", text)
+
     def test_cumulative_progress_accepts_c4_scaled_motion_at_ten_hz(self):
         navigation = gateway()
         self._prepare_active_goal(navigation)

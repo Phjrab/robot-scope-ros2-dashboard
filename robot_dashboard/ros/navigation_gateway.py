@@ -1980,7 +1980,9 @@ class NavigationRosGateway:
         )
 
     def submit_velocity(self, vx: float, vy: float, wz: float) -> None:
+        entered_at = time.monotonic()
         with self._control_port.operation_lock:
+            locked_at = time.monotonic()
             with self._navigation_lock:
                 if not self._navigation.get("active"):
                     return
@@ -1989,6 +1991,7 @@ class NavigationRosGateway:
                 )
                 token = self._navigation_token
                 binding = self._navigation_binding
+                previous_cmd_at = self._navigation.get("last_cmd_at", 0.0)
             snapshot = self._control_port.manager.snapshot()
             limits = snapshot.get("limits", {})
             vx_limit = max(0.01, float(limits.get("vx_mps", 0.30)))
@@ -2044,6 +2047,21 @@ class NavigationRosGateway:
                         self._navigation["seq"] += 1
                 self._control_port.flush_outputs()
             except ControlError as exc:
+                rejected_at = time.monotonic()
+                # Numeric, local-clock evidence only: no bearer token, payload,
+                # or exception text. This does not measure DDS/executor delay
+                # before submit_velocity is entered, and never retries motion.
+                LOGGER.warning(
+                    "Nav2 command submission rejected: kind=%s "
+                    "lock_wait_s=%.6f processing_s=%.6f previous_submit_age_s=%s",
+                    type(exc).__name__,
+                    max(0.0, locked_at - entered_at),
+                    max(0.0, rejected_at - locked_at),
+                    (
+                        f"{max(0.0, rejected_at - previous_cmd_at):.6f}"
+                        if previous_cmd_at > 0.0 else "unavailable"
+                    ),
+                )
                 self.deactivate(f"navigation command rejected: {exc}")
 
     def _navigation_cmd_vel_callback(self, message: Any) -> None:
