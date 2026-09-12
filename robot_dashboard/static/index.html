@@ -302,6 +302,7 @@
                 <button type="button" data-map-editor-value="-1" class="cell-unknown" aria-pressed="false"><i></i>미확인</button>
               </div>
               <label class="map-editor-brush-size"><span>BRUSH <output id="mapEditorBrushOutput">5 cells</output></span><input id="mapEditorBrushSize" type="range" min="1" max="30" step="1" value="5"></label>
+              <label class="map-editor-rotation"><span>ROTATION <output id="mapEditorRotationOutput">0.0°</output></span><input id="mapEditorRotation" aria-label="지도 회전 각도 슬라이더" type="range" min="-180" max="180" step="0.1" value="0"><input id="mapEditorRotationNumber" aria-label="지도 회전 각도" type="number" min="-180" max="180" step="0.1" value="0"></label>
               <div class="map-editor-history">
                 <button id="mapEditorUndo" type="button" disabled>UNDO</button><button id="mapEditorRedo" type="button" disabled>REDO</button><button id="mapEditorReset" type="button" disabled>RESET</button>
               </div>
@@ -319,7 +320,7 @@
               <label><span>복사본 이름</span><input id="mapEditorSaveName" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name_edited"></label>
               <button id="mapEditorSave" class="map-primary-action" type="button" disabled>SAVE AS COPY</button>
             </div>
-            <p id="mapEditorMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM은 변경하지 않습니다. 편집 결과는 새 지도 복사본으로만 저장됩니다.</p>
+            <p id="mapEditorMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM은 변경하지 않습니다. 회전은 지도 중심 기준이며 편집 결과는 주석이 없는 새 지도 복사본으로만 저장됩니다.</p>
           </article>
           <article class="panel map-crop-panel">
             <div class="panel-header compact">

@@ -193,6 +193,9 @@ const ui = {
   mapEditorBrushOutput: $('#mapEditorBrushOutput'),
   mapEditorUndo: $('#mapEditorUndo'),
   mapEditorRedo: $('#mapEditorRedo'),
+  mapEditorRotation: $('#mapEditorRotation'),
+  mapEditorRotationNumber: $('#mapEditorRotationNumber'),
+  mapEditorRotationOutput: $('#mapEditorRotationOutput'),
   mapEditorReset: $('#mapEditorReset'), mapEditorUnknownToFree: $('#mapEditorUnknownToFree'),
   mapEditorSource: $('#mapEditorSource'),
   mapEditorStats: $('#mapEditorStats'),
@@ -1574,7 +1577,7 @@ function updateSavedMapOverview() {
 
 function updateSavedMapManagement() {
   const manageable = Boolean(selectedSavedMapMeta?.manageable && selectedSavedMapId !== '__fallback_cloud');
-  const editorDirty = Boolean(mapEditorSession?.changedCount);
+  const editorDirty = mapEditorHasChanges();
   const operationBusy = Boolean(mapConversionPending || mapConversionCompleting || mapEditorBusy);
   const enabled = manageable && !savedMapMutationBusy && !editorDirty && !operationBusy;
   if (document.activeElement !== ui.savedMapNameInput) {
@@ -1632,7 +1635,7 @@ function syncMapConversionPanel() {
     ui.mapConvertName.value = source ? suggestedDerivedMapName(source, '_2d') : '';
   }
   const busy = Boolean(mapConversionPending || mapConversionCompleting);
-  const editorDirty = Boolean(mapEditorSession?.changedCount);
+  const editorDirty = mapEditorHasChanges();
   const controls = [ui.mapConvertSource, ui.mapConvertName, ui.mapConvertZMin, ui.mapConvertZMax, ui.mapConvertResolution, ui.mapConvertRadius, ui.mapConvertNeighbors, ui.mapConvertBackground];
   controls.forEach((control) => { control.disabled = busy; });
   ui.mapConvertStart.disabled = busy || !source || editorDirty || !validSavedMapName(ui.mapConvertName.value.trim());
@@ -1665,7 +1668,7 @@ function conversionNumber(input, label, minimum, maximum) {
 }
 
 async function startSavedMapConversion() {
-  if (mapConversionPending || mapConversionCompleting || mapEditorSession?.changedCount) return;
+  if (mapConversionPending || mapConversionCompleting || mapEditorHasChanges()) return;
   const source = conversionCloudMaps().find((entry) => entry.id === ui.mapConvertSource.value);
   if (!source) { showToast('변환할 저장 PCD를 선택하세요.', true); return; }
   const name = ui.mapConvertName.value.trim();
@@ -1818,43 +1821,18 @@ function mapEditorRevision(snapshot) {
     : null;
 }
 
-function mapEditorColor(value) {
-  if (value === 100) return [7, 10, 9];
-  if (value === 0) return [242, 246, 244];
-  return [126, 137, 133];
-}
+function mapEditorHasChanges(session = mapEditorSession) { return Boolean(session && (session.changedCount || Math.abs(session.rotationDegrees) >= 1e-9)); }
+function mapEditorRotationLabel(value) { const degrees = Number(value) || 0; return `${degrees > 0 ? '+' : ''}${degrees.toFixed(1)}°`; }
 
 function buildMapEditorSourceCanvas(session) {
-  const canvas = document.createElement('canvas');
-  canvas.width = session.width;
-  canvas.height = session.height;
-  const context = canvas.getContext('2d');
-  const image = context.createImageData(session.width, session.height);
-  for (let index = 0; index < session.cells.length; index += 1) {
-    const x = index % session.width;
-    const y = Math.floor(index / session.width);
-    const output = ((session.height - 1 - y) * session.width + x) * 4;
-    const color = mapEditorColor(session.cells[index]);
-    image.data[output] = color[0];
-    image.data[output + 1] = color[1];
-    image.data[output + 2] = color[2];
-    image.data[output + 3] = 255;
-  }
-  context.putImageData(image, 0, 0);
-  session.sourceCanvas = canvas;
-  session.sourceContext = context;
+  const source = mapEditorEngine.createSourceCanvas(document, session.cells, session.width, session.height);
+  session.sourceCanvas = source.canvas; session.sourceContext = source.context;
 }
 
 function updateMapEditorSourcePixels(changes) {
   const session = mapEditorSession;
   if (!session?.sourceContext) return;
-  for (const change of changes) {
-    const x = change.index % session.width;
-    const y = Math.floor(change.index / session.width);
-    const color = mapEditorColor(session.cells[change.index]);
-    session.sourceContext.fillStyle = `rgb(${color.join(',')})`;
-    session.sourceContext.fillRect(x, session.height - 1 - y, 1, 1);
-  }
+  mapEditorEngine.updateSourceCanvas(session.sourceContext, session.cells, session.width, session.height, changes);
 }
 
 function drawMapEditor() {
@@ -1866,17 +1844,7 @@ function drawMapEditor() {
   context.fillRect(0, 0, width, height);
   const session = mapEditorSession;
   if (!session?.sourceCanvas) return;
-  const scale = Math.min(width / session.width, height / session.height) * .94;
-  const drawWidth = session.width * scale;
-  const drawHeight = session.height * scale;
-  const left = (width - drawWidth) / 2;
-  const top = (height - drawHeight) / 2;
-  context.imageSmoothingEnabled = false;
-  context.drawImage(session.sourceCanvas, left, top, drawWidth, drawHeight);
-  context.strokeStyle = 'rgba(93,222,216,.48)';
-  context.lineWidth = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-  context.strokeRect(left, top, drawWidth, drawHeight);
-  session.layout = { left, top, drawWidth, drawHeight, scale, canvasWidth: width, canvasHeight: height };
+  session.layout = mapEditorEngine.drawRotatedSource(context, session.sourceCanvas, width, height, session.rotationDegrees, window.devicePixelRatio);
 }
 
 function scheduleMapEditorDraw() {
@@ -1893,6 +1861,7 @@ function setMapEditorFeedback(message, error = false) {
 function syncMapEditorUi() {
   const session = mapEditorSession;
   const available = Boolean(session);
+  const dirty = mapEditorHasChanges(session);
   const locked = mapEditorBusy || Boolean(mapConversionPending || mapConversionCompleting);
   const interactive = available && !locked;
   ui.mapEditorEmpty.hidden = available;
@@ -1913,23 +1882,27 @@ function syncMapEditorUi() {
   ui.mapEditorBrushSize.disabled = !interactive;
   ui.mapEditorUndo.disabled = !interactive || !session?.undo.length;
   ui.mapEditorRedo.disabled = !interactive || !session?.redo.length;
-  ui.mapEditorReset.disabled = !interactive || !session?.changedCount; ui.mapEditorUnknownToFree.disabled = !interactive || !session?.unknownCount;
+  ui.mapEditorRotation.disabled = !interactive;
+  ui.mapEditorRotationNumber.disabled = !interactive;
+  ui.mapEditorReset.disabled = !interactive || !dirty; ui.mapEditorUnknownToFree.disabled = !interactive || !session?.unknownCount;
   ui.mapEditorSaveName.disabled = !interactive;
-  ui.mapEditorSave.disabled = !interactive || !session?.changedCount || session?.sourceStale || !validSavedMapName(ui.mapEditorSaveName.value.trim());
+  ui.mapEditorSave.disabled = !interactive || !dirty || session?.sourceStale || !validSavedMapName(ui.mapEditorSaveName.value.trim());
   ui.mapEditorSource.textContent = available ? `SOURCE ${session.sourceName}` : 'SOURCE —';
+  const output = available ? mapEditorEngine.rotatedDimensions(session.width, session.height, session.rotationDegrees) : null;
   ui.mapEditorStats.textContent = available
-    ? `변경 ${session.changedCount.toLocaleString()} cells · 미확인 ${session.unknownCount.toLocaleString()} · ${session.width}×${session.height}`
+    ? `변경 ${session.changedCount.toLocaleString()} cells · 회전 ${mapEditorRotationLabel(session.rotationDegrees)} · 미확인 ${session.unknownCount.toLocaleString()} · ${output.width}×${output.height}`
     : '변경 0 cells';
   ui.mapEditorBrushOutput.textContent = `${ui.mapEditorBrushSize.value} cells`;
+  ui.mapEditorRotationOutput.textContent = mapEditorRotationLabel(session?.rotationDegrees || 0);
   if (mapEditorBusy) setStatePill(ui.mapEditorState, 'waiting', 'SAVING COPY');
   else if (session?.sourceStale) setStatePill(ui.mapEditorState, 'error', 'SOURCE CHANGED');
-  else if (available && session.changedCount) setStatePill(ui.mapEditorState, 'waiting', 'EDITING');
+  else if (available && dirty) setStatePill(ui.mapEditorState, 'waiting', 'EDITING');
   else if (available) setStatePill(ui.mapEditorState, 'ok', 'READY');
   else setStatePill(ui.mapEditorState, 'waiting', 'NO MAP');
   if (!mapEditorFeedback) {
     ui.mapEditorMessage.classList.remove('is-error');
     ui.mapEditorMessage.textContent = available
-      ? '검정=장애물, 흰색=빈 공간, 회색=미확인입니다. ERASER는 원본 셀 값을 복원합니다.'
+      ? '검정=장애물, 흰색=빈 공간, 회색=미확인입니다. 회전은 지도 중심 기준이며 새 복사본의 주석은 다시 지정해야 합니다.'
       : mapEditorUnavailableReason;
   }
   updateSavedMapManagement();
@@ -1970,7 +1943,7 @@ function initializeMapEditor(meta, snapshot) {
   }
   if (mapEditorSession?.sourceId === meta.id) {
     if (mapEditorSession.revision === revision) return true;
-    if (mapEditorSession.changedCount) {
+    if (mapEditorHasChanges(mapEditorSession)) {
       mapEditorSession.sourceStale = true;
       setMapEditorFeedback('편집 중 원본 revision이 변경되었습니다. 현재 편집은 유지되지만 저장하지 말고 새로 선택해 확인하세요.', true);
       syncMapEditorUi();
@@ -1989,6 +1962,7 @@ function initializeMapEditor(meta, snapshot) {
       original: cells.slice(),
       cells,
       changedCount: 0, unknownCount: cells.reduce((count, value) => count + (value === mapEditorEngine.CELL_UNKNOWN ? 1 : 0), 0),
+      rotationDegrees: 0,
       undo: [],
       redo: [],
       stroke: null,
@@ -2001,6 +1975,8 @@ function initializeMapEditor(meta, snapshot) {
     mapEditorFeedback = null;
     mapEditorUnavailableReason = '';
     ui.mapEditorSaveName.value = suggestedDerivedMapName(meta, '_edited');
+    ui.mapEditorRotation.value = '0';
+    ui.mapEditorRotationNumber.value = '0';
     drawMapEditor();
     syncMapEditorUi();
     return true;
@@ -2019,10 +1995,9 @@ function mapEditorCellFromPointer(event) {
   const x = (event.clientX - bounds.left) * (layout.canvasWidth / bounds.width);
   const y = (event.clientY - bounds.top) * (layout.canvasHeight / bounds.height);
   if (x < layout.left || y < layout.top || x >= layout.left + layout.drawWidth || y >= layout.top + layout.drawHeight) return null;
-  return {
-    x: Math.max(0, Math.min(session.width - 1, Math.floor((x - layout.left) / layout.scale))),
-    y: Math.max(0, Math.min(session.height - 1, session.height - 1 - Math.floor((y - layout.top) / layout.scale))),
-  };
+  const rotatedX = Math.floor((x - layout.left) / layout.scale);
+  const rotatedY = layout.outputHeight - 1 - Math.floor((y - layout.top) / layout.scale);
+  return mapEditorEngine.sourceCellFromRotatedCell(session.width, session.height, layout.rotationDegrees, rotatedX, rotatedY);
 }
 
 function recordMapEditorChanges(changes) {
@@ -2132,9 +2107,20 @@ function redoMapEditor() {
 
 function replaceUnknownMapEditorCells() { const session = mapEditorSession; if (!session || mapEditorBusy || mapConversionPending || mapConversionCompleting || !session.unknownCount) return; const patch = mapEditorEngine.replaceUnknownWithConfirmation(session.cells, window.confirm.bind(window)); if (!patch.length) return; recordMapEditorChanges(patch); session.undo.push(patch); if (session.undo.length > 30) session.undo.shift(); session.redo = []; setMapEditorFeedback(`미확인 셀 ${patch.length.toLocaleString()}개를 빈 공간으로 바꿨습니다. 지도를 확인한 뒤 SAVE AS COPY로 저장하세요.`); syncMapEditorUi(); }
 
+function setMapEditorRotation(value, source = '') {
+  const session = mapEditorSession;
+  if (!session || mapEditorBusy || mapConversionPending || mapConversionCompleting) return;
+  try {
+    const degrees = mapEditorEngine.normalizeRotationDegrees(value);
+    session.rotationDegrees = Math.round(degrees * 10) / 10;
+    if (source !== 'range') ui.mapEditorRotation.value = String(session.rotationDegrees); if (source !== 'number') ui.mapEditorRotationNumber.value = String(session.rotationDegrees);
+    mapEditorFeedback = null; scheduleMapEditorDraw(); syncMapEditorUi();
+  } catch (error) { setMapEditorFeedback(`회전 각도 오류: ${error.message}`, true); }
+}
+
 async function resetMapEditor() {
   const session = mapEditorSession;
-  if (!session || mapEditorBusy || !session.changedCount) return;
+  if (!session || mapEditorBusy || !mapEditorHasChanges(session)) return;
   const reloadChangedSource = session.sourceStale;
   const sourceId = session.sourceId;
   const patch = [];
@@ -2144,9 +2130,15 @@ async function resetMapEditor() {
     }
   }
   applyMapEditorPatch(patch, 'redo');
-  session.undo.push(patch);
-  if (session.undo.length > 30) session.undo.shift();
+  if (patch.length) {
+    session.undo.push(patch);
+    if (session.undo.length > 30) session.undo.shift();
+  }
   session.redo = [];
+  session.rotationDegrees = 0;
+  ui.mapEditorRotation.value = '0';
+  ui.mapEditorRotationNumber.value = '0';
+  scheduleMapEditorDraw();
   syncMapEditorUi();
   if (reloadChangedSource) {
     setMapEditorFeedback('편집을 취소했습니다. 변경된 원본 revision을 다시 불러오고 있습니다.');
@@ -2157,7 +2149,7 @@ async function resetMapEditor() {
 }
 
 function editorHasUnsavedChanges() {
-  return Boolean(mapEditorSession?.changedCount);
+  return mapEditorHasChanges();
 }
 
 function confirmDiscardMapEditor(message = '저장하지 않은 2D 지도 편집을 버릴까요?') {
@@ -2166,7 +2158,7 @@ function confirmDiscardMapEditor(message = '저장하지 않은 2D 지도 편집
 
 async function saveMapEditorCopy() {
   const session = mapEditorSession;
-  if (!session || mapEditorBusy || !session.changedCount) return;
+  if (!session || mapEditorBusy || !mapEditorHasChanges(session)) return;
   if (session.sourceStale) {
     showToast('원본 지도가 변경됐습니다. RESET해 새 revision을 불러온 뒤 다시 편집하세요.', true);
     return;
@@ -2174,9 +2166,9 @@ async function saveMapEditorCopy() {
   const name = ui.mapEditorSaveName.value.trim();
   if (!validSavedMapName(name)) { showToast('복사본 이름은 영문·숫자로 시작하고 영문·숫자·_·-만 사용할 수 있습니다.', true); return; }
   const runs = mapEditorEngine.diffRuns(session.original, session.cells);
-  if (!runs.length) { showToast('저장할 변경 사항이 없습니다.'); return; }
+  if (!runs.length && Math.abs(session.rotationDegrees) < 1e-9) { showToast('저장할 변경 사항이 없습니다.'); return; }
   mapEditorBusy = true;
-  setMapEditorFeedback(`${runs.length.toLocaleString()}개 변경 run을 새 복사본으로 저장하고 있습니다.`);
+  setMapEditorFeedback(`${runs.length.toLocaleString()}개 변경 run과 ${mapEditorRotationLabel(session.rotationDegrees)} 회전을 새 복사본으로 저장하고 있습니다.`);
   syncMapEditorUi();
   let createdCopy = null;
   try {
@@ -2186,6 +2178,7 @@ async function saveMapEditorCopy() {
         name,
         source_revision: session.revision,
         runs,
+        rotation_degrees: session.rotationDegrees,
       }),
     });
     const result = response.map || response;
@@ -6669,6 +6662,10 @@ document.querySelectorAll('[data-map-editor-value]').forEach((button) => {
   button.addEventListener('click', () => { mapEditorCellValue = Number(button.dataset.mapEditorValue); mapEditorTool = 'brush'; syncMapEditorUi(); });
 });
 ui.mapEditorBrushSize.addEventListener('input', syncMapEditorUi);
+ui.mapEditorRotation.addEventListener('input', () => setMapEditorRotation(ui.mapEditorRotation.value, 'range'));
+ui.mapEditorRotationNumber.addEventListener('input', () => {
+  if (ui.mapEditorRotationNumber.value !== '') setMapEditorRotation(ui.mapEditorRotationNumber.value, 'number');
+});
 ui.mapEditorUndo.addEventListener('click', undoMapEditor);
 ui.mapEditorRedo.addEventListener('click', redoMapEditor);
 ui.mapEditorReset.addEventListener('click', resetMapEditor); ui.mapEditorUnknownToFree.addEventListener('click', replaceUnknownMapEditorCells);

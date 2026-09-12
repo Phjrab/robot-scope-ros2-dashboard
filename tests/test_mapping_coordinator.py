@@ -141,8 +141,12 @@ class FakeSavedMapCatalog:
             self.calls.append(("publication_guard", allowed))
         return {"files": [f"{name}.yaml", f"{name}.pgm"], "details": {}}
 
-    def save_edited_copy(self, map_id, name, source_revision, runs):
-        self.calls.append(("edited", map_id, name, source_revision, runs))
+    def save_edited_copy(
+        self, map_id, name, source_revision, runs, *, rotation_degrees=0.0
+    ):
+        self.calls.append(
+            ("edited", map_id, name, source_revision, runs, rotation_degrees)
+        )
         return {"id": "edited-map", "revision": "c" * 64}
 
     def save_cropped_copy(self, map_id, name, source_revision, crop):
@@ -388,6 +392,7 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             "edited-copy",
             "d" * 64,
             [{"row": 4, "start": 5, "end": 7, "value": 100}],
+            rotation_degrees=27.5,
         )
         cropped = await self.coordinator.save_cropped_copy(
             "opaque-source", "cropped-copy", "d" * 64,
@@ -396,6 +401,17 @@ class MappingCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         renamed = await self.coordinator.rename("opaque-edited", "new-name")
         deleted = await self.coordinator.delete("opaque-old")
         self.assertEqual(edited["id"], "edited-map")
+        self.assertIn(
+            (
+                "edited",
+                "opaque-source",
+                "edited-copy",
+                "d" * 64,
+                [{"row": 4, "start": 5, "end": 7, "value": 100}],
+                27.5,
+            ),
+            self.catalog.calls,
+        )
         self.assertEqual(cropped["id"], "cropped-map")
         self.assertEqual(renamed["name"], "new-name")
         self.assertEqual(deleted["id"], "opaque-old")

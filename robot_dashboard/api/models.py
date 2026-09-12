@@ -65,7 +65,14 @@ class SavedMapEditRun(StrictRequest):
 class SavedMapEditedCopyRequest(StrictRequest):
     name: str
     source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-    runs: list[SavedMapEditRun] = Field(min_length=1, max_length=10_000)
+    runs: list[SavedMapEditRun] = Field(default_factory=list, max_length=10_000)
+    rotation_degrees: float = Field(default=0.0, strict=True, ge=-180.0, le=180.0)
+
+    @model_validator(mode="after")
+    def require_edit_or_rotation(self) -> "SavedMapEditedCopyRequest":
+        if not self.runs and abs(self.rotation_degrees) < 1e-9:
+            raise ValueError("edited copy requires runs or a map rotation")
+        return self
 
 
 class SavedMapCropBounds(StrictRequest):

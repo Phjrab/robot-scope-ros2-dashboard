@@ -23,6 +23,102 @@
     return CELL_FREE;
   }
 
+  function normalizeRotationDegrees(value) {
+    const degrees = Number(value);
+    if (!Number.isFinite(degrees) || degrees < -180 || degrees > 180) {
+      throw new RangeError('rotationDegrees must be between -180 and 180');
+    }
+    return Object.is(degrees, -0) ? 0 : degrees;
+  }
+
+  function rotatedDimensions(width, height, rotationDegrees = 0) {
+    const columns = positiveInteger(width, 'width');
+    const rows = positiveInteger(height, 'height');
+    const radians = normalizeRotationDegrees(rotationDegrees) * Math.PI / 180;
+    const cosine = Math.abs(Math.cos(radians));
+    const sine = Math.abs(Math.sin(radians));
+    return Object.freeze({
+      width: Math.max(1, Math.ceil(columns * cosine + rows * sine - 1e-10)),
+      height: Math.max(1, Math.ceil(columns * sine + rows * cosine - 1e-10)),
+    });
+  }
+
+  function sourceCellFromRotatedCell(width, height, rotationDegrees, rotatedX, rotatedY) {
+    const columns = positiveInteger(width, 'width');
+    const rows = positiveInteger(height, 'height');
+    const degrees = normalizeRotationDegrees(rotationDegrees);
+    const output = rotatedDimensions(columns, rows, degrees);
+    const x = Math.floor(Number(rotatedX));
+    const y = Math.floor(Number(rotatedY));
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x >= output.width || y >= output.height) return null;
+    const radians = degrees * Math.PI / 180;
+    const dx = x - (output.width - 1) / 2;
+    const dy = y - (output.height - 1) / 2;
+    const rawSourceX = Math.round(Math.cos(radians) * dx - Math.sin(radians) * dy + (columns - 1) / 2);
+    const rawSourceY = Math.round(Math.sin(radians) * dx + Math.cos(radians) * dy + (rows - 1) / 2);
+    const sourceX = rawSourceX === 0 ? 0 : rawSourceX;
+    const sourceY = rawSourceY === 0 ? 0 : rawSourceY;
+    if (sourceX < 0 || sourceY < 0 || sourceX >= columns || sourceY >= rows) return null;
+    return Object.freeze({ x: sourceX, y: sourceY });
+  }
+
+  function cellColor(value) {
+    if (normalizeCell(value) === CELL_OBSTACLE) return [7, 10, 9];
+    if (normalizeCell(value) === CELL_FREE) return [242, 246, 244];
+    return [126, 137, 133];
+  }
+
+  function createSourceCanvas(documentValue, cells, width, height) {
+    const columns = positiveInteger(width, 'width');
+    const rows = positiveInteger(height, 'height');
+    if (!(cells instanceof Int8Array) || cells.length !== columns * rows) throw new TypeError('cells must match width and height');
+    const canvas = documentValue.createElement('canvas');
+    canvas.width = columns;
+    canvas.height = rows;
+    const context = canvas.getContext('2d');
+    const image = context.createImageData(columns, rows);
+    for (let index = 0; index < cells.length; index += 1) {
+      const x = index % columns;
+      const y = Math.floor(index / columns);
+      const output = ((rows - 1 - y) * columns + x) * 4;
+      const color = cellColor(cells[index]);
+      image.data.set([...color, 255], output);
+    }
+    context.putImageData(image, 0, 0);
+    return Object.freeze({ canvas, context });
+  }
+
+  function updateSourceCanvas(context, cells, width, height, changes) {
+    const columns = positiveInteger(width, 'width');
+    const rows = positiveInteger(height, 'height');
+    if (!(cells instanceof Int8Array) || cells.length !== columns * rows || !context) return;
+    for (const change of changes || []) {
+      const x = change.index % columns;
+      const y = Math.floor(change.index / columns);
+      context.fillStyle = `rgb(${cellColor(cells[change.index]).join(',')})`;
+      context.fillRect(x, rows - 1 - y, 1, 1);
+    }
+  }
+
+  function drawRotatedSource(context, sourceCanvas, viewportWidth, viewportHeight, rotationDegrees, pixelRatio = 1) {
+    const output = rotatedDimensions(sourceCanvas.width, sourceCanvas.height, rotationDegrees);
+    const scale = Math.min(viewportWidth / output.width, viewportHeight / output.height) * 0.94;
+    const drawWidth = output.width * scale;
+    const drawHeight = output.height * scale;
+    const left = (viewportWidth - drawWidth) / 2;
+    const top = (viewportHeight - drawHeight) / 2;
+    context.imageSmoothingEnabled = false;
+    context.save();
+    context.translate(left + drawWidth / 2, top + drawHeight / 2);
+    context.rotate(normalizeRotationDegrees(rotationDegrees) * Math.PI / 180);
+    context.drawImage(sourceCanvas, -sourceCanvas.width * scale / 2, -sourceCanvas.height * scale / 2, sourceCanvas.width * scale, sourceCanvas.height * scale);
+    context.restore();
+    context.strokeStyle = 'rgba(93,222,216,.48)';
+    context.lineWidth = Math.max(1, Math.min(Number(pixelRatio) || 1, 2));
+    context.strokeRect(left, top, drawWidth, drawHeight);
+    return Object.freeze({ left, top, drawWidth, drawHeight, scale, outputWidth: output.width, outputHeight: output.height, rotationDegrees: normalizeRotationDegrees(rotationDegrees), canvasWidth: viewportWidth, canvasHeight: viewportHeight });
+  }
+
   function decodeGrid(dataB64, width, height) {
     const columns = positiveInteger(width, 'width');
     const rows = positiveInteger(height, 'height');
@@ -159,6 +255,12 @@
     CELL_OBSTACLE,
     CELL_VALUES,
     normalizeCell,
+    normalizeRotationDegrees,
+    rotatedDimensions,
+    sourceCellFromRotatedCell,
+    createSourceCanvas,
+    updateSourceCanvas,
+    drawRotatedSource,
     decodeGrid,
     paintCircle,
     interpolateCells,

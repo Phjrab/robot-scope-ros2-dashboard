@@ -1827,11 +1827,18 @@ class SavedMapCatalog:
         name: str,
         source_revision: str,
         runs: Iterable[Dict[str, Any]],
+        *,
+        rotation_degrees: float = 0.0,
     ) -> Dict[str, Any]:
-        """Publish bounded RLE brush edits as a new occupancy-map pair."""
+        """Publish bounded RLE brush edits and rotation as a new map pair."""
 
         return self._save_occupancy_copy(
-            map_id, name, source_revision, runs, crop=None
+            map_id,
+            name,
+            source_revision,
+            runs,
+            crop=None,
+            rotation_degrees=rotation_degrees,
         )
 
     def save_cropped_copy(
@@ -1844,7 +1851,12 @@ class SavedMapCatalog:
         """Publish a cell-aligned rectangular crop as a new map pair."""
 
         return self._save_occupancy_copy(
-            map_id, name, source_revision, (), crop=crop
+            map_id,
+            name,
+            source_revision,
+            (),
+            crop=crop,
+            rotation_degrees=0.0,
         )
 
     def _save_occupancy_copy(
@@ -1855,12 +1867,25 @@ class SavedMapCatalog:
         runs: Iterable[Dict[str, Any]],
         *,
         crop: Optional[Mapping[str, Any]],
+        rotation_degrees: float,
     ) -> Dict[str, Any]:
-        """Publish validated edits and an optional crop without altering source."""
+        """Publish validated edits, rotation or crop without altering source."""
 
         safe_name = self.validate_map_name(name)
         if not isinstance(source_revision, str) or not REVISION_RE.fullmatch(source_revision):
             raise SavedMapFormatError("source_revision must be a 64-character lowercase hex string")
+        if (
+            isinstance(rotation_degrees, bool)
+            or not isinstance(rotation_degrees, (int, float))
+            or not math.isfinite(rotation_degrees)
+            or not -180.0 <= float(rotation_degrees) <= 180.0
+        ):
+            raise SavedMapFormatError("rotation_degrees must be finite and between -180 and 180")
+        rotation_degrees = float(rotation_degrees)
+        if abs(rotation_degrees) < 1e-9:
+            rotation_degrees = 0.0
+        if crop is not None and rotation_degrees:
+            raise SavedMapFormatError("crop and rotation cannot be combined")
         with self._lock:
             record = self._find(map_id)
             self._require_manageable(record)
@@ -1906,10 +1931,12 @@ class SavedMapCatalog:
                 raise SavedMapFormatError("occupancy image header changed during editing")
             assert source_pixels is not None
             run_items = list(runs)
-            normalized_runs = (
-                [] if crop is not None and not run_items
-                else self._validate_edit_runs(run_items, width * height)
-            )
+            if run_items:
+                normalized_runs = self._validate_edit_runs(run_items, width * height)
+            elif crop is not None or rotation_degrees:
+                normalized_runs = []
+            else:
+                normalized_runs = self._validate_edit_runs(run_items, width * height)
             output_pixels = np.rint(source_pixels * 255.0).astype(np.uint8)
             edited_cells = self._apply_edit_runs(
                 output_pixels,
@@ -1921,6 +1948,41 @@ class SavedMapCatalog:
             crop_details: Optional[Dict[str, int]] = None
             output_origin = tuple(float(value) for value in metadata["origin"])
             source_width, source_height = width, height
+            rotation_details: Optional[Dict[str, Any]] = None
+            if rotation_degrees:
+                resolution = float(metadata["resolution"])
+                yaw = output_origin[2]
+                center_x = (
+                    output_origin[0]
+                    + math.cos(yaw) * width * resolution / 2.0
+                    - math.sin(yaw) * height * resolution / 2.0
+                )
+                center_y = (
+                    output_origin[1]
+                    + math.sin(yaw) * width * resolution / 2.0
+                    + math.cos(yaw) * height * resolution / 2.0
+                )
+                output_pixels = self._rotate_occupancy_pixels(
+                    output_pixels,
+                    rotation_degrees,
+                    metadata,
+                )
+                height, width = output_pixels.shape
+                half_width = width * resolution / 2.0
+                half_height = height * resolution / 2.0
+                output_origin = (
+                    center_x - math.cos(yaw) * half_width + math.sin(yaw) * half_height,
+                    center_y - math.sin(yaw) * half_width - math.cos(yaw) * half_height,
+                    yaw,
+                )
+                rotation_details = {
+                    "degrees_clockwise": rotation_degrees,
+                    "source_width": source_width,
+                    "source_height": source_height,
+                    "width": width,
+                    "height": height,
+                    "origin": list(output_origin),
+                }
             if crop is not None:
                 min_x, min_y, max_x, max_y = self._validate_crop_bounds(
                     crop, width, height
@@ -2027,7 +2089,10 @@ class SavedMapCatalog:
                 "source_revision": source_revision,
                 "run_count": len(normalized_runs),
                 "edited_cells": edited_cells,
+                "rotation_degrees": rotation_degrees,
             }
+            if rotation_details is not None:
+                public["rotation"] = rotation_details
             if crop_details is not None:
                 public["crop"] = {
                     **crop_details,
@@ -2544,6 +2609,62 @@ class SavedMapCatalog:
             changed += int(np.count_nonzero(flat[image_indexes] != values[value]))
             flat[image_indexes] = values[value]
         return changed
+
+    def _rotate_occupancy_pixels(
+        self,
+        pixels: np.ndarray,
+        degrees_clockwise: float,
+        metadata: Dict[str, Any],
+    ) -> np.ndarray:
+        """Rotate an 8-bit occupancy raster around its center without interpolation."""
+
+        if pixels.ndim != 2 or pixels.dtype != np.uint8:
+            raise SavedMapFormatError("rotation requires an 8-bit occupancy image")
+        source_height, source_width = pixels.shape
+        radians = math.radians(degrees_clockwise)
+        cosine = math.cos(radians)
+        sine = math.sin(radians)
+        output_width = max(
+            1,
+            math.ceil(
+                source_width * abs(cosine)
+                + source_height * abs(sine)
+                - 1e-10
+            ),
+        )
+        output_height = max(
+            1,
+            math.ceil(
+                source_width * abs(sine)
+                + source_height * abs(cosine)
+                - 1e-10
+            ),
+        )
+        if output_width * output_height > self.max_grid_cells:
+            raise SavedMapFormatError(
+                "rotated occupancy grid exceeds the configured cell limit"
+            )
+        output_y, output_x = np.indices(
+            (output_height, output_width), dtype=np.float64
+        )
+        dx = output_x - (output_width - 1) / 2.0
+        dy = output_y - (output_height - 1) / 2.0
+        source_x = np.floor(
+            cosine * dx + sine * dy + (source_width - 1) / 2.0 + 0.5
+        ).astype(np.int64)
+        source_y = np.floor(
+            -sine * dx + cosine * dy + (source_height - 1) / 2.0 + 0.5
+        ).astype(np.int64)
+        valid = (
+            (source_x >= 0)
+            & (source_x < source_width)
+            & (source_y >= 0)
+            & (source_y < source_height)
+        )
+        unknown = self._occupancy_pixel_values(metadata)[-1]
+        output = np.full((output_height, output_width), unknown, dtype=np.uint8)
+        output[valid] = pixels[source_y[valid], source_x[valid]]
+        return np.ascontiguousarray(output)
 
     @staticmethod
     def _pixels_to_occupancy(pixels: np.ndarray, metadata: Dict[str, Any]) -> np.ndarray:

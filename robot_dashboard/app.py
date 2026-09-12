@@ -1195,6 +1195,7 @@ async def save_edited_map_copy(
             body.name,
             body.source_revision,
             [run.model_dump() for run in body.runs],
+            rotation_degrees=body.rotation_degrees,
         )
     except LifecycleTransitionBusy as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

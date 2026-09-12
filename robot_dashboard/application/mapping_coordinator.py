@@ -298,6 +298,8 @@ class MappingCoordinator:
         name: str,
         source_revision: str,
         runs: Sequence[Mapping[str, Any]],
+        *,
+        rotation_degrees: float = 0.0,
     ) -> dict[str, Any]:
         async with self._coordination_lock:
             self._require_lifecycle_idle()
@@ -311,6 +313,7 @@ class MappingCoordinator:
                 name,
                 source_revision,
                 list(runs),
+                rotation_degrees=rotation_degrees,
             )
 
     async def save_cropped_copy(

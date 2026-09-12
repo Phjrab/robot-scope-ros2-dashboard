@@ -7,6 +7,7 @@ const require = createRequire(import.meta.url);
 const editor = require('../robot_dashboard/static/map_editor.js');
 const cropModule = await import('../robot_dashboard/static/features/maps/crop.js');
 const appSource = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+const editorSource = readFileSync(new URL('../robot_dashboard/static/map_editor.js', import.meta.url), 'utf8');
 const indexSource = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
 
 test('occupancy base64 decodes to canonical unknown, free and obstacle cells', () => {
@@ -46,6 +47,15 @@ test('interpolated brush points close gaps in fast pointer strokes', () => {
   assert.deepEqual(editor.interpolateCells({ x: 0, y: 0 }, { x: 4, y: 0 }, 1), [
     { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 },
   ]);
+});
+
+test('arbitrary map rotation expands bounds and maps preview cells back to the source grid', () => {
+  assert.deepEqual(editor.rotatedDimensions(4, 2, 30), { width: 5, height: 4 });
+  assert.deepEqual(editor.rotatedDimensions(4, 2, -30), { width: 5, height: 4 });
+  assert.deepEqual(editor.sourceCellFromRotatedCell(4, 2, 90, 0, 0), { x: 3, y: 0 });
+  assert.deepEqual(editor.sourceCellFromRotatedCell(4, 2, 90, 1, 3), { x: 0, y: 1 });
+  assert.equal(editor.sourceCellFromRotatedCell(4, 2, 30, 0, 0), null);
+  assert.throws(() => editor.rotatedDimensions(4, 2, 181), /between -180 and 180/);
 });
 
 test('edited cells serialize as compact ordered runs and reproduce the grid', () => {
@@ -141,7 +151,7 @@ test('conversion status is bound only to the reserved backend job id', () => {
 test('2D editor exposes brush, eraser, semantic values and non-destructive history', () => {
   for (const value of ['brush', 'eraser']) assert.match(indexSource, new RegExp(`data-map-editor-tool="${value}"`));
   for (const value of ['100', '0', '-1']) assert.match(indexSource, new RegExp(`data-map-editor-value="${value}"`));
-  for (const id of ['mapEditorBrushSize', 'mapEditorUndo', 'mapEditorRedo', 'mapEditorReset', 'mapEditorUnknownToFree', 'mapEditorSaveName', 'mapEditorSave']) {
+  for (const id of ['mapEditorBrushSize', 'mapEditorRotation', 'mapEditorRotationNumber', 'mapEditorRotationOutput', 'mapEditorUndo', 'mapEditorRedo', 'mapEditorReset', 'mapEditorUnknownToFree', 'mapEditorSaveName', 'mapEditorSave']) {
     assert.match(indexSource, new RegExp(`id="${id}"`));
   }
   assert.match(indexSource, /SAVE AS COPY/);
@@ -151,6 +161,9 @@ test('2D editor exposes brush, eraser, semantic values and non-destructive histo
   assert.match(appSource, /grid && \(!entry\.manageable \|\| entry\.editable !== true\) \? `\$\{fileLabel\} · 편집 불가`/);
   assert.match(appSource, /P5 8-bit trinary YAML·PGM 지도만 안전하게 편집/);
   assert.match(appSource, /안전을 위해 편집을 비활성화했습니다/);
+  assert.match(indexSource, /min="-180" max="180" step="0\.1"/);
+  assert.match(appSource, /sourceCellFromRotatedCell/);
+  assert.match(editorSource, /context\.rotate\(normalizeRotationDegrees\(rotationDegrees\) \* Math\.PI \/ 180\)/);
 });
 
 test('unknown-to-free bulk action is explicit, warned, undoable and copy-only', () => {
@@ -176,6 +189,7 @@ test('edited copy sends a strong source revision and compact runs, never a full 
   assert.match(save, /\/api\/v1\/saved-maps\/\$\{encodeURIComponent\(session\.sourceId\)\}\/edited-copy/);
   assert.match(save, /source_revision: session\.revision/);
   assert.match(save, /runs,/);
+  assert.match(save, /rotation_degrees: session\.rotationDegrees/);
   assert.doesNotMatch(save, /data_b64|session\.seq|snapshot\.seq/);
   assert.match(appSource, /\^\[0-9a-f\]\{64\}\$\//);
 });

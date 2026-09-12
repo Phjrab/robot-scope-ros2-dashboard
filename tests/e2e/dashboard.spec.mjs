@@ -45,6 +45,39 @@ test('Saved Maps shows storage size and downloads the selected map bundle', asyn
   expect(download.suggestedFilename()).toBe('robot-scope-map-e2e_static_map.zip');
 });
 
+test('2D map editor previews and saves an operator-selected arbitrary rotation', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'maps');
+  const rotatedId = '9'.repeat(24);
+  const rotatedRevision = '8'.repeat(64);
+  const rotatedMap = {
+    id: rotatedId, revision: rotatedRevision, name: 'e2e_rotated_map', kind: 'occupancy2d',
+    format: 'map-server-pgm', file_name: 'e2e_rotated_map.yaml', frame_id: 'map',
+    width: 6, height: 6, resolution: 0.25, origin: [-0.25, -0.25, 0],
+    size_bytes: 4096, manageable: true, editable: true,
+    data_url: `/api/v1/saved-maps/${rotatedId}/data`,
+  };
+  backend.on(`/api/v1/saved-maps/${backend.mapId}/edited-copy`, ({ json }) => json({ map: rotatedMap }, 201));
+  backend.on(`/api/v1/saved-maps/${rotatedId}/data`, ({ json }) => json({
+    ...rotatedMap, data_b64: Buffer.alloc(36).toString('base64'),
+  }));
+
+  await page.locator('.saved-map-item').first().click();
+  await expect(page.locator('#mapEditorState')).toContainText('READY');
+  await page.locator('#mapEditorRotationNumber').fill('27.5');
+  await expect(page.locator('#mapEditorStats')).toContainText('회전 +27.5°');
+  await expect(page.locator('#mapEditorStats')).toContainText('6×6');
+  await expect(page.locator('#mapEditorSave')).toBeEnabled();
+  await page.locator('#mapEditorSaveName').fill('e2e_rotated_map');
+  await page.locator('#mapEditorSave').click();
+
+  await expect.poll(() => backend.mutations(`/api/v1/saved-maps/${backend.mapId}/edited-copy`).length).toBe(1);
+  const payload = backend.mutations(`/api/v1/saved-maps/${backend.mapId}/edited-copy`)[0].body;
+  expect(payload.rotation_degrees).toBe(27.5);
+  expect(payload.runs).toEqual([]);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+});
+
 test('camera and pointcloud reconnect, then release transports on page switch', async ({ page }) => {
   const backend = await openDashboard(page, { closeFirstSockets: ['camera', 'pointcloud'] }, 'sensors');
   await expect.poll(() => backend.state.wsConnections.camera).toBeGreaterThanOrEqual(2);

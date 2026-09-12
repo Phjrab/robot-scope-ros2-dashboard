@@ -1213,6 +1213,54 @@ class SavedMapCatalogTests(unittest.TestCase):
             )
         self.assertFalse((self.root / "stale_edit.yaml").exists())
 
+    def test_edited_copy_rotates_by_arbitrary_angle_around_map_center(self):
+        source = next(
+            item
+            for item in self.managed_catalog.list_snapshot()["maps"]
+            if item["file_name"] == "floor.yaml"
+        )
+        original_pgm = (self.root / "floor.pgm").read_bytes()
+        result = self.managed_catalog.save_edited_copy(
+            source["id"],
+            "floor_rotated",
+            source["revision"],
+            [],
+            rotation_degrees=30.0,
+        )
+
+        width, height, _ = self.managed_catalog._read_pgm(
+            self.root / "floor_rotated.pgm", pixels=True
+        )
+        metadata = self.managed_catalog._read_map_yaml(
+            self.root / "floor_rotated.yaml"
+        )
+        self.assertEqual((width, height), (3, 3))
+        self.assertAlmostEqual(metadata["origin"][0], -1.025)
+        self.assertAlmostEqual(metadata["origin"][1], -2.025)
+        self.assertEqual(metadata["origin"][2], 0.0)
+        self.assertEqual(result["edit"]["run_count"], 0)
+        self.assertEqual(result["edit"]["rotation_degrees"], 30.0)
+        self.assertEqual(result["rotation"]["degrees_clockwise"], 30.0)
+        self.assertEqual(result["rotation"]["source_width"], 2)
+        self.assertEqual(result["rotation"]["width"], 3)
+        self.assertEqual((self.root / "floor.pgm").read_bytes(), original_pgm)
+        clockwise = self.managed_catalog._rotate_occupancy_pixels(
+            np.asarray([[1, 2], [3, 4]], dtype=np.uint8),
+            90.0,
+            {"free_thresh": 0.25, "occupied_thresh": 0.65, "negate": 0},
+        )
+        self.assertEqual(clockwise.tolist(), [[3, 1], [4, 2]])
+
+        for index, angle in enumerate((float("nan"), -181.0, 181.0, True)):
+            with self.subTest(angle=angle), self.assertRaises(SavedMapFormatError):
+                self.managed_catalog.save_edited_copy(
+                    source["id"],
+                    f"invalid_rotation_{index}",
+                    source["revision"],
+                    [],
+                    rotation_degrees=angle,
+                )
+
     def test_cropped_copy_preserves_source_pixels_and_rotates_new_origin(self):
         pixels = bytes([10, 11, 12, 13, 20, 21, 22, 23, 30, 31, 32, 33])
         (self.root / "arena.pgm").write_bytes(b"P5\n4 3\n255\n" + pixels)
