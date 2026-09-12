@@ -11,6 +11,7 @@ import { createControllerStateStore, createGamepadUiMapper, dispatchGamepadUiAct
 import { createCockpitMapStore } from './map_state.js';
 import { createCockpitNavigationAdapter } from './navigation_adapter.js';
 import { createMissionClient } from './mission_client.js';
+import { initializeMissionPage } from './mission_page.js';
 import { createCompetitionStatus } from './competition_status.js';
 import { createRoutePlannerClient } from './route_planner_client.js';
 
@@ -54,6 +55,7 @@ export function createCockpitWorkspace(options = {}) {
   const routePlannerClient = createRoutePlannerClient({ api: options.api || (() => Promise.reject(new Error('Route Planner API unavailable.'))) });
   const navigationAdapter = createCockpitNavigationAdapter({ getSnapshot: () => ({ ...options.getNavigationSnapshot?.(), controller: controllerState.snapshot(), navigationEngine: options.navigationEngine, mission: missionClient.snapshot() }), actions: { ...options.navigationActions, abortMission: () => missionClient.abortActive() } });
   const panelRegistry = options.panelLayer ? createPanelRegistry({ document: options.document, cameraDemand: options.cameraDemand, perception: options.perception, controllerState, mapState, navigationAdapter, navigationEngine: options.navigationEngine, missionClient, routePlannerClient, getMissionContext: options.getNavigationSnapshot }) : null;
+  const missionPage = initializeMissionPage({ client: missionClient, navigationAdapter, getContext: options.getNavigationSnapshot, document: options.document });
   let panelManager = null;
   let sensorLauncher = null;
   let safetyHud = null;
@@ -347,6 +349,7 @@ export function createCockpitWorkspace(options = {}) {
     panelManager?.destroy();
     releaseMapScene();
     navigationAdapter.destroy();
+    missionPage?.destroy();
     missionClient.destroy();
     routePlannerClient.destroy();
     sceneHost.destroy();

@@ -43,6 +43,7 @@
         <a class="nav-item" href="#topics" data-nav="topics"><i>05</i><span><b>ROS Graph</b><small>토픽 탐색</small></span></a>
         <a class="nav-item" href="#controls" data-nav="controls"><i>06</i><span><b>Controls</b><small>주행·모션 실행</small></span></a>
         <a class="nav-item" href="#navigation" data-nav="navigation"><i>07</i><span><b>Navigation</b><small>Nav2 자율주행</small></span></a>
+        <a class="nav-item" href="#missions" data-nav="missions"><i>MS</i><span><b>Missions</b><small>코스·경유점 미션</small></span></a>
         <a class="nav-item" href="#route-planner" data-nav="route-planner"><i>08</i><span><b>Route Planner</b><small>주문·추천 경로</small></span></a>
         <a class="nav-item" href="#settings" data-nav="settings"><i>09</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
       </nav>
@@ -588,6 +589,13 @@
         </article>
       </section>
 
+      <section class="page-view" data-page="missions" hidden>
+        <article class="panel mission-dashboard-panel">
+          <div class="panel-header"><h2>코스 미션</h2><a href="#navigation">지도·초기 위치 준비 → Navigation</a></div>
+          <p class="mission-page-help">Navigation에서 지도 선택 → 장소 등록·SAVE ANNOTATIONS → 여기서 방문 지점과 순서 선택 → CREATE PINNED MISSION. 실제 START 전에는 같은 지도로 Nav2와 초기 위치를 준비하세요. 화면 이동·새로고침은 미션을 중지하지 않습니다. 중단은 PAUSE 또는 ABORT를 사용하세요.</p>
+          <div id="dashboardMissionHost"></div>
+        </article>
+      </section>
       <section class="page-view route-planner-page" data-page="route-planner" hidden>
         <div class="route-planner-safety-banner" role="note">
           <span aria-hidden="true">◇</span>

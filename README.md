@@ -74,6 +74,7 @@ Ubuntu 22.04/Humble의 Jetson Orin Nano에서 검증했습니다. Jetson 전용 
 - Overview, Live Mapping, Saved Maps, Sensors, ROS Graph, Controls, Settings 메뉴
 - 공용 Camera/LiDAR owner, Safety HUD, Map, Navigation과 Mission을 조합하고 별도 전체 작업창·선택적 native fullscreen을 제공하는 Cockpit
 - exact map/annotation revision에 고정된 server-owned 다중 waypoint Mission
+- 사이드바 **Missions**에서 Navigation에 등록한 지점의 방문 순서를 구성하고 미션 생성·시작·일시정지·재개·중단을 관리합니다. Cockpit Mission과 같은 서버 미션을 사용하며, 화면 이동이나 새로고침은 주행 중단 명령이 아닙니다. 실제 시작 전 동일 지도·초기 위치·Nav2 readiness가 필요합니다.
 - Settings에서 로봇 작업을 중지하지 않고 생성하는 redacted·size-bounded 진단 ZIP
 - Go2 전용 프로필과 범용 ROS 2 프로필
 

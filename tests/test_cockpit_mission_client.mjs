@@ -5,6 +5,23 @@ import { createMissionClient } from '../robot_dashboard/static/features/cockpit/
 
 const ID = 'a'.repeat(32);
 
+test('mission action rejection stays visible across polling until acknowledged', async () => {
+  const client = createMissionClient({ api: async (path) => {
+    if (path.endsWith('/start')) throw new Error('localization not ready');
+    return { available: true, missions: [mission()], active_mission_id: null };
+  } });
+  await client.refresh();
+  await client.start(ID);
+  assert.equal(client.snapshot().busy, false);
+  assert.equal(client.snapshot().error, 'localization not ready');
+  await client.refresh();
+  assert.equal(client.snapshot().error, 'localization not ready');
+  assert.equal(client.snapshot().selected.state, 'ready');
+  client.select(ID);
+  assert.equal(client.snapshot().error, '');
+  client.destroy();
+});
+
 function mission(state = 'ready') {
   return { id: ID, label: 'Route', state, map_id: 'b'.repeat(24), map_revision: 'c'.repeat(64), annotation_revision: 'd'.repeat(64), current_index: 0, completed_count: 0, remaining_count: 1, elapsed_seconds: 0, ownership_active: state === 'running', waypoints: [{ annotation_id: 'e'.repeat(24), label: 'Home', status: state === 'running' ? 'running' : 'pending', hold_seconds: 0, requires_operator_confirmation: false, attempts: state === 'running' ? 1 : 0 }], logs: [] };
 }

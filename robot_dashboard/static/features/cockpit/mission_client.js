@@ -32,13 +32,14 @@ export function createMissionClient(options = {}) {
   const clearIntervalValue = options.clearInterval || globalThis.clearInterval?.bind(globalThis);
   const subscribers = new Set();
   let generation = 0; let busy = false; let destroyed = false; let timer = 0; let selectedId = '';
+  let mutationError = '';
   let state = Object.freeze({ available: null, busy: false, error: '', activeMissionId: null, active: null, selectedMissionId: null, selected: null, missions: Object.freeze([]) });
 
   function publish(payload = null, error = '') {
     const missions = payload ? (Array.isArray(payload.missions) ? payload.missions : []).map(projectMission).filter(Boolean).slice(0, 32) : state.missions;
     const activeMissionId = payload ? text(payload.active_mission_id, 32) || null : state.activeMissionId;
     if (!selectedId || !missions.some((mission) => mission.id === selectedId)) selectedId = activeMissionId || missions[0]?.id || '';
-    state = Object.freeze({ available: payload ? payload.available === true : state.available, busy, error: text(error || payload?.error, 160), activeMissionId, active: missions.find((mission) => mission.id === activeMissionId) || null, selectedMissionId: selectedId || null, selected: missions.find((mission) => mission.id === selectedId) || null, missions: Object.freeze([...missions]) });
+    state = Object.freeze({ available: payload ? payload.available === true : state.available, busy, error: text(error || payload?.error || mutationError, 160), activeMissionId, active: missions.find((mission) => mission.id === activeMissionId) || null, selectedMissionId: selectedId || null, selected: missions.find((mission) => mission.id === selectedId) || null, missions: Object.freeze([...missions]) });
     for (const subscriber of subscribers) subscriber(state);
     return state;
   }
@@ -58,7 +59,7 @@ export function createMissionClient(options = {}) {
 
   async function mutate(path, body = {}) {
     if (destroyed || busy) return null;
-    const requestGeneration = ++generation; busy = true; publish();
+    const requestGeneration = ++generation; busy = true; mutationError = ''; publish();
     try {
       const response = await api(path, { method: 'POST', body: JSON.stringify(body) });
       if (destroyed || requestGeneration !== generation) return null;
@@ -66,10 +67,10 @@ export function createMissionClient(options = {}) {
       await refresh(true);
       return destroyed ? null : response;
     } catch (error) {
-      if (!destroyed && requestGeneration === generation) publish(null, error?.message || error);
+      if (!destroyed && requestGeneration === generation) { mutationError = text(error?.message || error, 160); publish(null, mutationError); }
       return null;
     } finally {
-      if (!destroyed) { busy = false; publish(); }
+      if (!destroyed) { busy = false; publish(null, state.error); }
     }
   }
 
@@ -80,7 +81,7 @@ export function createMissionClient(options = {}) {
     return () => { subscribers.delete(callback); if (!subscribers.size && timer) { clearIntervalValue?.(timer); timer = 0; generation += 1; } };
   }
 
-  function select(id) { selectedId = text(id, 32); publish(); }
+  function select(id) { selectedId = text(id, 32); mutationError = ''; publish(); }
   const action = (name, id = selectedId) => id ? mutate(`/api/v1/missions/${encodeURIComponent(id)}/${name}`) : Promise.resolve(null);
   return Object.freeze({
     subscribe, refresh, snapshot: () => state, select,

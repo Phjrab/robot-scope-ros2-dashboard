@@ -1,0 +1,57 @@
+import { expect, test } from '@playwright/test';
+import { installDashboardBackend } from './dashboard_backend.mjs';
+
+test('Missions sidebar page creates ordered mission and sends only explicit actions', async ({ page }) => {
+  const backend = await installDashboardBackend(page, { includeSecondAnnotation: true });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto('/#navigation');
+  await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
+  await page.locator('[data-nav="missions"]').click();
+  await expect(page.locator('#pageTitle')).toHaveText('Missions');
+  const panel = page.locator('#dashboardMissionHost');
+  await expect(panel.locator('[data-mission-draft-id]')).toHaveCount(2);
+  expect(backend.mutations('/api/v1/missions')).toHaveLength(0);
+  await panel.getByLabel('Mission label', { exact: true }).fill('복도 코스');
+  await panel.locator('[data-mission-draft-id]').nth(0).click();
+  await panel.locator('[data-mission-draft-id]').nth(1).click();
+  await panel.locator('[data-mission-draft-move="up"]').nth(1).click();
+  await panel.locator('[data-mission-action="create"]').click();
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION READY');
+  const created = backend.mutations('/api/v1/missions')[0].body;
+  expect(created.waypoints.map((w) => w.label)).toEqual(['E2E Inspect', 'E2E Home']);
+  const missionId = backend.state.missions[0].id;
+  expect(backend.mutations(`/api/v1/missions/${missionId}/start`)).toHaveLength(0);
+  await panel.locator('[data-mission-action="start"]').click();
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+  await panel.locator('[data-mission-action="pause"]').click();
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION PAUSED');
+  await panel.locator('[data-mission-action="resume"]').click();
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+  await page.locator('[data-nav="overview"]').click();
+  expect(backend.mutations(`/api/v1/missions/${missionId}/abort`)).toHaveLength(0);
+  await page.goto('/#missions');
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
+  expect(backend.mutations(`/api/v1/missions/${missionId}/start`)).toHaveLength(1);
+  await panel.locator('[data-mission-action="abort"]').click();
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION FAILED');
+  expect(errors).toEqual([]);
+});
+
+test('Missions page surfaces rejected start without claiming the mission is running', async ({ page }) => {
+  const backend = await installDashboardBackend(page);
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto('/#navigation');
+  await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
+  await page.locator('[data-nav="missions"]').click();
+  const panel = page.locator('#dashboardMissionHost');
+  await panel.locator('[data-mission-draft-id]').click();
+  await panel.locator('[data-mission-action="create"]').click();
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION READY');
+  await page.route('**/api/v1/missions/*/start', (route) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: 'Nav2 localization is not ready' }) }));
+  await panel.locator('[data-mission-action="start"]').click();
+  await expect(panel.locator('.cockpit-mission-error')).toContainText('Nav2 localization is not ready');
+  await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION READY');
+  expect(backend.state.activeMissionId).toBeNull();
+});

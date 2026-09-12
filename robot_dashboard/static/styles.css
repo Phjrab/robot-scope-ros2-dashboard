@@ -1013,6 +1013,12 @@ footer { display:flex; justify-content:space-between; padding:10px 2px; color:#4
 .navigation-robot-summary p { margin:0; color:#748981; font-size:14px; line-height:1.55; }
 
 .navigation-parameters-panel { margin-bottom:12px; }
+.mission-page-help { padding:0 18px; color:#9bb3a9; line-height:1.6; }
+#dashboardMissionHost { padding:18px; }
+#dashboardMissionHost .cockpit-mission-panel { min-height:420px; font-size:14px; }
+#dashboardMissionHost .cockpit-mission-actions { display:flex; flex-wrap:wrap; gap:8px; }
+#dashboardMissionHost .cockpit-mission-logs { max-height:260px; overflow:auto; }
+#dashboardMissionHost button, #dashboardMissionHost .cockpit-mission-order, #dashboardMissionHost .cockpit-mission-route, #dashboardMissionHost .cockpit-mission-logs { font-size:13px; }
 .navigation-preset-create.navigation-parameter-toolbar { grid-template-columns:minmax(190px,1fr) auto auto; }
 .navigation-preset-create input { width:100%; min-width:0; box-sizing:border-box; padding:8px 10px; color:var(--text); background:rgba(4,14,12,.7); border:1px solid var(--line); border-radius:6px; }
 .navigation-preset-create p { grid-column:1/-1; margin:3px 0 0; color:#9bb3a9; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
