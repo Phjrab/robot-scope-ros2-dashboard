@@ -51,6 +51,16 @@ function payload(overrides = {}) {
   };
 }
 
+test('yaw remains in the server range at serialization boundaries and full turns', () => {
+  const annotations = moduleHarness();
+  for (const yaw of [Math.PI, -Math.PI, 3.141593, -3.141593, 2 * Math.PI]) {
+    const input = payload();
+    input.points[0].pose.yaw = yaw;
+    const result = annotations.normalizeDocument(input, 'a'.repeat(24), 'b'.repeat(64));
+    assert.ok(Math.abs(result.points[0].pose.yaw) <= Math.PI);
+  }
+});
+
 test('annotation projection accepts only the fixed schema, pins and type sets', () => {
   const annotations = moduleHarness();
   const normalized = annotations.normalizeDocument(

@@ -203,7 +203,10 @@ def _point(
         raise MapAnnotationFormatError("point annotation pose is invalid")
     x = _number(pose.get("x"), "point x", -1_000_000.0, 1_000_000.0)
     y = _number(pose.get("y"), "point y", -1_000_000.0, 1_000_000.0)
-    yaw = _number(pose.get("yaw"), "point yaw", -math.pi, math.pi)
+    # Six-decimal serialization used to turn pi into 3.141593, which failed
+    # the next validation pass. Accept only that rounding margin, then clamp.
+    yaw = _number(pose.get("yaw"), "point yaw", -math.pi - 0.0000005, math.pi + 0.0000005)
+    yaw = max(-math.pi, min(math.pi, yaw))
     if not geometry.contains(x, y):
         raise MapAnnotationFormatError("point annotation is outside the map bounds")
     if not geometry.known_free(x, y, clearance_radius=0.0):

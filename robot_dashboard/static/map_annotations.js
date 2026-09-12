@@ -39,6 +39,7 @@
 
   function normalizePoint(value) {
     if (!value || !POINT_TYPES.includes(value.type)) throw new TypeError('point type is invalid');
+    const yaw = finite(value.pose?.yaw, 'point yaw');
     return Object.freeze({
       id: normalizeId(value.id),
       type: value.type,
@@ -46,7 +47,7 @@
       pose: Object.freeze({
         x: finite(value.pose?.x, 'point x'),
         y: finite(value.pose?.y, 'point y'),
-        yaw: finite(value.pose?.yaw, 'point yaw'),
+        yaw: Math.atan2(Math.sin(yaw), Math.cos(yaw)),
       }),
     });
   }

@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import tempfile
 import unittest
@@ -50,6 +51,20 @@ def polygon(kind="KEEP_OUT", name="Shelf", identifier=None):
 
 
 class MapAnnotationSchemaTests(unittest.TestCase):
+    def test_yaw_boundary_round_trip_stays_inside_pi(self):
+        for yaw in (math.pi, -math.pi, 3.141593, -3.141593):
+            document = normalize_annotation_document(
+                map_id=Geometry.map_id, map_revision=Geometry.revision,
+                points=[point(yaw=yaw)], polygons=[], geometry=Geometry(),
+                identifier_factory=lambda: "1" * 24,
+            )
+            self.assertLessEqual(abs(document["points"][0]["pose"]["yaw"]), math.pi)
+            again = normalize_annotation_document(
+                map_id=Geometry.map_id, map_revision=Geometry.revision,
+                points=document["points"], polygons=[], geometry=Geometry(),
+            )
+            self.assertEqual(document["revision"], again["revision"])
+
     def test_empty_revision_is_deterministic_and_documents_semantics(self):
         first = empty_annotation_document("a" * 24, "b" * 64)
         second = empty_annotation_document("a" * 24, "b" * 64)
