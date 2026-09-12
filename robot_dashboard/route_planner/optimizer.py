@@ -247,7 +247,7 @@ def _candidate(
     node_poses(graph, annotations)
     route_key = {"nodes": node_ids, "profile": profile, "operation_mode": operation_mode, "order_revision": order["revision"], "graph_revision": graph["graph_revision"]}
     digest = hashlib.sha256(json.dumps(route_key, separators=(",", ":"), sort_keys=True).encode("utf-8")).hexdigest()
-    assumptions = ["ORDER_SEQUENCE_20S", "GRAPH_EDGE_SPEED_AND_WAIT"]
+    assumptions = [competition_catalog()["production"]["policy"], "GRAPH_EDGE_SPEED_AND_WAIT"]
     if perception.get("fresh") is not True:
         assumptions.append("PERCEPTION_UNKNOWN_OR_STALE")
     return {

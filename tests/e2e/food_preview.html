@@ -1,0 +1,6 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/cockpit.css"><title>조리 현황판 로컬 검증</title><body style="background:#0d1723;color:#edf4ff;padding:20px"><h1>로컬 테스트 · 로봇 연결 없음</h1><button id="advance">테스트 시간 20초 진행</button><button id="finish">테스트 시간 260초 진행</button><button id="restore">현황판 다시 열기</button><main id="host"></main><script type="module">
+import { createFoodProduction } from '/food.js';
+let time = Date.now(); let tick; let board;
+function mount() { board = createFoodProduction(document.querySelector('#host'), document, { now: () => time, setInterval: fn => { tick = fn; return 1; }, clearInterval: () => {} }); board.render({ order: null }); }
+mount(); document.querySelector('#advance').onclick = () => { time += 20000; tick(); }; document.querySelector('#finish').onclick = () => { time += 260000; tick(); }; document.querySelector('#restore').onclick = () => { board.destroy(); mount(); };
+</script></body></html>

@@ -416,6 +416,8 @@ class RoutePlannerCoordinator:
                 raise RoutePlannerNotFound("order was not found")
             if order.get("revision") != order_revision:
                 raise RoutePlannerConflict("order revision changed")
+            if order.get("catalog_revision") != CATALOG_REVISION:
+                raise RoutePlannerConflict("조리 규칙이 변경되었습니다. 주문을 다시 저장한 후 경로를 계산하세요.")
             if not isinstance(graph, Mapping) or graph.get("graph_revision") != graph_revision:
                 raise RoutePlannerConflict("route graph revision changed")
             annotations = self._annotations(graph)

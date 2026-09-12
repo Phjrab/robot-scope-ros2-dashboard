@@ -95,6 +95,16 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         selected = (await self.coordinator.select(routes[0]["id"], route_revision=routes[0]["revision"]))["selected_route"]
         return order, graph, selected
 
+    async def test_old_cooking_policy_requires_explicit_order_resave(self):
+        order, graph, _ = await self.ready()
+        self.coordinator._state["order"]["catalog_revision"] = "0" * 64
+        with self.assertRaisesRegex(RoutePlannerConflict, "조리 규칙"):
+            await self.coordinator.recommendations(
+                order_id=order["id"], order_revision=order["revision"],
+                graph_revision=graph["graph_revision"], start_node_id="START_NODE",
+                operation_mode="MANUAL_GUIDANCE",
+            )
+
     async def test_grouped_order_update_lock_unlock_preserves_all_items(self):
         payload = {"label": "Grouped", "orders": [{"destination_id": "COEX", "lines": [
             {"sequence": 1, "restaurant_id": "HANSOT", "menu_id": "CHICKEN_MAYO", "quantity": 1},

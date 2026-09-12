@@ -1,5 +1,6 @@
 import { createSchematicControls } from '../../route_planner/schematic_controls.js';
 import { createSpatialEditor } from '../../route_planner/spatial_editor.js';
+import { createFoodProduction } from '../../route_planner/food_production.js';
 
 const DESTINATIONS = Object.freeze([
   ['COEX', '코엑스'], ['WHIMOON', '휘문고등학교'], ['GANGNAM_POLICE', '강남경찰서'], ['GTX_SITE', 'GTX 공사현장'],
@@ -8,7 +9,7 @@ const RESTAURANTS = Object.freeze([
   ['DOMINO', '도미노피자'], ['HANSOT', '한솥도시락'], ['EDIYA', '이디야커피'],
 ]);
 const MENUS = Object.freeze({
-  DOMINO: Object.freeze([['SUPER_SUPREME', '슈퍼슈프림피자'], ['CHEESE_PIZZA', '포테이토피자']]),
+  DOMINO: Object.freeze([['SUPER_SUPREME', '슈퍼슈프림피자'], ['CHEESE_PIZZA', '치즈피자']]),
   HANSOT: Object.freeze([['SPAM_KIMCHI', '스팸김치도시락'], ['CHICKEN_MAYO', '치킨마요도시락']]),
   EDIYA: Object.freeze([['AMERICANO', '아메리카노'], ['CAFE_LATTE', '카페라떼']]),
 });
@@ -110,6 +111,7 @@ function createRoutePlannerPanelView(options = {}) {
   const reportButton = make(documentValue, 'button', '', 'REPORT JSON / MARKDOWN'); reportButton.type = 'button'; reportButton.dataset.routeRehearsalAction = 'REPORT';
   rehearsalSection.append(make(documentValue, 'h3', '', 'Development / Rehearsal'), rehearsalBanner, scenarioSelect, rehearsalStart, rehearsalControls, speed, timeline, playback, virtualPose, advisoryState, expectedActual, eventList, cargo, missionDryRun, dryRunButton, reportButton, rehearsalReport);
   root.append(header);
+  const foodProduction = createFoodProduction(root, documentValue);
   const schematicView = createSchematicControls(root, options.client, documentValue);
   root.append(orderSection, planningSection, guidance, rehearsalSection); options.host.append(root);
   const spatialEditor = createSpatialEditor(root, options.client, documentValue);
@@ -441,7 +443,7 @@ function createRoutePlannerPanelView(options = {}) {
   startNode.addEventListener('change', () => { selectedStartNodeId = startNode.value; if (current) render(current); });
 
   loadDefaultDraft();
-  return Object.freeze({ render, destroy() { spatialEditor.destroy(); schematicView.destroy(); root.remove(); } });
+  return Object.freeze({ render(state) { foodProduction.render(state); render(state); }, destroy() { foodProduction.destroy(); spatialEditor.destroy(); schematicView.destroy(); root.remove(); } });
 }
 
 export function createRoutePlannerPanel(options = {}) {

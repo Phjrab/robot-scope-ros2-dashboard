@@ -34,7 +34,7 @@ class OrderSheetTests(unittest.TestCase):
         self.assertEqual(order["order_count"], 8)
         self.assertEqual(len(order["lines"]), 40)
         self.assertEqual(order["total_quantity"], 40)
-        self.assertEqual(order["lines"][-1]["ready_at_s"], 800)
+        self.assertEqual(order["lines"][-1]["ready_at_s"], 480)
         self.assertEqual(order["lines"][-1]["order_sequence"], 8)
         self.assertEqual(order["revision"], normalize_order(payload, order_id=order["id"])["revision"])
         with self.assertRaisesRegex(RoutePlanningError, "적재 한도"):
@@ -50,16 +50,16 @@ class OrderSheetTests(unittest.TestCase):
     def test_catalog_is_fixed_and_uses_underpass_as_the_single_semantic(self):
         catalog = competition_catalog()
         self.assertEqual(catalog["capacity"], 5)
-        self.assertEqual(catalog["production"], {"seconds_per_item": 20, "policy": "ORDER_SEQUENCE_20S"})
+        self.assertEqual(catalog["production"], {"seconds_per_item": 20, "policy": "RESTAURANT_PARALLEL_ORDER_SEQUENCE_20S"})
         self.assertEqual(catalog["underpass_semantic"], "UNDERPASS")
         self.assertEqual(catalog["zones"][3]["restaurant_id"], None)
-        self.assertEqual(catalog["restaurants"]["DOMINO"]["menu"]["CHEESE_PIZZA"], "포테이토피자")
+        self.assertEqual(catalog["restaurants"]["DOMINO"]["menu"]["CHEESE_PIZZA"], "치즈피자")
 
     def test_low_order_derives_quantity_difficulty_and_ready_times(self):
         value = normalize_order(order_payload(), identifier_factory=lambda: "f" * 32)
         self.assertEqual(value["difficulty"], "LOW")
         self.assertEqual(value["total_quantity"], 3)
-        self.assertEqual([line["ready_at_s"] for line in value["lines"]], [40, 60])
+        self.assertEqual([line["ready_at_s"] for line in value["lines"]], [40, 20])
         self.assertEqual(len(value["revision"]), 64)
 
     def test_medium_and_high_are_derived(self):

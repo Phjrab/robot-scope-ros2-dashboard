@@ -600,6 +600,13 @@ html[data-workspace-window="cockpit"] .cockpit-safety-metric strong { font-size:
 .cockpit-panel-actions button:disabled { cursor: not-allowed; opacity: 0.35; }
 
 .cockpit-route-planner { display: grid; min-width: 0; gap: 10px; min-height: 100%; color: #edf4ff; }
+.food-production { grid-column: 1 / -1; padding: 12px; min-width: 0; border: 1px solid #54768b; border-radius: 10px; background: #10212d; }
+.food-production h3 { margin: 0 0 8px; }
+.food-production > button, .food-production > select { margin: 4px; padding: 8px; }
+.food-production-rows { max-height: 360px; overflow: auto; }
+.food-production-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 4px; border-bottom: 1px solid #304654; }
+.food-production-row span { flex: 1 1 280px; line-height: 1.6; overflow-wrap: anywhere; }
+.food-production-row button { padding: 7px; }
 .route-planner-header,
 .route-planner-order-line,
 .route-guidance-buttons { display: flex; align-items: center; gap: 8px; }

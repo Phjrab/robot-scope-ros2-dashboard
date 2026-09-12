@@ -1,4 +1,4 @@
-"""Strict OrderSheet normalization and the ORDER_SEQUENCE_20S policy."""
+"""Strict orders with independent restaurant queues, one item per 20 seconds."""
 
 from __future__ import annotations
 
@@ -177,9 +177,12 @@ def normalize_order(
     if [item["sequence"] for item in normalized_lines] != list(range(1, len(normalized_lines) + 1)):
         raise OrderValidationError("order line sequences must be continuous from 1")
     cumulative_quantity = 0
+    restaurant_quantities: dict[str, int] = {}
     for item in normalized_lines:
         cumulative_quantity += int(item["quantity"])
-        item["ready_at_s"] = cumulative_quantity * int(catalog["production"]["seconds_per_item"])
+        restaurant = item["restaurant_id"]
+        restaurant_quantities[restaurant] = restaurant_quantities.get(restaurant, 0) + int(item["quantity"])
+        item["ready_at_s"] = restaurant_quantities[restaurant] * int(catalog["production"]["seconds_per_item"])
     restaurant_count = len({item["restaurant_id"] for item in normalized_lines})
     if order_mode == "LEGACY_SINGLE_DESTINATION":
         if restaurant_count < int(catalog["minimum_restaurants"]):
@@ -252,9 +255,12 @@ def _normalize_sheets(payload, *, order_id=None, identifier_factory=None):
                               "order_sequence": number, "menu_sequence": index})
         grouped.append({"destination_id": sheet["destination_id"], "lines": normalized})
     total = 0
+    restaurant_quantities = {}
     for line in flattened:
         total += line["quantity"]
-        line["ready_at_s"] = total * int(competition_catalog()["production"]["seconds_per_item"])
+        restaurant = line["restaurant_id"]
+        restaurant_quantities[restaurant] = restaurant_quantities.get(restaurant, 0) + line["quantity"]
+        line["ready_at_s"] = restaurant_quantities[restaurant] * int(competition_catalog()["production"]["seconds_per_item"])
     destinations = list(dict.fromkeys(line["destination_id"] for line in flattened))
     seed.update(orders=grouped, lines=flattened, order_mode="GROUPED_SHEETS",
                 order_count=len(grouped), total_quantity=total,

@@ -24,7 +24,7 @@ _CATALOG: dict[str, Any] = {
             "zone_id": "ZONE_1",
             "menu": {
                 "SUPER_SUPREME": "슈퍼슈프림피자",
-                "CHEESE_PIZZA": "포테이토피자",
+                "CHEESE_PIZZA": "치즈피자",
             },
         },
         "HANSOT": {
@@ -50,7 +50,7 @@ _CATALOG: dict[str, Any] = {
         "GANGNAM_POLICE": {"label": "강남경찰서", "zone_id": "ZONE_3"},
         "GTX_SITE": {"label": "GTX 공사현장", "zone_id": "ZONE_4"},
     },
-    "production": {"seconds_per_item": 20, "policy": "ORDER_SEQUENCE_20S"},
+    "production": {"seconds_per_item": 20, "policy": "RESTAURANT_PARALLEL_ORDER_SEQUENCE_20S"},
     "capacity": 5,
     "minimum_items": 3,
     "minimum_restaurants": 2,

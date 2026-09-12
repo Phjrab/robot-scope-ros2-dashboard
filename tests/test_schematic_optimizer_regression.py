@@ -1,4 +1,4 @@
-"""Golden whole-result digests captured from 78224f4 before provider extraction."""
+"""Whole-result regression baseline updated for confirmed parallel cooking policy."""
 import hashlib
 import json
 import unittest
@@ -15,8 +15,8 @@ class SavedProviderGoldenTests(unittest.TestCase):
         graph = normalize_graph(graph_payload(), annotations=annotations(), geometry=Geometry())
         perception = normalize_perception_snapshot(ready_perception(), now_ns=1_000_000_000)
         for mode, expected in {
-            'MANUAL_GUIDANCE': 'df544dffec64a74bdccd866eef79367f256341f8cb147e8c67c480f0ce226614',
-            'AUTO_NAV2': 'cb5a0b39abf3321a8c7ab901736fd0e86742c24ebad485aef805181b150370ea',
+            'MANUAL_GUIDANCE': '600bf21b4c49967fc0d1391afd45b21bf0b6c59ca38cec77f557ca75062dde6a',
+            'AUTO_NAV2': 'c8337ee2e535847072ed70b20c39e158852d7d3e3b5884b77ebce8a863641617',
         }.items():
             result = recommend_routes(order=order, graph=graph, annotations=annotations(), start_node_id='START_NODE', operation_mode=mode, perception=perception)
             self.assertEqual(hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest(), expected)
