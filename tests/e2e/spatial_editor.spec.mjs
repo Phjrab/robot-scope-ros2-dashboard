@@ -19,7 +19,7 @@ test('delivery posture is visit-specific and stays non-executable after save', a
   expect(backend.mutations(`/api/v1/missions/${backend.state.missions[0].id}/start`)).toHaveLength(0);
 });
 
-test('spatial editor draws, edits, saves a constrained draft and retains it after CAS rejection', async ({ page }) => {
+test('spatial editor draws, edits, saves a constrained draft and retains it after CAS rejection', async ({ page }, testInfo) => {
   const backend = await installDashboardBackend(page);
   const id = '0123456789abcdef01234567', rev = 'a'.repeat(64), routeId = 'f'.repeat(24);
   const family = { family_id: '1'.repeat(24), family_revision: '2'.repeat(64), source: { pcd_map_id: '3'.repeat(24), pcd_revision: '4'.repeat(64) }, occupancy: { map_id: id, map_revision: rev } };
@@ -56,7 +56,7 @@ test('spatial editor draws, edits, saves a constrained draft and retains it afte
   expect(writes[0].policy).toEqual({ mode: 'CORRIDOR', corridor_width_m: 1.2, blocked_behavior: 'STOP' });
   expect(writes[0].poses[0].x).toBeCloseTo(-4); expect(writes[0].poses[0].y).toBeCloseTo(0);
   expect(writes[0].poses.at(-1).yaw).toBeCloseTo(Math.PI / 4);
-  await editor.screenshot({ path: '/private/tmp/robot-scope-spatial-editor.png' });
+  await editor.screenshot({ path: testInfo.outputPath('spatial-editor.png') });
   await editor.getByLabel('경로 이름', { exact: true }).fill('changed');
   await editor.getByRole('button', { name: '검사 후 저장', exact: true }).click();
   await expect(editor.getByRole('status')).toContainText('route revision changed');
