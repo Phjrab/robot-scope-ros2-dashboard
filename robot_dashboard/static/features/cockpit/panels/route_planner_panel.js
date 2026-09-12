@@ -11,6 +11,9 @@ const MENUS = Object.freeze({
   HANSOT: Object.freeze([['SPAM_KIMCHI', '스팸김치도시락'], ['CHICKEN_MAYO', '치킨마요도시락']]),
   EDIYA: Object.freeze([['AMERICANO', '아메리카노'], ['CAFE_LATTE', '카페라떼']]),
 });
+const MAX_ORDER_SHEETS = 8;
+const MAX_MENU_LINES_PER_SHEET = 5;
+const MAX_MENU_LINES = MAX_ORDER_SHEETS * MAX_MENU_LINES_PER_SHEET;
 
 function make(documentValue, name, className = '', text = '') {
   const element = documentValue.createElement(name); element.className = className; element.textContent = text; return element;
@@ -42,7 +45,7 @@ function createRoutePlannerPanelView(options = {}) {
   const pins = make(documentValue, 'span', '', 'MAP — · GRAPH —'); header.append(status, pins);
 
   const orderSection = make(documentValue, 'section', 'route-planner-order');
-  orderSection.append(make(documentValue, 'h3', '', '주문서 (최대 5개)'));
+  orderSection.append(make(documentValue, 'h3', '', `주문서 (최대 ${MAX_ORDER_SHEETS}개)`));
   const labelInput = documentValue.createElement('input'); labelInput.maxLength = 64; labelInput.value = 'Competition orders'; labelInput.setAttribute('aria-label', '주문 이름'); labelInput.placeholder = '주문 묶음 이름';
   const lines = make(documentValue, 'div', 'route-planner-order-lines');
   const addLine = make(documentValue, 'button', '', '+ 주문서 추가'); addLine.type = 'button'; addLine.dataset.routeAction = 'add-line';
@@ -125,7 +128,7 @@ function createRoutePlannerPanelView(options = {}) {
   }
 
   function addOrderLine(destinationId = 'COEX', restaurantId = 'HANSOT', menuId = '', quantity = 1) {
-    if (lineRows.length >= 5) return;
+    if (lineRows.length >= MAX_ORDER_SHEETS) return;
     const rowRoot = make(documentValue, 'div', 'route-planner-order-line');
     const sequence = make(documentValue, 'strong', '', `주문서 ${lineRows.length + 1}`);
     const destinationInput = documentValue.createElement('select'); destinationInput.setAttribute('aria-label', `도착장소 ${lineRows.length + 1}`);
@@ -149,7 +152,7 @@ function createRoutePlannerPanelView(options = {}) {
   }
 
   function addMenuItem(sheet, item = {}) {
-    if (sheet.items.length >= 5) return;
+    if (sheet.items.length >= MAX_MENU_LINES_PER_SHEET) return;
     const root = make(documentValue, 'div', 'route-planner-order-line');
     const restaurant = documentValue.createElement('select');
     restaurant.setAttribute('aria-label', `주문서 ${lineRows.indexOf(sheet) + 1} 음식점 ${sheet.items.length + 1}`);
@@ -179,8 +182,8 @@ function createRoutePlannerPanelView(options = {}) {
     const items = lineRows.flatMap((row) => row.items);
     const total = items.reduce((sum, row) => sum + Math.max(1, Math.min(5, Number(row.quantity.value) || 1)), 0);
     const restaurantCount = new Set(items.map((row) => row.restaurant.value)).size;
-    orderSummary.textContent = `주문서 ${lineRows.length}/5 · 메뉴 항목 ${items.length}/25 (주문서당 최대 5) · 총 ${total}개 / 1회 적재 한도 5 · 음식점 ${restaurantCount}곳${total > 5 ? ' · 분할 배송 필요' : ''}`;
-    orderSummary.dataset.valid = String(lineRows.length >= 1 && lineRows.length <= 5 && items.length <= 25 && total >= 1);
+    orderSummary.textContent = `주문서 ${lineRows.length}/${MAX_ORDER_SHEETS} · 메뉴 항목 ${items.length}/${MAX_MENU_LINES} (주문서당 최대 ${MAX_MENU_LINES_PER_SHEET}) · 총 ${total}개 / 1회 적재 한도 5 · 음식점 ${restaurantCount}곳${total > 5 ? ' · 분할 배송 필요' : ''}`;
+    orderSummary.dataset.valid = String(lineRows.length >= 1 && lineRows.length <= MAX_ORDER_SHEETS && items.length <= MAX_MENU_LINES && total >= 1);
     syncOrderEditorControls();
   }
 
@@ -216,7 +219,7 @@ function createRoutePlannerPanelView(options = {}) {
       row.menu.disabled = editorDisabled;
       row.quantity.disabled = editorDisabled;
       row.remove.disabled = editorDisabled || lineRows.length <= 1;
-      row.addItem.disabled = editorDisabled || row.items.length >= 5;
+      row.addItem.disabled = editorDisabled || row.items.length >= MAX_MENU_LINES_PER_SHEET;
       for (const item of row.items) {
         item.restaurant.disabled = editorDisabled; item.menu.disabled = editorDisabled; item.quantity.disabled = editorDisabled;
         if (item.remove) item.remove.disabled = editorDisabled;
@@ -224,7 +227,7 @@ function createRoutePlannerPanelView(options = {}) {
     }
     saveOrder.disabled = editorDisabled || !orderValid;
     lockOrder.disabled = editorDisabled || !orderValid || draftingNewOrder || !current?.order;
-    addLine.disabled = editorDisabled || lineRows.length >= 5;
+    addLine.disabled = editorDisabled || lineRows.length >= MAX_ORDER_SHEETS;
     unlockOrder.hidden = !locked;
     unlockOrder.disabled = current?.busy === true || rehearsalActive || schematicBlocked;
     newOrder.hidden = !locked && !draftingNewOrder;

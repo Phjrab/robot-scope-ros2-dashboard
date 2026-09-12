@@ -52,10 +52,16 @@ function projectOrder(value) {
   return Object.freeze({
     id: String(value.id), revision: String(value.revision), label: text(value.label, 64), destination_id: text(value.destination_id, 32) || null,
     destination_ids: Object.freeze((Array.isArray(value.destination_ids) ? value.destination_ids : value.destination_id ? [value.destination_id] : []).slice(0, 4).map((item) => text(item, 32))),
-    order_count: Math.max(0, Math.min(5, Number(value.order_count) || (Array.isArray(value.lines) ? value.lines.length : 0))),
+    order_count: Math.max(0, Math.min(8, Number(value.order_count) || (Array.isArray(value.lines) ? value.lines.length : 0))),
     total_quantity: Math.max(0, Number(value.total_quantity) || 0), restaurant_count: Math.max(0, Number(value.restaurant_count) || 0),
     difficulty: text(value.difficulty, 16), locked: value.locked === true, order_started_at: text(value.order_started_at, 32) || null,
-    lines: Object.freeze((Array.isArray(value.lines) ? value.lines : []).slice(0, 5).map((line) => Object.freeze({
+    orders: Array.isArray(value.orders) ? Object.freeze(value.orders.slice(0, 8).map((sheet) => Object.freeze({
+      destination_id: text(sheet.destination_id, 32),
+      lines: Object.freeze((Array.isArray(sheet.lines) ? sheet.lines : []).slice(0, 5).map((line) => Object.freeze({
+        sequence: Number(line.sequence) || 0, restaurant_id: text(line.restaurant_id, 32), menu_id: text(line.menu_id, 32), quantity: Math.max(0, Number(line.quantity) || 0),
+      }))),
+    }))) : null,
+    lines: Object.freeze((Array.isArray(value.lines) ? value.lines : []).slice(0, 40).map((line) => Object.freeze({
       sequence: Number(line?.sequence) || 0, destination_id: text(line?.destination_id || value.destination_id, 32), restaurant_id: text(line?.restaurant_id, 32), menu_id: text(line?.menu_id, 32),
       quantity: Math.max(0, Number(line?.quantity) || 0), ready_at_s: Math.max(0, Number(line?.ready_at_s) || 0),
     }))),

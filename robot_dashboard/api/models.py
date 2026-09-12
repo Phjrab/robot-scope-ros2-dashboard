@@ -337,7 +337,7 @@ class RouteOrderCreateRequest(StrictRequest):
     label: str = Field(min_length=1, max_length=64)
     destination_id: Literal["COEX", "WHIMOON", "GANGNAM_POLICE", "GTX_SITE"] | None = None
     lines: list[RouteOrderLineRequest] | None = Field(default=None, min_length=1, max_length=5)
-    orders: list[RouteOrderSheetRequest] | None = Field(default=None, min_length=1, max_length=5)
+    orders: list[RouteOrderSheetRequest] | None = Field(default=None, min_length=1, max_length=8)
     order_started_at: str | None = Field(default=None, max_length=32)
     locked: bool = Field(default=False, strict=True)
 

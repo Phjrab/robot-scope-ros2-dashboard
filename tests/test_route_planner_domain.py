@@ -23,24 +23,24 @@ from route_planner_fixtures import (
 
 
 class OrderSheetTests(unittest.TestCase):
-    def test_five_sheets_with_five_menu_lines_preserve_grouping(self):
-        payload = {"label": "5x5", "orders": [
+    def test_eight_sheets_with_five_menu_lines_preserve_grouping(self):
+        payload = {"label": "8x5", "orders": [
             {"destination_id": "COEX", "lines": [
                 {"sequence": i, "restaurant_id": "HANSOT" if i % 2 else "EDIYA",
                  "menu_id": "CHICKEN_MAYO" if i % 2 else "AMERICANO", "quantity": 1}
-                for i in range(1, 6)]} for _ in range(5)]}
+                for i in range(1, 6)]} for _ in range(8)]}
         order = normalize_order(payload)
         self.assertEqual(order["orders"], payload["orders"])
-        self.assertEqual(order["order_count"], 5)
-        self.assertEqual(len(order["lines"]), 25)
-        self.assertEqual(order["total_quantity"], 25)
-        self.assertEqual(order["lines"][-1]["ready_at_s"], 500)
-        self.assertEqual(order["lines"][-1]["order_sequence"], 5)
+        self.assertEqual(order["order_count"], 8)
+        self.assertEqual(len(order["lines"]), 40)
+        self.assertEqual(order["total_quantity"], 40)
+        self.assertEqual(order["lines"][-1]["ready_at_s"], 800)
+        self.assertEqual(order["lines"][-1]["order_sequence"], 8)
         self.assertEqual(order["revision"], normalize_order(payload, order_id=order["id"])["revision"])
         with self.assertRaisesRegex(RoutePlanningError, "적재 한도"):
             recommend_routes(order=order, graph={}, annotations={}, start_node_id="START",
                              operation_mode="MANUAL_GUIDANCE", perception={})
-        for bad in [dict(payload, orders=payload["orders"] * 2),
+        for bad in [dict(payload, orders=payload["orders"] + payload["orders"][:1]),
                     dict(payload, lines=[]),
                     dict(payload, orders=[{"destination_id": "COEX", "lines": []}]),
                     dict(payload, orders=[{"destination_id": "COEX", "lines": payload["orders"][0]["lines"] * 2}])]:

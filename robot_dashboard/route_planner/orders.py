@@ -17,7 +17,7 @@ ORDER_SCHEMA_VERSION = 2
 ORDER_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 REVISION_RE = re.compile(r"^[0-9a-f]{64}$")
 MAX_LINES = 5
-MAX_ORDERS = MAX_LINES
+MAX_ORDERS = 8
 MAX_LABEL_CHARS = 64
 
 
@@ -225,7 +225,7 @@ def _normalize_sheets(payload, *, order_id=None, identifier_factory=None):
         raise OrderValidationError("grouped orders cannot mix legacy or derived fields")
     sheets = payload["orders"]
     if not isinstance(sheets, list) or not 1 <= len(sheets) <= MAX_ORDERS:
-        raise OrderValidationError("batch must contain 1 to 5 order sheets")
+        raise OrderValidationError("batch must contain 1 to 8 order sheets")
     grouped, flattened = [], []
     seed = None
     for number, sheet in enumerate(sheets, 1):

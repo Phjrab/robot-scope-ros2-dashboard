@@ -71,7 +71,7 @@ class RoutePlannerApiContractTests(unittest.TestCase):
         strict_source = ast.get_source_segment(MODELS.read_text(encoding="utf-8"), strict)
         self.assertIn('extra="forbid"', strict_source)
 
-    def test_order_transport_declares_destination_per_sheet_and_one_to_five_bound(self):
+    def test_order_transport_declares_destination_per_sheet_and_one_to_eight_bound(self):
         tree = ast.parse(MODELS.read_text(encoding="utf-8"))
         classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
         line_fields = {
@@ -85,7 +85,8 @@ class RoutePlannerApiContractTests(unittest.TestCase):
         )
         source = MODELS.read_text(encoding="utf-8")
         order_source = ast.get_source_segment(source, classes["RouteOrderCreateRequest"])
-        self.assertEqual(order_source.count("Field(default=None, min_length=1, max_length=5)"), 2)
+        self.assertEqual(order_source.count("Field(default=None, min_length=1, max_length=5)"), 1)
+        self.assertEqual(order_source.count("Field(default=None, min_length=1, max_length=8)"), 1)
         sheet_source = ast.get_source_segment(source, classes["RouteOrderSheetRequest"])
         self.assertIn("Field(min_length=1, max_length=5)", sheet_source)
 

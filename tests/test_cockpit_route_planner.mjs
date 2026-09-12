@@ -178,13 +178,14 @@ test('Route Planner source never owns control or a second renderer', () => {
   assert.doesNotMatch(client + panel, /\/api\/v1\/missions\/[^`'"$]+\/start/);
 });
 
-test('Route Planner editor exposes an explicit start and up to five destination-complete order sheets', () => {
+test('Route Planner editor exposes an explicit start and up to eight destination-complete order sheets', () => {
   const panel = readFileSync(new URL('../robot_dashboard/static/features/cockpit/panels/route_planner_panel.js', import.meta.url), 'utf8');
-  assert.match(panel, /주문서 \(최대 5개\)/);
+  assert.match(panel, /MAX_ORDER_SHEETS = 8/);
+  assert.match(panel, /주문서 \(최대 \$\{MAX_ORDER_SHEETS\}개\)/);
   assert.match(panel, /로봇 출발점/);
   assert.match(panel, /도착장소/);
   assert.match(panel, /destination_id: row\.destination\.value/);
-  assert.match(panel, /lineRows\.length >= 5/);
+  assert.match(panel, /lineRows\.length >= MAX_ORDER_SHEETS/);
   assert.match(panel, /selectedStartNodeId/);
   assert.doesNotMatch(panel, /\/api\/v1\/control|\/navigation\/goal|\blease\b|deadman|cmd_vel|sport/i);
 });
