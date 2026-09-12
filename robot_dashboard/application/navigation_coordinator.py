@@ -214,6 +214,10 @@ class NavigationJobsPort(Protocol):
 
     def parameters_snapshot(self) -> dict[str, Any]: ...
 
+    def saved_presets(self) -> dict[str, Any]: ...
+
+    def create_preset(self, name: str, values: Mapping[str, Any]) -> dict[str, Any]: ...
+
     def update_parameters(
         self,
         base_revision: str,
@@ -725,6 +729,12 @@ class NavigationCoordinator:
 
     def parameters_snapshot(self) -> dict[str, Any]:
         return self._jobs.parameters_snapshot()
+
+    def saved_presets(self) -> dict[str, Any]:
+        return self._jobs.saved_presets()
+
+    def create_preset(self, name: str, values: Mapping[str, Any]) -> dict[str, Any]:
+        return self._jobs.create_preset(name, values)
 
     async def update_parameters(
         self,

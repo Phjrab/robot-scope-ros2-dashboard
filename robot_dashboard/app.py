@@ -35,6 +35,7 @@ from .api.routers.competition import router as competition_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
+from .api.routers.navigation_presets import router as navigation_presets_router
 from .api.routers.map_families import create_router as create_map_families_router
 from .api.routers.map_crop import router as map_crop_router
 from .api.routers.model_registry import router as model_registry_router
@@ -386,11 +387,8 @@ def require_service_lifecycle_idle() -> None:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-app.include_router(system_router)
-app.include_router(telemetry_router)
-app.include_router(cameras_router)
-app.include_router(competition_router)
-app.include_router(discovery_router)
+for api_router in (system_router, telemetry_router, cameras_router, competition_router, discovery_router, navigation_presets_router):
+    app.include_router(api_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
 app.include_router(map_crop_router)

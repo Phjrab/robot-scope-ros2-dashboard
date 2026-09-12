@@ -761,6 +761,12 @@
             <button id="navigationParameterApply" class="navigation-primary" type="button" disabled>APPLY</button>
             <span id="navigationParameterDirty">NO CHANGES</span>
           </div>
+          <div class="navigation-parameter-toolbar navigation-preset-create">
+            <label><span>새 팀 공용 프리셋 이름</span><input id="navigationPresetName" type="text" maxlength="64" placeholder="예: 실내 복도 · 0.5 m/s" autocomplete="off"></label>
+            <button id="navigationPresetSave" type="button" disabled>SAVE AS PRESET</button>
+            <button id="navigationPresetRefresh" type="button">REFRESH LIST</button>
+            <p id="navigationPresetMessage" role="status">아래 편집 값을 새 이름으로 서버에 저장합니다. 팀원은 목록 새로고침 → LOAD → Nav2 정지 후 APPLY 순서로 사용하세요. 저장만으로 주행 설정이 바뀌지는 않습니다.</p>
+          </div>
           <div class="navigation-parameter-groups" id="navigationParameterGroups"><div class="sensor-placeholder">파라미터 계약을 확인하고 있습니다.</div></div>
           <div class="navigation-runtime-bindings">
             <div><span>SCAN BINDING</span><strong id="navigationScanBinding">/scan · XT16 360°</strong><small>서버 고정 · 임의 토픽 입력 불가</small></div>

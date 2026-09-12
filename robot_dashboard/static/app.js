@@ -13,6 +13,7 @@ import { initializeServiceLifecycleFeature } from './features/settings/service_l
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
+import { createNavigationPresetCatalog, initializeNavigationPresetFeature } from './features/navigation/presets.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { initializeMapCropFeature, suggestedDerivedMapName, validSavedMapName } from './features/maps/crop.js';
@@ -266,6 +267,7 @@ const ui = {
   navigationParameterState: $('#navigationParameterState'),
   navigationPreset: $('#navigationPreset'),
   navigationPresetLoad: $('#navigationPresetLoad'),
+  navigationPresetName: $('#navigationPresetName'), navigationPresetSave: $('#navigationPresetSave'), navigationPresetRefresh: $('#navigationPresetRefresh'), navigationPresetMessage: $('#navigationPresetMessage'),
   navigationParameterReset: $('#navigationParameterReset'),
   navigationParameterApply: $('#navigationParameterApply'),
   navigationParameterDirty: $('#navigationParameterDirty'),
@@ -487,6 +489,8 @@ let navigationLogFeature = null;
 let navigationParameterSnapshot = null;
 let navigationParameterDraft = null;
 let navigationParameterBusy = false;
+const navigationPresetCatalog = createNavigationPresetCatalog({ api, validate: (values) => navigationEngine.parameterValues(values, { requireAll: true }), onChange: () => syncNavigationParameterControls() });
+const navigationPresetFeature = initializeNavigationPresetFeature({ catalog: navigationPresetCatalog, ui, canSave: () => !navigationParameterBusy && Boolean(navigationParameterSnapshot), getDraft: () => navigationParameterDraft, renderOptions: renderNavigationPresetOptions, sync: syncNavigationParameterControls, showToast });
 let navigationSelectedMapMeta = null;
 let navigationMapSnapshot = null;
 let navigationMapError = '';
@@ -4199,7 +4203,7 @@ async function clearNavigationCostmaps() {
 
 function navigationParameterPresets() {
   if (!navigationEngine) return [];
-  const presets = [...(navigationParameterSnapshot?.presets || [])];
+  const presets = [...(navigationParameterSnapshot?.presets || []), ...navigationPresetCatalog.presets];
   if (!presets.some((preset) => preset.id === 'pdf11_go2_indoor')) {
     presets.unshift({
       id: 'pdf11_go2_indoor',
@@ -4232,12 +4236,11 @@ function renderNavigationParameterGroups(values = navigationParameterDraft || na
   }).join('');
 }
 
-function renderNavigationPresetOptions() {
+function renderNavigationPresetOptions(preferred = ui.navigationPreset.value || navigationParameterSnapshot?.active_preset || 'pdf11_go2_indoor') {
   const presets = navigationParameterPresets();
   ui.navigationPreset.innerHTML = presets.length
     ? presets.map((preset) => `<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.label)}</option>`).join('')
     : '<option value="">사용 가능한 preset 없음</option>';
-  const preferred = navigationParameterSnapshot?.active_preset || 'pdf11_go2_indoor';
   ui.navigationPreset.value = presets.some((preset) => preset.id === preferred) ? preferred : presets[0]?.id || '';
 }
 
@@ -4283,6 +4286,9 @@ function syncNavigationParameterControls() {
   });
   ui.navigationPreset.disabled = navigationParameterBusy || !ready;
   ui.navigationPresetLoad.disabled = navigationParameterBusy || !ready || !ui.navigationPreset.value;
+  ui.navigationPresetName.disabled = navigationPresetCatalog.busy;
+  ui.navigationPresetSave.disabled = navigationPresetCatalog.busy || navigationParameterBusy || !ready || Boolean(validationError) || !ui.navigationPresetName.value.trim();
+  ui.navigationPresetRefresh.disabled = navigationPresetCatalog.busy;
   ui.navigationParameterReset.disabled = navigationParameterBusy || !dirty;
   ui.navigationParameterApply.disabled = navigationParameterBusy || pipelineActive || !dirty || Boolean(validationError);
   ui.navigationParameterDirty.textContent = validationError
@@ -4342,6 +4348,7 @@ async function refreshNavigationParameters(force = false) {
     navigationParameterDraft = { ...navigationParameterSnapshot.values };
     renderNavigationPresetOptions();
     renderNavigationParameterGroups(navigationParameterDraft);
+    await navigationPresetFeature.refresh();
   } catch (error) {
     navigationParameterSnapshot = null;
     navigationParameterDraft = null;

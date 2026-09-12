@@ -172,7 +172,7 @@ export async function installDashboardBackend(page, options = {}) {
     online: options.online !== false,
     pointMax: 10_000,
     mapping: baseMapping(), navigation: baseNavigation(), control: baseControl(), dataset: baseDataset(),
-    routePlanner,
+    routePlanner, navigationPresets: [],
     competition: {
       schema_version: 'robot-scope.competition-state/v1', operation_mode: 'MANUAL',
       requested_mode: 'MANUAL', locked: false, revision: 1,
@@ -549,6 +549,13 @@ export async function installDashboardBackend(page, options = {}) {
     if (path === '/api/v1/mapping/stop') {
       state.mapping = baseMapping();
       return json(route, state.mapping);
+    }
+    if (path === '/api/v1/navigation/presets') {
+      if (method === 'GET') return json(route, { presets: state.navigationPresets });
+      if (state.navigationPresets.some((preset) => preset.label === body.name.trim())) return json(route, { detail: '같은 이름의 프리셋이 있습니다.' }, 409);
+      const preset = { id: `user-${String(state.navigationPresets.length + 1).padStart(32, '0')}`, label: body.name.trim(), values: body.values };
+      state.navigationPresets.push(preset);
+      return json(route, { preset, presets: state.navigationPresets }, 201);
     }
     if (path === '/api/v1/navigation/parameters') return json(route, {
       revision: PARAMETER_REVISION, active_preset: 'e2e', values: tunedNavigationValues,

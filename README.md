@@ -589,6 +589,20 @@ Robot Scope는 인증 없는 신뢰 LAN 실습 배포를 전제로 하므로 808
 
 ### Navigation: 저장 지도에서 Go2 주행
 
+#### 팀 공용 Nav2 프리셋 생성
+
+Navigation parameters에서 값을 편집하고 **새 팀 공용 프리셋 이름 → SAVE AS PRESET**을
+누르면 현재 편집 중인 27개 파라미터를 서버에 저장합니다. 저장은 실행 중인 Nav2나
+적용된 파라미터를 변경하지 않습니다. 다른 팀원은 **REFRESH LIST → 사용자 프리셋 선택 →
+LOAD PRESET**으로 편집 값에 불러온 뒤, Nav2 정지 상태에서 기존 **APPLY**로 적용합니다.
+키보드 제어 속도 설정은 이 프리셋에 포함되지 않습니다.
+
+기본 프리셋은 유지되며 같은 이름으로 덮어쓰기는 지원하지 않습니다. 이름은 1~64자,
+사용자 프리셋은 최대 64개입니다. 서버가 기존 Nav2 허용 범위와 고정 안전 파라미터를
+다시 검증합니다. 프리셋은 navigation runtime 디렉터리의 `presets.json`에 원자적으로
+저장되어 같은 runtime 디렉터리를 쓰는 대시보드 재시작 후에도 유지됩니다.
+GET/POST `/api/v1/navigation/presets`는 목록 조회/새 프리셋 저장 전용이며 주행을 시작하지 않습니다.
+
 Navigation 메뉴는 관리 가능한 `mode: trinary` YAML + `P5/255` PGM 지도를 선택해
 ROS 2 Humble Nav2를 실행합니다. 브라우저는 파일 경로나 ROS 토픽 이름을 보내지 않고
 opaque map ID와 64자리 map/parameter revision만 전송합니다. 서버는 원본 지도를

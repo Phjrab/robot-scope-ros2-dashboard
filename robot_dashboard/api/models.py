@@ -11,6 +11,11 @@ class StrictRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class NavigationPresetCreateRequest(StrictRequest):
+    name: str = Field(min_length=1, max_length=64)
+    values: Dict[str, Any] = Field(min_length=27, max_length=27)
+
+
 class SourceSelection(StrictRequest):
     camera: str | None = Field(default=None, max_length=255)
     pointcloud: str | None = Field(default=None, max_length=255)
