@@ -36,6 +36,9 @@ export function createSafetyHudView(options = {}) {
   apply.dataset.cockpitLayoutAction = 'apply';
   const modeActions = element(documentValue, 'div', 'cockpit-layout-mode-actions');
   modeActions.append(mode, edit, apply);
+  const saveStatus = element(documentValue, 'span', 'cockpit-layout-save-status', '');
+  saveStatus.setAttribute('role', 'status');
+  modeActions.append(saveStatus);
   modeActions.hidden = true;
   const summary = element(documentValue, 'span', 'cockpit-safety-summary', 'ARM UNKNOWN · DEADMAN UNKNOWN · BRIDGE UNKNOWN · LEASE UNKNOWN');
   const toggle = element(documentValue, 'button', 'cockpit-safety-toggle', '상세 펼치기');
@@ -102,5 +105,5 @@ export function createSafetyHudView(options = {}) {
   }
 
   setExpanded(false);
-  return Object.freeze({ render, setExpanded, snapshot: () => Object.freeze({ expanded }), destroy });
+  return Object.freeze({ render, setExpanded, setLayoutSaveStatus: (text) => { saveStatus.textContent = text; }, snapshot: () => Object.freeze({ expanded }), destroy });
 }

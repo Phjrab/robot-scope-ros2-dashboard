@@ -22,6 +22,23 @@ export function createLayoutStore(options = {}) {
   let corrupted = false;
 
   function key() { return `${STORAGE_PREFIX}${profileId}`; }
+  function appliedKey() { return `robot-scope.cockpit.applied-layout.v1.${profileId}`; }
+
+  function saveApplied(document) {
+    const parsed = parseLayoutDocument(document, { profileId, allowedPanelTypes, panelIdsByType });
+    if (!storage) throw new Error('Browser layout storage is unavailable.');
+    storage.setItem(appliedKey(), JSON.stringify(parsed));
+  }
+
+  function getApplied() {
+    try {
+      const raw = storage?.getItem(appliedKey());
+      return raw ? parseLayoutDocument(raw, { profileId, allowedPanelTypes, panelIdsByType }) : null;
+    } catch (error) {
+      options.onError?.(error);
+      return null;
+    }
+  }
 
   function parseCatalog(raw) {
     if (new TextEncoder().encode(raw).byteLength > COCKPIT_LAYOUT_MAX_BYTES) throw new RangeError('Stored layout catalog is too large.');
@@ -87,6 +104,7 @@ export function createLayoutStore(options = {}) {
   }
 
   function reset() {
+    storage?.removeItem(appliedKey());
     storage?.removeItem(key());
     catalog = emptyCatalog(profileId);
     corrupted = false;
@@ -106,5 +124,5 @@ export function createLayoutStore(options = {}) {
     return Object.freeze({ profileId, defaultPreset: catalog.default_preset, corrupted, storageAvailable: Boolean(storage), presets: Object.freeze(catalog.presets.map((preset) => Object.freeze({ name: preset.name, panelCount: preset.panels.length }))) });
   }
 
-  return Object.freeze({ setProfile, save, remove, setDefault, reset, get, getDefault: () => catalog.default_preset ? get(catalog.default_preset) : null, previewImport, exportJson: (name) => JSON.stringify(get(name), null, 2), snapshot });
+  return Object.freeze({ setProfile, save, saveApplied, getApplied, remove, setDefault, reset, get, getDefault: () => catalog.default_preset ? get(catalog.default_preset) : null, previewImport, exportJson: (name) => JSON.stringify(get(name), null, 2), snapshot });
 }

@@ -142,8 +142,18 @@ export function createCockpitWorkspace(options = {}) {
         dataset: options.getDatasetSnapshot?.() || null,
       }),
       layoutState: layoutMode.snapshot(),
-      onRequestEdit: () => layoutMode.requestEdit(),
-      onApply: () => layoutMode.apply(),
+      onRequestEdit: () => { safetyHud?.setLayoutSaveStatus(''); layoutMode.requestEdit(); },
+      onApply: () => {
+        if (layoutMode.snapshot().mode !== COCKPIT_LAYOUT_MODES.EDIT || layoutMode.snapshot().armed) return;
+        try {
+          layoutStore.saveApplied(captureLayout('Last applied'));
+          layoutMode.apply();
+          safetyHud?.setLayoutSaveStatus('배치 저장 완료 · 이 브라우저에서 다시 열 때 복원됩니다.');
+        } catch (error) {
+          safetyHud?.setLayoutSaveStatus('배치 저장 실패 · 브라우저 저장 공간/권한을 확인한 뒤 다시 Apply해 주세요.');
+          options.onError?.(new Error(`레이아웃 저장 실패: ${error.message} · 편집 상태를 유지합니다.`));
+        }
+      },
       onStop: options.onSoftwareStop,
       onProjection: (projected, input) => layoutMode.updateControl({ armed: projected.layoutArmed, generation: Number(input.controlGeneration) || 0 }),
     });
@@ -202,12 +212,12 @@ export function createCockpitWorkspace(options = {}) {
     });
   }
 
-  function applyLayout(document) {
+  function applyLayout(document, { restoreScene = true } = {}) {
     if (!document || document.profile_id !== currentProfileId) return false;
     const viewport = panelManager?.diagnostics().viewport || {};
     const panels = layoutPanelsToPixels(document, viewport);
     panelManager?.restoreValidatedLayout(panels);
-    sceneHost.applySceneLayout(document.scene);
+    if (restoreScene) sceneHost.applySceneLayout(document.scene);
     syncLauncher();
     return true;
   }
@@ -298,8 +308,11 @@ export function createCockpitWorkspace(options = {}) {
     currentProfileId = profileId;
     layoutStore.setProfile(profileId);
     layoutLibrary?.setProfile(profileId);
+    const applied = layoutStore.getApplied();
     const storedDefault = layoutStore.getDefault();
-    if (storedDefault) applyLayout(storedDefault);
+    // The camera has its own exact persistence; panel restoration must not reset it.
+    if (applied) applyLayout(applied, { restoreScene: false });
+    else if (storedDefault) applyLayout(storedDefault);
     else resetLayout();
   }
 

@@ -146,5 +146,5 @@ export function createSafetyHud(options = {}) {
     view.destroy();
   }
 
-  return Object.freeze({ activate, deactivate, refresh, setLayoutState, setExpanded, diagnostics: () => Object.freeze({ active, projected, layoutState, view: view.snapshot?.() || null }), destroy });
+  return Object.freeze({ activate, deactivate, refresh, setLayoutState, setExpanded, setLayoutSaveStatus: (text) => view.setLayoutSaveStatus?.(text), diagnostics: () => Object.freeze({ active, projected, layoutState, view: view.snapshot?.() || null }), destroy });
 }

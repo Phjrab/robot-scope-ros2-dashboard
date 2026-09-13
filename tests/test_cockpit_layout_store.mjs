@@ -144,3 +144,42 @@ test('a storage write failure does not publish an in-memory preset that cannot s
   assert.throws(() => store.save(parsed), /quota blocked/);
   assert.deepEqual(store.snapshot().presets, []);
 });
+
+test('Apply survives a new store without overwriting named presets, and is profile isolated', () => {
+  const harness = storageHarness();
+  const options = { storage: harness.storage, allowedPanelTypes: TYPES, panelIdsByType: IDS };
+  const store = createLayoutStore(options);
+  store.setProfile('go2');
+  store.save(document('named'));
+  const applied = document('Last applied');
+  applied.panels[0].x = 0.4;
+  store.saveApplied(applied);
+  const reopened = createLayoutStore(options);
+  reopened.setProfile('go2');
+  assert.equal(reopened.getApplied().panels[0].x, 0.4);
+  assert.equal(reopened.getDefault().panels[0].x, 0.1);
+  assert.equal(reopened.snapshot().presets.length, 1);
+  reopened.setProfile('turtlebot');
+  assert.equal(reopened.getApplied(), null);
+  reopened.setProfile('go2');
+  reopened.saveApplied({ ...applied, panels: [] });
+  assert.deepEqual(reopened.getApplied().panels, [], 'an intentionally empty layout is retained');
+  reopened.reset();
+  assert.equal(reopened.getApplied(), null);
+});
+
+test('Apply rejects invalid or unavailable storage and preserves prior saved state', () => {
+  const harness = storageHarness();
+  const errors = [];
+  const store = createLayoutStore({ storage: harness.storage, allowedPanelTypes: TYPES, onError: e => errors.push(e) });
+  store.setProfile('go2');
+  store.saveApplied(document());
+  assert.throws(() => store.saveApplied({ ...document(), profile_id: 'other' }), /profile/);
+  assert.equal(store.getApplied().profile_id, 'go2');
+  harness.storage.setItem = () => { throw new Error('quota blocked'); };
+  assert.throws(() => store.saveApplied({ ...document(), panels: [] }), /quota/);
+  assert.equal(store.getApplied().panels.length, 1);
+  harness.values.set('robot-scope.cockpit.applied-layout.v1.go2', '{broken');
+  assert.equal(store.getApplied(), null);
+  assert.equal(errors.length, 1);
+});
