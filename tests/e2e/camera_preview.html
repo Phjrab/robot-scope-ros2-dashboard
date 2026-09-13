@@ -1,0 +1,8 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><title>칵핏 시점 로컬 검증</title><body style="background:#102020;color:white"><h1>칵핏 시점 검증 · 로봇 연결 없음</h1><button id="reopen">칵핏 다시 열기 테스트</button><button id="reset">로봇 중심으로</button><button id="follow">추적</button><canvas id="canvas" style="width:90vw;height:60vh"></canvas><pre id="state"></pre><script src="/static/scene3d.js"></script><script type="module">
+import { createCockpitSceneHost } from '/static/features/cockpit/scene_host.js';
+const host = createCockpitSceneHost({ canvas: document.querySelector('#canvas'), Renderer: window.RobotScene3D, controls: { reset: document.querySelector('#reset'), follow: document.querySelector('#follow') } });
+host.setProfile({ id: 'camera-local-test' }); host.setRobotState({ pose: { x: 8, y: 4, z: 0 }, online: true }); host.activate();
+const show = () => { document.querySelector('#state').textContent = JSON.stringify({ camera: host.diagnostics().camera, follow: host.sceneSnapshot().follow_robot }); };
+document.querySelector('#reopen').onclick = () => { host.deactivate(); host.activate(); show(); };
+for (const event of ['pointerup', 'wheel', 'click']) document.addEventListener(event, () => queueMicrotask(show)); show();
+</script></body></html>

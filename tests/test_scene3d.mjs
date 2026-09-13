@@ -84,6 +84,21 @@ function sceneHarness({ storage, stored = {}, options = {} } = {}) {
   return { scene, canvas, preference, sandbox };
 }
 
+test('cockpit first follow pose centers and pan disables following until reset', () => {
+  const { scene } = sceneHarness({ options: { autoFitOnFirstCloud: false, manualPanStopsFollow: true } });
+  scene.setCameraMode('follow'); scene.setRobotPose({ x: 20, y: -9, z: 0.4 });
+  assert.deepEqual(Array.from(scene.camera.target), [20, -9, 0.4]);
+  const event = { pointerId: 1, button: 2, clientX: 10, clientY: 10, preventDefault() {} };
+  scene._onPointerDown(event); scene._onPointerMove({ ...event, clientX: 60 });
+  assert.equal(scene.cameraMode, 'world');
+  const target = Array.from(scene.camera.target);
+  scene.setRobotPose({ x: 25, y: -5, z: 0.4 });
+  assert.deepEqual(Array.from(scene.camera.target), target);
+  scene.resetView(); assert.equal(scene.cameraMode, 'follow');
+  assert.deepEqual(Array.from(scene.camera.target), [25, -5, 0.4]);
+  assert.equal(scene.camera.distance, 8); scene.destroy();
+});
+
 function controlHarness() {
   const handlers = new Map();
   const attributes = new Map();

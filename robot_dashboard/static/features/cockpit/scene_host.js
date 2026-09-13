@@ -1,4 +1,5 @@
 import { COCKPIT_MAX_POINTS, COCKPIT_POINT_BUDGETS, createAdaptivePointBudgetController, createSpatialPointLod } from './point_quality.js';
+import { cameraPreferences } from './camera_state.js';
 
 function rendererStatus(profile, freshness, online) {
   const label = String(profile?.label || 'ROBOT').toUpperCase();
@@ -50,7 +51,34 @@ export function createCockpitSceneHost(options = {}) {
   const controlDisposers = [];
   let requestedServerBudget = null;
   let budgetRequestActive = false;
-  let sceneLayout = Object.freeze({ view: 'isometric', follow_robot: false, point_size: 2, range_m: 150 });
+  let sceneLayout = Object.freeze({ view: 'robot-follow', follow_robot: true, point_size: 2, range_m: 150 });
+  let storage = options.storage;
+  if (storage === undefined) { try { storage = globalThis.localStorage; } catch { storage = null; } }
+  const cameraStore = cameraPreferences(storage);
+  let cameraScope = 'default';
+
+  function saveCamera() {
+    if (!renderer?.camera) return;
+    sceneLayout = sceneSnapshot();
+    cameraStore.save(cameraScope, { ...renderer.camera, mode: renderer.cameraMode });
+  }
+
+  function restoreCamera() {
+    const saved = cameraStore.load(cameraScope);
+    if (saved && renderer?.restoreCameraState) renderer.restoreCameraState(saved);
+    else if (!saved) { renderer?.setViewPreset?.('isometric'); renderer?.setCameraMode?.('follow'); }
+  }
+
+  function syncCameraScope() {
+    const map = mapState?.map;
+    // Briefly missing telemetry is not a new map and must not reset the view.
+    if (!profile?.id && !map?.id) return;
+    const next = `${profile?.id || 'robot'}:${map?.id || 'live'}:${map?.revision || ''}`;
+    if (next === cameraScope) return;
+    saveCamera(); cameraScope = next;
+    if (!cameraStore.load(cameraScope)) sceneLayout = Object.freeze({ ...sceneLayout, view: 'robot-follow', follow_robot: true });
+    if (active) restoreCamera();
+  }
 
   const clock = () => options.now?.() ?? globalThis.performance?.now?.() ?? Date.now();
   const serverCap = () => pointLimit == null ? COCKPIT_MAX_POINTS : Math.min(COCKPIT_MAX_POINTS, Math.max(1_000, Number(pointLimit) || 1_000));
@@ -180,6 +208,7 @@ export function createCockpitSceneHost(options = {}) {
       renderer.options.maxCloudRadius = sceneLayout.range_m;
     }
     renderState();
+    saveCamera();
     return sceneSnapshot();
   }
 
@@ -242,14 +271,20 @@ export function createCockpitSceneHost(options = {}) {
       maxPoints: serverCap(),
       maxCloudRadius: sceneLayout.range_m,
       pointSize: sceneLayout.point_size / 40,
-      autoFitOnFirstCloud: true,
+      autoFitOnFirstCloud: false,
+      manualPanStopsFollow: true,
       axesStorageKey: 'robot-scope.cockpit.axes.v1',
     });
     peakRenderers = Math.max(peakRenderers, renderer ? 1 : 0);
     renderer.bindControls?.(options.controls || {});
     renderer.setHeightColor?.(heightColor);
     renderer.setNearFieldEmphasis?.(nearField);
+    const savedCamera = cameraStore.load(cameraScope);
     applySceneLayout(sceneLayout);
+    if (savedCamera) {
+      renderer.restoreCameraState?.(savedCamera);
+      saveCamera();
+    }
     renderState();
     void loadModel(session);
     renderer.resize?.();
@@ -258,6 +293,7 @@ export function createCockpitSceneHost(options = {}) {
 
   function deactivate() {
     if (!active) return diagnostics();
+    saveCamera();
     active = false;
     session += 1;
     stops += 1;
@@ -271,6 +307,7 @@ export function createCockpitSceneHost(options = {}) {
     const previousAsset = profile?.model?.asset_url;
     const previousId = profile?.id;
     profile = nextProfile || null;
+    if (profile?.id) syncCameraScope();
     if (active && (previousAsset !== profile?.model?.asset_url || previousId !== profile?.id)) {
       void loadModel(session);
     }
@@ -302,7 +339,9 @@ export function createCockpitSceneHost(options = {}) {
   }
 
   function setMapState(nextState) {
+    if (nextState?.map?.id && mapState?.map?.id && nextState.map.id !== mapState.map.id) saveCamera();
     mapState = nextState || null;
+    if (mapState?.map?.id) syncCameraScope();
     if (!active || !renderer) return;
     const overlay = spatialOverlay();
     if (mapOverlayVisible && overlay) renderer.setSpatialOverlay?.(overlay);
@@ -353,6 +392,12 @@ export function createCockpitSceneHost(options = {}) {
     element.addEventListener(eventName, callback);
     controlDisposers.push(() => element.removeEventListener?.(eventName, callback));
   }
+
+  // Renderer input handlers run first or finish before this microtask captures.
+  const captureAfterInput = () => queueMicrotask(() => { if (active) saveCamera(); });
+  for (const event of ['pointerup', 'pointercancel', 'wheel', 'dblclick']) bindQualityControl(canvas, event, captureAfterInput);
+  for (const name of ['reset', 'top', 'front', 'follow']) bindQualityControl(options.controls?.[name], 'click', captureAfterInput);
+  bindQualityControl(options.eventTarget || globalThis, 'pagehide', saveCamera);
 
   bindQualityControl(options.controls?.quality, 'change', () => {
     const next = String(options.controls.quality.value || 'low');

@@ -223,6 +223,7 @@
         maxCloudRadius: clamp(finite(options.maxCloudRadius, 500), 0.1, 1000000),
         groundZ: Number.isFinite(Number(options.groundZ)) ? Number(options.groundZ) : 0,
         autoFitOnFirstCloud: options.autoFitOnFirstCloud !== false,
+        manualPanStopsFollow: options.manualPanStopsFollow === true,
         showRobot: options.showRobot !== false,
         showTrail: options.showTrail !== false,
         showAxes: options.showAxes !== false,
@@ -549,7 +550,9 @@
     setRobotPose(value) {
       this.robotPose = normalizedPose(value);
       if (this.cameraMode === 'follow' && this.robotPose) {
-        const alpha = 0.16;
+        const alpha = this._followPosePending ? 1 : 0.16;
+        if (this._followPosePending) this.camera.target[2] = this.robotPose.z;
+        this._followPosePending = false;
         const moveX = (this.robotPose.x - this.camera.target[0]) * alpha;
         const moveY = (this.robotPose.y - this.camera.target[1]) * alpha;
         if (Math.abs(moveX) + Math.abs(moveY) > 0.0001) {
@@ -572,6 +575,13 @@
 
     setCameraMode(value) {
       this.cameraMode = value === 'follow' ? 'follow' : 'world';
+      if (this.cameraMode === 'follow') {
+        this._followPosePending = true;
+        if (this.robotPose) {
+          this.camera.target = [this.robotPose.x, this.robotPose.y, this.robotPose.z];
+          this._followPosePending = false;
+        }
+      }
       const control = this._controlElements.follow;
       if (control) {
         control.textContent = this.cameraMode === 'follow' ? 'FOLLOW' : 'WORLD';
@@ -584,6 +594,16 @@
 
     toggleCameraMode() {
       return this.setCameraMode(this.cameraMode === 'follow' ? 'world' : 'follow');
+    }
+
+    restoreCameraState(value) {
+      if (!value || !Array.isArray(value.target) || value.target.length !== 3
+        || !value.target.every(Number.isFinite) || ![value.distance, value.yaw, value.pitch].every(Number.isFinite)
+        || !['follow', 'world'].includes(value.mode)) return false;
+      this.camera = { target: value.target.slice(), distance: clamp(value.distance, this.options.minDistance, this.options.maxDistance), yaw: value.yaw, pitch: clamp(value.pitch, -82 * DEG, 88 * DEG) };
+      this._updateControlState('');
+      this.setCameraMode(value.mode);
+      this._invalidateStatic(); this.render(); return true;
     }
 
     updatePose(value) {
@@ -705,6 +725,14 @@
     }
 
     resetView() {
+      if (this.options.manualPanStopsFollow) {
+        this.camera.distance = 8;
+        this.camera.yaw = 45 * DEG;
+        this.camera.pitch = 33 * DEG;
+        this.setCameraMode('follow');
+        this._updateControlState('reset');
+        return;
+      }
       if (this.cloud.bounds) this.fitToPointCloud(false);
       else {
         this.camera.target = this._home.target.slice();
@@ -872,6 +900,7 @@
         this.camera.pitch = clamp(this.camera.pitch - dy * 0.006, -82 * DEG, 88 * DEG);
       } else {
         const basis = this._cameraBasis();
+        if (this.options.manualPanStopsFollow && this.cameraMode === 'follow') this.setCameraMode('world');
         const worldPerPixel = 2 * this.camera.distance * Math.tan(this.options.fov / 2) / Math.max(this.height, 1);
         this.camera.target = add(
           this.camera.target,

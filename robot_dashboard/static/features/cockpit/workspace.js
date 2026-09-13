@@ -214,7 +214,7 @@ export function createCockpitWorkspace(options = {}) {
 
   function resetLayout() {
     panelManager?.restoreValidatedLayout([]);
-    sceneHost.applySceneLayout({ view: 'isometric', follow_robot: false, point_size: 2, range_m: 150 });
+    // Reset floating panels without discarding the operator's map viewpoint.
     syncLauncher();
   }
 
