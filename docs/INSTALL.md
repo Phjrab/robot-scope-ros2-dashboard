@@ -450,7 +450,7 @@ manifest와 현장별 placeholder를 먼저 확인하세요.
 `go2-control`과 `go2-nav`의 `--apply`는 sibling mode-0600 `control.env`가 없을 때만
 무작위 64자리 bridge key와 explicit enable 값을 생성합니다. Key를 명령행에서 받거나
 출력하지 않고, 기존 파일은 덮어쓰지 않습니다. Installer를 사용하지 않는 수동 설치는
-README의 [제어 키 절차](../README.md#go2-제어-기능-활성화)를 따릅니다. 일반
+[상세 운영 안내의 제어 키 절차](OPERATOR_GUIDE.md#go2-제어-기능-활성화)를 따릅니다. 일반
 `robot-scope.env`에는 secret을 넣지 않습니다.
 
 Installer는 선택한 mode를 pinned dependency bootstrap에 전달합니다. Bootstrap도 기본은
@@ -572,7 +572,7 @@ Node.js가 없는 운영 호스트에서는 JavaScript 테스트를 생략할 �
 Go2 host는 doctor가 통과한 뒤 `./scripts/run_go2_humble.sh`를 사용합니다. Installer의
 `--install-service`는 현재 사용자, checkout과 env 경로를 반영한 unit을 검증해 설치합니다.
 수동 실행 또는 선택적 자동 시작은
-[README의 systemd 절차](../README.md#수동-실행과-선택적-자동-시작)를 따르되 service
+[상세 운영 안내의 systemd 절차](OPERATOR_GUIDE.md#수동-실행과-선택적-자동-시작)를 따르되 service
 example의 `User`, `WorkingDirectory`, `EnvironmentFile`, `ExecStart`, `HOME`, NIC와
 CIDR을 현재 호스트와 일치시킵니다. 참조 장비 값을 그대로 복사하지 마세요.
 
@@ -589,8 +589,8 @@ journalctl -u robot-scope.service -n 100 --no-pager
 curl -fsS http://127.0.0.1:8088/api/v1/health
 ~~~
 
-SSH에서 고정 dashboard unit을 한 명령으로 관리하려면 README의
-[SSH 관리 절차](../README.md#ssh에서-한-명령으로-대시보드-시작종료)에 따라 기존 lifecycle
+SSH에서 고정 dashboard unit을 한 명령으로 관리하려면 상세 운영 안내의
+[SSH 관리 절차](OPERATOR_GUIDE.md#ssh에서-한-명령으로-대시보드-시작종료)에 따라 기존 lifecycle
 exact-command sudoers를 설치합니다. 이후 관리 PC에서는 대화형 셸 또는 직접 SSH 명령을 사용할 수
 있습니다. `sudo -n`을 쓰므로 TTY나 암호 입력은 필요하지 않습니다.
 
@@ -639,7 +639,7 @@ idle인지 확인하며, helper의 preflight가 blocker를 발견하면 변경 �
 
 ### go2-control
 
-1. Installer가 생성했거나 [수동 절차](../README.md#go2-제어-기능-활성화)로 만든
+1. Installer가 생성했거나 [수동 절차](OPERATOR_GUIDE.md#go2-제어-기능-활성화)로 만든
    mode-0600 `control.env`를 확인합니다. Key 값은 출력하지 않습니다.
 2. 로봇 주변을 비우고 물리 리모컨을 손에 듭니다.
 3. doctor와 Controls readiness를 확인하되 자동화된 설치 검사에서 ARM하지 않습니다.

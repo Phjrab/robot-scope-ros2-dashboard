@@ -1,5 +1,14 @@
 # Grouped Route Planner order sheets
 
+> Historical implementation checkpoint: the 1–5-sheet and globally sequential
+> preparation statements below describe this earlier change. Current
+> [`orders.py`](../robot_dashboard/route_planner/orders.py) accepts up to **8
+> order sheets** (`MAX_ORDERS`), while each sheet still permits up to **5 menu
+> lines** (`MAX_LINES`). The robot's **5-item carrying limit** is separate.
+> [2026-09-12 food production](FOOD_PRODUCTION_20260912.md) changed the current
+> estimate to independent restaurant queues, one item every 20 seconds per
+> restaurant. It did not add automatic multi-trip delivery.
+
 The editor now separates an order sheet from a menu line:
 
 - One batch contains 1–5 order sheets.
