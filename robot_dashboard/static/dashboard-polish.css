@@ -134,7 +134,107 @@ input::placeholder, textarea::placeholder { color: #8da49b; opacity: 1; }
 }
 .page-view:not(.cockpit-page) :is(button, input, select, textarea):disabled { cursor: not-allowed; }
 
+/* Match the available card width, including narrow cards on wide screens. */
+.panel-header > *, .page-heading > *, .table-actions { min-width: 0; }
+.status-dot, .panel-state > span { flex-shrink: 0; }
+.table-actions { flex-wrap: wrap; }
+.page-view:not(.cockpit-page) button { word-break: keep-all; }
+input[type="range"] { margin-inline: 0; }
+input[type="checkbox"], input[type="radio"] { width: auto; flex: 0 0 auto; }
+footer { flex-wrap: wrap; gap: 8px 20px; }
+
+.sensor-page-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, .85fr); }
+.camera-panel { container: camera-panel / inline-size; }
+.camera-view-toggle button, .camera-media-actions button,
+.realsense-profile-control button { min-height: 40px; }
+.camera-media-toolbar { grid-template-columns: minmax(0, 1fr); }
+.camera-media-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.camera-media-actions label { min-width: 0; }
+.camera-media-readout small, .realsense-profile-copy small {
+  max-width: none; white-space: normal; overflow-wrap: anywhere;
+}
+.realsense-profile-control { grid-template-columns: minmax(0, 1fr) minmax(150px, .75fr) auto; }
+.realsense-profile-control button { white-space: nowrap; }
+.camera-link-observability { grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr)); }
+.camera-link-observability :is(small, p) { white-space: normal; overflow-wrap: anywhere; }
+
+@container camera-panel (max-width: 640px) {
+  .realsense-profile-control { grid-template-columns: minmax(0, 1fr) auto; }
+  .realsense-profile-copy { grid-column: 1 / -1; }
+  .realsense-profile-control button { grid-column: 2; }
+}
+@container camera-panel (max-width: 420px) {
+  .camera-view-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .camera-media-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .camera-media-actions label { grid-row: auto; }
+}
+
+.map-conversion-parameters, .map-conversion-advanced > div { align-items: end; }
+.map-conversion-body label > span { overflow-wrap: anywhere; }
+.map-conversion-parameters label { display: flex; flex-direction: column; justify-content: end; height: 100%; }
+.map-editor-toolbar { align-items: end; }
+.map-view-select { min-width: 0; }
+.page-view:not(.cockpit-page) .map-view-toolbar select { min-height: 32px; }
+.navigation-parameter-fields { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.navigation-parameter-field { grid-template-columns: minmax(0, 1fr) 112px; }
+.navigation-parameter-field small { overflow-wrap: anywhere; }
+.navigation-health-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+.navigation-health-metrics :is(strong, small) { white-space: normal; overflow-wrap: anywhere; }
+.navigation-pose-toolbar { display: flex; flex-wrap: wrap; }
+.navigation-pose-readout { flex: 1 1 180px; }
+.map-annotation-editor { grid-template-columns: minmax(120px, .65fr) minmax(0, 1fr); }
+.map-annotation-draw-actions { grid-column: 1 / -1; justify-content: flex-end; }
+
+/* Keep source settings next to the connection card; service rows span both. */
+.settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.source-settings-grid { align-items: start; }
+.source-settings-grid label { display: grid; align-content: start; }
+.settings-source-identity { grid-template-columns: auto minmax(0, 1fr) auto; }
+.settings-source-identity .lidar-source-stage { grid-column: 1 / -1; grid-row: 2; text-align: left; }
+.settings-source-identity .lidar-source-topic { grid-row: 3; }
+.settings-source-identity .lidar-source-freshness { grid-column: 3; }
+
+/* Let grid auto-placement follow the same order as keyboard navigation. */
+.route-planner-dashboard-host .cockpit-route-planner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.route-planner-dashboard-host .cockpit-route-planner > * { grid-row: auto; }
+.route-planner-dashboard-host :is(.route-planner-header, .food-production, .schematic-controls,
+  .route-planner-guidance, .spatial-route-editor, .route-planner-rehearsal) { grid-column: 1 / -1; }
+.route-planner-dashboard-host .route-planner-planning { grid-column: 2; align-content: start; }
+.route-planner-header { flex-wrap: wrap; }
+.route-planner-order { container: route-order / inline-size; }
+.route-planner-menu-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) 58px; }
+.route-planner-menu-row:has(> button) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) 58px 80px; }
+.route-planner-sheet-destination { grid-template-columns: 70px minmax(0, 1fr) 40px; }
+.route-guidance-buttons { flex-wrap: wrap; }
+.route-guidance-buttons button { flex: 1 1 130px; }
+@container route-order (max-width: 440px) {
+  .route-planner-menu-row, .route-planner-menu-row:has(> button) { grid-template-columns: minmax(0, 1fr) 80px; }
+  .route-planner-menu-row > select { grid-column: 1 / -1; }
+}
+.route-planner-dashboard-host button {
+  color: #dce9fa; border: 1px solid rgba(141, 172, 219, .28);
+  border-radius: 6px; padding: 8px 12px; background: #122238;
+}
+.route-planner-dashboard-host button:disabled { opacity: .45; }
+.food-production { display: grid; gap: 12px; }
+.food-production > :is(p, h3) { margin: 0; overflow-wrap: anywhere; }
+.food-production-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.food-production-toolbar > select { flex: 1 1 240px; width: auto; min-width: 0; }
+.food-production-toolbar > label { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.food-production-toolbar input { margin: 0; }
+.food-production-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
+.food-production-row > span { min-width: 0; }
+.schematic-controls label:has(input[type="checkbox"]) { flex-direction: row; align-items: center; }
+.schematic-grid { gap: 10px; align-items: end; }
+.schematic-grid label { margin: 0; }
+.spatial-route-editor { overflow-wrap: anywhere; }
+.spatial-route-editor label { max-width: 100%; }
+.spatial-route-editor svg { max-width: 100%; }
+#dashboardMissionHost .cockpit-mission-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+#dashboardMissionHost .cockpit-mission-order li { flex-wrap: wrap; align-items: center; gap: 8px; }
+
 @media (max-width: 1180px) {
+  .sensor-page-grid, .settings-grid { grid-template-columns: minmax(0, 1fr); }
   .topbar { flex-wrap: wrap; }
   .top-actions { justify-content: flex-end; }
   .page-heading { align-items: flex-start; flex-wrap: wrap; }
@@ -155,6 +255,11 @@ input::placeholder, textarea::placeholder { color: #8da49b; opacity: 1; }
   .table-actions { display: flex; flex-wrap: wrap; width: 100%; }
   .table-actions :is(input, select) { flex: 1 1 160px; min-width: 0; }
   .route-card { padding: 20px; }
+  .route-planner-dashboard-host .cockpit-route-planner { grid-template-columns: minmax(0, 1fr); }
+  .route-planner-dashboard-host .cockpit-route-planner > * { grid-column: 1 / -1; }
+  .food-production-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .food-production-row > span { grid-column: 1 / -1; }
+  .map-view-toolbar > .map-legend { justify-content: flex-start; }
 }
 
 @media (max-width: 520px) {
@@ -168,4 +273,8 @@ input::placeholder, textarea::placeholder { color: #8da49b; opacity: 1; }
   #dashboardMissionHost { padding: 16px; }
   #dashboardMissionHost .cockpit-mission-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .route-planner-dashboard-host :is(.route-planner-order, .route-planner-planning, .route-planner-guidance) { padding: 12px; }
+  .realsense-profile-control { grid-template-columns: minmax(0, 1fr); }
+  .realsense-profile-control button { grid-column: 1; }
+  .map-annotation-editor { grid-template-columns: minmax(0, 1fr); }
+  .food-production-toolbar > :is(select, button, label) { width: 100%; }
 }

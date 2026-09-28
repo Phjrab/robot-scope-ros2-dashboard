@@ -45,10 +45,12 @@ export function createFoodProduction(host, doc = globalThis.document, options = 
   const start = make('button', '조리 시작'); start.type = 'button';
   const reset = make('button', '타이머 초기화 확인'); reset.type = 'button';
   const confirm = make('input'); confirm.type = 'checkbox'; confirm.setAttribute('aria-label', '타이머 초기화 동의');
-  const confirmLabel = make('label', '시작 시각·수령 기록 초기화 동의 '); confirmLabel.append(confirm);
+  const confirmLabel = make('label'); confirmLabel.append(confirm, make('span', '시작 시각·수령 기록 초기화 동의'));
   const status = make('p'); status.setAttribute('role', 'status');
   const summary = make('p'); const inventory = make('p'); const rows = make('div'); rows.className = 'food-production-rows';
-  root.append(title, note, source, start, confirmLabel, reset, status, summary, inventory, rows); host.append(root);
+  const toolbar = make('div'); toolbar.className = 'food-production-toolbar';
+  toolbar.append(source, start, confirmLabel, reset);
+  root.append(title, note, toolbar, status, summary, inventory, rows); host.append(root);
   const now = options.now || Date.now;
   const storageKey = 'robot-scope.food-production.restaurant-parallel.v1';
   let storage; let storageError = ''; let currentOrder = null; let session = null; let lastSecond = -1;

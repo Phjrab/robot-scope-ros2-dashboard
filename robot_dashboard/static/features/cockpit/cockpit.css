@@ -1,11 +1,69 @@
 @import url('../route_planner/schematic.css');
 
 .cockpit-page {
+  container: cockpit-page / inline-size;
   --cockpit-scene-z: 0;
   --cockpit-overlay-z: 20;
   --cockpit-panel-z: 40;
   --cockpit-launcher-z: 60;
   --cockpit-hud-z: 80;
+}
+
+/* Flow the top tools together: their width is the workspace, not the window.
+   Leave the canvas status chips (y=12..35) visible above the controls. */
+.cockpit-workspace { --cockpit-tools-height: min(42%, calc(100% - 260px)); }
+.cockpit-workspace > .cockpit-overlay-layer {
+  inset: 48px 18px auto;
+  z-index: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 390px);
+  align-items: start;
+  gap: 12px;
+  max-height: var(--cockpit-tools-height);
+  overflow: auto;
+  pointer-events: none;
+}
+.cockpit-overlay-layer > .cockpit-scene-controls {
+  position: relative;
+  inset: auto;
+  z-index: var(--cockpit-overlay-z);
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  max-width: 720px;
+}
+.cockpit-overlay-layer > .cockpit-layout-library {
+  position: relative;
+  inset: auto;
+  grid-column: 1;
+  grid-row: 2;
+  width: min(360px, 100%);
+  max-height: 300px;
+}
+.cockpit-overlay-layer > .cockpit-layout-library[data-expanded="false"] { inset: auto; width: min(120px, 100%); max-height: 300px; }
+.cockpit-overlay-layer > .cockpit-competition-status[data-expanded] {
+  position: relative;
+  inset: auto;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 100%;
+  max-height: 300px;
+}
+.cockpit-workspace > .cockpit-sensor-launcher {
+  max-height: calc(100% - 90px - var(--cockpit-tools-height));
+}
+@container cockpit-page (max-width: 900px) {
+  .cockpit-workspace > .cockpit-overlay-layer {
+    inset: 48px 12px auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cockpit-overlay-layer > .cockpit-competition-status[data-expanded] { grid-column: 1; grid-row: 3; }
+  .cockpit-workspace > .cockpit-sensor-launcher {
+    left: 12px;
+    bottom: 150px;
+    width: min(340px, calc(100% - 24px));
+    max-height: calc(100% - 222px - var(--cockpit-tools-height));
+  }
 }
 
 .cockpit-window-bar {

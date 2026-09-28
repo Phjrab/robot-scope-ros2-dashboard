@@ -115,13 +115,13 @@
               <button id="cockpitNearField" type="button" aria-pressed="true">NEAR</button>
               <output id="cockpitPointMetrics" aria-label="LiDAR performance">LOW · 10K · — FPS</output>
             </div>
+            <aside class="cockpit-layout-library" id="cockpitLayoutLibrary" aria-label="Cockpit layout preset 저장과 복원"></aside>
+            <aside class="cockpit-competition-status" id="cockpitCompetitionStatus" aria-label="Competition network perception and operation status"></aside>
           </div>
           <div class="cockpit-panel-layer" id="cockpitPanelLayer" aria-label="Cockpit floating panels">
             <div class="cockpit-snap-preview" id="cockpitSnapPreview" aria-hidden="true" hidden></div>
           </div>
           <aside class="cockpit-sensor-launcher" id="cockpitSensorLauncher" aria-label="Sensor Launcher와 panel 정렬"></aside>
-          <aside class="cockpit-layout-library" id="cockpitLayoutLibrary" aria-label="Cockpit layout preset 저장과 복원"></aside>
-          <aside class="cockpit-competition-status" id="cockpitCompetitionStatus" aria-label="Competition network perception and operation status"></aside>
           <aside class="cockpit-safety-hud" id="cockpitSafetyHud" aria-label="Cockpit 고정 Safety HUD"></aside>
         </div>
       </section>
@@ -146,18 +146,20 @@
             <canvas id="liveMap2dCanvas" class="map-layer is-hidden" aria-label="실시간 LiDAR 포인트클라우드의 상단 2D 투영"></canvas>
             <canvas id="mapCanvas" class="map-layer is-hidden" aria-label="실시간 2D 점유 지도"></canvas>
             <div class="map-grid-overlay is-hidden" id="mapGridOverlay"></div>
-            <div class="scene-controls" id="sceneControls" aria-label="실시간 3D 시점 제어">
-              <button id="sceneResetButton" type="button">ISO</button><button id="sceneTopButton" type="button">TOP</button><button id="sceneFrontButton" type="button">FRONT</button><button id="sceneFollowButton" type="button" aria-pressed="false" title="지도 고정/로봇 추적 전환">WORLD</button>
-            </div>
-            <div class="scene-controls live-map2d-controls is-hidden" id="liveMap2dControls" aria-label="Live Mapping 2D 투영 시점 제어">
-              <button id="liveMap2dFitButton" type="button" title="현재 수신한 전체 점군을 화면에 맞춥니다">FIT</button><button id="liveMap2dAutoFitButton" type="button" aria-pressed="true" title="점군 범위가 변할 때 자동으로 화면을 맞춥니다">AUTO FIT</button><button id="liveMap2dFollowButton" type="button" aria-pressed="false" title="지도 고정/로봇 추적 전환">WORLD</button>
-            </div>
-            <div class="map-legend">
-              <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span><span><i class="legend-trail"></i>TRAIL</span>
-              <label class="map-view-select"><span>VIEW</span><select id="mapViewMode"><option value="cloud" selected>LIVE 3D</option><option value="projection">LIVE 2D · POINTS</option><option value="occupancy">ROS 2D · GRID</option><option value="auto">AUTO</option></select></label>
-              <label class="map-view-select"><span>POINTS</span><select id="livePointBudget"><option value="10000" selected>10K · SMOOTH</option><option value="30000">30K · BALANCED</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all">ALL SESSION · MAX 1M</option><option value="custom">CUSTOM</option></select></label>
-              <span class="point-budget-custom is-hidden" id="livePointCustomWrap"><input id="livePointCustom" type="number" min="1000" max="1000000" step="1000" value="10000" aria-label="실시간 표시 포인트 수"><button id="livePointApply" type="button">SET</button></span>
-              <label class="overlay-toggle"><input id="mapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+            <div class="map-view-toolbar">
+              <div class="scene-controls" id="sceneControls" aria-label="실시간 3D 시점 제어">
+                <button id="sceneResetButton" type="button">ISO</button><button id="sceneTopButton" type="button">TOP</button><button id="sceneFrontButton" type="button">FRONT</button><button id="sceneFollowButton" type="button" aria-pressed="false" title="지도 고정/로봇 추적 전환">WORLD</button>
+              </div>
+              <div class="scene-controls live-map2d-controls is-hidden" id="liveMap2dControls" aria-label="Live Mapping 2D 투영 시점 제어">
+                <button id="liveMap2dFitButton" type="button" title="현재 수신한 전체 점군을 화면에 맞춥니다">FIT</button><button id="liveMap2dAutoFitButton" type="button" aria-pressed="true" title="점군 범위가 변할 때 자동으로 화면을 맞춥니다">AUTO FIT</button><button id="liveMap2dFollowButton" type="button" aria-pressed="false" title="지도 고정/로봇 추적 전환">WORLD</button>
+              </div>
+              <div class="map-legend">
+                <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span><span><i class="legend-trail"></i>TRAIL</span>
+                <label class="map-view-select"><span>VIEW</span><select id="mapViewMode"><option value="cloud" selected>LIVE 3D</option><option value="projection">LIVE 2D · POINTS</option><option value="occupancy">ROS 2D · GRID</option><option value="auto">AUTO</option></select></label>
+                <label class="map-view-select"><span>POINTS</span><select id="livePointBudget"><option value="10000" selected>10K · SMOOTH</option><option value="30000">30K · BALANCED</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all">ALL SESSION · MAX 1M</option><option value="custom">CUSTOM</option></select></label>
+                <span class="point-budget-custom is-hidden" id="livePointCustomWrap"><input id="livePointCustom" type="number" min="1000" max="1000000" step="1000" value="10000" aria-label="실시간 표시 포인트 수"><button id="livePointApply" type="button">SET</button></span>
+                <label class="overlay-toggle"><input id="mapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+              </div>
             </div>
             <div class="live-projection-legend is-hidden" id="liveProjectionLegend" aria-label="실시간 2D 포인트 투영 범례">
               <strong>LIVE POINT PROJECTION</strong><span>현재 3D 프레임을 상단에서 투영 · Saved Maps와 별도</span><i><b class="projection-low"></b>낮은 점</i><i><b class="projection-high"></b>높은 점</i><small>드래그 이동 · 휠 확대/축소</small>
@@ -223,15 +225,17 @@
               <canvas id="savedSceneCanvas" class="map-layer" aria-label="저장된 Go2 및 LiDAR 3D 지도"></canvas>
               <canvas id="savedMapCanvas" class="map-layer is-hidden" aria-label="저장된 2D 점유 지도"></canvas>
               <div class="map-grid-overlay is-hidden" id="savedMapGridOverlay"></div>
-              <div class="scene-controls" id="savedSceneControls" aria-label="저장 지도 3D 시점 제어">
-                <button id="savedSceneResetButton" type="button">ISO</button><button id="savedSceneTopButton" type="button">TOP</button><button id="savedSceneFrontButton" type="button">FRONT</button>
-              </div>
-              <div class="map-legend">
-                <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span>
-                <label class="map-view-select"><span>VIEW</span><select id="savedMapViewMode"><option value="cloud" selected>SAVED 3D</option><option value="occupancy">SAVED 2D</option></select></label>
-                <label class="map-view-select"><span>POINTS</span><select id="savedPointBudget"><option value="10000">10K</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all" selected>ALL ≤2M</option><option value="custom">CUSTOM</option></select></label>
-                <span class="point-budget-custom is-hidden" id="savedPointCustomWrap"><input id="savedPointCustom" type="number" min="1000" max="1000000" step="1000" value="100000" aria-label="저장 지도 표시 포인트 수"><button id="savedPointApply" type="button">SET</button></span>
-                <label class="overlay-toggle"><input id="savedMapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+              <div class="map-view-toolbar">
+                <div class="scene-controls" id="savedSceneControls" aria-label="저장 지도 3D 시점 제어">
+                  <button id="savedSceneResetButton" type="button">ISO</button><button id="savedSceneTopButton" type="button">TOP</button><button id="savedSceneFrontButton" type="button">FRONT</button>
+                </div>
+                <div class="map-legend">
+                  <span><i class="legend-low"></i>LOW</span><span><i class="legend-high"></i>HIGH</span><span><i class="legend-robot"></i>ROBOT</span>
+                  <label class="map-view-select"><span>VIEW</span><select id="savedMapViewMode"><option value="cloud" selected>SAVED 3D</option><option value="occupancy">SAVED 2D</option></select></label>
+                  <label class="map-view-select"><span>POINTS</span><select id="savedPointBudget"><option value="10000">10K</option><option value="50000">50K</option><option value="100000">100K</option><option value="250000">250K</option><option value="all" selected>ALL ≤2M</option><option value="custom">CUSTOM</option></select></label>
+                  <span class="point-budget-custom is-hidden" id="savedPointCustomWrap"><input id="savedPointCustom" type="number" min="1000" max="1000000" step="1000" value="100000" aria-label="저장 지도 표시 포인트 수"><button id="savedPointApply" type="button">SET</button></span>
+                  <label class="overlay-toggle"><input id="savedMapOverlayToggle" type="checkbox" checked><b>ROBOT</b></label>
+                </div>
               </div>
               <div class="map-meta"><span id="savedMapFrame">FRAME —</span><span id="savedMapPoints">0 POINTS</span></div>
             </div>
@@ -816,6 +820,23 @@
               </div>
             </div>
           </article>
+          <article class="panel settings-panel">
+            <div class="panel-header"><div><div class="eyebrow">DATA SOURCES</div><h2>Topic selection</h2></div><span class="muted">AUTO DISCOVERY</span></div>
+            <div class="settings-card-body source-settings-grid">
+              <label><span>카메라</span><select id="cameraSource"><option value="">탐색 중…</option></select></label>
+              <label class="lidar-source-picker"><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select>
+                <div class="lidar-source-identity settings-source-identity" role="status" aria-live="polite" aria-label="선택한 LiDAR 소스">
+                  <span class="lidar-sensor-badge generic" id="cloudSourceSensorBadge">LIDAR NOT SELECTED</span>
+                  <span class="lidar-source-pin is-hidden" id="cloudSourcePin">PINNED</span>
+                  <code class="lidar-source-topic" id="cloudSourceTopicLabel">NO POINTCLOUD TOPIC</code>
+                  <span class="lidar-source-stage" id="cloudSourceStageLabel">단계 미확인</span>
+                  <span class="lidar-source-freshness waiting" id="cloudSourceFreshness">WAITING</span>
+                </div>
+              </label>
+              <label><span>Odometry</span><select id="odomSource"><option value="">탐색 중…</option></select></label>
+              <label><span>2D 맵</span><select id="mapSource"><option value="">없음</option></select></label>
+            </div>
+          </article>
           <article class="panel settings-panel control-bridge-service-panel" aria-labelledby="controlBridgeServiceHeading">
             <div class="panel-header compact">
               <div><div class="eyebrow">GO2 GATEWAY · FIXED SERVICE</div><h2 id="controlBridgeServiceHeading">Control Bridge 시작·중지</h2></div>
@@ -837,23 +858,6 @@
                 </div>
                 <p id="controlBridgeServiceMessage" class="control-bridge-service-message" role="status" aria-live="polite">제어 브리지 서비스 상태를 확인하고 있습니다.</p>
               </div>
-            </div>
-          </article>
-          <article class="panel settings-panel">
-            <div class="panel-header"><div><div class="eyebrow">DATA SOURCES</div><h2>Topic selection</h2></div><span class="muted">AUTO DISCOVERY</span></div>
-            <div class="settings-card-body source-settings-grid">
-              <label><span>카메라</span><select id="cameraSource"><option value="">탐색 중…</option></select></label>
-              <label class="lidar-source-picker"><span>LiDAR / 3D 맵</span><select id="cloudSource"><option value="">탐색 중…</option></select>
-                <div class="lidar-source-identity settings-source-identity" role="status" aria-live="polite" aria-label="선택한 LiDAR 소스">
-                  <span class="lidar-sensor-badge generic" id="cloudSourceSensorBadge">LIDAR NOT SELECTED</span>
-                  <span class="lidar-source-pin is-hidden" id="cloudSourcePin">PINNED</span>
-                  <code class="lidar-source-topic" id="cloudSourceTopicLabel">NO POINTCLOUD TOPIC</code>
-                  <span class="lidar-source-stage" id="cloudSourceStageLabel">단계 미확인</span>
-                  <span class="lidar-source-freshness waiting" id="cloudSourceFreshness">WAITING</span>
-                </div>
-              </label>
-              <label><span>Odometry</span><select id="odomSource"><option value="">탐색 중…</option></select></label>
-              <label><span>2D 맵</span><select id="mapSource"><option value="">없음</option></select></label>
             </div>
           </article>
           <article class="panel settings-panel service-lifecycle-panel">

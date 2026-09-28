@@ -111,9 +111,10 @@ function createRoutePlannerPanelView(options = {}) {
   const reportButton = make(documentValue, 'button', '', 'REPORT JSON / MARKDOWN'); reportButton.type = 'button'; reportButton.dataset.routeRehearsalAction = 'REPORT';
   rehearsalSection.append(make(documentValue, 'h3', '', 'Development / Rehearsal'), rehearsalBanner, scenarioSelect, rehearsalStart, rehearsalControls, speed, timeline, playback, virtualPose, advisoryState, expectedActual, eventList, cargo, missionDryRun, dryRunButton, reportButton, rehearsalReport);
   root.append(header);
-  const foodProduction = createFoodProduction(root, documentValue);
   const schematicView = createSchematicControls(root, options.client, documentValue);
-  root.append(orderSection, planningSection, guidance, rehearsalSection); options.host.append(root);
+  root.append(orderSection, planningSection, guidance);
+  const foodProduction = createFoodProduction(root, documentValue);
+  root.append(rehearsalSection); options.host.append(root);
   const spatialEditor = createSpatialEditor(root, options.client, documentValue);
 
   let current = null;
