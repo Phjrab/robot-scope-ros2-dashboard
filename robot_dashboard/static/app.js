@@ -4227,6 +4227,9 @@ function renderNavigationParameterGroups(values = navigationParameterDraft || na
       }).join('')}</div>
     </section>`;
   }).join('');
+  const group = (id) => ui.navigationParameterGroups.querySelector(`[data-navigation-parameter-group="${id}"]`);
+  const compact = document.createElement('div'); compact.className = 'navigation-parameter-compact';
+  compact.append(group('core'), group('goal'), group('planner')); ui.navigationParameterGroups.prepend(group('controller'), compact);
 }
 
 function renderNavigationPresetOptions(preferred = ui.navigationPreset.value || navigationParameterSnapshot?.active_preset || 'pdf11_go2_indoor') {

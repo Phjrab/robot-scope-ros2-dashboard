@@ -94,6 +94,41 @@ test('layout: camera controls, conversion fields and planner rows align within t
   expect(rows.checkbox).toBeLessThan(24);
 });
 
+test('layout: Nav2 compact groups remain separate and Costmaps spans the row', async ({ page }) => {
+  await installDashboardBackend(page);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/#navigation');
+    const layout = await page.locator('#navigationParameterGroups').evaluate(root => {
+      const rect = selector => root.querySelector(selector).getBoundingClientRect();
+      const ids = [...root.querySelectorAll('.navigation-parameter-compact > .navigation-parameter-group')]
+        .map(group => group.dataset.navigationParameterGroup);
+      const fields = [...root.querySelectorAll('[data-navigation-parameter-group="costmap"] .navigation-parameter-field')]
+        .map(field => field.getBoundingClientRect());
+      return {
+        ids,
+        fieldCount: root.querySelectorAll('[data-navigation-parameter]').length,
+        controller: rect('[data-navigation-parameter-group="controller"]').toJSON(),
+        compact: rect('.navigation-parameter-compact').toJSON(),
+        costmap: rect('[data-navigation-parameter-group="costmap"]').toJSON(),
+        group: root.getBoundingClientRect().toJSON(),
+        costmapFirstRows: fields.slice(0, 3).map(field => field.top),
+      };
+    });
+    expect(layout.ids).toEqual(['core', 'goal', 'planner']);
+    expect(layout.fieldCount).toBe(27);
+    if (width === 1440) {
+      expect(Math.abs(layout.controller.top - layout.compact.top)).toBeLessThanOrEqual(1);
+      expect(layout.compact.left).toBeGreaterThan(layout.controller.right - 1);
+    } else {
+      expect(layout.compact.top).toBeGreaterThanOrEqual(layout.controller.bottom - 1);
+    }
+    expect(layout.costmap.top).toBeGreaterThanOrEqual(Math.max(layout.controller.bottom, layout.compact.bottom) - 1);
+    expect(layout.costmap.width).toBeGreaterThan(layout.group.width * .95);
+    expect(layout.costmapFirstRows[0] === layout.costmapFirstRows[1]).toBe(width !== 390);
+  }
+});
+
 test('layout: map view controls never overlap the legend or custom point budget', async ({ page }) => {
   await installDashboardBackend(page);
   await page.goto('/#mapping');

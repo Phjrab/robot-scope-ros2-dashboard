@@ -176,6 +176,9 @@ footer { flex-wrap: wrap; gap: 8px 20px; }
 .map-view-select { min-width: 0; }
 .page-view:not(.cockpit-page) .map-view-toolbar select { min-height: 32px; }
 .navigation-parameter-fields { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.navigation-parameter-groups > [data-navigation-parameter-group="costmap"] .navigation-parameter-fields {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 265px), 1fr));
+}
 .navigation-parameter-field { grid-template-columns: minmax(0, 1fr) 112px; }
 .navigation-parameter-field small { overflow-wrap: anywhere; }
 .navigation-health-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
