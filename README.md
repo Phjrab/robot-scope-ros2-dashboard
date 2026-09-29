@@ -15,6 +15,23 @@ Jetson은 전체 Go2 경로를 검증한 장비이지 웹 대시보드의 필수
 replay에서 확인됐고 현장 주행 결과로 확대하지 않습니다. 승인된 perception
 모델 artifact와 실장비 acceptance도 없습니다. [증거 표](docs/PORTFOLIO.md).
 
+## 화면 예시
+
+2026-09-28 연결된 웹 UI를 **읽기 전용**으로 촬영한 화면입니다. Cockpit과
+매핑 화면에는 당시 수신된 LiDAR 포인트가 보입니다. 촬영 중 ARM·주행·매핑
+시작·지도 저장·Nav2 목표 실행은 하지 않았으므로, 아래 이미지를 경로 완주나
+자율주행 성공의 근거로 해석하면 안 됩니다. 원본은 로컬
+`robot_scope_web_capture_2026-09-28_ui_update_v2/screenshots/`에 보관합니다.
+
+| Cockpit · 실시간 LiDAR | Live Mapping · LiDAR 관측 |
+|---|---|
+| ![Go2 Cockpit에서 수신 중인 LiDAR 포인트와 DISARMED Safety HUD](docs/images/readme/02_cockpit_live_lidar.png) | ![Live Mapping 화면에 표시된 LiDAR 포인트](docs/images/readme/03_mapping_live_lidar.png) |
+
+저장 지도 조회 화면입니다. 화면에 지도가 표시된 사실과 이 촬영에서 새 지도를
+작성·저장했다는 주장은 별개입니다.
+
+![저장 지도를 선택해 확인하는 Robot Scope UI](docs/images/readme/04_saved_maps.png)
+
 ## 왜 만들었나
 
 로봇의 ROS 센서와 지도, 주행 준비 상태, 카메라 및 운영 기록이 여러 도구에
@@ -101,8 +118,8 @@ npm run test:unit
 UI E2E는 loopback mock backend와 fixture를 사용합니다. Playwright가 설치된
 환경의 [공간 편집 테스트](tests/e2e/spatial_editor.spec.mjs)는 fixture 화면을
 캡처할 수 있으나, 그 이미지는 `UI 데모 / fixture 데이터 / 성능 증거 아님`으로
-표시해야 합니다. 현재 저장소에는 공개 가능한 실제 제품 캡처를 연결하지
-않았습니다. [촬영 목록과 증거 조건](docs/PORTFOLIO.md).
+표시해야 합니다. 위의 실제 제품 캡처는 fixture E2E와 별개이며, 읽기 전용
+관측 범위에 한합니다. [촬영 목록과 증거 조건](docs/PORTFOLIO.md).
 
 ## 설치·운영 문서
 
