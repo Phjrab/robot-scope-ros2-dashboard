@@ -1,0 +1,93 @@
+# WP03 experimental SE(3) local registration — 2026-09-29
+
+Status: `SYNTHETIC_EXPERIMENT_PASS`; `REAL_DATA_NOT_VERIFIED`;
+`GLOBAL_RELOCALIZATION_NOT_IMPLEMENTED`; `POSE_NOT_APPLIED`.
+
+This is a separate, offline-only NumPy point-to-point ICP experiment. It does
+not change the existing `bounded-se2-icp` code, 3DoF result schema, D2 runtime
+backend allowlist, default, readiness, watchdog, map lineage, or any control
+path. The separate result is identified by
+`robot-scope.experimental-se3-result.v1`, has `experimental: true`, and always
+contains x/y/z, roll/pitch/yaw, and quaternion. It cannot be projected into a
+3DoF candidate by dropping out-of-plane components. The contract is in
+`docs/contracts/relocalization/experimental-se3-result-v1.schema.json` and
+is also checked by `validate_experimental_result()` without a new dependency.
+
+## Geometry and input boundary
+
+`T_target_source` maps each registered source point into the target map frame.
+The benchmark uses synthetic `map` and `camera_init` labels solely to exercise
+the convention. Inverse, composition, proper-rotation, quaternion, Euler-angle,
+metre-unit, finite-coordinate and positive query timestamp checks are tested.
+The reference is static. Raw sensor clouds are rejected: this experiment does
+not infer sensor extrinsics, apply a calibration twice, or combine cloud with
+odometry from an unchecked timestamp. A future raw-data path needs an explicit
+calibration and synchronized odometry contract before it can use this method.
+
+One local hypothesis uses at most 4,000 points per cloud, 40 iterations,
+0.75 m correspondence distance, 0.60 overlap, 0.05 m RMSE and a minimum 0.002
+target covariance eigenvalue ratio. The last three are conservative synthetic
+candidate gates, **not** production confidence probabilities or certified
+safety limits. Ground is retained in the input; obstacle-extraction filtering
+is not reused. The minimum-eigenvalue direction and ratio expose weak 3D
+geometry. A candidate is never automatically applied or sent to Nav2.
+
+## Reproduction and results
+
+On macOS 26.3 arm64, Python 3.13.2 and NumPy 2.4.2, using the unchanged
+portable SE2 executable from WP02:
+
+```sh
+python3 scripts/benchmark_experimental_se3.py \
+  --se2-executable /path/to/robot_scope_offline_registration \
+  --output /tmp/robot-scope-wp03-se3.json --require-expected
+python3 -m unittest discover -s tests -p test_experimental_se3.py -v
+```
+
+The command generates a fresh synthetic map/query pair for each case; no PCD
+fixture is committed. The result stores both cloud hashes, the exact initial
+`T_target_source`, module/benchmark/executable hashes, the source commit,
+and a stable manifest hash. Test coverage reruns the matrix and compares
+manifest and categorical outcomes. The local result file is
+`/tmp/robot-scope-wp03-se3.json` and is intentionally not committed because
+timings and RSS are host dependent.
+
+| Synthetic case | Experimental SE3 | Existing SE2, same points and planar seed |
+| --- | --- | --- |
+| Height-varying scene | candidate; known-truth 3D error effectively zero | accepted; x/y/yaw only |
+| Tilted query | candidate; known-truth 3D error effectively zero | accepted; z/roll/pitch unavailable |
+| Sloped ground | candidate; known-truth 3D error effectively zero | policy rejected |
+| Partial occlusion | candidate; known-truth 3D error effectively zero | policy rejected |
+| Ground removed | high-residual reject | preprocessing error: too few points |
+| Flat ground only / single plane | degenerate-geometry reject | accepted / too-few-points error |
+| Repeated structures, two seeds | two distinct near-equal local candidates; ambiguous | too-few-points error |
+| Wrong map / far initial pose | low-overlap reject | process errors |
+
+Across 11 SE3 runs, six local candidates and five rejections matched the
+declared synthetic expectations; false candidates on the expected-reject set
+were 0. Repeated structures had two near-equal solutions separated by 4 m,
+so no unique global pose is claimed. The SE3 runtime p50/p95 was approximately
+13/115 ms and the Python process peak RSS approximately 48 MB on this run.
+This is not a fair speed ranking against C++ SE2: languages, point processing,
+acceptance contracts and supported dimensions differ. Per-case values are in
+the structured report.
+
+The ground-removed case illustrates a measured failure condition. A local
+solution had 0.0618 m RMSE, 0.123 m 3D position error and 3.89-degree rotation
+error despite apparent convergence. The fixed 0.05 m residual gate rejects
+it. With ground retained, the same transformed scene recovered the known
+pose; that result is specific to this synthetic geometry, not evidence that
+all real ground returns improve localization. A single plane remains rejected
+even when point-to-point ICP appears to converge, because 3D geometry is
+insufficient under this experiment's conservative gate.
+
+## Limits and next evidence
+
+All known truth here is generated by transforming the same synthetic reference
+points. No independent observations, sensor calibration, ground truth, real
+slopes, Jetson timing, PCL/GICP behavior, or global relocalization were
+verified. The two Jetson PCDs found in WP01 are maps, not synchronized
+independent queries; they were not used as a false real-data accuracy test.
+No ROS node, actual pose application, loop closure, goal, command or motion
+was invoked. Future use needs provenance-checked real query data, independent
+truth or clearly labeled truth-free metrics, and seed/ambiguity validation.

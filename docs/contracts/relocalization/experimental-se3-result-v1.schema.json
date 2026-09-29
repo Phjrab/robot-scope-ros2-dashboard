@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "robot-scope.experimental-se3-result.v1",
+  "title": "Offline-only experimental SE3 registration result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "experimental", "status", "reason", "method", "target_frame",
+    "source_frame", "query_stamp_ns", "transform_convention", "pose", "metrics"
+  ],
+  "properties": {
+    "schema": {"const": "robot-scope.experimental-se3-result.v1"},
+    "experimental": {"const": true},
+    "status": {"enum": ["CANDIDATE", "REJECTED"]},
+    "reason": {"type": "string", "minLength": 1},
+    "method": {"const": "bounded-point-to-point-se3-icp"},
+    "target_frame": {"type": "string", "minLength": 1, "maxLength": 80},
+    "source_frame": {"type": "string", "minLength": 1, "maxLength": 80},
+    "query_stamp_ns": {"type": "integer", "minimum": 1},
+    "transform_convention": {"const": "T_target_source"},
+    "pose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z", "roll_rad", "pitch_rad", "yaw_rad", "quaternion_xyzw"],
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "z": {"type": "number"},
+        "roll_rad": {"type": "number", "minimum": -3.141592653589793, "maximum": 3.141592653589793},
+        "pitch_rad": {"type": "number", "minimum": -1.5707963267948966, "maximum": 1.5707963267948966},
+        "yaw_rad": {"type": "number", "minimum": -3.141592653589793, "maximum": 3.141592653589793},
+        "quaternion_xyzw": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": {"type": "number"}
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "converged", "iterations", "overlap_ratio", "rmse_m",
+        "geometry_min_max_eigen_ratio", "weak_geometry_direction_target", "runtime_ms"
+      ],
+      "properties": {
+        "converged": {"type": "boolean"},
+        "iterations": {"type": "integer", "minimum": 1, "maximum": 40},
+        "overlap_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "rmse_m": {"type": ["number", "null"], "minimum": 0},
+        "geometry_min_max_eigen_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "weak_geometry_direction_target": {
+          "type": "array", "minItems": 3, "maxItems": 3,
+          "items": {"type": "number"}
+        },
+        "runtime_ms": {"type": "number", "minimum": 0}
+      }
+    }
+  }
+}
