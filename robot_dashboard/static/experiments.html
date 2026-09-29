@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offline Experiments · Robot Scope</title>
+  <link rel="stylesheet" href="/static/features/experiments/view.css">
+  <script src="/static/scene3d.js" defer></script>
+  <script src="/static/features/experiments/view.js" type="module"></script>
+</head>
+<body>
+  <header class="experiment-header">
+    <div><a href="/" class="back-link">← ROBOT SCOPE</a><span class="scope-label">OFFLINE EXPERIMENTS · READ ONLY</span></div>
+    <strong class="data-badge">SYNTHETIC · NOT LIVE</strong>
+  </header>
+  <main class="experiment-shell">
+    <section class="experiment-intro">
+      <div><span class="eyebrow">REPRODUCIBLE RESEARCH</span><h1>3D 위치추정 실험 비교</h1>
+        <p>이 화면은 로컬 벤치마크 JSON만 브라우저에서 읽습니다. 로봇, ROS, 서버 API에 연결하거나 결과를 실제 위치로 적용하지 않습니다.</p></div>
+      <div class="experiment-source">
+        <label>비교 결과 JSON <input id="candidateFile" type="file" accept=".json,application/json"></label>
+        <label>기준선 JSON · 선택 <input id="baselineFile" type="file" accept=".json,application/json"></label>
+        <small>생성: <code>python3 scripts/benchmark_experimental_se3.py --output /tmp/se3-result.json</code></small>
+      </div>
+    </section>
+    <p id="experimentStatus" class="experiment-status" role="status" aria-live="polite">실험 결과 파일을 선택하세요.</p>
+    <section id="experimentContent" hidden>
+      <div class="case-bar"><label for="experimentCase">SCENARIO</label><select id="experimentCase"></select><span id="caseKind" class="data-badge">SYNTHETIC</span></div>
+      <div class="scene-grid">
+        <article class="scene-panel"><div class="scene-heading"><h2>기준 지도 점군</h2><small>REGISTERED_MAP · 제한된 미리보기</small></div><canvas id="referenceCanvas" aria-label="합성 기준 지도 점군 3D 장면"></canvas></article>
+        <article class="scene-panel"><div class="scene-heading"><h2>추정 위치로 정렬한 query</h2><small>REGISTERED_QUERY · T_target_source 적용 미리보기</small></div><canvas id="queryCanvas" aria-label="합성 query 정렬 점군 3D 장면"></canvas></article>
+      </div>
+      <div class="result-grid">
+        <article class="result-panel"><h2>위치와 판정</h2><dl>
+          <div><dt>초기 위치</dt><dd id="initialPose">—</dd></div><div><dt>추정 위치</dt><dd id="estimatedPose">—</dd></div>
+          <div><dt>정답</dt><dd id="truthPose">—</dd></div><div><dt>정답 대비 오차</dt><dd id="truthError">—</dd></div>
+          <div><dt>수용 / 거절</dt><dd id="caseDecision">—</dd></div><div><dt>오프라인 경로</dt><dd>ACTUAL_NAV2_NOT_RUN · 결과 없음</dd></div>
+        </dl></article>
+        <article class="result-panel"><h2>품질과 비교</h2><dl>
+          <div><dt>처리시간</dt><dd id="runtimeMetric">—</dd></div><div><dt>Overlap / RMSE</dt><dd id="qualityMetric">—</dd></div>
+          <div><dt>기준선 대비</dt><dd id="baselineMetric">기준선 없음</dd></div><div><dt>프로세스 최대 메모리</dt><dd id="memoryMetric">—</dd></div>
+          <div><dt>3DoF 비교</dt><dd id="se2Metric">—</dd></div>
+        </dl></article>
+      </div>
+      <article class="result-panel provenance"><h2>출처와 재현 조건</h2><dl>
+        <div><dt>데이터 종류</dt><dd id="dataKind">—</dd></div><div><dt>생성 시각</dt><dd id="generatedAt">—</dd></div>
+        <div><dt>소스 commit</dt><dd id="sourceCommit">—</dd></div><div><dt>지도 revision 대용 digest</dt><dd id="targetDigest">—</dd></div>
+        <div><dt>Query digest</dt><dd id="queryDigest">—</dd></div><div><dt>입력 manifest</dt><dd id="manifestDigest">—</dd></div>
+        <div><dt>파라미터 구현 digest</dt><dd id="moduleDigest">—</dd></div><div><dt>벤치마크 구현 digest</dt><dd id="benchmarkDigest">—</dd></div>
+      </dl></article>
+      <p class="experiment-caveat">미리보기는 원본 PCD가 아닌 최대 256점의 합성 샘플입니다. 동일 지도에서 변환한 query의 오차는 독립 관측 정확도가 아닙니다. 실제 Nav2 경로나 실로봇 검증은 이 화면에 포함되지 않습니다.</p>
+    </section>
+  </main>
+</body>
+</html>

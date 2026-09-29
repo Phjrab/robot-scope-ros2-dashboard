@@ -142,7 +142,7 @@
   function reasonableAdvertisedBounds(advertised, sampledBounds, medians, maxRadius) {
     const advertisedMin = advertised?.min;
     const advertisedMax = advertised?.max;
-    if (!sampledBounds || advertisedMin?.length < 3 || advertisedMax?.length < 3) return null;
+    if (!sampledBounds || !advertisedMin || !advertisedMax || advertisedMin.length < 3 || advertisedMax.length < 3) return null;
     const min = advertisedMin.slice(0, 3).map(Number);
     const max = advertisedMax.slice(0, 3).map(Number);
     if (![...min, ...max].every(Number.isFinite)) return null;
@@ -159,7 +159,7 @@
   function boundedAdvertisedBounds(advertised, maxRadius) {
     const advertisedMin = advertised?.min;
     const advertisedMax = advertised?.max;
-    if (advertisedMin?.length < 3 || advertisedMax?.length < 3) return null;
+    if (!advertisedMin || !advertisedMax || advertisedMin.length < 3 || advertisedMax.length < 3) return null;
     const min = advertisedMin.slice(0, 3).map(Number);
     const max = advertisedMax.slice(0, 3).map(Number);
     if (![...min, ...max].every(Number.isFinite)) return null;

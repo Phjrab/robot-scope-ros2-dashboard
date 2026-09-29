@@ -180,6 +180,7 @@ class ExperimentalSE3Tests(unittest.TestCase):
             subprocess.run(repeated_command, check=True, capture_output=True, text=True, timeout=90)
             repeated = json.loads(repeated_output.read_text(encoding="utf-8"))
         self.assertEqual(report["schema"], "robot-scope.experimental-se3-benchmark.v1")
+        self.assertTrue(report["generated_at"].endswith("Z"))
         self.assertEqual(report["case_count"], 11)
         self.assertEqual(report["candidate_count"], 6)
         self.assertEqual(report["false_candidate_count"], 0)
@@ -187,6 +188,13 @@ class ExperimentalSE3Tests(unittest.TestCase):
         self.assertTrue(report["repeated_structure_seed_ambiguity"])
         self.assertEqual(report["module_sha256"], summary["module_sha256"])
         self.assertEqual(report["manifest_sha256"], repeated["manifest_sha256"])
+        self.assertEqual(
+            [(case["target_preview_points"], case["source_preview_points"]) for case in report["cases"]],
+            [(case["target_preview_points"], case["source_preview_points"]) for case in repeated["cases"]],
+        )
+        self.assertTrue(all(0 < len(case["target_preview_points"]) <= 256
+                            and 0 < len(case["source_preview_points"]) <= 256
+                            for case in report["cases"]))
         self.assertEqual(
             [(case["id"], case["se3"]["status"], case["se3"]["reason"])
              for case in report["cases"]],

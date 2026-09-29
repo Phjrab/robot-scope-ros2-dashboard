@@ -84,6 +84,15 @@ function sceneHarness({ storage, stored = {}, options = {} } = {}) {
   return { scene, canvas, preference, sandbox };
 }
 
+test('point-cloud preview without advertised bounds uses its sampled bounds', () => {
+  const { scene } = sceneHarness();
+  scene.render = () => {};
+  assert.equal(scene.setPointCloud({ points: [[0, 0, 0], [1, 0, 0], [0, 1, 1]], frame_id: 'map' }), 3);
+  assert.deepEqual(Array.from(scene.cloud.bounds.min), [0, 0, 0]);
+  assert.deepEqual(Array.from(scene.cloud.bounds.max), [1, 1, 1]);
+  scene.destroy();
+});
+
 test('cockpit first follow pose centers and pan disables following until reset', () => {
   const { scene } = sceneHarness({ options: { autoFitOnFirstCloud: false, manualPanStopsFollow: true } });
   scene.setCameraMode('follow'); scene.setRobotPose({ x: 20, y: -9, z: 0.4 });

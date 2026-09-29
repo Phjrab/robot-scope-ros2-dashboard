@@ -14,6 +14,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -107,6 +108,12 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _preview(points: np.ndarray, limit: int = 256) -> list[list[float]]:
+    """Bounded deterministic visualization sample, never a saved PCD or raw bag."""
+    indices = np.linspace(0, len(points) - 1, min(len(points), limit), dtype=int)
+    return np.round(points[indices], 5).tolist()
+
+
 def _git_commit() -> str | None:
     completed = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                capture_output=True, text=True, check=False)
@@ -165,7 +172,9 @@ def run_matrix(se2_executable: Path | None = None) -> dict:
             ))
             record = {"id": case["id"], "data_kind": "SYNTHETIC", "expected_status": case["expect"],
                       "target_sha256": _sha256(target_path), "source_sha256": _sha256(source_path),
-                      "initial_t_target_source": case["initial"].tolist(), "se3": result}
+                      "initial_t_target_source": case["initial"].tolist(), "se3": result,
+                      "target_preview_points": _preview(case["target"]),
+                      "source_preview_points": _preview(case["source"])}
             if "truth" in case:
                 truth = case["truth"]
                 estimate = from_translation_rpy(
@@ -192,6 +201,7 @@ def run_matrix(se2_executable: Path | None = None) -> dict:
         for record in measurements]
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return {"schema": "robot-scope.experimental-se3-benchmark.v1", "experimental": True,
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "data_kind": "SYNTHETIC", "ground_truth_source": "same-map inverse transforms where present",
             "source_commit": _git_commit(), "benchmark_sha256": _sha256(Path(__file__)),
             "source_tree_dirty": _source_tree_dirty(),
