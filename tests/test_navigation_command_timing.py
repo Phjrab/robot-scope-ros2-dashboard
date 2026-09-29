@@ -208,6 +208,63 @@ class NavigationCommandTimingTests(unittest.TestCase):
         self.assertIn(f"lock_wait_s=0.000000 processing_s={delay:.6f}", text)
         self.assertIn(f"previous_submit_age_s={self.timeout_s + 0.05:.6f}", text)
 
+    def assert_interlock_stop(self, expected_reason):
+        self.command()
+        self.tick()
+        cutoff = len(self.outputs)
+        self.clock.now += 0.1
+        self.refresh_inputs()
+        expected_reason()
+        with mock.patch("socket.socket", side_effect=AssertionError("hardware socket created")):
+            self.command()
+            self.tick()
+        self.assertFalse(self.manager.snapshot()["lease"]["active"])
+        self.assertEqual(self.navigation.state["goal"]["state"], "canceled")
+        self.assertEqual(self.cancel_output_counts, [len(self.outputs)])
+        self.assertTrue(self.outputs[cutoff:])
+        self.assertTrue(all(item["type"] == "stop" for item in self.outputs[cutoff:]))
+        self.assertFalse(self.navigation.state["active"])
+        self.clock.now += 0.05
+        self.refresh_inputs()
+        self.command()
+        self.tick()
+        self.assertTrue(all(item["type"] == "stop" for item in self.outputs[cutoff:]))
+
+    def test_odom_receipt_gap_stops_without_transport_or_auto_resume(self):
+        def stale_odom():
+            self.navigation._navigation_validated_receipts["/Odometry"] = self.clock() - 0.751
+
+        self.assert_interlock_stop(stale_odom)
+        self.assertIn("/Odometry is stale", self.navigation.state["goal"]["error"])
+
+    def test_runtime_health_gap_stops_without_transport_or_auto_resume(self):
+        def stale_health():
+            self.navigation._navigation_runtime_health_received = self.clock() - 0.751
+
+        self.assert_interlock_stop(stale_health)
+        self.assertIn("runtime health is stale", self.navigation.state["goal"]["error"])
+
+    def test_localization_readiness_loss_stops_and_preserves_cause(self):
+        def lost_localization():
+            self.navigation._navigation_runtime_health["localized"] = False
+
+        self.assert_interlock_stop(lost_localization)
+        self.assertIn("localization is not ready", self.navigation.state["goal"]["error"])
+
+    def test_canceling_goal_does_not_accept_reentered_nonzero_command(self):
+        self.command()
+        self.tick()
+        cutoff = len(self.outputs)
+        self.navigation.state["goal"]["state"] = "canceling"
+        self.clock.now += 0.1
+        self.refresh_inputs()
+        with mock.patch("socket.socket", side_effect=AssertionError("hardware socket created")):
+            self.command()
+            self.tick()
+        self.assertTrue(self.outputs[cutoff:])
+        self.assertTrue(all(item["type"] == "stop" for item in self.outputs[cutoff:]))
+        self.assertEqual(self.navigation.state["goal"]["state"], "canceling")
+
 
 class Go2NavigationCommandTimingTests(NavigationCommandTimingTests):
     """Run the same gateway/manager checks against the user's Go2 profile."""
