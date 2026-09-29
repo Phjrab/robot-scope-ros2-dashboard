@@ -222,6 +222,55 @@ class OfflineRegistrationTests(unittest.TestCase):
         self.assertEqual(result["converged_cases"], result["cases"])
         self.assertEqual(result["accepted_cases"], result["cases"])
 
+    def test_extended_matrix_records_failures_separately_from_acceptance(self):
+        output = self.build_path / "registration-matrix.json"
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "benchmark_offline_registration.py"),
+                "--executable", str(self.cli),
+                "--suite", "extended",
+                "--build-label", "test-cxx17-o2",
+                "--output", str(output),
+                "--require-acceptance",
+            ],
+            check=True, capture_output=True, text=True, timeout=90,
+        )
+        summary = json.loads(completed.stdout)
+        report = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(report["schema"], "robot-scope.registration-matrix.v1")
+        self.assertEqual(report["case_count"], 29)
+        self.assertEqual(report["expected_rejection_count"], 6)
+        self.assertEqual(report["false_acceptance_count"], 0)
+        self.assertEqual(report["expectation_failure_count"], 0)
+        self.assertEqual(report["timeout_count"], 1)
+        self.assertEqual(report["manifest_sha256"], summary["manifest_sha256"])
+        self.assertEqual(len(report["manifest_sha256"]), 64)
+        cases = {case["id"]: case for case in report["cases"]}
+        self.assertEqual(len(cases), 29)
+        self.assertTrue(all(cases[f"baseline-{index:02d}"]["outcome"] == "accepted"
+                            for index in range(10)))
+        self.assertEqual(cases["large-initial-yaw-error"]["confidence"], "REJECTED")
+        self.assertNotEqual(cases["repeated-symmetric-corridor"]["confidence"], "HIGH")
+        for name in ("wrong-map-no-overlap", "wrong-seed", "millimetre-unit-mismatch",
+                     "z-frame-offset", "insufficient-points", "nonfinite-points"):
+            self.assertNotEqual(cases[name]["outcome"], "accepted")
+            self.assertNotIn("truth", cases[name])
+        self.assertEqual(cases["injected-timeout"]["outcome"], "timeout")
+        self.assertEqual(cases["injected-crash"]["outcome"], "process_error")
+        self.assertLess(report["translation_p95_m"], 0.30)
+        self.assertLess(report["yaw_p95_deg"], 8.0)
+        repeat_output = self.build_path / "registration-matrix-repeat.json"
+        repeat_command = [*completed.args]
+        repeat_command[repeat_command.index(str(output))] = str(repeat_output)
+        subprocess.run(repeat_command, check=True, capture_output=True, text=True, timeout=90)
+        repeat = json.loads(repeat_output.read_text(encoding="utf-8"))
+        self.assertEqual(report["manifest_sha256"], repeat["manifest_sha256"])
+        self.assertEqual(
+            [(case["id"], case["outcome"], case.get("confidence")) for case in report["cases"]],
+            [(case["id"], case["outcome"], case.get("confidence")) for case in repeat["cases"]],
+        )
+
     def test_process_adapter_runs_fixed_argv_and_validates_ranked_result(self):
         adapter = OfflineRegistrationProcess(self.cli, [self.root])
         result = adapter.run(request(self.reference, self.query))
