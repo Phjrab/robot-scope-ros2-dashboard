@@ -1,0 +1,84 @@
+# Run in actual FreeCAD after build_cargo_plate.FCMacro.
+import itertools, xml.etree.ElementTree as ET
+checks={'software':'FreeCAD '+'.'.join(App.Version()[:3]),'units':'mm','design_status':'PROVISIONAL CONCEPT - not fit/load/thermal certified','verified_interface':{'rail_center_spacing_mm':58.0,'dimensioned_rail_run_mm':172.8,'anchor_method':'M4 screws into appropriate metal square nuts, actual nut dimensions and screw length TBD'},'assumed_envelope_mm':[200,220],'equipment':'Generic parametric envelopes only; models, mass, vents, ports and retention unverified','real_robot_collision_check':'NOT POSSIBLE: actual dock/robot/equipment geometry not supplied','parameters_are_native':'Spreadsheet aliases + native Part primitives/booleans; no external Python proxy required'}
+finalparts=[printed,acrylic]+bars+spacers+washers+lowerwashers+anchorwashers+gear
+checks['solids']={o.Name:{'valid':o.Shape.isValid(),'count':len(o.Shape.Solids),'volume_mm3':o.Shape.Volume} for o in finalparts}
+checks['feature_errors']=[(o.Name,str(o.State)) for o in d.Objects if 'Invalid' in str(o.State)]
+checks['anchor_centers_mm']=[[sx*float(p.RailCenters)/2,sy*float(p.StationPitch)/2] for sx,sy in [(-1,-1),(-1,1),(1,-1),(1,1)]]
+checks['upper_mount_centers_mm']=[[sx*float(p.MountX),sy*float(p.StationPitch)/2] for sx,sy in [(-1,-1),(-1,1),(1,-1),(1,1)]]
+checks['anchor_center_spacing_measured_mm']=abs(anchor_slots[1].Shape.BoundBox.Center.x-anchor_slots[0].Shape.BoundBox.Center.x)
+checks['station_span_vs_reference_run_mm']={'anchor_station_pitch':float(p.StationPitch),'reference_run':float(p.RailRun),'accessible_travel_confirmed':False}
+# Intentionally exclude alternative deck from printed assembly overlap tests.
+physical=[printed]+bars+spacers+washers+lowerwashers+anchorwashers+gear
+checks['printed_assembly_overlap_mm3']={a.Name+' / '+b.Name:a.Shape.common(b.Shape).Volume for a,b in itertools.combinations(physical,2)}
+checks['all_printed_assembly_pairs_zero']=all(v<1e-6 for v in checks['printed_assembly_overlap_mm3'].values())
+checks['gear_min_pair_distance_mm']=min(a.Shape.distToShape(b.Shape)[0] for a,b in itertools.combinations(gear,2))
+checks['printed_deck_bbox_mm']=[printed.Shape.BoundBox.XLength,printed.Shape.BoundBox.YLength,printed.Shape.BoundBox.ZLength]
+checks['acrylic_deck_bbox_mm']=[acrylic.Shape.BoundBox.XLength,acrylic.Shape.BoundBox.YLength,acrylic.Shape.BoundBox.ZLength]
+# Actual lower face of native acrylic solid, planar at nominal z14.
+bottomfaces=[f for f in acrylic.Shape.Faces if f.BoundBox.ZLength<1e-7 and abs(f.BoundBox.ZMin-float(p.DeckBase))<1e-7]
+assert len(bottomfaces)==1, 'Expected one planar acrylic lower face'
+face=bottomfaces[0]
+checks['acrylic_planar_cut_profile']={'bottom_face_count':len(bottomfaces),'planar_z_mm':face.BoundBox.ZMin,'wire_count':len(face.Wires),'all_wires_closed':all(w.isClosed() for w in face.Wires),'face_area_mm2':face.Area,'volume_equals_area_times_thickness':abs(acrylic.Shape.Volume-face.Area*float(p.AcrylicThickness))<1e-5}
+# Derive both cut files from native acrylic face, not a picture. Only closed outlines.
+# 0.02mm maximum edge discretization deflection for curves. No kerf compensation.
+loops=[]
+for w in face.Wires:
+ points=w.discretize(Deflection=0.02)
+ xy=[]
+ for v in points:
+  q=(round(v.x,6),round(v.y,6))
+  if not xy or q!=xy[-1]:xy.append(q)
+ if xy[0]==xy[-1]:xy=xy[:-1]
+ loops.append(xy)
+svg=['<?xml version="1.0" encoding="UTF-8"?>','<svg xmlns="http://www.w3.org/2000/svg" width="200mm" height="220mm" viewBox="-100 -110 200 220">','<title>Go2 cargo acrylic cut profile - provisional - 1:1 mm</title>','<desc>Closed cut outlines only. Native FreeCAD bottom face; curve chord deflection0.02mm; no kerf compensation. Not a strength or fit approval.</desc>','<g transform="scale(1,-1)" fill="none" stroke="black" stroke-width="0.1">']
+for xy in loops:svg.append('<path d="M '+' L '.join(f'{x:.6f},{y:.6f}' for x,y in xy)+' Z"/>')
+svg+=['</g>','</svg>'];open(out+'/02_acrylic_cut_1to1_mm.svg','w').write('\n'.join(svg))
+pairs=[(0,'SECTION'),(2,'HEADER'),(9,'$ACADVER'),(1,'AC1015'),(9,'$INSUNITS'),(70,4),(9,'$MEASUREMENT'),(70,1),(9,'$EXTMIN'),(10,-100),(20,-110),(30,0),(9,'$EXTMAX'),(10,100),(20,110),(30,0),(0,'ENDSEC'),(0,'SECTION'),(2,'ENTITIES')]
+for xy in loops:
+ pairs +=[(0,'LWPOLYLINE'),(100,'AcDbEntity'),(8,'CUT'),(100,'AcDbPolyline'),(90,len(xy)),(70,1)]
+ for x,y in xy:pairs +=[(10,x),(20,y)]
+pairs +=[(0,'ENDSEC'),(0,'EOF')]
+open(out+'/02_acrylic_cut_1to1_mm.dxf','w').write('\n'.join(str(v) for pair in pairs for v in pair)+'\n')
+checks['cut_file_export']={'native_source':'AcrylicDeck bottom face','units':'mm','dxf_INSUNITS':4,'svg_physical_size_mm':[200,220],'viewbox_size':[200,220],'closed_polyline_count':len(loops),'max_curve_chord_deflection_mm':0.02,'kerf_compensation':False,'all_coordinates_z':0,'loop_bbox_mm':[min(x for l in loops for x,y in l),max(x for l in loops for x,y in l),min(y for l in loops for x,y in l),max(y for l in loops for x,y in l)]}
+checks['manufacturing_exports']={}
+for basename,obj,stl in [('01_printed_ribbed_deck',printed,True),('02_acrylic_flat_deck',acrylic,False),('03_crossbar_fit_coupon',bars[0],True)]:
+ sh=obj.Shape.copy(); bb=sh.BoundBox;sh.translate(App.Vector(-bb.XMin,-bb.YMin,-bb.ZMin))
+ exp=d.addObject('Part::Feature','Export_'+basename);exp.Shape=sh;exp.Label='EXPORT ONLY '+basename;exp.ViewObject.Visibility=False
+ Part.export([exp],out+'/'+basename+'.step')
+ reread=Part.read(out+'/'+basename+'.step')
+ entry={'valid_single_solid':sh.isValid() and len(sh.Solids)==1,'step_reread_valid':reread.isValid(),'step_reread_solids':len(reread.Solids),'step_reread_bbox_mm':[reread.BoundBox.XLength,reread.BoundBox.YLength,reread.BoundBox.ZLength]}
+ if stl:
+  mesh=MeshPart.meshFromShape(Shape=sh,LinearDeflection=0.04,AngularDeflection=0.2,Relative=False);mesh.write(out+'/'+basename+'.stl');m2=Mesh.Mesh(out+'/'+basename+'.stl');entry.update({'mesh_closed_solid':m2.isSolid(),'mesh_facets':m2.CountFacets,'print_zmin':m2.BoundBox.ZMin})
+ checks['manufacturing_exports'][basename]=entry
+# Full assembly native STEP export with hardware/equipment excluded from manufacturing assembly.
+assy=d.addObject('Part::Feature','PrintedAssemblyExport');assy.Shape=Part.makeCompound([o.Shape for o in [printed]+bars]);assy.Label='EXPORT ONLY printed deck + two crossbars, spacers/hardware separate';assy.ViewObject.Visibility=False
+Part.export([assy],out+'/printed_deck_crossbar_assembly.step')
+# Preview actual native 3D view; equipment blocks shown only as placeholders.
+for o in d.Objects:
+ if hasattr(o,'ViewObject') and hasattr(o,'Shape'):o.ViewObject.Visibility=False
+for o in physical:o.ViewObject.Visibility=True
+Gui.activeDocument().activeView().viewAxonometric();Gui.activeDocument().activeView().fitAll();Gui.updateGui();Gui.activeDocument().activeView().saveImage(out+'/assembly_generic_equipment.png',1800,1500,'White')
+for o in gear:o.ViewObject.Visibility=False
+Gui.activeDocument().activeView().viewAxonometric();Gui.activeDocument().activeView().fitAll();Gui.updateGui();Gui.activeDocument().activeView().saveImage(out+'/printed_deck_top.png',1800,1400,'White')
+Gui.activeDocument().activeView().viewBottom();Gui.activeDocument().activeView().fitAll();Gui.updateGui();Gui.activeDocument().activeView().saveImage(out+'/printed_deck_underside.png',1800,1400,'White')
+# Acrylic variant uses same standoffs; washer elevations follow actual flat thickness.
+printed.ViewObject.Visibility=False;acrylic.ViewObject.Visibility=True
+for wa in washers:wa.setExpression('Placement.Base.z','Parameters.AcrylicThickness-Parameters.RibHeight-Parameters.Skin')
+for g in gear:g.setExpression('Placement.Base.z','Parameters.DeckBase+Parameters.AcrylicThickness+2');g.ViewObject.Visibility=True
+d.recompute()
+aphysical=[acrylic]+bars+spacers+washers+lowerwashers+anchorwashers+gear
+checks['acrylic_assembly_overlap_mm3']={a.Name+' / '+b.Name:a.Shape.common(b.Shape).Volume for a,b in itertools.combinations(aphysical,2)}
+checks['all_acrylic_assembly_pairs_zero']=all(v<1e-6 for v in checks['acrylic_assembly_overlap_mm3'].values())
+Gui.activeDocument().activeView().viewAxonometric();Gui.activeDocument().activeView().fitAll();Gui.updateGui();Gui.activeDocument().activeView().saveImage(out+'/acrylic_alternative_assembly.png',1800,1500,'White')
+for g in gear:g.ViewObject.Visibility=False
+for o in bars+spacers+washers+lowerwashers+anchorwashers:o.ViewObject.Visibility=False
+acrylic.ViewObject.Transparency=0
+Gui.activeDocument().activeView().viewTop();Gui.activeDocument().activeView().fitAll();Gui.updateGui();Gui.activeDocument().activeView().saveImage(out+'/acrylic_cut_plan.png',1600,1600,'White')
+acrylic.ViewObject.Transparency=65;acrylic.ViewObject.Visibility=False;printed.ViewObject.Visibility=True
+for wa in washers:wa.setExpression('Placement.Base.z','0')
+for g,k in zip(gear,['PC','Router','Bank']):g.setExpression('Placement.Base.z','Parameters.DeckBase+Parameters.RibHeight+Parameters.Skin+2')
+for o in physical:o.ViewObject.Visibility=True
+d.recompute();Gui.activeDocument().activeView().viewAxonometric();Gui.activeDocument().activeView().fitAll();d.save()
+open(out+'/validation_report.json','w').write(json.dumps(checks,indent=2))
+print('GO2_EXPORT_CHECKS',checks['feature_errors'],checks['all_printed_assembly_pairs_zero'],checks['all_acrylic_assembly_pairs_zero'],checks['anchor_center_spacing_measured_mm'],checks['manufacturing_exports'])

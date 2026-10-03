@@ -1,0 +1,10 @@
+lowerwashers=[]
+for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):
+ X=str(sx)+'*Parameters.MountX';Y=str(sy)+'*Parameters.StationPitch/2'
+ lw=cut('LowerWasher'+str(i),cy('LowerWasherOuter'+str(i),8,1.2,X,Y,'Parameters.DeckBase-1.2'),cy('LowerWasherBore'+str(i),'Parameters.HoleDiameter/2',3,X,Y,'Parameters.DeckBase-2'));lw.Label='REFERENCE lower load-spreading flat washer '+str(i+1);lowerwashers.append(lw)
+ d.getObject('SpacerOuter'+str(i)).setExpression('Height','Parameters.SpacerHeight-1.2')
+ d.getObject('SpacerBore'+str(i)).setExpression('Height','Parameters.SpacerHeight+0.8')
+ lw.ViewObject.ShapeColor=(0.7,0.72,0.75)
+d.getObject('HardwareReferenceOnly').addObjects(lowerwashers)
+d.recompute()
+exec(open(out+'/validate_export.FCMacro').read())
