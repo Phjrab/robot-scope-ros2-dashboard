@@ -1,0 +1,12 @@
+{
+  "dxf_audit_errors": 0,
+  "dxf_version": "AC1015",
+  "units": 4,
+  "closed_contours": 27,
+  "all_closed": true,
+  "svg": {
+    "width": "200mm",
+    "height": "220mm",
+    "viewBox": "-100 -110 200 220"
+  }
+}

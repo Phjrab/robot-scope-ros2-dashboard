@@ -1,0 +1,23 @@
+# Final read-back in installed FreeCAD. Saved geometry drives all checks.
+d.save();name=d.Name;App.closeDocument(name);d=App.openDocument(out+'/Go2CargoPlate_Provisional.FCStd');p=d.getObject('Parameters');d.recompute()
+printed=d.getObject('PrintedDeck');acrylic=d.getObject('AcrylicDeck');bars=[d.getObject('Crossbar1'),d.getObject('Crossbar2')]
+spacers=[d.getObject('MetalSpacer'+str(i)) for i in range(4)];washers=[d.getObject('UpperWasher'+str(i)) for i in range(4)];lowerwashers=[d.getObject('LowerWasher'+str(i)) for i in range(4)];anchorwashers=[d.getObject('RailAnchorWasher'+str(i)) for i in range(4)];gear=[d.getObject(n) for n in ['GenericMiniPC','GenericWiFiRouter','GenericPowerbank']]
+check=json.load(open(out+'/validation_report.json'))
+check['native_reopen']={'valid_single_solids':{o.Name:o.Shape.isValid() and len(o.Shape.Solids)==1 for o in [printed,acrylic]+bars+spacers+washers+lowerwashers+anchorwashers},'feature_errors':[(o.Name,str(o.State)) for o in d.Objects if 'Invalid' in str(o.State)]}
+p.set('B2','204');d.recompute();check['native_parameter_edit_test']={'DeckWidth204_mm_actual_printed_width':printed.Shape.BoundBox.XLength,'DeckWidth204_mm_actual_acrylic_width':acrylic.Shape.BoundBox.XLength};p.set('B2','200');d.recompute();check['native_parameter_edit_test']['restored_width_mm']=printed.Shape.BoundBox.XLength
+# Correct explicit DXF R2000 version so closed LWPOLYLINE flags survive parsing.
+f=out+'/02_acrylic_cut_1to1_mm.dxf';txt=open(f).read();txt=txt.replace('2\nHEADER\n9\n$INSUNITS','2\nHEADER\n9\n$ACADVER\n1\nAC1015\n9\n$INSUNITS');open(f,'w').write(txt)
+# Actual FreeCAD orthographic top profile preview, quaternion set directly, no animation.
+for o in d.Objects:
+ if hasattr(o,'Shape'):o.ViewObject.Visibility=False
+acrylic.ViewObject.Visibility=True;acrylic.ViewObject.Transparency=0
+v=Gui.activeDocument().activeView();v.setCameraOrientation((0.0,0.0,0.0,1.0));v.fitAll();Gui.updateGui();v.saveImage(out+'/acrylic_cut_plan.png',1600,1600,'White')
+acrylic.ViewObject.Visibility=False;acrylic.ViewObject.Transparency=65
+for o in [printed]+bars+spacers+washers+lowerwashers+anchorwashers+gear:o.ViewObject.Visibility=True
+v.viewAxonometric();v.fitAll();Gui.updateGui()
+# Print STL oriented with broad flat skin against bed, ribs up. STEP stays assembly-oriented.
+sh=printed.Shape.copy();sh.rotate(App.Vector(0,0,0),App.Vector(1,0,0),180);bb=sh.BoundBox;sh.translate(App.Vector(-bb.XMin,-bb.YMin,-bb.ZMin));m=MeshPart.meshFromShape(Shape=sh,LinearDeflection=0.04,AngularDeflection=0.2,Relative=False);m.write(out+'/01_printed_ribbed_deck.stl');mr=Mesh.Mesh(out+'/01_printed_ribbed_deck.stl');check['manufacturing_exports']['01_printed_ribbed_deck'].update({'mesh_closed_solid':mr.isSolid(),'print_orientation':'broad top skin on bed, ribs up','mesh_facets':mr.CountFacets,'print_zmin':mr.BoundBox.ZMin})
+check['lower_bearing_stack']='6.8mm modeled metal spacer +1.2mm modeled lower washer; total assumed rise8mm. Actual stock hardware dimensions must be chosen/remeasured.'
+check['cut_file_export']['dxf_version']='AC1015 / R2000'
+open(out+'/validation_report.json','w').write(json.dumps(check,indent=2));d.save()
+print('GO2_NATIVE_REOPEN_FINAL',check['native_reopen'],check['native_parameter_edit_test'],mr.isSolid())

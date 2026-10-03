@@ -1,0 +1,134 @@
+[
+  {
+    "path": "01_printed_ribbed_deck.step",
+    "bytes": 240855,
+    "sha256": "2766d5d5030e38bc3f2dd48b51d42018c5aeea0b3d16953ae6d1f51a16cc2ea2",
+    "git_blob_sha1": "5a9d351597b33fa0df867ef4c49ce363fdae1c67"
+  },
+  {
+    "path": "01_printed_ribbed_deck.stl",
+    "bytes": 412184,
+    "sha256": "3d7af7ca0fa9211ad08ba024eeaabb1f5f1b57c7076969ca0e2af3513518ad47",
+    "git_blob_sha1": "59f15381b6d1ee372e40e600cc90419a9d331d4e"
+  },
+  {
+    "path": "02_acrylic_cut_1to1_mm.dxf",
+    "bytes": 22091,
+    "sha256": "ef9a9cf3b7f6d594a9ddba633ec0c753afa0821a5efbdb4cd7d5a33d48306cbb",
+    "git_blob_sha1": "37d5c546fa344c9079d07609e2da68520adb0526"
+  },
+  {
+    "path": "02_acrylic_cut_1to1_mm.svg",
+    "bytes": 19067,
+    "sha256": "66b66af2d3b80e1592278a215d9e1efecbfa8d45b0d45f0aa00716ad0f640ff2",
+    "git_blob_sha1": "544380f852dc0d1bccb8a9900649a28238bfa4f3"
+  },
+  {
+    "path": "02_acrylic_flat_deck.step",
+    "bytes": 139151,
+    "sha256": "7f7c7fcb7491dbd7a898e8a36e0964de61e03b7a901d6f78bc0b714fdf9ee6b8",
+    "git_blob_sha1": "9f280ff3bf99242f5aa9f36e502348c5056dcf70"
+  },
+  {
+    "path": "03_crossbar_fit_coupon.step",
+    "bytes": 25475,
+    "sha256": "c217ddebf655ee62053d14a7cdd72ed4a85c28d9fb4fbd43365b673e9706e432",
+    "git_blob_sha1": "5549aca6367fff1363da657c6cd3dcd84a8aedf7"
+  },
+  {
+    "path": "03_crossbar_fit_coupon.stl",
+    "bytes": 65884,
+    "sha256": "e3540a4a3691bf80355974a1e3d747b9c0415351775af8ee9521f69a5cd68823",
+    "git_blob_sha1": "2a7bc18411a9ebd5937d1deac3cf256d1fe58183"
+  },
+  {
+    "path": "Go2CargoPlate_Provisional.FCStd",
+    "bytes": 660251,
+    "sha256": "1872476a34c4d0ee15ae3b0cdd81aa6c140285a288f8787fc0a58799524875c5",
+    "git_blob_sha1": "be291ff68d8841705b6e88e7d3b77f1761e7ea81"
+  },
+  {
+    "path": "README.md",
+    "bytes": 1730,
+    "sha256": "5ed78ad3e4b21a3823786c0fe861bcc48708d76e203c3400efc7eb17d6eed840",
+    "git_blob_sha1": "2192c4a88e41fb5cc4895eee0998ad25a44f8114"
+  },
+  {
+    "path": "README_fabrication_ko.txt",
+    "bytes": 11648,
+    "sha256": "3154f88b2f50d26e7904eab68805604a2de6d7b4dc6ac83764ea7d78d195ab96",
+    "git_blob_sha1": "7fb8c0a0c97b9cf430226823dbe82dd99ee29ab1"
+  },
+  {
+    "path": "acrylic_alternative_assembly.png",
+    "bytes": 85294,
+    "sha256": "61864f3e29ae497afb5ab2b72ea14257e8a7bf08fcb094ff0663020d78dc3002",
+    "git_blob_sha1": "dfd4da2d4fa57a42512dccf4df1cd335fdd08518"
+  },
+  {
+    "path": "acrylic_cut_plan.png",
+    "bytes": 45951,
+    "sha256": "ad0066ff9a8fe81cd18718cd067ed3060be6ea0a237d0a13ad5cf423aacf758c",
+    "git_blob_sha1": "db1e3e608801a9c48f2834a2a53032fb538a0b30"
+  },
+  {
+    "path": "add_lower_washers.FCMacro",
+    "bytes": 762,
+    "sha256": "284fa86a81a0ab1a96cbe2a5514acf8f7d1fd2bfd9a07102df192b3271c317c1",
+    "git_blob_sha1": "885eb99c256cc2a82793fea3f3b0f0603ca14174"
+  },
+  {
+    "path": "assembly_generic_equipment.png",
+    "bytes": 49064,
+    "sha256": "c8a1540f71b233e0115cfe8ff841170cd98e063d584727f71a6ef15b843a3f7f",
+    "git_blob_sha1": "088ab406fe0c0db08c21df875add29e2aac3716f"
+  },
+  {
+    "path": "build_cargo_plate.FCMacro",
+    "bytes": 11394,
+    "sha256": "410fb18fb535ab473448c15f21c8e5bcdcc551c94f2330f28c193e1b8d98194e",
+    "git_blob_sha1": "f5b141dfd312cb71e61c8ab382df279c1e0787a4"
+  },
+  {
+    "path": "external_cut_file_check.json",
+    "bytes": 211,
+    "sha256": "3f14df1cfd2019f20b836d347cfd6dbebeca57693bd0cb7079af277b1e7ef78e",
+    "git_blob_sha1": "61ea3988948ee233f62dfd8ce440a1a98f0e7dd4"
+  },
+  {
+    "path": "final_native_check.FCMacro",
+    "bytes": 3263,
+    "sha256": "2dcc60fca7f4b7ccbaa71a38b9145d8cb1611b8e3a4bfc94a8a356b15de662e3",
+    "git_blob_sha1": "1a2c342899cb5ebc462352971dcd45e622477166"
+  },
+  {
+    "path": "printed_deck_crossbar_assembly.step",
+    "bytes": 289151,
+    "sha256": "8453a0f434748d23674b482073874fc72fce454c8b79ab64cae5301acb33949f",
+    "git_blob_sha1": "62b4b8607880446b43c8f2e79f85f62cf49ba78f"
+  },
+  {
+    "path": "printed_deck_top.png",
+    "bytes": 35320,
+    "sha256": "9ba4e0bbf677979b917e2a1bd2f38ecec1e1d9998287ba4e8e41ee16026a73fb",
+    "git_blob_sha1": "d3153c888e066b3bb2ae7b282ca0b3d279af49d7"
+  },
+  {
+    "path": "printed_deck_underside.png",
+    "bytes": 53508,
+    "sha256": "64db3a4afa9419bf33fc47a3c2995db66e56087e523917470d52a0ab8bf88bcc",
+    "git_blob_sha1": "df25520879816e149ef22057d20dce6b9ae238c3"
+  },
+  {
+    "path": "validate_export.FCMacro",
+    "bytes": 9402,
+    "sha256": "164926505dc69947b3dd051d580edb07ad2855a4fdc9bd16d3d5118300f92603",
+    "git_blob_sha1": "1ff5f9759122b4cea0b81c226436d2008b8d1598"
+  },
+  {
+    "path": "validation_report.json",
+    "bytes": 26229,
+    "sha256": "75828220a33787b0530194e07c97ac9954e310b769fafff905628650d6c769fd",
+    "git_blob_sha1": "36b6abe939fed6a6ec2c4cfdabdd52546d6e337b"
+  }
+]

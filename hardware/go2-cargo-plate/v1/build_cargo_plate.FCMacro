@@ -1,0 +1,110 @@
+import FreeCAD as App, FreeCADGui as Gui, Part, Mesh, MeshPart, Import, os, json, math
+out='/workspace/scratch/b09eacf6919d/go2-cargo-plate'
+d=App.newDocument('Go2CargoPlate_Provisional')
+p=d.addObject('Spreadsheet::Sheet','Parameters'); p.Label='Parameters - mm / assumptions, not certified'
+p.set('A1','Parameter'); p.set('B1','mm'); p.set('C1','Basis / role')
+rows=[('DeckWidth',200,'ASSUMPTION transverse envelope'),('DeckLength',220,'ASSUMPTION longitudinal envelope'),('CornerRadius',12,'ASSUMPTION rounded corners'),('Skin',4,'ASSUMPTION printed skin'),('RibHeight',6,'ASSUMPTION underside ribs'),('RibWidth',5,'ASSUMPTION rib web'),('AcrylicThickness',6,'ASSUMPTION prototype, no load rating'),('RailCenters',58,'VERIFIED Unitree rail drawing'),('RailRun',172.8,'VERIFIED dimensioned run, accessibility unknown'),('StationPitch',110,'ASSUMPTION fore/aft anchors, can slide'),('MountX',68,'ASSUMPTION upper plate mount +/-X'),('HoleDiameter',4.6,'ASSUMPTION M4 clearance, coupon first'),('AnchorSlotLength',12,'ASSUMPTION transverse adjustment'),('CrossbarWidth',160,'ASSUMPTION transverse bar'),('CrossbarDepth',24,'ASSUMPTION longitudinal bar'),('CrossbarThickness',6,'ASSUMPTION bar, not strength specification'),('SpacerHeight',8,'ASSUMPTION clearance, confirm hardware'),('SpacerOuter',12,'ASSUMPTION metal spacer OD'),('DeckBase',14,'CrossbarThickness+SpacerHeight'),('StrapSlotLength',24,'ASSUMPTION strap slot length along Y'),('StrapSlotWidth',5,'ASSUMPTION strap width clearance'),('PCWidth',90,'GENERIC PLACEHOLDER transverse, replace'),('PCLength',100,'GENERIC PLACEHOLDER longitudinal, replace'),('PCHeight',40,'GENERIC PLACEHOLDER height, replace'),('PCX',-40,'GENERIC PLACEHOLDER center'),('PCY',-45,'GENERIC PLACEHOLDER center'),('RouterWidth',80,'GENERIC PLACEHOLDER transverse, replace'),('RouterLength',45,'GENERIC PLACEHOLDER longitudinal, replace'),('RouterHeight',20,'GENERIC PLACEHOLDER height, replace'),('RouterX',-40,'GENERIC PLACEHOLDER center'),('RouterY',55,'GENERIC PLACEHOLDER center'),('BankWidth',50,'GENERIC PLACEHOLDER transverse, replace'),('BankLength',140,'GENERIC PLACEHOLDER longitudinal, replace'),('BankHeight',25,'GENERIC PLACEHOLDER height, replace'),('BankX',60,'GENERIC PLACEHOLDER center'),('BankY',-10,'GENERIC PLACEHOLDER center')]
+for i,(a,v,b) in enumerate(rows,2): p.set('A'+str(i),a);p.set('B'+str(i),str(v));p.setAlias('B'+str(i),a);p.set('C'+str(i),b)
+p.set('B20','=CrossbarThickness + SpacerHeight')
+p.setColumnWidth('A',170);p.setColumnWidth('B',75);p.setColumnWidth('C',380)
+d.recompute()
+allshapes=[]
+def ex(o,vals):
+ for prop,val in vals.items():o.setExpression(prop,str(val))
+ return o
+def box(n,l,w,h,x,y,z):
+ o=d.addObject('Part::Box',n);allshapes.append(o)
+ return ex(o,dict(zip(['Length','Width','Height','Placement.Base.x','Placement.Base.y','Placement.Base.z'],[l,w,h,x,y,z])))
+def cy(n,r,h,x,y,z):
+ o=d.addObject('Part::Cylinder',n);allshapes.append(o)
+ return ex(o,dict(zip(['Radius','Height','Placement.Base.x','Placement.Base.y','Placement.Base.z'],[r,h,x,y,z])))
+def fuse(n,obs):
+ o=d.addObject('Part::MultiFuse',n);o.Shapes=obs;o.Refine=True;allshapes.append(o);return o
+def compound(n,obs):
+ o=d.addObject('Part::Compound',n);o.Links=obs;allshapes.append(o);return o
+def cut(n,a,b):
+ o=d.addObject('Part::Cut',n);o.Base=a;o.Tool=b;o.Refine=True;allshapes.append(o);return o
+def rounded(n,W,L,R,H,Z,X='0',Y='0'):
+ bits=[box(n+'CoreX',W+'-2*('+R+')',L,H,'('+X+')-('+W+')/2+('+R+')','('+Y+')-('+L+')/2',Z),box(n+'CoreY',W,L+'-2*('+R+')',H,'('+X+')-('+W+')/2','('+Y+')-('+L+')/2+('+R+')',Z)]
+ for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):bits.append(cy(n+'Corner'+str(i),R,H,'('+X+')'+('+' if sx>0 else '-')+'(('+W+')/2-('+R+'))','('+Y+')'+('+' if sy>0 else '-')+'(('+L+')/2-('+R+'))',Z))
+ return fuse(n,bits)
+def slot(n,L,W,H,X,Y,Z,vertical=False):
+ R='('+W+')/2'; gap='('+L+')-('+W+')'
+ if vertical:
+  obs=[box(n+'Web',W,gap,H,'('+X+')-('+W+')/2','('+Y+')-('+gap+')/2',Z)]
+  for s in [-1,1]:obs.append(cy(n+'Cap'+str(s).replace('-','m'),R,H,X,'('+Y+')'+('+' if s>0 else '-')+'('+gap+')/2',Z))
+ else:
+  obs=[box(n+'Web',gap,W,H,'('+X+')-('+gap+')/2','('+Y+')-('+W+')/2',Z)]
+  for s in [-1,1]:obs.append(cy(n+'Cap'+str(s).replace('-','m'),R,H,'('+X+')'+('+' if s>0 else '-')+'('+gap+')/2',Y,Z))
+ return fuse(n,obs)
+# Interchangeable upper decks: same mounting hole pattern, bottom bearing datum14.
+printedblank=rounded('PrintedSkinBlank','Parameters.DeckWidth','Parameters.DeckLength','Parameters.CornerRadius','Parameters.Skin','Parameters.DeckBase+Parameters.RibHeight')
+ribs=[]
+# Two support station ribs and two perimeter longitudinal ribs, plus central spine.
+for i,s in enumerate([-1,1]):
+ ribs.append(box('TransverseRib'+str(i),'Parameters.DeckWidth-24','Parameters.RibWidth','Parameters.RibHeight','-Parameters.DeckWidth/2+12',str(s)+'*Parameters.StationPitch/2-Parameters.RibWidth/2','Parameters.DeckBase'))
+for i,x in enumerate(['-Parameters.DeckWidth/2+12','-Parameters.RibWidth/2','Parameters.DeckWidth/2-12-Parameters.RibWidth']):
+ ribs.append(box('LongitudinalRib'+str(i),'Parameters.RibWidth','Parameters.DeckLength-24','Parameters.RibHeight',x,'-Parameters.DeckLength/2+12','Parameters.DeckBase'))
+for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):
+ ribs.append(cy('MountBearingBoss'+str(i),9,'Parameters.RibHeight',str(sx)+'*Parameters.MountX',str(sy)+'*Parameters.StationPitch/2','Parameters.DeckBase'))
+printedraw=fuse('PrintedRibbedBlank',[printedblank]+ribs)
+acrylicraw=rounded('AcrylicFlatBlank','Parameters.DeckWidth','Parameters.DeckLength','Parameters.CornerRadius','Parameters.AcrylicThickness','Parameters.DeckBase')
+uppertools=[]
+for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):uppertools.append(cy('UpperMountHole'+str(i),'Parameters.HoleDiameter/2',40,str(sx)+'*Parameters.MountX',str(sy)+'*Parameters.StationPitch/2',-1))
+straps=[]
+for x in [-88,18,30,88]:
+ for y in [-65,-25,45,85]:
+  # Avoid mount washers at(68,+/-55); keep slots away from perimeter rounded ends.
+  straps.append(slot('Strap_'+str(x).replace('-','m')+'_'+str(y).replace('-','m'),'Parameters.StrapSlotLength','Parameters.StrapSlotWidth',40,str(x),str(y),-1,True))
+# Narrow rounded vents, limited to central equipment areas. Not sensor/dock keepouts.
+vents=[]
+for x in [-58,-40,-22]:
+ for y in [-65,-25]:vents.append(slot('Vent_'+str(x).replace('-','m')+'_'+str(y).replace('-','m'),'28','6',40,str(x),str(y),-1,True))
+uppercuttools=fuse('SharedUpperHoleTools',uppertools+straps+vents)
+printed=cut('PrintedDeck',printedraw,uppercuttools);printed.Label='01 Ribbed printed deck - provisional'
+acrylic=cut('AcrylicDeck',acrylicraw,uppercuttools);acrylic.Label='02 Flat acrylic deck - alternative, hidden'
+# Two low crossbars, no invented rail profile or clamp jaws.
+bars=[]; anchor_slots=[]
+for j,sy in enumerate([-1,1]):
+ Y=str(sy)+'*Parameters.StationPitch/2'
+ blank=rounded('CrossbarBlank'+str(j),'Parameters.CrossbarWidth','Parameters.CrossbarDepth','4','Parameters.CrossbarThickness','0','0',Y)
+ tools=[]
+ for sx in [-1,1]:
+  so=slot('RailAnchor'+str(j)+str(sx).replace('-','m'),'Parameters.AnchorSlotLength','Parameters.HoleDiameter',10,str(sx)+'*Parameters.RailCenters/2',Y,-1);tools.append(so);anchor_slots.append(so)
+  tools.append(cy('BarUpperHole'+str(j)+str(sx).replace('-','m'),'Parameters.HoleDiameter/2',10,str(sx)+'*Parameters.MountX',Y,-1))
+ bar=cut('Crossbar'+str(j+1),blank,compound('BarHoleTools'+str(j),tools));bar.Label='03 Crossbar '+str(j+1)+' - square nut M4 interface';bars.append(bar)
+# Metal spacer and load-spreading washer envelopes, each through-bored.
+spacers=[];washers=[];bolt_envelopes=[]
+for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):
+ X=str(sx)+'*Parameters.MountX';Y=str(sy)+'*Parameters.StationPitch/2'
+ sp=cut('MetalSpacer'+str(i),cy('SpacerOuter'+str(i),'Parameters.SpacerOuter/2','Parameters.SpacerHeight',X,Y,'Parameters.CrossbarThickness'),cy('SpacerBore'+str(i),'Parameters.HoleDiameter/2','Parameters.SpacerHeight+2',X,Y,'Parameters.CrossbarThickness-1'));sp.Label='REFERENCE metal spacer '+str(i+1)+' - through bore';spacers.append(sp)
+ wa=cut('UpperWasher'+str(i),cy('WasherOuter'+str(i),8,1.2,X,Y,'Parameters.DeckBase+Parameters.RibHeight+Parameters.Skin'),cy('WasherBore'+str(i),'Parameters.HoleDiameter/2',3,X,Y,'Parameters.DeckBase+Parameters.RibHeight+Parameters.Skin-1'));wa.Label='REFERENCE broad flat washer '+str(i+1);washers.append(wa)
+lowerwashers=[]
+for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):
+ X=str(sx)+'*Parameters.MountX';Y=str(sy)+'*Parameters.StationPitch/2'
+ lw=cut('LowerWasher'+str(i),cy('LowerWasherOuter'+str(i),8,1.2,X,Y,'Parameters.DeckBase-1.2'),cy('LowerWasherBore'+str(i),'Parameters.HoleDiameter/2',3,X,Y,'Parameters.DeckBase-2'));lw.Label='REFERENCE lower load-spreading flat washer '+str(i+1);lowerwashers.append(lw)
+ d.getObject('SpacerOuter'+str(i)).setExpression('Height','Parameters.SpacerHeight-1.2')
+ d.getObject('SpacerBore'+str(i)).setExpression('Height','Parameters.SpacerHeight+0.8')
+# Four anchor washer envelopes help show where screws into square nuts go. No nut dimensions guessed.
+anchorwashers=[]
+for i,(sx,sy) in enumerate([(-1,-1),(-1,1),(1,-1),(1,1)]):
+ X=str(sx)+'*Parameters.RailCenters/2';Y=str(sy)+'*Parameters.StationPitch/2'
+ aw=cut('RailAnchorWasher'+str(i),cy('RailWasherOuter'+str(i),7,1.2,X,Y,'Parameters.CrossbarThickness'),cy('RailWasherBore'+str(i),'Parameters.HoleDiameter/2',3,X,Y,'Parameters.CrossbarThickness-1'));aw.Label='REFERENCE M4 square-nut screw location '+str(i+1)+' - length TBD';anchorwashers.append(aw)
+# Generic equipment envelopes, no vendor fit or mass claim.
+gear=[]
+for label,k,color in [('MiniPC','PC',(0.32,0.38,0.42)),('WiFiRouter','Router',(0.82,0.83,0.85)),('Powerbank','Bank',(0.16,0.18,0.20))]:
+ o=box('Generic'+label,'Parameters.'+k+'Width','Parameters.'+k+'Length','Parameters.'+k+'Height','Parameters.'+k+'X-Parameters.'+k+'Width/2','Parameters.'+k+'Y-Parameters.'+k+'Length/2','Parameters.DeckBase+Parameters.RibHeight+Parameters.Skin+2');o.Label='GENERIC PLACEHOLDER - '+label+' - replace dimensions / mass unknown';o.ViewObject.ShapeColor=color;gear.append(o)
+# Fit coupon is one crossbar; keep it separate and print before full deck.
+for o in allshapes:o.ViewObject.Visibility=False
+for o in [printed]+bars+spacers+washers+lowerwashers+anchorwashers+gear:o.ViewObject.Visibility=True
+printed.ViewObject.ShapeColor=(0.13,0.45,0.55);acrylic.ViewObject.ShapeColor=(0.57,0.85,0.88);acrylic.ViewObject.Transparency=65
+for o in bars:o.ViewObject.ShapeColor=(0.88,0.55,0.18)
+for o in spacers+washers+lowerwashers+anchorwashers:o.ViewObject.ShapeColor=(0.7,0.72,0.75)
+for o in gear:o.ViewObject.Transparency=15
+for name,objs in [('UpperDeckAlternatives',[printed,acrylic]),('RailInterfaceCrossbars',bars),('HardwareReferenceOnly',spacers+washers+lowerwashers+anchorwashers),('EquipmentPlaceholders',gear)]:
+ g=d.addObject('App::DocumentObjectGroup',name);g.addObjects(objs)
+d.Comment='Provisional Unitree Go2 EDU cargo deck. Rail centers58mm verified; all other fabrication geometry assumed. No actual robot CAD, nut fit, loading, or thermal clearance certification.'
+d.recompute()
+Gui.activeDocument().activeView().viewAxonometric();Gui.activeDocument().activeView().fitAll()
+d.saveAs(out+'/Go2CargoPlate_Provisional.FCStd')
+print('GO2_BUILT',[(o.Name,o.Shape.isValid(),len(o.Shape.Solids)) for o in [printed,acrylic]+bars])
