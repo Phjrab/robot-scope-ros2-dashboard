@@ -121,6 +121,20 @@ UI E2E는 loopback mock backend와 fixture를 사용합니다. Playwright가 설
 표시해야 합니다. 위의 실제 제품 캡처는 fixture E2E와 별개이며, 읽기 전용
 관측 범위에 한합니다. [촬영 목록과 증거 조건](docs/PORTFOLIO.md).
 
+## Robotics Mission Control UI
+
+센서·지도·카메라 중심 Cockpit이 기본 화면입니다. Observation / Mapping /
+Navigation / Dataset Capture 배치는 기존 저장 layout과 Edit/Apply 계약을 사용합니다.
+Safety HUD와 software STOP은 주요 작업 화면에서 고정 표시됩니다. 기존 고급 기능은
+Advanced에서 접근합니다. [리디자인 보고서·검증·rollback](docs/ui-redesign/FINAL_REPORT.md).
+
+![Mission Control · UI DEMO / SYNTHETIC FIXTURE / 실장비·성능 검증 아님](docs/ui-redesign/captures/after/observation-1440x900.png)
+
+이 이미지는 Go2/ROS 없이 격리 fixture로 촬영했습니다. 위의 2026-09-28 실제
+관측 캡처와 별개이며 실제 제어·Nav2 도달·실장비 acceptance 상태를 높이지 않습니다.
+`npx playwright test -c playwright.ui-redesign.config.mjs --reporter=line`으로
+신규 UI fixture 검증과 캡처를 재실행할 수 있습니다.
+
 ## 설치·운영 문서
 
 처음 설치하는 경우 [설치 가이드](docs/INSTALL.md)의 `observer` 모드에서

@@ -5,6 +5,7 @@ import test from 'node:test';
 const load = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const html = load('../robot_dashboard/static/index.html');
 const css = load('../robot_dashboard/static/dashboard-polish.css');
+const tokens = load('../robot_dashboard/static/styles.css');
 const rules = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
 test('presentation refinements load once after the existing dashboard styles', () => {
@@ -16,7 +17,7 @@ test('presentation refinements load once after the existing dashboard styles', (
 
 test('common typography uses scalable readable tiers', () => {
   for (const [name, value] of [['micro', '.75rem'], ['control', '.875rem'], ['secondary', '.875rem'], ['body', '1rem'], ['section', '1.125rem']]) {
-    assert.ok(rules.includes(`--type-${name}: ${value};`));
+    assert.ok(tokens.includes(`--type-${name}: ${value};`));
   }
   assert.match(rules, /:focus-visible\s*\{[^}]*outline:\s*3px/);
 });

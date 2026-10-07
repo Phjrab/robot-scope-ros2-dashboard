@@ -229,7 +229,7 @@
         showAxes: options.showAxes !== false,
         heightColor: options.heightColor !== false,
         nearFieldEmphasis: options.nearFieldEmphasis === true,
-        background: options.background || '#040a09',
+        background: options.background || '#11161c',
       };
       this._axesStorage = options.storage === undefined ? browserStorage() : options.storage;
       this._axesStorageKey = typeof options.axesStorageKey === 'string'
@@ -335,6 +335,7 @@
     }
 
     setPointCloud(payload, options = {}) {
+      this.status.provenance = payload?.data_provenance === 'SYNTHETIC_FIXTURE' ? 'FIXTURE' : payload?.data_provenance === 'REPLAY' ? 'REPLAY' : '';
       const updateStartedAt = monotonicNow();
       const cloud = payload && payload.points != null ? payload : { points: payload };
       const input = cloud?.points;
@@ -686,6 +687,7 @@
       if (Object.prototype.hasOwnProperty.call(value, 'online')) this.status.online = value.online == null ? null : Boolean(value.online);
       if (Object.prototype.hasOwnProperty.call(value, 'lidarOnline')) this.status.lidarOnline = value.lidarOnline == null ? null : Boolean(value.lidarOnline);
       if (Object.prototype.hasOwnProperty.call(value, 'snapshot')) this.status.snapshot = Boolean(value.snapshot);
+      if (Object.prototype.hasOwnProperty.call(value, 'provenance')) this.status.provenance = ['FIXTURE', 'REPLAY'].includes(value.provenance) ? value.provenance : '';
       if (Object.prototype.hasOwnProperty.call(value, 'message')) this.status.message = String(value.message || '');
       this.render();
     }
@@ -978,11 +980,7 @@
     }
 
     _fillBackground(ctx) {
-      const background = ctx.createLinearGradient(0, 0, 0, this.height);
-      background.addColorStop(0, '#06110f');
-      background.addColorStop(0.58, this.options.background);
-      background.addColorStop(1, '#020706');
-      ctx.fillStyle = background;
+      ctx.fillStyle = this.options.background;
       ctx.fillRect(0, 0, this.width, this.height);
     }
 
@@ -1429,7 +1427,7 @@
         ? `X ${this.robotPose.x.toFixed(2)}  Y ${this.robotPose.y.toFixed(2)}  YAW ${((this.robotPose.yaw / DEG + 360) % 360).toFixed(0)}°`
         : 'ODOMETRY WAITING';
       ctx.save();
-      ctx.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
       const width = Math.max(ctx.measureText(primary).width, ctx.measureText(secondary).width) + 16;
       const x = clamp(anchor.x - width / 2, 8, this.width - width - 8);
       const y = clamp(anchor.y - 54, 8, this.height - 42);
@@ -1441,8 +1439,8 @@
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = pose.frameMismatch || pose.preview ? '#ffd38f' : '#bfffe2';
       ctx.fillText(primary, x + 8, y + 13);
-      ctx.fillStyle = '#809b92';
-      ctx.font = '500 8px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillStyle = '#a7b7c6';
+      ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
       ctx.fillText(secondary, x + 8, y + 26);
       ctx.restore();
     }
@@ -1454,14 +1452,15 @@
       const chips = [];
       if (this.status.online === false) chips.push({ text: 'ROBOT OFFLINE', color: '#ffc66d' });
       else if (this.status.online === true) chips.push({ text: 'ROBOT ONLINE', color: '#7df0b6' });
-      if (this.status.snapshot) chips.push({ text: 'SAVED CLOUD', color: '#5dded8' });
+      if (this.status.provenance) chips.push({ text: `${this.status.provenance} LIDAR`, color: '#59d3e5' });
+      else if (this.status.snapshot) chips.push({ text: 'SAVED CLOUD', color: '#5dded8' });
       else if (this.status.lidarOnline === false) chips.push({ text: 'LIDAR WAITING', color: '#ffc66d' });
       else if (this.status.lidarOnline === true) chips.push({ text: 'LIDAR LIVE', color: '#5dded8' });
 
       ctx.save();
       let x = 12;
       chips.forEach((chip) => {
-        ctx.font = '700 8px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
         const width = ctx.measureText(chip.text).width + 18;
         ctx.fillStyle = 'rgba(4, 14, 12, .82)';
         ctx.strokeStyle = `${chip.color}66`;
@@ -1474,8 +1473,8 @@
 
       if (cloudCount) {
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#789089';
-        ctx.font = '500 8px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillStyle = '#a7b7c6';
+        ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
         ctx.fillText(`${cloudCount.toLocaleString()} / ${sourceCount.toLocaleString()} POINTS`, this.width - 12, 19);
         ctx.fillText(`FRAME ${this.cloud.frameId || '—'}`, this.width - 12, 31);
         ctx.textAlign = 'left';
@@ -1485,18 +1484,18 @@
         const message = this.status.message || (this.status.lidarOnline === false ? 'LiDAR 신호를 기다리고 있습니다' : '3D point cloud waiting');
         const centerY = this.height * 0.72;
         ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(151, 178, 169, .78)';
-        ctx.font = '600 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillStyle = '#e9f0f5';
+        ctx.font = '600 12px ui-monospace, SFMono-Regular, Menlo, monospace';
         ctx.fillText(message, this.width / 2, centerY);
-        ctx.fillStyle = 'rgba(102, 128, 120, .65)';
-        ctx.font = '500 8px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillStyle = '#a7b7c6';
+        ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
         ctx.fillText('로봇 모델은 미리보기로 계속 조작할 수 있습니다', this.width / 2, centerY + 15);
       }
 
       ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(101, 128, 120, .70)';
-      ctx.font = '500 8px ui-monospace, SFMono-Regular, Menlo, monospace';
-      ctx.fillText('DRAG ORBIT  ·  SHIFT/RIGHT DRAG PAN  ·  WHEEL ZOOM  ·  DOUBLE CLICK RESET', 12, this.height - 12);
+      ctx.fillStyle = '#a7b7c6';
+      ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillText(this.width > 620 ? 'DRAG ORBIT  ·  SHIFT/RIGHT DRAG PAN  ·  WHEEL ZOOM' : 'DRAG ORBIT · WHEEL ZOOM', 12, this.height - 12);
       ctx.restore();
     }
 

@@ -69,7 +69,10 @@ export function createSafetyHudView(options = {}) {
   stop.append(element(documentValue, 'strong', '', 'DASHBOARD SOFTWARE STOP'), element(documentValue, 'small', '', '물리 E-STOP 아님'));
   const physicalReminder = element(documentValue, 'p', 'cockpit-physical-stop-reminder', 'PHYSICAL STOP 위치와 접근 가능 상태를 현장에서 확인하세요 · Competition Lock / Dashboard STOP은 물리 E-STOP이 아닙니다.');
   physicalReminder.hidden = true;
-  root.append(header, metrics, physicalReminder, stop);
+  const stopFeedback = element(documentValue, 'output', 'software-stop-feedback', '서버 STOP 요청 결과 · 아직 요청하지 않음');
+  stopFeedback.id = 'softwareStopFeedback';
+  stopFeedback.setAttribute('role', 'status');
+  root.append(header, metrics, physicalReminder, stop, stopFeedback);
 
   edit.addEventListener('click', () => options.onRequestEdit?.());
   apply.addEventListener('click', () => options.onApply?.());

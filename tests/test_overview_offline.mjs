@@ -320,7 +320,8 @@ test('header separates direct ROS observability from authenticated remote contro
   assert.match(headerUi.connectionChip.className, /error/);
   assert.match(headerUi.controlConnectionChip.className, /error/);
   assert.match(indexSource, /무선 프로필은 탑재 Jetson, 유선 프로필은 직접 ROS\/DDS 연결 상태/);
-  assert.match(functionSource('refreshControlSnapshot'), /\['overview', 'controls', 'navigation', 'cockpit'\]/);
+  assert.match(functionSource('refreshControlSnapshot'), /if \(document\.hidden\) return;/);
+  assert.match(functionSource('refreshControlSnapshot'), /armGenerationAtRequest !== controlArmGeneration/);
 });
 
 test('offline cached payload cannot revive camera, lidar, battery or link KPIs', () => {

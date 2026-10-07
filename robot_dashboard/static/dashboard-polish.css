@@ -1,17 +1,5 @@
 /* Presentation-only refinements. Keep robot controls, canvas geometry,
    cockpit safety overlays, and application state in their owning modules. */
-:root {
-  --type-micro: .75rem;
-  --type-control: .875rem;
-  --type-secondary: .875rem;
-  --type-body: 1rem;
-  --type-section: 1.125rem;
-  --muted: #9aafa8;
-  --line: rgba(156, 201, 190, .17);
-  --line-strong: rgba(156, 201, 190, .3);
-  --radius: 14px;
-  --shadow: 0 8px 28px rgba(0, 0, 0, .16);
-}
 
 body { font-size: var(--type-body); line-height: 1.55; }
 /* Fixed-position operational overlays keep their established density. */

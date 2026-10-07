@@ -110,8 +110,8 @@ export function createCameraPanelView(options = {}) {
     decode.value.textContent = projected.decode;
     clock.value.textContent = projected.clock;
     overlay.textContent = projected.overlay;
-    overlay.hidden = projected.state === 'LIVE';
-    if (projected.state !== 'LIVE') clearFrame();
+    overlay.hidden = ['LIVE', 'FIXTURE', 'REPLAY'].includes(projected.state);
+    if (!['LIVE', 'FIXTURE', 'REPLAY'].includes(projected.state)) clearFrame();
   }
 
   function renderPerception(projected) {

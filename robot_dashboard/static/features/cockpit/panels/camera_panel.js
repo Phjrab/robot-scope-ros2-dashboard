@@ -22,7 +22,8 @@ export function projectCameraPanelState(source = {}, lastRenderedAt = 0, now = D
   );
   const error = source.error || stateValue === 'error';
   const live = Boolean(lastRenderedAt) && !stale && !error && source.connection === 'live';
-  const state = error ? 'ERROR' : stale ? 'STALE' : live ? 'LIVE' : 'WAITING';
+  const provenance = metadata.data_provenance === 'SYNTHETIC_FIXTURE' ? 'FIXTURE' : metadata.data_provenance === 'REPLAY' ? 'REPLAY' : 'LIVE';
+  const state = error ? 'ERROR' : stale ? 'STALE' : live ? provenance : 'WAITING';
   const width = Number(metadata.width || source.width || 0);
   const height = Number(metadata.height || source.height || 0);
   const fps = finite(metadata.fps ?? source.fps);
@@ -46,7 +47,7 @@ export function projectCameraPanelState(source = {}, lastRenderedAt = 0, now = D
     receive: observability.transport.detail,
     decode: observability.decode.detail,
     clock: observability.clock,
-    overlay: state === 'LIVE' ? '' : state === 'STALE' ? `STALE · ${ageMs == null ? 'AGE UNKNOWN' : `${(ageMs / 1000).toFixed(1)} s`}` : state === 'ERROR' ? 'CAMERA ERROR' : 'WAITING FOR FRAME',
+    overlay: ['LIVE', 'FIXTURE', 'REPLAY'].includes(state) ? '' : state === 'STALE' ? `STALE · ${ageMs == null ? 'AGE UNKNOWN' : `${(ageMs / 1000).toFixed(1)} s`}` : state === 'ERROR' ? 'CAMERA ERROR' : 'WAITING FOR FRAME',
   });
 }
 

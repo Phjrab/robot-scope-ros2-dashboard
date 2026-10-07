@@ -1,0 +1,49 @@
+[WebServer] (node:41732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+(node:41786) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/1] tests/e2e/ui_redesign.spec.mjs:218:1 › Mission Control long map names and server errors stay escaped and empty maps remain usable
+  1) tests/e2e/ui_redesign.spec.mjs:218:1 › Mission Control long map names and server errors stay escaped and empty maps remain usable
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#savedMapList')
+    Expected substring: "Saved point cloud"
+    Received string:    "◌Public demo cloud/demo/pointcloud3,829 pts"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('#savedMapList')
+        14 × locator resolved to <div tabindex="0" role="region" id="savedMapList" aria-busy="false" aria-label="저장 지도 목록" class="saved-map-list">…</div>
+           - unexpected value "◌Public demo cloud/demo/pointcloud3,829 pts"
+
+
+      235 |   await page.reload();
+      236 |   await expect(page.locator('[data-saved-map-id="' + map.id + '"]')).toHaveCount(0);
+    > 237 |   await expect(page.locator('#savedMapList')).toContainText('Saved point cloud');
+          |                                               ^
+      238 |   await expect(page.locator('[data-saved-map-id="__fallback_cloud"]')).toHaveCount(1);
+      239 |   await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+      240 |   expect(pageErrors).toEqual([]);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/ui_redesign.spec.mjs:237:47
+
+    Error Context: ../../../../private/tmp/robot-scope-ui-playwright-artifacts/ui_redesign-Mission-Contro-2b100-nd-empty-maps-remain-usable/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../private/tmp/robot-scope-ui-playwright-artifacts/ui_redesign-Mission-Contro-2b100-nd-empty-maps-remain-usable/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../private/tmp/robot-scope-ui-playwright-artifacts/ui_redesign-Mission-Contro-2b100-nd-empty-maps-remain-usable/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    tests/e2e/ui_redesign.spec.mjs:218:1 › Mission Control long map names and server errors stay escaped and empty maps remain usable

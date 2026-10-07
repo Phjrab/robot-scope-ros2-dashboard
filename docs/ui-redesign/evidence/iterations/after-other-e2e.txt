@@ -1,0 +1,431 @@
+
+> test:e2e
+> playwright test --grep-invert Cockpit --reporter=line
+
+[WebServer] (node:46259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 46 tests using 1 worker
+
+(node:46274) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/46] tests/e2e/dashboard.spec.mjs:26:1 › offline viewer keeps saved maps available while live telemetry fails closed
+[2/46] tests/e2e/dashboard.spec.mjs:36:1 › Saved Maps shows storage size and downloads the selected map bundle
+[3/46] tests/e2e/dashboard.spec.mjs:48:1 › 2D map editor previews and saves an operator-selected arbitrary rotation
+[4/46] tests/e2e/dashboard.spec.mjs:81:1 › camera and pointcloud reconnect, then release transports on page switch
+[5/46] tests/e2e/dashboard.spec.mjs:96:1 › Sensors camera observability shows Wi-Fi, source, transport, decode and clock domain
+[6/46] tests/e2e/dashboard.spec.mjs:113:1 › RealSense resolution selection survives polling and applies exactly once
+[7/46] tests/e2e/dashboard.spec.mjs:468:1 › Competition Route Planner completes the software-only workflow without motion authority
+[8/46] tests/e2e/dashboard.spec.mjs:510:1 › standalone dashboard Route Planner is reachable and releases polling when closed
+[9/46] tests/e2e/dashboard.spec.mjs:580:1 › Route Planner stores eight sheets with five menu items each
+[10/46] tests/e2e/dashboard.spec.mjs:602:1 › Route Planner destination start survives polling and missing graph is explained
+[11/46] tests/e2e/dashboard.spec.mjs:623:1 › locked Route Planner order stays server-synchronized and offers an isolated new-order draft
+[12/46] tests/e2e/dashboard.spec.mjs:656:1 › locked Route Planner order can be explicitly unlocked without control or navigation authority
+[13/46] tests/e2e/dashboard.spec.mjs:676:1 › Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects
+[14/46] tests/e2e/dashboard.spec.mjs:1193:1 › active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation
+[15/46] tests/e2e/dashboard.spec.mjs:1228:1 › Safety HUD clears stale cached values and preserves STOP and control source on a narrow viewport
+[16/46] tests/e2e/dashboard.spec.mjs:1383:1 › mapping start, save and stop preserve one mutation per operator action
+[17/46] tests/e2e/dashboard.spec.mjs:1400:1 › navigation starts with pinned revisions, exposes active progress, and cancels once
+[18/46] tests/e2e/dashboard.spec.mjs:1417:1 › an active map revision conflict blocks navigation pose and goal controls
+[19/46] tests/e2e/dashboard.spec.mjs:1433:1 › map annotations use exact revisions and point goals reuse the Nav safety gate
+[20/46] tests/e2e/dashboard.spec.mjs:1461:1 › annotation edits are disabled during Nav2 and publish a full CAS document while idle
+[21/46] tests/e2e/dashboard.spec.mjs:1479:1 › dataset start/finalize is lifecycle-owned and duplicate clicks do not duplicate mutations
+[22/46] tests/e2e/dashboard.spec.mjs:1506:1 › finalized dataset export downloads once and model registry remains read only
+[23/46] tests/e2e/dashboard.spec.mjs:1525:1 › software E-stop remains latched until explicit local confirmation clears it
+[24/46] tests/e2e/dashboard.spec.mjs:1537:1 › service lifecycle blockers remain server-authoritative in the browser
+[25/46] tests/e2e/dashboard.spec.mjs:1546:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+  1) tests/e2e/dashboard.spec.mjs:1546:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+
+    Test timeout of 20000ms exceeded.
+
+    Error: page.waitForEvent: Test timeout of 20000ms exceeded.
+    =========================== logs ===========================
+    waiting for event "download"
+    ============================================================
+
+      1547 |   const backend = await openDashboard(page, {}, 'settings');
+      1548 |   await expect(page.locator('#diagnosticsExportButton')).toBeEnabled();
+    > 1549 |   const download = page.waitForEvent('download');
+           |                         ^
+      1550 |   await page.locator('#diagnosticsExportButton').dblclick();
+      1551 |   const artifact = await download;
+      1552 |   expect(artifact.suggestedFilename()).toBe('robot-scope-diagnostics-20260823T054500Z.zip');
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/dashboard.spec.mjs:1549:25
+
+    Error: locator.dblclick: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for locator('#diagnosticsExportButton')
+        - locator resolved to <button type="button" id="diagnosticsExportButton" class="service-restart-button">EXPORT DIAGNOSTICS ZIP</button>
+      - attempting dblclick action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <strong>DASHBOARD SOFTWARE STOP</strong> from <aside data-tone="normal" id="cockpitSafetyHud" data-expanded="false" class="cockpit-safety-hud" data-layout-mode="operate" aria-label="Cockpit 고정 Safety HUD">…</aside> subtree intercepts pointer events
+      - retrying dblclick action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <footer>…</footer> intercepts pointer events
+      - retrying dblclick action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong>DASHBOARD SOFTWARE STOP</strong> from <aside data-tone="normal" id="cockpitSafetyHud" data-expanded="false" class="cockpit-safety-hud" data-layout-mode="operate" aria-label="Cockpit 고정 Safety HUD">…</aside> subtree intercepts pointer events
+        - retrying dblclick action
+          - waiting 100ms
+        9 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong>DASHBOARD SOFTWARE STOP</strong> from <aside data-tone="normal" id="cockpitSafetyHud" data-expanded="false" class="cockpit-safety-hud" data-layout-mode="operate" aria-label="Cockpit 고정 Safety HUD">…</aside> subtree intercepts pointer events
+        - retrying dblclick action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <footer>…</footer> intercepts pointer events
+        - retrying dblclick action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong>DASHBOARD SOFTWARE STOP</strong> from <aside data-tone="normal" id="cockpitSafetyHud" data-expanded="false" class="cockpit-safety-hud" data-layout-mode="operate" aria-label="Cockpit 고정 Safety HUD">…</aside> subtree intercepts pointer events
+        - retrying dblclick action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong>DASHBOARD SOFTWARE STOP</strong> from <aside data-tone="normal" id="cockpitSafetyHud" data-expanded="false" class="cockpit-safety-hud" data-layout-mode="operate" aria-label="Cockpit 고정 Safety HUD">…</aside> subtree intercepts pointer events
+        - retrying dblclick action
+          - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <strong>DASHBOARD SOFTWARE STOP</strong> from <aside data-tone="normal" id="cockpitSafetyHud" data-expanded="false" class="cockpit-safety-hud" data-layout-mode="operate" aria-label="Cockpit 고정 Safety HUD">…</aside> subtree intercepts pointer events
+      - retrying dblclick action
+        - waiting 500ms
+
+
+      1548 |   await expect(page.locator('#diagnosticsExportButton')).toBeEnabled();
+      1549 |   const download = page.waitForEvent('download');
+    > 1550 |   await page.locator('#diagnosticsExportButton').dblclick();
+           |                                                  ^
+      1551 |   const artifact = await download;
+      1552 |   expect(artifact.suggestedFilename()).toBe('robot-scope-diagnostics-20260823T054500Z.zip');
+      1553 |   await expect.poll(() => backend.mutations('/api/v1/system/diagnostics/export').length).toBe(1);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/dashboard.spec.mjs:1550:50
+
+    Error Context: test-results/dashboard-Settings-exports-b436b-out-robot-work-confirmation/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/dashboard-Settings-exports-b436b-out-robot-work-confirmation/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/dashboard-Settings-exports-b436b-out-robot-work-confirmation/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:51469) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[26/46] tests/e2e/dashboard.spec.mjs:1557:1 › cross-origin browser WebSocket handshakes are rejected before acceptance
+[27/46] tests/e2e/experiments.spec.mjs:37:1 › offline experiment viewer shows synthetic provenance and no control actions
+[28/46] tests/e2e/experiments.spec.mjs:53:1 › viewer rejects a mismatched map digest and stale result
+[29/46] tests/e2e/food_production.spec.mjs:4:1 › food clock runs independently, restores and never sends robot commands
+[30/46] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px
+  2) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px ───
+
+    Error: cockpit at 320px
+
+    cockpit at 320px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "상세 펼치기: clipped by cockpitCompetitionStatus",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: test-results/layout-layout-all-workspac-2f48f-trols-inside-cards-at-320px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-layout-all-workspac-2f48f-trols-inside-cards-at-320px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-layout-all-workspac-2f48f-trols-inside-cards-at-320px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:52183) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[31/46] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 390px
+  3) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 390px ───
+
+    Error: cockpit at 390px
+
+    cockpit at 390px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "상세 펼치기: clipped by cockpitCompetitionStatus",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: test-results/layout-layout-all-workspac-89d35-trols-inside-cards-at-390px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-layout-all-workspac-89d35-trols-inside-cards-at-390px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-layout-all-workspac-89d35-trols-inside-cards-at-390px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:52718) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[32/46] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 768px
+  4) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 768px ───
+
+    Error: cockpit at 768px
+
+    cockpit at 768px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "상세 펼치기: clipped by cockpitCompetitionStatus",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: test-results/layout-layout-all-workspac-aa7f7-trols-inside-cards-at-768px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-layout-all-workspac-aa7f7-trols-inside-cards-at-768px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-layout-all-workspac-aa7f7-trols-inside-cards-at-768px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:53245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[33/46] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1024px
+  5) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1024px ──
+
+    Error: cockpit at 1024px
+
+    cockpit at 1024px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "상세 펼치기: clipped by cockpitCompetitionStatus",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: test-results/layout-layout-all-workspac-99149-rols-inside-cards-at-1024px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-layout-all-workspac-99149-rols-inside-cards-at-1024px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-layout-all-workspac-99149-rols-inside-cards-at-1024px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:53701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[34/46] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1440px
+  6) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1440px ──
+
+    Error: cockpit at 1440px
+
+    cockpit at 1440px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "상세 펼치기: clipped by cockpitCompetitionStatus",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: test-results/layout-layout-all-workspac-16595-rols-inside-cards-at-1440px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-layout-all-workspac-16595-rols-inside-cards-at-1440px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-layout-all-workspac-16595-rols-inside-cards-at-1440px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:54213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[35/46] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1920px
+  7) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1920px ──
+
+    Error: cockpit at 1920px
+
+    cockpit at 1920px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "상세 펼치기: clipped by cockpitCompetitionStatus",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: test-results/layout-layout-all-workspac-71aef-rols-inside-cards-at-1920px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-layout-all-workspac-71aef-rols-inside-cards-at-1920px/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-layout-all-workspac-71aef-rols-inside-cards-at-1920px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:54695) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[36/46] tests/e2e/layout.spec.mjs:58:1 › layout: camera controls, conversion fields and planner rows align within their own cards
+[37/46] tests/e2e/layout.spec.mjs:97:1 › layout: Nav2 compact groups remain separate and Costmaps spans the row
+[38/46] tests/e2e/layout.spec.mjs:132:1 › layout: map view controls never overlap the legend or custom point budget
+[39/46] tests/e2e/mission_page.spec.mjs:4:1 › Missions sidebar page creates ordered mission and sends only explicit actions
+[40/46] tests/e2e/mission_page.spec.mjs:42:1 › Missions page surfaces rejected start without claiming the mission is running
+[41/46] tests/e2e/navigation_presets.spec.mjs:4:1 › Nav2 team presets save, refresh and reload without applying or driving
+[42/46] tests/e2e/reusable_points_orders.spec.mjs:4:1 › Missions repeat registered points in order and remove only one occurrence
+[43/46] tests/e2e/reusable_points_orders.spec.mjs:21:1 › Route Planner keeps menu rows after save reload and second save, with destination above menus
+[44/46] tests/e2e/schematic_missing_assets.spec.mjs:4:1 › Route Planner saved-map order editor remains usable without private schematic assets
+[45/46] tests/e2e/spatial_editor.spec.mjs:4:1 › delivery posture is visit-specific and stays non-executable after save
+[46/46] tests/e2e/spatial_editor.spec.mjs:22:1 › spatial editor draws, edits, saves a constrained draft and retains it after CAS rejection
+  7 failed
+    tests/e2e/dashboard.spec.mjs:1546:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px ────
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 390px ────
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 768px ────
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1024px ───
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1440px ───
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1920px ───
+  39 passed (2.2m)

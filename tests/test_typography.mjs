@@ -4,13 +4,13 @@ import { test } from 'node:test';
 
 const styles = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
-test('dashboard uses the Go2 motion-card typography scale', () => {
+test('dashboard uses the readable Mission Control typography scale', () => {
   for (const token of [
-    '--type-micro: 9px',
-    '--type-control: 11px',
-    '--type-secondary: 13px',
-    '--type-body: 14px',
-    '--type-section: 15px',
+    '--type-micro: .75rem',
+    '--type-control: .875rem',
+    '--type-secondary: .875rem',
+    '--type-body: 1rem',
+    '--type-section: 1.125rem',
   ]) {
     assert.match(styles, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }

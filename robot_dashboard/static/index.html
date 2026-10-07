@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#07100f">
+  <meta name="theme-color" content="#11161c">
   <title>Robot Scope</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/features/cockpit/cockpit.css">
   <link rel="stylesheet" href="/static/dashboard-polish.css">
+  <link rel="stylesheet" href="/static/mission-control.css">
 </head>
 <body>
   <div class="ambient ambient-a"></div>
@@ -16,7 +17,7 @@
   <header class="topbar">
     <a class="brand" href="#overview" aria-label="Robot Scope 홈">
       <span class="brand-mark"><span></span></span>
-      <span><strong>ROBOT SCOPE</strong><small>ROS 2 OBSERVABILITY AGENT</small></span>
+      <span><strong>ROBOT SCOPE</strong><small>ROBOTICS MISSION CONTROL</small></span>
     </a>
     <div class="top-actions">
       <a class="dataset-global-status" id="datasetGlobalStatus" href="#sensors" hidden aria-label="서버 데이터셋 캡처 상태 보기">
@@ -35,19 +36,23 @@
   <main class="shell">
     <aside class="sidebar">
       <nav class="app-nav" aria-label="Robot Scope 기능 메뉴">
-        <div class="eyebrow">WORKSPACE</div>
-        <a class="nav-item is-active" href="#overview" data-nav="overview"><i>01</i><span><b>Overview</b><small>전체 연결 상태</small></span></a>
-        <a class="nav-item" href="#cockpit" data-nav="cockpit"><i>CX</i><span><b>Cockpit</b><small>Go2 · Live LiDAR</small></span></a>
-        <a class="nav-item" href="#mapping" data-nav="mapping"><i>02</i><span><b>Live Mapping</b><small>실시간 LiDAR</small></span></a>
-        <a class="nav-item" href="#maps" data-nav="maps"><i>03</i><span><b>Saved Maps</b><small>저장 지도 보기</small></span></a>
-        <a class="nav-item" href="#sensors" data-nav="sensors"><i>04</i><span><b>Sensors</b><small>카메라·텔레메트리</small></span></a>
-        <a class="nav-item" href="#topics" data-nav="topics"><i>05</i><span><b>ROS Graph</b><small>토픽 탐색</small></span></a>
-        <a class="nav-item" href="#controls" data-nav="controls"><i>06</i><span><b>Controls</b><small>주행·모션 실행</small></span></a>
-        <a class="nav-item" href="#navigation" data-nav="navigation"><i>07</i><span><b>Navigation</b><small>Nav2 자율주행</small></span></a>
-        <a class="nav-item" href="#missions" data-nav="missions"><i>MS</i><span><b>Missions</b><small>코스·경유점 미션</small></span></a>
-        <a class="nav-item" href="#route-planner" data-nav="route-planner"><i>08</i><span><b>Route Planner</b><small>주문·추천 경로</small></span></a>
-        <a class="nav-item" href="/static/experiments.html"><i>EX</i><span><b>Experiments</b><small>오프라인 결과 · 읽기 전용</small></span></a>
-        <a class="nav-item" href="#settings" data-nav="settings"><i>09</i><span><b>Settings</b><small>연결·소스 선택</small></span></a>
+        <a class="nav-item" href="#cockpit" data-nav="cockpit" title="Cockpit · 센서 관측" aria-label="Cockpit · 센서 관측"><i aria-hidden="true">⌖</i><span><b>Cockpit</b><small>센서 관측</small></span></a>
+        <a class="nav-item" href="#mapping" data-nav="mapping" title="Mapping · 실시간 LiDAR" aria-label="Mapping · 실시간 LiDAR"><i aria-hidden="true">▧</i><span><b>Mapping</b><small>실시간 LiDAR</small></span></a>
+        <a class="nav-item" href="#maps" data-nav="maps" title="Saved Maps · 저장 지도" aria-label="Saved Maps · 저장 지도"><i aria-hidden="true">▦</i><span><b>Maps</b><small>저장 지도</small></span></a>
+        <a class="nav-item" href="#navigation" data-nav="navigation" title="Navigation · Nav2" aria-label="Navigation · Nav2"><i aria-hidden="true">↗</i><span><b>Navigate</b><small>Nav2</small></span></a>
+        <a class="nav-item" href="#sensors" data-nav="sensors" title="Capture / Perception · 카메라·데이터셋" aria-label="Capture / Perception · 카메라·데이터셋"><i aria-hidden="true">◉</i><span><b>Capture</b><small>카메라·데이터셋</small></span></a>
+        <details class="advanced-tools" open>
+          <summary title="Advanced · 시스템·미션·대회 도구">Advanced</summary>
+          <nav aria-label="Advanced tools">
+            <a class="nav-item" href="#overview" data-nav="overview" title="Overview · 연결 요약" aria-label="Overview · 연결 요약"><i aria-hidden="true">OV</i><span><b>Overview</b></span></a>
+            <a class="nav-item" href="#topics" data-nav="topics" title="ROS Graph · 토픽 탐색" aria-label="ROS Graph · 토픽 탐색"><i aria-hidden="true">RG</i><span><b>ROS Graph</b></span></a>
+            <a class="nav-item" href="#controls" data-nav="controls" title="Controls · ARM·수동 제어" aria-label="Controls · ARM·수동 제어"><i aria-hidden="true">CT</i><span><b>Controls</b></span></a>
+            <a class="nav-item" href="#missions" data-nav="missions" title="Missions · 경유점 미션" aria-label="Missions · 경유점 미션"><i aria-hidden="true">MS</i><span><b>Missions</b></span></a>
+            <a class="nav-item" href="#route-planner" data-nav="route-planner" title="Route Planner · 수동 도식·음식 준비 보드" aria-label="Route Planner · 수동 도식·음식 준비 보드"><i aria-hidden="true">RP</i><span><b>Planner</b></span></a>
+            <a class="nav-item" href="/static/experiments.html" title="Experiments · 오프라인 결과" aria-label="Experiments · 오프라인 결과"><i aria-hidden="true">EX</i><span><b>Experiments</b></span></a>
+            <a class="nav-item" href="#settings" data-nav="settings" title="Settings · 시스템·소스·진단" aria-label="Settings · 시스템·소스·진단"><i aria-hidden="true">⚙</i><span><b>Settings</b></span></a>
+          </nav>
+        </details>
       </nav>
 
       <section class="side-section read-only-note">
@@ -99,6 +104,10 @@
           </div>
         </header>
         <div class="cockpit-workspace" id="cockpitWorkspace" data-lifecycle="inactive" data-freshness="waiting">
+          <div class="mission-preset-bar" id="missionPresetBar">
+            <label for="missionPresetSelect">WORKSPACE <select id="missionPresetSelect" aria-label="Mission Control 작업 배치" disabled></select></label>
+            <small role="status">Safety 상세 → EDIT LAYOUT에서 배치 선택</small>
+          </div>
           <div class="cockpit-scene-layer">
             <canvas id="cockpitSceneCanvas" aria-label="Cockpit Go2 및 실시간 LiDAR 3D 장면"></canvas>
           </div>
@@ -118,13 +127,30 @@
               <output id="cockpitPointMetrics" aria-label="LiDAR performance">LOW · 10K · — FPS</output>
             </div>
             <aside class="cockpit-layout-library" id="cockpitLayoutLibrary" aria-label="Cockpit layout preset 저장과 복원"></aside>
-            <aside class="cockpit-competition-status" id="cockpitCompetitionStatus" aria-label="Competition network perception and operation status"></aside>
+            <aside class="cockpit-competition-status" id="cockpitCompetitionStatus" aria-label="Advanced competition network perception and operation status"></aside>
           </div>
           <div class="cockpit-panel-layer" id="cockpitPanelLayer" aria-label="Cockpit floating panels">
             <div class="cockpit-snap-preview" id="cockpitSnapPreview" aria-hidden="true" hidden></div>
           </div>
           <aside class="cockpit-sensor-launcher" id="cockpitSensorLauncher" aria-label="Sensor Launcher와 panel 정렬"></aside>
-          <aside class="cockpit-safety-hud" id="cockpitSafetyHud" aria-label="Cockpit 고정 Safety HUD"></aside>
+          <aside class="mission-inspector" id="missionInspector" aria-label="현재 작업 상태 inspector">
+            <header><span class="eyebrow">CONTEXT INSPECTOR</span><h2>관측과 준비 상태</h2><span class="inspector-readonly">SERVER STATE · READ ONLY</span></header>
+            <dl class="inspector-sensor-status">
+              <div><dt>ROBOT</dt><dd data-inspector-field="robot">NOT_CONNECTED</dd></div>
+              <div><dt>LIDAR</dt><dd data-inspector-field="lidar">WAITING</dd></div>
+              <div><dt>CAMERA</dt><dd data-inspector-field="camera">WAITING</dd></div>
+              <div><dt>OBSERVED</dt><dd data-inspector-field="observed">—</dd></div>
+            </dl>
+            <section><h3>지도 · Localization</h3><strong data-inspector-field="map">선택한 지도 없음</strong>
+              <dl><div><dt>REVISION</dt><dd data-inspector-field="revision">—</dd></div><div><dt>FRAME</dt><dd data-inspector-field="frame">—</dd></div><div><dt>LOCALIZATION</dt><dd data-inspector-field="localization">UNAVAILABLE</dd></div></dl>
+              <a href="#maps">저장 지도 열기 →</a>
+            </section>
+            <section class="inspector-navigation"><h3>Navigation draft</h3><p data-inspector-field="readiness">NOT_CONNECTED</p><small>지도·초기 위치·readiness를 확인한 뒤 명시적으로 실행합니다.</small><dl><div><dt>SELECTED</dt><dd data-inspector-field="selection">선택한 지점 없음</dd></div><div><dt>MISSION</dt><dd data-inspector-field="mission">실행 중인 미션 없음</dd></div></dl><a href="#navigation">지도에서 draft 확인 →</a></section>
+            <section class="inspector-capture"><h3>Dataset Capture</h3><p data-inspector-field="capture">NOT_CONNECTED</p><small data-inspector-field="samples">—</small><a href="#sensors">카메라·세션 설정 →</a></section>
+            <p class="inspector-next" data-inspector-field="next">로봇 전원·ROS gateway·센서 소스를 각각 확인하세요.</p>
+            <a href="#settings">연결·소스 진단 →</a>
+          </aside>
+          <div class="mission-observation-strip" aria-label="관측 상태 strip"><span>3D / SENSOR SPACE</span><span>UI 선택·확대는 주행 명령을 보내지 않습니다.</span></div>
         </div>
       </section>
 
@@ -244,10 +270,11 @@
           </article>
           <aside class="panel saved-library-panel">
             <div class="panel-header compact"><div><div class="eyebrow">MAP LIBRARY</div><h2>Available snapshots</h2></div><span class="muted" id="savedMapCount">0 maps · 0 B</span></div>
+            <label class="saved-map-search" for="savedMapSearch">지도 검색<input id="savedMapSearch" type="search" placeholder="이름·파일·frame 검색" autocomplete="off"></label>
             <div class="saved-map-list" id="savedMapList" role="region" aria-label="저장 지도 목록" tabindex="0"><div class="sensor-placeholder">저장 지도를 찾고 있습니다.</div></div>
             <div class="saved-map-detail">
               <span>SELECTED</span><strong id="savedMapTitle">—</strong>
-              <dl><div><dt>Source</dt><dd id="savedMapSource">—</dd></div><div><dt>Size</dt><dd id="savedMapSize">—</dd></div><div><dt>Frame</dt><dd id="savedMapDetailFrame">—</dd></div><div><dt>Points</dt><dd id="savedMapDetailPoints">—</dd></div><div><dt>Bounds</dt><dd id="savedMapBounds">—</dd></div></dl>
+              <dl><div><dt>Source</dt><dd id="savedMapSource">—</dd></div><div><dt>Revision</dt><dd id="savedMapRevision">—</dd></div><div><dt>Size</dt><dd id="savedMapSize">—</dd></div><div><dt>Frame</dt><dd id="savedMapDetailFrame">—</dd></div><div><dt>Points</dt><dd id="savedMapDetailPoints">—</dd></div><div><dt>Bounds</dt><dd id="savedMapBounds">—</dd></div></dl>
               <a id="savedMapDownload" class="saved-map-download" aria-disabled="true">선택 지도 다운로드 (.zip)</a>
               <a id="savedMapAnnotate" class="saved-map-place-link" href="#navigation">선택한 2D 지도에 장소 이름 지정</a>
               <div class="saved-map-management">
@@ -904,6 +931,7 @@
       <footer><span>Robot Scope v0.4 · Mapping · Telemetry · Fail-safe control</span><span id="lastUpdated">Last update —</span></footer>
     </section>
   </main>
+  <aside class="cockpit-safety-hud" id="cockpitSafetyHud" aria-label="고정 Safety HUD"></aside>
 
   <div class="toast" id="toast"></div>
   <script src="/static/robot_profiles.js" defer></script>

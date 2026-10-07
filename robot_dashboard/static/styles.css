@@ -1,28 +1,30 @@
 :root {
   color-scheme: dark;
-  --bg: #07100f;
-  --bg-soft: #0a1514;
-  --panel: rgba(13, 27, 25, 0.88);
-  --panel-strong: #0f211f;
-  --line: rgba(156, 201, 190, 0.12);
-  --line-strong: rgba(156, 201, 190, 0.22);
-  --text: #ecf8f4;
-  --muted: #80958f;
-  --green: #7df0b6;
-  --cyan: #5dded8;
-  --violet: #a28bff;
-  --amber: #ffc66d;
-  --danger: #ff7a7f;
-  --radius: 18px;
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
-  --type-micro: 9px;
-  --type-control: 11px;
-  --type-secondary: 13px;
-  --type-body: 14px;
-  --type-section: 15px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bg: #11161c;
+  --bg-soft: #151c24;
+  --panel: #1a222c;
+  --panel-strong: #202b36;
+  --line: #354553;
+  --line-strong: #667c8e;
+  --text: #e9f0f5;
+  --muted: #a7b7c6;
+  --green: #8bd6ba;
+  --cyan: #59d3e5;
+  --violet: #b5bce5;
+  --amber: #ffd080;
+  --danger: #ff969c;
+  --radius: 5px;
+  --shadow: none;
+  --type-micro: .75rem;
+  --type-control: .875rem;
+  --type-secondary: .875rem;
+  --type-body: 1rem;
+  --type-section: 1.125rem;
   --leading-secondary: 1.45;
   --leading-body: 1.55;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rail-width: 72px;
+  --inspector-width: 328px;
 }
 
 * { box-sizing: border-box; }
