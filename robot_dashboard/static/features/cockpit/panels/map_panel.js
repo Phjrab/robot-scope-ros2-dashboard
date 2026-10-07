@@ -91,7 +91,7 @@ function createMapPanelView(options = {}) {
     context.beginPath(); context.arc(point.x, point.y, radius, 0, Math.PI * 2); context.stroke();
     const length = Math.max(18, radius + 10);
     context.beginPath(); context.moveTo(point.x, point.y); context.lineTo(point.x + Math.cos(point.heading) * length, point.y + Math.sin(point.heading) * length); context.stroke();
-    context.setLineDash([]); context.font = '10px ui-monospace, monospace'; context.fillText(label, point.x + 9, point.y - 9); context.restore();
+    context.setLineDash([]); context.font = globalThis.RobotScopeTypography?.canvasFont('ui', 13, 400) || `400 ${13}px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif`; context.fillText(label, point.x + 9, point.y - 9); context.restore();
   }
 
   function draw(state) {
@@ -150,9 +150,10 @@ function createMapPanelView(options = {}) {
   const resizeObserver = typeof globalThis.ResizeObserver === 'function' ? new globalThis.ResizeObserver(resize) : null;
   resizeObserver?.observe(canvasWrap);
   resize();
+  const unsubscribeFonts = globalThis.RobotScopeTypography?.subscribe(() => { if (current) draw(current); });
   return Object.freeze({
     render, clear: () => { current = null; warning.hidden = false; warning.textContent = 'MAP PANEL INACTIVE'; }, resize,
-    destroy: () => { resizeObserver?.disconnect(); root.remove(); rasterCache.reset(); },
+    destroy: () => { unsubscribeFonts?.(); resizeObserver?.disconnect(); root.remove(); rasterCache.reset(); },
     diagnostics: () => Object.freeze({ renderCount, ...rasterCache.diagnostics() }),
   });
 }

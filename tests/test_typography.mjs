@@ -9,7 +9,7 @@ test('dashboard uses the readable Mission Control typography scale', () => {
     '--type-micro: .75rem',
     '--type-control: .875rem',
     '--type-secondary: .875rem',
-    '--type-body: 1rem',
+    '--type-body: .9375rem',
     '--type-section: 1.125rem',
   ]) {
     assert.match(styles, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
@@ -35,6 +35,6 @@ test('all workspaces share the scale while canvas HUD remains compact', () => {
     assert.ok(styles.includes(selector), `${selector} is part of the unified scale`);
   }
 
-  assert.match(styles, /\.stream-overlay, \.map-meta \{[^}]*font-size: 8px/);
-  assert.match(styles, /\.scene-controls button \{[^}]*font: 700 7px/);
+  assert.match(styles, /\.stream-overlay, \.map-meta \{[^}]*font-size: 12px/);
+  assert.match(styles, /\.scene-controls button \{[^}]*font: 600 12px/);
 });

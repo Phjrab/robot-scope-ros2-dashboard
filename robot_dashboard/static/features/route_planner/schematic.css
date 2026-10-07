@@ -7,7 +7,7 @@
 .schematic-controls button { margin: 4px; cursor: pointer; }
 .schematic-controls button:disabled { opacity: .45; cursor: default; }
 .schematic-controls :focus-visible { outline: 3px solid #ffdc94; outline-offset: 2px; }
-.schematic-controls textarea { width: 100%; box-sizing: border-box; font: 12px monospace; }
+.schematic-controls textarea { width: 100%; box-sizing: border-box; font: 12px var(--font-mono); }
 .schematic-controls summary { cursor: pointer; padding: 12px 0; }
 .schematic-controls article, .schematic-controls fieldset { padding: 10px; margin: 8px 0; border: 1px solid #496174; border-radius: 6px; min-width: 0; }
 .schematic-controls [role=alert] { color: #ffbbb0; }
@@ -26,4 +26,4 @@
   .route-planner-dashboard-host [data-map-kind=SCHEMATIC_MANUAL] .route-planner-order { grid-column: 1 / -1; }
 }
 .competition-map-view > div { position: sticky; top: 0; z-index: 1; background: #142232; padding: 4px 0; }
-.competition-map-badge { flex-basis: 100%; color: #ffdc94; font-weight: 700; }
+.competition-map-badge { flex-basis: 100%; color: #ffdc94; font-weight: 600; }

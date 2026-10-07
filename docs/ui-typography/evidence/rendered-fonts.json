@@ -1,0 +1,263 @@
+{
+  "results": [
+    {
+      "id": "korean",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans KR",
+          "postScriptName": "IBMPlexSansKR",
+          "isCustomFont": true,
+          "glyphCount": 6
+        },
+        {
+          "familyName": "IBM Plex Sans",
+          "postScriptName": "IBMPlexSans",
+          "isCustomFont": true,
+          "glyphCount": 2
+        }
+      ]
+    },
+    {
+      "id": "english",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans SmBld",
+          "postScriptName": "IBMPlexSans-SmBld",
+          "isCustomFont": true,
+          "glyphCount": 18
+        }
+      ]
+    },
+    {
+      "id": "safety",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans",
+          "postScriptName": "IBMPlexSans",
+          "isCustomFont": true,
+          "glyphCount": 15
+        }
+      ]
+    },
+    {
+      "id": "topic",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Mono",
+          "postScriptName": "IBMPlexMono",
+          "isCustomFont": true,
+          "glyphCount": 17
+        }
+      ]
+    },
+    {
+      "id": "coordinate",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Mono",
+          "postScriptName": "IBMPlexMono",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "id": "fps",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Mono",
+          "postScriptName": "IBMPlexMono",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "id": "ambiguous",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Mono",
+          "postScriptName": "IBMPlexMono",
+          "isCustomFont": true,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "id": "mixed-log",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans KR",
+          "postScriptName": "IBMPlexSansKR",
+          "isCustomFont": true,
+          "glyphCount": 11
+        },
+        {
+          "familyName": "IBM Plex Mono",
+          "postScriptName": "IBMPlexMono",
+          "isCustomFont": true,
+          "glyphCount": 6
+        }
+      ]
+    }
+  ],
+  "app": [
+    {
+      "selector": "#pageTitle",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans SmBld",
+          "postScriptName": "IBMPlexSans-SmBld",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "selector": ".page-heading p",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans KR",
+          "postScriptName": "IBMPlexSansKR",
+          "isCustomFont": true,
+          "glyphCount": 33
+        },
+        {
+          "familyName": "IBM Plex Sans",
+          "postScriptName": "IBMPlexSans",
+          "isCustomFont": true,
+          "glyphCount": 17
+        }
+      ]
+    },
+    {
+      "selector": "#robotType",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans",
+          "postScriptName": "IBMPlexSans",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "selector": "#robotIp",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Mono Medm",
+          "postScriptName": "IBMPlexMono-Medm",
+          "isCustomFont": true,
+          "glyphCount": 15
+        }
+      ]
+    },
+    {
+      "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans SmBld",
+          "postScriptName": "IBMPlexSans-SmBld",
+          "isCustomFont": true,
+          "glyphCount": 23
+        }
+      ]
+    }
+  ],
+  "faces": [
+    {
+      "family": "IBM Plex Sans",
+      "weight": "400",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans",
+      "weight": "500",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans",
+      "weight": "600",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans KR",
+      "weight": "400",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans KR",
+      "weight": "500",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans KR",
+      "weight": "600",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": "400",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": "500",
+      "status": "loaded"
+    }
+  ],
+  "measurements": {
+    "digits": [
+      {
+        "digit": "0",
+        "width": 8.40625
+      },
+      {
+        "digit": "1",
+        "width": 8.40625
+      },
+      {
+        "digit": "2",
+        "width": 8.40625
+      },
+      {
+        "digit": "3",
+        "width": 8.40625
+      },
+      {
+        "digit": "4",
+        "width": 8.40625
+      },
+      {
+        "digit": "5",
+        "width": 8.40625
+      },
+      {
+        "digit": "6",
+        "width": 8.40625
+      },
+      {
+        "digit": "7",
+        "width": 8.40625
+      },
+      {
+        "digit": "8",
+        "width": 8.40625
+      },
+      {
+        "digit": "9",
+        "width": 8.40625
+      }
+    ],
+    "controls": [
+      {
+        "selector": "#robotType",
+        "height": 44
+      },
+      {
+        "selector": "#robotIp",
+        "height": 44
+      }
+    ]
+  }
+}

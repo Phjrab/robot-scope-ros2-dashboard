@@ -52,7 +52,7 @@ export function createCompetitionMapView(host, { onPoint = () => {}, document: d
       const title = doc.createElementNS(NS, 'title'); title.textContent = n.label; dot.append(title); nodeLayer.append(dot);
       if (n.venue_id) {
         venueIndex += 1; venueLabels.push(`${venueIndex}: ${n.label}`);
-        const label = doc.createElementNS(NS, 'text'); label.setAttribute('x', n.x_px + 9); label.setAttribute('y', n.y_px - 8); label.setAttribute('fill', 'white'); label.setAttribute('font-size', '24'); label.textContent = String(venueIndex); nodeLayer.append(label);
+        const label = doc.createElementNS(NS, 'text'); label.setAttribute('x', n.x_px + 9); label.setAttribute('y', n.y_px - 8); label.setAttribute('fill', 'white'); label.setAttribute('font-size', '24'); label.style.fontFamily = 'var(--font-mono)'; label.style.fontWeight = '500'; label.textContent = String(venueIndex); nodeLayer.append(label);
       }
     }
     legend.textContent = `${Object.entries(state?.layout?.corner_zones || {}).map(([c,z]) => `${c} ↔ ${z || '미확인'}`).join(' · ')}${venueLabels.length ? ' | ' + venueLabels.join(' · ') : ' · 장소 위치 미확인'}`;

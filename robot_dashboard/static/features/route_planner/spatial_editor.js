@@ -137,7 +137,7 @@ export function createSpatialEditor(host, client, doc = globalThis.document) {
     }
     for (const p of annotations?.points || []) {
       const c = worldToGrid(map, p.pose || p); canvas.append(svgNode('circle', { cx: c.x, cy: c.y, r: 3 * scale, fill: '#9b55ef' }));
-      const label = svgNode('text', { x: c.x + 4 * scale, y: c.y, 'font-size': 10 * scale, fill: '#672cb6' }); label.textContent = p.name; canvas.append(label);
+      const label = svgNode('text', { x: c.x + 4 * scale, y: c.y, 'font-size': 13 * scale, fill: '#672cb6' }); label.textContent = p.name; canvas.append(label);
     }
     const coordinates = points.map((p) => worldToGrid(map, p)); const line = coordinates.map((p) => `${p.x},${p.y}`).join(' ');
     if (mode.value === 'CORRIDOR') canvas.append(svgNode('polyline', { points: line, fill: 'none', stroke: '#00b6e6', 'stroke-opacity': 0.2, 'stroke-width': Math.max(0.1, Math.min(5, Number(width.value) || 0.8)) / map.resolution, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));

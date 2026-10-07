@@ -96,7 +96,7 @@ export function drawPerceptionOverlay(canvas, frameCanvas, projection) {
   context.lineWidth = Math.max(2, width / 320);
   context.strokeStyle = color;
   context.fillStyle = color;
-  context.font = `${Math.max(11, width / 45)}px ui-monospace, monospace`;
+  context.font = globalThis.RobotScopeTypography?.canvasFont('mono', Math.max(13, width / 45), 400) || `400 ${Math.max(13, width / 45)}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
   const objects = objectResult(projection.results);
   for (const item of objects?.payload?.detections || []) {
     const scaleX = width / Math.max(1, Number(objects.input_width));

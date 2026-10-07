@@ -1,0 +1,690 @@
+{
+  "baseline_commit": "b0a2f691b1dc55c2d61e3030bfb4a1fad2a97a8e",
+  "branch": "codex/ui-robot-scope-mission-control",
+  "before_source": "read-only git archive of baseline robot_dashboard/static; current worktree not reverted",
+  "after_source": "working tree source hashes below; final typography commit available in git log",
+  "provenance": "Chromium actual app screenshot; loopback isolated synthetic fixture; no real robot/performance claims",
+  "font_source_commit": "763c36ef9117782905ae010056dfbe8fd2653a25",
+  "source_sha256": {
+    "robot_dashboard/static/app.js": "5fdb67d1cd6712b2235855949b992bfd4803cbb7a2a54c5962a48e65614edfb9",
+    "robot_dashboard/static/control_input.js": "6b97e64fb0b4729ca46c52c9f3129f65132904aad8001ba2fd2054cc471f88a3",
+    "robot_dashboard/static/core/api.js": "2384d469dca0676f7c9a17df137fe15a4438d04a782a943752310572e5dee8c1",
+    "robot_dashboard/static/core/dom.js": "c62f01e39a936001efca9aaa643e7cf9a77282a12682fbabf3742d7b7d8f6571",
+    "robot_dashboard/static/core/format.js": "a59cde6f2d479c30f335b855c5fc79229e8bc427c67be31132f565a77cb10670",
+    "robot_dashboard/static/core/log_scroll.js": "0dbc41821f9dc3374ee1c56b28ccb46a09e5e0f7a3c21f02e8502778fb6e7c8b",
+    "robot_dashboard/static/dashboard-polish.css": "3c6039c4596761a674ea33ce620de9405046e21a9f98e2250078bd0ab60da92f",
+    "robot_dashboard/static/experiments.html": "a977ed09e7a8c2275f36fe8881bcf853f83e3f0b727bf8c86082959fbe9dd45b",
+    "robot_dashboard/static/features/cockpit/camera_state.js": "0bfab892dc06c56556e11822834330a26d95b043b0e4f8283a084b0fae435379",
+    "robot_dashboard/static/features/cockpit/cockpit.css": "eff651a6dfda994f014b1542e43fac75b8fb3027351b7497e496465f1079458f",
+    "robot_dashboard/static/features/cockpit/competition_status.js": "fa27fa70de6c831853c5a2838a232ed7a579e1f182ffa7ec596417bae2ec3b03",
+    "robot_dashboard/static/features/cockpit/gamepad_ui.js": "53703315d39cfe9aad11e5fbc1f44679c47a5e5522253461ccf744a074cb6866",
+    "robot_dashboard/static/features/cockpit/layout_library.js": "de1af34cd977235f08832688a8ccfa72a4d8f96b3c3235c2cdb965d0ea6a0b23",
+    "robot_dashboard/static/features/cockpit/layout_migrations.js": "868f4c17880aea44ca84a63caa80233382408e1d31a3cd95eee4269ac4b4dd11",
+    "robot_dashboard/static/features/cockpit/layout_mode.js": "ae720094bf0f7f5419eeef06943f6248d0fb767b7c5df79654d26f0f22fa7989",
+    "robot_dashboard/static/features/cockpit/layout_schema.js": "7ce497ed86b79f97fdcb3be1a2ab16af182467dc616ad6930ca4b4a482850626",
+    "robot_dashboard/static/features/cockpit/layout_store.js": "53943c80bf51f34283984d184f22ab7a076d7c674ef9135eff7e44745f067d0a",
+    "robot_dashboard/static/features/cockpit/map_state.js": "3acbd64f313fbcca696a99c52bd04ec2a506bbf3057af506fdbbfc349cd32823",
+    "robot_dashboard/static/features/cockpit/mission_client.js": "b052e0fd201f65e9e4e320ff09dec8364fd2a722adcd8be8d2c52443e97945c8",
+    "robot_dashboard/static/features/cockpit/mission_inspector.js": "97da01b183b65161f8ef570a8511fc253733141c07bcff27dfd0f82ab1562805",
+    "robot_dashboard/static/features/cockpit/mission_page.js": "2c871d6206d60639b29c89c90c46345ee5a9658b7cf57053913b2739a499c33b",
+    "robot_dashboard/static/features/cockpit/mission_presets.js": "b38911cfbefdf747167aac250571f3c0d280603545ae23b8c67b4ce0599d8f6c",
+    "robot_dashboard/static/features/cockpit/mission_shell.js": "4999b07a907fa1f47d76bbd9aec570f67c2c3e6eb70a99f5594ad8a80342b857",
+    "robot_dashboard/static/features/cockpit/navigation_adapter.js": "1c1e4c9438ea5e98edd17120095072061a95c28c7f76a05b9afb4431602c8764",
+    "robot_dashboard/static/features/cockpit/panel_geometry.js": "c00a6c6013e5187f29564684f310e309d1912142e205912189f9666894682edd",
+    "robot_dashboard/static/features/cockpit/panel_manager.js": "86994aa284ee8eeb80b03e253d902684e608616d080a20d0a19df3834ad424a0",
+    "robot_dashboard/static/features/cockpit/panel_registry.js": "e4874e2d4533ae9feb4e23c2f98e600899a141cbc3ca62dedb35682ce08dcd5c",
+    "robot_dashboard/static/features/cockpit/panel_view.js": "041166b93c3f27bd83604917c21b80f12f7e74746e7aaf674ff35435238f3b09",
+    "robot_dashboard/static/features/cockpit/panels/camera_panel.js": "e274ddd3996d7ca34a831967822eac66a3bd8f01b501509481c7fab967821606",
+    "robot_dashboard/static/features/cockpit/panels/camera_panel_view.js": "97879d9481b1ec8df3a6fde07995003178c3d990c6a35ff10db262a728857bc7",
+    "robot_dashboard/static/features/cockpit/panels/controller_panel.js": "e961893fbc398f718d05b3983ce66880662659fafcc3efb9cb7d9bad635fa3bb",
+    "robot_dashboard/static/features/cockpit/panels/map_panel.js": "ac1a3c472ac5dd8346e8ee4dec60fb8490ecc9e7fae8f06ea22f7af0b3334b53",
+    "robot_dashboard/static/features/cockpit/panels/mission_panel.js": "ebaff9c4122459da74360cb536dbfe419dd4b8a83a5ecf288a5558261b779e7f",
+    "robot_dashboard/static/features/cockpit/panels/navigation_panel.js": "bd5980293c00e15fa090d248bde5e1af73a9888c4120fe56c02cbcc36d988122",
+    "robot_dashboard/static/features/cockpit/panels/route_planner_panel.js": "41b30942cf362e63ed6770b596f8e9ff2fc050fd814f99bb9f4e2c65055ad6e3",
+    "robot_dashboard/static/features/cockpit/point_quality.js": "b415ca064fc5654e11cc1f8ec6a42666d3be161f28ea38b871844dcb5bc62227",
+    "robot_dashboard/static/features/cockpit/route_planner_client.js": "567deefcebd13acd9c662632b3f85985b3e77ad9de0ec11dd0ed0b1bbdf380ec",
+    "robot_dashboard/static/features/cockpit/safety_hud.js": "742c90958f25856157b004c8f9ff5556b6076ff6952976f768ec47da7eee2f55",
+    "robot_dashboard/static/features/cockpit/safety_hud_view.js": "bef7881a7b2d81cd57c82469282789be4d0847b85dc6d5a416d5f3cb941a5e9b",
+    "robot_dashboard/static/features/cockpit/scene_host.js": "43368a886b980fc61604ca0a893c724421b75095734153679ebe06106b368f13",
+    "robot_dashboard/static/features/cockpit/sensor_launcher.js": "e1c5121a6000fa5972a00fbe46d533af7df0d22b2edbb82f3a85cb2579227253",
+    "robot_dashboard/static/features/cockpit/snap_layout.js": "6b0efdf290972bdab48e1ae3c22d6898e822cd126ec918ae38f6162ffda9914f",
+    "robot_dashboard/static/features/cockpit/window_mode.js": "922ab753e94a74847bfee55e918edaa8bc9bb8be55a4ff7f3070174d95f71d7c",
+    "robot_dashboard/static/features/cockpit/workspace.js": "335b4d1934130b3e968988bad3c65810a84ce2e95eca92dd5cc81ebafe2f710b",
+    "robot_dashboard/static/features/control/bridge_service.js": "d647ba1685fa345545da630c662ab1d2af9a393aa1546822ce4bf61cc754a176",
+    "robot_dashboard/static/features/control/session_contract.js": "f1ded0a8e7cbef449504b5e08ddc8ad6ec220b888aec61c14831dc7d786f014c",
+    "robot_dashboard/static/features/datasets/capture.js": "f6efa2edabf1dea89aa9299e472b069a5ca2cbd2d01873445e09bfd34bea87a9",
+    "robot_dashboard/static/features/experiments/report.js": "a8d7a418f62d066922488f66b9b9564e93ab160385adaf4f08aed183cc971bc0",
+    "robot_dashboard/static/features/experiments/view.css": "2a3ba0b086c2528d8cca5be135f907ae219d433fd13b43f200a147e9bf27b783",
+    "robot_dashboard/static/features/experiments/view.js": "12557b9ccd9633de5e3decdbbe63f9e8b99788cd906db9e38d3092799e3f034f",
+    "robot_dashboard/static/features/maps/crop.js": "4c3de5a41666380177bc3671da9d6f32271608d5784641d19bd3f74885c01755",
+    "robot_dashboard/static/features/maps/download.js": "766a4deb8f902e3f63660cd55d65af6cd2f0f80dbad0930db413f84c122297ad",
+    "robot_dashboard/static/features/navigation/log_controller.js": "d9172d07ef85784f215d8444bb829984845d717c57eb93d90dbc03b882939e93",
+    "robot_dashboard/static/features/navigation/presets.js": "d8f2c200a2c1b9d16894c6803c48df9b96d79dd99d65260a7c4fd24b43daddc6",
+    "robot_dashboard/static/features/perception/result_overlay.js": "2089c2fdd6e79133e20bc6ece254c1f7d0c5f6b056d361c887fab6b4fe94749d",
+    "robot_dashboard/static/features/route_planner/competition_map_view.js": "f2d734f4aad201d12da95ad18a3740ee292779d7d207030e768abcaaa7b22d7f",
+    "robot_dashboard/static/features/route_planner/dashboard_page.js": "f5b25db9ce0f44812b9400bf344c323c0d6131408e7e81cded47414649c47a14",
+    "robot_dashboard/static/features/route_planner/food_production.js": "fc13d83a5f0caabb65ab63a4a96326d514a9c6e8fd244b102b6e11e118bf4cb8",
+    "robot_dashboard/static/features/route_planner/schematic.css": "de936632f81b871654420dc7dbd7866e2c03b00f0caa3e6c0c66864f01311c3f",
+    "robot_dashboard/static/features/route_planner/schematic_controls.js": "cea47cb0d279fcc7af268cd11d4e4f471cb5aafc26235760f13b062a7d8ef687",
+    "robot_dashboard/static/features/route_planner/spatial_editor.js": "3830357bc67409583c864dfbf514e39ccdd95d998676212d48e22367f0c490ce",
+    "robot_dashboard/static/features/sensors/camera_demand.js": "8f58236a46ccbb70f6a7188430dc5d6a49a80250dd7ddc5554abd0e730be272f",
+    "robot_dashboard/static/features/sensors/camera_observability.js": "1713b13f06f2b6bc11218806635e90ad556e2ba621f07f0c912db7e155f85cf9",
+    "robot_dashboard/static/features/sensors/lidar_identity.js": "78f129944e8381b79e136e78cf5e2bc507d2d0ce22495d14cc5232609bb5d8ad",
+    "robot_dashboard/static/features/sensors/pointcloud_transport.js": "df445351becbedd639aa79623c2b4138a16c5855f8023872389475e28ab805ef",
+    "robot_dashboard/static/features/sensors/realsense_profile.js": "13704ce295c8285a7283f9e4a33546c491109db7b10629013d11654bd7be35ec",
+    "robot_dashboard/static/features/settings/diagnostics.js": "8fe15f6fef4d9d9b72007b000a8ff4edb873815f43f1300c715ec732a5a64cd1",
+    "robot_dashboard/static/features/settings/service_lifecycle.js": "8880f4df9fb93d722bd7dec39dc4e5d461110271156da3b271461bf84d375f2b",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2": "33faf307fa6031fb4062276d7320a6d632de890cbb347576fd80cfa01077bc25",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2": "ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2": "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2": "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2": "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2": "c00dcd8a9c32a6b6ab8c6b3119e68b3d7aa6eba6f4441d5493019cc019dcdd1e",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2": "055a35664c3c3965161c92292504c5633ba9604ec904edc1ed799bf2a436276d",
+    "robot_dashboard/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2": "5ad7db28ba74d59fe14c260205c62ddb701320f4f098d8a45ef2757bebc29666",
+    "robot_dashboard/static/fonts/ibm-plex/SOURCE_MANIFEST.json": "781c3f285b3f15d428af22c1d57bbbb212e876830e52c87f569df6643191cdfa",
+    "robot_dashboard/static/fonts/ibm-plex/plex-mono-LICENSE.txt": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+    "robot_dashboard/static/fonts/ibm-plex/plex-sans-LICENSE.txt": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+    "robot_dashboard/static/fonts/ibm-plex/plex-sans-kr-LICENSE.txt": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+    "robot_dashboard/static/fonts.css": "ad8904bddf0e518495a8ac71f643985a4793838fb00220134fbd1041e27de560",
+    "robot_dashboard/static/go2_official_model.js": "62e17e1864b49bc989b9c10424fcb20ab9e04723ef35a5749190e0ed16e10bc8",
+    "robot_dashboard/static/index.html": "221823d42a532b2101405778b6a67e203a974f3d9e9a49e96325ed16801843a5",
+    "robot_dashboard/static/live_map2d.js": "9c35bcf4484dd0b96f971c77cec4756c83dbb36e05d419b7fcdf8895b8d6dae9",
+    "robot_dashboard/static/map_annotations.js": "273dbb654e51958a2aa41518f132097d1685ea6bf9307efc222b83d30b2cc17c",
+    "robot_dashboard/static/map_editor.js": "c7943c7f94b4bc82f777efb973b09a9407ce0550d8aed2a29f3ed628caf4b44a",
+    "robot_dashboard/static/mission-control.css": "2dde293bc928fd9f40d9068a1cd67b4af12c2b279849a233e46df37d267a5add",
+    "robot_dashboard/static/navigation.js": "5c5f9bd568145dd3170e9fe00eb1e2f001c591fe417a71f2738316d4db23e498",
+    "robot_dashboard/static/pointcloud_stream.js": "89f7fefe6828e6e074e15eff6c73eb566ca03ce87e5c579d7558de0ade5029b2",
+    "robot_dashboard/static/robot_profiles.js": "3cae3f49ea9308108e395f7e73180b8044e2c712f8f932fe8e480387cc8c2632",
+    "robot_dashboard/static/scene3d.js": "3bc1e09fddb0408a38e265b476b29cd1d522eab580cc142f62db05e9e1de5526",
+    "robot_dashboard/static/styles.css": "9b74659d83546598fedb9422070ad7a4888fa3a29c5c31e48061ad363b8f8cdf",
+    "robot_dashboard/static/theme.js": "9bff291126b7f4bbc6183ca94ee47cb3d537ae888225f5bf8877ff0904250b26",
+    "robot_dashboard/static/themes.css": "37ec00dd2f04b60b2426d50dcd7fcd0d3f9cb1dbcc3108e4fdded5ddaae3a0f8",
+    "robot_dashboard/static/typography.css": "49b65ac82ffaa1c68fc92a7ee77dc0f1711844fe03fb343625edd1453191f00c",
+    "robot_dashboard/static/typography.js": "8cff682d2f178750372012ce5ccdb76dc9802c7807cc6d56ee89785419cbecdb"
+  },
+  "captures": [
+    {
+      "file": "captures/after/dark-cockpit-1280x800.png",
+      "bytes": 259158,
+      "sha256": "3e76c67638bf9c68e6571e9c6db70dbbf6895c4925f5246fe5ac94d8b18f7989",
+      "captured_at_utc": "2026-10-07T08:17:29.699734+00:00"
+    },
+    {
+      "file": "captures/after/dark-cockpit-1440x900.png",
+      "bytes": 286082,
+      "sha256": "22d5430511d89dbc768d56d1303284bd02b43f0f5b263440558e6ec2e64d78c9",
+      "captured_at_utc": "2026-10-07T08:17:01.982924+00:00"
+    },
+    {
+      "file": "captures/after/dark-cockpit-1920x1080.png",
+      "bytes": 372980,
+      "sha256": "3fce9f9eb49e36103508f4f98db5ff7d35be6926d46b00038de3a352e3ee2da9",
+      "captured_at_utc": "2026-10-07T08:16:36.191520+00:00"
+    },
+    {
+      "file": "captures/after/dark-disconnected-1280x800.png",
+      "bytes": 240317,
+      "sha256": "d3e4fb57653d66b42cbec1fbf3077c93c9b1724c7486e39db8b255d8820230b4",
+      "captured_at_utc": "2026-10-07T08:17:37.222167+00:00"
+    },
+    {
+      "file": "captures/after/dark-disconnected-1440x900.png",
+      "bytes": 272970,
+      "sha256": "f38315532c74fdfa04c299c333c47134f7ecbc6ddd44e44a5507c49a5faa6856",
+      "captured_at_utc": "2026-10-07T08:17:08.252728+00:00"
+    },
+    {
+      "file": "captures/after/dark-disconnected-1920x1080.png",
+      "bytes": 364200,
+      "sha256": "19224de6330cd218992c70cf41a3674516440891ec0a517fc8ee152a9b32c476",
+      "captured_at_utc": "2026-10-07T08:16:42.156468+00:00"
+    },
+    {
+      "file": "captures/after/dark-maps-1280x800.png",
+      "bytes": 125387,
+      "sha256": "2008f820f4b4d97d49067ff86f3d4885d963f3e606a460f9ec45abcc1679af89",
+      "captured_at_utc": "2026-10-07T08:17:31.006315+00:00"
+    },
+    {
+      "file": "captures/after/dark-maps-1440x900.png",
+      "bytes": 137112,
+      "sha256": "45024afad7778ee1090528afbe221f089b18265de8fab0408e8692287bcde9c4",
+      "captured_at_utc": "2026-10-07T08:17:03.144897+00:00"
+    },
+    {
+      "file": "captures/after/dark-maps-1920x1080.png",
+      "bytes": 155944,
+      "sha256": "5c7e8e583eb6fe7c70eb9fddf1281703782eb02f2b7db4c142300043813a7548",
+      "captured_at_utc": "2026-10-07T08:16:37.340263+00:00"
+    },
+    {
+      "file": "captures/after/dark-missions-1280x800.png",
+      "bytes": 134265,
+      "sha256": "ca85ea5d4a5b54ed14f54c750ecd439575ceb144137217f0f2c1e924ae844d3f",
+      "captured_at_utc": "2026-10-07T08:17:33.638144+00:00"
+    },
+    {
+      "file": "captures/after/dark-missions-1440x900.png",
+      "bytes": 139849,
+      "sha256": "c8bd6a9a0ed4bf7d4bec24b5477247f8bdf760197b397afdb6c232ce93ba8032",
+      "captured_at_utc": "2026-10-07T08:17:05.155727+00:00"
+    },
+    {
+      "file": "captures/after/dark-missions-1920x1080.png",
+      "bytes": 155299,
+      "sha256": "634bd0246e12496d31795e622d30882f34e23f26f46cdd86d08c104d96e45f36",
+      "captured_at_utc": "2026-10-07T08:16:39.446676+00:00"
+    },
+    {
+      "file": "captures/after/dark-navigation-1280x800.png",
+      "bytes": 207017,
+      "sha256": "3bf4a78ded657e456c204dd329f799ceab46681c61f7055e80552123b9de96b4",
+      "captured_at_utc": "2026-10-07T08:17:32.315950+00:00"
+    },
+    {
+      "file": "captures/after/dark-navigation-1440x900.png",
+      "bytes": 214516,
+      "sha256": "f6ef264b9bf0bb7b1ee84ca4a649c8391f060fd8bfb338f84f7185ad4172740b",
+      "captured_at_utc": "2026-10-07T08:17:04.179041+00:00"
+    },
+    {
+      "file": "captures/after/dark-navigation-1920x1080.png",
+      "bytes": 249669,
+      "sha256": "15ea1c4aaa8345b911ecbeabc73acabd2622e32b90f5a9136080a0dbf8f53d13",
+      "captured_at_utc": "2026-10-07T08:16:38.446805+00:00"
+    },
+    {
+      "file": "captures/after/dark-sensors-1280x800.png",
+      "bytes": 150399,
+      "sha256": "4d63e7d7eb038a47151a145d7f63c3237c1b93ab7b844d4306ae146b9ec29b94",
+      "captured_at_utc": "2026-10-07T08:17:34.903940+00:00"
+    },
+    {
+      "file": "captures/after/dark-sensors-1440x900.png",
+      "bytes": 181426,
+      "sha256": "aa04958b92dab62e1b8e811a7bbe9e5a4a69533487e73f9e3bdaa924dc224fb6",
+      "captured_at_utc": "2026-10-07T08:17:06.186070+00:00"
+    },
+    {
+      "file": "captures/after/dark-sensors-1920x1080.png",
+      "bytes": 233724,
+      "sha256": "acda928a44dfcc84240013d4839621e702c5cc8b5645bbfb53def6a7845688b7",
+      "captured_at_utc": "2026-10-07T08:16:40.349822+00:00"
+    },
+    {
+      "file": "captures/after/dark-settings-1280x800.png",
+      "bytes": 151820,
+      "sha256": "eb44a8eafb69280e57d14a18be15ac9d3b5a5d8dcf3308bfa0bcbc25e97746cf",
+      "captured_at_utc": "2026-10-07T08:17:36.052760+00:00"
+    },
+    {
+      "file": "captures/after/dark-settings-1440x900.png",
+      "bytes": 159547,
+      "sha256": "0923d7f4430f57b0ec632e22653d8cf534fcf5bb2b6e0da7dc78a42183b4ad94",
+      "captured_at_utc": "2026-10-07T08:17:07.190124+00:00"
+    },
+    {
+      "file": "captures/after/dark-settings-1920x1080.png",
+      "bytes": 173502,
+      "sha256": "8940ed9b7c0d15006ae8079bfd3528add3c721a9d7837b84d15387b788891a16",
+      "captured_at_utc": "2026-10-07T08:16:41.199064+00:00"
+    },
+    {
+      "file": "captures/after/dark-stale-1280x800.png",
+      "bytes": 257884,
+      "sha256": "5b77849034328264c2ab5f0f111163e1d7f0406ba476384cebb13e4a463d9d16",
+      "captured_at_utc": "2026-10-07T08:17:42.316284+00:00"
+    },
+    {
+      "file": "captures/after/dark-stale-1440x900.png",
+      "bytes": 285252,
+      "sha256": "589cae20964d4f5778851694c027270e748b82d0ccada2efb68f7d03b0e961cf",
+      "captured_at_utc": "2026-10-07T08:17:13.197324+00:00"
+    },
+    {
+      "file": "captures/after/dark-stale-1920x1080.png",
+      "bytes": 371167,
+      "sha256": "45b701407d9a84d03ed99f01c82b9f9bce8287b76a8702ba8535e8acaae0223c",
+      "captured_at_utc": "2026-10-07T08:16:47.007133+00:00"
+    },
+    {
+      "file": "captures/after/light-cockpit-1280x800.png",
+      "bytes": 253992,
+      "sha256": "1bd75fc152613607c6a5782f032b5880e809ef168f201452b374d8cfeafecfde",
+      "captured_at_utc": "2026-10-07T08:17:44.377765+00:00"
+    },
+    {
+      "file": "captures/after/light-cockpit-1440x900.png",
+      "bytes": 283020,
+      "sha256": "0fa7a711c33dc4ca12fb2631f49046c44bece9344b71777337c6d9eec848b2f9",
+      "captured_at_utc": "2026-10-07T08:17:15.234179+00:00"
+    },
+    {
+      "file": "captures/after/light-cockpit-1920x1080.png",
+      "bytes": 369733,
+      "sha256": "b2f08e02ede6879d94c9755c3fcb1c6fa7d0206746ce9e01570c0fcf86da5ee5",
+      "captured_at_utc": "2026-10-07T08:16:48.409039+00:00"
+    },
+    {
+      "file": "captures/after/light-disconnected-1280x800.png",
+      "bytes": 238435,
+      "sha256": "837c220736286ed66378075c3a947cc81c2e557fa5da28f8c92f37a45cd95558",
+      "captured_at_utc": "2026-10-07T08:17:52.033327+00:00"
+    },
+    {
+      "file": "captures/after/light-disconnected-1440x900.png",
+      "bytes": 271825,
+      "sha256": "164329a6772fb30b63adb9e7dca3da3ffbbded4acd37e3fa85a0ee39d05b5422",
+      "captured_at_utc": "2026-10-07T08:17:22.328152+00:00"
+    },
+    {
+      "file": "captures/after/light-disconnected-1920x1080.png",
+      "bytes": 363005,
+      "sha256": "d18b7dc321ba90cf22758b03bb89c0db7e1ddd4db34901007826c9f1c4234a77",
+      "captured_at_utc": "2026-10-07T08:16:55.099258+00:00"
+    },
+    {
+      "file": "captures/after/light-maps-1280x800.png",
+      "bytes": 124234,
+      "sha256": "618cd0de946d883a58a9e666df22226b68dd8be3cab39270e949c5ccd5ed0faf",
+      "captured_at_utc": "2026-10-07T08:17:45.590054+00:00"
+    },
+    {
+      "file": "captures/after/light-maps-1440x900.png",
+      "bytes": 136366,
+      "sha256": "b79de21065970d205d977c1cb9f7823564794bca3d8f5cf6e034601d3a4c3f56",
+      "captured_at_utc": "2026-10-07T08:17:16.374717+00:00"
+    },
+    {
+      "file": "captures/after/light-maps-1920x1080.png",
+      "bytes": 154681,
+      "sha256": "20f359cdfbe932a2a7a0033d131440f7bc78b05aa99f18ee5370e3fccba20565",
+      "captured_at_utc": "2026-10-07T08:16:49.602611+00:00"
+    },
+    {
+      "file": "captures/after/light-missions-1280x800.png",
+      "bytes": 132324,
+      "sha256": "8fc15402c55e35b86a5dcdb1a047852660b2892e00c6ba9df041ee281cfef4e9",
+      "captured_at_utc": "2026-10-07T08:17:47.967243+00:00"
+    },
+    {
+      "file": "captures/after/light-missions-1440x900.png",
+      "bytes": 138099,
+      "sha256": "da3533ac7b49c3e397c092567dab4197e40afcd1ba601727f78b353f5f9bd7db",
+      "captured_at_utc": "2026-10-07T08:17:18.539367+00:00"
+    },
+    {
+      "file": "captures/after/light-missions-1920x1080.png",
+      "bytes": 152362,
+      "sha256": "f91f9b32a8e371f46d32056f3b793eae06bc756291b5a6d454d750c1ba3fba24",
+      "captured_at_utc": "2026-10-07T08:16:51.564815+00:00"
+    },
+    {
+      "file": "captures/after/light-navigation-1280x800.png",
+      "bytes": 134847,
+      "sha256": "2ca88fccaf4fb93c94256d609491da07414f90b4ac170538ec03ba405495864d",
+      "captured_at_utc": "2026-10-07T08:17:46.905011+00:00"
+    },
+    {
+      "file": "captures/after/light-navigation-1440x900.png",
+      "bytes": 142655,
+      "sha256": "2703b6ef01b86d9d85204bcf85664c5e1fea63f6e457f380296423cb71f85f28",
+      "captured_at_utc": "2026-10-07T08:17:17.507054+00:00"
+    },
+    {
+      "file": "captures/after/light-navigation-1920x1080.png",
+      "bytes": 156587,
+      "sha256": "f6710b8b3ba66c4c7380228d2931f0a2f44ed60bf81d7473713eef3d77f6a242",
+      "captured_at_utc": "2026-10-07T08:16:50.600682+00:00"
+    },
+    {
+      "file": "captures/after/light-sensors-1280x800.png",
+      "bytes": 149359,
+      "sha256": "6c5426b8fb6629de786a834fbb2ff75f247ca52b22070c52f857ff62947ab2dc",
+      "captured_at_utc": "2026-10-07T08:17:49.161434+00:00"
+    },
+    {
+      "file": "captures/after/light-sensors-1440x900.png",
+      "bytes": 181139,
+      "sha256": "f02603f520abd2ff77a4c8f0e7aa8a5fc9218d00168af42966e91261d08aad41",
+      "captured_at_utc": "2026-10-07T08:17:19.647945+00:00"
+    },
+    {
+      "file": "captures/after/light-sensors-1920x1080.png",
+      "bytes": 229811,
+      "sha256": "2d4181654ced2dd9fd25d7ad509168eb5da0f22e481855a2b346f0719fa14545",
+      "captured_at_utc": "2026-10-07T08:16:52.848506+00:00"
+    },
+    {
+      "file": "captures/after/light-settings-1280x800.png",
+      "bytes": 149663,
+      "sha256": "292d353b2dbd0185742409ee2fc4ee544de79d72c60ea15ea1655b10445dae77",
+      "captured_at_utc": "2026-10-07T08:17:50.489666+00:00"
+    },
+    {
+      "file": "captures/after/light-settings-1440x900.png",
+      "bytes": 157760,
+      "sha256": "be142a025cbdfe818e526a28196c50cea44c30641307facd08951db4f8687ce9",
+      "captured_at_utc": "2026-10-07T08:17:20.759121+00:00"
+    },
+    {
+      "file": "captures/after/light-settings-1920x1080.png",
+      "bytes": 172142,
+      "sha256": "3bf1aa247bf0a348156162e17badf3d8c61e3564f5c1b339789670e8a4db58cf",
+      "captured_at_utc": "2026-10-07T08:16:53.970070+00:00"
+    },
+    {
+      "file": "captures/after/light-stale-1280x800.png",
+      "bytes": 253009,
+      "sha256": "31326eee0949c2a491fa9581f59b461e1a2ccc17ad49aa45f87924814d3ecdc4",
+      "captured_at_utc": "2026-10-07T08:17:57.357034+00:00"
+    },
+    {
+      "file": "captures/after/light-stale-1440x900.png",
+      "bytes": 282542,
+      "sha256": "177be0233af52a7fa1f24ea03d5c93fef696915340f75862a5677148f98eb2da",
+      "captured_at_utc": "2026-10-07T08:17:27.496435+00:00"
+    },
+    {
+      "file": "captures/after/light-stale-1920x1080.png",
+      "bytes": 369072,
+      "sha256": "adbcd02d571955d356351dac530ab45396b53a226bfc22d239644e0add983663",
+      "captured_at_utc": "2026-10-07T08:17:00.054952+00:00"
+    },
+    {
+      "file": "captures/after/specimen-1440x900.png",
+      "bytes": 116339,
+      "sha256": "4ad1ad8e42cfe0b50ec777f3bc92fcaa66d8ed1080583168c9c27b5e240f85fa",
+      "captured_at_utc": "2026-10-07T08:17:59.118104+00:00"
+    },
+    {
+      "file": "captures/before/dark-cockpit-1280x800.png",
+      "bytes": 254153,
+      "sha256": "0b57a1a817d818c0aafacf23ba1623c424e04cb98e5fd4cbbd8e6b5bbef79b71",
+      "captured_at_utc": "2026-10-07T08:05:48.299969+00:00"
+    },
+    {
+      "file": "captures/before/dark-cockpit-1440x900.png",
+      "bytes": 285451,
+      "sha256": "b67196ec54d253e824a77ef21139d8998343b26c57a3762dce884da34fff6356",
+      "captured_at_utc": "2026-10-07T08:05:21.880759+00:00"
+    },
+    {
+      "file": "captures/before/dark-cockpit-1920x1080.png",
+      "bytes": 363066,
+      "sha256": "e521b08ccb9ccf993fd17d18d803a4bbceccf25dab3ff8ccaa6fd1949105ab0d",
+      "captured_at_utc": "2026-10-07T08:04:51.271715+00:00"
+    },
+    {
+      "file": "captures/before/dark-disconnected-1280x800.png",
+      "bytes": 234905,
+      "sha256": "71d0797f7915670ee03fd0cd1b9021704f249af863899332f187971c6c1f5dc6",
+      "captured_at_utc": "2026-10-07T08:05:53.363961+00:00"
+    },
+    {
+      "file": "captures/before/dark-disconnected-1440x900.png",
+      "bytes": 267400,
+      "sha256": "63de2cee28e8bda29ea6606e0243584b5e44ce726cf2d46bec6c1f1f6ad308d6",
+      "captured_at_utc": "2026-10-07T08:05:29.902700+00:00"
+    },
+    {
+      "file": "captures/before/dark-disconnected-1920x1080.png",
+      "bytes": 357840,
+      "sha256": "f105da3c56211711e3f346b6fc9d11454cef842736eabacf7d8f1c042227f0d6",
+      "captured_at_utc": "2026-10-07T08:04:59.383752+00:00"
+    },
+    {
+      "file": "captures/before/dark-maps-1280x800.png",
+      "bytes": 121796,
+      "sha256": "7aef3d9fea8483ca7791d6bde895cc74f0c35a1ff51f25845d36d0901709a707",
+      "captured_at_utc": "2026-10-07T08:05:49.221107+00:00"
+    },
+    {
+      "file": "captures/before/dark-maps-1440x900.png",
+      "bytes": 133358,
+      "sha256": "a672ec0c901eaf7cd7dbe3e605245d41869b95573bc31ed3c4c675f91370961c",
+      "captured_at_utc": "2026-10-07T08:05:22.982802+00:00"
+    },
+    {
+      "file": "captures/before/dark-maps-1920x1080.png",
+      "bytes": 150506,
+      "sha256": "107bf1aa13ccb46bc21300e2d833290c0fc0d7a1ed591d80527600573d5ff9fa",
+      "captured_at_utc": "2026-10-07T08:04:52.980199+00:00"
+    },
+    {
+      "file": "captures/before/dark-missions-1280x800.png",
+      "bytes": 127095,
+      "sha256": "3f7b4daf40a40bd815394b030148ef062a95172139a6dbe52953a3bb7c692b3c",
+      "captured_at_utc": "2026-10-07T08:05:50.837231+00:00"
+    },
+    {
+      "file": "captures/before/dark-missions-1440x900.png",
+      "bytes": 132631,
+      "sha256": "aee585566edffd14ad70752002051c14b882ba016bea2c316d6cdf5a4d6b4d68",
+      "captured_at_utc": "2026-10-07T08:05:24.688963+00:00"
+    },
+    {
+      "file": "captures/before/dark-missions-1920x1080.png",
+      "bytes": 148533,
+      "sha256": "9bcaa06ac1ac0998bbe150fe5a64dc571453e2a6056e13a1fc495545caec98e0",
+      "captured_at_utc": "2026-10-07T08:04:55.850815+00:00"
+    },
+    {
+      "file": "captures/before/dark-navigation-1280x800.png",
+      "bytes": 184010,
+      "sha256": "c291264b70e58d9ce3321b8328becfe4e1928a41e3c4fc53d5177b6374a3c882",
+      "captured_at_utc": "2026-10-07T08:05:50.052646+00:00"
+    },
+    {
+      "file": "captures/before/dark-navigation-1440x900.png",
+      "bytes": 196831,
+      "sha256": "9e3f41f7cbba315c1d77e0f5c6e1b7d7c78be0bf125a900bf6d7e9e2d224d9d2",
+      "captured_at_utc": "2026-10-07T08:05:23.912660+00:00"
+    },
+    {
+      "file": "captures/before/dark-navigation-1920x1080.png",
+      "bytes": 219914,
+      "sha256": "ec3f74b1b54e473e17f985bd2225bcda4390784b77792edf83fde5c259978dc9",
+      "captured_at_utc": "2026-10-07T08:04:54.575163+00:00"
+    },
+    {
+      "file": "captures/before/dark-sensors-1280x800.png",
+      "bytes": 145602,
+      "sha256": "4715c65506f7346a9f07230b07a836ffa6ec3eb2f4c9b8f0c387f22a7e295fa4",
+      "captured_at_utc": "2026-10-07T08:05:51.639848+00:00"
+    },
+    {
+      "file": "captures/before/dark-sensors-1440x900.png",
+      "bytes": 176737,
+      "sha256": "3754d30d31462895c3ab092d3b5d32c53dae4458f1d23f4c09a8d9320fd9f7a2",
+      "captured_at_utc": "2026-10-07T08:05:25.629135+00:00"
+    },
+    {
+      "file": "captures/before/dark-sensors-1920x1080.png",
+      "bytes": 230182,
+      "sha256": "8dbaf678c742fcd2b7941e6fe0efb8eefcd4490e3ff570874fc0188da8949f70",
+      "captured_at_utc": "2026-10-07T08:04:57.136606+00:00"
+    },
+    {
+      "file": "captures/before/dark-settings-1280x800.png",
+      "bytes": 147732,
+      "sha256": "54c1cfa8e7593f3c02363a5c2b8e39ed3131cfffe97912a46be7aa11e554afee",
+      "captured_at_utc": "2026-10-07T08:05:52.485879+00:00"
+    },
+    {
+      "file": "captures/before/dark-settings-1440x900.png",
+      "bytes": 155576,
+      "sha256": "bdf2aef0b484cb671cba4ef3ab3572f6d7de0dc31b0fa7b0ab20afa8f5796e5c",
+      "captured_at_utc": "2026-10-07T08:05:27.567515+00:00"
+    },
+    {
+      "file": "captures/before/dark-settings-1920x1080.png",
+      "bytes": 170154,
+      "sha256": "4ea7adb56cab5d96b5d829e11240a1d674b4fc4ef310de093dbb6749ad5cea65",
+      "captured_at_utc": "2026-10-07T08:04:58.129211+00:00"
+    },
+    {
+      "file": "captures/before/dark-stale-1280x800.png",
+      "bytes": 253239,
+      "sha256": "b20c03dc9abf7667e221ced6f2b937a4bc9a89bbf1278cb41a987b1ec2c063c4",
+      "captured_at_utc": "2026-10-07T08:05:58.123113+00:00"
+    },
+    {
+      "file": "captures/before/dark-stale-1440x900.png",
+      "bytes": 284598,
+      "sha256": "4226cf4ec1250c6b01c4c3e4b5e1d8dfeef3ea73d5b503bdbfe3d8b46b98c750",
+      "captured_at_utc": "2026-10-07T08:05:35.073103+00:00"
+    },
+    {
+      "file": "captures/before/dark-stale-1920x1080.png",
+      "bytes": 361897,
+      "sha256": "bec676e5db2153132b8e6c6e6b8f6090ecf3f99571733cafc7e9720719bd98c7",
+      "captured_at_utc": "2026-10-07T08:05:04.670651+00:00"
+    },
+    {
+      "file": "captures/before/light-cockpit-1280x800.png",
+      "bytes": 250023,
+      "sha256": "6e7f7a78e9acab1b42fc26ee00236037ea31cfeb8d2e194bde048461697082b6",
+      "captured_at_utc": "2026-10-07T08:05:59.467466+00:00"
+    },
+    {
+      "file": "captures/before/light-cockpit-1440x900.png",
+      "bytes": 283065,
+      "sha256": "16c70d9f3b8df58bad533f5bbd825e41641a7c8055ae94d22f2a94fdd193dbb6",
+      "captured_at_utc": "2026-10-07T08:05:36.389547+00:00"
+    },
+    {
+      "file": "captures/before/light-cockpit-1920x1080.png",
+      "bytes": 362156,
+      "sha256": "91c53fa43ee9d9f3230fb3e9feea3ea2e9e42a157490e20f53438c87653bee34",
+      "captured_at_utc": "2026-10-07T08:05:07.057916+00:00"
+    },
+    {
+      "file": "captures/before/light-disconnected-1280x800.png",
+      "bytes": 233899,
+      "sha256": "c4ecab23f5ac853c1e5dcda0a3f7996c699d6a307029b94df204b3adb9abfe24",
+      "captured_at_utc": "2026-10-07T08:06:05.096314+00:00"
+    },
+    {
+      "file": "captures/before/light-disconnected-1440x900.png",
+      "bytes": 266970,
+      "sha256": "3735908c814ddb852f3cb3d63c46d90a3b612e15dd2254d84ed52a6d8b53573d",
+      "captured_at_utc": "2026-10-07T08:05:42.155222+00:00"
+    },
+    {
+      "file": "captures/before/light-disconnected-1920x1080.png",
+      "bytes": 357166,
+      "sha256": "c44e3f6602a130c69582af1b0561862f3fddb9ba32de5f46bb7fc19e210fdd37",
+      "captured_at_utc": "2026-10-07T08:05:14.304986+00:00"
+    },
+    {
+      "file": "captures/before/light-maps-1280x800.png",
+      "bytes": 120177,
+      "sha256": "0681256f096bc790a7e56f1dd43be16025276fce893704ef1dd8231f6f350da3",
+      "captured_at_utc": "2026-10-07T08:06:00.493581+00:00"
+    },
+    {
+      "file": "captures/before/light-maps-1440x900.png",
+      "bytes": 131984,
+      "sha256": "20b4bac01b514dca595dfe412605611bd8c855db0c48e74f13e7b86f6dd8d1d0",
+      "captured_at_utc": "2026-10-07T08:05:37.880467+00:00"
+    },
+    {
+      "file": "captures/before/light-maps-1920x1080.png",
+      "bytes": 148713,
+      "sha256": "ac83271aacd8ad0e1e130af630cfcec6a391ccff369beac962287425f1eaf27a",
+      "captured_at_utc": "2026-10-07T08:05:08.247051+00:00"
+    },
+    {
+      "file": "captures/before/light-missions-1280x800.png",
+      "bytes": 125560,
+      "sha256": "ebb32648f53b1141ddb65cd58063a836842d4aa0a7e537c47efbc0ee425f3c1a",
+      "captured_at_utc": "2026-10-07T08:06:02.352796+00:00"
+    },
+    {
+      "file": "captures/before/light-missions-1440x900.png",
+      "bytes": 131257,
+      "sha256": "792f2ee3ad397b3de2a4924e1dbbce74a4ce74a41a749a9d912f029315db6455",
+      "captured_at_utc": "2026-10-07T08:05:39.639902+00:00"
+    },
+    {
+      "file": "captures/before/light-missions-1920x1080.png",
+      "bytes": 146207,
+      "sha256": "d2b2aa516fe057f5499ca8d4b9e08c3ef545caef7f2d5451d96cf60111474891",
+      "captured_at_utc": "2026-10-07T08:05:10.336789+00:00"
+    },
+    {
+      "file": "captures/before/light-navigation-1280x800.png",
+      "bytes": 129970,
+      "sha256": "efefc3108c6bfafa1022aa5e3307e1b072830fc10b4ba9f6a33bfbeb86c21472",
+      "captured_at_utc": "2026-10-07T08:06:01.505875+00:00"
+    },
+    {
+      "file": "captures/before/light-navigation-1440x900.png",
+      "bytes": 138715,
+      "sha256": "aa5d75d3dfe05818cd4604ea11b9df1a8f61bc08efac331976c15a41638e2836",
+      "captured_at_utc": "2026-10-07T08:05:38.808789+00:00"
+    },
+    {
+      "file": "captures/before/light-navigation-1920x1080.png",
+      "bytes": 151794,
+      "sha256": "a4a28492bfacd563273b5bc77e61f007924857d7cfdf9680ed8eb4faa05ea008",
+      "captured_at_utc": "2026-10-07T08:05:09.292692+00:00"
+    },
+    {
+      "file": "captures/before/light-sensors-1280x800.png",
+      "bytes": 143865,
+      "sha256": "083271f8c8a33e97a57eb0c7c2c9dba75752f68b379454bfc3cced79ee0b70e5",
+      "captured_at_utc": "2026-10-07T08:06:03.323483+00:00"
+    },
+    {
+      "file": "captures/before/light-sensors-1440x900.png",
+      "bytes": 175254,
+      "sha256": "87168a873cf87f3f368157dfe89ff90dd9ef3af787620e182cfa76c8b4a281fa",
+      "captured_at_utc": "2026-10-07T08:05:40.466793+00:00"
+    },
+    {
+      "file": "captures/before/light-sensors-1920x1080.png",
+      "bytes": 227237,
+      "sha256": "f0f1b080a88ca51a7463fc1596b8b2db11b4e54af44efd56b1fd081cc4e8e967",
+      "captured_at_utc": "2026-10-07T08:05:11.556551+00:00"
+    },
+    {
+      "file": "captures/before/light-settings-1280x800.png",
+      "bytes": 146044,
+      "sha256": "2bae8961d8c2ef7bb72a8ff84348322f3cd8c4eb335d7bc4a5077b7d77e577b3",
+      "captured_at_utc": "2026-10-07T08:06:04.186982+00:00"
+    },
+    {
+      "file": "captures/before/light-settings-1440x900.png",
+      "bytes": 154057,
+      "sha256": "9cb48777a5d0d54b75f472b3e1f676bf4ccbf66665b92e244a076c7570a57fdf",
+      "captured_at_utc": "2026-10-07T08:05:41.261920+00:00"
+    },
+    {
+      "file": "captures/before/light-settings-1920x1080.png",
+      "bytes": 168611,
+      "sha256": "b4234ec770dd6d87ca911684f20a85dcf7c16f8859cd1ed5a6fab856459963e3",
+      "captured_at_utc": "2026-10-07T08:05:12.706396+00:00"
+    },
+    {
+      "file": "captures/before/light-stale-1280x800.png",
+      "bytes": 249340,
+      "sha256": "ad7d882ad79261a3d533dcfcfa50e653dd98e04137968382ad13e89b2d4f29dc",
+      "captured_at_utc": "2026-10-07T08:06:09.941790+00:00"
+    },
+    {
+      "file": "captures/before/light-stale-1440x900.png",
+      "bytes": 282156,
+      "sha256": "ac8eedea5554a8a04be8b3502b250437e9b8673b23d437bc437a7bb31798b893",
+      "captured_at_utc": "2026-10-07T08:05:46.992973+00:00"
+    },
+    {
+      "file": "captures/before/light-stale-1920x1080.png",
+      "bytes": 360946,
+      "sha256": "712eeeeb329bcd1de5a914db5abe3dd9e14e69d9294af5244cee06228996237d",
+      "captured_at_utc": "2026-10-07T08:05:19.777682+00:00"
+    }
+  ]
+}

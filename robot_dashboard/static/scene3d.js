@@ -332,6 +332,7 @@
       }
 
       this.resize();
+      this._unsubscribeFonts = global.RobotScopeTypography?.subscribe(() => this.render());
     }
 
     setPointCloud(payload, options = {}) {
@@ -837,6 +838,7 @@
     destroy() {
       if (this._destroyed) return;
       this._destroyed = true;
+      this._unsubscribeFonts?.();
       const cancel = global.cancelAnimationFrame || global.clearTimeout;
       if (this._raf) cancel?.(this._raf);
       if (this._interactionTimer) global.clearTimeout?.(this._interactionTimer);
@@ -1248,14 +1250,14 @@
         ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.8;
         ctx.beginPath(); ctx.arc(point.x, point.y, 7, 0, TAU); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(point.x - 10, point.y); ctx.lineTo(point.x + 10, point.y); ctx.moveTo(point.x, point.y - 10); ctx.lineTo(point.x, point.y + 10); ctx.stroke();
-        ctx.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.fillText(`${marker.type} · ${marker.name}`, point.x + 11, point.y - 8); ctx.restore();
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`; ctx.fillText(`${marker.type} · ${marker.name}`, point.x + 11, point.y - 8); ctx.restore();
       });
       overlay.routeStops.forEach((marker, index) => {
         const point = this._project([marker.pose.x, marker.pose.y, this.options.groundZ + 0.07]);
         if (!point) return;
         ctx.save(); ctx.strokeStyle = '#ffe568'; ctx.fillStyle = '#ffe568'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, TAU); ctx.stroke();
-        ctx.font = '700 9px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.fillText(`${index + 1} · ${marker.name}`, point.x + 12, point.y + 3); ctx.restore();
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`; ctx.fillText(`${index + 1} · ${marker.name}`, point.x + 12, point.y + 3); ctx.restore();
       });
     }
 
@@ -1276,7 +1278,7 @@
         const point = this._project(axis.end);
         if (!point) return;
         ctx.fillStyle = axis.color;
-        ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
         ctx.fillText(axis.label, point.x + 4, point.y - 4);
       });
       ctx.restore();
@@ -1427,7 +1429,7 @@
         ? `X ${this.robotPose.x.toFixed(2)}  Y ${this.robotPose.y.toFixed(2)}  YAW ${((this.robotPose.yaw / DEG + 360) % 360).toFixed(0)}°`
         : 'ODOMETRY WAITING';
       ctx.save();
-      ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
       const width = Math.max(ctx.measureText(primary).width, ctx.measureText(secondary).width) + 16;
       const x = clamp(anchor.x - width / 2, 8, this.width - width - 8);
       const y = clamp(anchor.y - 54, 8, this.height - 42);
@@ -1440,7 +1442,7 @@
       ctx.fillStyle = pose.frameMismatch || pose.preview ? '#ffd38f' : '#bfffe2';
       ctx.fillText(primary, x + 8, y + 13);
       ctx.fillStyle = '#a7b7c6';
-      ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
       ctx.fillText(secondary, x + 8, y + 26);
       ctx.restore();
     }
@@ -1460,7 +1462,7 @@
       ctx.save();
       let x = 12;
       chips.forEach((chip) => {
-        ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
         const width = ctx.measureText(chip.text).width + 18;
         ctx.fillStyle = 'rgba(4, 14, 12, .82)';
         ctx.strokeStyle = `${chip.color}66`;
@@ -1474,7 +1476,7 @@
       if (cloudCount) {
         ctx.textAlign = 'right';
         ctx.fillStyle = '#a7b7c6';
-        ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
         ctx.fillText(`${cloudCount.toLocaleString()} / ${sourceCount.toLocaleString()} POINTS`, this.width - 12, 19);
         ctx.fillText(`FRAME ${this.cloud.frameId || '—'}`, this.width - 12, 31);
         ctx.textAlign = 'left';
@@ -1485,16 +1487,16 @@
         const centerY = this.height * 0.72;
         ctx.textAlign = 'center';
         ctx.fillStyle = '#e9f0f5';
-        ctx.font = '600 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('ui', 14, 500) || '500 14px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif';
         ctx.fillText(message, this.width / 2, centerY);
         ctx.fillStyle = '#a7b7c6';
-        ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('ui', 13, 400) || '400 13px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif';
         ctx.fillText('로봇 모델은 미리보기로 계속 조작할 수 있습니다', this.width / 2, centerY + 15);
       }
 
       ctx.textAlign = 'left';
       ctx.fillStyle = '#a7b7c6';
-      ctx.font = '500 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.font = globalThis.RobotScopeTypography?.canvasFont('ui', 13, 400) || '400 13px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif';
       ctx.fillText(this.width > 620 ? 'DRAG ORBIT  ·  SHIFT/RIGHT DRAG PAN  ·  WHEEL ZOOM' : 'DRAG ORBIT · WHEEL ZOOM', 12, this.height - 12);
       ctx.restore();
     }

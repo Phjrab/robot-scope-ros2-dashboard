@@ -1,0 +1,2182 @@
+
+> test:unit
+> node --test tests/*.mjs
+
+TAP version 13
+# (node:24904) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/sensors/camera_demand.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: camera demand shares one source owner and releases only the exact consumer token
+ok 1 - camera demand shares one source owner and releases only the exact consumer token
+  ---
+  duration_ms: 2.815625
+  type: 'test'
+  ...
+# Subtest: camera demand rejects stale generation metadata and frames
+ok 2 - camera demand rejects stale generation metadata and frames
+  ---
+  duration_ms: 0.29025
+  type: 'test'
+  ...
+# Subtest: camera metadata refresh does not demote a live generation to waiting
+ok 3 - camera metadata refresh does not demote a live generation to waiting
+  ---
+  duration_ms: 0.125458
+  type: 'test'
+  ...
+# Subtest: camera catalog allowlist keeps unavailable profiles disabled and sources independent
+ok 4 - camera catalog allowlist keeps unavailable profiles disabled and sources independent
+  ---
+  duration_ms: 0.823708
+  type: 'test'
+  ...
+# (node:24905) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/sensors/camera_observability.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: camera panel exposes capture format, record, stop and duration controls
+ok 5 - camera panel exposes capture format, record, stop and duration controls
+  ---
+  duration_ms: 0.751875
+  type: 'test'
+  ...
+# Subtest: screenshots export the currently rendered canvas with an empty-frame guard
+ok 6 - screenshots export the currently rendered canvas with an empty-frame guard
+  ---
+  duration_ms: 0.151333
+  type: 'test'
+  ...
+# Subtest: recording uses canvas captureStream and MediaRecorder with a real stop path
+ok 7 - recording uses canvas captureStream and MediaRecorder with a real stop path
+  ---
+  duration_ms: 0.697208
+  type: 'test'
+  ...
+# Subtest: all current and future camera transports converge on one canvas frame contract
+ok 8 - all current and future camera transports converge on one canvas frame contract
+  ---
+  duration_ms: 0.24275
+  type: 'test'
+  ...
+# Subtest: recording cleanup policy saves on visibility and route changes but discards on unload
+ok 9 - recording cleanup policy saves on visibility and route changes but discards on unload
+  ---
+  duration_ms: 1.985042
+  type: 'test'
+  ...
+# Subtest: camera freshness rejects frozen frames and stale backend metadata
+ok 10 - camera freshness rejects frozen frames and stale backend metadata
+  ---
+  duration_ms: 2.322125
+  type: 'test'
+  ...
+# Subtest: JPEG queue is single-flight, latest-only and never renders an older pending frame
+ok 11 - JPEG queue is single-flight, latest-only and never renders an older pending frame
+  ---
+  duration_ms: 7.518458
+  type: 'test'
+  ...
+# Subtest: source generation reset closes an old decoded bitmap without rendering it
+ok 12 - source generation reset closes an old decoded bitmap without rendering it
+  ---
+  duration_ms: 0.764917
+  type: 'test'
+  ...
+# Subtest: camera decode diagnostics count bounded failures without blocking later frames
+ok 13 - camera decode diagnostics count bounded failures without blocking later frames
+  ---
+  duration_ms: 0.700792
+  type: 'test'
+  ...
+# Subtest: camera page supports single and dual layouts with persistent primary controls
+ok 14 - camera page supports single and dual layouts with persistent primary controls
+  ---
+  duration_ms: 0.960333
+  type: 'test'
+  ...
+# Subtest: both slots keep source identity, topic, transport, state and fps visible
+ok 15 - both slots keep source identity, topic, transport, state and fps visible
+  ---
+  duration_ms: 0.44425
+  type: 'test'
+  ...
+# Subtest: Sensors camera panel exposes bounded link observability and clock-domain warning
+ok 16 - Sensors camera panel exposes bounded link observability and clock-domain warning
+  ---
+  duration_ms: 0.168083
+  type: 'test'
+  ...
+# Subtest: camera observability rejects malformed and non-finite metrics without widening clock state
+ok 17 - camera observability rejects malformed and non-finite metrics without widening clock state
+  ---
+  duration_ms: 0.211625
+  type: 'test'
+  ...
+# Subtest: camera catalog normalizes source_id aliases and clamps active streams to two
+ok 18 - camera catalog normalizes source_id aliases and clamps active streams to two
+  ---
+  duration_ms: 0.522041
+  type: 'test'
+  ...
+# Subtest: each active slot has its own socket generation, reconnect timer and latest-frame queue
+ok 19 - each active slot has its own socket generation, reconnect timer and latest-frame queue
+  ---
+  duration_ms: 0.464583
+  type: 'test'
+  ...
+# Subtest: camera websocket identifies each requested source and reconnects only wanted slots
+ok 20 - camera websocket identifies each requested source and reconnects only wanted slots
+  ---
+  duration_ms: 0.224875
+  type: 'test'
+  ...
+# Subtest: Safari JPEG fallback decodes an Image and always revokes its object URL
+ok 21 - Safari JPEG fallback decodes an Image and always revokes its object URL
+  ---
+  duration_ms: 0.084667
+  type: 'test'
+  ...
+# Subtest: camera preferences and browser diagnostics are exposed without mutable sockets
+ok 22 - camera preferences and browser diagnostics are exposed without mutable sockets
+  ---
+  duration_ms: 0.369
+  type: 'test'
+  ...
+# Subtest: camera catalog ignores stale overlapping poll responses
+ok 23 - camera catalog ignores stale overlapping poll responses
+  ---
+  duration_ms: 0.12075
+  type: 'test'
+  ...
+# Subtest: overview uses direct camera state, label, transport, interface and fps metadata
+ok 24 - overview uses direct camera state, label, transport, interface and fps metadata
+  ---
+  duration_ms: 0.095708
+  type: 'test'
+  ...
+# Subtest: direct Go2 camera is shown as a locked non-ROS source in Settings
+ok 25 - direct Go2 camera is shown as a locked non-ROS source in Settings
+  ---
+  duration_ms: 0.0695
+  type: 'test'
+  ...
+# (node:24906) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/panels/camera_panel.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: camera panel projection replaces an aged frame with an explicit stale overlay
+ok 26 - camera panel projection replaces an aged frame with an explicit stale overlay
+  ---
+  duration_ms: 1.093375
+  type: 'test'
+  ...
+# Subtest: camera panel activation and compact deactivation acquire and release exact demand
+ok 27 - camera panel activation and compact deactivation acquire and release exact demand
+  ---
+  duration_ms: 0.704167
+  type: 'test'
+  ...
+# Subtest: camera panel implementation owns no socket or decoder transport
+ok 28 - camera panel implementation owns no socket or decoder transport
+  ---
+  duration_ms: 4.007083
+  type: 'test'
+  ...
+# Subtest: camera panel projects relay, transport and browser decode observability
+ok 29 - camera panel projects relay, transport and browser decode observability
+  ---
+  duration_ms: 0.389375
+  type: 'test'
+  ...
+# (node:24907) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/camera_state.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: camera persistence rejects invalid data and isolates map scopes
+ok 30 - camera persistence rejects invalid data and isolates map scopes
+  ---
+  duration_ms: 2.438
+  type: 'test'
+  ...
+# Subtest: Cockpit keeps exact pan zoom rotation on route cycles and fresh host
+ok 31 - Cockpit keeps exact pan zoom rotation on route cycles and fresh host
+  ---
+  duration_ms: 1.52375
+  type: 'test'
+  ...
+# (node:24908) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/competition_status.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: competition reducer rejects stale generations and reset never restores authority
+ok 32 - competition reducer rejects stale generations and reset never restores authority
+  ---
+  duration_ms: 0.492
+  type: 'test'
+  ...
+# Subtest: competition projection separates network, camera, perception, model and dataset status
+ok 33 - competition projection separates network, camera, perception, model and dataset status
+  ---
+  duration_ms: 0.634583
+  type: 'test'
+  ...
+# Subtest: stale backend and perception fail closed without showing cached live authority
+ok 34 - stale backend and perception fail closed without showing cached live authority
+  ---
+  duration_ms: 0.253416
+  type: 'test'
+  ...
+# Subtest: model mismatch is explicit TRANSITION and implementation creates no sensor viewer
+ok 35 - model mismatch is explicit TRANSITION and implementation creates no sensor viewer
+  ---
+  duration_ms: 1.131792
+  type: 'test'
+  ...
+# (node:24909) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/gamepad_ui.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: standard Xbox UI buttons are rising-edge triggered and repeats are idempotent
+ok 36 - standard Xbox UI buttons are rising-edge triggered and repeats are idempotent
+  ---
+  duration_ms: 3.8605
+  type: 'test'
+  ...
+# Subtest: UI mapping is separate from drive axes, LB deadman, and B software-stop input
+ok 37 - UI mapping is separate from drive axes, LB deadman, and B software-stop input
+  ---
+  duration_ms: 0.406375
+  type: 'test'
+  ...
+# Subtest: disconnect clears mapper history and reconnect cannot replay held buttons
+ok 38 - disconnect clears mapper history and reconnect cannot replay held buttons
+  ---
+  duration_ms: 0.164334
+  type: 'test'
+  ...
+# Subtest: released-deadman focus and compact dispatch zero before the UI mutation
+ok 39 - released-deadman focus and compact dispatch zero before the UI mutation
+  ---
+  duration_ms: 0.113917
+  type: 'test'
+  ...
+# Subtest: releasing LB while a focused UI session is active emits an immediate zero boundary
+ok 40 - releasing LB while a focused UI session is active emits an immediate zero boundary
+  ---
+  duration_ms: 0.213042
+  type: 'test'
+  ...
+# Subtest: Controller projection is bounded, read-only, and excludes sensitive integration state
+ok 41 - Controller projection is bounded, read-only, and excludes sensitive integration state
+  ---
+  duration_ms: 0.316583
+  type: 'test'
+  ...
+# Subtest: Cockpit UI adapter invokes the existing fail-safe without extending the control protocol
+ok 42 - Cockpit UI adapter invokes the existing fail-safe without extending the control protocol
+  ---
+  duration_ms: 1.1605
+  type: 'test'
+  ...
+# (node:24910) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/layout_migrations.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: layout schema accepts only bounded registered fields and rejects unsafe or oversized JSON
+ok 43 - layout schema accepts only bounded registered fields and rejects unsafe or oversized JSON
+  ---
+  duration_ms: 1.469792
+  type: 'test'
+  ...
+# Subtest: normalized geometry round trip preserves floating and focus restore geometry across viewport sizes
+ok 44 - normalized geometry round trip preserves floating and focus restore geometry across viewport sizes
+  ---
+  duration_ms: 0.43625
+  type: 'test'
+  ...
+# Subtest: corrupted storage falls back without throwing or leaking layouts across profiles
+ok 45 - corrupted storage falls back without throwing or leaking layouts across profiles
+  ---
+  duration_ms: 0.916959
+  type: 'test'
+  ...
+# Subtest: schema migration is explicit and unsupported versions fail closed
+ok 46 - schema migration is explicit and unsupported versions fail closed
+  ---
+  duration_ms: 0.108375
+  type: 'test'
+  ...
+# Subtest: import preview is atomic and preset name and count remain bounded
+ok 47 - import preview is atomic and preset name and count remain bounded
+  ---
+  duration_ms: 2.952125
+  type: 'test'
+  ...
+# Subtest: default, delete, export, and reset update only the active profile catalog
+ok 48 - default, delete, export, and reset update only the active profile catalog
+  ---
+  duration_ms: 0.681542
+  type: 'test'
+  ...
+# Subtest: a storage write failure does not publish an in-memory preset that cannot survive reload
+ok 49 - a storage write failure does not publish an in-memory preset that cannot survive reload
+  ---
+  duration_ms: 0.416375
+  type: 'test'
+  ...
+# Subtest: Apply survives a new store without overwriting named presets, and is profile isolated
+ok 50 - Apply survives a new store without overwriting named presets, and is profile isolated
+  ---
+  duration_ms: 0.669292
+  type: 'test'
+  ...
+# Subtest: Apply rejects invalid or unavailable storage and preserves prior saved state
+ok 51 - Apply rejects invalid or unavailable storage and preserves prior saved state
+  ---
+  duration_ms: 0.4465
+  type: 'test'
+  ...
+# (node:24911) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/map_state.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: map state pins map, navigation and annotations to one exact revision
+ok 52 - map state pins map, navigation and annotations to one exact revision
+  ---
+  duration_ms: 1.407833
+  type: 'test'
+  ...
+# Subtest: map state accepts the real SavedMapCatalog data identity field
+ok 53 - map state accepts the real SavedMapCatalog data identity field
+  ---
+  duration_ms: 0.173292
+  type: 'test'
+  ...
+# Subtest: revision conflict fails closed without mixing pose, path or overlay
+ok 54 - revision conflict fails closed without mixing pose, path or overlay
+  ---
+  duration_ms: 0.159334
+  type: 'test'
+  ...
+# Subtest: stale localization keeps an explicit last-known pose but removes normal pose and overlay trail
+ok 55 - stale localization keeps an explicit last-known pose but removes normal pose and overlay trail
+  ---
+  duration_ms: 0.221625
+  type: 'test'
+  ...
+# Subtest: pose trail and supplied navigation path stay bounded
+ok 56 - pose trail and supplied navigation path stay bounded
+  ---
+  duration_ms: 2.772958
+  type: 'test'
+  ...
+# Subtest: map panel subscribes only while active and releases on compact or close lifecycle
+ok 57 - map panel subscribes only while active and releases on compact or close lifecycle
+  ---
+  duration_ms: 0.253625
+  type: 'test'
+  ...
+# Subtest: occupancy raster decodes once per pinned revision, not once per resize
+ok 58 - occupancy raster decodes once per pinned revision, not once per resize
+  ---
+  duration_ms: 0.65225
+  type: 'test'
+  ...
+# Subtest: map pose projection reuses the navigation transform including rotated origin and canvas Y inversion
+ok 59 - map pose projection reuses the navigation transform including rotated origin and canvas Y inversion
+  ---
+  duration_ms: 0.159917
+  type: 'test'
+  ...
+# (node:24912) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/mission_client.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: mission action rejection stays visible across polling until acknowledged
+ok 60 - mission action rejection stays visible across polling until acknowledged
+  ---
+  duration_ms: 2.279292
+  type: 'test'
+  ...
+# Subtest: mission client restores server state, bounds projections, and releases polling demand
+ok 61 - mission client restores server state, bounds projections, and releases polling demand
+  ---
+  duration_ms: 2.10475
+  type: 'test'
+  ...
+# Subtest: duplicate mission mutations serialize and never submit two starts
+ok 62 - duplicate mission mutations serialize and never submit two starts
+  ---
+  duration_ms: 0.839041
+  type: 'test'
+  ...
+# Subtest: destroy fences a late mission response
+ok 63 - destroy fences a late mission response
+  ---
+  duration_ms: 1.574
+  type: 'test'
+  ...
+# (node:24913) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/mission_presets.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Mission presets are bounded unique existing panels and only UI preferences
+ok 64 - Mission presets are bounded unique existing panels and only UI preferences
+  ---
+  duration_ms: 1.664708
+  type: 'test'
+  ...
+# Subtest: narrow builtin layouts compact panels without control state or active camera demand
+ok 65 - narrow builtin layouts compact panels without control state or active camera demand
+  ---
+  duration_ms: 0.215667
+  type: 'test'
+  ...
+# Subtest: default and corrupt hash enter safe observation while old routes and dedicated mode remain
+ok 66 - default and corrupt hash enter safe observation while old routes and dedicated mode remain
+  ---
+  duration_ms: 0.128292
+  type: 'test'
+  ...
+# Subtest: inspector separates stale, missing readiness and absent measurements
+ok 67 - inspector separates stale, missing readiness and absent measurements
+  ---
+  duration_ms: 34.35325
+  type: 'test'
+  ...
+# Subtest: synthetic pointcloud and camera never project LIVE and stale remains stale
+ok 68 - synthetic pointcloud and camera never project LIVE and stale remains stale
+  ---
+  duration_ms: 0.654417
+  type: 'test'
+  ...
+# Subtest: saved-map search preserves records and selection identity and handles long unsafe strings literally
+ok 69 - saved-map search preserves records and selection identity and handles long unsafe strings literally
+  ---
+  duration_ms: 0.12675
+  type: 'test'
+  ...
+# (node:24914) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/navigation_adapter.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: manual lease, held deadman, and non-zero command independently block Nav start
+ok 70 - manual lease, held deadman, and non-zero command independently block Nav start
+  ---
+  duration_ms: 0.8625
+  type: 'test'
+  ...
+# Subtest: takeover cancels, stops, verifies lease release, and never invokes ARM
+ok 71 - takeover cancels, stops, verifies lease release, and never invokes ARM
+  ---
+  duration_ms: 0.720417
+  type: 'test'
+  ...
+# Subtest: takeover aborts server mission ownership before goal and Nav cleanup
+ok 72 - takeover aborts server mission ownership before goal and Nav cleanup
+  ---
+  duration_ms: 0.197708
+  type: 'test'
+  ...
+# Subtest: panel close releases only its subscription while takeover cleanup continues
+ok 73 - panel close releases only its subscription while takeover cleanup continues
+  ---
+  duration_ms: 1.465708
+  type: 'test'
+  ...
+# Subtest: failed cleanup times out fail-closed and explicit retry can complete it
+ok 74 - failed cleanup times out fail-closed and explicit retry can complete it
+  ---
+  duration_ms: 0.83175
+  type: 'test'
+  ...
+# Subtest: late action response after owner destruction is ignored
+ok 75 - late action response after owner destruction is ignored
+  ---
+  duration_ms: 0.471125
+  type: 'test'
+  ...
+# (node:24915) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/panel_geometry.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: geometry clamp recovers invalid and offscreen panels inside the usable viewport
+ok 76 - geometry clamp recovers invalid and offscreen panels inside the usable viewport
+  ---
+  duration_ms: 0.969
+  type: 'test'
+  ...
+# Subtest: edge and corner resize preserve anchors and enforce min/max bounds
+ok 77 - edge and corner resize preserve anchors and enforce min/max bounds
+  ---
+  duration_ms: 1.132083
+  type: 'test'
+  ...
+# Subtest: bounded z-order is deterministic and brings the selected panel to front
+ok 78 - bounded z-order is deterministic and brings the selected panel to front
+  ---
+  duration_ms: 0.516209
+  type: 'test'
+  ...
+# Subtest: focus restores the exact prior mode and geometry after viewport recovery
+ok 79 - focus restores the exact prior mode and geometry after viewport recovery
+  ---
+  duration_ms: 0.285875
+  type: 'test'
+  ...
+# Subtest: pointer move is rAF-coalesced and pointer cancel/lost capture always clean up
+ok 80 - pointer move is rAF-coalesced and pointer cancel/lost capture always clean up
+  ---
+  duration_ms: 3.243917
+  type: 'test'
+  ...
+# Subtest: switching to Operate cancels an active pointer operation and gates geometry mutations
+ok 81 - switching to Operate cancels an active pointer operation and gates geometry mutations
+  ---
+  duration_ms: 1.538459
+  type: 'test'
+  ...
+# Subtest: Operate blocks panel creation and edit-only actions until Layout Edit resumes
+ok 82 - Operate blocks panel creation and edit-only actions until Layout Edit resumes
+  ---
+  duration_ms: 1.159666
+  type: 'test'
+  ...
+# Subtest: validated layout replacement is atomic and recovers imported geometry inside the viewport
+ok 83 - validated layout replacement is atomic and recovers imported geometry inside the viewport
+  ---
+  duration_ms: 0.630834
+  type: 'test'
+  ...
+# Subtest: close destroys DOM/content lifecycle and open remounts without duplicate runtime
+ok 84 - close destroys DOM/content lifecycle and open remounts without duplicate runtime
+  ---
+  duration_ms: 0.468458
+  type: 'test'
+  ...
+# Subtest: dock, focus, and undock preserve the exact prior floating geometry
+ok 85 - dock, focus, and undock preserve the exact prior floating geometry
+  ---
+  duration_ms: 0.574792
+  type: 'test'
+  ...
+# Subtest: restored focused dock keeps its original floating geometry for a later undock
+ok 86 - restored focused dock keeps its original floating geometry for a later undock
+  ---
+  duration_ms: 0.356625
+  type: 'test'
+  ...
+# Subtest: gamepad panel selection cycles in registry order, toggles safely, and clears on disconnect
+ok 87 - gamepad panel selection cycles in registry order, toggles safely, and clears on disconnect
+  ---
+  duration_ms: 0.317
+  type: 'test'
+  ...
+# (node:24916) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/point_quality.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Cockpit spatial LOD keeps near-field density above medium and far density
+ok 88 - Cockpit spatial LOD keeps near-field density above medium and far density
+  ---
+  duration_ms: 7.272583
+  type: 'test'
+  ...
+# Subtest: Cockpit LOD enforces the 60K product ceiling and reuses two typed buffers
+ok 89 - Cockpit LOD enforces the 60K product ceiling and reuses two typed buffers
+  ---
+  duration_ms: 13.262583
+  type: 'test'
+  ...
+# Subtest: adaptive budget uses dwell and hysteresis to degrade quickly and recover slowly
+ok 90 - adaptive budget uses dwell and hysteresis to degrade quickly and recover slowly
+  ---
+  duration_ms: 0.903667
+  type: 'test'
+  ...
+# Subtest: adaptive mode treats dropped and stale input as bad without exceeding its ceiling
+ok 91 - adaptive mode treats dropped and stale input as bad without exceeding its ceiling
+  ---
+  duration_ms: 0.212125
+  type: 'test'
+  ...
+# (node:24918) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/panels/route_planner_panel.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: four destination starts stay explicit and resolve only unique graph locations
+ok 92 - four destination starts stay explicit and resolve only unique graph locations
+  ---
+  duration_ms: 4.02175
+  type: 'test'
+  ...
+# Subtest: Route Planner projection is bounded, revision-pinned, and shares one selected route
+ok 93 - Route Planner projection is bounded, revision-pinned, and shares one selected route
+  ---
+  duration_ms: 7.30425
+  type: 'test'
+  ...
+# Subtest: Route Planner client has one polling owner and emits no mission start, goal, lease, or control request
+ok 94 - Route Planner client has one polling owner and emits no mission start, goal, lease, or control request
+  ---
+  duration_ms: 25.898792
+  type: 'test'
+  ...
+# Subtest: Rehearsal projection bounds timeline and keeps virtual pose separate from an unavailable Nav2 path
+ok 95 - Rehearsal projection bounds timeline and keeps virtual pose separate from an unavailable Nav2 path
+  ---
+  duration_ms: 1.315083
+  type: 'test'
+  ...
+# Subtest: Rehearsal projection exposes deterministic explainability, cargo, and pure mission dry-run
+ok 96 - Rehearsal projection exposes deterministic explainability, cargo, and pure mission dry-run
+  ---
+  duration_ms: 0.193958
+  type: 'test'
+  ...
+# Subtest: Rehearsal client uses only dedicated mock and dry-run endpoints
+ok 97 - Rehearsal client uses only dedicated mock and dry-run endpoints
+  ---
+  duration_ms: 11.210625
+  type: 'test'
+  ...
+# Subtest: Rehearsal panel is server-flag hidden and visibly labels every virtual-only boundary
+ok 98 - Rehearsal panel is server-flag hidden and visibly labels every virtual-only boundary
+  ---
+  duration_ms: 0.526
+  type: 'test'
+  ...
+# Subtest: Route overlay reuses the active Cockpit renderer and never creates a second renderer
+ok 99 - Route overlay reuses the active Cockpit renderer and never creates a second renderer
+  ---
+  duration_ms: 1.906334
+  type: 'test'
+  ...
+# Subtest: Route Planner source never owns control or a second renderer
+ok 100 - Route Planner source never owns control or a second renderer
+  ---
+  duration_ms: 0.725458
+  type: 'test'
+  ...
+# Subtest: Route Planner editor exposes an explicit start and up to eight destination-complete order sheets
+ok 101 - Route Planner editor exposes an explicit start and up to eight destination-complete order sheets
+  ---
+  duration_ms: 0.598333
+  type: 'test'
+  ...
+# (node:24920) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/layout_mode.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Safety HUD projects every fixed field from fresh bounded state
+ok 102 - Safety HUD projects every fixed field from fresh bounded state
+  ---
+  duration_ms: 1.060333
+  type: 'test'
+  ...
+# Subtest: Safety HUD fails closed instead of retaining cached control and telemetry values
+ok 103 - Safety HUD fails closed instead of retaining cached control and telemetry values
+  ---
+  duration_ms: 0.11425
+  type: 'test'
+  ...
+# Subtest: authenticated Bridge LowState is visible when external DDS telemetry is offline
+ok 104 - authenticated Bridge LowState is visible when external DDS telemetry is offline
+  ---
+  duration_ms: 0.113709
+  type: 'test'
+  ...
+# Subtest: Navigation ownership is displayed without weakening the manual conflict warning
+ok 105 - Navigation ownership is displayed without weakening the manual conflict warning
+  ---
+  duration_ms: 0.146041
+  type: 'test'
+  ...
+# Subtest: active Navigation also locks layout geometry without claiming a manual ARM
+ok 106 - active Navigation also locks layout geometry without claiming a manual ARM
+  ---
+  duration_ms: 0.077
+  type: 'test'
+  ...
+# Subtest: layout mode is explicit, ARM auto-locks, and stale generations cannot unlock it
+ok 107 - layout mode is explicit, ARM auto-locks, and stale generations cannot unlock it
+  ---
+  duration_ms: 0.212708
+  type: 'test'
+  ...
+# Subtest: Cockpit reuses existing control endpoints and polling generation fences
+ok 108 - Cockpit reuses existing control endpoints and polling generation fences
+  ---
+  duration_ms: 1.846875
+  type: 'test'
+  ...
+# (node:24921) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/panel_registry.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: registry exposes fixed route, camera, map, navigation, mission, and controller panels
+ok 109 - registry exposes fixed route, camera, map, navigation, mission, and controller panels
+  ---
+  duration_ms: 0.891958
+  type: 'test'
+  ...
+# Subtest: registry rejects duplicate singleton ids even when panel types differ
+ok 110 - registry rejects duplicate singleton ids even when panel types differ
+  ---
+  duration_ms: 0.217208
+  type: 'test'
+  ...
+# Subtest: launcher keyboard navigation wraps and supports Home and End
+ok 111 - launcher keyboard navigation wraps and supports Home and End
+  ---
+  duration_ms: 0.075083
+  type: 'test'
+  ...
+# (node:24923) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/snap_layout.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: snap geometry prefers nearby viewport and panel edges and supports an Alt bypass
+ok 112 - snap geometry prefers nearby viewport and panel edges and supports an Alt bypass
+  ---
+  duration_ms: 1.256125
+  type: 'test'
+  ...
+# Subtest: grid snap is configurable when no edge candidate wins
+ok 113 - grid snap is configurable when no edge candidate wins
+  ---
+  duration_ms: 0.156834
+  type: 'test'
+  ...
+# Subtest: four-way dock uses half layouts and small viewports fall back to compact
+ok 114 - four-way dock uses half layouts and small viewports fall back to compact
+  ---
+  duration_ms: 0.246125
+  type: 'test'
+  ...
+# Subtest: 50:50, 2x2 tile, and cascade layouts stay deterministic and inside the viewport
+ok 115 - 50:50, 2x2 tile, and cascade layouts stay deterministic and inside the viewport
+  ---
+  duration_ms: 0.376291
+  type: 'test'
+  ...
+# Subtest: tile layout compacts panels instead of forcing them below minimum size
+ok 116 - tile layout compacts panels instead of forcing them below minimum size
+  ---
+  duration_ms: 0.12825
+  type: 'test'
+  ...
+# (node:24924) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/window_mode.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Cockpit full-window mode is strictly allowlisted
+ok 117 - Cockpit full-window mode is strictly allowlisted
+  ---
+  duration_ms: 1.714917
+  type: 'test'
+  ...
+# Subtest: Cockpit full-window and dashboard URLs stay same-origin and canonical
+ok 118 - Cockpit full-window and dashboard URLs stay same-origin and canonical
+  ---
+  duration_ms: 0.508375
+  type: 'test'
+  ...
+# Subtest: Cockpit popup geometry is numeric, bounded, and multi-monitor aware
+ok 119 - Cockpit popup geometry is numeric, bounded, and multi-monitor aware
+  ---
+  duration_ms: 0.409833
+  type: 'test'
+  ...
+# Subtest: Cockpit launcher reuses one named target, focuses it, and severs opener access
+ok 120 - Cockpit launcher reuses one named target, focuses it, and severs opener access
+  ---
+  duration_ms: 0.411416
+  type: 'test'
+  ...
+# Subtest: Cockpit launcher reports popup blocking without a fallback mutation
+ok 121 - Cockpit launcher reports popup blocking without a fallback mutation
+  ---
+  duration_ms: 0.102167
+  type: 'test'
+  ...
+# Subtest: Cockpit native fullscreen is entered and exited only by an explicit toggle
+ok 122 - Cockpit native fullscreen is entered and exited only by an explicit toggle
+  ---
+  duration_ms: 0.660042
+  type: 'test'
+  ...
+# Subtest: Cockpit full-window controller owns DOM bindings and strict route projection
+ok 123 - Cockpit full-window controller owns DOM bindings and strict route projection
+  ---
+  duration_ms: 1.06125
+  type: 'test'
+  ...
+# Subtest: Cockpit navigation opens the dedicated full-window and falls back inline when popups are blocked
+ok 124 - Cockpit navigation opens the dedicated full-window and falls back inline when popups are blocked
+  ---
+  duration_ms: 0.428125
+  type: 'test'
+  ...
+# (node:24925) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/scene_host.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Cockpit route is additive and keeps every existing workspace route
+ok 125 - Cockpit route is additive and keeps every existing workspace route
+  ---
+  duration_ms: 2.016625
+  type: 'test'
+  ...
+# Subtest: Cockpit SceneHost start and stop stay idempotent over 20 route cycles
+ok 126 - Cockpit SceneHost start and stop stay idempotent over 20 route cycles
+  ---
+  duration_ms: 3.134083
+  type: 'test'
+  ...
+# Subtest: Cockpit scene layout applies bounded view, follow, point size, and range settings across reactivation
+ok 127 - Cockpit scene layout applies bounded view, follow, point size, and range settings across reactivation
+  ---
+  duration_ms: 0.34275
+  type: 'test'
+  ...
+# Subtest: Cockpit map overlay toggle is read-only and reuses the active renderer
+ok 128 - Cockpit map overlay toggle is read-only and reuses the active renderer
+  ---
+  duration_ms: 0.367917
+  type: 'test'
+  ...
+# Subtest: Cockpit HIGH stays capped by the current server delivery limit
+ok 129 - Cockpit HIGH stays capped by the current server delivery limit
+  ---
+  duration_ms: 1.67225
+  type: 'test'
+  ...
+# Subtest: Cockpit never labels a cached prior-session frame as LIVE
+ok 130 - Cockpit never labels a cached prior-session frame as LIVE
+  ---
+  duration_ms: 0.127333
+  type: 'test'
+  ...
+# Subtest: Mapping and Cockpit share exactly one PointCloud transport
+ok 131 - Mapping and Cockpit share exactly one PointCloud transport
+  ---
+  duration_ms: 0.717292
+  type: 'test'
+  ...
+# Subtest: the shared owner is the only PointCloud WebSocket construction site
+ok 132 - the shared owner is the only PointCloud WebSocket construction site
+  ---
+  duration_ms: 1.057083
+  type: 'test'
+  ...
+# Subtest: Settings exposes a fixed bridge service panel with an explicit safety acknowledgement
+ok 133 - Settings exposes a fixed bridge service panel with an explicit safety acknowledgement
+  ---
+  duration_ms: 2.416167
+  type: 'test'
+  ...
+# Subtest: bridge start and stop use only the fixed API and strict confirmation body
+ok 134 - bridge start and stop use only the fixed API and strict confirmation body
+  ---
+  duration_ms: 0.705875
+  type: 'test'
+  ...
+# Subtest: both controls require server permission and a fresh local acknowledgement
+ok 135 - both controls require server permission and a fresh local acknowledgement
+  ---
+  duration_ms: 0.15525
+  type: 'test'
+  ...
+# Subtest: systemd RUNNING stays separate from the signed runtime BRIDGE readiness
+ok 136 - systemd RUNNING stays separate from the signed runtime BRIDGE readiness
+  ---
+  duration_ms: 0.165458
+  type: 'test'
+  ...
+# Subtest: unknown or unloaded systemd status stays fail-closed in the UI
+ok 137 - unknown or unloaded systemd status stays fail-closed in the UI
+  ---
+  duration_ms: 0.121583
+  type: 'test'
+  ...
+# Subtest: transition matching rejects stale operations and requires the observed systemd result
+ok 138 - transition matching rejects stale operations and requires the observed systemd result
+  ---
+  duration_ms: 1.128083
+  type: 'test'
+  ...
+# Subtest: poll generations and page lifecycle prevent stale Safari BFCache responses from winning
+ok 139 - poll generations and page lifecycle prevent stale Safari BFCache responses from winning
+  ---
+  duration_ms: 0.345875
+  type: 'test'
+  ...
+# Subtest: bridge service panel collapses safely on tablet and phone widths
+ok 140 - bridge service panel collapses safely on tablet and phone widths
+  ---
+  duration_ms: 0.2885
+  type: 'test'
+  ...
+# (node:24927) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/control/session_contract.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: keyboard maps W/S, A/D and Q/E to ROS twist axes
+ok 141 - keyboard maps W/S, A/D and Q/E to ROS twist axes
+  ---
+  duration_ms: 0.894
+  type: 'test'
+  ...
+# Subtest: opposite keyboard and pointer directions cancel
+ok 142 - opposite keyboard and pointer directions cancel
+  ---
+  duration_ms: 0.242625
+  type: 'test'
+  ...
+# Subtest: Shift-only is a held zero-axis deadman, not a drive frame
+ok 143 - Shift-only is a held zero-axis deadman, not a drive frame
+  ---
+  duration_ms: 0.22675
+  type: 'test'
+  ...
+# Subtest: only releasing the final Shift ends the keyboard deadman hold
+ok 144 - only releasing the final Shift ends the keyboard deadman hold
+  ---
+  duration_ms: 0.168083
+  type: 'test'
+  ...
+# Subtest: deadzone removes drift and rescales usable gamepad travel
+ok 145 - deadzone removes drift and rescales usable gamepad travel
+  ---
+  duration_ms: 0.2725
+  type: 'test'
+  ...
+# Subtest: gamepad uses left stick translation, right X yaw and LB deadman
+ok 146 - gamepad uses left stick translation, right X yaw and LB deadman
+  ---
+  duration_ms: 0.236208
+  type: 'test'
+  ...
+# Subtest: commands clamp before applying server limits and speed scale
+ok 147 - commands clamp before applying server limits and speed scale
+  ---
+  duration_ms: 0.160875
+  type: 'test'
+  ...
+# Subtest: all input paths zero motion when deadman is released
+ok 148 - all input paths zero motion when deadman is released
+  ---
+  duration_ms: 0.281834
+  type: 'test'
+  ...
+# Subtest: browser control frames carry fresh client timestamps and reject queued writes
+ok 149 - browser control frames carry fresh client timestamps and reject queued writes
+  ---
+  duration_ms: 2.137083
+  type: 'test'
+  ...
+# Subtest: browser sends normalized axes and applies speed scale exactly once on the server
+ok 150 - browser sends normalized axes and applies speed scale exactly once on the server
+  ---
+  duration_ms: 0.522333
+  type: 'test'
+  ...
+# Subtest: small WebSocket backpressure skips frames briefly, then fails closed
+ok 151 - small WebSocket backpressure skips frames briefly, then fails closed
+  ---
+  duration_ms: 0.864041
+  type: 'test'
+  ...
+# Subtest: accepted one-shot action discards the local lease without zero or release
+ok 152 - accepted one-shot action discards the local lease without zero or release
+  ---
+  duration_ms: 0.141208
+  type: 'test'
+  ...
+# Subtest: dashboard stop copy does not present software control as a physical E-stop
+ok 153 - dashboard stop copy does not present software control as a physical E-stop
+  ---
+  duration_ms: 0.120416
+  type: 'test'
+  ...
+# Subtest: control arming and software-stop clearing are explicit PIN-free button flows
+ok 154 - control arming and software-stop clearing are explicit PIN-free button flows
+  ---
+  duration_ms: 0.458166
+  type: 'test'
+  ...
+# Subtest: an inactive control poll started before ARM cannot revoke the new lease
+ok 155 - an inactive control poll started before ARM cannot revoke the new lease
+  ---
+  duration_ms: 0.104
+  type: 'test'
+  ...
+# Subtest: late messages from an old control socket cannot touch a replacement lease
+ok 156 - late messages from an old control socket cannot touch a replacement lease
+  ---
+  duration_ms: 0.111875
+  type: 'test'
+  ...
+# Subtest: normal disarm waits briefly for release acknowledgement before HTTP fallback
+ok 157 - normal disarm waits briefly for release acknowledgement before HTTP fallback
+  ---
+  duration_ms: 0.120667
+  type: 'test'
+  ...
+# Subtest: release acknowledgement tracker settles once and times out fail-closed
+ok 158 - release acknowledgement tracker settles once and times out fail-closed
+  ---
+  duration_ms: 8.396167
+  type: 'test'
+  ...
+# Subtest: keyboard repeats are idempotent and direction keyup stops without disarming
+ok 159 - keyboard repeats are idempotent and direction keyup stops without disarming
+  ---
+  duration_ms: 0.258833
+  type: 'test'
+  ...
+# Subtest: screen direction release also stops without releasing a held deadman
+ok 160 - screen direction release also stops without releasing a held deadman
+  ---
+  duration_ms: 0.127167
+  type: 'test'
+  ...
+# Subtest: ARM clears button focus while window blur remains fail-safe
+ok 161 - ARM clears button focus while window blur remains fail-safe
+  ---
+  duration_ms: 0.296458
+  type: 'test'
+  ...
+# Subtest: presentation refinements load once after the existing dashboard styles
+ok 162 - presentation refinements load once after the existing dashboard styles
+  ---
+  duration_ms: 1.12875
+  type: 'test'
+  ...
+# Subtest: common typography uses scalable readable tiers
+ok 163 - common typography uses scalable readable tiers
+  ---
+  duration_ms: 0.126709
+  type: 'test'
+  ...
+# Subtest: UI polish does not override canvas hit routing or operational safety overlays
+ok 164 - UI polish does not override canvas hit routing or operational safety overlays
+  ---
+  duration_ms: 0.178959
+  type: 'test'
+  ...
+# Subtest: narrow layouts retain status labels and table filters
+ok 165 - narrow layouts retain status labels and table filters
+  ---
+  duration_ms: 0.234333
+  type: 'test'
+  ...
+# Subtest: long telemetry metadata stays inside its KPI card without shrinking the icon
+ok 166 - long telemetry metadata stays inside its KPI card without shrinking the icon
+  ---
+  duration_ms: 0.100833
+  type: 'test'
+  ...
+# Subtest: map editor action groups wrap instead of clipping undo and reset controls
+ok 167 - map editor action groups wrap instead of clipping undo and reset controls
+  ---
+  duration_ms: 0.099959
+  type: 'test'
+  ...
+# Subtest: main dashboard exposes Route Planner as an independent page and overview shortcut
+ok 168 - main dashboard exposes Route Planner as an independent page and overview shortcut
+  ---
+  duration_ms: 0.485166
+  type: 'test'
+  ...
+# Subtest: standalone page reuses the Route Planner client and panel with page-scoped polling
+ok 169 - standalone page reuses the Route Planner client and panel with page-scoped polling
+  ---
+  duration_ms: 0.2135
+  type: 'test'
+  ...
+# Subtest: standalone Route Planner layout is wide and has a single-column responsive fallback
+ok 170 - standalone Route Planner layout is wide and has a single-column responsive fallback
+  ---
+  duration_ms: 1.096291
+  type: 'test'
+  ...
+# (node:24930) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/datasets/capture.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Sensors exposes a server-side dataset capture panel and compact global status
+ok 171 - Sensors exposes a server-side dataset capture panel and compact global status
+  ---
+  duration_ms: 4.213125
+  type: 'test'
+  ...
+# Subtest: dataset capture uses only the fixed same-origin API contract
+ok 172 - dataset capture uses only the fixed same-origin API contract
+  ---
+  duration_ms: 1.452708
+  type: 'test'
+  ...
+# Subtest: finalized export and model state use fixed read-only lifecycle contracts
+ok 173 - finalized export and model state use fixed read-only lifecycle contracts
+  ---
+  duration_ms: 1.261667
+  type: 'test'
+  ...
+# Subtest: capture response normalization accepts fixed source counts and storage fields
+ok 174 - capture response normalization accepts fixed source counts and storage fields
+  ---
+  duration_ms: 1.688542
+  type: 'test'
+  ...
+# Subtest: saved dataset browser uses opaque IDs and the fixed image endpoint
+ok 175 - saved dataset browser uses opaque IDs and the fixed image endpoint
+  ---
+  duration_ms: 0.86
+  type: 'test'
+  ...
+# Subtest: dataset status and folder polls discard stale overlapping responses
+ok 176 - dataset status and folder polls discard stale overlapping responses
+  ---
+  duration_ms: 0.272375
+  type: 'test'
+  ...
+# Subtest: failed but still-active capture remains stoppable for recovery
+ok 177 - failed but still-active capture remains stoppable for recovery
+  ---
+  duration_ms: 0.616417
+  type: 'test'
+  ...
+# Subtest: dataset pages expose bounded newest, newer and older navigation
+ok 178 - dataset pages expose bounded newest, newer and older navigation
+  ---
+  duration_ms: 0.411667
+  type: 'test'
+  ...
+# Subtest: Safari page lifecycle never stops a server dataset session
+ok 179 - Safari page lifecycle never stops a server dataset session
+  ---
+  duration_ms: 0.804125
+  type: 'test'
+  ...
+# Subtest: dataset extraction owns lifecycle resources and materially reduces the application root
+ok 180 - dataset extraction owns lifecycle resources and materially reduces the application root
+  ---
+  duration_ms: 1.962292
+  type: 'test'
+  ...
+# Subtest: active or unknown server capture is named in service lifecycle blockers
+ok 181 - active or unknown server capture is named in service lifecycle blockers
+  ---
+  duration_ms: 0.411542
+  type: 'test'
+  ...
+# Subtest: dataset capture and gallery collapse safely on narrow screens
+ok 182 - dataset capture and gallery collapse safely on narrow screens
+  ---
+  duration_ms: 0.320792
+  type: 'test'
+  ...
+# (node:24931) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/settings/diagnostics.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: operator request headers identify only a browser session and monotonic request sequence
+ok 183 - operator request headers identify only a browser session and monotonic request sequence
+  ---
+  duration_ms: 1.12425
+  type: 'test'
+  ...
+# Subtest: download helper requires a bounded ZIP and a fixed filename
+ok 184 - download helper requires a bounded ZIP and a fixed filename
+  ---
+  duration_ms: 25.815792
+  type: 'test'
+  ...
+# Subtest: Settings export prevents duplicate requests and releases browser resources
+ok 185 - Settings export prevents duplicate requests and releases browser resources
+  ---
+  duration_ms: 1.675833
+  type: 'test'
+  ...
+# Subtest: diagnostics UI is an explicit read-only Settings surface
+ok 186 - diagnostics UI is an explicit read-only Settings surface
+  ---
+  duration_ms: 0.380625
+  type: 'test'
+  ...
+# (node:24932) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/experiments/report.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: read-only synthetic report validates and aligns a same-input baseline
+ok 187 - read-only synthetic report validates and aligns a same-input baseline
+  ---
+  duration_ms: 1.765167
+  type: 'test'
+  ...
+# Subtest: live label, stale artifact, malformed points and truth-less accuracy fail closed
+ok 188 - live label, stale artifact, malformed points and truth-less accuracy fail closed
+  ---
+  duration_ms: 0.406583
+  type: 'test'
+  ...
+# Subtest: different target revision, query, seed or manifest cannot be compared
+ok 189 - different target revision, query, seed or manifest cannot be compared
+  ---
+  duration_ms: 0.331708
+  type: 'test'
+  ...
+# Subtest: experiment page is local-file-only and separate from control and cockpit
+ok 190 - experiment page is local-file-only and separate from control and cockpit
+  ---
+  duration_ms: 0.787125
+  type: 'test'
+  ...
+# (node:24933) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/route_planner/food_production.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: provided eight sheets: restaurant-parallel completion and sequence
+ok 191 - provided eight sheets: restaurant-parallel completion and sequence
+  ---
+  duration_ms: 1.850584
+  type: 'test'
+  ...
+# Subtest: reject malformed clocks and food assignments
+ok 192 - reject malformed clocks and food assignments
+  ---
+  duration_ms: 0.184875
+  type: 'test'
+  ...
+# Subtest: local clock receipt persistence, reset, corrupt storage and timer disposal
+ok 193 - local clock receipt persistence, reset, corrupt storage and timer disposal
+  ---
+  duration_ms: 4.4775
+  type: 'test'
+  ...
+# Subtest: app entrypoint is an ES module with explicit core and feature imports
+ok 194 - app entrypoint is an ES module with explicit core and feature imports
+  ---
+  duration_ms: 1.528625
+  type: 'test'
+  ...
+# Subtest: feature modules own their bounded request and lifecycle state
+ok 195 - feature modules own their bounded request and lifecycle state
+  ---
+  duration_ms: 0.303083
+  type: 'test'
+  ...
+# Subtest: shared modules remain framework-free and expose no mutable application globals
+ok 196 - shared modules remain framework-free and expose no mutable application globals
+  ---
+  duration_ms: 0.832583
+  type: 'test'
+  ...
+# Subtest: high-risk mutations keep fixed same-origin paths and strict confirmation payloads
+ok 197 - high-risk mutations keep fixed same-origin paths and strict confirmation payloads
+  ---
+  duration_ms: 0.6815
+  type: 'test'
+  ...
+# Subtest: topic strings alone never assert a physical sensor or processing stage
+ok 198 - topic strings alone never assert a physical sensor or processing stage
+  ---
+  duration_ms: 0.684125
+  type: 'test'
+  ...
+# Subtest: backend metadata assigns XT16 and FAST-LIO stages
+ok 199 - backend metadata assigns XT16 and FAST-LIO stages
+  ---
+  duration_ms: 0.206875
+  type: 'test'
+  ...
+# Subtest: backend source metadata takes precedence and preserves its processing label
+ok 200 - backend source metadata takes precedence and preserves its processing label
+  ---
+  duration_ms: 0.127458
+  type: 'test'
+  ...
+# Subtest: freshness vocabulary is limited to LIVE, WAITING and STALE
+ok 201 - freshness vocabulary is limited to LIVE, WAITING and STALE
+  ---
+  duration_ms: 0.062125
+  type: 'test'
+  ...
+# Subtest: settings and Live Mapping always expose sensor, topic, stage and freshness readouts
+ok 202 - settings and Live Mapping always expose sensor, topic, stage and freshness readouts
+  ---
+  duration_ms: 0.405625
+  type: 'test'
+  ...
+# Subtest: profile and operator LiDAR pins receive explicit badges
+ok 203 - profile and operator LiDAR pins receive explicit badges
+  ---
+  duration_ms: 0.342458
+  type: 'test'
+  ...
+# Subtest: publisher-zero XT16 pin stays selected and reports WAITING instead of cached STALE
+ok 204 - publisher-zero XT16 pin stays selected and reports WAITING instead of cached STALE
+  ---
+  duration_ms: 0.164667
+  type: 'test'
+  ...
+# Subtest: top-down projection filters invalid XYZ values and deduplicates sparse XY cells
+ok 205 - top-down projection filters invalid XYZ values and deduplicates sparse XY cells
+  ---
+  duration_ms: 1.421333
+  type: 'test'
+  ...
+# Subtest: projection is bounded by a client-side cell budget without creating a dense map grid
+ok 206 - projection is bounded by a client-side cell budget without creating a dense map grid
+  ---
+  duration_ms: 2.288834
+  type: 'test'
+  ...
+# Subtest: fit and projection math preserve world center and canvas orientation
+ok 207 - fit and projection math preserve world center and canvas orientation
+  ---
+  duration_ms: 0.551958
+  type: 'test'
+  ...
+# Subtest: follow and auto-fit modes are mutually exclusive
+ok 208 - follow and auto-fit modes are mutually exclusive
+  ---
+  duration_ms: 16.713708
+  type: 'test'
+  ...
+# Subtest: Live Mapping exposes a separate point projection view with fit, auto-fit and follow controls
+ok 209 - Live Mapping exposes a separate point projection view with fit, auto-fit and follow controls
+  ---
+  duration_ms: 0.372
+  type: 'test'
+  ...
+# Subtest: 2D projection reuses the selected live cloud and does not issue another network request
+ok 210 - 2D projection reuses the selected live cloud and does not issue another network request
+  ---
+  duration_ms: 0.450917
+  type: 'test'
+  ...
+# Subtest: sticky logs follow only while within the 16px bottom tolerance
+ok 211 - sticky logs follow only while within the 16px bottom tolerance
+  ---
+  duration_ms: 2.815542
+  type: 'test'
+  ...
+# Subtest: mapping-style proximity preserves a scrolled-up view and resumes at the bottom
+ok 212 - mapping-style proximity preserves a scrolled-up view and resumes at the bottom
+  ---
+  duration_ms: 0.477667
+  type: 'test'
+  ...
+# Subtest: navigation auto-scroll respects manual pause and explicit re-enable
+ok 213 - navigation auto-scroll respects manual pause and explicit re-enable
+  ---
+  duration_ms: 0.865667
+  type: 'test'
+  ...
+# Subtest: an intervening user scroll wins the render-to-animation-frame race
+ok 214 - an intervening user scroll wins the render-to-animation-frame race
+  ---
+  duration_ms: 0.405917
+  type: 'test'
+  ...
+# Subtest: both terminal panels use the shared sticky contract without unconditional bottom writes
+ok 215 - both terminal panels use the shared sticky contract without unconditional bottom writes
+  ---
+  duration_ms: 0.38475
+  type: 'test'
+  ...
+# Subtest: yaw remains in the server range at serialization boundaries and full turns
+ok 216 - yaw remains in the server range at serialization boundaries and full turns
+  ---
+  duration_ms: 2.617625
+  type: 'test'
+  ...
+# Subtest: annotation projection accepts only the fixed schema, pins and type sets
+ok 217 - annotation projection accepts only the fixed schema, pins and type sets
+  ---
+  duration_ms: 1.01225
+  type: 'test'
+  ...
+# Subtest: editable drafts cannot mutate a server snapshot and request keeps both CAS pins
+ok 218 - editable drafts cannot mutate a server snapshot and request keeps both CAS pins
+  ---
+  duration_ms: 0.483375
+  type: 'test'
+  ...
+# Subtest: names and geometry are bounded before a mutation is sent
+ok 219 - names and geometry are bounded before a mutation is sent
+  ---
+  duration_ms: 1.073291
+  type: 'test'
+  ...
+# Subtest: Navigation UI exposes bounded annotation editing and revision-pinned goal APIs
+ok 220 - Navigation UI exposes bounded annotation editing and revision-pinned goal APIs
+  ---
+  duration_ms: 0.647166
+  type: 'test'
+  ...
+# Subtest: annotation editor is fail-closed during Nav2 and reuses the normal goal gate
+ok 221 - annotation editor is fail-closed during Nav2 and reuses the normal goal gate
+  ---
+  duration_ms: 0.171667
+  type: 'test'
+  ...
+# (node:24939) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/maps/crop.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: occupancy base64 decodes to canonical unknown, free and obstacle cells
+ok 222 - occupancy base64 decodes to canonical unknown, free and obstacle cells
+  ---
+  duration_ms: 1.11775
+  type: 'test'
+  ...
+# Subtest: crop UI is copy-only, revision-pinned, and exposes bounded output naming
+ok 223 - crop UI is copy-only, revision-pinned, and exposes bounded output naming
+  ---
+  duration_ms: 0.528792
+  type: 'test'
+  ...
+# Subtest: brush painting is bounded and eraser resolvers can restore original cells
+ok 224 - brush painting is bounded and eraser resolvers can restore original cells
+  ---
+  duration_ms: 0.276917
+  type: 'test'
+  ...
+# Subtest: interpolated brush points close gaps in fast pointer strokes
+ok 225 - interpolated brush points close gaps in fast pointer strokes
+  ---
+  duration_ms: 0.163792
+  type: 'test'
+  ...
+# Subtest: arbitrary map rotation expands bounds and maps preview cells back to the source grid
+ok 226 - arbitrary map rotation expands bounds and maps preview cells back to the source grid
+  ---
+  duration_ms: 0.242834
+  type: 'test'
+  ...
+# Subtest: edited cells serialize as compact ordered runs and reproduce the grid
+ok 227 - edited cells serialize as compact ordered runs and reproduce the grid
+  ---
+  duration_ms: 1.391667
+  type: 'test'
+  ...
+# Subtest: bulk replacement converts only current unknown cells and remains reversible
+ok 228 - bulk replacement converts only current unknown cells and remains reversible
+  ---
+  duration_ms: 0.499041
+  type: 'test'
+  ...
+# Subtest: unknown replacement confirmation warns before mutation and cancellation is inert
+ok 229 - unknown replacement confirmation warns before mutation and cancellation is inert
+  ---
+  duration_ms: 14.358709
+  type: 'test'
+  ...
+# Subtest: Saved Maps exposes PDF 09 conversion parameters, progress and safe background choice
+ok 230 - Saved Maps exposes PDF 09 conversion parameters, progress and safe background choice
+  ---
+  duration_ms: 0.578834
+  type: 'test'
+  ...
+# Subtest: conversion uses only manageable binary PCD and the backend operation contract
+ok 231 - conversion uses only manageable binary PCD and the backend operation contract
+  ---
+  duration_ms: 0.759292
+  type: 'test'
+  ...
+# Subtest: conversion status is bound only to the reserved backend job id
+ok 232 - conversion status is bound only to the reserved backend job id
+  ---
+  duration_ms: 0.386042
+  type: 'test'
+  ...
+# Subtest: 2D editor exposes brush, eraser, semantic values and non-destructive history
+ok 233 - 2D editor exposes brush, eraser, semantic values and non-destructive history
+  ---
+  duration_ms: 0.344125
+  type: 'test'
+  ...
+# Subtest: unknown-to-free bulk action is explicit, warned, undoable and copy-only
+ok 234 - unknown-to-free bulk action is explicit, warned, undoable and copy-only
+  ---
+  duration_ms: 0.120375
+  type: 'test'
+  ...
+# Subtest: edited copy sends a strong source revision and compact runs, never a full grid
+ok 235 - edited copy sends a strong source revision and compact runs, never a full grid
+  ---
+  duration_ms: 0.104584
+  type: 'test'
+  ...
+# Subtest: revision-aware cache and dirty lifecycle prevent silent edit loss
+ok 236 - revision-aware cache and dirty lifecycle prevent silent edit loss
+  ---
+  duration_ms: 0.7625
+  type: 'test'
+  ...
+# Subtest: edited-copy success explicitly discards the old dirty editor before selecting its result
+ok 237 - edited-copy success explicitly discards the old dirty editor before selecting its result
+  ---
+  duration_ms: 0.065917
+  type: 'test'
+  ...
+# Subtest: verified mapping pipeline can save while XT16 bridge cloud is selected for display
+ok 238 - verified mapping pipeline can save while XT16 bridge cloud is selected for display
+  ---
+  duration_ms: 1.726459
+  type: 'test'
+  ...
+# Subtest: process startup alone never enables save before map readiness
+ok 239 - process startup alone never enables save before map readiness
+  ---
+  duration_ms: 1.208875
+  type: 'test'
+  ...
+# Subtest: metered and externally started Laser_map readiness paths remain supported
+ok 240 - metered and externally started Laser_map readiness paths remain supported
+  ---
+  duration_ms: 0.401625
+  type: 'test'
+  ...
+# Subtest: PDF 11 navigation parameter whitelist has complete typed tuned values
+ok 241 - PDF 11 navigation parameter whitelist has complete typed tuned values
+  ---
+  duration_ms: 1.090833
+  type: 'test'
+  ...
+# Subtest: parameter snapshots fail closed on missing, unknown or unsafe values
+ok 242 - parameter snapshots fail closed on missing, unknown or unsafe values
+  ---
+  duration_ms: 0.65675
+  type: 'test'
+  ...
+# Subtest: parameter PATCH contains only changed whitelisted values and an exact base revision
+ok 243 - parameter PATCH contains only changed whitelisted values and an exact base revision
+  ---
+  duration_ms: 0.258
+  type: 'test'
+  ...
+# Subtest: canvas and world transforms respect map origin, resolution, yaw and Y inversion
+ok 244 - canvas and world transforms respect map origin, resolution, yaw and Y inversion
+  ---
+  duration_ms: 0.302666
+  type: 'test'
+  ...
+# Subtest: pose drag requires a map hit and derives heading in the rotated map frame
+ok 245 - pose drag requires a map hit and derives heading in the rotated map frame
+  ---
+  duration_ms: 0.124541
+  type: 'test'
+  ...
+# Subtest: pose placement rejects unknown and occupied occupancy cells
+ok 246 - pose placement rejects unknown and occupied occupancy cells
+  ---
+  duration_ms: 0.285334
+  type: 'test'
+  ...
+# Subtest: navigation and manual control activity helpers are fail-safe
+ok 247 - navigation and manual control activity helpers are fail-safe
+  ---
+  duration_ms: 1.691292
+  type: 'test'
+  ...
+# Subtest: dashboard exposes a dedicated navigation route and strict API endpoints
+ok 248 - dashboard exposes a dedicated navigation route and strict API endpoints
+  ---
+  duration_ms: 3.100125
+  type: 'test'
+  ...
+# Subtest: Navigation renders bounded localization health and a read-only calibration assistant
+ok 249 - Navigation renders bounded localization health and a read-only calibration assistant
+  ---
+  duration_ms: 0.597583
+  type: 'test'
+  ...
+# Subtest: navigation keeps the 2D map and selected robot 3D preview in separate stages
+ok 250 - navigation keeps the 2D map and selected robot 3D preview in separate stages
+  ---
+  duration_ms: 0.429834
+  type: 'test'
+  ...
+# Subtest: navigation 3D preview reuses profile assets and gates every live joint path
+ok 251 - navigation 3D preview reuses profile assets and gates every live joint path
+  ---
+  duration_ms: 0.516
+  type: 'test'
+  ...
+# Subtest: controls and navigation help text is readable and model preview is mobile-safe
+ok 252 - controls and navigation help text is readable and model preview is mobile-safe
+  ---
+  duration_ms: 0.342541
+  type: 'test'
+  ...
+# Subtest: navigation start and poses carry opaque map revisions while parameters use PATCH
+ok 253 - navigation start and poses carry opaque map revisions while parameters use PATCH
+  ---
+  duration_ms: 0.564209
+  type: 'test'
+  ...
+# Subtest: manual control and navigation are mutually exclusive without blocking cleanup actions
+ok 254 - manual control and navigation are mutually exclusive without blocking cleanup actions
+  ---
+  duration_ms: 1.335792
+  type: 'test'
+  ...
+# Subtest: background navigation startup phases are friendly and keep cleanup available
+ok 255 - background navigation startup phases are friendly and keep cleanup available
+  ---
+  duration_ms: 1.327417
+  type: 'test'
+  ...
+# Subtest: locked parameters and occupancy safety are enforced by the rendered controls
+ok 256 - locked parameters and occupancy safety are enforced by the rendered controls
+  ---
+  duration_ms: 0.196459
+  type: 'test'
+  ...
+# Subtest: active navigation map is pinned to its exact catalog revision
+ok 257 - active navigation map is pinned to its exact catalog revision
+  ---
+  duration_ms: 0.265083
+  type: 'test'
+  ...
+# Subtest: parameter revision conflicts reload only after the busy guard is released
+ok 258 - parameter revision conflicts reload only after the busy guard is released
+  ---
+  duration_ms: 0.28875
+  type: 'test'
+  ...
+# Subtest: Navigation exposes a terminal-shaped read-only sanitized event view
+ok 259 - Navigation exposes a terminal-shaped read-only sanitized event view
+  ---
+  duration_ms: 1.831542
+  type: 'test'
+  ...
+# Subtest: log polling uses only the fixed bounded GET API and its own generation
+ok 260 - log polling uses only the fixed bounded GET API and its own generation
+  ---
+  duration_ms: 0.198375
+  type: 'test'
+  ...
+# Subtest: entries are strictly allowlisted, bounded and rendered through textContent only
+ok 261 - entries are strictly allowlisted, bounded and rendered through textContent only
+  ---
+  duration_ms: 0.736125
+  type: 'test'
+  ...
+# Subtest: stream changes and lost cursor continuity clear the local buffer and request one tail
+ok 262 - stream changes and lost cursor continuity clear the local buffer and request one tail
+  ---
+  duration_ms: 0.709
+  type: 'test'
+  ...
+# Subtest: clear and auto-scroll stay client-only and Safari page lifecycle rejects stale work
+ok 263 - clear and auto-scroll stay client-only and Safari page lifecycle rejects stale work
+  ---
+  duration_ms: 0.25125
+  type: 'test'
+  ...
+# Subtest: console remains usable on Safari and narrow mobile layouts
+ok 264 - console remains usable on Safari and narrow mobile layouts
+  ---
+  duration_ms: 0.309584
+  type: 'test'
+  ...
+# Subtest: idle readiness stays WAIT until a navigation pipeline is active
+ok 265 - idle readiness stays WAIT until a navigation pipeline is active
+  ---
+  duration_ms: 0.319917
+  type: 'test'
+  ...
+# Subtest: save captures draft, uses catalog API only, and does not mutate draft
+ok 266 - save captures draft, uses catalog API only, and does not mutate draft
+  ---
+  duration_ms: 1.717917
+  type: 'test'
+  ...
+# Subtest: busy catalog rejects overlapping save and refresh, then releases busy
+ok 267 - busy catalog rejects overlapping save and refresh, then releases busy
+  ---
+  duration_ms: 0.269333
+  type: 'test'
+  ...
+# Subtest: invalid names and values never call API
+ok 268 - invalid names and values never call API
+  ---
+  duration_ms: 0.402083
+  type: 'test'
+  ...
+# Subtest: failed refresh or save preserves catalog and releases busy
+ok 269 - failed refresh or save preserves catalog and releases busy
+  ---
+  duration_ms: 0.227583
+  type: 'test'
+  ...
+# Subtest: invalid server catalog cannot replace last good list
+ok 270 - invalid server catalog cannot replace last good list
+  ---
+  duration_ms: 0.574834
+  type: 'test'
+  ...
+# Subtest: dashboard wires escaped preset options and separate creation controls
+ok 271 - dashboard wires escaped preset options and separate creation controls
+  ---
+  duration_ms: 2.285875
+  type: 'test'
+  ...
+# (node:24944) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/route_planner_client.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: order projection preserves eight grouped sheets and forty menu rows
+ok 272 - order projection preserves eight grouped sheets and forty menu rows
+  ---
+  duration_ms: 1.163459
+  type: 'test'
+  ...
+# (node:24945) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/route_planner_client.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: order projection preserves all five grouped sheets and twenty-five menu rows
+ok 273 - order projection preserves all five grouped sheets and twenty-five menu rows
+  ---
+  duration_ms: 1.640458
+  type: 'test'
+  ...
+# (node:24946) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/control/session_contract.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Overview declares one fail-closed reset for all eight KPI fields
+ok 274 - Overview declares one fail-closed reset for all eight KPI fields
+  ---
+  duration_ms: 1.536125
+  type: 'test'
+  ...
+# Subtest: live telemetry gate fails closed for agent, target and robot state including legacy targets
+ok 275 - live telemetry gate fails closed for agent, target and robot state including legacy targets
+  ---
+  duration_ms: 0.620083
+  type: 'test'
+  ...
+# Subtest: header separates direct ROS observability from authenticated remote control Bridge
+ok 276 - header separates direct ROS observability from authenticated remote control Bridge
+  ---
+  duration_ms: 0.838666
+  type: 'test'
+  ...
+# Subtest: offline cached payload cannot revive camera, lidar, battery or link KPIs
+ok 277 - offline cached payload cannot revive camera, lidar, battery or link KPIs
+  ---
+  duration_ms: 17.620833
+  type: 'test'
+  ...
+# Subtest: battery KPI requires ok state and rejects a non-finite reported age
+ok 278 - battery KPI requires ok state and rejects a non-finite reported age
+  ---
+  duration_ms: 7.635375
+  type: 'test'
+  ...
+# Subtest: camera catalog requires current live metadata and never reuses slot fps
+ok 279 - camera catalog requires current live metadata and never reuses slot fps
+  ---
+  duration_ms: 1.450791
+  type: 'test'
+  ...
+# Subtest: an online payload restores fresh KPIs after an offline reset without touching saved maps or recording
+ok 280 - an online payload restores fresh KPIs after an offline reset without touching saved maps or recording
+  ---
+  duration_ms: 0.855292
+  type: 'test'
+  ...
+# Subtest: lidar source identity cannot repopulate its subtitle while telemetry is unavailable
+ok 281 - lidar source identity cannot repopulate its subtitle while telemetry is unavailable
+  ---
+  duration_ms: 0.787917
+  type: 'test'
+  ...
+# Subtest: state polling has a generation fence and ignores an older response
+ok 282 - state polling has a generation fence and ignores an older response
+  ---
+  duration_ms: 2.576208
+  type: 'test'
+  ...
+# Subtest: state request failure resets Overview and connect/disconnect invalidate older requests
+ok 283 - state request failure resets Overview and connect/disconnect invalidate older requests
+  ---
+  duration_ms: 2.604125
+  type: 'test'
+  ...
+# (node:24947) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/perception/result_overlay.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: shadow overlay transitions live results to visibly inactive stale state
+ok 284 - shadow overlay transitions live results to visibly inactive stale state
+  ---
+  duration_ms: 2.47975
+  type: 'test'
+  ...
+# Subtest: overlay renderer clears old geometry before every draw and stale draw remains gray
+ok 285 - overlay renderer clears old geometry before every draw and stale draw remains gray
+  ---
+  duration_ms: 1.111833
+  type: 'test'
+  ...
+# Subtest: perception client is read only and preserves results as offline after reconnect loss
+ok 286 - perception client is read only and preserves results as offline after reconnect loss
+  ---
+  duration_ms: 3.540792
+  type: 'test'
+  ...
+# Subtest: hidden perception polling publishes cached freshness without a network request
+ok 287 - hidden perception polling publishes cached freshness without a network request
+  ---
+  duration_ms: 1.060625
+  type: 'test'
+  ...
+# Subtest: binary decoder returns aligned float32 XYZ without JSON point expansion
+ok 288 - binary decoder returns aligned float32 XYZ without JSON point expansion
+  ---
+  duration_ms: 2.194875
+  type: 'test'
+  ...
+# Subtest: binary decoder rejects bad magic, bad lengths and oversized claims
+ok 289 - binary decoder rejects bad magic, bad lengths and oversized claims
+  ---
+  duration_ms: 0.282209
+  type: 'test'
+  ...
+# Subtest: binary decoder rejects tampered non-finite XYZ before the renderer trusts it
+ok 290 - binary decoder rejects tampered non-finite XYZ before the renderer trusts it
+  ---
+  duration_ms: 0.0935
+  type: 'test'
+  ...
+# Subtest: registered-cloud reservoir is bounded, idempotent and source-scoped
+ok 291 - registered-cloud reservoir is bounded, idempotent and source-scoped
+  ---
+  duration_ms: 1.922917
+  type: 'test'
+  ...
+# Subtest: mapping transport is page-aware, view-aware and resets on server epoch change
+ok 292 - mapping transport is page-aware, view-aware and resets on server epoch change
+  ---
+  duration_ms: 0.585709
+  type: 'test'
+  ...
+# Subtest: camera relay is requested only while the Sensors page is visible
+ok 293 - camera relay is requested only while the Sensors page is visible
+  ---
+  duration_ms: 1.074458
+  type: 'test'
+  ...
+# Subtest: Sensors exposes a bounded RealSense resolution selector
+ok 294 - Sensors exposes a bounded RealSense resolution selector
+  ---
+  duration_ms: 0.61825
+  type: 'test'
+  ...
+# Subtest: profile feature uses only the fixed API and explicit confirmation
+ok 295 - profile feature uses only the fixed API and explicit confirmation
+  ---
+  duration_ms: 0.89475
+  type: 'test'
+  ...
+# Subtest: dataset capture and remote status blockers are rendered fail closed
+ok 296 - dataset capture and remote status blockers are rendered fail closed
+  ---
+  duration_ms: 0.07175
+  type: 'test'
+  ...
+# Subtest: operator resolution selection survives render and polling until apply succeeds
+ok 297 - operator resolution selection survives render and polling until apply succeeds
+  ---
+  duration_ms: 0.099125
+  type: 'test'
+  ...
+# Subtest: robot type catalog rejects unsupported product types
+ok 298 - robot type catalog rejects unsupported product types
+  ---
+  duration_ms: 1.934666
+  type: 'test'
+  ...
+# Subtest: fallback catalog provides selectable Go2 and TurtleBot model assets
+ok 299 - fallback catalog provides selectable Go2 and TurtleBot model assets
+  ---
+  duration_ms: 0.256417
+  type: 'test'
+  ...
+# Subtest: backend capability metadata is authoritative and missing entries fail closed
+ok 300 - backend capability metadata is authoritative and missing entries fail closed
+  ---
+  duration_ms: 0.150834
+  type: 'test'
+  ...
+# Subtest: fallback model catalog never grants product capabilities without the backend
+ok 301 - fallback model catalog never grants product capabilities without the backend
+  ---
+  duration_ms: 0.117959
+  type: 'test'
+  ...
+# Subtest: network discovery removes invalid and duplicate candidates then ranks confidence and latency
+ok 302 - network discovery removes invalid and duplicate candidates then ranks confidence and latency
+  ---
+  duration_ms: 0.304834
+  type: 'test'
+  ...
+# Subtest: connection payload binds the chosen type, address and discovered hostname
+ok 303 - connection payload binds the chosen type, address and discovered hostname
+  ---
+  duration_ms: 0.134125
+  type: 'test'
+  ...
+# Subtest: settings UI wires type selection to discovery and explicit connection
+ok 304 - settings UI wires type selection to discovery and explicit connection
+  ---
+  duration_ms: 1.145667
+  type: 'test'
+  ...
+# Subtest: sensor cards keep all observed streams and rank unknown categories last
+ok 305 - sensor cards keep all observed streams and rank unknown categories last
+  ---
+  duration_ms: 0.120875
+  type: 'test'
+  ...
+# Subtest: model renderer accepts the official Go2 and generic robot-model-lite schemas
+ok 306 - model renderer accepts the official Go2 and generic robot-model-lite schemas
+  ---
+  duration_ms: 0.300542
+  type: 'test'
+  ...
+# Subtest: a transient model fetch failure can be retried without reloading the page
+ok 307 - a transient model fetch failure can be retried without reloading the page
+  ---
+  duration_ms: 5.063709
+  type: 'test'
+  ...
+# (node:24951) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/maps/download.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: saved map download UI shows catalog and selected sizes with an opaque download URL
+ok 308 - saved map download UI shows catalog and selected sizes with an opaque download URL
+  ---
+  duration_ms: 0.556458
+  type: 'test'
+  ...
+# Subtest: saved map download UI disables bundled fallback maps and tolerates missing sizes
+ok 309 - saved map download UI disables bundled fallback maps and tolerates missing sizes
+  ---
+  duration_ms: 0.116875
+  type: 'test'
+  ...
+# Subtest: Mapping links to the Saved Maps size and download controls
+ok 310 - Mapping links to the Saved Maps size and download controls
+  ---
+  duration_ms: 0.1285
+  type: 'test'
+  ...
+# Subtest: Map Library stays bounded and scrollable as saved maps accumulate
+ok 311 - Map Library stays bounded and scrollable as saved maps accumulate
+  ---
+  duration_ms: 0.290708
+  type: 'test'
+  ...
+# Subtest: point-cloud preview without advertised bounds uses its sampled bounds
+ok 312 - point-cloud preview without advertised bounds uses its sampled bounds
+  ---
+  duration_ms: 3.020375
+  type: 'test'
+  ...
+# Subtest: cockpit first follow pose centers and pan disables following until reset
+ok 313 - cockpit first follow pose centers and pan disables following until reset
+  ---
+  duration_ms: 0.885875
+  type: 'test'
+  ...
+# Subtest: trail requires a live pose and a single explicit cloud coordinate frame
+ok 314 - trail requires a live pose and a single explicit cloud coordinate frame
+  ---
+  duration_ms: 0.508917
+  type: 'test'
+  ...
+# Subtest: XYZ axes default to the existing visible behavior and persist only their preference
+ok 315 - XYZ axes default to the existing visible behavior and persist only their preference
+  ---
+  duration_ms: 1.707416
+  type: 'test'
+  ...
+# Subtest: axes toggle is storage-failure safe and keeps its pressed state across view controls
+ok 316 - axes toggle is storage-failure safe and keeps its pressed state across view controls
+  ---
+  duration_ms: 0.7955
+  type: 'test'
+  ...
+# Subtest: rendering skips only the axes helper while grid, cloud, model and trail stay intact
+ok 317 - rendering skips only the axes helper while grid, cloud, model and trail stay intact
+  ---
+  duration_ms: 1.158791
+  type: 'test'
+  ...
+# Subtest: empty cloud keeps the centered waiting message without the upper point and frame readout
+ok 318 - empty cloud keeps the centered waiting message without the upper point and frame readout
+  ---
+  duration_ms: 15.4105
+  type: 'test'
+  ...
+# Subtest: point projection scratch uses bounded typed arrays and is reused across renders
+ok 319 - point projection scratch uses bounded typed arrays and is reused across renders
+  ---
+  duration_ms: 34.581416
+  type: 'test'
+  ...
+# Subtest: navigation model preview exposes the persistent accessible XYZ control
+ok 320 - navigation model preview exposes the persistent accessible XYZ control
+  ---
+  duration_ms: 0.595042
+  type: 'test'
+  ...
+# (node:24953) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/route_planner_client.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: schematic preserves unknown units and never produces a ROS map overlay
+ok 321 - schematic preserves unknown units and never produces a ROS map overlay
+  ---
+  duration_ms: 2.8965
+  type: 'test'
+  ...
+# Subtest: schematic client reuses one polling loop and only display command surface
+ok 322 - schematic client reuses one polling loop and only display command surface
+  ---
+  duration_ms: 4.133416
+  type: 'test'
+  ...
+# Subtest: disconnected schematic keeps reference data but disables live claims
+ok 323 - disconnected schematic keeps reference data but disables live claims
+  ---
+  duration_ms: 0.290083
+  type: 'test'
+  ...
+# Subtest: schematic clicks use inverse SVG screen matrix, not CSS pixel calibration
+ok 324 - schematic clicks use inverse SVG screen matrix, not CSS pixel calibration
+  ---
+  duration_ms: 1.087291
+  type: 'test'
+  ...
+# Subtest: venue setup restores two distinct access nodes from legacy and numbered access edges
+ok 325 - venue setup restores two distinct access nodes from legacy and numbered access edges
+  ---
+  duration_ms: 12.095792
+  type: 'test'
+  ...
+# Subtest: manual records support LAN HTTP without crypto.randomUUID
+ok 326 - manual records support LAN HTTP without crypto.randomUUID
+  ---
+  duration_ms: 0.331875
+  type: 'test'
+  ...
+# Subtest: Settings exposes dashboard-only restart and stop controls with explicit warning
+ok 327 - Settings exposes dashboard-only restart and stop controls with explicit warning
+  ---
+  duration_ms: 3.195208
+  type: 'test'
+  ...
+# Subtest: service lifecycle confirmation does not request or transmit an admin key
+ok 328 - service lifecycle confirmation does not request or transmit an admin key
+  ---
+  duration_ms: 0.340334
+  type: 'test'
+  ...
+# Subtest: restart and stop use only the fixed lifecycle API contract
+ok 329 - restart and stop use only the fixed lifecycle API contract
+  ---
+  duration_ms: 0.117125
+  type: 'test'
+  ...
+# Subtest: buttons require server readiness and the local acknowledgement
+ok 330 - buttons require server readiness and the local acknowledgement
+  ---
+  duration_ms: 0.085959
+  type: 'test'
+  ...
+# Subtest: restart treats a disconnect as expected and verifies a new server instance
+ok 331 - restart treats a disconnect as expected and verifies a new server instance
+  ---
+  duration_ms: 0.094333
+  type: 'test'
+  ...
+# Subtest: a stale terminal poll cannot cancel a newly scheduled transition before its id is bound
+ok 332 - a stale terminal poll cannot cancel a newly scheduled transition before its id is bound
+  ---
+  duration_ms: 1.032084
+  type: 'test'
+  ...
+# Subtest: service controls are full-width and collapse safely on small screens
+ok 333 - service controls are full-width and collapse safely on small screens
+  ---
+  duration_ms: 0.644833
+  type: 'test'
+  ...
+# (node:24955) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ros2-dashboard/robot_dashboard/static/features/cockpit/route_planner_client.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: editor maps image-down coordinates into translated rotated ROS map coordinates
+ok 334 - editor maps image-down coordinates into translated rotated ROS map coordinates
+  ---
+  duration_ms: 1.499542
+  type: 'test'
+  ...
+# Subtest: map lineage must uniquely match exact occupancy revision
+ok 335 - map lineage must uniquely match exact occupancy revision
+  ---
+  duration_ms: 0.51675
+  type: 'test'
+  ...
+# Subtest: path headings follow segment direction and preserve chosen final heading and pose metadata
+ok 336 - path headings follow segment direction and preserve chosen final heading and pose metadata
+  ---
+  duration_ms: 0.156583
+  type: 'test'
+  ...
+# Subtest: spatial authoring uses revision CAS and never invokes execution endpoints
+ok 337 - spatial authoring uses revision CAS and never invokes execution endpoints
+  ---
+  duration_ms: 1.003458
+  type: 'test'
+  ...
+# Subtest: schematic context cannot write an actual-map spatial route
+ok 338 - schematic context cannot write an actual-map spatial route
+  ---
+  duration_ms: 0.34375
+  type: 'test'
+  ...
+# Subtest: dashboard uses the readable Mission Control typography scale
+ok 339 - dashboard uses the readable Mission Control typography scale
+  ---
+  duration_ms: 0.763375
+  type: 'test'
+  ...
+# Subtest: all workspaces share the scale while canvas HUD remains compact
+ok 340 - all workspaces share the scale while canvas HUD remains compact
+  ---
+  duration_ms: 0.459083
+  type: 'test'
+  ...
+1..340
+# tests 340
+# suites 0
+# pass 340
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 596.162167

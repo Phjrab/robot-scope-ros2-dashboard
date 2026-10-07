@@ -1,0 +1,5048 @@
+{
+  "report": [
+    {
+      "file": "before/dark-cockpit-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "cockpit",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-maps-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "maps",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-navigation-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "navigation",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-missions-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "missions",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-sensors-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "sensors",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-settings-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "settings",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-disconnected-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "disconnected",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1653.5625,
+              "y": 15.796875,
+              "width": 100.328125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1653.5625,
+            "y": 14.796875,
+            "width": 100.328125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-stale-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "stale",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-cockpit-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "cockpit",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-maps-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "maps",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-navigation-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "navigation",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-missions-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "missions",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-sensors-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "sensors",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-settings-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "settings",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-disconnected-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "disconnected",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1653.5625,
+              "y": 15.796875,
+              "width": 100.328125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1653.5625,
+            "y": 14.796875,
+            "width": 100.328125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-stale-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "stale",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1646.390625,
+              "y": 961.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1646.390625,
+            "y": 960.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1700.640625,
+              "y": 982.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1700.640625,
+            "y": 981.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 910.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1603,
+              "y": 928.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 909.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1590.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1590.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-cockpit-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "cockpit",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-maps-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "maps",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-navigation-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "navigation",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-missions-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "missions",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-sensors-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "sensors",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-settings-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "settings",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-disconnected-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "disconnected",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1173.5625,
+              "y": 15.796875,
+              "width": 100.328125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1173.5625,
+            "y": 14.796875,
+            "width": 100.328125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-stale-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "stale",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-cockpit-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "cockpit",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-maps-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "maps",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-navigation-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "navigation",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-missions-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "missions",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-sensors-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "sensors",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-settings-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "settings",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-disconnected-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "disconnected",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1173.5625,
+              "y": 15.796875,
+              "width": 100.328125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1173.5625,
+            "y": 14.796875,
+            "width": 100.328125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-stale-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "stale",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1166.390625,
+              "y": 781.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1166.390625,
+            "y": 780.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1220.640625,
+              "y": 802.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1220.640625,
+            "y": 801.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 730.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 1123,
+              "y": 748.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 729.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1110.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1110.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-cockpit-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "cockpit",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-maps-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "maps",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-navigation-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "navigation",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-missions-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "missions",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-sensors-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "sensors",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-settings-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "settings",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-disconnected-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "disconnected",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1013.5625,
+              "y": 15.796875,
+              "width": 100.328125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1013.5625,
+            "y": 14.796875,
+            "width": 100.328125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/dark-stale-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "stale",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-cockpit-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "cockpit",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-maps-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "maps",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-navigation-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "navigation",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-missions-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "missions",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-sensors-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "sensors",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-settings-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "settings",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-disconnected-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "disconnected",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1013.5625,
+              "y": 15.796875,
+              "width": 100.328125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1013.5625,
+            "y": 14.796875,
+            "width": 100.328125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "before/light-stale-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "stale",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1006.390625,
+              "y": 681.375,
+              "width": 203.203125,
+              "height": 16
+            }
+          ],
+          "box": {
+            "x": 1006.390625,
+            "y": 680.375,
+            "width": 203.203125,
+            "height": 18.84375
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1060.640625,
+              "y": 702.21875,
+              "width": 94.703125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1060.640625,
+            "y": 701.21875,
+            "width": 94.703125,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 630.375,
+              "width": 247.578125,
+              "height": 15
+            },
+            {
+              "x": 963,
+              "y": 648.375,
+              "width": 180.828125,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 629.375,
+            "width": 290,
+            "height": 36
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "800"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 950.625,
+              "y": 15.796875,
+              "width": 163.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 950.625,
+            "y": 14.796875,
+            "width": 163.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "Inter, ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "700"
+          },
+          "clipped": false
+        }
+      ]
+    }
+  ],
+  "fontResponses": [],
+  "pageErrors": [],
+  "unexpected": [],
+  "mutations": []
+}

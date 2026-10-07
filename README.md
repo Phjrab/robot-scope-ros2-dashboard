@@ -162,3 +162,5 @@ Advanced에서 접근합니다. [리디자인 보고서·검증·rollback](docs/
 
 [LICENSE](LICENSE)와 [Third-party notices](THIRD_PARTY_NOTICES.md)를
 확인하세요.
+
+Typography: [IBM Plex 로컬 웹폰트·렌더링 검증·before/after](docs/ui-typography/README.md).

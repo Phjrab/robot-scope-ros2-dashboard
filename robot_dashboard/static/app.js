@@ -3579,7 +3579,7 @@ function drawNavigationPoseMarker(context, layout, pose, color, label, ratio = 1
   context.beginPath();
   context.arc(tipX, tipY, 2.5 * ratio, 0, Math.PI * 2);
   context.fill();
-  context.font = `${Math.max(8, 8 * ratio)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  context.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * ratio, 400) || `400 ${13 * ratio}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
   context.fillText(label, projected.x + 9 * ratio, projected.y - 9 * ratio);
   context.restore();
 }
@@ -4574,10 +4574,10 @@ function drawPoseLabel(ctx, anchor, viewport, unit) {
   const yText = `Y ${currentPose.y.toFixed(2)} m`;
   const yawDegrees = ((currentPose.yaw * 180 / Math.PI) + 360) % 360;
   const headingText = `${viewport.mode} · ${yawDegrees.toFixed(0)}°`;
-  const fontSize = 9 * unit;
-  ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-  const labelWidth = Math.max(ctx.measureText(xText).width, ctx.measureText(yText).width, ctx.measureText(headingText).width) + 14 * unit;
-  const labelHeight = 39 * unit;
+  const fontSize = 13 * unit;
+  ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', fontSize, 500) || `500 ${fontSize}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+  const labelWidth = Math.max(ctx.measureText(xText).width, ctx.measureText(yText).width, ctx.measureText(headingText).width, ctx.measureText(anchor.inside ? '' : anchor.frameMismatch ? 'FRAME RELATIVE' : 'RELATIVE VIEW').width) + 14 * unit;
+  const labelHeight = (anchor.inside ? 56 : 74) * unit;
   const labelX = Math.min(viewport.width - labelWidth - 8 * unit, Math.max(8 * unit, anchor.x + 18 * unit));
   const labelY = Math.max(8 * unit, anchor.y - labelHeight - 10 * unit);
   ctx.fillStyle = 'rgba(5, 16, 13, .86)';
@@ -4588,15 +4588,15 @@ function drawPoseLabel(ctx, anchor, viewport, unit) {
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#d9fff0';
-  ctx.fillText(xText, labelX + 7 * unit, labelY + 12 * unit);
-  ctx.fillText(yText, labelX + 7 * unit, labelY + 23 * unit);
+  ctx.fillText(xText, labelX + 7 * unit, labelY + 16 * unit);
+  ctx.fillText(yText, labelX + 7 * unit, labelY + 33 * unit);
   ctx.fillStyle = '#8fa9a1';
-  ctx.font = `500 ${7 * unit}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-  ctx.fillText(headingText, labelX + 7 * unit, labelY + 33 * unit);
+  ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * unit, 500) || `500 ${13 * unit}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+  ctx.fillText(headingText, labelX + 7 * unit, labelY + 49 * unit);
   if (!anchor.inside) {
     ctx.fillStyle = 'rgba(255, 198, 109, .9)';
-    ctx.font = `600 ${7 * unit}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    ctx.fillText(anchor.frameMismatch ? 'FRAME RELATIVE' : 'RELATIVE VIEW', labelX + labelWidth - 72 * unit, labelY + 33 * unit);
+    ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * unit, 500) || `500 ${13 * unit}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+    ctx.fillText(anchor.frameMismatch ? 'FRAME RELATIVE' : 'RELATIVE VIEW', labelX + 7 * unit, labelY + 67 * unit);
   }
 }
 
@@ -6895,3 +6895,4 @@ setInterval(syncCameraFrameFreshness, 500);
 setInterval(controlTick, 50);
 setInterval(refreshControlSnapshot, 1000);
 setInterval(refreshControlGamepads, 1000);
+globalThis.RobotScopeTypography?.subscribe(() => drawNavigationMap());

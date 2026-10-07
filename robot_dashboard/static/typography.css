@@ -1,0 +1,72 @@
+/* Role overrides only: palette, panels, transport and safety gates remain owned
+   by their existing modules. Mixed Korean logs wrap; they are not ASCII tables. */
+body { font-family: var(--font-ui); font-weight: 400; line-height: 1.5; letter-spacing: 0; }
+:is(button, input, select, textarea) { font-family: var(--font-ui); letter-spacing: 0; }
+.page-view :is(button, input, select, textarea), .cockpit-layout-library :is(button, input, select, textarea) { font-family: var(--font-ui); }
+button { font-weight: 500; }
+.page-view button, .cockpit-layout-library button { font-weight: 500; }
+.page-view :is(p, label, small) { font-weight: 400; }
+.page-view label > span { font-weight: 500; }
+:is(h1, h2, h3, h4, strong, b) { font-weight: 600; }
+:is(.brand strong, .page-heading h1, .experiment-intro h1) { font-family: var(--font-display); font-weight: 600; }
+.page-heading h1, .experiment-intro h1 { font-size: 26px; line-height: 1.25; }
+.page-heading p { font-size: 14px; line-height: 1.5; }
+.panel-header h2, .cockpit-panel-identity h2, .mission-inspector h2 { font-size: 16px; line-height: 1.35; font-weight: 600; }
+:is(.nav-item b, .ghost-button, .connection-chip, .workspace-window-button, .panel-state) { font-family: var(--font-ui); font-size: 14px; font-weight: 500; }
+.nav-item b { line-height: 1.35; }
+.eyebrow, .scope-label { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: .03em; }
+.mission-inspector { font-size: 14px; }
+.mission-inspector h3 { font-size: 16px; font-weight: 500; }
+.cockpit-panel-content :is(button, label, dt, dd, span) { line-height: 1.45; }
+:is(.cockpit-launcher-toggle, .cockpit-layout-library-toggle, .cockpit-layout-library-body button) { font-family: var(--font-ui); font-size: 14px; font-weight: 500; }
+.cockpit-scene-controls :is(button, select, label) { font-family: var(--font-ui); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+:is(.cockpit-camera-statusline > strong, .cockpit-camera-state, .cockpit-map-header strong,
+  .camera-feed-health span, .control-status-card > strong, .navigation-status-card > strong,
+  .navigation-readiness strong, .navigation-safety-banner strong, .route-planner-safety-banner strong,
+  .cockpit-safety-summary, .cockpit-safety-identity strong, .cockpit-fixed-stop strong) {
+  font-family: var(--font-ui); font-weight: 600; font-size: 14px; line-height: 1.45; letter-spacing: 0;
+}
+:is(code, kbd, pre, time, .font-mono, td.topic-name, td.topic-type, .topic-badge,
+  .live-clock strong, .pose-values strong, .command-monitor strong, .sensor-value b, .sensor-card-head strong, .sensor-card-head > span,
+  .lidar-source-topic, .camera-view-capacity strong, .camera-feed-identity code,
+  .camera-feed-identity small, .camera-feed-health strong, .camera-media-readout time,
+  .dataset-capture-summary strong, .dataset-output-path code, .dataset-session-item b,
+  .saved-map-detail dd, .mapping-job-summary strong, .navigation-pose-readout strong,
+  .navigation-health-metrics strong, .navigation-goal-progress strong,
+  .navigation-log-summary strong, .navigation-runtime-bindings strong,
+  .cockpit-camera-metrics strong, .cockpit-map-metrics strong, .cockpit-controller-metric strong,
+  .cockpit-mission-metrics strong, .cockpit-navigation-metrics strong,
+  #posX, #posY, #posZ, #speed, #topicCount, #batteryMetric,
+  #liveCloudTopic, #liveOdomTopic, #liveMapTopic, #cockpitPointMetrics,
+  #cameraPrimaryTopic, #cameraSecondaryTopic, #cameraSourceHealthDetail, #cameraTransportHealthDetail,
+  [data-safety-field="lowstate"], [data-safety-field="battery"], [data-safety-field="vx"],
+  [data-safety-field="vy"], [data-safety-field="wz"], [data-safety-field="speed-scale"],
+  #initialPose, #estimatedPose, #truthPose, #truthError, #runtimeMetric, #qualityMetric,
+  #baselineMetric, #memoryMetric, #se2Metric, #generatedAt, #sourceCommit, #targetDigest,
+  #queryDigest, #manifestDigest, #moduleDigest, #benchmarkDigest,
+  #robotIp, #savedMapRevision, #cameraPrimarySourceId, #cameraSecondarySourceId,
+  [data-inspector-field="revision"], [data-inspector-field="observed"]) {
+  font-family: var(--font-mono); font-weight: 500; font-size: 13px;
+  font-variant-numeric: tabular-nums; font-variant-ligatures: none; letter-spacing: 0;
+}
+:is(pre, .navigation-log-output, .mapping-log, .cockpit-navigation-logs, .cockpit-mission-logs, .schematic-controls textarea) {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 400; line-height: 1.6;
+  font-variant-ligatures: none; white-space: pre-wrap; overflow-wrap: anywhere; letter-spacing: 0;
+}
+.page-view input[type="number"], .navigation-parameter-field input { font-family: var(--font-mono); font-weight: 400; font-variant-numeric: tabular-nums; }
+:is(.stream-overlay, .map-meta, .cockpit-camera-metrics span, .cockpit-map-metrics span,
+  .cockpit-camera-state, .software-stop-feedback, .cockpit-fixed-stop small) { font-size: 12px; line-height: 1.45; }
+/* Small spacing changes compensate for the selected fonts, without relocating panels. */
+.cockpit-panel-identity { flex: 1 1 0; }
+.cockpit-camera-statusline { flex-wrap: wrap; gap: 4px 8px; }
+.cockpit-camera-metrics strong, .cockpit-map-metrics strong { white-space: normal; overflow-wrap: anywhere; }
+#cockpitSafetyHud .cockpit-fixed-stop { min-height: 56px; padding: 8px; gap: 3px 8px; }
+#cockpitSafetyHud .cockpit-safety-summary { white-space: normal; overflow-wrap: anywhere; }
+.cockpit-launcher-item { min-height: 56px; }
+svg text { font-family: var(--font-ui); font-weight: 500; letter-spacing: 0; }
+.competition-map-view svg text[data-node-id] { font-family: var(--font-mono); }
+@media (max-width: 800px) {
+  .page-heading h1 { font-size: 24px; }
+  .nav-item b { font-size: 12px; }
+  .top-actions { gap: 6px; }
+}

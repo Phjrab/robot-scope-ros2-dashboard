@@ -1,0 +1,6777 @@
+{
+  "report": [
+    {
+      "file": "after/dark-cockpit-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "cockpit",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-maps-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "maps",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-navigation-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "navigation",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-missions-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "missions",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-sensors-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "sensors",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-settings-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "settings",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-disconnected-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "disconnected",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1636.25,
+              "y": 14,
+              "width": 112.1875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1636.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-stale-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "stale",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-cockpit-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "cockpit",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-maps-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "maps",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-navigation-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "navigation",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-missions-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "missions",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-sensors-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "sensors",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-settings-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "settings",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-disconnected-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "disconnected",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1636.25,
+              "y": 14,
+              "width": 112.1875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1636.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-stale-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scenario": "stale",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1647.484375,
+              "y": 956.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1647.484375,
+            "y": 955.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1702.859375,
+              "y": 980.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1702.859375,
+            "y": 979.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1603,
+              "y": 899.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1603,
+              "y": 919.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1603,
+            "y": 898.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1565.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1565.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-cockpit-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "cockpit",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-maps-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "maps",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-navigation-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "navigation",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-missions-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "missions",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-sensors-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "sensors",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-settings-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "settings",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-disconnected-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "disconnected",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1156.25,
+              "y": 14,
+              "width": 112.1875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1156.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-stale-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "stale",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-cockpit-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "cockpit",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-maps-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "maps",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-navigation-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "navigation",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-missions-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "missions",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-sensors-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "sensors",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-settings-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "settings",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-disconnected-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "disconnected",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1156.25,
+              "y": 14,
+              "width": 112.1875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1156.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-stale-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scenario": "stale",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1167.484375,
+              "y": 776.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1222.859375,
+              "y": 800.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 1123,
+              "y": 719.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 1123,
+              "y": 739.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 1085.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-cockpit-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "cockpit",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-maps-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "maps",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-navigation-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "navigation",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-missions-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "missions",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-sensors-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "sensors",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-settings-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "settings",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-disconnected-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "disconnected",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 996.25,
+              "y": 14,
+              "width": 112.1875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 996.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/dark-stale-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "stale",
+      "theme": "dark",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-cockpit-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "cockpit",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-maps-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "maps",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-navigation-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "navigation",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-missions-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "missions",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-sensors-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "sensors",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-settings-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "settings",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-disconnected-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "disconnected",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 996.25,
+              "y": 14,
+              "width": 112.1875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 996.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "file": "after/light-stale-1280x800.png",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "scenario": "stale",
+      "theme": "light",
+      "geometry": [
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+          "text": [
+            {
+              "x": 1007.484375,
+              "y": 676.921875,
+              "width": 201.015625,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+          "text": [
+            {
+              "x": 1062.859375,
+              "y": 700.21875,
+              "width": 90.265625,
+              "height": 15
+            }
+          ],
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#cockpitSafetyHud .cockpit-safety-summary",
+          "text": [
+            {
+              "x": 963,
+              "y": 619.328125,
+              "width": 266.140625,
+              "height": 18
+            },
+            {
+              "x": 963,
+              "y": 639.625,
+              "width": 196.21875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "600"
+          },
+          "clipped": false
+        },
+        {
+          "selector": "#connectionLabel",
+          "text": [
+            {
+              "x": 925.75,
+              "y": 14,
+              "width": 182.6875,
+              "height": 18
+            }
+          ],
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21
+          },
+          "style": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "weight": "500"
+          },
+          "clipped": false
+        }
+      ]
+    }
+  ],
+  "fontResponses": [
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    }
+  ],
+  "pageErrors": [],
+  "unexpected": [],
+  "mutations": []
+}
