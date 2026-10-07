@@ -128,6 +128,10 @@ Navigation / Dataset Capture 배치는 기존 저장 layout과 Edit/Apply 계약
 Safety HUD와 software STOP은 주요 작업 화면에서 고정 표시됩니다. 기존 고급 기능은
 Advanced에서 접근합니다. [리디자인 보고서·검증·rollback](docs/ui-redesign/FINAL_REPORT.md).
 
+상단의 **화이트 모드 / 다크 모드** 버튼으로 테마를 전환합니다. 기본은 다크이며,
+선택은 같은 브라우저에 저장되어 새로고침·별도 Cockpit 창·Offline Experiments에도
+적용됩니다. [테마 캡처·검증·rollback](docs/ui-themes/README.md).
+
 ![Mission Control · UI DEMO / SYNTHETIC FIXTURE / 실장비·성능 검증 아님](docs/ui-redesign/captures/after/observation-1440x900.png)
 
 이 이미지는 Go2/ROS 없이 격리 fixture로 촬영했습니다. 위의 2026-09-28 실제

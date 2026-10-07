@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#11161c">
   <title>Robot Scope</title>
+  <script src="/static/theme.js"></script>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/features/cockpit/cockpit.css">
   <link rel="stylesheet" href="/static/dashboard-polish.css">
   <link rel="stylesheet" href="/static/mission-control.css">
+  <link rel="stylesheet" href="/static/themes.css">
 </head>
 <body>
   <div class="ambient ambient-a"></div>
@@ -23,6 +25,7 @@
       <a class="dataset-global-status" id="datasetGlobalStatus" href="#sensors" hidden aria-label="서버 데이터셋 캡처 상태 보기">
         <span class="dataset-capture-dot" aria-hidden="true"></span><strong>SERVER CAPTURE</strong><small id="datasetGlobalStatusText">00:00 · 0 saved</small>
       </a>
+      <button class="ghost-button" id="themeToggle" type="button" aria-label="화이트 모드로 전환" aria-pressed="false">☀ 화이트 모드</button>
       <button class="ghost-button" id="refreshButton" type="button">새로고침</button>
       <div class="connection-chip waiting" id="connectionChip" title="무선 프로필은 탑재 Jetson, 유선 프로필은 직접 ROS/DDS 연결 상태">
         <span class="status-dot"></span><span id="connectionLabel">로봇 게이트웨이 확인 중</span>

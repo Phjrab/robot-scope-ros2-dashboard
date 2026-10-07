@@ -1,0 +1,125 @@
+/* Palette lives in styles.css. Adapters cover legacy fixed dark surfaces.
+   Canvas pixels, camera frames, safety gates and renderer state stay unchanged. */
+#themeToggle { min-height: 36px; white-space: nowrap; }
+/* Legacy secondary labels need the same readable tokens in the dark palette. */
+html[data-theme="dark"] :is(.dataset-capture-summary span, .robot-discovery-empty,
+  .lidar-source-topic, .camera-primary-picker > span, .navigation-readiness span) { color: var(--muted); }
+#cockpitSafetyHud .cockpit-fixed-stop :is(strong, small) { color: #ffffff; }
+html[data-theme="light"] body { background: var(--bg); color: var(--text); }
+html[data-theme="light"] :is(.panel, .route-card, .kpi-card, .cockpit-floating-panel,
+  .cockpit-layout-library, .cockpit-sensor-launcher, .cockpit-competition-status,
+  .experiment-source, .result-panel, .scene-panel, .experiment-status,
+  .navigation-info-card, .navigation-health-card, .control-action-card,
+  .control-action-empty, .touch-controller, .estop-confirm,
+  .settings-card-body, .camera-slot-toolbar, .camera-source-toolbar,
+  .camera-view-toolbar, .camera-media-toolbar, .camera-feed-identity,
+  .camera-link-observability article, .camera-link-observability p,
+  .realsense-profile-control, .dataset-global-status,
+  .cockpit-camera-statusline, .cockpit-camera-metrics, .cockpit-map-header,
+  .cockpit-map-metrics, .cockpit-map-annotations, .cockpit-navigation-panel,
+  .cockpit-mission-panel, .cockpit-controller-panel,
+  .dataset-capture-summary > div, .dataset-output-path, .dataset-session-list,
+  .robot-discovery-results, .connection-target-state, .selected-model-note,
+  .lidar-source-identity, .settings-detail div, .service-lifecycle-status > div,
+  .control-bridge-service-status > div, .experiment-caveat,
+  .navigation-status-card, .control-status-card, .navigation-readiness > div,
+  .navigation-health-metrics > div, .navigation-log-summary > div,
+  .navigation-log-terminal, .navigation-log-output, .navigation-log-notice,
+  .navigation-robot-summary, .navigation-parameter-group, .map-annotation-panel,
+  .map-annotation-item, .mapping-checkbox, .mapping-job-summary div, .mapping-log,
+  .pipeline-list > div, .sensor-card, .model-registry-item, .dataset-sample-card,
+  .dataset-gallery-pagination, .dataset-capture-fields label > div,
+  .gamepad-guide > div, .keyboard-guide kbd, .route-planner-guidance,
+  .route-planner-order, .route-planner-planning, .schematic-controls,
+  .competition-map-view > div, .route-planner-map-context,
+  .route-planner-order-notice, .food-production, .cockpit-navigation-logs,
+  .cockpit-mission-logs, .cockpit-competition-grid > div, .cockpit-navigation-gates > div,
+  .dataset-capture-body, .dataset-storage-path, .dataset-metric,
+  .navigation-runtime-bindings > div, .navigation-runtime-bindings p,
+  .command-monitor > div, .control-metric, .sensor-cell, .saved-map-detail) {
+  background: var(--panel); color: var(--text); border-color: var(--line);
+  box-shadow: none; text-shadow: none;
+}
+html[data-theme="light"] :is(.panel-header, .cockpit-panel-titlebar, .camera-slot-header,
+  .cockpit-navigation-header, .cockpit-mission-header, .navigation-health-grid > div,
+  .dataset-capture-metrics > div, .cockpit-camera-metric, .cockpit-safety-metric,
+  .navigation-safety-banner, .route-planner-safety-banner, .control-profile-notice,
+  .control-action-notice, .mapping-safety-note, .service-lifecycle-warning,
+  .navigation-parameter-field, .navigation-runtime-binding, .sensor-placeholder) {
+  background: var(--panel-strong); color: var(--text); border-color: var(--line);
+}
+html[data-theme="light"] :is(.topbar, .sidebar, .page-heading, .mission-inspector,
+  .panel, .cockpit-floating-panel, .cockpit-safety-hud, .cockpit-layout-library,
+  .cockpit-sensor-launcher, .cockpit-competition-status, .kpi-card, .route-card,
+  .navigation-status-card, .control-status-card, .experiment-shell,
+  .experiment-header) :is(h1, h2, h3, h4, p, small, strong,
+  label, span, dt, dd, td, th, output, summary, code, pre, kbd, b, li) { color: inherit; }
+html[data-theme="light"] :is(.brand small, .page-heading p, .panel small,
+  .panel dt, .panel label, .field-label, .mission-inspector dt,
+  .mission-inspector small, .inspector-readonly, .cockpit-panel-identity span,
+  .cockpit-safety-metric span, .cockpit-camera-metric span, .experiment-source small) {
+  color: var(--muted);
+}
+html[data-theme="light"] :is(button, input, select, textarea, .ghost-button,
+  .workspace-window-button, .cockpit-launcher-item, .cockpit-point-select,
+  .cockpit-point-size, .cockpit-scene-controls output, .scene-controls,
+  .scene-legend, .map-meta, .stream-overlay, .saved-map-item, .map-view-select,
+  .overlay-toggle, .point-budget-custom, th) {
+  background: var(--panel); color: var(--text); border-color: var(--line-strong);
+  box-shadow: none; text-shadow: none;
+}
+html[data-theme="light"] :is(input, textarea)::placeholder { color: var(--muted); }
+html[data-theme="light"] :is(button:hover:not(:disabled), .nav-item.is-active,
+  .saved-map-item.is-active, .cockpit-launcher-item.is-active,
+  button[aria-pressed="true"]:not(:where(#themeToggle))) {
+  background: var(--bg-soft); color: var(--cyan); border-color: var(--cyan);
+}
+html[data-theme="light"] :is(.eyebrow, .back-link, .scope-label, .panel a) { color: var(--cyan); }
+html[data-theme="light"] :is(.connection-chip.ok, .panel-state.ok, .status-pill.ok) { color: var(--green); }
+html[data-theme="light"] :is(.connection-chip.waiting, .panel-state.waiting,
+  .panel-state.warn, .status-pill.warn, .data-badge) { color: var(--amber); background: var(--panel-strong); }
+html[data-theme="light"] :is(.connection-chip.error, .panel-state.error,
+  .status-pill.error, .service-lifecycle-message.error, .experiment-status.error) { color: var(--danger); }
+html[data-theme="light"] :is(.robot-discovery-empty, .robot-type-note,
+  .connection-runtime-note, .selected-model-note, .case-bar label,
+  .robot-discovery-head, .navigation-safety-banner p, .route-planner-safety-banner p,
+  .navigation-status-card > span, .navigation-status-card > small,
+  .control-status-card > span, .control-status-card > small) { color: var(--muted); }
+html[data-theme="light"] :is(.camera-feed-health span, .lidar-source-freshness.waiting,
+  .state-pill.waiting) { color: var(--amber); }
+html[data-theme="light"] :is(.camera-feed-health span[data-state="live"],
+  .camera-feed-health span[data-state="ok"], .lidar-source-freshness.live,
+  .state-pill.ok, .cockpit-map-header strong.is-live) { color: var(--green); }
+html[data-theme="light"] :is(.camera-feed-health span[data-state="stale"],
+  .camera-feed-health span[data-state="error"], .camera-feed-health span[data-state="unavailable"],
+  .lidar-source-freshness.stale, .state-pill.stale,
+  .cockpit-map-header strong.is-error) { color: var(--danger); }
+html[data-theme="light"] .navigation-primary { color: #ffffff !important; }
+html[data-theme="light"] .navigation-danger { color: var(--danger) !important; background: var(--panel) !important; border-color: var(--danger) !important; }
+html[data-theme="light"] :is(.dataset-global-status, .control-status-card.is-error,
+  .navigation-status-card.is-error, .control-status-card.estop.is-latched) { border-color: var(--danger); color: var(--danger); }
+html[data-theme="light"] :is(.cockpit-camera-state, .cockpit-map-header strong) { color: var(--amber); }
+html[data-theme="light"] .cockpit-camera-state[data-state="live"] { color: var(--green); }
+html[data-theme="light"] .cockpit-camera-state[data-state="error"] { color: var(--danger); }
+html[data-theme="light"] .cockpit-route-planner { color: var(--text); }
+html[data-theme="light"] #navigationSafetyMessage { color: var(--muted); }
+html[data-theme="light"] .cockpit-workspace { background: var(--panel-strong); }
+html[data-theme="light"] #cockpitSafetyHud { background: var(--panel); color: var(--text); }
+html[data-theme="light"] :is(.toast, .modal, .modal-content, .dialog,
+  .cockpit-window-bar, .experiment-header) { background: var(--panel); color: var(--text); border-color: var(--line); }
+/* STOP stays red with white lettering in both themes. */
+html[data-theme="light"] #softwareEstopButton,
+html[data-theme="light"] #cockpitSafetyHud .cockpit-fixed-stop {
+  background: #b42318; color: #ffffff; border-color: #b42318;
+}
+html[data-theme="light"] #softwareEstopButton :is(strong, small, span),
+html[data-theme="light"] #cockpitSafetyHud .cockpit-fixed-stop :is(strong, small, span) { color: #ffffff; }
+html[data-theme="light"] #softwareEstopButton:hover,
+html[data-theme="light"] #cockpitSafetyHud .cockpit-fixed-stop:hover { background: #912018; color: #ffffff; }
+/* Sensor canvases keep their original display and data colors. */
+html[data-theme="light"] :is(.cockpit-scene-layer, .map-stage, .saved-map-stage,
+  .navigation-map-stage, .camera-stage) { color: #e9f0f5; }
+@media (max-width: 800px) {
+  #themeToggle { min-height: 40px; }
+  .experiment-header { flex-wrap: wrap; gap: 12px; }
+}

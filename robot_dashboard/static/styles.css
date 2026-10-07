@@ -27,6 +27,23 @@
   --inspector-width: 328px;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f7fa;
+  --bg-soft: #eaf0f5;
+  --panel: #ffffff;
+  --panel-strong: #edf2f7;
+  --line: #c6d1dc;
+  --line-strong: #718397;
+  --text: #182636;
+  --muted: #4f6275;
+  --green: #146b4f;
+  --cyan: #006e82;
+  --violet: #5b4a92;
+  --amber: #855200;
+  --danger: #b42332;
+}
+
 * { box-sizing: border-box; }
 
 html { background: var(--bg); }

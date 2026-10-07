@@ -1,0 +1,1242 @@
+[
+  {
+    "theme": "dark",
+    "contrast": {
+      "text": 13.93876141188715,
+      "secondary": 7.815988674554839,
+      "action": 9.070258236389947
+    },
+    "rendered": [
+      {
+        "route": "cockpit",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": ".cockpit-camera-statusline > strong",
+            "foreground": [
+              217,
+              255,
+              246
+            ],
+            "background": [
+              2,
+              7,
+              6
+            ],
+            "ratio": 18.911799565361335
+          },
+          {
+            "selector": ".cockpit-camera-state",
+            "foreground": [
+              255,
+              211,
+              106
+            ],
+            "background": [
+              2,
+              7,
+              6
+            ],
+            "ratio": 14.269787620648627
+          }
+        ]
+      },
+      {
+        "route": "maps",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          }
+        ]
+      },
+      {
+        "route": "navigation",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": ".navigation-status-card strong",
+            "foreground": [
+              255,
+              208,
+              128
+            ],
+            "background": [
+              17,
+              22,
+              28
+            ],
+            "ratio": 12.624616917388645
+          },
+          {
+            "selector": ".navigation-readiness span",
+            "foreground": [
+              167,
+              183,
+              198
+            ],
+            "background": [
+              8.840000000000002,
+              21.96,
+              19.640000000000004
+            ],
+            "ratio": 9.009255536263414
+          },
+          {
+            "selector": ".navigation-readiness strong",
+            "foreground": [
+              255,
+              208,
+              128
+            ],
+            "background": [
+              8.840000000000002,
+              21.96,
+              19.640000000000004
+            ],
+            "ratio": 12.843070651226956
+          },
+          {
+            "selector": ".navigation-primary",
+            "foreground": [
+              8,
+              32,
+              24
+            ],
+            "background": [
+              139,
+              214,
+              186
+            ],
+            "ratio": 10.101017520351915
+          }
+        ]
+      },
+      {
+        "route": "sensors",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": ".camera-view-toolbar label",
+            "foreground": [
+              233,
+              240,
+              245
+            ],
+            "background": [
+              8.899999999999999,
+              22.3,
+              20.599999999999998
+            ],
+            "ratio": 16.01915257486245
+          },
+          {
+            "selector": ".camera-feed-identity strong",
+            "foreground": [
+              215,
+              235,
+              228
+            ],
+            "background": [
+              3.96,
+              13.86,
+              11.879999999999999
+            ],
+            "ratio": 15.752170791661204
+          },
+          {
+            "selector": "#cameraPrimaryState",
+            "foreground": [
+              255,
+              208,
+              128
+            ],
+            "background": [
+              3.96,
+              13.86,
+              11.879999999999999
+            ],
+            "ratio": 13.600990201043823
+          },
+          {
+            "selector": ".dataset-capture-summary span",
+            "foreground": [
+              167,
+              183,
+              198
+            ],
+            "background": [
+              9.8,
+              23.88,
+              21.560000000000002
+            ],
+            "ratio": 8.869855758400268
+          },
+          {
+            "selector": ".dataset-capture-summary strong",
+            "foreground": [
+              201,
+              221,
+              214
+            ],
+            "background": [
+              9.8,
+              23.88,
+              21.560000000000002
+            ],
+            "ratio": 12.827294329968058
+          },
+          {
+            "selector": ".dataset-output-path code",
+            "foreground": [
+              155,
+              199,
+              184
+            ],
+            "background": [
+              11.120000000000001,
+              23.439999999999998,
+              23.08
+            ],
+            "ratio": 9.762415070284437
+          }
+        ]
+      },
+      {
+        "route": "settings",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": ".robot-discovery-empty",
+            "foreground": [
+              167,
+              183,
+              198
+            ],
+            "background": [
+              15.44,
+              24.4,
+              28.64
+            ],
+            "ratio": 8.727175391430318
+          },
+          {
+            "selector": ".connection-target-state strong",
+            "foreground": [
+              188,
+              213,
+              204
+            ],
+            "background": [
+              15.560000000000002,
+              27.04,
+              29.5
+            ],
+            "ratio": 11.30484964578886
+          },
+          {
+            "selector": ".lidar-source-topic",
+            "foreground": [
+              167,
+              183,
+              198
+            ],
+            "background": [
+              11.92,
+              21.84,
+              24.16
+            ],
+            "ratio": 8.95664525921619
+          },
+          {
+            "selector": ".settings-detail strong",
+            "foreground": [
+              201,
+              217,
+              212
+            ],
+            "background": [
+              9.8,
+              23.88,
+              21.560000000000002
+            ],
+            "ratio": 12.447814718919968
+          }
+        ]
+      },
+      {
+        "route": "controls",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          }
+        ]
+      },
+      {
+        "route": "missions",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          }
+        ]
+      },
+      {
+        "route": "route-planner",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": ".route-planner-header strong",
+            "foreground": [
+              237,
+              244,
+              255
+            ],
+            "background": [
+              26,
+              34,
+              44
+            ],
+            "ratio": 14.502430540647278
+          },
+          {
+            "selector": ".route-planner-order h3",
+            "foreground": [
+              159,
+              184,
+              223
+            ],
+            "background": [
+              12.32,
+              20.32,
+              33.36
+            ],
+            "ratio": 9.1128338526127
+          },
+          {
+            "selector": ".schematic-controls summary",
+            "foreground": [
+              229,
+              237,
+              245
+            ],
+            "background": [
+              20,
+              34,
+              50
+            ],
+            "ratio": 13.616135412483484
+          }
+        ]
+      },
+      {
+        "route": "topics",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          }
+        ]
+      },
+      {
+        "route": "mapping",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              181,
+              42,
+              32
+            ],
+            "ratio": 6.331415096722405
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "contrast": {
+      "text": 15.33572447583839,
+      "secondary": 6.294215386632567,
+      "action": 5.910975129119294
+    },
+    "rendered": [
+      {
+        "route": "cockpit",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": ".cockpit-camera-statusline > strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".cockpit-camera-state",
+            "foreground": [
+              133,
+              82,
+              0
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 6.553843999731501
+          }
+        ]
+      },
+      {
+        "route": "maps",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          }
+        ]
+      },
+      {
+        "route": "navigation",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": ".navigation-status-card strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".navigation-readiness span",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".navigation-readiness strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".navigation-primary",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              20,
+              107,
+              79
+            ],
+            "ratio": 6.470048783100583
+          }
+        ]
+      },
+      {
+        "route": "sensors",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": ".camera-view-toolbar label",
+            "foreground": [
+              79,
+              98,
+              117
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 6.294215386632567
+          },
+          {
+            "selector": ".camera-feed-identity strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": "#cameraPrimaryState",
+            "foreground": [
+              133,
+              82,
+              0
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 6.553843999731501
+          },
+          {
+            "selector": ".dataset-capture-summary span",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".dataset-capture-summary strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".dataset-output-path code",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          }
+        ]
+      },
+      {
+        "route": "settings",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": ".robot-discovery-empty",
+            "foreground": [
+              79,
+              98,
+              117
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 6.294215386632567
+          },
+          {
+            "selector": ".connection-target-state strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".lidar-source-topic",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".settings-detail strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          }
+        ]
+      },
+      {
+        "route": "controls",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#softwareEstopButton strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              180,
+              35,
+              24
+            ],
+            "ratio": 6.57428861557707
+          },
+          {
+            "selector": "#softwareEstopButton small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              180,
+              35,
+              24
+            ],
+            "ratio": 6.57428861557707
+          }
+        ]
+      },
+      {
+        "route": "missions",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          }
+        ]
+      },
+      {
+        "route": "route-planner",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": ".route-planner-header strong",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".route-planner-order h3",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          },
+          {
+            "selector": ".schematic-controls summary",
+            "foreground": [
+              24,
+              38,
+              54
+            ],
+            "background": [
+              255,
+              255,
+              255
+            ],
+            "ratio": 15.33572447583839
+          }
+        ]
+      },
+      {
+        "route": "topics",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          }
+        ]
+      },
+      {
+        "route": "mapping",
+        "colors": [
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop strong",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          },
+          {
+            "selector": "#cockpitSafetyHud .cockpit-fixed-stop small",
+            "foreground": [
+              255,
+              255,
+              255
+            ],
+            "background": [
+              145,
+              32,
+              24
+            ],
+            "ratio": 8.664285795100055
+          }
+        ]
+      }
+    ]
+  }
+]

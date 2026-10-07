@@ -1,0 +1,14 @@
+[WebServer] (node:98828) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+(node:98841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/3] tests/e2e/ui_themes.spec.mjs:30:1 › theme switching persists across reload and windows without recreating sensors or controlling the robot
+[2/3] tests/e2e/ui_themes.spec.mjs:66:1 › both themes keep readable text and STOP usable across routes and mobile with real fixture captures
+[3/3] tests/e2e/ui_themes.spec.mjs:118:1 › invalid or unavailable storage falls back safely and offline experiments share the theme
+  3 passed (25.0s)
