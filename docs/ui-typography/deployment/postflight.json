@@ -1,0 +1,111 @@
+{
+  "release_commit": "544e108d00538af184f1cb15e8bbe565171962d5",
+  "previous_release_commit": "0e3532ad5641ade44550f00a654741d0645135fb",
+  "main_pid": "3499596",
+  "process_cwd_matches": true,
+  "service_status": {
+    "NRestarts": "18",
+    "ActiveState": "active",
+    "SubState": "running"
+  },
+  "same_pid_and_restart_count_as_initial_recovery": true,
+  "uptime_s": 147.9,
+  "served_asset_checks": [
+    {
+      "file": "index.html",
+      "status": 200,
+      "sha256": "221823d42a532b2101405778b6a67e203a974f3d9e9a49e96325ed16801843a5"
+    },
+    {
+      "file": "fonts.css",
+      "status": 200,
+      "sha256": "ad8904bddf0e518495a8ac71f643985a4793838fb00220134fbd1041e27de560"
+    },
+    {
+      "file": "styles.css",
+      "status": 200,
+      "sha256": "9b74659d83546598fedb9422070ad7a4888fa3a29c5c31e48061ad363b8f8cdf"
+    },
+    {
+      "file": "mission-control.css",
+      "status": 200,
+      "sha256": "2dde293bc928fd9f40d9068a1cd67b4af12c2b279849a233e46df37d267a5add"
+    },
+    {
+      "file": "themes.css",
+      "status": 200,
+      "sha256": "37ec00dd2f04b60b2426d50dcd7fcd0d3f9cb1dbcc3108e4fdded5ddaae3a0f8"
+    },
+    {
+      "file": "typography.css",
+      "status": 200,
+      "sha256": "49b65ac82ffaa1c68fc92a7ee77dc0f1711844fe03fb343625edd1453191f00c"
+    },
+    {
+      "file": "typography.js",
+      "status": 200,
+      "sha256": "8cff682d2f178750372012ce5ccdb76dc9802c7807cc6d56ee89785419cbecdb"
+    },
+    {
+      "file": "app.js",
+      "status": 200,
+      "sha256": "5fdb67d1cd6712b2235855949b992bfd4803cbb7a2a54c5962a48e65614edfb9"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200,
+      "sha256": "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200,
+      "sha256": "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200,
+      "sha256": "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200,
+      "sha256": "055a35664c3c3965161c92292504c5633ba9604ec904edc1ed799bf2a436276d"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200,
+      "sha256": "c00dcd8a9c32a6b6ab8c6b3119e68b3d7aa6eba6f4441d5493019cc019dcdd1e"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200,
+      "sha256": "5ad7db28ba74d59fe14c260205c62ddb701320f4f098d8a45ef2757bebc29666"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200,
+      "sha256": "ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350"
+    },
+    {
+      "file": "fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200,
+      "sha256": "33faf307fa6031fb4062276d7320a6d632de890cbb347576fd80cfa01077bc25"
+    }
+  ],
+  "config_unchanged": true,
+  "lease_active": false,
+  "deadman": false,
+  "zero_command": true,
+  "navigation_pipeline": "idle",
+  "goal": "idle",
+  "mapping_pipeline": "idle",
+  "mapping_operation": "idle",
+  "dataset": "idle",
+  "mission_ownership_active": false,
+  "robot_online": false,
+  "bridge_state": "waiting",
+  "bridge_release": null,
+  "bridge_move_count": null,
+  "bridge_action_count": null,
+  "service_blockers": []
+}

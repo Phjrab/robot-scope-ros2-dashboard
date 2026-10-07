@@ -61,7 +61,7 @@ shrink시켜 패널 버튼이 두 번째 줄로 밀리는 것을 방지했다. �
 
 ## 실제 렌더링과 캡처
 
-[검증 결과·기능 보존표](VALIDATION.md) · [rollback](ROLLBACK.md).
+[검증 결과·기능 보존표](VALIDATION.md) · [rollback](ROLLBACK.md) · [후속 승인 운영 배포](DEPLOYMENT.md).
 [CDP 렌더링 폰트](evidence/rendered-fonts.json) · [capture manifest](CAPTURE_MANIFEST.json).
 
 48쌍의 동일 viewport·시나리오·테마 before/after와 specimen 1장을 보관한다.

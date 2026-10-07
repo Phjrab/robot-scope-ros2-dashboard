@@ -11,7 +11,7 @@ git revert <위에서 확인한 타이포그래피 커밋 SHA>
 
 커밋 SHA는 최종 답변 또는 위 명령으로 확인한다. `reset`, 전체 checkout, stash가 필요하지 않다.
 layout/theme localStorage와 backend·map·dataset 데이터는 변경하지 않았으므로 지울 필요가 없다.
-원격 push·운영 서비스 재시작·로봇 배포는 이번 작업에 포함되지 않았다.
+최초 구현 단계는 로컬 커밋까지 진행했다. 후속 승인으로 수행한 push·외부 대시보드 배포와 운영 rollback은 [DEPLOYMENT](DEPLOYMENT.md)에 기록했다.
 
 before 자산 기준은 `b0a2f69`이다. 비교 재현 시 `git archive`로 이 commit의
 `robot_dashboard/static`만 별도 임시 디렉터리에 추출해 fixture server에 전달한다.

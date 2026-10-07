@@ -1,0 +1,127 @@
+{
+  "phase": "after",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "origin": "operating dashboard host; read-only UI check",
+  "blocked": [],
+  "errors": [],
+  "fonts": [
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSans-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-SemiBold.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Regular.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexSansKR-Medium.woff2",
+      "status": 200
+    },
+    {
+      "path": "/static/fonts/ibm-plex/IBMPlexMono-Regular.woff2",
+      "status": 200
+    }
+  ],
+  "rendered": [
+    {
+      "selector": "#pageTitle",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans SmBld",
+          "postScriptName": "IBMPlexSans-SmBld",
+          "isCustomFont": true,
+          "glyphCount": 15
+        }
+      ]
+    },
+    {
+      "selector": ".page-heading p",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Sans KR",
+          "postScriptName": "IBMPlexSansKR",
+          "isCustomFont": true,
+          "glyphCount": 25
+        },
+        {
+          "familyName": "IBM Plex Sans",
+          "postScriptName": "IBMPlexSans",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "selector": "#cockpitPointMetrics",
+      "fonts": [
+        {
+          "familyName": "IBM Plex Mono Medm",
+          "postScriptName": "IBMPlexMono-Medm",
+          "isCustomFont": true,
+          "glyphCount": 18
+        }
+      ]
+    }
+  ],
+  "faces": [
+    {
+      "family": "IBM Plex Sans",
+      "weight": "400",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans",
+      "weight": "500",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans",
+      "weight": "600",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans KR",
+      "weight": "400",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans KR",
+      "weight": "500",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Sans KR",
+      "weight": "600",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": "400",
+      "status": "loaded"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": "500",
+      "status": "loaded"
+    }
+  ]
+}

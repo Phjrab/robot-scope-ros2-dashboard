@@ -1,7 +1,7 @@
 # 타이포그래피 검증
 
 로컬 Chromium + same-origin static fixture / in-memory mock API에서 실행했다.
-실제 로봇 연결·ARM·이동·Nav2 goal·매핑 시작·운영 서비스 재시작·push·배포는 실행하지 않았다.
+이 문서의 fixture 검증 단계에서는 실제 로봇 연결·ARM·이동·Nav2 goal·매핑 시작·운영 서비스 재시작·push·배포를 실행하지 않았다. 이후 사용자 승인에 따른 운영 배포는 [별도 기록](DEPLOYMENT.md)에 정리했다.
 기존 E2E에서의 ARM/Nav2/매핑/STOP mutation은 mock 기록이다.
 타이포그래피 전용 E2E에서는 실제 제어 액션 없이 STOP trial hit test를 사용하며 위험 요청이 0임을 검증한다.
 
@@ -103,4 +103,4 @@ UI_BASELINE_STATIC_DIR=<추출된-static-절대경로> TYPOGRAPHY_CAPTURE_PHASE=
 실제 Go2/Jetson/ROS·실카메라/센서 프레임·실제 정지/주행/goal 도달·매핑 시작·
 실장비 keyboard/deadman/watchdog 타이밍·운영 정적 asset 캐시/서비스 갱신은 장비 없이 확인하지 않았다.
 Safari/Firefox·OS native select popup·시스템 대체 글꼴만 남는 offline asset 실패 상황·모든 유니코드 glyph는 미검증이다.
-운영 배포·서비스 재시작·원격 push는 미실행이다.
+위 fixture 단계의 운영 배포·서비스 재시작·원격 push는 미실행이며, 후속 승인 작업은 [DEPLOYMENT](DEPLOYMENT.md)를 참조한다.
