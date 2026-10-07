@@ -66,6 +66,17 @@ body { font-size: var(--type-body); line-height: 1.55; }
   font-size: .875rem;
   line-height: 1.5;
 }
+/* Native selects ignore line-height when computing their intrinsic height.
+   Give single-line fields one border-box height and vertical inset. */
+.page-view:not(.cockpit-page) :is(select:not([multiple]):not([size]),
+  input:not([type]), input[type="text"], input[type="search"],
+  input[type="number"], input[type="email"], input[type="url"],
+  input[type="tel"], input[type="password"]) {
+  box-sizing: border-box;
+  height: 44px;
+  min-height: 44px;
+  padding-block: 10px;
+}
 textarea { color: var(--text); border-color: var(--line-strong); }
 input::placeholder, textarea::placeholder { color: #8da49b; opacity: 1; }
 .field-label, .source-settings-grid label > span { color: #b2c6bd; }
