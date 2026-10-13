@@ -2,6 +2,9 @@
 
 기존 영문 제품 명칭: ROS2 Autonomous Mobile Robot Mapping, Navigation and Control Dashboard.
 
+**최근 작업 정리:** [2026-10-13 대시보드 작업 요약](docs/WORK_SUMMARY_2026-10-13.md)에
+프로젝트 구성, Jetson 자원 모니터, CPU·GPU 평균 표시, 실행 명령과 검증 결과를 정리했습니다.
+
 Robot Scope는 ROS 2 로봇의 센서, 지도, 수동 제어와 경로 계획을 한 브라우저에
 모아 운영자가 상태를 확인하고 실패를 진단하도록 돕습니다. 사용 환경은
 Ubuntu ROS host의 웹 서비스와 Jetson Orin Nano + Go2 + XT16 구성입니다.
@@ -134,6 +137,9 @@ UI E2E는 loopback mock backend와 fixture를 사용합니다. Playwright가 설
 관측합니다. 최근 추이와 서로 겹치지 않는 변경 전후 측정 구간, 설정 변경 메모,
 CSV 내보내기를 제공합니다. `/static/resources.html`에서 열며 ROS 없이 보드
 자원만 보는 단독 실행도 지원합니다. [실행과 측정 의미](docs/JETSON_RESOURCE_MONITOR.md).
+
+CPU·GPU 카드의 **큰 숫자와 막대는 최근 10초 평균**, 아래 작은 글씨는 **현재 사용률과
+현재 클럭**입니다. 순간적인 부하 변동과 최근 구간의 평균을 함께 확인할 수 있습니다.
 
 센서·지도·카메라 중심 Cockpit이 기본 화면입니다. Observation / Mapping /
 Navigation / Dataset Capture 배치는 기존 저장 layout과 Edit/Apply 계약을 사용합니다.
