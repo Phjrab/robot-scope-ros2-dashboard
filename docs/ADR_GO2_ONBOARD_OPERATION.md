@@ -170,3 +170,10 @@ contract is arranged. Experimental domain/frames remain separate, and later
 integration requires review of measurements, ownership, resources and frames.
 The runbook records the acceptance interval, current device owner and limits
 of retrospective experimental-load evidence.
+
+After acceptance, the operator explicitly released the D435i to the lab.
+The operational RealSense unit was stopped at 04:51:30 UTC, with MainPID=0
+and no readable video/hidraw device handles. Do not restart it until camera
+handback; boot enablement is retained and any reboot requires ownership
+coordination. This planned experiment window is separate from the successful
+two-camera migration acceptance.

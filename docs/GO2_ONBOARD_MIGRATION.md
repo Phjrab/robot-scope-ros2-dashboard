@@ -544,3 +544,27 @@ Final source/documentation and remote SHAs belong in that independent record,
 avoiding a self-referential documentation commit loop. UI rollback reverts the
 integration/follow-up UI commits only, preserving onboard migration, data and
 browser settings; it was not executed during acceptance.
+
+### Subsequent camera handoff and parallel checkout state
+
+After all migration/UI acceptance above, the operator explicitly requested
+RealSense release for the separate experiment. At 04:51:30 UTC (13:51:30 KST),
+`robot-scope-realsense-camera.service` was manually stopped: inactive/dead,
+MainPID=0, and no video/hidraw owner was found in readable `/proc` entries.
+This is the latest intentional camera state; it does not invalidate the earlier
+two-camera acceptance. The VSLAM chat received the camera window and must
+recheck ownership before use. Migration will not restart this service until
+camera handback. Boot enablement remains enabled, so a later reboot may
+reacquire the camera and requires coordination. The dashboard/Go2 camera and
+independent control bridge remain operational. Evidence is
+`realsense-experiment-handoff.json`.
+
+At final documentation synchronization, the target checkout also contained
+parallel uncommitted resource-monitor work in `robot_dashboard/app.py`,
+`application/runtime.py`, new resource API/server modules and resource frontend
+files. Those changes are outside this migration/UI acceptance and were
+preserved; they were not included in this task's Git publication or certified
+by the `92ff609` measurements. Documentation-only synchronization must preserve
+their hashes and must not restart services to activate them. The final private
+record identifies this checkout drift separately from the verified runtime
+commit and Git HEAD.
