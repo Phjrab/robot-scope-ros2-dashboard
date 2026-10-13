@@ -153,6 +153,8 @@ for (const standalone of [false, true]) {
     test.setTimeout(60_000);
     await installDashboardBackend(page);
     await page.goto(standalone ? '/?workspace=cockpit#cockpit' : '/#cockpit');
+    // Layout tools intentionally belong to edit mode; keep geometry/hit checks.
+    await page.locator('[data-cockpit-layout-action="edit"]').click();
     const layout = page.locator('[data-layout-library-action="toggle"]');
     const competition = page.locator('.cockpit-competition-toggle');
     await expect(layout).toBeVisible();
@@ -160,7 +162,8 @@ for (const standalone of [false, true]) {
       await page.setViewportSize({ width, height: 900 });
       await page.locator('#cockpitWorkspace').evaluate(el => el.scrollIntoView({ block: 'start' }));
       for (const expanded of [false, true]) {
-        for (const toggle of [layout, competition]) {
+        // Operational controls stay in observe mode; layout tools stay in edit mode.
+        for (const toggle of [layout]) {
           if (await toggle.getAttribute('aria-expanded') !== String(expanded)) {
             await toggle.evaluate(el => el.scrollIntoView({ block: 'start' }));
             await toggle.click();
@@ -185,5 +188,10 @@ for (const standalone of [false, true]) {
         await page.locator('[data-cockpit-software-stop]').click({ trial: true });
       }
     }
+    await page.locator('[data-cockpit-layout-action="apply"]').click();
+    await expect(competition).toBeVisible();
+    await competition.click();
+    await expect(competition).toHaveAttribute('aria-expanded', 'true');
+    await page.locator('[data-cockpit-software-stop]').click({ trial: true });
   });
 }

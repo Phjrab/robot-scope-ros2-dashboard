@@ -158,13 +158,13 @@ export function createCompetitionStatus(options = {}) {
   const header = documentValue.createElement('div');
   header.className = 'cockpit-competition-header';
   const title = documentValue.createElement('strong');
-  title.textContent = 'COMPETITION STATUS';
+  title.textContent = '운영 상태';
   const shadow = documentValue.createElement('span');
   shadow.textContent = 'SHADOW · AUTHORITY NONE';
   const toggle = documentValue.createElement('button');
   toggle.type = 'button';
   toggle.className = 'cockpit-competition-toggle';
-  toggle.textContent = '상세 펼치기';
+  toggle.textContent = '운영 상세';
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-controls', 'cockpitCompetitionDetails');
   header.append(title, shadow, toggle);
@@ -212,7 +212,7 @@ export function createCompetitionStatus(options = {}) {
     root.dataset.expanded = String(expanded);
     metrics.hidden = !expanded;
     controls.hidden = !expanded;
-    toggle.textContent = expanded ? '상세 접기' : '상세 펼치기';
+    toggle.textContent = expanded ? '상세 접기' : '운영 상세';
     toggle.setAttribute('aria-expanded', String(expanded));
   }
 

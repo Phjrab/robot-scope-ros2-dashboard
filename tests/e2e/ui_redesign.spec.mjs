@@ -4,7 +4,12 @@ import { execFileSync } from 'node:child_process';
 import { installMissionFixture } from './ui_redesign_fixture.mjs';
 
 const phase = process.env.UI_CAPTURE_PHASE || 'after';
-const captureRoot = 'docs/ui-redesign/captures';
+const evidenceRoot = process.env.UI_EVIDENCE_ROOT || 'docs/ui-redesign';
+const captureRoot = `${evidenceRoot}/captures`;
+test.beforeAll(async () => {
+  await mkdir(`${captureRoot}/${phase}`, { recursive: true });
+  await mkdir(`${evidenceRoot}/evidence`, { recursive: true });
+});
 const provenance = 'mission-control-v1 synthetic sensor/map fixture; no ROS/backend process';
 
 async function isolated(page, options = {}) {
@@ -28,8 +33,12 @@ test('Mission Control actual route captures with isolated synthetic data', async
   page.on('pageerror', (error) => errors.push(error.message));
   await mkdir(`${captureRoot}/${phase}`, { recursive: true });
   const manifest = `${captureRoot}/CAPTURE_MANIFEST.csv`;
-  if (phase === 'before') await writeFile(manifest, 'filename,repo,commit_sha,captured_at,viewport,route,scenario,fixture_id,data_provenance,live_actions,privacy_review\n');
-  else await writeFile(manifest, (await readFile(manifest, 'utf8')).split('\n').filter((line) => !line.startsWith(`${phase}/`) && line).join('\n') + '\n');
+  const manifestHeader = 'filename,repo,commit_sha,captured_at,viewport,route,scenario,fixture_id,data_provenance,live_actions,privacy_review\n';
+  if (phase === 'before') await writeFile(manifest, manifestHeader);
+  else {
+    const previous = await readFile(manifest, 'utf8').catch((error) => { if (error.code === 'ENOENT') return manifestHeader; throw error; });
+    await writeFile(manifest, previous.split('\n').filter((line) => !line.startsWith(`${phase}/`) && line).join('\n') + '\n');
+  }
   const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1366, height: 768 }, { width: 1024, height: 768 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
@@ -53,12 +62,12 @@ test('Mission Control actual route captures with isolated synthetic data', async
   expect(unexpected).toEqual([]);
   expect(errors).toEqual([]);
   expect(httpErrors.filter((entry) => !((entry.url === '/api/v1/state' && entry.status === 503) || (entry.url === '/static/data/go2_saved_map.json' && entry.status === 404)))).toEqual([]);
-  await writeFile(`docs/ui-redesign/evidence/${phase}-capture-events.json`, JSON.stringify({ unexpected, consoleErrors, pageErrors, httpErrors, mutations: backend.state.requests }, null, 2));
+  await writeFile(`${evidenceRoot}/evidence/${phase}-capture-events.json`, JSON.stringify({ unexpected, consoleErrors, pageErrors, httpErrors, mutations: backend.state.requests }, null, 2));
   expect(backend.state.requests.filter((request) => /control\/(arm|acquire|command)|navigation\/goal|mapping\/start/.test(request.path))).toEqual([]);
 });
 
 async function editLayout(page) {
-  await page.locator('.cockpit-safety-toggle').click();
+  // Layout editing is directly available while safety details stay collapsed.
   await page.locator('[data-cockpit-layout-action="edit"]').click();
   await expect(page.locator('#missionPresetSelect')).toBeEnabled();
 }
@@ -67,7 +76,7 @@ test('Mission Control presets preserve singleton lifecycle, camera cleanup, resi
   test.skip(phase === 'before');
   const { backend, unexpected, pageErrors } = await isolated(page, { closeFirstSockets: ['camera', 'pointcloud'] });
   await page.goto('/');
-  await expect(page.locator('#pageTitle')).toHaveText('Mission Control');
+  await expect(page.locator('#pageTitle')).toHaveText('관측');
   await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-freshness', 'fixture');
   await expect(page.locator('[data-panel-id="camera-go2-front"]')).toBeVisible();
   await expect.poll(() => backend.state.wsConnections.pointcloud).toBeGreaterThanOrEqual(2);
@@ -99,11 +108,13 @@ test('Mission Control keeps stale camera/cloud distinct and disconnected STOP av
   const { backend } = await isolated(page);
   await page.goto('/#cockpit');
   await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-freshness', 'fixture');
-  await expect(page.locator('[data-panel-id="camera-go2-front"] .cockpit-camera-state')).toHaveText('FIXTURE');
+  await expect(page.locator('[data-panel-id="camera-go2-front"] .cockpit-camera-state')).toHaveText('합성 예시');
+  await expect(page.locator('[data-panel-id="camera-go2-front"] .cockpit-camera-state')).toHaveAttribute('data-state', 'fixture');
   backend.state.uiCloudStreaming = false;
   backend.state.cameraStreaming.go2_front = false;
   await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-freshness', 'stale', { timeout: 8000 });
-  await expect(page.locator('[data-inspector-field="camera"]')).toHaveText('STALE');
+  await expect(page.locator('[data-inspector-field="camera"]')).toHaveText('오래된 데이터');
+  await expect(page.locator('[data-inspector-field="camera"]')).toHaveAttribute('data-state', 'stale');
   backend.state.online = false;
   for (const route of ['cockpit', 'mapping', 'maps', 'navigation', 'sensors', 'controls', 'route-planner', 'settings']) {
     await page.goto(`/?offline=${route}#${route}`);
@@ -135,7 +146,6 @@ test('Mission Control ownership blocks presets, denied ARM stays disarmed, map s
   backend.state.control.lease = { active: true, source: 'other-client', bound: false };
   await page.goto('/#cockpit');
   await expect(page.locator('#missionPresetSelect')).toBeDisabled();
-  await page.locator('.cockpit-safety-toggle').click();
   await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeDisabled();
   backend.state.control.lease = { active: false, bound: false, source: null };
   backend.on('/api/v1/control/arm', ({ json }) => json({ detail: 'fixture ownership denied' }, 403));
@@ -193,7 +203,7 @@ test('Mission Control viewport, keyboard, safety hit target and token contrast a
   });
   for (const key of ['body', 'secondary', 'action']) expect(contrasts[key]).toBeGreaterThanOrEqual(4.5);
   expect(contrasts.boundary).toBeGreaterThanOrEqual(3);
-  await writeFile('docs/ui-redesign/evidence/browser-geometry-contrast.json', JSON.stringify({ geometry, contrasts, pageErrors, zoomEquivalent: '720x450 represents 200% CSS viewport at 1440x900' }, null, 2));
+  await writeFile(`${evidenceRoot}/evidence/browser-geometry-contrast.json`, JSON.stringify({ geometry, contrasts, pageErrors, zoomEquivalent: '720x450 represents 200% CSS viewport at 1440x900' }, null, 2));
   expect(pageErrors).toEqual([]);
 });
 

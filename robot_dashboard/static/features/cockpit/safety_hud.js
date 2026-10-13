@@ -3,6 +3,7 @@ import { createSafetyHudView } from './safety_hud_view.js';
 export const SAFETY_HUD_STALE_MS = 2500;
 
 function finite(value) {
+  if (value == null || value === '' || typeof value === 'boolean') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -84,7 +85,7 @@ export function projectSafetyHud(input = {}, now = Date.now()) {
       : telemetryLowstateFresh
         ? `${Math.round(lowstateAge * 1000)} ms`
         : lowstate ? 'STALE' : 'WAITING',
-    battery: batteryFresh ? `${Math.round(batterySoc)}%` : battery ? 'STALE' : 'WAITING',
+    battery: batteryFresh ? `${Math.round(batterySoc)}%` : battery && batterySoc == null ? 'UNKNOWN' : battery ? 'STALE' : 'WAITING',
     vx: controlFresh ? formatAxis(command.linear_x) : 'UNKNOWN',
     vy: controlFresh ? formatAxis(command.linear_y) : 'UNKNOWN',
     wz: controlFresh ? formatAxis(command.angular_z) : 'UNKNOWN',

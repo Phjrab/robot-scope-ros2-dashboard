@@ -1,0 +1,954 @@
+[
+  {
+    "theme": "dark",
+    "text": [
+      {
+        "selector": "#pageTitle",
+        "text": "관측",
+        "fontSize": "26px",
+        "lineHeight": "32.5px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          11,
+          16,
+          14,
+          1
+        ],
+        "contrast": 17.12688056650029,
+        "gradients": [],
+        "box": {
+          "x": 204,
+          "y": 98,
+          "width": 366.0625,
+          "height": 32.5,
+          "top": 98,
+          "right": 570.0625,
+          "bottom": 130.5,
+          "left": 204
+        }
+      },
+      {
+        "selector": "#connectionLabel",
+        "text": "직접 ROS/DDS 인터페이스 준비",
+        "fontSize": "15px",
+        "lineHeight": "22.5px",
+        "foreground": [
+          140,
+          221,
+          177,
+          1
+        ],
+        "background": [
+          22,
+          33,
+          27,
+          1
+        ],
+        "contrast": 10.329550219365982,
+        "gradients": [],
+        "box": {
+          "x": 1055.578125,
+          "y": 20.25,
+          "width": 195.75,
+          "height": 22.5,
+          "top": 20.25,
+          "right": 1251.328125,
+          "bottom": 42.75,
+          "left": 1055.578125
+        }
+      },
+      {
+        "selector": "#controlConnectionLabel",
+        "text": "Go2 Bridge 연결",
+        "fontSize": "15px",
+        "lineHeight": "22.5px",
+        "foreground": [
+          140,
+          221,
+          177,
+          1
+        ],
+        "background": [
+          22,
+          33,
+          27,
+          1
+        ],
+        "contrast": 10.329550219365982,
+        "gradients": [],
+        "box": {
+          "x": 1300.328125,
+          "y": 20.25,
+          "width": 106.671875,
+          "height": 22.5,
+          "top": 20.25,
+          "right": 1407,
+          "bottom": 42.75,
+          "left": 1300.328125
+        }
+      },
+      {
+        "selector": ".nav-item.is-active b",
+        "text": "관측",
+        "fontSize": "15px",
+        "lineHeight": "20.25px",
+        "foreground": [
+          116,
+          237,
+          170,
+          1
+        ],
+        "background": [
+          29,
+          57,
+          41,
+          1
+        ],
+        "contrast": 8.647275084843415,
+        "gradients": [],
+        "box": {
+          "x": 57,
+          "y": 141.875,
+          "width": 26.765625,
+          "height": 20.25,
+          "top": 141.875,
+          "right": 83.765625,
+          "bottom": 162.125,
+          "left": 57
+        }
+      },
+      {
+        "selector": ".cockpit-safety-summary",
+        "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          22,
+          33,
+          27,
+          1
+        ],
+        "contrast": 14.791967283547468,
+        "gradients": [],
+        "box": {
+          "x": 221,
+          "y": 814.140625,
+          "width": 902,
+          "height": 23.1875,
+          "top": 814.140625,
+          "right": 1123,
+          "bottom": 837.328125,
+          "left": 221
+        }
+      },
+      {
+        "selector": ".cockpit-safety-identity strong",
+        "text": "제어 해제 · 연결 준비됨",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          22,
+          33,
+          27,
+          1
+        ],
+        "contrast": 14.791967283547468,
+        "gradients": [],
+        "box": {
+          "x": 221,
+          "y": 772.546875,
+          "width": 730.984375,
+          "height": 23.1875,
+          "top": 772.546875,
+          "right": 951.984375,
+          "bottom": 795.734375,
+          "left": 221
+        }
+      },
+      {
+        "selector": ".cockpit-fixed-stop strong",
+        "text": "STOP · 소프트웨어 정지",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "background": [
+          143,
+          31,
+          24,
+          1
+        ],
+        "contrast": 8.834248891020131,
+        "gradients": [],
+        "box": {
+          "x": 1194.578125,
+          "y": 763.46875,
+          "width": 156.84375,
+          "height": 23.1875,
+          "top": 763.46875,
+          "right": 1351.421875,
+          "bottom": 786.65625,
+          "left": 1194.578125
+        }
+      },
+      {
+        "selector": ".cockpit-fixed-stop small",
+        "text": "물리 E-STOP 아님",
+        "fontSize": "13px",
+        "lineHeight": "18.85px",
+        "foreground": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "background": [
+          143,
+          31,
+          24,
+          1
+        ],
+        "contrast": 8.834248891020131,
+        "gradients": [],
+        "box": {
+          "x": 1224.09375,
+          "y": 789.65625,
+          "width": 97.796875,
+          "height": 18.84375,
+          "top": 789.65625,
+          "right": 1321.890625,
+          "bottom": 808.5,
+          "left": 1224.09375
+        }
+      },
+      {
+        "selector": ".cockpit-camera-state",
+        "text": "합성 예시",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          255,
+          211,
+          106,
+          1
+        ],
+        "background": [
+          2,
+          7,
+          6,
+          1
+        ],
+        "contrast": 14.269787620648627,
+        "gradients": [],
+        "box": {
+          "x": 1297.324951171875,
+          "y": 484.1600036621094,
+          "width": 74.875,
+          "height": 31.187530517578125,
+          "top": 484.1600036621094,
+          "right": 1372.199951171875,
+          "bottom": 515.3475341796875,
+          "left": 1297.324951171875
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "입체",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          14.440000000000001,
+          59.86,
+          50.12,
+          1
+        ],
+        "contrast": 10.970092597065047,
+        "gradients": [],
+        "box": {
+          "x": 217,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 261,
+          "bottom": 324,
+          "left": 217
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "위",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          5.12,
+          14.32,
+          13.16,
+          1
+        ],
+        "contrast": 17.40729441663811,
+        "gradients": [],
+        "box": {
+          "x": 267,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 311,
+          "bottom": 324,
+          "left": 267
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "앞",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          5.12,
+          14.32,
+          13.16,
+          1
+        ],
+        "contrast": 17.40729441663811,
+        "gradients": [],
+        "box": {
+          "x": 317,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 361,
+          "bottom": 324,
+          "left": 317
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "FOLLOW",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          14.440000000000001,
+          59.86,
+          50.12,
+          1
+        ],
+        "contrast": 10.970092597065047,
+        "gradients": [],
+        "box": {
+          "x": 367,
+          "y": 280,
+          "width": 68.3125,
+          "height": 44,
+          "top": 280,
+          "right": 435.3125,
+          "bottom": 324,
+          "left": 367
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "MAP",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          233,
+          245,
+          237,
+          1
+        ],
+        "background": [
+          14.440000000000001,
+          59.86,
+          50.12,
+          1
+        ],
+        "contrast": 10.970092597065047,
+        "gradients": [],
+        "box": {
+          "x": 441.3125,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 485.3125,
+          "bottom": 324,
+          "left": 441.3125
+        }
+      }
+    ],
+    "fonts": [
+      {
+        "selector": "#pageTitle",
+        "fonts": [
+          {
+            "familyName": "IBM Plex Sans KR SmBld",
+            "postScriptName": "IBMPlexSansKR-SmBld",
+            "isCustomFont": true,
+            "glyphCount": 2
+          }
+        ]
+      },
+      {
+        "selector": "#connectionLabel",
+        "fonts": [
+          {
+            "familyName": "IBM Plex Sans KR Medm",
+            "postScriptName": "IBMPlexSansKR-Medm",
+            "isCustomFont": true,
+            "glyphCount": 9
+          },
+          {
+            "familyName": "IBM Plex Sans Medm",
+            "postScriptName": "IBMPlexSans-Medm",
+            "isCustomFont": true,
+            "glyphCount": 10
+          }
+        ]
+      },
+      {
+        "selector": ".cockpit-fixed-stop strong",
+        "fonts": [
+          {
+            "familyName": "IBM Plex Sans KR SmBld",
+            "postScriptName": "IBMPlexSansKR-SmBld",
+            "isCustomFont": true,
+            "glyphCount": 7
+          },
+          {
+            "familyName": "IBM Plex Sans SmBld",
+            "postScriptName": "IBMPlexSans-SmBld",
+            "isCustomFont": true,
+            "glyphCount": 8
+          }
+        ]
+      },
+      {
+        "selector": ".cockpit-camera-state",
+        "fonts": []
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "text": [
+      {
+        "selector": "#pageTitle",
+        "text": "관측",
+        "fontSize": "26px",
+        "lineHeight": "32.5px",
+        "foreground": [
+          25,
+          43,
+          32,
+          1
+        ],
+        "background": [
+          242,
+          247,
+          243,
+          1
+        ],
+        "contrast": 13.76243915629967,
+        "gradients": [],
+        "box": {
+          "x": 204,
+          "y": 98,
+          "width": 366.0625,
+          "height": 32.5,
+          "top": 98,
+          "right": 570.0625,
+          "bottom": 130.5,
+          "left": 204
+        }
+      },
+      {
+        "selector": "#connectionLabel",
+        "text": "직접 ROS/DDS 인터페이스 준비",
+        "fontSize": "15px",
+        "lineHeight": "22.5px",
+        "foreground": [
+          23,
+          100,
+          64,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 7.159090870924048,
+        "gradients": [],
+        "box": {
+          "x": 1055.578125,
+          "y": 20.25,
+          "width": 195.75,
+          "height": 22.5,
+          "top": 20.25,
+          "right": 1251.328125,
+          "bottom": 42.75,
+          "left": 1055.578125
+        }
+      },
+      {
+        "selector": "#controlConnectionLabel",
+        "text": "Go2 Bridge 연결",
+        "fontSize": "15px",
+        "lineHeight": "22.5px",
+        "foreground": [
+          23,
+          100,
+          64,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 7.159090870924048,
+        "gradients": [],
+        "box": {
+          "x": 1300.328125,
+          "y": 20.25,
+          "width": 106.671875,
+          "height": 22.5,
+          "top": 20.25,
+          "right": 1407,
+          "bottom": 42.75,
+          "left": 1300.328125
+        }
+      },
+      {
+        "selector": ".nav-item.is-active b",
+        "text": "관측",
+        "fontSize": "15px",
+        "lineHeight": "20.25px",
+        "foreground": [
+          9,
+          100,
+          59,
+          1
+        ],
+        "background": [
+          231,
+          240,
+          233,
+          1
+        ],
+        "contrast": 6.2252298984738035,
+        "gradients": [],
+        "box": {
+          "x": 57,
+          "y": 141.875,
+          "width": 26.765625,
+          "height": 20.25,
+          "top": 141.875,
+          "right": 83.765625,
+          "bottom": 162.125,
+          "left": 57
+        }
+      },
+      {
+        "selector": ".cockpit-safety-summary",
+        "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          25,
+          43,
+          32,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 14.917503003876408,
+        "gradients": [],
+        "box": {
+          "x": 221,
+          "y": 814.140625,
+          "width": 902,
+          "height": 23.1875,
+          "top": 814.140625,
+          "right": 1123,
+          "bottom": 837.328125,
+          "left": 221
+        }
+      },
+      {
+        "selector": ".cockpit-safety-identity strong",
+        "text": "제어 해제 · 연결 준비됨",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          25,
+          43,
+          32,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 14.917503003876408,
+        "gradients": [],
+        "box": {
+          "x": 221,
+          "y": 772.546875,
+          "width": 730.984375,
+          "height": 23.1875,
+          "top": 772.546875,
+          "right": 951.984375,
+          "bottom": 795.734375,
+          "left": 221
+        }
+      },
+      {
+        "selector": ".cockpit-fixed-stop strong",
+        "text": "STOP · 소프트웨어 정지",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "background": [
+          180,
+          35,
+          24,
+          1
+        ],
+        "contrast": 6.57428861557707,
+        "gradients": [],
+        "box": {
+          "x": 1194.578125,
+          "y": 763.46875,
+          "width": 156.84375,
+          "height": 23.1875,
+          "top": 763.46875,
+          "right": 1351.421875,
+          "bottom": 786.65625,
+          "left": 1194.578125
+        }
+      },
+      {
+        "selector": ".cockpit-fixed-stop small",
+        "text": "물리 E-STOP 아님",
+        "fontSize": "13px",
+        "lineHeight": "18.85px",
+        "foreground": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "background": [
+          180,
+          35,
+          24,
+          1
+        ],
+        "contrast": 6.57428861557707,
+        "gradients": [],
+        "box": {
+          "x": 1224.09375,
+          "y": 789.65625,
+          "width": 97.796875,
+          "height": 18.84375,
+          "top": 789.65625,
+          "right": 1321.890625,
+          "bottom": 808.5,
+          "left": 1224.09375
+        }
+      },
+      {
+        "selector": ".cockpit-camera-state",
+        "text": "합성 예시",
+        "fontSize": "16px",
+        "lineHeight": "23.2px",
+        "foreground": [
+          133,
+          82,
+          0,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 6.553843999731501,
+        "gradients": [],
+        "box": {
+          "x": 1297.324951171875,
+          "y": 484.1600036621094,
+          "width": 74.875,
+          "height": 31.187530517578125,
+          "top": 484.1600036621094,
+          "right": 1372.199951171875,
+          "bottom": 515.3475341796875,
+          "left": 1297.324951171875
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "입체",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          9,
+          100,
+          59,
+          1
+        ],
+        "background": [
+          231,
+          240,
+          233,
+          1
+        ],
+        "contrast": 6.2252298984738035,
+        "gradients": [],
+        "box": {
+          "x": 217,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 261,
+          "bottom": 324,
+          "left": 217
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "위",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          25,
+          43,
+          32,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 14.917503003876408,
+        "gradients": [],
+        "box": {
+          "x": 267,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 311,
+          "bottom": 324,
+          "left": 267
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "앞",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          25,
+          43,
+          32,
+          1
+        ],
+        "background": [
+          255,
+          255,
+          255,
+          1
+        ],
+        "contrast": 14.917503003876408,
+        "gradients": [],
+        "box": {
+          "x": 317,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 361,
+          "bottom": 324,
+          "left": 317
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "FOLLOW",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          9,
+          100,
+          59,
+          1
+        ],
+        "background": [
+          231,
+          240,
+          233,
+          1
+        ],
+        "contrast": 6.2252298984738035,
+        "gradients": [],
+        "box": {
+          "x": 367,
+          "y": 280,
+          "width": 68.3125,
+          "height": 44,
+          "top": 280,
+          "right": 435.3125,
+          "bottom": 324,
+          "left": 367
+        }
+      },
+      {
+        "selector": ".cockpit-scene-controls button",
+        "text": "MAP",
+        "fontSize": "14px",
+        "lineHeight": "20.3px",
+        "foreground": [
+          9,
+          100,
+          59,
+          1
+        ],
+        "background": [
+          231,
+          240,
+          233,
+          1
+        ],
+        "contrast": 6.2252298984738035,
+        "gradients": [],
+        "box": {
+          "x": 441.3125,
+          "y": 280,
+          "width": 44,
+          "height": 44,
+          "top": 280,
+          "right": 485.3125,
+          "bottom": 324,
+          "left": 441.3125
+        }
+      }
+    ],
+    "fonts": [
+      {
+        "selector": "#pageTitle",
+        "fonts": [
+          {
+            "familyName": "IBM Plex Sans KR SmBld",
+            "postScriptName": "IBMPlexSansKR-SmBld",
+            "isCustomFont": true,
+            "glyphCount": 2
+          }
+        ]
+      },
+      {
+        "selector": "#connectionLabel",
+        "fonts": [
+          {
+            "familyName": "IBM Plex Sans KR Medm",
+            "postScriptName": "IBMPlexSansKR-Medm",
+            "isCustomFont": true,
+            "glyphCount": 9
+          },
+          {
+            "familyName": "IBM Plex Sans Medm",
+            "postScriptName": "IBMPlexSans-Medm",
+            "isCustomFont": true,
+            "glyphCount": 10
+          }
+        ]
+      },
+      {
+        "selector": ".cockpit-fixed-stop strong",
+        "fonts": [
+          {
+            "familyName": "IBM Plex Sans KR SmBld",
+            "postScriptName": "IBMPlexSansKR-SmBld",
+            "isCustomFont": true,
+            "glyphCount": 7
+          },
+          {
+            "familyName": "IBM Plex Sans SmBld",
+            "postScriptName": "IBMPlexSans-SmBld",
+            "isCustomFont": true,
+            "glyphCount": 8
+          }
+        ]
+      },
+      {
+        "selector": ".cockpit-camera-state",
+        "fonts": []
+      }
+    ]
+  }
+]

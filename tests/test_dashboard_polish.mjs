@@ -16,7 +16,7 @@ test('presentation refinements load once after the existing dashboard styles', (
 });
 
 test('common typography uses scalable readable tiers', () => {
-  for (const [name, value] of [['micro', '.75rem'], ['control', '.875rem'], ['secondary', '.875rem'], ['body', '.9375rem'], ['section', '1.125rem']]) {
+  for (const [name, value] of [['micro', '.8125rem'], ['control', '.9375rem'], ['secondary', '.9375rem'], ['body', '1rem'], ['section', '1.125rem']]) {
     assert.ok(tokens.includes(`--type-${name}: ${value};`));
   }
   assert.match(rules, /:focus-visible\s*\{[^}]*outline:\s*3px/);

@@ -1,0 +1,127 @@
+[WebServer] (node:47736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 67 tests using 1 worker
+
+(node:47740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/67] tests/e2e/camera_state.spec.mjs:4:1 › Cockpit remembers manual camera after page reload
+[2/67] tests/e2e/dashboard.spec.mjs:25:1 › offline viewer keeps saved maps available while live telemetry fails closed
+[3/67] tests/e2e/dashboard.spec.mjs:35:1 › Saved Maps shows storage size and downloads the selected map bundle
+[4/67] tests/e2e/dashboard.spec.mjs:47:1 › 2D map editor previews and saves an operator-selected arbitrary rotation
+[5/67] tests/e2e/dashboard.spec.mjs:80:1 › camera and pointcloud reconnect, then release transports on page switch
+[6/67] tests/e2e/dashboard.spec.mjs:95:1 › Sensors camera observability shows Wi-Fi, source, transport, decode and clock domain
+[7/67] tests/e2e/dashboard.spec.mjs:112:1 › RealSense resolution selection survives polling and applies exactly once
+[8/67] tests/e2e/dashboard.spec.mjs:131:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+[9/67] tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+[10/67] tests/e2e/dashboard.spec.mjs:230:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+[11/67] tests/e2e/dashboard.spec.mjs:360:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+[12/67] tests/e2e/dashboard.spec.mjs:409:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+[13/67] tests/e2e/dashboard.spec.mjs:428:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+[14/67] tests/e2e/dashboard.spec.mjs:469:1 › Competition Route Planner completes the software-only workflow without motion authority
+[15/67] tests/e2e/dashboard.spec.mjs:511:1 › standalone dashboard Route Planner is reachable and releases polling when closed
+[16/67] tests/e2e/dashboard.spec.mjs:581:1 › Route Planner stores eight sheets with five menu items each
+[17/67] tests/e2e/dashboard.spec.mjs:603:1 › Route Planner destination start survives polling and missing graph is explained
+[18/67] tests/e2e/dashboard.spec.mjs:624:1 › locked Route Planner order stays server-synchronized and offers an isolated new-order draft
+[19/67] tests/e2e/dashboard.spec.mjs:657:1 › locked Route Planner order can be explicitly unlocked without control or navigation authority
+[20/67] tests/e2e/dashboard.spec.mjs:677:1 › Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects
+[21/67] tests/e2e/dashboard.spec.mjs:750:1 › Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms
+[22/67] tests/e2e/dashboard.spec.mjs:777:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+  1) tests/e2e/dashboard.spec.mjs:777:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+
+    Test timeout of 20000ms exceeded.
+
+    Error: locator.click: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for locator('#cockpitSensorLauncher .cockpit-launcher-toggle')
+        - locator resolved to <button type="button" aria-expanded="false" class="cockpit-launcher-toggle" aria-controls="cockpitLauncherBody">SENSORS</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+          - waiting 100ms
+        30 × waiting for element to be visible, enabled and stable
+           - element is not visible
+         - retrying click action
+           - waiting 500ms
+
+
+      809 |   backend.completeMissionWaypoint();
+      810 |   await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
+    > 811 |   await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+          |                                                                         ^
+      812 |   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+      813 |   await navigationPanel.locator('[data-navigation-action="stop"]').click();
+      814 |   await expect.poll(() => backend.mutations('/api/v1/navigation/stop').length).toBe(1);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:811:73
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-runs-a-s-c36ac-nd-restores-it-after-reload/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-runs-a-s-c36ac-nd-restores-it-after-reload/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-runs-a-s-c36ac-nd-restores-it-after-reload/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:48205) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[23/67] tests/e2e/dashboard.spec.mjs:825:1 › Cockpit mission pause, failure retry, and skips remain explicit and fail closed
+[24/67] tests/e2e/dashboard.spec.mjs:878:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+[25/67] tests/e2e/dashboard.spec.mjs:982:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+[26/67] tests/e2e/dashboard.spec.mjs:1070:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+[27/67] tests/e2e/dashboard.spec.mjs:1135:1 › Cockpit disables camera launchers that are absent from the active catalog profile
+[28/67] tests/e2e/dashboard.spec.mjs:1146:1 › Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels
+[29/67] tests/e2e/dashboard.spec.mjs:1204:1 › active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation
+[30/67] tests/e2e/dashboard.spec.mjs:1239:1 › Safety HUD clears stale cached values and preserves STOP and control source on a narrow viewport
+[31/67] tests/e2e/dashboard.spec.mjs:1267:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+[32/67] tests/e2e/dashboard.spec.mjs:1330:1 › Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed
+[33/67] tests/e2e/dashboard.spec.mjs:1394:1 › mapping start, save and stop preserve one mutation per operator action
+[34/67] tests/e2e/dashboard.spec.mjs:1411:1 › navigation starts with pinned revisions, exposes active progress, and cancels once
+[35/67] tests/e2e/dashboard.spec.mjs:1428:1 › an active map revision conflict blocks navigation pose and goal controls
+[36/67] tests/e2e/dashboard.spec.mjs:1444:1 › map annotations use exact revisions and point goals reuse the Nav safety gate
+[37/67] tests/e2e/dashboard.spec.mjs:1472:1 › annotation edits are disabled during Nav2 and publish a full CAS document while idle
+[38/67] tests/e2e/dashboard.spec.mjs:1490:1 › dataset start/finalize is lifecycle-owned and duplicate clicks do not duplicate mutations
+[39/67] tests/e2e/dashboard.spec.mjs:1517:1 › finalized dataset export downloads once and model registry remains read only
+[40/67] tests/e2e/dashboard.spec.mjs:1536:1 › software E-stop remains latched until explicit local confirmation clears it
+[41/67] tests/e2e/dashboard.spec.mjs:1548:1 › service lifecycle blockers remain server-authoritative in the browser
+[42/67] tests/e2e/dashboard.spec.mjs:1557:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+[43/67] tests/e2e/dashboard.spec.mjs:1568:1 › cross-origin browser WebSocket handshakes are rejected before acceptance
+[44/67] tests/e2e/experiments.spec.mjs:37:1 › offline experiment viewer shows synthetic provenance and no control actions
+[45/67] tests/e2e/experiments.spec.mjs:53:1 › viewer rejects a mismatched map digest and stale result
+[46/67] tests/e2e/food_production.spec.mjs:4:1 › food clock runs independently, restores and never sends robot commands
+[47/67] tests/e2e/layout_apply.spec.mjs:9:1 › Cockpit Apply persists panels on reload and a new window without saving a named preset
+[48/67] tests/e2e/layout_apply.spec.mjs:33:1 › Cockpit Apply storage failure remains editable and reports failure
+[49/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px
+[50/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 390px
+[51/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 768px
+[52/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1024px
+[53/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1440px
+[54/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1920px
+[55/67] tests/e2e/layout.spec.mjs:58:1 › layout: camera controls, conversion fields and planner rows align within their own cards
+[56/67] tests/e2e/layout.spec.mjs:97:1 › layout: Nav2 compact groups remain separate and Costmaps spans the row
+[57/67] tests/e2e/layout.spec.mjs:132:1 › layout: map view controls never overlap the legend or custom point budget
+[58/67] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in embedded mode
+[59/67] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in standalone mode
+[60/67] tests/e2e/mission_page.spec.mjs:4:1 › Missions sidebar page creates ordered mission and sends only explicit actions
+[61/67] tests/e2e/mission_page.spec.mjs:42:1 › Missions page surfaces rejected start without claiming the mission is running
+[62/67] tests/e2e/navigation_presets.spec.mjs:4:1 › Nav2 team presets save, refresh and reload without applying or driving
+[63/67] tests/e2e/reusable_points_orders.spec.mjs:4:1 › Missions repeat registered points in order and remove only one occurrence
+[64/67] tests/e2e/reusable_points_orders.spec.mjs:21:1 › Route Planner keeps menu rows after save reload and second save, with destination above menus
+[65/67] tests/e2e/schematic_missing_assets.spec.mjs:4:1 › Route Planner saved-map order editor remains usable without private schematic assets
+[66/67] tests/e2e/spatial_editor.spec.mjs:4:1 › delivery posture is visit-specific and stays non-executable after save
+[67/67] tests/e2e/spatial_editor.spec.mjs:22:1 › spatial editor draws, edits, saves a constrained draft and retains it after CAS rejection
+  1 failed
+    tests/e2e/dashboard.spec.mjs:777:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+  66 passed (3.2m)

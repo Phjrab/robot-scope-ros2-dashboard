@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import { COCKPIT_LAYOUT_MODES, createLayoutModeController, reduceLayoutMode } from '../robot_dashboard/static/features/cockpit/layout_mode.js';
 import { projectSafetyHud } from '../robot_dashboard/static/features/cockpit/safety_hud.js';
+import { safetyStatusLabel } from '../robot_dashboard/static/features/cockpit/safety_hud_view.js';
 
 const NOW = 10_000;
 
@@ -54,6 +55,40 @@ test('Safety HUD fails closed instead of retaining cached control and telemetry 
   assert.equal(stale['speed-scale'], 'UNKNOWN');
   assert.equal(stale.layoutArmed, true, 'a stale previously active lease keeps layout fail-closed');
   assert.equal(stale.tone, 'danger');
+});
+
+test('missing telemetry and command measurements never display as zero', () => {
+  const input = liveInput();
+  input.control.lease.active = false;
+  input.state.sensors = [{ category: 'battery', state: 'ok', age_s: 0.1, values: {} }];
+  input.control.bridge = { ready: true, authenticated: true, connected: true, lowstate_age_ms: null };
+  input.control.command = { linear_x: null, linear_y: '', angular_z: false, speed_scale: null };
+  const projected = projectSafetyHud(input, NOW);
+  assert.equal(projected.battery, 'UNKNOWN');
+  assert.equal(projected.lowstate, 'WAITING');
+  assert.equal(projected.vx, 'UNKNOWN');
+  assert.equal(projected.vy, 'UNKNOWN');
+  assert.equal(projected.wz, 'UNKNOWN');
+  assert.equal(projected['speed-scale'], 'UNKNOWN');
+
+  input.control.command = { linear_x: 0, linear_y: 0, angular_z: 0, speed_scale: 0 };
+  input.control.bridge.lowstate_age_ms = 0;
+  input.state.sensors[0].values.battery_soc = 0;
+  const zero = projectSafetyHud(input, NOW);
+  assert.equal(zero.battery, '0%');
+  assert.equal(zero.lowstate, '0 ms');
+  assert.equal(zero.vx, '+0.000');
+  assert.equal(zero['speed-scale'], '0%');
+});
+
+test('Korean safety headline describes only the projected control state', () => {
+  const projected = projectSafetyHud(liveInput(), NOW);
+  assert.equal(safetyStatusLabel(projected), '수동 제어 활성');
+  assert.equal(safetyStatusLabel({ ...projected, 'software-stop': 'LATCHED' }), '소프트웨어 정지 유지');
+  assert.equal(safetyStatusLabel(projectSafetyHud(liveInput(), NOW + 3000)), '제어 잠김 · 상태 확인 필요');
+  assert.equal(safetyStatusLabel({ ...projected, tone: 'danger', lowstate: 'STALE' }), '로봇 상태 수신 확인 필요');
+  assert.equal(safetyStatusLabel({ ...projected, 'control-source': 'NAVIGATION' }), '수동·자율 제어 동시 활성');
+  assert.equal(safetyStatusLabel({ ...projected, armed: 'DISARMED', 'control-source': 'NONE', 'control-bridge': 'UNKNOWN' }), '제어 해제 · 연결 확인 필요');
 });
 
 test('authenticated Bridge LowState is visible when external DDS telemetry is offline', () => {

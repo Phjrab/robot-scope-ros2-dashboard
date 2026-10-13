@@ -107,6 +107,10 @@ html[data-theme="light"] .cockpit-workspace { background: var(--panel-strong); }
 html[data-theme="light"] #cockpitSafetyHud { background: var(--panel); color: var(--text); }
 html[data-theme="light"] :is(.toast, .modal, .modal-content, .dialog,
   .cockpit-window-bar, .experiment-header) { background: var(--panel); color: var(--text); border-color: var(--line); }
+/* Mapping guidance and connection notes are readable in both palettes. */
+html[data-theme] :is(.mapping-checkbox small, .mapping-safety-note,
+  .robot-type-note, .connection-runtime-note, .robot-discovery-head,
+  .connection-target-state span, .selected-model-note) { color: var(--muted); }
 /* STOP stays red with white lettering in both themes. */
 html[data-theme="light"] #softwareEstopButton,
 html[data-theme="light"] #cockpitSafetyHud .cockpit-fixed-stop {

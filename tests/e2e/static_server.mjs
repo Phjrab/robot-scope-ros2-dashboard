@@ -53,7 +53,7 @@ server.on('upgrade', (request, socket) => {
   socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
 });
 
-server.listen(4173, '127.0.0.1');
+server.listen(Number(process.env.UI_REGRESSION_PORT || 4173), '127.0.0.1');
 
 const attacker = createServer((request, response) => {
   if (request.url === '/ws-rejections') {
@@ -64,7 +64,7 @@ const attacker = createServer((request, response) => {
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   response.end('<!doctype html><title>cross-origin probe</title>');
 });
-attacker.listen(4174, '127.0.0.1');
+attacker.listen(Number(process.env.UI_PROBE_PORT || 4174), '127.0.0.1');
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => attacker.close(() => server.close(() => process.exit(0))));

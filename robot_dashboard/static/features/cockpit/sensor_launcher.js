@@ -111,8 +111,10 @@ export function createSensorLauncher(options = {}) {
   root.append(toggle, body);
 
   function setExpanded(expanded) {
+    root.dataset.expanded = String(expanded);
     body.hidden = !expanded;
     toggle.setAttribute('aria-expanded', String(expanded));
+    options.onExpanded?.(expanded);
   }
   toggle.addEventListener('click', () => setExpanded(toggle.getAttribute('aria-expanded') !== 'true'));
   toggle.addEventListener('keydown', (event) => {
@@ -169,6 +171,8 @@ export function createSensorLauncher(options = {}) {
 
   function setLayoutEditable(nextEditable) {
     layoutEditable = Boolean(nextEditable);
+    toggle.textContent = layoutEditable ? '창 추가·정렬' : '열린 패널 닫기';
+    heading.textContent = layoutEditable ? '창 추가·정렬' : '앞으로 가져올 패널';
     syncAvailability();
   }
 

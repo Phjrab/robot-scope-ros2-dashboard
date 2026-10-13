@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Scope · UI before / after</title>
+<style>
+  :root{font:16px/1.6 system-ui,sans-serif;color:#eaf2ed;background:#0b110e;color-scheme:dark}
+  body{margin:24px auto;max-width:1800px;padding:0 20px}h1{font-size:28px}h2{font-size:20px;margin:32px 0 8px}
+  p{max-width:1000px;color:#b8cbc0}a{color:#77e6ab}section{border-top:1px solid #334a3e;padding-top:12px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}figure{margin:0}figcaption{margin-bottom:8px;font-weight:600}
+  img{display:block;width:100%;height:auto;border:1px solid #334a3e;border-radius:4px}code{overflow-wrap:anywhere}
+  @media(max-width:800px){.pair{grid-template-columns:1fr}body{margin:16px auto;padding:0 12px}}
+</style>
+<h1>Robot Scope · 가독성 개선 전후</h1>
+<p>동일한 합성 fixture와 CSS 화면 크기의 Chromium 캡처입니다. 실제 로봇·센서 성능 검증이 아닙니다.
+기준 커밋: <code>42c6cce986029548e5cc7e0f6f9bd830144cabe3</code>.
+각 이미지를 누르면 원본 크기로 볼 수 있습니다. 세부 조건·측정값은 <a href="VALIDATION.md">검증 기록</a>과
+<a href="evidence/after-browser.json">브라우저 측정 결과</a>에 있습니다.</p>
+<main id="comparisons"></main>
+<script>
+  const cases=[
+    ['cockpit-normal-dark-1440x900','관측 · 다크 · 1440 × 900'],
+    ['cockpit-normal-light-1440x900','관측 · 라이트 · 1440 × 900'],
+    ['cockpit-stale-dark-1280x800','관측 · 오래된 센서 데이터 · 1280 × 800'],
+    ['cockpit-disconnected-light-1024x768','관측 · 연결 끊김 · 1024 × 768'],
+    ['cockpit-no-data-dark-1024x768','관측 · 센서 데이터 없음 · 1024 × 768'],
+    ['cockpit-normal-light-768x1024','관측 · 세로 화면 · 768 × 1024'],
+    ['cockpit-normal-dark-720x450','관측 · 200% reflow 상당 · 720 × 450'],
+    ['mapping-normal-dark-1440x900','지도 만들기 · 1440 × 900'],
+    ['maps-normal-light-1440x900','저장 지도 · 1440 × 900'],
+    ['navigation-long-error-dark-1280x800','주행 · 긴 한국어 오류 · 1280 × 800'],
+    ['sensors-normal-light-1024x768','카메라·수집 · 1024 × 768'],
+    ['settings-normal-dark-1280x800','설정 · 1280 × 800'],
+  ];
+  for(const [file,title] of cases){
+    const section=document.createElement('section');const heading=document.createElement('h2');heading.textContent=title;section.append(heading);
+    if(file.includes('720x450')){const note=document.createElement('p');note.textContent='실제 브라우저 확대가 아닌 CSS viewport 재배치 검사입니다. 개선 후에는 관측 영역까지 스크롤한 상태를 캡처했습니다. 상단 메뉴는 화면 위로 이동하며 STOP은 화면에 남습니다.';section.append(note);}
+    const pair=document.createElement('div');pair.className='pair';
+    for(const [phase,label] of [['before','개선 전'],['after','개선 후']]){
+      const figure=document.createElement('figure');const caption=document.createElement('figcaption');caption.textContent=label;
+      const link=document.createElement('a');link.href=`captures/${phase}/${file}.png`;
+      const img=document.createElement('img');img.src=link.href;img.alt=`${title} · ${label}`;img.loading='lazy';link.append(img);figure.append(caption,link);pair.append(figure);
+    }
+    section.append(pair);document.querySelector('#comparisons').append(section);
+  }
+</script>
+</html>

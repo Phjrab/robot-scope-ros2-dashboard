@@ -9,7 +9,7 @@ test('Missions sidebar page creates ordered mission and sends only explicit acti
   await page.goto('/#navigation');
   await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
   await page.locator('[data-nav="missions"]').click();
-  await expect(page.locator('#pageTitle')).toHaveText('Missions');
+  await expect(page.locator('#pageTitle')).toHaveText('미션');
   const panel = page.locator('#dashboardMissionHost');
   await expect(panel.locator('[data-mission-draft-id]')).toHaveCount(2);
   expect(backend.mutations('/api/v1/missions')).toHaveLength(0);

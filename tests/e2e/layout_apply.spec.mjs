@@ -2,16 +2,15 @@ import { expect, test } from '@playwright/test';
 import { installDashboardBackend } from './dashboard_backend.mjs';
 
 async function edit(page) {
-  const toggle = page.locator('.cockpit-safety-toggle');
-  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+  // Editing is directly reachable; safety detail expansion is independent.
   await page.locator('[data-cockpit-layout-action="edit"]').click();
 }
 
 test('Cockpit Apply persists panels on reload and a new window without saving a named preset', async ({ page, context }) => {
   const backend = await installDashboardBackend(page);
   await page.goto('/?workspace=cockpit#cockpit');
-  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
   await edit(page);
+  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
   await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
   await page.locator('[data-cockpit-layout-action="apply"]').click();
   await expect(page.locator('.cockpit-layout-save-status')).toContainText('저장 완료');
@@ -34,8 +33,8 @@ test('Cockpit Apply persists panels on reload and a new window without saving a 
 test('Cockpit Apply storage failure remains editable and reports failure', async ({ page }) => {
   await installDashboardBackend(page);
   await page.goto('/?workspace=cockpit#cockpit');
-  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
   await edit(page);
+  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {

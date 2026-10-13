@@ -72,6 +72,26 @@ export function createCockpitWorkspace(options = {}) {
   const presetStatus = options.presetRoot?.querySelector('[role="status"]');
   let currentPreset = 'observation';
   const listeners = new AbortController();
+  // Display preferences only. The existing panel/layout and safety controllers
+  // still own every edit and control action.
+  const panelsToggle = options.document?.querySelector('#cockpitPanelsToggle');
+  panelsToggle?.addEventListener('click', () => {
+    sensorLauncher?.setExpanded(!sensorLauncher.diagnostics().expanded);
+  }, { signal: listeners.signal });
+  const inspectorToggle = options.document?.querySelector('#cockpitInspectorToggle');
+  inspectorToggle?.addEventListener('click', () => {
+    const open = root.dataset.inspectorOpen !== 'true';
+    root.dataset.inspectorOpen = String(open);
+    inspectorToggle.setAttribute('aria-expanded', String(open));
+  }, { signal: listeners.signal });
+  const navigationToggle = options.document?.querySelector('#navigationToggle');
+  navigationToggle?.addEventListener('click', () => {
+    const documentRoot = options.document.documentElement;
+    const collapsed = documentRoot.dataset.navigationCollapsed !== 'true';
+    documentRoot.dataset.navigationCollapsed = String(collapsed);
+    navigationToggle.setAttribute('aria-expanded', String(!collapsed));
+    navigationToggle.setAttribute('aria-label', collapsed ? '메뉴 펼치기' : '메뉴 접기');
+  }, { signal: listeners.signal });
   if (presetSelect) {
     const saved = options.document.createElement('option');
     saved.value = 'saved';
@@ -98,7 +118,7 @@ export function createCockpitWorkspace(options = {}) {
     layoutLibrary?.setLayoutEditable(editable);
     safetyHud?.setLayoutState(state);
     if (presetSelect) presetSelect.disabled = !editable;
-    if (presetStatus) presetStatus.textContent = editable ? '배치 선택 후 APPLY / EXIT로 저장' : state.armed ? '제어 사용 중 · 배치 잠금' : 'Safety 상세 → EDIT LAYOUT에서 배치 선택';
+    if (presetStatus) presetStatus.textContent = editable ? '배치를 고른 뒤 저장·닫기로 적용합니다.' : state.armed ? '제어 사용 중 · 배치 잠금' : '배치 편집에서 창을 추가하고 정렬합니다.';
   }
 
   const layoutMode = createLayoutModeController({ onChange: syncLayoutMode });
@@ -151,6 +171,7 @@ export function createCockpitWorkspace(options = {}) {
       root: options.launcherRoot,
       registry: panelRegistry,
       document: options.document,
+      onExpanded: (expanded) => panelsToggle?.setAttribute('aria-expanded', String(expanded)),
       onOpen(panelType) {
         panelManager?.openPanel(panelType);
         syncLauncher();
@@ -173,7 +194,7 @@ export function createCockpitWorkspace(options = {}) {
         dataset: options.getDatasetSnapshot?.() || null,
       }),
       layoutState: layoutMode.snapshot(),
-      onRequestEdit: () => { safetyHud?.setLayoutSaveStatus(''); layoutMode.requestEdit(); },
+      onRequestEdit: () => { safetyHud?.setExpanded(false); safetyHud?.setLayoutSaveStatus(''); layoutMode.requestEdit(); },
       onApply: () => {
         if (layoutMode.snapshot().mode !== COCKPIT_LAYOUT_MODES.EDIT || layoutMode.snapshot().armed) return;
         try {

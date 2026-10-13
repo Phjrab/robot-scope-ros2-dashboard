@@ -1,0 +1,467 @@
+{
+  "baseline": {
+    "connections": {
+      "go2_front": 1,
+      "realsense_color": 0
+    },
+    "closes": {
+      "go2_front": 0,
+      "realsense_color": 0
+    },
+    "ws": {
+      "camera": 1,
+      "pointcloud": 1,
+      "joints": 1,
+      "pose": 1,
+      "control": 0
+    },
+    "layoutStorage": {
+      "robot-scope.cockpit.camera.v1:go2:live:": "{\"target\":[0,0,0.2],\"distance\":8,\"yaw\":0.7853981633974483,\"pitch\":0.5759586531581288,\"mode\":\"follow\"}"
+    }
+  },
+  "after": {
+    "snapshot": {
+      "workspace": {
+        "active": true,
+        "destroyed": false,
+        "scene": {
+          "active": true,
+          "destroyed": false,
+          "session": 1,
+          "starts": 1,
+          "stops": 0,
+          "rendererCount": 1,
+          "peakRenderers": 1,
+          "freshness": "FIXTURE",
+          "modelState": "READY",
+          "camera": {
+            "target": [
+              0,
+              0,
+              0.2
+            ],
+            "distance": 8,
+            "yaw": 0.7853981633974483,
+            "pitch": 0.5759586531581288
+          },
+          "layout": {
+            "view": "robot-follow",
+            "follow_robot": true,
+            "point_size": 2,
+            "range_m": 150
+          },
+          "quality": {
+            "mode": "low",
+            "adaptive": false,
+            "nearField": true,
+            "heightColor": true,
+            "effectiveBudget": 10000,
+            "adaptiveLevel": "low",
+            "lod": {
+              "capacity": 60000,
+              "buffers": 2,
+              "allocations": 2,
+              "projections": 0
+            },
+            "metrics": {
+              "frameMs": 7.325706661520456,
+              "fps": 27.002669339488737,
+              "uploadMs": 0.257158455368042,
+              "decodeMs": 0.2455360151672364,
+              "droppedFrames": 0,
+              "stale": false
+            }
+          },
+          "mapOverlay": {
+            "enabled": true,
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "pathPoints": 0,
+            "trailPoints": 0,
+            "markerCount": 1
+          },
+          "routeOverlay": {
+            "selectedPoints": 0,
+            "alternativeCount": 0,
+            "currentSegmentPoints": 0
+          }
+        },
+        "panels": {
+          "active": true,
+          "destroyed": false,
+          "activations": 1,
+          "deactivations": 0,
+          "interaction": null,
+          "activePanelId": "camera-go2-front",
+          "gamepadSelectedPanelId": "",
+          "layoutEditable": false,
+          "snapOptions": {
+            "enabled": true,
+            "threshold": 14,
+            "gridSize": 16
+          },
+          "snapPreview": null,
+          "viewport": {
+            "width": 1214,
+            "height": 344,
+            "padding": 12,
+            "reservedBottom": 12
+          },
+          "panels": [
+            {
+              "id": "camera-go2-front",
+              "panelType": "camera.go2-front",
+              "title": "Go2 Front Camera",
+              "mode": "floating",
+              "x": 702.1999999999999,
+              "y": 18.16,
+              "width": 476,
+              "height": 283.36,
+              "zIndex": 1,
+              "pinned": false,
+              "locked": false,
+              "visible": true,
+              "dock": null,
+              "restoreGeometry": null
+            },
+            {
+              "id": "camera-realsense-color",
+              "panelType": "camera.realsense-color",
+              "title": "RealSense Color Camera",
+              "mode": "floating",
+              "x": 420,
+              "y": 112,
+              "width": 380,
+              "height": 250,
+              "zIndex": 2,
+              "pinned": false,
+              "locked": false,
+              "visible": false,
+              "dock": null,
+              "restoreGeometry": null
+            },
+            {
+              "id": "placeholder-map",
+              "panelType": "placeholder.map",
+              "title": "Map & Localization",
+              "mode": "floating",
+              "x": 420,
+              "y": 138,
+              "width": 380,
+              "height": 280,
+              "zIndex": 3,
+              "pinned": false,
+              "locked": false,
+              "visible": false,
+              "dock": null,
+              "restoreGeometry": null
+            },
+            {
+              "id": "navigation-main",
+              "panelType": "navigation.main",
+              "title": "Navigation & Takeover",
+              "mode": "floating",
+              "x": 520,
+              "y": 92,
+              "width": 520,
+              "height": 520,
+              "zIndex": 4,
+              "pinned": false,
+              "locked": false,
+              "visible": false,
+              "dock": null,
+              "restoreGeometry": null
+            },
+            {
+              "id": "mission-main",
+              "panelType": "mission.main",
+              "title": "Mission Route Sequencer",
+              "mode": "floating",
+              "x": 28,
+              "y": 84,
+              "width": 560,
+              "height": 560,
+              "zIndex": 5,
+              "pinned": false,
+              "locked": false,
+              "visible": false,
+              "dock": null,
+              "restoreGeometry": null
+            },
+            {
+              "id": "route-planner",
+              "panelType": "route-planner.main",
+              "title": "Competition Route Planner",
+              "mode": "floating",
+              "x": 72,
+              "y": 58,
+              "width": 680,
+              "height": 650,
+              "zIndex": 6,
+              "pinned": false,
+              "locked": false,
+              "visible": false,
+              "dock": null,
+              "restoreGeometry": null
+            },
+            {
+              "id": "placeholder-controller",
+              "panelType": "placeholder.controller",
+              "title": "Xbox Controller",
+              "mode": "floating",
+              "x": 760,
+              "y": 76,
+              "width": 320,
+              "height": 210,
+              "zIndex": 7,
+              "pinned": false,
+              "locked": false,
+              "visible": false,
+              "dock": null,
+              "restoreGeometry": null
+            }
+          ],
+          "content": {
+            "camera-go2-front": {
+              "active": true,
+              "destroyed": false,
+              "sourceId": "go2_front",
+              "demand": true,
+              "renders": 13,
+              "activations": 1,
+              "deactivations": 0,
+              "state": "FIXTURE"
+            }
+          }
+        },
+        "launcher": {
+          "expanded": false,
+          "panelCount": 7,
+          "layoutEditable": false
+        },
+        "layout": {
+          "mode": "operate",
+          "armed": false,
+          "generation": 0
+        },
+        "safety": {
+          "active": true,
+          "projected": {
+            "control-source": "NONE",
+            "armed": "DISARMED",
+            "deadman": "RELEASED",
+            "software-stop": "CLEAR",
+            "control-bridge": "READY",
+            "operation-mode": "MANUAL",
+            "competition-lock": "UNLOCKED",
+            "perception-authority": "NONE",
+            "dataset": "IDLE",
+            "lease": "NONE",
+            "go2-link": "LIVE",
+            "lowstate": "50 ms",
+            "battery": "83%",
+            "vx": "+0.000",
+            "vy": "+0.000",
+            "wz": "+0.000",
+            "speed-scale": "30%",
+            "layoutArmed": false,
+            "tone": "normal"
+          },
+          "layoutState": {
+            "mode": "operate",
+            "armed": false,
+            "generation": 0
+          },
+          "view": {
+            "expanded": false
+          }
+        },
+        "competition": {
+          "active": true,
+          "expanded": false,
+          "state": {
+            "generation": 2,
+            "updatedAt": 1791863959588,
+            "competition": {
+              "schema_version": "robot-scope.competition-state/v1",
+              "operation_mode": "MANUAL",
+              "requested_mode": "MANUAL",
+              "locked": false,
+              "revision": 1,
+              "motion_authority": "NONE",
+              "perception_mode": "SHADOW"
+            },
+            "models": {
+              "active": {
+                "lane": {
+                  "model_id": "lane-v2",
+                  "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "engine_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                "object": {
+                  "model_id": "yolo-v3",
+                  "package_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "engine_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                }
+              },
+              "previous": {
+                "lane": "lane-v1",
+                "object": "yolo-v2"
+              },
+              "activation_surface": "LOCAL_OPERATOR_ONLY"
+            },
+            "error": ""
+          },
+          "projected": {
+            "operationMode": "MANUAL",
+            "requestedMode": "MANUAL",
+            "lock": "UNLOCKED",
+            "locked": false,
+            "authority": "NONE",
+            "perceptionMode": "SHADOW",
+            "dataset": "IDLE",
+            "robotWifi": "LIVE · RSSI -54 dBm · LINK 433.3 Mbps",
+            "rtt": "UNAVAILABLE · P50 — · P95 — · P99 — · LOSS — · MEASURED —",
+            "go2Camera": "LIVE · 15.0 FPS",
+            "realsense": "WAITING · 15.0 FPS · AGE 0.10 s",
+            "transport": "4.125 Mbps · 14.8 FPS",
+            "decode": "OK 0 · FAIL 0 · DROP 0",
+            "reconnect": "COUNT 1",
+            "clock": "UNVERIFIED_CLOCK_DOMAIN",
+            "tasks": {
+              "lane": {
+                "task": "lane",
+                "state": "LIVE",
+                "model": "lane-v2 · aaaaaaaaaaaa",
+                "resultSequence": "12",
+                "sourceSequence": "1202",
+                "sourceEpoch": "81",
+                "age": "0.10 s",
+                "inputAge": "0.24 s",
+                "inputClock": "UNVERIFIED CLOCK",
+                "performance": "12.0 FPS · P95 9.0 ms",
+                "confidence": "91%"
+              },
+              "object": {
+                "task": "object",
+                "state": "LIVE",
+                "model": "yolo-v3 · cccccccccccc",
+                "resultSequence": "13",
+                "sourceSequence": "1203",
+                "sourceEpoch": "81",
+                "age": "0.10 s",
+                "inputAge": "0.24 s",
+                "inputClock": "UNVERIFIED CLOCK",
+                "performance": "10.0 FPS · P95 18.0 ms",
+                "confidence": "84%"
+              },
+              "depth_summary": {
+                "task": "depth_summary",
+                "state": "LIVE",
+                "model": "depth-v1 · eeeeeeeeeeee",
+                "resultSequence": "14",
+                "sourceSequence": "1204",
+                "sourceEpoch": "81",
+                "age": "0.10 s",
+                "inputAge": "0.24 s",
+                "inputClock": "UNVERIFIED CLOCK",
+                "performance": "8.0 FPS · P95 22.0 ms",
+                "confidence": "75%"
+              }
+            },
+            "depthMode": "SUMMARY",
+            "pointcloudMode": "SUMMARY",
+            "activeModel": "lane:lane-v2 · object:yolo-v3",
+            "previousModel": "lane:lane-v1 · object:yolo-v2",
+            "fresh": true
+          }
+        },
+        "layoutLibrary": {
+          "expanded": false,
+          "layoutEditable": false,
+          "pendingImport": null,
+          "profileId": "go2",
+          "defaultPreset": null,
+          "corrupted": false,
+          "storageAvailable": true,
+          "presets": []
+        },
+        "controller": {
+          "connected": false,
+          "safeId": "NO GAMEPAD",
+          "inputAgeMs": null,
+          "inputFreshness": "DISCONNECTED",
+          "deadman": false,
+          "axes": {
+            "leftX": 0,
+            "leftY": 0,
+            "rightX": 0
+          },
+          "speedScale": 0.3,
+          "leaseSource": "NONE",
+          "lastFrameAgeMs": null,
+          "vibration": false
+        },
+        "map": {
+          "subscribers": 1,
+          "updates": 5,
+          "trailPoints": 0,
+          "pathPoints": 0,
+          "markerCount": 1
+        },
+        "navigation": {
+          "destroyed": false,
+          "subscribers": 0,
+          "actionGeneration": 0,
+          "takeoverGeneration": 0,
+          "takeoverState": "IDLE",
+          "actionBusy": false
+        },
+        "mission": {
+          "destroyed": false,
+          "subscribers": 0,
+          "generation": 0,
+          "busy": false,
+          "polling": false
+        },
+        "routePlanner": {
+          "destroyed": false,
+          "busy": false,
+          "subscribers": 1,
+          "polling": true,
+          "rendererCount": 0
+        }
+      },
+      "pointcloud": {
+        "activeConsumers": [
+          "cockpit"
+        ],
+        "subscriberCount": 1,
+        "connected": true,
+        "connectionCount": 1,
+        "closeCount": 0,
+        "requestInFlight": false,
+        "lastSequence": 6,
+        "streamId": "synthetic-mission-control-v1",
+        "performance": {
+          "decodeMs": 0.2455360151672364,
+          "droppedFrames": 0,
+          "rejectedFrames": 0
+        },
+        "destroyed": false
+      }
+    },
+    "layoutStorage": {
+      "robot-scope.cockpit.camera.v1:go2:live:": "{\"target\":[0,0,0.2],\"distance\":8,\"yaw\":0.7853981633974483,\"pitch\":0.5759586531581288,\"mode\":\"follow\"}"
+    },
+    "canvas": {
+      "width": 1214,
+      "height": 506,
+      "cssWidth": 1214,
+      "cssHeight": 506,
+      "dpr": 1
+    }
+  },
+  "requests": [],
+  "pageErrors": [],
+  "unexpected": []
+}

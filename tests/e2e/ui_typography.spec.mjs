@@ -3,7 +3,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { installMissionFixture } from './ui_redesign_fixture.mjs';
 
 const phase = process.env.TYPOGRAPHY_CAPTURE_PHASE || 'after';
-const root = 'docs/ui-typography';
+const root = process.env.UI_EVIDENCE_ROOT || 'docs/ui-typography';
+test.beforeAll(async () => {
+  await mkdir(`${root}/captures/${phase}`, { recursive: true });
+  await mkdir(`${root}/evidence`, { recursive: true });
+});
 const samples = [
   ['korean', 'ui', '로봇 연결 상태'], ['english', 'display', 'Map & Localization'],
   ['safety', 'ui', 'STOP · DISARMED'], ['topic', 'mono', '/camera/image_raw'],
@@ -54,7 +58,8 @@ test('typography actual before/after capture matrix retains critical safety text
           await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBeGreaterThan(0);
           await page.waitForTimeout(500);
           backend.state.uiCloudStreaming = false; backend.state.cameraStreaming.go2_front = false;
-          await expect(page.locator('.cockpit-camera-state').first()).toHaveText('STALE', { timeout: 6000 });
+          await expect(page.locator('.cockpit-camera-state').first()).toHaveText(phase === 'before' ? 'STALE' : '오래된 데이터', { timeout: 6000 });
+          await expect(page.locator('.cockpit-camera-state').first()).toHaveAttribute('data-state', 'stale');
         }
         await settle(page);
         await page.locator('[data-cockpit-software-stop]').click({ trial: true });
@@ -138,6 +143,9 @@ test('late font paint preserves camera subscriptions layout keyboard routing and
   expect(after.snapshot.workspace.panels.panels).toEqual(before.snapshot.workspace.panels.panels);
   expect(after.storage).toEqual(before.storage);
   expect(backend.state.cameraConnectionsBySource).toEqual(connections); expect(backend.state.cameraClosesBySource).toEqual(closes);
+  // Open editing after the font/storage invariants above; this is a separate UI action.
+  await page.locator('[data-cockpit-layout-action="edit"]').click();
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'layout-edit');
   await page.locator('.cockpit-layout-library-toggle').click();
   await expect(page.locator('.cockpit-layout-library-body')).toBeVisible();
   const library = await page.locator('.cockpit-layout-library-body').boundingBox();

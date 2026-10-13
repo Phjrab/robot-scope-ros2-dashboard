@@ -1,0 +1,765 @@
+[WebServer] (node:36295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 67 tests using 1 worker
+
+(node:36296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/67] tests/e2e/camera_state.spec.mjs:4:1 › Cockpit remembers manual camera after page reload
+[2/67] tests/e2e/dashboard.spec.mjs:25:1 › offline viewer keeps saved maps available while live telemetry fails closed
+[3/67] tests/e2e/dashboard.spec.mjs:35:1 › Saved Maps shows storage size and downloads the selected map bundle
+[4/67] tests/e2e/dashboard.spec.mjs:47:1 › 2D map editor previews and saves an operator-selected arbitrary rotation
+[5/67] tests/e2e/dashboard.spec.mjs:80:1 › camera and pointcloud reconnect, then release transports on page switch
+[6/67] tests/e2e/dashboard.spec.mjs:95:1 › Sensors camera observability shows Wi-Fi, source, transport, decode and clock domain
+[7/67] tests/e2e/dashboard.spec.mjs:112:1 › RealSense resolution selection survives polling and applies exactly once
+[8/67] tests/e2e/dashboard.spec.mjs:131:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+  1) tests/e2e/dashboard.spec.mjs:131:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 204
+    Received:    0
+
+      144 |     };
+      145 |   });
+    > 146 |   expect(embeddedBounds.competition.left).toBeGreaterThanOrEqual(embeddedBounds.workspace.left);
+          |                                           ^
+      147 |   expect(embeddedBounds.competition.top).toBeGreaterThanOrEqual(embeddedBounds.workspace.top);
+      148 |   expect(embeddedBounds.competition.right).toBeLessThanOrEqual(embeddedBounds.workspace.right);
+      149 |   expect(embeddedBounds.competition.bottom).toBeLessThanOrEqual(embeddedBounds.workspace.bottom);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:146:43
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-enter-le-763de-ne-and-one-PointCloud-owner/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-enter-le-763de-ne-and-one-PointCloud-owner/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-enter-le-763de-ne-and-one-PointCloud-owner/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:36446) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[9/67] tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+  2) tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#pageTitle')
+    Expected: "Overview"
+    Received: "상태 요약"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#pageTitle')
+        14 × locator resolved to <h1 id="pageTitle">상태 요약</h1>
+           - unexpected value "상태 요약"
+
+
+      196 |
+      197 |   await page.locator('#cockpitOpenWindowButton').click();
+    > 198 |   await expect(page.locator('#pageTitle')).toHaveText('Overview');
+          |                                            ^
+      199 |   await expect(page.locator('#cockpitWorkspace')).toBeHidden();
+      200 |   await expect(page.locator('#cockpitOpenWindowButton')).toBeHidden();
+      201 |   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(1);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:198:44
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-full-win-019a8--and-handles-popup-blocking/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-full-win-019a8--and-handles-popup-blocking/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-full-win-019a8--and-handles-popup-blocking/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:36517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[10/67] tests/e2e/dashboard.spec.mjs:230:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+  3) tests/e2e/dashboard.spec.mjs:230:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+
+    Test timeout of 20000ms exceeded.
+
+    Error: locator.click: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for locator('[data-layout-library-action="toggle"]')
+        - locator resolved to <button type="button" aria-expanded="false" data-layout-library-action="toggle" class="cockpit-layout-library-toggle">LAYOUTS</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <button type="button" aria-expanded="true" class="cockpit-launcher-toggle" aria-controls="cockpitLauncherBody">SENSORS</button> from <aside id="cockpitSensorLauncher" class="cockpit-sensor-launcher" aria-label="Sensor Launcher와 panel 정렬">…</aside> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <button type="button" aria-expanded="true" class="cockpit-launcher-toggle" aria-controls="cockpitLauncherBody">SENSORS</button> from <aside id="cockpitSensorLauncher" class="cockpit-sensor-launcher" aria-label="Sensor Launcher와 panel 정렬">…</aside> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        29 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <button type="button" aria-expanded="true" class="cockpit-launcher-toggle" aria-controls="cockpitLauncherBody">SENSORS</button> from <aside id="cockpitSensorLauncher" class="cockpit-sensor-launcher" aria-label="Sensor Launcher와 panel 정렬">…</aside> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+
+
+      280 |     expect(collapsedLayoutOverlap.controls).toBe(false);
+      281 |     expect(collapsedLayoutOverlap.competition).toBe(false);
+    > 282 |     await layoutToggle.click();
+          |                        ^
+      283 |     const geometry = await page.evaluate(() => {
+      284 |       const bar = document.querySelector('#cockpitWindowBar').getBoundingClientRect();
+      285 |       const workspace = document.querySelector('#cockpitWorkspace').getBoundingClientRect();
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:282:24
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-standalo-fff4e-ve-fullscreen-only-on-click/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-standalo-fff4e-ve-fullscreen-only-on-click/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-standalo-fff4e-ve-fullscreen-only-on-click/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:36900) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[11/67] tests/e2e/dashboard.spec.mjs:359:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+  4) tests/e2e/dashboard.spec.mjs:359:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('#cockpitCompetitionStatus')
+    Expected: visible
+    Received: hidden
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('#cockpitCompetitionStatus')
+        14 × locator resolved to <aside data-state="live" data-locked="false" data-expanded="false" id="cockpitCompetitionStatus" class="cockpit-competition-status" aria-label="Competition network perception and operation status">…</aside>
+           - unexpected value "hidden"
+
+
+      361 |   const status = page.locator('#cockpitCompetitionStatus');
+      362 |   const hud = page.locator('#cockpitSafetyHud');
+    > 363 |   await expect(status).toBeVisible();
+          |                        ^
+      364 |   await expect(status).toHaveAttribute('data-expanded', 'false');
+      365 |   await expect(status.locator('.cockpit-competition-toggle')).toHaveAttribute('aria-expanded', 'false');
+      366 |   await expect(status).toContainText('MANUAL · UNLOCKED · AUTHORITY NONE');
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:363:24
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-competit-db9b6-ork-model-and-dataset-state/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-competit-db9b6-ork-model-and-dataset-state/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-competit-db9b6-ork-model-and-dataset-state/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:36951) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[12/67] tests/e2e/dashboard.spec.mjs:408:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+  5) tests/e2e/dashboard.spec.mjs:408:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+
+    Test timeout of 20000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for locator('#cockpitPointQuality')
+        - locator resolved to <select id="cockpitPointQuality" aria-label="LiDAR 표시 점 수">…</select>
+      - attempting select option action
+        2 × waiting for element to be visible and enabled
+          - element is not visible
+        - retrying select option action
+        - waiting 20ms
+        2 × waiting for element to be visible and enabled
+          - element is not visible
+        - retrying select option action
+          - waiting 100ms
+        42 × waiting for element to be visible and enabled
+           - element is not visible
+         - retrying select option action
+           - waiting 500ms
+
+
+      409 |   const backend = await openDashboard(page, {}, 'cockpit');
+      410 |   await expect(page.locator('#cockpitPointQuality')).toHaveValue('low');
+    > 411 |   await page.locator('#cockpitPointQuality').selectOption('medium');
+          |                                              ^
+      412 |   await expect.poll(() => backend.mutations('/api/v1/pointcloud/settings').at(-1)?.body?.max_points).toBe(30_000);
+      413 |   await page.locator('#cockpitPointQuality').selectOption('high');
+      414 |   await expect.poll(() => backend.mutations('/api/v1/pointcloud/settings').at(-1)?.body?.max_points).toBe(60_000);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:411:46
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-point-qu-092cb-ses-adaptive-scene-controls/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-point-qu-092cb-ses-adaptive-scene-controls/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-point-qu-092cb-ses-adaptive-scene-controls/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37122) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[13/67] tests/e2e/dashboard.spec.mjs:426:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+  6) tests/e2e/dashboard.spec.mjs:426:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('#cockpitMapOverlay')
+    Expected: "false"
+    Received: "true"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('#cockpitMapOverlay')
+        13 × locator resolved to <button type="button" aria-pressed="true" id="cockpitMapOverlay" aria-label="지도 경로와 주석 표시" title="지도 경로·주석 3D 오버레이 숨기기">MAP</button>
+           - unexpected value "true"
+
+
+      452 |   await page.locator('#cockpitMapOverlay').focus();
+      453 |   await page.keyboard.press('Enter');
+    > 454 |   await expect(page.locator('#cockpitMapOverlay')).toHaveAttribute('aria-pressed', 'false');
+          |                                                    ^
+      455 |   await expect.poll(async () => (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.scene.mapOverlay.enabled).toBe(false);
+      456 |
+      457 |   backend.state.navigation = { ...backend.state.navigation, map: { id: backend.mapId, revision: 'd'.repeat(64) } };
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:454:52
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-map-pane-2c5a9-gles-the-bounded-3D-overlay/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-map-pane-2c5a9-gles-the-bounded-3D-overlay/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-map-pane-2c5a9-gles-the-bounded-3D-overlay/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[14/67] tests/e2e/dashboard.spec.mjs:467:1 › Competition Route Planner completes the software-only workflow without motion authority
+[15/67] tests/e2e/dashboard.spec.mjs:509:1 › standalone dashboard Route Planner is reachable and releases polling when closed
+  7) tests/e2e/dashboard.spec.mjs:509:1 › standalone dashboard Route Planner is reachable and releases polling when closed
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#pageTitle')
+    Expected: "Route Planner"
+    Received: "경로 계획"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#pageTitle')
+        14 × locator resolved to <h1 id="pageTitle">경로 계획</h1>
+           - unexpected value "경로 계획"
+
+
+      511 |   const backend = await openDashboard(page, {}, 'route-planner');
+      512 |   await expect(page.locator('[data-nav="route-planner"]')).toHaveAttribute('aria-current', 'page');
+    > 513 |   await expect(page.locator('#pageTitle')).toHaveText('Route Planner');
+          |                                            ^
+      514 |   const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
+      515 |   await expect(planner).toBeVisible();
+      516 |   await expect(planner.locator('.route-planner-header')).toContainText('DRAFT');
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:513:44
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-standalone-dashb-3a375-eleases-polling-when-closed/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-standalone-dashb-3a375-eleases-polling-when-closed/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-standalone-dashb-3a375-eleases-polling-when-closed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37258) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[16/67] tests/e2e/dashboard.spec.mjs:579:1 › Route Planner stores eight sheets with five menu items each
+[17/67] tests/e2e/dashboard.spec.mjs:601:1 › Route Planner destination start survives polling and missing graph is explained
+[18/67] tests/e2e/dashboard.spec.mjs:622:1 › locked Route Planner order stays server-synchronized and offers an isolated new-order draft
+[19/67] tests/e2e/dashboard.spec.mjs:655:1 › locked Route Planner order can be explicitly unlocked without control or navigation authority
+[20/67] tests/e2e/dashboard.spec.mjs:675:1 › Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects
+[21/67] tests/e2e/dashboard.spec.mjs:748:1 › Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms
+[22/67] tests/e2e/dashboard.spec.mjs:775:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+[23/67] tests/e2e/dashboard.spec.mjs:823:1 › Cockpit mission pause, failure retry, and skips remain explicit and fail closed
+[24/67] tests/e2e/dashboard.spec.mjs:876:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+  8) tests/e2e/dashboard.spec.mjs:876:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 280
+    Received:   280
+
+      913 |   const spatialAfter = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-map');
+      914 |   expect(spatialAfter.width).toBeGreaterThan(spatialBefore.width);
+    > 915 |   expect(spatialAfter.height).toBeGreaterThan(spatialBefore.height);
+          |                               ^
+      916 |
+      917 |   await spatial.locator('[data-panel-action="pin"]').click();
+      918 |   await expect(spatial.locator('[data-panel-action="pin"]')).toHaveAttribute('aria-pressed', 'true');
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:915:31
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-panels-d-5546c--without-orbiting-the-scene/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-panels-d-5546c--without-orbiting-the-scene/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-panels-d-5546c--without-orbiting-the-scene/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37513) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[25/67] tests/e2e/dashboard.spec.mjs:971:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+  9) tests/e2e/dashboard.spec.mjs:971:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 19
+    Received: 12
+
+      1036 |   await page.keyboard.up('Alt');
+      1037 |   cameraState = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
+    > 1038 |   expect(cameraState.x).toBe(19);
+           |                         ^
+      1039 |
+      1040 |   await page.locator('.cockpit-layout-controls select').selectOption('24');
+      1041 |   expect((await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.snapOptions.gridSize).toBe(24);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:1038:25
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-Sensor-L-16422-le-and-cascade-stay-bounded/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-Sensor-L-16422-le-and-cascade-stay-bounded/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-Sensor-L-16422-le-and-cascade-stay-bounded/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[26/67] tests/e2e/dashboard.spec.mjs:1059:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+  10) tests/e2e/dashboard.spec.mjs:1059:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('[data-panel-id="camera-go2-front"]').locator('.cockpit-camera-state')
+    Expected: "LIVE"
+    Received: "실시간 수신"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('[data-panel-id="camera-go2-front"]').locator('.cockpit-camera-state')
+        14 × locator resolved to <span title="LIVE" data-state="live" class="cockpit-camera-state">실시간 수신</span>
+           - unexpected value "실시간 수신"
+
+
+      1069 |   const go2 = page.locator('[data-panel-id="camera-go2-front"]');
+      1070 |   const realsense = page.locator('[data-panel-id="camera-realsense-color"]');
+    > 1071 |   await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+           |                                                      ^
+      1072 |   await expect(realsense.locator('.cockpit-camera-state')).toHaveText('LIVE');
+      1073 |   await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('ROBOT WI-FI');
+      1074 |   await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('LIVE · RSSI -54 dBm');
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:1071:54
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-camera-p-87ed0-ize-compact-stale-and-close/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-camera-p-87ed0-ize-compact-stale-and-close/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-camera-p-87ed0-ize-compact-stale-and-close/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37630) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[27/67] tests/e2e/dashboard.spec.mjs:1123:1 › Cockpit disables camera launchers that are absent from the active catalog profile
+[28/67] tests/e2e/dashboard.spec.mjs:1134:1 › Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels
+  11) tests/e2e/dashboard.spec.mjs:1134:1 › Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels
+
+    Test timeout of 20000ms exceeded.
+
+    Error: locator.click: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]')
+        - locator resolved to <button type="button" aria-pressed="true" data-availability="available" data-panel-type="camera.go2-front" class="cockpit-launcher-item is-active" aria-label="Go2 Front Camera panel 앞으로 가져오기">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="cockpit-safety-metric">…</div> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <span class="cockpit-safety-summary">ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · …</span> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      2 × retrying click action
+          - waiting 100ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong data-state="disarmed">제어 해제 · 연결 준비됨</strong> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      8 × retrying click action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <div class="cockpit-safety-metric">…</div> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <span class="cockpit-safety-summary">ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · …</span> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong data-state="disarmed">제어 해제 · 연결 준비됨</strong> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+        - retrying click action
+          - waiting 500ms
+          - waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <strong data-state="disarmed">제어 해제 · 연결 준비됨</strong> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <div class="cockpit-safety-metric">…</div> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <span class="cockpit-safety-summary">ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · …</span> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <strong data-state="disarmed">제어 해제 · 연결 준비됨</strong> from <aside data-tone="normal" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <strong data-state="unknown">제어 상태 확인 필요</strong> from <aside data-tone="waiting" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <div class="cockpit-safety-metric">…</div> from <aside data-tone="waiting" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <span class="cockpit-safety-summary">ARM UNKNOWN · DEADMAN UNKNOWN · BRIDGE UNKNOWN · …</span> from <aside data-tone="waiting" data-expanded="true" id="cockpitSafetyHud" class="cockpit-safety-hud" data-layout-mode="layout-edit" aria-label="고정 제어 상태와 소프트웨어 정지">…</aside> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+
+
+      1152 |   await enterLayoutEdit(page);
+      1153 |   await expect(go2Button).toBeEnabled();
+    > 1154 |   await go2Button.click();
+           |                   ^
+      1155 |   const camera = page.locator('[data-panel-id="camera-go2-front"]');
+      1156 |   await expect(camera.locator('.cockpit-camera-state')).toHaveText('LIVE');
+      1157 |   await page.locator('[data-cockpit-layout-action="apply"]').click();
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:1154:19
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-starts-i-394e3-are-STOP-above-focus-panels/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-starts-i-394e3-are-STOP-above-focus-panels/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-starts-i-394e3-are-STOP-above-focus-panels/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:37799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[29/67] tests/e2e/dashboard.spec.mjs:1192:1 › active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation
+[30/67] tests/e2e/dashboard.spec.mjs:1227:1 › Safety HUD clears stale cached values and preserves STOP and control source on a narrow viewport
+[31/67] tests/e2e/dashboard.spec.mjs:1255:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+[32/67] tests/e2e/dashboard.spec.mjs:1318:1 › Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed
+[33/67] tests/e2e/dashboard.spec.mjs:1382:1 › mapping start, save and stop preserve one mutation per operator action
+[34/67] tests/e2e/dashboard.spec.mjs:1399:1 › navigation starts with pinned revisions, exposes active progress, and cancels once
+[35/67] tests/e2e/dashboard.spec.mjs:1416:1 › an active map revision conflict blocks navigation pose and goal controls
+[36/67] tests/e2e/dashboard.spec.mjs:1432:1 › map annotations use exact revisions and point goals reuse the Nav safety gate
+[37/67] tests/e2e/dashboard.spec.mjs:1460:1 › annotation edits are disabled during Nav2 and publish a full CAS document while idle
+[38/67] tests/e2e/dashboard.spec.mjs:1478:1 › dataset start/finalize is lifecycle-owned and duplicate clicks do not duplicate mutations
+[39/67] tests/e2e/dashboard.spec.mjs:1505:1 › finalized dataset export downloads once and model registry remains read only
+[40/67] tests/e2e/dashboard.spec.mjs:1524:1 › software E-stop remains latched until explicit local confirmation clears it
+[41/67] tests/e2e/dashboard.spec.mjs:1536:1 › service lifecycle blockers remain server-authoritative in the browser
+[42/67] tests/e2e/dashboard.spec.mjs:1545:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+[43/67] tests/e2e/dashboard.spec.mjs:1556:1 › cross-origin browser WebSocket handshakes are rejected before acceptance
+[44/67] tests/e2e/experiments.spec.mjs:37:1 › offline experiment viewer shows synthetic provenance and no control actions
+[45/67] tests/e2e/experiments.spec.mjs:53:1 › viewer rejects a mismatched map digest and stale result
+[46/67] tests/e2e/food_production.spec.mjs:4:1 › food clock runs independently, restores and never sends robot commands
+[47/67] tests/e2e/layout_apply.spec.mjs:9:1 › Cockpit Apply persists panels on reload and a new window without saving a named preset
+[48/67] tests/e2e/layout_apply.spec.mjs:33:1 › Cockpit Apply storage failure remains editable and reports failure
+[49/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px
+  12) tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px ──
+
+    Error: maps at 320px
+
+    maps at 320px
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "mapCropCancel: clipped by panel map-crop-panel",
+    + ]
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      48 |         await page.locator('.spatial-route-editor > summary').click();
+      49 |       }
+    > 50 |       await expect.poll(() => clippedControls(page), { message: `${name} at ${width}px` }).toEqual([]);
+         |                                                                                            ^
+      51 |       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      52 |     }
+      53 |     expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/layout.spec.mjs:50:92
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-all-workspac-2f48f-trols-inside-cards-at-320px/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-all-workspac-2f48f-trols-inside-cards-at-320px/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-all-workspac-2f48f-trols-inside-cards-at-320px/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:38127) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[50/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 390px
+[51/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 768px
+[52/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1024px
+[53/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1440px
+[54/67] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1920px
+[55/67] tests/e2e/layout.spec.mjs:58:1 › layout: camera controls, conversion fields and planner rows align within their own cards
+[56/67] tests/e2e/layout.spec.mjs:97:1 › layout: Nav2 compact groups remain separate and Costmaps spans the row
+[57/67] tests/e2e/layout.spec.mjs:132:1 › layout: map view controls never overlap the legend or custom point budget
+[58/67] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in embedded mode
+  13) tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in embedded mode ──
+
+    Error: 320px, expanded=false
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      182 |         });
+      183 |         expect(geometry.overlaps, `${width}px, expanded=${expanded}`).toEqual([false, false, false]);
+    > 184 |         expect(geometry.launcherOverlaps, `${width}px, expanded=${expanded}`).toBe(false);
+          |                                                                               ^
+      185 |         expect(geometry.chipGap).toBeGreaterThanOrEqual(40);
+      186 |         // Trial checks real hit routing without issuing a stop or any robot action.
+      187 |         await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/layout.spec.mjs:184:79
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-Cockpit-top--8e0b9-ot-overlap-in-embedded-mode/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-Cockpit-top--8e0b9-ot-overlap-in-embedded-mode/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-Cockpit-top--8e0b9-ot-overlap-in-embedded-mode/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:38240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[59/67] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in standalone mode
+  14) tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in standalone mode
+
+    Error: 320px, expanded=false
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      182 |         });
+      183 |         expect(geometry.overlaps, `${width}px, expanded=${expanded}`).toEqual([false, false, false]);
+    > 184 |         expect(geometry.launcherOverlaps, `${width}px, expanded=${expanded}`).toBe(false);
+          |                                                                               ^
+      185 |         expect(geometry.chipGap).toBeGreaterThanOrEqual(40);
+      186 |         // Trial checks real hit routing without issuing a stop or any robot action.
+      187 |         await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/layout.spec.mjs:184:79
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-Cockpit-top--4bb58--overlap-in-standalone-mode/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-Cockpit-top--4bb58--overlap-in-standalone-mode/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/layout-layout-Cockpit-top--4bb58--overlap-in-standalone-mode/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:38268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[60/67] tests/e2e/mission_page.spec.mjs:4:1 › Missions sidebar page creates ordered mission and sends only explicit actions
+  15) tests/e2e/mission_page.spec.mjs:4:1 › Missions sidebar page creates ordered mission and sends only explicit actions
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#pageTitle')
+    Expected: "Missions"
+    Received: "미션"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#pageTitle')
+        14 × locator resolved to <h1 id="pageTitle">미션</h1>
+           - unexpected value "미션"
+
+
+      10 |   await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
+      11 |   await page.locator('[data-nav="missions"]').click();
+    > 12 |   await expect(page.locator('#pageTitle')).toHaveText('Missions');
+         |                                            ^
+      13 |   const panel = page.locator('#dashboardMissionHost');
+      14 |   await expect(panel.locator('[data-mission-draft-id]')).toHaveCount(2);
+      15 |   expect(backend.mutations('/api/v1/missions')).toHaveLength(0);
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/mission_page.spec.mjs:12:44
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/mission_page-Missions-side-1cb9b-sends-only-explicit-actions/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/mission_page-Missions-side-1cb9b-sends-only-explicit-actions/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/mission_page-Missions-side-1cb9b-sends-only-explicit-actions/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:38297) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[61/67] tests/e2e/mission_page.spec.mjs:42:1 › Missions page surfaces rejected start without claiming the mission is running
+[62/67] tests/e2e/navigation_presets.spec.mjs:4:1 › Nav2 team presets save, refresh and reload without applying or driving
+[63/67] tests/e2e/reusable_points_orders.spec.mjs:4:1 › Missions repeat registered points in order and remove only one occurrence
+[64/67] tests/e2e/reusable_points_orders.spec.mjs:21:1 › Route Planner keeps menu rows after save reload and second save, with destination above menus
+[65/67] tests/e2e/schematic_missing_assets.spec.mjs:4:1 › Route Planner saved-map order editor remains usable without private schematic assets
+[66/67] tests/e2e/spatial_editor.spec.mjs:4:1 › delivery posture is visit-specific and stays non-executable after save
+[67/67] tests/e2e/spatial_editor.spec.mjs:22:1 › spatial editor draws, edits, saves a constrained draft and retains it after CAS rejection
+  15 failed
+    tests/e2e/dashboard.spec.mjs:131:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+    tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+    tests/e2e/dashboard.spec.mjs:230:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+    tests/e2e/dashboard.spec.mjs:359:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+    tests/e2e/dashboard.spec.mjs:408:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+    tests/e2e/dashboard.spec.mjs:426:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+    tests/e2e/dashboard.spec.mjs:509:1 › standalone dashboard Route Planner is reachable and releases polling when closed
+    tests/e2e/dashboard.spec.mjs:876:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+    tests/e2e/dashboard.spec.mjs:971:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+    tests/e2e/dashboard.spec.mjs:1059:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+    tests/e2e/dashboard.spec.mjs:1134:1 › Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels
+    tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px ────
+    tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in embedded mode ────
+    tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in standalone mode ──
+    tests/e2e/mission_page.spec.mjs:4:1 › Missions sidebar page creates ordered mission and sends only explicit actions
+  52 passed (5.5m)
