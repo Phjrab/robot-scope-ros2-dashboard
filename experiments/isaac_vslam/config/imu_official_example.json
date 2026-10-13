@@ -1,0 +1,9 @@
+{
+  "status": "EXAMPLE_ONLY_NOT_SENSOR_CALIBRATION",
+  "source": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/blob/e31f4cc1d41a329a01946e5fe63669f8b15da677/isaac_ros_visual_slam/launch/isaac_ros_visual_slam_realsense.launch.py",
+  "gyro_noise_density": 0.000244,
+  "gyro_random_walk": 0.000019393,
+  "accel_noise_density": 0.001862,
+  "accel_random_walk": 0.003,
+  "note": "The official example's 200 Hz calibration_frequency is deliberately omitted. Use the actual observed IMU rate; D435i gyro and accel may support different rates. Record using these values as uncalibrated official example defaults if used."
+}

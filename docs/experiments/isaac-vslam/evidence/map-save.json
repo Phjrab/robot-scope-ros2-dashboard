@@ -1,0 +1,23 @@
+{
+  "status": "SAVED_NOT_RELOCALIZATION_TESTED",
+  "map_directory": "/lab/run/slam-save/map",
+  "service": "/vslam_lab/visual_slam/save_map",
+  "created_utc": "2026-10-13T12:14:43.597336+00:00",
+  "relocalization_verified": false,
+  "coverage_verified": false,
+  "observation": {
+    "slam_path_samples": 932,
+    "max_path_poses": 1024,
+    "evidence_type": "live_stationary"
+  },
+  "runtime_mapping_enabled": true,
+  "service_success": true,
+  "files": [
+    {
+      "path": "data.mdb",
+      "bytes": 45056,
+      "sha256": "c8426f33dfa789c0a13eef9bcf101a6cbb8bcee3f8c60eecd2e0263982d933ce"
+    }
+  ],
+  "ended_utc": "2026-10-13T12:14:45.674385+00:00"
+}

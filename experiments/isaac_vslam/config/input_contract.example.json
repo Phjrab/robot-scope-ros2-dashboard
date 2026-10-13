@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "observation_state": "NOT_OBSERVED",
+  "evidence_path": "NOT_OBSERVED",
+  "source": {
+    "kind": "live",
+    "id": "NOT_OBSERVED",
+    "sha256": null
+  },
+  "base_frame": "NOT_OBSERVED",
+  "rectified_images": true,
+  "calibration_verified": false,
+  "static_transforms_verified": false,
+  "baseline_m": null,
+  "clock_domain": "NOT_OBSERVED",
+  "left": {
+    "image_topic": "/vslam_lab/camera/infra1/image_rect_raw",
+    "camera_info_topic": "/vslam_lab/camera/infra1/camera_info",
+    "image_frame": "NOT_OBSERVED",
+    "camera_info_frame": "NOT_OBSERVED",
+    "encoding": "NOT_OBSERVED"
+  },
+  "right": {
+    "image_topic": "/vslam_lab/camera/infra2/image_rect_raw",
+    "camera_info_topic": "/vslam_lab/camera/infra2/camera_info",
+    "image_frame": "NOT_OBSERVED",
+    "camera_info_frame": "NOT_OBSERVED",
+    "encoding": "NOT_OBSERVED"
+  },
+  "imu": {
+    "verified": false,
+    "topic": "/vslam_lab/camera/imu",
+    "frame": "NOT_OBSERVED",
+    "units_axes_timestamps_and_transform_verified": false,
+    "measured_rate_hz": null,
+    "noise_source": "NOT_OBSERVED",
+    "gyro_noise_density": null,
+    "gyro_random_walk": null,
+    "accel_noise_density": null,
+    "accel_random_walk": null
+  }
+}

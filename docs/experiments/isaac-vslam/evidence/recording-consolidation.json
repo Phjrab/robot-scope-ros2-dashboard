@@ -1,0 +1,22 @@
+{
+  "observed_utc": "2026-10-13T12:25:07.854358+00:00",
+  "plan": [
+    {
+      "source": "/home/unitree/experiments/isaac-vslam-lab/runs/live-20261013/recordings/input",
+      "destination": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-20261013-input",
+      "bytes": 28224
+    },
+    {
+      "source": "/home/unitree/experiments/isaac-vslam-lab/runs/live-20261013/recordings/input-retry",
+      "destination": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-20261013-input-retry",
+      "bytes": 317536914
+    },
+    {
+      "source": "/home/unitree/experiments/isaac-vslam-lab/runs/live-post-reboot-20261013/recordings/input",
+      "destination": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-post-reboot-20261013-input",
+      "bytes": 543834929
+    }
+  ],
+  "total_bytes": 861400067,
+  "applied": true
+}

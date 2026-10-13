@@ -1,0 +1,1252 @@
+{
+  "format": "offline-sqlite-cdr",
+  "bag": "/lab/data/isaac_ros_visual_slam/quickstart_bag",
+  "files": [
+    {
+      "name": "quickstart_bag_0.db3",
+      "sha256": "f9baa7b80d456aaf89ea69d1cc312775b763f185c073887ad5ac4c3f05e9afca",
+      "bytes": 1660792832
+    }
+  ],
+  "topics": {
+    "/front_stereo_camera/left/camera_info": {
+      "type": "sensor_msgs/msg/CameraInfo",
+      "count": 59,
+      "bag_start_ns": 1707938733213307455,
+      "bag_end_ns": 1707938735143893686,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 169658540
+          },
+          "frame_id": "front_stereo_camera_left_optical"
+        },
+        "height": 1200,
+        "width": 1920,
+        "distortion_model": "rational_polynomial",
+        "d": [
+          0.49616456031799316,
+          0.5692879557609558,
+          -0.0002505302254576236,
+          -6.715676136082038e-05,
+          0.06754042208194733,
+          0.864196240901947,
+          0.670874834060669,
+          0.24775302410125732
+        ],
+        "k": [
+          958.3485717773438,
+          0.0,
+          959.3600463867188,
+          0.0,
+          956.1807250976562,
+          590.9498901367188,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "r": [
+          0.9999945163726807,
+          -0.0012521828757598996,
+          0.0030585876666009426,
+          0.0012525690253823996,
+          0.9999992251396179,
+          -0.0001243498409166932,
+          -0.003058429341763258,
+          0.00012818025425076485,
+          0.9999952912330627
+        ],
+        "p": [
+          841.5645141601562,
+          0.0,
+          936.2496337890625,
+          0.0,
+          0.0,
+          841.5645141601562,
+          566.3681030273438,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        "binning_x": 1,
+        "binning_y": 1,
+        "roi": {
+          "x_offset": 0,
+          "y_offset": 0,
+          "height": 1200,
+          "width": 1920,
+          "do_rectify": false
+        }
+      }
+    },
+    "/front_stereo_camera/right/camera_info": {
+      "type": "sensor_msgs/msg/CameraInfo",
+      "count": 59,
+      "bag_start_ns": 1707938733213619904,
+      "bag_end_ns": 1707938735145945718,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 169658540
+          },
+          "frame_id": "front_stereo_camera_right_optical"
+        },
+        "height": 1200,
+        "width": 1920,
+        "distortion_model": "rational_polynomial",
+        "d": [
+          28.77032470703125,
+          17.617490768432617,
+          -0.00026468405849300325,
+          -0.0001140637687058188,
+          0.9161560535430908,
+          29.153478622436523,
+          28.191028594970703,
+          4.701481819152832
+        ],
+        "k": [
+          961.1229248046875,
+          0.0,
+          952.1273803710938,
+          0.0,
+          958.8575439453125,
+          591.74365234375,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "r": [
+          0.9999943971633911,
+          -0.0009082190808840096,
+          -0.0032141038682311773,
+          0.0009086249046958983,
+          0.9999995827674866,
+          0.00012480518489610404,
+          0.003213989082723856,
+          -0.00012772491027135402,
+          0.9999948143959045
+        ],
+        "p": [
+          841.5645141601562,
+          0.0,
+          936.2496337890625,
+          -125.81653876104428,
+          0.0,
+          841.5645141601562,
+          566.3681030273438,
+          0.00013578236394096166,
+          0.0,
+          0.0,
+          1.0,
+          0.0004805212956853211
+        ],
+        "binning_x": 1,
+        "binning_y": 1,
+        "roi": {
+          "x_offset": 0,
+          "y_offset": 0,
+          "height": 1200,
+          "width": 1920,
+          "do_rectify": false
+        }
+      }
+    },
+    "/front_stereo_camera/left/image_raw": {
+      "type": "sensor_msgs/msg/Image",
+      "count": 60,
+      "bag_start_ns": 1707938733180052894,
+      "bag_end_ns": 1707938735156480822,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 136329540
+          },
+          "frame_id": "front_stereo_camera_left_optical"
+        },
+        "encoding": "rgb8",
+        "height": 1200,
+        "width": 1920,
+        "step": 5760
+      }
+    },
+    "/tf": {
+      "type": "tf2_msgs/msg/TFMessage",
+      "count": 478,
+      "bag_start_ns": 1707938733174912862,
+      "bag_end_ns": 1707938735171988085,
+      "first": {
+        "transforms": [
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 102987540
+              },
+              "frame_id": "right_stereo_camera"
+            },
+            "child_frame_id": "right_stereo_camera_left_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.5,
+                "y": -0.5,
+                "z": 0.5,
+                "w": -0.5
+              }
+            }
+          }
+        ]
+      }
+    },
+    "/front_stereo_camera/right/image_raw": {
+      "type": "sensor_msgs/msg/Image",
+      "count": 60,
+      "bag_start_ns": 1707938733182721343,
+      "bag_end_ns": 1707938735162158326,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 136329540
+          },
+          "frame_id": "front_stereo_camera_right_optical"
+        },
+        "encoding": "rgb8",
+        "height": 1200,
+        "width": 1920,
+        "step": 5760
+      }
+    },
+    "/back_stereo_camera/right/camera_info": {
+      "type": "sensor_msgs/msg/CameraInfo",
+      "count": 60,
+      "bag_start_ns": 1707938733177112446,
+      "bag_end_ns": 1707938735139619958,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 136330540
+          },
+          "frame_id": "back_stereo_camera_right_optical"
+        },
+        "height": 1200,
+        "width": 1920,
+        "distortion_model": "rational_polynomial",
+        "d": [
+          29.466896057128906,
+          15.772783279418945,
+          -0.0002456606016494334,
+          -3.776913581532426e-05,
+          0.6789474487304688,
+          29.85122299194336,
+          26.60454559326172,
+          3.8266615867614746
+        ],
+        "k": [
+          963.6636352539062,
+          0.0,
+          948.9099731445312,
+          0.0,
+          961.322021484375,
+          590.4329833984375,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "r": [
+          0.9999951124191284,
+          -0.0002925031876657158,
+          -0.0031205129344016314,
+          0.0002934550284408033,
+          0.9999998807907104,
+          0.00030457437969744205,
+          0.0031204235274344683,
+          -0.00030548861832357943,
+          0.9999951124191284
+        ],
+        "p": [
+          844.67822265625,
+          0.0,
+          927.3002319335938,
+          -126.42758781766315,
+          0.0,
+          844.67822265625,
+          566.7403564453125,
+          4.378075755084865e-05,
+          0.0,
+          0.0,
+          1.0,
+          0.0004670664493460208
+        ],
+        "binning_x": 1,
+        "binning_y": 1,
+        "roi": {
+          "x_offset": 0,
+          "y_offset": 0,
+          "height": 1200,
+          "width": 1920,
+          "do_rectify": false
+        }
+      }
+    },
+    "/back_stereo_camera/right/image_raw": {
+      "type": "sensor_msgs/msg/Image",
+      "count": 60,
+      "bag_start_ns": 1707938733201946431,
+      "bag_end_ns": 1707938735148410070,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 136330540
+          },
+          "frame_id": "back_stereo_camera_right_optical"
+        },
+        "encoding": "rgb8",
+        "height": 1200,
+        "width": 1920,
+        "step": 5760
+      }
+    },
+    "/back_stereo_camera/left/camera_info": {
+      "type": "sensor_msgs/msg/CameraInfo",
+      "count": 60,
+      "bag_start_ns": 1707938733176881566,
+      "bag_end_ns": 1707938735139270262,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 136330540
+          },
+          "frame_id": "back_stereo_camera_left_optical"
+        },
+        "height": 1200,
+        "width": 1920,
+        "distortion_model": "rational_polynomial",
+        "d": [
+          75.2353515625,
+          50.16769790649414,
+          -0.0001281990116694942,
+          -0.00010999078949680552,
+          2.774040699005127,
+          75.54109954833984,
+          78.15467071533203,
+          13.880677223205566
+        ],
+        "k": [
+          961.9354248046875,
+          0.0,
+          954.26171875,
+          0.0,
+          959.6000366210938,
+          592.3311767578125,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "r": [
+          0.9999982118606567,
+          -0.0012145962100476027,
+          -0.0014591407962143421,
+          0.0012141511542722583,
+          0.9999992251396179,
+          -0.00030591784161515534,
+          0.0014595112297683954,
+          0.0003041456511709839,
+          0.9999988675117493
+        ],
+        "p": [
+          844.67822265625,
+          0.0,
+          927.3002319335938,
+          0.0,
+          0.0,
+          844.67822265625,
+          566.7403564453125,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        "binning_x": 1,
+        "binning_y": 1,
+        "roi": {
+          "x_offset": 0,
+          "y_offset": 0,
+          "height": 1200,
+          "width": 1920,
+          "do_rectify": false
+        }
+      }
+    },
+    "/back_stereo_camera/left/image_raw": {
+      "type": "sensor_msgs/msg/Image",
+      "count": 60,
+      "bag_start_ns": 1707938733198657791,
+      "bag_end_ns": 1707938735151326966,
+      "first": {
+        "header": {
+          "stamp": {
+            "sec": 1707938733,
+            "nanosec": 136330540
+          },
+          "frame_id": "back_stereo_camera_left_optical"
+        },
+        "encoding": "rgb8",
+        "height": 1200,
+        "width": 1920,
+        "step": 5760
+      }
+    },
+    "/tf_static": {
+      "type": "tf2_msgs/msg/TFMessage",
+      "count": 1,
+      "bag_start_ns": 1707938733174752000,
+      "bag_end_ns": 1707938733174752000,
+      "first": {
+        "transforms": [
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "back_2d_lidar",
+            "transform": {
+              "translation": {
+                "x": -0.4894,
+                "y": 0.0,
+                "z": 0.418
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.999999999999985,
+                "w": -1.7320510330969933e-07
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "chassis_imu",
+            "transform": {
+              "translation": {
+                "x": -0.21848,
+                "y": 0.02446,
+                "z": 0.01643
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "front_2d_lidar",
+            "transform": {
+              "translation": {
+                "x": 0.026,
+                "y": 0.0,
+                "z": 0.418
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "front_3d_lidar",
+            "transform": {
+              "translation": {
+                "x": -0.2317,
+                "y": 0.0,
+                "z": 0.5263
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "front_fisheye_camera",
+            "transform": {
+              "translation": {
+                "x": 0.104344,
+                "y": 0.0,
+                "z": 0.37439
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "front_fisheye_camera"
+            },
+            "child_frame_id": "front_fisheye_camera_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "front_stereo_camera"
+            },
+            "child_frame_id": "front_stereo_camera_imu",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.0947,
+                "z": 0.0061
+              },
+              "rotation": {
+                "x": 6.670672372478517e-08,
+                "y": 0.7071068755241025,
+                "z": 6.670672377281075e-08,
+                "w": 0.7071066868489736
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "front_stereo_camera",
+            "transform": {
+              "translation": {
+                "x": 0.093139,
+                "y": 0.074998,
+                "z": 0.34439
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "front_stereo_camera"
+            },
+            "child_frame_id": "front_stereo_camera_left",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "front_stereo_camera_left"
+            },
+            "child_frame_id": "front_stereo_camera_left_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "front_stereo_camera"
+            },
+            "child_frame_id": "front_stereo_camera_right",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.15,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "front_stereo_camera_right"
+            },
+            "child_frame_id": "front_stereo_camera_right_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "left_fisheye_camera",
+            "transform": {
+              "translation": {
+                "x": -0.231696,
+                "y": 0.154101,
+                "z": 0.34439
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.7071066656470943,
+                "w": 0.7071068967259818
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "left_fisheye_camera"
+            },
+            "child_frame_id": "left_fisheye_camera_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "left_stereo_camera"
+            },
+            "child_frame_id": "left_stereo_camera_imu",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.0947,
+                "z": 0.0061
+              },
+              "rotation": {
+                "x": 6.670672372478517e-08,
+                "y": 0.7071068755241025,
+                "z": 6.670672377281075e-08,
+                "w": 0.7071066868489736
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "left_stereo_camera",
+            "transform": {
+              "translation": {
+                "x": -0.430432,
+                "y": 0.142836,
+                "z": 0.34439
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.7071066656470943,
+                "w": 0.7071068967259818
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "left_stereo_camera"
+            },
+            "child_frame_id": "left_stereo_camera_left",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "left_stereo_camera_left"
+            },
+            "child_frame_id": "left_stereo_camera_left_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "left_stereo_camera"
+            },
+            "child_frame_id": "left_stereo_camera_right",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.15,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "left_stereo_camera_right"
+            },
+            "child_frame_id": "left_stereo_camera_right_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "rear_fisheye_camera",
+            "transform": {
+              "translation": {
+                "x": -0.567737,
+                "y": 0.0,
+                "z": 0.37439
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.999999999999985,
+                "w": -1.7320510330969933e-07
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "rear_fisheye_camera"
+            },
+            "child_frame_id": "rear_fisheye_camera_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "rear_stereo_camera"
+            },
+            "child_frame_id": "rear_stereo_camera_imu",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.0947,
+                "z": 0.0061
+              },
+              "rotation": {
+                "x": 6.670672372478517e-08,
+                "y": 0.7071068755241025,
+                "z": 6.670672377281075e-08,
+                "w": 0.7071066868489736
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "rear_stereo_camera",
+            "transform": {
+              "translation": {
+                "x": -0.556532,
+                "y": -0.074998,
+                "z": 0.34439
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.999999999999985,
+                "w": -1.7320510330969933e-07
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "rear_stereo_camera"
+            },
+            "child_frame_id": "rear_stereo_camera_left",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "rear_stereo_camera_left"
+            },
+            "child_frame_id": "rear_stereo_camera_left_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "rear_stereo_camera"
+            },
+            "child_frame_id": "rear_stereo_camera_right",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.15,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "rear_stereo_camera_right"
+            },
+            "child_frame_id": "rear_stereo_camera_right_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "right_fisheye_camera",
+            "transform": {
+              "translation": {
+                "x": -0.231696,
+                "y": -0.154101,
+                "z": 0.34439
+              },
+              "rotation": {
+                "x": -4.002404258925423e-14,
+                "y": -2.449490061728029e-07,
+                "z": -0.7071068967259394,
+                "w": 0.7071066656470943
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "right_fisheye_camera"
+            },
+            "child_frame_id": "right_fisheye_camera_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "right_stereo_camera"
+            },
+            "child_frame_id": "right_stereo_camera_imu",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.0947,
+                "z": 0.0061
+              },
+              "rotation": {
+                "x": 6.670672372478517e-08,
+                "y": 0.7071068755241025,
+                "z": 6.670672377281075e-08,
+                "w": 0.7071066868489736
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "base_link"
+            },
+            "child_frame_id": "right_stereo_camera",
+            "transform": {
+              "translation": {
+                "x": -0.280436,
+                "y": -0.142836,
+                "z": 0.34439
+              },
+              "rotation": {
+                "x": -4.002404258925423e-14,
+                "y": -2.449490061728029e-07,
+                "z": -0.7071068967259394,
+                "w": 0.7071066656470943
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "right_stereo_camera"
+            },
+            "child_frame_id": "right_stereo_camera_left",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "right_stereo_camera_left"
+            },
+            "child_frame_id": "right_stereo_camera_left_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "right_stereo_camera"
+            },
+            "child_frame_id": "right_stereo_camera_right",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": -0.15,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+              }
+            }
+          },
+          {
+            "header": {
+              "stamp": {
+                "sec": 1707938733,
+                "nanosec": 174752000
+              },
+              "frame_id": "right_stereo_camera_right"
+            },
+            "child_frame_id": "right_stereo_camera_right_optical",
+            "transform": {
+              "translation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+              },
+              "rotation": {
+                "x": -0.49999991339741423,
+                "y": 0.5000002499999642,
+                "z": -0.49999991339741423,
+                "w": 0.4999999232051242
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

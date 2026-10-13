@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>vslam_lab_shm</transport_id>
+      <type>SHM</type>
+      <segment_size>67108864</segment_size>
+      <port_queue_capacity>1024</port_queue_capacity>
+    </transport_descriptor>
+    <transport_descriptor>
+      <transport_id>vslam_lab_loopback</transport_id>
+      <type>UDPv4</type>
+      <interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="vslam_lab_local" is_default_profile="true">
+    <rtps>
+      <userTransports>
+        <transport_id>vslam_lab_shm</transport_id>
+        <transport_id>vslam_lab_loopback</transport_id>
+      </userTransports>
+      <useBuiltinTransports>false</useBuiltinTransports>
+    </rtps>
+  </participant>
+</profiles>

@@ -1,0 +1,36 @@
+{
+  "observed_utc": "2026-10-13T12:20:45.272677+00:00",
+  "boot_id": "f16fb0f2-21da-472e-8a4b-66c66f156d33",
+  "camera_service": {
+    "returncode": 0,
+    "stdout": "MainPID=17095\nActiveState=active\nSubState=running\n",
+    "stderr": ""
+  },
+  "dashboard_service": {
+    "returncode": 0,
+    "stdout": "active\n",
+    "stderr": ""
+  },
+  "running_containers": {
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "camera_journal": {
+    "returncode": 0,
+    "stdout": "Oct 13 12:09:21 ubuntu systemd[1]: Started Robot Scope on-demand RealSense color MJPEG relay.\nOct 13 12:12:25 ubuntu systemd[1]: Stopping Robot Scope on-demand RealSense color MJPEG relay...\nOct 13 12:12:25 ubuntu python3[1031]: [Robot Scope RealSense] listening on http://192.168.50.30:8090 profile=640x480@15 q=72\nOct 13 12:12:25 ubuntu systemd[1]: robot-scope-realsense-camera.service: Deactivated successfully.\nOct 13 12:12:25 ubuntu systemd[1]: Stopped Robot Scope on-demand RealSense color MJPEG relay.\nOct 13 12:12:25 ubuntu systemd[1]: robot-scope-realsense-camera.service: Consumed 1.507s CPU time.\nOct 13 12:19:37 ubuntu systemd[1]: Started Robot Scope on-demand RealSense color MJPEG relay.\n",
+    "stderr": ""
+  },
+  "operational_ros_environment": {
+    "ROS_DOMAIN_ID": "0",
+    "ROS_LOCALHOST_ONLY": "0",
+    "CYCLONEDDS_URI": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"enP8p1s0\" priority=\"default\" multicast=\"default\" /></Interfaces></General><Discovery><MaxAutoParticipantIndex>80</MaxAutoParticipantIndex></Discovery><Internal><SocketReceiveBufferSize max=\"8 MiB\" /></Internal></Domain></CycloneDDS>",
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp"
+  },
+  "operational_nodes": {
+    "returncode": 0,
+    "stdout": "/hesai_ros_driver_node\n/robot_scope_agent\n/robot_scope_go2_control_bridge\n/xt16_fastlio_bridge\n",
+    "stderr": ""
+  },
+  "vslam_nodes_in_operational_domain": []
+}

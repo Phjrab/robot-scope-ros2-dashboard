@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-13",
+  "scope": "Independent onboard camera experiment; not operational deployment",
+  "base_sha": "093600fc002006fba3ba520c7c58f2f202c85111",
+  "host": {
+    "os": "Ubuntu 22.04.5 aarch64",
+    "kernel": "5.15.199-tegra",
+    "l4t": "36.5.2",
+    "jetpack_archive_mapping": "6.2.3; mixed installed CUDA packages do not establish coherent JetPack userspace",
+    "cuda_symlink": "/usr/local/cuda -> cuda-12.6",
+    "cuda_package_families": [
+      "12.4",
+      "12.6",
+      "12.9"
+    ],
+    "docker": "29.1.3",
+    "runtime": "nvidia",
+    "power_mode": "existing MAXN, unchanged"
+  },
+  "images": {
+    "official_base": "nvcr.io/nvidia/isaac/ros@sha256:dd032d9aa0a4647460ab83dac734a155234a66fabeb80f9c659e7d4542a1ac94",
+    "installed_vslam_id": "sha256:3c3e4eb675ea79e1c84296ef447170b86a14cbcab76eb16a39730e7a3bdb0e2c",
+    "camera_id": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+    "sdk_source_image_id": "sha256:8828a7d09209290696b2f88660906971445a9520ead21e21f2a25f4006055f69",
+    "camera_rebuild_scope": "Existing SDK image read as Docker copy source; pinned wrapper built with 2 workers in our container. Local image ID retained on this host; no registry publication or clean rebuild equivalence claimed."
+  },
+  "repositories": {
+    "isaac_ros_visual_slam": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam.git",
+      "sha": "e31f4cc1d41a329a01946e5fe63669f8b15da677"
+    },
+    "isaac_ros_common": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git",
+      "sha": "fcf4d9e17f8f0a7f47f1d22d6a18421ce3768c01"
+    },
+    "isaac_ros_nitros": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros.git",
+      "sha": "e3a29804b6de38fefbf7040864124d983bfceb6a"
+    },
+    "isaac_ros_examples": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples.git",
+      "sha": "98066652d1ab19a0dd3d9fc4df8ff5321607d46e"
+    },
+    "isaac_ros_image_pipeline": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline.git",
+      "sha": "d931cce3d0bb4532a0a047f17a15705fc6ac2e1b"
+    },
+    "librealsense": {
+      "url": "https://github.com/IntelRealSense/librealsense.git",
+      "sha": "e196cefa896e312d79c2df400c7623aa1e9c62ac"
+    },
+    "realsense-ros": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/realsense-ros.git",
+      "sha": "c04f43308c00a6f495f14a47cc84cc293047cdff"
+    }
+  },
+  "source_provenance": "Isaac binary packages installed from official signed apt repository. Repository pins used for 3.2 API/scripts; binary build SHA equivalence is not established. realsense-ros overlay built from recorded SHA. SDK source and installed library hashes checked in source image.",
+  "librealsense_library_sha256": "29a4a449467099d760f60792bace16becebace674af3c0885a5ef930e8d22d26",
+  "sample": {
+    "version": "3.1.0",
+    "archive_bytes": 641870836,
+    "archive_sha256": "32d5b2723b6c6b1998f669f31f1889ebb739e0ada6a5d78c699108e528f15f68",
+    "db3_bytes": 1660792832,
+    "db3_sha256": "f9baa7b80d456aaf89ea69d1cc312775b763f185c073887ad5ac4c3f05e9afca",
+    "selection": "Official release-3.2 guide selects highest available semver with major=3 minor<=2; no 3.2 asset published"
+  },
+  "camera": {
+    "model": "D435i",
+    "serial": "242322077753",
+    "firmware": "5.17.3.10",
+    "official_required_firmware": "5.13.0.50",
+    "firmware_changed": false,
+    "usb": "2.1 480 Mbps",
+    "profile": "IR1/IR2 mono8 640x480 30Hz",
+    "sdk": "2.55.1",
+    "wrapper": "4.51.1-isaac",
+    "baseline_m": 0.04991525784134865,
+    "imu_messages_observed": 0,
+    "imu_warning": "Calibration unavailable; default intrinsics/extrinsics",
+    "emitter_requested": "preserve",
+    "emitter_before": 1,
+    "emitter_after": "NOT_OBSERVED: final pyrealsense2 namespace probe failed; no emitter option requested by any live launch"
+  },
+  "isolation": {
+    "operational_domain": 0,
+    "experiment_domain": 71,
+    "network": "none",
+    "localhost_only": true,
+    "output_tf": false,
+    "frames": [
+      "vslam_lab_map",
+      "vslam_lab_odom",
+      "vslam_lab_camera_link"
+    ],
+    "cpu_limit": 2,
+    "memory_limit_gib": 6,
+    "shm_mib": 512
+  },
+  "retention": {
+    "per_run_cap_gib": 2,
+    "cumulative_cap_gib": 8,
+    "free_space_floor": "max(10 GiB, 10% filesystem)",
+    "closed_recordings_bytes": 861400067,
+    "archive": "/home/unitree/experiments/isaac-vslam-lab/recordings",
+    "legacy_move": "evidence/recording-consolidation-20261013T122507Z.json",
+    "raw_payloads_in_git": false
+  },
+  "live_bag_inventory": [
+    {
+      "path": "recordings/live-20261013-input/bag/bag_0.db3",
+      "bytes": 24576,
+      "sha256": "d869705bbcac37e482b3ee7151f93e1f4326f5afc734314a1016a6591effc66b"
+    },
+    {
+      "path": "recordings/live-20261013-input-retry/bag/bag_0.db3",
+      "bytes": 317534208,
+      "sha256": "6fec3a0b3a8bed704af735a5167932fad36f236d6d1d3a6c40de57022c3dd199"
+    },
+    {
+      "path": "recordings/live-post-reboot-20261013-input/bag/bag_0.db3",
+      "bytes": 537018368,
+      "sha256": "cb2dd40886b59ce4d0af0b7fd76a503bac328e7bf403ee596ff475d0d3e58b43"
+    },
+    {
+      "path": "recordings/live-post-reboot-20261013-input/bag/bag_1.db3",
+      "bytes": 6807552,
+      "sha256": "7ddab08fa82fde22dc0e8e2f403713b3d2f941b18ca600fd53925130bcc4ac47"
+    }
+  ]
+}

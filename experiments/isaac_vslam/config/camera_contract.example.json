@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "observation_state": "NOT_OBSERVED",
+  "evidence_path": "NOT_OBSERVED",
+  "checked_at_utc": "NOT_OBSERVED",
+  "owner_status": "NOT_OBSERVED",
+  "camera_time_slot_confirmed": false,
+  "serial": "NOT_OBSERVED",
+  "model": "NOT_OBSERVED",
+  "firmware": "NOT_OBSERVED",
+  "usb_speed": "NOT_OBSERVED",
+  "sdk_version": "NOT_OBSERVED",
+  "wrapper_version": "NOT_OBSERVED",
+  "supported_stereo_profiles": [],
+  "supported_gyro_rates": [],
+  "supported_accel_rates": [],
+  "emitter_before": null,
+  "emitter_restore_command": "NOT_OBSERVED"
+}

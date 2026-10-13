@@ -1,0 +1,35 @@
+{
+  "status": "FAILED",
+  "created_utc": "2026-10-13T12:17:16.831930+00:00",
+  "global_localization_tested": false,
+  "motion_accuracy_tested": false,
+  "files": [
+    {
+      "path": "data.mdb",
+      "bytes": 45056,
+      "sha256": "c8426f33dfa789c0a13eef9bcf101a6cbb8bcee3f8c60eecd2e0263982d933ce"
+    }
+  ],
+  "current_mapping_evidence": {
+    "slam_path_samples": 997,
+    "max_path_poses": 1024,
+    "evidence_type": "live_stationary"
+  },
+  "hint": {
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "quaternion_xyzw": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "evidence": "Operator declared stationary; saved run odometry/map origin remained zero. Same camera pose is a stationary hypothesis, not independent ground truth."
+  },
+  "load_path_accepted": true,
+  "error": "TimeoutError: /vslam_lab/visual_slam/localize_in_map",
+  "ended_utc": "2026-10-13T12:17:37.153113+00:00"
+}

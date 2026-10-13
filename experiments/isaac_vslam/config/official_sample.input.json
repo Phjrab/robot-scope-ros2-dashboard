@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "observation_state": "OBSERVED",
+  "evidence_path": "/lab/data/quickstart-inspection.json",
+  "source": {
+    "kind": "bag",
+    "id": "NGC isaac_ros_visual_slam_assets 3.1.0 quickstart_bag_0.db3",
+    "sha256": "f9baa7b80d456aaf89ea69d1cc312775b763f185c073887ad5ac4c3f05e9afca"
+  },
+  "base_frame": "front_stereo_camera",
+  "rectified_images": false,
+  "calibration_verified": true,
+  "static_transforms_verified": true,
+  "baseline_m": 0.15,
+  "clock_domain": "bag_ros",
+  "static_tf_evidence_sha256": "eb982f09c810ac2fc164c0fab8af970d9f1a73268268b892954e08087430a225",
+  "imu": {
+    "verified": false,
+    "reason": "No IMU topic in this official quickstart bag"
+  },
+  "observation_notes": {
+    "scope": "Official sample first Image/CameraInfo and sole static TF message; not Go2/D435i evidence or full performance validation",
+    "image_shape": [
+      1920,
+      1200
+    ],
+    "image_count_per_side": 60,
+    "camera_info_count_per_side": 59,
+    "sequence_duration_s_approx": 2.0,
+    "rectified_P_baseline_m": 0.14950314164161682,
+    "baseline_note": "0.15 m comes from the recorded hardware static TF; rectified P gives about0.149503 m. Preserve both observations. Raw-image VSLAM uses the observed static TF; do not rewrite calibration to hide this difference.",
+    "clock_note": "Replay ROS time is supplied by bag --clock. No recorder-to-header difference is claimed as processing latency."
+  },
+  "left": {
+    "image_topic": "/vslam_lab/camera/left/image_raw",
+    "camera_info_topic": "/vslam_lab/camera/left/camera_info",
+    "image_frame": "front_stereo_camera_left_optical",
+    "camera_info_frame": "front_stereo_camera_left_optical",
+    "encoding": "rgb8"
+  },
+  "right": {
+    "image_topic": "/vslam_lab/camera/right/image_raw",
+    "camera_info_topic": "/vslam_lab/camera/right/camera_info",
+    "image_frame": "front_stereo_camera_right_optical",
+    "camera_info_frame": "front_stereo_camera_right_optical",
+    "encoding": "rgb8"
+  }
+}

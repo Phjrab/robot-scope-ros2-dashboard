@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "samples": 347,
+  "start_monotonic_ns": 780972306383,
+  "end_monotonic_ns": 1131103134696,
+  "elapsed_seconds": 350.130828313,
+  "end_reason": "duration_complete",
+  "safety_actions": [],
+  "metrics": {
+    "cpu_avg_online_percent": {
+      "samples": 347,
+      "mean": 44.75828530259366,
+      "p50": 44.5,
+      "p95": 48.8375,
+      "max": 65.625
+    },
+    "cpu_offline_cores": {
+      "samples": 347,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "cpu_online_cores": {
+      "samples": 347,
+      "mean": 8.0,
+      "p50": 8.0,
+      "p95": 8.0,
+      "max": 8.0
+    },
+    "gr3d_percent": {
+      "samples": 347,
+      "mean": 7.997118155619597,
+      "p50": 0.0,
+      "p95": 18.0,
+      "max": 40.0
+    },
+    "mem_available_bytes": {
+      "samples": 347,
+      "mean": 14095826979.412104,
+      "p50": 14031073280.0,
+      "p95": 14658766028.8,
+      "max": 14803726336.0
+    },
+    "power_mw/VDD_CPU_GPU_CV": {
+      "samples": 347,
+      "mean": 2221.827089337176,
+      "p50": 2140.0,
+      "p95": 3136.9999999999995,
+      "max": 4757.0
+    },
+    "power_mw/VDD_IN": {
+      "samples": 347,
+      "mean": 7294.582132564841,
+      "p50": 7211.0,
+      "p95": 8266.699999999999,
+      "max": 10071.0
+    },
+    "power_mw/VDD_SOC": {
+      "samples": 347,
+      "mean": 1612.7118155619596,
+      "p50": 1617.0,
+      "p95": 1620.0,
+      "max": 1698.0
+    },
+    "power_reported_average_mw/VDD_CPU_GPU_CV": {
+      "samples": 347,
+      "mean": 2480.391930835735,
+      "p50": 2367.0,
+      "p95": 3262.0999999999995,
+      "max": 3873.0
+    },
+    "power_reported_average_mw/VDD_IN": {
+      "samples": 347,
+      "mean": 7587.244956772334,
+      "p50": 7467.0,
+      "p95": 8432.199999999999,
+      "max": 9027.0
+    },
+    "power_reported_average_mw/VDD_SOC": {
+      "samples": 347,
+      "mean": 1622.8760806916428,
+      "p50": 1622.0,
+      "p95": 1636.0,
+      "max": 1646.0
+    },
+    "ram_total_mb": {
+      "samples": 347,
+      "mean": 15642.0,
+      "p50": 15642.0,
+      "p95": 15642.0,
+      "max": 15642.0
+    },
+    "ram_used_mb": {
+      "samples": 347,
+      "mean": 1706.0028818443805,
+      "p50": 1745.0,
+      "p95": 1760.0,
+      "max": 1764.0
+    },
+    "swap_total_mb": {
+      "samples": 347,
+      "mean": 7821.0,
+      "p50": 7821.0,
+      "p95": 7821.0,
+      "max": 7821.0
+    },
+    "swap_used_mb": {
+      "samples": 347,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "temperature_c/cpu": {
+      "samples": 347,
+      "mean": 62.397570605187546,
+      "p50": 62.406,
+      "p95": 63.0,
+      "max": 63.781
+    },
+    "temperature_c/cv0": {
+      "samples": 347,
+      "mean": 60.33510951008663,
+      "p50": 60.375,
+      "p95": 60.906,
+      "max": 61.406
+    },
+    "temperature_c/cv1": {
+      "samples": 347,
+      "mean": 60.81050144092235,
+      "p50": 60.843,
+      "p95": 61.3337,
+      "max": 61.781
+    },
+    "temperature_c/cv2": {
+      "samples": 347,
+      "mean": 60.3846945244959,
+      "p50": 60.437,
+      "p95": 60.896699999999996,
+      "max": 61.125
+    },
+    "temperature_c/gpu": {
+      "samples": 347,
+      "mean": 59.35480115273797,
+      "p50": 59.406,
+      "p95": 59.875,
+      "max": 60.062
+    },
+    "temperature_c/soc0": {
+      "samples": 347,
+      "mean": 60.26908933717597,
+      "p50": 60.406,
+      "p95": 60.812,
+      "max": 60.968
+    },
+    "temperature_c/soc1": {
+      "samples": 347,
+      "mean": 63.39829682997129,
+      "p50": 63.5,
+      "p95": 63.906,
+      "max": 64.031
+    },
+    "temperature_c/soc2": {
+      "samples": 347,
+      "mean": 59.74882420749304,
+      "p50": 59.812,
+      "p95": 60.312,
+      "max": 60.468
+    },
+    "temperature_c/tj": {
+      "samples": 347,
+      "mean": 63.411884726224905,
+      "p50": 63.531,
+      "p95": 63.906,
+      "max": 64.031
+    }
+  },
+  "scope": "Host-wide load including other workloads; no attribution to VSLAM alone.",
+  "units": {
+    "ram_swap": "MB as printed by tegrastats",
+    "temperature": "C",
+    "power": "mW (instantaneous and vendor average separate)"
+  },
+  "missing_metrics": "Absent fields were not observed; they are not zero.",
+  "source": "host_tegrastats",
+  "evidence_type": "host_resource_observation"
+}

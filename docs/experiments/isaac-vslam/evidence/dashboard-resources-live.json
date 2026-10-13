@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "sampled_at": "2026-10-13T12:02:38.847999+00:00",
+  "sample_age_seconds": 0,
+  "sample_interval_seconds": 2,
+  "scope": "dashboard_host",
+  "host": {
+    "model": "NVIDIA Jetson Orin NX Engineering Reference Developer Kit",
+    "is_jetson": true
+  },
+  "cpu": {
+    "percent": 41.22,
+    "cores": [
+      {
+        "id": "cpu0",
+        "percent": 53.33,
+        "frequency_mhz": 806.4
+      },
+      {
+        "id": "cpu1",
+        "percent": 38.89,
+        "frequency_mhz": 806.4
+      },
+      {
+        "id": "cpu2",
+        "percent": 39.44,
+        "frequency_mhz": 806.4
+      },
+      {
+        "id": "cpu3",
+        "percent": 40.09,
+        "frequency_mhz": 806.4
+      },
+      {
+        "id": "cpu4",
+        "percent": 41.43,
+        "frequency_mhz": 1984.0
+      },
+      {
+        "id": "cpu5",
+        "percent": 37.5,
+        "frequency_mhz": 1984.0
+      },
+      {
+        "id": "cpu6",
+        "percent": 38.0,
+        "frequency_mhz": 1984.0
+      },
+      {
+        "id": "cpu7",
+        "percent": 41.67,
+        "frequency_mhz": 1984.0
+      }
+    ],
+    "source": "/proc/stat deltas"
+  },
+  "gpu": {
+    "percent": 0.0,
+    "source": "Jetson GPU sysfs load (0..1000)"
+  },
+  "ram": {
+    "used_bytes": 1766039552,
+    "total_bytes": 16402247680,
+    "percent": 10.77
+  },
+  "swap": {
+    "used_bytes": 0,
+    "total_bytes": 8201109504,
+    "percent": 0.0
+  },
+  "disk": {
+    "total_bytes": 501386080256,
+    "used_bytes": 81209065472,
+    "free_bytes": 394632810496,
+    "percent": 16.2
+  },
+  "temperature": {
+    "max_celsius": 65.156,
+    "sensors": [
+      {
+        "name": "cv0-thermal",
+        "celsius": 61.812
+      },
+      {
+        "name": "cpu-thermal",
+        "celsius": 63.968
+      },
+      {
+        "name": "soc2-thermal",
+        "celsius": 61.5
+      },
+      {
+        "name": "soc0-thermal",
+        "celsius": 62.125
+      },
+      {
+        "name": "cv1-thermal",
+        "celsius": 62.468
+      },
+      {
+        "name": "gpu-thermal",
+        "celsius": 61.187
+      },
+      {
+        "name": "tj-thermal",
+        "celsius": 65.125
+      },
+      {
+        "name": "soc1-thermal",
+        "celsius": 65.156
+      },
+      {
+        "name": "cv2-thermal",
+        "celsius": 62.187
+      }
+    ]
+  },
+  "history": [
+    {
+      "cpu_percent": null,
+      "gpu_percent": 0.0,
+      "ram_percent": 10.73,
+      "temperature_c": 65.25,
+      "timestamp": "2026-10-13T12:02:36.737344+00:00"
+    },
+    {
+      "cpu_percent": 41.22,
+      "gpu_percent": 0.0,
+      "ram_percent": 10.77,
+      "temperature_c": 65.156,
+      "timestamp": "2026-10-13T12:02:38.847999+00:00"
+    }
+  ],
+  "unavailable": [],
+  "throttling": {
+    "state": "NOT_OBSERVED",
+    "reason": "\uc628\ub3c4\ub9cc\uc73c\ub85c throttling\uc744 \ud310\uc815\ud558\uc9c0 \uc54a\uc74c"
+  }
+}
