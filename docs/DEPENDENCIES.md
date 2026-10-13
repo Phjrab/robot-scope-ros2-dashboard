@@ -4,6 +4,13 @@ Robot Scope 저장소만으로 웹 UI와 Generic 계층을 구성할 수 있지�
 전체 경로는 외부 ROS workspace와 현장별 설정을 사용합니다. 외부 구성의 출처와 버전을
 기록하지 않으면 다른 호스트에서 같은 동작을 재현할 수 없습니다.
 
+`go2-onboard`는 같은 pinned Humble source를 내부 Jetson의 별도 workspace에
+빌드하는 [내부 단독 운영](GO2_ONBOARD_MIGRATION.md) profile입니다. 기존 제조사
+workspace와 외부 호스트 build/install/log는 보존하고 재사용 설치로 간주하지
+않습니다. 가용 RAM/CPU에 맞게 bounded build jobs를 사용하며, `rclpy`·NumPy·OpenCV
+import 경로와 ABI를 실제 target Python에서 확인합니다. AI 모델이 현재 사용되지
+않으면 신규 TensorRT/model 설치는 이전 필수 의존성이 아닙니다.
+
 ## 기본 운영체제 패키지
 
 Ubuntu 22.04/Humble 전체 경로와 Ubuntu 24.04/Jazzy `observer` 경로에서 설치 모드에

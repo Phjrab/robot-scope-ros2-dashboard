@@ -53,6 +53,7 @@ NAVIGATION_STRICT_PROFILES = frozenset(
     {
         "",
         "go2-xt16-wired",
+        "go2-onboard",
         "go2-xt16-wireless",
         "competition-pdf-direct",
     }

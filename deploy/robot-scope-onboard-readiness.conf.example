@@ -1,0 +1,11 @@
+# Optional onboard drop-in for the installer-rendered robot-scope.service.
+# The env-aware dashboard supervisor already starts a safe offline viewer and
+# reinitializes DDS after the configured Go2 link is ready. The control bridge's
+# supervisor waits for that same exact NIC/CIDR before creating its participant.
+# Keep management Wi-Fi separate; never copy the external .50.10 readiness gate.
+[Unit]
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Environment=ROBOT_SCOPE_MAPPING_PROFILE=go2-onboard

@@ -9,6 +9,7 @@ ACTION="dry-run"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
 LIVOX_SDK_PREFIX_VALUE="${ROBOT_SCOPE_LIVOX_SDK_PREFIX:-}"
 SKIP_BUILD=0
+BUILD_JOBS="${ROBOT_SCOPE_BUILD_JOBS:-2}"
 
 usage() {
   cat <<'EOF'
@@ -30,6 +31,7 @@ Options:
   --apply                    Clone and build dependencies
   --workspace-root PATH      Parent for unitree_ros2 and ws/ (default: $HOME)
   --skip-build               Verify/clone pinned sources without colcon builds
+  --build-jobs N             Limit package/compiler parallelism (1-16; default 2)
   -h, --help                 Show this help
 
 Existing repositories are never reset or upgraded. They must have the expected
@@ -71,6 +73,11 @@ while (($#)); do
       SKIP_BUILD=1
       shift
       ;;
+    --build-jobs)
+      (($# >= 2)) || die "--build-jobs requires a value"
+      BUILD_JOBS="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -86,6 +93,7 @@ case "$MODE" in
   "") die "--mode is required" ;;
   *) die "unsupported mode: $MODE" ;;
 esac
+[[ "$BUILD_JOBS" =~ ^([1-9]|1[0-6])$ ]] || die "--build-jobs must be an integer from 1 to 16"
 
 [[ -f "$MANIFEST" ]] || die "dependency manifest is missing: $MANIFEST"
 command -v python3 >/dev/null || die "python3 is required"
@@ -125,7 +133,7 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
   fi
 fi
 
-echo "[Robot Scope bootstrap] mode=$MODE action=$ACTION root=$WORKSPACE_ROOT"
+echo "[Robot Scope bootstrap] mode=$MODE action=$ACTION root=$WORKSPACE_ROOT build-jobs=$BUILD_JOBS"
 
 if [[ "$MODE" == "observer" ]]; then
   echo "[Robot Scope bootstrap] observer mode has no vendor source dependencies"
@@ -286,7 +294,8 @@ fi
 run_with_setups \
   "$WORKSPACE_ROOT/unitree_ros2/cyclonedds_ws" 1 \
   "$ROS_SETUP" \
-  colcon build --symlink-install
+  /usr/bin/env "CMAKE_BUILD_PARALLEL_LEVEL=$BUILD_JOBS" "MAKEFLAGS=-j$BUILD_JOBS" \
+  colcon build --symlink-install --parallel-workers "$BUILD_JOBS"
 
 if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
   XT16_BRIDGE_PACKAGE="$PROJECT_DIR/ros2/robot_scope_xt16_bridge"
@@ -296,6 +305,7 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
     "$PROJECT_DIR" 2 \
     "$ROS_SETUP" \
     "$WORKSPACE_ROOT/unitree_ros2/cyclonedds_ws/install/setup.bash" \
+    /usr/bin/env "CMAKE_BUILD_PARALLEL_LEVEL=$BUILD_JOBS" "MAKEFLAGS=-j$BUILD_JOBS" \
     colcon \
       --log-base "$XT16_BRIDGE_BUILD_ROOT/log" \
       build \
@@ -303,6 +313,7 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
       --build-base "$XT16_BRIDGE_BUILD_ROOT/build" \
       --install-base "$XT16_BRIDGE_BUILD_ROOT/install" \
       --merge-install \
+      --parallel-workers "$BUILD_JOBS" \
       --cmake-args -DCMAKE_BUILD_TYPE=Release
 
   LIVOX_SDK_SOURCE="$WORKSPACE_ROOT/ws/livox/Livox-SDK2"
@@ -315,7 +326,7 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$LIVOX_SDK_PREFIX" \
     -DCMAKE_INSTALL_LIBDIR=lib
-  run cmake --build "$LIVOX_SDK_BUILD" --parallel
+  run cmake --build "$LIVOX_SDK_BUILD" --parallel "$BUILD_JOBS"
   run cmake --install "$LIVOX_SDK_BUILD"
   if [[ "$ACTION" == "apply" ]]; then
     [[ -f "$LIVOX_SDK_PREFIX/lib/liblivox_lidar_sdk_shared.so" ]] || \
@@ -328,16 +339,28 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
     "$WORKSPACE_ROOT/ws/hesai_ws" 2 \
     "$ROS_SETUP" \
     "$WORKSPACE_ROOT/unitree_ros2/cyclonedds_ws/install/setup.bash" \
-    colcon build --symlink-install
+    /usr/bin/env "CMAKE_BUILD_PARALLEL_LEVEL=$BUILD_JOBS" "MAKEFLAGS=-j$BUILD_JOBS" \
+    colcon build --symlink-install --parallel-workers "$BUILD_JOBS"
 
+  LIVOX_DRIVER_STAGE="$WORKSPACE_ROOT/ws/livox/livox_ros2_package"
+  run python3 "$PROJECT_DIR/scripts/prepare_livox_ros2_source.py" \
+    --source "$WORKSPACE_ROOT/ws/livox/ws_livox/src/livox_ros_driver2" \
+    --destination "$LIVOX_DRIVER_STAGE"
   run_with_setups \
-    "$WORKSPACE_ROOT/ws/livox/ws_livox/src/livox_ros_driver2" 1 \
+    "$WORKSPACE_ROOT/ws/livox/ws_livox" 1 \
     "$ROS_SETUP" \
     /usr/bin/env \
       "CMAKE_LIBRARY_PATH=$LIVOX_SDK_PREFIX/lib" \
       "CMAKE_INCLUDE_PATH=$LIVOX_SDK_PREFIX/include" \
       "LD_LIBRARY_PATH=$LIVOX_SDK_LIBRARY_PATH" \
-      /usr/bin/bash ./build.sh humble
+      "CMAKE_BUILD_PARALLEL_LEVEL=$BUILD_JOBS" \
+      "MAKEFLAGS=-j$BUILD_JOBS" \
+    colcon --log-base "$WORKSPACE_ROOT/ws/livox/ws_livox/log" build \
+      --base-paths "$LIVOX_DRIVER_STAGE" \
+      --build-base "$WORKSPACE_ROOT/ws/livox/ws_livox/build" \
+      --install-base "$WORKSPACE_ROOT/ws/livox/ws_livox/install" \
+      --parallel-workers "$BUILD_JOBS" \
+      --cmake-args -DROS_EDITION=ROS2 -DDISTRO_ROS=humble
 
   run_with_setups \
     "$WORKSPACE_ROOT/ws/fastlio_ws" 2 \
@@ -345,7 +368,9 @@ if [[ "$MODE" == "go2-xt16" || "$MODE" == "go2-nav" ]]; then
     "$WORKSPACE_ROOT/ws/livox/ws_livox/install/setup.bash" \
     /usr/bin/env \
       "LD_LIBRARY_PATH=$LIVOX_SDK_LIBRARY_PATH" \
-      colcon build --symlink-install
+      "CMAKE_BUILD_PARALLEL_LEVEL=$BUILD_JOBS" \
+      "MAKEFLAGS=-j$BUILD_JOBS" \
+      colcon build --symlink-install --parallel-workers "$BUILD_JOBS"
 fi
 
 echo "[Robot Scope bootstrap] pinned ROS dependencies are ready"

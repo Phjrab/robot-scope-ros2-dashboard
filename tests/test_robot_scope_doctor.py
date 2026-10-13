@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
@@ -114,6 +115,91 @@ class DoctorFixture:
 
 
 class RobotScopeDoctorTests(unittest.TestCase):
+    def test_realsense_local_access_requires_exact_same_private_address(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            relay_env = Path(temporary) / "realsense-camera.env"
+            self._write_realsense_env(relay_env, ROBOT_SCOPE_REALSENSE_ACCESS_MODE="local",
+                                      ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST="192.168.50.30")
+            runner = FakeRunner(interface="wlan0", cidr="192.168.50.30/24")
+            doctor = fixture.make_doctor("observer", runner=runner, realsense_relay_env_file=relay_env)
+            checks = {check.id: check for check in doctor.run()}
+            self.assertEqual(checks["realsense.config"].status, "pass")
+            self._write_realsense_env(relay_env, ROBOT_SCOPE_REALSENSE_ACCESS_MODE="local")
+            rejected = fixture.make_doctor("observer", realsense_relay_env_file=relay_env)
+            self.assertEqual({check.id: check for check in rejected.run()}["realsense.config"].status, "fail")
+            self._write_realsense_env(relay_env, ROBOT_SCOPE_REALSENSE_DASHBOARD_HOST="192.168.50.30")
+            remote = fixture.make_doctor("observer", realsense_relay_env_file=relay_env)
+            self.assertEqual({check.id: check for check in remote.run()}["realsense.config"].status, "fail")
+
+    def test_onboard_doctor_selects_direct_configs_and_no_relay_probe(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            (fixture.project / "config/go2-onboard.json").write_text('{"robot_type":"go2"}', encoding="utf-8")
+            (fixture.project / "config/hesai_xt16_onboard.yaml").write_text("{}", encoding="utf-8")
+            runner = FakeRunner()
+            doctor = fixture.make_doctor("go2-nav", runner=runner,
+                                         which=lambda name: f"/usr/bin/{name}",
+                                         environment_updates={"ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard"})
+            checks = {check.id: check for check in doctor.run()}
+            self.assertEqual(checks["onboard.robot_profile"].status, "pass")
+            self.assertEqual(checks["onboard.hesai_config"].status, "pass")
+            self.assertEqual(checks["onboard.transport"].status, "pass")
+            self.assertFalse(any(command[0].endswith("ping") for command in runner.commands))
+            rejected = fixture.make_doctor("go2", environment_updates={
+                "ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard", "ROBOT_SCOPE_CONTROL_TRANSPORT": "udp"})
+            self.assertEqual({check.id: check for check in rejected.run()}["onboard.transport"].status, "fail")
+
+    def test_onboard_native_probe_sources_selected_overlay_and_checks_real_abi_operation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            profile = fixture.project / "config/go2-onboard.json"
+            profile.write_text('{"robot_type":"go2"}', encoding="utf-8")
+            overlay = Path(temporary) / "selected-overlay/setup.bash"
+            overlay.parent.mkdir()
+            overlay.write_text("", encoding="utf-8")
+            commands = []
+
+            def runner(command, **kwargs):
+                commands.append((command, kwargs))
+                if "robot-scope-onboard-doctor" in command:
+                    payload = {"numpy_abi_family": "1.x", "modules": {name: {"path": "/verified/" + name, "version": "observed"}
+                               for name in ("numpy", "cv2", "rclpy", "unitree_go.msg", "unitree_api.msg")}}
+                    return completed(command, stdout=json.dumps(payload))
+                return FakeRunner()(command, **kwargs)
+
+            doctor = fixture.make_doctor("go2", runner=runner, environment_updates={
+                "ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard", "ROBOT_SCOPE_UNITREE_SETUP": str(overlay), "PYTHONNOUSERSITE": "1"})
+            checks = {check.id: check for check in doctor.run()}
+            self.assertEqual(checks["onboard.native_modules"].status, "pass")
+            self.assertEqual(checks["go2.unitree_workspace"].detail, str(overlay))
+            command, options = next(item for item in commands if "robot-scope-onboard-doctor" in item[0])
+            self.assertIn(str(fixture.ros_prefix / "setup.bash"), command)
+            self.assertIn(str(overlay), command)
+            self.assertIn("cv2.cvtColor", command[-1])
+            self.assertEqual(options["env"]["PYTHONNOUSERSITE"], "1")
+            failed = fixture.make_doctor("go2", runner=lambda command, **kwargs: completed(command, returncode=1, stdout='{"error_type":"ImportError"}'),
+                                        environment_updates={"ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard", "ROBOT_SCOPE_UNITREE_SETUP": str(overlay)})
+            self.assertEqual({check.id: check for check in failed.run()}["onboard.native_modules"].status, "fail")
+
+    def test_onboard_doctor_matches_launcher_contract_and_rejects_profile_symlink(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = DoctorFixture(Path(temporary))
+            profile = fixture.project / "config/go2-onboard.json"
+            profile.write_text('{"robot_type":"go2"}', encoding="utf-8")
+            for key, bad_value in (("ROBOT_SCOPE_REALSENSE_PROFILE_LIFECYCLE_MODE", "ssh"),
+                                   ("ROBOT_SCOPE_FASTLIO_DDS_MODE", "local"), ("ROS_LOCALHOST_ONLY", "1"),
+                                   ("RMW_IMPLEMENTATION", "rmw_fastrtps_cpp")):
+                doctor = fixture.make_doctor("go2", environment_updates={"ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard", key: bad_value})
+                self.assertEqual({check.id: check for check in doctor.run()}["onboard.startup_contract"].status, "fail")
+            linked = fixture.project / "config/linked.json"
+            linked.symlink_to(profile)
+            doctor = fixture.make_doctor("go2", environment_updates={"ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard", "ROBOT_SCOPE_ROBOT_PROFILE_PATH": str(linked)})
+            self.assertEqual({check.id: check for check in doctor.run()}["onboard.robot_profile"].status, "fail")
+            profile.write_text('{"robot_type":"other"}', encoding="utf-8")
+            doctor = fixture.make_doctor("go2", environment_updates={"ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard"})
+            self.assertEqual({check.id: check for check in doctor.run()}["onboard.robot_profile"].status, "fail")
+
     @staticmethod
     def _write_realsense_env(path, **overrides):
         values = {

@@ -16,6 +16,7 @@ import os
 import platform
 import re
 import shutil
+import socket
 import stat
 import subprocess
 import sys
@@ -27,6 +28,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from robot_scope_doctor import Doctor, parse_env_file
+from robot_scope_onboard_diagnostics import resource_snapshot
 
 
 SCHEMA = "robot-scope.hardware-acceptance"
@@ -384,6 +386,9 @@ class AcceptanceRunner:
         which: Callable[[str], str | None] = shutil.which,
         doctor_factory: Callable[..., Doctor] = Doctor,
         now: Callable[[], str] = utc_now,
+        onboard: bool = False,
+        require_perception: bool = False,
+        resource_probe: Callable[..., Mapping[str, Any]] = resource_snapshot,
     ) -> None:
         self.project_dir = project_dir.resolve(strict=True)
         if (
@@ -393,6 +398,9 @@ class AcceptanceRunner:
         ):
             raise ValueError("project directory is not a Robot Scope checkout")
         self.mode = mode
+        self.onboard = bool(onboard)
+        self.require_perception = bool(require_perception) or not self.onboard
+        self.resource_probe = resource_probe
         self.env_file = env_file
         expected_report_dir = self.project_dir / "runtime" / "reports"
         requested_report_dir = report_dir or expected_report_dir
@@ -589,22 +597,24 @@ class AcceptanceRunner:
             )
 
     def _fetch_endpoints(self) -> None:
+        optional = {"/api/v1/perception/health", "/api/v1/perception/latest", "/api/v1/models"} if not self.require_perception else set()
         for endpoint in READ_ONLY_ENDPOINTS:
             try:
                 self._responses[endpoint] = self.fetch_json(endpoint)
             except (RuntimeError, ValueError, json.JSONDecodeError):
                 continue
-        available = len(self._responses)
+        required = set(READ_ONLY_ENDPOINTS) - optional
+        available = len(required.intersection(self._responses))
         self.add(
             "dashboard.read_only_api",
-            "PASS" if available == len(READ_ONLY_ENDPOINTS) else "BLOCKED",
-            "Every fixed read-only acceptance endpoint returns a bounded JSON object.",
+            "PASS" if available == len(required) else "BLOCKED",
+            "Every required fixed read-only acceptance endpoint returns a bounded JSON object.",
             (
                 "All fixed read-only endpoints responded."
-                if available == len(READ_ONLY_ENDPOINTS)
+                if available == len(required)
                 else "One or more fixed read-only endpoints are unavailable."
             ),
-            evidence=(f"responses={available}/{len(READ_ONLY_ENDPOINTS)}",),
+            evidence=(f"responses={available}/{len(required)}", f"optional_endpoints={len(optional)}"),
             safety_impact="Missing runtime truth blocks dependent checks instead of using cached values.",
         )
 
@@ -734,6 +744,9 @@ class AcceptanceRunner:
         )
 
     def _collect_distributed_identity(self) -> None:
+        if self.onboard:
+            self._collect_onboard_identity()
+            return
         health = self._response("/api/v1/health")
         hostname = str(health.get("hostname", "")).strip() if health else ""
         machine = str(health.get("platform", "")).strip() if health else ""
@@ -781,9 +794,93 @@ class AcceptanceRunner:
             safety_impact="Results from an unexpected host must not be accepted as the configured robot source.",
         )
 
+    def _collect_onboard_identity(self) -> None:
+        health = self._response("/api/v1/health") or {}
+        hostname, machine = str(health.get("hostname", "")), str(health.get("platform", ""))
+        topology = str(health.get("connection_topology", ""))
+        matches = hostname == socket.gethostname() and machine == platform.machine() and topology == "onboard_local"
+        self.add(
+            "runtime.onboard_identity", "PASS" if matches else "FAIL",
+            "The fixed local API identifies this host and the onboard_local topology.",
+            "The API identifies this onboard host." if matches else "The local API host or topology does not match onboard execution.",
+            evidence=(f"hostname={hostname}", f"machine={machine}", f"topology={topology}"),
+            safety_impact="A remote dashboard or historical evidence cannot establish onboard deployment.",
+        )
+        for check_id, expected in (
+            ("onboard.external_jetson_off", "Required functions run while the external Jetson is physically off or disconnected."),
+            ("onboard.restart_recovery", "Required functions recover after an observed Robot Scope service restart."),
+            ("onboard.cold_boot", "Required functions recover after an observed safe cold boot."),
+            ("onboard.stationary_load", "Required simultaneous workloads remain healthy during the recorded stationary load interval."),
+        ):
+            self.add(check_id, "NOT_RUN", expected,
+                     "This one-shot read-only observation does not perform or prove the procedure.",
+                     safety_impact="Software readiness must remain separate from physical isolation and recovery evidence.")
+
+    def _collect_host_resources(self) -> None:
+        try:
+            resources = self.resource_probe(disk_path=self.report_dir)
+            memory = resources.get("memory_bytes", {})
+            available = memory.get("MemAvailable")
+            total = memory.get("MemTotal")
+            complete = isinstance(available, int) and isinstance(total, int) and 0 <= available <= total
+        except (OSError, ValueError):
+            resources, available, total, complete = {}, None, None, False
+        self.add(
+            "onboard.host_resources", "PASS" if complete else "BLOCKED",
+            "Local host total and available RAM are recorded independently of optional inference.",
+            "Local RAM observations are available; sustained-load acceptance remains a separate procedure."
+            if complete else "Local host resource observations are unavailable.",
+            evidence=(f"ram_total_bytes={total}", f"ram_available_bytes={available}",
+                      f"gpu_percent={resources.get('gpu_percent')}",
+                      f"thermal_sensors={len(resources.get('temperatures', []))}",
+                      f"oom_kill_count={resources.get('oom_kill_count')}"),
+            safety_impact="Missing GPU or thermal metrics are unverified, never synthesized as zero load or no throttling.",
+        )
+        gpu = _finite_number(resources.get("gpu_percent"))
+        self.add("onboard.host_gpu", "NOT_RUN" if gpu is None else "PASS" if 0 <= gpu <= 100 else "FAIL",
+                 "Actual local GPU utilization is recorded when a supported counter is available.",
+                 "GPU utilization is available." if gpu is not None else "No supported GPU counter was observed.",
+                 evidence=(f"gpu_percent={gpu}",),
+                 safety_impact="An unavailable GPU counter must not be interpreted as zero GPU load.")
+        thermal = resources.get("temperatures", [])
+        temperatures = [_finite_number(zone.get("celsius")) for zone in thermal if isinstance(zone, Mapping)]
+        valid_temperatures = bool(temperatures) and all(value is not None and -50 <= value <= 150 for value in temperatures)
+        self.add("onboard.host_thermal", "NOT_RUN" if not temperatures else "PASS" if valid_temperatures else "FAIL",
+                 "Actual local thermal sensor observations are recorded separately from sustained-load acceptance.",
+                 "Thermal sensors are available." if valid_temperatures else "Thermal sensors are unavailable or malformed.",
+                 evidence=(f"thermal_sensors={len(temperatures)}",),
+                 safety_impact="Thermal availability does not prove the absence of throttling over time.")
+        memory = resources.get("memory_bytes", {})
+        swap_total, swap_free = memory.get("SwapTotal"), memory.get("SwapFree")
+        swap_present = isinstance(swap_total, int) and isinstance(swap_free, int)
+        self.add("onboard.host_swap", "NOT_RUN" if not swap_present else "PASS" if 0 <= swap_free <= swap_total else "FAIL",
+                 "Actual local total and free swap are recorded, including an observed zero-swap host.",
+                 "Swap counters are available." if swap_present else "Local swap counters are unavailable.",
+                 evidence=(f"swap_total_bytes={swap_total}", f"swap_free_bytes={swap_free}"),
+                 safety_impact="Missing swap observations cannot establish sustained memory pressure behavior.")
+
     def _collect_camera_and_link(self) -> None:
         cameras = self._response("/api/v1/cameras")
         source = self._camera_source(cameras, "realsense_color")
+        if self.onboard:
+            go2 = self._camera_source(cameras, "go2_front") or {}
+            fps, age = _finite_number(go2.get("fps")), _finite_number(go2.get("age_s"))
+            if go2.get("configured") is not True or fps is None or age is None:
+                status = "BLOCKED"
+            elif go2.get("live") is not True or fps < CAMERA_MIN_FPS_HZ or not 0 <= age <= CAMERA_MAX_AGE_S:
+                status = "FAIL"
+            else:
+                status = "PASS"
+            self.add("camera.go2_direct", status,
+                     "The direct Go2 camera delivers current frames on the configured sensor NIC.",
+                     "Actual Go2 frame FPS and age are recorded; an HTTP health response alone is insufficient.",
+                     evidence=(f"fps={fps}", f"age_s={age}", f"live={bool(go2.get('live'))}"),
+                     safety_impact="Camera acceptance requires delivered frames, not a cached health response.")
+            if not source or not source.get("configured"):
+                self.add("camera.realsense_source", "NOT_RUN", "An explicitly configured local RealSense camera delivers live frames.",
+                         "Optional RealSense is not configured in this run.",
+                         safety_impact="An unused sensor is not a required migration workload.")
+                return
         if not source:
             for check_id, expected, impact in (
                 (
@@ -886,6 +983,11 @@ class AcceptanceRunner:
             safety_impact="A stalled receiver must not reuse its last complete image as live.",
         )
 
+        if self.onboard:
+            self.add("network.robot_wifi", "NOT_RUN", "The management browser link is observed independently of local sensor processing.",
+                     "Local camera transport does not use the distributed Wi-Fi quality gate.",
+                     safety_impact="Physical management reconnection requires a separate observed recovery procedure.")
+            return
         wifi = relay.get("wifi") if isinstance(relay.get("wifi"), Mapping) else None
         if not wifi:
             wifi_status = "BLOCKED"
@@ -1015,6 +1117,11 @@ class AcceptanceRunner:
         )
 
     def _collect_perception(self) -> None:
+        if not self.require_perception:
+            self.add("perception.runtime", "NOT_RUN", "An actually used inference deployment is validated when explicitly required.",
+                     "Optional inference was not selected as a required onboard workload.",
+                     safety_impact="Unused AI must not become an invented migration completion condition.")
+            return
         health = self._response("/api/v1/perception/health")
         if not health:
             self.add(
@@ -1179,6 +1286,11 @@ class AcceptanceRunner:
         )
 
     def _collect_models(self) -> None:
+        if not self.require_perception:
+            self.add("models.runtime_match", "NOT_RUN", "Actually used models retain target and artifact validation.",
+                     "No model validation was requested for optional inference.",
+                     safety_impact="Selecting inference still requires unchanged model target checks.")
+            return
         registry = self._response("/api/v1/models")
         latest = self._response("/api/v1/perception/latest")
         raw_models = registry.get("models") if registry else None
@@ -1317,6 +1429,9 @@ class AcceptanceRunner:
             if authority != "NONE" or physical is not False or mode in {"ASSISTED", "AUTO"}:
                 status = "FAIL"
                 observed = "Competition state grants unaccepted authority or misrepresents the software lock."
+            elif self.onboard and isinstance(locked, bool) and mode in {"MANUAL", "SHADOW", "SAFE_STOP"}:
+                status = "PASS"
+                observed = "The onboard runtime reports a safe mode with no AI motion authority."
             elif locked is True and mode in {"MANUAL", "SHADOW", "SAFE_STOP"}:
                 status = "PASS"
                 observed = "Competition Lock is enabled with no AI motion authority."
@@ -1335,7 +1450,8 @@ class AcceptanceRunner:
         self.add(
             "competition.lock_and_authority",
             status,
-            "Competition Lock is enabled, is explicitly non-physical, and AI motion authority is NONE.",
+            "The runtime has no AI motion authority and the software lock is explicitly non-physical."
+            if self.onboard else "Competition Lock is enabled, is explicitly non-physical, and AI motion authority is NONE.",
             observed,
             evidence=evidence,
             safety_impact="Configuration freeze must not be confused with the physical stop or grant AI control.",
@@ -1353,7 +1469,11 @@ class AcceptanceRunner:
             ),
             None,
         ) if isinstance(results, list) else None
-        if depth and depth.get("result_status") == "LIVE" and transport == "LIVE":
+        if self.onboard:
+            mode_status = "NOT_RUN"
+            mode_observed = "The distributed management-Wi-Fi PointCloud path is not used by onboard operation."
+            mode = "LOCAL_DIRECT"
+        elif depth and depth.get("result_status") == "LIVE" and transport == "LIVE":
             mode_status = "PASS"
             mode_observed = "The active robot-side PointCloud product is the typed SUMMARY result."
             mode = "SUMMARY"
@@ -1752,6 +1872,8 @@ class AcceptanceRunner:
         self._fetch_endpoints()
         self._collect_health()
         self._collect_distributed_identity()
+        if self.onboard:
+            self._collect_host_resources()
         self._collect_camera_and_link()
         self._collect_control()
         self._collect_perception()
@@ -1812,6 +1934,8 @@ class AcceptanceRunner:
             "generated_at": self.now(),
             "commit": commit,
             "mode": self.mode,
+            "onboard": self.onboard,
+            "perception_required": self.require_perception,
             "scope": "supervised_record" if supervised_requested else "read_only",
             "script_hardware_side_effects": False,
             "summary": counts,
@@ -1917,6 +2041,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-dir", type=Path, default=project_default)
     parser.add_argument("--env-file", type=Path, default=config_home / "robot-scope" / "robot-scope.env")
     parser.add_argument("--dashboard-port", type=int, default=8088)
+    parser.add_argument("--onboard", action="store_true", help="check local onboard topology; physical OFF/boot checks remain NOT_RUN")
+    parser.add_argument("--require-perception", action="store_true", help="include actually used inference/model acceptance in onboard mode")
     parser.add_argument("--list-supervised-scenarios", action="store_true")
     parser.add_argument("--allow-supervised-motion", action="store_true")
     parser.add_argument("--confirm-estop-ready", action="store_true")
@@ -1967,6 +2093,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             mode=args.mode,
             env_file=args.env_file,
             dashboard_port=args.dashboard_port,
+            onboard=args.onboard,
+            require_perception=args.require_perception,
         )
         runner.prepare_report_directory()
         commit = runner.collect_read_only()

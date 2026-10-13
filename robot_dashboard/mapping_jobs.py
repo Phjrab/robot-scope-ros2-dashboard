@@ -39,9 +39,17 @@ KIND_RE = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 SUFFIX_RE = re.compile(r"^\.[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
 OUTPUT_PREFIX_TOKEN = "{output_prefix}"
 WIRED_MAPPING_PROFILE = "go2-xt16-wired"
+ONBOARD_MAPPING_PROFILE = "go2-onboard"
 WIRELESS_MAPPING_PROFILE = "go2-xt16-wireless"
 COMPETITION_DIRECT_MAPPING_PROFILE = "competition-pdf-direct"
 COMPETITION_FASTLIO_MAPPING_PROFILE = "go2-xt16-wireless-competition-fastlio"
+SUPPORTED_MAPPING_PROFILES = (
+    ONBOARD_MAPPING_PROFILE,
+    WIRED_MAPPING_PROFILE,
+    WIRELESS_MAPPING_PROFILE,
+    COMPETITION_DIRECT_MAPPING_PROFILE,
+    COMPETITION_FASTLIO_MAPPING_PROFILE,
+)
 PREVIEW_AUTO_RECOVERY_ENV = "ROBOT_SCOPE_XT16_PREVIEW_AUTO_RECOVER"
 WIRELESS_MAPPING_EXIT_REASONS = MappingProxyType(
     {
@@ -310,7 +318,7 @@ class MappingJobManager:
                 "preview_auto_recovery_enabled is derived from the fixed profile"
             )
         project = project_dir.expanduser().resolve(strict=True)
-        if mapping_profile == WIRED_MAPPING_PROFILE:
+        if mapping_profile in {WIRED_MAPPING_PROFILE, ONBOARD_MAPPING_PROFILE}:
             launcher = project / "scripts" / "start_hesai_mapping_humble.sh"
             preview_launcher = project / "scripts" / "start_xt16_preview_humble.sh"
             failure_exit_reasons: Mapping[int, str] = {}

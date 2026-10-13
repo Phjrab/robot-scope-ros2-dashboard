@@ -4,6 +4,14 @@ Robot Scope 업데이트는 소스만 바꾸는 작업이 아닙니다. Python �
 외부 ROS workspace와 지도 runtime 상태가 함께 영향을 받을 수 있습니다. 실제 경기나
 주행 직전에는 업데이트하지 말고 검증 시간을 확보하세요.
 
+외부→내부 Jetson 이전은 [onboard 실행 계약](GO2_ONBOARD_MIGRATION.md)의
+별도 host 전환 순서를 사용합니다. 필요한 영구 데이터는
+`scripts/onboard_data_migration.py`의 명시적 SHA-256 inventory로 새 디렉터리에
+보존형 복사하고, 기존 release/config/unit과 원본 데이터는 남깁니다. 전체 runtime,
+live lease/ARM/대기 명령 또는 이전 ROS build를 복원하지 않습니다. 두 Robot Scope
+제어 주체가 동시에 활성화되지 않도록 idle/zero 상태와 전환 순서를 확인합니다.
+이전 절차를 작성했다는 사실은 실제 내부 재시작·부팅·롤백 PASS와 구분합니다.
+
 Competition Lock이 켜진 고정 release에서는 아래 fast-forward 업데이트 절차를 실행하지
 않습니다. 대회용 offline package, 시작/종료 체크리스트와 commit/model 단위 복구는
 [WP08 release runbook](WP08_RELEASE_LOCK_ROLLBACK_RUNBOOK.md)을 따릅니다. 잠금을 해제했다고

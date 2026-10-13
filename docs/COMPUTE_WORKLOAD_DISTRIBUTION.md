@@ -1,5 +1,13 @@
 # Competition compute workload distribution
 
+This document records the dual-host competition baseline. The explicit
+`go2-onboard` profile places the dashboard, durable-data authority and required
+Humble sensor/mapping/navigation workers on the internal Jetson while retaining
+an independent control watchdog. See [onboard ADR](ADR_GO2_ONBOARD_OPERATION.md)
+and [migration contract](GO2_ONBOARD_MIGRATION.md). The ownership restrictions
+below apply to the dual-host baseline; onboard resource acceptance is measured
+separately with the external Jetson disconnected.
+
 ## Decision summary
 
 The robot-side Jetson performs work that must stay close to the sensors and

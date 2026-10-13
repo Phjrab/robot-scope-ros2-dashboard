@@ -85,6 +85,7 @@ from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
 from .diagnostics import DiagnosticsBundleService
 from .mapping_jobs import (
+    SUPPORTED_MAPPING_PROFILES,
     COMPETITION_FASTLIO_MAPPING_PROFILE,
     COMPETITION_DIRECT_MAPPING_PROFILE,
     InvalidMapName,
@@ -98,6 +99,7 @@ from .mapping_jobs import (
     WIRELESS_MAPPING_PROFILE,
 )
 from .model_registry import ModelRegistry
+from .onboard_profile import configure_onboard_arguments
 from .navigation_jobs import (
     NavigationBusy,
     NavigationConflict,
@@ -1304,12 +1306,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--profile", default="")
     parser.add_argument(
         "--mapping-profile",
-        choices=(
-            WIRED_MAPPING_PROFILE,
-            WIRELESS_MAPPING_PROFILE,
-            COMPETITION_DIRECT_MAPPING_PROFILE,
-            COMPETITION_FASTLIO_MAPPING_PROFILE,
-        ),
+        choices=SUPPORTED_MAPPING_PROFILES,
         default=WIRED_MAPPING_PROFILE,
     )
     parser.add_argument("--cloud-max-points", type=int, default=18000)
@@ -1346,6 +1343,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    configure_onboard_arguments(args)
     RUNTIME.agent = RosAgent(
         robot_ip=args.robot_ip,
         profile_path=args.profile or None,

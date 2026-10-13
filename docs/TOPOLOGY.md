@@ -4,6 +4,14 @@ Robot Scope는 브라우저, dashboard/ROS 호스트, 로봇과 센서가 서로
 가질 수 있습니다. Settings에서 IP를 선택하는 기능은 DDS interface나 LiDAR 목적지를
 자동 재설정하지 않습니다.
 
+내부 단독 운영은 명시적인 `go2-onboard` 프로필을 사용합니다. 내부 Jetson이
+대시보드·센서·mapping/navigation·독립 제어 bridge와 영구 데이터를 소유하고,
+브라우저는 관리망 주소로 접속합니다. 실제 센서 NIC는 Go2 DDS/카메라와 XT16에
+계속 사용하며, 외부 Jetson relay/SSH/HTTP 경로를 필수 경로로 사용하지 않습니다.
+[내부 운영 ADR](ADR_GO2_ONBOARD_OPERATION.md)과
+[설치·이전·인수 기록](GO2_ONBOARD_MIGRATION.md)을 따릅니다. 아래 두 호스트
+주소와 배선 기록은 기존 profile과 역사적 검증에 적용됩니다.
+
 ## 역할
 
 | 역할 | 실행 구성 요소 | 비고 |

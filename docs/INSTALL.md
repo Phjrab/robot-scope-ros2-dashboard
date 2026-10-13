@@ -4,6 +4,12 @@
 웹 애플리케이션 자체는 `x86_64`와 `arm64`에서 실행할 수 있지만, 실제 로봇·LiDAR
 기능은 설치한 ROS 드라이버와 제조사 SDK가 해당 아키텍처를 지원해야 합니다.
 
+Go2 내부 Orin NX 단독 운영은 [onboard 이전 가이드](GO2_ONBOARD_MIGRATION.md)의
+명시적 `go2-onboard` runtime profile과 실제 사용자·경로로 생성한 서비스를 사용합니다.
+이 profile은 Ubuntu 22.04/Humble direct-sensor 경로를 재사용합니다. Ubuntu 22.04
+업그레이드 사실만으로 JetPack/L4T·커널·CUDA·카메라 드라이버 호환성을 확정하지
+않으며, 외부 Jetson의 virtualenv/ROS build를 복사해 설치를 대신하지 않습니다.
+
 ## 지원 기준
 
 | 항목 | 지원 범위 | 검증 수준 |
@@ -22,6 +28,8 @@ doctor가 다른 조합을 fail-closed로 거부합니다.
 `Go2ControlBridge` 프로세스뿐입니다. 웹, Mission, Nav2 또는 전체 Robot Scope를 그
 호스트로 옮기지 않습니다. 이 경로는 portable installer 대상이 아니며
 [무선 제어 ADR](ADR_WIRELESS_CONTROL_TRANSPORT.md)의 고정 서비스와 검증 절차만 사용합니다.
+이 Foxy 예외는 과거 두 호스트 구성에만 적용됩니다. Ubuntu 22.04/Humble 내부
+운영의 전체 제품 배치는 [onboard ADR](ADR_GO2_ONBOARD_OPERATION.md)을 따릅니다.
 
 ## 설치 모드
 

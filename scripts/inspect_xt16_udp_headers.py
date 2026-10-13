@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import socket
+import os
+import re
 import struct
 import sys
 import time
 from collections import Counter
 from dataclasses import dataclass
-from typing import Callable, Sequence
+from typing import Callable, Mapping, Sequence
 
 
 ETH_P_IP = 0x0800
@@ -21,6 +23,16 @@ MAX_RELEVANT_PACKETS = 40
 MAX_CAPTURE_BYTES = 2048
 MAX_DISTINCT_TUPLES = 16
 SOCKET_TIMEOUT_S = 0.25
+
+
+def configured_interface(environ: Mapping[str, str] | None = None) -> str:
+    values = os.environ if environ is None else environ
+    if values.get("ROBOT_SCOPE_MAPPING_PROFILE") != "go2-onboard":
+        return CAPTURE_INTERFACE
+    interface = values.get("ROBOT_SCOPE_GO2_INTERFACE", "eth0").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,32}", interface):
+        raise ValueError("onboard sensor interface is invalid")
+    return interface
 
 
 @dataclass(frozen=True, order=True)
@@ -75,6 +87,7 @@ def collect_headers(
     *,
     socket_factory: Callable[..., socket.socket] = socket.socket,
     monotonic: Callable[[], float] = time.monotonic,
+    interface: str = CAPTURE_INTERFACE,
 ) -> tuple[int, int, Counter[UdpHeaderTuple], int]:
     """Collect bounded header counts from one non-promiscuous packet socket."""
 
@@ -91,7 +104,7 @@ def collect_headers(
     overflow = 0
     headers: Counter[UdpHeaderTuple] = Counter()
     try:
-        capture.bind((CAPTURE_INTERFACE, ETH_P_IP))
+        capture.bind((interface, ETH_P_IP))
         capture.settimeout(SOCKET_TIMEOUT_S)
         deadline = monotonic() + CAPTURE_DURATION_S
         while relevant < MAX_RELEVANT_PACKETS and monotonic() < deadline:
@@ -120,7 +133,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("[Robot Scope] XT16 header audit accepts no arguments", file=sys.stderr)
         return 2
     try:
-        inspected, relevant, headers, overflow = collect_headers()
+        interface = configured_interface()
+        inspected, relevant, headers, overflow = collect_headers(interface=interface)
+    except ValueError:
+        print("[Robot Scope] invalid onboard sensor interface", file=sys.stderr)
+        return 2
     except PermissionError:
         print(
             "[Robot Scope] XT16 header audit requires CAP_NET_RAW (run with sudo)",
@@ -128,12 +145,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 77
     except OSError:
-        print("[Robot Scope] XT16 header audit could not open eth0", file=sys.stderr)
+        print("[Robot Scope] XT16 header audit could not open the configured sensor interface", file=sys.stderr)
         return 69
 
     print(
         "[Robot Scope XT16 header audit] "
-        f"interface={CAPTURE_INTERFACE} inspected={inspected} relevant={relevant}"
+        f"interface={interface} inspected={inspected} relevant={relevant}"
     )
     for header, count in sorted(headers.items()):
         print(

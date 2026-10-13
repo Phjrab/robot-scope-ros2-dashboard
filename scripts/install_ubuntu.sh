@@ -15,6 +15,7 @@ ENV_FILE=""
 OS_RELEASE_FILE="/etc/os-release"
 ACTION="--dry-run"
 SKIP_PYTHON_DEPS=0
+BUILD_JOBS="${ROBOT_SCOPE_BUILD_JOBS:-2}"
 JSON_DOCTOR=0
 INSTALL_SYSTEM_PACKAGES=0
 INSTALL_SERVICE=0
@@ -45,6 +46,7 @@ Options:
   --install-service            with --apply, render/verify/install systemd units
                                without enabling or starting them
   --skip-python-deps           do not invoke pip during --apply
+  --build-jobs N               limit ROS/compiler parallelism (1-16; default 2)
   --json-doctor                emit the final doctor report as JSON
   -h, --help                   show this help
 
@@ -145,6 +147,11 @@ while [[ "$#" -gt 0 ]]; do
       SKIP_PYTHON_DEPS=1
       shift
       ;;
+    --build-jobs)
+      [[ "$#" -ge 2 ]] || die "--build-jobs requires a value"
+      BUILD_JOBS="$2"
+      shift 2
+      ;;
     --json-doctor)
       JSON_DOCTOR=1
       shift
@@ -163,6 +170,7 @@ case "$MODE" in
   observer|go2|go2-control|go2-xt16|go2-nav) ;;
   *) die "unsupported mode: $MODE" ;;
 esac
+[[ "$BUILD_JOBS" =~ ^([1-9]|1[0-6])$ ]] || die "--build-jobs must be an integer from 1 to 16"
 
 [[ -n "$PROJECT_DIR" && -d "$PROJECT_DIR" ]] || die "project directory does not exist"
 PROJECT_DIR="$(cd -- "$PROJECT_DIR" && pwd -P)"
@@ -252,6 +260,11 @@ PY
 }
 
 WORKSPACE_ROOT_VALUE="$(literal_env_value ROBOT_SCOPE_WORKSPACE_ROOT)"
+MAPPING_PROFILE_VALUE="$(literal_env_value ROBOT_SCOPE_MAPPING_PROFILE)"
+ONBOARD_CONSTRAINTS="$PROJECT_DIR/requirements-onboard-constraints.txt"
+if [[ "$MAPPING_PROFILE_VALUE" == "go2-onboard" ]]; then
+  [[ -f "$ONBOARD_CONSTRAINTS" ]] || die "onboard Python constraints file is missing"
+fi
 case "$WORKSPACE_ROOT_VALUE" in
   "") WORKSPACE_ROOT="$HOME" ;;
   /*) WORKSPACE_ROOT="$WORKSPACE_ROOT_VALUE" ;;
@@ -481,6 +494,9 @@ if [[ "$ACTION" == "--dry-run" ]]; then
     echo "[Robot Scope installer] would skip Python dependency installation"
   else
     echo "[Robot Scope installer] would install pinned-range Python requirements"
+    if [[ "$MAPPING_PROFILE_VALUE" == "go2-onboard" ]]; then
+      echo "[Robot Scope installer] would apply onboard NumPy 1.x ABI constraints with user-site packages disabled"
+    fi
   fi
   if [[ "$INSTALL_SERVICE" -eq 1 ]]; then
     echo "[Robot Scope installer] would render and verify robot-scope.service"
@@ -504,7 +520,7 @@ if [[ "$ACTION" == "--dry-run" ]]; then
   fi
   ROBOT_SCOPE_LIVOX_SDK_PREFIX="$LIVOX_SDK_PREFIX" \
     "$EXTERNAL_BOOTSTRAP" --mode "$MODE" --manifest "$DEPENDENCY_MANIFEST" \
-      --dry-run --workspace-root "$WORKSPACE_ROOT"
+      --dry-run --workspace-root "$WORKSPACE_ROOT" --build-jobs "$BUILD_JOBS"
   doctor_status=0
   ROBOT_SCOPE_WORKSPACE_ROOT="$WORKSPACE_ROOT" \
     ROBOT_SCOPE_LIVOX_SDK_PREFIX="$LIVOX_SDK_PREFIX" \
@@ -578,7 +594,7 @@ fi
 
 ROBOT_SCOPE_LIVOX_SDK_PREFIX="$LIVOX_SDK_PREFIX" \
   "$EXTERNAL_BOOTSTRAP" --mode "$MODE" --manifest "$DEPENDENCY_MANIFEST" \
-    --apply --workspace-root "$WORKSPACE_ROOT"
+    --apply --workspace-root "$WORKSPACE_ROOT" --build-jobs "$BUILD_JOBS"
 
 if [[ -L "$VENV_DIR" ]]; then
   die "refusing symlink virtual environment: $VENV_DIR"
@@ -592,7 +608,12 @@ else
 fi
 
 if [[ "$SKIP_PYTHON_DEPS" -eq 0 ]]; then
-  "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check -r "$REQUIREMENTS"
+  if [[ "$MAPPING_PROFILE_VALUE" == "go2-onboard" ]]; then
+    PYTHONNOUSERSITE=1 "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check \
+      -r "$REQUIREMENTS" -c "$ONBOARD_CONSTRAINTS"
+  else
+    "$VENV_DIR/bin/python" -m pip install --disable-pip-version-check -r "$REQUIREMENTS"
+  fi
 else
   echo "[Robot Scope installer] skipped Python dependencies by request"
 fi

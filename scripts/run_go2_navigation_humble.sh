@@ -28,7 +28,7 @@ PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
 MAPPING_PROFILE="${ROBOT_SCOPE_MAPPING_PROFILE:-go2-xt16-wired}"
 
 case "$MAPPING_PROFILE" in
-  go2-xt16-wired)
+  go2-onboard|go2-xt16-wired)
     source "$PROJECT_DIR/scripts/setup_go2_ros2_humble.sh"
     ;;
   competition-pdf-direct)

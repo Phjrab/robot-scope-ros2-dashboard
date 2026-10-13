@@ -2,6 +2,8 @@
 # Source this file to bind ROS 2 Humble/CycloneDDS to the dedicated Go2 NIC.
 # It is repository-owned and replaces the historical ~/setup_go2_ros2_humble.sh.
 
+source "$(dirname -- "${BASH_SOURCE[0]}")/apply_go2_onboard_contract.sh" || return 2 2>/dev/null || exit 2
+
 robot_scope_setup_error() {
   echo "[Robot Scope] $*" >&2
 }

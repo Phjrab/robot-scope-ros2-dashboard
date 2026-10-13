@@ -3,6 +3,15 @@ set -eo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="${ROBOT_SCOPE_DIR:-$(dirname -- "$SCRIPT_DIR")}"
+source "$SCRIPT_DIR/apply_go2_onboard_contract.sh"
+ROBOT_PROFILE_PATH="${ROBOT_SCOPE_ROBOT_PROFILE_PATH:-$PROJECT_DIR/config/go2.json}"
+if [[ "${ROBOT_SCOPE_MAPPING_PROFILE:-}" == "go2-onboard" ]]; then
+  ROBOT_PROFILE_PATH="${ROBOT_SCOPE_ROBOT_PROFILE_PATH:-$PROJECT_DIR/config/go2-onboard.json}"
+fi
+if [[ "$ROBOT_PROFILE_PATH" != /* || ! -f "$ROBOT_PROFILE_PATH" || -L "$ROBOT_PROFILE_PATH" ]]; then
+  echo "[Robot Scope] robot profile must be an absolute regular non-symlink file" >&2
+  exit 2
+fi
 
 if [[ "${ROBOT_SCOPE_CONTROL_ENABLED:-0}" != "1" ]]; then
   echo "[Robot Scope] control bridge is disabled; set ROBOT_SCOPE_CONTROL_ENABLED=1" >&2
@@ -22,4 +31,4 @@ fi
 
 cd "$PROJECT_DIR"
 exec "$PYTHON_BIN" -m robot_dashboard.go2_control_bridge \
-  --profile "$PROJECT_DIR/config/go2.json"
+  --profile "$ROBOT_PROFILE_PATH"

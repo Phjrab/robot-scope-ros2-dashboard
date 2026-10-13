@@ -106,7 +106,16 @@ refuse_existing_process() {
   local pattern="$1"
   local label="$2"
   local pids=()
-  mapfile -t pids < <(pgrep -u "$(id -u)" -f -- "$pattern" || true)
+  if [[ "${ROBOT_SCOPE_MAPPING_PROFILE:-}" == "go2-onboard" ]]; then
+    # Internal vendor processes may run under a different account. Refuse
+    # their receiver/bridge rather than opening another sensor capture.
+    local candidate
+    while read -r candidate; do
+      [[ -n "$candidate" ]] && pids+=("$candidate")
+    done < <(pgrep -f -- "$pattern" || true)
+  else
+    mapfile -t pids < <(pgrep -u "$(id -u)" -f -- "$pattern" || true)
+  fi
   if [[ "${#pids[@]}" -gt 0 ]]; then
     echo "[Robot Scope] refused duplicate $label process: ${pids[*]}" >&2
     exit 1

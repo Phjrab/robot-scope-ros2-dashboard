@@ -11,6 +11,7 @@ from robot_dashboard.realsense_profile import (
     RealSenseProfileConfirmationRequired,
     RealSenseProfileManager,
     RealSenseProfileUnavailable,
+    FixedLocalRealSenseProfileRunner,
     parse_profile_status,
 )
 
@@ -106,6 +107,43 @@ class RealSenseProfileManagerTests(unittest.TestCase):
 
 
 class RobotSideRealSenseProfileTests(unittest.TestCase):
+    def test_local_lifecycle_needs_no_ssh_files_and_has_fixed_vocabulary(self):
+        manager = RealSenseProfileManager.from_environment({
+            "ROBOT_SCOPE_REALSENSE_PROFILE_CONTROL_ENABLED": "1",
+            "ROBOT_SCOPE_REALSENSE_PROFILE_LIFECYCLE_MODE": "local",
+        })
+        self.assertIsInstance(manager.runner, FixedLocalRealSenseProfileRunner)
+        command = manager.runner._command("realsense-profile-status")
+        self.assertEqual(command[:2], ("/usr/bin/python3", "-I"))
+        self.assertTrue(command[2].endswith("robot_scope_realsense_local_command.py"))
+        for action in ("relay-start", "imu-stop", "realsense-profile-1920x1080", "status;id"):
+            with self.subTest(action=action):
+                with self.assertRaises(ValueError):
+                    manager.runner._command(action)
+        unknown = RealSenseProfileManager.from_environment({
+            "ROBOT_SCOPE_REALSENSE_PROFILE_CONTROL_ENABLED": "1",
+            "ROBOT_SCOPE_REALSENSE_PROFILE_LIFECYCLE_MODE": "unknown",
+        })
+        self.assertIsNone(unknown.runner)
+
+    def test_local_helper_rejects_mapping_and_arbitrary_arguments_before_loading(self):
+        local_path = ROOT / "scripts" / "robot_scope_realsense_local_command.py"
+        spec = importlib.util.spec_from_file_location("local_camera_profile_test", local_path)
+        local = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(local)
+        for arguments in ([], ["relay-start"], ["realsense-profile-status", "/tmp/env"], ["$(id)"]):
+            with self.subTest(arguments=arguments):
+                self.assertEqual(local.main(arguments), 2)
+
+    def test_local_runner_uses_no_shell_and_strips_inherited_environment(self):
+        runner = FixedLocalRealSenseProfileRunner()
+        with mock.patch("robot_dashboard.realsense_profile.subprocess.run") as run:
+            runner("realsense-profile-640x480", 20.0)
+        options = run.call_args.kwargs
+        self.assertFalse(options["shell"])
+        self.assertEqual(set(options["env"]), {"PATH", "LANG", "LC_ALL"})
+        self.assertEqual(options["timeout"], 20.0)
+
     def test_install_document_targets_the_forced_authorized_key_helper(self) -> None:
         install = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
         self.assertIn(

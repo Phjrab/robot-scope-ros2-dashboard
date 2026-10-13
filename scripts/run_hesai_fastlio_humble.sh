@@ -5,6 +5,7 @@ set -eo pipefail
 #   /velodyne_points + /imu/body
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="$(dirname -- "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/apply_go2_onboard_contract.sh"
 WORKSPACE_ROOT="${ROBOT_SCOPE_WORKSPACE_ROOT:-$HOME}"
 LIVOX_SDK_PREFIX="${ROBOT_SCOPE_LIVOX_SDK_PREFIX:-$WORKSPACE_ROOT/ws/livox/sdk2_install}"
 if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||

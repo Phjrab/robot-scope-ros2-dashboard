@@ -4,8 +4,13 @@ set -uo pipefail
 # A ROS 2 participant cannot be retargeted after CycloneDDS starts.  Keep the
 # control bridge fail-closed, and give the dashboard supervisor a side-effect
 # free readiness probe, until the dedicated Go2 link is genuinely usable.
-GO2_INTERFACE="${ROBOT_SCOPE_GO2_INTERFACE:-eno1}"
-GO2_INTERFACE_CIDR="${ROBOT_SCOPE_GO2_INTERFACE_CIDR:-192.168.123.99/24}"
+if [[ "${ROBOT_SCOPE_MAPPING_PROFILE:-}" == "go2-onboard" ]]; then
+  GO2_INTERFACE="${ROBOT_SCOPE_GO2_INTERFACE:-eth0}"
+  GO2_INTERFACE_CIDR="${ROBOT_SCOPE_GO2_INTERFACE_CIDR:-192.168.123.18/24}"
+else
+  GO2_INTERFACE="${ROBOT_SCOPE_GO2_INTERFACE:-eno1}"
+  GO2_INTERFACE_CIDR="${ROBOT_SCOPE_GO2_INTERFACE_CIDR:-192.168.123.99/24}"
+fi
 POLL_SECONDS="${ROBOT_SCOPE_GO2_INTERFACE_POLL_SECONDS:-2}"
 
 usage() {

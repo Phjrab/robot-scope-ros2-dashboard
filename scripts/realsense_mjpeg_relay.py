@@ -46,6 +46,7 @@ RELAY_HEIGHT_ENV = "ROBOT_SCOPE_REALSENSE_HEIGHT"
 RELAY_FPS_ENV = "ROBOT_SCOPE_REALSENSE_FPS"
 RELAY_JPEG_QUALITY_ENV = "ROBOT_SCOPE_REALSENSE_JPEG_QUALITY"
 RELAY_WIFI_INTERFACE_ENV = "ROBOT_SCOPE_REALSENSE_WIFI_INTERFACE"
+RELAY_ACCESS_MODE_ENV = "ROBOT_SCOPE_REALSENSE_ACCESS_MODE"
 PRIVATE_NETWORKS = (
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("172.16.0.0/12"),
@@ -78,6 +79,7 @@ class RelayConfig:
     fps: int
     jpeg_quality: int
     wifi_interface: str = ""
+    access_mode: str = "remote"
 
 
 def _local_link_ipv4(value: str, label: str, error_code: str) -> ipaddress.IPv4Address:
@@ -168,6 +170,9 @@ def relay_configuration(
     """Load one bounded relay contract without a wildcard or silent fallback."""
 
     values = os.environ if environ is None else environ
+    access_mode = str(values.get(RELAY_ACCESS_MODE_ENV, "remote")).strip()
+    if access_mode not in {"remote", "local"}:
+        raise RelaySetupError("INVALID_CONFIG", "RealSense access mode must be remote or local")
     bind_address = _local_link_ipv4(
         values.get(RELAY_BIND_HOST_ENV, DEFAULT_BIND_HOST),
         RELAY_BIND_HOST_ENV,
@@ -191,10 +196,15 @@ def relay_configuration(
             "DASHBOARD_ADDRESS_REJECTED",
             f"{RELAY_DASHBOARD_HOST_ENV} must be a usable host in the bind address /24",
         )
-    if dashboard_address == bind_address:
+    if access_mode == "remote" and dashboard_address == bind_address:
         raise RelaySetupError(
             "DASHBOARD_ADDRESS_REJECTED",
             f"{RELAY_DASHBOARD_HOST_ENV} must differ from the relay bind address",
+        )
+    if access_mode == "local" and dashboard_address != bind_address:
+        raise RelaySetupError(
+            "DASHBOARD_ADDRESS_REJECTED",
+            "local RealSense access requires the dashboard to use the exact relay bind address",
         )
 
     port = _bounded_integer(
@@ -257,6 +267,7 @@ def relay_configuration(
         fps=fps,
         jpeg_quality=jpeg_quality,
         wifi_interface=wifi_interface,
+        access_mode=access_mode,
     )
 
 

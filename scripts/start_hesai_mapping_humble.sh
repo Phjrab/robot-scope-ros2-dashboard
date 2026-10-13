@@ -113,6 +113,18 @@ stop_existing() {
   local pattern="$1"
   local label="$2"
   local pids=()
+  if [[ "${ROBOT_SCOPE_MAPPING_PROFILE:-}" == "go2-onboard" ]]; then
+    local candidate
+    local candidate_owner
+    while read -r candidate; do
+      [[ -z "$candidate" ]] && continue
+      candidate_owner="$(stat -c '%u' "/proc/$candidate" 2>/dev/null || true)"
+      if [[ "$candidate_owner" != "$(id -u)" ]]; then
+        echo "[Robot Scope] refused foreign $label process; stop its owning service before onboard mapping" >&2
+        return 1
+      fi
+    done < <(pgrep -f -- "$pattern" || true)
+  fi
   mapfile -t pids < <(pgrep -u "$(id -u)" -f -- "$pattern" || true)
   if [[ "${#pids[@]}" -eq 0 ]]; then
     return

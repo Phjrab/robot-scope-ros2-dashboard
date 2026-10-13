@@ -1,0 +1,3 @@
+# Ubuntu 22.04 native ROS/OpenCV packages use the NumPy 1.x ABI.
+# Rebuild/verify native consumers before changing the onboard ABI family.
+numpy>=1.24,<2

@@ -290,7 +290,7 @@ def healthy_responses():
 
 
 class RobotScopeAcceptanceTests(unittest.TestCase):
-    def make_runner(self, base: Path, responses=None, *, mode="go2-nav"):
+    def make_runner(self, base: Path, responses=None, *, mode="go2-nav", onboard=False, require_perception=False):
         project = base / "project"
         project.mkdir()
         (project / "robot_dashboard").mkdir()
@@ -315,8 +315,97 @@ class RobotScopeAcceptanceTests(unittest.TestCase):
             which=lambda name: f"/usr/bin/{name}" if name in {"git", "systemctl"} else None,
             doctor_factory=FakeDoctor,
             now=lambda: "2026-08-23T00:00:00.000Z",
+            onboard=onboard,
+            require_perception=require_perception,
+            resource_probe=lambda **kwargs: {"memory_bytes": {"MemTotal": 16000, "MemAvailable": 12000},
+                                              "gpu_percent": None, "temperatures": [], "oom_kill_count": 0},
         )
         return runner, commands
+
+    def test_onboard_identity_and_optional_inference_do_not_claim_physical_checks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            responses = healthy_responses()
+            responses["/api/v1/health"].update(hostname=acceptance.socket.gethostname(),
+                                             platform=acceptance.platform.machine(), connection_topology="onboard_local")
+            responses["/api/v1/perception/health"] = {}
+            responses["/api/v1/perception/latest"] = {}
+            responses["/api/v1/models"] = {}
+            runner, _ = self.make_runner(Path(temporary), responses, onboard=True)
+            runner.prepare_report_directory()
+            runner.collect_read_only()
+            checks = {item.id: item for item in runner.checks}
+            self.assertEqual(checks["runtime.onboard_identity"].status, "PASS")
+            self.assertEqual(checks["onboard.host_resources"].status, "PASS")
+            self.assertEqual(checks["perception.runtime"].status, "NOT_RUN")
+            self.assertEqual(checks["models.runtime_match"].status, "NOT_RUN")
+            self.assertEqual(checks["network.robot_wifi"].status, "NOT_RUN")
+            for check_id in ("onboard.external_jetson_off", "onboard.cold_boot", "onboard.restart_recovery", "onboard.stationary_load"):
+                self.assertEqual(checks[check_id].status, "NOT_RUN")
+
+    def test_onboard_rejects_remote_identity_and_can_require_inference(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            responses = healthy_responses()
+            responses["/api/v1/perception/health"] = {}
+            runner, _ = self.make_runner(Path(temporary), responses, onboard=True, require_perception=True)
+            runner._responses = responses
+            runner._collect_distributed_identity()
+            runner._collect_perception()
+            checks = {item.id: item for item in runner.checks}
+            self.assertEqual(checks["runtime.onboard_identity"].status, "FAIL")
+            self.assertEqual(checks["perception.runtime"].status, "BLOCKED")
+
+    def test_onboard_does_not_require_competition_lock_or_unused_realsense(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            responses = healthy_responses()
+            responses["/api/v1/competition"]["locked"] = False
+            responses["/api/v1/cameras"]["sources"] = [
+                source for source in responses["/api/v1/cameras"]["sources"] if source["id"] == "go2_front"]
+            runner, _ = self.make_runner(Path(temporary), responses, onboard=True)
+            runner._responses = responses
+            runner._collect_competition()
+            runner._collect_camera_and_link()
+            checks = {item.id: item for item in runner.checks}
+            self.assertEqual(checks["competition.lock_and_authority"].status, "PASS")
+            self.assertEqual(checks["camera.go2_direct"].status, "PASS")
+            self.assertEqual(checks["camera.realsense_source"].status, "NOT_RUN")
+
+    def test_optional_inference_endpoint_failures_do_not_block_onboard_api(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            runner, _ = self.make_runner(Path(temporary), onboard=True)
+            original = runner.fetch_json
+            def fetch(endpoint):
+                if endpoint in {"/api/v1/perception/health", "/api/v1/perception/latest", "/api/v1/models"}:
+                    raise RuntimeError("optional unavailable")
+                return original(endpoint)
+            runner.fetch_json = fetch
+            runner._fetch_endpoints()
+            self.assertEqual(runner.checks[-1].status, "PASS")
+            runner.require_perception = True
+            runner._fetch_endpoints()
+            self.assertEqual(runner.checks[-1].status, "BLOCKED")
+
+    def test_onboard_resource_status_does_not_infer_gpu_temperature_or_swap(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            runner, _ = self.make_runner(Path(temporary), onboard=True)
+            runner._collect_host_resources()
+            checks = {item.id: item for item in runner.checks}
+            self.assertEqual(checks["onboard.host_resources"].status, "PASS")
+            for check_id in ("onboard.host_gpu", "onboard.host_thermal", "onboard.host_swap"):
+                self.assertEqual(checks[check_id].status, "NOT_RUN")
+
+    def test_onboard_camera_rejects_negative_age_and_truthy_live_string(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            responses = healthy_responses()
+            runner, _ = self.make_runner(Path(temporary), responses, onboard=True)
+            runner._responses = responses
+            source = next(item for item in responses["/api/v1/cameras"]["sources"] if item["id"] == "go2_front")
+            source["age_s"] = -0.1
+            runner._collect_camera_and_link()
+            self.assertEqual(next(item for item in runner.checks if item.id == "camera.go2_direct").status, "FAIL")
+            runner.checks.clear()
+            source.update(age_s=0.1, live="true")
+            runner._collect_camera_and_link()
+            self.assertEqual(next(item for item in runner.checks if item.id == "camera.go2_direct").status, "FAIL")
 
     def test_go2_control_accepts_fresh_signed_bridge_without_direct_ros(self):
         with tempfile.TemporaryDirectory() as temporary:

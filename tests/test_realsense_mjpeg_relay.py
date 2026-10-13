@@ -46,6 +46,30 @@ class FakeProducer:
 
 
 class RealSenseRelayTests(unittest.TestCase):
+    def test_explicit_onboard_local_access_requires_exact_self_host_address(self):
+        base = {
+            relay.RELAY_BIND_HOST_ENV: "192.168.50.30",
+            relay.RELAY_DASHBOARD_HOST_ENV: "192.168.50.30",
+        }
+        with self.assertRaises(relay.RelaySetupError):
+            relay.relay_configuration(base)
+        config = relay.relay_configuration(
+            {**base, relay.RELAY_ACCESS_MODE_ENV: "local"},
+            validate_local_bind=True,
+            local_bind_check=lambda host: host == "192.168.50.30",
+        )
+        self.assertEqual(config.access_mode, "local")
+        self.assertTrue(relay.client_allowed("192.168.50.30", "/stream", config))
+        self.assertFalse(relay.client_allowed("192.168.50.10", "/stream", config))
+        self.assertFalse(relay.client_allowed("127.0.0.1", "/stream", config))
+        for mode, dashboard in (("local", "192.168.50.10"), ("unknown", "192.168.50.30")):
+            with self.subTest(mode=mode, dashboard=dashboard):
+                with self.assertRaises(relay.RelaySetupError):
+                    relay.relay_configuration({
+                        **base, relay.RELAY_ACCESS_MODE_ENV: mode,
+                        relay.RELAY_DASHBOARD_HOST_ENV: dashboard,
+                    })
+
     def test_fixed_network_and_capture_contract(self):
         self.assertEqual((relay.BIND_HOST, relay.BIND_PORT), ("192.168.123.18", 8090))
         self.assertEqual(relay.DASHBOARD_HOST, "192.168.123.99")

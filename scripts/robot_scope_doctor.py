@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Read-only platform and dependency checks for Robot Scope installations.
 
-The doctor never sources shell setup files.  It checks their presence and runs
-fixed, argument-vector-only probes so that a user-controlled dotenv value is
-never evaluated as shell code.
+The doctor runs fixed, argument-vector-only probes. Selected ROS setup files
+are sourced only as quoted positional arguments; dotenv values are never
+evaluated as shell code.
 """
 
 from __future__ import annotations
@@ -21,6 +21,11 @@ import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Mapping, Sequence
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from robot_dashboard.onboard_profile import ONBOARD_REQUIRED_ENVIRONMENT, configure_onboard_profile
 
 
 MODES = ("observer", "go2", "go2-control", "go2-xt16", "go2-nav")
@@ -194,6 +199,7 @@ class Doctor:
             file_values.update(parse_env_file(self.control_env_file))
         self.environment = dict(file_values)
         self.environment.update(dict(environment if environment is not None else os.environ))
+        self.onboard = self.environment.get("ROBOT_SCOPE_MAPPING_PROFILE", "").strip() == "go2-onboard"
         self.os_release_file = os_release_file
         self.release = parse_os_release(self.os_release_file)
         platform_key = (
@@ -276,6 +282,7 @@ class Doctor:
             text=True,
             check=False,
             timeout=timeout,
+            env=self.environment,
         )
 
     def configured_path(self, key: str, default: Path) -> Path:
@@ -291,6 +298,8 @@ class Doctor:
         self._check_platform()
         self._check_core()
         if "go2" in self.features:
+            if self.onboard:
+                self._check_onboard()
             self._check_go2()
         if "control" in self.features:
             self._check_control()
@@ -369,8 +378,13 @@ class Doctor:
                 raise ValueError("relay bind address is a /24 network or broadcast address")
             if dashboard_address not in pair_network or dashboard_address in unusable:
                 raise ValueError("dashboard address is outside the relay bind address /24")
-            if dashboard_address == bind_address:
-                raise ValueError("dashboard and relay bind addresses must differ")
+            access_mode = values.get("ROBOT_SCOPE_REALSENSE_ACCESS_MODE", "remote").strip()
+            if access_mode not in {"remote", "local"}:
+                raise ValueError("RealSense access mode must be remote or local")
+            if access_mode == "local" and dashboard_address != bind_address:
+                raise ValueError("local dashboard and relay bind addresses must match")
+            if access_mode == "remote" and dashboard_address == bind_address:
+                raise ValueError("dashboard and relay bind addresses must differ in remote mode")
             port = self._realsense_integer(
                 values, "ROBOT_SCOPE_REALSENSE_PORT", 1024, 65535
             )
@@ -647,6 +661,98 @@ class Doctor:
                 detail=gst_launch,
             )
 
+    def _check_onboard(self) -> None:
+        transport = self.environment.get("ROBOT_SCOPE_CONTROL_TRANSPORT", "ros").strip()
+        lifecycle = self.environment.get("ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_TRANSPORT", "local").strip()
+        local = transport == "ros" and lifecycle == "local"
+        self.add(
+            "onboard.transport", "pass" if local else "fail",
+            "onboard control uses local ROS and systemd" if local else "onboard control transport is inconsistent",
+            detail=f"control={transport} lifecycle={lifecycle}",
+            remedy="Use ROBOT_SCOPE_CONTROL_TRANSPORT=ros and control bridge lifecycle transport=local.",
+        )
+        mismatches = [key for key, expected in ONBOARD_REQUIRED_ENVIRONMENT.items()
+                      if self.environment.get(key, expected).strip() != expected]
+        self.add(
+            "onboard.startup_contract", "fail" if mismatches else "pass",
+            "onboard startup requirements conflict" if mismatches else "onboard startup requirements match the shared profile contract",
+            detail=", ".join(mismatches),
+            remedy="Use the shared onboard Humble/CycloneDDS, ROS_LOCALHOST_ONLY=0, local lifecycle and direct FAST-LIO defaults.",
+        )
+        profile = self.configured_path(
+            "ROBOT_SCOPE_ROBOT_PROFILE_PATH", self.project_dir / "config" / "go2-onboard.json"
+        )
+        try:
+            configure_onboard_profile("go2-onboard", str(profile), project_dir=self.project_dir,
+                                      environment=dict(self.environment))
+        except (OSError, ValueError, TypeError) as exc:
+            self.add("onboard.robot_profile", "fail", "selected onboard robot profile or startup contract is invalid",
+                     detail=str(exc)[:300])
+        else:
+            self.add("onboard.robot_profile", "pass", "trusted onboard Go2 profile matches launcher validation", detail=str(profile))
+        hesai = self.configured_path(
+            "ROBOT_SCOPE_HESAI_CONFIG_PATH", self.project_dir / "config" / "hesai_xt16_onboard.yaml"
+        )
+        if "xt16" in self.features:
+            ready = hesai.is_file() and not hesai.is_symlink()
+            self.add("onboard.hesai_config", "pass" if ready else "fail", "onboard direct Hesai configuration is a regular non-symlink file"
+                     if ready else "onboard direct Hesai configuration is missing or a symlink", detail=str(hesai))
+        self._check_onboard_native()
+
+    def _unitree_setup(self) -> Path:
+        return self.configured_path(
+            "ROBOT_SCOPE_UNITREE_SETUP",
+            self.workspace_root / "unitree_ros2" / "cyclonedds_ws" / "install" / "setup.bash",
+        )
+
+    def _check_onboard_native(self) -> None:
+        """Import native consumers under the same selected ROS/Unitree overlay."""
+        python = self.project_dir / ".venv" / "bin" / "python"
+        if not (python.is_file() and os.access(python, os.X_OK)):
+            python = Path(sys.executable)
+        ros_setup = self.configured_path("ROBOT_SCOPE_ROS_SETUP", self.ros_prefix / "setup.bash")
+        unitree_setup = self._unitree_setup()
+        if not ros_setup.is_file() or not unitree_setup.is_file():
+            self.add("onboard.native_modules", "fail", "selected ROS or Unitree overlay is missing",
+                     remedy="Build the pinned workspace and select its actual install/setup.bash before native ABI verification.")
+            return
+        code = '''import importlib, json, sys
+names = ("numpy", "rclpy", "cv2", "unitree_go.msg", "unitree_api.msg")
+try:
+    modules = {name: importlib.import_module(name) for name in names}
+    numpy, cv2 = modules["numpy"], modules["cv2"]
+    if numpy.__version__.split(".")[0] != "1":
+        raise RuntimeError("onboard NumPy ABI must be 1.x")
+    cv2.cvtColor(numpy.zeros((1, 1, 3), dtype=numpy.uint8), cv2.COLOR_BGR2GRAY)
+    print(json.dumps({"executable": sys.executable, "numpy_abi_family": "1.x", "modules": {
+        name: {"path": getattr(module, "__file__", None), "version": str(getattr(module, "__version__", "unreported"))}
+        for name, module in modules.items()}}))
+except Exception as exc:
+    print(json.dumps({"error_type": type(exc).__name__}))
+    raise SystemExit(1)
+'''
+        try:
+            result = self.run_command(
+                ["/bin/bash", "--noprofile", "--norc", "-c",
+                 'set -eo pipefail\nsource "$1"\nshift\nsource "$1"\nshift\nexec "$@"',
+                 "robot-scope-onboard-doctor", str(ros_setup), str(unitree_setup), str(python), "-c", code],
+                timeout=20.0,
+            )
+            # Source setup messages may precede the fixed JSON payload.
+            payload = json.loads(result.stdout.strip().splitlines()[-1])
+            modules = payload.get("modules") if isinstance(payload, dict) else None
+            valid = (result.returncode == 0 and payload.get("numpy_abi_family") == "1.x"
+                     and isinstance(modules, dict) and all(name in modules for name in
+                     ("numpy", "rclpy", "cv2", "unitree_go.msg", "unitree_api.msg")))
+            detail = json.dumps(payload, ensure_ascii=False, sort_keys=True)[:3000] if valid else str(payload.get("error_type", "native probe failed"))
+        except (OSError, subprocess.SubprocessError, ValueError, IndexError, AttributeError) as exc:
+            valid, detail = False, type(exc).__name__
+        self.add("onboard.native_modules", "pass" if valid else "fail",
+                 "native NumPy/OpenCV/ROS/Unitree modules and a NumPy/OpenCV ABI operation passed"
+                 if valid else "native onboard module or ABI verification failed",
+                 detail=detail,
+                 remedy="Use the new isolated onboard venv, selected Humble/Unitree overlay and NumPy 1.x constraints.")
+
     def _check_go2(self) -> None:
         helper = self.project_dir / "scripts" / "setup_go2_ros2_humble.sh"
         self.check_file(
@@ -655,13 +761,7 @@ class Doctor:
             helper,
             remedy="Restore scripts/setup_go2_ros2_humble.sh from the repository.",
         )
-        cyclone_workspace = (
-            self.workspace_root
-            / "unitree_ros2"
-            / "cyclonedds_ws"
-            / "install"
-            / "setup.bash"
-        )
+        cyclone_workspace = self._unitree_setup()
         self.check_file(
             "go2.unitree_workspace",
             "Unitree CycloneDDS workspace setup",
@@ -674,9 +774,9 @@ class Doctor:
         # prevent ROS telemetry or point-cloud observation.
 
     def _check_go2_interface(self) -> None:
-        interface = self.environment.get("ROBOT_SCOPE_GO2_INTERFACE", "eno1").strip()
+        interface = self.environment.get("ROBOT_SCOPE_GO2_INTERFACE", "eth0" if self.onboard else "eno1").strip()
         cidr = self.environment.get(
-            "ROBOT_SCOPE_GO2_INTERFACE_CIDR", "192.168.123.99/24"
+            "ROBOT_SCOPE_GO2_INTERFACE_CIDR", "192.168.123.18/24" if self.onboard else "192.168.123.99/24"
         ).strip()
         if not INTERFACE_RE.fullmatch(interface):
             self.add(
@@ -762,7 +862,10 @@ class Doctor:
         camera_interface = self.environment.get(
             "ROBOT_SCOPE_CAMERA_INTERFACE", interface
         ).strip()
-        profile_path = self.project_dir / "config" / "go2.json"
+        profile_path = self.configured_path(
+            "ROBOT_SCOPE_ROBOT_PROFILE_PATH",
+            self.project_dir / "config" / ("go2-onboard.json" if self.onboard else "go2.json"),
+        )
         try:
             profile = json.loads(profile_path.read_text(encoding="utf-8"))
             allowed = profile.get("direct_camera", {}).get("allowed_interfaces", [])
@@ -969,6 +1072,12 @@ class Doctor:
     def _check_xt16_relay_host(self) -> None:
         """Probe the optional robot-mounted relay host without authenticating."""
 
+        if self.onboard:
+            self.add(
+                "xt16.relay_host", "pass", "onboard XT16 uses the local direct driver",
+                required=False, detail="No external relay reachability probe is required.",
+            )
+            return
         host = self.environment.get(
             "ROBOT_SCOPE_XT16_RELAY_HOST", "192.168.123.18"
         ).strip()

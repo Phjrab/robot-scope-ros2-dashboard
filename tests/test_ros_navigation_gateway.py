@@ -125,6 +125,13 @@ def gateway(*, port=None, node=None, ticks=None, navigation_profile=""):
 
 
 class NavigationRosGatewayTests(unittest.TestCase):
+    def test_onboard_profile_preserves_strict_physical_controller_odometry(self):
+        navigation = gateway(navigation_profile="go2-onboard")
+        self.assertEqual(navigation._navigation_profile, "go2-onboard")
+        self.assertEqual(navigation._controller_odom_mode, "strict_onboard")
+        self.assertEqual(navigation._controller_odom_topic, "/utlidar/robot_odom")
+        self.assertFalse(navigation._navigation["active"])
+
     @staticmethod
     def _prepare_active_goal(navigation, *, started_at=100.0):
         navigation._navigation_goal_generation = 1

@@ -146,6 +146,19 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(target["ip"], "192.168.50.30")
         self.assertTrue(target["control_target_supported"])
 
+    def test_onboard_profile_uses_physical_go2_target_and_strict_navigation(self):
+        agent = RosAgent(
+            robot_ip="192.168.123.161",
+            profile_path=str(ROOT / "config" / "go2-onboard.json"),
+            navigation_profile="go2-onboard",
+        )
+        target = agent.robot_target_snapshot()
+        self.assertEqual(target["connection_topology"], "onboard_local")
+        self.assertEqual(target["ip"], "192.168.123.161")
+        self.assertTrue(target["control_target_supported"])
+        self.assertFalse(agent.control_snapshot()["lease"]["active"])
+        self.assertFalse(agent.control_snapshot()["command"]["deadman"])
+
     def test_d2_evidence_observer_requires_exact_profile_and_explicit_opt_in(self):
         default = RosAgent(
             robot_ip="192.168.50.30",

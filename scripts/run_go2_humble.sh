@@ -12,9 +12,17 @@ DATASET_DIR="${ROBOT_SCOPE_DATASET_DIR:-$RUNTIME_DIR/datasets}"
 STATE_DIR="${ROBOT_SCOPE_STATE_DIR:-$RUNTIME_DIR/state}"
 SOURCE_SELECTION_STATE="${ROBOT_SCOPE_SOURCE_SELECTION_STATE:-$STATE_DIR/source-selection.json}"
 NAVIGATION_RUNTIME_DIR="${ROBOT_SCOPE_NAVIGATION_RUNTIME_DIR:-$STATE_DIR/navigation}"
+SPATIAL_ROUTE_DIR="${ROBOT_SCOPE_SPATIAL_ROUTE_DIR:-$STATE_DIR/spatial-routes}"
+OPERATOR_EVENT_DIR="${ROBOT_SCOPE_OPERATOR_EVENT_DIR:-$RUNTIME_DIR/operator-events}"
 MODEL_REGISTRY_DIR="${ROBOT_SCOPE_MODEL_REGISTRY_DIR:-$RUNTIME_DIR/model-registry}"
 COMPETITION_STATE_DIR="${ROBOT_SCOPE_COMPETITION_STATE_DIR:-$RUNTIME_DIR/competition}"
 MAPPING_PROFILE="${ROBOT_SCOPE_MAPPING_PROFILE:-go2-xt16-wired}"
+export ROBOT_SCOPE_MAPPING_PROFILE="$MAPPING_PROFILE"
+source "$SCRIPT_DIR/apply_go2_onboard_contract.sh"
+ROBOT_PROFILE_PATH="${ROBOT_SCOPE_ROBOT_PROFILE_PATH:-$PROJECT_DIR/config/go2.json}"
+if [[ "$MAPPING_PROFILE" == "go2-onboard" ]]; then
+  ROBOT_PROFILE_PATH="${ROBOT_SCOPE_ROBOT_PROFILE_PATH:-$PROJECT_DIR/config/go2-onboard.json}"
+fi
 ROBOT_IP="${ROBOT_SCOPE_ROBOT_IP:-192.168.123.161}"
 ROS_LOG_DIR="${ROS_LOG_DIR:-$RUNTIME_DIR/logs/ros}"
 if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
@@ -24,17 +32,23 @@ if [[ "$WORKSPACE_ROOT" != /* || "$WORKSPACE_ROOT" == "/" ||
   "$MODEL_REGISTRY_DIR" != /* || "$MODEL_REGISTRY_DIR" == "/" ||
   "$COMPETITION_STATE_DIR" != /* || "$COMPETITION_STATE_DIR" == "/" ||
   "$SOURCE_SELECTION_STATE" != /* || "$NAVIGATION_RUNTIME_DIR" != /* ||
+  "$SPATIAL_ROUTE_DIR" != /* || "$SPATIAL_ROUTE_DIR" == "/" ||
+  "$OPERATOR_EVENT_DIR" != /* || "$OPERATOR_EVENT_DIR" == "/" ||
   "$ROS_LOG_DIR" != /* || "$ROS_LOG_DIR" == "/" ]]; then
   echo "[Robot Scope] workspace, maps, dataset, state and log paths must be absolute and safe" >&2
   exit 2
 fi
 case "$MAPPING_PROFILE" in
-  go2-xt16-wired|go2-xt16-wireless|competition-pdf-direct|go2-xt16-wireless-competition-fastlio) ;;
+  go2-onboard|go2-xt16-wired|go2-xt16-wireless|competition-pdf-direct|go2-xt16-wireless-competition-fastlio) ;;
   *)
     echo "[Robot Scope] unsupported mapping profile" >&2
     exit 2
     ;;
 esac
+if [[ "$ROBOT_PROFILE_PATH" != /* || ! -f "$ROBOT_PROFILE_PATH" || -L "$ROBOT_PROFILE_PATH" ]]; then
+  echo "[Robot Scope] robot profile must be an absolute regular non-symlink file" >&2
+  exit 2
+fi
 mkdir -p -- "$ROS_LOG_DIR"
 export ROS_LOG_DIR
 
@@ -100,10 +114,12 @@ DASHBOARD_ARGS=(
   --dataset-output-dir "$DATASET_DIR" \
   --source-selection-state "$SOURCE_SELECTION_STATE" \
   --navigation-runtime-dir "$NAVIGATION_RUNTIME_DIR" \
+  --spatial-route-dir "$SPATIAL_ROUTE_DIR" \
+  --operator-event-dir "$OPERATOR_EVENT_DIR" \
   --model-registry-dir "$MODEL_REGISTRY_DIR" \
   --competition-state-dir "$COMPETITION_STATE_DIR" \
   --mapping-profile "$MAPPING_PROFILE" \
-  --profile "$PROJECT_DIR/config/go2.json"
+  --profile "$ROBOT_PROFILE_PATH"
 )
 PERCEPTION_SOURCE_IP="${ROBOT_SCOPE_PERCEPTION_SOURCE_IP:-}"
 PERCEPTION_POLICY="${ROBOT_SCOPE_PERCEPTION_POLICY:-}"

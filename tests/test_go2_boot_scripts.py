@@ -24,13 +24,13 @@ def write_executable(path: Path, source: str) -> None:
 
 
 class Go2InterfaceWaiterTests(unittest.TestCase):
-    def run_check(self, *, address: str, lower_up: bool = True):
+    def run_check(self, *, address: str, lower_up: bool = True, onboard=False, interface=None):
         with tempfile.TemporaryDirectory() as temporary:
             fake_bin = Path(temporary)
             write_executable(
                 fake_bin / "ip",
                 """#!/usr/bin/env bash
-if [[ "$*" == "-o link show dev eno1" ]]; then
+if [[ "$*" == "-o link show dev ${FAKE_INTERFACE}" ]]; then
   if [[ "${FAKE_LOWER_UP:-1}" == "1" ]]; then
     echo '4: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP'
   else
@@ -38,7 +38,7 @@ if [[ "$*" == "-o link show dev eno1" ]]; then
   fi
   exit 0
 fi
-if [[ "$*" == "-o -4 addr show dev eno1 scope global" ]]; then
+if [[ "$*" == "-o -4 addr show dev ${FAKE_INTERFACE} scope global" ]]; then
   echo "4: eno1 inet ${FAKE_ADDRESS} brd 192.168.123.255 scope global eno1"
   exit 0
 fi
@@ -51,8 +51,13 @@ exit 1
                     "PATH": f"{fake_bin}:{environ['PATH']}",
                     "FAKE_ADDRESS": address,
                     "FAKE_LOWER_UP": "1" if lower_up else "0",
+                    "FAKE_INTERFACE": interface or ("eth0" if onboard else "eno1"),
                 }
             )
+            if onboard:
+                environ["ROBOT_SCOPE_MAPPING_PROFILE"] = "go2-onboard"
+            if interface:
+                environ["ROBOT_SCOPE_GO2_INTERFACE"] = interface
             return subprocess.run(
                 [str(WAITER), "--check"],
                 check=False,
@@ -69,6 +74,12 @@ exit 1
             self.run_check(address="192.168.123.99/24", lower_up=False).returncode,
             1,
         )
+
+    def test_onboard_defaults_and_explicit_measured_nic_use_exact_sensor_address(self):
+        self.assertEqual(self.run_check(address="192.168.123.18/24", onboard=True).returncode, 0)
+        self.assertEqual(self.run_check(address="192.168.123.99/24", onboard=True).returncode, 1)
+        self.assertEqual(self.run_check(address="192.168.123.18/24", onboard=True,
+                                        interface="enP8p1s0").returncode, 0)
 
     def test_invalid_interface_configuration_fails_closed(self):
         environ = os.environ.copy()

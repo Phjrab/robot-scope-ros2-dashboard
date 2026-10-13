@@ -72,6 +72,25 @@ class RosDependencyManifestTests(unittest.TestCase):
 
 
 class RosDependencyBootstrapTests(unittest.TestCase):
+    def test_build_jobs_bound_package_and_native_parallelism(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.run_script("--mode", "go2-nav", "--workspace-root", temporary,
+                                     "--build-jobs", "3", "--dry-run")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.count("--parallel-workers 3"), 5)
+            self.assertIn("--parallel 3", result.stdout)
+            self.assertEqual(result.stdout.count("CMAKE_BUILD_PARALLEL_LEVEL=3"), 5)
+            self.assertEqual(result.stdout.count("MAKEFLAGS=-j3"), 5)
+            self.assertFalse((Path(temporary) / "unitree_ros2").exists())
+
+    def test_build_jobs_rejects_unbounded_and_shell_values_before_work(self) -> None:
+        for value in ("0", "17", "-1", "2;id", "all", "1.5", "02"):
+            with self.subTest(value=value):
+                result = self.run_script("--mode", "go2", "--build-jobs", value)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("integer from 1 to 16", result.stderr)
+                self.assertNotIn("git clone", result.stdout)
+
     def run_script(self, *arguments: str) -> subprocess.CompletedProcess[str]:
         environment = dict(os.environ)
         environment["LC_ALL"] = "C"
@@ -145,7 +164,9 @@ class RosDependencyBootstrapTests(unittest.TestCase):
             self.assertIn("Livox-SDK2", result.stdout)
             self.assertIn("sdk2_install", result.stdout)
             self.assertIn("cmake --install", result.stdout)
-            self.assertIn("build.sh humble", result.stdout)
+            self.assertIn("prepare_livox_ros2_source.py", result.stdout)
+            self.assertIn("-DROS_EDITION=ROS2 -DDISTRO_ROS=humble", result.stdout)
+            self.assertNotIn("build.sh humble", result.stdout)
 
     def test_unknown_mode_fails_without_side_effects(self) -> None:
         result = self.run_script("--mode", "everything", "--dry-run")

@@ -1,0 +1,180 @@
+{
+  "name": "Unitree Go2 onboard Jetson",
+  "robot_type": "go2",
+  "robot_ip": "192.168.123.161",
+  "disabled_sources": [
+    "camera"
+  ],
+  "direct_camera": {
+    "enabled": true,
+    "interface": "eth0",
+    "allowed_interfaces": [
+      "eth0"
+    ],
+    "width": 1280,
+    "height": 720,
+    "fps_limit": 15,
+    "jpeg_quality": 80,
+    "stale_after_s": 3.0,
+    "startup_frame_timeout_s": 8.0,
+    "frame_timeout_s": 6.0,
+    "restart_initial_s": 0.5,
+    "restart_max_s": 8.0
+  },
+  "remote_cameras": {
+    "realsense_color": {
+      "enabled": true,
+      "label": "RealSense color camera",
+      "url": "http://192.168.123.18:8090/stream",
+      "allowed_urls": [
+        "http://192.168.123.18:8090/stream"
+      ],
+      "stale_after_s": 3.0,
+      "request_timeout_s": 6.0,
+      "restart_initial_s": 0.5,
+      "restart_max_s": 8.0
+    }
+  },
+  "observed_topics": [
+    "/lowstate",
+    "/lf/lowstate",
+    "/lf/sportmodestate",
+    "/sportmodestate",
+    "/joint_states",
+    "/imu/body",
+    "/lidar_imu",
+    "/utlidar/lidar_state"
+  ],
+  "cloud_radius_limit_m": 150,
+  "pointcloud_frame_interval_s": 0.18,
+  "xt16_preview": {
+    "enabled": true
+  },
+  "odometry_stale_after_s": 8.0,
+  "pose_position_limit_m": 10000,
+  "navigation_health": {
+    "cloud_min_hz": 4.0,
+    "cloud_max_jitter_s": 0.25,
+    "cloud_stale_s": 0.75,
+    "runtime_health_stale_s": 0.75,
+    "odometry_min_hz": 10.0,
+    "odometry_max_jitter_s": 0.1,
+    "odometry_stale_s": 0.5,
+    "tf_stale_s": 0.5,
+    "accepted_points_min": 32,
+    "fresh_sequence_min": 3,
+    "discontinuity_recent_s": 10.0,
+    "goal_progress_min_mps": 0.01,
+    "controller_stall_s": 3.0
+  },
+  "control": {
+    "enabled": true,
+    "max_linear_x": 1.0,
+    "max_linear_y": 0.2,
+    "max_angular_z": 0.5,
+    "default_speed_scale": 0.35,
+    "navigation_speed_scale": 1.0,
+    "lowstate_topic": "/lowstate",
+    "sport_mode_state_topic": "/sportmodestate",
+    "command_timeout_s": 0.2,
+    "navigation_command_timeout_s": 0.3,
+    "bridge_command_timeout_s": 0.2,
+    "bridge_status_timeout_s": 0.75,
+    "telemetry_timeout_s": 0.5,
+    "expected_bare_sport_publishers": 10,
+    "lease_timeout_s": 2.0,
+    "bind_timeout_s": 4.0,
+    "max_linear_accel": 0.8,
+    "max_lateral_accel": 0.6,
+    "max_angular_accel": 1.2,
+    "allowed_actions": [
+      "balance_stand",
+      "stand_up",
+      "stand_down",
+      "recovery_stand",
+      "sit",
+      "rise_sit",
+      "hello",
+      "stretch",
+      "content",
+      "scrape",
+      "heart",
+      "static_walk",
+      "economic_gait",
+      "free_walk"
+    ]
+  },
+  "robot_pose_in_cloud_frames": {
+    "hesai_lidar": {
+      "position": [
+        0.0,
+        0.25,
+        0.0
+      ],
+      "rpy": [
+        0.0,
+        0.0,
+        -1.5707963268
+      ]
+    }
+  },
+  "saved_maps": {
+    "directories": [
+      "../robot_dashboard/static/data"
+    ],
+    "max_files": 100,
+    "max_depth": 2,
+    "max_file_bytes": 268435456,
+    "preview_points": 10000,
+    "max_requested_points": 1000000,
+    "max_full_view_points": 2000000,
+    "cloud_radius_limit_m": 10000,
+    "max_grid_cells": 16000000
+  },
+  "preferred_topics": {
+    "camera": [
+      "/frontvideostream"
+    ],
+    "pointcloud": [
+      "/cloud_registered",
+      "/Laser_map",
+      "/velodyne_points",
+      "/lidar_points",
+      "/utlidar/cloud_deskewed",
+      "/uslam/cloud_map",
+      "/utlidar/cloud",
+      "/utlidar/cloud_base",
+      "/utlidar/grid_map"
+    ],
+    "odometry": [
+      "/Odometry",
+      "/uslam/frontend/odom",
+      "/utlidar/robot_odom",
+      "/lio_sam_ros2/mapping/odometry"
+    ],
+    "occupancy_grid": [
+      "/map"
+    ]
+  },
+  "source_selection": {
+    "pointcloud": {
+      "default": "/velodyne_points",
+      "persistent": true,
+      "fail_closed": true,
+      "allowed_offline": [
+        "/lidar_points",
+        "/velodyne_points",
+        "/cloud_registered",
+        "/Laser_map",
+        "/utlidar/cloud",
+        "/utlidar/cloud_deskewed",
+        "/utlidar/cloud_base",
+        "/utlidar/grid_map",
+        "/utlidar/height_map",
+        "/utlidar/range_map",
+        "/utlidar/voxel_map",
+        "/uslam/cloud_map"
+      ]
+    }
+  }
+}

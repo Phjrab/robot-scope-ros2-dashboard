@@ -37,6 +37,20 @@ def udp_packet(
 
 
 class Xt16HeaderAuditTests(unittest.TestCase):
+    def test_onboard_observation_selects_real_nic_without_widening_packet_filter(self):
+        self.assertEqual(audit.configured_interface({}), "eth0")
+        self.assertEqual(audit.configured_interface({
+            "ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard",
+            "ROBOT_SCOPE_GO2_INTERFACE": "enP8p1s0",
+        }), "enP8p1s0")
+        for value in ("", "enP8p1s0;id", "$(id)", "x" * 33):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    audit.configured_interface({
+                        "ROBOT_SCOPE_MAPPING_PROFILE": "go2-onboard",
+                        "ROBOT_SCOPE_GO2_INTERFACE": value,
+                    })
+
     def test_expected_source_to_changed_destination_is_reported(self) -> None:
         parsed = audit.parse_relevant_udp_header(
             udp_packet(

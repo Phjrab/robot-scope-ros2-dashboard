@@ -24,6 +24,9 @@ ENABLED_ENV = "ROBOT_SCOPE_REALSENSE_PROFILE_CONTROL_ENABLED"
 HOST_ENV = "ROBOT_SCOPE_ROBOT_GATEWAY_IP"
 IDENTITY_ENV = "ROBOT_SCOPE_WIRELESS_MAPPING_SSH_IDENTITY"
 KNOWN_HOSTS_ENV = "ROBOT_SCOPE_WIRELESS_MAPPING_SSH_KNOWN_HOSTS"
+LIFECYCLE_MODE_ENV = "ROBOT_SCOPE_REALSENSE_PROFILE_LIFECYCLE_MODE"
+LOCAL_HELPER = Path(__file__).resolve().parents[1] / "scripts" / "robot_scope_realsense_local_command.py"
+LOCAL_PYTHON = "/usr/bin/python3"
 REMOTE_USER = "unitree"
 STATUS_ACTION = "realsense-profile-status"
 ALLOWED_PROFILES = {
@@ -140,6 +143,28 @@ class FixedSshRealSenseProfileRunner:
         )
 
 
+class FixedLocalRealSenseProfileRunner:
+    """Run the same bounded profile operations on the dashboard host."""
+
+    def __init__(self) -> None:
+        if not LOCAL_HELPER.is_file() or not Path(LOCAL_PYTHON).is_file():
+            raise ValueError("local RealSense profile helper is unavailable")
+
+    def _command(self, action: str) -> tuple[str, ...]:
+        allowed = {STATUS_ACTION, *(f"realsense-profile-{item}" for item in ALLOWED_PROFILES)}
+        if action not in allowed:
+            raise ValueError("RealSense profile action is not allowlisted")
+        return (LOCAL_PYTHON, "-I", str(LOCAL_HELPER), action)
+
+    def __call__(self, action: str, timeout_seconds: float) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            self._command(action), shell=False, check=False,
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, text=True, timeout=timeout_seconds,
+            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C", "LC_ALL": "C"},
+        )
+
+
 def parse_profile_status(value: object) -> dict[str, Any]:
     """Validate the complete bounded status emitted by the forced command."""
 
@@ -216,11 +241,17 @@ class RealSenseProfileManager:
         if not enabled:
             return cls(enabled=False, dataset_active=dataset_active)
         try:
-            runner: Runner | None = FixedSshRealSenseProfileRunner(
-                host=str(values.get(HOST_ENV, "")),
-                identity_file=str(values.get(IDENTITY_ENV, "")),
-                known_hosts_file=str(values.get(KNOWN_HOSTS_ENV, "")),
-            )
+            mode = str(values.get(LIFECYCLE_MODE_ENV, "ssh")).strip()
+            if mode == "local":
+                runner: Runner | None = FixedLocalRealSenseProfileRunner()
+            elif mode == "ssh":
+                runner = FixedSshRealSenseProfileRunner(
+                    host=str(values.get(HOST_ENV, "")),
+                    identity_file=str(values.get(IDENTITY_ENV, "")),
+                    known_hosts_file=str(values.get(KNOWN_HOSTS_ENV, "")),
+                )
+            else:
+                raise ValueError("unsupported RealSense profile lifecycle mode")
         except (OSError, ValueError):
             runner = None
         return cls(enabled=True, runner=runner, dataset_active=dataset_active)

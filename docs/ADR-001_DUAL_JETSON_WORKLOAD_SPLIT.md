@@ -6,6 +6,13 @@
 - Supersedes: no current runtime ADR
 - Related: [wireless control transport ADR](ADR_WIRELESS_CONTROL_TRANSPORT.md)
 
+Scope update, 2026-10-13: this ADR remains the historical dual-host deployment
+decision. The explicitly selected `go2-onboard` single-host profile follows
+[the onboard ADR](ADR_GO2_ONBOARD_OPERATION.md) and
+[migration/acceptance record](GO2_ONBOARD_MIGRATION.md). Its product ownership
+is internal; the prohibitions below apply to the split described here. This
+scope update does not turn historical external-host evidence into onboard PASS.
+
 ## Context
 
 The competition system has a robot-side Jetson running Ubuntu 20.04 with the

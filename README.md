@@ -7,6 +7,12 @@ Robot Scope는 ROS 2 로봇의 센서, 지도, 수동 제어와 경로 계획을
 Ubuntu ROS host의 웹 서비스와 Jetson Orin Nano + Go2 + XT16 구성입니다.
 Jetson은 전체 Go2 경로를 검증한 장비이지 웹 대시보드의 필수 조건은 아닙니다.
 
+Go2 내부 Orin NX 16GB 단독 운영을 위한 명시적 `go2-onboard` profile과
+[이전·설치·인수 기록](docs/GO2_ONBOARD_MIGRATION.md)을 추가합니다. 기존 두 Jetson
+구성과 검증 기록은 보존합니다. 내부 단독 실장비 구동의 현재 상태와 제한은 해당
+기록에서 PASS/NOT_RUN으로 구분하며, 아래 과거 검증을 새 장비의 성공으로 해석하지
+않습니다. [내부 운영 ADR](docs/ADR_GO2_ONBOARD_OPERATION.md).
+
 **현재 검증 경계 (`main` `d81c59e`, 2026-09-13):** 구현과 단계별 소프트웨어·
 현장 기록은 있지만 실제 Nav2 목표 도달이나 경기 완주는 확인되지 않았습니다.
 2026-09-11 정지 상태 180초 관찰의 localization READY는 경로 승인과 다릅니다.

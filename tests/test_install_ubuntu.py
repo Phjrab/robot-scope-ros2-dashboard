@@ -25,6 +25,7 @@ class InstallerFixture:
         (self.project / "config").mkdir()
         shutil.copy2(INSTALLER, self.project / "scripts" / "install_ubuntu.sh")
         (self.project / "requirements.txt").write_text("fastapi\n", encoding="utf-8")
+        (self.project / "requirements-onboard-constraints.txt").write_text("numpy>=1.24,<2\n", encoding="utf-8")
         (self.project / "deploy" / "robot-scope.env.example").write_text(
             "ROBOT_SCOPE_CONTROL_ENABLED=0\n", encoding="utf-8"
         )
@@ -95,6 +96,32 @@ class InstallerFixture:
 
 
 class UbuntuInstallerTests(unittest.TestCase):
+    def test_onboard_env_selects_abi_constraints_without_overwriting_values(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            fixture.config.mkdir()
+            env_file = fixture.config / "robot-scope.env"
+            content = "ROBOT_SCOPE_MAPPING_PROFILE=go2-onboard\nPYTHONNOUSERSITE=1\n"
+            env_file.write_text(content, encoding="utf-8")
+            result = fixture.run("--mode", "go2-nav")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("onboard NumPy 1.x ABI constraints", result.stdout)
+            self.assertEqual(env_file.read_text(), content)
+            (fixture.project / "requirements-onboard-constraints.txt").unlink()
+            rejected = fixture.run("--mode", "go2-nav")
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("constraints file is missing", rejected.stderr)
+
+    def test_build_jobs_is_validated_and_forwarded_to_bootstrap(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = InstallerFixture(Path(temporary))
+            result = fixture.run("--mode", "go2-nav", "--build-jobs", "1")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("--build-jobs 1", result.stdout)
+            rejected = fixture.run("--mode", "go2-nav", "--build-jobs", "32")
+            self.assertEqual(rejected.returncode, 2)
+            self.assertFalse(fixture.config.exists())
+
     def test_default_is_read_only_dry_run_and_propagates_mode(self):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = InstallerFixture(Path(temporary))
