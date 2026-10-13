@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11161c">
+  <title>Jetson 자원 모니터 · Robot Scope</title>
+  <script src="/static/theme.js"></script>
+  <link rel="stylesheet" href="/static/fonts.css">
+  <link rel="stylesheet" href="/static/features/resources/view.css">
+  <script type="module" src="/static/features/resources/view.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">▥</span> ROBOT SCOPE <span class="brand-divider">/</span><span class="brand-section">COMPUTE</span></a>
+    <div class="top-actions"><span class="live-badge" id="connectionState" role="status">연결 대기</span><button id="themeToggle" type="button">화이트 모드</button></div>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">UNITREE · ONBOARD COMPUTE</p><h1>Jetson 자원 모니터<span class="title-dot">.</span></h1><p class="intro-copy">센서 설정을 바꾸고, 연산 부하와 수신률의 변화를 확인하세요.</p></div>
+      <div class="host-box"><span class="eyebrow">MEASUREMENT HOST</span><strong id="hostModel">호스트 확인 중</strong><span id="hostName">—</span><small>이 웹 서버가 실행되는 보드의 자원입니다.</small></div>
+    </section>
+    <section class="status-strip" aria-label="현재 관측 상태">
+      <div><span class="status-dot" id="loadDot"></span><strong id="loadStatus">측정 대기 중</strong><span id="loadNote">첫 측정 이후 CPU·네트워크 변화량을 계산합니다.</span></div>
+      <div class="status-controls"><label>부하 참고선 <select id="loadThreshold" aria-label="부하 참고선"><option value="70">70%</option><option value="80" selected>80%</option><option value="90">90%</option></select></label><button id="pauseButton" type="button" aria-pressed="false">Ⅱ 일시정지</button><span class="mono" id="lastObserved">—</span></div>
+    </section>
+    <section class="metric-grid" aria-label="실시간 자원 사용량">
+      <article class="metric-card" data-metric="cpu"><div class="metric-top"><h2>CPU</h2><span>전체 평균</span></div><strong class="metric-value" id="cpuValue">—</strong><div class="meter" role="meter" aria-label="CPU 사용률" aria-valuemin="0" aria-valuemax="100"><span id="cpuBar"></span></div><p id="cpuDetail">코어별 부하 확인 중</p></article>
+      <article class="metric-card" data-metric="gpu"><div class="metric-top"><h2>GPU</h2><span>Jetson GR3D</span></div><strong class="metric-value" id="gpuValue">—</strong><div class="meter" role="meter" aria-label="GPU 사용률" aria-valuemin="0" aria-valuemax="100"><span id="gpuBar"></span></div><p id="gpuDetail">GPU 측정 대기</p></article>
+      <article class="metric-card" data-metric="ram"><div class="metric-top"><h2>MEMORY</h2><span>CPU · GPU 공유</span></div><strong class="metric-value" id="ramValue">—</strong><div class="meter" role="meter" aria-label="메모리 사용률" aria-valuemin="0" aria-valuemax="100"><span id="ramBar"></span></div><p id="ramDetail">MemTotal − MemAvailable</p></article>
+      <article class="metric-card"><div class="metric-top"><h2>NETWORK</h2><span>물리 인터페이스 합계</span></div><strong class="metric-value" id="networkValue">—</strong><div class="network-duplex"><span>↓ RX <b id="rxValue">—</b></span><span>↑ TX <b id="txValue">—</b></span></div><p>수신·송신 처리량 · Mbps</p></article>
+      <article class="metric-card"><div class="metric-top"><h2>TEMPERATURE</h2><span>가장 높은 센서</span></div><strong class="metric-value" id="temperatureValue">—</strong><p class="metric-secondary" id="temperatureSensor">—</p><p id="temperatureDetail">온도 센서 확인 중</p></article>
+      <article class="metric-card"><div class="metric-top"><h2>BOARD POWER</h2><span>보드 입력 전력</span></div><strong class="metric-value" id="powerValue">—</strong><p class="metric-secondary">VDD_IN</p><p>보드 전력 · 로봇 전체 전력과 별도</p></article>
+    </section>
+    <section class="chart-layout">
+      <article class="panel trend-panel"><div class="panel-heading"><div><p class="eyebrow">RESOURCE HISTORY</p><h2>부하의 흐름</h2></div><label>표시 구간 <select id="historyWindow"><option value="120">최근 2분</option><option value="300">최근 5분</option><option value="900">최근 15분</option></select></label></div>
+        <div class="legend"><span><i class="cpu-color"></i>CPU 평균</span><span><i class="core-color"></i>가장 바쁜 코어</span><span><i class="gpu-color"></i>GPU</span><span><i class="ram-color"></i>메모리</span></div>
+        <canvas id="resourceChart" aria-label="시간에 따른 CPU, 가장 바쁜 코어, GPU, 메모리 사용률 그래프"></canvas><p class="chart-caption">1초 간격 · 이 창에서 관측한 최근 15분 · 수신 중단 구간은 끊어 표시</p>
+      </article>
+      <article class="panel cores-panel"><div class="panel-heading"><div><p class="eyebrow">CPU BREAKDOWN</p><h2>코어별 사용률</h2></div><span class="pill">100% = 코어 1개</span></div><div id="coreList" class="core-list"><p class="empty">측정 대기 중</p></div><p class="chart-caption">전체 평균이 낮아도 한 코어에 작업이 몰릴 수 있습니다.</p></article>
+    </section>
+    <section class="panel experiment-panel"><div class="panel-heading"><div><p class="eyebrow">CHANGE & COMPARE</p><h2>설정 변경 전후 비교</h2></div><span class="pill">최근 30초 평균</span></div>
+      <div class="experiment-layout"><div class="experiment-form"><p>① 기준을 저장하고 ② 설정 하나를 변경한 뒤 ③ 부하와 수신률을 비교하세요.</p><label for="experimentNote">현재 설정 / 변경 메모</label><input id="experimentNote" maxlength="160" placeholder="예: 카메라 1280×720 · 15 FPS / LiDAR 10 Hz"><div class="button-row"><button class="primary" id="baselineButton" type="button" disabled>변경 전 기준 저장</button><button id="markButton" type="button" disabled>변경 시점 표시</button><button id="exportButton" type="button" disabled>CSV 내보내기 ↓</button></div><p id="comparisonStatus" role="status">기준 저장에는 10초 이상, 5개 이상의 연속 측정이 필요합니다.</p><p class="fineprint">메모는 관측 기록입니다. 해상도·FPS·LiDAR Hz는 해당 드라이버에서 변경하세요.</p></div>
+      <div class="comparison-wrap"><table class="comparison-table"><caption id="baselineLabel">저장한 기준 없음</caption><thead><tr><th>측정 항목</th><th>변경 전</th><th>변경 후</th><th>차이</th></tr></thead><tbody id="comparisonRows"><tr><td colspan="4" class="empty">기준을 저장하면 비교 결과가 나타납니다.</td></tr></tbody></table></div></div>
+      <div class="event-log" id="eventLog" aria-label="설정 변경 기록"></div>
+    </section>
+    <section class="detail-layout">
+      <article class="panel"><div class="panel-heading"><div><p class="eyebrow">SENSOR OBSERVATIONS</p><h2>카메라 · LiDAR · SLAM 입력</h2></div><a href="/#topics">ROS 토픽 ↗</a></div><p class="section-note">카메라 출력 크기와 수신 Hz·수신 경과입니다. 드라이버 설정 Hz·센서 지연·SLAM 입력 크기는 별도로 확인하세요.</p><div class="table-scroll"><table><thead><tr><th>소스</th><th>상태</th><th>해상도 / 종류</th><th>수신률</th><th>수신 경과</th></tr></thead><tbody id="sensorRows"><tr><td colspan="5" class="empty">센서 상태 확인 중</td></tr></tbody></table></div></article>
+      <article class="panel advice-panel"><div class="panel-heading"><div><p class="eyebrow">OBSERVATION GUIDE</p><h2>지금 확인할 것</h2></div><span class="pill">관측 참고</span></div><ul id="adviceList"><li>측정값을 기다리고 있습니다.</li></ul><div class="pressure-grid"><div><span>SWAP 사용</span><strong id="swapValue">—</strong></div><div><span>OOM 증가 / 측정 간격</span><strong id="oomValue">—</strong></div><div><span>CPU 대기 · 최근 10초</span><strong id="cpuPressure">—</strong></div><div><span>메모리 대기 · 최근 10초</span><strong id="memoryPressure">—</strong></div></div><p class="fineprint">참고선은 하드웨어 한계나 SLAM 품질의 판정 기준이 아닙니다. 센서 수신률·처리 지연도 함께 확인하세요.</p></article>
+    </section>
+    <section class="panel"><div class="panel-heading"><div><p class="eyebrow">NETWORK INTERFACES</p><h2>인터페이스별 트래픽</h2></div><span class="pill">가상 인터페이스 구분</span></div><div class="table-scroll"><table><thead><tr><th>인터페이스</th><th>종류 / 연결</th><th>↓ RX</th><th>↑ TX</th><th>링크 속도 / 사용률</th><th>드롭 / 오류 · 초당</th></tr></thead><tbody id="networkRows"><tr><td colspan="6" class="empty">네트워크 측정 대기</td></tr></tbody></table></div><p class="section-note">Wi-Fi 링크 용량을 읽지 못하면 사용률을 표시하지 않습니다. 드롭·오류 카운터 감소는 새 측정으로 처리합니다.</p></section>
+    <section class="detail-layout bottom-layout"><article class="panel"><div class="panel-heading"><div><p class="eyebrow">VISIBLE PROCESSES</p><h2>부하가 큰 프로세스</h2></div><span class="pill">최대 12개</span></div><div class="table-scroll"><table><thead><tr><th>프로세스</th><th>PID</th><th>CPU · 코어 기준</th><th>RSS 메모리</th></tr></thead><tbody id="processRows"><tr><td colspan="4" class="empty">프로세스 측정 대기</td></tr></tbody></table></div><p class="section-note" id="processScope">이 서버에서 보이는 프로세스 범위입니다.</p></article>
+      <article class="panel"><div class="panel-heading"><div><p class="eyebrow">THERMAL & POWER</p><h2>온도와 전력 상세</h2></div></div><div class="thermal-list" id="thermalList"><p class="empty">온도 센서 확인 중</p></div><div class="rail-list" id="powerList"></div><p class="fineprint">온도와 클럭만으로 실제 스로틀링 여부를 확정하지 않습니다.</p></article></section>
+    <footer><span>ROBOT SCOPE <b>/</b> JETSON RESOURCES</span><span>실측 값만 표시 · 확인할 수 없는 값은 — · 기록은 이 창에만 보관</span></footer>
+  </main>
+</body>
+</html>

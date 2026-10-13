@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict
 
 from ..discovery import LocalRobotDiscovery
+from ..resource_monitor import ResourceMonitor
 
 if TYPE_CHECKING:
     from ..competition import CompetitionStateManager
@@ -59,6 +60,7 @@ class ApplicationRuntime:
     pointcloud_binary_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     control_bindings: Dict[str, str] = field(default_factory=dict)
     robot_discovery: LocalRobotDiscovery = field(default_factory=LocalRobotDiscovery)
+    resources: ResourceMonitor = field(default_factory=ResourceMonitor)
 
     def require_agent(self) -> RosAgent:
         if self.agent is None:

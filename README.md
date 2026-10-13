@@ -129,6 +129,12 @@ UI E2E는 loopback mock backend와 fixture를 사용합니다. Playwright가 설
 
 ## Robotics Mission Control UI
 
+**Jetson 자원** 메뉴는 웹 서버가 실행되는 보드의 CPU·코어별 부하, GPU,
+메모리·SWAP, 온도·입력 전력, 물리/가상 네트워크와 센서 수신률을 1초 간격으로
+관측합니다. 최근 추이와 서로 겹치지 않는 변경 전후 측정 구간, 설정 변경 메모,
+CSV 내보내기를 제공합니다. `/static/resources.html`에서 열며 ROS 없이 보드
+자원만 보는 단독 실행도 지원합니다. [실행과 측정 의미](docs/JETSON_RESOURCE_MONITOR.md).
+
 센서·지도·카메라 중심 Cockpit이 기본 화면입니다. Observation / Mapping /
 Navigation / Dataset Capture 배치는 기존 저장 layout과 Edit/Apply 계약을 사용합니다.
 Safety HUD와 software STOP은 주요 작업 화면에서 고정 표시됩니다. 기존 고급 기능은

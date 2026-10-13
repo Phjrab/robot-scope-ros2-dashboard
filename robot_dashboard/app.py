@@ -43,6 +43,7 @@ from .api.routers.perception import router as perception_router
 from .api.routers.route_catalogs import router as route_planner_router
 from .api.routers.relocalization import router as relocalization_router
 from .api.routers.system import router as system_router
+from .api.routers.resources import router as resources_router
 from .api.routers.telemetry import router as telemetry_router
 from .api.models import (
     ControlArmRequest,
@@ -398,6 +399,7 @@ app.include_router(model_registry_router)
 app.include_router(perception_router)
 app.include_router(route_planner_router)
 app.include_router(relocalization_router)
+app.include_router(resources_router)
 def require_navigation_idle(detail: str) -> None:
     if navigation_coordinator().is_active():
         raise HTTPException(status_code=409, detail=detail)

@@ -1,0 +1,99 @@
+# Jetson 자원 모니터
+
+SLAM 알고리즘과 별개로 보드 부하와 센서 입력을 관측하고, 해상도·FPS·LiDAR Hz를
+변경한 전후를 비교하는 화면입니다. 실제 설정 변경은 센서 드라이버에서 수행합니다.
+
+## 열기
+
+업데이트된 Robot Scope를 실행한 뒤 **Jetson 자원** 메뉴를 선택합니다.
+주소는 기존 대시보드의 `/static/resources.html`입니다. 이 변경 작업에서는 기존
+서비스를 재시작하거나 센서·로봇 설정을 바꾸지 않았습니다.
+
+ROS나 로봇 서비스 없이 보드 자원만 관측하려면 Jetson의 일반 터미널에서 실행합니다.
+
+```bash
+cd /home/unitree/robot-scope
+.venv/bin/python -m robot_dashboard.resource_server --host 0.0.0.0 --port 8090
+```
+
+같은 네트워크의 브라우저에서 `http://<Jetson-IP>:8090/`에 접속합니다.
+기본값은 `127.0.0.1:8090`이며 `--host 0.0.0.0`은 LAN 접속용입니다.
+종료는 터미널에서 Ctrl+C입니다. 단독 모드에는 ROS 관측자가 없으므로 센서 수신률은
+미연결로 표시합니다. 센서까지 보려면 센서와 연결된 Jetson에서 기존 Robot Scope를 실행합니다.
+웹 서버가 다른 PC에 실행되면 해당 PC의 자원을 표시합니다. 헤더에서 측정 호스트를 확인하세요.
+
+## 설정 변경 실험
+
+1. 관측을 시작하고 10초 이상 연속 측정을 기다립니다.
+2. 현재 해상도·FPS·LiDAR Hz를 메모하고 **변경 전 기준 저장**을 누릅니다.
+3. 센서 드라이버에서 설정 하나를 변경합니다. 메모를 갱신한 뒤 **변경 시점 표시**를 누릅니다.
+4. 변경 후 10초 이상 관측하고 CPU·최대 코어·GPU·메모리·온도·전력과 센서 수신률을 비교합니다.
+5. **CSV 내보내기**로 최근 측정과 변경 메모를 저장합니다.
+
+기준은 저장 시점 이전 최대 30초, 비교는 기준 저장 이후의 최근 최대 30초 평균입니다.
+두 구간은 겹치지 않습니다. 2.5초 이상 수신 간격이 벌어지면 비교 구간을 끊고 연속
+측정을 다시 모읍니다. 최소 5개, 10초 이상의 구간이 있어야 평균을 비교합니다.
+설정을 바꾼 직후에는 이전 설정의 측정이 변경 후 평균에 잠시 포함될 수 있으므로,
+30초 이상 관측하여 전환 구간이 빠진 뒤 비교하는 것이 좋습니다.
+
+화면은 이 창의 최근 15분, 최대 901개 측정과 100개 메모만 보관합니다.
+새로고침하면 사라집니다. 일시정지·창 비활성 중에는 요청을 중단하고, 실시간 숫자를
+비웁니다. 연결이 끊기면 기록은 유지하지만 실시간 숫자와 변경 후 비교값은 비웁니다.
+
+## 측정 의미
+
+| 항목 | 출처와 의미 |
+|---|---|
+| CPU 평균·코어 | `/proc/stat`의 두 측정 사이 tick 변화량. idle+iowait 제외, guest 중복 제외. 첫 측정은 `—` |
+| 프로세스 CPU | `/proc/<pid>/stat` 변화량. 100%는 코어 1개, 여러 코어 사용 시 100% 초과 가능. PID 재사용 시 새 측정 |
+| 프로세스 메모리 | RSS. 공유 메모리 포함이므로 프로세스별 RSS를 더해 전체 사용량으로 해석하면 안 됨 |
+| GPU | Jetson sysfs `load / 10`과 devfreq `cur_freq`. 값이 없으면 `—` |
+| 메모리 | `MemTotal − MemAvailable`. 회수 가능한 캐시를 사용량으로 단순 합산하지 않음. Jetson CPU·GPU 공유 시스템 메모리 |
+| 온도 | sysfs thermal zone. passive/hot/critical trip이 읽히면 기준 표시. 실제 스로틀링 판정은 없음 |
+| 입력 전력 | INA3221의 VDD_IN 전압(mV) × 전류(mA) / 1,000,000. 로봇 전체 전력과 별도 |
+| 네트워크 | sysfs 인터페이스 카운터 변화량. 실제 경과 시간으로 나눔. 물리 인터페이스만 합계에 포함하여 가상 트래픽 중복 제외 |
+| 링크 사용률 | 읽을 수 있는 링크 속도 대비 RX/TX 중 큰 값. Wi-Fi 등 속도 미확인 시 `—` |
+| 센서 | 기존 카메라 catalog 및 ROS topic status만 조회. 카메라 출력 프레임 크기·수신률, 토픽 callback 수신 Hz·jitter·수신 경과. SLAM 또는 모델 입력 크기는 별도. 추가 영상 스트림·ROS subscription 없음 |
+| SWAP / OOM / 대기 | meminfo·vmstat·PSI. PSI 미지원 시 `—`. OOM은 측정 간격 사이 카운터 증가 |
+
+프로세스 목록은 서버에서 보이는 PID namespace 범위, 최대 512개 중 부하 순 12개입니다.
+컨테이너 실행 시 프로세스 범위와 sysfs 보드 범위가 다를 수 있습니다.
+프로세스 인자·환경변수·사용자 비밀 정보는 수집하지 않습니다.
+
+부하 참고선은 기본 80%이고 사용자가 70/80/90%로 바꿀 수 있습니다. 이는 관측 참고값이며
+특정 SLAM 알고리즘의 처리 한계나 정확도 보증이 아닙니다. CPU 평균이 낮아도 한 코어가
+높으면 지연이 생길 수 있습니다. 해상도나 Hz 증가의 효과는 알고리즘별 지연·수신률·
+드롭과 함께 측정해야 하며, 센서별 CPU/GPU 사용량을 비율로 추정하지 않습니다.
+
+Jetson GPU·메모리·클럭 측정의 해석은
+[NVIDIA Jetson Linux tegrastats 설명](https://docs.nvidia.com/jetson/archives/r36.5/DeveloperGuide/AT/JetsonLinuxDevelopmentTools/TegrastatsUtility.html)을
+참고할 수 있습니다. 이 수집기는 tegrastats 프로세스를 별도로 실행하지 않습니다.
+
+## 구성과 검증
+
+`ResourceMonitor`는 runtime 하나당 하나이며 요청이 들어올 때만 측정합니다.
+같은 1초 안의 요청은 캐시를 공유합니다. 서버 API는
+`GET /api/v1/system/resources`이며 ROS가 미연결이어도 보드 자원을 반환합니다.
+파일 읽기는 worker thread에서 실행하며 이벤트 루프를 막지 않습니다.
+
+```bash
+python3 -m unittest discover -s tests -p 'test_resource_monitor.py' -v
+node --test tests/test_resource_monitor.mjs
+```
+
+수집 계산 검증은 임시 파일 fixture로 수행합니다. 실제 보드에서 읽기 확인도 별도로
+수행했지만 특정 SLAM workload의 성능 한계 측정이나 서비스 배포 검증은 아닙니다.
+웹 서버가 실행되는 호스트의 proc/sys 접근 권한과 네트워크 소켓이 필요합니다.
+
+2026-10-13 변경 검증에서 자원 수집/API 8개, API 계약 6개, runtime 구조 5개,
+HTTP 보안 7개가 통과했습니다. Node 실행 파일이 없는 환경이므로 신규 JavaScript
+테스트 6개는 설치된 JavaScriptCore 엔진에서 동일한 테스트 본문을 실행하여 통과했고,
+화면 모듈 구문과 HTML asset/element 연결도 확인했습니다. 실제 보드의 CPU 8개,
+온도 센서 9개, GPU·메모리·입력 전력과 인터페이스 카운터를 읽었습니다.
+단독 앱의 화면·API·JS/CSS 5개 경로는 직접 ASGI 요청으로 200 응답과 no-store를 확인했습니다.
+
+현재 sandbox는 소켓 bind를 `Operation not permitted`로 거부하고 외부 DNS를
+해석하지 못하므로 브라우저 화면·LAN 접속·Git 원격 게시를 검증할 수 없습니다.
+전체 unittest도 실행했지만 기존 서비스 설정의 root 소유권 검사가 sandbox의 파일
+소유권과 맞지 않아 4개 실패/오류가 있었고, mapping coordinator의 비동기 테스트는
+완료되지 않았습니다. 해당 운영 권한 검사나 로봇 서비스를 변경하지 않았습니다.
