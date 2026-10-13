@@ -13,7 +13,7 @@ class FrontendCacheContractTests(unittest.TestCase):
         source = APP_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn("class DashboardStaticFiles(StaticFiles):", source)
-        self.assertIn('path.endswith((".js", ".css"))', source)
+        self.assertIn('path.endswith((".js", ".mjs", ".css"))', source)
         self.assertGreaterEqual(
             source.count('headers["Cache-Control"] = "no-store"'),
             1,

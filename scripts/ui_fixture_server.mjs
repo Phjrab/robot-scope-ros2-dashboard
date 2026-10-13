@@ -5,7 +5,7 @@ import { dirname, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = await realpath(process.env.UI_BASELINE_STATIC_DIR || join(dirname(fileURLToPath(import.meta.url)), '../robot_dashboard/static'));
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const server = createServer(async (request, response) => {
   try {
     const path = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -16,5 +16,5 @@ const server = createServer(async (request, response) => {
     response.end(await readFile(file));
   } catch { response.writeHead(404); response.end('not found'); }
 });
-server.listen(4187, '127.0.0.1');
+server.listen(Number(process.env.UI_FIXTURE_PORT || 4187), '127.0.0.1');
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));

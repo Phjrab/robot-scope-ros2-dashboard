@@ -138,7 +138,7 @@ class DashboardStaticFiles(StaticFiles):
 
     async def get_response(self, path: str, scope: Dict[str, Any]) -> Response:
         response = await super().get_response(path, scope)
-        if path.endswith((".js", ".css")):
+        if path.endswith((".js", ".mjs", ".css")):
             response.headers["Cache-Control"] = "no-store"
         return response
 

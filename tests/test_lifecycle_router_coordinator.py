@@ -107,6 +107,7 @@ class LifecycleRouterCoordinatorTests(unittest.TestCase):
         self.assertEqual(
             actual,
             {
+                "host_resource_status": ("get", "/api/v1/system/resources", None),
                 "service_lifecycle_status": (
                     "get",
                     "/api/v1/system/service",

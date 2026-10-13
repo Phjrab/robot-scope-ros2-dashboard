@@ -37,6 +37,13 @@ from ..models import ControlBridgeLifecycleRequest, ServiceLifecycleRequest
 router = APIRouter()
 
 
+@router.get("/api/v1/system/resources")
+async def host_resource_status(request: Request) -> Dict[str, Any]:
+    """Read the dashboard host, cached across browser clients; no remote SSH."""
+    runtime = runtime_from_request(request)
+    return await asyncio.to_thread(runtime.host_resources.snapshot)
+
+
 def _diagnostics(runtime: ApplicationRuntime) -> DiagnosticsBundleService:
     return require_component(
         runtime.diagnostics,

@@ -139,6 +139,7 @@ class DomainRouterContractTests(unittest.TestCase):
             ("post", "/api/v1/control/bridge-service/start"),
             ("post", "/api/v1/control/bridge-service/stop"),
             ("post", "/api/v1/system/diagnostics/export"),
+            ("get", "/api/v1/system/resources"),
             ("get", "/api/v1/health"),
             ("get", "/api/v1/state"),
             ("get", "/api/v1/topics"),

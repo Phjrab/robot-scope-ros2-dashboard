@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/static/mission-control.css">
   <link rel="stylesheet" href="/static/themes.css">
   <link rel="stylesheet" href="/static/typography.css">
+  <link rel="stylesheet" href="/static/host_resources.css">
   <script src="/static/typography.js" defer></script>
 </head>
 <body>
@@ -827,6 +828,25 @@
 
       <section class="page-view" data-page="settings" hidden>
         <section class="settings-grid">
+          <article class="panel settings-panel host-resource-panel" id="hostResourcePanel" aria-labelledby="hostResourceHeading">
+            <div class="panel-header">
+              <div><div class="eyebrow">COMPUTE · READ ONLY</div><h2 id="hostResourceHeading">Jetson · 호스트 사용량</h2></div>
+              <span data-resource="state" role="status">표본 대기</span>
+            </div>
+            <div class="host-resource-grid">
+              <div><b>CPU</b><strong data-resource="cpu">N/A</strong><small>전체 코어 평균</small><svg viewBox="0 0 240 50" role="img" aria-label="최근 CPU 사용률"><path data-resource-chart="cpu_percent"></path></svg></div>
+              <div><b>GPU</b><strong data-resource="gpu">N/A</strong><small>Jetson GPU 사용률</small><svg viewBox="0 0 240 50" role="img" aria-label="최근 GPU 사용률"><path data-resource-chart="gpu_percent"></path></svg></div>
+              <div><b>RAM</b><strong data-resource="ram">N/A</strong><small data-resource="ram-detail">N/A</small><svg viewBox="0 0 240 50" role="img" aria-label="최근 메모리 사용률"><path data-resource-chart="ram_percent"></path></svg></div>
+              <div><b>Swap</b><strong data-resource="swap">N/A</strong><small>사용 / 전체</small></div>
+              <div><b>디스크</b><strong data-resource="disk">N/A</strong><small data-resource="disk-detail">여유 N/A</small></div>
+              <div><b>최고 온도</b><strong data-resource="temperature">N/A</strong><small>읽을 수 있는 thermal sensor</small></div>
+            </div>
+            <div class="host-resource-summary">
+              <p data-resource="host">대시보드 실행 호스트 · 로봇 본체 텔레메트리와 별도</p>
+              <small data-resource="updated">측정 시각 N/A</small>
+              <p data-resource="notes">화면이 열려 있을 때 2초마다 읽기 전용으로 갱신합니다.</p>
+            </div>
+          </article>
           <article class="panel settings-panel">
             <div class="panel-header"><div><div class="eyebrow">CONNECTION</div><h2>Robot target</h2></div><span class="muted">NETWORK DISCOVERY</span></div>
             <div class="settings-card-body">
@@ -950,5 +970,6 @@
   <script src="/static/navigation.js" defer></script>
   <script src="/static/map_annotations.js" defer></script>
   <script src="/static/app.js" type="module"></script>
+  <script src="/static/host_resources.mjs" type="module"></script>
 </body>
 </html>

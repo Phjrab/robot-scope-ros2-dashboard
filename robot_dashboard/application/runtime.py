@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict
 
 from ..discovery import LocalRobotDiscovery
+from ..host_resources import HostResourceMonitor
 
 if TYPE_CHECKING:
     from ..competition import CompetitionStateManager
@@ -52,6 +53,7 @@ class ApplicationRuntime:
     competition: CompetitionStateManager | None = None
     relocalization: StationaryRelocalizationManager | None = None
     spatial_routes: SpatialRouteCatalog | None = None
+    host_resources: HostResourceMonitor = field(default_factory=HostResourceMonitor)
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)
