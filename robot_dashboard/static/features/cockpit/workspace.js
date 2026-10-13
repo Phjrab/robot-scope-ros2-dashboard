@@ -83,6 +83,7 @@ export function createCockpitWorkspace(options = {}) {
     const open = root.dataset.inspectorOpen !== 'true';
     root.dataset.inspectorOpen = String(open);
     inspectorToggle.setAttribute('aria-expanded', String(open));
+    resize();
   }, { signal: listeners.signal });
   const navigationToggle = options.document?.querySelector('#navigationToggle');
   navigationToggle?.addEventListener('click', () => {

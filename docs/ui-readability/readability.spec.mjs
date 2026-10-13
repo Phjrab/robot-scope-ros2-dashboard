@@ -224,3 +224,51 @@ test('tablet DPR2 canvas uses CSS pointer coordinates for orbit and zoom', async
   await writeFile(`${root}/evidence/tablet-dpr-pointer.json`,JSON.stringify({canvas,point,cameraBefore,cameraAfter,requests:backend.state.requests,pageErrors,unexpected},null,2)+'\n');
   await context.close();
 });
+
+test('Inspector disclosure keeps fields and links reachable without changing streams or saved layout', async ({ page }) => {
+  test.skip(phase === 'before');
+  const { backend, pageErrors, unexpected } = await installMissionFixture(page);
+  await page.goto('/#cockpit');
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-freshness', 'fixture');
+  await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(1);
+  const baseline = structuredClone({ connections: backend.state.cameraConnectionsBySource, closes: backend.state.cameraClosesBySource, ws: backend.state.wsConnections });
+  const storageBefore = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage).filter(([key]) => key.startsWith('robot-scope.cockpit.'))));
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'operate');
+  await page.locator('#cockpitInspectorToggle').click();
+  const inspector = page.locator('#missionInspector');
+  await expect(inspector).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const inspector = document.querySelector('#missionInspector').getBoundingClientRect();
+    return [...document.querySelectorAll('#cockpitPanelLayer .cockpit-floating-panel')].flatMap(node => {
+      const panel = node.getBoundingClientRect();
+      if (!panel.width || !panel.height) return [];
+      const overlap = panel.left < inspector.right && panel.right > inspector.left && panel.top < inspector.bottom && panel.bottom > inspector.top;
+      return overlap ? [node.dataset.panelId] : [];
+    });
+  }), { message: 'floating panels must stay outside the opened Inspector' }).toEqual([]);
+  const fieldHits = await inspector.evaluate(root => [...root.querySelectorAll('[data-inspector-field], a')].flatMap(node => {
+    const box = node.getBoundingClientRect();
+    const x = box.left + box.width / 2; const y = box.top + box.height / 2;
+    const hudTop = document.querySelector('#cockpitSafetyHud').getBoundingClientRect().top;
+    if (!box.width || !box.height || y < 0 || y >= Math.min(innerHeight, hudTop)) return [];
+    const hit = document.elementFromPoint(x, y);
+    return [{ field: node.dataset.inspectorField || node.textContent.trim(), blockedByPanel: hit?.closest('.cockpit-floating-panel')?.dataset.panelId || null }];
+  }));
+  expect(fieldHits.length).toBeGreaterThan(0);
+  expect(fieldHits.filter(field => field.blockedByPanel)).toEqual([]);
+  await inspector.getByRole('link', { name: /저장 지도 열기/ }).click({ trial: true });
+  await page.locator('#cockpitInspectorToggle').click();
+  await expect(inspector).toBeHidden();
+  await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'operate');
+  const after = await page.evaluate(() => ({ snapshot: window.RobotScopeCockpit.snapshot(), storage: Object.fromEntries(Object.entries(localStorage).filter(([key]) => key.startsWith('robot-scope.cockpit.'))) }));
+  expect(after.snapshot.workspace.scene.rendererCount).toBe(1);
+  expect(after.snapshot.pointcloud.activeConsumers).toEqual(['cockpit']);
+  expect(after.storage).toEqual(storageBefore);
+  expect(backend.state.cameraConnectionsBySource).toEqual(baseline.connections);
+  expect(backend.state.cameraClosesBySource).toEqual(baseline.closes);
+  expect(backend.state.wsConnections).toEqual(baseline.ws);
+  expect(backend.state.requests.filter(({ path }) => /control\/(arm|acquire|command|stop)|navigation\/(start|goal)|mapping\/(start|save)/.test(path))).toEqual([]);
+  expect(pageErrors).toEqual([]); expect(unexpected).toEqual([]);
+  await mkdir(`${root}/evidence`, { recursive: true });
+  await writeFile(`${root}/evidence/inspector-panel-recovery.json`, JSON.stringify({ baseline, after, fieldHits, requests: backend.state.requests, pageErrors, unexpected }, null, 2) + '\n');
+});

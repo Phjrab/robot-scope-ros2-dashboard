@@ -17,10 +17,10 @@ function metric(documentValue, label, field) {
 export function safetyStatusLabel(projected) {
   if (projected['software-stop'] === 'LATCHED') return '소프트웨어 정지 유지';
   if (projected.armed.includes('UNKNOWN')) return projected.armed.includes('LOCKED') ? '제어 잠김 · 상태 확인 필요' : '제어 상태 확인 필요';
-  if (projected['control-source'] === 'NAVIGATION' && projected.armed === 'ARMED') return '수동·자율 제어 동시 활성';
+  if (projected['control-source'] === 'NAVIGATION' && projected.armed === 'ARMED') return '수동 제어 · 주행 파이프라인 동시 활성';
   if (projected.tone === 'danger' && ['WAITING', 'STALE', 'UNKNOWN'].includes(projected.lowstate)
     && (projected.armed === 'ARMED' || projected['control-source'] === 'NAVIGATION')) return '로봇 상태 수신 확인 필요';
-  if (projected['control-source'] === 'NAVIGATION') return '자율 주행 활성';
+  if (projected['control-source'] === 'NAVIGATION') return '주행 파이프라인 실행 중';
   if (projected.armed === 'ARMED') return '수동 제어 활성';
   return projected['control-bridge'] === 'READY' ? '제어 해제 · 연결 준비됨' : '제어 해제 · 연결 확인 필요';
 }
@@ -109,7 +109,7 @@ export function createSafetyHudView(options = {}) {
     status.textContent = safetyStatusLabel(projected);
     status.dataset.state = projected.armed.toLowerCase();
     summary.textContent = `ARM ${projected.armed} · DEADMAN ${projected.deadman} · BRIDGE ${projected['control-bridge']} · LEASE ${projected.lease}`;
-    mode.textContent = layoutState.mode === 'layout-edit' ? '배치 편집 중' : layoutState.armed ? '제어 중 · 배치 잠김' : '관측 중';
+    mode.textContent = layoutState.mode === 'layout-edit' ? '배치 편집 중' : layoutState.armed ? '배치 잠김' : '관측 중';
     mode.dataset.armed = String(layoutState.armed);
     edit.disabled = layoutState.armed || layoutState.mode === 'layout-edit';
     apply.disabled = layoutState.mode !== 'layout-edit';

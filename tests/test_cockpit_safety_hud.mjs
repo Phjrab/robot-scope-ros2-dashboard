@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import { COCKPIT_LAYOUT_MODES, createLayoutModeController, reduceLayoutMode } from '../robot_dashboard/static/features/cockpit/layout_mode.js';
 import { projectSafetyHud } from '../robot_dashboard/static/features/cockpit/safety_hud.js';
-import { safetyStatusLabel } from '../robot_dashboard/static/features/cockpit/safety_hud_view.js';
+import { createSafetyHudView, safetyStatusLabel } from '../robot_dashboard/static/features/cockpit/safety_hud_view.js';
 
 const NOW = 10_000;
 
@@ -87,8 +87,42 @@ test('Korean safety headline describes only the projected control state', () => 
   assert.equal(safetyStatusLabel({ ...projected, 'software-stop': 'LATCHED' }), '소프트웨어 정지 유지');
   assert.equal(safetyStatusLabel(projectSafetyHud(liveInput(), NOW + 3000)), '제어 잠김 · 상태 확인 필요');
   assert.equal(safetyStatusLabel({ ...projected, tone: 'danger', lowstate: 'STALE' }), '로봇 상태 수신 확인 필요');
-  assert.equal(safetyStatusLabel({ ...projected, 'control-source': 'NAVIGATION' }), '수동·자율 제어 동시 활성');
+  assert.equal(safetyStatusLabel({ ...projected, 'control-source': 'NAVIGATION' }), '수동 제어 · 주행 파이프라인 동시 활성');
   assert.equal(safetyStatusLabel({ ...projected, armed: 'DISARMED', 'control-source': 'NONE', 'control-bridge': 'UNKNOWN' }), '제어 해제 · 연결 확인 필요');
+});
+
+test('localization-only pipeline describes execution and preserves layout lock without claiming autonomous motion', () => {
+  const input = liveInput();
+  input.control.lease.active = false;
+  input.control.command = { deadman: false, linear_x: 0, linear_y: 0, angular_z: 0 };
+  input.navigation.localization_session = {
+    active: true, mode: 'localization_only', state: 'waiting_initial_pose',
+    initial_pose_count: 0, goal_allowed: false, motion_allowed: false,
+  };
+  const elements = [];
+  const document = { createElement() {
+    const element = {
+      children: [], dataset: {},
+      append(...children) { this.children.push(...children); },
+      replaceChildren(...children) { this.children = children; },
+      setAttribute() {}, addEventListener() {},
+    };
+    elements.push(element);
+    return element;
+  } };
+  const view = createSafetyHudView({ document, root: document.createElement('div') });
+  for (const state of ['starting', 'running', 'stopping', 'canceling']) {
+    input.navigation.pipeline.state = state;
+    const projected = projectSafetyHud(input, NOW);
+    assert.equal(projected['control-source'], 'NAVIGATION');
+    assert.equal(projected.armed, 'DISARMED');
+    assert.equal(projected.layoutArmed, true, 'pipeline lifecycle continues to lock layout');
+    view.render(projected, { mode: COCKPIT_LAYOUT_MODES.OPERATE, armed: projected.layoutArmed });
+    assert.equal(elements.find((element) => element.className === 'cockpit-safety-identity').children[0].textContent, '주행 파이프라인 실행 중');
+    assert.equal(elements.find((element) => element.dataset.safetyField === 'layout-mode').textContent, '배치 잠김');
+    assert.equal(elements.find((element) => element.dataset.cockpitLayoutAction === 'edit').disabled, true);
+  }
+  view.destroy();
 });
 
 test('authenticated Bridge LowState is visible when external DDS telemetry is offline', () => {
