@@ -36,6 +36,8 @@ Options:
 
 Existing repositories are never reset or upgraded. They must have the expected
 origin, pinned commit, and no tracked modifications or the command fails.
+Missing submodules are initialized at the pinned parent's gitlinks; existing
+mismatched or modified submodules are refused without resetting them.
 EOF
 }
 
@@ -182,18 +184,32 @@ PY
 verify_existing_repository() {
   local name="$1" url="$2" commit="$3" target="$4" recursive="$5"
   [[ -d "$target/.git" ]] || die "$name target exists but is not a Git repository: $target"
-  local actual_url actual_commit dirty
+  local actual_url actual_commit dirty submodules
   actual_url="$(git -C "$target" remote get-url origin 2>/dev/null || true)"
   [[ "$actual_url" == "$url" || "${actual_url%.git}" == "${url%.git}" ]] || \
     die "$name origin mismatch: $actual_url"
   actual_commit="$(git -C "$target" rev-parse HEAD)"
   [[ "$actual_commit" == "$commit" ]] || \
     die "$name is at $actual_commit; expected pinned $commit (no automatic reset is performed)"
-  dirty="$(git -C "$target" status --porcelain=v1 --untracked-files=no)"
+  dirty="$(git -C "$target" status --porcelain=v1 --untracked-files=no --ignore-submodules=none)"
   [[ -z "$dirty" ]] || die "$name has tracked local modifications"
   if [[ "$recursive" == "1" ]]; then
-    git -C "$target" submodule status --recursive | grep -Eq '^[+-U]' && \
-      die "$name has an uninitialized or mismatched submodule"
+    submodules="$(git -C "$target" submodule status --recursive)" || \
+      die "$name submodule status could not be verified"
+    if printf '%s\n' "$submodules" | grep -Eq '^[+U]'; then
+      die "$name has a mismatched or conflicted submodule (no automatic reset is performed)"
+    fi
+    if printf '%s\n' "$submodules" | grep -Eq '^-'; then
+      echo "[Robot Scope bootstrap] initializing missing pinned submodules for $name"
+      run git -C "$target" submodule update --init --recursive
+    fi
+    submodules="$(git -C "$target" submodule status --recursive)" || \
+      die "$name submodule status could not be verified"
+    if printf '%s\n' "$submodules" | grep -Eq '^[+-U]'; then
+      die "$name submodules do not match the pinned parent gitlinks"
+    fi
+    dirty="$(git -C "$target" status --porcelain=v1 --untracked-files=no --ignore-submodules=none)"
+    [[ -z "$dirty" ]] || die "$name has tracked local modifications after submodule initialization"
   fi
   echo "[Robot Scope bootstrap] verified $name @ $commit"
 }
@@ -223,14 +239,15 @@ install_repository() {
   fi
 
   run mkdir -p "$(dirname -- "$target")"
-  if [[ "$recursive" == "1" ]]; then
-    run git clone --recurse-submodules -- "$url" "$target"
-  else
-    run git clone -- "$url" "$target"
-  fi
+  # Select the pinned parent before fetching submodules. Cloning recursively
+  # first would prepare the moving default branch's submodules instead.
+  run git clone -- "$url" "$target"
   run git -C "$target" checkout --detach "$commit"
   if [[ "$recursive" == "1" ]]; then
     run git -C "$target" submodule update --init --recursive
+  fi
+  if [[ "$ACTION" == "apply" ]]; then
+    verify_existing_repository "$name" "$url" "$commit" "$target" "$recursive"
   fi
 }
 

@@ -113,7 +113,8 @@
       "commit": "2fffc570a25d0df172720bac034fbdb6a13d2162",
       "license": "GPL-2.0-only",
       "target": "ws/fastlio_ws/src/FAST_LIO",
-      "recursive": false,
+      "recursive": true,
+      "submodule_commit": "e2e3f4e9d3b95a9e66b1ba83dc98d4a05ed8a3c4",
       "modes": ["go2-xt16", "go2-nav"]
     }
   }

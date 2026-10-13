@@ -44,6 +44,13 @@ class RosDependencyManifestTests(unittest.TestCase):
         payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
         self.assertEqual(payload["repositories"]["fast_lio"]["license"], "GPL-2.0-only")
 
+    def test_fast_lio_initializes_the_pinned_ikd_tree_gitlink(self) -> None:
+        payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        fast_lio = payload["repositories"]["fast_lio"]
+        self.assertTrue(fast_lio["recursive"])
+        self.assertEqual(fast_lio["commit"], "2fffc570a25d0df172720bac034fbdb6a13d2162")
+        self.assertEqual(fast_lio["submodule_commit"], "e2e3f4e9d3b95a9e66b1ba83dc98d4a05ed8a3c4")
+
     def test_jazzy_manifest_is_noble_observer_only(self) -> None:
         payload = json.loads(JAZZY_MANIFEST.read_text(encoding="utf-8"))
         self.assertEqual(payload["schema_version"], 1)
@@ -239,6 +246,89 @@ class RosDependencyBootstrapTests(unittest.TestCase):
         self.assertNotRegex(source, r"git[^\n]*(?:reset|clean)")
         self.assertNotIn("checkout --force", source)
         self.assertIn("--untracked-files=no", source)
+
+
+class ExistingPinnedSubmoduleTests(unittest.TestCase):
+    """Exercise the source verifier against real, isolated local repositories."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.environment = dict(os.environ, GIT_ALLOW_PROTOCOL="file", LC_ALL="C")
+        self.dependency = self.root / "dependency"
+        self.parent = self.root / "parent"
+        self.target = self.root / "target"
+        for path in (self.dependency, self.parent):
+            self.git("init", "--quiet", str(path))
+            self.git("-C", str(path), "config", "user.name", "Bootstrap fixture")
+            self.git("-C", str(path), "config", "user.email", "fixture@example.invalid")
+        (self.dependency / "ikd_Tree.cpp").write_text("pinned source\n", encoding="utf-8")
+        self.git("-C", str(self.dependency), "add", "ikd_Tree.cpp")
+        self.git("-C", str(self.dependency), "commit", "--quiet", "-m", "pinned dependency")
+        self.dependency_commit = self.git("-C", str(self.dependency), "rev-parse", "HEAD").stdout.strip()
+        self.git("-C", str(self.parent), "submodule", "add", "--quiet", str(self.dependency), "include/ikd-Tree")
+        self.git("-C", str(self.parent), "commit", "--quiet", "-am", "pinned parent")
+        self.parent_commit = self.git("-C", str(self.parent), "rev-parse", "HEAD").stdout.strip()
+        self.git("clone", "--quiet", str(self.parent), str(self.target))
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.verifier = source[source.index("verify_existing_repository() {"):source.index("install_repository() {")]
+
+    def git(self, *arguments: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(["git", *arguments], env=self.environment, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+    def verify(self) -> subprocess.CompletedProcess[str]:
+        script = 'set -euo pipefail\ndie() { echo "$*" >&2; exit 2; }\nrun() { "$@"; }\n' + self.verifier
+        script += '\nverify_existing_repository "$1" "$2" "$3" "$4" "$5"\n'
+        return subprocess.run(["bash", "-c", script, "bootstrap-fixture", "fast_lio",
+                               str(self.parent), self.parent_commit, str(self.target), "1"],
+                              env=self.environment, text=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, check=False)
+
+    def test_nonrecursive_existing_clone_initializes_only_missing_gitlink(self) -> None:
+        before = self.git("-C", str(self.target), "submodule", "status", "--recursive").stdout
+        self.assertTrue(before.startswith("-"))
+        result = self.verify()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("initializing missing pinned submodules", result.stdout)
+        actual = self.git("-C", str(self.target / "include/ikd-Tree"), "rev-parse", "HEAD").stdout.strip()
+        self.assertEqual(actual, self.dependency_commit)
+        self.assertEqual(self.git("-C", str(self.target), "rev-parse", "HEAD").stdout.strip(), self.parent_commit)
+        self.assertEqual(self.git("-C", str(self.target), "status", "--porcelain=v1").stdout, "")
+        again = self.verify()
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertNotIn("initializing", again.stdout)
+
+    def test_existing_mismatched_submodule_is_not_reset(self) -> None:
+        self.assertEqual(self.verify().returncode, 0)
+        child = self.target / "include/ikd-Tree"
+        self.git("-C", str(child), "config", "user.name", "Bootstrap fixture")
+        self.git("-C", str(child), "config", "user.email", "fixture@example.invalid")
+        (child / "ikd_Tree.cpp").write_text("local different commit\n", encoding="utf-8")
+        self.git("-C", str(child), "commit", "--quiet", "-am", "retain different commit")
+        changed = self.git("-C", str(child), "rev-parse", "HEAD").stdout
+        result = self.verify()
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(self.git("-C", str(child), "rev-parse", "HEAD").stdout, changed)
+        self.assertEqual((child / "ikd_Tree.cpp").read_text(), "local different commit\n")
+
+    def test_submodule_tracked_edits_are_refused_even_when_git_config_ignores_them(self) -> None:
+        self.assertEqual(self.verify().returncode, 0)
+        child = self.target / "include/ikd-Tree"
+        (child / "ikd_Tree.cpp").write_text("retain local edits\n", encoding="utf-8")
+        self.git("-C", str(self.target), "config", "submodule.include/ikd-Tree.ignore", "all")
+        result = self.verify()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("tracked local modifications", result.stderr)
+        self.assertEqual((child / "ikd_Tree.cpp").read_text(), "retain local edits\n")
+
+    def test_wrong_parent_pin_fails_before_initialization(self) -> None:
+        self.parent_commit = "f" * 40
+        result = self.verify()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("no automatic reset", result.stderr)
+        self.assertTrue(self.git("-C", str(self.target), "submodule", "status").stdout.startswith("-"))
 
 
 if __name__ == "__main__":
