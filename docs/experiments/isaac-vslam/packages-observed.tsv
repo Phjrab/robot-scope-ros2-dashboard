@@ -34,6 +34,15 @@ cuda-toolkit-config-common	12.6.68-1
 cuda-tools-12-6	12.6.3-1
 cuda-visual-tools-12-6	12.6.3-1
 libcudnn9-cuda-12	9.15.0.57-1
+ros-humble-gxf-isaac-atlas	3.2.5-0jammy
+ros-humble-gxf-isaac-gems	3.2.5-0jammy
+ros-humble-gxf-isaac-gxf-helpers	3.2.5-0jammy
+ros-humble-gxf-isaac-image-flip	3.2.5-0jammy
+ros-humble-gxf-isaac-message-compositor	3.2.5-0jammy
+ros-humble-gxf-isaac-messages	3.2.5-0jammy
+ros-humble-gxf-isaac-optimizer	3.2.10-0jammy
+ros-humble-gxf-isaac-sight	3.2.5-0jammy
+ros-humble-gxf-isaac-tensorops	3.2.5-0jammy
 ros-humble-isaac-ros-common	3.2.5-0jammy
 ros-humble-isaac-ros-gxf	3.2.5-0jammy
 ros-humble-isaac-ros-image-proc	3.2.10-0jammy
