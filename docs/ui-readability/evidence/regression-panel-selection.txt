@@ -1,0 +1,14 @@
+[WebServer] (node:51519) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 3 tests using 1 worker
+
+(node:51522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/3] tests/e2e/dashboard.spec.mjs:777:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+[2/3] tests/e2e/dashboard.spec.mjs:985:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+[3/3] tests/e2e/dashboard.spec.mjs:1207:1 › active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation
+  3 passed (12.5s)

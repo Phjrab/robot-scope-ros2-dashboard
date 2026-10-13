@@ -1,0 +1,46 @@
+{
+  "canvas": {
+    "width": 1596,
+    "height": 812,
+    "cssWidth": 798,
+    "cssHeight": 406,
+    "dpr": 2,
+    "box": {
+      "x": 205,
+      "y": 238,
+      "width": 798,
+      "height": 406,
+      "top": 238,
+      "right": 1003,
+      "bottom": 644,
+      "left": 205
+    }
+  },
+  "point": {
+    "x": 324.7,
+    "y": 522.2
+  },
+  "cameraBefore": {
+    "target": [
+      0,
+      0,
+      0.2
+    ],
+    "distance": 8,
+    "yaw": 0.7853981633974483,
+    "pitch": 0.5759586531581288
+  },
+  "cameraAfter": {
+    "target": [
+      0,
+      0,
+      0.2
+    ],
+    "distance": 8.912381963091741,
+    "yaw": 0.5403981633974482,
+    "pitch": 0.6959586531581289
+  },
+  "requests": [],
+  "pageErrors": [],
+  "unexpected": []
+}

@@ -1,0 +1,19 @@
+[WebServer] (node:44534) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 8 tests using 1 worker
+
+(node:44538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/8] tests/e2e/ui_redesign.spec.mjs:75:1 › Mission Control presets preserve singleton lifecycle, camera cleanup, resize and zero control requests
+[2/8] tests/e2e/ui_redesign.spec.mjs:106:1 › Mission Control keeps stale camera/cloud distinct and disconnected STOP available on every route
+[3/8] tests/e2e/ui_redesign.spec.mjs:127:1 › Mission Control mock STOP distinguishes pending, server acknowledgement and failure with no dialog
+[4/8] tests/e2e/ui_redesign.spec.mjs:143:1 › Mission Control ownership blocks presets, denied ARM stays disarmed, map search preserves revision
+[5/8] tests/e2e/ui_redesign.spec.mjs:169:1 › Mission Control viewport, keyboard, safety hit target and token contrast are checked in Chromium
+[6/8] tests/e2e/ui_redesign.spec.mjs:210:1 › Mission Control migrates old layout in memory and keeps corrupted original recoverable
+[7/8] tests/e2e/ui_redesign.spec.mjs:233:1 › Mission Control long map names and server errors stay escaped and empty maps remain usable
+[8/8] tests/e2e/ui_typography.spec.mjs:127:1 › late font paint preserves camera subscriptions layout keyboard routing and canvas ownership
+  8 passed (1.4m)

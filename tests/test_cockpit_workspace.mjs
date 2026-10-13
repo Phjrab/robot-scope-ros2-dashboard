@@ -16,7 +16,7 @@ test('Cockpit route is additive and keeps every existing workspace route', () =>
     assert.match(indexSource, new RegExp(`data-page=["']${route}["']`));
   }
   assert.match(appSource, /const PAGE_META = MISSION_PAGE_META/);
-  assert.match(load('../robot_dashboard/static/features/cockpit/mission_shell.js'), /cockpit: \['Mission Control'/);
+  assert.match(load('../robot_dashboard/static/features/cockpit/mission_shell.js'), /cockpit: \['관측'/);
   assert.match(indexSource, /\/static\/features\/cockpit\/cockpit\.css/);
 });
 

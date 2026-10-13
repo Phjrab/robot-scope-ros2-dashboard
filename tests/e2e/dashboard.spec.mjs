@@ -10,8 +10,7 @@ async function openDashboard(page, backendOptions = {}, hash = 'overview') {
 }
 
 async function enterLayoutEdit(page) {
-  const toggle = page.locator('.cockpit-safety-toggle');
-  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+  // Editing is directly reachable; safety detail expansion is independent.
   await page.locator('[data-cockpit-layout-action="edit"]').click();
   await expect(page.locator('#cockpitWorkspace')).toHaveAttribute('data-layout-mode', 'layout-edit');
 }
@@ -196,7 +195,7 @@ test('Cockpit full-window launcher reuses one named target, cleans the opener, a
   });
 
   await page.locator('#cockpitOpenWindowButton').click();
-  await expect(page.locator('#pageTitle')).toHaveText('Overview');
+  await expect(page.locator('#pageTitle')).toHaveText('상태 요약');
   await expect(page.locator('#cockpitWorkspace')).toBeHidden();
   await expect(page.locator('#cockpitOpenWindowButton')).toBeHidden();
   await expect.poll(() => backend.state.wsCloses.pointcloud).toBeGreaterThanOrEqual(1);
@@ -208,7 +207,7 @@ test('Cockpit full-window launcher reuses one named target, cleans the opener, a
   expect(launch.calls).toHaveLength(1);
   const [url, name, features] = launch.calls[0];
   const target = new URL(url);
-  expect(target.origin).toBe('http://127.0.0.1:4173');
+  expect(target.origin).toBe(`http://127.0.0.1:${process.env.UI_REGRESSION_PORT || 4173}`);
   expect(target.search).toBe('?workspace=cockpit');
   expect(target.hash).toBe('#cockpit');
   expect(name).toBe('robot-scope-cockpit-workspace');
@@ -219,7 +218,7 @@ test('Cockpit full-window launcher reuses one named target, cleans the opener, a
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 
   await page.locator('[data-nav="cockpit"]').click();
-  await expect(page.locator('#pageTitle')).toHaveText('Overview');
+  await expect(page.locator('#pageTitle')).toHaveText('상태 요약');
   await expect.poll(() => page.evaluate(() => window.__cockpitPopupCalls.length)).toBe(2);
   await page.evaluate(() => { window.open = () => null; });
   await page.locator('[data-nav="cockpit"]').click();
@@ -263,7 +262,7 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
     { width: 2560, height: 1440 },
   ]) {
     await page.setViewportSize(viewport);
-    if (page.url() === 'about:blank') await page.goto('/?workspace=cockpit#overview');
+    if (page.url() === 'about:blank') { await page.goto('/?workspace=cockpit#overview'); await enterLayoutEdit(page); }
     const layoutToggle = page.locator('[data-layout-library-action="toggle"]');
     if (await layoutToggle.getAttribute('aria-expanded') === 'true') await layoutToggle.click();
     const collapsedLayoutOverlap = await page.evaluate(() => {
@@ -318,7 +317,8 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
     expect(geometry.workspace.x).toBe(0);
     expect(geometry.workspace.y).toBe(geometry.bar.bottom);
     expect(geometry.workspace.width).toBe(viewport.width);
-    expect(geometry.workspace.bottom).toBe(viewport.height);
+    // The dedicated scene reserves the fixed safety dock below it.
+    expect(geometry.workspace.bottom).toBe(viewport.height - 150);
     expect(geometry.layoutLibrary.top).toBeGreaterThanOrEqual(geometry.sceneControls.bottom + 8);
     expect(geometry.competitionOverlapsLayoutLibrary).toBe(false);
     expect(geometry.competitionOverlapsSceneControls).toBe(false);
@@ -408,6 +408,7 @@ function baseDatasetForTest() {
 
 test('Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
+  await enterLayoutEdit(page);
   await expect(page.locator('#cockpitPointQuality')).toHaveValue('low');
   await page.locator('#cockpitPointQuality').selectOption('medium');
   await expect.poll(() => backend.mutations('/api/v1/pointcloud/settings').at(-1)?.body?.max_points).toBe(30_000);
@@ -511,7 +512,7 @@ test('standalone dashboard Route Planner is reachable and releases polling when 
   await page.setViewportSize({ width: 1024, height: 768 });
   const backend = await openDashboard(page, {}, 'route-planner');
   await expect(page.locator('[data-nav="route-planner"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('#pageTitle')).toHaveText('Route Planner');
+  await expect(page.locator('#pageTitle')).toHaveText('경로 계획');
   const planner = page.locator('#dashboardRoutePlannerHost .cockpit-route-planner');
   await expect(planner).toBeVisible();
   await expect(planner.locator('.route-planner-header')).toContainText('DRAFT');
@@ -807,7 +808,10 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   await expect(missionPanel.locator('.cockpit-mission-route')).toContainText('2. E2E Inspect · RUNNING');
   backend.completeMissionWaypoint();
   await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
-  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  // Nav still owns control: selecting an existing panel must remain accessible
+  // without entering Layout Edit or creating a stream.
+  await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeDisabled();
+  await page.locator('#cockpitPanelsToggle').click();
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await navigationPanel.locator('[data-navigation-action="stop"]').click();
   await expect.poll(() => backend.mutations('/api/v1/navigation/stop').length).toBe(1);
@@ -904,6 +908,13 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
   expect(telemetryAfter.zIndex).toBe(Math.max(...afterDrag.workspace.panels.panels.filter((panel) => panel.visible).map((panel) => panel.zIndex)));
 
   await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
+  // The safety dock reduces available height. Create room before testing growth
+  // instead of asking a panel already at the viewport edge to exceed its bounds.
+  const shrinkHandle = await spatial.locator('[data-panel-resize="se"]').boundingBox();
+  await page.mouse.move(shrinkHandle.x + shrinkHandle.width / 2, shrinkHandle.y + shrinkHandle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(shrinkHandle.x - 70, shrinkHandle.y - 70, { steps: 3 });
+  await page.mouse.up();
   const spatialBefore = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-map');
   const resizeHandle = spatial.locator('[data-panel-resize="se"]');
   const resizeBox = await resizeHandle.boundingBox();
@@ -927,6 +938,8 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
   const lockedAfter = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-map');
   expect({ x: lockedAfter.x, y: lockedAfter.y }).toEqual({ x: lockedBefore.x, y: lockedBefore.y });
 
+  // Select the obscured floating panel through its existing launcher before acting.
+  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.controller"]').click();
   const missionBeforeCompact = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-controller');
   await mission.locator('[data-panel-action="compact"]').click();
   await expect(mission).toHaveAttribute('data-mode', 'compact');
@@ -1069,12 +1082,12 @@ test('Cockpit camera panels share catalog-owned streams through dual open, focus
 
   const go2 = page.locator('[data-panel-id="camera-go2-front"]');
   const realsense = page.locator('[data-panel-id="camera-realsense-color"]');
-  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
-  await expect(realsense.locator('.cockpit-camera-state')).toHaveText('LIVE');
-  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('ROBOT WI-FI');
-  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('LIVE · RSSI -54 dBm');
-  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('4.125 Mbps · 14.8 FPS');
-  await expect(realsense.locator('.cockpit-camera-metrics')).toContainText('UNVERIFIED_CLOCK_DOMAIN');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
+  await expect(realsense.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
+  await expect(realsense.locator('.cockpit-camera-details')).toContainText('로봇 Wi-Fi');
+  await expect(realsense.locator('.cockpit-camera-details')).toContainText('LIVE · RSSI -54 dBm');
+  await expect(realsense.locator('.cockpit-camera-details')).toContainText('4.125 Mbps · 14.8 FPS');
+  await expect(realsense.locator('.cockpit-camera-details')).toContainText('UNVERIFIED_CLOCK_DOMAIN');
   await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(1);
   await expect.poll(() => backend.state.cameraConnectionsBySource.realsense_color).toBe(1);
   await go2Button.click();
@@ -1086,7 +1099,7 @@ test('Cockpit camera panels share catalog-owned streams through dual open, focus
   await realsenseButton.click();
   await realsense.locator('[data-panel-action="focus"]').click();
   await expect(realsense).toHaveAttribute('data-mode', 'focus');
-  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
   await realsense.locator('[data-panel-action="focus"]').click();
 
   await go2Button.click();
@@ -1101,24 +1114,25 @@ test('Cockpit camera panels share catalog-owned streams through dual open, focus
   await go2.locator('[data-panel-action="compact"]').click();
   await expect(go2).toHaveAttribute('data-mode', 'compact');
   await expect.poll(() => backend.state.cameraClosesBySource.go2_front).toBe(1);
-  await expect(realsense.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(realsense.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
   expect(backend.state.cameraClosesBySource.realsense_color).toBe(0);
   await go2.locator('[data-panel-action="compact"]').click();
-  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
   await expect.poll(() => backend.state.cameraConnectionsBySource.go2_front).toBe(2);
 
   backend.state.cameraStreaming.realsense_color = false;
-  await expect(realsense.locator('.cockpit-camera-state')).toHaveText('STALE', { timeout: 5_000 });
-  await expect(realsense.locator('.cockpit-camera-overlay')).toContainText('STALE');
+  await expect(realsense.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'stale', { timeout: 5_000 });
+  await expect(realsense.locator('.cockpit-camera-overlay')).toContainText('오래된 영상');
   await expect(realsense.locator('canvas:not(.cockpit-perception-overlay)')).toHaveJSProperty('width', 1);
-  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
 
+  await page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]').click();
   await realsense.locator('[data-panel-action="close"]').click();
   await expect(realsense).toHaveCount(0);
   await expect.poll(() => backend.state.cameraClosesBySource.realsense_color).toBe(1);
   const demands = await page.evaluate(() => window.RobotScopeCameraStreams.snapshot().demand.sources.map((source) => ({ id: source.id, viewers: source.viewerCount })));
   expect(demands).toEqual([{ id: 'go2_front', viewers: 1 }, { id: 'realsense_color', viewers: 0 }]);
-  await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(go2.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
 });
 
 test('Cockpit disables camera launchers that are absent from the active catalog profile', async ({ page }) => {
@@ -1154,7 +1168,7 @@ test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and softw
   await expect(go2Button).toBeEnabled();
   await go2Button.click();
   const camera = page.locator('[data-panel-id="camera-go2-front"]');
-  await expect(camera.locator('.cockpit-camera-state')).toHaveText('LIVE');
+  await expect(camera.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
   await page.locator('[data-cockpit-layout-action="apply"]').click();
   await expect(workspace).toHaveAttribute('data-layout-mode', 'operate');
   await expect(camera.locator('[data-panel-action="close"]')).toBeDisabled();
@@ -1255,8 +1269,8 @@ test('Safety HUD clears stale cached values and preserves STOP and control sourc
 
 test('Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply', async ({ page }) => {
   await openDashboard(page, {}, 'cockpit');
-  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
   await enterLayoutEdit(page);
+  await expect(page.locator('.cockpit-layout-profile')).toHaveText('PROFILE · go2');
   await page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]').click();
   const camera = page.locator('[data-panel-id="camera-go2-front"]');
   const title = await camera.locator('.cockpit-panel-titlebar').boundingBox();
@@ -1555,14 +1569,14 @@ test('Settings exports one bounded diagnostics download without robot-work confi
 });
 
 test('cross-origin browser WebSocket handshakes are rejected before acceptance', async ({ page, request }) => {
-  await page.goto('http://127.0.0.1:4174/');
-  const outcome = await page.evaluate(() => new Promise((resolve) => {
-    const socket = new WebSocket('ws://127.0.0.1:4173/api/v1/ws/pose');
+  await page.goto(`http://127.0.0.1:${process.env.UI_PROBE_PORT || 4174}/`);
+  const outcome = await page.evaluate((port) => new Promise((resolve) => {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/api/v1/ws/pose`);
     socket.onopen = () => resolve('opened');
     socket.onerror = () => resolve('rejected');
     setTimeout(() => resolve('timeout'), 2_000);
-  }));
+  }), Number(process.env.UI_REGRESSION_PORT || 4173));
   expect(outcome).toBe('rejected');
-  const response = await request.get('http://127.0.0.1:4174/ws-rejections');
+  const response = await request.get(`http://127.0.0.1:${process.env.UI_PROBE_PORT || 4174}/ws-rejections`);
   expect((await response.json()).rejected).toBeGreaterThanOrEqual(1);
 });

@@ -19,7 +19,7 @@ export function missionPresetDocument(id, profileId, registry, viewport = {}) {
     const descriptor = registry.get(type);
     const camera = descriptor.kind === 'camera';
     const geometry = preset.id === 'observation'
-      ? { x: 0.52, y: 0.25, width: 0.38, height: 0.32 }
+      ? { x: 0.58, y: 0.02, width: 0.40, height: 0.92 }
       : camera ? { x: index ? 0.51 : 0.01, y: 0.53, width: 0.48, height: 0.46 }
         : { x: index ? 0.55 : 0.01, y: 0.16, width: index ? 0.44 : 0.52, height: 0.83 };
     return { id: descriptor.id, panel_type: type, mode: narrow ? 'compact' : 'floating', dock: null,

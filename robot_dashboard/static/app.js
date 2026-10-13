@@ -9,6 +9,7 @@ import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraOb
 import { initializeRealSenseProfileFeature } from './features/sensors/realsense_profile.js';
 import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
 import { MISSION_PAGE_META, missionPageFromHash, syncMissionShell, filterSavedMapEntries, setSoftwareStopFeedback, frameProvenance } from './features/cockpit/mission_shell.js';
+import { navigationBlockerLabel } from './features/cockpit/status_labels.js';
 import './features/route_planner/dashboard_page.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
@@ -3813,21 +3814,7 @@ function navigationStartupPresentation(snapshot) {
 }
 
 function navigationBlockerMessage(blocker) {
-  const messages = {
-    navigation_unavailable: 'Nav2 패키지 또는 허용된 launcher가 준비되지 않았습니다.',
-    robot_offline: '로봇 연결이 없어 새 주행 명령을 보낼 수 없습니다.',
-    manual_control_active: '수동 제어가 ARM되어 있습니다. Controls에서 먼저 DISARM하세요.',
-    mapping_active: '공유 위치추정 파이프라인이 이미 실행 중입니다. Navigation이 이 센서 파이프라인을 재사용합니다.',
-    mapping_transition: '공유 위치추정 파이프라인이 전환 중입니다. 잠시 기다리거나 STOP으로 시작 작업을 정리하세요.',
-    mapping_operation_active: '지도 저장·변환 작업이 끝난 뒤 Nav2를 시작할 수 있습니다.',
-    navigation_transition: 'Navigation 시작 또는 중지 작업이 진행 중입니다.',
-    localization_pipeline_not_running: '공유 위치추정 센서 파이프라인을 준비하지 못했습니다. Navigation 로그를 확인하세요.',
-    map_required: '정적 2D 지도를 선택하세요.',
-    initial_pose_required: '지도에서 로봇의 초기 위치와 방향을 지정하세요.',
-    localization_lost: '위치추정이 유실되었습니다. 초기 위치를 다시 지정하세요.',
-    parameters_unavailable: '안전한 파라미터 snapshot이 없습니다.',
-  };
-  return messages[String(blocker || '')] || String(blocker || '').replaceAll('_', ' ');
+  return navigationBlockerLabel(blocker);
 }
 
 function formatNavigationMetric(value, suffix = '', digits = 2) {
@@ -3921,6 +3908,8 @@ function renderNavigationStatus() {
   renderNavigationHealth(snapshot);
 
   ui.navigationSafetyBanner.className = 'navigation-safety-banner';
+  ui.navigationSafetyMessage.dataset.state = String(firstBlocker || '');
+  ui.navigationSafetyMessage.title = blockers.map(String).join(' · ');
   ui.navigationControlLink.hidden = !manualConflict;
   if (!navigationApiAvailable) {
     ui.navigationSafetyBanner.classList.add('is-offline');
@@ -3956,7 +3945,7 @@ function renderNavigationStatus() {
     ui.navigationSafetyMessage.textContent = snapshot.pipeline?.error || 'Nav2 pipeline 로그를 확인하세요.';
   } else if (firstBlocker) {
     ui.navigationSafetyBanner.classList.add('is-warning');
-    ui.navigationSafetyTitle.textContent = 'ACTION REQUIRED';
+    ui.navigationSafetyTitle.textContent = '주행 준비 확인 필요';
     ui.navigationSafetyMessage.textContent = navigationBlockerMessage(firstBlocker);
   } else {
     ui.navigationSafetyTitle.textContent = pipelineRunning ? 'NAV2 RUNNING · SAFETY READY' : 'READY TO START';

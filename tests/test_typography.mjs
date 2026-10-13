@@ -6,10 +6,10 @@ const styles = readFileSync(new URL('../robot_dashboard/static/styles.css', impo
 
 test('dashboard uses the readable Mission Control typography scale', () => {
   for (const token of [
-    '--type-micro: .75rem',
-    '--type-control: .875rem',
-    '--type-secondary: .875rem',
-    '--type-body: .9375rem',
+    '--type-micro: .8125rem',
+    '--type-control: .9375rem',
+    '--type-secondary: .9375rem',
+    '--type-body: 1rem',
     '--type-section: 1.125rem',
   ]) {
     assert.match(styles, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

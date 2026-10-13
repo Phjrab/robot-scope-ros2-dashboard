@@ -1,0 +1,392 @@
+{
+  "geometry": [
+    {
+      "width": 1440,
+      "height": 900,
+      "workspaceWidth": 1216,
+      "sceneWidth": 1214,
+      "sceneHeight": 506,
+      "stopHeight": 63.03125,
+      "tools": [
+        {
+          "selector": ".cockpit-overlay-layer",
+          "box": {
+            "x": 217,
+            "y": 280,
+            "width": 1190,
+            "height": 62,
+            "top": 280,
+            "right": 1407,
+            "bottom": 342,
+            "left": 217
+          },
+          "column": "auto",
+          "row": "auto",
+          "columns": "1080.94px 97.0625px"
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "box": {
+            "x": 217,
+            "y": 280,
+            "width": 1080.9375,
+            "height": 44,
+            "top": 280,
+            "right": 1297.9375,
+            "bottom": 324,
+            "left": 217
+          },
+          "column": "1",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitLayoutLibrary",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitCompetitionStatus",
+          "box": {
+            "x": 1309.9375,
+            "y": 280,
+            "width": 97.0625,
+            "height": 62,
+            "top": 280,
+            "right": 1407,
+            "bottom": 342,
+            "left": 1309.9375
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "75.0625px"
+        }
+      ],
+      "stopInView": true,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "workspaceWidth": 1142,
+      "sceneWidth": 1140,
+      "sceneHeight": 374,
+      "stopHeight": 63.03125,
+      "tools": [
+        {
+          "selector": ".cockpit-overlay-layer",
+          "box": {
+            "x": 217,
+            "y": 280,
+            "width": 1116,
+            "height": 62,
+            "top": 280,
+            "right": 1333,
+            "bottom": 342,
+            "left": 217
+          },
+          "column": "auto",
+          "row": "auto",
+          "columns": "1006.94px 97.0625px"
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "box": {
+            "x": 217,
+            "y": 280,
+            "width": 1006.9375,
+            "height": 44,
+            "top": 280,
+            "right": 1223.9375,
+            "bottom": 324,
+            "left": 217
+          },
+          "column": "1",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitLayoutLibrary",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitCompetitionStatus",
+          "box": {
+            "x": 1235.9375,
+            "y": 280,
+            "width": 97.0625,
+            "height": 62,
+            "top": 280,
+            "right": 1333,
+            "bottom": 342,
+            "left": 1235.9375
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "75.0625px"
+        }
+      ],
+      "stopInView": true,
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "workspaceWidth": 800,
+      "sceneWidth": 798,
+      "sceneHeight": 374,
+      "stopHeight": 66.953125,
+      "tools": [
+        {
+          "selector": ".cockpit-overlay-layer",
+          "box": {
+            "x": 217,
+            "y": 280,
+            "width": 774,
+            "height": 62,
+            "top": 280,
+            "right": 991,
+            "bottom": 342,
+            "left": 217
+          },
+          "column": "auto",
+          "row": "auto",
+          "columns": "664.938px 97.0625px"
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "box": {
+            "x": 217,
+            "y": 280,
+            "width": 664.9375,
+            "height": 44,
+            "top": 280,
+            "right": 881.9375,
+            "bottom": 324,
+            "left": 217
+          },
+          "column": "1",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitLayoutLibrary",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitCompetitionStatus",
+          "box": {
+            "x": 893.9375,
+            "y": 280,
+            "width": 97.0625,
+            "height": 62,
+            "top": 280,
+            "right": 991,
+            "bottom": 342,
+            "left": 893.9375
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "75.0625px"
+        }
+      ],
+      "stopInView": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "workspaceWidth": 366,
+      "sceneWidth": 364,
+      "sceneHeight": 490,
+      "stopHeight": 56,
+      "tools": [
+        {
+          "selector": ".cockpit-overlay-layer",
+          "box": {
+            "x": 23,
+            "y": 555,
+            "width": 344,
+            "height": 94,
+            "top": 555,
+            "right": 367,
+            "bottom": 649,
+            "left": 23
+          },
+          "column": "auto",
+          "row": "auto",
+          "columns": "234.938px 97.0625px"
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "box": {
+            "x": 23,
+            "y": 555,
+            "width": 234.9375,
+            "height": 94,
+            "top": 555,
+            "right": 257.9375,
+            "bottom": 649,
+            "left": 23
+          },
+          "column": "1",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitLayoutLibrary",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitCompetitionStatus",
+          "box": {
+            "x": 269.9375,
+            "y": 555,
+            "width": 97.0625,
+            "height": 62,
+            "top": 555,
+            "right": 367,
+            "bottom": 617,
+            "left": 269.9375
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "75.0625px"
+        }
+      ],
+      "stopInView": true,
+      "overflow": false
+    },
+    {
+      "width": 720,
+      "height": 450,
+      "workspaceWidth": 696,
+      "sceneWidth": 694,
+      "sceneHeight": 490,
+      "stopHeight": 63.03125,
+      "tools": [
+        {
+          "selector": ".cockpit-overlay-layer",
+          "box": {
+            "x": 23,
+            "y": 399,
+            "width": 674,
+            "height": 62,
+            "top": 399,
+            "right": 697,
+            "bottom": 461,
+            "left": 23
+          },
+          "column": "auto",
+          "row": "auto",
+          "columns": "564.938px 97.0625px"
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "box": {
+            "x": 23,
+            "y": 399,
+            "width": 564.9375,
+            "height": 44,
+            "top": 399,
+            "right": 587.9375,
+            "bottom": 443,
+            "left": 23
+          },
+          "column": "1",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitLayoutLibrary",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "none"
+        },
+        {
+          "selector": "#cockpitCompetitionStatus",
+          "box": {
+            "x": 599.9375,
+            "y": 399,
+            "width": 97.0625,
+            "height": 62,
+            "top": 399,
+            "right": 697,
+            "bottom": 461,
+            "left": 599.9375
+          },
+          "column": "2",
+          "row": "1",
+          "columns": "75.0625px"
+        }
+      ],
+      "stopInView": true,
+      "overflow": false
+    }
+  ],
+  "contrasts": {
+    "body": 14.791967283547468,
+    "secondary": 8.799024778257337,
+    "action": 11.390073667103607,
+    "boundary": 5.139065484460753
+  },
+  "pageErrors": [],
+  "zoomEquivalent": "720x450 represents 200% CSS viewport at 1440x900"
+}

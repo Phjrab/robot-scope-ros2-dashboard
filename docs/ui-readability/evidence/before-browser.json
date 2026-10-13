@@ -1,0 +1,4018 @@
+[
+  {
+    "file": "before/cockpit-normal-dark-1440x900.png",
+    "route": "cockpit",
+    "state": "normal",
+    "theme": "dark",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1268.4375,
+            "bottom": 34,
+            "left": 1085.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1313.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1413,
+            "bottom": 34,
+            "left": 1313.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 341.65625,
+            "height": 32.5,
+            "top": 78,
+            "right": 429.65625,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 718.328125,
+            "right": 1413,
+            "bottom": 758.921875,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 775.921875,
+            "right": 1368.5,
+            "bottom": 796.21875,
+            "left": 1167.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 799.21875,
+            "right": 1313.125,
+            "bottom": 816.609375,
+            "left": 1222.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 27 FPS\n            ",
+          "box": {
+            "x": 101,
+            "y": 226.5,
+            "width": 982,
+            "height": 82,
+            "top": 226.5,
+            "right": 1083,
+            "bottom": 308.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 101,
+            "y": 320.5,
+            "width": 120,
+            "height": 48,
+            "top": 320.5,
+            "right": 221,
+            "bottom": 368.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 101,
+            "y": 770.5,
+            "width": 310,
+            "height": 54,
+            "top": 770.5,
+            "right": 411,
+            "bottom": 824.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 88,
+            "y": 147.5,
+            "width": 1336,
+            "height": 724,
+            "top": 147.5,
+            "right": 1424,
+            "bottom": 871.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 89,
+            "y": 190.5,
+            "width": 1006,
+            "height": 644,
+            "top": 190.5,
+            "right": 1095,
+            "bottom": 834.5,
+            "left": 89
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 1123,
+            "y": 766.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 766.921875,
+            "right": 1413,
+            "bottom": 825.609375,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 1006,
+        "cssHeight": 644,
+        "width": 1006,
+        "height": 644,
+        "dpr": 1
+      }
+    },
+    "fonts": [
+      {
+        "familyName": "IBM Plex Sans SmBld",
+        "postScriptName": "IBMPlexSans-SmBld",
+        "isCustomFont": true,
+        "glyphCount": 15
+      }
+    ],
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/cockpit-normal-light-1440x900.png",
+    "route": "cockpit",
+    "state": "normal",
+    "theme": "light",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1268.4375,
+            "bottom": 34,
+            "left": 1085.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1313.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1413,
+            "bottom": 34,
+            "left": 1313.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 341.65625,
+            "height": 32.5,
+            "top": 78,
+            "right": 429.65625,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 718.328125,
+            "right": 1413,
+            "bottom": 758.921875,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 775.921875,
+            "right": 1368.5,
+            "bottom": 796.21875,
+            "left": 1167.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 799.21875,
+            "right": 1313.125,
+            "bottom": 816.609375,
+            "left": 1222.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 30 FPS\n            ",
+          "box": {
+            "x": 101,
+            "y": 226.5,
+            "width": 982,
+            "height": 82,
+            "top": 226.5,
+            "right": 1083,
+            "bottom": 308.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 101,
+            "y": 320.5,
+            "width": 120,
+            "height": 48,
+            "top": 320.5,
+            "right": 221,
+            "bottom": 368.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 101,
+            "y": 770.5,
+            "width": 310,
+            "height": 54,
+            "top": 770.5,
+            "right": 411,
+            "bottom": 824.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 88,
+            "y": 147.5,
+            "width": 1336,
+            "height": 724,
+            "top": 147.5,
+            "right": 1424,
+            "bottom": 871.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(237, 242, 247)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 89,
+            "y": 190.5,
+            "width": 1006,
+            "height": 644,
+            "top": 190.5,
+            "right": 1095,
+            "bottom": 834.5,
+            "left": 89
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 1123,
+            "y": 766.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 766.921875,
+            "right": 1413,
+            "bottom": 825.609375,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(145, 32, 24)"
+        }
+      ],
+      "contrasts": {
+        "--text": 15.33572447583839,
+        "--muted": 6.294215386632567,
+        "--cyan": 5.910975129119294
+      },
+      "canvas": {
+        "cssWidth": 1006,
+        "cssHeight": 644,
+        "width": 1006,
+        "height": 644,
+        "dpr": 1
+      }
+    },
+    "fonts": [
+      {
+        "familyName": "IBM Plex Sans SmBld",
+        "postScriptName": "IBMPlexSans-SmBld",
+        "isCustomFont": true,
+        "glyphCount": 15
+      }
+    ],
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/cockpit-stale-dark-1280x800.png",
+    "route": "cockpit",
+    "state": "stale",
+    "theme": "dark",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1108.4375,
+            "bottom": 34,
+            "left": 925.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1153.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1253,
+            "bottom": 34,
+            "left": 1153.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 341.65625,
+            "height": 32.5,
+            "top": 78,
+            "right": 429.65625,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 618.328125,
+            "right": 1253,
+            "bottom": 658.921875,
+            "left": 963
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 675.921875,
+            "right": 1208.5,
+            "bottom": 696.21875,
+            "left": 1007.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 699.21875,
+            "right": 1153.125,
+            "bottom": 716.609375,
+            "left": 1062.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 28 FPS\n            ",
+          "box": {
+            "x": 101,
+            "y": 226.5,
+            "width": 822,
+            "height": 82,
+            "top": 226.5,
+            "right": 923,
+            "bottom": 308.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 101,
+            "y": 320.5,
+            "width": 120,
+            "height": 48,
+            "top": 320.5,
+            "right": 221,
+            "bottom": 368.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 101,
+            "y": 670.5,
+            "width": 310,
+            "height": 54,
+            "top": 670.5,
+            "right": 411,
+            "bottom": 724.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 88,
+            "y": 147.5,
+            "width": 1176,
+            "height": 624,
+            "top": 147.5,
+            "right": 1264,
+            "bottom": 771.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 89,
+            "y": 190.5,
+            "width": 846,
+            "height": 544,
+            "top": 190.5,
+            "right": 935,
+            "bottom": 734.5,
+            "left": 89
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 963,
+            "y": 666.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 666.921875,
+            "right": 1253,
+            "bottom": 725.609375,
+            "left": 963
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 846,
+        "cssHeight": 544,
+        "width": 846,
+        "height": 544,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/cockpit-disconnected-light-1024x768.png",
+    "route": "cockpit",
+    "state": "disconnected",
+    "theme": "light",
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS 연결 끊김",
+          "box": {
+            "x": 740.25,
+            "y": 13,
+            "width": 112.1875,
+            "height": 21,
+            "top": 13,
+            "right": 852.4375,
+            "bottom": 34,
+            "left": 740.25
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(180, 35, 50)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 897.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 997,
+            "bottom": 34,
+            "left": 897.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 341.65625,
+            "height": 32.5,
+            "top": 78,
+            "right": 429.65625,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 707,
+            "y": 586.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 586.328125,
+            "right": 997,
+            "bottom": 626.921875,
+            "left": 707
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 751.484375,
+            "y": 643.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 643.921875,
+            "right": 952.5,
+            "bottom": 664.21875,
+            "left": 751.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 806.859375,
+            "y": 667.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 667.21875,
+            "right": 897.125,
+            "bottom": 684.609375,
+            "left": 806.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 33 FPS\n            ",
+          "box": {
+            "x": 101,
+            "y": 226.5,
+            "width": 594,
+            "height": 91,
+            "top": 226.5,
+            "right": 695,
+            "bottom": 317.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 101,
+            "y": 329.5,
+            "width": 120,
+            "height": 48,
+            "top": 329.5,
+            "right": 221,
+            "bottom": 377.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 101,
+            "y": 638.5,
+            "width": 310,
+            "height": 54,
+            "top": 638.5,
+            "right": 411,
+            "bottom": 692.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 88,
+            "y": 147.5,
+            "width": 920,
+            "height": 592,
+            "top": 147.5,
+            "right": 1008,
+            "bottom": 739.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(237, 242, 247)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 89,
+            "y": 190.5,
+            "width": 618,
+            "height": 512,
+            "top": 190.5,
+            "right": 707,
+            "bottom": 702.5,
+            "left": 89
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 707,
+            "y": 634.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 634.921875,
+            "right": 997,
+            "bottom": 693.609375,
+            "left": 707
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(145, 32, 24)"
+        }
+      ],
+      "contrasts": {
+        "--text": 15.33572447583839,
+        "--muted": 6.294215386632567,
+        "--cyan": 5.910975129119294
+      },
+      "canvas": {
+        "cssWidth": 618,
+        "cssHeight": 512,
+        "width": 618,
+        "height": 512,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/api/v1/state",
+        "status": 503
+      },
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      },
+      {
+        "url": "/api/v1/state",
+        "status": 503
+      },
+      {
+        "url": "/api/v1/state",
+        "status": 503
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/cockpit-no-data-dark-1024x768.png",
+    "route": "cockpit",
+    "state": "no-data",
+    "theme": "dark",
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 669.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 852.4375,
+            "bottom": 34,
+            "left": 669.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 897.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 997,
+            "bottom": 34,
+            "left": 897.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 341.65625,
+            "height": 32.5,
+            "top": 78,
+            "right": 429.65625,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 707,
+            "y": 586.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 586.328125,
+            "right": 997,
+            "bottom": 626.921875,
+            "left": 707
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 751.484375,
+            "y": 643.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 643.921875,
+            "right": 952.5,
+            "bottom": 664.21875,
+            "left": 751.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 806.859375,
+            "y": 667.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 667.21875,
+            "right": 897.125,
+            "bottom": 684.609375,
+            "left": 806.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 77 FPS\n            ",
+          "box": {
+            "x": 101,
+            "y": 226.5,
+            "width": 594,
+            "height": 91,
+            "top": 226.5,
+            "right": 695,
+            "bottom": 317.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 101,
+            "y": 329.5,
+            "width": 120,
+            "height": 48,
+            "top": 329.5,
+            "right": 221,
+            "bottom": 377.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 101,
+            "y": 638.5,
+            "width": 310,
+            "height": 54,
+            "top": 638.5,
+            "right": 411,
+            "bottom": 692.5,
+            "left": 101
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 88,
+            "y": 147.5,
+            "width": 920,
+            "height": 592,
+            "top": 147.5,
+            "right": 1008,
+            "bottom": 739.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 89,
+            "y": 190.5,
+            "width": 618,
+            "height": 512,
+            "top": 190.5,
+            "right": 707,
+            "bottom": 702.5,
+            "left": 89
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 707,
+            "y": 634.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 634.921875,
+            "right": 997,
+            "bottom": 693.609375,
+            "left": 707
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 618,
+        "cssHeight": 512,
+        "width": 618,
+        "height": 512,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/cockpit-normal-light-768x1024.png",
+    "route": "cockpit",
+    "state": "normal",
+    "theme": "light",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 213.140625,
+            "y": 53.5,
+            "width": 182.6875,
+            "height": 21,
+            "top": 53.5,
+            "right": 395.828125,
+            "bottom": 74.5,
+            "left": 213.140625
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 438.828125,
+            "y": 53.5,
+            "width": 99.5625,
+            "height": 21,
+            "top": 53.5,
+            "right": 538.390625,
+            "bottom": 74.5,
+            "left": 438.828125
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 12,
+            "y": 173.1875,
+            "width": 171.796875,
+            "height": 30,
+            "top": 173.1875,
+            "right": 183.796875,
+            "bottom": 203.1875,
+            "left": 12
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "24px",
+            "weight": "600",
+            "lineHeight": "30px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 23,
+            "y": 865.3125,
+            "width": 722,
+            "height": 20.296875,
+            "top": 865.3125,
+            "right": 745,
+            "bottom": 885.609375,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 234.359375,
+            "y": 911.453125,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 911.453125,
+            "right": 435.375,
+            "bottom": 931.75,
+            "left": 234.359375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 443.375,
+            "y": 912.90625,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 912.90625,
+            "right": 533.640625,
+            "bottom": 930.296875,
+            "left": 443.375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 24 FPS\n            ",
+          "box": {
+            "x": 23,
+            "y": 305.1875,
+            "width": 722,
+            "height": 82,
+            "top": 305.1875,
+            "right": 745,
+            "bottom": 387.1875,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 23,
+            "y": 399.1875,
+            "width": 120,
+            "height": 48,
+            "top": 399.1875,
+            "right": 143,
+            "bottom": 447.1875,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 25,
+            "y": 775.1875,
+            "width": 280,
+            "height": 54,
+            "top": 775.1875,
+            "right": 305,
+            "bottom": 829.1875,
+            "left": 25
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 12,
+            "y": 222.1875,
+            "width": 744,
+            "height": 654,
+            "top": 222.1875,
+            "right": 756,
+            "bottom": 876.1875,
+            "left": 12
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(237, 242, 247)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 13,
+            "y": 265.1875,
+            "width": 742,
+            "height": 574,
+            "top": 265.1875,
+            "right": 755,
+            "bottom": 839.1875,
+            "left": 13
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 23,
+            "y": 893.609375,
+            "width": 722,
+            "height": 56,
+            "top": 893.609375,
+            "right": 745,
+            "bottom": 949.609375,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(145, 32, 24)"
+        }
+      ],
+      "contrasts": {
+        "--text": 15.33572447583839,
+        "--muted": 6.294215386632567,
+        "--cyan": 5.910975129119294
+      },
+      "canvas": {
+        "cssWidth": 742,
+        "cssHeight": 574,
+        "width": 742,
+        "height": 574,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/cockpit-normal-dark-720x450.png",
+    "route": "cockpit",
+    "state": "normal",
+    "theme": "dark",
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "zoomEquivalent": "200% reflow equivalent of 1440x900; not actual browser or OS zoom",
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 227.015625,
+            "y": 53.5,
+            "width": 182.6875,
+            "height": 21,
+            "top": 53.5,
+            "right": 409.703125,
+            "bottom": 74.5,
+            "left": 227.015625
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 452.703125,
+            "y": 53.5,
+            "width": 99.5625,
+            "height": 21,
+            "top": 53.5,
+            "right": 552.265625,
+            "bottom": 74.5,
+            "left": 452.703125
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Mission Control",
+          "box": {
+            "x": 12,
+            "y": 173.1875,
+            "width": 171.796875,
+            "height": 30,
+            "top": 173.1875,
+            "right": 183.796875,
+            "bottom": 203.1875,
+            "left": 12
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "24px",
+            "weight": "600",
+            "lineHeight": "30px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 23,
+            "y": 291.3125,
+            "width": 674,
+            "height": 20.296875,
+            "top": 291.3125,
+            "right": 697,
+            "bottom": 311.609375,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 210.359375,
+            "y": 337.453125,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 337.453125,
+            "right": 411.375,
+            "bottom": 357.75,
+            "left": 210.359375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 419.375,
+            "y": 338.90625,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 338.90625,
+            "right": 509.640625,
+            "bottom": 356.296875,
+            "left": 419.375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · 28 FPS\n            ",
+          "box": {
+            "x": 23,
+            "y": 305.1875,
+            "width": 674,
+            "height": 91,
+            "top": 305.1875,
+            "right": 697,
+            "bottom": 396.1875,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 23,
+            "y": 408.1875,
+            "width": 120,
+            "height": 48,
+            "top": 408.1875,
+            "right": 143,
+            "bottom": 456.1875,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 25,
+            "y": 501.1875,
+            "width": 280,
+            "height": 54,
+            "top": 501.1875,
+            "right": 305,
+            "bottom": 555.1875,
+            "left": 25
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              FOLLOW\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              ",
+          "box": {
+            "x": 12,
+            "y": 222.1875,
+            "width": 696,
+            "height": 380,
+            "top": 222.1875,
+            "right": 708,
+            "bottom": 602.1875,
+            "left": 12
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 13,
+            "y": 265.1875,
+            "width": 694,
+            "height": 300,
+            "top": 265.1875,
+            "right": 707,
+            "bottom": 565.1875,
+            "left": 13
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 23,
+            "y": 319.609375,
+            "width": 674,
+            "height": 56,
+            "top": 319.609375,
+            "right": 697,
+            "bottom": 375.609375,
+            "left": 23
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 694,
+        "cssHeight": 300,
+        "width": 694,
+        "height": 300,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/mapping-normal-dark-1440x900.png",
+    "route": "mapping",
+    "state": "normal",
+    "theme": "dark",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1268.4375,
+            "bottom": 34,
+            "left": 1085.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1313.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1413,
+            "bottom": 34,
+            "left": 1313.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Live LiDAR Mapping",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 314.671875,
+            "height": 32.5,
+            "top": 78,
+            "right": 402.671875,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 718.328125,
+            "right": 1413,
+            "bottom": 758.921875,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 775.921875,
+            "right": 1368.5,
+            "bottom": 796.21875,
+            "left": 1167.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 799.21875,
+            "right": 1313.125,
+            "bottom": 816.609375,
+            "left": 1222.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · — FPS\n            ",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              S",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 1123,
+            "y": 766.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 766.921875,
+            "right": 1413,
+            "bottom": 825.609375,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 0,
+        "cssHeight": 0,
+        "width": 300,
+        "height": 150,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/maps-normal-light-1440x900.png",
+    "route": "maps",
+    "state": "normal",
+    "theme": "light",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 1085.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1268.4375,
+            "bottom": 34,
+            "left": 1085.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1313.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1413,
+            "bottom": 34,
+            "left": 1313.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Saved Maps",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 345.46875,
+            "height": 32.5,
+            "top": 78,
+            "right": 433.46875,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 1123,
+            "y": 718.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 718.328125,
+            "right": 1413,
+            "bottom": 758.921875,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1167.484375,
+            "y": 775.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 775.921875,
+            "right": 1368.5,
+            "bottom": 796.21875,
+            "left": 1167.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1222.859375,
+            "y": 799.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 799.21875,
+            "right": 1313.125,
+            "bottom": 816.609375,
+            "left": 1222.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · — FPS\n            ",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              S",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(237, 242, 247)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 1123,
+            "y": 766.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 766.921875,
+            "right": 1413,
+            "bottom": 825.609375,
+            "left": 1123
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(145, 32, 24)"
+        }
+      ],
+      "contrasts": {
+        "--text": 15.33572447583839,
+        "--muted": 6.294215386632567,
+        "--cyan": 5.910975129119294
+      },
+      "canvas": {
+        "cssWidth": 0,
+        "cssHeight": 0,
+        "width": 300,
+        "height": 150,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/navigation-long-error-dark-1280x800.png",
+    "route": "navigation",
+    "state": "long-error",
+    "theme": "dark",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1108.4375,
+            "bottom": 34,
+            "left": 925.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1153.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1253,
+            "bottom": 34,
+            "left": 1153.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Nav2 Navigation",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 439.46875,
+            "height": 32.5,
+            "top": 78,
+            "right": 527.46875,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 618.328125,
+            "right": 1253,
+            "bottom": 658.921875,
+            "left": 963
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 675.921875,
+            "right": 1208.5,
+            "bottom": 696.21875,
+            "left": 1007.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 699.21875,
+            "right": 1153.125,
+            "bottom": 716.609375,
+            "left": 1062.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · — FPS\n            ",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              S",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 963,
+            "y": 666.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 666.921875,
+            "right": 1253,
+            "bottom": 725.609375,
+            "left": 963
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 0,
+        "cssHeight": 0,
+        "width": 300,
+        "height": 150,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/sensors-normal-light-1024x768.png",
+    "route": "sensors",
+    "state": "normal",
+    "theme": "light",
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 669.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 852.4375,
+            "bottom": 34,
+            "left": 669.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 897.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 997,
+            "bottom": 34,
+            "left": 897.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(20, 107, 79)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Capture / Perception",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 358.40625,
+            "height": 32.5,
+            "top": 78,
+            "right": 446.40625,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 707,
+            "y": 586.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 586.328125,
+            "right": 997,
+            "bottom": 626.921875,
+            "left": 707
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 751.484375,
+            "y": 643.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 643.921875,
+            "right": 952.5,
+            "bottom": 664.21875,
+            "left": 751.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 806.859375,
+            "y": 667.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 667.21875,
+            "right": 897.125,
+            "bottom": 684.609375,
+            "left": 806.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · — FPS\n            ",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(255, 255, 255)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              S",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(24, 38, 54)",
+          "background": "rgb(237, 242, 247)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 707,
+            "y": 634.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 634.921875,
+            "right": 997,
+            "bottom": 693.609375,
+            "left": 707
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(145, 32, 24)"
+        }
+      ],
+      "contrasts": {
+        "--text": 15.33572447583839,
+        "--muted": 6.294215386632567,
+        "--cyan": 5.910975129119294
+      },
+      "canvas": {
+        "cssWidth": 0,
+        "cssHeight": 0,
+        "width": 300,
+        "height": 150,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  },
+  {
+    "file": "before/settings-normal-dark-1280x800.png",
+    "route": "settings",
+    "state": "normal",
+    "theme": "dark",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "stopTrial": null,
+    "geometry": {
+      "overflow": false,
+      "elements": [
+        {
+          "selector": "#connectionLabel",
+          "text": "직접 ROS/DDS 인터페이스 준비",
+          "box": {
+            "x": 925.75,
+            "y": 13,
+            "width": 182.6875,
+            "height": 21,
+            "top": 13,
+            "right": 1108.4375,
+            "bottom": 34,
+            "left": 925.75
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#controlConnectionLabel",
+          "text": "Go2 Bridge 연결",
+          "box": {
+            "x": 1153.4375,
+            "y": 13,
+            "width": 99.5625,
+            "height": 21,
+            "top": 13,
+            "right": 1253,
+            "bottom": 34,
+            "left": 1153.4375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(139, 214, 186)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "#pageTitle",
+          "text": "Settings",
+          "box": {
+            "x": 88,
+            "y": 78,
+            "width": 490.828125,
+            "height": 32.5,
+            "top": 78,
+            "right": 578.828125,
+            "bottom": 110.5,
+            "left": 88
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "26px",
+            "weight": "600",
+            "lineHeight": "32.5px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-safety-summary",
+          "text": "ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE",
+          "box": {
+            "x": 963,
+            "y": 618.328125,
+            "width": 290,
+            "height": 40.59375,
+            "top": 618.328125,
+            "right": 1253,
+            "bottom": 658.921875,
+            "left": 963
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop strong",
+          "text": "DASHBOARD SOFTWARE STOP",
+          "box": {
+            "x": 1007.484375,
+            "y": 675.921875,
+            "width": 201.015625,
+            "height": 20.296875,
+            "top": 675.921875,
+            "right": 1208.5,
+            "bottom": 696.21875,
+            "left": 1007.484375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "600",
+            "lineHeight": "20.3px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-fixed-stop small",
+          "text": "물리 E-STOP 아님",
+          "box": {
+            "x": 1062.859375,
+            "y": 699.21875,
+            "width": 90.265625,
+            "height": 17.390625,
+            "top": 699.21875,
+            "right": 1153.125,
+            "bottom": 716.609375,
+            "left": 1062.859375
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "12px",
+            "weight": "600",
+            "lineHeight": "17.4px"
+          },
+          "color": "rgb(255, 255, 255)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-inspector",
+          "absent": true
+        },
+        {
+          "selector": ".cockpit-scene-controls",
+          "text": "\n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              SIZE \n              Z COLOR\n              NEAR\n              LOW · 10K · — FPS\n            ",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": ".cockpit-layout-library",
+          "text": "LAYOUTSWORKSPACE PRESETSPROFILE · go2SAVE ASLOADOVERWRITEDEFAULTDELETEEXPORTRESET PROFILE LAYOUTSIMPORT JSON FILEPREVIEW IMPORTAPPLY IMPORT저장된 preset이 없습니다.",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": ".cockpit-sensor-launcher",
+          "text": "SENSORSSENSOR LAUNCHER◉Go2 Front Camera360×240 · MIN 280×170ACTIVE · OPERATE▣RealSense Color Camera380×250 · MIN 280×170LAYOUT LOCKED⌖Map380×280 · MIN 300×190LAYOUT LOCKED◈Navigation520×520 · MIN 390×360LAYOUT LOCKED◆Mission560×560 · MIN 410×390LAYOUT LOCKED↝Route Planner680×650 · MIN 460×440LAYOUT LOCKED⌁Controller320×210 · MIN 250×150LAYOUT LOCKEDLRTBFREE50:502×2CASCADERECOVERGRID8px16px24px32px",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(183, 212, 205)",
+          "background": "rgb(26, 34, 44)"
+        },
+        {
+          "selector": "#cockpitWorkspace",
+          "text": "\n          \n            WORKSPACE Saved layoutObservationMappingNavigationDataset Capture\n            Safety 상세 → EDIT LAYOUT에서 배치 선택\n          \n          \n            \n          \n          \n            \n              ISO\n              TOP\n              FRONT\n              WORLD\n              XYZ\n              MAP\n              LOD LOW · 10KMEDIUM · 30KHIGH · 60K\n              AUTO\n              S",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgb(17, 22, 28)"
+        },
+        {
+          "selector": "#cockpitSceneCanvas",
+          "text": "",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "visible": false,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "13px",
+            "weight": "400",
+            "lineHeight": "normal"
+          },
+          "color": "rgb(233, 240, 245)",
+          "background": "rgba(0, 0, 0, 0)"
+        },
+        {
+          "selector": "[data-cockpit-software-stop]",
+          "text": "DASHBOARD SOFTWARE STOP물리 E-STOP 아님",
+          "box": {
+            "x": 963,
+            "y": 666.921875,
+            "width": 290,
+            "height": 58.6875,
+            "top": 666.921875,
+            "right": 1253,
+            "bottom": 725.609375,
+            "left": 963
+          },
+          "visible": true,
+          "clipped": false,
+          "font": {
+            "family": "\"IBM Plex Sans\", \"IBM Plex Sans KR\", system-ui, -apple-system, \"system-ui\", \"Segoe UI\", sans-serif",
+            "size": "14px",
+            "weight": "500",
+            "lineHeight": "21px"
+          },
+          "color": "rgb(255, 240, 235)",
+          "background": "rgb(181, 42, 32)"
+        }
+      ],
+      "contrasts": {
+        "--text": 13.93876141188715,
+        "--muted": 7.815988674554839,
+        "--cyan": 9.070258236389947
+      },
+      "canvas": {
+        "cssWidth": 0,
+        "cssHeight": 0,
+        "width": 300,
+        "height": 150,
+        "dpr": 1
+      }
+    },
+    "requests": [],
+    "pageErrors": [],
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "httpErrors": [
+      {
+        "url": "/static/data/go2_saved_map.json",
+        "status": 404
+      }
+    ],
+    "unexpected": []
+  }
+]

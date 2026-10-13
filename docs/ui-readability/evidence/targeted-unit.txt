@@ -1,0 +1,222 @@
+TAP version 13
+# (node:47044) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/Documents/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ui-readability/robot_dashboard/static/features/datasets/capture.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Sensors exposes a server-side dataset capture panel and compact global status
+ok 1 - Sensors exposes a server-side dataset capture panel and compact global status
+  ---
+  duration_ms: 2.676708
+  type: 'test'
+  ...
+# Subtest: dataset capture uses only the fixed same-origin API contract
+ok 2 - dataset capture uses only the fixed same-origin API contract
+  ---
+  duration_ms: 1.83325
+  type: 'test'
+  ...
+# Subtest: finalized export and model state use fixed read-only lifecycle contracts
+ok 3 - finalized export and model state use fixed read-only lifecycle contracts
+  ---
+  duration_ms: 1.028417
+  type: 'test'
+  ...
+# Subtest: capture response normalization accepts fixed source counts and storage fields
+ok 4 - capture response normalization accepts fixed source counts and storage fields
+  ---
+  duration_ms: 2.090042
+  type: 'test'
+  ...
+# Subtest: saved dataset browser uses opaque IDs and the fixed image endpoint
+ok 5 - saved dataset browser uses opaque IDs and the fixed image endpoint
+  ---
+  duration_ms: 1.52825
+  type: 'test'
+  ...
+# Subtest: dataset status and folder polls discard stale overlapping responses
+ok 6 - dataset status and folder polls discard stale overlapping responses
+  ---
+  duration_ms: 0.586584
+  type: 'test'
+  ...
+# Subtest: failed but still-active capture remains stoppable for recovery
+ok 7 - failed but still-active capture remains stoppable for recovery
+  ---
+  duration_ms: 0.339541
+  type: 'test'
+  ...
+# Subtest: dataset pages expose bounded newest, newer and older navigation
+ok 8 - dataset pages expose bounded newest, newer and older navigation
+  ---
+  duration_ms: 0.831791
+  type: 'test'
+  ...
+# Subtest: Safari page lifecycle never stops a server dataset session
+ok 9 - Safari page lifecycle never stops a server dataset session
+  ---
+  duration_ms: 2.736333
+  type: 'test'
+  ...
+# Subtest: dataset extraction owns lifecycle resources and materially reduces the application root
+ok 10 - dataset extraction owns lifecycle resources and materially reduces the application root
+  ---
+  duration_ms: 3.522042
+  type: 'test'
+  ...
+# Subtest: active or unknown server capture is named in service lifecycle blockers
+ok 11 - active or unknown server capture is named in service lifecycle blockers
+  ---
+  duration_ms: 0.795708
+  type: 'test'
+  ...
+# Subtest: dataset capture and gallery collapse safely on narrow screens
+ok 12 - dataset capture and gallery collapse safely on narrow screens
+  ---
+  duration_ms: 0.945458
+  type: 'test'
+  ...
+# Subtest: PDF 11 navigation parameter whitelist has complete typed tuned values
+ok 13 - PDF 11 navigation parameter whitelist has complete typed tuned values
+  ---
+  duration_ms: 4.792209
+  type: 'test'
+  ...
+# Subtest: parameter snapshots fail closed on missing, unknown or unsafe values
+ok 14 - parameter snapshots fail closed on missing, unknown or unsafe values
+  ---
+  duration_ms: 3.21575
+  type: 'test'
+  ...
+# Subtest: parameter PATCH contains only changed whitelisted values and an exact base revision
+ok 15 - parameter PATCH contains only changed whitelisted values and an exact base revision
+  ---
+  duration_ms: 0.949125
+  type: 'test'
+  ...
+# Subtest: canvas and world transforms respect map origin, resolution, yaw and Y inversion
+ok 16 - canvas and world transforms respect map origin, resolution, yaw and Y inversion
+  ---
+  duration_ms: 1.27275
+  type: 'test'
+  ...
+# Subtest: pose drag requires a map hit and derives heading in the rotated map frame
+ok 17 - pose drag requires a map hit and derives heading in the rotated map frame
+  ---
+  duration_ms: 0.341666
+  type: 'test'
+  ...
+# Subtest: pose placement rejects unknown and occupied occupancy cells
+ok 18 - pose placement rejects unknown and occupied occupancy cells
+  ---
+  duration_ms: 3.056625
+  type: 'test'
+  ...
+# Subtest: navigation and manual control activity helpers are fail-safe
+ok 19 - navigation and manual control activity helpers are fail-safe
+  ---
+  duration_ms: 1.446042
+  type: 'test'
+  ...
+# Subtest: dashboard exposes a dedicated navigation route and strict API endpoints
+ok 20 - dashboard exposes a dedicated navigation route and strict API endpoints
+  ---
+  duration_ms: 3.507041
+  type: 'test'
+  ...
+# Subtest: Navigation renders bounded localization health and a read-only calibration assistant
+ok 21 - Navigation renders bounded localization health and a read-only calibration assistant
+  ---
+  duration_ms: 2.145292
+  type: 'test'
+  ...
+# Subtest: navigation keeps the 2D map and selected robot 3D preview in separate stages
+ok 22 - navigation keeps the 2D map and selected robot 3D preview in separate stages
+  ---
+  duration_ms: 1.343916
+  type: 'test'
+  ...
+# Subtest: navigation 3D preview reuses profile assets and gates every live joint path
+ok 23 - navigation 3D preview reuses profile assets and gates every live joint path
+  ---
+  duration_ms: 3.479625
+  type: 'test'
+  ...
+# Subtest: controls and navigation help text is readable and model preview is mobile-safe
+ok 24 - controls and navigation help text is readable and model preview is mobile-safe
+  ---
+  duration_ms: 0.846125
+  type: 'test'
+  ...
+# Subtest: navigation start and poses carry opaque map revisions while parameters use PATCH
+ok 25 - navigation start and poses carry opaque map revisions while parameters use PATCH
+  ---
+  duration_ms: 1.686708
+  type: 'test'
+  ...
+# Subtest: manual control and navigation are mutually exclusive without blocking cleanup actions
+ok 26 - manual control and navigation are mutually exclusive without blocking cleanup actions
+  ---
+  duration_ms: 3.753708
+  type: 'test'
+  ...
+# Subtest: background navigation startup phases are friendly and keep cleanup available
+ok 27 - background navigation startup phases are friendly and keep cleanup available
+  ---
+  duration_ms: 4.699333
+  type: 'test'
+  ...
+# Subtest: locked parameters and occupancy safety are enforced by the rendered controls
+ok 28 - locked parameters and occupancy safety are enforced by the rendered controls
+  ---
+  duration_ms: 0.479917
+  type: 'test'
+  ...
+# Subtest: active navigation map is pinned to its exact catalog revision
+ok 29 - active navigation map is pinned to its exact catalog revision
+  ---
+  duration_ms: 1.538166
+  type: 'test'
+  ...
+# Subtest: parameter revision conflicts reload only after the busy guard is released
+ok 30 - parameter revision conflicts reload only after the busy guard is released
+  ---
+  duration_ms: 0.666291
+  type: 'test'
+  ...
+# (node:47046) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/hajoonpark/Documents/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-ui-readability/robot_dashboard/static/features/cockpit/status_labels.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: waiting, disconnected, stale and unknown remain distinct in Korean
+ok 31 - waiting, disconnected, stale and unknown remain distinct in Korean
+  ---
+  duration_ms: 1.523292
+  type: 'test'
+  ...
+# Subtest: unknown state and blocker codes stay verbatim instead of acquiring an invented cause
+ok 32 - unknown state and blocker codes stay verbatim instead of acquiring an invented cause
+  ---
+  duration_ms: 2.361541
+  type: 'test'
+  ...
+# Subtest: synthetic and replay labels never describe live data
+ok 33 - synthetic and replay labels never describe live data
+  ---
+  duration_ms: 0.178208
+  type: 'test'
+  ...
+# Subtest: navigation blockers identify only their reported condition and a relevant check
+ok 34 - navigation blockers identify only their reported condition and a relevant check
+  ---
+  duration_ms: 0.361416
+  type: 'test'
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 272.61425

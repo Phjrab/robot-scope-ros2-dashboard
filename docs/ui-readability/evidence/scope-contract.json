@@ -1,0 +1,26 @@
+{
+  "base_sha": "42c6cce986029548e5cc7e0f6f9bd830144cabe3",
+  "old_dom_ids": 437,
+  "new_dom_ids": 441,
+  "removed_dom_ids": [],
+  "duplicate_dom_ids": [],
+  "non_ui_production_changes": [],
+  "static_sha256": {
+    "robot_dashboard/static/app.js": "95b721c2ad5eaee220926dc6fb23361533ede2b71a2c606f01a35838c79dbf31",
+    "robot_dashboard/static/features/cockpit/competition_status.js": "f8614cdcf61207ad52c75bddc6aeaadb788614fb536642cbd0a7be46c5068070",
+    "robot_dashboard/static/features/cockpit/mission_inspector.js": "cffe07a0b1f16f4ec8cc94b92613d0acd0ce74cca60ec1596575a241504918bb",
+    "robot_dashboard/static/features/cockpit/mission_presets.js": "c3597c7cb46557fd69e165cfe82bb29f7928db5e57705148b0eb2e4c877ab05c",
+    "robot_dashboard/static/features/cockpit/mission_shell.js": "99e82387c1e09ef940e88f6d888b6da3c6badd4265fc3c38a35b101cf388d242",
+    "robot_dashboard/static/features/cockpit/panels/camera_panel_view.js": "e277a80d7fb077222e3a6efa3af4e193a40869c1d74b8f623daf7a06be2a4005",
+    "robot_dashboard/static/features/cockpit/safety_hud.js": "5685242f94ebee4af2e1c39f1b451e2e7b3d51254a1a7ab442441ac24f2f3f1c",
+    "robot_dashboard/static/features/cockpit/safety_hud_view.js": "5d9f24c2883b56828f59d2c5e782b8f6032c4638868374ba1a9757006dfad7cf",
+    "robot_dashboard/static/features/cockpit/sensor_launcher.js": "b14d1ec89d461d76743331914e833ecaea5549ff55718cf927b8baf30b83027f",
+    "robot_dashboard/static/features/cockpit/status_labels.js": "5eb30dfec6c135459fc8ad7f66d591f2be09f18e79de1ea4ea75d3e24e4704e7",
+    "robot_dashboard/static/features/cockpit/workspace.js": "9389d9494569af2e5c479f2618708fc5014cc65a5fc6169cfa89a1835b4fe600",
+    "robot_dashboard/static/index.html": "9bbc15f9e55169c0caff8d60c6673cd5cc157437a714f05f447c67b264a4337b",
+    "robot_dashboard/static/mission-control.css": "a66bb8d7f32bfd7482dd76ebe5a1563d67963927eb35a6f85f88bdb65f35f6dd",
+    "robot_dashboard/static/styles.css": "703be9d58f030f5383cd5788c65a79867bbbfdf9046fb52ad441ac98e0a933ef",
+    "robot_dashboard/static/themes.css": "365859481f0955d92730f8a87fe38b14a4605860c489997e4c8e71c8d3b94e87",
+    "robot_dashboard/static/typography.css": "1f4a9311cac6847d491712f26f486687aade9b98145d4d969a326975ce172b1b"
+  }
+}

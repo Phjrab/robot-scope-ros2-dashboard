@@ -1,0 +1,104 @@
+[WebServer] (node:53568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 23 tests using 1 worker
+
+(node:53572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/23] tests/e2e/camera_state.spec.mjs:4:1 › Cockpit remembers manual camera after page reload
+[2/23] tests/e2e/dashboard.spec.mjs:131:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+[3/23] tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+[4/23] tests/e2e/dashboard.spec.mjs:230:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+[5/23] tests/e2e/dashboard.spec.mjs:360:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+[6/23] tests/e2e/dashboard.spec.mjs:409:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+[7/23] tests/e2e/dashboard.spec.mjs:428:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+[8/23] tests/e2e/dashboard.spec.mjs:750:1 › Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms
+[9/23] tests/e2e/dashboard.spec.mjs:777:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+[10/23] tests/e2e/dashboard.spec.mjs:828:1 › Cockpit mission pause, failure retry, and skips remain explicit and fail closed
+[11/23] tests/e2e/dashboard.spec.mjs:881:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+[12/23] tests/e2e/dashboard.spec.mjs:985:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+[13/23] tests/e2e/dashboard.spec.mjs:1073:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+  1) tests/e2e/dashboard.spec.mjs:1073:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+
+    Error: Test timeout of 20000ms exceeded
+
+      1130 |   await realsense.locator('[data-panel-action="close"]').click();
+      1131 |   await expect(realsense).toHaveCount(0);
+    > 1132 |   await expect.poll(() => backend.state.cameraClosesBySource.realsense_color).toBe(1);
+           |                                                                               ^
+      1133 |   const demands = await page.evaluate(() => window.RobotScopeCameraStreams.snapshot().demand.sources.map((source) => ({ id: source.id, viewers: source.viewerCount })));
+      1134 |   expect(demands).toEqual([{ id: 'go2_front', viewers: 1 }, { id: 'realsense_color', viewers: 0 }]);
+      1135 |   await expect(go2.locator('.cockpit-camera-state')).toHaveAttribute('data-state', 'live');
+        at /Users/hajoonpark/Documents/자율설계/robot-scope-ui-readability/tests/e2e/dashboard.spec.mjs:1132:79
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-camera-p-87ed0-ize-compact-stale-and-close/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-camera-p-87ed0-ize-compact-stale-and-close/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-camera-p-87ed0-ize-compact-stale-and-close/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:54007) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[14/23] tests/e2e/dashboard.spec.mjs:1138:1 › Cockpit disables camera launchers that are absent from the active catalog profile
+[15/23] tests/e2e/dashboard.spec.mjs:1149:1 › Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels
+[16/23] tests/e2e/dashboard.spec.mjs:1207:1 › active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation
+[17/23] tests/e2e/dashboard.spec.mjs:1242:1 › Safety HUD clears stale cached values and preserves STOP and control source on a narrow viewport
+[18/23] tests/e2e/dashboard.spec.mjs:1270:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+  2) tests/e2e/dashboard.spec.mjs:1270:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+
+    Test timeout of 20000ms exceeded.
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-preset-s-80aa1-ts-only-after-preview-apply/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-preset-s-80aa1-ts-only-after-preview-apply/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/dashboard-Cockpit-preset-s-80aa1-ts-only-after-preview-apply/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:54463) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[19/23] tests/e2e/dashboard.spec.mjs:1333:1 › Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed
+[20/23] tests/e2e/layout_apply.spec.mjs:9:1 › Cockpit Apply persists panels on reload and a new window without saving a named preset
+  3) tests/e2e/layout_apply.spec.mjs:9:1 › Cockpit Apply persists panels on reload and a new window without saving a named preset
+
+    Test timeout of 20000ms exceeded.
+
+    Error Context: ../../../../../private/tmp/robot-scope-ui-readability-regression/layout_apply-Cockpit-Apply-2cb4b-thout-saving-a-named-preset/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../private/tmp/robot-scope-ui-readability-regression/layout_apply-Cockpit-Apply-2cb4b-thout-saving-a-named-preset/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../private/tmp/robot-scope-ui-readability-regression/layout_apply-Cockpit-Apply-2cb4b-thout-saving-a-named-preset/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:54602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[21/23] tests/e2e/layout_apply.spec.mjs:33:1 › Cockpit Apply storage failure remains editable and reports failure
+[22/23] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in embedded mode
+[23/23] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in standalone mode
+  3 failed
+    tests/e2e/dashboard.spec.mjs:1073:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+    tests/e2e/dashboard.spec.mjs:1270:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+    tests/e2e/layout_apply.spec.mjs:9:1 › Cockpit Apply persists panels on reload and a new window without saving a named preset
+  20 passed (4.4m)

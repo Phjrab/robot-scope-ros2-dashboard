@@ -1,3 +1,5 @@
+import { statusLabel } from './status_labels.js';
+
 function bounded(value, fallback = '—') { return String(value ?? '').trim().slice(0, 256) || fallback; }
 
 export function projectMissionInspector(input = {}, now = Date.now()) {
@@ -29,14 +31,28 @@ export function projectMissionInspector(input = {}, now = Date.now()) {
 
 export function createMissionInspector(root) {
   if (!root) return null;
-  const fields = [...root.querySelectorAll('[data-inspector-field]')];
+  const fields = [...(root.closest('.cockpit-workspace') || root).querySelectorAll('[data-inspector-field]')];
+  const technical = root.ownerDocument.createElement('details');
+  technical.className = 'inspector-technical-details';
+  const summary = root.ownerDocument.createElement('summary');
+  summary.textContent = '기술 상태 보기';
+  const raw = root.ownerDocument.createElement('pre');
+  technical.append(summary, raw);
+  root.append(technical);
+  const states = new Set(['robot', 'lidar', 'camera', 'localization', 'readiness', 'mission', 'capture']);
   return Object.freeze({ render(input) {
     const projected = projectMissionInspector(input);
     for (const field of fields) {
-      const value = projected[field.dataset.inspectorField];
-      if (field.textContent !== value) field.textContent = value;
+      const key = field.dataset.inspectorField;
+      const value = projected[key];
+      const label = key === 'readiness' && value.startsWith('WAIT · ') ? '주행 준비 조건 확인 필요'
+        : key === 'capture' && value.startsWith('CAPTURING · ') ? `수집 중 · ${value.slice('CAPTURING · '.length)}`
+          : states.has(key) ? statusLabel(value) : value;
+      if (field.textContent !== label) field.textContent = label;
+      if (states.has(key)) field.dataset.state = value.toLowerCase();
       field.title = value;
     }
+    raw.textContent = [...states].map((key) => `${key}: ${projected[key]}`).join('\n');
     root.dataset.robotState = projected.robot.toLowerCase();
     return projected;
   } });

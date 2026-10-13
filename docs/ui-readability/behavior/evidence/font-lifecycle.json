@@ -1,0 +1,15 @@
+{
+  "connections": {
+    "go2_front": 1,
+    "realsense_color": 0
+  },
+  "closes": {
+    "go2_front": 0,
+    "realsense_color": 0
+  },
+  "rendererCount": 1,
+  "storagePreserved": true,
+  "panelStatePreserved": true,
+  "pageErrors": [],
+  "unexpected": []
+}

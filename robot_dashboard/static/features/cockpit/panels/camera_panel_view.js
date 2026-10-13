@@ -1,4 +1,5 @@
 import { drawPerceptionOverlay } from '../../perception/result_overlay.js';
+import { statusLabel } from '../status_labels.js';
 
 function metric(documentValue, label) {
   const item = documentValue.createElement('div');
@@ -22,7 +23,7 @@ export function createCameraPanelView(options = {}) {
   label.textContent = options.label;
   const state = documentValue.createElement('span');
   state.className = 'cockpit-camera-state';
-  state.textContent = 'WAITING';
+  state.textContent = statusLabel('WAITING');
   header.append(label, state);
   const viewport = documentValue.createElement('div');
   viewport.className = 'cockpit-camera-viewport';
@@ -41,33 +42,30 @@ export function createCameraPanelView(options = {}) {
   perceptionHud.textContent = 'SHADOW · OFFLINE';
   const overlay = documentValue.createElement('div');
   overlay.className = 'cockpit-camera-overlay';
-  overlay.textContent = 'WAITING FOR FRAME';
+  overlay.textContent = '영상 데이터 수신 대기';
   viewport.append(canvas, perceptionCanvas, perceptionHud, overlay);
   const metrics = documentValue.createElement('div');
   metrics.className = 'cockpit-camera-metrics';
   const fps = metric(documentValue, 'FPS');
-  const age = metric(documentValue, 'AGE');
-  const resolution = metric(documentValue, 'RES');
-  const transport = metric(documentValue, 'TRANSPORT');
-  const reconnect = metric(documentValue, 'RECONNECT');
-  const wifi = metric(documentValue, 'ROBOT WI-FI');
-  const source = metric(documentValue, 'SOURCE');
-  const receive = metric(documentValue, 'TRANSPORT RX');
-  const decode = metric(documentValue, 'DECODE');
-  const clock = metric(documentValue, 'E2E LATENCY');
-  metrics.append(
-    fps.item,
-    age.item,
-    resolution.item,
-    transport.item,
-    reconnect.item,
-    wifi.item,
-    source.item,
-    receive.item,
-    decode.item,
-    clock.item,
-  );
-  shell.append(header, viewport, metrics);
+  const age = metric(documentValue, '수신 후 경과');
+  const resolution = metric(documentValue, '해상도');
+  const transport = metric(documentValue, '전송 방식');
+  const reconnect = metric(documentValue, '연결 상태');
+  const wifi = metric(documentValue, '로봇 Wi-Fi');
+  const source = metric(documentValue, '영상 소스');
+  const receive = metric(documentValue, '전송 수신');
+  const decode = metric(documentValue, '디코딩');
+  const clock = metric(documentValue, '전체 지연');
+  metrics.append(fps.item, age.item, resolution.item);
+  const details = documentValue.createElement('details');
+  details.className = 'cockpit-camera-details';
+  const summary = documentValue.createElement('summary');
+  summary.textContent = '전송·연결 정보';
+  const extra = documentValue.createElement('div');
+  extra.className = 'cockpit-camera-extra-metrics';
+  extra.append(transport.item, reconnect.item, wifi.item, source.item, receive.item, decode.item, clock.item);
+  details.append(summary, extra);
+  shell.append(header, metrics, viewport, details);
   root.append(shell);
 
   function clearFrame() {
@@ -94,13 +92,15 @@ export function createCameraPanelView(options = {}) {
   }
 
   function render(projected) {
-    state.textContent = projected.state;
+    state.textContent = statusLabel(projected.state);
     state.dataset.state = projected.state.toLowerCase();
+    state.title = projected.state;
     fps.value.textContent = projected.fps;
     age.value.textContent = projected.age;
     resolution.value.textContent = projected.resolution;
     transport.value.textContent = projected.transport;
-    reconnect.value.textContent = projected.reconnect;
+    reconnect.value.textContent = statusLabel(projected.reconnect);
+    reconnect.value.title = projected.reconnect;
     wifi.value.textContent = projected.wifi;
     wifi.value.title = projected.clock;
     source.value.textContent = projected.source;
@@ -109,7 +109,9 @@ export function createCameraPanelView(options = {}) {
     receive.value.title = projected.clock;
     decode.value.textContent = projected.decode;
     clock.value.textContent = projected.clock;
-    overlay.textContent = projected.overlay;
+    overlay.textContent = projected.state === 'STALE' ? `오래된 영상 · 마지막 수신 ${projected.age}`
+      : projected.state === 'ERROR' ? '카메라 오류 · 연결 상태를 확인하세요.' : '영상 데이터 수신 대기';
+    overlay.title = projected.overlay;
     overlay.hidden = ['LIVE', 'FIXTURE', 'REPLAY'].includes(projected.state);
     if (!['LIVE', 'FIXTURE', 'REPLAY'].includes(projected.state)) clearFrame();
   }
