@@ -1,0 +1,22 @@
+{
+  "lease_active": false,
+  "deadman": false,
+  "command": {
+    "source": null,
+    "deadman": false,
+    "linear_x": 0.0,
+    "linear_y": 0.0,
+    "angular_z": 0.0
+  },
+  "navigation_pipeline": "idle",
+  "goal": "idle",
+  "mapping_pipeline": "idle",
+  "mapping_operation": "idle",
+  "mission_ownership_active": false,
+  "dataset_state": "idle",
+  "competition_locked": false,
+  "bridge_state": "stale",
+  "bridge_release": "2c5eeb3ed394b566ac89dc03fdf1c133729fdd06",
+  "bridge_move_count": 0,
+  "bridge_action_count": 0
+}

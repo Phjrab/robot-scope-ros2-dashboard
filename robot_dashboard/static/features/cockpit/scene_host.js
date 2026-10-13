@@ -3,13 +3,16 @@ import { cameraPreferences } from './camera_state.js';
 
 function rendererStatus(profile, freshness, online) {
   const label = String(profile?.label || 'ROBOT').toUpperCase();
+  if (['FIXTURE', 'REPLAY'].includes(freshness)) {
+    return { online: null, lidarOnline: null, snapshot: false, provenance: freshness, message: `${freshness} · ${label} · 실장비 관측 아님` };
+  }
   if (freshness === 'LIVE') {
-    return { online, lidarOnline: true, snapshot: false, message: `${label} · LIVE LIDAR` };
+    return { online, lidarOnline: true, snapshot: false, provenance: '', message: `${label} · LIVE LIDAR` };
   }
   if (freshness === 'STALE') {
-    return { online, lidarOnline: false, snapshot: false, message: `${label} · LIDAR STALE` };
+    return { online, lidarOnline: false, snapshot: false, provenance: '', message: `${label} · LIDAR STALE` };
   }
-  return { online, lidarOnline: false, snapshot: false, message: `${label} · LIDAR WAITING` };
+  return { online, lidarOnline: false, snapshot: false, provenance: '', message: `${label} · LIDAR WAITING` };
 }
 
 export function createCockpitSceneHost(options = {}) {
@@ -214,7 +217,7 @@ export function createCockpitSceneHost(options = {}) {
 
   function renderState() {
     if (!active || !renderer) return;
-    if (freshness === 'LIVE' && cloud?.points?.length) renderer.setPointCloud(displayCloud());
+    if (['LIVE', 'FIXTURE', 'REPLAY'].includes(freshness) && cloud?.points?.length) renderer.setPointCloud(displayCloud());
     else renderer.clearPointCloud();
     renderer.setRobotPose(pose);
     renderer.setTrail(trail);
@@ -315,7 +318,7 @@ export function createCockpitSceneHost(options = {}) {
 
   function setCloud(nextCloud, nextFreshness = 'WAITING') {
     const normalizedCloud = nextCloud?.points?.length ? nextCloud : null;
-    const normalizedFreshness = ['LIVE', 'STALE'].includes(nextFreshness) ? nextFreshness : 'WAITING';
+    const normalizedFreshness = ['LIVE', 'STALE', 'FIXTURE', 'REPLAY'].includes(nextFreshness) ? nextFreshness : 'WAITING';
     if (cloud === normalizedCloud && freshness === normalizedFreshness) return;
     cloud = normalizedCloud;
     freshness = normalizedFreshness;

@@ -4,14 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Offline Experiments · Robot Scope</title>
+  <script src="/static/theme.js"></script>
+  <link rel="stylesheet" href="/static/fonts.css">
+  <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/features/experiments/view.css">
+  <link rel="stylesheet" href="/static/themes.css">
+  <link rel="stylesheet" href="/static/typography.css">
+  <script src="/static/typography.js" defer></script>
   <script src="/static/scene3d.js" defer></script>
   <script src="/static/features/experiments/view.js" type="module"></script>
 </head>
 <body>
   <header class="experiment-header">
     <div><a href="/" class="back-link">← ROBOT SCOPE</a><span class="scope-label">OFFLINE EXPERIMENTS · READ ONLY</span></div>
-    <strong class="data-badge">SYNTHETIC · NOT LIVE</strong>
+    <div><strong class="data-badge">SYNTHETIC · NOT LIVE</strong><button class="ghost-button" id="themeToggle" type="button" aria-label="화이트 모드로 전환" aria-pressed="false">☀ 화이트 모드</button></div>
   </header>
   <main class="experiment-shell">
     <section class="experiment-intro">

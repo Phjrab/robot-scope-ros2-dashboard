@@ -239,6 +239,11 @@ export async function installDashboardBackend(page, options = {}) {
     const closeFirstSockets = Array.isArray(options.closeFirstSockets) ? options.closeFirstSockets : [];
     if ((options.closeFirstSocket === kind || closeFirstSockets.includes(kind)) && state.wsConnections[kind] === 1) {
       setTimeout(() => socket.close({ code: 1012, reason: 'fake reconnect' }), 30);
+    } else if (kind === 'pointcloud' && options.pointcloudFrame) {
+      let sequence = 0;
+      const send = () => { const frame = options.pointcloudFrame(++sequence); if (frame) socket.send(frame); };
+      send();
+      cameraTimer = setInterval(send, 250);
     } else if (cameraSourceId) {
       let seq = 0;
       const sendFrame = () => {
@@ -259,10 +264,20 @@ export async function installDashboardBackend(page, options = {}) {
         } : {};
         socket.send(JSON.stringify({
           source_id: cameraSourceId, topic: cameraSourceId === 'go2_front' ? '/camera/image' : '/camera/color/image_raw',
-          format: 'raw', encoding: 'rgb8', width: 4, height: 3, step: 12, fps: 15, transport: 'fake', state: 'ok', seq,
+          format: 'raw', encoding: 'rgb8', width: options.syntheticFixture ? 64 : 4, height: options.syntheticFixture ? 48 : 3, step: options.syntheticFixture ? 192 : 12, fps: 15, transport: 'fake', state: 'ok', seq,
+          ...(options.syntheticFixture ? { data_provenance: 'SYNTHETIC_FIXTURE' } : {}),
           ...observability,
         }));
-        socket.send(Buffer.from([
+        if (options.syntheticFixture) {
+          const pixels = Buffer.alloc(64 * 48 * 3);
+          const bars = [[230,230,230], [230,200,30], [30,210,210], [30,210,60], [210,30,180], [210,40,40], [50,60,220], [30,30,30]];
+          for (let y = 0; y < 48; y += 1) for (let x = 0; x < 64; x += 1) {
+            const gray = x % 8 === 0 || y % 8 === 0 ? 130 : 35 + Math.floor(x / 8) * 20;
+            const color = y < 24 ? bars[Math.floor(x / 8)] : [gray, gray, gray];
+            color.forEach((value, index) => { pixels[(y * 64 + x) * 3 + index] = value; });
+          }
+          socket.send(pixels);
+        } else socket.send(Buffer.from([
           240, 40, 40, 40, 240, 40, 40, 40, 240, 220, 220, 40,
           40, 220, 220, 220, 40, 220, 180, 180, 180, 90, 150, 220,
           220, 90, 150, 150, 220, 90, 90, 150, 220, 240, 240, 240,

@@ -1,0 +1,85 @@
+
+> test:cockpit:e2e
+> playwright test --grep Cockpit --reporter=line
+
+[WebServer] (node:5812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 21 tests using 1 worker
+
+(node:5813) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/21] tests/e2e/camera_state.spec.mjs:4:1 › Cockpit remembers manual camera after page reload
+[2/21] tests/e2e/dashboard.spec.mjs:132:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+[3/21] tests/e2e/dashboard.spec.mjs:183:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+[4/21] tests/e2e/dashboard.spec.mjs:231:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+[5/21] tests/e2e/dashboard.spec.mjs:360:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+[6/21] tests/e2e/dashboard.spec.mjs:409:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+[7/21] tests/e2e/dashboard.spec.mjs:427:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+[8/21] tests/e2e/dashboard.spec.mjs:749:1 › Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms
+[9/21] tests/e2e/dashboard.spec.mjs:776:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+  1) tests/e2e/dashboard.spec.mjs:776:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+
+    Test timeout of 20000ms exceeded.
+
+    Error: locator.click: Test timeout of 20000ms exceeded.
+    Call log:
+      - waiting for locator('[data-cockpit-layout-action="apply"]')
+        - locator resolved to <button type="button" data-cockpit-layout-action="apply">APPLY / EXIT</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        43 × waiting for element to be visible, enabled and stable
+           - element is not enabled
+         - retrying click action
+           - waiting 500ms
+
+
+      789 |   backend.state.navigation.safety.can_send_goal = true;
+      790 |
+    > 791 |   await page.locator('[data-cockpit-layout-action="apply"]').click();
+          |                                                              ^
+      792 |   await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+      793 |   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
+      794 |   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
+        at /Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/tests/e2e/dashboard.spec.mjs:791:62
+
+    Error Context: test-results/dashboard-Cockpit-runs-a-s-c36ac-nd-restores-it-after-reload/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/dashboard-Cockpit-runs-a-s-c36ac-nd-restores-it-after-reload/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/dashboard-Cockpit-runs-a-s-c36ac-nd-restores-it-after-reload/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+(node:6137) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[10/21] tests/e2e/dashboard.spec.mjs:822:1 › Cockpit mission pause, failure retry, and skips remain explicit and fail closed
+[11/21] tests/e2e/dashboard.spec.mjs:875:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+[12/21] tests/e2e/dashboard.spec.mjs:967:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+[13/21] tests/e2e/dashboard.spec.mjs:1054:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+[14/21] tests/e2e/dashboard.spec.mjs:1117:1 › Cockpit disables camera launchers that are absent from the active catalog profile
+[15/21] tests/e2e/dashboard.spec.mjs:1128:1 › Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels
+[16/21] tests/e2e/dashboard.spec.mjs:1248:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+[17/21] tests/e2e/dashboard.spec.mjs:1311:1 › Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed
+[18/21] tests/e2e/layout_apply.spec.mjs:10:1 › Cockpit Apply persists panels on reload and a new window without saving a named preset
+[19/21] tests/e2e/layout_apply.spec.mjs:34:1 › Cockpit Apply storage failure remains editable and reports failure
+[20/21] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in embedded mode
+[21/21] tests/e2e/layout.spec.mjs:152:3 › layout: Cockpit top tools do not overlap in standalone mode
+  1 failed
+    tests/e2e/dashboard.spec.mjs:776:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+  20 passed (1.3m)

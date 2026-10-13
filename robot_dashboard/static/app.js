@@ -8,6 +8,7 @@ import { createCameraDemandController } from './features/sensors/camera_demand.j
 import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraObservability } from './features/sensors/camera_observability.js';
 import { initializeRealSenseProfileFeature } from './features/sensors/realsense_profile.js';
 import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpitPointcloud } from './features/cockpit/workspace.js';
+import { MISSION_PAGE_META, missionPageFromHash, syncMissionShell, filterSavedMapEntries, setSoftwareStopFeedback, frameProvenance } from './features/cockpit/mission_shell.js';
 import './features/route_planner/dashboard_page.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
@@ -950,21 +951,10 @@ async function initializeRobotProfiles() {
   activateRobotType(selectedRobotType);
 }
 
-const PAGE_META = {
-  overview: ['Overview', '로봇과 ROS 2 시스템의 전체 상태를 빠르게 확인합니다.'],
-  cockpit: ['Robot Cockpit', 'Go2 모델과 공용 실시간 LiDAR를 하나의 3D 작업공간에서 확인합니다.'],
-  mapping: ['Live LiDAR Mapping', '실시간 점군, 로봇 자세와 매핑 파이프라인을 확인합니다.'],
-  maps: ['Saved Maps', '이미 매핑된 3D PCD와 2D 점유 지도를 센서 없이 탐색합니다.'],
-  sensors: ['Sensors & Camera', '카메라 스트림과 로봇 센서 값을 기능별로 확인합니다.'],
-  topics: ['ROS Graph', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
-  controls: ['Robot Controls', 'ARM 버튼으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
-  navigation: ['Nav2 Navigation', '저장된 2D 지도에서 초기 위치와 목표를 지정하고 Go2 자율주행을 관리합니다.'],
-  missions: ['Missions', '등록한 지도 지점을 순서대로 방문하는 미션을 생성하고 진행 상태를 확인합니다.'],
-  'route-planner': ['Route Planner', '주문을 구성하고 서버가 계산한 추천 경로와 수동 안내를 독립 화면에서 확인합니다.'],
-  settings: ['Settings', '로봇 유형을 고르고 네트워크에서 연결 대상을 찾은 뒤 ROS 2 데이터 소스를 선택합니다.'],
-}; const cockpitWindowMode = initializeCockpitWindowMode({
+const PAGE_META = MISSION_PAGE_META;
+const cockpitWindowMode = initializeCockpitWindowMode({
   onOpened: () => { if (controlArmBusy) invalidatePendingArm(); if (controlLeaseId) failSafeDisarm('cockpit_window_opened'); activatePage('overview', true); showToast('Cockpit을 별도 전체 창으로 열고 이 화면의 센서 사용을 정리했습니다.'); }, onBlocked: () => showToast('Cockpit 새 창을 열 수 없습니다. 브라우저의 팝업 허용 상태를 확인하세요.', true), onFullscreenError: (error) => showToast(`브라우저 전체 화면 전환 실패: ${error.message}`, true), });
-const pageFromHash = () => cockpitWindowMode.pageFromHash(PAGE_META);
+const pageFromHash = () => missionPageFromHash(cockpitWindowMode, location.hash);
 
 function activatePage(page, updateHash = false) {
   const previousPage = activePage;
@@ -977,6 +967,7 @@ function activatePage(page, updateHash = false) {
     detachMapEditor('편집할 저장 2D 지도를 선택하세요.');
   }
   activePage = requestedPage;
+  syncMissionShell(activePage);
   document.querySelectorAll('[data-page]').forEach((element) => {
     const active = element.dataset.page === activePage;
     element.hidden = !active;
@@ -1532,13 +1523,16 @@ function updateSavedMapOverview() {
     selectedSavedMapMeta = entries[0];
     selectedSavedMapId = entries[0].id;
   }
-  ui.savedMapList.innerHTML = entries.length ? entries.map((entry) => {
+  const search = (document.querySelector('#savedMapSearch')?.value || '').trim().toLocaleLowerCase();
+  const filteredEntries = filterSavedMapEntries(entries, search);
+  document.querySelector('#savedMapRevision').textContent = selectedSavedMapMeta?.revision || '—';
+  ui.savedMapList.innerHTML = filteredEntries.length ? filteredEntries.map((entry) => {
     const grid = entry.kind === 'occupancy2d';
     const count = grid ? `${entry.width || '—'}×${entry.height || '—'}` : `${Number(entry.point_count || 0).toLocaleString()} pts`;
     const fileLabel = entry.file_name || (grid ? '2D occupancy' : '3D point cloud');
     const editorLabel = grid && (!entry.manageable || entry.editable !== true) ? `${fileLabel} · 편집 불가` : fileLabel;
     return `<button class="saved-map-item${selectedSavedMapId === entry.id ? ' is-active' : ''}" type="button" data-saved-map-id="${escapeHtml(entry.id)}"><i>${grid ? '▦' : '◌'}</i><span><strong>${escapeHtml(entry.name || 'Saved map')}</strong><small>${escapeHtml(editorLabel)}</small></span><b>${escapeHtml(count)}</b></button>`;
-  }).join('') : '<div class="sensor-placeholder">저장 지도가 없습니다.</div>';
+  }).join('') : `<div class="sensor-placeholder">${search ? '검색 결과가 없습니다. 검색어를 변경하세요.' : '저장 지도가 없습니다.'}</div>`;
 
   const showingGrid = selectedSavedMapMeta?.kind === 'occupancy2d';
   const selected = showingGrid ? savedOccupancySnapshot : cloud; renderSavedMapDownloadState({ countNode: ui.savedMapCount, sizeNode: ui.savedMapSize, linkNode: ui.savedMapDownload, catalog: savedMapCatalog, selected: selectedSavedMapMeta });
@@ -2555,7 +2549,7 @@ function lidarSourceFreshness(topic, catalogEntry, forceStatus = '') {
   const frameTopic = LidarSourceIdentity.topicOf(lastCloudSnapshot);
   const frameAge = pointcloudLastFrameAt ? Date.now() - pointcloudLastFrameAt : null;
   if (pointcloudTransportWanted() && !lastCloudSnapshot?.offline_snapshot && frameTopic === topic && frameAge != null) {
-    return frameAge <= 5000 ? 'LIVE' : 'STALE';
+    return frameAge <= 5000 ? frameProvenance(lastCloudSnapshot) : 'STALE';
   }
   const stateTopic = LidarSourceIdentity.topicOf(latestState?.sources?.pointcloud);
   const currentStateMatches = stateTopic === topic;
@@ -3585,7 +3579,7 @@ function drawNavigationPoseMarker(context, layout, pose, color, label, ratio = 1
   context.beginPath();
   context.arc(tipX, tipY, 2.5 * ratio, 0, Math.PI * 2);
   context.fill();
-  context.font = `${Math.max(8, 8 * ratio)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  context.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * ratio, 400) || `400 ${13 * ratio}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
   context.fillText(label, projected.x + 9 * ratio, projected.y - 9 * ratio);
   context.restore();
 }
@@ -4580,10 +4574,10 @@ function drawPoseLabel(ctx, anchor, viewport, unit) {
   const yText = `Y ${currentPose.y.toFixed(2)} m`;
   const yawDegrees = ((currentPose.yaw * 180 / Math.PI) + 360) % 360;
   const headingText = `${viewport.mode} · ${yawDegrees.toFixed(0)}°`;
-  const fontSize = 9 * unit;
-  ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-  const labelWidth = Math.max(ctx.measureText(xText).width, ctx.measureText(yText).width, ctx.measureText(headingText).width) + 14 * unit;
-  const labelHeight = 39 * unit;
+  const fontSize = 13 * unit;
+  ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', fontSize, 500) || `500 ${fontSize}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+  const labelWidth = Math.max(ctx.measureText(xText).width, ctx.measureText(yText).width, ctx.measureText(headingText).width, ctx.measureText(anchor.inside ? '' : anchor.frameMismatch ? 'FRAME RELATIVE' : 'RELATIVE VIEW').width) + 14 * unit;
+  const labelHeight = (anchor.inside ? 56 : 74) * unit;
   const labelX = Math.min(viewport.width - labelWidth - 8 * unit, Math.max(8 * unit, anchor.x + 18 * unit));
   const labelY = Math.max(8 * unit, anchor.y - labelHeight - 10 * unit);
   ctx.fillStyle = 'rgba(5, 16, 13, .86)';
@@ -4594,15 +4588,15 @@ function drawPoseLabel(ctx, anchor, viewport, unit) {
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#d9fff0';
-  ctx.fillText(xText, labelX + 7 * unit, labelY + 12 * unit);
-  ctx.fillText(yText, labelX + 7 * unit, labelY + 23 * unit);
+  ctx.fillText(xText, labelX + 7 * unit, labelY + 16 * unit);
+  ctx.fillText(yText, labelX + 7 * unit, labelY + 33 * unit);
   ctx.fillStyle = '#8fa9a1';
-  ctx.font = `500 ${7 * unit}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-  ctx.fillText(headingText, labelX + 7 * unit, labelY + 33 * unit);
+  ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * unit, 500) || `500 ${13 * unit}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+  ctx.fillText(headingText, labelX + 7 * unit, labelY + 49 * unit);
   if (!anchor.inside) {
     ctx.fillStyle = 'rgba(255, 198, 109, .9)';
-    ctx.font = `600 ${7 * unit}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    ctx.fillText(anchor.frameMismatch ? 'FRAME RELATIVE' : 'RELATIVE VIEW', labelX + labelWidth - 72 * unit, labelY + 33 * unit);
+    ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * unit, 500) || `500 ${13 * unit}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+    ctx.fillText(anchor.frameMismatch ? 'FRAME RELATIVE' : 'RELATIVE VIEW', labelX + 7 * unit, labelY + 67 * unit);
   }
 }
 
@@ -4783,7 +4777,7 @@ function renderCameraSlotIdentity(slot, now = Date.now()) {
   const fresh = cameraSlotFrameAvailable(slot, now);
   const state = String(
     fresh
-      ? 'live'
+      ? frameProvenance(metadata).toLowerCase()
       : (slot.lastFrameAt ? 'stale' : (metadata.state || (source?.available ? 'waiting' : 'unavailable'))),
   ).toLowerCase();
   const topic = String(metadata.topic || source?.topic || '—');
@@ -5933,7 +5927,7 @@ function applyControlSnapshot(snapshot) {
 }
 
 async function refreshControlSnapshot() {
-  if (!['overview', 'controls', 'navigation', 'cockpit'].includes(activePage)) return;
+  if (document.hidden) return;
   // Never let a poll started before ARM revoke a newer local lease.
   const armGenerationAtRequest = controlArmGeneration;
   const leaseAtRequest = controlLeaseId;
@@ -6299,6 +6293,7 @@ function controlTick() {
 
 async function triggerEmergencyStop(reason = 'dashboard_button') {
   if (controlEmergencyBusy) return;
+  setSoftwareStopFeedback('pending', 'STOP 요청 중 · 로봇 정지 미확인');
   invalidatePendingArm();
   controlEmergencyBusy = true;
   const leaseId = controlLeaseId;
@@ -6312,11 +6307,13 @@ async function triggerEmergencyStop(reason = 'dashboard_button') {
   renderControlStatus();
   try {
     await api('/api/v1/control/stop', { method: 'POST', body: JSON.stringify({ reason }) });
+    setSoftwareStopFeedback('acknowledged', '서버 요청 응답 수신 · 물리 정지 확인 필요');
     if (leaseId) {
       try { await api('/api/v1/control/disarm', { method: 'POST', body: JSON.stringify({ lease_id: leaseId }) }); } catch (_) {}
     }
     showToast('대시보드 SOFTWARE STOP 명령을 전송했습니다. 물리 E-stop은 아닙니다.', true);
   } catch (error) {
+    setSoftwareStopFeedback('failed', `STOP 전송 실패 · 정지 미확인: ${error.message}`);
     showToast(`대시보드 정지 전송 실패: ${error.message}`, true);
   } finally {
     controlEmergencyBusy = false;
@@ -6632,6 +6629,7 @@ ui.savedMapOverlayToggle.addEventListener('change', () => {
   savedMapOverlayVisible = ui.savedMapOverlayToggle.checked;
   redrawSavedMap();
 });
+document.querySelector('#savedMapSearch').addEventListener('input', updateSavedMapOverview);
 ui.savedMapList.addEventListener('click', (event) => {
   if (savedMapMutationBusy) return;
   const button = event.target.closest('[data-saved-map-id]');
@@ -6817,6 +6815,7 @@ window.addEventListener('beforeunload', (event) => {
 });
 window.addEventListener('hashchange', () => activatePage(pageFromHash()));
 window.addEventListener('resize', () => {
+  syncMissionShell(activePage);
   if (activePage === 'cockpit') cockpitWorkspace?.resize();
   if (activePage === 'mapping') redrawActiveMap();
   if (activePage === 'maps') { redrawSavedMap(); drawMapEditor(); }
@@ -6896,3 +6895,4 @@ setInterval(syncCameraFrameFreshness, 500);
 setInterval(controlTick, 50);
 setInterval(refreshControlSnapshot, 1000);
 setInterval(refreshControlGamepads, 1000);
+globalThis.RobotScopeTypography?.subscribe(() => drawNavigationMap());

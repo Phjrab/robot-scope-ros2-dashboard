@@ -14,6 +14,8 @@ import { createMissionClient } from './mission_client.js';
 import { initializeMissionPage } from './mission_page.js';
 import { createCompetitionStatus } from './competition_status.js';
 import { createRoutePlannerClient } from './route_planner_client.js';
+import { missionPresetDocument, MISSION_PRESETS } from './mission_presets.js';
+import { createMissionInspector } from './mission_inspector.js';
 
 export { initializeCockpitWindowMode } from './window_mode.js';
 
@@ -31,7 +33,7 @@ export function projectCockpitPointcloud(options = {}) {
   const ageMs = lastFrameAt ? Math.max(0, now - lastFrameAt) : null;
   const currentSessionFrame = lastFrameAt >= sessionStartedAt;
   if (cloud?.points?.length && currentSessionFrame && options.sourceMatches !== false && ageMs != null && ageMs <= 5000 && options.ready) {
-    return { cloud, freshness: 'LIVE', ageMs };
+    return { cloud, freshness: cloud.data_provenance === 'SYNTHETIC_FIXTURE' ? 'FIXTURE' : cloud.data_provenance === 'REPLAY' ? 'REPLAY' : 'LIVE', ageMs };
   }
   if (cloud?.points?.length && currentSessionFrame && ageMs != null) {
     return { cloud: null, freshness: 'STALE', ageMs };
@@ -65,14 +67,38 @@ export function createCockpitWorkspace(options = {}) {
   let currentProfileId = '';
   let gamepadTimer = 0;
   let releaseRouteScene = null;
+  const inspector = createMissionInspector(options.inspectorRoot);
+  const presetSelect = options.presetRoot?.querySelector('select');
+  const presetStatus = options.presetRoot?.querySelector('[role="status"]');
+  let currentPreset = 'observation';
+  const listeners = new AbortController();
+  if (presetSelect) {
+    const saved = options.document.createElement('option');
+    saved.value = 'saved';
+    saved.textContent = 'Saved layout';
+    saved.disabled = true;
+    presetSelect.append(saved);
+    for (const preset of MISSION_PRESETS) {
+      const item = options.document.createElement('option');
+      item.value = preset.id;
+      item.textContent = preset.label;
+      presetSelect.append(item);
+    }
+    presetSelect.addEventListener('change', () => {
+      if (!applyMissionPreset(presetSelect.value)) presetSelect.value = currentPreset;
+    }, { signal: listeners.signal });
+  }
 
   function syncLayoutMode(state = layoutMode.snapshot()) {
     const editable = state.mode === COCKPIT_LAYOUT_MODES.EDIT && !state.armed;
     root.dataset.layoutMode = state.mode;
     panelManager?.setLayoutEditable(editable);
     sensorLauncher?.setLayoutEditable(editable);
+    if (editable && options.presetRoot) sensorLauncher?.setExpanded(true);
     layoutLibrary?.setLayoutEditable(editable);
     safetyHud?.setLayoutState(state);
+    if (presetSelect) presetSelect.disabled = !editable;
+    if (presetStatus) presetStatus.textContent = editable ? '배치 선택 후 APPLY / EXIT로 저장' : state.armed ? '제어 사용 중 · 배치 잠금' : 'Safety 상세 → EDIT LAYOUT에서 배치 선택';
   }
 
   const layoutMode = createLayoutModeController({ onChange: syncLayoutMode });
@@ -97,6 +123,10 @@ export function createCockpitWorkspace(options = {}) {
   panelManager = panelRegistry ? createPanelManager({
     host: options.panelLayer,
     registry: panelRegistry,
+    viewportProvider: options.presetRoot ? () => {
+      const rect = options.panelLayer.getBoundingClientRect();
+      return { width: Math.max(1, rect.width), height: Math.max(1, rect.height), padding: 12, reservedBottom: 12 };
+    } : undefined,
     document: options.document,
     onError: options.onError,
     onStateChange: syncLauncher,
@@ -129,6 +159,7 @@ export function createCockpitWorkspace(options = {}) {
       onSnapOptions: (nextOptions) => panelManager?.setSnapOptions(nextOptions),
     });
     syncLauncher();
+    if (options.presetRoot) sensorLauncher.setExpanded(false);
     releaseCameraCatalog = options.cameraDemand?.subscribe((catalog) => sensorLauncher?.updateAvailability(catalog.sources));
   }
 
@@ -155,7 +186,12 @@ export function createCockpitWorkspace(options = {}) {
         }
       },
       onStop: options.onSoftwareStop,
-      onProjection: (projected, input) => layoutMode.updateControl({ armed: projected.layoutArmed, generation: Number(input.controlGeneration) || 0 }),
+      onProjection: (projected, input) => {
+        layoutMode.updateControl({ armed: projected.layoutArmed, generation: Number(input.controlGeneration) || 0 });
+        inspector?.render({ ...input, map: mapState.snapshot(), navigation: options.getNavigationSnapshot?.(),
+          mission: missionClient.snapshot(), dataset: options.getDatasetSnapshot?.(), cameras: options.cameraDemand?.snapshot?.(),
+          freshness: root.dataset.freshness?.toUpperCase() });
+      },
     });
   }
   if (options.competitionStatusRoot) {
@@ -171,8 +207,12 @@ export function createCockpitWorkspace(options = {}) {
   }
   syncLayoutMode();
 
+  // Keep the persistent summary/STOP visible; expanded details belong to the
+  // previous task and must not cover the next route's inspector controls.
+  options.document?.addEventListener('robot-scope:page-change', () => safetyHud?.setExpanded(false), { signal: listeners.signal });
+
   function setFreshness(freshness, note = '') {
-    const state = ['LIVE', 'STALE'].includes(freshness) ? freshness : 'WAITING';
+    const state = ['LIVE', 'STALE', 'FIXTURE', 'REPLAY', 'NOT_CONNECTED'].includes(freshness) ? freshness : 'WAITING';
     if (statusElement) {
       statusElement.className = `cockpit-status cockpit-status-${state.toLowerCase()}`;
       statusElement.textContent = state;
@@ -218,6 +258,9 @@ export function createCockpitWorkspace(options = {}) {
     const panels = layoutPanelsToPixels(document, viewport);
     panelManager?.restoreValidatedLayout(panels);
     if (restoreScene) sceneHost.applySceneLayout(document.scene);
+    currentPreset = 'saved';
+    root.dataset.missionPreset = 'saved';
+    if (presetSelect) presetSelect.value = 'saved';
     syncLauncher();
     return true;
   }
@@ -226,6 +269,19 @@ export function createCockpitWorkspace(options = {}) {
     panelManager?.restoreValidatedLayout([]);
     // Reset floating panels without discarding the operator's map viewpoint.
     syncLauncher();
+  }
+
+  function applyMissionPreset(id, initial = false) {
+    const mode = layoutMode.snapshot();
+    if (!initial && (mode.mode !== COCKPIT_LAYOUT_MODES.EDIT || mode.armed)) return false;
+    if (!panelRegistry || !currentProfileId) return false;
+    const document = missionPresetDocument(id, currentProfileId, panelRegistry, panelManager.diagnostics().viewport);
+    if (!applyLayout(document, { restoreScene: false })) return false;
+    currentPreset = id;
+    root.dataset.missionPreset = id;
+    if (presetSelect) presetSelect.value = id;
+    resize();
+    return true;
   }
 
   if (options.layoutLibraryRoot && panelRegistry) {
@@ -286,7 +342,7 @@ export function createCockpitWorkspace(options = {}) {
     gamepadUi.reset();
     panelManager?.clearGamepadSelection();
     controllerState.update(projectControllerStatus());
-    safetyHud?.deactivate();
+    if (!options.persistentSafety) safetyHud?.deactivate();
     competitionStatus?.deactivate();
     releaseRouteScene?.();
     releaseRouteScene = null;
@@ -298,7 +354,7 @@ export function createCockpitWorkspace(options = {}) {
 
   function updatePointcloud(cloud, freshness = 'WAITING', note = '') {
     setFreshness(freshness, note);
-    sceneHost.setCloud(freshness === 'LIVE' ? cloud : null, freshness);
+    sceneHost.setCloud(['LIVE', 'FIXTURE', 'REPLAY'].includes(freshness) ? cloud : null, freshness);
   }
 
   function setProfile(profile) {
@@ -313,6 +369,7 @@ export function createCockpitWorkspace(options = {}) {
     // The camera has its own exact persistence; panel restoration must not reset it.
     if (applied) applyLayout(applied, { restoreScene: false });
     else if (storedDefault) applyLayout(storedDefault);
+    else if (options.presetRoot) applyMissionPreset('observation', true);
     else resetLayout();
   }
 
@@ -368,9 +425,11 @@ export function createCockpitWorkspace(options = {}) {
     sceneHost.destroy();
     destroyed = true;
     root.dataset.lifecycle = 'destroyed';
+    listeners.abort();
   }
 
   setFreshness('WAITING');
+  if (options.persistentSafety) safetyHud?.activate();
   return Object.freeze({
     activate,
     deactivate,
@@ -400,6 +459,9 @@ export function initializeCockpitWorkspace(options = {}) {
     layoutLibraryRoot: documentValue.querySelector('#cockpitLayoutLibrary'),
     safetyHudRoot: documentValue.querySelector('#cockpitSafetyHud'),
     competitionStatusRoot: documentValue.querySelector('#cockpitCompetitionStatus'),
+    inspectorRoot: documentValue.querySelector('#missionInspector'),
+    presetRoot: documentValue.querySelector('#missionPresetBar'),
+    persistentSafety: true,
     cameraDemand: options.cameraDemand,
     document: documentValue,
     controls: {

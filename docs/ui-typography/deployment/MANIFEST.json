@@ -1,0 +1,16 @@
+{
+  "created_at_utc": "2026-10-07T10:15:35.397288+00:00",
+  "release_commit": "544e108d00538af184f1cb15e8bbe565171962d5",
+  "archive_sha256": "5a09d7a13e20c9e233e901a326cbe39aaab9da8ee6cb38702b9c2eb9a859e4ac",
+  "provenance": "Actual operating dashboard; Chromium 1440x900; all non-GET/HEAD HTTP API requests blocked; no fixture",
+  "files": {
+    "after-browser.json": "80c1c13b682d30ae79f844c2ea7835547615b46fd973b030ae79e1aee8a52e4b",
+    "after-cockpit-1440x900.png": "a311eed91bd2295c16780baed7cab03e494e56bda284c0ad6bbfeb2b272ae316",
+    "before-browser.json": "ff86fc733a8c33a8804cc57b56a55ea612e5a7e44f55d9363c7918a118e43f59",
+    "before-cockpit-1440x900.png": "dbaf031e5360c225c0b5225cfa096d4abb3add7f3f63e0e2e0ecb0b67fcdd722",
+    "postflight.json": "5dd22ae1338defdfb4c51363d5cdcc73eff949764667f86c17b124dc829fab1a",
+    "preflight.json": "2fcc91be2426119d4ba7b606e44034209fe1c832557e3b9a5a60884e47ddaae2",
+    "python.txt": "821cf4856ebf4c7b831554b4aa4d2c8ea2eb95f78c98a07be86b8f22121233f8",
+    "unit.txt": "2af5b35ed438f72dfc4cb36f0953ca28fcfd5ee626d8401711830a4da561b1ab"
+  }
+}

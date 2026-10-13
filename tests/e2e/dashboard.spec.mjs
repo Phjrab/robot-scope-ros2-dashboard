@@ -783,12 +783,12 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   const missionPanel = page.locator('[data-panel-id="mission-main"]');
   await expect(missionPanel.locator('.cockpit-mission-panel')).toBeVisible();
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
+  await page.locator('[data-cockpit-layout-action="apply"]').click();
   await navigationPanel.locator('[data-navigation-action="start"]').click();
   await expect.poll(() => backend.mutations('/api/v1/navigation/start').length).toBe(1);
   backend.state.navigation.goal = { state: 'idle', goal_id: null };
   backend.state.navigation.safety.can_send_goal = true;
 
-  await page.locator('[data-cockpit-layout-action="apply"]').click();
   await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
@@ -807,6 +807,8 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   await expect(missionPanel.locator('.cockpit-mission-route')).toContainText('2. E2E Inspect · RUNNING');
   backend.completeMissionWaypoint();
   await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
+  await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await navigationPanel.locator('[data-navigation-action="stop"]').click();
   await expect.poll(() => backend.mutations('/api/v1/navigation/stop').length).toBe(1);
 
@@ -873,6 +875,7 @@ test('Cockpit mission pause, failure retry, and skips remain explicit and fail c
 });
 
 test('Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await openDashboard(page, {}, 'cockpit');
   await enterLayoutEdit(page);
   for (const type of ['camera.go2-front', 'placeholder.map', 'placeholder.controller']) {
@@ -884,6 +887,7 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
   const spatial = page.locator('[data-panel-id="placeholder-map"]');
   const mission = page.locator('[data-panel-id="placeholder-controller"]');
 
+  await page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]').click();
   const beforeDrag = await page.evaluate(() => window.RobotScopeCockpit.snapshot());
   const telemetryBefore = beforeDrag.workspace.panels.panels.find((panel) => panel.id === 'camera-go2-front');
   const titlebar = telemetry.locator('.cockpit-panel-titlebar');
@@ -899,6 +903,7 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
   expect(afterDrag.workspace.scene.camera).toEqual(beforeDrag.workspace.scene.camera);
   expect(telemetryAfter.zIndex).toBe(Math.max(...afterDrag.workspace.panels.panels.filter((panel) => panel.visible).map((panel) => panel.zIndex)));
 
+  await page.locator('.cockpit-launcher-item[data-panel-type="placeholder.map"]').click();
   const spatialBefore = (await page.evaluate(() => window.RobotScopeCockpit.snapshot())).workspace.panels.panels.find((panel) => panel.id === 'placeholder-map');
   const resizeHandle = spatial.locator('[data-panel-resize="se"]');
   const resizeBox = await resizeHandle.boundingBox();
@@ -948,7 +953,7 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
   await expect.poll(() => page.evaluate(() => {
     const layer = document.querySelector('#cockpitPanelLayer');
     return window.RobotScopeCockpit.snapshot().workspace.panels.panels.filter((panel) => panel.visible).every((panel) =>
-      panel.x >= 12 && panel.y >= 12 && panel.x + panel.width <= layer.clientWidth - 12 && panel.y + panel.height <= layer.clientHeight - 90);
+      panel.x >= 12 && panel.y >= 12 && panel.x + panel.width <= layer.clientWidth - 12 && panel.y + panel.height <= layer.clientHeight - 24);
   })).toBe(true);
   const recovered = await page.evaluate(() => ({
     width: document.querySelector('#cockpitPanelLayer').clientWidth,
@@ -959,7 +964,7 @@ test('Cockpit panels drag, resize, focus, lock, close, and recover without orbit
     expect(panel.x).toBeGreaterThanOrEqual(12);
     expect(panel.y).toBeGreaterThanOrEqual(12);
     expect(panel.x + panel.width).toBeLessThanOrEqual(recovered.width - 12);
-    expect(panel.y + panel.height).toBeLessThanOrEqual(recovered.height - 90);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(recovered.height - 24);
     expect(panel.zIndex).toBeLessThan(25);
   }
 });
@@ -1040,13 +1045,14 @@ test('Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and c
     const snapshot = await page.evaluate(() => ({
       width: document.querySelector('#cockpitPanelLayer').clientWidth,
       height: document.querySelector('#cockpitPanelLayer').clientHeight,
+      viewport: window.RobotScopeCockpit.snapshot().workspace.panels.viewport,
       panels: window.RobotScopeCockpit.snapshot().workspace.panels.panels.filter((panel) => panel.visible),
     }));
     for (const panel of snapshot.panels) {
       expect(panel.x).toBeGreaterThanOrEqual(12);
       expect(panel.y).toBeGreaterThanOrEqual(12);
       expect(panel.x + panel.width).toBeLessThanOrEqual(snapshot.width - 12);
-      expect(panel.y + panel.height).toBeLessThanOrEqual(snapshot.height - 90);
+      expect(panel.y + panel.height).toBeLessThanOrEqual(snapshot.height - snapshot.viewport.padding - snapshot.viewport.reservedBottom);
     }
   }
 });
@@ -1083,6 +1089,7 @@ test('Cockpit camera panels share catalog-owned streams through dual open, focus
   await expect(go2.locator('.cockpit-camera-state')).toHaveText('LIVE');
   await realsense.locator('[data-panel-action="focus"]').click();
 
+  await go2Button.click();
   const resize = go2.locator('[data-panel-resize="se"]');
   const resizeBox = await resize.boundingBox();
   await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
@@ -1131,7 +1138,8 @@ test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and softw
   const hud = page.locator('#cockpitSafetyHud');
   const go2Button = page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]');
   await expect(workspace).toHaveAttribute('data-layout-mode', 'operate');
-  await expect(go2Button).toBeDisabled();
+  await expect(go2Button).toBeEnabled(); // Existing Observation camera can be focused in Operate.
+  await expect(page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]')).toBeDisabled();
   await expect(hud).toHaveAttribute('data-expanded', 'false');
   await expect(hud.locator('.cockpit-safety-summary')).toContainText('ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE');
   await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
@@ -1331,6 +1339,12 @@ test('Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed
   const map = page.locator('[data-panel-id="placeholder-map"]');
   const controller = page.locator('[data-panel-id="placeholder-controller"]');
   await expect(controller.locator('[data-controller-metric="device"] strong')).toHaveText('Synthetic Xbox');
+
+  // Keep the two-panel cycle fixture explicit with the new default camera.
+  await enterLayoutEdit(page);
+  await page.locator('.cockpit-launcher-item[data-panel-type="camera.go2-front"]').click();
+  await page.locator('[data-panel-id="camera-go2-front"] [data-panel-action="close"]').click();
+  await page.locator('[data-cockpit-layout-action="apply"]').click();
 
   await page.evaluate(() => window.__syntheticGamepad.setButton(15, true));
   await expect(map).toHaveClass(/is-gamepad-selected/);

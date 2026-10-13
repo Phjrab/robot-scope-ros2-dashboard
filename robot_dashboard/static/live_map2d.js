@@ -163,6 +163,7 @@
       canvas.addEventListener?.('pointerup', this._onPointerUp);
       canvas.addEventListener?.('pointercancel', this._onPointerUp);
       this.resize();
+      this._unsubscribeFonts = globalThis.RobotScopeTypography?.subscribe(() => this.scheduleRender());
     }
 
     setPointCloud(cloud, options = {}) {
@@ -309,6 +310,7 @@
     }
 
     destroy() {
+      this._unsubscribeFonts?.();
       this._removeControlListeners();
       const canvas = this.canvas;
       canvas.removeEventListener?.('wheel', this._onWheel);
@@ -393,7 +395,7 @@
       ctx.save();
       ctx.strokeStyle = 'rgba(125, 240, 182, .10)';
       ctx.lineWidth = this.pixelRatio;
-      ctx.font = `${7 * this.pixelRatio}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * this.pixelRatio, 400) || `400 ${13 * this.pixelRatio}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
       ctx.fillStyle = 'rgba(164, 196, 185, .36)';
       for (let x = firstX; x <= lastX + step * 0.5; x += step) {
         const point = worldToCanvas(this.view, this.width, this.height, x, 0);
@@ -472,7 +474,7 @@
 
     _drawReadout(ctx) {
       ctx.save();
-      ctx.font = `600 ${8 * this.pixelRatio}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * this.pixelRatio, 500) || `500 ${13 * this.pixelRatio}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
       ctx.textAlign = 'right';
       ctx.fillStyle = 'rgba(190, 219, 209, .62)';
       const mode = this.follow ? 'FOLLOW' : this.autoFit ? 'AUTO-FIT' : 'WORLD';
@@ -482,7 +484,7 @@
       if (!this.projection.cells.length) {
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(175, 201, 192, .72)';
-        ctx.font = `500 ${10 * this.pixelRatio}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('ui', 14 * this.pixelRatio, 500) || `500 ${14 * this.pixelRatio}px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif`;
         ctx.fillText('실시간 포인트클라우드를 기다리고 있습니다', this.width / 2, this.height / 2);
       }
       ctx.restore();

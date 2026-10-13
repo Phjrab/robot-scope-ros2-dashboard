@@ -259,7 +259,7 @@
         context2d.stroke();
         context2d.setLineDash([]);
         context2d.fillStyle = color;
-        context2d.font = `${Math.max(8, 8 * ratio)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        context2d.font = globalThis.RobotScopeTypography?.canvasFont('ui', 13 * ratio, 400) || `400 ${13 * ratio}px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif`;
         context2d.fillText(polygon.name, projected[0].x + 5 * ratio, projected[0].y - 5 * ratio);
         context2d.restore();
       }

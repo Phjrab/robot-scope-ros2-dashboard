@@ -1,0 +1,53 @@
+{
+  "phase": "before",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "origin": "operating dashboard host; read-only UI check",
+  "blocked": [],
+  "errors": [],
+  "fonts": [],
+  "rendered": [
+    {
+      "selector": "#pageTitle",
+      "fonts": [
+        {
+          "familyName": ".SF NS",
+          "postScriptName": ".SFNS-Regular_wdth_opsz240000_GRAD_wght24E0000",
+          "isCustomFont": false,
+          "glyphCount": 13
+        }
+      ]
+    },
+    {
+      "selector": ".page-heading p",
+      "fonts": [
+        {
+          "familyName": ".SF NS",
+          "postScriptName": ".SFNS-Regular",
+          "isCustomFont": false,
+          "glyphCount": 19
+        },
+        {
+          "familyName": "Apple SD Gothic Neo",
+          "postScriptName": "AppleSDGothicNeo-Regular",
+          "isCustomFont": false,
+          "glyphCount": 23
+        }
+      ]
+    },
+    {
+      "selector": "#cockpitPointMetrics",
+      "fonts": [
+        {
+          "familyName": ".SF NS",
+          "postScriptName": ".SFNS-Bold",
+          "isCustomFont": false,
+          "glyphCount": 18
+        }
+      ]
+    }
+  ],
+  "faces": []
+}

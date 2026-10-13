@@ -1,0 +1,119 @@
+{
+  "unexpected": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": [],
+  "httpErrors": [
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    },
+    {
+      "url": "/api/v1/state",
+      "status": 503
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404
+    }
+  ],
+  "mutations": []
+}

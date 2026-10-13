@@ -1,0 +1,107 @@
+{
+  "repository": "https://github.com/IBM/plex",
+  "commit": "763c36ef9117782905ae010056dfbe8fd2653a25",
+  "distribution": "official complete static WOFF2; KR hinted; no subsetting or conversion",
+  "license": "SIL Open Font License 1.1",
+  "assets": [
+    {
+      "file": "IBMPlexSans-Regular.woff2",
+      "package": "@ibm/plex-sans",
+      "package_version": "1.1.0",
+      "weight": 400,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-Regular.woff2",
+      "sha256": "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a",
+      "bytes": 63020
+    },
+    {
+      "file": "IBMPlexSans-Medium.woff2",
+      "package": "@ibm/plex-sans",
+      "package_version": "1.1.0",
+      "weight": 500,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-Medium.woff2",
+      "sha256": "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d",
+      "bytes": 66740
+    },
+    {
+      "file": "IBMPlexSans-SemiBold.woff2",
+      "package": "@ibm/plex-sans",
+      "package_version": "1.1.0",
+      "weight": 600,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-SemiBold.woff2",
+      "sha256": "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205",
+      "bytes": 67060
+    },
+    {
+      "file": "plex-sans-LICENSE.txt",
+      "package": "@ibm/plex-sans",
+      "package_version": "1.1.0",
+      "weight": null,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans/LICENSE.txt",
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+      "bytes": 4456
+    },
+    {
+      "file": "IBMPlexSansKR-Regular.woff2",
+      "package": "@ibm/plex-sans-kr",
+      "package_version": "1.1.0",
+      "weight": 400,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans-kr/fonts/complete/woff2/hinted/IBMPlexSansKR-Regular.woff2",
+      "sha256": "055a35664c3c3965161c92292504c5633ba9604ec904edc1ed799bf2a436276d",
+      "bytes": 438540
+    },
+    {
+      "file": "IBMPlexSansKR-Medium.woff2",
+      "package": "@ibm/plex-sans-kr",
+      "package_version": "1.1.0",
+      "weight": 500,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans-kr/fonts/complete/woff2/hinted/IBMPlexSansKR-Medium.woff2",
+      "sha256": "c00dcd8a9c32a6b6ab8c6b3119e68b3d7aa6eba6f4441d5493019cc019dcdd1e",
+      "bytes": 439816
+    },
+    {
+      "file": "IBMPlexSansKR-SemiBold.woff2",
+      "package": "@ibm/plex-sans-kr",
+      "package_version": "1.1.0",
+      "weight": 600,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans-kr/fonts/complete/woff2/hinted/IBMPlexSansKR-SemiBold.woff2",
+      "sha256": "5ad7db28ba74d59fe14c260205c62ddb701320f4f098d8a45ef2757bebc29666",
+      "bytes": 434484
+    },
+    {
+      "file": "plex-sans-kr-LICENSE.txt",
+      "package": "@ibm/plex-sans-kr",
+      "package_version": "1.1.0",
+      "weight": null,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans-kr/LICENSE.txt",
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+      "bytes": 4456
+    },
+    {
+      "file": "IBMPlexMono-Regular.woff2",
+      "package": "@ibm/plex-mono",
+      "package_version": "2.5.0",
+      "weight": 400,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-mono/fonts/complete/woff2/IBMPlexMono-Regular.woff2",
+      "sha256": "ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350",
+      "bytes": 49248
+    },
+    {
+      "file": "IBMPlexMono-Medium.woff2",
+      "package": "@ibm/plex-mono",
+      "package_version": "2.5.0",
+      "weight": 500,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-mono/fonts/complete/woff2/IBMPlexMono-Medium.woff2",
+      "sha256": "33faf307fa6031fb4062276d7320a6d632de890cbb347576fd80cfa01077bc25",
+      "bytes": 50400
+    },
+    {
+      "file": "plex-mono-LICENSE.txt",
+      "package": "@ibm/plex-mono",
+      "package_version": "2.5.0",
+      "weight": null,
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-mono/LICENSE.txt",
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da",
+      "bytes": 4456
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+
+> test:e2e
+> playwright test --grep all workspaces keep|Settings exports --reporter=line
+
+[WebServer] (node:65827) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 7 tests using 1 worker
+
+(node:65843) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/7] tests/e2e/dashboard.spec.mjs:1546:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+[2/7] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 320px
+[3/7] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 390px
+[4/7] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 768px
+[5/7] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1024px
+[6/7] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1440px
+[7/7] tests/e2e/layout.spec.mjs:37:3 › layout: all workspaces keep controls inside cards at 1920px
+  7 passed (10.9s)

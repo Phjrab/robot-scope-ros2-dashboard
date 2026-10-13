@@ -1,0 +1,10 @@
+test_assets_and_notices_match_the_mobile_product_boundary (test_final_architecture.FinalArchitectureAuditTests.test_assets_and_notices_match_the_mobile_product_boundary) ... ok
+test_current_architecture_is_the_documented_product_authority (test_final_architecture.FinalArchitectureAuditTests.test_current_architecture_is_the_documented_product_authority) ... ok
+test_phase_zero_hotspots_remain_materially_reduced (test_final_architecture.FinalArchitectureAuditTests.test_phase_zero_hotspots_remain_materially_reduced) ... ok
+test_runtime_ownership_and_component_boundaries_are_explicit (test_final_architecture.FinalArchitectureAuditTests.test_runtime_ownership_and_component_boundaries_are_explicit) ... ok
+test_runtime_product_tree_has_no_so101_or_lerobot_residue (test_final_architecture.FinalArchitectureAuditTests.test_runtime_product_tree_has_no_so101_or_lerobot_residue) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.537s
+
+OK

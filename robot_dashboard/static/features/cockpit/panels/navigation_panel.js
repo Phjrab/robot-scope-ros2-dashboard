@@ -46,7 +46,7 @@ function createNavigationPanelView(options = {}) {
     context.save(); context.strokeStyle = color; context.fillStyle = color; context.lineWidth = 2;
     context.beginPath(); context.arc(point.x, point.y, 6, 0, Math.PI * 2); context.stroke();
     context.beginPath(); context.moveTo(point.x, point.y); context.lineTo(point.x + Math.cos(point.heading) * 24, point.y + Math.sin(point.heading) * 24); context.stroke();
-    context.font = '9px ui-monospace, monospace'; context.fillText(label, point.x + 8, point.y - 8); context.restore();
+    context.font = globalThis.RobotScopeTypography?.canvasFont('ui', 13, 400) || `400 ${13}px "IBM Plex Sans", "IBM Plex Sans KR", sans-serif`; context.fillText(label, point.x + 8, point.y - 8); context.restore();
   }
 
   function draw(state) {
@@ -131,7 +131,8 @@ function createNavigationPanelView(options = {}) {
     draw(current);
   };
   canvas.addEventListener('pointerup', finish); canvas.addEventListener('pointercancel', finish);
-  return Object.freeze({ render, destroy() { rasterCache.reset(); root.remove(); }, clear() { pointer = null; }, resize() { draw(current || {}); } });
+  const unsubscribeFonts = globalThis.RobotScopeTypography?.subscribe(() => draw(current || {}));
+  return Object.freeze({ render, destroy() { unsubscribeFonts?.(); rasterCache.reset(); root.remove(); }, clear() { pointer = null; }, resize() { draw(current || {}); } });
 }
 
 export function createNavigationPanel(options = {}) {

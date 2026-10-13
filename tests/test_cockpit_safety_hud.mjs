@@ -118,7 +118,7 @@ test('layout mode is explicit, ARM auto-locks, and stale generations cannot unlo
 
 test('Cockpit reuses existing control endpoints and polling generation fences', () => {
   const app = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
-  assert.match(app, /\['overview', 'controls', 'navigation', 'cockpit'\]\.includes\(activePage\)/);
+  assert.match(app, /async function refreshControlSnapshot\(\) \{\s*if \(document\.hidden\) return;/, 'one shared status poll supports the persistent HUD on every visible task');
   assert.match(app, /const armGenerationAtRequest = controlArmGeneration/);
   assert.match(app, /armGenerationAtRequest !== controlArmGeneration/);
   assert.match(app, /onSoftwareStop: \(\) => triggerEmergencyStop\('cockpit_hud'\)/);

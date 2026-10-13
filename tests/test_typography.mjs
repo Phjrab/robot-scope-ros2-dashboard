@@ -4,13 +4,13 @@ import { test } from 'node:test';
 
 const styles = readFileSync(new URL('../robot_dashboard/static/styles.css', import.meta.url), 'utf8');
 
-test('dashboard uses the Go2 motion-card typography scale', () => {
+test('dashboard uses the readable Mission Control typography scale', () => {
   for (const token of [
-    '--type-micro: 9px',
-    '--type-control: 11px',
-    '--type-secondary: 13px',
-    '--type-body: 14px',
-    '--type-section: 15px',
+    '--type-micro: .75rem',
+    '--type-control: .875rem',
+    '--type-secondary: .875rem',
+    '--type-body: .9375rem',
+    '--type-section: 1.125rem',
   ]) {
     assert.match(styles, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
@@ -35,6 +35,6 @@ test('all workspaces share the scale while canvas HUD remains compact', () => {
     assert.ok(styles.includes(selector), `${selector} is part of the unified scale`);
   }
 
-  assert.match(styles, /\.stream-overlay, \.map-meta \{[^}]*font-size: 8px/);
-  assert.match(styles, /\.scene-controls button \{[^}]*font: 700 7px/);
+  assert.match(styles, /\.stream-overlay, \.map-meta \{[^}]*font-size: 12px/);
+  assert.match(styles, /\.scene-controls button \{[^}]*font: 600 12px/);
 });
