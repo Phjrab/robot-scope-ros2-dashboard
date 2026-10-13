@@ -1,6 +1,6 @@
 # ADR: Go2 onboard single-host operation
 
-- Status: accepted and deployed; pre-UI stationary acceptance PASS, later UI integration tracked separately
+- Status: accepted and deployed; pre-UI stationary and post-UI functional acceptance PASS, recorded separately
 - Date: 2026-10-13
 - Scope: explicit `go2-onboard` profile on the Go2-mounted Orin NX 16GB
 - Related: [migration contract and evidence](GO2_ONBOARD_MIGRATION.md)
@@ -138,17 +138,28 @@ the independent bridge PID remained unchanged. Stopping/restoring the three
 Robot Scope units and a stopped-state environment backup also passed; the
 manufacturer `enable-typec-host` process/invocation remained unchanged.
 This is application stop/configuration recovery evidence. A complete rollback
-to the former external deployment, reboot and physical Wi-Fi reconnection
-remain NOT_RUN. Reboot and Wi-Fi interruption lack an independent recovery
+to the former external deployment, a migration-owned controlled reboot and
+physical Wi-Fi interruption remain NOT_RUN. Those interruptions lack an independent recovery
 route while the current management connection remains the sole connection.
 
 Initial migration evidence belongs to pre-UI candidate `3ec4cc6`; the Hesai
 fanout correction and repeated acceptance use `093600f`.
 The operator separately authorized UI integration: historical UI
 branch merge `5f4d211` and external deployed release `544e108` are distinct
-provenance points. New UI handoff is pending, and this phase made no frontend
-changes. Earlier software/hardware PASS does not validate a candidate after
-the UI handoff; that candidate needs its relevant verification.
+provenance points. The migration phase made no frontend changes before the
+separately authorized UI handoff. Only `95d13e2` was integrated as `c9c15f0`,
+with two narrow observation-label/Inspector recovery fixes in `92ff609`.
+Backend/API/ROS/control/deployment contracts were unchanged. Integrated source
+checks and a distinct 30-second post-UI functional camera/API/browser check
+passed; the runbook records exact counts and follow-up coverage. Pre-UI
+performance evidence was not relabelled as a post-UI thermal test.
+
+The operator confirmed a different chat rebooted the host at 04:15 UTC, after
+pre-UI acceptance. Before the UI deployment, enabled Robot Scope services had
+automatically recovered safely on `093600f`; the later dashboard-only restart
+preserved the bridge/camera/manufacturer service PIDs and invocations.
+This is observed external-reboot recovery, separate from a controlled reboot
+test by the migration task.
 
 After acceptance, normal lifecycle APIs stopped test mapping/localization;
 preview, both cameras and the independent bridge remain active with no lease

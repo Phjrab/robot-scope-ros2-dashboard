@@ -20,7 +20,8 @@ Initial migration evidence below belongs to pre-UI candidate `3ec4cc6`;
 the subsequent Hesai fanout fix and repeated acceptance use `093600f`.
 The operator separately authorized UI integration. Historical UI branch merge
 `5f4d211` and external deployed release `544e108` are distinct provenance
-points; new UI handoff is pending. This phase made no frontend changes.
+points. The original migration phase made no frontend changes; the subsequently
+authorized `95d13e2` integration and post-UI verification are recorded below.
 Pre-UI tests and measurements do not establish acceptance of the candidate
 after that handoff.
 
@@ -36,7 +37,7 @@ The final runtime candidate suite ran 1551 Python tests with 1550 passing and 1 
 (`OK (skipped=1)`), plus 340 passing JavaScript tests. Neither migration commit
 `36554f5` nor `3ec4cc6` changed frontend files. Existing UI branch `42c6cce` and
 the external release `544e108` are verified ancestors of the current history.
-These source-history facts do not mark the separately requested UI handoff PASS.
+These source-history facts are separate from the later UI integration checks.
 
 | Fact/check | Source and result |
 | --- | --- |
@@ -289,9 +290,11 @@ and all three units returned enabled/active with NRestarts=0. Manufacturer
 The private report is
 `/home/unitree/robot-scope-migration-evidence/service-stop-restore.json`.
 These tests establish application stop/configuration recovery; a complete
-external-deployment rollback was not executed. Physical Wi-Fi reconnection
-and reboot remain NOT_RUN because the current management connection is the
-sole connection and an independent recovery route is absent.
+external-deployment rollback was not executed. Physical Wi-Fi interruption
+and a migration-owned controlled reboot remain NOT_RUN because the current
+management connection is the sole connection and an independent recovery
+route is absent. A subsequent reboot performed by another chat and observed
+service recovery are recorded in the post-UI section below.
 
 Rollback: stop new Robot Scope workers in reverse owned-child order, verify
 zero/no-lease state and released ports, restore the recorded previous
@@ -451,10 +454,93 @@ Neither this acceptance nor sampled 0% GPU certifies concurrent VSLAM capacity.
 | Robot Scope stop/configuration restore | PASS | Three units inactive/MainPID=0; stopped-state environment backup restored/hash-verified, final environment reapplied; three enabled/active units, NRestarts=0; manufacturer PID/invocation unchanged |
 | Physical Wi-Fi reconnect recovery | NOT_RUN | Sole management connection retained; no independent recovery route to safely interrupt it |
 | 10-minute compound stationary resource test (operator requested) | PASS | Corrected candidate `093600f`, 600.016-second camera window/58 resource samples, fresh ~10 Hz cloud/odometry, both advancing videos, no OOM/restarts/freshness errors; limits and original failed window retained above |
-| Reboot and complete external-deployment rollback | NOT_RUN | Independent reboot recovery route absent; Robot Scope stop/configuration restore PASS does not establish complete former external-deployment rollback |
+| Migration-owned controlled reboot and complete external-deployment rollback | NOT_RUN | Independent reboot recovery route absent; later other-chat reboot recovery is separately observed below. Robot Scope stop/configuration restore does not establish full external failback |
 | Supervised motion | NOT_RUN | Operator-prepared environment only; not implied by software or stationary PASS |
 
 The required pre-UI stationary internal-only migration acceptance is achieved.
 Software and device evidence remain separate. Actual motion, reboot, physical
 Wi-Fi interruption, complete external failback and later UI/VSLAM integration
 are not implied by this PASS.
+
+## Reviewed UI integration and post-UI functional acceptance — PASS
+
+The operator selected only UI implementation
+`95d13e214746f4c866cb71b249b9c5dc9b3d0c00` from
+`codex/ui-readability-refinement`, based on `42c6cce986029548e5cc7e0f6f9bd830144cabe3`.
+The separate handoff document at `badd801` was reviewed but its commit was not
+integrated. The base was already an ancestor of migration main and its static
+tree matched the pre-UI migration tree. The selected commit applied without
+conflict as `c9c15f0`; both have stable patch ID
+`bebb260a7a486d21eab7b93c9d7a2a1bb397bef1`. No old branch merge or whole static
+directory replacement was performed. The UI task's checkout, branch and
+processes were not changed.
+
+Review found two necessary integration corrections, separately committed as
+`92ff609`:
+
+- `safety_hud_view.js`: `safetyStatusLabel()` and `render()` use neutral
+  pipeline/lock wording. Localization-only `waiting_initial_pose` must not be
+  labelled active autonomous driving. Conservative locking stays unchanged.
+- `workspace.js`: the Inspector toggle calls the existing `resize()` recovery
+  path. The prior camera geometry could cover Inspector fields/links after
+  the content area narrowed. Stream ownership and saved layout are preserved.
+
+Focused regressions cover both fixes. The source integration and these fixes
+change no Python backend, API endpoint/payload, ROS, frame, QoS, control gate,
+network, dependency or deployment configuration relative to `093600f`.
+
+| Integrated source check | Result |
+| --- | --- |
+| Full Python unittest | PASS: 1551 run, 1550 passed, 1 skipped |
+| Final full JavaScript unit | PASS: 347/347 |
+| Existing browser regression | PASS: 67/67 in one run before the two narrow follow-up fixes |
+| Readability matrix/fonts/contrast/disclosure/DPR | PASS: 4/4, with 12 capture conditions; after the HUD wording correction |
+| Mock STOP/failure/stale/legacy-layout/font lifecycle | PASS: 8/8 |
+| Final existing/new Inspector disclosure regression | PASS: 2/2 after the viewport recovery fix; focused HUD view tests also PASS |
+
+Browser checks ran against a separate index-exported temporary candidate with
+isolated loopback ports and output paths. The UI task's historical captures
+were preserved. The two narrow fixes received affected checks rather than
+another unrelated full-suite repetition. Physical iPad/Safari and actual OS
+200% zoom remain unmeasured.
+
+Runtime `92ff6092ba8a64c687aa56b122bbce2e53670268` was fast-forward deployed
+and the dashboard restarted at 04:21 UTC. Deployment guards checked idle
+mapping/navigation, zero command and no lease first. Dashboard PID became
+11988; independent bridge PID 947, RealSense service PID 955 and manufacturer
+PID 573/invocations remained unchanged across this restart. All three Robot
+Scope units remained enabled/active, with NRestarts=0. Served HTML and both
+reviewed status modules matched deployed file SHA-256 hashes.
+
+The post-UI functional camera window at 04:21:58–04:22:28 UTC covered
+30.014 seconds: Go2 366 valid JPEGs (1280×720, 12.211 delivered fps), RealSense
+374 (640×480, 12.488 delivered fps), no protocol error, backwards sequence or
+stale interval over 3 seconds. Six API observations kept the bridge ready and
+authenticated, no lease/deadman/motion/action, mapping idle and preview running.
+Actual browser reload showed both live videos, live LiDAR and the disarmed HUD;
+saved Dataset history remained available. This is post-UI functional acceptance,
+not a repeat of the pre-UI 600-second performance/thermal measurement.
+
+During local UI tests, another chat rebooted the Jetson (operator confirmed).
+Host boot records show shutdown at 04:14 and boot at 04:15 UTC, after the
+pre-UI acceptance window. Before migration's UI deployment, all three enabled
+Robot Scope services had automatically recovered on original runtime `093600f`
+with idle mapping/navigation and safe control state. This is observed recovery
+after that external reboot; it is not a migration-owned controlled power-cycle
+test or a claim about physical Wi-Fi interruption. Subsequent external-host
+TCP22 still timed out. Original pre-reboot PID records retain their own dates.
+
+The separate `vslam-lab-setup-20261013-0410` container was running during this
+30-second post-UI smoke and was recorded. This task performed no experimental
+integration into operational driving/TF. These observations do not certify
+VSLAM coexistence performance. The 04:05 D435i owner above is historical;
+after reboot its service owner is PID 955. Camera time-sharing still requires
+a separate agreement.
+
+Private source/deployment/boot/smoke evidence is preserved in
+`/home/unitree/robot-scope-migration-evidence/` and the development host's
+`migration-archives/onboard-20261013-99201d8a/deployment-evidence/` outside Git.
+Final source/documentation and remote SHAs belong in that independent record,
+avoiding a self-referential documentation commit loop. UI rollback reverts the
+integration/follow-up UI commits only, preserving onboard migration, data and
+browser settings; it was not executed during acceptance.
