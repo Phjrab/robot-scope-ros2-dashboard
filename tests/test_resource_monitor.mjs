@@ -24,6 +24,35 @@ test('missing measurements do not turn into zero or imply spare capacity', () =>
   assert.equal(model.summarize([row]).gpu.value, null);
 });
 
+test('headline loads average only the latest ten seconds and include real zeroes', () => {
+  const history = [sample(0, 99), ...Array.from({ length: 11 }, (_, i) => sample((i + 1) * 1000, i % 2 ? 100 : 0))];
+  const averages = model.loadAverages(history);
+  assert.equal(averages.cpu.value, 500 / 11);
+  assert.equal(averages.cpu.count, 11);
+  assert.equal(averages.cpu.ready, true);
+  assert.equal(averages.gpu.value, 30);
+  assert.equal(history.at(-1).cpu.percent, 0);
+  // Polls do not need to land exactly on a ten-second boundary.
+  assert.equal(model.loadAverages(Array.from({ length: 11 }, (_, i) => sample(i * 1200))).cpu.ready, true);
+});
+
+test('headline averages start fresh after missing readings, gaps, or observation stops', () => {
+  const missing = sample(1000); missing.gpu.percent = null;
+  assert.equal(model.loadAverages([sample(0), missing]).gpu.value, null);
+  const resumed = sample(2000, 0); resumed.gpu.percent = 0;
+  const values = model.loadAverages([sample(0), missing, resumed]);
+  assert.equal(values.cpu.value, 40 / 3);
+  assert.equal(values.gpu.value, 0);
+  assert.equal(values.gpu.count, 1);
+  assert.equal(values.gpu.ready, false);
+  const interrupted = [sample(0, 90), sample(1000, 90), sample(5000, 10)];
+  assert.equal(model.loadAverages(interrupted).cpu.value, 10);
+  assert.equal(model.loadAverages(interrupted).cpu.ready, false);
+  assert.equal(model.loadAverages([sample(0, 90), sample(1000, 10)], 0).cpu.value, 10);
+  assert.equal(model.loadAverages([sample(0)], 0).cpu.value, null);
+  assert.equal(model.loadAverages([]).cpu.value, null);
+});
+
 test('single core load and stale sensor rates are distinguished from averages', () => {
   const row = sample(1000); row.cpu.max_core_percent = 95;
   row.sensors.cameras = [{ id: 'camera', label: 'Camera', state: 'stale', live: false, age_s: 8, receive_fps: 30 }];

@@ -1,4 +1,4 @@
-import { valid, format, gib, mbps, cameraFresh, topicFresh, measurements, comparisonWindow, windowReady, summarize, guidance, exportCsv } from './model.js';
+import { valid, format, gib, mbps, cameraFresh, topicFresh, measurements, comparisonWindow, loadAverages, windowReady, summarize, guidance, exportCsv } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const history = [];
@@ -9,6 +9,7 @@ let paused = false;
 let timer = null;
 let pending = null;
 let available = false;
+let averageAfter = -Infinity;
 const text = (id, value) => { $(id).textContent = value; };
 const timeLabel = (timestamp) => new Date(timestamp).toLocaleTimeString('ko-KR', { hour12: false });
 
@@ -45,9 +46,20 @@ function stateLabel(state, fresh) {
 
 function render(sample) {
   const m = measurements(sample);
-  for (const [key, id] of [['cpu', 'cpu'], ['gpu', 'gpu'], ['ram', 'ram']]) { metric(`${id}Value`, m[key].value, '%'); bar(`${id}Bar`, m[key].value); }
-  text('cpuDetail', `가장 바쁜 코어 ${format(sample.cpu?.max_core_percent)}% · ${sample.cpu?.cores?.filter((row) => row.online).length || 0}개 활성`);
-  text('gpuDetail', `${format(sample.gpu?.frequency_mhz, 0)} MHz · ${sample.gpu?.source ? 'sysfs 실측' : '측정 불가'}`);
+  const averages = loadAverages(history, averageAfter);
+  for (const key of ['cpu', 'gpu']) {
+    const average = averages[key];
+    metric(`${key}Value`, average.value, '%'); bar(`${key}Bar`, average.value);
+    text(`${key}AverageLabel`, average.ready ? '최근 10초 평균' : average.count ? `평균 수집 중 · ${average.count}회` : '평균 측정 대기');
+    text(`${key}Live`, valid(m[key].value) ? `현재 사용률 ${format(m[key].value)}%` : '현재 사용률 —');
+  }
+  const frequencies = (sample.cpu?.cores || []).filter((row) => row.online && valid(row.frequency_mhz) && row.frequency_mhz > 0).map((row) => row.frequency_mhz);
+  const minFrequency = Math.min(...frequencies), maxFrequency = Math.max(...frequencies);
+  const cpuClock = !frequencies.length ? '—' : minFrequency === maxFrequency ? `${format(minFrequency, 0)} MHz` : `${format(minFrequency, 0)}–${format(maxFrequency, 0)} MHz`;
+  text('cpuDetail', `현재 클럭 ${cpuClock}`);
+  text('cpuCoreDetail', `가장 바쁜 코어 ${format(sample.cpu?.max_core_percent)}% · ${sample.cpu?.cores?.filter((row) => row.online).length || 0}개 활성`);
+  text('gpuDetail', `현재 클럭 ${valid(sample.gpu?.frequency_mhz) ? `${format(sample.gpu.frequency_mhz, 0)} MHz` : '—'}`);
+  metric('ramValue', m.ram.value, '%'); bar('ramBar', m.ram.value);
   text('ramDetail', `${gib(sample.memory?.used_bytes)} / ${gib(sample.memory?.total_bytes)}`);
   metric('networkValue', valid(m.rx.value) && valid(m.tx.value) ? m.rx.value + m.tx.value : null, 'Mbps');
   text('rxValue', format(m.rx.value)); text('txValue', format(m.tx.value));
@@ -114,10 +126,13 @@ function updateComparison() {
 
 function clearLive(message, state = 'error') {
   available = false;
+  averageAfter = latest?.timestamp_ms ?? -Infinity;
   text('connectionState', message); $('connectionState').dataset.state = state;
   text('loadStatus', message); text('loadNote', '이전 기록은 그래프와 CSV에 남아 있습니다.'); $('loadDot').dataset.state = state;
   for (const id of ['cpuValue', 'gpuValue', 'ramValue', 'networkValue', 'temperatureValue', 'powerValue', 'rxValue', 'txValue', 'swapValue', 'oomValue', 'cpuPressure', 'memoryPressure', 'temperatureSensor', 'lastObserved']) text(id, '—');
   for (const id of ['cpuBar', 'gpuBar', 'ramBar']) bar(id, null);
+  for (const key of ['cpu', 'gpu']) { text(`${key}AverageLabel`, '평균 측정 대기'); text(`${key}Live`, '현재 사용률 —'); }
+  text('cpuCoreDetail', '코어 측정 없음');
   text('cpuDetail', '실시간 측정 없음'); text('gpuDetail', '실시간 측정 없음'); text('ramDetail', '실시간 측정 없음'); text('temperatureDetail', '실시간 측정 없음');
   table('sensorRows', [], message, 5); table('networkRows', [], message, 6); table('processRows', [], message, 4);
   $('coreList').replaceChildren(); $('thermalList').replaceChildren(); $('powerList').replaceChildren();
@@ -139,7 +154,7 @@ async function poll() {
     const previous = history.at(-1);
     if (!previous || sample.seq !== previous.seq || sample.timestamp_ms !== previous.timestamp_ms) {
       // A wall-clock correction starts a new history, preventing invalid windows.
-      if (previous && sample.timestamp_ms <= previous.timestamp_ms) { history.length = 0; baseline = null; text('baselineLabel', '서버 시간 변경 · 기준을 다시 저장하세요.'); table('comparisonRows', [], '기준을 다시 저장하세요.', 4); }
+      if (previous && sample.timestamp_ms <= previous.timestamp_ms) { history.length = 0; baseline = null; averageAfter = -Infinity; text('baselineLabel', '서버 시간 변경 · 기준을 다시 저장하세요.'); table('comparisonRows', [], '기준을 다시 저장하세요.', 4); }
       history.push(sample);
       while (history.length > 901 || (history.length && history[0].timestamp_ms < sample.timestamp_ms - 900000)) history.shift();
     }

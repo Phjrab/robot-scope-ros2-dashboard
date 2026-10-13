@@ -41,6 +41,28 @@ export function comparisonWindow(history, after = -Infinity) {
   return rows.reverse();
 }
 
+// Headline loads average the last ten seconds of continuous, valid readings.
+// A real zero contributes to the mean; a missing reading starts a new window.
+export function loadAverages(history, after = -Infinity) {
+  const rows = comparisonWindow(history, after).reverse();
+  const end = rows[0]?.timestamp_ms;
+  const result = {};
+  for (const key of ['cpu', 'gpu']) {
+    let sum = 0, count = 0, ready = false;
+    for (const row of rows) {
+      const value = row[key]?.percent;
+      if (!valid(value)) break;
+      const age = end - row.timestamp_ms;
+      if (age >= 10000) ready = true;
+      if (age > 10000) break;
+      sum += value;
+      count++;
+    }
+    result[key] = { value: count ? sum / count : null, count, ready };
+  }
+  return result;
+}
+
 export function windowReady(rows) {
   return rows.length >= 5 && rows.at(-1).timestamp_ms - rows[0].timestamp_ms >= 10000;
 }

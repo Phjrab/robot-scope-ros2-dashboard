@@ -30,15 +30,15 @@ function harness() {
     addEventListener(name, listener) { this.listeners[name] = listener; },
   };
   document.getElementById('loadThreshold').value = '80'; document.getElementById('historyWindow').value = '120';
-  const h = { document, nodes, fail: false, calls: 0 };
+  const h = { document, nodes, fail: false, calls: 0, cpu: 20, gpu: 30 };
   const fetch = async () => {
     h.calls++;
     if (h.fail) throw Error('offline');
     return { ok: true, json: async () => ({
       schema: 'robot-scope.resources.v1', seq: h.calls, timestamp_ms: 60000 + h.calls * 1200, sample_interval_s: 1.2,
       host: { model: 'Jetson fixture', hostname: 'fixture' },
-      cpu: { percent: 20, max_core_percent: 95, cores: [{ name: 'cpu0', online: true, percent: 95, frequency_mhz: 1200 }] },
-      gpu: { percent: 30, frequency_mhz: 612, source: 'sysfs fixture' }, memory: { percent: 40 },
+      cpu: { percent: h.cpu, max_core_percent: 95, cores: [{ name: 'cpu0', online: true, percent: 95, frequency_mhz: 1200 }] },
+      gpu: { percent: h.gpu, frequency_mhz: 612, source: 'sysfs fixture' }, memory: { percent: 40 },
       sensors: { cameras: [{ id: 'camera', label: 'Camera', state: 'ok', live: true, age_s: .1, receive_fps: 15, width: 1280, height: 720 }], topics: [] },
     }) };
   };
@@ -66,6 +66,42 @@ test('lost connection and pause clear current metrics while keeping recorded his
   assert.equal(h.nodes.get('sensorRows').textContent, '연결 끊김');
   assert.equal(h.nodes.get('exportButton').disabled, false);
   assert.equal(h.api.history.length, 2);
+});
+
+test('headline averages stay visible above independent live readings and clocks', async () => {
+  const h = harness(); await flush();
+  h.cpu = 0; h.gpu = 0; await h.api.poll();
+  assert.equal(h.nodes.get('cpuValue').textContent, '10.0%');
+  assert.equal(h.nodes.get('gpuValue').textContent, '15.0%');
+  assert.equal(h.nodes.get('cpuLive').textContent, '현재 사용률 0.0%');
+  assert.equal(h.nodes.get('gpuLive').textContent, '현재 사용률 0.0%');
+  assert.equal(h.nodes.get('cpuBar').style.width, '10%');
+  assert.equal(h.nodes.get('gpuBar').parentElement.attributes['aria-valuenow'], '15');
+  assert.match(h.nodes.get('cpuDetail').textContent, /1200 MHz/);
+  assert.match(h.nodes.get('gpuDetail').textContent, /612 MHz/);
+  assert.match(h.nodes.get('cpuAverageLabel').textContent, /수집 중/);
+  for (let i = 0; i < 9; i++) await h.api.poll();
+  assert.equal(h.nodes.get('cpuAverageLabel').textContent, '최근 10초 평균');
+  assert.equal(h.nodes.get('cpuValue').textContent, '0.0%');
+  assert.equal(h.nodes.get('ramValue').textContent, '40.0%');
+});
+
+test('pause and reconnect clear both readings and restart the headline average', async () => {
+  const h = harness(); await flush();
+  h.nodes.get('pauseButton').click();
+  assert.equal(h.nodes.get('cpuValue').textContent, '—');
+  assert.equal(h.nodes.get('cpuLive').textContent, '현재 사용률 —');
+  h.cpu = 80; h.gpu = 60;
+  h.nodes.get('pauseButton').click(); await flush();
+  assert.equal(h.nodes.get('cpuValue').textContent, '80.0%');
+  assert.equal(h.nodes.get('gpuValue').textContent, '60.0%');
+  h.fail = true; await h.api.poll();
+  assert.equal(h.nodes.get('gpuLive').textContent, '현재 사용률 —');
+  h.fail = false; h.cpu = 0; h.gpu = null; await h.api.poll();
+  assert.equal(h.nodes.get('cpuValue').textContent, '0.0%');
+  assert.equal(h.nodes.get('gpuValue').textContent, '—');
+  assert.equal(h.nodes.get('gpuBar').style.width, '0%');
+  assert.equal(h.api.history.length, 3);
 });
 
 test('saving a baseline waits for later samples and handles settings text literally', async () => {
