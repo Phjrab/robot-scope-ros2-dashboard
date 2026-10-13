@@ -12,38 +12,66 @@ Required candidate: dashboard/Cockpit, currently used Go2/XT16/IMU and both
 camera paths, saved-map/settings/route preservation, local mapping and existing
 navigation integration, independent safe control bridge, restart recovery and
 stationary coexistence. Dataset history is preserved because actual collection
-is recorded. New perception models, UI improvements, goal arrival and competition
-completion are outside the completion criteria. Optional features remain
+is recorded. New perception models, goal arrival and competition completion
+are outside the migration completion criteria. Optional features remain
 optional unless current target inventory shows they are used.
+
+Initial migration evidence below belongs to pre-UI candidate `3ec4cc6`;
+the subsequent Hesai fanout fix and repeated acceptance use `093600f`.
+The operator separately authorized UI integration. Historical UI branch merge
+`5f4d211` and external deployed release `544e108` are distinct provenance
+points; new UI handoff is pending. This phase made no frontend changes.
+Pre-UI tests and measurements do not establish acceptance of the candidate
+after that handoff.
+
+For that integration, verify the delivered base SHA and ordered new commits
+against the latest migration main and `INTEGRATION_HANDOFF.md`. Review only the
+needed UI changes; do not copy the whole static directory or merge an old UI
+branch without review. Preserve current API payloads, stream ownership and
+control gates, run both the migration and UI checks, then record deployment
+and post-integration browser/device checks separately. The UI checkout,
+branch and processes belong to the separate UI task.
+
+The final runtime candidate suite ran 1551 Python tests with 1550 passing and 1 skipped
+(`OK (skipped=1)`), plus 340 passing JavaScript tests. Neither migration commit
+`36554f5` nor `3ec4cc6` changed frontend files. Existing UI branch `42c6cce` and
+the external release `544e108` are verified ancestors of the current history.
+These source-history facts do not mark the separately requested UI handoff PASS.
 
 | Fact/check | Source and result |
 | --- | --- |
 | Target module | Operator: Go2 internal Orin NX 16GB; historical 2026-08-12 inventory agrees (P3767-0000/P3768-0000) |
-| Target current platform | Authenticated read-only inspection: Ubuntu22.04.5 `aarch64`, kernel5.15.199-tegra, L4T36.5.2; NVIDIA/native compatibility inspection continues |
+| Target current platform | Authenticated inspection: Ubuntu 22.04.5 `aarch64`, kernel 5.15.199-tegra, L4T 36.5.2; required native imports and pinned Humble builds PASS |
+| Target native runtime | Fresh NumPy 1.26.4/system OpenCV 4.5.4, `rclpy` and Unitree message imports PASS. Installed TensorRT packages report 10.7; engine/API compatibility was not established, and no used model engine was found |
 | Historical platform | Ubuntu 20.04.5, kernel 5.10.104-tegra, JP5.1.1/L4T R35.3.1, CUDA11.4.315, TensorRT8.5.2.2; not a current compatibility claim |
 | Historical resources | 15W, 4/8 CPU online, roughly 12GB available RAM and 386GB free NVMe; historical values only |
-| Target current resources | RAM15642MiB, used1565MiB, available13783MiB; swap7821MiB unused; NVMe467G/free378G. Compound-load/thermal acceptance NOT_RUN |
+| Target initial resource baseline | RAM15642MiB, used1565MiB, available13783MiB; swap7821MiB unused; NVMe467G/free378G. Final 600-second stationary compound acceptance PASS below |
 | Management contact | Supplied internal address `192.168.50.30`, account `unitree`; credentials are never stored here |
 | Local management link | Initial development Mac observation: `en0=192.168.50.140`; not a target NIC assignment |
 | Internal SSH | Initial attempt timed out before authentication; later authenticated `unitree` access succeeded. Hostname `ubuntu`; deployment/acceptance not implied |
 | Target network | Actual sensor NIC `enP8p1s0=192.168.123.18/24`; management Wi-Fi `wlx289401c9eb9b=192.168.50.30/24`, default via `.50.1`. Historical `eth0` is not the current NIC |
-| Target service inventory | Initial `robot-scope*`/`unitree*` systemd list empty; manufacturer process/port ownership inspection continues |
-| External host | Authenticated read-only inventory: Ubuntu22.04.5, kernel5.15.148-tegra, L4T36.4.7; active Robot Scope release `544e108`, service user `jetson_orin_nano`, Python `/usr/bin/python3.10` |
+| Target service inventory | Three Robot Scope units enabled/active, NRestarts=0 after recovery; manufacturer `enable-typec-host` PID/invocation unchanged through dashboard restart and complete Robot Scope stop/restore |
+| External host | Authenticated read-only inventory: Ubuntu 22.04.5, kernel5.15.148-tegra, L4T36.4.7; active Robot Scope release `544e108`, service user `jetson_orin_nano`, Python `/usr/bin/python3.10` |
 | External resources | RAM7608MB, swap20188MB, available RAM2713MiB, reported filesystem free40G at inspection; external-host values only |
 | External placement | Process cwd `/home/jetson_orin_nano/releases/robot-scope/544e…`; workspace `/home/jetson_orin_nano/project/robot-scope/workspaces`; runtime `/home/jetson_orin_nano/project/robot-scope/runtime` with `maps` and `state` subdirectories |
 | External runtime config | Wireless competition FAST-LIO, UDP control, `ROS_LOCALHOST_ONLY=1`, Go2 NIC `eno1`, relay `.50.30`; target onboard selects direct NIC/ROS/local lifecycle |
-| Historical sensor packets | Go2 `.123.161`, XT16 `.123.20:10000 -> .123.18:2368`; current packet/port consumers remain to be measured |
-| Current durable data | Source and internal target preservation SHA-256 PASS: maps47files/43,115,380bytes; datasets3459files/365,073,866bytes with 12 completed sessions/1225 recorded samples. Runtime use requires separate map/gallery/settings checks |
+| Historical sensor packets | Go2 `.123.161`, XT16 `.123.20:10000 -> .123.18:2368`; historical tuple, not a claim about the current packet source |
+| XT16 current destination and calibration | Inspected stale DestIp `.123.99` changed only to actual sensor NIC `.123.18`, with private original configuration/rollback preserved; private correction/manifest retained and PTC off |
+| XT16 receive buffer | `net.core.rmem_max` 212992→8388608 via `/etc/sysctl.d/90-robot-scope-xt16-buffer.conf`; original value preserved privately for rollback |
+| Current sensor/camera operation | FAST-LIO about 10 Hz; Go2 actual 1280x720/about 13 fps and RealSense actual 640x480/15 fps. Required LiDAR/IMU/Go2 state and advancing camera observations PASS |
+| Current durable data | Source/target preservation SHA-256 and normal-loader/live API PASS: maps47files/43,115,380bytes; datasets3459files/365,073,866bytes, 12 completed sessions/1225 recorded samples; maps/settings/routes/gallery accessible internally |
 | Operator-event provenance | Project runtime one file/2428bytes; active release runtime separate file/1250bytes. Preserve with separate source labels |
-| External activity | Dataset capture idle and navigation goal idle during read-only inspection; transition still requires fresh zero/no-lease checks |
+| External transition and shutdown | Fresh capture/navgoal idle, signed command zero/no lease before retiring old authority. Operator explicitly authorized authenticated sudo shutdown; SSH closed and subsequent SSH/ping had no reply. Physical power was not independently observed |
+| Current bridge safety | Signed own named publisher 1/foreign named 0/manufacturer bare 10; zero motion/action and no lease. Manufacturer bare endpoints remain distinct from bridge cardinality |
+| Local Nav2 observation | All localization-only processes ready; `waiting_initial_pose` expected. No estimated physical map location or goal arrival asserted |
 | Used data history | 2026-09-11 Dataset capture: 212 samples/26,064,528 bytes; map and stationary Nav2 records exist; these counts describe that past session |
 | Model scope | External registry only `registry.json`88bytes; engines/packages empty. Historical approved artifacts absent; new model deployment is not required |
 
-Current kernel/L4T above were measured separately from the Ubuntu version;
-JetPack/native ABI/ROS overlay and driver checks still need their own evidence. Missing `nvidia-jetpack`
-alone is not a platform failure. Recheck OS/architecture/kernel/L4T, installed
-NVIDIA packages and relevant native imports independently. Read selected safe
-environment keys rather than dumping whole service environments.
+Current kernel/L4T and native imports/builds were measured separately from the
+Ubuntu version. Missing `nvidia-jetpack` alone is not a platform failure, and
+installed TensorRT does not establish compatibility of an untested engine.
+Read selected safe environment keys rather than dumping whole service
+environments; private calibration identity/content stays outside this record.
 
 ## Feature and data transition
 
@@ -55,7 +83,7 @@ before copying. Default paths below are discovery hints.
 | --- | --- | --- | --- | --- |
 | Dashboard/API/WS, Cockpit | External `.50.10` | Internal `.50.30`, `:8088` | Management browsers; `go2-onboard`, persistent paths, local service | Internal PID/cwd/commit, health and real browser frames |
 | Go2 state/control | Internal `.50.30` Foxy bridge, external coordinator | Internal Humble ROS bridge + dashboard | Actual sensor NIC to Go2 `.123.161`; local lifecycle, signed ROS transport | Fresh `/lowstate`, signed zero/no-lease status, exact graph ownership; no ARM |
-| XT16 preview/mapping | Internal packet relay; external Hesai/C++/FAST-LIO | Internal direct driver/C++/FAST-LIO; private `/etc/robot-scope/hesai/` correction pair | XT16 `.123.20` original UDP; no relay/driver port duplication | Actual packets, one fresh `/lidar_points` and `/velodyne_points`, fields/ring/stamp/frame, FAST-LIO outputs |
+| XT16 preview/mapping | Internal packet relay; external Hesai/C++/FAST-LIO | Internal direct driver/C++/FAST-LIO; private `/etc/robot-scope/hesai/` correction pair | Inspected XT16 destination to actual internal sensor NIC; no relay/driver port duplication | Actual packets, one fresh `/lidar_points` and `/velodyne_points`, fields/ring/stamp/frame, FAST-LIO outputs |
 | IMU | Internal `/lowstate` sender, external authenticated receiver | Internal full C++ `/lowstate -> /imu/body` | Local ROS; no wireless IMU owner | One finite fresh ordered `/imu/body`, consistent time/frame/extrinsics |
 | Existing navigation | External map/Nav2/runtime | Internal local workers | Saved map and selected validated odometry; no wireless lifecycle | Stationary readiness, TF/publisher identity and owned-child cleanup; goal arrival not required |
 | Go2 camera | Internal fixed RTP relay, external decoder | Internal direct multicast decoder | Go2 `230.1.1.1:1720` via actual sensor NIC | Live JPEG sequence/age and NIC, no duplicate RTP receiver/capture |
@@ -100,7 +128,8 @@ The profile selects `config/go2-onboard.json` and
 Control transport is `ros`, control lifecycle is `local`, and mapping lifecycle
 is local. Historical `.50.10`, `eno1`, Foxy release symlinks and self-SSH keys
 must not remain necessary dependencies. Browser entry after verified deployment
-is `http://192.168.50.30:8088`; it is an intended address until measured.
+is `http://192.168.50.30:8088`; actual browser/API access and advancing frames
+have been measured there.
 
 RealSense uses a separate private capture environment: explicit local access
 mode permits the same private bind/dashboard address and only that host may
@@ -157,8 +186,9 @@ localStorage is separate from the server data inventory.
 
 Actual preserved data is under `/home/unitree/robot-scope-data/`: `maps`,
 `datasets`, selected `runtime/state` settings/routes, separately labelled
-operator history, historical missions and staged calibration. Source and
-target private inventories verified every selected file byte-for-byte. The
+operator history, historical missions and calibration. Initial source/target
+copy and an independent target preservation root verified every selected file
+byte-for-byte before explicit runtime derivatives were applied. The
 selected state consists of two settings files, two route documents and one
 history-only mission document. Both original event sources remain distinct.
 The source spatial-route directory was empty. Dataset manifests retain their
@@ -196,9 +226,35 @@ records the original source validation FAIL, and prepares a canonical target
 derivative. All other authoring fields, source map pins and original bytes must
 match; arbitrary corrupt hashes or authoring changes still fail. No runtime
 validation is relaxed. Source identity capture and all 47 preserved artifact
-hashes passed; physical target adaptation remains NOT_RUN until executed.
-Both imported route documents contain no saved-map pins and inactive guidance;
-their normal schemas can be validated without restoring transient guidance.
+hashes passed. Physical target adaptation passed for all 15 maps and 19
+sidecars; current strict catalog checks validated 13 families and 6 annotation
+sidecars. All 15 map previews were read on the target, including both PCDs.
+
+The stored pointcloud choice was scoped to the former `Unitree Go2` profile.
+Only its target profile scope was explicitly derived for `Unitree Go2 onboard
+Jetson`, with private original/new SHA-256 provenance. Normal `SourceRegistry`
+loading and the running dashboard restore the persisted `/velodyne_points`
+pin. A live API snapshot measured PointCloud2 at 10.01 Hz, age 0.034 seconds,
+one publisher and sample state `ok`.
+
+Both imported route documents contain zero saved-map pins and inactive
+guidance. Their strict loaders passed after an explicit target schematic cache
+derivative: the authentic historical FIELD order used an obsolete restaurant
+timing/catalog cache that the current source/target normalizers rejected.
+Current `normalize_order` rebuilt only computed timing/catalog/revision fields;
+authored grouped orders, IDs, labels, timestamps and layouts remain unchanged.
+The historical source failure and original bytes are recorded rather than
+relabelled as a successful source validation. The normal loader fences the
+runtime to STALE with no guidance or motion/control authority.
+
+One imported navigation preset passed the current parameter validator.
+The Dataset manager listed all 12 completed sessions/1225 samples, and 22 gallery
+JPEGs across those sessions were read and decoded without starting capture.
+The running dashboard then returned HTTP 200 for all eight data/settings/status
+inventory endpoints, five representative map/family/annotation/Dataset detail
+endpoints and a gallery JPEG that decoded at 1280x720. This is real API/data
+access evidence, separate from current live camera frames. Original manifests,
+events, calibration and history-only missions retain their preservation checks.
 
 ## Cutover, recovery and rollback
 
@@ -208,6 +264,13 @@ retire only its Robot Scope authority before starting the new bridge. Keep
 manufacturer services and physical robot state intact. Retire unnecessary
 Robot Scope relay/capture owners in a recorded order to avoid UDP/device conflicts.
 
+The actual cutover verified old capture/navigation idle, command zero and no
+lease before retiring external Robot Scope authority. After the operator's
+explicit request, authenticated sudo shutdown of the external host completed
+with SSH closing; subsequent SSH/ping had no reply. Physical power has not been
+independently observed. Internal API/sensor/camera operation continued without
+that host; historical Dataset paths remain provenance rather than live reads.
+
 Start the internal dashboard in safe observation state. Start the independent
 bridge only after stationary/zero/cardinality checks. Confirm one required
 sensor/camera owner and fresh outputs before mapping/navigation workers. No
@@ -215,6 +278,20 @@ automatic ARM, goal, prior session resume or browser reconnect command replay.
 Restart only Robot Scope services; then inspect no lease/zero state and recovery.
 Reboot is measured only after robot state and an independent reconnection route
 are verified. Lack of that prerequisite leaves boot validation NOT_RUN.
+
+Actual dashboard restart passed with the independent bridge PID unchanged,
+no resumed lease/goal, real browser reconnection and fresh data recovery.
+Separate stop/restore testing passed for all three Robot Scope units: stopped
+units were inactive with MainPID=0, a stopped-state environment was restored
+from its backup and hash-verified, then the final environment was reapplied
+and all three units returned enabled/active with NRestarts=0. Manufacturer
+`enable-typec-host` PID 536 and its invocation remained unchanged throughout.
+The private report is
+`/home/unitree/robot-scope-migration-evidence/service-stop-restore.json`.
+These tests establish application stop/configuration recovery; a complete
+external-deployment rollback was not executed. Physical Wi-Fi reconnection
+and reboot remain NOT_RUN because the current management connection is the
+sole connection and an independent recovery route is absent.
 
 Rollback: stop new Robot Scope workers in reverse owned-child order, verify
 zero/no-lease state and released ports, restore the recorded previous
@@ -250,25 +327,134 @@ A sampler running by itself does not prove simultaneous workloads, sensor
 freshness, external power state, reboot or rollback. Preserve those observations
 with the acceptance record; diagnostic output never promotes NOT_RUN to PASS.
 
-| Required check | Current result | Evidence needed |
+### Preserved first compound-test failure
+
+The first 600-second camera window began at 03:25:59 UTC on 2026-10-13.
+Both camera streams completed it without a stale interval over three seconds,
+API errors, OOM or service restart. However, a concurrent diagnostic reader
+of the 1,664,000-byte raw cloud coincided with a real pipeline stall. At
+03:31:41 UTC, native navigation reported cloud age 8.019 seconds and
+`FRESHNESS_THRESHOLD_EXCEEDED`. The C++ bridge rejected growing callback
+backlog rather than rebasing timestamps or bypassing its 250 ms limit.
+Normal 10 Hz operation returned after that reader exited.
+
+This window is a freshness FAIL, not a clean acceptance PASS. Its original
+camera/resource JSONL, bridge log and diagnostic-reader evidence are preserved
+privately. The sensor NIC reports 1000 Mbps/full duplex; a 100 Mbps link limit
+was not established. Callback timing excludes DDS take/deserialization, and
+the exact transport bottleneck is not inferred from that timing alone.
+
+### Hesai fanout correction and identical-reader regression
+
+Runtime candidate `093600f` sets `General/AllowMulticast=spdp` only in the
+onboard Hesai driver participant. Participant discovery remains multicast on
+the inspected sensor NIC; endpoint discovery and cloud data use unicast.
+Other ROS participants and wired/wireless profiles retain their configuration.
+Calibration validation, cloud fields, sensor clock conversion, publisher
+cardinality, watchdog and freshness limits are unchanged.
+
+At 03:48:13–03:48:25 UTC, the identical diagnostic script observed 100 raw,
+100 converted, 100 FAST-LIO odometry and 100 registered clouds, all about
+10 Hz. Native API observations before/during/after it had maximum cloud,
+odometry and TF receipt ages of 40.2/27.7/26.8 ms, with no freshness failure.
+Six native bridge counter windows recorded 300 clouds and zero rejections.
+Both dynamic TF pairs advanced; the one static sensor transform was observed.
+Signed request evidence added 51 Stop requests, zero Move and zero actions.
+This establishes the correction's measured effect without claiming the
+unprofiled middleware/socket mechanism is fully explained.
+
+ROS receipt ages and callback durations are not physical source-to-display
+latency. Raw XT16 timestamps remain in their device epoch and use the existing
+strict C++ calibration contract. Unitree's clock led the host by about 5 ms
+in the regression sample; a negative source age is not negative latency.
+Humble/CycloneDDS RMW receive timestamps were unavailable and remain null.
+
+### Final pre-UI compound acceptance — PASS
+
+Candidate `093600fc002006fba3ba520c7c58f2f202c85111` ran the corrected
+stationary window on 2026-10-13 at 03:49:53–03:59:53 UTC (12:49:53–12:59:53
+KST). Both camera collectors covered the same 600.016 seconds; the resource
+sampler completed its requested duration with 58 samples. Dashboard, both
+cameras, direct Hesai/C++ conversion, FAST-LIO, localization-only Nav2 and the
+independent bridge ran concurrently with the external host shut down.
+
+| Final measurement | Result |
+| --- | --- |
+| Aggregate interval-average CPU / sampled GPU maximum | 54.76% / 0.0% |
+| Sampled temperature maximum / available RAM minimum | 69.531°C / 13,474,213,888 bytes (12.55 GiB) |
+| Swap used / OOM increase / service restarts / API errors | 0 / 0 / 0 / 0 |
+| Cloud / FAST-LIO odometry rate | 9.944–10.047 / 9.939–10.047 Hz; about 10 Hz, not a strict minimum-rate certification |
+| Cloud / odometry / TF receipt age maximum | 40.2 / 27.7 / 27.3 ms |
+| Cloud / odometry callback p95 maximum | 11.345 / 3.283 ms; excludes physical transport latency |
+| Go2 WebSocket delivery | 7,205 JPEGs, 1280×720, 12.010 fps, maximum arrival gap 267.6 ms |
+| RealSense WebSocket delivery | 7,350 JPEGs, 640×480, 12.251 fps, maximum arrival gap 270.8 ms |
+| Camera stale intervals over 3 seconds / backwards sequences | 0 / 0 for both streams |
+
+Service PIDs/invocations remained unchanged. No freshness error, active lease,
+deadman, nonzero Move or action was observed. Nav2 process readiness passed;
+localization remained `waiting_initial_pose`/`INITIAL_POSE_REQUIRED`, with no
+measured map pose or `map→odom` assertion. Camera delivery rates above are
+measured WebSocket rates, distinct from source/decoder rates. Thermal throttling
+and longer-duration stability were not measured.
+
+Private evidence: `combined-soak-20261013T034952Z.jsonl`, its `.summary.json`,
+`final-acceptance-summary.json`, `final-runtime-ownership.json` and
+`xt16-after-dds-fix.log` under `/home/unitree/robot-scope-migration-evidence/`.
+The first failed window remains preserved. After acceptance, normal lifecycle
+APIs stopped localization and mapping; at 04:06:19 UTC mapping was `stopped`,
+navigation/goal `idle`, preview `running`, bridge authenticated/ready and no
+lease. The three Robot Scope units and manufacturer PID/invocation remained
+unchanged. `final-observation-cleanup.json` records this observation state.
+
+### Independent Isaac ROS VSLAM resource handoff
+
+The separate lab owns release-3.2 environment validation and an isolated
+container/workspace. It may not modify operational main/UI/API, FAST-LIO,
+Nav2, bridge, services or TF. Use a separate ROS domain and output frames;
+do not connect experimental odometry to driving. CUDA, Docker and camera
+firmware replacement or arbitrary operational service stops are not authorized
+by that experiment. Its measurements require a separate later integration
+review; successful experimentation does not automatically change this ADR.
+
+The operational D435i is occupied: at 04:05:40 UTC the accessible device owner
+was `gst-launch-1.0` PID 63457, a child of
+`robot-scope-realsense-camera.service` PID 39909, holding `/dev/video4` via the
+configured stable by-id RGB device. That service provides the 640×480@15 RGB
+stream on the internal private address at port 8090. The HTTP RGB preview is
+not a synchronized stereo/IMU VSLAM input contract. Keep bag validation first
+until a camera time window or reviewed sharing contract is explicitly arranged.
+No exclusive camera window or camera release has been granted by this migration.
+
+The final acceptance interval is recorded above. The lab chat's first turn
+started at 04:02:25 UTC, after that interval; its observed initial state was
+SSH authentication pending. The 58 resource samples contain no retrospective
+process/container/build/bag trace, so absence of unrelated experimental load
+throughout the interval is not independently certified. The 04:05:40 UTC
+read-only process-name/accessible-device snapshot is a current observation,
+not a retrospective proof. Future performance/thermal acceptance must record
+lab build/run/record activity and exclude those workloads during its window.
+Neither this acceptance nor sampled 0% GPU certifies concurrent VSLAM capacity.
+
+| Required check | Current result | Evidence and limits |
 | --- | --- | --- |
 | Offline durable-data utility | PASS | Eleven focused tests: hash integrity, private permissions, no overwrite, source changes, symlinks/hardlinks, explicit selection, transient-state/traversal rejection, exact-copy, nested datasets, fixed opaque exports and mission-history separation |
 | Offline map identity adapter | PASS | Ten focused tests: actual catalog identity changes, family/geometry preservation, byte/source checks, no overwrite, catalog/provenance-write rollback, stale-family refusal, explicit rounded-pi canonicalization and rejection of corrupt hashes/other authoring changes |
-| Physical source/target byte preservation | PASS | Private inventories and independent target preservation verified selected maps, datasets, settings/routes, history and calibration; target runtime use is a separate check |
-| Internal platform, native ABI and pinned dependencies | NOT_RUN | Actual target inventory/imports/builds; selected env keys |
-| External Jetson OFF/disconnected | NOT_RUN | Physical/operator observation plus no required live peer/file dependency |
-| Internal server/browser | NOT_RUN | PID/cwd/commit, management address, real UI/API/WS |
-| Required LiDAR, IMU, Go2 state and cameras update | NOT_RUN | Publisher identities, fresh messages and actual advancing frames |
-| Internal durable data and references | NOT_RUN | Inventories/checksums/counts, map/gallery/route/settings checks |
-| Local mapping/navigation integration and cleanup | NOT_RUN | Process owners, topic/TF/readiness and clean stop; no goal required |
-| Independent bridge safety contracts | NOT_RUN | Signed zero/no-lease state, preserved named/bare graph checks and watchdog tests |
-| Restart and Wi-Fi reconnect recovery | NOT_RUN | No auto authority, no duplicated processes/ports/capture, fresh data recovery |
-| 10-minute compound stationary resource test (operator requested) | NOT_RUN | 600 seconds; CPU/GPU/RAM/swap/temperature, frame ages/message delays, no OOM/repeated crash; longer-duration thermal stability unmeasured |
-| Reboot and rollback | NOT_RUN | Safe reconnection prerequisite, actual post-boot recovery and previous-set restore |
+| Physical source/target byte preservation | PASS | Private inventories and independent target preservation verified selected maps, datasets, settings/routes, history and calibration; explicit runtime derivatives have separate original/new provenance |
+| Internal platform, native ABI and pinned dependencies | PASS | Actual Ubuntu 22.04.5/aarch64/L4T 36.5.2; NumPy 1.26.4/system OpenCV 4.5.4/`rclpy`/Unitree message imports and pinned Humble builds. TensorRT 10.7 is installed package inventory; used model engine absent |
+| External shutdown/network absence | PASS | Operator-authorized authenticated sudo shutdown, SSH close and no subsequent SSH/ping reply; internal operation continues. Independent physical power observation NOT_RUN |
+| Internal server/browser | PASS | Pre-UI runtime candidate `093600f` runs internally; real browser/API access and reconnect with fresh data at management `.50.30:8088` |
+| Required LiDAR, IMU, Go2 state and cameras update | PASS | Fresh sensor observations; FAST-LIO about 10 Hz; Go2 actual 1280x720/about 13 fps and RealSense actual 640x480/15 fps |
+| Internal durable data and references | PASS | 15 map previews/13 families/6 annotations, zero-pin route loaders and 1 preset; 12 completed Dataset sessions/1225 samples/22 decoded history JPEGs; real data/settings/gallery APIs HTTP 200 |
+| Local mapping/navigation stationary integration | PASS | Internal FAST-LIO outputs about 10 Hz and local Nav2 localization-only workers all ready; `waiting_initial_pose` expected. No estimated physical map location or goal arrival asserted |
+| Independent bridge safety contracts | PASS | Signed own named 1/foreign named 0/manufacturer bare 10, zero motion/action, no lease; existing cardinality/signature/watchdog contracts retained |
+| Dashboard restart/browser reconnect | PASS | Bridge PID unchanged; no resumed authority/goal; actual browser reconnect and fresh data recovery |
+| Robot Scope stop/configuration restore | PASS | Three units inactive/MainPID=0; stopped-state environment backup restored/hash-verified, final environment reapplied; three enabled/active units, NRestarts=0; manufacturer PID/invocation unchanged |
+| Physical Wi-Fi reconnect recovery | NOT_RUN | Sole management connection retained; no independent recovery route to safely interrupt it |
+| 10-minute compound stationary resource test (operator requested) | PASS | Corrected candidate `093600f`, 600.016-second camera window/58 resource samples, fresh ~10 Hz cloud/odometry, both advancing videos, no OOM/restarts/freshness errors; limits and original failed window retained above |
+| Reboot and complete external-deployment rollback | NOT_RUN | Independent reboot recovery route absent; Robot Scope stop/configuration restore PASS does not establish complete former external-deployment rollback |
 | Supervised motion | NOT_RUN | Operator-prepared environment only; not implied by software or stationary PASS |
 
-Record software validation and target validation separately. The overall
-internal-only migration remains unachieved until the required live rows pass.
-Do not call an inaccessible target BLOCKED merely because one connection timed
-out; prepare source, installation, diagnostics and recovery while retrying
-meaningful access checks.
+The required pre-UI stationary internal-only migration acceptance is achieved.
+Software and device evidence remain separate. Actual motion, reboot, physical
+Wi-Fi interruption, complete external failback and later UI/VSLAM integration
+are not implied by this PASS.
