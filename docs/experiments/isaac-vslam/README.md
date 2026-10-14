@@ -22,3 +22,5 @@
 - [소규모 측정 증거](evidence/)
 
 원시 bag·영상·지도·대형 로그는 `/home/unitree/experiments/isaac-vslam-lab/`에 보존했다. 실험 종료 후 운영 카메라 active/running, dashboard HTTP200, running Docker0, 운영 domain의 실험 노드0개를 확인했다. 새 실센서 시험은 매번 현재 장치 소유권·자원·정지/감독 조건을 다시 확인해야 한다. main 기록 통합은 운영 배포와 별개다.
+
+새 Robot Scope 실장비 검증 채팅에는 [현재 자원 상태·설정 캡처 제한·복사 가능한 인계 요약](HANDOFF.md)을 전달한다. 이 기록은 새 설치나 운영 배포를 수행하지 않은 읽기 전용 감사다.

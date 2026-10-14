@@ -1,0 +1,38 @@
+{
+  "source": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/metrics.jsonl",
+  "analysis": "Existing stationary run, 10s warmup; observed adjacent pose increments only",
+  "samples": 18018,
+  "adjacent_position_delta_m": {
+    "samples": 18017,
+    "mean": 5.248988225402022e-06,
+    "p50": 0.0,
+    "p95": 3.616352954853978e-05,
+    "max": 0.0031402931620316183
+  },
+  "adjacent_rotation_delta_deg": {
+    "samples": 18017,
+    "mean": 0.00011318035411862812,
+    "p50": 3.818191820832845e-06,
+    "p95": 0.0007832865759146483,
+    "max": 0.031740898961212335
+  },
+  "adjacent_receipt_interval_ms": {
+    "samples": 18017,
+    "mean": 33.30092689532116,
+    "p50": 33.311541,
+    "p95": 36.267631800000004,
+    "max": 45.756955
+  },
+  "largest_translation_increment": {
+    "before_stamp_ns": 1791943790746656256,
+    "after_stamp_ns": 1791943790779956992,
+    "delta_m": 0.0031402931620316183
+  },
+  "tracking_states": {
+    "TRACKING": 18018
+  },
+  "lost_recovery_test": "NOT_RUN: no LOST event or induced loss",
+  "discontinuity_contract": "No arbitrary jump threshold was defined before this experiment; distributions are evidence, not a discontinuity PASS criterion",
+  "accuracy": "N/A: no independent truth; no inferred physical displacement",
+  "motion_return_loop_localization": "NOT_RUN for movement/return/loop; separate localization FAILED evidence retained"
+}

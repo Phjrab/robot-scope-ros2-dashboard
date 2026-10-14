@@ -1,0 +1,161 @@
+{
+  "observed_utc": "2026-10-14T03:39:21.427779+00:00",
+  "root": "/home/unitree/experiments/isaac-vslam-lab",
+  "files": [
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/code/versions.runtime.json",
+      "bytes": 5978,
+      "sha256": "d0e2804c81ce994df9ce47fa89468d76ccfba3950b91b4b754776155aeab7f4d",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/metrics.jsonl",
+      "bytes": 49780320,
+      "sha256": "1bcce49d1737b5298d082778af59c054bffd689a04a3d518959fa50d4233d81d",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/run.json",
+      "bytes": 4775,
+      "sha256": "a3f86ddc71844eacbb460226f86610f1deec7a115db1843f4e58d40ff3dd0945",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/analysis.json",
+      "bytes": 15607,
+      "sha256": "780a5525ea39c1dc3d8d706e6ca46a3763b1a2748aeb8e31a575ff9d738d8c9b",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/vslam_launch.json",
+      "bytes": 4398,
+      "sha256": "abb62c4fd61c29a171fa38a9e81aeb32a95685f6712e351b05de36f5de63cec4",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/camera_launch.json",
+      "bytes": 1974,
+      "sha256": "adbdd2442b7225e4658b1e03d99aab10173d78a95714b399909cba712d06bfba",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/resources.jsonl",
+      "bytes": 728809,
+      "sha256": "f448f36bd05afbf86ca61b3ff2c401baa4f09abd8972698001475889ef78a2b5",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/resources-summary.json",
+      "bytes": 4249,
+      "sha256": "ea86072b779fc451ca0f06d84efe9be18260703aae0dd1b7bb735803e1af01c1",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/calibration-comparison.json",
+      "bytes": 954,
+      "sha256": "01e8e34831052edecbf3aece8753ea537042398b911e8ce135e5635e19b680b3",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/final-restoration.json",
+      "bytes": 1207,
+      "sha256": "87ba3b21a863ae8cc917e06338aa56a551684ae3ab00845cb1b4b57749abaf4a",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/options-final.txt",
+      "bytes": 47,
+      "sha256": "d1203e3998ce092b1a330ba5eba9741bcb268fcc6b3ee6856c84860f25f2fad5",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/ownership.json",
+      "bytes": 2413,
+      "sha256": "d0eef29ae5dcc5dffa1454d2001ca71b8ae9088508f00ccd69fb8df18cda341c",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-offline-20261014/multi/map-reuse.json",
+      "bytes": 860,
+      "sha256": "7e092fefc29829aeac625754e5f209e14ad2961cbcb524925c5b5d0a23cbc1c0",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-offline-20261014/multi/analysis.json",
+      "bytes": 17385,
+      "sha256": "e4d3119faab1b5d3bff8ae09c99ad868cf529b48ddc9fec51ab29406b736f920",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-offline-20261014/single-reviewed-tf/map-reuse.json",
+      "bytes": 879,
+      "sha256": "ef752c189048ab99b2e98eaf81d8d00c3c7168b782428454bb7bbf06d6db5999",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/slam-final-20261013/slam-save/map/data.mdb",
+      "bytes": 45056,
+      "sha256": "c8426f33dfa789c0a13eef9bcf101a6cbb8bcee3f8c60eecd2e0263982d933ce",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/slam-final-20261013/slam-save/map-save.json",
+      "bytes": 657,
+      "sha256": "460629f8894f87e9dee8bbc7633b0a857a05d0f8f65ed1a9a31978791d53e740",
+      "hash_state": "VERIFIED_NOW"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/publication-followup-20261014.json",
+      "bytes": 968,
+      "sha256": "9bb7b594de01627860ac9cec2d4f154f6891052a6685482b8ce93c4d8f1d2850",
+      "hash_state": "VERIFIED_NOW"
+    }
+  ],
+  "bags": [
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-20261013-input/bag/bag_0.db3",
+      "expected_bytes": 24576,
+      "historically_verified_sha256": "d869705bbcac37e482b3ee7151f93e1f4326f5afc734314a1016a6591effc66b",
+      "current_hash_verification": "NOT_RUN",
+      "current_bytes": 24576,
+      "uid": 0,
+      "gid": 0,
+      "file_mode": "0o644",
+      "size_matches": true
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-20261013-input-retry/bag/bag_0.db3",
+      "expected_bytes": 317534208,
+      "historically_verified_sha256": "6fec3a0b3a8bed704af735a5167932fad36f236d6d1d3a6c40de57022c3dd199",
+      "current_hash_verification": "NOT_RUN",
+      "current_bytes": 317534208,
+      "uid": 0,
+      "gid": 0,
+      "file_mode": "0o644",
+      "size_matches": true
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-post-reboot-20261013-input/bag/bag_0.db3",
+      "expected_bytes": 537018368,
+      "historically_verified_sha256": "cb2dd40886b59ce4d0af0b7fd76a503bac328e7bf403ee596ff475d0d3e58b43",
+      "current_hash_verification": "NOT_RUN",
+      "current_bytes": 537018368,
+      "uid": 0,
+      "gid": 0,
+      "file_mode": "0o644",
+      "size_matches": true
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/recordings/live-post-reboot-20261013-input/bag/bag_1.db3",
+      "expected_bytes": 6807552,
+      "historically_verified_sha256": "7ddab08fa82fde22dc0e8e2f403713b3d2f941b18ca600fd53925130bcc4ac47",
+      "current_hash_verification": "NOT_RUN",
+      "current_bytes": 6807552,
+      "uid": 0,
+      "gid": 0,
+      "file_mode": "0o644",
+      "size_matches": true
+    }
+  ],
+  "bag_hash_policy": "Historical verified hashes; current existence/size only, no raw bag rehash"
+}

@@ -1,0 +1,560 @@
+{
+  "scope": "Read-only handoff audit; no new sensor/GPU/build/recording trial",
+  "service_snapshot_utc": "2026-10-14T03:53:48+00:00",
+  "device_snapshot_utc": "2026-10-14T03:53:43.896611+00:00",
+  "boot_id": "1af30487-8967-4432-8d30-fe575349cc85",
+  "operating_checkout": {
+    "path": "/home/unitree/robot-scope",
+    "head": {
+      "returncode": 0,
+      "stdout": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9\n",
+      "stderr": ""
+    },
+    "branch": {
+      "returncode": 0,
+      "stdout": "main\n",
+      "stderr": ""
+    },
+    "status": {
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "repository_main_at_audit": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+  "service_states": [
+    {
+      "MainPID": "1002",
+      "NRestarts": "0",
+      "Id": "robot-scope.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    {
+      "MainPID": "998",
+      "NRestarts": "0",
+      "Id": "robot-scope-realsense-camera.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    {
+      "MainPID": "988",
+      "NRestarts": "0",
+      "Id": "robot-scope-control-bridge.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    }
+  ],
+  "dashboard_http_status": "200",
+  "camera": {
+    "usb_device": "/dev/bus/usb/001/004",
+    "usb_speed_mbps": 480,
+    "model_sysfs": "Intel RealSense D435i (8086:0b3a)",
+    "serial_last_observed": "242322077753",
+    "serial_current_probe": "NOT_RUN: no SDK device open during audit",
+    "firmware_last_observed": "5.17.3.10",
+    "firmware_current_probe": "NOT_RUN",
+    "logical_reservation": "robot-scope-realsense-camera.service active; on-demand relay PID998",
+    "relay_script": "/usr/local/libexec/robot-scope/realsense_mjpeg_relay.py",
+    "open_device_owners_at_snapshot": [],
+    "fuser": {
+      "/dev/bus/usb/001/004": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/video0": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/video1": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/video2": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/video3": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/video4": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/video5": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      },
+      "/dev/hidraw0": {
+        "returncode": 1,
+        "pids": "",
+        "diagnostic": ""
+      }
+    },
+    "unreadable_fd_directories": 0,
+    "exclusive_lab_camera_window": false,
+    "handoff_action_this_audit": "NONE: operational relay left active; no automatic start/stop"
+  },
+  "running_containers": [],
+  "lab_container_states": [
+    {
+      "id": "e54deefa6a73816657e1a9c905ce32fbb6fae434b7cd0980baa3336a3b592888",
+      "name": "/vslam-lab-camera-probe-20261013",
+      "image": "sha256:8828a7d09209290696b2f88660906971445a9520ead21e21f2a25f4006055f69",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-13T04:58:59.339304025Z",
+        "FinishedAt": "2026-10-13T05:13:57.945110847Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "a37844a1c2173759b69ecfc27848cdbbf020c936be1b8f61c7a32a68d15f229c",
+      "name": "/vslam-lab-camera-setup-20261013",
+      "image": "sha256:8828a7d09209290696b2f88660906971445a9520ead21e21f2a25f4006055f69",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-13T05:01:36.591646106Z",
+        "FinishedAt": "2026-10-13T05:14:18.327569626Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "bridge",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "2b52651822048a20e9306526349372c610e465e2f5ebf0ce3105ebc6c5519287",
+      "name": "/vslam-lab-followup-live-20261014",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-14T02:02:40.95665559Z",
+        "FinishedAt": "2026-10-14T02:14:46.667402472Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "3ff07f6e566b621f1feb392974c97fd727a32374b32c8a3b42e6bb5cb217e6a3",
+      "name": "/vslam-lab-followup-offline-20261013",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 255,
+        "Error": "",
+        "StartedAt": "2026-10-13T13:08:12.623916322Z",
+        "FinishedAt": "2026-10-14T01:50:21.771036032Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "fb10c461efad05519f6215281c1a24ffb11110b95f335565cd500ae14b3a9d05",
+      "name": "/vslam-lab-followup-offline-20261014",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-14T01:53:14.320991926Z",
+        "FinishedAt": "2026-10-14T02:00:15.707584469Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "3ae1328f8909ebe6613364a11f82a9e7f990b05d989cbcc45f61c8d146e4847a",
+      "name": "/vslam-lab-live-20261013",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-13T05:14:32.290762959Z",
+        "FinishedAt": "2026-10-13T05:17:58.731109509Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "b1fa8f274223888d942f0338fbd32b760e580130b1d0fd23ba8e7b074caef996",
+      "name": "/vslam-lab-live-post-reboot-20261013",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 255,
+        "Error": "",
+        "StartedAt": "2026-10-13T11:45:48.519518846Z",
+        "FinishedAt": "2026-10-13T12:09:21.762196352Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "c636b430208b39fdc67cb2465665714ff59669e7d245585b52ef35b8baf0c791",
+      "name": "/vslam-lab-setup-20261013-0410",
+      "image": "sha256:dd032d9aa0a4647460ab83dac734a155234a66fabeb80f9c659e7d4542a1ac94",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-13T04:19:12.209194366Z",
+        "FinishedAt": "2026-10-13T04:49:47.07235422Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "bridge",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "fc5c4d628dc58d20f7385f78e82285fa1d55e9e91feef96d1650364453bb0202",
+      "name": "/vslam-lab-slam-final-20261013",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-13T12:12:51.277106328Z",
+        "FinishedAt": "2026-10-13T12:19:09.845529378Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 2000000000
+    },
+    {
+      "id": "372f3b55fa0d8296a69e178100186f4f75e7b9cf78f6b1fbfb7514c998509aa8",
+      "name": "/vslam-lab-t0-20261013-0430",
+      "image": "sha256:3c3e4eb675ea79e1c84296ef447170b86a14cbcab76eb16a39730e7a3bdb0e2c",
+      "state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-10-13T04:49:47.947243699Z",
+        "FinishedAt": "2026-10-13T05:13:37.526220781Z"
+      },
+      "owner_label_matches": true,
+      "restart_policy": {
+        "Name": "no",
+        "MaximumRetryCount": 0
+      },
+      "network_mode": "none",
+      "privileged": false,
+      "memory_bytes": 6442450944,
+      "nano_cpus": 3000000000
+    }
+  ],
+  "source_repositories": {
+    "/home/unitree/experiments/isaac-vslam-lab/sources/isaac_ros_common": {
+      "head": {
+        "returncode": 0,
+        "stdout": "fcf4d9e17f8f0a7f47f1d22d6a18421ce3768c01\n",
+        "stderr": ""
+      },
+      "status": {
+        "returncode": 0,
+        "stdout": " T docker/Dockerfile.aarch64\n T docker/Dockerfile.x86_64\n",
+        "stderr": ""
+      }
+    },
+    "/home/unitree/experiments/isaac-vslam-lab/sources/isaac_ros_examples": {
+      "head": {
+        "returncode": 0,
+        "stdout": "98066652d1ab19a0dd3d9fc4df8ff5321607d46e\n",
+        "stderr": ""
+      },
+      "status": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    "/home/unitree/experiments/isaac-vslam-lab/sources/isaac_ros_nitros": {
+      "head": {
+        "returncode": 0,
+        "stdout": "e3a29804b6de38fefbf7040864124d983bfceb6a\n",
+        "stderr": ""
+      },
+      "status": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    "/home/unitree/experiments/isaac-vslam-lab/sources/isaac_ros_visual_slam": {
+      "head": {
+        "returncode": 0,
+        "stdout": "e31f4cc1d41a329a01946e5fe63669f8b15da677\n",
+        "stderr": ""
+      },
+      "status": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    "/home/unitree/experiments/isaac-vslam-lab/sources/realsense-ros": {
+      "head": {
+        "returncode": 0,
+        "stdout": "c04f43308c00a6f495f14a47cc84cc293047cdff\n",
+        "stderr": ""
+      },
+      "status": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    }
+  },
+  "source_worktree_drift": {
+    "Dockerfile.aarch64": {
+      "is_symlink": false,
+      "resolved_path": "/home/unitree/experiments/isaac-vslam-lab/sources/isaac_ros_common/docker/Dockerfile.aarch64",
+      "symlink_target": null,
+      "target_sha256": "16b18d592eb67c49b3ef12f58abbfe404b2381c9c9356414d1bf414acfc16180",
+      "git_tracked_mode": "120000 bf38c1698e9313a58c9cd208991c8f0a5be829e6 0\tDockerfile.aarch64"
+    },
+    "Dockerfile.x86_64": {
+      "is_symlink": false,
+      "resolved_path": "/home/unitree/experiments/isaac-vslam-lab/sources/isaac_ros_common/docker/Dockerfile.x86_64",
+      "symlink_target": null,
+      "target_sha256": "16b18d592eb67c49b3ef12f58abbfe404b2381c9c9356414d1bf414acfc16180",
+      "git_tracked_mode": "120000 bf38c1698e9313a58c9cd208991c8f0a5be829e6 0\tDockerfile.x86_64"
+    }
+  },
+  "actual_runtime_images": [
+    {
+      "Id": "sha256:3c3e4eb675ea79e1c84296ef447170b86a14cbcab76eb16a39730e7a3bdb0e2c",
+      "RepoDigests": [],
+      "Architecture": "arm64",
+      "Created": "2026-10-13T04:49:24.248357056Z"
+    },
+    {
+      "Id": "sha256:dd032d9aa0a4647460ab83dac734a155234a66fabeb80f9c659e7d4542a1ac94",
+      "RepoDigests": [
+        "nvcr.io/nvidia/isaac/ros@sha256:dd032d9aa0a4647460ab83dac734a155234a66fabeb80f9c659e7d4542a1ac94"
+      ],
+      "Architecture": "arm64",
+      "Created": "2025-11-07T20:39:55.008767673Z"
+    },
+    {
+      "Id": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "RepoDigests": [
+        "vslam-lab-camera@sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5"
+      ],
+      "Architecture": "arm64",
+      "Created": "2026-10-13T05:13:14.852330908Z"
+    },
+    {
+      "Id": "sha256:8828a7d09209290696b2f88660906971445a9520ead21e21f2a25f4006055f69",
+      "RepoDigests": [
+        "isaac_ros_dev-aarch64@sha256:8828a7d09209290696b2f88660906971445a9520ead21e21f2a25f4006055f69"
+      ],
+      "Architecture": "arm64",
+      "Created": "2026-10-12T09:47:21.356644382Z"
+    }
+  ],
+  "runtime_code_comparison_to_integrated_experiment": "MATCH for launch/vslam.launch.py, launch/camera.launch.py, config/launch_contract.py, labctl.py, run_live.py, run_bag.py, metrics/collect.py, metrics/analyze.py, selected_static_tf.py, sdk_motion_probe.cpp",
+  "resource_snapshot": {
+    "loadavg": "3.81 1.97 0.80 4/419 6213",
+    "free_space_bytes": 394545262592,
+    "free_space_floor_bytes": 50138608025,
+    "thermal": [
+      {
+        "type": "cv0-thermal",
+        "millidegrees_c": "50500"
+      },
+      {
+        "type": "cpu-thermal",
+        "millidegrees_c": "53000"
+      },
+      {
+        "type": "soc2-thermal",
+        "millidegrees_c": "50343"
+      },
+      {
+        "type": "soc0-thermal",
+        "millidegrees_c": "50781"
+      },
+      {
+        "type": "cv1-thermal",
+        "millidegrees_c": "51250"
+      },
+      {
+        "type": "gpu-thermal",
+        "millidegrees_c": "49906"
+      },
+      {
+        "type": "tj-thermal",
+        "millidegrees_c": "53531"
+      },
+      {
+        "type": "soc1-thermal",
+        "millidegrees_c": "53593"
+      },
+      {
+        "type": "cv2-thermal",
+        "millidegrees_c": "50500"
+      }
+    ],
+    "power_mode": "NV Power Mode: MAXN\n0"
+  },
+  "actions_this_handoff": {
+    "camera_start_stop": false,
+    "experiment_run": false,
+    "build": false,
+    "recording": false,
+    "robot_motion_commands": false,
+    "host_configuration_change": false
+  },
+  "limitations": [
+    "Device FD scan is a point-in-time observation, not exclusive ownership authorization",
+    "Current live stereo/IMU messages NOT_RUN; historical sensor outputs only reviewed",
+    "Followup node parameter snapshots failed Node not found; older valid readbacks remain separately preserved",
+    "Domain separation is neither GPU resource isolation nor a security boundary"
+  ],
+  "initial_service_snapshot_utc": "2026-10-14T03:44:18.388025+00:00",
+  "initial_device_snapshot_utc": "2026-10-14T03:36:13.269185+00:00",
+  "operating_checkout_snapshot_utc": "2026-10-14T03:34:16.783106+00:00",
+  "software_validation_this_handoff": {
+    "scope": "Mac-only repository tests; no Jetson experiment load",
+    "python_unittest_run": 1667,
+    "optional_skips": 2,
+    "failures": 0,
+    "javascript_run": 360,
+    "javascript_failures": 0,
+    "markdown_json_diff_check": "PASS"
+  }
+}

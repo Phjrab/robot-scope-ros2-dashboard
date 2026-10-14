@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "purpose": "Historical observed pose contract for future coordinated read-only evaluation; no live publisher started",
+  "source_observed_run": "followup-live-20261014/vo",
+  "domain": 71,
+  "domain_recheck_required": true,
+  "discovery": {
+    "network_mode": "none",
+    "ros_localhost_only": 1,
+    "rmw": "rmw_fastrtps_cpp",
+    "profile": "experiments/isaac_vslam/config/fastdds-local.xml",
+    "bridge_or_router": "NONE"
+  },
+  "pose": {
+    "topic": "/vslam_lab/visual_slam/tracking/odometry",
+    "type": "nav_msgs/msg/Odometry",
+    "frame_id": "vslam_lab_odom",
+    "child_frame_id": "vslam_lab_camera_link",
+    "position_units": "m",
+    "orientation": "unit quaternion xyzw",
+    "transform_direction": "odom_T_camera: maps camera-link coordinates into odom coordinates; camera pose expressed in experiment odom",
+    "reference": "camera, not Go2 body; no verified camera-body extrinsic",
+    "header_stamp": "Input timestamp retained with override_publishing_stamp=false requested; ROS epoch driver mapping, raw sensor clock domain NOT_OBSERVED",
+    "covariance_verification": "NOT_OBSERVED; do not use as measured fusion uncertainty",
+    "use": "Observe/record/compare only in isolated lab domain; no operational odometry/TF/control feed"
+  },
+  "slam": {
+    "path_topic": "/vslam_lab/visual_slam/tracking/slam_path",
+    "type": "nav_msgs/msg/Path",
+    "frame_id": "vslam_lab_map",
+    "semantics": "SLAM corrected path separate from continuous VO odometry; potential correction/jumps must be observed, loop correction NOT_RUN here"
+  },
+  "status": {
+    "topic": "/vslam_lab/visual_slam/status",
+    "type": "isaac_ros_visual_slam_interfaces/msg/VisualSlamStatus",
+    "vo_state_mapping": {
+      "0": "UNKNOWN",
+      "1": "TRACKING",
+      "2": "LOST"
+    },
+    "timing": "Per-frame track and callback durations; rolling mean/max are not independent per-frame samples; not end-to-end age",
+    "freshness": "Check status and pose update gaps separately; TRACKING is not proof of loop closure or relocalization"
+  },
+  "tf": {
+    "publish_map_to_odom_tf": false,
+    "publish_odom_to_base_tf": false,
+    "readback_scope": "Verified in older VO run; requested by followup launch, full followup readback FAILED_CAPTURE",
+    "operational_map_odom_base_link": "No experiment publish or guessed identity camera-body transform"
+  },
+  "live_clock": "use_sim_time=false",
+  "replay_clock": "use_sim_time=true + /clock; sensors and selected original static camera TF only, no recorded estimator output or dynamic TF",
+  "forbidden_consumers": [
+    "operational FAST-LIO fusion",
+    "Nav2 odometry",
+    "map/odom/base_link TF",
+    "control bridge",
+    "automatic movement"
+  ]
+}

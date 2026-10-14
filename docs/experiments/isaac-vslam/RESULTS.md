@@ -130,3 +130,7 @@ VO 종료 후 SDK `--options-only` readback은 firmware5.17.3.10/emitter1이었�
 ## 저장소 main 통합 — 2026-10-14
 
 사용자의 후속 통합 요청으로 실험 브랜치 `d54625481f84ef9c6054bd9ebd10fb08d0ab8a64`의 검증 문서·소규모 측정 증거·실험 wrapper/config·검증 테스트를 최신 main `416d25c` 위에 통합했다. 위의 “실험 브랜치에만 게시” 설명은 당시 실험 수행·최초 게시 범위다. 현재 main의 UI·자원 모니터는 그대로 보존했고 실험 브랜치의 별도 monitor 구현을 중복 반영하지 않았다. 원시 bag/map/build/install과 대형 로그는 Jetson에 남겨 Git에 넣지 않았다. 운영 서비스 배포·VSLAM UI 연결·운영 ROS 통합은 계속 NOT_RUN이다.
+
+## 새 실장비 검증 채팅 인계 감사 — 2026-10-14
+
+새 trial 없이 현재 상태와 기존 증거만 검토했다. 재부팅 후camera relay PID998/active, running Docker0으로 확인했으며 이전 복원 PID와 구분한다. 후속10분 trial의 두parameter dump가`Node not found`/exit1였음을 확인했다. 이 trial의 전체effective parameter readback은 미완료이며, 정상 readback이 남은 이전5분VO/지도저장과 구분한다. 실제 영상·추적 출력 및 측정은 보존한다. 기존 정지run의 인접position 변화 최대3.1403mm를 추가 분석했으나 사전jump 기준/정답이 없어 불연속·정확도PASS를 부여하지 않았다. 상세 현재소유권·복사요약·private hash는 [HANDOFF.md](HANDOFF.md)에 기록했다.
