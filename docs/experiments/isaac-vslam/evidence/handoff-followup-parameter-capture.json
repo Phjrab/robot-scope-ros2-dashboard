@@ -1,0 +1,18 @@
+{
+  "scope": "Historical parameter-capture audit; files are failed captures, not actual effective parameter readback",
+  "observed_run": "followup-live-20261014/vo",
+  "files": {
+    "vslam-parameters.yaml": {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/vslam-parameters.yaml",
+      "sha256": "d2ec1b6927ff2b5ace76dd3d8eac2fa0f0843a120277206a95189014eb45113f",
+      "state": "FAILED_CAPTURE",
+      "message": "Node not found"
+    },
+    "camera-parameters.yaml": {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/runs/followup-live-20261014/vo/camera-parameters.yaml",
+      "sha256": "d2ec1b6927ff2b5ace76dd3d8eac2fa0f0843a120277206a95189014eb45113f",
+      "state": "FAILED_CAPTURE",
+      "message": "Node not found"
+    }
+  }
+}

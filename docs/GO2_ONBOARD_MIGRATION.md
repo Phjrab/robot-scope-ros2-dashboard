@@ -594,3 +594,33 @@ a service or change the running Jetson checkout. Current main UI/resource-monito
 implementation is preserved. See [experiment index](experiments/isaac-vslam/README.md),
 [results/restoration evidence](experiments/isaac-vslam/RESULTS.md) and
 [reproduction/owned cleanup](../experiments/isaac_vslam/README.md).
+
+### VSLAM audit for a separate hardware-validation chat — 2026-10-14
+
+The operator chose current-state inspection and existing-evidence analysis only.
+At 03:44:18UTC / 12:44:18KST, the new boot ID was
+`1af30487-8967-4432-8d30-fe575349cc85`. Camera relay PID998, dashboard PID1002
+and control-bridge PID988 were active/running; running Docker count was zero.
+At 03:36:13UTC, privileged FD/fuser inspection found no open USB/video/hidraw
+owner, but the on-demand camera relay remained active. This is an operational
+reservation, not an exclusive VSLAM camera handoff. No service was stopped or
+restarted during this audit. Current firmware/serial SDK readback and new live
+stereo/IMU tests were NOT_RUN. The previous camera restoration remains a
+historical observation, not the current PID/service identity.
+
+An audit of the preserved ten-minute follow-up found both parameter snapshot
+files contained `Node not found` with exit1. Full effective parameter readback
+for that run is incomplete; earlier VO and map-save readbacks are preserved
+and must be distinguished. Existing image/pose/status measurements remain
+evidence. Adjacent stationary pose increments were additionally analyzed
+without an arbitrary discontinuity/accuracy PASS criterion.
+
+The operating checkout remains clean main `416d25c`; this chat did not pull,
+reset, deploy or alter its UI/API/services. Audit artifacts and experiment
+images/workspace/results were preserved. Performance windows for the new
+chat must not overlap VSLAM builds, playback or recording without explicit
+coordination. Read [the standalone handoff and copyable summary](experiments/isaac-vslam/HANDOFF.md)
+for exact pins, observation-only pose contract, current reservation, paths and
+hashes, limitations and the minimum requirements before any operational integration.
+
+Final audit reconfirmation at03:53:48UTC /12:53:48KST found the same boot/service PIDs and no running containers. The privileged device scan at03:53:43UTC still found no open owner while the relay remained active. No handback or restart was performed.

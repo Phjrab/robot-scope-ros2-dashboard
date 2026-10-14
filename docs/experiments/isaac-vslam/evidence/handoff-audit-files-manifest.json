@@ -1,0 +1,70 @@
+{
+  "private_audit_directory": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z",
+  "files": [
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/camera-ownership-final.json",
+      "bytes": 8736,
+      "sha256": "dcea6a2ae2bdb3d59478b836bd404f9ab999802771c56f16a368338ccc4d1408"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/camera-ownership.json",
+      "bytes": 8725,
+      "sha256": "a1a5db87457627831204516f628280c0a08300018b8d0d92db5c152427311b9d"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/effective-parameter-review.json",
+      "bytes": 788,
+      "sha256": "61d5b04d67c84e58102b1d2c02b9010297e65fff85b96135283e2319149110fc"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/final-confirmation.json",
+      "bytes": 880,
+      "sha256": "b9e4fa200ae125ef065f97274eb716a4ffbfd3cc4f57dd3ff089fc73c34a691d"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/final-resource-state.json",
+      "bytes": 909,
+      "sha256": "9810474c93df540ac3731128d2d6ba0f9276e9cc5d875d2fb45477462af4cb6e"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/input-contract-review.json",
+      "bytes": 24977,
+      "sha256": "352a7f2daa75e78a1d24c54cee4869ca1ea9b08dcafd2152d87918fb91ed1584"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/older-effective-parameters.json",
+      "bytes": 3566,
+      "sha256": "79228dca1dac48a4496fb5d462fd1783283295f5dea068c8ea1ec93b5b379df4"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/parameter-capture-inventory.json",
+      "bytes": 5112,
+      "sha256": "3b47c4431150c24824c183a5d5760b791a45c33e3bb54857038c544f6d997b31"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/pose-continuity-review.json",
+      "bytes": 1401,
+      "sha256": "ee271d46ba789f9d3a139f3931debec2732118d9b43ec2174199644e1cf06709"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/preflight.json",
+      "bytes": 38919,
+      "sha256": "5cfe8029297dddf6709fb0c4758d84d9243af57361adac319a1d4269564c47f1"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/private-evidence-inventory.json",
+      "bytes": 6636,
+      "sha256": "7fe55cbf1844f6580eefdc86146b8036d13e284083887de531e42dc646bf33aa"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/runtime-inventory.json",
+      "bytes": 130182,
+      "sha256": "549e3d61b31e9a72aa5c9b1dc4ec8820e4f1e57207a0b899bc1e52e07103f76a"
+    },
+    {
+      "path": "/home/unitree/experiments/isaac-vslam-lab/evidence/handoff-20261014T0333Z/source-drift.json",
+      "bytes": 772,
+      "sha256": "821fba70a6e16f26569d8f03d2c3dbec6b5ff15e0ce7f44febfbe9441ffe64e3"
+    }
+  ]
+}

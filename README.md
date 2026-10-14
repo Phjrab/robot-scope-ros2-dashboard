@@ -35,6 +35,7 @@ IMU 입력은 없어 VIO가 차단됐고, SLAM 지도 저장은 성공했지만 
 [검증 상태와 증거](docs/experiments/isaac-vslam/README.md),
 [전체 측정 결과](docs/experiments/isaac-vslam/RESULTS.md),
 [독립 재실행·종료 도구](experiments/isaac_vslam/README.md)를 저장소에 통합했습니다.
+별도 실장비 검증 채팅에는 [현재 자원 상태와 인계 요약](docs/experiments/isaac-vslam/HANDOFF.md)을 전달합니다.
 카메라 기준 독립 실험 결과이며 운영 자율주행 적용 승인을 뜻하지 않습니다.
 
 ## 화면 예시
