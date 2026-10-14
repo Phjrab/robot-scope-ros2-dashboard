@@ -23,9 +23,9 @@ body { background: var(--bg); }
 .nav-item svg { width: 22px; height: 22px; flex: 0 0 auto; }
 .navigation-toggle { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); }
 .navigation-toggle svg { width: 20px; height: 20px; }
-html[data-navigation-collapsed="true"] { --rail-width: 84px; }
-html[data-navigation-collapsed="true"] .nav-item { flex-direction: column; padding: 8px 2px; gap: 4px; text-align: center; }
-html[data-navigation-collapsed="true"] .navigation-toggle span { display: none; }
+html[data-navigation-collapsed="true"] .shell { grid-template-columns: minmax(0, 1fr); }
+html[data-navigation-collapsed="true"] .sidebar { display: none; }
+.top-actions .navigation-toggle { display: flex; width: auto; margin: 0; padding: 8px 12px; }
 .nav-item small { display: none; }
 .nav-item.is-active { background: #1d3929; color: var(--cyan); border-color: var(--cyan); box-shadow: inset 2px 0 var(--cyan); }
 .advanced-tools { border-top: 1px solid var(--line); padding-top: 8px; }
@@ -196,6 +196,7 @@ footer { position: fixed; left: var(--rail-width); right: 0; bottom: 0; margin: 
 .navigation-map-stage { min-height: 420px; }
 .sensor-page-grid { grid-template-columns: minmax(0, 1fr) var(--inspector-width); gap: 16px; align-items: start; }
 .sensor-page-grid .camera-panel { grid-column: 1; grid-row: 1 / span 2; }
+.sensor-page-grid .camera-panel.is-dual-view { grid-column: 1; }
 .sensor-page-grid .dataset-capture-panel { grid-column: 2; grid-row: 1; }
 .sensor-page-grid .dataset-capture-layout { grid-template-columns: minmax(0, 1fr); }
 .dataset-capture-panel .dataset-capture-layout { display: flex; flex-direction: column; }
@@ -222,7 +223,7 @@ html[data-workspace-window="cockpit"] .cockpit-workspace { min-height: 0; }
   .topbar .brand small { display: none; }
   .page-heading p { max-width: 55ch; }
   [data-page="mapping"], .saved-layout, .navigation-main-grid, .sensor-page-grid { grid-template-columns: minmax(0, 1fr); }
-  .sensor-page-grid .camera-panel, .sensor-page-grid .dataset-capture-panel { grid-column: auto; grid-row: auto; }
+  .sensor-page-grid .camera-panel, .sensor-page-grid .camera-panel.is-dual-view, .sensor-page-grid .dataset-capture-panel { grid-column: auto; grid-row: auto; }
   [data-page="mapping"] .mapping-support-grid { grid-column: auto; }
 }
 @media (max-width: 800px) {

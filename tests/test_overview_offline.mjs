@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { overviewLidarReception } from '../robot_dashboard/static/features/sensors/lidar_reception.js';
 import { runInNewContext } from 'node:vm';
 import { controlBridgeConnectionState, overviewUnavailableReason, renderHeaderConnections } from '../robot_dashboard/static/features/control/session_contract.js';
 
@@ -149,6 +150,7 @@ function overviewHarness() {
     {
       ui,
       overviewUnavailableReason,
+      overviewLidarReception,
       cameraStatusMeta: { state: 'ok', fps: 99 },
       overviewTelemetryAvailability: null,
       cameraCatalog: [],
@@ -224,7 +226,7 @@ function statePayload({ online = true, battery = undefined, cameraFps = 30, lida
     },
     cloud: { frame_id: 'map', sent_points: 1 },
     map: {},
-    mapping: { state: 'cloud_only', cloud: { hz: lidarHz } },
+    mapping: { state: 'cloud_only', cloud: { hz: lidarHz, state: 'ok', age_s: 0.1 } },
     robot_pose: { frame_id: 'map' },
     sources: {
       camera: '/camera/front',
@@ -404,6 +406,7 @@ test('lidar source identity cannot repopulate its subtitle while telemetry is un
     {
       ui,
       overviewUnavailableReason,
+      overviewLidarReception,
       overviewTelemetryAvailability: null,
       latestState: { health: { agent_ready: true, robot_target_connected: true, robot_online: false } },
       selectedPointcloudTopic() { throw new Error('offline lidar rendering must return before resolving cached sources'); },
@@ -482,4 +485,34 @@ test('state request failure resets Overview and connect/disconnect invalidate ol
   for (const name of ['setRobotIp', 'disconnectRobotTarget']) {
     assert.match(functionSource(name), /invalidateStateRequests\(\)/, `${name} must fence requests explicitly`);
   }
+});
+
+
+test('overview LiDAR uses fresh selected subscription while render transport is idle', () => {
+  const harness = overviewHarness();
+  harness.liveSceneCloud = () => null;
+  harness.updateOverview(statePayload({ lidarHz: 10 }));
+  assert.equal(harness.ui.lidarMetric.textContent, '10.0 Hz');
+  assert.match(harness.ui.liveCloudStatus.textContent, /live/);
+});
+
+test('cached render frames, stale rates and another LiDAR source cannot revive overview', () => {
+  const harness = overviewHarness();
+  for (const observation of [
+    { state: 'stale', age_s: 8, hz: 10 },
+    { state: 'ok', age_s: 8, hz: 10 },
+    { state: 'ok', hz: 10 },
+    { state: 'ok', age_s: -1, hz: 10 },
+    { state: 'ok', age_s: 'invalid', hz: 10 },
+  ]) {
+    const state = statePayload(); state.mapping.cloud = observation;
+    harness.updateOverview(state);
+    assert.equal(harness.ui.lidarMetric.textContent, 'OFFLINE');
+  }
+  const state = statePayload(); state.cloud.topic = '/another_lidar';
+  harness.updateOverview(state);
+  assert.equal(harness.ui.lidarMetric.textContent, 'OFFLINE');
+  harness.latestTopics = [{ name: '/cloud_registered', state: 'ok', age_s: 0.2, hz: 15 }];
+  harness.updateOverview(state);
+  assert.equal(harness.ui.lidarMetric.textContent, '15.0 Hz');
 });

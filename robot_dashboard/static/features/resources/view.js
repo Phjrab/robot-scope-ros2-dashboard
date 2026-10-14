@@ -1,6 +1,8 @@
 import { valid, format, gib, mbps, cameraFresh, topicFresh, measurements, comparisonWindow, loadAverages, windowReady, summarize, guidance, exportCsv } from './model.js';
 
-const $ = (id) => document.getElementById(id);
+export function createResourceMonitor(root = document, { active = true } = {}) {
+
+const $ = (id) => root.querySelector(`#${id}`);
 const history = [];
 const events = [];
 let baseline = null;
@@ -141,7 +143,7 @@ function clearLive(message, state = 'error') {
 }
 
 async function poll() {
-  if (paused || document.hidden || pending) return;
+  if (!active || paused || document.hidden || pending) return;
   const controller = new AbortController(); pending = controller;
   const timeout = setTimeout(() => controller.abort(), 4500);
   try {
@@ -149,7 +151,7 @@ async function poll() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const sample = await response.json();
     if (sample.schema !== 'robot-scope.resources.v1' || !valid(sample.timestamp_ms) || !valid(sample.seq)) throw new Error('invalid measurement');
-    if (paused || document.hidden) return;
+    if (!active || paused || document.hidden) return;
     available = true;
     const previous = history.at(-1);
     if (!previous || sample.seq !== previous.seq || sample.timestamp_ms !== previous.timestamp_ms) {
@@ -161,10 +163,10 @@ async function poll() {
     latest = sample;
     text('connectionState', '● LIVE · 1초'); $('connectionState').dataset.state = 'live'; render(sample);
   } catch (error) {
-    if (!paused && !document.hidden) clearLive(`연결 끊김${error.message.startsWith('HTTP') ? ` · ${error.message}` : ''}`);
+    if (active && !paused && !document.hidden) clearLive(`연결 끊김${error.message.startsWith('HTTP') ? ` · ${error.message}` : ''}`);
   } finally {
     clearTimeout(timeout); pending = null;
-    if (!paused && !document.hidden) timer = setTimeout(poll, 1000);
+    if (active && !paused && !document.hidden) timer = setTimeout(poll, 1000);
   }
 }
 
@@ -182,7 +184,7 @@ function drawChart() {
   if (!rect.width) return;
   const dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(rect.width * dpr); canvas.height = Math.round(rect.height * dpr);
   const context = canvas.getContext('2d'); if (!context) return; context.scale(dpr, dpr);
-  const styles = getComputedStyle(document.documentElement);
+  const styles = getComputedStyle($('resourceChart'));
   const color = (key) => styles.getPropertyValue(key).trim();
   const width = rect.width, height = rect.height, left = 34, right = width - 8, top = 12, bottom = height - 27;
   context.font = '10px monospace'; context.textAlign = 'right';
@@ -219,7 +221,7 @@ function drawChart() {
 
 $('pauseButton').addEventListener('click', () => {
   paused = !paused; $('pauseButton').setAttribute('aria-pressed', String(paused)); text('pauseButton', paused ? '▶ 관측 재개' : 'Ⅱ 일시정지'); stopPolling();
-  if (paused) clearLive('일시정지', 'paused'); else { clearLive('재연결 중', 'waiting'); if (!pending) poll(); }
+  if (paused) clearLive('일시정지', 'paused'); else { clearLive('재연결 중', 'waiting'); if (active && !pending) poll(); }
 });
 $('baselineButton').addEventListener('click', () => {
   const rows = comparisonWindow(history); if (!available || !windowReady(rows)) return;
@@ -235,8 +237,17 @@ $('exportButton').addEventListener('click', () => {
 });
 $('loadThreshold').addEventListener('change', () => { if (available && latest) render(latest); else drawChart(); });
 $('historyWindow').addEventListener('change', drawChart);
-document.addEventListener('visibilitychange', () => { stopPolling(); if (document.hidden) clearLive('창 비활성 · 관측 중단', 'paused'); else if (!paused && !pending) { clearLive('재연결 중', 'waiting'); poll(); } });
+document.addEventListener('visibilitychange', () => { stopPolling(); if (document.hidden) clearLive('창 비활성 · 관측 중단', 'paused'); else if (active && !paused && !pending) { clearLive('재연결 중', 'waiting'); poll(); } });
 new ResizeObserver(drawChart).observe($('resourceChart'));
 new MutationObserver(drawChart).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 window.addEventListener('pagehide', stopPolling);
 poll();
+
+return {
+  setActive(value) {
+    active = Boolean(value); stopPolling();
+    if (!active) clearLive('다른 화면 · 관측 중단', 'paused');
+    else if (!paused && !document.hidden && !pending) { clearLive('재연결 중', 'waiting'); poll(); }
+  },
+};
+}

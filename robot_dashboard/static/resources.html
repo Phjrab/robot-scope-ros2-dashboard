@@ -7,15 +7,16 @@
   <title>Jetson 자원 모니터 · Robot Scope</title>
   <script src="/static/theme.js"></script>
   <link rel="stylesheet" href="/static/fonts.css">
+  <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/features/resources/view.css">
-  <script type="module" src="/static/features/resources/view.js"></script>
+  <script type="module" src="/static/features/resources/standalone.js"></script>
 </head>
-<body>
+<body class="resource-monitor">
   <header class="topbar">
     <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">▥</span> ROBOT SCOPE <span class="brand-divider">/</span><span class="brand-section">COMPUTE</span></a>
     <div class="top-actions"><span class="live-badge" id="connectionState" role="status">연결 대기</span><button id="themeToggle" type="button">화이트 모드</button></div>
   </header>
-  <main>
+  <main class="resource-content">
     <section class="intro">
       <div><p class="eyebrow">UNITREE · ONBOARD COMPUTE</p><h1>Jetson 자원 모니터<span class="title-dot">.</span></h1><p class="intro-copy">센서 설정을 바꾸고, 연산 부하와 수신률의 변화를 확인하세요.</p></div>
       <div class="host-box"><span class="eyebrow">MEASUREMENT HOST</span><strong id="hostModel">호스트 확인 중</strong><span id="hostName">—</span><small>이 웹 서버가 실행되는 보드의 자원입니다.</small></div>

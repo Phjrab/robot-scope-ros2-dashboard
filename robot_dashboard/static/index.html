@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/static/mission-control.css">
   <link rel="stylesheet" href="/static/themes.css">
   <link rel="stylesheet" href="/static/typography.css">
+  <link rel="stylesheet" href="/static/features/resources/view.css">
   <script src="/static/typography.js" defer></script>
 </head>
 <body>
@@ -25,6 +26,8 @@
       <span><strong>ROBOT SCOPE</strong><small>ROBOTICS MISSION CONTROL</small></span>
     </a>
     <div class="top-actions">
+      <button class="navigation-toggle" id="navigationToggle" type="button" aria-label="메뉴 접기" aria-expanded="true" aria-controls="appNavigation"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m7-12-4 4 4 4"/></svg><span>메뉴 접기</span></button>
+
       <a class="dataset-global-status" id="datasetGlobalStatus" href="#sensors" hidden aria-label="서버 데이터셋 캡처 상태 보기">
         <span class="dataset-capture-dot" aria-hidden="true"></span><strong>SERVER CAPTURE</strong><small id="datasetGlobalStatusText">00:00 · 0 saved</small>
       </a>
@@ -41,14 +44,13 @@
 
   <main class="shell">
     <aside class="sidebar">
-      <button class="navigation-toggle" id="navigationToggle" type="button" aria-label="메뉴 접기" aria-expanded="true" aria-controls="appNavigation"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m7-12-4 4 4 4"/></svg><span>메뉴 접기</span></button>
       <nav class="app-nav" id="appNavigation" aria-label="Robot Scope 기능 메뉴">
         <a class="nav-item" href="#cockpit" data-nav="cockpit" title="관측 · 센서·지도·카메라" aria-label="관측 · 센서·지도·카메라"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="7"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="2"/></svg></i><span><b>관측</b><small>센서·지도·카메라</small></span></a>
         <a class="nav-item" href="#mapping" data-nav="mapping" title="지도 만들기 · 실시간 LiDAR" aria-label="지도 만들기 · 실시간 LiDAR"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15m6-12v15"/></svg></i><span><b>지도 만들기</b><small>실시간 LiDAR</small></span></a>
         <a class="nav-item" href="#maps" data-nav="maps" title="저장 지도 · 지도 탐색·편집" aria-label="저장 지도 · 지도 탐색·편집"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 7h7l2 2h9v11H3Z"/><path d="M3 7V4h7l2 3"/></svg></i><span><b>저장 지도</b><small>지도 탐색·편집</small></span></a>
         <a class="nav-item" href="#navigation" data-nav="navigation" title="주행 · Nav2 자율주행" aria-label="주행 · Nav2 자율주행"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3 8 18-8-5-8 5Z"/><path d="M12 3v13"/></svg></i><span><b>주행</b><small>Nav2 자율주행</small></span></a>
         <a class="nav-item" href="#sensors" data-nav="sensors" title="카메라·수집 · 영상·데이터셋" aria-label="카메라·수집 · 영상·데이터셋"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="m8 6 2-3h4l2 3"/><circle cx="12" cy="13" r="4"/></svg></i><span><b>카메라·수집</b><small>영상·데이터셋</small></span></a>
-        <a class="nav-item" href="/static/resources.html" title="Jetson 자원 · CPU·GPU·메모리·네트워크" aria-label="Jetson 자원 모니터"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4M18 9h4m-4 6h4"/><path d="M9 15v-3m3 3V9m3 6v-4"/></svg></i><span><b>Jetson 자원</b><small>실시간 연산 부하</small></span></a>
+        <a class="nav-item" href="#resources" data-nav="resources" title="Jetson 자원 · CPU·GPU·메모리·네트워크" aria-label="Jetson 자원 모니터"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4M18 9h4m-4 6h4"/><path d="M9 15v-3m3 3V9m3 6v-4"/></svg></i><span><b>Jetson 자원</b><small>실시간 연산 부하</small></span></a>
         <details class="advanced-tools" open>
           <summary title="시스템·미션·대회 도구">더 보기</summary>
           <nav aria-label="시스템과 추가 도구">
@@ -99,7 +101,7 @@
           <a href="#controls" class="route-card control-route-card"><span>ARM REQUIRED</span><strong>수동 제어</strong><small>키보드·게임패드 주행과 서버가 허용한 Go2 모션을 실행합니다.</small><b>열기 →</b></a>
           <a href="#navigation" class="route-card navigation-route-card"><span>NAV2</span><strong>주행</strong><small>정적 지도에서 초기 위치와 목표를 지정하고 Nav2 상태를 추적합니다.</small><b>열기 →</b></a>
           <a href="#route-planner" class="route-card route-planner-route-card"><span>ADVISORY ONLY</span><strong>경로 계획</strong><small>주문을 구성하고 서버가 계산한 추천 경로와 수동 안내를 독립 화면에서 확인합니다.</small><b>열기 →</b></a>
-          <a href="/static/resources.html" class="route-card"><span>JETSON · LIVE COMPUTE</span><strong>Jetson 자원</strong><small>CPU·GPU·메모리·네트워크 부하와 센서 설정 변경 전후를 비교합니다.</small><b>열기 →</b></a>
+          <a href="#resources" data-nav="resources" class="route-card"><span>JETSON · LIVE COMPUTE</span><strong>Jetson 자원</strong><small>CPU·GPU·메모리·네트워크 부하와 센서 설정 변경 전후를 비교합니다.</small><b>열기 →</b></a>
           <a href="/static/experiments.html" class="route-card"><span>OFFLINE · READ ONLY</span><strong>실험 결과</strong><small>합성 위치추정 결과를 동일 입력의 기준선과 비교합니다. 로봇 제어와 분리되어 있습니다.</small><b>열기 →</b></a>
         </section>
       </section>
@@ -940,6 +942,8 @@
         </section>
       </section>
 
+      <section class="page-view resource-monitor" data-page="resources" id="resourceMonitor" hidden aria-label="Jetson 자원 모니터"><p role="status">자원 모니터를 불러오는 중입니다.</p></section>
+
       <footer><span>Robot Scope v0.4 · Mapping · Telemetry · Fail-safe control</span><span id="lastUpdated">Last update —</span></footer>
     </section>
   </main>
@@ -955,6 +959,7 @@
   <script src="/static/map_editor.js" defer></script>
   <script src="/static/navigation.js" defer></script>
   <script src="/static/map_annotations.js" defer></script>
+  <script src="/static/features/resources/dashboard_page.js" type="module"></script>
   <script src="/static/app.js" type="module"></script>
 </body>
 </html>

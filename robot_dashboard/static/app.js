@@ -1,3 +1,4 @@
+import { overviewLidarReception } from './features/sensors/lidar_reception.js';
 import { api, latestApi } from './core/api.js';
 import { $, setStatePill } from './core/dom.js';
 import { formatHz, safeNumber } from './core/format.js';
@@ -1451,7 +1452,7 @@ function updateOverview(state) {
   }
   syncCameraFrameFreshness();
 
-  const cloudMetric = mapping.cloud || {};
+  const lidarReception = overviewLidarReception(state, latestTopics);
   const liveCloud = liveSceneCloud();
   const cloudTopic = latestTopics.find((topic) => topic.name === cloudSource);
   const odomTopic = latestTopics.find((topic) => topic.name === odomSource);
@@ -1460,9 +1461,9 @@ function updateOverview(state) {
   const poseFrame = state.robot_pose?.frame_id || '';
   const frameMismatch = Boolean(cloudFrame && poseFrame && cloudFrame !== poseFrame);
 
-  ui.lidarMetric.textContent = liveCloud ? formatHz(cloudMetric.hz ?? cloudTopic?.hz) : 'OFFLINE';
+  ui.lidarMetric.textContent = lidarReception.live ? formatHz(lidarReception.hz) : 'OFFLINE';
   ui.liveCloudTopic.textContent = cloudSource || 'NO SOURCE';
-  ui.liveCloudStatus.textContent = liveCloud ? `live · ${formatHz(cloudMetric.hz ?? cloudTopic?.hz)} · ${cloudFrame || 'no frame'}` : (cloudTopic?.state || 'waiting');
+  ui.liveCloudStatus.textContent = lidarReception.live ? `live · ${formatHz(lidarReception.hz)} · ${cloudFrame || 'no frame'}` : (cloudTopic?.state || 'waiting');
   ui.liveOdomTopic.textContent = odomSource || 'NO SOURCE';
   ui.liveOdomStatus.textContent = odomTopic?.state === 'ok' ? `live · ${formatHz(odomTopic.hz)}` : (odomTopic?.state || 'waiting');
   ui.liveMapTopic.textContent = gridSource || 'NO SOURCE';

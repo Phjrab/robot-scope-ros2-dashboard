@@ -4,6 +4,7 @@ export const MISSION_PAGE_META = Object.freeze({
   mapping: ['지도 만들기', '실시간 점군, 로봇 자세와 매핑 파이프라인을 확인합니다.'],
   maps: ['저장 지도', '이미 매핑된 3D PCD와 2D 점유 지도를 센서 없이 탐색합니다.'],
   sensors: ['카메라·수집', '카메라·서버 캡처 세션·shadow perception 상태를 확인합니다.'],
+  resources: ['Jetson 자원', 'CPU·GPU·메모리·네트워크와 센서 수신 상태를 확인합니다.'],
   topics: ['ROS 토픽', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
   controls: ['수동 제어', 'ARM 버튼으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
   navigation: ['주행', '저장된 2D 지도에서 초기 위치와 목표를 지정하고 Go2 자율주행을 관리합니다.'],

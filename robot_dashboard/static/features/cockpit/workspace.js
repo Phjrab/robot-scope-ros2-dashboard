@@ -92,6 +92,8 @@ export function createCockpitWorkspace(options = {}) {
     documentRoot.dataset.navigationCollapsed = String(collapsed);
     navigationToggle.setAttribute('aria-expanded', String(!collapsed));
     navigationToggle.setAttribute('aria-label', collapsed ? '메뉴 펼치기' : '메뉴 접기');
+    navigationToggle.querySelector('span').textContent = collapsed ? '메뉴 펼치기' : '메뉴 접기';
+    resize();
   }, { signal: listeners.signal });
   if (presetSelect) {
     const saved = options.document.createElement('option');

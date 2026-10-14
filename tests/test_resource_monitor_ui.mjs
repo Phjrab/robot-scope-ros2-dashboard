@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const modelSource = fs.readFileSync(new URL('../robot_dashboard/static/features/resources/model.js', import.meta.url), 'utf8');
 const model = await import('data:text/javascript;base64,' + Buffer.from(modelSource).toString('base64'));
-const view = fs.readFileSync(new URL('../robot_dashboard/static/features/resources/view.js', import.meta.url), 'utf8').replace(/^import[^\n]*\n/, '');
+const view = fs.readFileSync(new URL('../robot_dashboard/static/features/resources/view.js', import.meta.url), 'utf8').replace(/^import[^\n]*\n/, '').replace('export function createResourceMonitor', 'function createResourceMonitor');
 
 class Element {
   constructor() { this.children = []; this.attributes = {}; this.listeners = {}; this.dataset = {}; this.style = {}; this.value = ''; this.rawText = ''; this.disabled = false; }
@@ -25,6 +25,7 @@ function harness() {
   const document = {
     hidden: false, listeners: {}, documentElement: new Element(), body: new Element(),
     getElementById(id) { if (!nodes.has(id)) { const node = new Element(); if (id.endsWith('Bar')) node.parentElement = new Element(); nodes.set(id, node); } return nodes.get(id); },
+    querySelector(selector) { return this.getElementById(selector.slice(1)); },
     createElement: () => new Element(),
     createTextNode(text) { const node = new Element(); node.textContent = text; return node; },
     addEventListener(name, listener) { this.listeners[name] = listener; },
@@ -43,7 +44,7 @@ function harness() {
     }) };
   };
   class Observer { observe() {} }
-  const factory = new Function('document', 'window', 'Node', 'ResizeObserver', 'MutationObserver', 'fetch', 'AbortController', 'setTimeout', 'clearTimeout', ...Object.keys(model), `${view}\nreturn { poll, history, events };`);
+  const factory = new Function('document', 'window', 'Node', 'ResizeObserver', 'MutationObserver', 'fetch', 'AbortController', 'setTimeout', 'clearTimeout', ...Object.keys(model), `${view.replace('return {\n  setActive', 'return { poll, history, events,\n  setActive')}\nreturn createResourceMonitor(document);`);
   h.api = factory(document, { addEventListener() {} }, Element, Observer, Observer, fetch, class { constructor() { this.signal = {}; } abort() {} }, () => 1, () => {}, ...Object.values(model));
   return h;
 }
@@ -118,4 +119,19 @@ test('saving a baseline waits for later samples and handles settings text litera
   h.document.hidden = true; h.document.listeners.visibilitychange();
   assert.equal(h.nodes.get('gpuValue').textContent, '—');
   const calls = h.calls; await h.api.poll(); assert.equal(h.calls, calls);
+});
+
+
+test('leaving resources stops requests and clears live values while preserving history', async () => {
+  const h = harness(); await flush();
+  h.api.setActive(false); await flush();
+  const calls = h.calls;
+  await h.api.poll();
+  assert.equal(h.calls, calls);
+  assert.equal(h.nodes.get('cpuValue').textContent, '—');
+  assert.equal(h.api.history.length, 1);
+  h.api.setActive(true); await flush();
+  assert.equal(h.calls, calls + 1);
+  assert.equal(h.api.history.length, 2);
+  assert.equal(h.nodes.get('connectionState').dataset.state, 'live');
 });
