@@ -1,0 +1,99 @@
+{
+  "run_id": "stage04-newmap-20261014T113809Z",
+  "date_kst": "2026-10-14",
+  "software_source": "eb9026a68a0529dd328148a9475289219be25c6a",
+  "device_source": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+  "device_dirty": false,
+  "device_deployed": false,
+  "scope_acceptance": false,
+  "motion_authorized": false,
+  "absolute_pose_accuracy_m": null,
+  "rows": [
+    {
+      "id": "04F_MAP_IDENTITY",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "observed": "Operator corrected name; exact catalogue revision and lineage pinned; maps unchanged"
+    },
+    {
+      "id": "04F_POSE_KNOWN_FREE",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "observed": "Both operator coordinates known-free; conservative map clearance 1.408/1.453m; no physical accuracy claim"
+    },
+    {
+      "id": "04F_LOCALIZATION_START",
+      "status": "FAIL",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "observed": "First attempt and one new attempt after measured freshness recovery timed out on stale localization inputs; no further retries"
+    },
+    {
+      "id": "04F_INITIAL_POSE_APPLICATION",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "observed": "Readiness never allowed application; initial_pose_count=0"
+    },
+    {
+      "id": "04F_OPERATIONAL_LOCALIZATION",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "observed": "No initialized operational pose, alignment or stable operational TF evidence"
+    },
+    {
+      "id": "04F_D2_LIVE",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "observed": "Device source lacks onboard support changes and observer/manager opt-in remain 0; no deployment or job"
+    },
+    {
+      "id": "04F_NAV2_GOAL_PATH",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "observed": "Actual isolated Nav2 1.1.20 Navfn; status4, 90 poses, 2.257095m; endpoint equals operator goal"
+    },
+    {
+      "id": "04F_NAV2_OCCUPIED_OUTSIDE_FRAME",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "observed": "Each rejected with status6 and zero poses"
+    },
+    {
+      "id": "04F_NAV2_UNKNOWN_KEEP_OUT_REVISION",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "observed": "New map has zero unknown cells, no annotations; static/inflation-only fixture; native action has no revision fence; prior unknown-policy FAIL retained"
+    },
+    {
+      "id": "04F_CLEANUP",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "observed": "Owned processes exited; original services and shared mapping retained; map hashes unchanged; nonzero motion count unchanged; physical final stop independently unmeasured"
+    }
+  ],
+  "private_evidence": "Dedicated private run directory; raw observations and operator map/coordinates remain outside Git",
+  "software_code_changed": false,
+  "software_working_tree_at_test": "documentation-only changes",
+  "validation": {
+    "plain_python": {
+      "tests": 1633,
+      "errors": 6,
+      "skips": 2,
+      "cause": "existing missing FastAPI/Starlette/Pydantic dependencies"
+    },
+    "javascript": {
+      "tests": 360,
+      "failures": 0
+    },
+    "document_contract": "PASS"
+  }
+}

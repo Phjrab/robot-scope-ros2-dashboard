@@ -60,3 +60,7 @@ unknown 성공은 현재 plugin의 명시적 정책과 일치한다. 요구조�
 최종 읽기 전용 확인에서 이번 수집기·FAST-LIO·planner·카메라 capture 프로세스가 없고 기존 dashboard/bridge/relay service invocation이 유지됐다. viewer 0, lease 없음, deadman false, command zero, 운영 goal idle, 기존 preview running을 확인했다. 임시 도구 두 개만 정리하고 private bag·query·원본·기존 지도와 VSLAM 자산은 보존했다. 물리 종료의 독립 관측은 없으며 소프트웨어 상태로 대체하지 않는다.
 
 사용자는 이 채팅 종료 확인 뒤 직접 대시보드에서 재매핑할 예정이다. 새 map/revision과 초기 위치가 알려지면 B 및 필요한 A의 후속 조건을 확인한다. 이번 결과로 05단계나 06단계를 자동 실행하지 않는다. 전체 구조화 판정과 측정/소프트웨어 source 구분은 [02_04_validation_matrix.json](02_04_validation_matrix.json)에 있다.
+
+## 새 지도 후속 기록
+
+운영자 재매핑·좌표 제공 이후의 실제 후속 실행은 [04_new_map_followup.md](04_new_map_followup.md)에 기록했다. 위의 최초 측정과 소프트웨어 회귀 기록은 그대로 유지한다.
