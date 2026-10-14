@@ -22,9 +22,9 @@ from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from .models import RegistrationContractError, SUPPORTED_BACKENDS
 from .process_adapter import RegistrationCanceled, RegistrationProcessError
+from .profiles import COMPETITION_FASTLIO_PROFILE as PROFILE, SUPPORTED_STATIONARY_PROFILES
 
 
-PROFILE = "go2-xt16-wireless-competition-fastlio"
 SOURCE_TOPIC = "/cloud_registered"
 SOURCE_FRAME = "camera_init"
 COLLECTION_DURATION_S = 2.5
@@ -514,7 +514,7 @@ def require_stationary_preflight(
             "fresh physical safety confirmation is required"
         )
     required = {
-        "profile": PROFILE, "stationary": True, "control_disarmed": True,
+        "stationary": True, "control_disarmed": True,
         "control_lease_active": False, "navigation_lease_active": False,
         "deadman": False, "goal_idle": True, "mapping_active": False,
         "dataset_active": False, "observation_pipeline_running": True,
@@ -525,6 +525,8 @@ def require_stationary_preflight(
     }
     if not isinstance(value, Mapping):
         raise RelocalizationUnavailable("motion-related state is unavailable")
+    if not isinstance(value.get("profile"), str) or value["profile"] not in SUPPORTED_STATIONARY_PROFILES:
+        raise RelocalizationUnavailable("stationary preflight failed: profile")
     for key, expected in required.items():
         if value.get(key) != expected:
             raise RelocalizationUnavailable(f"stationary preflight failed: {key}")

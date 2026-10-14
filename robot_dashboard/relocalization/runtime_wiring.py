@@ -13,13 +13,13 @@ from ..saved_maps import SavedMapError, SavedMapNotFound
 from .collector import FixedCloudRegisteredCollector
 from .models import BACKEND
 from .manager import (
-    PROFILE,
     RelocalizationConflict,
     StationaryRelocalizationManager,
     require_stationary_preflight,
     sport_velocity_is_stationary,
 )
 from .process_adapter import OfflineRegistrationProcess
+from .profiles import SUPPORTED_STATIONARY_PROFILES
 
 
 RELOCALIZATION_ENABLE_ENV = "ROBOT_SCOPE_D2_STATIONARY_RELOCALIZATION"
@@ -77,11 +77,13 @@ def build_stationary_relocalization_manager(
 
     if enabled is not True:
         return None
-    if mapping_profile != PROFILE:
-        raise RuntimeError("D2 relocalization requires the competition FAST-LIO profile")
+    if not isinstance(mapping_profile, str) or mapping_profile not in SUPPORTED_STATIONARY_PROFILES:
+        raise RuntimeError("D2 relocalization requires a supported XT16 FAST-LIO profile")
     evidence = agent.relocalization_evidence_snapshot()
     if not isinstance(evidence, Mapping) or evidence.get("enabled") is not True:
         raise RuntimeError("D2 relocalization requires the fixed observer opt-in")
+    if evidence.get("profile") != mapping_profile:
+        raise RuntimeError("D2 relocalization observer profile does not match runtime profile")
 
     root = _prepare_private_runtime_root(Path(runtime_root))
     backend = os.environ.get(REGISTRATION_BACKEND_ENV, BACKEND)

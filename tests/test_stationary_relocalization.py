@@ -958,7 +958,7 @@ class StationaryRelocalizationTests(unittest.TestCase):
                 return {"fresh": True}
 
             def relocalization_evidence_snapshot(self):
-                return {"enabled": self.observer_enabled}
+                return {"enabled": self.observer_enabled, "profile": profile}
 
         class MappingOwner:
             active = False
@@ -1147,11 +1147,37 @@ class StationaryRelocalizationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "observer"):
                 build_stationary_relocalization_manager(enabled=True, **kwargs)
             agent.observer_enabled = True
+            profile = "go2-onboard"
+            onboard_manager = build_stationary_relocalization_manager(
+                enabled=True, **{**kwargs, "mapping_profile": profile}
+            )
+            onboard_manager.close()
+            require_stationary_preflight(
+                safety(profile=profile), physical_safety_confirmed=True
+            )
+            with self.assertRaisesRegex(RuntimeError, "does not match"):
+                build_stationary_relocalization_manager(enabled=True, **kwargs)
             with self.assertRaisesRegex(RuntimeError, "profile"):
                 build_stationary_relocalization_manager(
                     enabled=True,
                     **{**kwargs, "mapping_profile": "go2-xt16-wireless"},
                 )
+
+    def test_onboard_observer_identity_and_safety_gates(self):
+        for profile in ("go2-onboard", "go2-xt16-wireless-competition-fastlio"):
+            hub = RelocalizationEvidenceHub(threading.RLock(), enabled=True, profile=profile)
+            self.assertTrue(hub.enabled)
+            self.assertEqual(hub.status_snapshot()["profile"], profile)
+            for changed in ({"source_publishers": 2}, {"source_fresh": False},
+                            {"source_qos_valid": False}, {"control_lease_active": True},
+                            {"goal_idle": False}, {"motion_evidence_fresh": False}):
+                with self.subTest(profile=profile, changed=changed), self.assertRaises(RelocalizationUnavailable):
+                    require_stationary_preflight(safety(profile=profile, **changed), physical_safety_confirmed=True)
+            with self.assertRaises(RelocalizationUnavailable):
+                require_stationary_preflight(safety(profile=profile), physical_safety_confirmed=False)
+        hub = RelocalizationEvidenceHub(threading.RLock(), enabled=True, profile="go2-xt16-wireless")
+        self.assertFalse(hub.enabled)
+        self.assertFalse(RelocalizationEvidenceHub(threading.RLock(), enabled=False, profile="go2-onboard").enabled)
 
     def test_d2_sport_velocity_envelope_rejects_motion_and_invalid_values(self):
         require_stationary_preflight(

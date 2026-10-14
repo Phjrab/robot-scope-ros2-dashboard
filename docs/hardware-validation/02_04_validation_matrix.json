@@ -1,0 +1,420 @@
+{
+  "schema": "robot-scope.hardware-validation.02-04.v1",
+  "run_id": "run-20261014T041650Z",
+  "date_kst": "2026-10-14",
+  "sources": {
+    "hardware": {
+      "commit": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+      "dirty": false,
+      "execution_hashes_private": "direct-inventory.json"
+    },
+    "software": {
+      "base_commit": "48d33df8101b2c704db830a8ff7e3241355b48d4",
+      "dirty_during_tests": true,
+      "file_hashes": {
+        "robot_dashboard/relocalization/profiles.py": "3346a8cba4670f1ae0e09c2c01837b5cde27630f983ad68dd9a80d503ce8a807",
+        "robot_dashboard/ros/relocalization_evidence.py": "a8070a957c9c172af051969991f6d8469fa6ad79b28408d29db1dcc406b480a6",
+        "robot_dashboard/ros_agent.py": "f4a23c9956d7e51da83e58cfc5376069cc2cfe62998bb9804388a8b3dd8e11fb",
+        "robot_dashboard/relocalization/manager.py": "fd8487d2814dba99d91c73462cef9ae8697025823031c0e8560705f3bd44550b",
+        "robot_dashboard/relocalization/runtime_wiring.py": "17ab1b48dacba7fd78e8a0e7c21aabdf8ad54240098b46eb5578d43e731c0e00",
+        "scripts/run_hesai_fastlio_humble.sh": "fc210a72c88211394ea15331e811fae7491462aef872d6c872c509a7fcfd7542",
+        "scripts/select_fastlio_query_config.sh": "43807fa15d83636da2af32b52a14ddbb5e883c5a0706933597d4340b75bdf824",
+        "scripts/evaluate_recorded_se3.py": "5daf5741330abf3574bf3853f9fca03669d873bee98a2416c691278aa861aea2"
+      }
+    }
+  },
+  "approval": {
+    "through_stage04": "explicit user approval and condition confirmation",
+    "stage05": false,
+    "operational_pose": "user will remap and supply pose; coordinates not assumed"
+  },
+  "summary": {
+    "counts": {
+      "PASS": 14,
+      "BLOCKED": 12,
+      "NOT_RUN": 5,
+      "FAIL": 1
+    },
+    "scope_acceptance": false,
+    "motion_authorized": false,
+    "absolute_position_error_m": null,
+    "absolute_rotation_error_rad": null,
+    "ATE": null,
+    "RPE": null
+  },
+  "stages": {
+    "02": "stationary observation and limited bag complete; clock/extrinsic/accuracy gaps remain",
+    "03": "qualification adapter and synthetic regression complete; real evaluation BLOCKED",
+    "04": "source fix and native planner tests complete; operating localization and D2 live BLOCKED; unknown refusal FAIL"
+  },
+  "resource_window": {
+    "samples_in_window": 30,
+    "cpu_valid_interval_samples": 29,
+    "cpu_range_percent": [
+      51.16,
+      57.84
+    ],
+    "cpu_sample_interval_range_s": [
+      5.598107674000403,
+      98.32491861299968
+    ],
+    "gpu_sample_range_percent": [
+      0.0,
+      0.0
+    ],
+    "max_memory_used_bytes": 1491304448,
+    "max_swap_used_bytes": 0,
+    "max_thermal_celsius": 67.062,
+    "throttling": null,
+    "cpu_basis": "existing dashboard /proc/stat interval sampler; first interval spanning pre-window excluded from CPU range",
+    "monitoring_workload": "GET control/navigation/resources/topics sequentially each cycle plus 5-second sleep"
+  },
+  "tests": {
+    "python_venv": {
+      "run": 1675,
+      "skipped": 2,
+      "errors": 0,
+      "failures": 0
+    },
+    "javascript": {
+      "run": 360,
+      "failures": 0
+    },
+    "system_python": {
+      "run": 1633,
+      "skipped": 2,
+      "errors": 6,
+      "failures": 0,
+      "result": "FAIL",
+      "reason": "preexisting missing FastAPI/Starlette/Pydantic; serial final run; existing venv used without reinstall"
+    }
+  },
+  "checks": [
+    {
+      "id": "01.direct_access",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Identify current checkout and service execution",
+      "observed": "New key authentication; clean device checkout and safe runtime inventory",
+      "private_evidence_key": "direct-inventory.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.short_subscription",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Bounded subscription trial with valid progressing pose",
+      "observed": "10.001s; 100 odometry messages; max displacement 0.002849m",
+      "private_evidence_key": "device-capture/short-fixed/summary.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.stationary_capture",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "180s finite pose and bounded explicit-topic recording",
+      "observed": "180.001s; 1800 poses; max displacement 0.008020m; quaternion valid",
+      "private_evidence_key": "stationary-analysis.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.sensor_graph",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Fixed topic types/QoS/cardinality and progressing source stamps",
+      "observed": "Single sensor publishers; start/end GID unchanged; no nonincreasing stamps",
+      "private_evidence_key": "device-capture/stationary-180/summary.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.effective_parameters",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Capture actual FAST-LIO parameters",
+      "observed": "dump exit0; use_sim_time false; dense false; no independent PCD writer",
+      "private_evidence_key": "fastlio-effective-readback.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.bag_integrity",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Explicit counts, bounds, integrity and transfer hashes",
+      "observed": "SQLite integrity ok; 191537152B; both bag hashes match; cloud intentionally sampled",
+      "private_evidence_key": "bag-and-map-audit.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.raw_clock",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Verified raw device to host clock contract",
+      "observed": "Raw device epoch differs; bridge transformed timestamps do not establish physical delay",
+      "private_evidence_key": "stationary-analysis.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.sensor_operational_tf",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Verified sensor extrinsics and operational TF chain",
+      "observed": "camera_init->body only; tf_static publishers/messages0; no verified map->odom->base_link",
+      "private_evidence_key": "device-capture/stationary-180/tf.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.absolute_accuracy",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Independent position/rotation truth",
+      "observed": "No independent truth; absolute errors/ATE/RPE null",
+      "private_evidence_key": "stationary-analysis.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.moving_capture",
+      "status": "NOT_RUN",
+      "evidence_type": "live_motion",
+      "required_for_scope": false,
+      "expected": "Operator motion with its own conditions",
+      "observed": "No movement; stage05 unapproved",
+      "private_evidence_key": "final-api.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.realsense_rgb",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": false,
+      "expected": "Authorized bounded preview and viewer release",
+      "observed": "20.043s;282 JPEG frames;640x480/~15FPS;viewer0 after; no service restart",
+      "private_evidence_key": "realsense-window.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "02.vslam_coexistence",
+      "status": "NOT_RUN",
+      "evidence_type": "live_stationary",
+      "required_for_scope": false,
+      "expected": "Separate agreed VSLAM coexistence window",
+      "observed": "No VSLAM workload; no coexistence claim",
+      "private_evidence_key": "direct-inventory.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "03.synthetic_regression",
+      "status": "PASS",
+      "evidence_type": "synthetic",
+      "required_for_scope": true,
+      "expected": "Preserve original bounded synthetic behavior",
+      "observed": "11 cases; status mismatch0;false candidate0; ambiguity retained",
+      "private_evidence_key": "synthetic-se3-regression.json",
+      "source_kind": "software"
+    },
+    {
+      "id": "03.recorded_adapter",
+      "status": "PASS",
+      "evidence_type": "synthetic",
+      "required_for_scope": true,
+      "expected": "Reject unqualified raw/clock/calibration/lineage/seed inputs",
+      "observed": "4 qualification tests; actual unqualified input exits2 BLOCKED",
+      "private_evidence_key": "recorded-se3-blocked.json",
+      "source_kind": "software"
+    },
+    {
+      "id": "03.qualified_real_inputs",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Independent registered map/query with calibration, clock, frame and seed",
+      "observed": "Actual query available but no qualified pair/seed",
+      "private_evidence_key": "recorded-input-unqualified.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "03.real_local_se3",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Evaluate qualified real inputs without operational publisher",
+      "observed": "Qualification stops before registration",
+      "private_evidence_key": "recorded-se3-blocked.json",
+      "source_kind": "software"
+    },
+    {
+      "id": "03.real_accuracy",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Independent 6DoF truth and uncertainty",
+      "observed": "All absolute errors null; no ATE/RPE",
+      "private_evidence_key": "recorded-input-unqualified.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "03.jetson_real_performance",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Same qualified real corpus on Jetson",
+      "observed": "No qualified real corpus; no timing claim",
+      "private_evidence_key": "recorded-se3-blocked.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "03.global_or_operational",
+      "status": "NOT_RUN",
+      "evidence_type": "recorded_real",
+      "required_for_scope": false,
+      "expected": "Separate global/operational contract",
+      "observed": "No global search or pose application implemented",
+      "private_evidence_key": "implementation-source-hashes.json",
+      "source_kind": "software"
+    },
+    {
+      "id": "04.d2_onboard_source",
+      "status": "PASS",
+      "evidence_type": "synthetic",
+      "required_for_scope": true,
+      "expected": "Explicit profile support without relaxing gates",
+      "observed": "Shared profile contract; identity mismatch rejection; onboard dense opt-in; unchanged safety gates",
+      "private_evidence_key": "python-venv-tests.log",
+      "source_kind": "software"
+    },
+    {
+      "id": "04.d2_onboard_runtime",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Qualified deployed runtime",
+      "observed": "Actual device remains original runtime with both opt-ins0; local fix not deployed",
+      "private_evidence_key": "direct-inventory.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.d2_live_candidate",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Qualified exact map and fixed collector/backend job",
+      "observed": "No candidate request; new map/pose and runtime prerequisites pending",
+      "private_evidence_key": "final-api.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.map_qualification",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Approved known-free map lineage/clearance/current location",
+      "observed": "Some original maps known-free0; edited maps do not establish navigation approval; user will remap",
+      "private_evidence_key": "bag-and-map-audit.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.operational_localization",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Operator supplies actual map pose for localization-only verification",
+      "observed": "User will remap then provide pose; no initialpose applied",
+      "private_evidence_key": "final-api.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.actual_planner_execution",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Isolated native Nav2 ComputePathToPose with no control endpoints",
+      "observed": "Nav2 1.1.20; domain83/loopback/TF remap; recorded-map free path42; owned server exit0",
+      "private_evidence_key": "planner-recorded-execution.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.planner_invalid_recorded_goals",
+      "status": "PASS",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Reject occupied/outside/wrong-frame requests",
+      "observed": "All three native actions ABORTED with path0",
+      "private_evidence_key": "planner-recorded-execution.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.planner_disconnected",
+      "status": "PASS",
+      "evidence_type": "synthetic",
+      "required_for_scope": true,
+      "expected": "Reject disconnected free-space fixture",
+      "observed": "ABORTED path0",
+      "private_evidence_key": "planner-fixture-execution.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.planner_unknown_refusal",
+      "status": "FAIL",
+      "evidence_type": "synthetic",
+      "required_for_scope": true,
+      "expected": "Unknown goal rejected for strict validation scope",
+      "observed": "Current allow_unknown=true returns path108; policy gap retained, operational wrapper NOT_RUN",
+      "private_evidence_key": "planner-fixture-execution.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.keep_out_costmap",
+      "status": "BLOCKED",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Actual annotation/KEEP_OUT costmap enforcement",
+      "observed": "Tested planner config lacks keep-out filter; not claimed verified",
+      "private_evidence_key": "planner-recorded-execution.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "04.revision_fence",
+      "status": "NOT_RUN",
+      "evidence_type": "recorded_real",
+      "required_for_scope": true,
+      "expected": "Operational map revision mismatch rejected",
+      "observed": "Native ComputePathToPose carries no revision; wrapper not executed",
+      "private_evidence_key": "planner-recorded-execution.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "05.motion_authorization",
+      "status": "NOT_RUN",
+      "evidence_type": "live_motion",
+      "required_for_scope": false,
+      "expected": "Explicit stage05 approval and all prerequisites",
+      "observed": "User explicitly unapproved stage05; no ARM/lease/operational goal or motion",
+      "private_evidence_key": "final-api.json",
+      "source_kind": "hardware"
+    },
+    {
+      "id": "end.owned_cleanup",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "required_for_scope": true,
+      "expected": "Release only this run resources; preserve services/assets",
+      "observed": "Owned capture/FAST-LIO/planner absent; viewers0; original service invocations unchanged; command0/no lease/no goal",
+      "private_evidence_key": "final-device-state.json",
+      "source_kind": "hardware"
+    }
+  ],
+  "publication": {
+    "status": "NOT_RUN",
+    "device_deployment": false,
+    "note": "Status at report creation; successful Git publication is recorded separately and never relabels measurement source."
+  },
+  "evidence": "Private index identifies complete runtime/maps/inputs/raw logs; public summaries omit credentials, sensor pixels, bags and device identifiers."
+}

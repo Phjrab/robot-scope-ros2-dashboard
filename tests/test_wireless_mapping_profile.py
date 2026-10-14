@@ -421,11 +421,10 @@ class WirelessMappingProfileTests(unittest.TestCase):
             'ROBOT_SCOPE_FASTLIO_CONFIG_FILE="fastlio_xt16_d2_relocalization.yaml"',
             wireless,
         )
-        self.assertIn(
-            "fastlio_xt16.yaml|fastlio_xt16_d2_relocalization.yaml",
-            runner,
-        )
-        self.assertIn("FAST-LIO config selection is not allowlisted", runner)
+        selector = (ROOT / "scripts/select_fastlio_query_config.sh").read_text()
+        self.assertIn('source "$SCRIPT_DIR/select_fastlio_query_config.sh"', runner)
+        self.assertIn("fastlio_xt16.yaml|fastlio_xt16_d2_relocalization.yaml", selector)
+        self.assertIn("FAST-LIO config selection is not allowlisted", selector)
 
     def test_wireless_ros_graph_is_pinned_without_weakening_wired_preflight(self):
         setup = (ROOT / "scripts" / "setup_wireless_mapping_ros2_humble.sh").read_text()

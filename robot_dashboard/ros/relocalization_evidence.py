@@ -2,7 +2,7 @@
 
 This component is deliberately independent from the operator-selected point
 cloud preview.  It owns no publisher and does not expose any motion or Nav2
-operation; it only validates three fixed competition-profile subscriptions.
+operation; it only validates three fixed XT16/FAST-LIO subscriptions.
 """
 
 from __future__ import annotations
@@ -15,9 +15,12 @@ from typing import Any, Callable, Mapping
 import numpy as np
 
 from ..pointcloud import extract_xyz
+from ..relocalization.profiles import (
+    COMPETITION_FASTLIO_PROFILE as PROFILE,
+    SUPPORTED_STATIONARY_PROFILES,
+)
 
 
-PROFILE = "go2-xt16-wireless-competition-fastlio"
 CLOUD_TOPIC = "/cloud_registered"
 ODOMETRY_TOPIC = "/Odometry"
 IMU_TOPIC = "/imu/body"
@@ -46,11 +49,16 @@ class RelocalizationEvidenceHub:
         lock: Any,
         *,
         enabled: bool,
+        profile: str = PROFILE,
         monotonic: Callable[[], float] = time.monotonic,
         realtime_ns: Callable[[], int] = time.time_ns,
     ) -> None:
         self._lock = lock
-        self._enabled = enabled is True
+        self._profile = profile
+        self._enabled = (
+            enabled is True and isinstance(profile, str)
+            and profile in SUPPORTED_STATIONARY_PROFILES
+        )
         self._monotonic = monotonic
         self._realtime_ns = realtime_ns
         self._contracts = {
@@ -219,7 +227,7 @@ class RelocalizationEvidenceHub:
         return {
             "schema": "robot-scope.relocalization-evidence.v1",
             "enabled": self._enabled,
-            "profile": PROFILE,
+            "profile": self._profile,
             "cloud": cloud,
             "motion": motion,
             "publisher_count": 0,

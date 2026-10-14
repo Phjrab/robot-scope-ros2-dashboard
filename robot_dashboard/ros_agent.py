@@ -67,7 +67,6 @@ from .ros.navigation_gateway import (
 from .ros.pointcloud import PointCloudHub
 from .ros.relocalization_evidence import (
     FIXED_TOPICS as RELOCALIZATION_FIXED_TOPICS,
-    PROFILE as RELOCALIZATION_PROFILE,
     RelocalizationEvidenceHub,
 )
 from .ros.runtime import RosRuntime
@@ -169,10 +168,8 @@ class RosAgent:
         )
         self._relocalization_evidence = RelocalizationEvidenceHub(
             self._lock,
-            enabled=(
-                relocalization_observer_requested
-                and navigation_profile == RELOCALIZATION_PROFILE
-            ),
+            enabled=relocalization_observer_requested,
+            profile=navigation_profile,
         )
         joint_stale_after = max(
             0.2,
