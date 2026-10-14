@@ -24,6 +24,19 @@ Go2 내부 Orin NX 16GB 단독 운영을 위한 명시적 `go2-onboard` profile�
 replay에서 확인됐고 현장 주행 결과로 확대하지 않습니다. 승인된 perception
 모델 artifact와 실장비 acceptance도 없습니다. [증거 표](docs/PORTFOLIO.md).
 
+## 내부 Jetson Isaac ROS VSLAM 검증
+
+2026-10-13~14 Go2 내부 Orin NX 16GB에서 Isaac ROS 3.2/Humble을 별도
+컨테이너로 실행했습니다. 공식 bag GPU 실행과 실제 D435i stereo 입력을 확인했고,
+정지 VO는 안정화 후 600.026초 동안 약 30.03Hz/18,018개 출력/추적 손실0회였습니다.
+IMU 입력은 없어 VIO가 차단됐고, SLAM 지도 저장은 성공했지만 재위치추정은 실패했습니다.
+실제 이동·루프 폐쇄·FAST-LIO 상대 정확도·운영 odometry/TF 통합은 미검증입니다.
+
+[검증 상태와 증거](docs/experiments/isaac-vslam/README.md),
+[전체 측정 결과](docs/experiments/isaac-vslam/RESULTS.md),
+[독립 재실행·종료 도구](experiments/isaac_vslam/README.md)를 저장소에 통합했습니다.
+카메라 기준 독립 실험 결과이며 운영 자율주행 적용 승인을 뜻하지 않습니다.
+
 ## 화면 예시
 
 2026-09-28 연결된 웹 UI를 **읽기 전용**으로 촬영한 화면입니다. Cockpit과

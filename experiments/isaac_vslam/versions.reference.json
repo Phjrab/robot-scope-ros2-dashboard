@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-13",
+  "status": "OFFICIAL_REFERENCE_ONLY_NOT_A_DEPLOYMENT_MANIFEST",
+  "repositories": {
+    "isaac_ros_visual_slam": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam.git",
+      "sha": "e31f4cc1d41a329a01946e5fe63669f8b15da677",
+      "observed_branch": "release-3.2",
+      "observed_matching_tag": "v3.2-15",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    },
+    "isaac_ros_common": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git",
+      "sha": "fcf4d9e17f8f0a7f47f1d22d6a18421ce3768c01",
+      "observed_branch": "release-3.2",
+      "observed_matching_tag": "v3.2-15",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    },
+    "isaac_ros_nitros": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros.git",
+      "sha": "e3a29804b6de38fefbf7040864124d983bfceb6a",
+      "observed_branch": "release-3.2",
+      "observed_matching_tag": "v3.2-15",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    },
+    "isaac_ros_examples": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples.git",
+      "sha": "98066652d1ab19a0dd3d9fc4df8ff5321607d46e",
+      "observed_branch": "release-3.2",
+      "observed_matching_tag": "v3.2-15",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    },
+    "isaac_ros_image_pipeline": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline.git",
+      "sha": "d931cce3d0bb4532a0a047f17a15705fc6ac2e1b",
+      "observed_branch": "release-3.2",
+      "observed_matching_tag": "v3.2-15",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    },
+    "librealsense": {
+      "url": "https://github.com/IntelRealSense/librealsense.git",
+      "sha": "e196cefa896e312d79c2df400c7623aa1e9c62ac",
+      "observed_ref": "refs/tags/v2.55.1",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    },
+    "realsense-ros": {
+      "url": "https://github.com/NVIDIA-ISAAC-ROS/realsense-ros.git",
+      "sha": "c04f43308c00a6f495f14a47cc84cc293047cdff",
+      "observed_ref": "refs/heads/release/4.51.1-isaac",
+      "execution_status": "REFERENCE_PIN_ONLY"
+    }
+  },
+  "official_apt_index": "https://isaac.download.nvidia.com/isaac-ros/release-3/dists/jammy/release-3.0/binary-arm64/Packages.gz",
+  "apt_reference_packages": [
+    {
+      "Package": "ros-humble-isaac-ros-common",
+      "Version": "3.2.5-0jammy",
+      "Architecture": "arm64",
+      "Filename": "pool/release-3.0/r/ros-humble-isaac-ros-common/ros-humble-isaac-ros-common_3.2.5-0jammy_arm64.deb",
+      "Size": "29716",
+      "SHA256": "e0ed29365cf569ef0b69fb4f9d93687089f60e75ed6b5ac9cfd1a0f8b921eac4"
+    },
+    {
+      "Package": "ros-humble-isaac-ros-examples",
+      "Version": "3.2.5-0jammy",
+      "Architecture": "arm64",
+      "Filename": "pool/release-3.0/r/ros-humble-isaac-ros-examples/ros-humble-isaac-ros-examples_3.2.5-0jammy_arm64.deb",
+      "Size": "8578",
+      "SHA256": "7f8a83db7fe6b7eeb3cccd7ec9e716608b704941ba994a601fc37e3c86322085"
+    },
+    {
+      "Package": "ros-humble-isaac-ros-nitros",
+      "Version": "3.2.5-0jammy",
+      "Architecture": "arm64",
+      "Filename": "pool/release-3.0/r/ros-humble-isaac-ros-nitros/ros-humble-isaac-ros-nitros_3.2.5-0jammy_arm64.deb",
+      "Size": "2275462",
+      "SHA256": "a816f16aeefc741bf58f6c5db57d1e89f9dc8595e70bca93f96771e5d737e464"
+    },
+    {
+      "Package": "ros-humble-isaac-ros-realsense",
+      "Version": "3.2.5-0jammy",
+      "Architecture": "arm64",
+      "Filename": "pool/release-3.0/r/ros-humble-isaac-ros-realsense/ros-humble-isaac-ros-realsense_3.2.5-0jammy_arm64.deb",
+      "Size": "5286",
+      "SHA256": "8788fb98373c4faa539e6477751d5ada9df7e760561380a72cd5c3ac5fbcba3d"
+    },
+    {
+      "Package": "ros-humble-isaac-ros-visual-slam",
+      "Version": "3.2.6-0jammy",
+      "Architecture": "arm64",
+      "Filename": "pool/release-3.0/r/ros-humble-isaac-ros-visual-slam/ros-humble-isaac-ros-visual-slam_3.2.6-0jammy_arm64.deb",
+      "Size": "2401418",
+      "SHA256": "1f138007db6678b6d2195da295f919467a6d4b1a2dfdff0fbcbacaae5d3b59cf"
+    },
+    {
+      "Package": "ros-humble-isaac-ros-visual-slam-interfaces",
+      "Version": "3.2.5-0jammy",
+      "Architecture": "arm64",
+      "Filename": "pool/release-3.0/r/ros-humble-isaac-ros-visual-slam-interfaces/ros-humble-isaac-ros-visual-slam-interfaces_3.2.5-0jammy_arm64.deb",
+      "Size": "97670",
+      "SHA256": "18dbf08d828c080695e0e35ca86a19dae68f2788644dad1fbde6a9cdcd579357"
+    }
+  ],
+  "sample": {
+    "version": "3.1.0",
+    "selection_reason": "Official release-3.2 guide selects highest available semver with major=3 minor<=2; no 3.2 asset published",
+    "url": "https://api.ngc.nvidia.com/v2/resources/nvidia/isaac/isaac_ros_visual_slam_assets/versions/3.1.0/files/quickstart.tar.gz",
+    "bytes": 641870836,
+    "expected_sha256": "32d5b2723b6c6b1998f669f31f1889ebb739e0ada6a5d78c699108e528f15f68",
+    "downloaded_sha256": "NOT_OBSERVED"
+  },
+  "image": {
+    "algorithm": "isaac_ros_common build_image_layers.sh Dockerfile MD5 chain",
+    "candidates": [
+      "nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble-realsense_0c5ed46be508cacd00f551276fb6125e",
+      "nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_4c0c55dddd2bbcc3e8d5f9753bee634c",
+      "nvcr.io/nvidia/isaac/ros:aarch64_dc1c0c51db74acc2dcbfbc65dbf31d2d"
+    ],
+    "registry_existence": "NOT_OBSERVED",
+    "digest": "NOT_OBSERVED",
+    "selected_execution_agent_observation": {
+      "reference": "nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_4c0c55dddd2bbcc3e8d5f9753bee634c",
+      "digest": "sha256:dd032d9aa0a4647460ab83dac734a155234a66fabeb80f9c659e7d4542a1ac94",
+      "evidence_source": "execution agent local Docker inspect and cuInit(0) result",
+      "cuda_initialization": "PASS",
+      "vslam_execution": "REFER_TO_RUN_MANIFEST"
+    }
+  },
+  "document_snapshots": {
+    "index.html": "a0a44e33915edd982f877880c00ac7a2351695707427a04dd5e766f6422555f1",
+    "realsense_setup.html": "6ded24309a02a8add8105e4c090bcce4bda2d00230ca268591129b4e79dbe2fc",
+    "realsense.html": "263eecf4d7dffeb9753555cd9d5c390d412874883ebf1c11c1c93b6e1e0668db",
+    "package.html": "9df59c84a6606fa71943796279715f97ea45c246742b0f215a8315fc31f1be68",
+    "validating.html": "cb778319447b1fe51b65d9492d16c96a4036fac587b777b89043e4d2e0c0546b",
+    "archive.html": "dc69b15c0d5d81b7c1302a4e928e152b53ef883bb7926848b53e2999533a861a",
+    "requirements.html": "1abe904cabb1471a4204abe4085cd52b822c7f313efb599085060ce3534fe5d7"
+  },
+  "apt_trust": {
+    "key_url": "https://isaac.download.nvidia.com/isaac-ros/repos.key",
+    "key_sha256": "d45fbd909e89914960a66dba17d4c659adf908ab4d6fe2cf55381e9ffe5ce59d",
+    "primary_fingerprints": [
+      "428F5D2ACFBC9AA1F8EAC84658F4DA023E691207",
+      "9EEB7195A4BD947C572666F9BBE5EA6DE681BCAB"
+    ],
+    "verification_scope": "Observed official HTTPS endpoint; scoped signed-by apt trust; not independent out-of-band validation",
+    "arm64_packages_gz_sha256": "7b562d31ba5cbdcbddbfa67c484aa7709019d208fe550feee491c815f32eba54"
+  }
+}

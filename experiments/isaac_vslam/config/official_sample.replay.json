@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "source_bag_sha256": "f9baa7b80d456aaf89ea69d1cc312775b763f185c073887ad5ac4c3f05e9afca",
+  "topics": [
+    {
+      "source": "/front_stereo_camera/left/image_raw",
+      "destination": "/vslam_lab/camera/left/image_raw",
+      "type": "sensor_msgs/msg/Image"
+    },
+    {
+      "source": "/front_stereo_camera/left/camera_info",
+      "destination": "/vslam_lab/camera/left/camera_info",
+      "type": "sensor_msgs/msg/CameraInfo"
+    },
+    {
+      "source": "/front_stereo_camera/right/image_raw",
+      "destination": "/vslam_lab/camera/right/image_raw",
+      "type": "sensor_msgs/msg/Image"
+    },
+    {
+      "source": "/front_stereo_camera/right/camera_info",
+      "destination": "/vslam_lab/camera/right/camera_info",
+      "type": "sensor_msgs/msg/CameraInfo"
+    }
+  ],
+  "static_tf_evidence_path": "/lab/data/quickstart-inspection.json",
+  "static_tf_evidence_sha256": "eb982f09c810ac2fc164c0fab8af970d9f1a73268268b892954e08087430a225",
+  "static_tf_sensor_only_verified": true,
+  "note": "Do not replay /tf or whole /tf_static. selected_static_tf.py selects only observed ancestor chains from front_stereo_camera to its two optical frames; no matrix is invented."
+}

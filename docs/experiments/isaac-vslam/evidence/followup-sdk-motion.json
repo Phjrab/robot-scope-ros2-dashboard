@@ -1,0 +1,24 @@
+{
+  "checked_at_utc": "2026-10-14T02:03:28.010665+00:00",
+  "boot_id": "5a0b1780-9356-437f-a807-aba42a0c5d12",
+  "camera_service": "inactive",
+  "usb_device": "/dev/bus/usb/001/004",
+  "fuser": "",
+  "user_stationary_window": "confirmed 2026-10-14 current follow-up",
+  "sdk_motion_probe": {
+    "duration_s": 10,
+    "sdk": "2.55.1",
+    "firmware": "5.17.3.10",
+    "gyro_samples": 0,
+    "accel_samples": 0,
+    "noise_and_bias_variances": [
+      0,
+      0,
+      0
+    ],
+    "emitter_before": 1,
+    "emitter_after": 1,
+    "exit_code": 3,
+    "source": "interactive owned labctl exec; stdout recorded in session59780"
+  }
+}

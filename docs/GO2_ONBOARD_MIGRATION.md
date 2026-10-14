@@ -568,3 +568,29 @@ by the `92ff609` measurements. Documentation-only synchronization must preserve
 their hashes and must not restart services to activate them. The final private
 record identifies this checkout drift separately from the verified runtime
 commit and Git HEAD.
+
+### Isaac ROS VSLAM experiment handback and repository integration — 2026-10-14
+
+This is a later experiment observation, separate from the earlier migration/UI
+acceptance. The camera handoff above is closed: after the authorized exclusive
+stationary window, `robot-scope-realsense-camera.service` was restored to
+active/running (PID34571) at 02:15:35UTC / 11:15:35KST on October14. The dashboard
+was active/HTTP200, no Docker containers were running, and operational domain0
+node discovery showed no `vslam_lab` nodes. Firmware5.17.3.10 and emitter1 were
+read back after VO. The on-demand RGB relay was restored; RGB consumption was
+NOT_RUN. Future trials still require a fresh camera/resource window.
+
+Official-bag GPU execution and live stereo input passed. Independent stationary
+VO produced18,018 outputs at30.029Hz over600.026 measured seconds, LOST0. VIO
+remains blocked by zero actual IMU callbacks, and saved-map localization failed
+with code3. A multi-thread executor fixed request/output starvation, not map
+reuse itself. Movement and operational estimator/TF/Nav2 integration were NOT_RUN.
+
+The operator subsequently requested repository integration. The reviewed
+experiment code, pins, guard tests, raw-measurement summaries and failures from
+`experiment/isaac-vslam-onboard@d54625481f84ef9c6054bd9ebd10fb08d0ab8a64`
+are now integrated into main on top of `416d25c`. This publication does not deploy
+a service or change the running Jetson checkout. Current main UI/resource-monitor
+implementation is preserved. See [experiment index](experiments/isaac-vslam/README.md),
+[results/restoration evidence](experiments/isaac-vslam/RESULTS.md) and
+[reproduction/owned cleanup](../experiments/isaac_vslam/README.md).

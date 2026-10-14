@@ -1,0 +1,620 @@
+{
+  "schema_version": 1,
+  "run_id": "multi",
+  "evidence_type": "recorded_sensor_bag",
+  "collector": {
+    "state": "ENDED",
+    "end_reason": "SIGINT"
+  },
+  "measurement": {
+    "warmup_seconds": 0.0,
+    "start_monotonic_ns": 442710918225,
+    "end_monotonic_ns": 482142772191,
+    "duration_seconds": 39.431853966,
+    "state": "OBSERVED"
+  },
+  "streams": {
+    "left": {
+      "state": "OBSERVED",
+      "samples": 850,
+      "receipt_monotonic": {
+        "samples": 850,
+        "interval_ms": {
+          "samples": 849,
+          "mean": 36.89718125441695,
+          "p50": 33.914513,
+          "p95": 50.0355844,
+          "max": 74.638667
+        },
+        "fps_over_observed_span": 27.102341317205365,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 850,
+        "interval_ms": {
+          "samples": 849,
+          "mean": 34.28261992932866,
+          "p50": 33.299456,
+          "p95": 33.341337599999996,
+          "max": 99.905024
+        },
+        "fps_over_observed_span": 29.1692992560497,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.048146278,
+      "seconds_to_first_sample_in_window": 8.058000803,
+      "frames": [
+        "vslam_lab_camera_infra1_optical_frame"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      },
+      "absolute_period_deviation_ms": {
+        "samples": 849,
+        "mean": 1.0114731872791543,
+        "p50": 0.033877333333336423,
+        "p95": 0.039253333333334695,
+        "max": 66.57169066666665
+      },
+      "expected_hz": 30.0
+    },
+    "left_info": {
+      "state": "OBSERVED",
+      "samples": 849,
+      "receipt_monotonic": {
+        "samples": 849,
+        "interval_ms": {
+          "samples": 848,
+          "mean": 36.93232901768865,
+          "p50": 33.772455,
+          "p95": 50.178536349999995,
+          "max": 74.751918
+        },
+        "fps_over_observed_span": 27.07654855779747,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 849,
+        "interval_ms": {
+          "samples": 848,
+          "mean": 34.283785056603826,
+          "p50": 33.299456,
+          "p95": 33.341606399999996,
+          "max": 66.641152
+        },
+        "fps_over_observed_span": 29.16830794350635,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.046737939,
+      "seconds_to_first_sample_in_window": 8.06650102,
+      "frames": [
+        "vslam_lab_camera_infra1_optical_frame"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      }
+    },
+    "odom": {
+      "state": "OBSERVED",
+      "samples": 842,
+      "receipt_monotonic": {
+        "samples": 842,
+        "interval_ms": {
+          "samples": 841,
+          "mean": 37.10799085493461,
+          "p50": 34.235261,
+          "p95": 50.184579,
+          "max": 74.769389
+        },
+        "fps_over_observed_span": 26.948373570244655,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 842,
+        "interval_ms": {
+          "samples": 841,
+          "mean": 34.292023096313955,
+          "p50": 33.299456,
+          "p95": 33.34144,
+          "max": 99.905024
+        },
+        "fps_over_observed_span": 29.161300783898373,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.045702726,
+      "seconds_to_first_sample_in_window": 8.178330931,
+      "frames": [
+        "vslam_lab_odom"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      },
+      "pose": {
+        "state": "OBSERVED",
+        "samples": 842,
+        "frames": [
+          [
+            "vslam_lab_odom",
+            "vslam_lab_camera_link"
+          ]
+        ],
+        "translation_from_first_m": {
+          "samples": 842,
+          "mean": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "rotation_from_first_deg": {
+          "samples": 842,
+          "mean": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "endpoint_displacement_m": 0.0,
+        "estimated_path_length_m": 0.0,
+        "interpretation": "Pose change only. Stationarity/motion must be independently declared; no accuracy, return error, ATE or RPE without a reference."
+      }
+    },
+    "right": {
+      "state": "OBSERVED",
+      "samples": 850,
+      "receipt_monotonic": {
+        "samples": 850,
+        "interval_ms": {
+          "samples": 849,
+          "mean": 36.89555028504124,
+          "p50": 34.215394,
+          "p95": 50.032007199999995,
+          "max": 74.732076
+        },
+        "fps_over_observed_span": 27.10353937736052,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 850,
+        "interval_ms": {
+          "samples": 849,
+          "mean": 34.28261992932866,
+          "p50": 33.299456,
+          "p95": 33.341337599999996,
+          "max": 99.905024
+        },
+        "fps_over_observed_span": 29.1692992560497,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.047285403,
+      "seconds_to_first_sample_in_window": 8.060246371,
+      "frames": [
+        "vslam_lab_camera_infra2_optical_frame"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      },
+      "absolute_period_deviation_ms": {
+        "samples": 849,
+        "mean": 1.0114725842167278,
+        "p50": 0.033877333333336423,
+        "p95": 0.039253333333334695,
+        "max": 66.57169066666665
+      },
+      "expected_hz": 30.0
+    },
+    "right_info": {
+      "state": "OBSERVED",
+      "samples": 849,
+      "receipt_monotonic": {
+        "samples": 849,
+        "interval_ms": {
+          "samples": 848,
+          "mean": 36.93218158018869,
+          "p50": 34.208964,
+          "p95": 50.114965749999996,
+          "max": 74.757005
+        },
+        "fps_over_observed_span": 27.076656650481333,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 849,
+        "interval_ms": {
+          "samples": 848,
+          "mean": 34.283785056603826,
+          "p50": 33.299456,
+          "p95": 33.341350399999996,
+          "max": 99.905024
+        },
+        "fps_over_observed_span": 29.16830794350635,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.046299758,
+      "seconds_to_first_sample_in_window": 8.067064228,
+      "frames": [
+        "vslam_lab_camera_infra1_optical_frame"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      }
+    },
+    "slam_path": {
+      "state": "OBSERVED",
+      "samples": 842,
+      "receipt_monotonic": {
+        "samples": 842,
+        "interval_ms": {
+          "samples": 841,
+          "mean": 37.153827107015445,
+          "p50": 34.30327,
+          "p95": 50.253476,
+          "max": 74.412904
+        },
+        "fps_over_observed_span": 26.915127669611675,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 842,
+        "interval_ms": {
+          "samples": 841,
+          "mean": 34.292023096313955,
+          "p50": 33.299456,
+          "p95": 33.34144,
+          "max": 99.905024
+        },
+        "fps_over_observed_span": 29.161300783898373,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.000715018,
+      "seconds_to_first_sample_in_window": 8.184770351,
+      "frames": [
+        "vslam_lab_map"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      },
+      "pose": {
+        "state": "OBSERVED",
+        "samples": 842,
+        "frames": [
+          [
+            "vslam_lab_map",
+            ""
+          ]
+        ],
+        "translation_from_first_m": {
+          "samples": 842,
+          "mean": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "rotation_from_first_deg": {
+          "samples": 842,
+          "mean": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "endpoint_displacement_m": 0.0,
+        "estimated_path_length_m": 0.0,
+        "interpretation": "Pose change only. Stationarity/motion must be independently declared; no accuracy, return error, ATE or RPE without a reference."
+      }
+    },
+    "static_tf": {
+      "state": "NO_RECENT_INPUT",
+      "samples": 65,
+      "receipt_monotonic": {
+        "samples": 65,
+        "interval_ms": {
+          "samples": 64,
+          "mean": 507.0356934687501,
+          "p50": 504.8003,
+          "p95": 538.39898035,
+          "max": 567.845347
+        },
+        "fps_over_observed_span": 1.9722477389289217,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 64,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 0,
+        "interval_ms": {
+          "samples": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "fps_over_observed_span": null,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.150236033,
+      "seconds_to_first_sample_in_window": 6.831333551,
+      "frames": [
+        ""
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      }
+    },
+    "status": {
+      "state": "OBSERVED",
+      "samples": 841,
+      "receipt_monotonic": {
+        "samples": 841,
+        "interval_ms": {
+          "samples": 840,
+          "mean": 37.13687943095245,
+          "p50": 34.2927205,
+          "p95": 50.24121615,
+          "max": 74.519434
+        },
+        "fps_over_observed_span": 26.927410577382346,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "header_stamp": {
+        "samples": 841,
+        "interval_ms": {
+          "samples": 840,
+          "mean": 34.33284693333338,
+          "p50": 33.299456,
+          "p95": 33.342464,
+          "max": 66.641664
+        },
+        "fps_over_observed_span": 29.12662622886401,
+        "duplicate_timestamps": 0,
+        "out_of_order": 0,
+        "gaps_above_threshold": 0,
+        "gap_threshold_ms": 100.0
+      },
+      "seconds_since_last_sample_at_end": 0.049776092,
+      "seconds_to_first_sample_in_window": 8.187099152,
+      "frames": [
+        "vslam_lab_map"
+      ],
+      "data_age_ms": {
+        "state": "N/A",
+        "reason": "Header/receipt ROS clock relationship is not verified"
+      },
+      "tracking": {
+        "state": "OBSERVED",
+        "samples": 841,
+        "mapped_samples": 841,
+        "unknown_samples": 0,
+        "lost_entries": 0,
+        "initial_state_lost": false,
+        "recovery_seconds": {
+          "samples": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "unrecovered_loss_seconds_at_end": null,
+        "explicit_stopped_samples": 0,
+        "last_state": "TRACKING"
+      }
+    }
+  },
+  "clock_contract": {
+    "header_and_receipt_same_ros_clock": false,
+    "evidence": "",
+    "mode": "simulation"
+  },
+  "stereo": {
+    "method": "nearest one-to-one header timestamps; no clock-offset correction",
+    "tolerance_ms": 15.0,
+    "matched_pairs": 849,
+    "unmatched_left": 1,
+    "unmatched_right": 1,
+    "left_minus_right_ms": {
+      "samples": 849,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "absolute_difference_ms": {
+      "samples": 849,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    }
+  },
+  "resources": {
+    "load_average_1m": {
+      "samples": 39,
+      "mean": 4.535068609775641,
+      "p50": 4.4755859375,
+      "p95": 5.15283203125,
+      "max": 5.15283203125
+    },
+    "ram_available_bytes": {
+      "samples": 39,
+      "mean": 14042094670.76923,
+      "p50": 13950169088.0,
+      "p95": 14413330022.4,
+      "max": 14805725184.0
+    },
+    "ram_used_bytes": {
+      "samples": 39,
+      "mean": 2360751025.230769,
+      "p50": 2452676608.0,
+      "p95": 2514998476.8,
+      "max": 2537107456.0
+    },
+    "swap_used_bytes": {
+      "samples": 39,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "max": 0.0
+    },
+    "temperature_c/thermal_zone0/cpu-thermal": {
+      "samples": 39,
+      "mean": 57.47484615384614,
+      "p50": 57.718,
+      "p95": 59.1591,
+      "max": 59.375
+    },
+    "temperature_c/thermal_zone1/gpu-thermal": {
+      "samples": 39,
+      "mean": 53.39623076923077,
+      "p50": 53.5,
+      "p95": 54.812,
+      "max": 54.937
+    },
+    "temperature_c/thermal_zone2/cv0-thermal": {
+      "samples": 39,
+      "mean": 55.086948717948694,
+      "p50": 55.281,
+      "p95": 56.6654,
+      "max": 57.187
+    },
+    "temperature_c/thermal_zone3/cv1-thermal": {
+      "samples": 39,
+      "mean": 55.20802564102563,
+      "p50": 55.25,
+      "p95": 56.5776,
+      "max": 57.187
+    },
+    "temperature_c/thermal_zone4/cv2-thermal": {
+      "samples": 39,
+      "mean": 54.28735897435896,
+      "p50": 54.343,
+      "p95": 55.656,
+      "max": 55.781
+    },
+    "temperature_c/thermal_zone5/soc0-thermal": {
+      "samples": 39,
+      "mean": 53.86741025641024,
+      "p50": 53.875,
+      "p95": 54.9712,
+      "max": 55.062
+    },
+    "temperature_c/thermal_zone6/soc1-thermal": {
+      "samples": 39,
+      "mean": 57.02687179487179,
+      "p50": 56.968,
+      "p95": 58.4401,
+      "max": 58.562
+    },
+    "temperature_c/thermal_zone7/soc2-thermal": {
+      "samples": 39,
+      "mean": 53.92025641025639,
+      "p50": 54.031,
+      "p95": 55.1901,
+      "max": 55.343
+    },
+    "temperature_c/thermal_zone8/tj-thermal": {
+      "samples": 39,
+      "mean": 57.63902564102563,
+      "p50": 57.718,
+      "p95": 59.2625,
+      "max": 59.375
+    }
+  },
+  "sensor_requirements_reference": {
+    "release": "3.2",
+    "minimum_image_hz": 30,
+    "image_period_jitter_ms": 2,
+    "stereo_offset_ms": 0.1,
+    "note": "Sensor requirements differ from sync_matching_threshold_ms and image_jitter_threshold_ms warning parameters; no automatic pass assigned"
+  },
+  "accuracy": {
+    "state": "N/A",
+    "reason": "No measured reference trajectory supplied; no ATE/RPE or motion accuracy computed"
+  },
+  "algorithm_processing_time_ms": {
+    "state": "MEASURED",
+    "fields": {
+      "node_callback_execution_time_ms": {
+        "samples": 841,
+        "mean": 3.1005422080856166,
+        "p50": 2.9771300000000003,
+        "p95": 3.429424,
+        "max": 34.850064
+      },
+      "track_execution_time_ms": {
+        "samples": 841,
+        "mean": 2.765740718192627,
+        "p50": 2.661573,
+        "p95": 2.947752,
+        "max": 34.504267
+      },
+      "track_execution_time_mean_ms": {
+        "samples": 841,
+        "mean": 2.9277652761776,
+        "p50": 2.7135395499999997,
+        "p95": 3.468494348837211,
+        "max": 34.504267
+      },
+      "track_execution_time_max_ms": {
+        "samples": 841,
+        "mean": 9.774090751486368,
+        "p50": 3.580849,
+        "p95": 34.504267,
+        "max": 34.504267
+      }
+    },
+    "source": "NVIDIA-ISAAC-ROS/isaac_ros_visual_slam@e31f4cc1d41a329a01946e5fe63669f8b15da677:isaac_ros_visual_slam_interfaces/msg/VisualSlamStatus.msg",
+    "meaning": "Published release-3.2 status durations; callback covers input processing through output publication, track covers cuVSLAM pose tracking. Rolling mean/max fields are not independent per-frame timings."
+  },
+  "notes": [
+    "No received samples does not prove tracking loss or a stopped estimator.",
+    "NO_RECENT_INPUT describes subscriber silence, not its cause.",
+    "Statistics do not assign INSTALL_PASS, LIVE_INPUT_PASS, VO_PASS or VIO_PASS."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "status": "FAILED",
+  "created_utc": "2026-10-14T01:55:58.592152+00:00",
+  "global_localization_tested": false,
+  "motion_accuracy_tested": false,
+  "files": [
+    {
+      "path": "data.mdb",
+      "bytes": 45056,
+      "sha256": "c8426f33dfa789c0a13eef9bcf101a6cbb8bcee3f8c60eecd2e0263982d933ce"
+    }
+  ],
+  "current_mapping_evidence": {
+    "slam_path_samples": 51,
+    "max_path_poses": 51,
+    "evidence_type": "recorded_sensor_bag"
+  },
+  "hint": {
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "quaternion_xyzw": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "evidence": "Existing stationary camera bag and stationary map with matching camera frames; origin hypothesis, no motion or accuracy reference."
+  },
+  "load_path_accepted": true,
+  "error": "TimeoutError: /vslam_lab/visual_slam/localize_in_map",
+  "ended_utc": "2026-10-14T01:56:18.845317+00:00"
+}

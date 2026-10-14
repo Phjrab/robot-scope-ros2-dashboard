@@ -1,0 +1,21 @@
+{
+  "verification_date": "2026-10-14",
+  "main_base_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+  "experiment_source_sha": "d54625481f84ef9c6054bd9ebd10fb08d0ab8a64",
+  "scope": "VSLAM experiment tools/docs/evidence/tests integrated with current main; no UI/runtime deployment changes",
+  "python_unittest": {
+    "command": "python3 -m unittest discover -s tests -v",
+    "run": 1667,
+    "optional_skips": 2,
+    "failures": 0
+  },
+  "javascript": {
+    "command": "npm run test:unit",
+    "run": 360,
+    "failures": 0
+  },
+  "markdown_links": "PASS",
+  "git_diff_check": "PASS",
+  "fresh_hardware_run": "NOT_RUN; preserved observed hardware runs used",
+  "deployment": "NOT_RUN"
+}

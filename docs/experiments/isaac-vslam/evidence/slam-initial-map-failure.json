@@ -1,0 +1,15 @@
+{
+  "status": "FAILED",
+  "map_directory": "/lab/run/slam-vo/map",
+  "service": "/vslam_lab/visual_slam/save_map",
+  "created_utc": "2026-10-13T12:01:33.683955+00:00",
+  "relocalization_verified": false,
+  "coverage_verified": false,
+  "observation": {
+    "slam_path_samples": 972,
+    "max_path_poses": 1024,
+    "evidence_type": "live_stationary"
+  },
+  "error": "AttributeError: __enter__",
+  "ended_utc": "2026-10-13T12:01:34.052889+00:00"
+}

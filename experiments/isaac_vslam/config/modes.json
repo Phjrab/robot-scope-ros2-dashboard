@@ -1,0 +1,22 @@
+{
+  "vo": {
+    "enable_imu_fusion": false,
+    "enable_localization_n_mapping": false,
+    "enable_slam_visualization": false
+  },
+  "vio": {
+    "enable_imu_fusion": true,
+    "enable_localization_n_mapping": false,
+    "enable_slam_visualization": false
+  },
+  "slam_vo": {
+    "enable_imu_fusion": false,
+    "enable_localization_n_mapping": true,
+    "enable_slam_visualization": true
+  },
+  "slam_vio": {
+    "enable_imu_fusion": true,
+    "enable_localization_n_mapping": true,
+    "enable_slam_visualization": true
+  }
+}

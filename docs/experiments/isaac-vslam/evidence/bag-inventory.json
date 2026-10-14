@@ -1,0 +1,22 @@
+[
+  {
+    "path": "recordings/live-20261013-input/bag/bag_0.db3",
+    "bytes": 24576,
+    "sha256": "d869705bbcac37e482b3ee7151f93e1f4326f5afc734314a1016a6591effc66b"
+  },
+  {
+    "path": "recordings/live-20261013-input-retry/bag/bag_0.db3",
+    "bytes": 317534208,
+    "sha256": "6fec3a0b3a8bed704af735a5167932fad36f236d6d1d3a6c40de57022c3dd199"
+  },
+  {
+    "path": "recordings/live-post-reboot-20261013-input/bag/bag_0.db3",
+    "bytes": 537018368,
+    "sha256": "cb2dd40886b59ce4d0af0b7fd76a503bac328e7bf403ee596ff475d0d3e58b43"
+  },
+  {
+    "path": "recordings/live-post-reboot-20261013-input/bag/bag_1.db3",
+    "bytes": 6807552,
+    "sha256": "7ddab08fa82fde22dc0e8e2f403713b3d2f941b18ca600fd53925130bcc4ac47"
+  }
+]

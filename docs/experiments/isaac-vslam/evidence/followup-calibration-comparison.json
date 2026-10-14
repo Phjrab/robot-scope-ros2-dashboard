@@ -1,0 +1,44 @@
+{
+  "same_serial": "242322077753",
+  "prior_evidence": "runs/live-post-reboot-20261013/input/metrics.jsonl",
+  "current_evidence": "runs/followup-live-20261014/vo/metrics.jsonl",
+  "metadata_equal": {
+    "left": {
+      "frame_id": true,
+      "width": true,
+      "height": true,
+      "encoding": true,
+      "step": true
+    },
+    "right": {
+      "frame_id": true,
+      "width": true,
+      "height": true,
+      "encoding": true,
+      "step": true
+    },
+    "left_info": {
+      "frame_id": true,
+      "width": true,
+      "height": true,
+      "d": true,
+      "k": true,
+      "r": true,
+      "p": true,
+      "distortion_model": true
+    },
+    "right_info": {
+      "frame_id": true,
+      "width": true,
+      "height": true,
+      "d": true,
+      "k": true,
+      "r": true,
+      "p": true,
+      "distortion_model": true
+    }
+  },
+  "camera_static_tf_equal": true,
+  "camera_static_tf_count": 5,
+  "imu_transforms_excluded": true
+}
