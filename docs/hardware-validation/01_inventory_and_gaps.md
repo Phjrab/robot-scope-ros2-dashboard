@@ -154,3 +154,5 @@
 생성한 공유 파일은 이 보고서와 `01_validation_matrix.json` 두 개다. 원본 HTTP JSON, source/baseline hash inventory, local data metadata, connection 결과, 최초 실패/완료 테스트 로그는 위 private root에 남긴다. shared matrix는 명시적 필드만 포함하고 token/전체 env/argv/센서 payload는 포함하지 않는다. private root는 임시 디렉터리여서 장기 보관 시 별도 private archive로 복사해야 한다.
 
 이 채팅이 만든 장비 process/ROS subscriber/camera viewer/remote temporary file은 0개다. 서비스 재시작·배포·카메라 인수·초기 위치·ARM·lease·goal·실이동·장애 주입을 하지 않았다. 기존 지도·bag·설정과 별도 채팅의 자원을 보존했다. 03:47:47 UTC 종료 snapshot에서도 control zero/no lease/deadman false/action 없음/goal idle, mapping/Nav2 idle, preview running, 두 카메라 viewer 0이 유지됐다. dashboard instance ID와 bridge invocation도 시작과 동일했다. 이는 API 범위의 관측이며 물리 정지·장치 owner·전체 서비스 PID 상태의 동일성은 확인 불가다. 정상 물리 종료를 추정하지 않는다.
+
+Git 게시는 별도 **BLOCKED**다. 보고서 두 파일은 로컬 main에 커밋했지만 자동 승인 검토가 `git push origin main`을 거부했다. 이유는 장비 운영 정보가 들어 있는 문서를 공개 범위가 확인되지 않은 GitHub 대상으로 게시할 위험이다. 이 거부를 우회하지 않았고 원격 push/장비 배포는 수행하지 않았다. 대상 `Phjrab/robot-scope-ros2-dashboard`의 `origin/main`에 이 두 문서를 게시할 명시적 사용자 승인이 다음 조건이다. 이 게시 상태는 31개 조사 검사의 판정과 별도로 JSON의 `publication`에 기록한다.

@@ -2131,5 +2131,14 @@
       "start": "2026-10-14T03:47:47.023115+00:00",
       "end": "2026-10-14T03:47:49.920393+00:00"
     }
-  ]
+  ],
+  "publication": {
+    "status": "BLOCKED",
+    "local_report_commit": "293152f",
+    "destination": "https://github.com/Phjrab/robot-scope-ros2-dashboard",
+    "branch": "main",
+    "pushed": false,
+    "reason": "Automatic approval review rejected git push origin main: potentially sensitive operational details would be disclosed to a GitHub destination whose visibility was not verified.",
+    "next_condition": "Explicit user approval to publish these two reviewed reports to the named origin/main destination; do not bypass rejection."
+  }
 }
