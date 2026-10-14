@@ -1,0 +1,2135 @@
+{
+  "schema": "robot-scope.hardware-validation-inventory.v1",
+  "step": "01",
+  "run_id": "robot-scope-hw-validation-20261014T033609Z",
+  "generated_utc": "2026-10-14T03:49:19.494560+00:00",
+  "scope": "read-only inventory; offline metadata analysis; source regressions",
+  "step_disposition_complete": true,
+  "hardware_acceptance_approved": false,
+  "motion_authorized": false,
+  "status_counts": {
+    "PASS": 14,
+    "BLOCKED": 10,
+    "NOT_RUN": 5,
+    "FAIL": 2
+  },
+  "developer_checkout": {
+    "initial_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+    "measured_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+    "measured_dirty": false,
+    "branch": "main",
+    "origin_main_at_fetch": "15d27bd8e4ba44126b24894961a69d011e1a44b3"
+  },
+  "device_checkout": {
+    "sha": null,
+    "dirty": null,
+    "status": "BLOCKED"
+  },
+  "service_execution": {
+    "release_sha": null,
+    "cwd": null,
+    "executable_sha256": null,
+    "config_sha256": null,
+    "status": "BLOCKED"
+  },
+  "evidence_semantics": {
+    "source_inspection_type": null,
+    "null_type_reason": "Source/metadata/connection checks are not sensor data; do not invent synthetic or live measurement provenance.",
+    "live_stationary": "Read-only snapshots without requested motion; independently confirmed physical stationary state is null. No stationary duration/accuracy acceptance claimed.",
+    "recorded_real": "Historical real-data or published measurement review, never a fresh current-hardware PASS.",
+    "synthetic": "Software regression fixtures only."
+  },
+  "physical_stationary_confirmed": null,
+  "ground_truth": null,
+  "accuracy": {
+    "position_error_m": null,
+    "rotation_error_rad": null
+  },
+  "private_evidence_root": "/private/tmp/robot-scope-hw-validation-20261014T033609Z",
+  "source_hashes": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "946364996d0a9986ac873d2b15562e3d388b94c4b8f51193aad0a4e59981eadc",
+      "baseline_sha256": "946364996d0a9986ac873d2b15562e3d388b94c4b8f51193aad0a4e59981eadc",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/GO2_ONBOARD_MIGRATION.md",
+      "sha256": "9db869f5b5c6630063dcc63c3a6e35181e24099a6b8ce4ae354ab9c55ece8ed1",
+      "baseline_sha256": "df13eb1edf4b8b6713f86c63fc8b58017f71e81318cefc61dcc6b605634d01af",
+      "changed_since_baseline": true,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/ADR_GO2_ONBOARD_OPERATION.md",
+      "sha256": "c330d4a2ab083539afa80af930c3e932f181dfeeb034a542c17032598e811909",
+      "baseline_sha256": "c330d4a2ab083539afa80af930c3e932f181dfeeb034a542c17032598e811909",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/HARDWARE_ACCEPTANCE.md",
+      "sha256": "4c0c0138dd0be44c591f40b04de2abd467a597ed7f6d3511154274118344adf0",
+      "baseline_sha256": "4c0c0138dd0be44c591f40b04de2abd467a597ed7f6d3511154274118344adf0",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/TRACK_D2_LIVE_CANDIDATE_ACCEPTANCE.md",
+      "sha256": "148ef08917a44a29fe6edf2ec675f964efa91e2ed1534414235a6765bf21852a",
+      "baseline_sha256": "148ef08917a44a29fe6edf2ec675f964efa91e2ed1534414235a6765bf21852a",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/WP03_EXPERIMENTAL_SE3_20260929.md",
+      "sha256": "d327bcf34b5d850ae6419a75aa79c2a69ddcf116bd97ffd10b61adf07226bc86",
+      "baseline_sha256": "d327bcf34b5d850ae6419a75aa79c2a69ddcf116bd97ffd10b61adf07226bc86",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/WP04_OFFLINE_NAVIGATION_VALIDATION.md",
+      "sha256": "31cca4b262ddf1bb9e628e7327043a53f78460c29a0abddc60b5d515d945c185",
+      "baseline_sha256": "31cca4b262ddf1bb9e628e7327043a53f78460c29a0abddc60b5d515d945c185",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "docs/WP05_READ_ONLY_EXPERIMENT_VIEW_20260930.md",
+      "sha256": "7c4a3ea007ec6bb977eba076f15b6e8baf1199e7d74017532062af81b784f34b",
+      "baseline_sha256": "7c4a3ea007ec6bb977eba076f15b6e8baf1199e7d74017532062af81b784f34b",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/ros_agent.py",
+      "sha256": "b27fec0e1fd3a9185225f0f60446663a25f01691d8fe18711384002312af827c",
+      "baseline_sha256": "b27fec0e1fd3a9185225f0f60446663a25f01691d8fe18711384002312af827c",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/ros/relocalization_evidence.py",
+      "sha256": "d03be41f9c8a616083ef5b76ec2273ff8a2cc916f54441f61bc4b3c136735a94",
+      "baseline_sha256": "d03be41f9c8a616083ef5b76ec2273ff8a2cc916f54441f61bc4b3c136735a94",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/relocalization/experimental_se3.py",
+      "sha256": "363228d344ea6705c1386dad88aa8a2ed6aefbf282c3926d6b05eedda95f1f98",
+      "baseline_sha256": "363228d344ea6705c1386dad88aa8a2ed6aefbf282c3926d6b05eedda95f1f98",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/relocalization/runtime_wiring.py",
+      "sha256": "efdab50e86b563b835a5b8050e149ab62627afca1111aecd25994398d489cd0f",
+      "baseline_sha256": "efdab50e86b563b835a5b8050e149ab62627afca1111aecd25994398d489cd0f",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/relocalization/manager.py",
+      "sha256": "f9cea476050c069504061335913bfa172329f33642209f8c4b8e93c4d2f1a89c",
+      "baseline_sha256": "f9cea476050c069504061335913bfa172329f33642209f8c4b8e93c4d2f1a89c",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/relocalization/models.py",
+      "sha256": "657e26241958af9321dfb9439c81eab329abe2e25f42c9684231f4ddb23de437",
+      "baseline_sha256": "657e26241958af9321dfb9439c81eab329abe2e25f42c9684231f4ddb23de437",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/application/runtime.py",
+      "sha256": "76a5a2d7d4f94899b1497a72a57867e6c34d28440da190e82a78bd54ff4838e4",
+      "baseline_sha256": "636fb4c8a8bf87cf44c91047050a5217aa75c06dc76e617e55917cbad04655b8",
+      "changed_since_baseline": true,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/app.py",
+      "sha256": "b001f16e6534437fde9f624fcc07ee2243180de6e25f38e3139aa8f279a554f9",
+      "baseline_sha256": "2f99e94f8ba1ba04359c86045a1672f3fcdcbe8e68ff15081d77b0148d58695f",
+      "changed_since_baseline": true,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/mapping_jobs.py",
+      "sha256": "bdffbb39a0f859ca8a82b69d5a04fe511f04b2d92614a2518977ea3e38c3a2f5",
+      "baseline_sha256": "bdffbb39a0f859ca8a82b69d5a04fe511f04b2d92614a2518977ea3e38c3a2f5",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "robot_dashboard/resource_monitor.py",
+      "sha256": "0dc3b9f768e76784d022721c8988155c2dfdd3adc3e25976b294f270457579e2",
+      "baseline_sha256": null,
+      "changed_since_baseline": null,
+      "baseline_available": false
+    },
+    {
+      "path": "robot_dashboard/api/routers/resources.py",
+      "sha256": "ee3c8ecb0c5512740beec8e353e4e1c5677315195fc9d0260e84ba3001c1d06a",
+      "baseline_sha256": null,
+      "changed_since_baseline": null,
+      "baseline_available": false
+    },
+    {
+      "path": "deploy/robot-scope-onboard.env.example",
+      "sha256": "7800f764a1a5fa5bfe1118eaaddbc0a3656c147c7f5a8bf27bffc03ede519102",
+      "baseline_sha256": "7800f764a1a5fa5bfe1118eaaddbc0a3656c147c7f5a8bf27bffc03ede519102",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "config/go2-onboard.json",
+      "sha256": "7b2addb78470d055f76cbdd97f6192da59f2f5e20f168346d896704e47de8150",
+      "baseline_sha256": "7b2addb78470d055f76cbdd97f6192da59f2f5e20f168346d896704e47de8150",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "config/fastlio_xt16.yaml",
+      "sha256": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd",
+      "baseline_sha256": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "config/fastlio_xt16_d2_relocalization.yaml",
+      "sha256": "776ed3e1ecba65629bbc47b422287a66f105dfcfdafcde1d2d6a1668397ad4df",
+      "baseline_sha256": "776ed3e1ecba65629bbc47b422287a66f105dfcfdafcde1d2d6a1668397ad4df",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "scripts/run_hesai_fastlio_humble.sh",
+      "sha256": "b4c4b96db5a03ea9bde21b9ae0c228f90ea9ddea454b0a5cb8999541116f6c61",
+      "baseline_sha256": "b4c4b96db5a03ea9bde21b9ae0c228f90ea9ddea454b0a5cb8999541116f6c61",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "scripts/run_hesai_fastlio_wireless_humble.sh",
+      "sha256": "e8bfd94ea867faa05eaf9b13471fb13fbda70d1687b162458f6d32781f914a35",
+      "baseline_sha256": "e8bfd94ea867faa05eaf9b13471fb13fbda70d1687b162458f6d32781f914a35",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "scripts/start_hesai_mapping_humble.sh",
+      "sha256": "cc9f8ea257ab6af4649eee54e09bc96af58127a1644aabdd807850e6254d74b8",
+      "baseline_sha256": "cc9f8ea257ab6af4649eee54e09bc96af58127a1644aabdd807850e6254d74b8",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "scripts/robot_scope_acceptance.py",
+      "sha256": "21f8921088852c2a0b14cf13e8e46d8d492f2519284c178865208b03737e2646",
+      "baseline_sha256": "21f8921088852c2a0b14cf13e8e46d8d492f2519284c178865208b03737e2646",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "scripts/robot_scope_doctor.py",
+      "sha256": "bc285802c3e1bd0cfe7c58e4e6be53e36bc995498eab79eeaee6cb4418410cc8",
+      "baseline_sha256": "bc285802c3e1bd0cfe7c58e4e6be53e36bc995498eab79eeaee6cb4418410cc8",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    },
+    {
+      "path": "scripts/robot_scope_onboard_diagnostics.py",
+      "sha256": "201ebc24b8ed1a5b2d92da7ab846359cda660625099f21b5723461a34065394c",
+      "baseline_sha256": "201ebc24b8ed1a5b2d92da7ab846359cda660625099f21b5723461a34065394c",
+      "changed_since_baseline": false,
+      "baseline_available": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "01.source.latest",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Fresh fetch; main matches latest observed origin/main",
+      "observed": {
+        "initial_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+        "measured_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+        "head_origin_ahead_behind": [
+          0,
+          0
+        ]
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "source-inventory.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.source.dirty",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Preserve unrelated edits and separate source from documents",
+      "observed": {
+        "initial_dirty": false,
+        "measured_source_dirty": false,
+        "only_new_report_files_planned": true
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "source-inventory.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.source.baseline",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Compare historical baseline and current files without rollback",
+      "observed": {
+        "baseline_sha": "2c267785a85e18f4c3daacec902961c9da60b9c8",
+        "d2_and_se3_paths_unchanged": true,
+        "resource_monitor_wiring_added": true,
+        "migration_handback_appendix_added": true
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "source-inventory.json",
+        "docs/GO2_ONBOARD_MIGRATION.md"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.access.ssh",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "현재 재확인 완료",
+      "evidence_type": null,
+      "verification_method": "bounded_connection_probe",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Authenticated read-only SSH for host/process/file identity",
+      "observed": {
+        "target": "unitree@192.168.50.30",
+        "attempts": 2,
+        "exit_code": 255,
+        "error": "Permission denied (publickey,password).",
+        "route_interface_on_mac": "en0",
+        "management_http_available": true
+      },
+      "reason": "SSH authentication rejected",
+      "next_condition": "Existing approved SSH alias/key access; never share passwords or key contents.",
+      "evidence_paths": [
+        "access-results.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.device.checkout",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "실측 데이터 부족",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Read device checkout HEAD/origin/main/dirty and hashes independently of developer checkout",
+      "observed": null,
+      "reason": "SSH authentication rejected",
+      "next_condition": "Authenticated SSH; inspect discovered real checkout without pull/reset.",
+      "evidence_paths": [
+        "access-results.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.device.execution",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "실측 데이터 부족",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Read systemd MainPID/invocation and current /proc PID cwd/exe/start generation plus release/config hashes",
+      "observed": {
+        "dashboard_instance_id": "bffe75e18000445ca20eaa1462f11519",
+        "bridge_systemd": {
+          "available": true,
+          "active_state": "active",
+          "sub_state": "running",
+          "load_state": "loaded",
+          "unit_file_state": "enabled",
+          "invocation_id": "f4d1f72ddd1942a1a37d67599f92a9de",
+          "running": true,
+          "transitioning": false
+        },
+        "top_process_hint_hesai_pid": 2801,
+        "pid_mapping_verified": false
+      },
+      "reason": "APIs do not establish PID/cwd/release/config bytes",
+      "next_condition": "SSH; do not reuse historical or hint PIDs as owners.",
+      "evidence_paths": [
+        "api-followup-system-service.json",
+        "api-followup-control-bridge-service.json",
+        "api-followup-system-resources.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.910032+00:00",
+        "2026-10-14T03:38:03.967644+00:00",
+        "2026-10-14T03:38:04.113430+00:00"
+      ]
+    },
+    {
+      "id": "01.platform.api_subset",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Bounded current host/ROS/NIC observations through existing API",
+      "observed": {
+        "hostname": "ubuntu",
+        "architecture": "aarch64",
+        "ros_distro": "humble",
+        "domain": "0",
+        "rmw": "rmw_cyclonedds_cpp",
+        "sensor_interface": "enP8p1s0",
+        "l4t_release": "36.5.2",
+        "memory_total_bytes": 16402857984,
+        "memory_available_bytes": 15165976576,
+        "swap_used_bytes": 0,
+        "gpu_percent_snapshot": 0.0,
+        "cpu_percent_snapshot": null,
+        "maximum_temperature_celsius": 56.843
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "api-followup-health.json",
+        "api-followup-system-resources.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:02.927609+00:00",
+        "2026-10-14T03:38:04.113430+00:00"
+      ]
+    },
+    {
+      "id": "01.platform.full",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "실측 데이터 부족",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Current Ubuntu/kernel/runtime Python/native imports/domain/routes/addresses from running process",
+      "observed": {
+        "ubuntu": null,
+        "kernel": null,
+        "runtime_python": null,
+        "rmw_domain_api_report_only": true,
+        "actual_addresses_routes": null
+      },
+      "reason": "Host inspection unavailable",
+      "next_condition": "SSH + selected safe environment keys, never a complete environment dump.",
+      "evidence_paths": [
+        "access-results.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.http.read_only",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Existing status GETs return bounded JSON without acquiring resources",
+      "observed": {
+        "successful_status_endpoints": 11,
+        "relocalization_http": 503,
+        "initial_wrong_resource_path_http": 404,
+        "correct_resource_path_http": 200,
+        "camera_stream_acquired": false
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "api-followup-health.json",
+        "api-followup-system-resources.json",
+        "api-followup-relocalization.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:02.927609+00:00",
+        "2026-10-14T03:38:04.113430+00:00",
+        "2026-10-14T03:38:05.902201+00:00"
+      ]
+    },
+    {
+      "id": "01.control.snapshot",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Current signed bridge ready; no lease/deadman/action/goal; exact zero; distinguish own/foreign/vendor endpoints",
+      "observed": {
+        "bridge_ready": true,
+        "bridge_authenticated": true,
+        "lease_active": false,
+        "deadman": false,
+        "accepted_command": {
+          "linear_x": 0.0,
+          "linear_y": 0.0,
+          "angular_z": 0.0
+        },
+        "action_active": false,
+        "goal_state": "idle",
+        "own_publishers": 1,
+        "foreign_named_publishers": 0,
+        "bare_vendor_publishers": 10,
+        "move_count": 0,
+        "action_count": 0
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "api-control.json",
+        "api-followup-control.json",
+        "api-followup-navigation.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:36:31.872779+00:00",
+        "2026-10-14T03:38:03.085551+00:00",
+        "2026-10-14T03:38:03.106403+00:00"
+      ]
+    },
+    {
+      "id": "01.control.physical_stop",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "현장 조작 필요",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Independent onsite observation of stationary robot; telemetry is not physical proof",
+      "observed": {
+        "sport_velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "sport_error_code": 1001,
+        "bridge_position_quality": "INVALID",
+        "independent_physical_observation": null
+      },
+      "reason": "No onsite confirmation; SportModeState position invalid",
+      "next_condition": "Onsite stationary/operator/physical-stop confirmation before new pipeline or recording.",
+      "evidence_paths": [
+        "api-control.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:36:31.872779+00:00"
+      ]
+    },
+    {
+      "id": "01.sensors.current_subset",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Current catalogue records IMU/LowState and converted LiDAR with finite receipt metrics and one publisher",
+      "observed": [
+        {
+          "name": "/imu/body",
+          "type": "sensor_msgs/msg/Imu",
+          "publishers": 1,
+          "subscribers": 1,
+          "state": "ok",
+          "hz": 132.5,
+          "jitter_ms": 5.07,
+          "age_s": 0.008,
+          "samples": 48849
+        },
+        {
+          "name": "/Odometry",
+          "type": "nav_msgs/msg/Odometry",
+          "publishers": 0,
+          "subscribers": 1,
+          "state": "waiting",
+          "hz": null,
+          "jitter_ms": null,
+          "age_s": null,
+          "samples": 0
+        },
+        {
+          "name": "/lidar_points",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": 1,
+          "subscribers": 1,
+          "state": "waiting",
+          "hz": null,
+          "jitter_ms": null,
+          "age_s": null,
+          "samples": 0
+        },
+        {
+          "name": "/velodyne_points",
+          "type": "sensor_msgs/msg/PointCloud2",
+          "publishers": 1,
+          "subscribers": 1,
+          "state": "ok",
+          "hz": 10.0,
+          "jitter_ms": 4.89,
+          "age_s": 0.042,
+          "samples": 4164
+        },
+        {
+          "name": "/lowstate",
+          "type": "unitree_go/msg/LowState",
+          "publishers": 1,
+          "subscribers": 5,
+          "state": "ok",
+          "hz": 144.05,
+          "jitter_ms": 3.81,
+          "age_s": 0.011,
+          "samples": 55077
+        }
+      ],
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "api-topics.json",
+        "api-followup-topics.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:36:31.784724+00:00",
+        "2026-10-14T03:38:03.000354+00:00"
+      ]
+    },
+    {
+      "id": "01.sensors.raw_stamp_tf",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "실측 데이터 부족",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Original timestamps, QoS, frame, publisher identity and actual dynamic/static TF inspected",
+      "observed": {
+        "raw_lidar_samples": 0,
+        "raw_lidar_rate": null,
+        "cloud_registered_in_catalogue": false,
+        "tf_in_catalogue": false,
+        "catalogue_absence_is_not_graph_absence": true
+      },
+      "reason": "API subset lacks source headers/QoS/TF payloads; no new subscriptions made",
+      "next_condition": "SSH + read-only graph and bounded headers; source generation identified first.",
+      "evidence_paths": [
+        "api-followup-topics.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.000354+00:00"
+      ]
+    },
+    {
+      "id": "01.owners.full",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "다른 채팅 자원 인계 필요",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Resolve all 12 owners with live PID/start generation/cwd/device/container and owning work",
+      "observed": {
+        "process_api_top_list_is_not_complete_owner_inventory": true,
+        "dockerd_pid_hint": 1467,
+        "containerd_pid_hint": 1037,
+        "running_containers": null,
+        "open_camera_devices": null,
+        "external_recorder": null,
+        "owning_chat": null
+      },
+      "reason": "No live ownership contract or complete process inspection",
+      "next_condition": "SSH process/device/container inspection + fresh handoff; daemon existence does not prove active container.",
+      "evidence_paths": [
+        "api-followup-system-resources.json",
+        "access-results.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:04.113430+00:00"
+      ]
+    },
+    {
+      "id": "01.cameras.preview",
+      "required_for_scope": true,
+      "status": "NOT_RUN",
+      "category": "다른 채팅 자원 인계 필요",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Actual advancing camera frames only within agreed resource window",
+      "observed": [
+        {
+          "id": "go2_front",
+          "state": "waiting",
+          "live": false,
+          "viewers": 0,
+          "fps": null
+        },
+        {
+          "id": "realsense_color",
+          "state": "waiting",
+          "live": false,
+          "viewers": 0,
+          "fps": null
+        }
+      ],
+      "reason": "Both waiting, zero viewers; no stream opened",
+      "next_condition": "Fresh owner/time window; opening viewer starts on-demand acquisition.",
+      "evidence_paths": [
+        "api-followup-cameras.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.305391+00:00"
+      ]
+    },
+    {
+      "id": "01.realsense.handback_history",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "과거 실장비 증거 존재",
+      "evidence_type": "recorded_real",
+      "verification_method": "historical_evidence_review",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Read latest handback evidence separately from live ownership",
+      "observed": {
+        "historical_utc": "2026-10-14T02:15:35.418025+00:00",
+        "historical_service_active": true,
+        "historical_camera_pid": 34571,
+        "historical_running_containers": 0,
+        "historical_rgb_consumption": "NOT_RUN",
+        "current_device_owner": null
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "docs/experiments/isaac-vslam/evidence/followup-final-restoration.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.d2.onboard",
+      "required_for_scope": true,
+      "status": "FAIL",
+      "category": "구현 연결 부족",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Existing D2 observer + manager + preflight and dense query support go2-onboard",
+      "observed": {
+        "gap_code": "FEATURE_GAP",
+        "observer_profile": "go2-xt16-wireless-competition-fastlio",
+        "manager_profile": "go2-xt16-wireless-competition-fastlio",
+        "runtime_rejects_other_profile": true,
+        "onboard_dense_optin_automatically_selected": false,
+        "default_backend": "bounded-se2-icp",
+        "runtime_backends": [
+          "bounded-se2-icp",
+          "pcl-ndt2d"
+        ],
+        "result_schema_backends": [
+          "bounded-se2-icp",
+          "pcl-ndt2d",
+          "pcl-gicp"
+        ],
+        "se3_runtime_allowed": false
+      },
+      "reason": "Exact wireless profile gates; onboard does not traverse wireless dense-query wrapper",
+      "next_condition": "Narrow reviewed profile/preflight/dense-config extension and regression; separate deployment/window for live test.",
+      "evidence_paths": [
+        "robot_dashboard/ros/relocalization_evidence.py",
+        "robot_dashboard/ros_agent.py",
+        "robot_dashboard/relocalization/runtime_wiring.py",
+        "robot_dashboard/relocalization/manager.py",
+        "scripts/run_hesai_fastlio_wireless_humble.sh",
+        "scripts/start_hesai_mapping_humble.sh"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.d2.current_runtime",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "구현 연결 부족",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Current runtime D2 candidate path and actual opt-in env/config inspected",
+      "observed": {
+        "navigation_profile": "go2-onboard",
+        "relocalization_status_http": 503,
+        "actual_observer_env": null,
+        "actual_manager_env": null,
+        "actual_backend_env": null,
+        "example_observer_env": "0",
+        "example_manager_env": "0"
+      },
+      "reason": "D2 not available through API; active env and bytes inaccessible; FEATURE_GAP in current source",
+      "next_condition": null,
+      "evidence_paths": [
+        "api-followup-navigation.json",
+        "api-followup-relocalization.json",
+        "deploy/robot-scope-onboard.env.example"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.106403+00:00",
+        "2026-10-14T03:38:05.902201+00:00"
+      ]
+    },
+    {
+      "id": "01.d2.live_candidate",
+      "required_for_scope": false,
+      "status": "NOT_RUN",
+      "category": "현장 조작 필요",
+      "evidence_type": "live_stationary",
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Fresh bounded stationary live candidate with exact lineage and qualified source",
+      "observed": null,
+      "reason": "Outside step 01; onboard gap and onsite gates unresolved",
+      "next_condition": null,
+      "evidence_paths": [
+        "docs/TRACK_D2_LIVE_CANDIDATE_ACCEPTANCE.md"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.maps.catalogue",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Read current map identities; never reuse old-host absolute-path IDs",
+      "observed": {
+        "count": 15,
+        "maps": [
+          {
+            "id": "e3f8172509aedbdf358c845f",
+            "name": "map_20260912_165206_crop_edited_crop_edited_edited_edited_edited",
+            "kind": "occupancy2d",
+            "revision": "8e55f1baf3b4381d70cf14bba6bf465cdf798464111a6bdb0fbaa8e6a9d9284e",
+            "frame_id": "map"
+          },
+          {
+            "id": "554435a8b8617369466ba1ba",
+            "name": "map_20260912_165206_crop_edited_crop_edited_edited_edited_crop",
+            "kind": "occupancy2d",
+            "revision": "3e6a9c7cc4a2fec956997d17f6f28c272ff4ddda4f82c4e3be04637ec10a0750",
+            "frame_id": "map"
+          },
+          {
+            "id": "81497a3cd0c94c2b0d275e23",
+            "name": "map_20260912_165206_crop_edited_crop_edited_edited",
+            "kind": "occupancy2d",
+            "revision": "bdef94306074d49229ce5be3d178f6feba2e764a4684ab74e440975fc35b955a",
+            "frame_id": "map"
+          },
+          {
+            "id": "ac4aae6682740f34acb1db3f",
+            "name": "map_20260912_165206_crop_edited_crop_edited",
+            "kind": "occupancy2d",
+            "revision": "b31c20427f5efc026f2978b87d199b1be8f554cb763aae3cd268bf3154914812",
+            "frame_id": "map"
+          },
+          {
+            "id": "57b7e39743faa55d7ded977e",
+            "name": "map_20260912_165206_crop_edited_crop",
+            "kind": "occupancy2d",
+            "revision": "13e179502d07f973c1c08a9a4f9c5a60b11074b371263652391ec6f6f7826bab",
+            "frame_id": "map"
+          },
+          {
+            "id": "b387407f6f01ba936f931d3f",
+            "name": "map_20260912_165206_crop_edited",
+            "kind": "occupancy2d",
+            "revision": "49f16c903925aabcb142225d3d7e55798786feea6dfc634aaae5efb344339ef3",
+            "frame_id": "map"
+          },
+          {
+            "id": "a258f52626e8581b53fb02bf",
+            "name": "map_20260912_165206_crop",
+            "kind": "occupancy2d",
+            "revision": "a14a5d10a0f82757a9f4f99510ad8bbd8bd2df9645c40dab42d49b7610936009",
+            "frame_id": "map"
+          },
+          {
+            "id": "43b9f5b19d4e4249595f0438",
+            "name": "map_20260912_165206",
+            "kind": "occupancy2d",
+            "revision": "dd735c6e9a799aa1954a965417e655751d3af59cdc7dc39ffde0c8b6771746b2",
+            "frame_id": "map"
+          },
+          {
+            "id": "30ac56aacd288853f38ad451",
+            "name": "map_20260912_165206",
+            "kind": "pointcloud3d",
+            "revision": "b8e49544f0a59bd8bb41f09223658a2f766655bb221e766ee6c09fbf61965ff7",
+            "frame_id": "camera_init"
+          },
+          {
+            "id": "0233769e176886eb1f4ccaaf",
+            "name": "map_20260911_152807_edited_edited",
+            "kind": "occupancy2d",
+            "revision": "d84d1a13014cc032a293082fdf654dbb74704c794336d0ca8bccd5ea9b85a9b5",
+            "frame_id": "map"
+          },
+          {
+            "id": "71fb41cf87a1910688e6209d",
+            "name": "map_20260911_152807_editedJAAAA_edited_crop",
+            "kind": "occupancy2d",
+            "revision": "97abb5f6079527e52bad014d2081ec7daa38b1e98e0f4735e1b5919459531b44",
+            "frame_id": "map"
+          },
+          {
+            "id": "60bf328d18d9d52b23b71dc1",
+            "name": "map_20260911_152807_editedJAAAA_edited",
+            "kind": "occupancy2d",
+            "revision": "a0836ad3957b60927f483208d9e3d7f2810e2699f73bac4bd93983f9550c95c9",
+            "frame_id": "map"
+          },
+          {
+            "id": "fc36566ea1db4c0d2509173b",
+            "name": "map_20260911_152807_editedJAAAA",
+            "kind": "occupancy2d",
+            "revision": "0ed9ec3fafb3ec0327a816ec76af50a4799cf51568e4df59539742253582a1dc",
+            "frame_id": "map"
+          },
+          {
+            "id": "c09ace6b2565836d70d29f1b",
+            "name": "map_20260911_152807",
+            "kind": "pointcloud3d",
+            "revision": "50e65ead9d91d50aa2558099650f628037f4f7a9ef84ef8bd1ef0927534f5907",
+            "frame_id": "camera_init"
+          },
+          {
+            "id": "061ab355aed2b621775de803",
+            "name": "Llllc",
+            "kind": "occupancy2d",
+            "revision": "e6ea3b94c81b21a0ac556e923e53172764bc8e179e5e41a53428f39559ef6e80",
+            "frame_id": "map"
+          }
+        ]
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "api-followup-saved-maps.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.416876+00:00"
+      ]
+    },
+    {
+      "id": "01.maps.eligibility",
+      "required_for_scope": false,
+      "status": "NOT_RUN",
+      "category": "실측 데이터 부족",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Current D0 exact family/occupancy/PCD revisions, free clearance and annotations verified",
+      "observed": {
+        "selected_map": null,
+        "known_free_cells": null,
+        "family_revision": null,
+        "independent_query": null
+      },
+      "reason": "No map selected; step 01 catalogue inspection only",
+      "next_condition": "Read current family endpoint and offline occupancy/annotation checks before map selection; never infer lineage from names.",
+      "evidence_paths": [
+        "api-followup-saved-maps.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.416876+00:00"
+      ]
+    },
+    {
+      "id": "01.storage.api_reserve",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Current dataset-reported free space exceeds reported reserve",
+      "observed": {
+        "free_bytes": 394544930816,
+        "minimum_free_bytes": 5368709120,
+        "capture_state": "idle",
+        "full_mount_permission_check": false
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "api-followup-datasets-capture.json"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.349526+00:00"
+      ]
+    },
+    {
+      "id": "01.tools.help_and_contract",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": null,
+      "verification_method": "cli_help_and_source_review",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Review and invoke existing tools with installed local interpreter; no supervised flags",
+      "observed": {
+        "local_interpreter": ".venv/bin/python",
+        "local_python": "3.13.2",
+        "commands": [
+          "robot_scope_acceptance.py --help",
+          "robot_scope_doctor.py --help",
+          "robot_scope_onboard_diagnostics.py --help"
+        ],
+        "live_execution": false
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "scripts/robot_scope_acceptance.py",
+        "scripts/robot_scope_doctor.py",
+        "scripts/robot_scope_onboard_diagnostics.py"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.tools.on_device",
+      "required_for_scope": true,
+      "status": "BLOCKED",
+      "category": "실측 데이터 부족",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Reuse doctor/acceptance/snapshot with discovered live interpreter and configuration",
+      "observed": null,
+      "reason": "Remote interpreter/config unavailable",
+      "next_condition": "Authenticated SSH and verified interpreter; acceptance fixed loopback host cannot be pointed at remote device.",
+      "evidence_paths": [
+        "access-results.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.existing_data",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "과거 실장비 증거 존재",
+      "evidence_type": "recorded_real",
+      "verification_method": "offline_header_hash_manifest_inventory",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Inventory accessible historical files without making independent accuracy claims",
+      "observed": {
+        "maps": [
+          {
+            "name": "map_20260911_152807.pcd",
+            "bytes": 17623185,
+            "sha256": "789841f39878ac8de60e57333e6aa92cb32e192ca39f2ed49c2f76054485fba4",
+            "header": {
+              "VERSION": [
+                "0.7"
+              ],
+              "FIELDS": [
+                "x",
+                "y",
+                "z",
+                "intensity"
+              ],
+              "SIZE": [
+                "4",
+                "4",
+                "4",
+                "4"
+              ],
+              "TYPE": [
+                "F",
+                "F",
+                "F",
+                "F"
+              ],
+              "COUNT": [
+                "1",
+                "1",
+                "1",
+                "1"
+              ],
+              "WIDTH": [
+                "1101439"
+              ],
+              "HEIGHT": [
+                "1"
+              ],
+              "VIEWPOINT": [
+                "0",
+                "0",
+                "0",
+                "1",
+                "0",
+                "0",
+                "0"
+              ],
+              "POINTS": [
+                "1101439"
+              ]
+            },
+            "data_encoding": "binary",
+            "is_independent_query": false,
+            "ground_truth": null
+          },
+          {
+            "name": "map_20260912_165206.pcd",
+            "bytes": 23917441,
+            "sha256": "1fc176035360db4203cdbadee105b4104080450f8754efaee6a12e271fd4435a",
+            "header": {
+              "VERSION": [
+                "0.7"
+              ],
+              "FIELDS": [
+                "x",
+                "y",
+                "z",
+                "intensity"
+              ],
+              "SIZE": [
+                "4",
+                "4",
+                "4",
+                "4"
+              ],
+              "TYPE": [
+                "F",
+                "F",
+                "F",
+                "F"
+              ],
+              "COUNT": [
+                "1",
+                "1",
+                "1",
+                "1"
+              ],
+              "WIDTH": [
+                "1494830"
+              ],
+              "HEIGHT": [
+                "1"
+              ],
+              "VIEWPOINT": [
+                "0",
+                "0",
+                "0",
+                "1",
+                "0",
+                "0",
+                "0"
+              ],
+              "POINTS": [
+                "1494830"
+              ]
+            },
+            "data_encoding": "binary",
+            "is_independent_query": false,
+            "ground_truth": null
+          }
+        ],
+        "dataset_manifest_count": 12,
+        "manifest_total_sample_count": 1225,
+        "independent_registered_query_found": false,
+        "ground_truth": null,
+        "scan_roots": [
+          "migration-archives",
+          "robot-scope-isaac-vslam-lab-20261013",
+          "robot-scope-ros2-dashboard"
+        ]
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "existing-data-inventory.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.se3.real_accuracy",
+      "required_for_scope": false,
+      "status": "BLOCKED",
+      "category": "실측 데이터 부족",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Independent reference/query sessions and independent truth for measured axes",
+      "observed": {
+        "position_error_m": null,
+        "rotation_error_rad": null,
+        "local_se3_implemented": true,
+        "global_relocalization_implemented": false,
+        "operational_pose_application": false
+      },
+      "reason": "Only maps and camera datasets found; no qualified independent 3D query/truth",
+      "next_condition": null,
+      "evidence_paths": [
+        "docs/WP03_EXPERIMENTAL_SE3_20260929.md",
+        "existing-data-inventory.json"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.nav2.current",
+      "required_for_scope": false,
+      "status": "NOT_RUN",
+      "category": "현장 조작 필요",
+      "evidence_type": "live_stationary",
+      "verification_method": "read_only_http_snapshot",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Actual operational localization/TF and isolated Nav2 ComputePathToPose measured separately",
+      "observed": {
+        "pipeline": "idle",
+        "localization_state": "uninitialized",
+        "readiness": {
+          "map_server": false,
+          "localization": false,
+          "planner": false,
+          "controller": false,
+          "behavior": false,
+          "cmd_bridge": true,
+          "map": false,
+          "scan": false,
+          "odometry": false,
+          "tf": false,
+          "action_server": false,
+          "cmd_vel_publishers": 0,
+          "scan_publishers": 0,
+          "odometry_publishers": 0,
+          "controller_odometry_publishers": 1,
+          "runtime_health_publishers": 0,
+          "localization_publishers": 0
+        },
+        "actual_nav2_planner_measured": false,
+        "motion_authorized": false
+      },
+      "reason": "No new pipeline, initial pose, planner or goal started",
+      "next_condition": null,
+      "evidence_paths": [
+        "api-followup-navigation.json",
+        "docs/WP04_OFFLINE_NAVIGATION_VALIDATION.md"
+      ],
+      "api_observed_utc": [
+        "2026-10-14T03:38:03.106403+00:00"
+      ]
+    },
+    {
+      "id": "01.software.system_python",
+      "required_for_scope": false,
+      "status": "FAIL",
+      "category": "현재 재확인 완료",
+      "evidence_type": "synthetic",
+      "verification_method": "software_regression",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Required plain python3 full discovery completes",
+      "observed": {
+        "command": "python3 -m unittest discover -s tests -v",
+        "run": 1625,
+        "errors": 6,
+        "skipped": 2,
+        "missing_dependencies": [
+          "fastapi",
+          "starlette",
+          "pydantic"
+        ],
+        "assertion_failures": 0
+      },
+      "reason": "System interpreter missing repository dependencies; preserved failure, no global installation",
+      "next_condition": null,
+      "evidence_paths": [
+        "python-system-tests.log"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.software.installed_python",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "synthetic",
+      "verification_method": "software_regression",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Existing dependency-complete local environment full discovery",
+      "observed": {
+        "command": ".venv/bin/python -m unittest discover -s tests -v",
+        "run": 1667,
+        "skipped": 2,
+        "errors": 0,
+        "failures": 0
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "python-venv-tests.log"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.software.javascript",
+      "required_for_scope": true,
+      "status": "PASS",
+      "category": "현재 재확인 완료",
+      "evidence_type": "synthetic",
+      "verification_method": "software_regression",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Existing JS unit and syntax checks",
+      "observed": {
+        "unit_tests": 360,
+        "failures": 0,
+        "syntax_modules": 79
+      },
+      "reason": null,
+      "next_condition": null,
+      "evidence_paths": [
+        "js-unit-tests.log"
+      ],
+      "api_observed_utc": []
+    },
+    {
+      "id": "01.motion_faults",
+      "required_for_scope": false,
+      "status": "NOT_RUN",
+      "category": "현장 조작 필요",
+      "evidence_type": null,
+      "verification_method": "source_inspection",
+      "run_id": "robot-scope-hw-validation-20261014T033609Z",
+      "timestamp_utc": "2026-10-14T03:49:19.494560+00:00",
+      "timestamp_kst": "2026-10-14T12:49:19.494560+09:00",
+      "source_sha": "15d27bd8e4ba44126b24894961a69d011e1a44b3",
+      "source_tree_dirty": false,
+      "device_source_sha": null,
+      "device_dirty": null,
+      "execution_file_sha256": null,
+      "execution_config_sha256": null,
+      "input_revision": null,
+      "map_revision": null,
+      "manual_action": false,
+      "expected": "Onsite scope required for motion, ARM/lease/pose/goal or fault/service operations",
+      "observed": {
+        "arm_sent": false,
+        "lease_acquired": false,
+        "initial_pose_sent": false,
+        "goal_sent": false,
+        "service_operations": 0,
+        "deployments": 0,
+        "fault_injections": 0
+      },
+      "reason": "Outside step 01 and no individual execution conditions confirmed",
+      "next_condition": null,
+      "evidence_paths": [],
+      "api_observed_utc": []
+    }
+  ],
+  "evidence_manifest": [
+    {
+      "file": "access-results.json",
+      "bytes": 534,
+      "sha256": "89f882b35dd94e037f93daf858ca557f9ac76a4dd3d6b29b6f990ac729268e16",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-cameras.json",
+      "bytes": 2126,
+      "sha256": "b66e01fbb5b5330a2fdad0cf18d1ee4006adab003320cf17f28721d5b326823e",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-control-bridge-service.json",
+      "bytes": 850,
+      "sha256": "c2755d97d231c2d2376aa7a8b1d6558a6a86478a38f9ebe5199bb8d5f899fd57",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-control.json",
+      "bytes": 8837,
+      "sha256": "3aabcb7e466f1b6d30de583ecb41985e2cf5458e8b90b5ff986e67f953f8e9a1",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-datasets-capture.json",
+      "bytes": 825,
+      "sha256": "dab912c97c3e29972925cb750885095a8e77693a6a4727e47f082b20447321e0",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-cameras.json",
+      "bytes": 2126,
+      "sha256": "048bacd7dd6d638f190e3645aa4ea70e79dd61c49004426af3a19769e8572958",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-control-bridge-service.json",
+      "bytes": 850,
+      "sha256": "43dd5322e91db5d974c1dd4d930fa9c61fe3da27ab3bb84d71d92031ef4059c5",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-control.json",
+      "bytes": 8839,
+      "sha256": "72241fe0059be9545808e138bffb1d96c175eb0aae8572483c0c0f2a543335b9",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-datasets-capture.json",
+      "bytes": 825,
+      "sha256": "8ed3dc69ede8bbefdc6213a83618f0267ab73aa34cba908906d79f7e98ed7ee3",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-health.json",
+      "bytes": 2927,
+      "sha256": "26b1dea4abf97412313cbe1a79d8ffc8a6f8510d354783ed29bc5868af879354",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-mapping-control.json",
+      "bytes": 2105,
+      "sha256": "c59e0c0fe796594462b8aeacb853f2d9c95ace2571d8ebbecc87b0f573522fc9",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-navigation.json",
+      "bytes": 10950,
+      "sha256": "298112b9b24aedf13a74f965140cf0acb85c2da4438fc671e0f633ce758461d9",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-relocalization.json",
+      "bytes": 188,
+      "sha256": "f2e5c633473534e153198422518e032cc0c8fb6b19d8acb73425df0fd7848653",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-saved-maps.json",
+      "bytes": 13689,
+      "sha256": "77cb742cda61b17aeca89adb1f5f474e016158f81b39f4dc254f54d7457484ea",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-system-resources.json",
+      "bytes": 16827,
+      "sha256": "69f79cecac1bfe51294adc2313e7acbcca7d7493a0245da570bbf328e6a250bb",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-system-service.json",
+      "bytes": 499,
+      "sha256": "418060f803e73dbf0a18b9371b807225ea578a37903500941083fc68d25072d7",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-final-topics.json",
+      "bytes": 60917,
+      "sha256": "9c6cd08a3eacba876c9fd7e107180033811c40cca83d0b78d17d7197c474b6b1",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-cameras.json",
+      "bytes": 2126,
+      "sha256": "071b2a36d07977fad6900f566836b1ee04b16b7a918262be46f9c77d993d0f67",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-control-bridge-service.json",
+      "bytes": 850,
+      "sha256": "0cf21abe6d67ee35d7b465d4a7f1234226aaf7a9004e4cf5082fc99a4548f400",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-control.json",
+      "bytes": 8837,
+      "sha256": "5d33a6672ec2c9327dc049e15ec7712b7b40c75302beea17a72dc4282e24b750",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-datasets-capture.json",
+      "bytes": 825,
+      "sha256": "6f7eb067b7a5d9a978b0ce178925956eecefb5592b1db02bcbad2c87f79f33b8",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-health.json",
+      "bytes": 2926,
+      "sha256": "f14d913f2425ed35c2433289f6dceb65d0f1e407638f5beb8b86d02b2f4b3692",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-mapping-control.json",
+      "bytes": 2105,
+      "sha256": "2eca428ae2ed33e853f6507a0a8bce58d5187d3bf60c5350822690ab9eecdadb",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-navigation.json",
+      "bytes": 10948,
+      "sha256": "e5777d356e860f88689add4c8ccdb3eb0e919074fa7178588f99b7b28e5c1e01",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-relocalization.json",
+      "bytes": 188,
+      "sha256": "9c2aef8cb6af2537bbbc0d617771fa21fc3fa5a1864b987a25230578a0ed6e4b",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-saved-maps.json",
+      "bytes": 13689,
+      "sha256": "7bd5a023c889329e0821559c301dc4be07699baa884f4b5b542c197ab660cc89",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-system-resources.json",
+      "bytes": 16823,
+      "sha256": "66f72cee712c9a066db12e996dd3c40baa4861cba52cc1da6ad08db98cb4c567",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-system-service.json",
+      "bytes": 499,
+      "sha256": "cc33d335ce0ed59055b047c3964cc9bc80e702ca7fe72847f98718eaea32ea97",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-followup-topics.json",
+      "bytes": 60907,
+      "sha256": "df0802f64a4c366b8fdca756bb0d522972f72e3d2d81741653a90b0ad859646c",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-health.json",
+      "bytes": 2926,
+      "sha256": "06290ad227a881e04613fe66a14fe7be32c5e324190016edf31da0c076132f26",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-mapping-control.json",
+      "bytes": 2105,
+      "sha256": "f57374602d5337fde77dc8b873e40a82346c28807e2358031ece83b496cdf97f",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-navigation.json",
+      "bytes": 10948,
+      "sha256": "32c6c969730e2aadad55dc3445c485869f93f0d3cfec7c9995bd2027c505ad47",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-relocalization-status.json",
+      "bytes": 195,
+      "sha256": "e2ce2db6d97c448fbe235673af1c56e7ae0b6649e3c23a04fd6e7451d1a2e207",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-resources.json",
+      "bytes": 183,
+      "sha256": "a6d736c3a98fbfdf6991725775d7fc2d045a348c4997035c54d7a8551b77605e",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-saved-maps.json",
+      "bytes": 13689,
+      "sha256": "e365c1ba61859a562288240e2589ed182f0d9349af8f3de07168b7a2734d0caa",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-system-service.json",
+      "bytes": 499,
+      "sha256": "26a9e3cf10700c69f79a67df1dbb6dbcc4c85b2f1b53699d7ca328bc62acf7fd",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "api-topics.json",
+      "bytes": 60909,
+      "sha256": "d3ff38fa93ed2f81a6849308ba2dd821220611acf3881da824daffa7026cf5b0",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-ADR_GO2_ONBOARD_OPERATION.md",
+      "bytes": 11244,
+      "sha256": "c330d4a2ab083539afa80af930c3e932f181dfeeb034a542c17032598e811909",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-GO2_ONBOARD_MIGRATION.md",
+      "bytes": 43110,
+      "sha256": "df13eb1edf4b8b6713f86c63fc8b58017f71e81318cefc61dcc6b605634d01af",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-HARDWARE_ACCEPTANCE.md",
+      "bytes": 16250,
+      "sha256": "4c0c0138dd0be44c591f40b04de2abd467a597ed7f6d3511154274118344adf0",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-TRACK_D2_LIVE_CANDIDATE_ACCEPTANCE.md",
+      "bytes": 68128,
+      "sha256": "148ef08917a44a29fe6edf2ec675f964efa91e2ed1534414235a6765bf21852a",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-WP03_EXPERIMENTAL_SE3_20260929.md",
+      "bytes": 5521,
+      "sha256": "d327bcf34b5d850ae6419a75aa79c2a69ddcf116bd97ffd10b61adf07226bc86",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-WP04_OFFLINE_NAVIGATION_VALIDATION.md",
+      "bytes": 4474,
+      "sha256": "31cca4b262ddf1bb9e628e7327043a53f78460c29a0abddc60b5d515d945c185",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "baseline-WP05_READ_ONLY_EXPERIMENT_VIEW_20260930.md",
+      "bytes": 5431,
+      "sha256": "7c4a3ea007ec6bb977eba076f15b6e8baf1199e7d74017532062af81b784f34b",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "build_matrix.py",
+      "bytes": 20468,
+      "sha256": "35a51ac5144bdb43e1cae3038d0d8eec17e2ba76f6303890a0dcd66db7781891",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "existing-data-inventory.json",
+      "bytes": 14804,
+      "sha256": "2476b10fb56f8c8246f2c494fcbcd6ca0291e8f7a5c13a44db5c91cb68d08ca7",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "js-unit-tests.log",
+      "bytes": 97413,
+      "sha256": "ca68f72b4074de5846b24de90402cb1ba7dd0b29178db21a6d892060bc27171f",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "python-system-tests.log",
+      "bytes": 293144,
+      "sha256": "da984a1903cb5a12ec2b5d8e33813a5adc662c3e5a9b9ede8e3503ae966a68dd",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "python-venv-tests.log",
+      "bytes": 294166,
+      "sha256": "04de463cc4b3dddc65169be70ff94e0aa5ceea61db9f9114d9bf41295572d761",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "read_api.py",
+      "bytes": 1553,
+      "sha256": "6d3a5f54f0cfc8327ba83041d7ac402d41468204c20eb78b95e6275a818fbec7",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "read_final.py",
+      "bytes": 1550,
+      "sha256": "e9a317b79f0764bfa53b9107f553ee2ee183bdd002cf7b20d104d12b19af2cdf",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "run.json",
+      "bytes": 233,
+      "sha256": "d36abc55a5395394c705e9fb767e9a22d1eec1aab51989247cdb408fe83ce5be",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "source-inventory.json",
+      "bytes": 9363,
+      "sha256": "cd8cd94ae8faa5a73f13758ee6f21f3b8afd51c6a786138f48dfadd420b421bf",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    },
+    {
+      "file": "source_inventory.py",
+      "bytes": 2846,
+      "sha256": "c5d69e0ecc54dd9350b9c467a15d5f0c831c899b51f8c56f83378bd244a3ed7a",
+      "mode": "0600",
+      "storage": "private_evidence_root"
+    }
+  ],
+  "step02_ready": [
+    "Current bounded status GETs and map-family catalogue reads",
+    "Offline PCD/occupancy/frame/provenance/manifest analysis",
+    "No-ROS timestamp/TF/SE3 fixture regressions"
+  ],
+  "step02_blocked": [
+    "Remote checkout/PID/cwd/config + existing diagnostic CLI reuse need SSH",
+    "180 s stationary/new pipeline/limited topic recording need onsite stop and owner/load window",
+    "Camera stream acquisition needs current owner handoff",
+    "Operator motion recording needs physical stop means, area and specific scope"
+  ],
+  "cleanup": {
+    "owned_hardware_processes_created": 0,
+    "owned_ros_subscriptions_created": 0,
+    "camera_viewers_created": 0,
+    "remote_temp_files_created": 0,
+    "service_changes": 0,
+    "sensor_payloads_committed": false,
+    "physical_stop_verified": null,
+    "final_observed_utc": "2026-10-14T03:47:47.023115+00:00",
+    "lease_active": false,
+    "deadman": false,
+    "accepted_command": {
+      "linear_x": 0.0,
+      "linear_y": 0.0,
+      "angular_z": 0.0
+    },
+    "action_active": false,
+    "move_count_bridge_process": 0,
+    "action_count_bridge_process": 0,
+    "goal_state": "idle",
+    "mapping_pipeline": "idle",
+    "preview": "running",
+    "dashboard_instance_unchanged": true,
+    "bridge_invocation_unchanged": true,
+    "closure_evidence_paths": [
+      "api-final-health.json",
+      "api-final-control.json",
+      "api-final-navigation.json",
+      "api-final-mapping-control.json",
+      "api-final-cameras.json",
+      "api-final-system-service.json",
+      "api-final-control-bridge-service.json"
+    ]
+  },
+  "timestamp_semantics": "Check timestamps record the decision, not simultaneous device measurement; exact API times remain in evidence and observation_windows.",
+  "observation_windows_utc": [
+    {
+      "start": "2026-10-14T03:36:31.703041+00:00",
+      "end": "2026-10-14T03:36:32.840707+00:00"
+    },
+    {
+      "start": "2026-10-14T03:38:02.927609+00:00",
+      "end": "2026-10-14T03:38:05.902201+00:00"
+    },
+    {
+      "start": "2026-10-14T03:47:47.023115+00:00",
+      "end": "2026-10-14T03:47:49.920393+00:00"
+    }
+  ]
+}
