@@ -1,0 +1,38 @@
+{
+  "observed_utc": "2026-10-14T02:15:35.418025+00:00",
+  "boot_id": "5a0b1780-9356-437f-a807-aba42a0c5d12",
+  "camera_service": {
+    "returncode": 0,
+    "stdout": "MainPID=34571\nActiveState=active\nSubState=running\n",
+    "stderr": ""
+  },
+  "dashboard_service": {
+    "returncode": 0,
+    "stdout": "active\n",
+    "stderr": ""
+  },
+  "running_containers": {
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "dashboard_http": {
+    "returncode": 0,
+    "stdout": "200",
+    "stderr": ""
+  },
+  "camera_options_after_vo": "SDK=2.55.1 firmware=5.17.3.10\nemitter_before=1\n",
+  "operational_ros_environment": {
+    "ROS_DOMAIN_ID": "0",
+    "ROS_LOCALHOST_ONLY": "0",
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+    "CYCLONEDDS_URI": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"enP8p1s0\" /></Interfaces></General></Domain></CycloneDDS>"
+  },
+  "operational_nodes": {
+    "returncode": 0,
+    "stdout": "/hesai_ros_driver_node\n/robot_scope_agent\n/robot_scope_go2_control_bridge\n/xt16_fastlio_bridge\n",
+    "stderr": ""
+  },
+  "vslam_nodes_in_operational_domain": [],
+  "camera_stream_consumption": "NOT_RUN: on-demand relay restored; no RGB client opened"
+}

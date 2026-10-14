@@ -139,7 +139,7 @@ def inspect(bag, deserialize, backend_info):
                             variants[digest] = {'camera_info': calibration, 'count': 0,
                                                 'issues': camera_info_issues(calibration)}
                         variants[digest]['count'] += 1
-                    if typ == 'tf2_msgs/msg/TFMessage' and name == '/tf_static':
+                    if typ == 'tf2_msgs/msg/TFMessage' and name in ('/tf_static', '/vslam_lab/tf_static'):
                         for transform in msg['transforms']:
                             key = (transform['header']['frame_id'], transform['child_frame_id'])
                             entry = static_pairs.setdefault(key, {'parent': key[0], 'child': key[1], 'variants': []})

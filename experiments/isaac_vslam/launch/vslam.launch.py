@@ -30,6 +30,7 @@ def launch_setup(context):
     CONTRACT["record_launch"](
         value("run_dir"), "vslam_launch.json", input_path, parameters,
         mode=mode, namespace="/vslam_lab", remappings=remappings,
+        executor=value("executor"),
         ros_domain_id=os.environ["ROS_DOMAIN_ID"],
         ros_localhost_only=os.environ["ROS_LOCALHOST_ONLY"])
     node = ComposableNode(
@@ -39,7 +40,7 @@ def launch_setup(context):
         parameters=[parameters], remappings=remappings)
     return [ComposableNodeContainer(
         name="vslam_lab_container", namespace="/vslam_lab",
-        package="rclcpp_components", executable="component_container",
+        package="rclcpp_components", executable=("component_container_mt" if value("executor") == "multi" else "component_container"),
         composable_node_descriptions=[node],
         # release-3.2 VisualSlamImpl constructs TransformListener(*tf_buffer),
         # which creates its own node. It does not inherit the component node's
@@ -53,6 +54,8 @@ def generate_launch_description():
         DeclareLaunchArgument("input_contract", description="Observed input evidence JSON; example is intentionally invalid"),
         DeclareLaunchArgument("run_dir", description="Existing dedicated directory for this run; manifest must not already exist"),
         DeclareLaunchArgument("mode", default_value="vo", choices=["vo", "vio", "slam_vo", "slam_vio"]),
+        DeclareLaunchArgument("executor", default_value="multi", choices=["single", "multi"],
+                              description="Multi-thread executor keeps images processing during blocking localization calls"),
         DeclareLaunchArgument("use_sim_time", choices=["true", "false"], description="true for bag plus /clock, false for live"),
         OpaqueFunction(function=launch_setup),
     ])

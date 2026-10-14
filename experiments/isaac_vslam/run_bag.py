@@ -68,10 +68,18 @@ def main():
     p.add_argument('--replay-spec', type=Path, required=True)
     p.add_argument('--run-dir', type=Path, required=True)
     p.add_argument('--mode', choices=['vo', 'vio', 'slam_vo', 'slam_vio'], default='vo')
+    p.add_argument('--executor', choices=['single', 'multi'], default='multi')
+    p.add_argument('--evidence-type', choices=['official_bag', 'recorded_sensor_bag'], default='official_bag')
+    p.add_argument('--reuse-map-after', type=float, default=0)
+    p.add_argument('--saved-run', type=Path)
+    p.add_argument('--pose-hint', type=Path)
     p.add_argument('--timeout', type=float, default=180)
     a = p.parse_args()
     if not 1 <= a.timeout <= 900:
         p.error('Finite timeout 1..900 seconds required')
+    if a.reuse_map_after and (not a.mode.startswith('slam') or not a.saved_run or not a.pose_hint
+                             or not 1 <= a.reuse_map_after <= a.timeout - 20):
+        p.error('Map reuse requires SLAM, a saved run, a provenance-tagged hint and 20 seconds remaining')
     guard = runpy.run_path(str(CODE / 'config' / 'launch_contract.py'))
     guard['isolated_environment'](os.environ)
     contract = json.loads(a.contract.read_text())
@@ -114,11 +122,11 @@ def main():
     a.run_dir.mkdir(parents=False, exist_ok=False)
     launch = ['ros2', 'launch', str(CODE / 'launch' / 'vslam.launch.py'),
               f'input_contract:={a.contract}', f'run_dir:={a.run_dir}',
-              f'mode:={a.mode}', 'use_sim_time:=true']
+              f'mode:={a.mode}', f'executor:={a.executor}', 'use_sim_time:=true']
     metrics = ['python3', str(CODE / 'metrics' / 'collect.py'),
                '--output', str(a.run_dir / 'metrics.jsonl'), '--run-id', a.run_dir.name,
                '--domain', os.environ['ROS_DOMAIN_ID'], '--duration', str(a.timeout + 10),
-               '--evidence-type', 'official_bag', '--use-sim-time',
+               '--evidence-type', a.evidence_type, '--use-sim-time',
                '--left', contract['left']['image_topic'], '--right', contract['right']['image_topic'],
                '--left-info', contract['left']['camera_info_topic'],
                '--right-info', contract['right']['camera_info_topic'],
@@ -128,7 +136,7 @@ def main():
     if a.mode.startswith('slam'):
         metrics += ['--slam-path', '/vslam_lab/visual_slam/tracking/slam_path']
     manifest = {'created_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                'mode': a.mode, 'evidence_type': 'official_bag',
+                'mode': a.mode, 'evidence_type': a.evidence_type, 'executor': a.executor,
                 'clock_age_policy': 'N/A; no header/ROS clock relationship asserted',
                 'domain': os.environ['ROS_DOMAIN_ID'], 'use_sim_time': True,
                 'commands': {'vslam': launch, 'metrics': metrics, 'player': replay},
@@ -162,12 +170,20 @@ def main():
         if interrupted[0] or any(child.poll() is not None for _, child in children):
             raise RuntimeError('Launch/collector failed before playback')
         player = start('player', replay)
+        playback_started = time.monotonic()
+        reuse_started = False
         deadline = time.monotonic() + a.timeout
         while player.poll() is None:
             if interrupted[0] or time.monotonic() >= deadline:
                 raise RuntimeError('Interrupted or bounded replay timeout')
             if vslam.poll() is not None or collector.poll() is not None:
                 raise RuntimeError('Node/collector exited during playback')
+            if a.reuse_map_after and not reuse_started and time.monotonic() - playback_started >= a.reuse_map_after:
+                reuse_cmd = ['python3', str(CODE / 'reuse_map.py'), '--current-run', str(a.run_dir),
+                             '--saved-run', str(a.saved_run), '--pose-hint', str(a.pose_hint)]
+                manifest['commands']['reuse_map'] = reuse_cmd
+                start('reuse_map', reuse_cmd)
+                reuse_started = True
             time.sleep(.5)
         if player.returncode:
             raise RuntimeError(f'Player exit {player.returncode}')

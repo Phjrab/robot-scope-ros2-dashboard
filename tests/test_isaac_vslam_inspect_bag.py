@@ -51,7 +51,7 @@ class BagInspectionTests(unittest.TestCase):
                     con.execute('create table messages (topic_id integer,timestamp integer,data blob)')
                     con.executemany('insert into topics values (?,?,?)',
                                     [(1, '/left/image', 'sensor_msgs/msg/Image'),
-                                     (2, '/tf_static', 'tf2_msgs/msg/TFMessage')])
+                                     (2, '/tf_static' if index == 0 else '/vslam_lab/tf_static', 'tf2_msgs/msg/TFMessage')])
                     for tick in range(2):
                         stamp = 1000000000 + (2*index + tick)*33333333
                         con.execute('insert into messages values (?,?,?)',

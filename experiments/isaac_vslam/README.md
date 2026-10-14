@@ -109,7 +109,7 @@ python3 labctl.py exec --state ../runs/live-new-session/ownership.json -- \
     --pose-hint /lab/run/pose-hint.json'
 ```
 
-The explicit pose hint JSON has `position:[x,y,z]`, normalized `quaternion_xyzw:[x,y,z,w]` and nonempty `evidence`, with map-to-camera-base meaning. Do not invent a camera-body transform. This version's `load_map` only sets a folder and returns success; actual `localize_in_map` and pose/output review are essential. The tested stationary zero-pose hypothesis timed out in 20s and output stopped during the request. Global localization and loops are not established. The helper preserves failure and does not retry forever.
+The explicit pose hint JSON has `position:[x,y,z]`, normalized `quaternion_xyzw:[x,y,z,w]` and nonempty `evidence`, with map-to-camera-base meaning. Do not invent a camera-body transform. This version's `load_map` only sets a folder and returns success; actual `localize_in_map` and pose/output review are essential. The initial single-thread run timed out in 20s and blocked image/output callbacks. The 2026-10-14 recorded-sensor A/B trial changed the default to `component_container_mt`: localization returned false (`CUVSLAM_CAN_NOT_LOCALIZE`, code 3) in 0.547s while odometry continued, and shutdown was clean. Map reuse and loops are not established. `executor:=single` is retained only for reviewed A/B diagnosis. The helper preserves failure and does not retry forever.
 
 ## Storage, cleanup and verification
 
@@ -138,3 +138,29 @@ npx playwright test -c playwright.resources.config.mjs --reporter=line
 ```
 
 Optional `rosbags` backend tests skip if unavailable; actual ROS bag inspection/replay was performed in the experiment environment. Synthetic/offline tests check guards, ownership, timing/clock semantics, quotas and evidence; they are not substitutes for hardware or motion validation. No live auto-driving test is included.
+
+## Follow-up diagnostics and replay (2026-10-14)
+
+The current live input is still USB2; no firmware or wiring change was made. SDK motion-only diagnosis also received zero gyro/accel callbacks in 10s. Noise/bias values were zeros, which are not a measured IMU calibration. VIO remains blocked. Build and run this read-only probe only in an owned camera container after exclusive handoff, then release it before any driver:
+
+```sh
+python3 labctl.py exec --state ../runs/NEW/ownership.json -- \
+  g++ -std=c++17 /lab/code/sdk_motion_probe.cpp -I/usr/local/include \
+  -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lrealsense2 -pthread \
+  -o /lab/run/sdk_motion_probe
+python3 labctl.py exec --state ../runs/NEW/ownership.json -- \
+  timeout --signal=INT --kill-after=5s 25s /lab/run/sdk_motion_probe 242322077753
+```
+
+For reviewed recorded-sensor replay, use `--evidence-type recorded_sensor_bag`, not `official_bag`. The input contract must set `source.kind=bag_ros`, the actual bag path, and `static_tf_source_topic=/vslam_lab/tf_static` for the retained live bag. Preserve exact sensor transforms; exclude estimator dynamic TF and unverified IMU transforms. `inspect_bag.py` now inventories both recognized static topic names.
+
+An optional bounded reuse attempt can be scheduled by `run_bag.py --mode slam_vo --executor multi --reuse-map-after 10 --saved-run /lab/data/REVIEWED_SAVED_RUN --pose-hint /lab/run/REVIEWED_HINT.json --timeout 45`. Reuse requests require at least 20s remaining. Save/load folder acceptance does not prove localization. The tested existing bag, contracts, hint, copied map and failures are in `runs/followup-offline-20261014/`.
+
+For a fresh coordinated T3 stationary window, the live VO command above accepts `--duration 610` (10s warmup + 600s measurement), with a roughly 650s owned resource watcher. It collects statistics only when `--record-seconds` is omitted. Current follow-up cleanup is:
+
+```sh
+python3 labctl.py cleanup --state ../runs/followup-live-20261014/ownership.json
+python3 labctl.py cleanup --state ../runs/followup-offline-20261014/ownership.json
+```
+
+After the live driver has exited, `sdk_motion_probe 242322077753 --options-only` reads firmware/emitter without opening motion or video streams. Run it inside the still-owned container before cleanup to verify final values. Restore the operational camera service using the approved procedure after cleanup; these wrappers do not manage it. A new camera launch always needs a fresh ownership contract and a new session directory.

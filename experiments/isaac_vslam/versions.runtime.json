@@ -127,5 +127,19 @@
       "bytes": 6807552,
       "sha256": "7ddab08fa82fde22dc0e8e2f403713b3d2f941b18ca600fd53925130bcc4ac47"
     }
-  ]
+  ],
+  "followup": {
+    "observed_date": "2026-10-14",
+    "boot_id": "5a0b1780-9356-437f-a807-aba42a0c5d12",
+    "camera_usb_node": "/dev/bus/usb/001/004",
+    "camera_serial": "242322077753",
+    "executor_default": "component_container_mt",
+    "sessions": [
+      "followup-offline-20261014",
+      "followup-live-20261014"
+    ],
+    "version_change": "No host, SDK, firmware, wrapper or VSLAM binary package change; lab launcher/diagnostic changes only",
+    "motion_validation": "NOT_RUN: excluded by user",
+    "evidence": "docs/experiments/isaac-vslam/evidence/followup-*.json"
+  }
 }

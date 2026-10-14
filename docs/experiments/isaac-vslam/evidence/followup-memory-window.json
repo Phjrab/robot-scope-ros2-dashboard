@@ -1,0 +1,22 @@
+{
+  "scope": "Late-run 155s window, not the entire final 155s or full T3; Docker cache-adjusted display, no leak absence claim",
+  "samples": 15,
+  "duration_s": 155.014678674,
+  "memory_usage_strings": [
+    "785.2MiB / 6GiB",
+    "785.9MiB / 6GiB",
+    "785.2MiB / 6GiB",
+    "785.3MiB / 6GiB",
+    "785.2MiB / 6GiB",
+    "785.5MiB / 6GiB",
+    "785.6MiB / 6GiB",
+    "785.6MiB / 6GiB",
+    "785.5MiB / 6GiB",
+    "785.6MiB / 6GiB",
+    "786.6MiB / 6GiB",
+    "790.6MiB / 6GiB",
+    "790.5MiB / 6GiB",
+    "790.8MiB / 6GiB",
+    "790.8MiB / 6GiB"
+  ]
+}

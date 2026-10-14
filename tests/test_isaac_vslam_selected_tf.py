@@ -47,6 +47,15 @@ class ObservedSampleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'operational'):
             API['selected_transforms'](self.evidence, self.contract)
 
+    def test_namespaced_recording_keeps_exact_original_camera_transforms(self):
+        original = API['selected_transforms'](self.evidence, self.contract)
+        self.evidence['topics']['/vslam_lab/tf_static'] = self.evidence['topics'].pop('/tf_static')
+        self.contract['static_tf_source_topic'] = '/vslam_lab/tf_static'
+        self.assertEqual(API['selected_transforms'](self.evidence, self.contract), original)
+        self.contract['static_tf_source_topic'] = '/operational/tf_static'
+        with self.assertRaises(ValueError):
+            API['selected_transforms'](self.evidence, self.contract)
+
     def test_actual_source_contract_is_vo_compatible_and_no_imu_is_invented(self):
         parameters, _ = GUARD['validate_input'](self.contract, 'vo', True)
         self.assertFalse(parameters['rectified_images'])

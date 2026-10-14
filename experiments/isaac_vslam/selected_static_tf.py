@@ -19,7 +19,10 @@ def selected_transforms(evidence, contract):
     source_sha = contract['source']['sha256']
     if contract['source']['kind'] != 'bag' or not any(row.get('sha256') == source_sha for row in evidence.get('files', [])):
         raise ValueError('Inspection bag SHA-256 does not match the input contract')
-    topic = evidence['topics']['/tf_static']
+    source_topic = contract.get('static_tf_source_topic', '/tf_static')
+    if source_topic not in ('/tf_static', '/vslam_lab/tf_static'):
+        raise ValueError('Only original or lab static TF evidence is supported')
+    topic = evidence['topics'][source_topic]
     # The official sample has exactly one static TF message. Never mistake a
     # first-message snapshot for a complete multi-message static TF history.
     if topic.get('type') != 'tf2_msgs/msg/TFMessage' or topic.get('count') != 1:
