@@ -2133,12 +2133,27 @@
     }
   ],
   "publication": {
-    "status": "BLOCKED",
-    "local_report_commit": "293152f",
+    "status": "PASS",
     "destination": "https://github.com/Phjrab/robot-scope-ros2-dashboard",
     "branch": "main",
-    "pushed": false,
-    "reason": "Automatic approval review rejected git push origin main: potentially sensitive operational details would be disclosed to a GitHub destination whose visibility was not verified.",
-    "next_condition": "Explicit user approval to publish these two reviewed reports to the named origin/main destination; do not bypass rejection."
+    "pushed": true,
+    "verified_published_commit": "f6f4b12afc0acb81eb81f677ac653272f024dab9",
+    "user_explicit_approval": true,
+    "verified_utc": "2026-10-14T04:07:17.618607+00:00",
+    "device_deployment": false,
+    "previous_rejection": {
+      "status": "BLOCKED",
+      "reason": "Automatic approval review rejected git push origin main: potentially sensitive operational details would be disclosed to a GitHub destination whose visibility was not verified.",
+      "resolution": "User explicitly approved publication to the named origin/main; push completed without bypass or force."
+    },
+    "note": "This records the successfully published predecessor revision; subsequent documentation commits do not change the measured source SHA."
+  },
+  "received_handoff": {
+    "source_commit": "b48dc4554941d4812a62a6207d995b14c98f97d7",
+    "reference": "docs/experiments/isaac-vslam/HANDOFF.md",
+    "verification_method": "Read existing handoff already published in origin/main; detailed facts remain at that source",
+    "new_hardware_execution": false,
+    "prior_31_check_results_preserved": true,
+    "detailed_report_addendum_publication": "BLOCKED: automatic review rejected expanded disclosure; detailed local copy preserved in private evidence root."
   }
 }
