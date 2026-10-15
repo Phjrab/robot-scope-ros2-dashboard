@@ -42,6 +42,11 @@
     "coverage": {
       "path": "/private/tmp/robot-scope-ms-release-coverage.log",
       "sha256": "f2597ee904718f60b094485b7ac3b53e47583acd8694c49a4e152a0a6ce387c7"
+    },
+    "portable_python": {
+      "path": "/private/tmp/robot-scope-ms-portable-python.log",
+      "sha256": "8ef98b60e4d765df728e5151f3f015574c3b3aab0102a57a8124affe76fec087"
     }
-  }
+  },
+  "ci_portability_fix": "canonical /tmp fixture root; full1855 PASS"
 }

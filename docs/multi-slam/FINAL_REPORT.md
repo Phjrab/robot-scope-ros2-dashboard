@@ -1,7 +1,7 @@
 # Multi-SLAM software delivery — 2026-10-15
 
 Status: software implementation and local verification complete within the
-limits below; exact candidate remote CI pending publication. No live deployment
+limits below; exact candidate remote CI retry pending. No live deployment
 or hardware claim. MAP-02 full retained-landmark access remains BLOCKED.
 All changes preserve the original 1b0ae5b hardware follow-up and existing lab.
 
@@ -68,3 +68,10 @@ or movement authority. See HANDOFF for exact owner/window state.
 Stage16 requires exact candidate CI/live release, current camera/resource owner,
 approved service changes, backups/rollback and operator window. Stage17 operational
 pose/initial pose/goal/movement remains NOT_RUN under its separate conditions.
+
+Published source: `72641da309bf041826a70469d6cc32f60a16fe03`. [Exact source CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528) is running; no remote PASS claim yet.
+
+The initial remote run38689015528 failed only because22 broker fixtures assumed
+macOS /private/tmp. The test now uses canonical short /tmp on Linux/macOS.
+Focused broker22 and full Python1855 pass after correction; no product source
+or CI policy changed. A new exact-SHA remote run must pass before delivery.

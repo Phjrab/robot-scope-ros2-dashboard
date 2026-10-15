@@ -1,7 +1,7 @@
 {
   "schema": "robot-scope.multi-slam-acceptance.v1",
   "run_id": "ms-software-20261015",
-  "source_commit": null,
+  "source_commit": "72641da309bf041826a70469d6cc32f60a16fe03",
   "source_tree_dirty": true,
   "deployed_commit": null,
   "deployment_state": "NOT_RUN",
@@ -589,11 +589,12 @@
       "hardware_status": "NOT_RUN",
       "expected": "exact candidate full CI",
       "evidence": [
-        "docs/multi-slam/FINAL_REPORT.md"
+        "docs/multi-slam/FINAL_REPORT.md",
+        "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528"
       ],
       "evidence_type": null,
-      "observed": "Local full suites and audits PASS; exact remote commit pending publication.",
-      "blocked_reason": "Awaiting new source commit and completed remote Actions.",
+      "observed": "First remote run failed broker fixture temp-root setup; corrected and full local1855 PASS.",
+      "blocked_reason": "Awaiting CI of portability correction.",
       "required_for": [
         "SOFTWARE_IMPLEMENTED"
       ]
@@ -656,5 +657,11 @@
     }
   ],
   "local_validation": "PASS",
-  "software_delivery": "SOFTWARE_IMPLEMENTED_WITH_MAP_02_LIMIT"
+  "software_delivery": "SOFTWARE_IMPLEMENTED_WITH_MAP_02_LIMIT",
+  "remote_ci": {
+    "run_id": 38689015528,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528",
+    "status": "failure",
+    "reason": "Broker fixture macOS-only /private/tmp missing on Linux; fixed in follow-up."
+  }
 }

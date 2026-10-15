@@ -87,8 +87,10 @@ class SyntheticBrokerEngine:
 
 class SlamBrokerTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="rs-broker-", dir="/private/tmp")
-        self.root = Path(self.temporary.name)
+        # Keep Unix socket paths short on both Linux and macOS. Resolve macOS's
+        # /tmp symlink so the broker's canonical private-path check is exercised.
+        self.temporary = tempfile.TemporaryDirectory(prefix="rs-broker-", dir="/tmp")
+        self.root = Path(self.temporary.name).resolve()
         self.package_root = self.root / "packages"
         self.package_root.mkdir(mode=0o700)
         self.handoff = self.root / "handoff.json"

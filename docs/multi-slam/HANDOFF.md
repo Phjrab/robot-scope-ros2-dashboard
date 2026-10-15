@@ -70,3 +70,20 @@ all internal writers/test servers stopped. VALIDATION.json records local log
 hashes; FINAL_REPORT and acceptance matrix separate fixture/live/operational
 outcomes. MS Git publication window OPEN; MR remains external until handback.
 No equipment/performance window. MAP-02 and stage16 live checks remain BLOCKED.
+
+## Publication
+
+Source commit `72641da309bf041826a70469d6cc32f60a16fe03` published to origin/main after explicit user approval.
+Initial automatic push review required direct approval; approval was obtained,
+then the same push succeeded. Existing1b0ae5b remains intact. Exact source CI:
+[38689015528](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528), running. Both matrices passed setup/static/secret/dependency
+checks; Python/JS/E2E completion still required. MS retains publication window
+until CI evidence is recorded; no local test runners or device actions.
+
+## CI portability correction
+
+CI38689015528 failed both Linux matrices solely on broker fixture setUp22 errors:
+macOS-only /private/tmp did not exist. Changed tests/test_slam_broker.py to use
+short /tmp and resolve its canonical path. Product source and workflow unchanged.
+Broker22 PASS; full Python Ran 1855 tests in 96.338s, PASS with2 environment skips. Existing JS370/
+Chromium80 results unchanged. CI correction publication window remains MS-owned.
