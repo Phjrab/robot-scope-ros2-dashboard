@@ -25,6 +25,10 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
   let comparison = null, lastReport = null;
   const invalidInputs = new Map();
   const header = make('header'), left = make('aside'), main = make('main'), right = make('aside'), footer = make('footer'); right.className = 'mr-inspector';
+  const identity = make('div'), modeActions = make('div'), definitionActions = make('div');
+  identity.className = 'mr-identity'; modeActions.className = 'mr-mode-actions'; definitionActions.className = 'mr-definition-actions';
+  modeActions.setAttribute('role', 'group'); modeActions.setAttribute('aria-label', '미션 작업 모드');
+  header.append(identity, modeActions, definitionActions);
   const name = make('input'); name.value = state.snapshot().draft?.label || '새 미션'; name.maxLength = 64; name.setAttribute('aria-label', '미션 이름');
   const mapLabel = make('span', 'navigation 지도 · 운영 위치 미확인');
   const definitionMode = make('span', 'FLEXIBLE · STOP/TASK 순서 방문');
@@ -34,9 +38,10 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
   const button = (parent, label, action, interrupt = false) => { const n = make('button', label); n.type = 'button'; n.addEventListener('click', () => run(action, interrupt)); parent.append(n); return n; };
   const select = (parent, label) => { const wrapper = make('label', label); const n = make('select'); n.setAttribute('aria-label', label); wrapper.append(n); parent.append(wrapper); return n; };
   const option = (value, label) => { const n = make('option', label); n.value = value; return n; };
-  const mapSelect = select(header, '지도'); const routeSelect = select(left, 'E1 저장 경로'); const planSelect = select(left, '저장 미션');
-  header.prepend(name); header.append(mapLabel, definitionMode);
-  for (const [value, label] of [['edit', '편집'], ['inspect', '검사'], ['execute', '실행']]) button(header, label, async () => { await changeMode(value); status.textContent = `${label} 모드 · 방문 변경은 편집 모드에서만 적용됩니다.`; });
+  const mapSelect = select(identity, '지도'); const routeSelect = select(left, 'E1 저장 경로'); const planSelect = select(left, '저장 미션');
+  const nameLabel = make('label', '미션 이름'); nameLabel.append(name); identity.prepend(nameLabel);
+  const contextSummary = make('div'); contextSummary.className = 'mr-context'; contextSummary.append(mapLabel, definitionMode); header.append(contextSummary);
+  for (const [value, label] of [['edit', '편집'], ['inspect', '검사'], ['execute', '실행']]) button(modeActions, label, async () => { await changeMode(value); status.textContent = `${label} 모드 · 방문 변경은 편집 모드에서만 적용됩니다.`; });
   const drawers = make('div'); drawers.className = 'mr-compact-tabs';
   for (const [value, label] of [['visits', '방문 목록'], ['inspector', '방문 설정']]) button(drawers, label, () => { selectedDrawer = value; updateDrawers(); });
   root.append(header, drawers, left, main, right, footer); host.append(root);
@@ -52,19 +57,24 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
   const editButtons = [];
   editButtons.push(button(left, '주석을 방문으로 추가', () => { requireEditing(); if (staleReasons.length) throw new Error('현재 지도 버전에 초안을 먼저 연결하세요.'); const p = annotations?.points?.find((p) => p.id === annotationSelect.value); if (!p) return; addAnnotation(p); renderDraft(); }));
   for (const [label, action] of [['위로', () => state.move(-1)], ['아래로', () => state.move(1)], ['복제', () => state.duplicate()], ['삭제', () => state.remove()]]) editButtons.push(button(left, label, () => { requireEditing(); action(); renderDraft(); }));
-  const checkOutput = make('div'); const runSummary = make('pre', '선택된 실행 없음'); const history = select(footer, '실행 이력');
-  const compareSelect = select(footer, '비교 실행 이력'), comparisonSummary = make('pre', '비교 실행 없음'); comparisonSummary.dataset.comparisonSummary = 'true'; footer.append(comparisonSummary);
+  const historyRow = make('div'), validationRow = make('div'), runActions = make('div');
+  historyRow.className = 'mr-history'; validationRow.className = 'mr-validation-actions'; runActions.className = 'mr-run-actions';
+  validationRow.setAttribute('role', 'group'); validationRow.setAttribute('aria-label', '미션 검사와 실행 준비');
+  runActions.setAttribute('role', 'group'); runActions.setAttribute('aria-label', '선택 실행 제어');
+  footer.append(historyRow, validationRow, runActions);
+  const checkOutput = make('div'); const runSummary = make('pre', '선택된 실행 없음'); const history = select(historyRow, '실행 이력');
+  const compareSelect = select(historyRow, '비교 실행 이력'), comparisonSummary = make('pre', '비교 실행 없음'); comparisonSummary.dataset.comparisonSummary = 'true'; historyRow.append(comparisonSummary);
   compareSelect.addEventListener('change', () => run(async () => { comparison = compareSelect.value ? await planClient.run(compareSelect.value) : null; updateComparison(); draw(); }));
   const checkButtons = [];
   function requireEditing() { if (mode !== 'edit') throw new Error('방문 변경은 편집 모드에서 가능합니다.'); }
   function assertInputs() { const invalid = [...right.querySelectorAll('input[type=number]')].find((node) => !node.disabled && !node.validity.valid); if (invalid || invalidInputs.size) { invalid?.reportValidity(); throw new Error('숫자 입력의 빈 값 또는 허용 범위를 확인하세요. 기존 값은 변경하지 않았습니다.'); } }
   async function savedEntry() { assertInputs(); const s = state.snapshot(); if (!s.saved?.id || s.dirty) throw new Error('변경 내용을 먼저 저장하세요.'); if (staleReasons.length) throw new Error(staleReasons.join(' · ')); return s.saved; }
-  checkButtons.push(button(footer, '작성 검사', async () => { const entry = await savedEntry(); const generation = state.snapshot().generation; const result = await planClient.validate(entry); if (!destroyed && generation === state.snapshot().generation) showReport(result); }));
-  checkButtons.push(button(footer, 'Nav2 계획 미리보기', async () => { const e = await savedEntry(); const generation = state.snapshot().generation; const result = await planClient.preview(e, hypothetical); if (destroyed || !state.applyPreview(result, generation)) return; showReport(result); draw(); }));
-  checkButtons.push(button(footer, 'FLEXIBLE compile', async () => { const entry = await savedEntry(); const generation = state.snapshot().generation; const result = await planClient.compile(entry); if (destroyed || generation !== state.snapshot().generation) return; showReport(result.validation); status.textContent = '실행 초안 생성됨 · 방문·작업 순서 보존 · 이동 명령 없음'; }));
-  const createRunButton = button(footer, '새 실행 만들기', async () => { const result = await planClient.createRun(await savedEntry()); if (destroyed) return; currentRun = result.run; missionClient.select(result.mission.id); updateRun(result.mission); await missionClient.refresh(); await refreshHistory(); });
+  checkButtons.push(button(validationRow, '작성 검사', async () => { const entry = await savedEntry(); const generation = state.snapshot().generation; const result = await planClient.validate(entry); if (!destroyed && generation === state.snapshot().generation) showReport(result); }));
+  checkButtons.push(button(validationRow, 'Nav2 계획 미리보기', async () => { const e = await savedEntry(); const generation = state.snapshot().generation; const result = await planClient.preview(e, hypothetical); if (destroyed || !state.applyPreview(result, generation)) return; showReport(result); draw(); }));
+  checkButtons.push(button(validationRow, 'FLEXIBLE compile', async () => { const entry = await savedEntry(); const generation = state.snapshot().generation; const result = await planClient.compile(entry); if (destroyed || generation !== state.snapshot().generation) return; showReport(result.validation); status.textContent = '실행 초안 생성됨 · 방문·작업 순서 보존 · 이동 명령 없음'; }));
+  const createRunButton = button(validationRow, '새 실행 만들기', async () => { const result = await planClient.createRun(await savedEntry()); if (destroyed) return; currentRun = result.run; missionClient.select(result.mission.id); updateRun(result.mission); await missionClient.refresh(); await refreshHistory(); });
   const actionButtons = {};
-  for (const [action, label] of [['start', '실행 시작'], ['pause', '일시정지'], ['resume', '재개 / 현재 확인 승인'], ['retry', '현재 방문 재시도'], ['skip', '방문 건너뛰기'], ['abort', '실행 취소']]) actionButtons[action] = button(footer, label, async () => {
+  for (const [action, label] of [['start', '실행 시작'], ['pause', '일시정지'], ['resume', '재개 / 현재 확인 승인'], ['retry', '현재 방문 재시도'], ['skip', '방문 건너뛰기'], ['abort', '실행 취소']]) actionButtons[action] = button(runActions, label, async () => {
     if (!currentRun) throw new Error('실행을 먼저 선택하세요.');
     if (['start', 'skip', 'abort'].includes(action) && globalThis.confirm?.(`${label} · ${currentRun.definition.label}`) !== true) return;
     const mission = missionClient.snapshot().missions?.find((m) => m.id === currentRun.id);
@@ -78,15 +88,15 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
     }
     await missionClient.refresh();
   }, ['pause', 'abort'].includes(action));
-  button(footer, '수동 전환 요청', async () => { updateTakeover(await navigationAdapter.requestTakeover()); }, true);
-  button(footer, '실행 상태 다시 확인', async () => { const identifier = uncertainAction?.runId || currentRun?.id; if (!identifier) throw new Error('실행을 먼저 선택하세요.'); const result = await planClient.run(identifier); if (destroyed) return; currentRun = result.run; missionClient.select(identifier); history.value = identifier; uncertainAction = null; updateRun(result.mission); draw(); status.textContent = '서버 실행 상태를 다시 읽었습니다. 현재 방문과 로그를 확인하세요. 이전 요청을 재전송하지 않았습니다.'; });
-  button(footer, '실행 이력 내보내기', async () => { if (!currentRun) throw new Error('실행을 먼저 선택하세요.'); const result = await planClient.exportRun(currentRun.id); if (destroyed) return; const url = URL.createObjectURL(new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })); const link = make('a'); link.href = url; link.download = `mission-run-${currentRun.id}.json`; root.append(link); link.click(); link.remove(); URL.revokeObjectURL(url); status.textContent = '읽기 전용 실행 이력을 내려받았습니다. 실행 가능한 정의가 아닙니다.'; });
-  const stop = make('a', '공통 STOP으로 이동'); stop.href = '#cockpit'; footer.append(stop, connectionStatus, takeoverStatus, runSummary, checkOutput, status);
-  button(header, '목록 새로고침', refreshLists);
-  button(header, '지도 불러오기 / 새 미션', async () => { if (!discard()) return; const generation = state.snapshot().generation; await loadMap(mapSelect.value); preservePendingEdits(generation); const f = familyPins(map, map._family); state.fresh({ label: '새 미션', map_family: f, annotation_revision: annotations.annotation_revision, mode: 'FLEXIBLE', visits: [], route_ref: null }); name.value = '새 미션'; mode = 'edit'; editorMap = null; hypothetical = null; currentRun = null; runMission = null; renderDraft(); });
+  button(runActions, '수동 전환 요청', async () => { updateTakeover(await navigationAdapter.requestTakeover()); }, true);
+  button(runActions, '실행 상태 다시 확인', async () => { const identifier = uncertainAction?.runId || currentRun?.id; if (!identifier) throw new Error('실행을 먼저 선택하세요.'); const result = await planClient.run(identifier); if (destroyed) return; currentRun = result.run; missionClient.select(identifier); history.value = identifier; uncertainAction = null; updateRun(result.mission); draw(); status.textContent = '서버 실행 상태를 다시 읽었습니다. 현재 방문과 로그를 확인하세요. 이전 요청을 재전송하지 않았습니다.'; });
+  button(historyRow, '실행 이력 내보내기', async () => { if (!currentRun) throw new Error('실행을 먼저 선택하세요.'); const result = await planClient.exportRun(currentRun.id); if (destroyed) return; const url = URL.createObjectURL(new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })); const link = make('a'); link.href = url; link.download = `mission-run-${currentRun.id}.json`; root.append(link); link.click(); link.remove(); URL.revokeObjectURL(url); status.textContent = '읽기 전용 실행 이력을 내려받았습니다. 실행 가능한 정의가 아닙니다.'; });
+  const stop = make('a', '공통 STOP으로 이동'); stop.href = '#settings'; runActions.append(stop); footer.append(connectionStatus, takeoverStatus, runSummary, checkOutput, status);
+  button(definitionActions, '목록 새로고침', refreshLists);
+  button(definitionActions, '지도 불러오기 / 새 미션', async () => { if (!discard()) return; const generation = state.snapshot().generation; await loadMap(mapSelect.value); preservePendingEdits(generation); const f = familyPins(map, map._family); state.fresh({ label: '새 미션', map_family: f, annotation_revision: annotations.annotation_revision, mode: 'FLEXIBLE', visits: [], route_ref: null }); name.value = '새 미션'; mode = 'edit'; editorMap = null; hypothetical = null; currentRun = null; runMission = null; renderDraft(); });
   button(left, '미션 불러오기', async () => { if (!discard()) return; const e = entries.find((e) => e.id === planSelect.value); if (!e) return; const generation = state.snapshot().generation; await loadMap(e.definition.map_family.occupancy_map_id); preservePendingEdits(generation); state.load(e); name.value = e.definition.label; mode = 'edit'; editorMap = null; hypothetical = null; renderDraft(); });
   button(left, 'E1 → 미션 초안', async () => { if (!discard()) return; const generation = state.snapshot().generation; const result = await planClient.routeDraft(routeSelect.value); await loadMap(result.draft.map_family.occupancy_map_id); preservePendingEdits(generation); state.fresh(result.draft); name.value = result.draft.label; mode = 'edit'; editorMap = null; hypothetical = null; renderDraft(); if (!staleReasons.length) status.textContent = result.notice; });
-  for (const [copy, label] of [[false, '미션 저장'], [true, '새 미션으로 복사']]) button(header, label, async () => {
+  for (const [copy, label] of [[false, '미션 저장'], [true, '새 미션으로 복사']]) button(definitionActions, label, async () => {
     assertInputs();
     const s = state.snapshot(); if (!s.draft) throw new Error('먼저 지도를 불러오세요.');
     if (staleReasons.length) throw new Error('지도 버전이 달라 먼저 현재 지도 버전에 초안을 연결하세요.');
@@ -95,8 +105,8 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
     if (unchanged) renderDraft(); else { draw(); updateButtons(); }
     await refreshPlans(); status.textContent = unchanged ? '저장됨 · 실행 중인 정의는 해당 실행에 고정됩니다.' : '요청한 버전은 저장했습니다. 저장 중 입력한 변경은 편집 초안에 보존되어 추가 저장이 필요합니다.';
   });
-  button(header, '저장 미션 삭제', async () => { const entry = await savedEntry(); if (globalThis.confirm?.(`저장 미션 ${entry.definition.label}을 삭제할까요? 실행 이력은 보존됩니다.`) !== true) return; const generation = state.snapshot().generation; await planClient.remove(entry); if (destroyed) return; if (state.snapshot().generation === generation) { state.clear(); name.value = '새 미션'; renderDraft(); } else { const draft = state.snapshot().draft; state.fresh(draft); } await refreshPlans(); status.textContent = '저장 미션을 삭제했습니다. 기존 실행 이력은 보존됩니다.'; });
-  button(header, '현재 지도 버전에 초안 연결', async () => {
+  button(definitionActions, '저장 미션 삭제', async () => { const entry = await savedEntry(); if (globalThis.confirm?.(`저장 미션 ${entry.definition.label}을 삭제할까요? 실행 이력은 보존됩니다.`) !== true) return; const generation = state.snapshot().generation; await planClient.remove(entry); if (destroyed) return; if (state.snapshot().generation === generation) { state.clear(); name.value = '새 미션'; renderDraft(); } else { const draft = state.snapshot().draft; state.fresh(draft); } await refreshPlans(); status.textContent = '저장 미션을 삭제했습니다. 기존 실행 이력은 보존됩니다.'; });
+  button(definitionActions, '현재 지도 버전에 초안 연결', async () => {
     const s = state.snapshot(); if (!s.draft || !map) throw new Error('먼저 지도와 미션을 불러오세요.');
     if (globalThis.confirm?.('현재 지도·주석 버전으로 새 초안을 만들까요? 기존 좌표를 직접 검토해야 하며 원본 경로 연결은 해제됩니다.') !== true) return;
     await loadMap(s.draft.map_family.occupancy_map_id);

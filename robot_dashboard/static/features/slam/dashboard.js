@@ -201,11 +201,12 @@ export function mountSlamDashboard(doc = document, options = {}) {
   const heartbeatStatus = text('p', 'stream 대기 · 센서→브라우저 지연 unknown', { id: 'slamHeartbeat' });
   const cameraStatus = text('p', '카메라 시야 대기 · 보정과 optical pose 필요', { id: 'slamCameraViewStatus' });
   const fit = button('전체 지도 FIT', 'slamFit', () => state.scene?.fitToPointCloud());
-  panel.append(el('div', { className: 'slam-views' },
+  const observationViews = el('div', { className: 'slam-views', hidden: true },
     el('section', { className: 'slam-view' }, text('h3', '입력 카메라 · 현재 관측'), imageCanvas, overlayToggle.label, imageStatus),
     el('section', { className: 'slam-view' }, text('h3', '전역 3D 지도'), mapCanvas,
       el('div', { className: 'slam-layer-row' }, mapToggle.label, obsToggle.label, trailToggle.label, cameraToggle.label, followToggle.label, fit),
-      text('small', '드래그 회전 · 우클릭/Shift 드래그 이동 · 휠 확대/축소'), mapStatus, cameraStatus)), sourceStatus, heartbeatStatus);
+      text('small', '드래그 회전 · 우클릭/Shift 드래그 이동 · 휠 확대/축소'), mapStatus, cameraStatus));
+  panel.append(observationViews, sourceStatus, heartbeatStatus);
   mappingHost.prepend(panel);
 
   const stopDialog = el('dialog', { id: 'slamStopDialog', className: 'slam-dialog', 'aria-labelledby': 'slamStopTitle' });
@@ -287,7 +288,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
   library.append(el('div', { className: 'slam-heading' }, text('h2', '지도 종류 · native 패키지'), filter),
     text('p', 'LiDAR 원본 목록과 VSLAM native DB를 함께 관리합니다. 미리보기는 저장 데이터만 읽습니다.', { className: 'slam-muted' }),
     packageStatus, packageLocalizationStatus, text('a', '세션 중지·새 세션 설정 →', { href: '#mapping' }), packageRows,
-    el('div', { className: 'slam-native-detail', id: 'slamNativeDetail' }, previewCanvas, packageDetail,
+    el('div', { className: 'slam-native-detail', id: 'slamNativeDetail', hidden: true }, previewCanvas, packageDetail,
       el('div', { className: 'slam-control-row' }, field('표시 이름', packageName), renameButton, copyButton, deleteButton, download),
       el('details', {}, text('summary', '저장 지도에서 관측용 위치찾기 · 명시적 검증 힌트 필요'),
         text('p', 'native load·위치찾기 성공은 별도 결과입니다. 운영 위치 소스와 주행 지도는 자동 변경되지 않습니다.'),
@@ -332,6 +333,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
 
   function updateButtons() {
     const active = Boolean(state.session && state.session.state !== 'IDLE');
+    const visualEngine = (active ? state.session.engine_id : engine.value)?.startsWith('visual_');
+    observationViews.hidden = !visualEngine;
+    sourceStatus.hidden = !visualEngine;
+    heartbeatStatus.hidden = !visualEngine;
     const selected = state.engines.find((value) => value.engine_id === engine.value);
     const tasks = selected?.tasks || [];
     for (const option of task.options) option.disabled = !tasks.includes(option.value);
@@ -587,6 +592,8 @@ export function mountSlamDashboard(doc = document, options = {}) {
 
   async function selectPackage(entry) {
     state.selectedPackage = entry;
+    applyFilter();
+    for (const row of packageRows.querySelectorAll('[data-package-id]')) row.setAttribute('aria-pressed', String(row.dataset.packageId === entry.id));
     packageName.value = entry.name || '';
     packageDetail.textContent = [`${entry.name} · ${entry.engine_id}`, `ID ${entry.id}`, `metadata revision ${entry.revision}`,
       `native revision ${entry.native_content_revision}`, `preview revision ${entry.preview_revision || 'unavailable'} · ${entry.preview_consistency}`,
@@ -615,9 +622,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
 
   function applyFilter() {
     const showNative = ['all', 'vslam'].includes(filter.value);
-    packageRows.hidden = !showNative; nativeDetail.hidden = !showNative;
+    packageRows.hidden = !showNative; nativeDetail.hidden = !showNative || !state.selectedPackage;
     const legacyLayout = mapsHost.querySelector('.saved-layout');
     if (legacyLayout) legacyLayout.hidden = filter.value === 'vslam';
+    for (const tools of mapsHost.querySelectorAll('.saved-tools-grid, .map-crop-panel')) tools.hidden = filter.value === 'vslam';
     for (const row of mapsHost.querySelectorAll('[data-saved-map-id]')) {
       const entry = state.legacyMaps.find((item) => item.id === row.dataset.savedMapId);
       row.hidden = filter.value === 'nav2' && entry?.kind !== 'occupancy2d';

@@ -183,11 +183,18 @@ footer { position: fixed; left: var(--rail-width); right: 0; bottom: 0; margin: 
 /* Existing page nodes stay bound; only their visual hierarchy changes. */
 [data-page="mapping"] { display: grid; grid-template-columns: minmax(0, 1fr) var(--inspector-width); gap: 16px; align-items: start; }
 [data-page="mapping"] .mapping-panel { min-width: 0; }
-[data-page="mapping"] .map-stage { height: calc(100dvh - 260px); min-height: 420px; }
+[data-page="mapping"] .map-stage { height: clamp(360px, calc(100dvh - 340px), 560px); min-height: 360px; }
 [data-page="mapping"] .mapping-control-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+[data-page="mapping"] .mapping-session-form { border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
+[data-page="mapping"] .mapping-job-panel { padding: 0 16px 16px; }
+[data-page="mapping"] .mapping-action-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-page="mapping"] .mapping-action-row .primary { grid-column: 1 / -1; }
+[data-page="mapping"] .mapping-job-summary { grid-template-columns: minmax(0, 1fr); }
+[data-page="mapping"] .mapping-job-summary > div { display: flex; justify-content: space-between; gap: 8px; }
+[data-page="mapping"] .mapping-job-summary strong { margin: 0; white-space: normal; text-align: right; }
 [data-page="mapping"] .mapping-support-grid { grid-column: 1 / -1; }
 .saved-layout { grid-template-columns: minmax(0, 1fr) var(--inspector-width); gap: 16px; }
-.saved-map-stage { min-height: 420px; height: calc(100dvh - 240px); }
+.saved-map-stage { min-height: 360px; height: clamp(360px, calc(100dvh - 340px), 560px); }
 .saved-map-search { display: grid; gap: 6px; margin: 12px 16px; font-size: 12px; color: var(--muted); }
 #savedMapRevision { overflow-wrap: anywhere; font-size: 12px; }
 .navigation-main-grid { grid-template-columns: minmax(0, 1fr) var(--inspector-width); gap: 16px; }
@@ -208,6 +215,17 @@ footer { position: fixed; left: var(--rail-width); right: 0; bottom: 0; margin: 
 .dataset-capture-panel .dataset-source-picker label { padding: 8px; }
 .dataset-capture-panel :is(legend, .dataset-capture-fields > label > span, .dataset-capture-summary span, .dataset-persistence-note, .dataset-label-note) { color: var(--muted); font-size: 12px; }
 .dataset-capture-panel .dataset-capture-summary strong { font-size: 16px; }
+.dataset-capture-panel { container: dataset-capture / inline-size; }
+@container dataset-capture (max-width: 420px) {
+  .dataset-source-picker { grid-template-columns: minmax(0, 1fr); }
+  .dataset-source-picker label { grid-template-columns: 90px minmax(0, 1fr); align-items: center; }
+  .dataset-capture-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@container camera-panel (max-width: 720px) {
+  .camera-view-grid[data-view-mode="dual"] { grid-template-columns: minmax(0, 1fr); }
+}
+/* Fit the image stage to its panel, including a two-camera split. */
+.sensor-page-grid .camera-stage { height: auto; min-height: 200px; aspect-ratio: 4 / 3; max-height: 360px; }
 @media (min-width: 1101px) {
   .mapping-control-panel, .saved-library-panel, .navigation-mission-panel, .dataset-capture-panel { max-height: none; }
   .dataset-capture-panel > .panel-header { position: sticky; top: 0; background: var(--panel); z-index: 1; }
@@ -266,7 +284,7 @@ html[data-workspace-window="cockpit"] .cockpit-workspace { min-height: 0; }
   footer { left: 0; padding: 8px 12px; }
   footer > span:first-child { display: none; }
   .toast { bottom: 225px; left: 12px; right: 12px; }
-  [data-page="mapping"] .map-stage, .saved-map-stage { height: 440px; }
+  [data-page="mapping"] .map-stage, .saved-map-stage { height: 360px; }
 }
 @media (max-width: 520px) {
   html[data-active-page="settings"] { scroll-padding-bottom: 400px; }

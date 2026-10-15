@@ -10,3 +10,47 @@
 .mr-workspace>footer{position:static;inset:auto;height:auto;z-index:auto;margin:0;background:transparent;border-top:0;font-size:inherit;color:inherit}
 .mr-workspace button,.mr-workspace input,.mr-workspace select{color:var(--text,inherit);background:var(--panel-strong,transparent);border:1px solid var(--line-strong,#687386);border-radius:6px}
 .mr-workspace button{cursor:pointer}.mr-workspace button:disabled{cursor:not-allowed}
+
+/* Group existing controls without changing their action or ownership contracts. */
+#dashboardMissionHost{container:mission-page / inline-size}
+.mr-workspace{padding:0;align-items:start;grid-template-columns:minmax(190px,1fr) minmax(320px,2.7fr) minmax(220px,1fr)}
+.mr-workspace>header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px}
+.mr-workspace .mr-identity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mr-workspace .mr-identity label{display:grid;margin:0;gap:6px}
+.mr-workspace .mr-identity :is(input,select){width:100%}
+.mr-workspace :is(.mr-mode-actions,.mr-definition-actions,.mr-validation-actions,.mr-run-actions,.mr-history){display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mr-workspace :is(.mr-definition-actions,.mr-context){grid-column:1/-1}
+.mr-workspace .mr-context{display:flex;flex-wrap:wrap;gap:6px 20px;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.mr-workspace .mr-toolbar{align-items:center;margin-bottom:12px}
+.mr-workspace .mr-toolbar label{flex:1 1 180px;display:grid}
+.mr-workspace .mr-toolbar button{align-self:end}
+.mr-workspace>aside{display:flex;flex-wrap:wrap;gap:8px;align-content:start}
+.mr-workspace>aside>label{display:grid;flex-basis:100%;margin:0}
+.mr-workspace>aside>label:has(input[type=checkbox]){display:flex}
+.mr-workspace>aside>ol{flex-basis:100%;margin:0}
+.mr-workspace>aside>p{margin:0}
+.mr-workspace>aside>button{flex:1 1 auto}
+.mr-workspace>footer{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:16px 0 0;border-top:1px solid var(--line)}
+.mr-workspace>footer>:is(p,pre){margin:0}
+.mr-workspace .mr-history{align-items:end}
+.mr-workspace .mr-history label{display:grid;flex:1 1 200px;margin:0}
+.mr-workspace .mr-history pre{flex:1 1 100%;margin:0;order:1}
+.mr-workspace .mr-run-actions{padding-top:12px;border-top:1px solid var(--line)}
+.mr-workspace a{color:var(--cyan);overflow-wrap:anywhere}
+.mr-workspace .mr-run-actions>a{display:inline-flex;min-height:44px;align-items:center;padding:6px}
+.mr-workspace .mr-legend{color:var(--muted);font-size:13px;line-height:1.6}
+.mr-workspace svg{height:clamp(260px,38dvh,400px)}
+@container mission-page (max-width:1000px){
+  .mr-workspace{grid-template-columns:minmax(190px,1fr) minmax(0,2.5fr)}
+  .mr-workspace>.mr-inspector{grid-column:1/-1}
+  .mr-workspace>.mr-inspector>label{flex:1 1 180px;max-width:none}
+}
+@container mission-page (max-width:650px){
+  .mr-workspace{display:flex;flex-direction:column}
+  .mr-workspace>*,.mr-workspace>header{width:100%}
+  .mr-workspace>header{grid-template-columns:minmax(0,1fr)}
+  .mr-workspace .mr-identity{grid-template-columns:minmax(0,1fr)}
+  .mr-workspace .mr-compact-tabs{display:flex;gap:8px}
+  .mr-workspace aside[data-drawer-hidden=true]{display:none}
+  .mr-workspace svg{height:32dvh;min-height:240px}
+}

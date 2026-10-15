@@ -1,8 +1,12 @@
-.slam-console,.slam-library{padding:20px;margin-bottom:20px;min-width:0;overflow:hidden}
+.slam-console,.slam-library{padding:16px;margin-bottom:16px;min-width:0;overflow:hidden}
+.slam-console>p,.slam-console>pre,.slam-library>p,.slam-library>pre{margin:6px 0}
+[data-page=mapping]>.slam-console{grid-column:1/-1;margin-bottom:0}
 .slam-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px}
 .slam-heading h2,.slam-view h3{margin:0}
+.slam-library>.slam-heading h2{flex:1 1 240px}
+.slam-library>.slam-heading select{flex:0 1 320px;width:100%;min-width:0}
 .slam-heading>strong{font:600 12px ui-monospace,monospace;border:1px solid var(--line,#35434b);padding:7px 12px;border-radius:5px}
-.slam-control-row,.slam-layer-row{display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin:12px 0}
+.slam-control-row,.slam-layer-row{display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin:8px 0}
 .slam-field{display:flex;flex-direction:column;gap:5px;min-width:150px;max-width:100%;font-size:12px}
 .slam-field>span{color:var(--muted,#93a5ad)}
 .slam-console select,.slam-library select,.slam-console input[type=text],.slam-library input:not([type=checkbox]):not([type=file]){background:var(--panel-bg,#141d24);color:inherit;border:1px solid var(--line,#35434b);border-radius:5px;min-height:36px;padding:6px 10px;max-width:100%}
@@ -14,11 +18,11 @@
 #slamStop,#slamPackageDelete,#slamDiscardThenStop{border-color:#855454}
 #slamMessage,#slamPackageStatus{min-height:20px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
 .slam-muted,#slamSourceIdentity{font-size:12px;color:var(--muted,#93a5ad);overflow-wrap:anywhere}
-.slam-views{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;margin:18px 0 10px}
+.slam-views{display:grid;grid-template-columns:1fr 1.2fr;gap:12px;margin:12px 0 8px}
 .slam-view{min-width:0;border:1px solid var(--line,#35434b);border-radius:7px;padding:12px}
 .slam-view h3{font-size:13px;margin-bottom:10px}
-.slam-view canvas,#slamPackageCanvas{display:block;background:#10171d;width:100%;height:330px;border-radius:4px;object-fit:contain}
-#slamCameraCanvas{height:330px;object-fit:contain}
+.slam-view canvas,#slamPackageCanvas{display:block;background:#10171d;width:100%;height:clamp(200px,28dvh,280px);border-radius:4px;object-fit:contain}
+#slamCameraCanvas{height:clamp(200px,28dvh,280px);object-fit:contain}
 #slamMapCoverage,#slamProvenance,#slamHeartbeat,#slamImageStatus,#slamCameraViewStatus{font-size:11px;line-height:1.6;overflow-wrap:anywhere;color:var(--muted,#93a5ad)}
 .slam-layer-row{align-items:center;gap:9px}
 .slam-layer-row .slam-check{font-size:11px}
@@ -28,7 +32,7 @@
 .slam-package-list button[aria-pressed=true]{border-color:#79cfbd}
 .slam-native-detail{border-top:1px solid var(--line,#35434b);padding-top:12px}
 .slam-detail{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.8 ui-monospace,monospace;color:var(--muted,#adbdc5);max-height:230px;overflow:auto}
-#slamPackageCanvas{height:280px;max-width:800px}
+#slamPackageCanvas{height:240px;max-width:800px}
 #slamPackageExport[aria-disabled=true]{pointer-events:none;opacity:.45}
 .slam-library details{border-top:1px solid var(--line,#35434b);margin-top:12px;padding-top:12px;font-size:12px}
 .slam-library summary{cursor:pointer}
@@ -36,6 +40,6 @@
 .slam-dialog::backdrop{background:#02080dd0}
 .slam-dialog h2{font-size:18px}
 .slam-dialog p{font-size:13px;line-height:1.7}
-.slam-console [hidden],.slam-library [hidden],[data-page=maps] .saved-layout[hidden],[data-page=maps] [data-saved-map-id][hidden]{display:none!important}
-@media(max-width:1000px){.slam-views{grid-template-columns:1fr}.slam-console,.slam-library{padding:14px}.slam-heading{align-items:start;flex-wrap:wrap}.slam-field{flex:1 1 180px}.slam-view canvas,#slamCameraCanvas{height:280px}}
+.slam-console [hidden],.slam-library [hidden],[data-page=maps] .saved-layout[hidden],[data-page=maps] .saved-tools-grid[hidden],[data-page=maps] .map-crop-panel[hidden],[data-page=maps] [data-saved-map-id][hidden]{display:none!important}
+@media(max-width:1000px){.slam-views{grid-template-columns:1fr}.slam-console,.slam-library{padding:14px}.slam-heading{align-items:start;flex-wrap:wrap}.slam-field{flex:1 1 180px}.slam-view canvas,#slamCameraCanvas{height:240px}}
 @media(prefers-reduced-motion:reduce){.slam-console *,.slam-library *{animation:none!important;transition:none!important}}
