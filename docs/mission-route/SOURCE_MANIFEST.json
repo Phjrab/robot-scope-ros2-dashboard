@@ -1,0 +1,128 @@
+{
+  "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+  "parent_sha": "7747ef7dd536a8aa0f313784374e00693e8696c3",
+  "source_dirty": false,
+  "file_count": 30,
+  "files": [
+    {
+      "path": "robot_dashboard/api/routers/mission_routes.py",
+      "sha256": "658f73ba333b91d8b1f5b29769cc9cd51526348a2c3934116e79576fedff97f0"
+    },
+    {
+      "path": "robot_dashboard/app.py",
+      "sha256": "e770e164061f692de640a591fc98cbe997143d420ad457be616bfdc87408b25e"
+    },
+    {
+      "path": "robot_dashboard/application/mission_coordinator.py",
+      "sha256": "804bdbe243cb52ef9f4e15315ecce93ac4b450ebeec391bf9da280f9c8e01ecf"
+    },
+    {
+      "path": "robot_dashboard/application/runtime.py",
+      "sha256": "fc3b5277d84125646d139c9e94cc359dc098e3946d5be33ecbfa0590381d2cda"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/__init__.py",
+      "sha256": "f78ad94e16dac5b32c7ba0262a2c1460dcdb5b9bb3b67ecae586a29e3b1979fd"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/context.py",
+      "sha256": "e048b018d8bb92884bd69e8aff8c8a3bf8969dd9588421fb8b0302164aae37ef"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/models.py",
+      "sha256": "4d4182430d9ec026b583fca554012d112f3194752e065c16b6d18371bb2c6a02"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/planner.py",
+      "sha256": "775467e9afbb14888f37da5d4c978c49f45c5843c871a3008c07d5ca7f733ac8"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/service.py",
+      "sha256": "86cce9708d4a439291e163d904a06f44275854ffbc39cfe52e0db9faa5f4ca44"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/store.py",
+      "sha256": "221f89a588fbde150dbbfc440305d76c88fb19d854fb94c4f94100aac3321a6d"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/wiring.py",
+      "sha256": "866e0e7b8954453f6dc970276a7fd57ecc750d8f53f2537482589f013e44ac24"
+    },
+    {
+      "path": "robot_dashboard/static/features/cockpit/mission_client.js",
+      "sha256": "45c19475465ed8abcdc22d8a6a1ea643fe6281b26552c4f99593d95d9ae87c03"
+    },
+    {
+      "path": "robot_dashboard/static/features/cockpit/mission_page.js",
+      "sha256": "4a878a8499df06f1e99cfef39498c66c74cac4f44530b829857fc744be31e302"
+    },
+    {
+      "path": "robot_dashboard/static/features/cockpit/panels/mission_panel.js",
+      "sha256": "0cda0cb991a87f9527a581d0f0a118a3c0c4521d23b0ec1e0104aaf307db7190"
+    },
+    {
+      "path": "robot_dashboard/static/features/mission_route/client.js",
+      "sha256": "6345b977e1e31e96a3447f238f6daa5b236c7aef78198cad236a35f7dedcf6bb"
+    },
+    {
+      "path": "robot_dashboard/static/features/mission_route/state.js",
+      "sha256": "982a0a5ee4d581baf2692d68c93294c0023b24f5a987c91f77db7dcae7bffa1c"
+    },
+    {
+      "path": "robot_dashboard/static/features/mission_route/workspace.css",
+      "sha256": "13e3a31bf47318018fefeaa6663065f7d429f56ca118e7f68f85320dcce618d6"
+    },
+    {
+      "path": "robot_dashboard/static/features/mission_route/workspace.js",
+      "sha256": "00717c971b82fd5c49ce32baa4cb08966005f7393ac4d8d30ce2f109bbbadee0"
+    },
+    {
+      "path": "tests/e2e/dashboard.spec.mjs",
+      "sha256": "7d9a02289189dba05bb7b25c82ae11eb5eb3c81af4adf3026ae8b37003f5ee55"
+    },
+    {
+      "path": "tests/e2e/mission_page.spec.mjs",
+      "sha256": "e1bd771eb65a2304da1806fa4af686f3e4b6638db67beaac6d7033ef9f96a82b"
+    },
+    {
+      "path": "tests/e2e/mission_route.spec.mjs",
+      "sha256": "9b0547b98fd1b604912e4043ca71384edbd6feab2e2d5ae9af47e34ef76c199c"
+    },
+    {
+      "path": "tests/e2e/reusable_points_orders.spec.mjs",
+      "sha256": "9951fc497e50074c9f9025313da0f56c78b50dbf675d20392ec694ee9d54f106"
+    },
+    {
+      "path": "tests/e2e/spatial_editor.spec.mjs",
+      "sha256": "49b51ba33d4c219cfc3b95ea80336143c48ff84530fcd9804ce923c224c4b268"
+    },
+    {
+      "path": "tests/test_api_contract_phase8.py",
+      "sha256": "191561f842724d512c8088cd42918c93587cd1ce90153a18cbcc729a99e733e8"
+    },
+    {
+      "path": "tests/test_application_workflow_wiring.py",
+      "sha256": "be5a305c169d75beffc4b65adb040bd2a146c889a5cb9fe3e93dfe68603494bb"
+    },
+    {
+      "path": "tests/test_mission_route_execution.py",
+      "sha256": "793ef4bd021c807076cbb65b6c3c9012ce06e9cf40859c218fddfb91dfa0d64f"
+    },
+    {
+      "path": "tests/test_mission_route_integration.py",
+      "sha256": "d4ee62e50dcacb86bf678d767aac7c7c9ed7ef25e08b68fd46643163ace83bd6"
+    },
+    {
+      "path": "tests/test_mission_route_planner.py",
+      "sha256": "bb91142d8c6e091c3641dcd23ad7b5e1ee8e8bad0981367438cb0fb7888747c4"
+    },
+    {
+      "path": "tests/test_mission_route_service.py",
+      "sha256": "862db81e1cddd2edff5b9a6b3dfaad327d201eb58a0fab3e3ffe13767afba878"
+    },
+    {
+      "path": "tests/test_mission_route_state.mjs",
+      "sha256": "480dacabd6cd572e8571e6230c485f4d357443df2bdfc6e2fea98c7ee3159083"
+    }
+  ]
+}

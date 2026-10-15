@@ -1,0 +1,228 @@
+{
+  "recorded_at": "2026-10-15T06:45:34.358571+00:00",
+  "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+  "runtime_sha": null,
+  "config_hash": null,
+  "source_manifest": "SOURCE_MANIFEST.json",
+  "environment": {
+    "platform": "macOS-26.3-arm64-arm-64bit-Mach-O",
+    "python": "Python 3.13.2",
+    "node": "v22.17.1",
+    "quality_dependencies": "PYTHONPATH=/private/tmp/robot-scope-ms-quality",
+    "sockets": "local fixture only; sandbox localhost listen approved; no device access"
+  },
+  "source_at_execution": "pre-commit tree with bytes identical to SOURCE_MANIFEST; committed afterward",
+  "checks": [
+    {
+      "id": "python",
+      "command": [
+        "/Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "started_at": "2026-10-15T06:27:43.601730+00:00",
+      "completed_at": "2026-10-15T06:29:06.541836+00:00",
+      "exit_code": 0,
+      "log": "/private/tmp/mr-final-python.log",
+      "sha256": "480c94e61a713c4737ba1c3f0b99fa9154d8b9e9a881e6ad7f56d857206b8832",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "status": "PASS",
+      "discovered": 1939,
+      "passed": 1937,
+      "skipped": 2,
+      "failed": 0,
+      "duration_seconds": 81.974,
+      "skip_reasons": [
+        "optional rosbags backend not installed",
+        "requires Linux process sessions and /proc"
+      ]
+    },
+    {
+      "id": "javascript",
+      "command": [
+        "npm",
+        "run",
+        "test:unit"
+      ],
+      "started_at": null,
+      "completed_at": "2026-10-15T06:35:34.716617+00:00",
+      "exit_code": 0,
+      "log": "/private/tmp/mr-final-javascript.log",
+      "sha256": "66d62916c06394e2ee0cb9c0875e4327b30b76f993b5aa3ea1cab9db87ce45df",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "historical_timestamps_replaced": true,
+      "timestamp_basis": "last rerun log mtime; exact start not recorded",
+      "status": "PASS",
+      "passed": 381,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "id": "ruff",
+      "command": [
+        "/Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/.venv/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "robot_dashboard",
+        "scripts",
+        "tests/test_mission_route_execution.py",
+        "tests/test_mission_route_service.py",
+        "tests/test_mission_route_integration.py",
+        "tests/test_mission_route_planner.py",
+        "tests/test_application_workflow_wiring.py"
+      ],
+      "started_at": "2026-10-15T06:29:07.544065+00:00",
+      "completed_at": "2026-10-15T06:29:07.619052+00:00",
+      "exit_code": 0,
+      "log": "/private/tmp/mr-final-ruff.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "status": "PASS"
+    },
+    {
+      "id": "mypy",
+      "command": [
+        "/Users/hajoonpark/자율설계/robot-scope-ros2-dashboard/.venv/bin/python",
+        "-m",
+        "mypy",
+        "--config-file",
+        "mypy.ini"
+      ],
+      "started_at": "2026-10-15T06:29:07.619372+00:00",
+      "completed_at": "2026-10-15T06:29:08.463967+00:00",
+      "exit_code": 0,
+      "log": "/private/tmp/mr-final-mypy.log",
+      "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "status": "PASS",
+      "configured_modules": 4,
+      "all_project_modules_checked": false
+    },
+    {
+      "id": "syntax",
+      "command": [
+        "node",
+        "scripts/check_frontend_syntax.mjs"
+      ],
+      "started_at": null,
+      "completed_at": "2026-10-15T06:35:36.768844+00:00",
+      "exit_code": 0,
+      "log": "/private/tmp/mr-final-syntax.log",
+      "sha256": "15e47e59b945e4709058e7b657507d16b233fc34c6c858207ddcd7b75bea921d",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "historical_timestamps_replaced": true,
+      "timestamp_basis": "last rerun log mtime; exact start not recorded",
+      "status": "PASS"
+    },
+    {
+      "id": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "started_at": "2026-10-15T06:29:10.421403+00:00",
+      "completed_at": "2026-10-15T06:29:10.445910+00:00",
+      "exit_code": 0,
+      "log": "/private/tmp/mr-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "status": "PASS"
+    },
+    {
+      "id": "chromium",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=/private/tmp/mr-full-browser.json ./node_modules/.bin/playwright test --reporter=line,json --output=/private/tmp/mr-full-browser",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "status": "PASS",
+      "evidence_type": "actual frontend on local HTTP fixture; synthetic backend responses",
+      "started_at": "2026-10-15T06:35:37.209Z",
+      "completed_at": "2026-10-15T06:38:08.318621+00:00",
+      "passed": 96,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "duration_ms": 151109.62099999998,
+      "log": "/private/tmp/mr-full-browser.log",
+      "sha256": "ef6e7abcc4534eb1cfcb940a59a97fc81f0cad2bc2c3e2aa6a8bfe407f03f6bc",
+      "json_log": "/private/tmp/mr-full-browser.json",
+      "json_sha256": "f464daed798f25b45491133b4767a5b35ddcfb965db18cf145a1c8184487f3ff"
+    },
+    {
+      "id": "focused-python",
+      "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "source_dirty": false,
+      "status": "PASS",
+      "evidence_type": "real MR/MS code and NativePlanner with synthetic hardware/ROS transport",
+      "passed": 83,
+      "failed": 0,
+      "skipped": 0,
+      "duration_seconds": 2.557,
+      "log": "/private/tmp/mr-focused-final.log",
+      "sha256": "2105f4c3953c813435b71beb00a2a1b9ae560038b24fbfbc7641af034ce7e54a",
+      "started_at": null,
+      "completed_at": "2026-10-15T06:21:30.912015+00:00",
+      "timestamp_basis": "log mtime; exact start not recorded"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "evidence/mission-route-1024x768-synthetic.png",
+      "sha256": "9878e5cabc8faf67f67124d647756d001a8cd66227ba4f3c4c1c37d0954eb218",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    },
+    {
+      "path": "evidence/mission-route-1280x800-synthetic.png",
+      "sha256": "c2ac5fc7fcbafa14e2ef8765cc610d25fa8d2936d5449bd2faca0c7d3766c7b8",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    },
+    {
+      "path": "evidence/mission-route-1440x900-synthetic.png",
+      "sha256": "ccfff3548be117852a1dc60eb0ea7890a2066f2729684148c022f6c135889ae8",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    },
+    {
+      "path": "evidence/mission-route-200-percent-css-zoom-fixture.png",
+      "sha256": "3614f985d0caf222423b191081baeb6333b5f891e74881fa6cce4036d75dc4dd",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    },
+    {
+      "path": "evidence/mission-route-390x844-synthetic.png",
+      "sha256": "868e1f936e26525c84a18454bd3b11d070a59e5644d975c277fa6ec9805c3b2a",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    },
+    {
+      "path": "evidence/mission-route-768x1024-synthetic.png",
+      "sha256": "ec8aed057b768836c96caa5f8c92f4ceb8b0ee9133b94e970b19c873d23fccd8",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    },
+    {
+      "path": "evidence/mission-route-light-synthetic.png",
+      "sha256": "2404fe85cfc65395ea6ad7e9ca3243ada89dcb5a53abd695d55950b4d2c2fa8e",
+      "evidence_type": "UI fixture / 주행 검증 아님"
+    }
+  ],
+  "ci": {
+    "status": "NOT_RUN",
+    "reason": "MR publication pending; MS baseline CI is not MR evidence"
+  },
+  "native_planner": {
+    "status": "NOT_RUN"
+  },
+  "hardware": {
+    "status": "NOT_RUN",
+    "manual_action_performed": false,
+    "final_resource_state": "no deployment/restart/initialpose/ARM/motion goal/robot movement or operational camera/SLAM access"
+  }
+}
