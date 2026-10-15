@@ -31,7 +31,7 @@ export function createSafetyHudView(options = {}) {
   if (!documentValue || !root) throw new TypeError('SafetyHudView requires document and root.');
   root.replaceChildren();
   root.className = 'cockpit-safety-hud';
-  root.setAttribute('aria-label', '고정 제어 상태와 소프트웨어 정지');
+  root.setAttribute('aria-label', '제어 상태와 소프트웨어 정지');
   let expanded = false;
 
   const header = element(documentValue, 'div', 'cockpit-safety-header');
@@ -56,7 +56,9 @@ export function createSafetyHudView(options = {}) {
   toggle.type = 'button';
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-controls', 'cockpitSafetyDetails');
-  header.append(identity, summary, toggle, modeActions);
+  header.append(identity, summary, toggle);
+  const layoutRoot = documentValue.querySelector?.('#cockpitLayoutModeActions');
+  (layoutRoot || header).append(modeActions);
 
   const metrics = element(documentValue, 'div', 'cockpit-safety-metrics');
   metrics.id = 'cockpitSafetyDetails';
@@ -102,6 +104,7 @@ export function createSafetyHudView(options = {}) {
   function render(projected, layoutState) {
     root.dataset.tone = projected.tone;
     root.dataset.layoutMode = layoutState.mode;
+    modeActions.dataset.layoutMode = layoutState.mode;
     for (const [field, value] of fields) {
       value.textContent = projected[field];
       value.dataset.state = String(projected[field]).toLowerCase();
@@ -118,6 +121,7 @@ export function createSafetyHudView(options = {}) {
   }
 
   function destroy() {
+    if (layoutRoot) layoutRoot.replaceChildren();
     root.replaceChildren();
   }
 

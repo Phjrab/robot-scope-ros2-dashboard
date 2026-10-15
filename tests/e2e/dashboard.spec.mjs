@@ -337,7 +337,7 @@ test('Cockpit standalone page fills each browser viewport and requests native fu
   await expect(page.locator('.page-heading')).toBeHidden();
   await expect(page.locator('#cockpitWindowBar')).toBeVisible();
   await expect(page.locator('#cockpitWorkspace')).toBeVisible();
-  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
+  await expect(page.locator('[data-cockpit-software-stop]')).toBeHidden();
   expect(await page.evaluate(() => window.RobotScopeCockpitWindow.mode)).toBe('cockpit');
   expect(await page.evaluate(() => window.__fullscreenRequestCount)).toBe(0);
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
@@ -449,7 +449,7 @@ test('Cockpit map panel shows revision-pinned localization and toggles the bound
 
   await panel.locator('[data-panel-action="focus"]').click();
   await expect(panel).toHaveAttribute('data-mode', 'focus');
-  await expect(page.locator('#cockpitSafetyHud')).toBeVisible();
+  await expect(page.locator('#cockpitSafetyHud')).toBeHidden();
   await expect(page.locator('#cockpitMapOverlay')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#cockpitMapOverlay').focus();
   await page.keyboard.press('Enter');
@@ -1148,7 +1148,7 @@ test('Cockpit disables camera launchers that are absent from the active catalog 
   await expect(unavailable).toContainText('UNAVAILABLE');
 });
 
-test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and software STOP above focus panels', async ({ page }) => {
+test('control status and software STOP belong only to Settings while Cockpit layout editing stays available', async ({ page }) => {
   const backend = await openDashboard(page, {}, 'cockpit');
   const workspace = page.locator('#cockpitWorkspace');
   const hud = page.locator('#cockpitSafetyHud');
@@ -1158,14 +1158,8 @@ test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and softw
   await expect(page.locator('.cockpit-launcher-item[data-panel-type="camera.realsense-color"]')).toBeDisabled();
   await expect(hud).toHaveAttribute('data-expanded', 'false');
   await expect(hud.locator('.cockpit-safety-summary')).toContainText('ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · LEASE NONE');
-  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
-  await hud.locator('.cockpit-safety-toggle').click();
-  await expect(hud).toHaveAttribute('data-expanded', 'true');
-  await expect(hud.locator('[data-safety-field="control-source"]')).toHaveText('NONE');
-  await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
-  await expect(hud.locator('[data-safety-field="lowstate"]')).toHaveText('50 ms');
-  await expect(hud.locator('[data-safety-field="battery"]')).toHaveText('83%');
-
+  await expect(hud).toBeHidden();
+  await expect(page.locator('#cockpitLayoutModeActions [data-cockpit-layout-action="edit"]')).toBeVisible();
   await enterLayoutEdit(page);
   await expect(go2Button).toBeEnabled();
   await go2Button.click();
@@ -1187,18 +1181,25 @@ test('Cockpit starts in Operate, gates layout mutations, and keeps HUD and softw
 
   await camera.locator('[data-panel-action="focus"]').click();
   await expect(camera).toHaveAttribute('data-mode', 'focus');
-  const layering = await page.evaluate(() => {
-    const hudElement = document.querySelector('#cockpitSafetyHud');
-    const stop = document.querySelector('[data-cockpit-software-stop]');
-    const box = stop.getBoundingClientRect();
-    return {
-      hudZ: Number(getComputedStyle(hudElement).zIndex),
-      panelZ: Number(getComputedStyle(document.querySelector('#cockpitPanelLayer')).zIndex),
-      hit: document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest?.('[data-cockpit-software-stop]') === stop,
-    };
-  });
-  expect(layering.hudZ).toBeGreaterThan(layering.panelZ);
-  expect(layering.hit).toBe(true);
+  for (const route of ['overview', 'cockpit', 'mapping', 'maps', 'sensors', 'resources', 'topics', 'controls', 'navigation', 'missions', 'route-planner']) {
+    await page.evaluate((value) => { location.hash = value; }, route);
+    await expect(page.locator('html')).toHaveAttribute('data-active-page', route);
+    await expect(hud).toBeHidden();
+    await expect(page.locator('[data-cockpit-software-stop]')).toBeHidden();
+  }
+  expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  await expect(hud).toBeHidden();
+  await page.evaluate(() => { location.hash = 'settings'; });
+  await expect(hud).toBeVisible();
+  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
+  await hud.locator('.cockpit-safety-toggle').click();
+  await expect(hud).toHaveAttribute('data-expanded', 'true');
+  await expect(hud.locator('[data-safety-field="control-source"]')).toHaveText('NONE');
+  await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
+  await expect(hud.locator('[data-safety-field="lowstate"]')).toHaveText('50 ms');
+  await expect(hud.locator('[data-safety-field="battery"]')).toHaveText('83%');
+
   const stop = page.locator('[data-cockpit-software-stop]');
   await expect(stop).toContainText('물리 E-STOP 아님');
   await stop.click();
@@ -1241,8 +1242,8 @@ test('active manual lease auto-locks Layout Edit and cancels an in-flight pointe
   await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeEnabled();
 });
 
-test('Safety HUD clears stale cached values and preserves STOP and control source on a narrow viewport', async ({ page }) => {
-  const backend = await openDashboard(page, {}, 'cockpit');
+test('Settings control status clears stale cached values and keeps STOP usable on a narrow viewport', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'settings');
   const hud = page.locator('#cockpitSafetyHud');
   await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
   await expect(hud.locator('[data-safety-field="software-stop"]')).toHaveText('CLEAR');

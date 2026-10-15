@@ -36,8 +36,7 @@ html[data-navigation-collapsed="true"] .sidebar { display: none; }
 
 .advanced-tools .nav-item i { font-size: 12px; }
 .sidebar .read-only-note { display: none; }
-.workspace { padding: 16px 20px 280px; }
-html[data-active-page="cockpit"] .workspace { padding-bottom: 230px; }
+.workspace { padding: 16px 20px 60px; }
 html[data-active-page="settings"] .workspace { padding-bottom: 260px; }
 .diagnostics-export-body { display: flex; flex-direction: column; align-items: flex-start; }
 .page-heading { gap: 12px; align-items: center; margin: 0 0 12px; min-height: 52px; }
@@ -122,7 +121,6 @@ button, input, select, textarea { border-radius: 4px; }
 #cockpitSafetyHud .software-stop-feedback { grid-column: 2; grid-row: 2; font-size: 13px; }
 #cockpitSafetyHud .cockpit-safety-metrics { grid-column: 1 / -1; grid-row: 3; }
 #cockpitSafetyHud .cockpit-physical-stop-reminder { grid-column: 1 / -1; grid-row: 4; margin: 0; }
-html:not([data-active-page="cockpit"]) #cockpitSafetyHud .cockpit-layout-mode-actions { display: none; }
 .cockpit-safety-metrics { min-height: 0; max-height: 32dvh; overflow: auto; flex: 1 1 auto; }
 .cockpit-safety-header, .cockpit-fixed-stop, .software-stop-feedback { flex: 0 0 auto; }
 .software-stop-feedback { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
@@ -158,8 +156,8 @@ footer { position: fixed; left: var(--rail-width); right: 0; bottom: 0; margin: 
 .inspector-sensor-status dd { margin: 0; font-size: 15px; font-weight: 500; }
 .cockpit-layout-mode-actions { display: flex; align-items: center; gap: 8px; }
 .cockpit-layout-mode { display: none; }
-#cockpitSafetyHud[data-layout-mode="operate"] [data-cockpit-layout-action="apply"],
-#cockpitSafetyHud[data-layout-mode="layout-edit"] [data-cockpit-layout-action="edit"] { display: none; }
+.cockpit-layout-mode-actions[data-layout-mode="operate"] [data-cockpit-layout-action="apply"],
+.cockpit-layout-mode-actions[data-layout-mode="layout-edit"] [data-cockpit-layout-action="edit"] { display: none; }
 .cockpit-layout-save-status:empty { display: none; }
 .cockpit-safety-identity { min-width: 0; }
 .cockpit-safety-identity span { display: none; }
@@ -195,9 +193,11 @@ footer { position: fixed; left: var(--rail-width); right: 0; bottom: 0; margin: 
 .navigation-main-grid { grid-template-columns: minmax(0, 1fr) var(--inspector-width); gap: 16px; }
 .navigation-map-stage { min-height: 420px; }
 .sensor-page-grid { grid-template-columns: minmax(0, 1fr) var(--inspector-width); gap: 16px; align-items: start; }
-.sensor-page-grid .camera-panel { grid-column: 1; grid-row: 1 / span 2; }
+.sensor-page-grid .camera-panel { grid-column: 1; grid-row: 1; }
 .sensor-page-grid .camera-panel.is-dual-view { grid-column: 1; }
 .sensor-page-grid .dataset-capture-panel { grid-column: 2; grid-row: 1; }
+.sensor-page-grid .telemetry-panel { grid-column: 1 / -1; }
+.sensor-page-grid .sensor-grid { grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); min-height: 0; }
 .sensor-page-grid .dataset-capture-layout { grid-template-columns: minmax(0, 1fr); }
 .dataset-capture-panel .dataset-capture-layout { display: flex; flex-direction: column; }
 .dataset-capture-panel .dataset-capture-readout { order: -1; border: 0; padding: 12px; background: var(--bg-soft); }
@@ -269,8 +269,8 @@ html[data-workspace-window="cockpit"] .cockpit-workspace { min-height: 0; }
   [data-page="mapping"] .map-stage, .saved-map-stage { height: 440px; }
 }
 @media (max-width: 520px) {
-  html { scroll-padding-bottom: 400px; }
-  html[data-active-page] .workspace { padding-bottom: 400px; }
+  html[data-active-page="settings"] { scroll-padding-bottom: 400px; }
+  html[data-active-page="settings"] .workspace { padding-bottom: 400px; }
   .topbar { position: relative; }
   .brand { width: 100%; }
   .top-actions { justify-content: flex-start; }

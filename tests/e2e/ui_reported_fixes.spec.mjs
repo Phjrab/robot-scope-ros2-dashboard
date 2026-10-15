@@ -6,6 +6,19 @@ for (const width of [390, 768, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1000 });
     await installDashboardBackend(page);
     await page.goto('/#sensors');
+    await expect(page.locator('#sensorGrid .sensor-card')).toHaveCount(2);
+    const telemetry = await page.locator('.sensor-page-grid').evaluate(grid => {
+      const rect = selector => grid.querySelector(selector).getBoundingClientRect();
+      return {
+        gridWidth: grid.getBoundingClientRect().width,
+        panel: rect('.telemetry-panel').toJSON(),
+        library: rect('.dataset-library-panel').toJSON(),
+        cards: [...grid.querySelectorAll('.sensor-card')].map(card => card.getBoundingClientRect().toJSON()),
+      };
+    });
+    expect(telemetry.panel.width).toBeGreaterThan(telemetry.gridWidth * .98);
+    expect(telemetry.library.top - telemetry.panel.bottom).toBeCloseTo(16, 0);
+    if (width >= 768) expect(Math.abs(telemetry.cards[0].top - telemetry.cards[1].top)).toBeLessThanOrEqual(1);
     await expect(page.locator('#cameraDualMode')).toBeEnabled();
     await page.locator('#cameraDualMode').click();
     await expect(page.locator('#cameraViewGrid')).toHaveAttribute('data-view-mode', 'dual');

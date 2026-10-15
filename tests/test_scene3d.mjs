@@ -283,9 +283,7 @@ test('point projection scratch uses bounded typed arrays and is reused across re
   assert.equal(scene.setNearFieldEmphasis(false), false);
 });
 
-test('navigation model preview exposes the persistent accessible XYZ control', () => {
-  assert.match(indexSource, /id="navigationRobotAxesButton"[^>]*aria-pressed="true"[^>]*>XYZ<\/button>/);
-  assert.match(appSource, /axesStorageKey: 'robot-scope\.navigation-model\.axes\.v1'/);
-  assert.match(appSource, /axes: ui\.navigationRobotAxesButton/);
+test('removed navigation model preview leaves no XYZ control in the page', () => {
+  assert.doesNotMatch(indexSource, /id="navigationRobotAxesButton"/);
   assert.match(stylesSource, /\.scene-controls \.scene-axes-toggle\[aria-pressed="true"\]/);
 });

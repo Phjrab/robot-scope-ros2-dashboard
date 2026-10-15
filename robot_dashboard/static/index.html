@@ -125,6 +125,7 @@
               <div><dt>최근 수신</dt><dd data-inspector-field="observed">—</dd></div>
             </dl>
             <label class="cockpit-task-selector" for="missionPresetSelect">작업 배치 <select id="missionPresetSelect" aria-label="Mission Control 작업 배치" disabled></select></label>
+            <div id="cockpitLayoutModeActions"></div>
             <small class="cockpit-layout-hint" role="status">배치 편집에서 창을 추가하고 작업 배치를 저장합니다.</small>
           </div>
           <div class="cockpit-scene-layer">
@@ -455,10 +456,6 @@
               </div>
             </div>
           </article>
-          <article class="panel telemetry-panel">
-            <div class="panel-header compact"><div><div class="eyebrow">TELEMETRY</div><h2>로봇 센서</h2></div><span class="muted" id="sensorCount">0 streams</span></div>
-            <div class="sensor-grid" id="sensorGrid"><div class="sensor-placeholder">센서 데이터를 기다리고 있습니다.</div></div>
-          </article>
           <article class="panel dataset-capture-panel">
             <div class="panel-header compact">
               <div><div class="eyebrow">SERVER DATASET</div><h2>데이터 수집</h2></div>
@@ -500,6 +497,10 @@
                 <button id="datasetOpenFolder" class="dataset-folder-button" type="button" disabled>웹에서 폴더 열기</button>
               </section>
             </div>
+          </article>
+          <article class="panel telemetry-panel">
+            <div class="panel-header compact"><div><div class="eyebrow">TELEMETRY</div><h2>로봇 센서</h2></div><span class="muted" id="sensorCount">0 streams</span></div>
+            <div class="sensor-grid" id="sensorGrid"><div class="sensor-placeholder">센서 데이터를 기다리고 있습니다.</div></div>
           </article>
           <article class="panel dataset-library-panel" id="datasetLibraryPanel">
             <div class="panel-header compact">
@@ -789,23 +790,6 @@
           <p id="navigationLogNotice" class="navigation-log-notice">서버가 공개한 고정·정제 로그만 표시합니다. CLEAR VIEW는 이 브라우저 화면만 비웁니다.</p>
         </article>
 
-        <article class="panel navigation-robot-panel">
-          <div class="panel-header">
-            <div><div class="eyebrow">SELECTED ROBOT · 3D</div><h2>로봇 모델 미리보기</h2></div>
-            <div class="panel-state waiting" id="navigationModelState"><span></span>LOADING</div>
-          </div>
-          <div class="navigation-robot-stage">
-            <canvas id="navigationRobotCanvas" aria-label="현재 선택한 로봇의 대화형 3D 모델"></canvas>
-            <div class="scene-controls" id="navigationRobotControls" aria-label="Navigation 로봇 모델 3D 시점 제어">
-              <button id="navigationRobotResetButton" type="button">입체</button><button id="navigationRobotTopButton" type="button">위</button><button id="navigationRobotFrontButton" type="button">앞</button><button id="navigationRobotAxesButton" class="scene-axes-toggle" type="button" aria-label="XYZ 축 표시" aria-pressed="true" title="XYZ 축 숨기기">XYZ</button>
-            </div>
-          </div>
-          <div class="navigation-robot-summary">
-            <strong id="navigationModelLabel">선택한 로봇 모델 준비 중</strong>
-            <p id="navigationModelNote">Settings에서 선택한 로봇 유형의 3D asset을 불러오고 있습니다.</p>
-          </div>
-        </article>
-
         <article class="panel navigation-parameters-panel">
           <div class="panel-header">
             <div><div class="eyebrow">PDF 11 · TUNED PROFILE</div><h2>주행 설정값</h2></div>
@@ -940,6 +924,7 @@
             </div>
           </article>
         </section>
+        <aside class="cockpit-safety-hud" id="cockpitSafetyHud" aria-label="제어 상태와 소프트웨어 정지"></aside>
       </section>
 
       <section class="page-view resource-monitor" data-page="resources" id="resourceMonitor" hidden aria-label="Jetson 자원 모니터"><p role="status">자원 모니터를 불러오는 중입니다.</p></section>
@@ -947,7 +932,6 @@
       <footer><span>Robot Scope v0.4 · Mapping · Telemetry · Fail-safe control</span><span id="lastUpdated">Last update —</span></footer>
     </section>
   </main>
-  <aside class="cockpit-safety-hud" id="cockpitSafetyHud" aria-label="고정 Safety HUD"></aside>
 
   <div class="toast" id="toast"></div>
   <script src="/static/robot_profiles.js" defer></script>

@@ -1,5 +1,7 @@
 # Robot Scope Cockpit Workspace 설계 계약
 
+> 2026-10-15 UI update: the user explicitly selected the global control-status HUD and its SOFTWARE STOP in Settings only. Cockpit layout edit/apply controls remain in the inspector. The existing Controls-page software STOP and backend stop/watchdog behavior remain unchanged. Earlier always-visible HUD/STOP descriptions and acceptance results below are historical; they do not describe the current UI. Current UI tests and deployed static hashes are recorded in integration-acceptance/STAGE40_VALIDATION.json.
+
 WP06 Competition Cockpit의 운용 모드, 고정 안전 필드, 설정 Lock,
 network/perception/model 상태 및 rollback 규칙은
 [`WP06_COMPETITION_COCKPIT.md`](WP06_COMPETITION_COCKPIT.md)에 기록한다.

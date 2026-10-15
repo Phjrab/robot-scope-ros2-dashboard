@@ -99,6 +99,7 @@ test('layout: Nav2 compact groups remain separate and Costmaps spans the row', a
   for (const width of [390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/#navigation');
+    await expect(page.locator('.navigation-robot-panel, #navigationRobotCanvas')).toHaveCount(0);
     const layout = await page.locator('#navigationParameterGroups').evaluate(root => {
       const rect = selector => root.querySelector(selector).getBoundingClientRect();
       const ids = [...root.querySelectorAll('.navigation-parameter-compact > .navigation-parameter-group')]
@@ -184,14 +185,14 @@ for (const standalone of [false, true]) {
         expect(geometry.overlaps, `${width}px, expanded=${expanded}`).toEqual([false, false, false]);
         expect(geometry.launcherOverlaps, `${width}px, expanded=${expanded}`).toBe(false);
         expect(geometry.chipGap).toBeGreaterThanOrEqual(40);
-        // Trial checks real hit routing without issuing a stop or any robot action.
-        await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+        // Settings owns the control/STOP panel; Cockpit keeps its layout controls.
+        await expect(page.locator('[data-cockpit-software-stop]')).toBeHidden();
       }
     }
     await page.locator('[data-cockpit-layout-action="apply"]').click();
     await expect(competition).toBeVisible();
     await competition.click();
     await expect(competition).toHaveAttribute('aria-expanded', 'true');
-    await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+    await expect(page.locator('[data-cockpit-software-stop]')).toBeHidden();
   });
 }

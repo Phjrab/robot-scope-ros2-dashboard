@@ -1,5 +1,7 @@
 # Cockpit 통합 Acceptance
 
+> 2026-10-15 UI update: the user explicitly selected the global control-status HUD and its SOFTWARE STOP in Settings only. Cockpit layout edit/apply controls remain in the inspector. The existing Controls-page software STOP and backend stop/watchdog behavior remain unchanged. Earlier always-visible HUD/STOP descriptions and acceptance results below are historical; they do not describe the current UI. Current UI tests and deployed static hashes are recorded in integration-acceptance/STAGE40_VALIDATION.json.
+
 이 문서는 CWP-12의 software-only 결과와 실제 장비 결과를 분리한다. 결과는 다음 네 값만
 사용한다.
 

@@ -1,0 +1,18 @@
+{
+  "schema": "robot-scope.ui-source-manifest.v1",
+  "recorded_at_utc": "2026-10-15T10:50:29.509589+00:00",
+  "baseline_sha": "863682ed4c566a56e676c2a4ed42fef1808885e5",
+  "authorization": "User requested dashboard/UI application through40 and explicitly selected global HUD/STOP Settings-only. Existing user diff adopted after review.",
+  "files": {
+    "robot_dashboard/static/features/cockpit/safety_hud_view.js": "e0ee7618c41b724d285c1af9ecb0393dab67286edb6f091da3968dc7aa7e8f36",
+    "robot_dashboard/static/index.html": "f974bb2a3d938bb8ddffb7f3fa08cb6925e7352847b73113f8d2dd5dfabac193",
+    "robot_dashboard/static/mission-control.css": "287c9651773bdf37c15a58c425034d2904531e1a76104bb7fbdd43ae9f0d6471",
+    "tests/e2e/dashboard.spec.mjs": "d19c1d3fdf229d68422848e0e72a26ec57b6d897bd6a32f2d7fe5ba0f73d008a",
+    "tests/e2e/layout.spec.mjs": "e4e9807480723411ea57aee5eb7dae2df2e05e9d2e78c05d9ab84f050602161b",
+    "tests/e2e/ui_reported_fixes.spec.mjs": "59ef125b543fb8a8358f32d780b5d4ff150af71c3eb5bfd851e1ef62d9dd26dc",
+    "tests/test_navigation.mjs": "855fc158faa795a2731e217b8f5572d34c7af663081101df7a4ed032ff7895cb",
+    "tests/test_scene3d.mjs": "e1acb0d1ad02fcd9712fa37f98d2be360f63cd21da1231af3d7e1a0acb06a541"
+  },
+  "backend_or_runtime_python_changed": false,
+  "static_response_cache_policy": "no-store; no service restart needed"
+}

@@ -154,8 +154,6 @@ test('dashboard exposes a dedicated navigation route and strict API endpoints', 
     'navigationGoalPoseTool', 'navigationPoseSend', 'navigationStartButton',
     'navigationStopButton', 'navigationCancelGoal', 'navigationClearCostmaps',
     'navigationPreset', 'navigationParameterReset', 'navigationParameterApply',
-    'navigationRobotCanvas', 'navigationModelState', 'navigationModelLabel',
-    'navigationRobotResetButton', 'navigationRobotTopButton', 'navigationRobotFrontButton',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
   for (const endpoint of [
     '/api/v1/navigation', '/api/v1/navigation/parameters', '/api/v1/navigation/start',
@@ -192,18 +190,15 @@ test('Navigation renders bounded localization health and a read-only calibration
   ]) assert.ok(render.includes(metric), `missing localization metric ${metric}`);
 });
 
-test('navigation keeps the 2D map and selected robot 3D preview in separate stages', () => {
+test('navigation retains the 2D map without the removed robot model preview', () => {
   const sectionStart = indexSource.indexOf('data-page="navigation"');
   const sectionEnd = indexSource.indexOf('data-page="settings"', sectionStart);
   const section = indexSource.slice(sectionStart, sectionEnd);
   assert.equal((section.match(/id="navigationMapCanvas"/g) || []).length, 1);
-  assert.equal((section.match(/id="navigationRobotCanvas"/g) || []).length, 1);
+  assert.doesNotMatch(section, /navigationRobotCanvas|navigation-robot-panel|로봇 모델 미리보기/);
   const mapStage = section.slice(section.indexOf('class="navigation-map-stage"'), section.indexOf('class="navigation-pose-toolbar"'));
-  const robotStage = section.slice(section.indexOf('class="navigation-robot-stage"'), section.indexOf('class="navigation-robot-summary"'));
   assert.match(mapStage, /id="navigationMapCanvas"/);
   assert.doesNotMatch(mapStage, /id="navigationRobotCanvas"/);
-  assert.match(robotStage, /id="navigationRobotCanvas"/);
-  assert.doesNotMatch(robotStage, /id="navigationMapCanvas"/);
 });
 
 test('navigation 3D preview reuses profile assets and gates every live joint path', () => {
