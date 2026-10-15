@@ -118,3 +118,57 @@ macOS-only /private/tmp did not exist. Changed tests/test_slam_broker.py to use
 short /tmp and resolve its canonical path. Product source and workflow unchanged.
 Broker22 PASS; full Python Ran 1855 tests in 96.338s, PASS with2 environment skips. Existing JS370/
 Chromium80 results unchanged. CI correction publication window remains MS-owned.
+
+## MR shared integration applied; whole-test/local-Git window returned
+
+Base d866a3b; MR dedicated files were applied by MR and preserved. MS changed
+app.py, application/runtime.py, tests/test_api_contract_phase8.py and added
+tests/test_application_workflow_wiring.py. Registered the additive MR router once;
+configured MR after SLAM with the existing runtime and a separate mission-routes
+state directory. --mission-native-preview defaults false; no policy proof is
+invented. Extracted unchanged competition admission into configure_competition
+to keep app.py at1590 lines. Exact inventory:163 HTTP,93 mutations,7 WebSockets.
+
+Focused shared/API/CLI/architecture/SLAM/MR integration51 PASS; competition8 PASS;
+changed-file Ruff, configured mypy and diff checks PASS. The shared tests exercise
+the actual CLI/call nodes, default/explicit flag, final SLAM hook ordering and live
+competition blockers. Actual MS/MR integration fixtures cover running/paused/
+canceling exclusion and source generation; they do not establish device evidence.
+Log: /private/tmp/robot-scope-ms-shared-integration.log. Initial harness-only AST
+location and test-module-name errors were corrected before the passing result.
+
+MR-MS-001/002 source hooks APPLIED and focused checks PASS; coherent full-suite
+candidate/commit still pending. MR-MS-003 remains BLOCKED. No shared CI/Nav2/CSS
+policy change, device operation or performance measurement. MS writers/runners
+are stopped; MR receives the write/full-test/local-Git window next, including the
+six MS shared integration/doc files explicitly listed in HANDOFF. Remote push of
+d866a3b or descendants remains pending the follow-up user approval; the earlier
+approval covered72641da and1b0ae5b only.
+
+## Approved standalone publication and exact CI PASS
+
+This section supersedes earlier approval-pending and running-CI checkpoints.
+The user explicitly approved follow-up CI corrections and validation-document
+publication. MR returned a short exact-SHA Git window; MS published `d866a3be78b34cbd16c68f3c8cf27e768c491216`
+and immediately returned it. [CI38691471690](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38691471690) completed SUCCESS in both
+Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12. Each matrix: Python1855
+(1 optional rosbags skip), coverage73%, JS370 and Chromium80 PASS; static, secret
+and dependency checks PASS. Prior CI38689015528 failure is retained as history.
+
+MS then received a separate five-document window for FINAL_REPORT.md,
+ACCEPTANCE_MATRIX.json, VALIDATION.json, PROGRESS.md and HANDOFF.md. Only those
+documents are included in this follow-up commit. Exact CI JSON/logs and their
+hashes are recorded in VALIDATION. Source is unchanged since the passing SHA,
+so existing full local and exact remote checks apply; document consistency,
+JSON parsing, secret scan and diff checks are the checks for this unit.
+
+MR dedicated source and shared app.py/runtime.py/API inventory/new workflow
+wiring tests remain uncommitted and are excluded from this published candidate.
+MR owns their coherent full-suite validation and local integration commit.
+The earlier allowance to include MS PROGRESS/HANDOFF in the MR commit is
+superseded: those two documents are now included in this MS docs-only commit.
+After this publication, MS returns write/full-test/local-Git ownership to MR and
+only observes remote CI. No shared CI/Nav2 policy edit, deployment, service
+restart, camera takeover, performance run or motion. MAP-02 full retained export,
+stage16 live validation and effective planner-policy proof remain BLOCKED;
+operational pose application/initial pose/goal/movement remain NOT_RUN.

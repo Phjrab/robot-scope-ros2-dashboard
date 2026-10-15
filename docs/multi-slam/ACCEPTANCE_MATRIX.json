@@ -1,7 +1,7 @@
 {
   "schema": "robot-scope.multi-slam-acceptance.v1",
   "run_id": "ms-software-20261015",
-  "source_commit": "72641da309bf041826a70469d6cc32f60a16fe03",
+  "source_commit": "d866a3be78b34cbd16c68f3c8cf27e768c491216",
   "source_tree_dirty": true,
   "deployed_commit": null,
   "deployment_state": "NOT_RUN",
@@ -585,16 +585,16 @@
       "requirement_ids": [
         "R06"
       ],
-      "software_status": "NOT_RUN",
+      "software_status": "PASS",
       "hardware_status": "NOT_RUN",
       "expected": "exact candidate full CI",
       "evidence": [
         "docs/multi-slam/FINAL_REPORT.md",
-        "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528"
+        "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38691471690"
       ],
-      "evidence_type": null,
-      "observed": "First remote run failed broker fixture temp-root setup; corrected and full local1855 PASS.",
-      "blocked_reason": "Awaiting CI of portability correction.",
+      "evidence_type": "remote_ci",
+      "observed": "d866a3be78b34cbd16c68f3c8cf27e768c491216: both Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12 matrices PASS; Python1855 (1 skip), JS370, Chromium80 each.",
+      "blocked_reason": null,
       "required_for": [
         "SOFTWARE_IMPLEMENTED"
       ]
@@ -659,9 +659,43 @@
   "local_validation": "PASS",
   "software_delivery": "SOFTWARE_IMPLEMENTED_WITH_MAP_02_LIMIT",
   "remote_ci": {
-    "run_id": 38689015528,
-    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528",
-    "status": "failure",
-    "reason": "Broker fixture macOS-only /private/tmp missing on Linux; fixed in follow-up."
-  }
+    "run_id": 38691471690,
+    "head_sha": "d866a3be78b34cbd16c68f3c8cf27e768c491216",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38691471690",
+    "status": "completed",
+    "conclusion": "success",
+    "matrices": [
+      {
+        "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+        "conclusion": "success",
+        "python_tests": 1855,
+        "python_skipped": 1,
+        "coverage_percent": 73,
+        "javascript_tests": 370,
+        "chromium_tests": 80
+      },
+      {
+        "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+        "conclusion": "success",
+        "python_tests": 1855,
+        "python_skipped": 1,
+        "coverage_percent": 73,
+        "javascript_tests": 370,
+        "chromium_tests": 80
+      }
+    ]
+  },
+  "implementation_commit": "72641da309bf041826a70469d6cc32f60a16fe03",
+  "verification_scope": "Committed standalone MS candidate; excludes uncommitted MR source and shared hooks.",
+  "source_tree_dirty_scope": "Shared local checkout contains pending MR changes; remote CI checks the immutable source_commit.",
+  "previous_remote_ci": [
+    {
+      "run_id": 38689015528,
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528",
+      "status": "failure",
+      "reason": "Broker fixture macOS-only /private/tmp missing on Linux; fixed in follow-up.",
+      "head_sha": "72641da309bf041826a70469d6cc32f60a16fe03"
+    }
+  ],
+  "combined_mr_validation": "PENDING_MR_OWNER"
 }

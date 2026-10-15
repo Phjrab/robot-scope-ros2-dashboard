@@ -46,7 +46,50 @@
     "portable_python": {
       "path": "/private/tmp/robot-scope-ms-portable-python.log",
       "sha256": "8ef98b60e4d765df728e5151f3f015574c3b3aab0102a57a8124affe76fec087"
+    },
+    "remote_ci_result": {
+      "path": "/private/tmp/robot-scope-ms-portable-ci-result.json",
+      "sha256": "b43d525dba6e396b6821c09c8cae466a07296e05cd4832bfc3e80de7c891e0e5"
+    },
+    "remote_ci_log": {
+      "path": "/private/tmp/robot-scope-ms-portable-ci.log",
+      "sha256": "1aa196ff509f2b344501932a21af1a87b44e69f2aedadc9e608140e7f059cf08"
     }
   },
-  "ci_portability_fix": "canonical /tmp fixture root; full1855 PASS"
+  "ci_portability_fix": "canonical /tmp fixture root; full1855 PASS",
+  "scope": "Standalone MS implementation plus portable broker fixture; local counts exclude subsequent MR/shared-hook changes.",
+  "implementation_commit": "72641da309bf041826a70469d6cc32f60a16fe03",
+  "verified_commit": "d866a3be78b34cbd16c68f3c8cf27e768c491216",
+  "remote_ci": {
+    "run_id": 38691471690,
+    "head_sha": "d866a3be78b34cbd16c68f3c8cf27e768c491216",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38691471690",
+    "status": "completed",
+    "conclusion": "success",
+    "matrices": [
+      {
+        "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+        "conclusion": "success",
+        "python_tests": 1855,
+        "python_skipped": 1,
+        "coverage_percent": 73,
+        "javascript_tests": 370,
+        "chromium_tests": 80
+      },
+      {
+        "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+        "conclusion": "success",
+        "python_tests": 1855,
+        "python_skipped": 1,
+        "coverage_percent": 73,
+        "javascript_tests": 370,
+        "chromium_tests": 80
+      }
+    ]
+  },
+  "combined_mr_validation": "PENDING_MR_OWNER",
+  "local_durations_seconds": {
+    "original_python": 100.262,
+    "portable_python": 96.338
+  }
 }

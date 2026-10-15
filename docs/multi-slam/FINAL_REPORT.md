@@ -1,8 +1,8 @@
 # Multi-SLAM software delivery — 2026-10-15
 
-Status: software implementation and local verification complete within the
-limits below; exact candidate remote CI retry pending. No live deployment
-or hardware claim. MAP-02 full retained-landmark access remains BLOCKED.
+Status: standalone MS software implementation, local verification and exact-SHA
+remote CI complete within the limits below. Combined MR validation remains with
+the MR owner. No live deployment or hardware claim. MAP-02 full retained-landmark access remains BLOCKED.
 All changes preserve the original 1b0ae5b hardware follow-up and existing lab.
 
 | Requirement | Implementation | Software evidence | Live / operational |
@@ -36,7 +36,7 @@ not reinstalled. System Python lacks runtime dependencies, so dependency-complet
 permission; no real ROS/camera/broker service was started. All browser backend
 streams/maps are synthetic fixtures, not hardware screenshots.
 
-Final candidate local results:
+Standalone MS candidate local results (before subsequent MR/shared-hook changes):
 
 - Python unittest under coverage: 1,855 tests PASS, 2 skips (optional rosbags;
   Linux /proc process test on macOS), 100.262s. Coverage73%.
@@ -57,21 +57,30 @@ No workflow rules, Nav2 policy, timeout threshold or coverage gate weakened.
 
 ## Integration / remaining gates
 
-MS is the common-file integrator and sole Git publisher for this window; all
-local test runners are stopped.
-MR works externally until explicit handback. Pending MR-MS-001/002 router/config/
-opt-in planner hook integration requires MR modules to exist first. Actual map
-id/revision/frame, operational source/generation/readiness and unverified alignment
-are read-only, revision-fenced inputs; selected observation engine grants no pose
-or movement authority. See HANDOFF for exact owner/window state.
+MS applied MR-MS-001/002 router/configuration and default-false planner CLI
+hooks in the shared checkout after MR source was copied. Focused shared tests51
+and competition8 PASS; those hooks and MR source remain uncommitted and are not
+part of the standalone CI candidate below. MR owns the coherent combined-source
+full tests and local Git window; MS uses an explicitly returned five-document
+publication window only. Actual map id/revision/frame, operational source/
+generation/readiness and unverified alignment are read-only, revision-fenced
+inputs; selected observation engine grants no pose or movement authority.
+Effective planner-policy evidence remains BLOCKED. See HANDOFF for current windows.
 
 Stage16 requires exact candidate CI/live release, current camera/resource owner,
 approved service changes, backups/rollback and operator window. Stage17 operational
 pose/initial pose/goal/movement remains NOT_RUN under its separate conditions.
 
-Published source: `72641da309bf041826a70469d6cc32f60a16fe03`. [Exact source CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38689015528) is running; no remote PASS claim yet.
+Published and verified standalone source: `d866a3be78b34cbd16c68f3c8cf27e768c491216`.
+[Exact source CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38691471690) **PASS** on
+Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12. Each matrix passed Python1855
+(1 optional rosbags skip), coverage73%, JS370 and Chromium80, plus the configured
+static, secret and dependency checks. Core implementation provenance remains
+`72641da309bf041826a70469d6cc32f60a16fe03`.
 
 The initial remote run38689015528 failed only because22 broker fixtures assumed
 macOS /private/tmp. The test now uses canonical short /tmp on Linux/macOS.
-Focused broker22 and full Python1855 pass after correction; no product source
-or CI policy changed. A new exact-SHA remote run must pass before delivery.
+Focused broker22 and full local Python1855 passed after correction; no product
+source or CI policy changed. The exact follow-up SHA now passes the full remote
+workflow. The existing experiment image, installed dependencies and user data
+were preserved. User explicitly approved follow-up publication before the push.
