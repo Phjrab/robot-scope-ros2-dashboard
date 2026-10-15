@@ -1,12 +1,20 @@
 # Robot Scope integration handoff — stopped after40
 
+Latest device check at2026-10-15T12:19:36Z confirms the separately deployed UI
+a67c5f5, HTTP200, unchanged post-reboot service invocations and54 preserved maps.
+Policy source a328879 remains undeployed. See the follow-up validation record.
+
 User-requested software continuation within40: bounded policy failure diagnostics
 and partial-dispatch future cleanup are implemented and regression-tested. The new
 backend is not deployed; the last successful device/UI snapshot is1656e4d with the backend invocation
-from863682e. Final SSH/HTTP rechecks failed, so current device state is unverified. See [POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md)
+from863682e. An access recheck failed; after the user reported reboot, the12:10:57Z check
+restored HTTP200 with clean1656e4d checkout, new service invocations and idle/zero
+control state. Initialpose count reset to0; no pose was replayed. See [POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md)
 and [POLICY_DIAGNOSTICS_VALIDATION.json](POLICY_DIAGNOSTICS_VALIDATION.json). Separate
 UI edits appearing during this continuation are preserved and excluded from this
-policy publication. No new localization window or41–43 action was performed.
+policy publication. Exact a328879 CI38732453021 passed on both Linux jobs
+(1998 Python with1 skip,381 JS,100 Chromium). No new localization window or41–43
+action was performed.
 
 Stages30–36 software integration and the authorized stage40 deployment/localization window are finished. Candidate863682e was deployed; existing initialpose1 and180s stationary observation completed, with goal/motion0 and owned cleanup confirmed. Full live acceptance and SOFTWARE_CLOSURE remain false. Actual policy evidence was unavailable; full TF authority and independent map alignment remain unproved. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md).
 

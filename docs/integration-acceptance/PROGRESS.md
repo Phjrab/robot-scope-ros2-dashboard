@@ -1,11 +1,18 @@
 # Integration progress — through40
 
+Latest device check at2026-10-15T12:19:36Z confirms the separately deployed UI
+a67c5f5, HTTP200, unchanged post-reboot service invocations and54 preserved maps.
+Policy source a328879 remains undeployed. See the follow-up validation record.
+
 The user reopened software investigation within40. Bounded policy observer
 diagnostics now survive incomplete readback, optional gateway setup/readback
 failures preserve STOP, and partial request dispatch cleans up every owned future.
 See [POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md) and its exact-byte
 [validation record](POLICY_DIAGNOSTICS_VALIDATION.json). This source is not deployed;
-the read-only device check confirms the earlier UI/backend invocations. Separate
+after a user-reported reboot, a12:10:57Z read-only check confirms clean1656e4d
+checkout, HTTP200, new service invocations and idle/zero controls. No initialpose
+was replayed. Exact a328879 CI38732453021 passed both Linux jobs
+(1998 Python with1 skip,381 JS,100 Chromium). Separate
 UI changes appearing during validation remain untouched and excluded. No live row
 is promoted; no localization retry or41–43 action was initiated.
 

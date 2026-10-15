@@ -57,8 +57,8 @@ The continuation began on clean main/origin/main
 were independently published as`a67c5f53da9d570d7679a6bf2a49e878599e0bea`. They
 are preserved as this continuation's integration parent; no policy source/test file
 overlaps. Local isolated regressions used the earlier baseline plus the six
-follow-up source/test files; exact final Linux CI is checked after publication. This record's
-Git commit contains the follow-up source; exact changed-source/test/config hashes
+follow-up source/test files; exact final Linux CI is checked after publication. The published follow-up source is
+`a3288795d33029e41ce3e2736197695d10c617c2`; exact changed-source/test/config hashes
 and validation results are in [POLICY_DIAGNOSTICS_VALIDATION.json](POLICY_DIAGNOSTICS_VALIDATION.json).
 These are software regressions with raw ROS-shaped fixtures, not live readback or
 native enforcement acceptance. The factory regression uses the real default
@@ -97,3 +97,41 @@ MAP-02 full retained-map export remain blocked on their recorded conditions.
 No live acceptance row is promoted by these fixture tests. SOFTWARE_CLOSURE and
 LOCALIZATION_LIVE_VERIFIED remain false; stages41–43 remain NOT_RUN. No background
 continuation is scheduled.
+
+## User reboot and restored access
+
+After the failed access recheck, the user reported a completed reboot. At
+2026-10-15T12:10:57Z, read-only inspection again returned HTTP200 for health,
+control, navigation, mapping and mission-plans. Disk/UI checkout remains1656e4d,
+clean, and all1256 manifest files plus54 map hashes match. The user reboot changed
+all three service invocations: dashboard PID988, bridge PID976 and camera PID982;
+exact IDs are in the validation record. The earlier863682e invocation is now
+historical. No per-module loaded attestation is claimed.
+
+Navigation/goal are idle, lease/deadman false and command zero, with no owned
+runtime/observer remaining. Initialpose count reset to0 with the restarted process;
+no historical pose was replayed. Policy evidence remains unavailable on the older
+source. Neither follow-up policy source a328879 nor the separately published UI
+source a67c5f5 was deployed by this continuation. The agent performed no service
+restart or additional robot window.
+
+## Exact source CI
+
+[CI38732453021](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38732453021)
+passed on exact source`a3288795d33029e41ce3e2736197695d10c617c2`, including the
+separate UI parent. Both Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12 passed
+1998 Python tests (1997pass,1 optional skip),381 JavaScript tests and100 Chromium
+E2E tests, plus static/dependency/secret checks. These are hardware-free results.
+Later documentation-only commits do not change the six pinned source/test files
+and are not represented as this exact source CI run.
+
+## Subsequent separate UI deployment
+
+The UI owner independently applied a67c5f5 after the user reboot; see
+[UI_WORKSPACE_REPAIR_20261015.md](../ui-redesign/UI_WORKSPACE_REPAIR_20261015.md).
+This integration independently rechecked at2026-10-15T12:19:36Z: clean device
+checkout a67c5f5, HTTP200, the same post-reboot service invocations,54 preserved
+map hashes and no owned runtime/observer. Its separate deployment record verifies
+all1261 archive files and five HTTP static hashes. The17 differences against the
+older1656 manifest are expected documentation/static updates, not an integrity
+failure of the a67 release. The new policy backend a328879 remains undeployed.

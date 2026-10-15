@@ -1,9 +1,9 @@
 {
   "schema": "robot-scope.policy-diagnostics-validation.v1",
-  "recorded_at_utc": "2026-10-15T12:08:29.045405+00:00",
+  "recorded_at_utc": "2026-10-15T12:20:37.883419+00:00",
   "scope": "software follow-up within stage40; no new deployment or localization window",
   "baseline_sha": "72d8f9b108f1776f37bd9b071c250d5d1e71cf2b",
-  "source_identity": "Git commit containing this record; exact file bytes pinned below",
+  "source_identity": "Published source commit a3288795d33029e41ce3e2736197695d10c617c2; source/test file hashes unchanged in this documentation update",
   "source_files": {
     "robot_dashboard/navigation_policy.py": {
       "sha256": "769fa302804f2c38cc83883d1f22aba757126fdff02fe31e9f7037d0e83b4999",
@@ -159,7 +159,7 @@
     },
     "python_runtime": "CPython3.13 project .venv",
     "local_exact_snapshot_base_sha": "72d8f9b108f1776f37bd9b071c250d5d1e71cf2b",
-    "integrated_parent_ci": "Verify exact final commit after publication; local snapshot predates the separate UI commit.",
+    "integrated_parent_ci": "PASS on exact a328879 source; see source_ci",
     "integrated_parent_javascript": {
       "base_sha": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
       "passed": 381,
@@ -216,6 +216,22 @@
     "integrated-js.log": {
       "sha256": "a56d83cbbc06ec3a24e13497e7d51bdcb731d61989c73371563e709defc48683",
       "bytes": 102745
+    },
+    "after-user-reboot.json": {
+      "sha256": "c04c12f0e2e6b1d042fada37540c843203108f79cc87a126a113a146bdbf7313",
+      "bytes": 57507
+    },
+    "source-ci.json": {
+      "sha256": "fa5c382248ba3075aa2dbc5dc367a6a1ace3b1fc649f8920723c27a9edc5ec8a",
+      "bytes": 7047
+    },
+    "source-ci.log": {
+      "sha256": "5b891c58e138609a63fbe81cff92f43cd862586e12b3a94d4206dfd4a2cc5bf7",
+      "bytes": 1954934
+    },
+    "final-ui-inspection.json": {
+      "sha256": "e4b52901c9bbd2e69a95d020b3f81596e4d0acb4b6d5f97a83487c45c62bc191",
+      "bytes": 58452
     }
   },
   "integration_parent_sha": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
@@ -227,5 +243,122 @@
     "last_successful_read_only_snapshot": "2026-10-15T11:52:29.144766+00:00",
     "device_state_after_last_successful_snapshot": "UNVERIFIED",
     "service_restart_attempted": false
+  },
+  "post_user_reboot": {
+    "observed_at_utc": "2026-10-15T12:10:57.441477+00:00",
+    "trigger": "User reported reboot completed; agent inspected read-only",
+    "checkout_sha": "1656e4d15d752e82178e1c0272824c5ed3252f37",
+    "checkout_clean": true,
+    "source_manifest_files": 1256,
+    "source_manifest_mismatches": [],
+    "units": {
+      "robot-scope.service": {
+        "MainPID": "988",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "bc9f62f591734339b657ad4df1ae613e"
+      },
+      "robot-scope-control-bridge.service": {
+        "MainPID": "976",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "ac5bf5a37a5b470385c9268a042f6680"
+      },
+      "robot-scope-realsense-camera.service": {
+        "MainPID": "982",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "c99004f7d9194f0ab1a53a55d2a6110b"
+      }
+    },
+    "map_files": 54,
+    "maps_preserved": true,
+    "owned_processes_remaining": [],
+    "api_http_statuses": {
+      "health": 200,
+      "control": 200,
+      "navigation": 200,
+      "mapping": 200,
+      "plans": 200
+    },
+    "session_mode": "idle",
+    "goal_state": "idle",
+    "initial_pose_count": 0,
+    "lease": false,
+    "deadman": false,
+    "command_zero": true,
+    "policy_evidence": {
+      "status": "unavailable"
+    },
+    "agent_deployment_or_restart": false,
+    "initialpose_replayed": false,
+    "new_source_deployed": false,
+    "reboot_module_note": "User reboot replaced all three service invocations; checkout byte hashes verified, per-loaded-module attestation still unavailable"
+  },
+  "source_sha": "a3288795d33029e41ce3e2736197695d10c617c2",
+  "source_ci": {
+    "id": 38732453021,
+    "head_sha": "a3288795d33029e41ce3e2736197695d10c617c2",
+    "conclusion": "success",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38732453021",
+    "environments": [
+      "Ubuntu22.04/Python3.10",
+      "Ubuntu24.04/Python3.12"
+    ],
+    "per_job": {
+      "python_run": 1998,
+      "python_passed": 1997,
+      "python_skipped": 1,
+      "javascript_passed": 381,
+      "chromium_passed": 100,
+      "static_dependency_secret_checks": "PASS"
+    },
+    "note": "Exact source CI includes the separately published UI parent; later documentation-only commits are not this source SHA."
+  },
+  "final_ui_observation": {
+    "observed_at_utc": "2026-10-15T12:19:36.510721+00:00",
+    "checkout_sha": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
+    "checkout_clean": true,
+    "http_status": 200,
+    "units": {
+      "robot-scope.service": {
+        "MainPID": "988",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "bc9f62f591734339b657ad4df1ae613e"
+      },
+      "robot-scope-control-bridge.service": {
+        "MainPID": "976",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "ac5bf5a37a5b470385c9268a042f6680"
+      },
+      "robot-scope-realsense-camera.service": {
+        "MainPID": "982",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "c99004f7d9194f0ab1a53a55d2a6110b"
+      }
+    },
+    "map_files": 54,
+    "maps_preserved": true,
+    "owned_processes_remaining": [],
+    "ui_deployment_owner": "separate UI work recorded in docs/ui-redesign/UI_WORKSPACE_REPAIR_20261015.md",
+    "ui_deployment_verified_files": 1261,
+    "ui_deployment_file_mismatches": [],
+    "legacy_1656_manifest_comparison": "17 expected documentation/static mismatches after clean a67 fast-forward; use the separate a67 deployment manifest for its integrity result",
+    "policy_followup_deployed": false
   }
 }
