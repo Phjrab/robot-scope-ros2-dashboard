@@ -1,5 +1,12 @@
 # Stage40 dashboard UI — applied
 
+Latest UI follow-up (2026-10-15 21:13 KST): mapping/saved-map/camera/mission
+layouts and panel height were repaired in `a67c5f5`, then deployed after the
+user's reboot. All1,261 files and5 served UI hashes matched; service invocations,
+maps and mission/state data were preserved. Exact-source Linux CI passed both
+matrix jobs. See [UI workspace repair](../ui-redesign/UI_WORKSPACE_REPAIR_20261015.md).
+The1656e4d identities below describe the preceding stage40 UI deployment.
+
 The user requested dashboard/UI reflection before stopping after40, then explicitly selected the existing draft's global control-status HUD and SOFTWARE STOP only in Settings. This supersedes the older always-visible HUD presentation. Existing Controls-page software STOP remains. Backend stop/watchdog, ARM/deadman, ownership and mission/map storage behavior are unchanged.
 
 Reviewed/adopted existing UI changes: relocate the global HUD to Settings; keep Cockpit layout edit/apply in the inspector with existing ARM/lease interlocks; place sensor telemetry across the full row below camera/capture and above the dataset library; remove the duplicate Navigation robot model preview. Existing IDs and camera/dataset owners are retained; model renderer null guards handle the removed canvas. Remaining150px standalone Cockpit spacing is unchanged and nonblocking.
