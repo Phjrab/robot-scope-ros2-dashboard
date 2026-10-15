@@ -104,11 +104,15 @@ class RosPolicyReadback:
                 if any(not c.service_is_ready() for pair in self._clients.values() for c in pair):
                     raise ValueError("POLICY_SERVICES_UNAVAILABLE")
                 futures = {}
+                # Own every dispatched future before the next call can fail,
+                # including a parameter request whose state partner never starts.
+                self._batch = (now, self._epoch, identities, futures)
                 for name, (params, state) in self._clients.items():
+                    pair = futures[name] = []
                     request = self._param_type.Request()
                     request.names = list(PARAMETERS[name])
-                    futures[name] = (params.call_async(request), state.call_async(self._state_type.Request()))
-                self._batch = (now, self._epoch, identities, futures)
+                    pair.append(params.call_async(request))
+                    pair.append(state.call_async(self._state_type.Request()))
                 return
             started, epoch, original, futures = self._batch
             if original != identities or epoch != self._epoch:

@@ -6,7 +6,7 @@ import tempfile
 from types import SimpleNamespace as NS
 import unittest
 
-from robot_dashboard.navigation_policy import POLICY_SCHEMA, REQUIRED_NODES, RuntimePolicyProvider
+from robot_dashboard.navigation_policy import POLICY_SCHEMA, POLICY_OBSERVER_REASONS, REQUIRED_NODES, RuntimePolicyProvider
 from robot_dashboard.ros.policy_readback import RosPolicyReadback, PARAMETERS, parameter_value
 from robot_dashboard.mission_routes.context import NavigationContext
 from robot_dashboard.mission_routes.wiring import configure_mission_routes
@@ -73,6 +73,58 @@ class PolicyProjectionTests(unittest.TestCase):
             self.assertFalse(self.context.snapshot()['runtime_policy_enforced'])
         self.context.policy_provider = lambda: 1 / 0
         self.assertIn('POLICY_PROVIDER_UNAVAILABLE', self.context.snapshot()['blocking_reasons'])
+
+    def test_incomplete_readback_preserves_only_bounded_observer_diagnostics(self):
+        for parameters in ({}, {'/planner_server': {}}):
+            for reason in POLICY_OBSERVER_REASONS:
+                with self.subTest(parameters=list(parameters), reason=reason):
+                    self.raw['policy_readback'].update(parameters=parameters,
+                        status='invalid', reason=reason, age_s=.25, sequence=7)
+                    result = self.context.snapshot()
+                    self.assertFalse(result['runtime_policy_enforced'])
+                    self.assertIsNone(result['planner_config_digest'])
+                    self.assertIsNone(result['footprint_revision'])
+                    self.assertIsNone(result['robot_radius_m'])
+                    self.assertIn('POLICY_READBACK_UNAVAILABLE', result['blocking_reasons'])
+                    self.assertIn(reason, result['blocking_reasons'])
+                    self.assertEqual(result['policy_evidence'], dict(status='unavailable',
+                        observer_status='invalid', reason=reason, age_s=.25, sequence=7))
+        # An incomplete observer cannot upgrade provider evidence by claiming current.
+        self.raw['policy_readback']['status'] = 'current'
+        self.assertEqual(self.context.snapshot()['policy_evidence']['status'], 'unavailable')
+
+    def test_diagnostic_changes_do_not_change_semantic_revision(self):
+        for parameters in ({}, observed()['policy_readback']['parameters']):
+            self.raw['policy_readback'].update(parameters=parameters,
+                status='invalid', reason='POLICY_READBACK_TIMEOUT')
+            before = self.context.snapshot()['navigation_context_revision']
+            self.raw['policy_readback'].update(status='stale', reason='PARAMETERS_CHANGED',
+                age_s=1.5, sequence=99)
+            after = self.context.snapshot()
+            self.assertEqual(before, after['navigation_context_revision'])
+            self.assertFalse(after['runtime_policy_enforced'])
+            self.assertIn('PARAMETERS_CHANGED', after['blocking_reasons'])
+
+    def test_malformed_diagnostics_never_export_raw_text_or_nonfinite_values(self):
+        for parameters in ({}, observed()['policy_readback']['parameters']):
+            for age, sequence, status, reason in (
+                (float('nan'), True, ['invalid'], {'secret': '/private/path'}),
+                (float('inf'), -1, '/private/path', '/private/path' * 1000),
+                (-.1, 1.5, None, ['unexpected']),
+                (True, 2**64, {}, 123),
+                (2**4096, '1', 123, ''),
+            ):
+                self.raw['policy_readback'].update(parameters=parameters, age_s=age,
+                    sequence=sequence, status=status, reason=reason)
+                evidence = self.context.snapshot()['policy_evidence']
+                self.assertEqual(evidence, dict(status='unavailable' if not parameters else 'invalid',
+                    observer_status='unavailable', reason='POLICY_READBACK_FAILED',
+                    age_s=None, sequence=None))
+
+    def test_unrecognized_schema_and_provider_failure_remain_generic(self):
+        self.raw['policy_readback'].update(schema='unknown', reason='POLICY_READBACK_TIMEOUT')
+        self.assertEqual(self.provider()['evidence'], {'status': 'unavailable'})
+        self.assertEqual(RuntimePolicyProvider(lambda: 1 / 0)()['evidence'], {'status': 'unavailable'})
 
     def test_explicit_legacy_provider_heartbeat_ignored(self):
         p = dict(runtime_policy_enforced=True, planner_config_digest='a'*64, footprint_revision='b'*64, robot_radius_m=.25)
@@ -175,5 +227,12 @@ class ProductionFactoryTests(unittest.IsolatedAsyncioTestCase):
             report = runtime.mission_routes.context.snapshot()
             self.assertIsNotNone(report['planner_config_digest'])
             self.assertIn('POLICY_MASK_INGESTION_UNVERIFIED', report['blocking_reasons'])
+            raw['policy_readback'].update(parameters={}, status='unavailable',
+                reason='POLICY_SERVICES_UNAVAILABLE', age_s=None, sequence=0)
+            report = runtime.mission_routes.context.snapshot()
+            self.assertFalse(report['runtime_policy_enforced'])
+            self.assertIn('POLICY_SERVICES_UNAVAILABLE', report['blocking_reasons'])
+            self.assertEqual(report['policy_evidence']['reason'], 'POLICY_SERVICES_UNAVAILABLE')
+            self.assertEqual(report['policy_evidence']['status'], 'unavailable')
             self.assertEqual(nav.sent, [])
             await mission.close()

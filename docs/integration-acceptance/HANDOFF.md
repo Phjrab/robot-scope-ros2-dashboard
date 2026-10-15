@@ -1,10 +1,23 @@
 # Robot Scope integration handoff — stopped after40
 
+User-requested software continuation within40: bounded policy failure diagnostics
+and partial-dispatch future cleanup are implemented and regression-tested. The new
+backend is not deployed; the last successful device/UI snapshot is1656e4d with the backend invocation
+from863682e. Final SSH/HTTP rechecks failed, so current device state is unverified. See [POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md)
+and [POLICY_DIAGNOSTICS_VALIDATION.json](POLICY_DIAGNOSTICS_VALIDATION.json). Separate
+UI edits appearing during this continuation are preserved and excluded from this
+policy publication. No new localization window or41–43 action was performed.
+
 Stages30–36 software integration and the authorized stage40 deployment/localization window are finished. Candidate863682e was deployed; existing initialpose1 and180s stationary observation completed, with goal/motion0 and owned cleanup confirmed. Full live acceptance and SOFTWARE_CLOSURE remain false. Actual policy evidence was unavailable; full TF authority and independent map alignment remain unproved. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md).
 
 The user additionally requested the current dashboard UI changes, explicitly choosing the global control-status HUD and its SOFTWARE STOP only in Settings (the existing Controls-page STOP remains). UI381 JS/96 Chromium/83-module syntax checks passed; commit1656e4d was applied without restart and all3 HTTP static hashes matched. See [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md). This does not reopen localization or41–43.
 
-Smallest next software work: preserve raw bounded policy observer failure reasons on incomplete parameters, isolate effective parameter/lifecycle readback, then implement qualified policy ingestion/enforcement. NativePlanner product execution, MS native map reuse and complete retained-map export still require their own qualified native conditions. Historical stale startup cause remains unconfirmed. No follow-up is scheduled.
+Smallest next work: apply the diagnostic candidate in a qualified current window,
+isolate effective parameter/lifecycle readback using its bounded reason, then
+implement qualified policy ingestion/enforcement. NativePlanner product execution,
+MS native map reuse and complete retained-map export still require their own
+qualified native conditions. Historical stale startup cause remains unconfirmed.
+No follow-up is scheduled.
 
 ## Historical stage36 software snapshot
 

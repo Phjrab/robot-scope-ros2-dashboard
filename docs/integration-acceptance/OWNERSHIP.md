@@ -1,5 +1,20 @@
 # Integration ownership — 2026-10-15
 
+## Latest user-requested continuation within40
+
+Integration owns only policy diagnostic/provider/gateway/observer changes, their
+regressions and acceptance records. Delegated gateway and dispatch owners completed
+their disjoint writes; an independent review found no actionable issue. The device
+was inspected read-only at2026-10-15T11:52:29Z; no runtime/camera/service owner was
+acquired. The previously consumed localization retry remains closed. Separate
+UI changes appeared during validation (mission-route workspace CSS/JS, SLAM
+dashboard JS/CSS, mission-control.css and UI E2E tests). Their writer is not attributed by this
+chat; they were independently published as a67c5f5 during validation and remain
+preserved as the integration parent, outside this focused policy change. New policy source
+is not deployed. See POLICY_DIAGNOSTICS_FOLLOWUP.md and its validation record.
+
+## Historical takeover
+
 This chat accepts the stage30–36 software integration scope from the user.
 Baseline main/origin/main: `2555f3763996c7b331389924bb5df48d62094736`, clean before edits;
 fetch and exact baseline CI38695600100 success confirmed. No active competing

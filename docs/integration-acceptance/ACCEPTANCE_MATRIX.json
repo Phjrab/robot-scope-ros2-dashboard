@@ -872,7 +872,7 @@
       "runtime_generation": "81270:4252395617568",
       "config_digest": null,
       "blocking_reason": "No complete effective runtime parameter/config readback or per-loaded-module attestation.",
-      "next_minimum_action": "Expose bounded observer failure reason and isolate fixed-profile GetParameters/GetState authority/service failure."
+      "next_minimum_action": "Apply and observe the implemented bounded diagnostic candidate in a qualified current window, then isolate fixed-profile GetParameters/GetState authority/service failure; see POLICY_DIAGNOSTICS_FOLLOWUP.md."
     },
     {
       "check_id": "D02",
@@ -960,7 +960,7 @@
       "runtime_generation": "81270:4252395617568",
       "config_digest": null,
       "blocking_reason": "No fresh effective policy readback across the180s; API health includes transition/rate nonready samples.",
-      "next_minimum_action": "Diagnose effective readback without TTL relaxation; preserve observer reason on incomplete params; qualify full-window policy/readiness separately."
+      "next_minimum_action": "Observe the implemented bounded reason diagnostics in a qualified current runtime without TTL relaxation; qualify full-window policy/readiness separately; see POLICY_DIAGNOSTICS_FOLLOWUP.md."
     },
     {
       "check_id": "V01",

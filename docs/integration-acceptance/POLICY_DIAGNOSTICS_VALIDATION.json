@@ -1,0 +1,231 @@
+{
+  "schema": "robot-scope.policy-diagnostics-validation.v1",
+  "recorded_at_utc": "2026-10-15T12:08:29.045405+00:00",
+  "scope": "software follow-up within stage40; no new deployment or localization window",
+  "baseline_sha": "72d8f9b108f1776f37bd9b071c250d5d1e71cf2b",
+  "source_identity": "Git commit containing this record; exact file bytes pinned below",
+  "source_files": {
+    "robot_dashboard/navigation_policy.py": {
+      "sha256": "769fa302804f2c38cc83883d1f22aba757126fdff02fe31e9f7037d0e83b4999",
+      "bytes": 7637
+    },
+    "robot_dashboard/ros/navigation_gateway.py": {
+      "sha256": "8ca096d854e198f373e981b1879794ef6010c80fa53e9450b64e9fc5a883697c",
+      "bytes": 152486
+    },
+    "robot_dashboard/ros/policy_readback.py": {
+      "sha256": "9074291e2a795251b6707e8cfe151ae28327409045457f1cec00e37941a0254a",
+      "bytes": 8566
+    },
+    "tests/test_runtime_policy.py": {
+      "sha256": "ca3d56631c156d3ebc03869bdeaac2d54ff6d9c859a3a5ef5bb15b2f817fc9ed",
+      "bytes": 14452
+    },
+    "tests/test_ros_navigation_gateway.py": {
+      "sha256": "b84b3dd12746de34754802bfa6a2e414c67171432a69944fefa629d0ac367402",
+      "bytes": 49818
+    },
+    "tests/test_policy_readback_dispatch.py": {
+      "sha256": "a22a86408d5b1be1bf681158c2da714681e8fac7c233dc9a7d7a07844014fc9d",
+      "bytes": 5190
+    }
+  },
+  "unchanged_launch_config_files": {
+    "scripts/run_go2_navigation_humble.sh": {
+      "sha256": "07c7dbc05ffdd2a92319d3398b465d7d51723e36c66478c9d24e958b94aab92a",
+      "bytes": 5445
+    },
+    "config/nav2_params_go2_humble.yaml": {
+      "sha256": "b69ad567f6ab2a6cc8b8a651191676ae69b02e8d9fca162f1afdce5f8007b6c0",
+      "bytes": 7268
+    },
+    "robot_dashboard/application/navigation_coordinator.py": {
+      "sha256": "9e8ab6915ed3bcf4f56dcbe10073662e57c96018864585b4215d39fb117e9108",
+      "bytes": 87023
+    },
+    "robot_dashboard/navigation_jobs.py": {
+      "sha256": "bffb7ac82322716809b9611e8908c0432b056a80ef2844f7d1232f6ad0a033c2",
+      "bytes": 71899
+    }
+  },
+  "runtime": {
+    "observed_at_utc": "2026-10-15T11:52:29.144766+00:00",
+    "device_checkout_sha": "1656e4d15d752e82178e1c0272824c5ed3252f37",
+    "backend_restart_candidate_sha": "863682ed4c566a56e676c2a4ed42fef1808885e5",
+    "new_source_deployed": false,
+    "units": {
+      "robot-scope.service": {
+        "MainPID": "62370",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "f614b41a474543b5b272b83f335669aa"
+      },
+      "robot-scope-control-bridge.service": {
+        "MainPID": "984",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "f1c66ebfa68d43cdaf66cfbc0bd4dbef"
+      },
+      "robot-scope-realsense-camera.service": {
+        "MainPID": "988",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "UnitFileState": "enabled",
+        "InvocationID": "b529cd0ed2fe4767b213a8bab65807ef"
+      }
+    },
+    "source_manifest_files": 1256,
+    "source_manifest_mismatches": [],
+    "maps_preserved": true,
+    "map_file_count": 54,
+    "unit_definitions_unchanged": {
+      "robot-scope.service": true,
+      "robot-scope-control-bridge.service": true,
+      "robot-scope-realsense-camera.service": true
+    },
+    "environment_files_unchanged": {
+      "realsense-camera.env": true,
+      "control.env": true,
+      "robot-scope.env": true
+    },
+    "owned_processes_remaining": [],
+    "session_mode": "idle",
+    "initial_pose_count": 1,
+    "lease": false,
+    "deadman": false,
+    "command_zero": true,
+    "goal_state": "idle",
+    "effective_loaded_config_digest": null,
+    "per_module_loaded_attestation": false
+  },
+  "diagnosis": {
+    "historical_policy_failure": "UNRESOLVED; prior context dropped raw observer reason",
+    "localization_only_omits_required_nav2_nodes": false,
+    "historical_stale_startup": "UNCONFIRMED",
+    "dispatch_tracking_defect": "REPRODUCED_AND_FIXED_SOFTWARE",
+    "runtime_policy_enforced": false,
+    "policy_true_branch_added": false,
+    "threshold_changes": false,
+    "timer_s": 0.25,
+    "batch_deadline_s": 0.5,
+    "ttl_s": 0.75
+  },
+  "regression": {
+    "kind": "SOFTWARE_TEST; ROS observations are fixtures",
+    "python_full_workspace": {
+      "run": 1998,
+      "passed": 1974,
+      "skipped": 2,
+      "errors": 22,
+      "error_scope": "test_slam_broker Unix socket bind denied by sandbox"
+    },
+    "broker_retry_with_local_sockets": {
+      "run": 22,
+      "passed": 22,
+      "errors": 0
+    },
+    "exact_candidate_full_python": {
+      "run": 1998,
+      "passed": 1994,
+      "skipped": 2,
+      "failures": 2,
+      "failure_scope": "Archive snapshot intentionally has no .git; two Git-dependent repository tooling tests cannot run there. Both pass in the original repository on the same unchanged test/tool source."
+    },
+    "exact_candidate_javascript": {
+      "passed": 381,
+      "failed": 0
+    },
+    "javascript_syntax_modules": 83,
+    "ruff": "PASS",
+    "mypy": "PASS configured four modules only",
+    "tracked_source_secret_scan": "PASS",
+    "independent_review": "no actionable findings",
+    "git_tooling_retry_in_repository": {
+      "run": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "combined_local_python_result": {
+      "run": 1998,
+      "passed": 1996,
+      "skipped": 2,
+      "unresolved_failures": 0,
+      "note": "Combined full archive/repository runs and environment-specific focused retries; not a single all-green full run. Exact committed Linux CI checked separately after push."
+    },
+    "python_runtime": "CPython3.13 project .venv",
+    "local_exact_snapshot_base_sha": "72d8f9b108f1776f37bd9b071c250d5d1e71cf2b",
+    "integrated_parent_ci": "Verify exact final commit after publication; local snapshot predates the separate UI commit.",
+    "integrated_parent_javascript": {
+      "base_sha": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
+      "passed": 381,
+      "failed": 0
+    }
+  },
+  "acceptance": {
+    "software_closure": false,
+    "localization_live_verified": false,
+    "native_planner_actual": "NOT_RUN",
+    "ms_native_reuse": "NOT_RUN",
+    "map02_complete_export": "BLOCKED",
+    "stages41_43": "NOT_RUN"
+  },
+  "excluded_concurrent_changes": "Separate UI source/test edits were published independently in a67c5f5 during validation; preserved as the integration parent and not modified in this policy commit.",
+  "private_evidence": "sibling robot-scope-hardware-validation-private/integration-policy-followup-20261015; raw logs stay private",
+  "evidence_files": {
+    "js.log": {
+      "sha256": "36da97b8fea144ddc28682bfab8136b74855a1f33852abba73c64022d948a968",
+      "bytes": 102746
+    },
+    "broker.log": {
+      "sha256": "e2a81f5fb4e6836ec9bb1567ad641cc5195c34c2083e9cf92c9fe069824231ac",
+      "bytes": 3871
+    },
+    "final-access-check.json": {
+      "sha256": "c903b7e237fa59072d6361589413bfdef5edb6d5192e2d463f92ce2880798f06",
+      "bytes": 332
+    },
+    "journal.txt": {
+      "sha256": "aa294add5c502885b6e7411ed2fd89900c284cbebbd1d55022efc3acb5e32ee8",
+      "bytes": 9359
+    },
+    "exact-python.log": {
+      "sha256": "26ada477c1c0e26708c5ff876f9f2443488a9ed2cb9a4d520055b73efb32ff4f",
+      "bytes": 358283
+    },
+    "git-tests.log": {
+      "sha256": "8d3cb3a15fa0648f3a0b92996f7d98a11819c46a8b248b484605df1b880a3b11",
+      "bytes": 408
+    },
+    "exact-js.log": {
+      "sha256": "7860a7785f62e884d8f81559996bdca1e9dffe95b29b2eb66e304dfd2d70e4b0",
+      "bytes": 101234
+    },
+    "inspection.json": {
+      "sha256": "a7a48b259737a697f9637935abbe98090213fb3dcf9dc76b6a2375fd18a0b4f1",
+      "bytes": 74981
+    },
+    "python.log": {
+      "sha256": "c90ebb27f8b2791f4bec0998897defee297f14be794061f3c3619a107be4990c",
+      "bytes": 379633
+    },
+    "integrated-js.log": {
+      "sha256": "a56d83cbbc06ec3a24e13497e7d51bdcb731d61989c73371563e709defc48683",
+      "bytes": 102745
+    }
+  },
+  "integration_parent_sha": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
+  "concurrent_ui_commit_sha": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
+  "final_access_check": {
+    "observed_at_utc": "2026-10-15T12:08:29.045405+00:00",
+    "ssh": "connect timeout, exit255",
+    "dashboard_http": "connect failed, curl exit7/http000",
+    "last_successful_read_only_snapshot": "2026-10-15T11:52:29.144766+00:00",
+    "device_state_after_last_successful_snapshot": "UNVERIFIED",
+    "service_restart_attempted": false
+  }
+}

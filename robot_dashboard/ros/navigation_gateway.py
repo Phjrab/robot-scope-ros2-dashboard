@@ -29,6 +29,7 @@ from ..localization_health import (
     classify_localization_health,
 )
 from ..localization_diagnostics import sanitize_localization_diagnostics
+from ..navigation_policy import POLICY_SCHEMA
 
 
 LOGGER = logging.getLogger(__name__)
@@ -293,6 +294,7 @@ class NavigationRosGateway:
         }
         self._localization_failure_callback: Callable[[str], None] | None = None
         self._policy_readback: Any = None
+        self._policy_readback_unavailable_reason = "POLICY_OBSERVER_NOT_INITIALIZED"
 
     @property
     def lock(self) -> threading.RLock:
@@ -312,7 +314,9 @@ class NavigationRosGateway:
         Message types remain lazy so a missing Nav2 installation disables only
         autonomous driving and does not weaken observation or manual control.
         """
-
+        with self._navigation_lock:
+            self._policy_readback = None
+            self._policy_readback_unavailable_reason = "POLICY_OBSERVER_NOT_INITIALIZED"
         try:
             from rclpy.action import ActionClient
             from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -444,8 +448,11 @@ class NavigationRosGateway:
                 from .policy_readback import RosPolicyReadback
                 observer = RosPolicyReadback(node)
                 observer.setup()
-                self._policy_readback = observer
+                with self._navigation_lock:
+                    self._policy_readback = observer
             except Exception:
+                with self._navigation_lock:
+                    self._policy_readback_unavailable_reason = "POLICY_OBSERVER_SETUP_FAILED"
                 LOGGER.info("Nav2 effective policy readback unavailable")
         except Exception as exc:
             with self._navigation_lock:
@@ -454,6 +461,28 @@ class NavigationRosGateway:
                     f"Nav2 ROS transport unavailable: {exc}"[:240]
                 )
                 self._navigation["seq"] += 1
+
+    def _policy_readback_snapshot(self) -> Dict[str, Any]:
+        with self._navigation_lock:
+            observer = self._policy_readback
+            reason = self._policy_readback_unavailable_reason
+        if observer is not None:
+            try:
+                return observer.snapshot()
+            except Exception:
+                # Optional diagnostics must not interrupt control or STOP, and
+                # exception text can contain private ROS or environment data.
+                reason = "POLICY_READBACK_FAILED"
+        return {
+            "schema": POLICY_SCHEMA,
+            "status": "unavailable",
+            "reason": reason,
+            "parameters": {},
+            "authorities": {},
+            "lifecycle": {},
+            "age_s": None,
+            "sequence": 0,
+        }
 
     @staticmethod
     def pose_values(
@@ -3439,7 +3468,7 @@ class NavigationRosGateway:
                 "navigation_lease_active": navigation_lease_active,
                 "cleanup_required": cleanup_required,
                 "runtime_health": self._public_rate_metrics(runtime_health),
-                "policy_readback": self._policy_readback.snapshot() if self._policy_readback is not None else {},
+                "policy_readback": self._policy_readback_snapshot(),
                 "localization_health": localization_health,
                 "calibration_assistant": calibration_assistant,
                 "bindings": {

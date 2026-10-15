@@ -13,6 +13,14 @@ new executor was introduced. The CLI's native preview default remains false.
 The optional explicit in-process provider is retained for existing integration
 tests; no HTTP endpoint can set it.
 
+Follow-up diagnostics preserve allowlisted observer reason/status/age/sequence even
+when parameters are incomplete. Provider evidence stays unavailable, semantic pins
+stay unchanged by diagnostics, and all enforcement scopes stay false. The gateway
+distinguishes observer initialization/setup/snapshot failures without weakening STOP.
+Partially dispatched batches own each future immediately and cancel pending futures
+on failure. See [POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md);
+this follow-up source is not yet deployed.
+
 The existing ROS node asynchronously queries fixed GetParameters/GetState services
 on planner_server, controller_server, bt_navigator and both costmaps. A separate
 mutually-exclusive callback group checks batches on a250ms timer. There are at most
