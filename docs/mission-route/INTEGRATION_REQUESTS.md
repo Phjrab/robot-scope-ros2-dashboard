@@ -32,4 +32,4 @@ actual MS manager/projection/configure + MR synthetic provider 교차8, 실제 a
 
 ## 후보와 자원 상태
 
-MR source30개에 합의된 shared source/tests4개가 포함됐다. MS docs는 MS가 별도7747ef7로 게시했으며 MR이 수정하지 않았다. MS final CI success는 MR source 검증과 구분한다. MR exact tip CI는 실제 발행 뒤 PROGRESS/VALIDATION에 갱신한다. 장비 배포·서비스·센서 변경 없음.
+MR source30개에 합의된 shared source/tests4개가 포함됐다. MS docs는 MS가 별도7747ef7로 게시했으며 MR이 수정하지 않았다. MS final CI success는 MR source 검증과 구분한다. MR exact b42b28f CI38694446361은 두 Linux 환경 success로 확인했다. PROGRESS/VALIDATION/CI.json에 기록했다. 장비 배포·서비스·센서 변경 없음.

@@ -57,7 +57,7 @@ MR↔MS는 같은 coordination lock과 기존 ownership gate를 사용한다. ru
 | 전체 Chromium | 96 PASS / skip0 / fail0 / flaky0,151.110초. local synthetic HTTP fixture |
 | 화면 | dark/light,1440/1280/1024/portrait/mobile,CSS200% zoom fixture 검토 |
 | 실제 native / 실기 / 배포 | NOT_RUN |
-| exact MR 게시/CI | 실제 결과를 PROGRESS/VALIDATION의 게시 기록에 추가 |
+| exact MR 게시/CI | b42b28f push, CI38694446361 두 Linux 환경 success |
 
 Python skip은 optional rosbags 미설치와 macOS에서 Linux /proc 전용 검사 불가다. 실제 browser200% zoom·touch hardware는 NOT_RUN이다. 실제 실행 명령·시각·원본 log hashes·fixture 종류는 VALIDATION.json, 인수45개 행은 ACCEPTANCE_MATRIX.md에 있다. MS 이전 단독 CI 결과를 MR 결과로 사용하지 않는다.
 
@@ -65,4 +65,10 @@ MR source30개 중 합의된 shared source/tests4개는 MS 단독 창에서 적�
 
 source rollback은 MR source commit의 변경만 검토해 정상 revert한다. 새 coordinator 저장 필드와 이전 strict reader의 호환성은 별도 data rollback 검토가 필요하다. 운영 데이터 root를 reset하지 않는다. 서비스 복구/재시작도 별도 장비 창이며 source/data/service rollback은 이번에 수행하지 않았다.
 
-다음 최소 작업은 exact MR tip 게시/CI 결과 기록, MR-MS-003 read-only policy 계약의 소유권 수락/연결과 영향 검증이다. run/receipt 포화 maintenance 절차도 남아 있다. 단계27 별도 조건 전 배포·서비스 재시작·초기 위치·ARM·motion goal·실이동은 하지 않는다. CORRIDOR/STRICT/무정차/teach-repeat는 후속 범위다.
+다음 최소 작업은 MR-MS-003 read-only policy 계약의 소유권 수락/연결과 영향 검증이다. run/receipt 포화 maintenance 절차도 남아 있다. 단계27 별도 조건 전 배포·서비스 재시작·초기 위치·ARM·motion goal·실이동은 하지 않는다. CORRIDOR/STRICT/무정차/teach-repeat는 후속 범위다.
+
+## 원격 게시·CI 확정 기록
+
+기록: 2026-10-15T06:57:10.887581+00:00 / KST 2026-10-15T15:57:10.887581+09:00. source `22c7913`와 문서 `b42b28f`를 origin/main에 정상 push했다. exact tip `b42b28f9a4fdbb98a60692e90c677aaf5f9ddf34`의 [CI 38694446361](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38694446361)는 **success**, UTC 2026-10-15T06:46:31Z → 2026-10-15T06:55:01Z다. Ubuntu24.04/Python3.12와 Ubuntu22.04/Python3.10 각각 Python1939(1938 PASS/skip1/fail0), JS381 PASS, Chromium96 PASS, 정적·secrets·의존성 감사·coverage74% 검사를 통과했다. skip은 optional rosbags backend 미설치다. 상세 job 시각·log hash는 CI.json, 로컬 dirty tree 실행과 원격 clean commit 검증의 구분은 VALIDATION.json에 있다.
+
+이 기록은 source 변경 없는 문서 후속 commit으로 보존한다. 이후 문서 tip의 CI는 별도 확인하며, 위 run은 명시한 b42b28f만 검증한다. 전체 인수 PARTIAL과 MR-MS-003 software BLOCKED/native·실기 NOT_RUN은 그대로다. 장비/서비스 변경 없음. 다음은 소유권 수락 뒤 runtime policy provider 연결·실제 증거 검증이다.

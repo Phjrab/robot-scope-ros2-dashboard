@@ -28,6 +28,12 @@ MR-MS-001/002는 MS 단독 공유 창에서 적용했고 software VERIFIED다. a
 
 source30개 manifest와 log hashes는 SOURCE_MANIFEST/VALIDATION에 있다. focused83 PASS(실제 MR/MS synthetic 교차8·NativePlanner synthetic transport4 포함), 전체 Python1939(skip2/fail0), Node381 PASS, Ruff·configured mypy4·syntax·diff·secrets PASS, Chromium96 PASS. 캡처는 synthetic UI fixture이며 주행 증거가 아니다. CSS 200% zoom PASS와 실제 browser zoom/touch NOT_RUN을 구분한다.
 
-다음은 exact MR 게시/CI 기록, MR-MS-003 계약 수락 후 read-only provider 연결·stale/정책 영향 검증이다. source rollback은 MR source commit만 검토해 정상 revert한다. 이전 strict reader와 새 coordinator 저장 필드의 data 호환성을 먼저 확인해야 하며 사용자 runtime root를 reset하지 않는다. data rollback과 service rollback은 별개이고 이번에 수행하지 않았다.
+게시·CI는 아래 확정 기록을 참조한다. 다음은 MR-MS-003 계약 수락 후 read-only provider 연결·stale/정책 영향 검증이다. source rollback은 MR source commit만 검토해 정상 revert한다. 이전 strict reader와 새 coordinator 저장 필드의 data 호환성을 먼저 확인해야 하며 사용자 runtime root를 reset하지 않는다. data rollback과 service rollback은 별개이고 이번에 수행하지 않았다.
 
 장비에 배포하지 않았다. 운영 서비스·카메라·SLAM에 가한 변경 없음. deployment/restart/initialpose/ARM/motion goal/실이동은 단계27의 별도 조건 전 수행 금지다. 이미 통과한 회귀를 변경 없이 반복하거나 외부 초안 apply 스크립트를 다시 실행하지 않는다.
+
+## 원격 게시·CI 확정 기록
+
+기록: 2026-10-15T06:57:10.887581+00:00 / KST 2026-10-15T15:57:10.887581+09:00. source `22c7913`와 문서 `b42b28f`를 origin/main에 정상 push했다. exact tip `b42b28f9a4fdbb98a60692e90c677aaf5f9ddf34`의 [CI 38694446361](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38694446361)는 **success**, UTC 2026-10-15T06:46:31Z → 2026-10-15T06:55:01Z다. Ubuntu24.04/Python3.12와 Ubuntu22.04/Python3.10 각각 Python1939(1938 PASS/skip1/fail0), JS381 PASS, Chromium96 PASS, 정적·secrets·의존성 감사·coverage74% 검사를 통과했다. skip은 optional rosbags backend 미설치다. 상세 job 시각·log hash는 CI.json, 로컬 dirty tree 실행과 원격 clean commit 검증의 구분은 VALIDATION.json에 있다.
+
+이 기록은 source 변경 없는 문서 후속 commit으로 보존한다. 이후 문서 tip의 CI는 별도 확인하며, 위 run은 명시한 b42b28f만 검증한다. 전체 인수 PARTIAL과 MR-MS-003 software BLOCKED/native·실기 NOT_RUN은 그대로다. 장비/서비스 변경 없음. 다음은 소유권 수락 뒤 runtime policy provider 연결·실제 증거 검증이다.

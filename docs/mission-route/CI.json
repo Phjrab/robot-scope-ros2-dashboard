@@ -1,0 +1,394 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-10-15T06:46:31Z",
+  "databaseId": 38694446361,
+  "headSha": "b42b28f9a4fdbb98a60692e90c677aaf5f9ddf34",
+  "jobs": [
+    {
+      "completedAt": "2026-10-15T06:52:09Z",
+      "conclusion": "success",
+      "databaseId": 116287623146,
+      "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+      "startedAt": "2026-10-15T06:46:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-15T06:46:35Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-15T06:46:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:38Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-10-15T06:46:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:40Z",
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 3,
+          "startedAt": "2026-10-15T06:46:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:44Z",
+          "conclusion": "success",
+          "name": "Set up Node.js",
+          "number": 4,
+          "startedAt": "2026-10-15T06:46:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:55Z",
+          "conclusion": "success",
+          "name": "Install Python dependencies",
+          "number": 5,
+          "startedAt": "2026-10-15T06:46:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:55Z",
+          "conclusion": "success",
+          "name": "Install JavaScript dependencies",
+          "number": 6,
+          "startedAt": "2026-10-15T06:46:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:56Z",
+          "conclusion": "success",
+          "name": "Audit JavaScript dependency resolution",
+          "number": 7,
+          "startedAt": "2026-10-15T06:46:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:57Z",
+          "conclusion": "success",
+          "name": "Run Python static checks",
+          "number": 8,
+          "startedAt": "2026-10-15T06:46:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:57Z",
+          "conclusion": "success",
+          "name": "Scan tracked source for credentials",
+          "number": 9,
+          "startedAt": "2026-10-15T06:46:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:02Z",
+          "conclusion": "success",
+          "name": "Audit Python dependency resolution",
+          "number": 10,
+          "startedAt": "2026-10-15T06:46:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:48:23Z",
+          "conclusion": "success",
+          "name": "Run Python tests with coverage",
+          "number": 11,
+          "startedAt": "2026-10-15T06:47:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:48:24Z",
+          "conclusion": "success",
+          "name": "Run JavaScript tests",
+          "number": 12,
+          "startedAt": "2026-10-15T06:48:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:48:26Z",
+          "conclusion": "success",
+          "name": "Check JavaScript syntax",
+          "number": 13,
+          "startedAt": "2026-10-15T06:48:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:48:53Z",
+          "conclusion": "success",
+          "name": "Install Chromium for browser tests",
+          "number": 14,
+          "startedAt": "2026-10-15T06:48:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:52:07Z",
+          "conclusion": "success",
+          "name": "Run hardware-free browser E2E",
+          "number": 15,
+          "startedAt": "2026-10-15T06:48:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:52:07Z",
+          "conclusion": "success",
+          "name": "Post Set up Node.js",
+          "number": 28,
+          "startedAt": "2026-10-15T06:52:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:52:07Z",
+          "conclusion": "success",
+          "name": "Post Set up Python",
+          "number": 29,
+          "startedAt": "2026-10-15T06:52:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:52:07Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 30,
+          "startedAt": "2026-10-15T06:52:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:52:07Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-10-15T06:52:07Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38694446361/job/116287623146",
+      "evidence": {
+        "log": "/private/tmp/mr-ci-ubuntu24.log",
+        "sha256": "1f10fa60f1f191dd6c35328d181324389e108464767614dff138d242e647fa5b",
+        "python": {
+          "discovered": 1939,
+          "passed": 1938,
+          "skipped": 1,
+          "failed": 0,
+          "duration_seconds": 74.497,
+          "skip_reason": "optional rosbags backend not installed"
+        },
+        "javascript": {
+          "passed": 381,
+          "skipped": 0,
+          "failed": 0
+        },
+        "chromium": {
+          "passed": 96,
+          "skipped": 0,
+          "failed": 0,
+          "flaky": 0,
+          "evidence_type": "hardware-free HTTP fixtures"
+        },
+        "coverage_percent": 74
+      }
+    },
+    {
+      "completedAt": "2026-10-15T06:55:01Z",
+      "conclusion": "success",
+      "databaseId": 116287623413,
+      "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+      "startedAt": "2026-10-15T06:46:34Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-15T06:46:36Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-15T06:46:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:39Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-10-15T06:46:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:43Z",
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 3,
+          "startedAt": "2026-10-15T06:46:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:46:48Z",
+          "conclusion": "success",
+          "name": "Set up Node.js",
+          "number": 4,
+          "startedAt": "2026-10-15T06:46:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:03Z",
+          "conclusion": "success",
+          "name": "Install Python dependencies",
+          "number": 5,
+          "startedAt": "2026-10-15T06:46:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:03Z",
+          "conclusion": "success",
+          "name": "Install JavaScript dependencies",
+          "number": 6,
+          "startedAt": "2026-10-15T06:47:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:04Z",
+          "conclusion": "success",
+          "name": "Audit JavaScript dependency resolution",
+          "number": 7,
+          "startedAt": "2026-10-15T06:47:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:05Z",
+          "conclusion": "success",
+          "name": "Run Python static checks",
+          "number": 8,
+          "startedAt": "2026-10-15T06:47:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:06Z",
+          "conclusion": "success",
+          "name": "Scan tracked source for credentials",
+          "number": 9,
+          "startedAt": "2026-10-15T06:47:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:47:17Z",
+          "conclusion": "success",
+          "name": "Audit Python dependency resolution",
+          "number": 10,
+          "startedAt": "2026-10-15T06:47:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:49:13Z",
+          "conclusion": "success",
+          "name": "Run Python tests with coverage",
+          "number": 11,
+          "startedAt": "2026-10-15T06:47:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:49:15Z",
+          "conclusion": "success",
+          "name": "Run JavaScript tests",
+          "number": 12,
+          "startedAt": "2026-10-15T06:49:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:49:17Z",
+          "conclusion": "success",
+          "name": "Check JavaScript syntax",
+          "number": 13,
+          "startedAt": "2026-10-15T06:49:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:49:53Z",
+          "conclusion": "success",
+          "name": "Install Chromium for browser tests",
+          "number": 14,
+          "startedAt": "2026-10-15T06:49:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:54:57Z",
+          "conclusion": "success",
+          "name": "Run hardware-free browser E2E",
+          "number": 15,
+          "startedAt": "2026-10-15T06:49:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:54:57Z",
+          "conclusion": "success",
+          "name": "Post Set up Node.js",
+          "number": 28,
+          "startedAt": "2026-10-15T06:54:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:54:57Z",
+          "conclusion": "success",
+          "name": "Post Set up Python",
+          "number": 29,
+          "startedAt": "2026-10-15T06:54:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:54:58Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 30,
+          "startedAt": "2026-10-15T06:54:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-15T06:54:58Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-10-15T06:54:58Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38694446361/job/116287623413",
+      "evidence": {
+        "log": "/private/tmp/mr-ci-ubuntu22.log",
+        "sha256": "4d45f7ccb9797503c234e81a5482a3c4c995f8cdb92cf45dfe7e7d6749d38c04",
+        "python": {
+          "discovered": 1939,
+          "passed": 1938,
+          "skipped": 1,
+          "failed": 0,
+          "duration_seconds": 106.581,
+          "skip_reason": "optional rosbags backend not installed"
+        },
+        "javascript": {
+          "passed": 381,
+          "skipped": 0,
+          "failed": 0
+        },
+        "chromium": {
+          "passed": 96,
+          "skipped": 0,
+          "failed": 0,
+          "flaky": 0,
+          "evidence_type": "hardware-free HTTP fixtures"
+        },
+        "coverage_percent": 74
+      }
+    }
+  ],
+  "startedAt": "2026-10-15T06:46:31Z",
+  "status": "completed",
+  "updatedAt": "2026-10-15T06:55:01Z",
+  "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38694446361",
+  "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+  "source_dirty": false,
+  "manual_action_performed": false,
+  "hardware_status": "NOT_RUN",
+  "runtime_sha": null,
+  "workflow_notice": "Actions Node20 runtime deprecation notice only; all jobs successful. Shared workflow ownership remains MS; no workflow edit."
+}

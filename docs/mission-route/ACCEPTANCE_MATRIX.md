@@ -2,7 +2,7 @@
 
 기록 UTC: 2026-10-15T06:45:34.358571+00:00. **전체 PARTIAL**. pack90의45개 행을 추적한다. S software / I MR-MS 통합 / N actual native / H 실기 / F 후속이다. PASS는 관측 열의 fixture/software 범위다. actual code와 synthetic hardware provider를 구분하며 live/runtime까지 확대하지 않는다. N/H/F 미지원·미수행은 명시 유지한다.
 
-source `22c7913c879afcca536a78d552dcdf98f0f53098`, source_dirty=false(SOURCE_MANIFEST bytes). 테스트는 같은 bytes의 commit 전 tree에서 실행했다. runtime_sha/config_hash=null. command·시각·로그 원본/SHA256·환경은 [VALIDATION.json](VALIDATION.json), source30개 hashes는 [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json)이다. focused83, Python1939(skip2/fail0), Node381, Ruff/configured mypy4/syntax/diff/secrets, Chromium96 PASS. 로그에는 장비 증거가 없다.
+source `22c7913c879afcca536a78d552dcdf98f0f53098`, manifest의 commit source_dirty=false. 로컬 검사는 당시 uncommitted/dirty tree였고, 그 bytes를 동일하게 커밋한 source SHA로 사후 대응했다. 개별 실행 당시 checkout HEAD는 별도로 기록하지 않았으며 이를 clean commit 실행으로 주장하지 않는다. runtime_sha/config_hash=null. command·시각·로그 원본/SHA256·환경은 [VALIDATION.json](VALIDATION.json), source30개 hashes는 [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json)이다. focused83, Python1939(skip2/fail0), Node381, Ruff/configured mypy4/syntax/diff/secrets, Chromium96 PASS. 로그에는 장비 증거가 없다.
 
 manual_action_performed=false. 배포/restart/initialpose/ARM/motion goal/실이동 없음. final_resource_state=운영 서비스·camera·SLAM 미변경, fixture servers/runner 종료. actual native·실기는 NOT_RUN이다. source/run source_sha·runtime_sha를 혼동하지 않는다; persisted run은 둘 다 null이다.
 
@@ -44,7 +44,7 @@ manual_action_performed=false. 배포/restart/initialpose/ARM/motion goal/실이
 | MR-34 | I | 26 | PASS | MS mapping/save/localize와 MR start 충돌을 양방향 차단 | 동일 actual code 교차에서 MS busy→MR/legacy start, MR active→MS mutation 거부 PASS. live NOT_RUN. |
 | MR-35 | I | 26 | PASS | navigation content/context 변경과 preview/name/sequence 갱신을 구분 | actual projection pose sequence 안정/운영 source generation pin·legacy process generation 독립 pin fixture PASS. |
 | MR-36 | S,I | 20~26 | PASS | 동일 checkout 쓰기/전체 suite/Git index 동시 사용 없음, 타 변경 보존 | 상호 조율·창 반환 후 source 적용/전체 test/Git 순차 진행. MS docs·전용 source·사용자 data 보존. |
-| MR-37 | S,I | 26 | NOT_RUN | 단일 후보의 Python·JS·정적·E2E·CI 결과와 skip/환경 실패를 구분 | 단일 source bytes/manifest에 Python1939·JS381·quality·Chromium96 PASS. exact MR CI는 발행 뒤 기록. |
+| MR-37 | S,I | 26 | PASS | 단일 후보의 Python·JS·정적·E2E·CI 결과와 skip/환경 실패를 구분 | 단일 source bytes/manifest에 Python1939·JS381·quality·Chromium96 PASS. exact b42b28f CI38694446361 두 Linux 환경 success(Python1939/skip1, JS381, Chromium96). CI.json 참조. |
 | MR-38 | S | 21,26 | NOT_RUN | 1024/1280/1440/portrait·200% zoom·키보드/touch에서 핵심 조작 접근 가능 | responsive/keyboard/CSS200% fixture PASS·캡처 검토. 실제 browser zoom200%·touch hardware NOT_RUN. |
 | MR-39 | S | 21,25 | PASS | software STOP·HUD·manual takeover가 overlay/drawer에 가려지거나 재정의되지 않음 | 기존 STOP/HUD/수동전환 adapter·pointer 접근·responsive 브라우저 회귀 PASS. 물리 stop은 MR-42. |
 | MR-40 | H | 27A | NOT_RUN | exact 배포 후보·기존 데이터·MS 상태·rollback·최종 ownership 확인 | 단계27 장비 창 없음, source/data/service rollback 실제 미수행. |
@@ -54,4 +54,4 @@ manual_action_performed=false. 배포/restart/initialpose/ARM/motion goal/실이
 | MR-44 | F | 28 | BLOCKED | STRICT supported controller와 deviation/obstacle stop 확인 | 후속 범위. STRICT controller/deviation/obstacle stop 미지원, 현재 실행 거부. |
 | MR-45 | F | 28 | BLOCKED | 무정차 경유 또는 teach-repeat를 cmd_vel replay/가짜 완료 없이 구현 | 후속 범위. 무정차/teach-repeat 미지원; cmd_vel replay/가짜 완료 없음. |
 
-MR-13/14/23은 effective runtime provider 미연결이라는 software blocker다. MR-19의 software 무동작 PASS와 실제 graph 미수행을 분리했다. MR-38의 CSS zoom fixture를 actual native browser zoom/touch 합격으로 올리지 않았다. F행은 기본 단계20~26 이후 범위이며 현재 서버가 거부한다. 원격 exact CI를 확인한 뒤 MR-37만 결과에 맞게 갱신한다.
+MR-13/14/23은 effective runtime provider 미연결이라는 software blocker다. MR-19의 software 무동작 PASS와 실제 graph 미수행을 분리했다. MR-38의 CSS zoom fixture를 actual native browser zoom/touch 합격으로 올리지 않았다. F행은 기본 단계20~26 이후 범위이며 현재 서버가 거부한다. MR-37은 원격 exact b42b28f CI success로 갱신했다. 후속 문서 commit이 이 run에 포함됐다고 주장하지 않는다.

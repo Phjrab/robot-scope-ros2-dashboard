@@ -30,7 +30,7 @@
       "log": "/private/tmp/mr-final-python.log",
       "sha256": "480c94e61a713c4737ba1c3f0b99fa9154d8b9e9a881e6ad7f56d857206b8832",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
+      "source_dirty": true,
       "status": "PASS",
       "discovered": 1939,
       "passed": 1937,
@@ -40,7 +40,10 @@
       "skip_reasons": [
         "optional rosbags backend not installed",
         "requires Linux process sessions and /proc"
-      ]
+      ],
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "javascript",
@@ -55,13 +58,16 @@
       "log": "/private/tmp/mr-final-javascript.log",
       "sha256": "66d62916c06394e2ee0cb9c0875e4327b30b76f993b5aa3ea1cab9db87ce45df",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
+      "source_dirty": true,
       "historical_timestamps_replaced": true,
       "timestamp_basis": "last rerun log mtime; exact start not recorded",
       "status": "PASS",
       "passed": 381,
       "failed": 0,
-      "skipped": 0
+      "skipped": 0,
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "ruff",
@@ -84,8 +90,11 @@
       "log": "/private/tmp/mr-final-ruff.log",
       "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
-      "status": "PASS"
+      "source_dirty": true,
+      "status": "PASS",
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "mypy",
@@ -102,10 +111,13 @@
       "log": "/private/tmp/mr-final-mypy.log",
       "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
+      "source_dirty": true,
       "status": "PASS",
       "configured_modules": 4,
-      "all_project_modules_checked": false
+      "all_project_modules_checked": false,
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "syntax",
@@ -119,10 +131,13 @@
       "log": "/private/tmp/mr-final-syntax.log",
       "sha256": "15e47e59b945e4709058e7b657507d16b233fc34c6c858207ddcd7b75bea921d",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
+      "source_dirty": true,
       "historical_timestamps_replaced": true,
       "timestamp_basis": "last rerun log mtime; exact start not recorded",
-      "status": "PASS"
+      "status": "PASS",
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "diff",
@@ -137,14 +152,17 @@
       "log": "/private/tmp/mr-final-diff.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
-      "status": "PASS"
+      "source_dirty": true,
+      "status": "PASS",
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "chromium",
       "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=/private/tmp/mr-full-browser.json ./node_modules/.bin/playwright test --reporter=line,json --output=/private/tmp/mr-full-browser",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
+      "source_dirty": true,
       "status": "PASS",
       "evidence_type": "actual frontend on local HTTP fixture; synthetic backend responses",
       "started_at": "2026-10-15T06:35:37.209Z",
@@ -157,12 +175,15 @@
       "log": "/private/tmp/mr-full-browser.log",
       "sha256": "ef6e7abcc4534eb1cfcb940a59a97fc81f0cad2bc2c3e2aa6a8bfe407f03f6bc",
       "json_log": "/private/tmp/mr-full-browser.json",
-      "json_sha256": "f464daed798f25b45491133b4767a5b35ddcfb965db18cf145a1c8184487f3ff"
+      "json_sha256": "f464daed798f25b45491133b4767a5b35ddcfb965db18cf145a1c8184487f3ff",
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     },
     {
       "id": "focused-python",
       "source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
-      "source_dirty": false,
+      "source_dirty": true,
       "status": "PASS",
       "evidence_type": "real MR/MS code and NativePlanner with synthetic hardware/ROS transport",
       "passed": 83,
@@ -173,7 +194,10 @@
       "sha256": "2105f4c3953c813435b71beb00a2a1b9ae560038b24fbfbc7641af034ce7e54a",
       "started_at": null,
       "completed_at": "2026-10-15T06:21:30.912015+00:00",
-      "timestamp_basis": "log mtime; exact start not recorded"
+      "timestamp_basis": "log mtime; exact start not recorded",
+      "source_identity_basis": "local uncommitted source at execution, bytes identical to subsequently committed SOURCE_MANIFEST",
+      "equivalent_committed_source_sha": "22c7913c879afcca536a78d552dcdf98f0f53098",
+      "checkout_head_at_execution": null
     }
   ],
   "screenshots": [
@@ -214,8 +238,19 @@
     }
   ],
   "ci": {
-    "status": "NOT_RUN",
-    "reason": "MR publication pending; MS baseline CI is not MR evidence"
+    "status": "PASS",
+    "sha": "b42b28f9a4fdbb98a60692e90c677aaf5f9ddf34",
+    "run_id": 38694446361,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38694446361",
+    "started_at": "2026-10-15T06:46:31Z",
+    "completed_at": "2026-10-15T06:55:01Z",
+    "details": "CI.json",
+    "environments": [
+      "ubuntu-24.04 Python3.12",
+      "ubuntu-22.04 Python3.10"
+    ],
+    "source_dirty": false,
+    "source_files_unchanged_since": "22c7913c879afcca536a78d552dcdf98f0f53098"
   },
   "native_planner": {
     "status": "NOT_RUN"
@@ -224,5 +259,7 @@
     "status": "NOT_RUN",
     "manual_action_performed": false,
     "final_resource_state": "no deployment/restart/initialpose/ARM/motion goal/robot movement or operational camera/SLAM access"
-  }
+  },
+  "local_execution_dirty": true,
+  "local_execution_checkout_head": "not individually recorded per check; final code bytes are captured in SOURCE_MANIFEST"
 }
