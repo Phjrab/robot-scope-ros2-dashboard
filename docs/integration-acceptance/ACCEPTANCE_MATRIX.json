@@ -23,7 +23,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -43,7 +43,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -63,7 +63,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -83,7 +83,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -103,7 +103,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -123,7 +123,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -143,7 +143,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -163,7 +163,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -183,7 +183,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -203,7 +203,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -223,7 +223,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -243,7 +243,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -263,7 +263,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -283,7 +283,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -303,7 +303,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -323,7 +323,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -343,7 +343,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -363,7 +363,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -383,7 +383,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -403,7 +403,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -423,7 +423,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -443,7 +443,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -463,7 +463,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -483,7 +483,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -503,7 +503,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -523,7 +523,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -543,7 +543,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -563,7 +563,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -583,7 +583,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -603,7 +603,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -623,7 +623,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -643,7 +643,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -663,7 +663,7 @@
       "evidence_refs": [
         "HANDOFF.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -683,7 +683,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -703,7 +703,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -723,7 +723,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -743,7 +743,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -763,7 +763,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -783,7 +783,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -803,7 +803,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -817,18 +817,19 @@
         "SOFTWARE_CLOSURE"
       ],
       "expected": "현재 규칙의 Python/JS/static/security/dependency/E2E와 exact CI가 통과한다",
-      "status": "NOT_RUN",
+      "status": "PASS",
       "evidence_type": "software_fixture",
-      "observed": "Local candidate: Python1987/1985pass/2skip/0fail; JS381pass; Chromium96pass; static/audits pass. Exact published SHA CI pending.",
+      "observed": "Local exact-source Python1987/1985pass/2skip/0fail; JS381pass; Chromium96pass; static/audits pass. Exact source CI38716730829 success on Linux Python3.10 and3.12.",
       "evidence_refs": [
-        "VALIDATION.json"
+        "VALIDATION.json",
+        "CI.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Exact candidate CI pending publication.",
-      "next_minimum_action": "Publish focused main commit and verify its exact GitHub Actions run."
+      "blocking_reason": null,
+      "next_minimum_action": null
     },
     {
       "check_id": "T03",
@@ -843,7 +844,7 @@
       "evidence_refs": [
         "VALIDATION.json"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
@@ -1291,11 +1292,12 @@
       "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
     }
   ],
-  "updated_at": "2026-10-15T09:56:03.315577+00:00",
+  "updated_at": "2026-10-15T10:06:52.890039+00:00",
   "source_identity_basis": "SOURCE_MANIFEST.json (pre-commit source bytes; exact resulting commit recorded in VALIDATION.json)",
   "software_closure": false,
   "device_deployed": false,
   "stop_after_stage": 36,
   "deployed_checkout_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
-  "runtime_identity_note": "runtime_sha is null: checkout/file readback is not loaded module/native runtime proof"
+  "runtime_identity_note": "runtime_sha is null: checkout/file readback is not loaded module/native runtime proof",
+  "source_commit_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b"
 }

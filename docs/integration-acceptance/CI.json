@@ -1,0 +1,194 @@
+{
+  "status": "completed",
+  "head_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+  "id": 38716730829,
+  "conclusion": "success",
+  "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38716730829",
+  "created_at": "2026-10-15T09:57:10Z",
+  "updated_at": "2026-10-15T10:05:26Z",
+  "jobs": [
+    {
+      "id": 116361122734,
+      "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-15T09:57:13Z",
+      "completed_at": "2026-10-15T10:05:10Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out repository",
+          "conclusion": "success"
+        },
+        {
+          "name": "Set up Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Set up Node.js",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Python dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install JavaScript dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Audit JavaScript dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Python static checks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan tracked source for credentials",
+          "conclusion": "success"
+        },
+        {
+          "name": "Audit Python dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Python tests with coverage",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run JavaScript tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check JavaScript syntax",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Chromium for browser tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run hardware-free browser E2E",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Set up Node.js",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Set up Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Check out repository",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 116361124090,
+      "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-15T09:57:13Z",
+      "completed_at": "2026-10-15T10:05:25Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out repository",
+          "conclusion": "success"
+        },
+        {
+          "name": "Set up Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Set up Node.js",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Python dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install JavaScript dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Audit JavaScript dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Python static checks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan tracked source for credentials",
+          "conclusion": "success"
+        },
+        {
+          "name": "Audit Python dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Python tests with coverage",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run JavaScript tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check JavaScript syntax",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Chromium for browser tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run hardware-free browser E2E",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Set up Node.js",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Set up Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Check out repository",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "test_results_per_job": {
+    "python_run": 1987,
+    "python_passed": 1986,
+    "python_skipped": 1,
+    "python_failed": 0,
+    "skip_reason": "optional rosbags backend not installed",
+    "javascript_passed": 381,
+    "browser_e2e_passed": 96,
+    "evidence_type": "software_fixture",
+    "native_ros_camera_motion_covered": false
+  }
+}

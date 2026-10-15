@@ -1,10 +1,10 @@
 {
   "schema": "robot-scope.integration-validation.v1",
-  "recorded_at_utc": "2026-10-15T09:56:59.914299+00:00",
+  "recorded_at_utc": "2026-10-15T10:06:52.890039+00:00",
   "stop_after_stage": 36,
   "baseline_sha": "2555f3763996c7b331389924bb5df48d62094736",
-  "source_commit_sha": null,
-  "source_identity": "SOURCE_MANIFEST.json; exact tested source bytes; publication SHA recorded after commit",
+  "source_commit_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+  "source_identity": "SOURCE_MANIFEST.json exact source bytes in published source commit; run source/runtime provenance remains separate and unavailable",
   "source_manifest_sha256": "b5ee3cb37321e87bb0f9acf1de87cca7f60bf508143cfba019ab977f3b79ec46",
   "local_environment": {
     "os": "macOS",
@@ -161,6 +161,18 @@
     "robot-scope-integration-secrets.log": {
       "sha256": "f51365351584839cc9f4c5f0d4f0c9ead3ca82b9668aee614bb118f7edb4ae66",
       "bytes": 34
+    },
+    "robot-scope-integration-source-ci.json": {
+      "sha256": "50e1c41be61d5ba3183fe81678cc5ab8f84f0e91b5886656f679defbb8aa6553",
+      "bytes": 13340
+    },
+    "robot-scope-integration-source-ci-jobs.json": {
+      "sha256": "c2ee1a57acd7097f48054c5bee8bcc74551f3b9f53a79e736deb35b9c98d47f7",
+      "bytes": 8242
+    },
+    "robot-scope-integration-source-ci.log": {
+      "sha256": "d1d4ab8487d178ae00ddae2ebd819ac3aee3cbc5188166eb573a2e8522da6dd8",
+      "bytes": 1956727
     }
   },
   "baseline_ci": {
@@ -170,10 +182,198 @@
     "completed_at": "2026-10-15T07:05:37Z"
   },
   "candidate_ci": {
-    "status": "PENDING_PUBLICATION",
-    "head_sha": null,
-    "id": null,
-    "conclusion": null
+    "status": "completed",
+    "head_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+    "id": 38716730829,
+    "conclusion": "success",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38716730829",
+    "created_at": "2026-10-15T09:57:10Z",
+    "updated_at": "2026-10-15T10:05:26Z",
+    "jobs": [
+      {
+        "id": 116361122734,
+        "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-15T09:57:13Z",
+        "completed_at": "2026-10-15T10:05:10Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Python",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install Python dependencies",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install JavaScript dependencies",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit JavaScript dependency resolution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Python static checks",
+            "conclusion": "success"
+          },
+          {
+            "name": "Scan tracked source for credentials",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit Python dependency resolution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Python tests with coverage",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run JavaScript tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check JavaScript syntax",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install Chromium for browser tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run hardware-free browser E2E",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Set up Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Set up Python",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 116361124090,
+        "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-15T09:57:13Z",
+        "completed_at": "2026-10-15T10:05:25Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Python",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install Python dependencies",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install JavaScript dependencies",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit JavaScript dependency resolution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Python static checks",
+            "conclusion": "success"
+          },
+          {
+            "name": "Scan tracked source for credentials",
+            "conclusion": "success"
+          },
+          {
+            "name": "Audit Python dependency resolution",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Python tests with coverage",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run JavaScript tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check JavaScript syntax",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install Chromium for browser tests",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run hardware-free browser E2E",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Set up Node.js",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Set up Python",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "test_results_per_job": {
+      "python_run": 1987,
+      "python_passed": 1986,
+      "python_skipped": 1,
+      "python_failed": 0,
+      "skip_reason": "optional rosbags backend not installed",
+      "javascript_passed": 381,
+      "browser_e2e_passed": 96,
+      "evidence_type": "software_fixture",
+      "native_ros_camera_motion_covered": false
+    }
   },
   "source_config_files_sha256": {
     "config/nav2_params_go2_humble.yaml": "b69ad567f6ab2a6cc8b8a651191676ae69b02e8d9fca162f1afdce5f8007b6c0",
@@ -232,5 +432,6 @@
     "MAP-02 has no qualified retained-total/exhaustion/full-generation API.",
     "New run source/runtime provenance and live_plan/ETA remain null/unavailable.",
     "Initial system-Python/test-import and socket-restricted probes were environment failures, then replaced by supported venv/approved local socket checks; not reported as acceptance passes."
-  ]
+  ],
+  "documentation_tip_ci_note": "This docs follow-up has its own exact CI run, verified in the final chat and retained in private evidence. Source CI never substitutes for docs-tip CI; this file does not recursively embed its own commit SHA."
 }

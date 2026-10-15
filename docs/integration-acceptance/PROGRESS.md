@@ -7,7 +7,7 @@ native evidence are explicit dependencies. Stages40–43 are NOT_RUN.
 
 Baseline clean main/origin/main: `2555f3763996c7b331389924bb5df48d62094736`.
 [Source manifest](SOURCE_MANIFEST.json) pins the exact tested source and tests;
-publication SHA and exact CI are recorded in VALIDATION.json after publication.
+publication SHA and successful exact CI are recorded in VALIDATION.json.
 Device disk checkout: `416d25c6e1c98b0c51097c9d6576b6ae34a690e9`; loaded
 module/release and process invocation remain unproven. Last read-only supervisor
 PID996, idle/uninitialized navigation, no active pipeline, can_send_goal=false.
@@ -36,4 +36,6 @@ observer/default-factory tests; neither constitutes native enforcement proof.
 
 [HANDOFF.md](HANDOFF.md) lists the smallest next software and separately gated
 native tasks. No maps, annotations, history, receipts, bags, VSLAM installation,
-services, camera owner, pipeline, pose or goal was modified. Nothing is scheduled.
+services, camera owner, pipeline, pose or goal was modified. No device action or follow-up is scheduled.
+
+Published source candidate: `4b189d1f59fb08667faaf3922f08b6e145f0db4b`. Exact source CI run: [38716730829](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38716730829); result: SUCCESS on Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12, recorded in VALIDATION.json and CI.json. Subsequent documentation tip CI is a separate run and is never inferred from this source run.
