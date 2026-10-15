@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import hashlib
+import math
 import os
 import re
 import secrets
@@ -80,6 +82,8 @@ class NavigationPort(Protocol):
         annotation_id: str,
         confirmed: bool,
     ) -> dict[str, Any]: ...
+
+    async def send_goal(self, *, map_id: str, map_revision: str, x: object, y: object, yaw: object, confirmed: bool) -> dict[str, Any]: ...
 
     async def cancel_goal(self, *, goal_id: str) -> dict[str, Any]: ...
 
@@ -224,7 +228,16 @@ class MissionCoordinator:
         cancel_timeout_s: float = 5.0,
         now: Any = time.time,
         monotonic: Any = time.monotonic,
+        coordination_lock: asyncio.Lock | None = None,
+        context_guard: Any = None,
     ) -> None:
+        self._coordination_lock = coordination_lock or asyncio.Lock()
+        self._context_guard = context_guard
+        self._hold_deadlines: dict[str, float] = {}
+        self._managed_admission: object | None = None
+        self._dispatch_preflight: Any = None
+        self._stop_requests: set[str] = set()
+        self._audit_warning = ""
         self._navigation = navigation
         self._saved_maps = saved_maps
         self._store: MissionStateStore | None = None
@@ -247,12 +260,30 @@ class MissionCoordinator:
 
     @staticmethod
     def _normalize_waypoint(value: Mapping[str, Any]) -> dict[str, Any]:
-        allowed = {"annotation_id", "arrival_action", "arrival_tolerance", "hold_seconds", "requires_operator_confirmation", "label", "status", "goal_id", "attempts"}
+        allowed = {"annotation_id", "arrival_action", "arrival_tolerance", "hold_seconds", "requires_operator_confirmation", "label", "status", "goal_id", "attempts", "visit_id", "mission_local_pose", "after_arrival_confirmation", "heading_yaw"}
         if not isinstance(value, Mapping) or set(value) - allowed:
             raise MissionValidationError("mission waypoint contains unsupported fields")
         annotation_id = value.get("annotation_id")
-        if not isinstance(annotation_id, str) or not MAP_ID_RE.fullmatch(annotation_id):
+        pose = value.get("mission_local_pose")
+        if pose is not None:
+            if annotation_id is not None or not isinstance(pose, Mapping) or set(pose) != {"x", "y", "yaw"}:
+                raise MissionValidationError("mission-local pose requires only finite x/y/yaw")
+            if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in pose.values()) or any(abs(pose[k]) > 10000 for k in ("x", "y")) or abs(pose["yaw"]) > math.pi:
+                raise MissionValidationError("mission-local pose is out of bounds")
+            pose = dict(pose)
+        elif not isinstance(annotation_id, str) or not MAP_ID_RE.fullmatch(annotation_id):
             raise MissionValidationError("mission waypoint annotation_id is invalid")
+        heading = value.get("heading_yaw")
+        if heading is not None:
+            if pose is not None or isinstance(heading, bool) or not isinstance(heading, (int, float)) or not math.isfinite(heading) or abs(heading) > math.pi:
+                raise MissionValidationError("heading_yaw requires an annotation and a finite angle within +/- pi")
+            heading = float(heading)
+        visit_id = value.get("visit_id") or secrets.token_hex(16)
+        if not isinstance(visit_id, str) or not MISSION_ID_RE.fullmatch(visit_id):
+            raise MissionValidationError("visit_id is invalid")
+        after = value.get("after_arrival_confirmation", False)
+        if not isinstance(after, bool):
+            raise MissionValidationError("after_arrival_confirmation must be boolean")
         tolerance = value.get("arrival_tolerance")
         if tolerance is not None:
             if isinstance(tolerance, bool) or not isinstance(tolerance, (int, float)) or not 0.05 <= float(tolerance) <= 2.0:
@@ -269,6 +300,10 @@ class MissionCoordinator:
             raise MissionValidationError("unsupported mission arrival action")
         return {
             "annotation_id": annotation_id,
+            "mission_local_pose": pose,
+            "heading_yaw": heading,
+            "visit_id": visit_id,
+            "after_arrival_confirmation": after,
             "arrival_action": arrival_action,
             "arrival_tolerance": tolerance,
             "hold_seconds": round(float(hold), 3),
@@ -302,7 +337,11 @@ class MissionCoordinator:
             if not isinstance(raw_waypoints, list) or not 1 <= len(raw_waypoints) <= MAX_WAYPOINTS:
                 raise MissionUnavailable("mission waypoint catalog is invalid")
             waypoints = []
-            for waypoint in raw_waypoints:
+            for index, waypoint in enumerate(raw_waypoints):
+                if not isinstance(waypoint, Mapping):
+                    raise MissionUnavailable("mission waypoint entry is invalid")
+                waypoint = dict(waypoint)
+                waypoint.setdefault("visit_id", hashlib.sha256(f"{identifier}:{index}".encode()).hexdigest()[:32])
                 normalized = self._normalize_waypoint(waypoint)
                 status_value = waypoint.get("status", "pending")
                 goal_id = waypoint.get("goal_id")
@@ -315,6 +354,12 @@ class MissionCoordinator:
                     raise MissionUnavailable("mission waypoint attempts are invalid")
                 normalized.update(status=status_value, goal_id=goal_id, attempts=attempts)
                 waypoints.append(normalized)
+            if raw.get("context_revision", "") and not REVISION_RE.fullmatch(str(raw["context_revision"])):
+                raise MissionUnavailable("mission context revision is invalid")
+            if raw.get("confirmation_token") is not None and not MISSION_ID_RE.fullmatch(str(raw["confirmation_token"])):
+                raise MissionUnavailable("mission confirmation token is invalid")
+            if len({w["visit_id"] for w in waypoints}) != len(waypoints):
+                raise MissionUnavailable("duplicate visit identity in persisted run")
             current_index = raw.get("current_index", 0)
             if isinstance(current_index, bool) or not isinstance(current_index, int) or not 0 <= current_index <= len(waypoints):
                 raise MissionUnavailable("mission waypoint cursor is invalid")
@@ -356,6 +401,10 @@ class MissionCoordinator:
                     "started_epoch": _bounded_number(raw.get("started_epoch", 0.0), "started epoch"),
                     "completed_epoch": _bounded_number(raw.get("completed_epoch", 0.0), "completed epoch"),
                     "current_index": current_index,
+                    "phase": _bounded_token(raw.get("phase", "navigating"), "phase", 48),
+                    "hold_remaining_seconds": _bounded_number(raw.get("hold_remaining_seconds", 0.0), "hold remaining"),
+                    "context_revision": raw.get("context_revision", ""),
+                    "confirmation_token": raw.get("confirmation_token"),
                     "waypoints": waypoints,
                     "hold_until_epoch": _bounded_number(raw.get("hold_until_epoch", 0.0), "hold deadline"),
                     "pause_reason": _bounded_token(raw.get("pause_reason"), "pause reason", 48),
@@ -373,14 +422,14 @@ class MissionCoordinator:
     def _recover_interrupted(self) -> None:
         changed = False
         for mission in self._missions:
-            if mission["state"] in ACTIVE_STATES and mission["state"] != "paused":
+            if mission["state"] in ACTIVE_STATES:
                 mission.update(state="failed", outcome="interrupted", error="server_restart_interrupted", completed_at=_timestamp(self._now()), completed_epoch=self._now())
                 for waypoint in mission["waypoints"]:
                     if waypoint["status"] == "running":
                         waypoint.update(status="failed", goal_id=None)
                 self._record(mission, "mission_interrupted")
                 changed = True
-        if self._active_id and not any(m["id"] == self._active_id and m["state"] == "paused" for m in self._missions):
+        if self._active_id:
             self._active_id = None
             changed = True
         if changed:
@@ -393,6 +442,23 @@ class MissionCoordinator:
         if self._storage_error or self._store is None:
             raise MissionUnavailable(self._storage_error or "mission state storage is unavailable")
         self._store.save(self._document())
+        observer = getattr(self, "_run_observer", None)
+        if observer is not None:
+            for mission in self._missions:
+                observer(self._public(mission))
+
+    def _save_for_stop(self) -> None:
+        """A failed audit store must never prevent own-goal cancellation."""
+        try:
+            self._save()
+        except Exception:
+            self._audit_warning = "STOP_APPLIED_WITHOUT_DURABLE_HISTORY"
+
+    def _stop_result(self, mission: Mapping[str, Any]) -> dict[str, Any]:
+        result = {"mission": self._public(mission)}
+        if self._audit_warning:
+            result["audit_warning"] = self._audit_warning
+        return result
 
     def _record(self, mission: dict[str, Any], event: str, waypoint_index: int | None = None) -> None:
         mission["log_seq"] += 1
@@ -423,7 +489,13 @@ class MissionCoordinator:
             "remaining_count": max(0, len(waypoints) - completed - sum(item["status"] == "skipped" for item in waypoints)),
             "current_waypoint": waypoints[mission["current_index"]] if mission["current_index"] < len(waypoints) else None,
             "waypoints": waypoints, "pause_reason": mission.get("pause_reason") or None,
-            "hold_remaining": round(max(0.0, float(mission.get("hold_until_epoch") or 0.0) - self._now()), 3),
+            "phase": mission.get("phase", "navigating"),
+            "confirmation_token": mission.get("confirmation_token"),
+            "hold_remaining": round(self._hold_remaining(mission), 3),
+            "arrival_policy": {"requested": "per_visit", "supported": ["NAV2_DEFAULT"], "effective": "NAV2_DEFAULT", "evidence": "Nav2 action SUCCEEDED; physical stop not independently observed"},
+            "physical_stop_observed": None,
+            "audit_warning": self._audit_warning or None,
+            "context_revision": mission.get("context_revision", ""),
             "logs": [dict(entry) for entry in mission["logs"][-MAX_LOG_ENTRIES:]],
             "ownership_active": mission["id"] == self._active_id and mission["state"] in ACTIVE_STATES,
             "terminal": terminal,
@@ -453,11 +525,11 @@ class MissionCoordinator:
         if document.get("map_id") != mission["map_id"] or document.get("map_revision") != mission["map_revision"] or document.get("annotation_revision") != mission["annotation_revision"]:
             raise MissionConflict("mission map or annotations changed; recreate the mission")
         available = {item.get("id") for item in document.get("points", []) if item.get("type") in {"HOME", "POI", "DOCK", "INSPECTION_POINT"}}
-        if any(item["annotation_id"] not in available for item in mission["waypoints"]):
+        if any(item.get("mission_local_pose") is None and item["annotation_id"] not in available for item in mission["waypoints"]):
             raise MissionConflict("mission waypoint annotation is no longer available")
         return document
 
-    async def create(self, *, label: str, map_id: str, map_revision: str, annotation_revision: str, waypoints: list[Mapping[str, Any]]) -> dict[str, Any]:
+    async def create(self, *, label: str, map_id: str, map_revision: str, annotation_revision: str, waypoints: list[Mapping[str, Any]], context_revision: str = "") -> dict[str, Any]:
         async with self._operation_lock:
             if len(self._missions) >= MAX_MISSIONS:
                 raise MissionConflict("mission catalog limit reached")
@@ -471,8 +543,12 @@ class MissionCoordinator:
                 "created_at": _timestamp(self._now()), "started_at": "", "completed_at": "", "started_epoch": 0.0, "completed_epoch": 0.0,
                 "current_index": 0, "waypoints": [self._normalize_waypoint(item) for item in waypoints],
                 "hold_until_epoch": 0.0, "pause_reason": "", "logs": [], "log_seq": 0,
+                "phase": "ready", "hold_remaining_seconds": 0.0,
+                "context_revision": context_revision, "confirmation_token": None,
             }
             await self._validated_annotations(mission)
+            if len({w["visit_id"] for w in mission["waypoints"]}) != len(mission["waypoints"]):
+                raise MissionValidationError("visit identities must be unique")
             self._record(mission, "mission_created")
             self._missions.append(mission)
             self._save()
@@ -502,19 +578,48 @@ class MissionCoordinator:
 
     async def _dispatch_current_locked(self, mission: dict[str, Any], *, operator_confirmed: bool) -> None:
         self._require_arrival_actions_ready(mission)
+        if self._context_guard is not None:
+            self._context_guard(mission)
         if mission["current_index"] >= len(mission["waypoints"]):
             self._complete_locked(mission)
             return
         waypoint = mission["waypoints"][mission["current_index"]]
         if waypoint["requires_operator_confirmation"] and not operator_confirmed:
-            mission.update(state="paused", pause_reason="operator_confirmation", hold_until_epoch=0.0)
+            mission.update(state="paused", phase="before_departure_confirmation", confirmation_token=secrets.token_hex(16), pause_reason="operator_confirmation", hold_until_epoch=0.0)
             self._record(mission, "operator_confirmation_required", mission["current_index"])
             self._save()
             return
         try:
-            await self._validated_annotations(mission)
+            annotations = await self._validated_annotations(mission)
             self._navigation_ready(mission)
+            if mission.get("context_revision"):
+                if self._dispatch_preflight is None:
+                    raise MissionConflict("MISSION_ROUTE_INTEGRATION_UNAVAILABLE")
+                mission["phase"] = "planning"
+                self._save()
+                await self._dispatch_preflight(mission)
+                annotations = await self._validated_annotations(mission)
+                self._navigation_ready(mission)
+                if self._context_guard is not None:
+                    self._context_guard(mission)
+            if mission["id"] in self._stop_requests:
+                # The queued stop owns the next transition once this lock is
+                # released. Keep ownership and an eligible state, with no goal.
+                mission.update(state="starting", phase="planning")
+                self._save_for_stop()
+                return
+            dispatch_pose = waypoint.get("mission_local_pose")
+            if waypoint.get("heading_yaw") is not None:
+                annotation = next(point for point in annotations["points"] if point.get("id") == waypoint["annotation_id"])
+                original_pose = annotation.get("pose", annotation)
+                dispatch_pose = {"x": original_pose["x"], "y": original_pose["y"], "yaw": waypoint["heading_yaw"]}
+                if any(isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) for value in dispatch_pose.values()) or any(abs(dispatch_pose[key]) > 10000 for key in ("x", "y")):
+                    raise MissionConflict("annotation heading target pose is invalid")
         except Exception as exc:
+            if mission["id"] in self._stop_requests:
+                mission.update(state="starting", phase="planning")
+                self._save_for_stop()
+                return
             waypoint.update(status="failed", goal_id=None)
             mission.update(state="failed", outcome="goal_start_failed", error="waypoint_preflight_failed", completed_at=_timestamp(self._now()), completed_epoch=self._now())
             self._active_id = None
@@ -524,14 +629,20 @@ class MissionCoordinator:
                 raise
             raise MissionConflict("mission waypoint preflight failed") from exc
         waypoint.update(status="running", goal_id=None, attempts=waypoint["attempts"] + 1)
-        mission.update(state="running", pause_reason="", error="", outcome="", hold_until_epoch=0.0)
+        mission.update(state="running", phase="navigating", confirmation_token=None, pause_reason="", error="", outcome="", hold_until_epoch=0.0)
         self._record(mission, "waypoint_dispatching", mission["current_index"])
         self._save()
         try:
-            response = await self._navigation.send_annotation_goal(
-                map_id=mission["map_id"], map_revision=mission["map_revision"], annotation_revision=mission["annotation_revision"],
-                annotation_id=waypoint["annotation_id"], confirmed=True,
-            )
+            if dispatch_pose is not None:
+                response = await self._navigation.send_goal(
+                    map_id=mission["map_id"], map_revision=mission["map_revision"],
+                    **dispatch_pose, confirmed=True,
+                )
+            else:
+                response = await self._navigation.send_annotation_goal(
+                    map_id=mission["map_id"], map_revision=mission["map_revision"], annotation_revision=mission["annotation_revision"],
+                    annotation_id=waypoint["annotation_id"], confirmed=True,
+                )
             goal = ((response.get("navigation") or {}).get("goal") or {}) if isinstance(response, Mapping) else {}
             goal_id = goal.get("goal_id")
             if goal.get("state") not in GOAL_ACTIVE_STATES or not isinstance(goal_id, str) or not GOAL_ID_RE.fullmatch(goal_id):
@@ -539,18 +650,27 @@ class MissionCoordinator:
             waypoint["goal_id"] = goal_id
             self._record(mission, "waypoint_started", mission["current_index"])
             self._save()
+        except asyncio.CancelledError:
+            # A disconnected/cancelled caller does not prove submission failed.
+            # Keep the ownership fence until this exact goal can be reconciled.
+            mission.update(state="canceling", phase="uncertain", outcome="goal_start_failed", error="waypoint_goal_start_uncertain")
+            self._record(mission, "waypoint_start_uncertain", mission["current_index"])
+            self._save_for_stop()
+            raise
         except Exception as exc:
-            waypoint.update(status="failed", goal_id=None)
-            mission.update(state="failed", outcome="goal_start_failed", error="waypoint_goal_start_failed", completed_at=_timestamp(self._now()), completed_epoch=self._now())
-            self._active_id = None
-            self._record(mission, "waypoint_start_failed", mission["current_index"])
-            self._save()
+            # Only the accepted send response proves this run owns a goal.
+            # A later navigation snapshot may describe an unrelated goal.
+            mission.update(state="canceling", phase="uncertain", outcome="goal_start_failed", error="waypoint_goal_start_uncertain")
+            self._record(mission, "waypoint_start_uncertain", mission["current_index"])
+            self._save_for_stop()
+            if waypoint.get("goal_id") is not None:
+                await self._fail_closed_locked(mission, outcome="goal_start_failed", error="waypoint_goal_start_uncertain")
             if isinstance(exc, MissionError):
                 raise
-            raise MissionConflict("mission waypoint could not start") from exc
+            raise MissionConflict("mission goal submission outcome is uncertain; cleanup required") from exc
 
     def _complete_locked(self, mission: dict[str, Any]) -> None:
-        mission.update(state="completed", outcome="completed", error="", completed_at=_timestamp(self._now()), completed_epoch=self._now(), hold_until_epoch=0.0, pause_reason="")
+        mission.update(state="completed", phase="completed", confirmation_token=None, outcome="completed_with_skips" if any(w["status"] == "skipped" for w in mission["waypoints"]) else "completed", error="", completed_at=_timestamp(self._now()), completed_epoch=self._now(), hold_until_epoch=0.0, pause_reason="")
         self._active_id = None
         self._record(mission, "mission_completed")
         self._save()
@@ -560,7 +680,11 @@ class MissionCoordinator:
         generation = self._generation
         self._task = asyncio.create_task(self._monitor(mission["id"], generation), name="mission-waypoint-monitor")
 
-    async def start(self, mission_id: str) -> dict[str, Any]:
+    def _require_managed_admission(self, mission: Mapping[str, Any], admission: object | None) -> None:
+        if mission.get("context_revision") and (self._managed_admission is None or admission is not self._managed_admission):
+            raise MissionConflict("MISSION_ROUTE_API_REQUIRED")
+
+    async def start(self, mission_id: str, *, admission: object | None = None) -> dict[str, Any]:
         async with self._operation_lock:
             navigation = self._navigation.view()
             localization_session = navigation.get("localization_session")
@@ -571,6 +695,7 @@ class MissionCoordinator:
                     "mission start is unavailable during localization-only session"
                 )
             mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
             if mission["state"] in {"starting", "running"} and self._active_id == mission_id:
                 return {"mission": self._public(mission)}
             if mission["state"] != "ready":
@@ -578,11 +703,12 @@ class MissionCoordinator:
             self._require_arrival_actions_ready(mission)
             if self._active_id and self._active_id != mission_id:
                 raise MissionConflict("another mission owns navigation")
-            self._active_id = mission_id
+            self._stop_requests.discard(mission_id)
+            await self._claim(mission)
             mission.update(state="starting", started_at=_timestamp(self._now()), started_epoch=self._now(), completed_at="", completed_epoch=0.0, error="", outcome="")
             self._record(mission, "mission_starting")
             self._save()
-            await self._dispatch_current_locked(mission, operator_confirmed=True)
+            await self._dispatch_current_locked(mission, operator_confirmed=False)
             if mission["state"] == "running":
                 self._start_monitor_locked(mission)
             return {"mission": self._public(mission)}
@@ -592,6 +718,8 @@ class MissionCoordinator:
         # Go2 action acceptance is not physical completion. Keep these drafts
         # non-executable until the completion-aware executor is implemented and
         # field-validated; never silently turn a delivery action into a no-op.
+        if any(point.get("arrival_tolerance") is not None for point in mission["waypoints"]):
+            raise MissionConflict("ARRIVAL_TOLERANCE_UNSUPPORTED: only effective NAV2_DEFAULT is available")
         if any(point.get("arrival_action", "none") != "none" for point in mission["waypoints"]):
             raise MissionConflict("앉기 → 일어서기 자동 동작은 검증 대기 중입니다. 이 미션은 저장만 가능하며 아직 실행할 수 없습니다.")
 
@@ -599,10 +727,12 @@ class MissionCoordinator:
         waypoint = mission["waypoints"][mission["current_index"]] if mission["current_index"] < len(mission["waypoints"]) else None
         goal_id = waypoint.get("goal_id") if waypoint else None
         if not goal_id:
+            if mission.get("phase") == "uncertain":
+                raise MissionConflict("mission goal ownership is uncertain")
             return "idle"
         navigation = self._navigation.view()
         goal = navigation.get("goal") if isinstance(navigation.get("goal"), Mapping) else {}
-        if goal.get("goal_id") not in {None, goal_id} and goal.get("state") in GOAL_ACTIVE_STATES:
+        if goal.get("goal_id") != goal_id:
             raise MissionConflict("navigation goal ownership changed during mission cleanup")
         if goal.get("goal_id") == goal_id and goal.get("state") in GOAL_ACTIVE_STATES:
             await self._navigation.cancel_goal(goal_id=goal_id)
@@ -611,13 +741,36 @@ class MissionCoordinator:
             navigation = self._navigation.view()
             goal = navigation.get("goal") if isinstance(navigation.get("goal"), Mapping) else {}
             state = str(goal.get("state") or "idle")
-            if goal.get("goal_id") not in {None, goal_id} and state in GOAL_ACTIVE_STATES:
+            if goal.get("goal_id") != goal_id:
                 raise MissionConflict("navigation goal ownership changed during mission cleanup")
             if state in GOAL_TERMINAL_STATES:
                 waypoint["goal_id"] = None
                 return state
             await asyncio.sleep(self._poll_interval_s)
         raise MissionConflict("mission goal cancellation was not confirmed")
+
+    async def _fail_closed_locked(self, mission: dict[str, Any], *, outcome: str, error: str) -> None:
+        """Stop a known owned goal even when persistence or observation fails."""
+        mission.update(state="canceling", outcome=outcome, error=error)
+        self._record(mission, error)
+        self._save_for_stop()
+        try:
+            await self._cancel_current_locked(mission)
+        except Exception:
+            # Do not release the mission fence when cancellation or ownership
+            # is uncertain, and never substitute a current foreign goal ID.
+            mission["phase"] = "uncertain"
+            self._save_for_stop()
+            return
+        if mission["current_index"] < len(mission["waypoints"]):
+            waypoint = mission["waypoints"][mission["current_index"]]
+            if waypoint["status"] == "running":
+                waypoint.update(status="failed", goal_id=None)
+        self._hold_deadlines.pop(mission["id"], None)
+        mission.update(state="failed", phase="failed", confirmation_token=None, hold_remaining_seconds=0.0, completed_at=_timestamp(self._now()), completed_epoch=self._now())
+        if self._active_id == mission["id"]:
+            self._active_id = None
+        self._save_for_stop()
 
     async def _stop_monitor_locked(self) -> None:
         self._generation += 1
@@ -630,52 +783,120 @@ class MissionCoordinator:
             except asyncio.CancelledError:
                 pass
 
+    async def _claim(self, mission: dict[str, Any]) -> None:
+        async with self._coordination_lock:
+            if self._context_guard is not None:
+                self._context_guard(mission)
+            if self._active_id not in {None, mission["id"]}:
+                raise MissionConflict("another mission owns navigation")
+            self._active_id = mission["id"]
+
+    def _hold_remaining(self, mission: Mapping[str, Any]) -> float:
+        deadline = self._hold_deadlines.get(mission["id"])
+        return max(0.0, deadline - self._monotonic()) if deadline is not None else float(mission.get("hold_remaining_seconds", 0.0))
+
+    def _arrived(self, mission: dict[str, Any], *, safety: bool = False) -> None:
+        waypoint = mission["waypoints"][mission["current_index"]]
+        waypoint["goal_id"] = None
+        mission.update(phase="holding", hold_remaining_seconds=float(waypoint["hold_seconds"]))
+        self._hold_deadlines[mission["id"]] = self._monotonic() + float(waypoint["hold_seconds"])
+        self._record(mission, "waypoint_arrived", mission["current_index"])
+        if safety:
+            self._save_for_stop()
+        else:
+            self._save()
+
+    async def _finish_arrival(self, mission: dict[str, Any], *, confirmed: bool = False) -> None:
+        waypoint = mission["waypoints"][mission["current_index"]]
+        self._hold_deadlines.pop(mission["id"], None)
+        mission["hold_remaining_seconds"] = 0.0
+        if waypoint.get("after_arrival_confirmation") and not confirmed:
+            mission.update(state="paused", phase="after_arrival_confirmation", pause_reason="after_arrival_confirmation", confirmation_token=secrets.token_hex(16))
+            self._record(mission, "arrival_confirmation_required", mission["current_index"])
+            self._save()
+            return
+        waypoint.update(status="completed", goal_id=None)
+        self._record(mission, "waypoint_completed", mission["current_index"])
+        mission["current_index"] += 1
+        mission["confirmation_token"] = None
+        await self._dispatch_current_locked(mission, operator_confirmed=False)
+
     async def pause(self, mission_id: str) -> dict[str, Any]:
+        if self._active_id == mission_id:
+            self._stop_requests.add(mission_id)
         async with self._operation_lock:
             mission = self._mission(mission_id)
             if mission["state"] == "paused":
-                return {"mission": self._public(mission)}
+                return self._stop_result(mission)
             if mission["state"] not in {"starting", "running"} or self._active_id != mission_id:
                 raise MissionConflict("only the active mission can pause")
             await self._stop_monitor_locked()
+            mission["hold_remaining_seconds"] = self._hold_remaining(mission)
+            self._hold_deadlines.pop(mission_id, None)
             mission["state"] = "pausing"
             self._record(mission, "mission_pausing")
-            self._save()
+            self._save_for_stop()
             terminal = await self._cancel_current_locked(mission)
             waypoint = mission["waypoints"][mission["current_index"]] if mission["current_index"] < len(mission["waypoints"]) else None
-            if waypoint and terminal == "succeeded":
-                waypoint["status"] = "completed"
-                mission["current_index"] += 1
-            elif waypoint:
-                waypoint["status"] = "pending"
+            if waypoint and mission.get("phase") != "holding":
+                if terminal == "succeeded":
+                    self._arrived(mission, safety=True)
+                    mission["hold_remaining_seconds"] = self._hold_remaining(mission)
+                    self._hold_deadlines.pop(mission_id, None)
+                else:
+                    waypoint["status"] = "pending"
             mission.update(state="paused", pause_reason="operator_pause", hold_until_epoch=0.0)
             self._record(mission, "mission_paused")
-            self._save()
-            return {"mission": self._public(mission)}
+            self._save_for_stop()
+            return self._stop_result(mission)
 
-    async def resume(self, mission_id: str) -> dict[str, Any]:
+    async def resume(self, mission_id: str, *, confirmation_token: str | None = None, admission: object | None = None) -> dict[str, Any]:
         async with self._operation_lock:
             mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
             if mission["state"] != "paused" or self._active_id != mission_id:
                 raise MissionConflict("only the active paused mission can resume")
-            await self._dispatch_current_locked(mission, operator_confirmed=True)
+            if mission.get("confirmation_token") and mission.get("context_revision") and confirmation_token != mission["confirmation_token"]:
+                raise MissionConflict("confirmation must match the current run/visit/action token")
+            self._stop_requests.discard(mission_id)
+            await self._claim(mission)
+            await self._validated_annotations(mission)
+            self._navigation_ready(mission)
+            phase = mission.get("phase")
+            if phase == "after_arrival_confirmation":
+                if confirmation_token != mission.get("confirmation_token"):
+                    raise MissionConflict("confirmation must match the current run/visit/action token")
+                mission["state"] = "running"
+                await self._finish_arrival(mission, confirmed=True)
+            elif phase == "holding":
+                mission.update(state="running", pause_reason="")
+                self._hold_deadlines[mission_id] = self._monotonic() + mission["hold_remaining_seconds"]
+                self._save()
+            else:
+                await self._dispatch_current_locked(mission, operator_confirmed=True)
             if mission["state"] == "running":
                 self._start_monitor_locked(mission)
             return {"mission": self._public(mission)}
 
-    async def skip(self, mission_id: str) -> dict[str, Any]:
+    async def skip(self, mission_id: str, *, admission: object | None = None) -> dict[str, Any]:
         async with self._operation_lock:
             mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
             if mission["state"] not in {"running", "paused", "failed"}:
                 raise MissionConflict("mission waypoint cannot be skipped in this state")
+            if mission.get("outcome") in {"interrupted", "aborted"}:
+                raise MissionConflict("interrupted or aborted runs require a new run and preflight")
             if self._active_id not in {None, mission_id}:
                 raise MissionConflict("another mission owns navigation")
-            self._active_id = mission_id
+            self._stop_requests.discard(mission_id)
+            await self._claim(mission)
             await self._stop_monitor_locked()
             mission["state"] = "skipping"
             self._record(mission, "waypoint_skipping", mission["current_index"])
             self._save()
             await self._cancel_current_locked(mission)
+            self._hold_deadlines.pop(mission_id, None)
+            mission["hold_remaining_seconds"] = 0.0
             if mission["current_index"] < len(mission["waypoints"]):
                 mission["waypoints"][mission["current_index"]].update(status="skipped", goal_id=None)
                 mission["current_index"] += 1
@@ -687,14 +908,18 @@ class MissionCoordinator:
                     self._start_monitor_locked(mission)
             return {"mission": self._public(mission)}
 
-    async def retry(self, mission_id: str) -> dict[str, Any]:
+    async def retry(self, mission_id: str, *, admission: object | None = None) -> dict[str, Any]:
         async with self._operation_lock:
             mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
             if mission["state"] != "failed":
                 raise MissionConflict("only a failed mission waypoint can retry")
             if self._active_id and self._active_id != mission_id:
                 raise MissionConflict("another mission owns navigation")
-            self._active_id = mission_id
+            if mission.get("outcome") in {"interrupted", "aborted"}:
+                raise MissionConflict("interrupted or aborted runs require a new run and preflight")
+            self._stop_requests.discard(mission_id)
+            await self._claim(mission)
             mission.update(state="retrying", completed_at="", completed_epoch=0.0, error="", outcome="")
             if mission["current_index"] < len(mission["waypoints"]):
                 mission["waypoints"][mission["current_index"]].update(status="pending", goal_id=None)
@@ -706,24 +931,35 @@ class MissionCoordinator:
             return {"mission": self._public(mission)}
 
     async def abort(self, mission_id: str, *, reason: str = "operator_abort") -> dict[str, Any]:
+        if self._active_id == mission_id:
+            self._stop_requests.add(mission_id)
         async with self._operation_lock:
             mission = self._mission(mission_id)
             if mission["state"] in {"completed", "failed"} and self._active_id != mission_id:
-                return {"mission": self._public(mission)}
+                return self._stop_result(mission)
+            if self._active_id != mission_id:
+                # Aborting an unstarted draft never touches another run's monitor,
+                # current goal, generation, or navigation ownership.
+                mission.update(state="failed", phase="completed", outcome="aborted", error=str(reason)[:48], completed_at=_timestamp(self._now()), completed_epoch=self._now())
+                self._record(mission, "mission_aborted")
+                self._save_for_stop()
+                return self._stop_result(mission)
             await self._stop_monitor_locked()
             mission["state"] = "canceling"
             self._record(mission, "mission_canceling")
-            self._save()
+            self._save_for_stop()
             await self._cancel_current_locked(mission)
             if mission["current_index"] < len(mission["waypoints"]):
                 waypoint = mission["waypoints"][mission["current_index"]]
                 if waypoint["status"] == "running":
                     waypoint.update(status="failed", goal_id=None)
             mission.update(state="failed", outcome="aborted", error=str(reason)[:48], completed_at=_timestamp(self._now()), completed_epoch=self._now(), hold_until_epoch=0.0, pause_reason="")
+            self._hold_deadlines.pop(mission_id, None)
+            mission.update(hold_remaining_seconds=0.0, confirmation_token=None)
             self._active_id = None
             self._record(mission, "mission_aborted")
-            self._save()
-            return {"mission": self._public(mission)}
+            self._save_for_stop()
+            return self._stop_result(mission)
 
     async def abort_active(self, *, reason: str = "manual_takeover") -> dict[str, Any] | None:
         identifier = self._active_id
@@ -739,11 +975,33 @@ class MissionCoordinator:
                     mission = self._mission(mission_id)
                     if mission["state"] != "running" or self._active_id != mission_id:
                         return
-                    if mission.get("hold_until_epoch", 0.0) > self._now():
-                        continue
-                    if mission.get("hold_until_epoch", 0.0):
-                        mission["hold_until_epoch"] = 0.0
-                        await self._dispatch_current_locked(mission, operator_confirmed=False)
+                    observer = getattr(self, "_run_observer", None)
+                    if observer is not None:
+                        observer(self._public(mission))
+                    nav_health = self._navigation.view()
+                    if ((nav_health.get("pipeline") or {}).get("state") != "running" or (nav_health.get("localization") or {}).get("state") != "localized" or (nav_health.get("map") or {}).get("revision") != mission["map_revision"]):
+                        mission.update(state="canceling", error="navigation_readiness_lost")
+                        self._save()
+                        await self._cancel_current_locked(mission)
+                        mission.update(state="failed", outcome="readiness_lost", completed_at=_timestamp(self._now()), completed_epoch=self._now())
+                        self._active_id = None
+                        self._save()
+                        return
+                    if self._context_guard is not None:
+                        try:
+                            self._context_guard(mission)
+                        except Exception:
+                            mission.update(state="canceling", error="navigation_context_changed")
+                            self._save()
+                            await self._cancel_current_locked(mission)
+                            mission.update(state="failed", outcome="context_changed", completed_at=_timestamp(self._now()), completed_epoch=self._now())
+                            self._active_id = None
+                            self._save()
+                            return
+                    if mission.get("phase") == "holding":
+                        if self._hold_remaining(mission) > 0:
+                            continue
+                        await self._finish_arrival(mission)
                         if mission["state"] != "running":
                             return
                         continue
@@ -751,29 +1009,17 @@ class MissionCoordinator:
                     navigation = self._navigation.view()
                     goal = navigation.get("goal") if isinstance(navigation.get("goal"), Mapping) else {}
                     if goal.get("goal_id") != waypoint.get("goal_id"):
-                        if goal.get("state") in GOAL_ACTIVE_STATES:
-                            mission.update(state="failed", outcome="goal_ownership_lost", error="navigation_goal_ownership_changed", completed_at=_timestamp(self._now()), completed_epoch=self._now())
-                            waypoint["status"] = "failed"
-                            self._active_id = None
-                            self._record(mission, "goal_ownership_lost", mission["current_index"])
-                            self._save()
-                            return
+                        mission.update(state="canceling", phase="uncertain", error="navigation_goal_ownership_changed")
+                        self._record(mission, "goal_ownership_lost", mission["current_index"])
+                        self._save()
+                        return
                     state = str(goal.get("state") or "idle")
                     if state in GOAL_ACTIVE_STATES:
                         continue
                     if state == "succeeded":
-                        waypoint.update(status="completed", goal_id=None)
-                        mission["current_index"] += 1
-                        self._record(mission, "waypoint_completed", mission["current_index"] - 1)
-                        if mission["current_index"] >= len(mission["waypoints"]):
-                            self._complete_locked(mission)
-                            return
-                        hold = float(waypoint.get("hold_seconds") or 0.0)
-                        if hold > 0:
-                            mission["hold_until_epoch"] = self._now() + hold
-                            self._save()
-                            continue
-                        await self._dispatch_current_locked(mission, operator_confirmed=False)
+                        self._arrived(mission)
+                        if self._hold_remaining(mission) <= 0:
+                            await self._finish_arrival(mission)
                         if mission["state"] != "running":
                             return
                     else:
@@ -789,11 +1035,8 @@ class MissionCoordinator:
             async with self._operation_lock:
                 try:
                     mission = self._mission(mission_id)
-                    if mission["state"] in ACTIVE_STATES:
-                        mission.update(state="failed", outcome="monitor_failed", error="mission_monitor_failed", completed_at=_timestamp(self._now()), completed_epoch=self._now())
-                        self._active_id = None
-                        self._record(mission, "mission_monitor_failed")
-                        self._save()
+                    if mission["state"] in ACTIVE_STATES and self._active_id == mission_id:
+                        await self._fail_closed_locked(mission, outcome="monitor_failed", error="mission_monitor_failed")
                 except MissionError:
                     pass
 
@@ -806,11 +1049,13 @@ class MissionCoordinator:
                     try:
                         await self._cancel_current_locked(mission)
                     except MissionError:
-                        pass
+                        mission.update(state="canceling", phase="uncertain", error="shutdown_cancel_uncertain")
+                        self._save_for_stop()
+                        return
                     mission.update(state="failed", outcome="interrupted", error="server_shutdown_interrupted", completed_at=_timestamp(self._now()), completed_epoch=self._now())
                     self._active_id = None
                     self._record(mission, "mission_interrupted")
-                    self._save()
+                    self._save_for_stop()
 
 
 __all__ = [

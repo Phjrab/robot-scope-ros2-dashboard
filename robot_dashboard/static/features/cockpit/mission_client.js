@@ -7,6 +7,7 @@ function projectMission(value) {
   if (!value || typeof value !== 'object' || !/^[0-9a-f]{32}$/.test(String(value.id || ''))) return null;
   const state = MISSION_STATES.has(String(value.state || '')) ? String(value.state) : 'failed';
   const waypoints = (Array.isArray(value.waypoints) ? value.waypoints : []).slice(0, 32).map((item) => Object.freeze({
+    visit_id: text(item?.visit_id, 32), after_arrival_confirmation: item?.after_arrival_confirmation === true,
     annotation_id: text(item?.annotation_id, 24), label: text(item?.label, 64), status: text(item?.status, 16),
     arrival_action: text(item?.arrival_action || 'none', 32),
     hold_seconds: Number(item?.hold_seconds) || 0, requires_operator_confirmation: item?.requires_operator_confirmation === true,
@@ -20,6 +21,8 @@ function projectMission(value) {
     map_id: text(value.map_id, 24), map_revision: text(value.map_revision, 64), annotation_revision: text(value.annotation_revision, 64),
     current_index: Math.max(0, Number(value.current_index) || 0), completed_count: Math.max(0, Number(value.completed_count) || 0),
     remaining_count: Math.max(0, Number(value.remaining_count) || 0), elapsed_seconds: Math.max(0, Number(value.elapsed_seconds) || 0),
+    context_revision: text(value.context_revision, 64), audit_warning: text(value.audit_warning, 96) || null,
+    phase: text(value.phase, 48), confirmation_token: text(value.confirmation_token, 32) || null,
     hold_remaining: Math.max(0, Number(value.hold_remaining) || 0), pause_reason: text(value.pause_reason, 48) || null,
     ownership_active: value.ownership_active === true || ACTIVE_STATES.has(state) && value.ownership_active !== false,
     waypoints: Object.freeze(waypoints), current_waypoint: waypoints[Math.max(0, Number(value.current_index) || 0)] || null, logs: Object.freeze(logs),

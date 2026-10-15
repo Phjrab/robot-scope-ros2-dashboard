@@ -61,14 +61,14 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 143)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 142)
+        self.assertEqual(len(http), 163)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 162)
         self.assertEqual(
             {
                 method: sum(candidate == method for candidate, _ in http)
                 for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             },
-            {"GET": 64, "POST": 69, "PUT": 1, "PATCH": 5, "DELETE": 4},
+            {"GET": 70, "POST": 81, "PUT": 1, "PATCH": 6, "DELETE": 5},
         )
         self.assertTrue(
             {
@@ -155,10 +155,36 @@ class Phase8ApiContractTests(unittest.TestCase):
             for entry in route_inventory()
             if entry[0] in {"POST", "PUT", "PATCH", "DELETE"}
         ]
-        self.assertEqual(len(mutations), 79)
+        self.assertEqual(len(mutations), 93)
         for method, path, _, function in mutations:
             with self.subTest(method=method, path=path):
                 self.assertTrue(calls_name(function, "require_same_origin"))
+
+    def test_mission_route_inventory_is_explicit(self):
+        observed = {(method, path) for method, path, source, _ in route_inventory()
+                    if source.name == "mission_routes.py"}
+        self.assertEqual(observed, {
+            ("GET", "/api/v1/mission-plans"),
+            ("POST", "/api/v1/mission-plans"),
+            ("GET", "/api/v1/mission-plans/{identifier}"),
+            ("PATCH", "/api/v1/mission-plans/{identifier}"),
+            ("DELETE", "/api/v1/mission-plans/{identifier}"),
+            ("POST", "/api/v1/mission-plans/{identifier}/copy"),
+            ("POST", "/api/v1/mission-plans/{identifier}/validate"),
+            ("POST", "/api/v1/mission-plans/{identifier}/plan-preview"),
+            ("POST", "/api/v1/mission-plans/{identifier}/compile"),
+            ("POST", "/api/v1/mission-plans/{identifier}/runs"),
+            ("GET", "/api/v1/mission-route-drafts/{route_id}"),
+            ("GET", "/api/v1/mission-runs"),
+            ("GET", "/api/v1/mission-runs/{identifier}"),
+            ("POST", "/api/v1/mission-runs/{identifier}/start"),
+            ("POST", "/api/v1/mission-runs/{identifier}/pause"),
+            ("POST", "/api/v1/mission-runs/{identifier}/resume"),
+            ("POST", "/api/v1/mission-runs/{identifier}/retry"),
+            ("POST", "/api/v1/mission-runs/{identifier}/skip"),
+            ("POST", "/api/v1/mission-runs/{identifier}/abort"),
+            ("GET", "/api/v1/mission-runs/{identifier}/export"),
+        })
 
     def test_every_websocket_reaches_origin_guard_before_accept(self):
         inventory = {

@@ -6,6 +6,8 @@ test('delivery posture is visit-specific and stays non-executable after save', a
   await page.goto('/#navigation');
   await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
   await page.locator('[data-nav="missions"]').click();
+  await page.getByText('기존 주석 미션 · 고급', { exact: true }).click();
+  await page.getByText('기존 주석 미션 작성 · 고급', { exact: true }).click();
   const panel = page.locator('#dashboardMissionHost');
   await panel.locator('[data-mission-draft-id]').click();
   await panel.locator('[data-mission-draft-id]').click();

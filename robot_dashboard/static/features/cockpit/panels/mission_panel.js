@@ -9,12 +9,14 @@ function createMissionPanelView(options = {}) {
   const stateLabel = make(documentValue, 'strong', '', 'MISSION WAITING');
   const pins = make(documentValue, 'span', '', 'MAP — · ANN —'); header.append(stateLabel, pins);
   const missionSelect = documentValue.createElement('select'); missionSelect.setAttribute('aria-label', 'Server mission selection');
-  const draft = make(documentValue, 'div', 'cockpit-mission-draft');
+  const draft = make(documentValue, 'details', 'cockpit-mission-draft');
+  draft.append(make(documentValue, 'summary', '', '기존 주석 미션 작성 · 고급'));
+  const openEditor = make(documentValue, 'a', '', '경로·미션 지도 편집 열기'); openEditor.href = '#missions'; header.append(openEditor);
   const labelInput = documentValue.createElement('input'); labelInput.maxLength = 64; labelInput.placeholder = 'Mission label'; labelInput.setAttribute('aria-label', 'Mission label');
   const annotationChoices = make(documentValue, 'div', 'cockpit-mission-choices');
   const draftOrder = make(documentValue, 'ol', 'cockpit-mission-order');
   const createButton = make(documentValue, 'button', '', 'CREATE PINNED MISSION'); createButton.type = 'button'; createButton.dataset.missionAction = 'create';
-  draft.append(labelInput, make(documentValue, 'p', '', 'HOME을 먼저 추가한 뒤 POI와 DOCK을 방문 순서대로 추가하세요. 같은 지점을 여러 번 추가할 수 있습니다 (최대 32회). HOME 추가는 초기위치 설정이 아니라 첫 방문 지점 지정입니다.'), annotationChoices, draftOrder, createButton);
+  draft.append(labelInput, make(documentValue, 'p', '', 'HOME·POI·DOCK을 원하는 방문 순서로 추가하세요. 같은 지점을 여러 번 추가할 수 있습니다 (최대 32회). HOME 추가는 초기위치 설정이 아니라 첫 방문 지점 지정입니다.'), annotationChoices, draftOrder, createButton);
   const actions = make(documentValue, 'div', 'cockpit-mission-actions');
   const buttons = Object.fromEntries([
     ['start', 'START'], ['pause', 'PAUSE'], ['resume', 'RESUME'], ['skip', 'SKIP'], ['retry', 'RETRY'], ['abort', 'ABORT'], ['takeover', 'MANUAL TAKEOVER'],
@@ -58,26 +60,30 @@ function createMissionPanelView(options = {}) {
 
   function render(state) {
     current = state; const mission = state.selected;
-    stateLabel.textContent = `MISSION ${String(mission?.state || (state.available === false ? 'UNAVAILABLE' : 'IDLE')).toUpperCase()}`;
+    stateLabel.textContent = `MISSION ${String(mission?.state || (state.available === false ? 'UNAVAILABLE' : 'IDLE')).toUpperCase()}${mission?.phase ? ` · ${mission.phase}` : ''}`;
     pins.textContent = `MAP ${mission?.map_revision?.slice(0, 8) || '—'} · ANN ${mission?.annotation_revision?.slice(0, 8) || '—'}`;
     missionSelect.replaceChildren(...state.missions.map((item) => { const option = documentValue.createElement('option'); option.value = item.id; option.textContent = `${item.label} · ${item.state.toUpperCase()}`; return option; }));
     missionSelect.value = state.selectedMissionId || ''; missionSelect.disabled = state.busy || !state.missions.length;
     const active = mission?.ownership_active === true;
     buttons.start.disabled = state.busy || mission?.state !== 'ready'; buttons.pause.disabled = state.busy || mission?.state !== 'running';
     buttons.resume.disabled = state.busy || mission?.state !== 'paused'; buttons.skip.disabled = state.busy || !['running', 'paused', 'failed'].includes(mission?.state);
-    buttons.retry.disabled = state.busy || mission?.state !== 'failed' || mission?.outcome === 'aborted'; buttons.abort.disabled = state.busy || !active;
+    if (mission?.phase === 'after_arrival_confirmation') { buttons.resume.disabled = true; buttons.resume.title = '경로·미션 화면에서 현재 도착 확인을 승인하세요.'; }
+    buttons.retry.disabled = state.busy || mission?.state !== 'failed' || ['aborted', 'interrupted'].includes(mission?.outcome); buttons.abort.disabled = state.busy || !active;
     buttons.takeover.disabled = state.busy || !(active || context().navigationActive);
+    if (['aborted', 'interrupted'].includes(mission?.outcome)) buttons.skip.disabled = true;
+    if (mission?.context_revision) for (const action of ['start', 'resume', 'retry', 'skip']) { buttons[action].disabled = true; buttons[action].title = '경로·미션 화면에서 방문과 현재 조건을 확인한 뒤 실행하세요.'; }
     const arrivalPending = mission?.waypoints?.some((waypoint) => waypoint.arrival_action === 'sit_then_rise');
     if (arrivalPending) for (const action of ['start', 'resume', 'retry', 'skip']) buttons[action].disabled = true;
     const rows = [
       ['CURRENT', mission ? `${Math.min(mission.current_index + 1, mission.waypoints.length)} / ${mission.waypoints.length}` : '—'],
       ['DONE', mission ? `${mission.completed_count} / ${mission.waypoints.length}` : '—'], ['REMAINING', mission?.remaining_count ?? '—'],
-      ['ELAPSED', mission ? `${mission.elapsed_seconds.toFixed(1)} s` : '—'],
+      ['ELAPSED', mission ? `${(mission.elapsed_seconds ?? 0).toFixed(1)} s` : '—'],
+      ['현재 작업', mission?.phase || '—'], ['다음 방문', mission?.waypoints?.[mission.current_index + 1]?.label || '—'], ['대기 잔여', `${mission?.hold_remaining || 0} s`],
     ];
     metrics.replaceChildren(...rows.map(([label, value]) => { const item = make(documentValue, 'div'); item.append(make(documentValue, 'span', '', label), make(documentValue, 'strong', '', String(value))); return item; }));
     route.replaceChildren(...(mission?.waypoints || []).map((waypoint, index) => { const item = make(documentValue, 'li', '', `${index + 1}. ${waypoint.label} · ${waypoint.status.toUpperCase()}${waypoint.arrival_action === 'sit_then_rise' ? ' · 도착 후 앉기 → 일어서기 (검증 대기)' : ''}${waypoint.hold_seconds ? ` · HOLD ${waypoint.hold_seconds}s` : ''}${waypoint.requires_operator_confirmation ? ' · CONFIRM' : ''}`); if (index === mission.current_index) item.dataset.current = 'true'; return item; }));
     logs.textContent = (mission?.logs || []).map((entry) => `[${entry.seq}] ${entry.event}${entry.waypoint_index == null ? '' : ` · WP ${entry.waypoint_index + 1}`}`).join('\n') || 'BOUNDED SERVER MISSION LOG · WAITING';
-    error.textContent = state.error || mission?.error || (mission?.pause_reason ? `PAUSED · ${mission.pause_reason}` : 'SERVER-AUTHORITATIVE · NO AUTO ARM · NO SCRIPT ACTIONS');
+    error.textContent = state.error || mission?.error || mission?.audit_warning || (mission?.pause_reason ? `PAUSED · ${mission.pause_reason}` : 'SERVER-AUTHORITATIVE · NO AUTO ARM · NO SCRIPT ACTIONS');
     error.dataset.error = String(Boolean(state.error || mission?.error)); renderDraft();
     if (arrivalPending && !state.error && !mission?.error) error.textContent = '앉기 → 일어서기 동작은 검증 대기 중입니다. 미션 저장은 가능하며 실행은 아직 비활성입니다.';
   }

@@ -7,6 +7,8 @@ test('Missions repeat registered points in order and remove only one occurrence'
   await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
   await page.locator('[data-nav="missions"]').click();
   const panel = page.locator('#dashboardMissionHost');
+  await panel.getByText('기존 주석 미션 · 고급', { exact: true }).click();
+  await panel.getByText('기존 주석 미션 작성 · 고급', { exact: true }).click();
   const choices = panel.locator('[data-mission-draft-id]');
   for (const i of [0, 1, 0, 1, 1]) await choices.nth(i).click();
   await expect(panel.locator('.cockpit-mission-order > li')).toHaveCount(5);

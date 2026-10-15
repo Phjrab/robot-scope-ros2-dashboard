@@ -27,7 +27,7 @@ from .application.mapping_coordinator import (
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
-from .application.runtime import ApplicationRuntime, close_relocalization, configure_realsense_profile, configure_stationary_relocalization
+from .application.runtime import ApplicationRuntime, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -35,6 +35,8 @@ from .api.routers.competition import router as competition_router
 from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
+from .api.routers.mission_routes import router as mission_routes_router
+from .mission_routes.wiring import configure_mission_routes
 from .api.routers.navigation_presets import router as navigation_presets_router
 from .api.routers.map_families import create_router as create_map_families_router
 from .api.routers.map_crop import router as map_crop_router
@@ -83,7 +85,6 @@ from .control import (
     SequenceError,
 )
 from .go2_bridge import MOTION_OBSERVATION_PUBLIC_FIELDS, SPORT_MODE_STATE_PUBLIC_FIELDS
-from .competition import CompetitionStateManager
 from .public_diagnostics import public_diagnostic
 from .dataset_capture import DatasetCaptureManager
 from .diagnostics import DiagnosticsBundleService
@@ -404,6 +405,7 @@ app.include_router(route_planner_router)
 app.include_router(relocalization_router)
 app.include_router(resources_router)
 app.include_router(slam_router)
+app.include_router(mission_routes_router)
 def require_navigation_idle(detail: str) -> None:
     if navigation_coordinator().is_active():
         raise HTTPException(status_code=409, detail=detail)
@@ -1328,6 +1330,7 @@ def parse_args() -> argparse.Namespace:
         default=str(Path(__file__).resolve().parents[1] / "runtime" / "datasets"),
     )
     parser.add_argument("--navigation-runtime-dir", default="~/.local/state/robot-scope/navigation")
+    parser.add_argument("--mission-native-preview", action="store_true", help="Allow native planner preview within an approved resource window")
     parser.add_argument("--spatial-route-dir", default="~/.local/state/robot-scope/spatial-routes")
     parser.add_argument(
         "--operator-event-dir",
@@ -1545,23 +1548,12 @@ def main() -> None:
     )
     configure_stationary_relocalization(RUNTIME, args, project_dir, catalog)
     configure_slam(RUNTIME, project_dir, Path(args.navigation_runtime_dir).expanduser().resolve() / "multi-slam")
-    def competition_blockers() -> Dict[str, bool]:
-        control = RUNTIME.agent.control_snapshot()
-        lease = control.get("lease", {})
-        mapping_active, _ = RUNTIME.mapping.activity()
-        return {
-            "control_armed": bool(isinstance(lease, dict) and lease.get("active")),
-            "navigation_active": RUNTIME.navigation.is_active(),
-            "mission_active": RUNTIME.mission.blocks_navigation_goal(),
-            "dataset_capture_active": RUNTIME.dataset_capture.is_active(),
-            "mapping_active": mapping_active,
-        }
-
-    RUNTIME.competition = CompetitionStateManager(
-        Path(args.competition_state_dir),
-        blockers_provider=competition_blockers,
-        control_provider=RUNTIME.agent.control_snapshot,
+    configure_mission_routes(
+        RUNTIME,
+        Path(args.navigation_runtime_dir).expanduser().resolve() / "mission-routes",
+        native_planner_window=args.mission_native_preview,
     )
+    configure_competition(RUNTIME, Path(args.competition_state_dir))
     RUNTIME.operator_events = OperatorEventTimeline(
         Path(args.operator_event_dir).expanduser()
     )

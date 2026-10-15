@@ -791,6 +791,7 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   backend.state.navigation.safety.can_send_goal = true;
 
   await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
+  await missionPanel.getByText('기존 주석 미션 작성 · 고급', { exact: true }).click();
   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
   await missionPanel.locator('[data-mission-draft-id]').nth(1).click();
@@ -841,6 +842,7 @@ test('Cockpit mission pause, failure retry, and skips remain explicit and fail c
   backend.state.navigation.goal = { state: 'idle', goal_id: null };
   backend.state.navigation.safety.can_send_goal = true;
 
+  await missionPanel.getByText('기존 주석 미션 작성 · 고급', { exact: true }).click();
   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
   await missionPanel.locator('[data-mission-draft-id]').nth(1).click();

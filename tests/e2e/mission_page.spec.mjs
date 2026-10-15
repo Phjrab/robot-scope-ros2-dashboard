@@ -9,6 +9,10 @@ test('Missions sidebar page creates ordered mission and sends only explicit acti
   await page.goto('/#navigation');
   await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
   await page.locator('[data-nav="missions"]').click();
+  for (const text of ['기존 주석 미션 · 고급', '기존 주석 미션 작성 · 고급']) {
+    const summary = page.getByText(text, { exact: true });
+    if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
+  }
   await expect(page.locator('#pageTitle')).toHaveText('미션');
   const panel = page.locator('#dashboardMissionHost');
   await expect(panel.locator('[data-mission-draft-id]')).toHaveCount(2);
@@ -32,6 +36,10 @@ test('Missions sidebar page creates ordered mission and sends only explicit acti
   await page.locator('[data-nav="overview"]').click();
   expect(backend.mutations(`/api/v1/missions/${missionId}/abort`)).toHaveLength(0);
   await page.goto('/#missions');
+  for (const text of ['기존 주석 미션 · 고급', '기존 주석 미션 작성 · 고급']) {
+    const summary = page.getByText(text, { exact: true });
+    if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
+  }
   await expect(panel.locator('.cockpit-mission-header strong')).toHaveText('MISSION RUNNING');
   expect(backend.mutations(`/api/v1/missions/${missionId}/start`)).toHaveLength(1);
   await panel.locator('[data-mission-action="abort"]').click();
@@ -45,6 +53,10 @@ test('Missions page surfaces rejected start without claiming the mission is runn
   await page.goto('/#navigation');
   await expect(page.locator('#mapAnnotationList')).toContainText('E2E Home');
   await page.locator('[data-nav="missions"]').click();
+  for (const text of ['기존 주석 미션 · 고급', '기존 주석 미션 작성 · 고급']) {
+    const summary = page.getByText(text, { exact: true });
+    if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
+  }
   const panel = page.locator('#dashboardMissionHost');
   await panel.locator('[data-mission-draft-id]').click();
   await panel.locator('[data-mission-action="create"]').click();

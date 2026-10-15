@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
 
 from ..discovery import LocalRobotDiscovery
@@ -103,4 +104,28 @@ def configure_realsense_profile(runtime: ApplicationRuntime) -> None:
     dataset = runtime.dataset_capture
     runtime.realsense_profile = RealSenseProfileManager.from_environment(
         dataset_active=(dataset.is_active if dataset is not None else lambda: True),
+    )
+
+
+def configure_competition(runtime: ApplicationRuntime, state_dir: Path) -> None:
+    """Keep competition admission tied to the existing live owners."""
+
+    from ..competition import CompetitionStateManager
+
+    def competition_blockers() -> Dict[str, bool]:
+        control = runtime.require_agent().control_snapshot()
+        lease = control.get("lease", {})
+        mapping_active, _ = runtime.mapping.activity()
+        return {
+            "control_armed": bool(isinstance(lease, dict) and lease.get("active")),
+            "navigation_active": runtime.navigation.is_active(),
+            "mission_active": runtime.mission.blocks_navigation_goal(),
+            "dataset_capture_active": runtime.dataset_capture.is_active(),
+            "mapping_active": mapping_active,
+        }
+
+    runtime.competition = CompetitionStateManager(
+        state_dir,
+        blockers_provider=competition_blockers,
+        control_provider=runtime.require_agent().control_snapshot,
     )
