@@ -22,7 +22,10 @@ from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from .models import RegistrationContractError, SUPPORTED_BACKENDS
 from .process_adapter import RegistrationCanceled, RegistrationProcessError
-from .profiles import COMPETITION_FASTLIO_PROFILE as PROFILE, SUPPORTED_STATIONARY_PROFILES
+from .profiles import COMPETITION_FASTLIO_PROFILE, SUPPORTED_STATIONARY_PROFILES
+
+# Preserve the external diagnostic alias used by historical callers.
+PROFILE = COMPETITION_FASTLIO_PROFILE
 
 
 SOURCE_TOPIC = "/cloud_registered"

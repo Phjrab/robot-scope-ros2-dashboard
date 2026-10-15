@@ -108,7 +108,8 @@ def evaluate(manifest_path: Path, *, repeats: int = 1) -> dict:
         raise ExperimentalSE3Error("manifest/repeat bound exceeded")
     manifest = json.loads(manifest_path.read_text())
     reference, query, seeds = qualified_inputs(manifest, manifest_path.parent)
-    started = time.monotonic(); measurements = []
+    started = time.monotonic()
+    measurements = []
     for seed_index, transform in enumerate(seeds):
         for repeat in range(repeats):
             result = validate_experimental_result(register_se3(reference, query, transform))
@@ -143,7 +144,8 @@ def main() -> int:
     if args.output.exists():
         parser.error("output must be a new private artifact path")
     try:
-        result = evaluate(args.manifest, repeats=args.repeats); exit_code = 0
+        result = evaluate(args.manifest, repeats=args.repeats)
+        exit_code = 0
     except (ExperimentalSE3Error, ValueError, OSError, TypeError, KeyError) as exc:
         result = {"schema": "robot-scope.recorded-se3-evaluation.v1", "status": "BLOCKED",
                   "reason": str(exc), "absolute_position_error_m": None,
@@ -151,7 +153,8 @@ def main() -> int:
         exit_code = 2
     descriptor = os.open(args.output, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, "w") as handle:
-        json.dump(result, handle, indent=2, allow_nan=False);handle.write("\n")
+        json.dump(result, handle, indent=2, allow_nan=False)
+        handle.write("\n")
     print(json.dumps({"status": result.get("status", "EVALUATED"), "output": str(args.output)}))
     return exit_code
 

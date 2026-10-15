@@ -77,6 +77,8 @@ async def set_realsense_profile(
     runtime = runtime_from_request(request)
     require_competition_unlocked(runtime, "RealSense resolution change")
     async with runtime.pipeline_coordination_lock:
+        if runtime.slam is not None and runtime.slam.blocks_context_change():
+            raise HTTPException(status_code=409, detail="SLAM camera session must stop before a profile change")
         try:
             return await asyncio.to_thread(
                 _realsense_profile(runtime).apply,
@@ -95,6 +97,10 @@ async def _camera_stream_source(websocket: WebSocket, source_id: str) -> None:
         await websocket.close(code=4404, reason="camera source is not allowlisted")
         return
     runtime = runtime_from_websocket(websocket)
+    if source_id == "realsense_color" and runtime.slam is not None:
+        if runtime.slam.active_engine() == "visual_stereo":
+            await websocket.close(code=1013, reason="VSLAM IR in use; RGB temporarily unavailable")
+            return
     await websocket.accept()
     current = _agent(runtime)
     opened = await asyncio.to_thread(current.camera_stream_open, source_id)

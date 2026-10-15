@@ -6,6 +6,7 @@
  *   scene.setPointCloud(cloud, { fit?: boolean });
  *   scene.setRobotPose({ x, y, z, yaw, frameId });
  *   scene.setTrail([{ x, y, z, yaw, frameId }, ...]);
+ *   scene.setCameraFrustum({ position: [x,y,z], corners: [[x,y,z], ...4], frame_id });
  *   scene.setAxesVisible(boolean); scene.toggleAxesVisible();
  *   scene.setStatus({ online, lidarOnline, message });
  *   scene.resetView(); scene.topView(); scene.frontView();
@@ -117,6 +118,14 @@
     };
   }
 
+  function normalizedCameraFrustum(value) {
+    if (!value || typeof value.frame_id !== 'string' || !value.frame_id || value.frame_id.length > 128) return null;
+    const vector = (point) => Array.isArray(point) && point.length === 3 &&
+      point.every((number) => Number.isFinite(number) && Math.abs(number) <= 1_000_000);
+    if (!vector(value.position) || !Array.isArray(value.corners) || value.corners.length !== 4 || !value.corners.every(vector)) return null;
+    return { position: value.position.slice(), corners: value.corners.map((point) => point.slice()), frameId: value.frame_id };
+  }
+
   function niceGridStep(span) {
     const rough = Math.max(span / 16, 0.05);
     const power = Math.pow(10, Math.floor(Math.log10(rough)));
@@ -226,6 +235,9 @@
         manualPanStopsFollow: options.manualPanStopsFollow === true,
         showRobot: options.showRobot !== false,
         showTrail: options.showTrail !== false,
+        // Explicit fixed-map trajectories can remain visible without a current
+        // camera pose. Existing live/raw-scan callers keep their pose fence.
+        worldFrameTrail: options.worldFrameTrail === true,
         showAxes: options.showAxes !== false,
         heightColor: options.heightColor !== false,
         nearFieldEmphasis: options.nearFieldEmphasis === true,
@@ -270,6 +282,7 @@
       this.robotPose = null;
       this.trail = [];
       this.spatialOverlay = null;
+      this.cameraFrustum = null;
       this.robotVisible = this.options.showRobot;
       this.trailVisible = this.options.showTrail;
       this.axesVisible = storedBoolean(
@@ -630,6 +643,14 @@
     clearSpatialOverlay() {
       this.spatialOverlay = null;
       this.render();
+    }
+
+    setCameraFrustum(value) {
+      // Geometry is provided by a caller that validated optical pose, image and
+      // calibration. This renderer never invents a body-to-camera transform.
+      this.cameraFrustum = normalizedCameraFrustum(value);
+      this.render();
+      return Boolean(this.cameraFrustum);
     }
 
     addTrailPose(value) {
@@ -1033,6 +1054,7 @@
       this._basis = null;
       this._cameraBasis();
       if (this.trailVisible) this._drawTrail();
+      this._drawCameraFrustum();
       this._drawSpatialOverlay();
       if (this.robotVisible) this._drawRobot();
       this._drawHud();
@@ -1197,6 +1219,7 @@
       // A sensor extrinsic is not a world-to-sensor TF. Never translate a
       // world trail onto a raw scan, including when the live pose is lost.
       const frame = this.cloud.frameId;
+      if (this.options.worldFrameTrail && frame && this.trail.every((point) => point.frameId === frame)) return this.trail;
       if (!pose || !frame || pose.frameId !== frame) return [];
       if (this.trail.some((point) => point.frameId !== frame)) return [];
       return this.trail;
@@ -1224,6 +1247,29 @@
         ctx.fill();
       });
       ctx.restore();
+    }
+
+    _drawCameraFrustum() {
+      const view = this.cameraFrustum;
+      if (!view || !this.cloud.frameId || view.frameId !== this.cloud.frameId) return 0;
+      const origin = this._project(view.position);
+      const corners = view.corners.map((point) => this._project(point));
+      const ctx = this.ctx;
+      let lines = 0;
+      ctx.save(); ctx.strokeStyle = 'rgba(101, 224, 233, .96)'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([]); ctx.beginPath();
+      const line = (a, b) => {
+        if (!a || !b) return;
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); lines += 1;
+      };
+      corners.forEach((corner, index) => { line(origin, corner); line(corner, corners[(index + 1) % 4]); });
+      ctx.stroke();
+      if (origin) {
+        ctx.fillStyle = '#ffd17f'; ctx.beginPath(); ctx.arc(origin.x, origin.y, 3.5, 0, TAU); ctx.fill();
+        ctx.font = '10px sans-serif'; ctx.fillText('CAMERA', origin.x + 7, origin.y - 7);
+      }
+      ctx.restore();
+      return lines;
     }
 
     _drawSpatialOverlay() {

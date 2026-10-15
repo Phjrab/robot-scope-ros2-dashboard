@@ -1,0 +1,660 @@
+{
+  "schema": "robot-scope.multi-slam-acceptance.v1",
+  "run_id": "ms-software-20261015",
+  "source_commit": null,
+  "source_tree_dirty": true,
+  "deployed_commit": null,
+  "deployment_state": "NOT_RUN",
+  "checks": [
+    {
+      "id": "ENG-01",
+      "requirement_ids": [
+        "R01"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "engine catalog and real adapter paths",
+      "evidence": [
+        "tests/test_slam_ros_runtime.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "ENG-02",
+      "requirement_ids": [
+        "R01",
+        "R02"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "selected/active/effective modes",
+      "evidence": [
+        "tests/test_slam_sessions.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "ENG-03",
+      "requirement_ids": [
+        "R01",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "unqualified IMU VIO rejected",
+      "evidence": [
+        "tests/test_slam_api.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "ENG-04",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "lifecycle generation and failure fences",
+      "evidence": [
+        "tests/test_slam_sessions.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "CAM-01",
+      "requirement_ids": [
+        "R02",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "single cooperative producer",
+      "evidence": [
+        "tests/test_slam_camera.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "CAM-02",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "handoff freshness and owned release",
+      "evidence": [
+        "tests/test_slam_broker.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "VIS-01",
+      "requirement_ids": [
+        "R04"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "actual input adapter source and projection",
+      "evidence": [
+        "tests/test_slam_ros_runtime.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "VIS-02",
+      "requirement_ids": [
+        "R04"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "reprojection label and provenance",
+      "evidence": [
+        "tests/test_slam_ui.mjs"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "VIS-03",
+      "requirement_ids": [
+        "R04"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "source time/calibration/epoch alignment",
+      "evidence": [
+        "tests/test_slam_features.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "VIS-04",
+      "requirement_ids": [
+        "R04",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "stale/lost/wrong calibration hidden",
+      "evidence": [
+        "tests/test_slam_features.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "VIS-05",
+      "requirement_ids": [
+        "R04"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "letterbox and DPR coordinate transform",
+      "evidence": [
+        "tests/test_slam_ui.mjs"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "VIS-06",
+      "requirement_ids": [
+        "R04",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "bounded transport and viewer cleanup",
+      "evidence": [
+        "tests/test_slam_api.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "MAP-01",
+      "requirement_ids": [
+        "R05"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "global extent and region beyond current view",
+      "evidence": [
+        "tests/test_slam_features.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "MAP-02",
+      "requirement_ids": [
+        "R05"
+      ],
+      "software_status": "BLOCKED",
+      "hardware_status": "BLOCKED",
+      "expected": "full retained native landmark access",
+      "evidence": [
+        "docs/multi-slam/CAPABILITY_AUDIT.md"
+      ],
+      "evidence_type": null,
+      "observed": "Global extent supported; capped LL_MAP32768 cannot prove every retained native landmark.",
+      "blocked_reason": "Installed supported complete-map export remains unverified; engine_total_count=null.",
+      "required_for": [
+        "FULL_RETAINED_MAP"
+      ]
+    },
+    {
+      "id": "MAP-03",
+      "requirement_ids": [
+        "R05"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "replacement/epoch deletion avoids mixed map",
+      "evidence": [
+        "tests/test_slam_features.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "MAP-04",
+      "requirement_ids": [
+        "R05"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "unknown counts/coverage and limits",
+      "evidence": [
+        "tests/test_slam_ui.mjs"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "MAP-05",
+      "requirement_ids": [
+        "R05"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "trajectory and calibrated camera view",
+      "evidence": [
+        "tests/test_slam_ros_runtime.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "SAVE-01",
+      "requirement_ids": [
+        "R02",
+        "R03"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "official save gate and atomic publication",
+      "evidence": [
+        "tests/test_slam_packages.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "SAVE-02",
+      "requirement_ids": [
+        "R03",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "failure preserves native originals",
+      "evidence": [
+        "tests/test_slam_sessions.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "SAVE-03",
+      "requirement_ids": [
+        "R03",
+        "R05"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "offline preview and consistency label",
+      "evidence": [
+        "tests/test_slam_packages.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "CAT-01",
+      "requirement_ids": [
+        "R03"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "legacy/native catalogs and revision",
+      "evidence": [
+        "tests/e2e/slam.spec.mjs"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "CAT-02",
+      "requirement_ids": [
+        "R03",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "stable id/revision/active protection",
+      "evidence": [
+        "tests/test_slam_packages.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "CAT-03",
+      "requirement_ids": [
+        "R03",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "bounded malicious archive rejection",
+      "evidence": [
+        "tests/test_slam_packages.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "LOAD-01",
+      "requirement_ids": [
+        "R03"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "compatible scratch native load",
+      "evidence": [
+        "tests/test_slam_sessions.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "LOC-01",
+      "requirement_ids": [
+        "R01",
+        "R03"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "official localize plus fresh actual pose",
+      "evidence": [
+        "tests/test_slam_ros_runtime.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "LOC-02",
+      "requirement_ids": [
+        "R03",
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "bad compatibility/hint/revision rejected",
+      "evidence": [
+        "tests/test_slam_sessions.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "UI-01",
+      "requirement_ids": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "existing screen integration",
+      "evidence": [
+        "tests/e2e/slam.spec.mjs"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "UI-02",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "existing UI and safety controls regression",
+      "evidence": [
+        "tests/e2e"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "SAFE-01",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "read paths do not start/publish motion",
+      "evidence": [
+        "tests/test_slam_wiring.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "SAFE-02",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "existing fences/data preserved",
+      "evidence": [
+        "tests/test_slam_wiring.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "SAFE-03",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "strict same-origin API and broker",
+      "evidence": [
+        "tests/test_slam_api.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "CI-01",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "NOT_RUN",
+      "hardware_status": "NOT_RUN",
+      "expected": "exact candidate full CI",
+      "evidence": [
+        "docs/multi-slam/FINAL_REPORT.md"
+      ],
+      "evidence_type": null,
+      "observed": "Local full suites and audits PASS; exact remote commit pending publication.",
+      "blocked_reason": "Awaiting new source commit and completed remote Actions.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "PERF-01",
+      "requirement_ids": [
+        "R02",
+        "R04",
+        "R05"
+      ],
+      "software_status": "BLOCKED",
+      "hardware_status": "BLOCKED",
+      "expected": "new live visualization workload",
+      "evidence": [
+        "docs/multi-slam/DEPLOYMENT.md"
+      ],
+      "evidence_type": null,
+      "observed": "No new visualization-inclusive hardware workload run.",
+      "blocked_reason": "Exclusive stage16 resource window and device handoff absent.",
+      "required_for": [
+        "LIVE_PERFORMANCE"
+      ]
+    },
+    {
+      "id": "CLEAN-01",
+      "requirement_ids": [
+        "R06"
+      ],
+      "software_status": "PASS",
+      "hardware_status": "BLOCKED",
+      "expected": "owned cleanup and real inventory",
+      "evidence": [
+        "tests/test_slam_sessions.py"
+      ],
+      "evidence_type": "synthetic_fixture_and_source",
+      "observed": "Hardware-free synthetic/source contract checks PASS; see final report and linked tests.",
+      "blocked_reason": "No stage16 resource/camera handoff; software checks are not live evidence.",
+      "required_for": [
+        "SOFTWARE_IMPLEMENTED"
+      ]
+    },
+    {
+      "id": "OPS-01",
+      "requirement_ids": [
+        "followup"
+      ],
+      "software_status": "NOT_RUN",
+      "hardware_status": "NOT_RUN",
+      "expected": "separate operational pose gate",
+      "evidence": [
+        "docs/multi-slam/HANDOFF.md"
+      ],
+      "evidence_type": null,
+      "observed": "Operational pose selector and movement are outside this delivery.",
+      "blocked_reason": "Separate stage17 evidence and authorization required.",
+      "required_for": [
+        "OPERATIONAL_POSE_APPLICATION"
+      ]
+    }
+  ],
+  "local_validation": "PASS",
+  "software_delivery": "SOFTWARE_IMPLEMENTED_WITH_MAP_02_LIMIT"
+}

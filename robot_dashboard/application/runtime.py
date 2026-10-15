@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from ..ros_agent import RosAgent
     from ..saved_maps import SavedMapCatalog
     from ..spatial_routes import SpatialRouteCatalog
+    from ..slam_sessions import SlamSessionManager
     from ..relocalization.manager import StationaryRelocalizationManager
     from .lifecycle_coordinator import LifecycleCoordinator
     from .mapping_coordinator import MappingCoordinator
@@ -53,6 +54,8 @@ class ApplicationRuntime:
     competition: CompetitionStateManager | None = None
     relocalization: StationaryRelocalizationManager | None = None
     spatial_routes: SpatialRouteCatalog | None = None
+    slam: SlamSessionManager | None = None
+    mission_routes: Any | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)

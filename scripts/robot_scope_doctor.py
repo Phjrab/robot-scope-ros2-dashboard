@@ -25,7 +25,7 @@ from typing import Callable, Mapping, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from robot_dashboard.onboard_profile import ONBOARD_REQUIRED_ENVIRONMENT, configure_onboard_profile
+from robot_dashboard.onboard_profile import ONBOARD_REQUIRED_ENVIRONMENT, configure_onboard_profile  # noqa: E402 -- direct-script import after project root bootstrap
 
 
 MODES = ("observer", "go2", "go2-control", "go2-xt16", "go2-nav")

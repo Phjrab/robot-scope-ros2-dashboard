@@ -57,6 +57,8 @@ def create_router(require_service_lifecycle_idle: Callable[[], None]) -> APIRout
         sources = CAMERA_SOURCE_IDS if body.sources == "both" else (body.sources,)
         async with runtime.pipeline_coordination_lock:
             require_service_lifecycle_idle()
+            if runtime.slam is not None and runtime.slam.blocks_context_change():
+                raise HTTPException(status_code=409, detail="SLAM session owns the capture context")
             try:
                 return await asyncio.to_thread(
                     _manager(runtime).start,

@@ -120,10 +120,10 @@ class ApplicationRuntimeOwnershipTests(unittest.TestCase):
             source.count("coordination_lock=RUNTIME.pipeline_coordination_lock"),
             2,
         )
-        self.assertIn("mapping_task_active_provider=RUNTIME.mapping.task_active", source)
+        self.assertIn("mapping_task_active_provider=lambda: RUNTIME.mapping.task_active()", source)
+        self.assertIn("RUNTIME.slam is not None and RUNTIME.slam.blocks_context_change()", source)
         self.assertIn(
-            "navigation_start_snapshot_provider=(\n"
-            "            RUNTIME.navigation.internal_start_state",
+            "navigation_start_snapshot_provider=RUNTIME.navigation.internal_start_state",
             source,
         )
         self.assertLess(len(source.splitlines()), 1_600)

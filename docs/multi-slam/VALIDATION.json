@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-15 KST",
+  "provenance": "hardware-free synthetic fixtures",
+  "python": {
+    "runtime": ".venv Python3.13",
+    "tests": 1855,
+    "skipped": 2,
+    "status": "PASS",
+    "coverage_percent": 73
+  },
+  "javascript": {
+    "tests": 370,
+    "status": "PASS"
+  },
+  "chromium": {
+    "tests": 80,
+    "status": "PASS"
+  },
+  "local_checks": [
+    "ruff",
+    "configured mypy4 files",
+    "frontend syntax80 modules",
+    "Python3.10 grammar172 files",
+    "pip check",
+    "pip-audit requirements.txt",
+    "npm audit high",
+    "git diff --check"
+  ],
+  "logs": {
+    "python": {
+      "path": "/private/tmp/robot-scope-ms-release-python.log",
+      "sha256": "90b608950936b3f4c6dff609b24934c06a4c6b980234ed8657ca6ffd7774f084"
+    },
+    "javascript": {
+      "path": "/private/tmp/robot-scope-ms-release-js.log",
+      "sha256": "287ab57e8817bfc09f8db307ddafa6f87578afe1b2f06cbc080255c9fa5f07cd"
+    },
+    "chromium": {
+      "path": "/private/tmp/robot-scope-ms-release-e2e.log",
+      "sha256": "00e2399deae886fb157133a251e6d528e7fdd67fd56f64f220825b7914a81ed5"
+    },
+    "coverage": {
+      "path": "/private/tmp/robot-scope-ms-release-coverage.log",
+      "sha256": "f2597ee904718f60b094485b7ac3b53e47583acd8694c49a4e152a0a6ce387c7"
+    }
+  }
+}

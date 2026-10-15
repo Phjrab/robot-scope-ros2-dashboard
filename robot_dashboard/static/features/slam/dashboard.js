@@ -1,0 +1,714 @@
+/* Additive SLAM console. All camera/engine ownership remains on the server. */
+const MAX_WIRE_BYTES = 8 * 1024 * 1024;
+const MAX_MAP_POINTS = 60_000;
+const MAX_OBSERVATIONS = 4096;
+const LABELS = { lidar_fastlio: 'LiDAR · FAST-LIO', visual_stereo: 'Stereo VSLAM · Isaac', visual_inertial: 'VIO · IMU 미검증' };
+const ACTIVE_PAGES = new Set(['mapping', 'maps']);
+const controllers = new WeakMap();
+export const SLAM_STREAM_PATH = '/api/v1/ws/slam';
+
+export function boundedPoints(points, limit = MAX_MAP_POINTS, dimensions = 3) {
+  if (!Array.isArray(points)) return [];
+  // Server LOD preserves spatial extent. A malformed oversized frame is rejected,
+  // rather than silently relabelling a front slice as the complete map.
+  if (points.length > limit) return [];
+  return points.filter((point) => Array.isArray(point) && point.length === dimensions && point.every(Number.isFinite));
+}
+
+export function overlayMatchesImage(frame) {
+  const image = frame?.image;
+  const overlay = frame?.overlay;
+  const reference = overlay?.image;
+  return Boolean((image?.jpeg_base64 || image?.png_base64) && reference &&
+    ['native_2d_tracks', 'current_observations_reprojected'].includes(overlay?.overlay_kind) &&
+    overlay.reason == null && typeof image.stamp_ns === 'string' &&
+    image.stamp_ns === reference.source_timestamp_ns &&
+    image.frame_id === reference.frame_id && image.width === reference.width && image.height === reference.height &&
+    (image.camera_id == null || image.camera_id === reference.camera_id) &&
+    image.rectified !== false && frame.stream_connected !== false &&
+    !['LOST', 'STOPPED', 'WAITING_INPUT'].includes(frame.tracking_state));
+}
+
+export function frameIsCurrent(frame, session, previous = null) {
+  if (!frame || !session || frame.session_id !== session.session_id || frame.generation !== session.generation ||
+      frame.engine_id !== session.engine_id || frame.map_epoch == null ||
+      (session.map_epoch != null && frame.map_epoch !== session.map_epoch)) return false;
+  if (previous && previous.session_id === frame.session_id && previous.generation === frame.generation) {
+    try { if (BigInt(frame.sequence) <= BigInt(previous.sequence)) return false; } catch (_) { return false; }
+  }
+  return true;
+}
+
+export function describeCoverage(map) {
+  if (!map) return '전역 지도 출력 대기 · coverage unknown';
+  return [map.spatial_scope || 'unknown scope', `coverage ${map.coverage || 'unknown'}`,
+    `표시 ${map.displayed_count ?? 0}`, `export ${map.exported_count ?? 'unknown'}`,
+    `engine total ${map.engine_total_count ?? 'unknown'}`, `backend cap ${map.backend_limit ?? 'unknown'}`,
+    `LOD ${map.decimation ? '적용' : '없음'}`, `frame ${map.coordinate_frame || 'unknown'}`,
+    `snapshot ${map.snapshot_id ?? 'unknown'}`, `engine revision ${map.engine_revision ?? 'unknown'}`].join(' · ');
+}
+
+export function describeLocalization(result, session = null) {
+  if (!result && session?.state !== 'LOCALIZING') return '저장 지도 위치찾기 · 실행 기록 없음';
+  const pending = result?.state === 'LOCALIZING' || session?.state === 'LOCALIZING';
+  const truth = (value) => value === true ? 'true' : value === false ? 'false' : 'unknown';
+  const reason = result?.confirmation_reason || result?.reason || session?.reason;
+  const lines = [
+    `공식 localization 서비스 완료: ${truth(result?.official_localization_completed)}`,
+    `native load: ${result?.native_load || 'unknown'}`,
+    `localize_success: ${pending ? 'pending' : truth(result?.localize_success)}`,
+    `새 corrected pose / TRACKING 확인: ${pending ? 'pending' : truth(result?.fresh_pose_tracking_confirmed)}`,
+  ];
+  if (reason) lines.push(`확인 결과: ${reason}`);
+  if (pending) lines.push('공식 서비스 결과와 이후 corrected pose / TRACKING 확인을 기다립니다.');
+  else if (result?.retry_requires_new_session !== false) lines.push('추가 시도: 현재 세션을 중지하고 새 세션에서 검증 힌트와 미저장 지도 교체를 다시 확인하세요.');
+  return lines.join('\n');
+}
+
+export function cameraFrustumGeometry(view, frame, rayLength = 1) {
+  if (view?.available !== true || view.projection_convention !== 'rectified_optical_x_right_y_down_z_forward' ||
+      view.coordinate_frame !== (frame?.global_map?.coordinate_frame || frame?.frame_id) || view.map_epoch !== frame?.map_epoch ||
+      view.session_id !== frame?.session_id || view.generation !== frame?.generation || view.engine_id !== frame?.engine_id ||
+      !Number.isFinite(rayLength) || rayLength < 0.05 || rayLength > 10 ||
+      frame?.stream_connected === false || ['LOST', 'STOPPED', 'WAITING_INPUT'].includes(frame?.tracking_state)) return null;
+  if (!['coordinate_frame', 'map_epoch', 'camera_frame_id', 'calibration_revision'].every((field) =>
+    typeof view[field] === 'string' && view[field].length > 0 && view[field].length <= 256)) return null;
+  const reference = frame?.overlay?.image;
+  if (!reference || view.camera_frame_id !== reference.frame_id || view.width !== reference.width ||
+      view.height !== reference.height || view.calibration_revision !== reference.calibration_revision ||
+      view.image_source_timestamp_ns !== reference.source_timestamp_ns ||
+      view.source_timestamp_ns !== view.image_source_timestamp_ns ||
+      (frame.image && (view.image_source_timestamp_ns !== frame.image.stamp_ns || view.camera_frame_id !== frame.image.frame_id))) return null;
+  const stamps = ['source_timestamp_ns', 'image_source_timestamp_ns', 'pose_source_timestamp_ns', 'calibration_source_timestamp_ns'];
+  try {
+    if (!stamps.every((field) => typeof view[field] === 'string' && view[field].length <= 20 && /^\d+$/.test(view[field]))) return null;
+    const values = stamps.map((field) => BigInt(view[field]));
+    if (values.some((value) => value > 18446744073709551615n)) return null;
+    const min = values.reduce((a, b) => a < b ? a : b);
+    const max = values.reduce((a, b) => a > b ? a : b);
+    if (max - min > 20_000_000n) return null;
+  } catch (_) { return null; }
+  const vector = (value, length) => Array.isArray(value) && value.length === length && value.every(Number.isFinite);
+  const position = view.position;
+  const quaternion = view.quaternion_xyzw;
+  const intrinsics = view.intrinsics;
+  if (!vector(position, 3) || position.some((value) => Math.abs(value) > 1_000_000) || !vector(quaternion, 4) ||
+      Math.abs(quaternion.reduce((sum, value) => sum + value * value, 0) - 1) > 0.001 ||
+      !vector(intrinsics, 4) || intrinsics[0] <= 0 || intrinsics[1] <= 0 ||
+      !Number.isInteger(view.width) || !Number.isInteger(view.height) || view.width < 1 || view.width > 16384 || view.height < 1 || view.height > 16384) return null;
+  const [fx, fy, cx, cy] = intrinsics;
+  const [qx, qy, qz, qw] = quaternion;
+  const rotate = ([x, y, z]) => {
+    const tx = 2 * (qy * z - qz * y), ty = 2 * (qz * x - qx * z), tz = 2 * (qx * y - qy * x);
+    return [x + qw * tx + qy * tz - qz * ty, y + qw * ty + qz * tx - qx * tz, z + qw * tz + qx * ty - qy * tx];
+  };
+  const corners = [[0, 0], [view.width, 0], [view.width, view.height], [0, view.height]].map(([u, v]) =>
+    rotate([(u - cx) / fx * rayLength, (v - cy) / fy * rayLength, rayLength]).map((value, index) => value + position[index]));
+  if (corners.some((corner) => corner.some((value) => !Number.isFinite(value) || Math.abs(value) > 1_000_000))) return null;
+  return { position: position.slice(), corners, frame_id: view.coordinate_frame, ray_length_m: rayLength };
+}
+
+function errorText(value, fallback) {
+  const detail = value?.detail ?? value;
+  if (typeof detail === 'string') return detail;
+  return detail?.reason || detail?.message || detail?.code || value?.error || fallback;
+}
+
+function requestId(win) {
+  return win.crypto?.randomUUID?.() || `slam-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function mountSlamDashboard(doc = document, options = {}) {
+  if (controllers.has(doc)) return controllers.get(doc);
+  const mappingHost = doc.querySelector('[data-page="mapping"]');
+  const mapsHost = doc.querySelector('[data-page="maps"]');
+  if (!mappingHost || !mapsHost) return null;
+  const win = options.window || doc.defaultView || window;
+  const fetcher = options.fetch || win.fetch.bind(win);
+  const disposers = [];
+  const el = (tag, attrs = {}, ...children) => {
+    const node = doc.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key === 'text') node.textContent = value;
+      else if (key === 'className') node.className = value;
+      else if (key === 'checked' || key === 'hidden' || key === 'disabled') node[key] = value;
+      else node.setAttribute(key, String(value));
+    }
+    node.append(...children);
+    return node;
+  };
+  const on = (node, event, handler) => {
+    node.addEventListener(event, handler);
+    disposers.push(() => node.removeEventListener(event, handler));
+  };
+  const text = (tag, value, attrs = {}) => el(tag, { ...attrs, text: value });
+  const button = (value, id, handler) => {
+    const node = text('button', value, { type: 'button', id });
+    on(node, 'click', handler);
+    return node;
+  };
+  const field = (caption, input) => el('label', { className: 'slam-field' }, text('span', caption), input);
+  const checkbox = (caption, id, checked = false) => {
+    const input = el('input', { type: 'checkbox', id, checked });
+    return { input, label: el('label', { className: 'slam-check' }, input, text('span', caption)) };
+  };
+  const state = { activePage: doc.documentElement.dataset.activePage || win.location.hash.slice(1),
+    session: null, generation: null, engines: [], packages: [], legacyMaps: [], selectedPackage: null,
+    frame: null, socket: null, scene: null, previewScene: null, pending: false, disposed: false,
+    pollTimer: 0, retryTimer: 0, staleTimer: 0, imageTicket: 0, transportSerial: 0,
+    refreshSerial: 0, activationSerial: 0, polling: false,
+    receiveAt: 0, staleCleared: false, requestControllers: new Set(), job: null,
+    localizationResult: null, localizationAttempted: false };
+  const panel = el('article', { className: 'panel slam-console', id: 'slamConsole', 'aria-label': 'SLAM 엔진과 관측' });
+  const message = text('p', '서버 SLAM 상태 확인 중', { id: 'slamMessage', role: 'status', 'aria-live': 'polite' });
+  const status = text('strong', 'UNKNOWN', { id: 'slamSessionState' });
+  const identities = text('p', '선택 / 실행 / 운영 위치 소스 확인 중', { id: 'slamSourceIdentity', className: 'slam-muted' });
+  const localizationStatus = text('pre', describeLocalization(null), { id: 'slamLocalizationStatus', className: 'slam-detail', role: 'status' });
+  const engine = el('select', { id: 'slamEngine', 'aria-label': 'SLAM 엔진' });
+  for (const [value, label] of Object.entries(LABELS)) engine.append(text('option', label, { value }));
+  const task = el('select', { id: 'slamTask', 'aria-label': 'SLAM 작업' },
+    text('option', '지도 생성 (SLAM)', { value: 'mapping' }), text('option', '추적 (VO)', { value: 'tracking' }));
+  const capability = text('p', '엔진 가용성 확인 중', { id: 'slamCapability', className: 'slam-muted' });
+  const confirmed = checkbox('장비·카메라 인계와 정지 상태를 확인했습니다', 'slamOperatorConfirmed');
+  const name = el('input', { id: 'slamMapName', type: 'text', maxlength: 64, autocomplete: 'off', placeholder: '저장 지도 이름' });
+  const create2d = checkbox('LiDAR 저장 시 2D 지도 생성', 'slamCreate2d', true);
+  const start = button('선택 엔진 시작', 'slamStart', () => perform(async () => {
+    await api('/sessions', { method: 'POST', body: { engine_id: engine.value, task: task.value,
+      request_id: requestId(win), operator_confirmed: confirmed.input.checked } });
+    confirmed.input.checked = false;
+    await refresh();
+  }));
+  const save = button('native 지도 저장', 'slamSave', () => perform(saveMap));
+  const stop = button('세션 중지', 'slamStop', () => openStop());
+  const refreshButton = button('상태 새로고침', 'slamRefresh', () => perform(async () => { await loadEngines(); await refresh(); }));
+  panel.append(el('div', { className: 'slam-heading' }, el('div', {}, text('div', 'SLAM ENGINE', { className: 'eyebrow' }),
+    text('h2', 'LiDAR / Stereo VSLAM')), status), identities,
+    el('div', { className: 'slam-control-row' }, field('선택 엔진', engine), field('작업', task), refreshButton), capability,
+    confirmed.label, el('div', { className: 'slam-control-row' }, field('저장 이름', name), create2d.label, start, save, stop), message, localizationStatus);
+
+  const overlayToggle = checkbox('현재 관측점 오버레이', 'slamOverlay', true);
+  const mapToggle = checkbox('전역 지도점', 'slamGlobalPoints', true);
+  const obsToggle = checkbox('현재 관측점 3D', 'slamObservationPoints', false);
+  const trailToggle = checkbox('SLAM / VO 궤적', 'slamTrajectory', true);
+  const followToggle = checkbox('카메라 따라가기', 'slamFollow', false);
+  const cameraToggle = checkbox('카메라 위치·시야', 'slamCameraView', true);
+  followToggle.input.disabled = true;
+  const imageCanvas = el('canvas', { id: 'slamCameraCanvas', width: 640, height: 480, 'aria-label': '실제 왼쪽 rectified IR 입력과 현재 관측 특징점' });
+  const imageStatus = text('p', '왼쪽 rectified IR 입력 대기', { id: 'slamImageStatus', role: 'status' });
+  const mapCanvas = el('canvas', { id: 'slamGlobalCanvas', 'aria-label': '현재 시야 밖을 포함한 VSLAM 전역 특징점 지도' });
+  const mapStatus = text('p', describeCoverage(null), { id: 'slamMapCoverage' });
+  const sourceStatus = text('p', '실측 데이터 출처 대기', { id: 'slamProvenance' });
+  const heartbeatStatus = text('p', 'stream 대기 · 센서→브라우저 지연 unknown', { id: 'slamHeartbeat' });
+  const cameraStatus = text('p', '카메라 시야 대기 · 보정과 optical pose 필요', { id: 'slamCameraViewStatus' });
+  const fit = button('전체 지도 FIT', 'slamFit', () => state.scene?.fitToPointCloud());
+  panel.append(el('div', { className: 'slam-views' },
+    el('section', { className: 'slam-view' }, text('h3', '입력 카메라 · 현재 관측'), imageCanvas, overlayToggle.label, imageStatus),
+    el('section', { className: 'slam-view' }, text('h3', '전역 3D 지도'), mapCanvas,
+      el('div', { className: 'slam-layer-row' }, mapToggle.label, obsToggle.label, trailToggle.label, cameraToggle.label, followToggle.label, fit),
+      text('small', '드래그 회전 · 우클릭/Shift 드래그 이동 · 휠 확대/축소'), mapStatus, cameraStatus)), sourceStatus, heartbeatStatus);
+  mappingHost.prepend(panel);
+
+  const stopDialog = el('dialog', { id: 'slamStopDialog', className: 'slam-dialog', 'aria-labelledby': 'slamStopTitle' });
+  const stopMessage = text('p', '저장하지 않은 지도 처리 방법을 선택하세요.');
+  const saveStop = button('저장 후 추가 관측분 버리고 중지', 'slamSaveThenStop', () => {
+    stopDialog.close();
+    // Mapping continues while official save completes. The explicit choice also
+    // authorizes discarding observations collected after the saved snapshot.
+    perform(async () => { await saveMap(true); await stopSession(true); });
+  });
+  const discardStop = button('저장하지 않고 중지', 'slamDiscardThenStop', () => {
+    stopDialog.close(); perform(() => stopSession(Boolean(state.session?.unsaved)));
+  });
+  stopDialog.append(text('h2', '세션 중지 확인', { id: 'slamStopTitle' }), stopMessage,
+    el('div', { className: 'slam-control-row' }, saveStop, discardStop,
+      button('취소', 'slamStopCancel', () => stopDialog.close())));
+  panel.append(stopDialog);
+
+  const library = el('article', { className: 'panel slam-library', id: 'slamPackageLibrary', 'aria-label': 'LiDAR VSLAM 지도 관리' });
+  const filter = el('select', { id: 'slamPackageFilter', 'aria-label': '지도 종류 필터' },
+    text('option', '전체 · LiDAR / VSLAM', { value: 'all' }), text('option', 'LiDAR', { value: 'lidar' }),
+    text('option', 'VSLAM native', { value: 'vslam' }), text('option', 'Nav2 점유 지도', { value: 'nav2' }));
+  const packageRows = el('div', { id: 'slamPackageRows', className: 'slam-package-list' });
+  const packageStatus = text('p', 'native 지도 목록 확인 중', { id: 'slamPackageStatus', role: 'status' });
+  const packageLocalizationStatus = text('pre', describeLocalization(null), { id: 'slamPackageLocalizationStatus', className: 'slam-detail', role: 'status' });
+  const packageDetail = text('pre', 'VSLAM native 지도를 선택하세요.', { id: 'slamPackageDetail', className: 'slam-detail' });
+  const packageName = el('input', { id: 'slamPackageName', maxlength: 120, 'aria-label': 'native 지도 이름' });
+  const previewCanvas = el('canvas', { id: 'slamPackageCanvas', 'aria-label': '저장 native 지도 미리보기' });
+  const download = text('a', 'native ZIP 내보내기', { id: 'slamPackageExport', 'aria-disabled': 'true' });
+  const importFile = el('input', { id: 'slamPackageImport', type: 'file', accept: '.zip,application/zip' });
+  const mutate = (operation) => perform(async () => {
+    const selected = state.selectedPackage;
+    if (!selected) return;
+    await api(`/packages/${encodeURIComponent(selected.id)}/${operation}`, { method: 'POST',
+      body: { name: packageName.value, expected_revision: selected.revision } });
+    await loadPackages();
+  });
+  const deleteButton = button('native 지도 삭제', 'slamPackageDelete', () => {
+    if (!state.selectedPackage || !win.confirm(`“${state.selectedPackage.name}” native 지도를 삭제할까요?`)) return;
+    perform(async () => {
+      const selected = state.selectedPackage;
+      await api(`/packages/${encodeURIComponent(selected.id)}?expected_revision=${encodeURIComponent(selected.revision)}`, { method: 'DELETE' });
+      state.selectedPackage = null;
+      await loadPackages();
+    });
+  });
+  const renameButton = button('이름 변경', 'slamPackageRename', () => mutate('rename'));
+  const copyButton = button('복사', 'slamPackageCopy', () => mutate('copy'));
+  const frameInput = el('input', { id: 'slamHintFrame', placeholder: '검증된 map frame', 'aria-label': '위치 힌트 frame' });
+  const positionInput = el('input', { id: 'slamHintPosition', placeholder: 'x, y, z (m)', 'aria-label': '위치 힌트 position' });
+  const quaternionInput = el('input', { id: 'slamHintQuaternion', placeholder: 'qx, qy, qz, qw', 'aria-label': '위치 힌트 quaternion xyzw' });
+  const verifiedHint = checkbox('이 지도 revision의 실제 위치 힌트를 검증했습니다', 'slamHintVerified');
+  const replaceUnsaved = checkbox('현재 세션의 미저장 지도 교체를 확인합니다', 'slamReplaceUnsaved');
+  const localize = button('scratch에서 native load / 위치찾기', 'slamPackageLocalize', () => perform(async () => {
+    const session = currentSession();
+    const selected = state.selectedPackage;
+    if (!selected || !verifiedHint.input.checked) throw new Error('POSE_HINT_REQUIRED');
+    if (!replaceUnsaved.input.checked) throw new Error('UNSAVED_MAP_CONFIRMATION_REQUIRED');
+    const parse = (input, count) => {
+      const pieces = input.value.split(',').map((piece) => piece.trim());
+      const result = pieces.map(Number);
+      if (pieces.length !== count || pieces.some((piece) => !piece) || !result.every(Number.isFinite)) throw new Error('INVALID_POSE_HINT');
+      return result;
+    };
+    const position = parse(positionInput, 3);
+    const quaternion = parse(quaternionInput, 4);
+    if (!frameInput.value.trim() || Math.abs(quaternion.reduce((sum, v) => sum + v * v, 0) - 1) > 0.001) throw new Error('INVALID_POSE_HINT');
+    const accepted = await api(`/sessions/${encodeURIComponent(session.session_id)}/localize`, { method: 'POST', body: {
+      generation: session.generation, request_id: requestId(win), package_id: selected.id, revision: selected.revision,
+      discard_unsaved: true,
+      hint: { frame_id: frameInput.value.trim(), position, quaternion_xyzw: quaternion, operator_verified: true } } });
+    state.localizationResult = accepted;
+    state.localizationAttempted = true;
+    updateLocalizationStatus();
+    verifiedHint.input.checked = false;
+    replaceUnsaved.input.checked = false;
+    await refresh();
+  }));
+  library.append(el('div', { className: 'slam-heading' }, text('h2', '지도 종류 · native 패키지'), filter),
+    text('p', 'LiDAR 원본 목록과 VSLAM native DB를 함께 관리합니다. 미리보기는 저장 데이터만 읽습니다.', { className: 'slam-muted' }),
+    packageStatus, packageLocalizationStatus, text('a', '세션 중지·새 세션 설정 →', { href: '#mapping' }), packageRows,
+    el('div', { className: 'slam-native-detail', id: 'slamNativeDetail' }, previewCanvas, packageDetail,
+      el('div', { className: 'slam-control-row' }, field('표시 이름', packageName), renameButton, copyButton, deleteButton, download),
+      el('details', {}, text('summary', '저장 지도에서 관측용 위치찾기 · 명시적 검증 힌트 필요'),
+        text('p', 'native load·위치찾기 성공은 별도 결과입니다. 운영 위치 소스와 주행 지도는 자동 변경되지 않습니다.'),
+        el('div', { className: 'slam-control-row' }, field('frame', frameInput), field('position', positionInput), field('quaternion xyzw', quaternionInput)),
+        verifiedHint.label, replaceUnsaved.label, localize)),
+    el('div', { className: 'slam-control-row' }, field('검증된 native ZIP 가져오기', importFile),
+      button('지도 목록 새로고침', 'slamPackagesRefresh', () => perform(loadPackages))));
+  mapsHost.prepend(library);
+  const nativeDetail = library.querySelector('#slamNativeDetail');
+  if (!doc.querySelector('link[data-slam-styles]')) {
+    const link = el('link', { rel: 'stylesheet', href: '/static/features/slam/slam.css', 'data-slam-styles': '' });
+    doc.head.append(link);
+  }
+
+  async function api(path, { method = 'GET', body, headers = {} } = {}) {
+    const controller = new win.AbortController();
+    state.requestControllers.add(controller);
+    try {
+      const response = await fetcher(`/api/v1/slam${path}`, { method, credentials: 'same-origin',
+        cache: 'no-store', signal: controller.signal,
+        headers: body == null || body instanceof win.Blob ? headers : { 'Content-Type': 'application/json', ...headers },
+        body: body == null || body instanceof win.Blob ? body : JSON.stringify(body) });
+      const value = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(errorText(value, `HTTP ${response.status}`));
+      return value;
+    } finally { state.requestControllers.delete(controller); }
+  }
+
+  async function perform(action) {
+    if (state.pending || state.disposed) return;
+    state.pending = true;
+    updateButtons();
+    try { await action(); }
+    catch (error) { message.textContent = `SLAM: ${error.message}`; packageStatus.textContent = `지도 작업: ${error.message}`; }
+    finally { state.pending = false; updateButtons(); }
+  }
+
+  function currentSession() {
+    if (!state.session || state.session.state === 'IDLE') throw new Error('NO_ACTIVE_SESSION');
+    return state.session;
+  }
+
+  function updateButtons() {
+    const active = Boolean(state.session && state.session.state !== 'IDLE');
+    const selected = state.engines.find((value) => value.engine_id === engine.value);
+    const tasks = selected?.tasks || [];
+    for (const option of task.options) option.disabled = !tasks.includes(option.value);
+    if (!tasks.includes(task.value) && tasks.includes('mapping')) task.value = 'mapping';
+    start.disabled = state.pending || active || !selected?.available_now || !tasks.includes(task.value) || !confirmed.input.checked;
+    save.disabled = state.pending || state.session?.state !== 'MAPPING' || state.session?.task !== 'mapping';
+    stop.disabled = state.pending || !active || ['SAVING', 'LOCALIZING', 'STOPPING'].includes(state.session?.state);
+    engine.disabled = active || state.pending;
+    task.disabled = active || state.pending;
+    create2d.input.disabled = engine.value !== 'lidar_fastlio';
+    for (const node of [renameButton, copyButton, deleteButton]) node.disabled = state.pending || active || !state.selectedPackage;
+    importFile.disabled = state.pending || active;
+    localize.disabled = state.pending || !state.selectedPackage || state.session?.engine_id !== 'visual_stereo' ||
+      !['MAPPING', 'TRACKING'].includes(state.session?.state) || !verifiedHint.input.checked || !replaceUnsaved.input.checked || state.localizationAttempted;
+    download.setAttribute('aria-disabled', state.selectedPackage ? 'false' : 'true');
+    const reason = selected?.blocked_reason || (selected?.available_now ? '현재 실행 가능' : 'ENGINE_UNAVAILABLE');
+    capability.textContent = `${reason} · 설치 ${selected?.installed ?? 'unknown'} · software verified ${selected?.software_verified ?? false} · hardware verified ${selected?.hardware_verified ?? false}`;
+  }
+
+  async function loadEngines() {
+    const value = await api('/engines');
+    state.engines = value.engines || [];
+    for (const option of engine.options) {
+      const entry = state.engines.find((item) => item.engine_id === option.value);
+      option.disabled = !entry?.available_now;
+      option.textContent = `${LABELS[option.value]}${entry?.available_now ? '' : ` · ${entry?.blocked_reason || 'unavailable'}`}`;
+    }
+    updateButtons();
+  }
+
+  async function refresh() {
+    if (!ACTIVE_PAGES.has(state.activePage) || doc.hidden || state.disposed) return;
+    const serial = ++state.refreshSerial;
+    const value = await api('/session');
+    if (serial !== state.refreshSerial || state.disposed) return;
+    const previous = state.session;
+    state.session = value.active_session || null;
+    state.generation = value.generation;
+    if (previous?.session_id !== state.session?.session_id || previous?.generation !== state.session?.generation) {
+      state.localizationResult = null; state.localizationAttempted = false;
+    }
+    if (state.session?.localization_result) {
+      const result = state.session.localization_result;
+      state.localizationResult = { ...result, reason: result.reason || state.session.reason || state.localizationResult?.reason };
+      state.localizationAttempted = true;
+    }
+    if (previous?.session_id !== state.session?.session_id || previous?.generation !== state.session?.generation ||
+        previous?.map_epoch !== state.session?.map_epoch) {
+      clearLive(); verifiedHint.input.checked = false; replaceUnsaved.input.checked = false;
+    }
+    status.textContent = state.session?.state || 'IDLE';
+    const source = value.operational_pose_source;
+    identities.textContent = `선택 ${LABELS[engine.value] || engine.value} · 실행 ${state.session?.engine_id || '없음'} / ${state.session?.effective_mode || '—'} · 운영 pose ${typeof source === 'string' ? source : source?.source || 'unknown'} (generation ${source?.generation ?? 'unknown'})`;
+    if (!state.pending) message.textContent = state.session?.reason ||
+      (state.session ? `session ${state.session.session_id} · generation ${state.session.generation}` : '실행 중인 SLAM 세션 없음');
+    updateButtons();
+    updateLocalizationStatus();
+    if (state.activePage === 'mapping') connectStream();
+  }
+
+  function updateLocalizationStatus() {
+    const value = describeLocalization(state.localizationResult, state.session);
+    for (const node of [localizationStatus, packageLocalizationStatus]) if (node.textContent !== value) node.textContent = value;
+  }
+
+  async function saveMap(wait = false) {
+    const session = currentSession();
+    if (!name.value.trim()) throw new Error('저장 지도 이름을 입력하세요.');
+    let job = await api(`/sessions/${encodeURIComponent(session.session_id)}/save`, { method: 'POST', body: {
+      generation: session.generation, request_id: requestId(win), name: name.value.trim(), create_2d: create2d.input.checked } });
+    state.job = job;
+    message.textContent = `native 저장 ${job.state || '요청됨'} · ${job.job_id || ''}`;
+    if (wait) {
+      const deadline = Date.now() + 180_000;
+      while (!['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(job.state)) {
+        if (state.disposed || Date.now() > deadline) throw new Error('SAVE_COMPLETION_TIMEOUT');
+        await new Promise((resolve) => win.setTimeout(resolve, 500));
+        job = await api(`/jobs/${encodeURIComponent(job.job_id)}`);
+        message.textContent = `native 저장 ${job.state}`;
+      }
+      if (job.state !== 'SUCCEEDED') throw new Error(job.reason || 'NATIVE_SAVE_FAILED');
+    }
+    state.job = job;
+    await refresh();
+    return job;
+  }
+
+  function openStop() {
+    if (!state.session) return;
+    const unsaved = state.session.unsaved === true;
+    saveStop.hidden = !unsaved;
+    saveStop.disabled = save.disabled;
+    discardStop.textContent = unsaved ? '저장하지 않고 중지' : '중지';
+    stopMessage.textContent = unsaved ? '저장 후 중지는 공식 저장 완료를 확인한 뒤 중지합니다. 저장된 snapshot 이후에 추가로 관측한 내용은 버립니다. 저장하지 않고 중지 또는 취소도 선택할 수 있습니다.' : '이 세션이 소유한 실행 자원만 중지합니다.';
+    stopDialog.showModal();
+  }
+
+  async function stopSession(discard) {
+    const session = currentSession();
+    await api(`/sessions/${encodeURIComponent(session.session_id)}/stop`, { method: 'POST', body: {
+      generation: session.generation, request_id: requestId(win), discard_unsaved: discard } });
+    await refresh();
+  }
+
+  function makeScene(canvas) {
+    const Renderer = options.Renderer || win.RobotScene3D;
+    if (!Renderer) return null;
+    return new Renderer(canvas, { maxPoints: MAX_MAP_POINTS + MAX_OBSERVATIONS, showRobot: false,
+      maxCloudRadius: 1_000_000, manualPanStopsFollow: true, worldFrameTrail: true, storage: null });
+  }
+
+  function clearLive() {
+    state.frame = null;
+    state.imageTicket += 1;
+    const context = imageCanvas.getContext('2d');
+    context?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    state.scene?.setPointCloud({ points: [] });
+    state.scene?.setTrail([]);
+    state.scene?.setRobotPose(null);
+    state.scene?.setCameraFrustum?.(null);
+    mapCanvas.dataset.cameraView = 'unavailable';
+    followToggle.input.disabled = true;
+    imageStatus.textContent = '동일 session/generation의 왼쪽 IR 입력 대기';
+    mapStatus.textContent = describeCoverage(null);
+    cameraStatus.textContent = '카메라 시야 대기 · 보정과 optical pose 필요';
+  }
+
+  function renderMap(frame) {
+    if (!state.scene) state.scene = makeScene(mapCanvas);
+    const map = frame.global_map;
+    const global = mapToggle.input.checked && map?.map_epoch === frame.map_epoch ? boundedPoints(map.points) : [];
+    const observations = frame.current_observations;
+    const live = frame.stream_connected !== false && state.socket?.readyState === 1 && Date.now() - state.receiveAt <= 1500;
+    const current = live && obsToggle.input.checked && observations?.available === true && observations.map_epoch === frame.map_epoch &&
+      observations.coordinate_frame === (map?.coordinate_frame || frame.frame_id) ? boundedPoints(observations.points, MAX_OBSERVATIONS) : [];
+    state.scene?.setPointCloud({ points: [...global, ...current], frame_id: map?.coordinate_frame || frame.frame_id,
+      data_provenance: String(map?.provenance || '').toLowerCase().includes('fixture') ? 'SYNTHETIC_FIXTURE' : map?.provenance }, { fit: undefined });
+    const trajectory = frame.trajectory;
+    const trail = trailToggle.input.checked && trajectory?.map_epoch === frame.map_epoch &&
+      trajectory.coordinate_frame === (map?.coordinate_frame || frame.frame_id) ? boundedPoints(trajectory.points, 10_001) : [];
+    // RobotScene3D's public trail cache is bounded at 400. Decimate the entire
+    // trajectory evenly so early, out-of-view segments remain accessible.
+    const samples = trail.length > 400 ? Array.from({ length: 400 }, (_, index) => trail[Math.round(index * (trail.length - 1) / 399)]) : trail;
+    state.scene?.setTrail(samples.map(([x, y, z]) => ({ x, y, z, frameId: trajectory.coordinate_frame })));
+    const geometry = live ? cameraFrustumGeometry(frame.camera_view, frame) : null;
+    state.scene?.setCameraFrustum?.(cameraToggle.input.checked ? geometry : null);
+    followToggle.input.disabled = !geometry;
+    if (geometry) {
+      const q = frame.camera_view.quaternion_xyzw;
+      const yaw = Math.atan2(2 * (q[3] * q[2] + q[0] * q[1]), 1 - 2 * (q[1] ** 2 + q[2] ** 2));
+      state.scene?.setRobotPose({ x: geometry.position[0], y: geometry.position[1], z: geometry.position[2], yaw, frameId: geometry.frame_id });
+    } else state.scene?.setRobotPose(null);
+    mapCanvas.dataset.cameraView = geometry ? (cameraToggle.input.checked ? 'visible' : 'hidden') : 'unavailable';
+    cameraStatus.textContent = geometry ? `검증된 optical 카메라 위치·시야 · 표시선 ${geometry.ray_length_m}m · 실측 깊이 unknown · calibration ${frame.camera_view.calibration_revision} · ${frame.camera_view.provenance || 'unknown'}` :
+      `카메라 위치·시야 unavailable · ${live ? frame.camera_view?.reason || 'CAMERA_ALIGNMENT_UNAVAILABLE' : 'STALE_SOURCE'}`;
+    state.scene?.setCameraMode(followToggle.input.checked ? 'follow' : 'world');
+    state.scene?.setStatus({ online: live, message: `${frame.tracking_state || 'UNKNOWN'} · ${trajectory?.trajectory_kind || 'SLAM/VO unknown'}` });
+    mapStatus.textContent = describeCoverage(map) + ` · 궤적 ${trajectory?.trajectory_kind || 'unknown'} ${trail.length} → ${samples.length} 표시`;
+  }
+
+  function renderImage(frame) {
+    const image = frame.image;
+    const ticket = ++state.imageTicket;
+    const context = imageCanvas.getContext('2d');
+    context?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    if (state.socket?.readyState !== 1 || Date.now() - state.receiveAt > 1500) {
+      imageStatus.textContent = 'STALE_SOURCE · 현재 관측점 숨김'; return;
+    }
+    const overlay = frame.overlay;
+    const canOverlay = overlayMatchesImage(frame);
+    imageStatus.textContent = `${overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${overlay?.displayed_count ?? 0}점` : overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'} · 수신 후 ${overlay?.receive_age_seconds == null ? 'unknown' : Number(overlay.receive_age_seconds).toFixed(2) + 's'}`;
+    const encoded = image?.jpeg_base64 || image?.png_base64;
+    if (!encoded || typeof encoded !== 'string' || encoded.length > MAX_WIRE_BYTES ||
+        !Number.isInteger(image.width) || !Number.isInteger(image.height) || image.width < 1 || image.width > 1920 || image.height < 1 || image.height > 1080) return;
+    const decoded = new win.Image();
+    decoded.onload = () => {
+      if (state.disposed || state.activePage !== 'mapping' || ticket !== state.imageTicket || state.frame !== frame) return;
+      if (decoded.naturalWidth !== image.width || decoded.naturalHeight !== image.height) { imageStatus.textContent = 'IMAGE_DIMENSION_MISMATCH'; return; }
+      imageCanvas.width = image.width; imageCanvas.height = image.height;
+      context.drawImage(decoded, 0, 0);
+      if (!overlayToggle.input.checked || !canOverlay) return;
+      context.fillStyle = '#65ff9e';
+      for (const [u, v] of boundedPoints(overlay.points, MAX_OBSERVATIONS, 2)) {
+        if (u < 0 || v < 0 || u >= image.width || v >= image.height) continue;
+        context.beginPath(); context.arc(u, v, 2.4, 0, 2 * Math.PI); context.fill();
+      }
+    };
+    decoded.onerror = () => { if (ticket === state.imageTicket) imageStatus.textContent = 'IMAGE_DECODE_UNAVAILABLE'; };
+    decoded.src = `data:image/${image.jpeg_base64 ? 'jpeg' : 'png'};base64,${encoded}`;
+  }
+
+  function receiveFrame(frame) {
+    if (!frameIsCurrent(frame, state.session, state.frame)) return false;
+    state.frame = frame; state.receiveAt = Date.now(); state.staleCleared = false;
+    renderMap(frame); renderImage(frame);
+    sourceStatus.textContent = `출처 ${frame.global_map?.provenance || frame.overlay?.provenance || 'unknown'} · engine ${frame.engine_id} · session ${frame.session_id} · generation ${frame.generation} · epoch ${frame.map_epoch}`;
+    heartbeatStatus.textContent = `stream ${frame.stream_connected ? 'connected' : 'disconnected'} · runtime heartbeat ${frame.heartbeat_receive_age_seconds ?? 'unknown'}s · 지도 snapshot ${frame.global_map?.source_timestamp_ns || 'unknown'} · 센서→브라우저 지연 unknown`;
+    return true;
+  }
+
+  function disconnectStream() {
+    state.transportSerial += 1;
+    win.clearTimeout(state.retryTimer); state.retryTimer = 0;
+    if (state.socket) { state.socket.onclose = null; state.socket.close(); state.socket = null; }
+  }
+
+  function connectStream() {
+    if (state.socket || state.disposed || doc.hidden || state.activePage !== 'mapping') return;
+    const serial = ++state.transportSerial;
+    const socket = new win.WebSocket(`${win.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${win.location.host}${SLAM_STREAM_PATH}`);
+    state.socket = socket;
+    socket.onmessage = (event) => {
+      if (state.socket !== socket || typeof event.data !== 'string' || event.data.length > MAX_WIRE_BYTES) return;
+      try { const value = JSON.parse(event.data); receiveFrame(value.frame || value.data || value); } catch (_) { imageStatus.textContent = 'INVALID_STREAM_FRAME'; }
+    };
+    socket.onclose = () => {
+      if (state.socket !== socket || serial !== state.transportSerial) return;
+      state.socket = null;
+      heartbeatStatus.textContent = '시각화 연결 끊김 · 세션 상태는 서버에서 확인 중';
+      state.imageTicket += 1;
+      imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      if (state.frame) renderMap(state.frame);
+      if (!doc.hidden && state.activePage === 'mapping' && !state.disposed) state.retryTimer = win.setTimeout(connectStream, 2000);
+    };
+  }
+
+  async function loadPackages() {
+    const value = await api('/packages');
+    state.packages = value.packages || [];
+    try {
+      const response = await fetcher('/api/v1/saved-maps', { credentials: 'same-origin', cache: 'no-store' });
+      if (response.ok) state.legacyMaps = (await response.json()).maps || [];
+    } catch (_) { /* Legacy catalog independently displays its connection status. */ }
+    const selectedId = state.selectedPackage?.id;
+    state.selectedPackage = state.packages.find((entry) => entry.id === selectedId) || null;
+    packageRows.replaceChildren();
+    for (const entry of state.packages) {
+      const row = text('button', `${entry.name} · ${entry.engine_id} · ${entry.native_artifacts?.length || 0} native files`, { type: 'button' });
+      row.dataset.packageId = entry.id;
+      row.setAttribute('aria-pressed', entry.id === state.selectedPackage?.id ? 'true' : 'false');
+      packageRows.append(row);
+    }
+    packageStatus.textContent = `VSLAM native ${state.packages.length}개 · LiDAR ${state.legacyMaps.length}개 · 호환성은 load 시 서버 검증`;
+    if (!state.selectedPackage) {
+      packageDetail.textContent = 'VSLAM native 지도를 선택하세요.';
+      packageName.value = ''; download.removeAttribute('href');
+      state.previewScene?.setPointCloud({ points: [] });
+      state.previewScene?.setTrail([]);
+    }
+    if (state.selectedPackage) await selectPackage(state.selectedPackage);
+    applyFilter(); updateButtons();
+  }
+
+  async function selectPackage(entry) {
+    state.selectedPackage = entry;
+    packageName.value = entry.name || '';
+    packageDetail.textContent = [`${entry.name} · ${entry.engine_id}`, `ID ${entry.id}`, `metadata revision ${entry.revision}`,
+      `native revision ${entry.native_content_revision}`, `preview revision ${entry.preview_revision || 'unavailable'} · ${entry.preview_consistency}`,
+      `frame ${entry.map_frame || 'unknown'} · calibration ${entry.calibration_hash || 'unknown'}`,
+      `save ${entry.save_completion?.status || 'unknown'} · native load ${entry.validation?.native_load || 'unknown'} · localization ${entry.validation?.localization_success || 'unknown'}`,
+      `compatibility ${entry.compatibility?.status || 'unknown'} · sparse map → navigation unavailable`].join('\n');
+    download.href = `/api/v1/slam/packages/${encodeURIComponent(entry.id)}/export?expected_revision=${encodeURIComponent(entry.revision)}`;
+    download.download = `native-${entry.id}.zip`;
+    verifiedHint.input.checked = false;
+    replaceUnsaved.input.checked = false;
+    positionInput.value = ''; quaternionInput.value = ''; frameInput.value = '';
+    updateButtons();
+    const preview = await api(`/packages/${encodeURIComponent(entry.id)}/preview`);
+    if (state.selectedPackage?.id !== entry.id) return;
+    if (!state.previewScene) state.previewScene = makeScene(previewCanvas);
+    const map = preview.global_map || preview;
+    const trajectory = preview.trajectory;
+    state.previewScene?.setPointCloud({ points: boundedPoints(map.points), frame_id: map.coordinate_frame || entry.map_frame,
+      data_provenance: String(map.provenance || entry.data_provenance).toLowerCase().includes('fixture') ? 'SYNTHETIC_FIXTURE' : map.provenance }, { fit: true });
+    const trail = boundedPoints(trajectory?.points || [], 10_001);
+    const samples = trail.length > 400 ? Array.from({ length: 400 }, (_, index) => trail[Math.round(index * (trail.length - 1) / 399)]) : trail;
+    state.previewScene?.setTrail(samples.map(([x, y, z]) => ({ x, y, z, frameId: map.coordinate_frame || entry.map_frame })));
+    packageDetail.textContent += `\n${describeCoverage(preview.global_map)}\n미리보기 출처 ${map.provenance || entry.data_provenance || 'unknown'}`;
+    state.previewScene?.setStatus({ online: true, snapshot: true, message: `${entry.preview_consistency} preview` });
+  }
+
+  function applyFilter() {
+    const showNative = ['all', 'vslam'].includes(filter.value);
+    packageRows.hidden = !showNative; nativeDetail.hidden = !showNative;
+    const legacyLayout = mapsHost.querySelector('.saved-layout');
+    if (legacyLayout) legacyLayout.hidden = filter.value === 'vslam';
+    for (const row of mapsHost.querySelectorAll('[data-saved-map-id]')) {
+      const entry = state.legacyMaps.find((item) => item.id === row.dataset.savedMapId);
+      row.hidden = filter.value === 'nav2' && entry?.kind !== 'occupancy2d';
+    }
+  }
+
+  async function tick() {
+    win.clearTimeout(state.pollTimer);
+    if (state.polling || state.disposed || !ACTIVE_PAGES.has(state.activePage) || doc.hidden) return;
+    state.polling = true;
+    try {
+      await refresh();
+      if (state.job?.job_id && !['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(state.job.state)) {
+        state.job = await api(`/jobs/${encodeURIComponent(state.job.job_id)}`);
+        message.textContent = `native 저장 ${state.job.state} ${state.job.reason || ''}${state.job.package_id ? ` · ${state.job.package_id}` : ''}`;
+      }
+    } catch (error) { if (error.name !== 'AbortError') message.textContent = `SLAM 상태: ${error.message}`; }
+    finally {
+      state.polling = false;
+      win.clearTimeout(state.pollTimer);
+      if (!state.disposed && ACTIVE_PAGES.has(state.activePage) && !doc.hidden) state.pollTimer = win.setTimeout(tick, 1500);
+    }
+  }
+
+  async function setActive(page) {
+    const serial = ++state.activationSerial;
+    state.activePage = page;
+    win.clearTimeout(state.pollTimer); state.pollTimer = 0;
+    if (page !== 'mapping' || doc.hidden) {
+      disconnectStream(); clearLive(); state.scene?.destroy(); state.scene = null;
+    }
+    if (page !== 'maps' || doc.hidden) { state.previewScene?.destroy(); state.previewScene = null; }
+    if (!ACTIVE_PAGES.has(page) || doc.hidden || state.disposed) return;
+    try { await loadEngines(); if (page === 'maps') await loadPackages(); }
+    catch (error) { message.textContent = `SLAM: ${error.message}`; packageStatus.textContent = `native 지도: ${error.message}`; }
+    if (serial !== state.activationSerial || state.disposed) return;
+    await tick();
+  }
+
+  for (const node of [engine, task, confirmed.input, verifiedHint.input, replaceUnsaved.input]) on(node, 'change', updateButtons);
+  for (const toggle of [mapToggle, obsToggle, trailToggle, cameraToggle, followToggle]) on(toggle.input, 'change', () => { if (state.frame) renderMap(state.frame); });
+  on(overlayToggle.input, 'change', () => { if (state.frame) renderImage(state.frame); });
+  on(filter, 'change', applyFilter);
+  on(packageRows, 'click', (event) => {
+    const row = event.target.closest('[data-package-id]');
+    const entry = state.packages.find((value) => value.id === row?.dataset.packageId);
+    if (entry) perform(() => selectPackage(entry));
+  });
+  on(importFile, 'change', () => perform(async () => {
+    const file = importFile.files?.[0];
+    if (!file) return;
+    if (file.size > 512 * 1024 * 1024) throw new Error('PACKAGE_LIMIT');
+    await api('/packages/import', { method: 'POST', body: file, headers: { 'Content-Type': 'application/zip' } });
+    importFile.value = ''; await loadPackages();
+  }));
+  on(doc, 'robot-scope:page-change', (event) => setActive(event.detail?.activePage));
+  on(doc, 'visibilitychange', () => setActive(state.activePage));
+  on(win, 'pagehide', (event) => {
+    if (!event.persisted) { controller.dispose(); return; }
+    disconnectStream(); win.clearTimeout(state.pollTimer); state.imageTicket += 1;
+    state.scene?.destroy(); state.scene = null; state.previewScene?.destroy(); state.previewScene = null;
+  });
+  on(win, 'pageshow', (event) => { if (event.persisted) setActive(doc.documentElement.dataset.activePage || win.location.hash.slice(1)); });
+  const observer = new win.MutationObserver(applyFilter);
+  const legacyList = mapsHost.querySelector('#savedMapList');
+  if (legacyList) observer.observe(legacyList, { childList: true });
+  state.staleTimer = win.setInterval(() => {
+    if (state.frame && !state.staleCleared && Date.now() - state.receiveAt > 1500) {
+      state.staleCleared = true;
+      state.imageTicket += 1; imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      renderMap(state.frame);
+      imageStatus.textContent = 'STALE_SOURCE · 현재 관측점 숨김';
+      heartbeatStatus.textContent = 'stream 새 frame 대기 · 정적 지도 snapshot은 유지';
+    }
+  }, 500);
+  const controller = {
+    setActive, receiveFrame,
+    dispose() {
+      if (state.disposed) return;
+      state.disposed = true;
+      disconnectStream(); win.clearTimeout(state.pollTimer); win.clearInterval(state.staleTimer);
+      state.imageTicket += 1;
+      for (const request of state.requestControllers) request.abort();
+      state.scene?.destroy(); state.previewScene?.destroy(); observer.disconnect();
+      disposers.splice(0).forEach((dispose) => dispose());
+      panel.remove(); library.remove(); controllers.delete(doc);
+    },
+  };
+  controllers.set(doc, controller);
+  setActive(state.activePage);
+  return controller;
+}
+
+if (typeof document !== 'undefined') mountSlamDashboard(document);

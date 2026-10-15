@@ -61,14 +61,14 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 127)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 126)
+        self.assertEqual(len(http), 143)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 142)
         self.assertEqual(
             {
                 method: sum(candidate == method for candidate, _ in http)
                 for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             },
-            {"GET": 56, "POST": 62, "PUT": 1, "PATCH": 5, "DELETE": 3},
+            {"GET": 64, "POST": 69, "PUT": 1, "PATCH": 5, "DELETE": 4},
         )
         self.assertTrue(
             {
@@ -121,8 +121,33 @@ class Phase8ApiContractTests(unittest.TestCase):
                 "/api/v1/ws/cameras/{source_id}",
                 "/api/v1/ws/joints",
                 "/api/v1/ws/pose",
+                "/api/v1/ws/slam",
             },
         )
+
+    def test_slam_inventory_is_explicit(self):
+        observed = {(method, path) for method, path, source, _ in route_inventory()
+                    if source.name == "slam.py"}
+        expected = {
+            ("GET", "/api/v1/slam/engines"),
+            ("GET", "/api/v1/slam/session"),
+            ("GET", "/api/v1/slam/navigation-context"),
+            ("POST", "/api/v1/slam/sessions"),
+            ("POST", "/api/v1/slam/sessions/{session_id}/stop"),
+            ("POST", "/api/v1/slam/sessions/{session_id}/save"),
+            ("POST", "/api/v1/slam/sessions/{session_id}/localize"),
+            ("GET", "/api/v1/slam/jobs/{job_id}"),
+            ("GET", "/api/v1/slam/packages"),
+            ("GET", "/api/v1/slam/packages/{package_id}"),
+            ("GET", "/api/v1/slam/packages/{package_id}/preview"),
+            ("POST", "/api/v1/slam/packages/{package_id}/rename"),
+            ("POST", "/api/v1/slam/packages/{package_id}/copy"),
+            ("DELETE", "/api/v1/slam/packages/{package_id}"),
+            ("GET", "/api/v1/slam/packages/{package_id}/export"),
+            ("POST", "/api/v1/slam/packages/import"),
+            ("WEBSOCKET", "/api/v1/ws/slam"),
+        }
+        self.assertEqual(observed, expected)
 
     def test_every_http_mutation_calls_the_shared_origin_guard(self):
         mutations = [
@@ -130,7 +155,7 @@ class Phase8ApiContractTests(unittest.TestCase):
             for entry in route_inventory()
             if entry[0] in {"POST", "PUT", "PATCH", "DELETE"}
         ]
-        self.assertEqual(len(mutations), 71)
+        self.assertEqual(len(mutations), 79)
         for method, path, _, function in mutations:
             with self.subTest(method=method, path=path):
                 self.assertTrue(calls_name(function, "require_same_origin"))
@@ -146,6 +171,7 @@ class Phase8ApiContractTests(unittest.TestCase):
             "/api/v1/ws/pointcloud",
             "/api/v1/ws/joints",
             "/api/v1/ws/pose",
+            "/api/v1/ws/slam",
         ):
             function = inventory[path]
             guard_line = min(

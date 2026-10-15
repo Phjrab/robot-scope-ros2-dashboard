@@ -90,6 +90,8 @@ class MappingCoordinator:
         self._control_lease_active = control_lease_active
         self._dataset_capture_active = dataset_capture_active
         self._require_lifecycle_idle = require_lifecycle_idle
+        self._external_activity: Callable[[], list[str]] = lambda: []
+        self._external_mutation_blocked: Callable[[], bool] = lambda: False
         self._preview_auto_recovery_enabled = (
             getattr(manager, "preview_auto_recovery_enabled", False) is True
         )
@@ -104,6 +106,12 @@ class MappingCoordinator:
         """Expose the exact shared lock for integration identity checks."""
 
         return self._coordination_lock
+
+    def configure_external_guards(self, *, activity: Callable[[], list[str]],
+                                  mutation_blocked: Callable[[], bool]) -> None:
+        """Attach additive session ownership without replacing LiDAR execution."""
+        self._external_activity = activity
+        self._external_mutation_blocked = mutation_blocked
 
     @property
     def task(self) -> asyncio.Task[None] | None:
@@ -145,6 +153,10 @@ class MappingCoordinator:
             blockers.append("mapping_transition")
         if operation_state in {"saving", "stopping"}:
             blockers.append("mapping_operation_active")
+        try:
+            blockers.extend(self._external_activity())
+        except Exception:
+            blockers.append("external_session_state_unavailable")
         unique = list(dict.fromkeys(blockers))
         return bool(unique), unique
 
@@ -662,7 +674,7 @@ class MappingCoordinator:
 
     def _require_navigation_idle(self, detail: str) -> None:
         try:
-            active = bool(self._navigation_active())
+            active = bool(self._navigation_active() or self._external_mutation_blocked())
         except Exception as exc:
             # Mutations fail closed when navigation ownership cannot be read.
             raise MappingCoordinatorConflict(detail) from exc

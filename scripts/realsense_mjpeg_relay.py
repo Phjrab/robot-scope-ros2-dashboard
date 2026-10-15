@@ -824,6 +824,23 @@ class GstProducer:
                 break
 
     def _run_once(self) -> str:
+        # Opt-in installation-side lock path shared with managed stereo SLAM.
+        # Keep ownership for the entire capture subprocess, including shutdown.
+        lock_path = os.environ.get("ROBOT_SCOPE_CAMERA_LOCK", "")
+        if not lock_path:
+            return self._run_capture()
+        import runpy
+        helpers = runpy.run_path(str(Path(__file__).resolve().parents[1] / "robot_dashboard" / "slam_camera.py"))
+        try:
+            descriptor = helpers["acquire_producer_lock"](Path(lock_path))
+        except (RuntimeError, OSError):
+            return "CAMERA_BUSY: stereo session owns the camera reservation"
+        try:
+            return self._run_capture()
+        finally:
+            helpers["release_producer_lock"](descriptor)
+
+    def _run_capture(self) -> str:
         device = resolve_realsense_device()
         process = subprocess.Popen(
             list(gstreamer_command(device, self._config)),

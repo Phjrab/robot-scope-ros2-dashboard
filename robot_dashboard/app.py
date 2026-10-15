@@ -45,6 +45,8 @@ from .api.routers.relocalization import router as relocalization_router
 from .api.routers.system import router as system_router
 from .api.routers.resources import router as resources_router
 from .api.routers.telemetry import router as telemetry_router
+from .api.routers.slam import router as slam_router
+from .slam_wiring import close_slam, configure_slam
 from .api.models import (
     ControlArmRequest,
     ControlClearEstopRequest,
@@ -88,7 +90,7 @@ from .diagnostics import DiagnosticsBundleService
 from .mapping_jobs import (
     SUPPORTED_MAPPING_PROFILES,
     COMPETITION_FASTLIO_MAPPING_PROFILE,
-    COMPETITION_DIRECT_MAPPING_PROFILE,
+    COMPETITION_DIRECT_MAPPING_PROFILE as COMPETITION_DIRECT_MAPPING_PROFILE,
     InvalidMapName,
     JobBusyError,
     MappingJobError,
@@ -201,6 +203,7 @@ async def lifespan(fastapi: FastAPI):
                 LOGGER.exception("navigation coordinator shutdown failed")
         # Motion stop takes priority over potentially slow storage/process work.
         runtime.agent.shutdown_control()
+        await close_slam(runtime, LOGGER)
         if runtime.perception is not None:
             runtime.perception.close()
         if runtime.dataset_capture is not None:
@@ -400,6 +403,7 @@ app.include_router(perception_router)
 app.include_router(route_planner_router)
 app.include_router(relocalization_router)
 app.include_router(resources_router)
+app.include_router(slam_router)
 def require_navigation_idle(detail: str) -> None:
     if navigation_coordinator().is_active():
         raise HTTPException(status_code=409, detail=detail)
@@ -638,6 +642,8 @@ async def control_arm(request: Request, body: ControlArmRequest) -> Dict[str, An
     async with RUNTIME.pipeline_coordination_lock:
         require_manual_operation_mode(RUNTIME)
         require_service_lifecycle_idle()
+        if RUNTIME.slam is not None and RUNTIME.slam.blocks_context_change():
+            raise HTTPException(status_code=409, detail="SLAM observation session must stop before manual control can arm")
         if navigation_coordinator().manual_control_blocked():
             raise HTTPException(
                 status_code=409,
@@ -1498,8 +1504,7 @@ def main() -> None:
         return True if not isinstance(lease, dict) else bool(lease.get("active"))
 
     RUNTIME.mapping = MappingCoordinator(
-        mapping_manager,
-        catalog,
+        mapping_manager, catalog,
         coordination_lock=RUNTIME.pipeline_coordination_lock,
         navigation_active=navigation_is_active,
         control_lease_active=control_lease_is_active,
@@ -1514,10 +1519,7 @@ def main() -> None:
         navigation_profile=args.mapping_profile,
     )
     RUNTIME.navigation = NavigationCoordinator(
-        RUNTIME.agent,
-        navigation_manager,
-        RUNTIME.mapping,
-        catalog,
+        RUNTIME.agent, navigation_manager, RUNTIME.mapping, catalog,
         coordination_lock=RUNTIME.pipeline_coordination_lock,
         require_lifecycle_idle=require_lifecycle_idle_application,
         logger=LOGGER,
@@ -1533,18 +1535,16 @@ def main() -> None:
         perception=MockRoutePerceptionProvider())
     RUNTIME.lifecycle = LifecycleCoordinator.from_environment(
         control_snapshot_provider=RUNTIME.agent.control_snapshot,
-        navigation_runtime_snapshot_provider=(
-            RUNTIME.agent.navigation_runtime_snapshot
-        ),
+        navigation_runtime_snapshot_provider=RUNTIME.agent.navigation_runtime_snapshot,
         navigation_jobs_snapshot_provider=RUNTIME.navigation.jobs.snapshot,
         mapping_jobs_snapshot_provider=RUNTIME.mapping.snapshot,
-        mapping_task_active_provider=RUNTIME.mapping.task_active,
-        navigation_start_snapshot_provider=(
-            RUNTIME.navigation.internal_start_state
-        ),
+        mapping_task_active_provider=lambda: RUNTIME.mapping.task_active() or (
+            RUNTIME.slam is not None and RUNTIME.slam.blocks_context_change()),
+        navigation_start_snapshot_provider=RUNTIME.navigation.internal_start_state,
         dataset_capture_active_provider=RUNTIME.dataset_capture.is_active,
     )
     configure_stationary_relocalization(RUNTIME, args, project_dir, catalog)
+    configure_slam(RUNTIME, project_dir, Path(args.navigation_runtime_dir).expanduser().resolve() / "multi-slam")
     def competition_blockers() -> Dict[str, bool]:
         control = RUNTIME.agent.control_snapshot()
         lease = control.get("lease", {})
