@@ -198,6 +198,17 @@ class SpatialRoutePureTests(unittest.TestCase):
         with self.assertRaises(SpatialRouteConflict):
             validate_route(normalized(), self.maps.geometry, document)
 
+    def test_keepout_edge_accounts_for_entire_circular_footprint(self):
+        self.maps.document['polygons'] = [{'id': 'a'*24, 'type': 'KEEP_OUT', 'name': 'edge',
+            'vertices': [{'x':3.,'y':1.},{'x':4.,'y':1.},{'x':4.,'y':3.},{'x':3.,'y':3.}]}]
+        # Center remains outside the zone; only its effective padded footprint
+        # crosses the boundary. This is planning validation, not Nav2 proof.
+        result = validate_route(normalized(poses=[pose(2.8,2.)]), self.maps.geometry, self.maps.document, robot_radius_m=.25)
+        self.assertFalse(result['valid'])
+        self.assertIn('KEEP_OUT', {v['kind'] for v in result['violations']})
+        result = validate_route(normalized(poses=[pose(2.7,2.)]), self.maps.geometry, self.maps.document, robot_radius_m=.25)
+        self.assertTrue(result['valid'])
+
     def test_simplification_is_deterministic_and_preserves_final_yaw(self):
         values = [pose(index * 0.1, 2.0 + (0.001 if index % 2 else 0.0), yaw=0.0) for index in range(100)]
         values[-1]["yaw"] = 3.0

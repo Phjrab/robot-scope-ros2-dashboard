@@ -28,6 +28,7 @@ class MissionRoutes:
         self._lock = asyncio.Lock()
         self._generation = 0
         self._last_observation = {}
+        self._preview_active = False
         self._validate_store()
         self._persisted = copy.deepcopy(self.data)
         self._admission = object()
@@ -271,6 +272,8 @@ class MissionRoutes:
         # Native planning shares the map/resource window, but claims no motion
         # owner. MS lifecycle cannot replace the planner map during this call.
         async with self.coordinator._coordination_lock:
+            if self._preview_active or self.coordinator.blocks_navigation_goal():
+                raise MissionConflict("PLANNER_RESOURCE_BUSY")
             context = self.context.snapshot()
             if "SLAM_CONTEXT_BUSY" in context["blocking_reasons"]:
                 raise MissionConflict("SLAM_CONTEXT_BUSY")
@@ -278,7 +281,18 @@ class MissionRoutes:
             family = entry["definition"]["map_family"]
             if context["navigation_map"] != {"id": family["occupancy_map_id"], "revision": family["occupancy_revision"]}:
                 raise MissionConflict("PLANNER_MAP_MISMATCH")
+            self._preview_active = True
+        try:
             return await self._preview_locked(identifier, body)
+        finally:
+            async with self.coordinator._coordination_lock:
+                self._preview_active = False
+
+    def blocks_context_change(self):
+        """Reservation only; slow native waits never hold the shared lock."""
+        diagnostics = getattr(self.planner, "diagnostics", None)
+        status = diagnostics() if diagnostics else {}
+        return self._preview_active or bool(status.get("foreground_busy") or status.get("cleanup") == "quarantined")
 
     async def _preview_locked(self, identifier, body):
         entry = self.definition(identifier, body.revision)
@@ -306,10 +320,17 @@ class MissionRoutes:
             if not checked["valid"]:
                 return {**report, "status": "BLOCKED", "scope": "planner", "blocking_reasons": ["PLANNED_PATH_INVALID"], "violations": checked["violations"], "legs": legs, "actual_nav2_run": planned.get("actual_nav2_run") is True, "length_m": None, "eta_seconds": None, "plan_generation": generation}
             actual = actual and planned.get("actual_nav2_run") is True
-            legs.append({"visit_id": entry["definition"]["visits"][index]["visit_id"], "poses": full, "length_m": route_length(full), "evidence_type": planned.get("evidence_type")})
+            legs.append({"visit_id": entry["definition"]["visits"][index]["visit_id"], "poses": full, "length_m": route_length(full), "evidence_type": planned.get("evidence_type"), "native_evidence": self._native_evidence(planned, include_path=True)})
             current = target
-        if generation != self._generation or self.definition(identifier)["revision"] != body.revision or self.context.snapshot()["navigation_context_revision"] != context["navigation_context_revision"]:
-            raise MissionConflict("PREVIEW_CONTEXT_CHANGED")
+        async with self.coordinator._coordination_lock:
+            latest = self.context.snapshot()
+            # Spatial revisions and liveness are independent of the semantic
+            # context hash. Re-resolve both after the asynchronous native wait.
+            self._resolved(entry)
+            if body.start_source == "current_operational_pose" and latest.get("operational_pose") is None:
+                raise MissionConflict("FRESH_OPERATIONAL_POSE_REQUIRED")
+            if generation != self._generation or self.definition(identifier)["revision"] != body.revision or latest["navigation_context_revision"] != context["navigation_context_revision"]:
+                raise MissionConflict("PREVIEW_CONTEXT_CHANGED")
         return {**report, "status": "PASS", "scope": "planner", "start_source": body.start_source, "start_pose": start, "snapshot_seq": context.get("snapshot_seq"), "actual_nav2_run": actual, "evidence_type": "native_planner" if actual else "synthetic", "legs": legs, "length_m": sum(leg["length_m"] for leg in legs), "eta_seconds": None, "plan_generation": generation, "observed_at": utc(), "notice": "계획 시점 결과 · 실행 중 재계획 가능"}
 
     async def compile(self, identifier, body):
@@ -410,6 +431,18 @@ class MissionRoutes:
         self._resolved({"definition": run["definition"]})
 
     @staticmethod
+    def _native_evidence(plan, *, include_path=False):
+        evidence = {key: copy.deepcopy(plan[key]) for key in (
+            "goal_id", "action_name", "planner_id", "action_server", "ros_environment", "request"
+        ) if key in plan}
+        raw = plan.get("native_path")
+        if isinstance(raw, dict):
+            evidence["native_path_digest"] = digest(raw)
+            if include_path:
+                evidence["native_path"] = copy.deepcopy(raw)
+        return evidence
+
+    @staticmethod
     def _planned_points(plan):
         raw = plan.get("poses")
         if plan.get("frame") != "map" or not isinstance(raw, list) or not 1 <= len(raw) <= 4096:
@@ -439,7 +472,7 @@ class MissionRoutes:
         if checked.get("zones"):
             raise MissionConflict("ZONE_BEHAVIOR_UNSUPPORTED: SLOW_ZONE/WAIT_ZONE runtime behavior is unavailable")
         self.require_run_context(mission)
-        run["preview"] = {"legs": [{"visit_id": run["definition"]["visits"][mission["current_index"]]["visit_id"], "poses": points}], "actual_nav2_run": True, "observed_at": utc(), "scope": "dispatch_preflight", "notice": "실행 직전 계획 · Nav2 내부 재계획 가능"}
+        run["preview"] = {"legs": [{"visit_id": run["definition"]["visits"][mission["current_index"]]["visit_id"], "poses": points, "native_evidence": self._native_evidence(plan)}], "actual_nav2_run": True, "observed_at": utc(), "scope": "dispatch_preflight", "notice": "실행 직전 계획 · Nav2 내부 재계획 가능"}
         self._save()
 
     async def action(self, identifier, action, body):

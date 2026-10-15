@@ -28,6 +28,7 @@ from ..localization_health import (
     build_calibration_assistant,
     classify_localization_health,
 )
+from ..localization_diagnostics import sanitize_localization_diagnostics
 
 
 LOGGER = logging.getLogger(__name__)
@@ -242,6 +243,7 @@ class NavigationRosGateway:
         self._navigation_clear_count = 0
         self._navigation_fresh_sequence_count = 0
         self._navigation_health_sequences = (0, 0)
+        self._navigation_latest_instance_ns = 0
         self._navigation_clock_offsets_s: Dict[str, Optional[float]] = {
             NAVIGATION_FAST_LIO_ODOM_TOPIC: None,
             self._controller_odom_topic: None,
@@ -290,6 +292,7 @@ class NavigationRosGateway:
             "error": None,
         }
         self._localization_failure_callback: Callable[[str], None] | None = None
+        self._policy_readback: Any = None
 
     @property
     def lock(self) -> threading.RLock:
@@ -435,6 +438,15 @@ class NavigationRosGateway:
                 self._navigation_clear_clients = clear_clients
                 self._navigation["error"] = None
                 self._navigation["seq"] += 1
+            # Optional read-only observer failure never removes STOP/control
+            # transport. It can only keep managed mission admission closed.
+            try:
+                from .policy_readback import RosPolicyReadback
+                observer = RosPolicyReadback(node)
+                observer.setup()
+                self._policy_readback = observer
+            except Exception:
+                LOGGER.info("Nav2 effective policy readback unavailable")
         except Exception as exc:
             with self._navigation_lock:
                 self._navigation["state"] = "unavailable"
@@ -1623,6 +1635,19 @@ class NavigationRosGateway:
                 or (self._rate_policy.enabled and process_generation == 0)
             ):
                 raise ValueError("health process generation is invalid")
+            instance = payload.get("runtime_instance_generation")
+            instance_ns = 0
+            if instance is not None:
+                if not isinstance(instance, str) or not re.fullmatch(r"[0-9]{1,10}:[0-9]{1,19}", instance):
+                    raise ValueError("health runtime instance generation is invalid")
+                instance_pid, instance_ns = (int(v) for v in instance.split(":"))
+                if instance_pid != process_generation or not 0 < instance_ns <= 2**63 - 1:
+                    raise ValueError("health runtime instance identity is invalid")
+            health_sequence = payload.get("health_sequence")
+            if health_sequence is not None and (
+                type(health_sequence) is not int or not 0 <= health_sequence <= 2**53 - 1
+            ):
+                raise ValueError("health sequence is invalid")
             if self._rate_policy.enabled and (
                 any(value is None for value in raw_rate_metrics.values())
                 or bounded_integers["odometry_sample_count"] < 2
@@ -1668,6 +1693,8 @@ class NavigationRosGateway:
             **scheduler_diagnostics,
             **bounded_integers,
             "process_generation": process_generation,
+            "runtime_instance_generation": instance,
+            "health_sequence": health_sequence,
             "last_jump_reason": public_navigation_reason(payload.get("last_jump_reason"))[:80] if payload.get("last_jump_reason") else "",
             "frame_error": public_navigation_reason(payload.get("odom_frame_error", ""))[:160] if payload.get("odom_frame_error") else "",
             "frames": self._sanitize_runtime_frames(payload.get("frames")),
@@ -1682,6 +1709,30 @@ class NavigationRosGateway:
             "error": None,
         }
         with self._navigation_lock:
+            if self._navigation_latest_instance_ns and instance_ns < self._navigation_latest_instance_ns:
+                # Same-host invocation tokens are monotonic process-start ns.
+                # Retired/legacy envelopes cannot roll a restarted runtime back.
+                return
+            self._navigation_latest_instance_ns = max(self._navigation_latest_instance_ns, instance_ns)
+            previous_health = self._navigation_runtime_health
+            same_instance = (
+                previous_health.get("process_generation") == process_generation
+                and previous_health.get("runtime_instance_generation") == instance
+            )
+            if not same_instance:
+                self._navigation_fresh_sequence_count = 0
+                self._navigation_health_sequences = (0, 0)
+            elif (health_sequence is not None and previous_health.get("health_sequence") is not None
+                    and health_sequence <= previous_health["health_sequence"]):
+                # Duplicate/delayed envelopes never renew the freshness receipt.
+                return
+            diagnostics = sanitize_localization_diagnostics(payload.get("localization_diagnostics"))
+            if (diagnostics is not None and diagnostics.get("process_generation") == process_generation
+                    and diagnostics.get("runtime_instance_generation") == instance
+                    and health_sequence is not None and diagnostics.get("health_sequence", health_sequence + 1) <= health_sequence):
+                sanitized["localization_diagnostics"] = diagnostics
+            elif same_instance and "localization_diagnostics" not in payload:
+                sanitized["localization_diagnostics"] = previous_health.get("localization_diagnostics")
             if (
                 self._navigation_runtime_health_received > 0.0
                 and now - self._navigation_runtime_health_received
@@ -2748,6 +2799,7 @@ class NavigationRosGateway:
             self._navigation_profile,
             self._readiness_session_generation,
             self._navigation_runtime_health.get("process_generation"),
+            self._navigation_runtime_health.get("runtime_instance_generation"),
         )
         self._health_stabilizer.reset(generation, reason)
         self._localization_health = self._health_stabilizer.snapshot()
@@ -2779,6 +2831,7 @@ class NavigationRosGateway:
             self._navigation_profile,
             self._readiness_session_generation,
             runtime_health.get("process_generation"),
+            runtime_health.get("runtime_instance_generation"),
         )
         self._localization_health = self._health_stabilizer.update(
             instantaneous,
@@ -3191,6 +3244,7 @@ class NavigationRosGateway:
                         self._navigation_profile,
                         self._readiness_session_generation,
                         runtime_health.get("process_generation"),
+                        runtime_health.get("runtime_instance_generation"),
                     )
                     self._localization_health = self._health_stabilizer.update(
                         instantaneous_health,
@@ -3385,6 +3439,7 @@ class NavigationRosGateway:
                 "navigation_lease_active": navigation_lease_active,
                 "cleanup_required": cleanup_required,
                 "runtime_health": self._public_rate_metrics(runtime_health),
+                "policy_readback": self._policy_readback.snapshot() if self._policy_readback is not None else {},
                 "localization_health": localization_health,
                 "calibration_assistant": calibration_assistant,
                 "bindings": {

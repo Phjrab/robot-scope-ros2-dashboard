@@ -5,15 +5,22 @@ from ..application.mission_coordinator import MissionConflict
 from .context import NavigationContext
 from .planner import NativePlanner
 from .service import MissionRoutes
+from ..navigation_policy import RuntimePolicyProvider
 
 
 def configure_mission_routes(runtime, state_root, *, native_planner_window=False, policy_provider=None):
     if runtime.mission is None or runtime.navigation is None or runtime.saved_maps is None or runtime.spatial_routes is None:
         return
     slam = getattr(runtime, "slam", None)
-    context = NavigationContext(runtime.navigation, slam=slam, policy_provider=policy_provider, runtime_provider=lambda: runtime.agent.navigation_runtime_snapshot() if getattr(runtime, "agent", None) else {})
+    def runtime_snapshot():
+        return runtime.agent.navigation_runtime_snapshot() if getattr(runtime, "agent", None) else {}
+    context = NavigationContext(runtime.navigation, slam=slam,
+        policy_provider=policy_provider if policy_provider is not None else RuntimePolicyProvider(runtime_snapshot),
+        runtime_provider=runtime_snapshot)
 
     def guard(mission):
+        if runtime.mission_routes is not None and runtime.mission_routes.blocks_context_change():
+            raise MissionConflict("PLANNER_RESOURCE_BUSY")
         if slam is not None:
             try:
                 slam.require_context_idle()

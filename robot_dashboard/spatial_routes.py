@@ -414,9 +414,16 @@ def validate_route(
         )
         for polygon in polygons:
             vertices = polygon.get("vertices")
-            if not isinstance(vertices, list) or len(vertices) < 3 or not _point_in_polygon(x, y, vertices):
+            if not isinstance(vertices, list) or len(vertices) < 3:
                 continue
             zone_type = polygon.get("type")
+            inside = _point_in_polygon(x, y, vertices)
+            if zone_type == "KEEP_OUT" and not inside:
+                point = {"x": x, "y": y}
+                inside = any(_point_segment_distance(point, left, right) <= robot_radius_m
+                    for left, right in zip(vertices, vertices[1:] + vertices[:1]))
+            if not inside:
+                continue
             if zone_type == "KEEP_OUT":
                 kind = kind or "KEEP_OUT"
             elif zone_type in {"SLOW_ZONE", "WAIT_ZONE"}:

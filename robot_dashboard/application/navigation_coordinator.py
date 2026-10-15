@@ -2373,6 +2373,9 @@ class NavigationCoordinator:
         calibration = runtime.get("calibration_assistant")
         if isinstance(calibration, Mapping):
             result["calibration_assistant"] = dict(calibration)
+        diagnostics = (runtime.get("runtime_health") or {}).get("localization_diagnostics")
+        result["localization_diagnostics"] = dict(diagnostics) if isinstance(diagnostics, Mapping) else None
+        result["localization_diagnostics_unavailable_reason"] = None if isinstance(diagnostics, Mapping) else "unobservable"
         deactivation_reason = runtime.get("deactivation_reason")
         if isinstance(deactivation_reason, str) and deactivation_reason:
             public_reason = _public_navigation_diagnostic(deactivation_reason)

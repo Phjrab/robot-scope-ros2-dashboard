@@ -1,0 +1,64 @@
+# Robot Scope integration handoff — stop after36
+
+**Stages30–36 available software work is complete; SOFTWARE_CLOSURE remains
+false. No deployment or stage40–43 action occurred.** Published source and exact
+CI: [VALIDATION.json](VALIDATION.json); source/test byte pins:
+[SOURCE_MANIFEST.json](SOURCE_MANIFEST.json). Baseline was clean
+`2555f3763996c7b331389924bb5df48d62094736`. No branch/worktree/PR was created.
+
+The actual device was inspected read-only: clean disk checkout
+`416d25c6e1c98b0c51097c9d6576b6ae34a690e9`, dashboard supervisor PID996,
+Python3.10, active dashboard/bridge/on-demand relay; no container running.
+Last navigation observation was idle/uninitialized with no active Nav2 pipeline
+and goal admission false. This is a timestamped readback, not continuous proof of
+current state. Loaded module/release/invocation and aggregate config digest remain
+null. Existing map ID/revision and historical initial coordinates were found in
+private evidence and current catalogue; physical pose validity is unconfirmed.
+
+No runtime/camera/service owner was acquired. No initialpose, ARM/lease, goal,
+movement, replay, subscription, GPU job, service restart, pipeline or deployment
+was performed. No other chat response is required to close this scope. All three
+delegated source owners are finished; no pending writer remains.
+
+| Capability | Judgment | Smallest next action |
+| --- | --- | --- |
+| Localization diagnostics and reproduced defects | SOFTWARE_FIXED / live root cause UNCONFIRMED | Later approved exact-candidate localization-only trace; correlate callback/reject/accepted evidence within one invocation, without changing thresholds |
+| MR-MS-003 real readback/provider/context | PARTIAL | Implement versioned mask/native collision profile and qualified global/local/controller/BT ingestion/map binding, then raw-positive production tests |
+| NativePlanner product path | SOFTWARE_TEST PASS / actual native NOT_RUN | Qualified isolated Humble product HTTP matrix with exact server/plugin/config identity and owned cleanup; operating Jetson requires later window |
+| MS native lifecycle/feature image projection | SOFTWARE_TEST PASS / actual NOT_RUN | Fixed helper/broker install manifest and shared camera lock ownership, then separately approved stationary native acceptance |
+| Native map save/load/reuse | NOT_RUN / BLOCKED | Compatible official package, verified private map-to-camera hint, official callback and fresh corrected pose plus geometric alignment |
+| MAP-02 every retained landmark | PARTIAL / BLOCKED | Obtain supported full/frozen/paged API guarantee with independent retained total or reviewed exhaustion contract; preserve native IDs/weights; qualify installed export above current cap |
+| Runtime provenance/live_plan/ETA | unavailable/null | Managed startup artifact attestation and trustworthy active-goal path binding before values can be exposed |
+| History capacity maintenance | procedure only | Verified terminal export, then separately designed tombstone/namespace-safe reclaim; no live JSON edits or cap increase |
+
+Local regressions: Python1987/1985pass/2skip/0fail, JS381pass, Chromium96pass.
+The two skips and limited mypy scope are explicit in VALIDATION.json. These are
+hardware-free software fixtures; native and live rows are separate in
+[ACCEPTANCE_MATRIX.json](ACCEPTANCE_MATRIX.json). Its original required_for flags
+are retained, so unresolved native dependencies and policy software keep closure
+false; fixture support does not silently turn those rows PASS.
+
+Production path is gateway async readback → cached provider from real default
+configure → NavigationContext → existing compile/start/dispatch coordinator.
+Current policy scopes remain false because real unknown/KEEP_OUT enforcement
+is absent. Preview uses the existing fixed planning-only action, no motion bypass;
+its shared reservation survives repeated cancellation and uncertain cleanup.
+Native path full evidence is returned by preview; run history stores compact
+provenance and raw-path digest within the unchanged512KiB bound.
+
+mission-plans.v1 remains the stored schema. Additive result/context evidence does
+not backfill old history. Test old strict readers/rollback on copied fixtures;
+keep active/paused/canceling/uncertain runs and idempotency receipts. Safe export
+and separate source/data/service rollback are in [OPERABILITY.md](OPERABILITY.md).
+Normal source rollback uses revert; deployment and data restoration need their
+own manifest, never restore lease/ARM/active goals.
+
+Private evidence and SHA256 manifest remain in the sibling
+`robot-scope-hardware-validation-private/integration-20261015/`; original map and
+pose records remain in `stage04-newmap-20261014T113809Z/`. Raw coordinates/native
+bytes/secrets are absent from Git. No map, mission history, bag, environment,
+container, installation or service was deleted or overwritten. Preserve them.
+
+No continuation is scheduled. Reopen a later scope only on a new user request;
+stages40–43 require their own current conditions and must not inherit software
+publication authorization.

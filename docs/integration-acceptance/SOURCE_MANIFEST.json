@@ -1,0 +1,88 @@
+{
+  "schema": "robot-scope.integration-source-manifest.v1",
+  "baseline": "2555f3763996c7b331389924bb5df48d62094736",
+  "recorded_at": "2026-10-15T09:49:25.813933+00:00",
+  "identity_basis": "exact pre-commit source bytes, documentation excluded to avoid recursive self-hashes",
+  "files": {
+    "robot_dashboard/application/navigation_coordinator.py": {
+      "sha256": "9e8ab6915ed3bcf4f56dcbe10073662e57c96018864585b4215d39fb117e9108",
+      "bytes": 87023
+    },
+    "robot_dashboard/localization_diagnostics.py": {
+      "sha256": "90a010d966573f83aa35515e0da4af475e51196dc01de1eda2ddce76c93fc029",
+      "bytes": 12191
+    },
+    "robot_dashboard/mission_routes/context.py": {
+      "sha256": "7e21c497301cec5a9044dc1bf7ecef6d281691e4652cd532b91ce18d81147e73",
+      "bytes": 5734
+    },
+    "robot_dashboard/mission_routes/planner.py": {
+      "sha256": "115d96fd064f4e8c79fda5de74ea9a87d8bf31a02336fcd8d5bc1864ab5dde83",
+      "bytes": 18214
+    },
+    "robot_dashboard/mission_routes/service.py": {
+      "sha256": "d9bebca57a0433d897c207802287a1d9925c39dab561fc2f73834a10843f3dd3",
+      "bytes": 33559
+    },
+    "robot_dashboard/mission_routes/wiring.py": {
+      "sha256": "a79872372ef0a4369d7ef48dc0c2e5989dd333fa7a43e9f9ff1f13d3e78e6ae4",
+      "bytes": 1930
+    },
+    "robot_dashboard/navigation_policy.py": {
+      "sha256": "3eeabc89325e8cca1ecc9e0d1693baf5741d94f2bf3caabb46fab84a7e498bcc",
+      "bytes": 6187
+    },
+    "robot_dashboard/navigation_runtime.py": {
+      "sha256": "66e4fbe4fb57113cde459cc45fb3306569bbf41dba00d7f0c1abf710963ac519",
+      "bytes": 79781
+    },
+    "robot_dashboard/ros/navigation_gateway.py": {
+      "sha256": "33a5d38ae297048f677c911c914e1308a98c1701f9a7eee60c371132dfbf7981",
+      "bytes": 151241
+    },
+    "robot_dashboard/ros/policy_readback.py": {
+      "sha256": "44e016a0f9885ef2276b8fec87426eff50d0fe295f508f81db8a6936065030bf",
+      "bytes": 8334
+    },
+    "robot_dashboard/slam_features.py": {
+      "sha256": "2a9281228afbac63319391dda694090558685a02df09818de19e15dc1c825837",
+      "bytes": 43287
+    },
+    "robot_dashboard/slam_sessions.py": {
+      "sha256": "48fad81b3baebe847ef21c08828441f5cb8d251ed0bb01517cf8302a35c73995",
+      "bytes": 28458
+    },
+    "robot_dashboard/spatial_routes.py": {
+      "sha256": "0320f5ff85e91a89613457bad9337f128fe30f87002fcb341434c666c95ac0ee",
+      "bytes": 33083
+    },
+    "tests/test_localization_gateway_generation.py": {
+      "sha256": "53732f5500e2e027bfae0f720754b7097759a4b38083d42755f34fabc97f55b9",
+      "bytes": 4485
+    },
+    "tests/test_localization_startup_diagnostics.py": {
+      "sha256": "1349066dba54e38a2303fad11c0cc3b56adfe0acb131f738815b1dd97d31ee53",
+      "bytes": 16896
+    },
+    "tests/test_mission_route_planner.py": {
+      "sha256": "ee5a0377b4a1991d31e0c0930bbf607c6195917d11d123776da19b6a35e85c30",
+      "bytes": 17865
+    },
+    "tests/test_mission_route_service.py": {
+      "sha256": "6467f63246a5661dab2ccb7b2ebcc2c77475fa750205425b3d7bb3882043d089",
+      "bytes": 29382
+    },
+    "tests/test_runtime_policy.py": {
+      "sha256": "de960cd91fb644e83b08a46cc7a4c3521801d94699da9b86d297ae1550652de3",
+      "bytes": 10455
+    },
+    "tests/test_slam_features.py": {
+      "sha256": "f228464ca6cf8af198529499a989e16357998e2572b5ed0b87c609a4553fdc42",
+      "bytes": 32633
+    },
+    "tests/test_spatial_routes.py": {
+      "sha256": "d6f4a81249a959324cedb76a33e2d1ad909bc40d734fb1e2059f074bdb94d2e9",
+      "bytes": 16855
+    }
+  }
+}

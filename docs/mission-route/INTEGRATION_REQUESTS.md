@@ -33,3 +33,19 @@ actual MS manager/projection/configure + MR synthetic provider 교차8, 실제 a
 ## 후보와 자원 상태
 
 MR source30개에 합의된 shared source/tests4개가 포함됐다. MS docs는 MS가 별도7747ef7로 게시했으며 MR이 수정하지 않았다. MS final CI success는 MR source 검증과 구분한다. MR exact b42b28f CI38694446361은 두 Linux 환경 success로 확인했다. PROGRESS/VALIDATION/CI.json에 기록했다. 장비 배포·서비스·센서 변경 없음.
+
+## Integration follow-up — 2026-10-15, stages30–36
+
+The new integration owner accepted shared software ownership from the user.
+MR-MS-003 is now **PARTIAL: production observer/provider wired, enforcement still
+BLOCKED by software**. Fixed asynchronous effective readback and canonical policy
+meaning/freshness separation replace the default missing provider. The installed
+profile still has no qualified global/local KEEP_OUT/unknown/controller/replanning
+mechanism; config readback never asserts enforcement. No new run is authorized by
+this change. See [runtime contract](../integration-acceptance/RUNTIME_POLICY_CONTRACT.md).
+MR-MS-004 invocation token is propagated independently of pose sequence, including
+same-PID restart and retired-envelope fences. Native preview now pins server GID,
+ROS environment, own goal UUID and cleanup ownership; actual native remains NOT_RUN.
+Latest source manifest/full candidate validation and remaining conditions are in
+[the integration handoff](../integration-acceptance/HANDOFF.md). Historical published
+software evidence above remains unchanged. No deployment or stage40–43 execution.

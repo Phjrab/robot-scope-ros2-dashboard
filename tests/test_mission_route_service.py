@@ -429,11 +429,13 @@ class MissionRouteServiceTests(unittest.IsolatedAsyncioTestCase):
         self.planner.plan = delayed
         task = asyncio.create_task(self.service.preview(entry['id'],PreviewRequest(request_id='preview-lock-00001',revision=entry['revision'],start_source='current_operational_pose')))
         await entered.wait()
-        self.assertTrue(self.coordinator._coordination_lock.locked())
+        self.assertFalse(self.coordinator._coordination_lock.locked())
+        self.assertTrue(self.service.blocks_context_change())
         self.assertFalse(self.coordinator.blocks_navigation_goal())
         release.set()
         await task
         self.assertFalse(self.coordinator._coordination_lock.locked())
+        self.assertFalse(self.service.blocks_context_change())
 
     async def test_run_receipt_is_bounded_reference_and_replay_does_not_dispatch(self):
         self.planner.actual = True

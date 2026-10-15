@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 
 from .models import Pose, digest
+from ..navigation_policy import semantic_policy
 
 
 class NavigationContext:
@@ -19,20 +20,31 @@ class NavigationContext:
         pipeline = nav.get("pipeline") or {}
         shared = nav.get("localization_pipeline") or {}
         bindings = nav.get("bindings") or {}
-        policy = self.policy_provider()
+        try:
+            policy = self.policy_provider()
+            if not isinstance(policy, dict):
+                raise ValueError()
+        except Exception:
+            policy = {"blocking_reasons": ["POLICY_PROVIDER_UNAVAILABLE"]}
         # Job identities remain useful pins, but a runtime can restart inside
         # the same jobs. Pin its operational process generation independently.
         generation = [pipeline.get("job_id"), shared.get("job_id")]
-        semantic = {"map": {k: nav_map.get(k) for k in ("id", "revision")}, "generation": generation, "bindings": bindings, "policy": policy}
+        semantic = {"map": {k: nav_map.get(k) for k in ("id", "revision")}, "generation": generation, "bindings": bindings, "policy": semantic_policy(policy)}
         ms = self.slam.navigation_context() if self.slam is not None else None
         if ms is not None:
             semantic["multi_slam"] = {"navigation_map": ms.get("navigation_map"), "alignment": ms.get("alignment"), "source": (ms.get("operational_pose") or {}).get("source"), "generation": (ms.get("operational_pose") or {}).get("generation")}
-        raw = self.runtime_provider()
+        try:
+            raw = self.runtime_provider()
+            if not isinstance(raw, dict):
+                raw = {}
+        except Exception:
+            raw = {}
         source = (ms.get("operational_pose") or {}).get("source") if ms else (raw.get("bindings") or {}).get("localization_pose", bindings.get("localization_pose"))
-        source_generation = (ms.get("operational_pose") or {}).get("generation") if ms is not None else (raw.get("runtime_health") or {}).get("process_generation")
+        source_generation = (ms.get("operational_pose") or {}).get("generation") if ms is not None else ((raw.get("runtime_health") or {}).get("runtime_instance_generation") or (raw.get("runtime_health") or {}).get("process_generation"))
         known_generation = (
             isinstance(source_generation, int) and not isinstance(source_generation, bool) and source_generation > 0
-            or ms is not None and isinstance(source_generation, str) and bool(source_generation.strip()) and len(source_generation) <= 128
+            or (ms is not None or (raw.get("runtime_health") or {}).get("runtime_instance_generation") == source_generation)
+                and isinstance(source_generation, str) and bool(source_generation.strip()) and len(source_generation) <= 128
         )
         if not known_generation:
             source_generation = None
@@ -63,6 +75,7 @@ class NavigationContext:
             reasons.append("RUNTIME_POLICY_NOT_ENFORCED")
         if not policy.get("planner_config_digest") or not policy.get("footprint_revision"):
             reasons.append("EFFECTIVE_PLANNER_CONFIG_UNAVAILABLE")
+        reasons.extend(policy.get("blocking_reasons") or [])
         semantic["operational_source"] = source
         return {
             "navigation_map": semantic["map"], "frame": "map", "units": "m",
@@ -73,5 +86,7 @@ class NavigationContext:
             "footprint_revision": policy.get("footprint_revision"),
             "robot_radius_m": policy.get("robot_radius_m"),
             "runtime_policy_enforced": policy.get("runtime_policy_enforced") is True,
+            "policy_evidence": policy.get("evidence", {}),
+            "policy_scopes": policy.get("scopes", {}),
             "capabilities": {"arrival": ["NAV2_DEFAULT"], "speed": ["DEFAULT"], "visits": ["STOP", "TASK"], "actions": ["hold", "before_departure_confirmation", "after_arrival_confirmation"], "motion_constraints": ["FLEXIBLE"]},
         }

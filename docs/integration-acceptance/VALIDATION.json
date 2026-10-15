@@ -1,0 +1,236 @@
+{
+  "schema": "robot-scope.integration-validation.v1",
+  "recorded_at_utc": "2026-10-15T09:56:59.914299+00:00",
+  "stop_after_stage": 36,
+  "baseline_sha": "2555f3763996c7b331389924bb5df48d62094736",
+  "source_commit_sha": null,
+  "source_identity": "SOURCE_MANIFEST.json; exact tested source bytes; publication SHA recorded after commit",
+  "source_manifest_sha256": "b5ee3cb37321e87bb0f9acf1de87cca7f60bf508143cfba019ab977f3b79ec46",
+  "local_environment": {
+    "os": "macOS",
+    "python": "3.13.2",
+    "interpreter": ".venv/bin/python",
+    "quality_packages": "isolated PYTHONPATH target outside repository"
+  },
+  "checks": [
+    {
+      "name": "python_full",
+      "command": "PYTHONPATH=/private/tmp/robot-scope-ms-quality .venv/bin/python -m coverage run -m unittest discover -s tests -v",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "run": 1987,
+      "passed": 1985,
+      "skipped": 2,
+      "failed": 0,
+      "seconds": 99.674,
+      "skip_reasons": [
+        "optional rosbags backend not installed",
+        "requires Linux process sessions and /proc"
+      ],
+      "log": "robot-scope-integration-python.log"
+    },
+    {
+      "name": "coverage",
+      "command": "PYTHONPATH=/private/tmp/robot-scope-ms-quality .venv/bin/python -m coverage report --show-missing",
+      "status": "PASS",
+      "percentage": 75,
+      "threshold_claim": false,
+      "log": "robot-scope-integration-coverage.log"
+    },
+    {
+      "name": "javascript",
+      "command": "node --test tests/*.mjs",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "passed": 381,
+      "skipped": 0,
+      "failed": 0,
+      "log": "robot-scope-integration-js.log"
+    },
+    {
+      "name": "browser_chromium",
+      "command": "npm run test:e2e:ci",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "passed": 96,
+      "skipped": 0,
+      "failed": 0,
+      "duration": "2.7m",
+      "log": "robot-scope-integration-e2e.log"
+    },
+    {
+      "name": "ruff",
+      "command": "PYTHONPATH=/private/tmp/robot-scope-ms-quality .venv/bin/python -m ruff check robot_dashboard scripts",
+      "status": "PASS",
+      "log": "robot-scope-integration-ruff.log"
+    },
+    {
+      "name": "mypy_configured_scope",
+      "command": "PYTHONPATH=/private/tmp/robot-scope-ms-quality .venv/bin/python -m mypy --config-file mypy.ini",
+      "status": "PASS",
+      "files": [
+        "robot_dashboard/public_diagnostics.py",
+        "robot_dashboard/http_security.py",
+        "robot_dashboard/control_protocol.py",
+        "robot_dashboard/capabilities.py"
+      ],
+      "whole_application_typecheck": false,
+      "log": "robot-scope-integration-mypy.log"
+    },
+    {
+      "name": "frontend_syntax",
+      "command": "node scripts/check_frontend_syntax.mjs",
+      "status": "PASS",
+      "modules": 83,
+      "log": "robot-scope-integration-syntax.log"
+    },
+    {
+      "name": "pip_check",
+      "command": ".venv/bin/python -m pip check",
+      "status": "PASS",
+      "log": "robot-scope-integration-pip-check.log"
+    },
+    {
+      "name": "python_dependency_audit",
+      "command": "PYTHONPATH=/private/tmp/robot-scope-ms-quality .venv/bin/python -m pip_audit -r requirements.txt",
+      "status": "PASS",
+      "result": "No known vulnerabilities found",
+      "log": "robot-scope-integration-pip-audit.log"
+    },
+    {
+      "name": "javascript_dependency_audit",
+      "command": "npm audit --audit-level=high",
+      "status": "PASS",
+      "result": "0 vulnerabilities",
+      "log": "robot-scope-integration-npm-audit.log"
+    },
+    {
+      "name": "staged_tracked_secret_scan",
+      "command": ".venv/bin/python scripts/check_repository_secrets.py",
+      "status": "PASS",
+      "log": "robot-scope-integration-secrets.log"
+    },
+    {
+      "name": "diff_whitespace",
+      "command": "git diff --check; git diff --cached --check",
+      "status": "PASS"
+    }
+  ],
+  "log_storage": "private sibling robot-scope-hardware-validation-private/integration-20261015; hashes below, raw logs not committed",
+  "logs": {
+    "robot-scope-integration-coverage.log": {
+      "sha256": "d9fa183ae24996eff7bdf7cc9033bcc553bcffd11f00efca68ff8c5da5c19d31",
+      "bytes": 31769
+    },
+    "robot-scope-integration-e2e.log": {
+      "sha256": "985e42c8e3bb0222c7aa043e204ac0a59964d09848c0bc363fed342a2ff535e9",
+      "bytes": 12588
+    },
+    "robot-scope-integration-js.log": {
+      "sha256": "e333da9035f0c33d537daea006c87a41fdad388f1403fb648d7a4cad6c83e201",
+      "bytes": 102752
+    },
+    "robot-scope-integration-mypy.log": {
+      "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb",
+      "bytes": 43
+    },
+    "robot-scope-integration-npm-audit.log": {
+      "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+      "bytes": 24
+    },
+    "robot-scope-integration-pip-audit.log": {
+      "sha256": "15950a68a7ed99c59779717acefdceb3f69cfd31bde67d2c954f2a3cea4d7955",
+      "bytes": 31
+    },
+    "robot-scope-integration-pip-check.log": {
+      "sha256": "a8bffe5b924a788048b73baaa7f585eac6ecc9495560c6db4a2bce412fde2e25",
+      "bytes": 308
+    },
+    "robot-scope-integration-python.log": {
+      "sha256": "f989e413bfe811b42906b75dcea6efb6308bfa611ad9ef95054316030dcec44e",
+      "bytes": 351011
+    },
+    "robot-scope-integration-ruff.log": {
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "bytes": 19
+    },
+    "robot-scope-integration-syntax.log": {
+      "sha256": "15e47e59b945e4709058e7b657507d16b233fc34c6c858207ddcd7b75bea921d",
+      "bytes": 51
+    },
+    "robot-scope-integration-secrets.log": {
+      "sha256": "f51365351584839cc9f4c5f0d4f0c9ead3ca82b9668aee614bb118f7edb4ae66",
+      "bytes": 34
+    }
+  },
+  "baseline_ci": {
+    "id": 38695600100,
+    "head_sha": "2555f3763996c7b331389924bb5df48d62094736",
+    "conclusion": "success",
+    "completed_at": "2026-10-15T07:05:37Z"
+  },
+  "candidate_ci": {
+    "status": "PENDING_PUBLICATION",
+    "head_sha": null,
+    "id": null,
+    "conclusion": null
+  },
+  "source_config_files_sha256": {
+    "config/nav2_params_go2_humble.yaml": "b69ad567f6ab2a6cc8b8a651191676ae69b02e8d9fca162f1afdce5f8007b6c0",
+    "config/fastlio_xt16.yaml": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd",
+    "config/fastlio_xt16_d2_relocalization.yaml": "776ed3e1ecba65629bbc47b422287a66f105dfcfdafcde1d2d6a1668397ad4df",
+    "scripts/run_go2_navigation_humble.sh": "07c7dbc05ffdd2a92319d3398b465d7d51723e36c66478c9d24e958b94aab92a",
+    "scripts/run_hesai_fastlio_humble.sh": "fc210a72c88211394ea15331e811fae7491462aef872d6c872c509a7fcfd7542"
+  },
+  "device_readback": {
+    "evidence_type": "repository_inspection",
+    "deployed_checkout_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+    "checkout_clean": true,
+    "loaded_runtime_sha": null,
+    "loaded_module_proof": false,
+    "config_digest": null,
+    "process_pid": 996,
+    "process_instance_generation": null,
+    "process_environment_summary": {
+      "domain": 0,
+      "rmw": "rmw_cyclonedds_cpp",
+      "localhost_only": 0,
+      "mapping_profile": "go2-onboard",
+      "d2_observer": false,
+      "d2_stationary_relocalization": false
+    },
+    "disk_file_sha256": {
+      "robot_dashboard/app.py": "b001f16e6534437fde9f624fcc07ee2243180de6e25f38e3139aa8f279a554f9",
+      "robot_dashboard/navigation_runtime.py": "e0533e3164865c6d07523ecd6848b92253f759fb9584a53615e25bd470bcd3a6",
+      "robot_dashboard/ros/navigation_gateway.py": "665809f53d313d6352ea5f42bbc558e86910948076fc3d0ae980be6c456d334d",
+      "config/nav2_params_go2_humble.yaml": "b69ad567f6ab2a6cc8b8a651191676ae69b02e8d9fca162f1afdce5f8007b6c0",
+      "scripts/run_go2_navigation_humble.sh": "07c7dbc05ffdd2a92319d3398b465d7d51723e36c66478c9d24e958b94aab92a"
+    },
+    "state": "idle/uninitialized; navigation pipeline absent; goal admission false",
+    "installed_nav2_packages": "Humble Nav2 planner/costmap/RPP 1.1.20; package installation is not loaded-plugin proof",
+    "current_physical_pose_confirmed": false
+  },
+  "sdk_inspection": {
+    "evidence_type": "repository_inspection",
+    "container_started": false,
+    "image_digest": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+    "reference_source_sha": "e31f4cc1d41a329a01946e5fe63669f8b15da677",
+    "installed_header_sha256": "fd1bd9eb4db0f396c8047d1500583c603b9f8a5680ad43203ecbce00a69dbaa2",
+    "loaded_library_sha256": null
+  },
+  "actual_native_ros": "NOT_RUN",
+  "live_stationary": "NOT_RUN",
+  "live_motion": "NOT_RUN",
+  "software_closure": false,
+  "device_modifications": [],
+  "data_modifications": [],
+  "background_followup": false,
+  "limitations": [
+    "Historical localization startup cause unconfirmed; software counterexamples are separate defects.",
+    "MR-MS-003 lacks qualified unknown/KEEP_OUT global/local/controller/replanning enforcement and map/mask witness.",
+    "Product NativePlanner and MS native save/load/reuse have no actual native acceptance.",
+    "MAP-02 has no qualified retained-total/exhaustion/full-generation API.",
+    "New run source/runtime provenance and live_plan/ETA remain null/unavailable.",
+    "Initial system-Python/test-import and socket-restricted probes were environment failures, then replaced by supported venv/approved local socket checks; not reported as acceptance passes."
+  ]
+}

@@ -511,7 +511,7 @@ def project_navigation_context(runtime: Any) -> dict[str, Any]:
         "operational_pose": {"source": runtime_bindings.get("localization_pose"),
                              "odometry_source": bindings.get("localization_odometry"),
                              "frame": navmap.get("frame_id") or navmap.get("frame"),
-                             "generation": health.get("process_generation"),
+                             "generation": health.get("runtime_instance_generation") or health.get("process_generation"),
                              "readiness": view.get("readiness", {}),
                              "state": (view.get("localization") or {}).get("state", "unknown")},
         "alignment": {"verified": False, "transform": None, "reason": "NO_VERIFIED_VSLAM_NAV_ALIGNMENT"},

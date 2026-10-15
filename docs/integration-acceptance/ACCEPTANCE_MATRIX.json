@@ -1,0 +1,1301 @@
+{
+  "schema": "robot-scope.integration-followup-acceptance.v1",
+  "purpose": "stage30_36_software_followup_actual_results",
+  "created_date_kst": "2026-10-15",
+  "reference_repository_sha": "2555f3763996c7b331389924bb5df48d62094736",
+  "allowed_statuses": [
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "NOT_RUN"
+  ],
+  "checks": [
+    {
+      "check_id": "B01",
+      "stage": "30",
+      "required_for": [
+        "BASELINE"
+      ],
+      "expected": "최신 main/dirty/CI/실제 runtime을 구분한다",
+      "status": "PASS",
+      "evidence_type": "repository_inspection",
+      "observed": "Fetched latest origin/main and exact baseline CI; device disk/runtime identity read-only, old release kept.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "B02",
+      "stage": "30",
+      "required_for": [
+        "BASELINE"
+      ],
+      "expected": "기존 MS/MR 완료 커밋을 인수하고 active writer만 조율한다",
+      "status": "PASS",
+      "evidence_type": "repository_inspection",
+      "observed": "Clean takeover; published MS/MR handoffs ordered by ancestry; partitioned source ownership, full suites/publication serialized.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "B03",
+      "stage": "30",
+      "required_for": [
+        "BASELINE"
+      ],
+      "expected": "이미 제공된 새 지도·초기 좌표 증거를 찾아 현재 revision과 대조한다",
+      "status": "PASS",
+      "evidence_type": "repository_inspection",
+      "observed": "Historical private map/initial-pose/lineage found; current catalogue matches map ID/revision; physical pose validity remains historical.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "B04",
+      "stage": "30",
+      "required_for": [
+        "BASELINE"
+      ],
+      "expected": "현재 camera/서비스/goal/lease/장비 변경 권한을 별도로 기록한다",
+      "status": "PASS",
+      "evidence_type": "repository_inspection",
+      "observed": "No deployment/service/camera/pipeline/initialpose/ARM/goal/motion ownership transferred; user stop after36.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "L01",
+      "stage": "31",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "startup의 수신없음/검증탈락/세대워밍업을 bounded 진단으로 구분한다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Bounded per-input counters, ring8, <=1Hz snapshot, null-reason classification and API projection implemented.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "L02",
+      "stage": "31",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "정상 warmup과 stale/future/frame/QoS/generation 반례가 검증된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "ROS-shaped production-node warmup/stale/future/frame/cardinality/source tests; no delivered callback cannot prove DDS QoS mismatch.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "L03",
+      "stage": "31",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "trace가 source stamp/freshness 기준이나 정상 입력을 바꾸지 않는다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Original source stamps preserved, fixed thresholds unchanged; rejection/alignment/generation fixes regression-tested.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "L04",
+      "stage": "31",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "원인 가설과 확정 근거를 구분하고 수정은 재현 반례를 통과한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Historical stage04 cause not established on latest runtime; separate code defects fixed with counterexamples.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Historical stage04 cause not established on latest runtime; separate code defects fixed with counterexamples.",
+      "next_minimum_action": "Stage40 one authorized traced localization-only startup on exact candidate."
+    },
+    {
+      "check_id": "P01",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "실제 configure에서 production policy observer/provider가 주입된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Gateway fixed async GetParameters/GetState observer → cached RuntimePolicyProvider injected by real configure default.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P02",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "missing/exception/expired/partial policy는 false와 이유를 반환한다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Missing/exception/partial/nonfinite/timeout/expiry/authority/lifecycle cases keep false with reasons.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P03",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "timestamp/heartbeat만 갱신하면 semantic revision이 유지된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Canonical semantic projection ignores heartbeat/checked_at/sequence/age; expiry still blocks.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P04",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "map/mask/footprint/config/process 변경은 즉시 무효화한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Effective config/footprint/authority/invocation invalidate; no production map/mask ingestion witness exists.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Effective config/footprint/authority/invocation invalidate; no production map/mask ingestion witness exists.",
+      "next_minimum_action": "Implement versioned mask producer, binding and native ingestion/invalidation."
+    },
+    {
+      "check_id": "P05",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "effective footprint/padding과 MR validator가 보수적으로 호환된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Readback circular radius includes both effective paddings; polygon unavailable. KEEP_OUT footprint-edge validation fixed; physical dimensions unmeasured.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P06",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "unknown 경로와 KEEP_OUT를 global/local/replanning 전 범위에서 보호한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Current Navfn allows unknown; annotation KEEP_OUT has no qualified global/local/controller/replanning enforcement.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Current Navfn allows unknown; annotation KEEP_OUT has no qualified global/local/controller/replanning enforcement.",
+      "next_minimum_action": "Complete collision profile/mask/controller producer and installed-version proof."
+    },
+    {
+      "check_id": "P07",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "active run 중 정책 상실이 stop/cancel 및 새 dispatch 차단으로 전달된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Existing owner guard and active-run source/policy loss fixtures cancel only owned goal; uncertain cancel retains fence. Positive native policy unavailable.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P08",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "provider query가 STOP이나 coordination lock을 장시간 막지 않는다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "GET only copies cache; fixed async observer; preview reservation releases shared lock during native wait and keeps uncertain cleanup fence.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P09",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "legacy·직접 API도 새 managed gate를 우회하지 못한다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Existing managed admission token/legacy guard; preview and MS mutually exclude owner mutation in fixture.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "P10",
+      "stage": "32",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "원본 occupancy/native 데이터를 수정해 unknown을 free로 만들지 않는다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "No operational map/native bytes/config rewritten, no unknown-to-free conversion, no pose replay.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "N01",
+      "stage": "33",
+      "required_for": [
+        "MR_NATIVE_PLANNING_VERIFIED"
+      ],
+      "expected": "제품 API→NativePlanner→실제 fixed action server 호출 증거가 있다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Actual adapter/fixed action exercised with transport fixtures only; local macOS has no ROS.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Actual adapter/fixed action exercised with transport fixtures only; local macOS has no ROS.",
+      "next_minimum_action": "Qualified isolated Humble native environment and product HTTP request."
+    },
+    {
+      "check_id": "N02",
+      "stage": "33",
+      "required_for": [
+        "MR_NATIVE_PLANNING_VERIFIED"
+      ],
+      "expected": "서버/RMW/domain/지도/config/footprint/source 출처가 현재 runtime과 일치한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Inherited environment/action status GID pin implemented; exact live server/plugin/map configuration not verified.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Inherited environment/action status GID pin implemented; exact live server/plugin/map configuration not verified.",
+      "next_minimum_action": "Compare dashboard and Nav2 process/config/plugin identities in authorized native window."
+    },
+    {
+      "check_id": "N03",
+      "stage": "33",
+      "required_for": [
+        "MR_NATIVE_PLANNING_VERIFIED"
+      ],
+      "expected": "free 성공과 occupied/unknown/keepout/좁은 통로 거부를 실제 확인한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "No actual product native policy cases executed.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "No actual product native policy cases executed.",
+      "next_minimum_action": "Run native free/occupied/unknown/KEEP_OUT/footprint matrix."
+    },
+    {
+      "check_id": "N04",
+      "stage": "33",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "preview timeout/late acceptance/cancel은 자기 요청만 정리한다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Production adapter transport fixtures cover timeout/late accept/UUID/terminal cleanup/quarantine/repeated cancellation.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "N05",
+      "stage": "33",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "계획 중 revision/세대 변경과 stale source가 결과 재사용을 막는다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Semantic/source pins, post-wait annotation/route resolution/live freshness and server incarnation fences; transport fixtures only.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "N06",
+      "stage": "33",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "preview·compile·run 생성이 initialpose/ARM/motion goal을 만들지 않는다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Fixed planning-only action; default-false resource gate; no lifecycle/initialpose/ARM/motion commands.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "S01",
+      "stage": "34",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "보존된 Isaac 설치와 broker/helper의 정확한 배치·권한·hash를 확인한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Reference source, stopped image and installed SDK header identified; deployed broker/helper and loaded binary identity not installed/proven.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Reference source, stopped image and installed SDK header identified; deployed broker/helper and loaded binary identity not installed/proven.",
+      "next_minimum_action": "Stage40 fixed installation manifest and exact library/package hashes."
+    },
+    {
+      "check_id": "S02",
+      "stage": "34",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "camera broker/relay의 단일 실효 lock과 failed-cleanup 소유권을 유지한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Shared lock contract/fault tests pass; actual deployed relay/broker common inode unverified.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Shared lock contract/fault tests pass; actual deployed relay/broker common inode unverified.",
+      "next_minimum_action": "Approved current camera owner handoff and single-inode check."
+    },
+    {
+      "check_id": "S03",
+      "stage": "34",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "실제 left IR/projection 입력의 time/frame/map epoch 계약을 검증한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Time/frame/map epoch production contracts covered by fixtures; current pixel alignment not measured.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Time/frame/map epoch production contracts covered by fixtures; current pixel alignment not measured.",
+      "next_minimum_action": "Stage41 actual rectified-IR projection acceptance."
+    },
+    {
+      "check_id": "S04",
+      "stage": "34",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "global snapshot/LOD의 epoch 교체·삭제가 무한 append와 구별된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Existing replace-only snapshots/LOD/epoch generation tested; no append-union completeness.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "M01",
+      "stage": "34",
+      "required_for": [
+        "FULL_RETAINED_MAP_VERIFIED"
+      ],
+      "expected": "엔진 total/coverage/export cap의 출처를 분리하고 unknown은 null이다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Reference-source caps and installed-header semantics inspected; actual adapter engine total stays null.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "M02",
+      "stage": "34",
+      "required_for": [
+        "FULL_RETAINED_MAP_VERIFIED"
+      ],
+      "expected": "동일 frozen generation의 완전 export 또는 끝이 확인되는 bounded paging 증거가 있다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Installed SDK has capped borrowed arrays; no documented full iterator/end/total/revision guarantee.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Installed SDK has capped borrowed arrays; no documented full iterator/end/total/revision guarantee.",
+      "next_minimum_action": "Qualify supported full native export/SDK wrapper with independent total/exhaustion evidence."
+    },
+    {
+      "check_id": "M03",
+      "stage": "34",
+      "required_for": [
+        "FULL_RETAINED_MAP_VERIFIED"
+      ],
+      "expected": "중복/누락/삭제/최적화 후 좌표와 전역 범위·정밀 접근을 검증한다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Replace/LOD/filtered coverage regressions pass; full retained identity/optimization/deletion evidence absent.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Replace/LOD/filtered coverage regressions pass; full retained identity/optimization/deletion evidence absent.",
+      "next_minimum_action": "Same frozen-generation full-export/ID mutation/region precision acceptance."
+    },
+    {
+      "check_id": "M04",
+      "stage": "34",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "전체 미확인 시 subset/unknown 표시와 MAP-02 미완료 상태가 유지된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Complete now requires separately qualified frozen full-snapshot/IDs/count provenance/cloud digest; filtered XYZ => subset; missing proof => unknown.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "S05",
+      "stage": "34",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "native save/load/localize가 원본 package를 보존하고 fresh pose로만 성공 판정된다",
+      "status": "BLOCKED",
+      "evidence_type": "repository_inspection",
+      "observed": "Original-preserving native package lifecycle/fresh-pose fixtures pass; no product native round-trip run.",
+      "evidence_refs": [
+        "HANDOFF.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Original-preserving native package lifecycle/fresh-pose fixtures pass; no product native round-trip run.",
+      "next_minimum_action": "Stage41 actual save/load and subsequent fresh corrected pose."
+    },
+    {
+      "check_id": "O01",
+      "stage": "35",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "run runtime/source/config는 실제 manifest 근거이며 Git HEAD 추측이 아니다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Run source/runtime remain null because loaded artifact manifest absent; source/disk hashes recorded separately, no Git HEAD guess.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "O02",
+      "stage": "35",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "runtime path는 goal/process/context에 귀속되고 없으면 unavailable이다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "live_plan unavailable, no bare Path attached to goal.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "O03",
+      "stage": "35",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "ETA/거리/편차는 출처 있는 경로로 계산하고 stale이면 null이다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "ETA remains null; no unsupported measured runtime distance/deviation assertion.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "O04",
+      "stage": "35",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "retention/archive가 active·uncertain·필요 receipt를 제거하지 않는다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Separate verified terminal-export procedure designed; no eviction/deletion or live-root cleanup. Capacity reclamation/tombstones still future software.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "O05",
+      "stage": "35",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "포화/저장오류에서도 pause/abort와 cleanup이 실행된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Existing saturation/storage failure/STOP/abort/uncertain cleanup regressions retained in current suite.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "O06",
+      "stage": "35",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "source/data/service rollback의 호환성과 별도 범위가 문서화된다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Source normal revert, copied-fixture reader compatibility, separate data/service rollback documented; no data migration.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "T01",
+      "stage": "36",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "MS/MR production factory 교차·세대·context 회귀가 통과한다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Production default configure/raw readback/context plus MS/MR owner/generation tests in current full suite.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "T02",
+      "stage": "36",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "현재 규칙의 Python/JS/static/security/dependency/E2E와 exact CI가 통과한다",
+      "status": "NOT_RUN",
+      "evidence_type": "software_fixture",
+      "observed": "Local candidate: Python1987/1985pass/2skip/0fail; JS381pass; Chromium96pass; static/audits pass. Exact published SHA CI pending.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Exact candidate CI pending publication.",
+      "next_minimum_action": "Publish focused main commit and verify its exact GitHub Actions run."
+    },
+    {
+      "check_id": "T03",
+      "stage": "36",
+      "required_for": [
+        "SOFTWARE_CLOSURE"
+      ],
+      "expected": "테스트 fixture/native/live 및 skip·검사범위를 정확히 기록한다",
+      "status": "PASS",
+      "evidence_type": "software_fixture",
+      "observed": "Fixture/native/live evidence, skip reasons, limited mypy scope and exact source manifest recorded separately.",
+      "evidence_refs": [
+        "VALIDATION.json"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": null,
+      "next_minimum_action": null
+    },
+    {
+      "check_id": "D01",
+      "stage": "40",
+      "required_for": [
+        "LOCALIZATION_LIVE_VERIFIED"
+      ],
+      "expected": "승인된 exact artifact가 실제 PID/cwd/hash/effective config로 확인된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "D02",
+      "stage": "40",
+      "required_for": [
+        "LOCALIZATION_LIVE_VERIFIED"
+      ],
+      "expected": "bridge/제조사/기존 지도·실험 자산이 보존된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "D03",
+      "stage": "40",
+      "required_for": [
+        "LOCALIZATION_LIVE_VERIFIED"
+      ],
+      "expected": "startup trace가 정상 ready 또는 좁혀진 실패 원인을 실제로 기록한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "D04",
+      "stage": "40",
+      "required_for": [
+        "LOCALIZATION_LIVE_VERIFIED"
+      ],
+      "expected": "현재 실제 위치의 승인된 initialpose·지도 정렬·단일 TF가 확인된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "D05",
+      "stage": "40",
+      "required_for": [
+        "LOCALIZATION_LIVE_VERIFIED"
+      ],
+      "expected": "정지 관측에서 실제 policy readback/freshness와 세대가 유지된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "V01",
+      "stage": "41",
+      "required_for": [
+        "MS_LIVE_MAPPING_VERIFIED"
+      ],
+      "expected": "대시보드에서 실제 Stereo 매핑 mode와 effective params를 확인한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "V02",
+      "stage": "41",
+      "required_for": [
+        "MS_LIVE_MAPPING_VERIFIED"
+      ],
+      "expected": "실제 IR 영상과 현재 관측점이 같은 time/frame/map epoch로 표시된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "V03",
+      "stage": "41",
+      "required_for": [
+        "MS_LIVE_MAPPING_VERIFIED"
+      ],
+      "expected": "시야 밖 글로벌 영역·궤적과 coverage/cap 표기가 실제 입력으로 확인된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "V04",
+      "stage": "41",
+      "required_for": [
+        "MS_LIVE_MAPPING_VERIFIED"
+      ],
+      "expected": "새 native map save·hash·브라우저 재조회가 원본을 보존한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "V05",
+      "stage": "41",
+      "required_for": [
+        "MS_MAP_REUSE_VERIFIED"
+      ],
+      "expected": "별도 session localize가 callback 후 fresh 해당 세대 pose·정렬까지 성공한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "V06",
+      "stage": "41",
+      "required_for": [
+        "MS_LIVE_MAPPING_VERIFIED"
+      ],
+      "expected": "source loss/camera busy/cleanup과 승인된 handback이 실제로 확인된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "H01",
+      "stage": "42",
+      "required_for": [
+        "MR_SUPERVISED_MISSION_VERIFIED"
+      ],
+      "expected": "현장 운영자·물리 정지·실제 저속·지도·source 조건을 확인한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "H02",
+      "stage": "42",
+      "required_for": [
+        "MR_SUPERVISED_MISSION_VERIFIED"
+      ],
+      "expected": "최소 수동 이동/정지·STOP 실제 동작을 먼저 확인한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "H03",
+      "stage": "42",
+      "required_for": [
+        "MR_SUPERVISED_MISSION_VERIFIED"
+      ],
+      "expected": "짧은 순차 미션의 실제 이동·도달·goal identity가 기록된다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "H04",
+      "stage": "42",
+      "required_for": [
+        "MR_SUPERVISED_MISSION_VERIFIED"
+      ],
+      "expected": "마지막 hold와 사후 확인 전에 completed가 되지 않는다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "H05",
+      "stage": "42",
+      "required_for": [
+        "MR_SUPERVISED_MISSION_VERIFIED"
+      ],
+      "expected": "pause/resume/abort에 재주행·stale 확인·자동 권한 복원이 없다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "H06",
+      "stage": "42",
+      "required_for": [
+        "MR_SUPERVISED_MISSION_VERIFIED"
+      ],
+      "expected": "종료 시 실제 정지·goal/lease 해제·명령zero·자원 상태를 확인한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "C01",
+      "stage": "43",
+      "required_for": [
+        "COEXISTENCE_VERIFIED"
+      ],
+      "expected": "상호배제에 맞는 실제 workload와600초 창을 사전 고정한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "C02",
+      "stage": "43",
+      "required_for": [
+        "COEXISTENCE_VERIFIED"
+      ],
+      "expected": "resource·freshness·frame·drop·OOM/restart를 같은 창에서 측정한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "C03",
+      "stage": "43",
+      "required_for": [
+        "COEXISTENCE_VERIFIED"
+      ],
+      "expected": "재연결/승인된 복구가 자동 ARM/goal resume을 만들지 않는다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "C04",
+      "stage": "43",
+      "required_for": [
+        "FINAL_ACCEPTANCE"
+      ],
+      "expected": "전체 지도/지도 reuse/운영 pose/정확도/주행을 별도 판정한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    },
+    {
+      "check_id": "C05",
+      "stage": "43",
+      "required_for": [
+        "FINAL_ACCEPTANCE"
+      ],
+      "expected": "종료 상태·보존 데이터·rollback 범위·최소 다음 작업을 인계한다",
+      "status": "NOT_RUN",
+      "evidence_type": null,
+      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "evidence_refs": [
+        "OWNERSHIP.md"
+      ],
+      "source_sha": null,
+      "runtime_sha": null,
+      "runtime_generation": null,
+      "config_digest": null,
+      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
+      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+    }
+  ],
+  "updated_at": "2026-10-15T09:56:03.315577+00:00",
+  "source_identity_basis": "SOURCE_MANIFEST.json (pre-commit source bytes; exact resulting commit recorded in VALIDATION.json)",
+  "software_closure": false,
+  "device_deployed": false,
+  "stop_after_stage": 36,
+  "deployed_checkout_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+  "runtime_identity_note": "runtime_sha is null: checkout/file readback is not loaded module/native runtime proof"
+}

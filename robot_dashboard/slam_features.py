@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import Counter, deque
 from dataclasses import dataclass
+import hashlib
 import json
 import math
 import struct
@@ -93,6 +94,66 @@ class ParsedCloud:
     rejected_range: int
     source_timestamp_ns: str
     frame_id: str
+    source_cloud_sha256: str
+
+
+@dataclass(frozen=True)
+class NativeFullSnapshotEvidence:
+    """Adapter attestation from a qualified, frozen native full-export API.
+
+    Counts inferred from PointCloud2 are not independent retained-map counts.
+    The adapter must verify the named API's full-export semantics and freeze a
+    revision before constructing this envelope. This store checks the envelope
+    against the exact cloud; it cannot qualify a vendor API from an assertion.
+    Native IDs reject duplicate/missing entries; they are never derived from
+    color or XYZ and never exposed as observation identities.
+    """
+    export_contract: str
+    snapshot_id: str
+    engine_revision: str
+    source_timestamp_ns: str
+    engine_total_count: int
+    engine_total_source: str
+    native_landmark_ids: tuple[int, ...]
+    source_cloud_sha256: str
+
+    def __post_init__(self) -> None:
+        for value in (self.export_contract, self.snapshot_id, self.engine_revision,
+                      self.engine_total_source):
+            _label(value)
+        timestamp_ns(self.source_timestamp_ns)
+        _integer(self.engine_total_count)
+        if (not isinstance(self.source_cloud_sha256, str)
+                or len(self.source_cloud_sha256) != 64
+                or any(c not in "0123456789abcdef" for c in self.source_cloud_sha256)):
+            raise FeatureValidationError("INVALID_FULL_SNAPSHOT_DIGEST")
+        if (not isinstance(self.native_landmark_ids, tuple)
+                or len(self.native_landmark_ids) > 250_000):
+            raise FeatureValidationError("INVALID_FULL_SNAPSHOT_IDENTITIES")
+        for identity in self.native_landmark_ids:
+            # Installed LL_MAP uses int64 IDs; the VO landmark API uses uint64.
+            # Keep either exact native representation without coercing a sign.
+            _integer(identity, minimum=-(2**63), maximum=2**64 - 1)
+        if len(set(self.native_landmark_ids)) != len(self.native_landmark_ids):
+            raise FeatureValidationError("DUPLICATE_FULL_SNAPSHOT_IDENTITY")
+
+    def validate(self, parsed: ParsedCloud, *, engine_revision: str | None,
+                 engine_total_count: int | None) -> None:
+        if (self.engine_revision != engine_revision
+                or timestamp_ns(self.source_timestamp_ns) != parsed.source_timestamp_ns
+                or self.engine_total_count != engine_total_count
+                or self.source_cloud_sha256 != parsed.source_cloud_sha256
+                or len(self.native_landmark_ids) != parsed.source_count
+                or self.engine_total_count != parsed.source_count):
+            raise FeatureValidationError("FULL_SNAPSHOT_EVIDENCE_MISMATCH")
+
+    def summary(self) -> dict[str, Any]:
+        return dict(kind="qualified_native_full_snapshot", export_contract=self.export_contract,
+                    snapshot_id=self.snapshot_id, engine_revision=self.engine_revision,
+                    source_timestamp_ns=timestamp_ns(self.source_timestamp_ns),
+                    source_cloud_sha256=self.source_cloud_sha256,
+                    engine_total_source=self.engine_total_source,
+                    unique_native_id_count=len(self.native_landmark_ids))
 
 
 _FIELD_FORMATS = {1: ("b", 1), 2: ("B", 1), 3: ("h", 2), 4: ("H", 2),
@@ -166,7 +227,14 @@ def parse_pointcloud2(message: Any, *, max_points: int = 250_000,
                 outside_range += 1
             else:
                 points.append(xyz)
-    return ParsedCloud(tuple(points), count, nonfinite, outside_range, stamp, frame)
+    # Bind completeness metadata to exact source identity, layout and bytes;
+    # equal counts/timestamps cannot relabel a different XYZ snapshot.
+    identity = json.dumps(dict(stamp=stamp, frame=frame, width=width, height=height,
+        point_step=point_step, row_step=row_step, endian=endian, layout=layout),
+        sort_keys=True, separators=(",", ":")).encode("utf-8")
+    digest = hashlib.sha256(identity)
+    digest.update(data)
+    return ParsedCloud(tuple(points), count, nonfinite, outside_range, stamp, frame, digest.hexdigest())
 
 
 def _spread(value: int) -> int:
@@ -417,6 +485,7 @@ class FeatureStream:
     def replace_global(self, cloud: Any, *, context: StreamContext, source_id: str,
                        provenance: str, coverage: str = "unknown", backend_limit: int | None = None,
                        engine_total_count: int | None = None, engine_revision: str | None = None,
+                       full_snapshot_evidence: NativeFullSnapshotEvidence | None = None,
                        received_at: float | None = None) -> bool:
         with self._lock:
             if not self._accept(context):
@@ -437,19 +506,34 @@ class FeatureStream:
                 raise FeatureValidationError("INVALID_ENGINE_TOTAL")
             if backend_limit is not None and backend_limit < parsed.source_count:
                 raise FeatureValidationError("INVALID_BACKEND_LIMIT")
-            if coverage == "complete" and engine_total_count != parsed.source_count:
-                coverage = "unknown"
-            if engine_total_count is not None and engine_total_count > parsed.source_count:
-                coverage = "subset"
             source_id, provenance = map(_label, (source_id, provenance))
             if engine_revision is not None:
                 engine_revision = _label(engine_revision)
+            evidence = None
+            if full_snapshot_evidence is not None:
+                if not isinstance(full_snapshot_evidence, NativeFullSnapshotEvidence):
+                    raise FeatureValidationError("INVALID_FULL_SNAPSHOT_EVIDENCE")
+                full_snapshot_evidence.validate(parsed, engine_revision=engine_revision,
+                                                engine_total_count=engine_total_count)
+                evidence = full_snapshot_evidence.summary()
+            coverage_reason = "SOURCE_DECLARED_" + coverage.upper()
+            if coverage == "complete" and evidence is None:
+                coverage, coverage_reason = "unknown", "FULL_SNAPSHOT_EVIDENCE_UNAVAILABLE"
+            elif coverage == "complete":
+                coverage_reason = "QUALIFIED_NATIVE_FULL_SNAPSHOT"
+            if engine_total_count is not None and engine_total_count > parsed.source_count:
+                coverage, coverage_reason = "subset", "RETAINED_TOTAL_EXCEEDS_SOURCE_COUNT"
+            # Even a qualified native export is incomplete in this store when
+            # validation omits coordinates. Display LOD is independent below.
+            if parsed.rejected_nonfinite or parsed.rejected_range:
+                coverage, coverage_reason = "subset", "SOURCE_POINTS_REJECTED"
             received = self._received(received_at)
             render = spatial_lod(parsed.points, self.max_global_points)
             self._snapshot_sequence += 1
             self._global_points = parsed.points
             self._global_render = render
             self._global = dict(spatial_scope="global_map", coverage=coverage,
+                coverage_reason=coverage_reason, completeness_evidence=evidence,
                 source_timestamp_ns=parsed.source_timestamp_ns, coordinate_frame=parsed.frame_id,
                 source_id=source_id, provenance=provenance,
                 snapshot_id=str(self._snapshot_sequence),
@@ -580,6 +664,8 @@ class FeatureStream:
                 points = tuple(p for p in points if all(bounds[a] <= p[a] <= bounds[a+3] for a in range(3)))
             sampled = [list(p) for p in self._global_render] if region is None and limit == self.max_global_points else spatial_lod(points, limit)
             return dict(self._global, points=sampled, displayed_count=len(sampled),
+                        completeness_evidence=(dict(self._global["completeness_evidence"])
+                            if self._global["completeness_evidence"] is not None else None),
                         region_exported_count=len(points), decimation=len(points) > len(sampled))
 
     def _current_observations(self, now: float) -> dict[str, Any]:

@@ -37,6 +37,12 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
 
+from robot_dashboard.localization_diagnostics import (
+    LocalizationInputDiagnostics,
+    MAX_COUNTER,
+    SCHEMA as LOCALIZATION_DIAGNOSTICS_SCHEMA,
+)
+
 
 POINT_FIELD_DTYPES: Mapping[int, str] = {
     1: "i1",  # INT8
@@ -857,13 +863,35 @@ def _stamp_seconds(stamp: Any) -> float:
 
 
 def _message_stamp_is_fresh(node: Any, message: Any, timeout_s: float) -> bool:
+    return not _message_stamp_rejection_reason(node, message, timeout_s)
+
+
+def _message_stamp_rejection_reason(node: Any, message: Any, timeout_s: float) -> str:
     stamp = getattr(getattr(message, "header", None), "stamp", None)
-    source_seconds = _stamp_seconds(stamp)
+    if stamp is None:
+        return "missing_stamp"
+    sec, nanosec = getattr(stamp, "sec", None), getattr(stamp, "nanosec", None)
+    if (
+        isinstance(sec, bool) or not isinstance(sec, int) or sec < 0
+        or isinstance(nanosec, bool) or not isinstance(nanosec, int)
+        or not 0 <= nanosec < 1_000_000_000
+    ):
+        return "invalid_stamp"
+    try:
+        source_seconds = _stamp_seconds(stamp)
+    except (TypeError, ValueError, OverflowError):
+        return "invalid_stamp"
+    if not math.isfinite(source_seconds):
+        return "invalid_stamp"
     if source_seconds <= 0.0:
-        return False
+        return "missing_stamp"
     now_seconds = float(node.get_clock().now().nanoseconds) * 1e-9
     age = now_seconds - source_seconds
-    return -0.25 <= age <= timeout_s
+    if not math.isfinite(age):
+        return "invalid_stamp"
+    if age < -0.25:
+        return "future_stamp"
+    return "stale_stamp" if age > timeout_s else ""
 
 
 def controller_odometry_sample_from_message(message: Any) -> ControllerOdometrySample:
@@ -934,6 +962,17 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._controller_odom_publisher: Any = None
             self._controller_odom_error = ""
             self._process_generation = os.getpid()
+            self._runtime_instance_generation = (
+                f"{self._process_generation}:{time.monotonic_ns()}"
+            )
+            self._health_sequence = 0
+            self._input_diagnostics = {
+                "cloud": LocalizationInputDiagnostics("cloud"),
+                "odometry": LocalizationInputDiagnostics("odometry"),
+            }
+            self._last_diagnostic_monotonic: float | None = None
+            self._diagnostic_payload: dict[str, Any] | None = None
+            self._last_odom_source_stamp_ns = 0
             self._odom_to_base: PlanarTransform | None = None
             self._odom_z = 0.0
             self._odom_quaternion = (0.0, 0.0, 0.0, 1.0)
@@ -1033,18 +1072,25 @@ def _build_ros_runtime_node_class() -> type[Any]:
 
         def _on_cloud(self, message: Any) -> None:
             started_at = time.monotonic()
+            received_wall_ns = time.time_ns()
+            reason = "callback_error"
             try:
-                self._process_cloud(message)
+                reason = self._process_cloud(message)
             finally:
+                self._input_diagnostics["cloud"].observe(
+                    message, reason=reason, wall_ns=received_wall_ns,
+                    monotonic_s=started_at,
+                    publisher_count=self._publisher_counts["/velodyne_points"],
+                )
                 self._cloud_callback_durations.observe(
                     max(0.0, time.monotonic() - started_at)
                 )
 
-        def _process_cloud(self, message: Any) -> None:
+        def _process_cloud(self, message: Any) -> str:
             if self._publisher_counts["/velodyne_points"] != 1:
                 self._last_cloud_monotonic = 0.0
                 self._last_cloud_error = "PointCloud2 source is not unique"
-                return
+                return "publisher_not_unique"
             frame_id = normalize_frame_id(getattr(message.header, "frame_id", ""))
             if frame_id != self._options.cloud_frame:
                 self._last_cloud_monotonic = 0.0
@@ -1052,11 +1098,12 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     f"unexpected cloud frame {frame_id!r}; expected "
                     f"{self._options.cloud_frame!r}"
                 )
-                return
-            if not _message_stamp_is_fresh(self, message, self._options.cloud_timeout):
+                return "unexpected_frame"
+            stamp_reason = _message_stamp_rejection_reason(self, message, self._options.cloud_timeout)
+            if stamp_reason:
                 self._last_cloud_monotonic = 0.0
                 self._last_cloud_error = "stale or missing PointCloud2 timestamp"
-                return
+                return stamp_reason
             try:
                 xyz = xyz_from_pointcloud2_layout(
                     message.data,
@@ -1071,7 +1118,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             except (NavigationRuntimeError, TypeError, ValueError) as exc:
                 self._last_cloud_monotonic = 0.0
                 self._last_cloud_error = str(exc)[:200]
-                return
+                return "invalid_cloud_layout"
 
             finite_bins = int(np.count_nonzero(np.isfinite(projection.ranges)))
             self._last_scan_counts = (
@@ -1082,7 +1129,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             if finite_bins < 3:
                 self._last_cloud_monotonic = 0.0
                 self._last_cloud_error = "PointCloud2 produced fewer than three scan bins"
-                return
+                return "insufficient_scan_bins"
 
             scan = LaserScan()
             scan.header.stamp = message.header.stamp
@@ -1101,13 +1148,21 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._cloud_rate.observe(observed_at)
             self._cloud_sequence += 1
             self._last_cloud_error = ""
+            return "accepted"
 
         def _on_odometry(self, message: Any) -> None:
             self._odom_rmw_timing.begin_callback(message, time.time_ns())
             started_at = time.monotonic()
+            received_wall_ns = time.time_ns()
+            reason = "callback_error"
             try:
-                self._process_odometry(message)
+                reason = self._process_odometry(message)
             finally:
+                self._input_diagnostics["odometry"].observe(
+                    message, reason=reason, wall_ns=received_wall_ns,
+                    monotonic_s=started_at,
+                    publisher_count=self._publisher_counts["/Odometry"],
+                )
                 self._odom_callback_durations.observe(
                     max(0.0, time.monotonic() - started_at)
                 )
@@ -1119,25 +1174,38 @@ def _build_ros_runtime_node_class() -> type[Any]:
         ) -> None:
             self._odom_rmw_timing.capture(message, metadata)
 
-        def _process_odometry(self, message: Any) -> None:
+        def _reject_odometry(self, error: str) -> None:
+            self._last_odom_monotonic = 0.0
+            self._last_odom_error = error
+            # A rejected sample used to erase the receipt clock while leaving
+            # map alignment alive. The next valid sample then skipped the
+            # outage check and silently revived that alignment.
+            self._map_to_odom = None
+
+        def _process_odometry(self, message: Any) -> str:
             if self._publisher_counts["/Odometry"] != 1:
-                self._last_odom_monotonic = 0.0
-                self._last_odom_error = "Odometry source is not unique"
-                return
+                self._reject_odometry("Odometry source is not unique")
+                return "publisher_not_unique"
             parent_frame = normalize_frame_id(getattr(message.header, "frame_id", ""))
             child_frame = normalize_frame_id(getattr(message, "child_frame_id", ""))
             if not odometry_frames_are_expected(parent_frame, child_frame):
-                self._last_odom_monotonic = 0.0
                 self._odom_frame_error = (
                     f"unexpected Odometry frames {parent_frame!r}->{child_frame!r}; "
                     "expected 'camera_init'->'body'"
                 )
-                self._last_odom_error = self._odom_frame_error
-                return
-            if not _message_stamp_is_fresh(self, message, self._options.odom_timeout):
-                self._last_odom_monotonic = 0.0
-                self._last_odom_error = "stale or missing Odometry timestamp"
-                return
+                self._reject_odometry(self._odom_frame_error)
+                return "unexpected_frame"
+            stamp_reason = _message_stamp_rejection_reason(self, message, self._options.odom_timeout)
+            if stamp_reason:
+                self._reject_odometry("stale or missing Odometry timestamp")
+                return stamp_reason
+            source_stamp_ns = (
+                int(message.header.stamp.sec) * 1_000_000_000
+                + int(message.header.stamp.nanosec)
+            )
+            if source_stamp_ns <= self._last_odom_source_stamp_ns:
+                self._reject_odometry("Odometry timestamp did not increase")
+                return "nonincreasing_stamp"
             pose = message.pose.pose
             try:
                 x_value, y_value, z_value = bounded_pose_position(
@@ -1153,9 +1221,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 )
                 odom_to_base = PlanarTransform(x_value, y_value, yaw)
             except NavigationRuntimeError as exc:
-                self._last_odom_monotonic = 0.0
-                self._last_odom_error = str(exc)[:200]
-                return
+                self._reject_odometry(str(exc)[:200])
+                return "invalid_pose"
 
             now = time.monotonic()
             previous = self._odom_to_base
@@ -1183,7 +1250,10 @@ def _build_ros_runtime_node_class() -> type[Any]:
                         self._last_odom_error = discontinuity
                         self._odom_to_base = None
                         self._map_to_odom = None
-                        return
+                        return {
+                            "odometry translation jumped": "translation_jump",
+                            "odometry heading jumped": "heading_jump",
+                        }.get(discontinuity, "timing_discontinuity")
 
             if self._controller_odom_gate is not None:
                 try:
@@ -1208,18 +1278,20 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     self._controller_odom_error = self._last_odom_error
                     self._odom_to_base = None
                     self._map_to_odom = None
-                    return
+                    return "controller_gate_rejected"
 
             self._odom_to_base = odom_to_base
             self._odom_z = z_value
             self._odom_quaternion = yaw_to_quaternion(yaw)
             self._last_odom_monotonic = now
+            self._last_odom_source_stamp_ns = source_stamp_ns
             self._odom_rate.observe(now)
             self._odom_source_rate.observe(_stamp_seconds(message.header.stamp))
             self._odom_sequence += 1
             self._last_odom_error = ""
             self._odom_frame_error = ""
             self._broadcast_dynamic_transforms()
+            return "accepted"
 
         def _on_initial_pose(self, message: Any) -> None:
             if self._publisher_counts["/initialpose"] != 1:
@@ -1337,6 +1409,77 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     max(0.0, time.monotonic() - started_at)
                 )
 
+        def _refresh_input_diagnostics(self, observed_at: float) -> bool:
+            if (
+                self._last_diagnostic_monotonic is not None
+                and observed_at - self._last_diagnostic_monotonic < 1.0
+            ):
+                return False
+            self._last_diagnostic_monotonic = observed_at
+            for name, diagnostic in self._input_diagnostics.items():
+                publishers = None
+                try:
+                    infos = self.get_publishers_info_by_topic(diagnostic.topic)
+                    publishers = []
+                    for info in infos[:4]:
+                        qos = info.qos_profile
+                        publishers.append({
+                            "gid": bytes(info.endpoint_gid).hex()[:128],
+                            "node_name": str(info.node_name)[:128],
+                            "node_namespace": str(info.node_namespace)[:128],
+                            "reliability": str(qos.reliability.name)[:128],
+                            "durability": str(qos.durability.name)[:128],
+                        })
+                except Exception:
+                    # Graph metadata is diagnostic-only and not available in
+                    # every RMW. Never substitute node names for endpoint GIDs.
+                    publishers = None
+                changed = diagnostic.observe_publishers(
+                    publishers,
+                    self._publisher_counts[diagnostic.topic],
+                    observed_at,
+                )
+                if not changed:
+                    continue
+                if name == "odometry":
+                    self._reject_odometry("Odometry publisher generation changed")
+                    self._odom_to_base = None
+                    self._last_odom_source_stamp_ns = 0
+                    self._odom_rate = BoundedRateWindow()
+                    self._odom_source_rate = BoundedRateWindow()
+                    self._odom_rmw_timing = RmwSubscriptionTiming()
+                    self._last_odom_tf_monotonic = 0.0
+                    self._last_map_tf_monotonic = 0.0
+                    if self._controller_odom_gate is not None:
+                        self._controller_odom_gate = FastLioControllerOdomGate()
+                else:
+                    self._last_cloud_monotonic = 0.0
+                    self._last_cloud_error = "PointCloud2 publisher generation changed"
+                    self._cloud_rate = BoundedRateWindow()
+            self._diagnostic_payload = {
+                "schema": LOCALIZATION_DIAGNOSTICS_SCHEMA,
+                "process_generation": self._process_generation,
+                "runtime_instance_generation": self._runtime_instance_generation,
+                "health_sequence": self._health_sequence,
+                "observed_wall_ns": time.time_ns(),
+                "observed_monotonic_s": observed_at,
+                # The single executor has no instrumented application lock.
+                "executor_lock_wait_s": None,
+                "initialization_wait_reason": (
+                    "publishers_not_unique"
+                    if any(self._publisher_counts[topic] != 1 for topic in ("/velodyne_points", "/Odometry"))
+                    else "cloud_not_fresh" if not self._cloud_fresh()
+                    else "odometry_not_fresh" if not self._odom_fresh()
+                    else "inputs_ready_waiting_initial_pose" if self._map_to_odom is None
+                    else "localized"
+                ),
+                "inputs": {
+                    name: diagnostic.snapshot(observed_at)
+                    for name, diagnostic in self._input_diagnostics.items()
+                },
+            }
+            return True
+
         def _process_health_timer(self) -> None:
             publisher_count_started_at = time.monotonic()
             try:
@@ -1348,6 +1491,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._publisher_count_durations.observe(
                     max(0.0, time.monotonic() - publisher_count_started_at)
                 )
+            self._health_sequence = min(MAX_COUNTER, self._health_sequence + 1)
+            diagnostics_refreshed = self._refresh_input_diagnostics(time.monotonic())
             cloud_fresh = self._cloud_fresh()
             odom_fresh = self._odom_fresh()
             localized = self._map_to_odom is not None and odom_fresh
@@ -1408,6 +1553,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 }
             payload = {
                 "schema": "robot-scope.navigation-runtime-health.v1",
+                "runtime_instance_generation": self._runtime_instance_generation,
+                "health_sequence": self._health_sequence,
                 "ready": bool(
                     cloud_fresh and odom_fresh and localized and sensor_sources_unique
                 ),
@@ -1559,6 +1706,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 "odom_frame_error": self._odom_frame_error,
                 "source_error": source_error,
             }
+            if diagnostics_refreshed:
+                payload["localization_diagnostics"] = self._diagnostic_payload
             message = String()
             message.data = json.dumps(payload, separators=(",", ":"), sort_keys=True)
             self._health_publisher.publish(message)

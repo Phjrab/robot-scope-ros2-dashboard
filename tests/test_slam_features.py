@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import unittest
 
 from robot_dashboard.slam_features import (
-    FeatureStream, FeatureValidationError, StreamContext,
+    FeatureStream, FeatureValidationError, NativeFullSnapshotEvidence, StreamContext,
     parse_pointcloud2, project_map_points, spatial_lod, timestamp_ns,
 )
 
@@ -371,6 +371,17 @@ class GlobalSnapshotTests(unittest.TestCase):
         options.update(kwargs)
         return self.stream.replace_global(cloud(points), **options)
 
+    def full_evidence(self, count, *, points=None, **kwargs):
+        points = [(0, 0, 2)] * count if points is None else points
+        fields = dict(export_contract="synthetic_native_full_snapshot_fixture",
+            snapshot_id="native-snapshot-1", engine_revision="native-revision-1",
+            source_timestamp_ns="10000000001", engine_total_count=count,
+            engine_total_source="synthetic_independent_retained_count",
+            native_landmark_ids=tuple(range(count)),
+            source_cloud_sha256=parse_pointcloud2(cloud(points)).source_cloud_sha256)
+        fields.update(kwargs)
+        return NativeFullSnapshotEvidence(**fields)
+
     def test_global_map_includes_points_outside_current_camera_view(self):
         self.replace([(0, 0, 2), (100, 0, -5), (-100, 0, 2)])
         frame = self.stream.frame(now_monotonic=100)
@@ -399,7 +410,68 @@ class GlobalSnapshotTests(unittest.TestCase):
         self.replace([(0, 0, 2)] * 8, coverage="complete", backend_limit=8, engine_total_count=100)
         self.assertEqual(self.stream.global_snapshot()["coverage"], "subset")
         self.replace([(0, 0, 2)] * 8, coverage="complete", engine_total_count=8)
-        self.assertEqual(self.stream.global_snapshot()["coverage"], "complete")
+        snapshot = self.stream.global_snapshot()
+        self.assertEqual(snapshot["coverage"], "unknown")
+        self.assertEqual(snapshot["coverage_reason"], "FULL_SNAPSHOT_EVIDENCE_UNAVAILABLE")
+        self.assertIsNone(snapshot["completeness_evidence"])
+
+    def test_complete_requires_independent_frozen_generation_evidence(self):
+        self.replace([(0, 0, 2)] * 8, coverage="complete", engine_total_count=8,
+            engine_revision="native-revision-1", full_snapshot_evidence=self.full_evidence(8))
+        snapshot = self.stream.global_snapshot()
+        self.assertEqual(snapshot["coverage"], "complete")
+        self.assertEqual(snapshot["completeness_evidence"]["snapshot_id"], "native-snapshot-1")
+        self.assertEqual(snapshot["completeness_evidence"]["unique_native_id_count"], 8)
+        self.assertNotIn("native_landmark_ids", snapshot["completeness_evidence"])
+        snapshot["completeness_evidence"]["snapshot_id"] = "consumer-mutation"
+        self.assertEqual(self.stream.global_snapshot()["completeness_evidence"]["snapshot_id"], "native-snapshot-1")
+
+    def test_filtered_native_export_is_subset_even_with_equal_total_and_proof(self):
+        for invalid in ((math.nan, 0, 2), (1_000_001, 0, 2)):
+            with self.subTest(invalid=invalid):
+                self.replace([(0, 0, 2), invalid], coverage="complete", engine_total_count=2,
+                    engine_revision="native-revision-1",
+                    full_snapshot_evidence=self.full_evidence(2, points=[(0, 0, 2), invalid]))
+                snapshot = self.stream.global_snapshot()
+                self.assertEqual(snapshot["coverage"], "subset")
+                self.assertEqual(snapshot["coverage_reason"], "SOURCE_POINTS_REJECTED")
+                self.assertEqual(snapshot["source_count"], 2)
+                self.assertEqual(snapshot["exported_count"], 1)
+
+    def test_inconsistent_full_snapshot_evidence_cannot_replace_previous_map(self):
+        self.replace([(1, 0, 2)])
+        before = self.stream.global_snapshot()
+        for fields in (dict(engine_revision="other-revision"),
+                       dict(source_timestamp_ns="10000000002"),
+                       dict(native_landmark_ids=(7,)), dict(engine_total_count=1),
+                       dict(source_cloud_sha256="0" * 64),
+                       dict(source_cloud_sha256=parse_pointcloud2(cloud([(9, 0, 2)] * 2)).source_cloud_sha256)):
+            with self.subTest(fields=fields):
+                with self.assertRaisesRegex(FeatureValidationError, "EVIDENCE_MISMATCH"):
+                    self.replace([(0, 0, 2)] * 2, coverage="complete", engine_total_count=2,
+                        engine_revision="native-revision-1", full_snapshot_evidence=self.full_evidence(2, **fields))
+                self.assertEqual(self.stream.global_snapshot(), before)
+
+    def test_full_snapshot_proof_rejects_duplicate_invented_and_mutable_ids(self):
+        for identities in ((7, 7), (True, 2), (-(2**63)-1, 2), (2**64, 2), [7, 8]):
+            with self.subTest(identities=identities):
+                with self.assertRaises(FeatureValidationError):
+                    self.full_evidence(2, native_landmark_ids=identities)
+        with self.assertRaises(FeatureValidationError):
+            self.full_evidence(2, engine_total_source="")
+        self.assertEqual(self.full_evidence(2, native_landmark_ids=(-1, 2)).native_landmark_ids, (-1, 2))
+
+    def test_complete_source_remains_complete_under_display_lod_and_region_query(self):
+        points = [(x, 0, 2) for x in range(100)]
+        self.replace(points, coverage="complete", engine_total_count=100,
+            engine_revision="native-revision-1", full_snapshot_evidence=self.full_evidence(100, points=points))
+        snapshot = self.stream.global_snapshot()
+        self.assertTrue(snapshot["decimation"])
+        self.assertEqual(snapshot["coverage"], "complete")
+        detail = self.stream.global_snapshot(region=[90, -1, 0, 99, 1, 3], limit=20)
+        self.assertEqual(detail["coverage"], "complete")
+        self.assertEqual(detail["displayed_count"], 10)
+        self.assertEqual(detail["completeness_evidence"]["snapshot_id"], "native-snapshot-1")
 
     def test_static_map_age_and_session_heartbeat_are_independent(self):
         self.replace([(0, 0, 2)])
