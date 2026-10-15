@@ -861,18 +861,19 @@
       "expected": "승인된 exact artifact가 실제 PID/cwd/hash/effective config로 확인된다",
       "status": "BLOCKED",
       "evidence_type": "live_stationary",
-      "observed": "Candidate863682e clean restart, PID/cwd/interpreter and1255 file hashes pinned; effective policy parameters/config readback unavailable.",
+      "observed": "Candidate47c77af clean dashboard restart; PID/cwd/interpreter and1265 file hashes pinned. No-pose60s policy evidence unavailable: PARAMETERS_CHANGED1/TIMEOUT59; loaded/effective config remains unavailable.",
       "evidence_refs": [
         "STAGE40_VALIDATION.json",
         "DEPLOYMENT_ACCEPTANCE.md",
-        "LOCALIZATION_LIVE_ACCEPTANCE.md"
+        "LOCALIZATION_LIVE_ACCEPTANCE.md",
+        "POLICY_RUNTIME_WINDOW.json"
       ],
-      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+      "source_sha": "47c77af19246bd6a455ee873a7c55884ed6e4122",
       "runtime_sha": null,
-      "runtime_generation": "81270:4252395617568",
+      "runtime_generation": "59632:3113222857356",
       "config_digest": null,
       "blocking_reason": "No complete effective runtime parameter/config readback or per-loaded-module attestation.",
-      "next_minimum_action": "Apply and observe the implemented bounded diagnostic candidate in a qualified current window, then isolate fixed-profile GetParameters/GetState authority/service failure; see POLICY_DIAGNOSTICS_FOLLOWUP.md."
+      "next_minimum_action": "Bounded fixed-endpoint future states plus batch/tick timings, without deadline/TTL changes; qualify effective readback separately."
     },
     {
       "check_id": "D02",
@@ -883,15 +884,16 @@
       "expected": "bridge/제조사/기존 지도·실험 자산이 보존된다",
       "status": "PASS",
       "evidence_type": "live_stationary",
-      "observed": "Bridge/camera PID+invocation/units/env unchanged;54 map hashes and mission API unchanged; selected schematic revision24→25 only, other content unchanged.",
+      "observed": "Latest47c77af window preserves bridge/camera PID+invocations, unit/env hashes, all54 maps and all5 selected-state files byte-for-byte; no bag/native installation edits.",
       "evidence_refs": [
         "STAGE40_VALIDATION.json",
         "DEPLOYMENT_ACCEPTANCE.md",
-        "LOCALIZATION_LIVE_ACCEPTANCE.md"
+        "LOCALIZATION_LIVE_ACCEPTANCE.md",
+        "POLICY_RUNTIME_WINDOW.json"
       ],
-      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+      "source_sha": "47c77af19246bd6a455ee873a7c55884ed6e4122",
       "runtime_sha": null,
-      "runtime_generation": "81270:4252395617568",
+      "runtime_generation": "59632:3113222857356",
       "config_digest": null,
       "blocking_reason": null,
       "next_minimum_action": null
@@ -905,15 +907,16 @@
       "expected": "startup trace가 정상 ready 또는 좁혀진 실패 원인을 실제로 기록한다",
       "status": "PASS",
       "evidence_type": "live_stationary",
-      "observed": "Both actual starts reached initial-pose waiting; approved retry initialpose1 and180s collected. Historical stale cause unconfirmed; post-pose transition and nominal10Hz rate diagnostics retained.",
+      "observed": "Historical180s pose window retained. Latest47c77af START1 reached waiting_initial_pose;60s no-pose trace with stable source/runtime, input progression, no additional rejection and verified cleanup. Historical stale cause unconfirmed.",
       "evidence_refs": [
         "STAGE40_VALIDATION.json",
         "DEPLOYMENT_ACCEPTANCE.md",
-        "LOCALIZATION_LIVE_ACCEPTANCE.md"
+        "LOCALIZATION_LIVE_ACCEPTANCE.md",
+        "POLICY_RUNTIME_WINDOW.json"
       ],
-      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+      "source_sha": "47c77af19246bd6a455ee873a7c55884ed6e4122",
       "runtime_sha": null,
-      "runtime_generation": "81270:4252395617568",
+      "runtime_generation": "59632:3113222857356",
       "config_digest": null,
       "blocking_reason": null,
       "next_minimum_action": null
@@ -949,18 +952,19 @@
       "expected": "정지 관측에서 실제 policy readback/freshness와 세대가 유지된다",
       "status": "BLOCKED",
       "evidence_type": "live_stationary",
-      "observed": "180s stationary trace completed, but actual mission policy sample20/12.08s reports unavailable; enforcementfalse/digestsnull. Semantic revision stable while snapshot_seq advanced.",
+      "observed": "Historical180s localized trace retained. New47c77af no-pose60s has60 policy samples unavailable (1 parameters-changed,59 timeout); context revision constant. Independent graph59 samples:5 stable authorities,10 ready services; responses/lifecycle not proved.",
       "evidence_refs": [
         "STAGE40_VALIDATION.json",
         "DEPLOYMENT_ACCEPTANCE.md",
-        "LOCALIZATION_LIVE_ACCEPTANCE.md"
+        "LOCALIZATION_LIVE_ACCEPTANCE.md",
+        "POLICY_RUNTIME_WINDOW.json"
       ],
-      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+      "source_sha": "47c77af19246bd6a455ee873a7c55884ed6e4122",
       "runtime_sha": null,
-      "runtime_generation": "81270:4252395617568",
+      "runtime_generation": "59632:3113222857356",
       "config_digest": null,
-      "blocking_reason": "No fresh effective policy readback across the180s; API health includes transition/rate nonready samples.",
-      "next_minimum_action": "Observe the implemented bounded reason diagnostics in a qualified current runtime without TTL relaxation; qualify full-window policy/readiness separately; see POLICY_DIAGNOSTICS_FOLLOWUP.md."
+      "blocking_reason": "No effective readback or localized180s policy qualification; no per-future/tick timing to distinguish transport/server/scheduling delay.",
+      "next_minimum_action": "Implement bounded per-endpoint batch/tick diagnostics with existing500ms deadline and750ms TTL, then separately qualify actual readback and localized full-window health."
     },
     {
       "check_id": "V01",

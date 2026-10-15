@@ -360,5 +360,11 @@
     "ui_deployment_file_mismatches": [],
     "legacy_1656_manifest_comparison": "17 expected documentation/static mismatches after clean a67 fast-forward; use the separate a67 deployment manifest for its integrity result",
     "policy_followup_deployed": false
+  },
+  "subsequent_runtime_window": {
+    "record": "POLICY_RUNTIME_WINDOW.json",
+    "candidate": "47c77af19246bd6a455ee873a7c55884ed6e4122",
+    "deployed": true,
+    "observation": "60s no-initialpose policy diagnostic; cleanup verified; unavailable remains false enforcement"
   }
 }

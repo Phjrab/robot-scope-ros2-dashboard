@@ -1,0 +1,684 @@
+{
+  "schema": "robot-scope.policy-runtime-window-validation.v1",
+  "recorded_at_utc": "2026-10-15T13:09:53.963800+00:00",
+  "scope": "stage40 exact candidate deployment and one no-pose 60-second localization-only policy observation; no stage41-43 operation",
+  "source_candidate": "47c77af19246bd6a455ee873a7c55884ed6e4122",
+  "previous_source": "a67c5f53da9d570d7679a6bf2a49e878599e0bea",
+  "product_source_changes_in_this_followup": false,
+  "deployed": true,
+  "deployment_status": "PASS",
+  "process_after": {
+    "pid": 54752,
+    "invocation_id": "f1f5a924a4494901917d1d4f8fe6d66e",
+    "cwd": "/home/unitree/robot-scope",
+    "exe": "/usr/bin/python3.10",
+    "start_ticks": "286798"
+  },
+  "units_final": {
+    "robot-scope.service": {
+      "MainPID": "54752",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "InvocationID": "f1f5a924a4494901917d1d4f8fe6d66e"
+    },
+    "robot-scope-control-bridge.service": {
+      "MainPID": "976",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "InvocationID": "ac5bf5a37a5b470385c9268a042f6680"
+    },
+    "robot-scope-realsense-camera.service": {
+      "MainPID": "982",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "InvocationID": "c99004f7d9194f0ab1a53a55d2a6110b"
+    }
+  },
+  "final_inspection_at_utc": "2026-10-15T13:03:52.159813+00:00",
+  "checkout": {
+    "head": "47c77af19246bd6a455ee873a7c55884ed6e4122",
+    "branch": "main",
+    "clean": true,
+    "verified_files": 1265,
+    "mismatches": []
+  },
+  "source_artifacts": {
+    "archive_sha256": "c8cc099f5f5d4ab98d00fe6af33ac01bd38fd5a058f58ac29853ba2c007c4db0",
+    "bundle_sha256": "24921b167362dd4e6833ccfa96764e2b9da50f02a45dc1917797f4e98dbe4046"
+  },
+  "config": {
+    "unit_and_env_hashes": {
+      "unit/robot-scope.service": "bac0d81f041c3d0b44b72169b8e9ad1d51dce5551bd67c3e6004426e7e63d537",
+      "unit/robot-scope-control-bridge.service": "4912f0d44407a64bc73c0be1b24415cfefd7f7741d4a42f3e98f14de3fb4c9fa",
+      "unit/robot-scope-realsense-camera.service": "656ddba950c4827336192dae478c669a26c32bd0a7736733cca345ec985aa603",
+      "env/robot-scope.env": "ec459ea789f36a5942c658060e20c920c88cef4b1102f53e4ec280d021462e58",
+      "env/control.env": "907820b6a1f9ac51631f9beb22fa0324e66d5d0168664b222e64b3d661f3f524",
+      "env/realsense-camera.env": "65cb0e6a585466942e07723e70aae1135de635f842d82f16a09b929e3b5c660b"
+    },
+    "source_config_hashes": {
+      "config/nav2_params_go2_humble.yaml": "b69ad567f6ab2a6cc8b8a651191676ae69b02e8d9fca162f1afdce5f8007b6c0",
+      "scripts/run_go2_navigation_humble.sh": "07c7dbc05ffdd2a92319d3398b465d7d51723e36c66478c9d24e958b94aab92a"
+    },
+    "changed": false,
+    "effective_aggregate_digest": null,
+    "per_loaded_module_attestation": null,
+    "timer_ms": 250,
+    "batch_deadline_ms": 500,
+    "ttl_ms": 750
+  },
+  "preservation": {
+    "map_files": 54,
+    "map_hashes_preserved": true,
+    "unit_and_env_hashes_preserved": true,
+    "selected_state_files": 5,
+    "selected_state_all_byte_identical": true,
+    "bridge_camera_invocations_unchanged": true,
+    "bags_native_installs_modified": false,
+    "bags_native_installs_exhaustively_rehashed": false
+  },
+  "ui": {
+    "observed_at": "2026-10-15T13:05:38.525604+00:00",
+    "files": {
+      "features/mission_route/workspace.css": {
+        "status": 200,
+        "sha256": "fd4591592cf5e67a27352bc58dc18ccc10acfea94ed03deccdbdc42a1da038a7",
+        "disk_match": true,
+        "cache_control": "no-store"
+      },
+      "features/mission_route/workspace.js": {
+        "status": 200,
+        "sha256": "ad463728de6052002442c7b50585d0cea1a5e558df56528345a1971f2cda209a",
+        "disk_match": true,
+        "cache_control": "no-store"
+      },
+      "features/slam/dashboard.js": {
+        "status": 200,
+        "sha256": "7878b1c9a9c63057c29b6bc3f5d63b83b81337fedb43a6509caadff4e0c48572",
+        "disk_match": true,
+        "cache_control": "no-store"
+      },
+      "features/slam/slam.css": {
+        "status": 200,
+        "sha256": "6877ade20aa49d067c7e0bb5cfde953f8be9732e4243492732589295a4807e70",
+        "disk_match": true,
+        "cache_control": "no-store"
+      },
+      "mission-control.css": {
+        "status": 200,
+        "sha256": "96538130827b9671c1fb6ff96df0a4789771d79909e9b3ecae0ec43d8ad9d4e1",
+        "disk_match": true,
+        "cache_control": "no-store"
+      }
+    }
+  },
+  "analysis": {
+    "schema": "robot-scope.policy-only-live-analysis.v1",
+    "sanitized": true,
+    "device_or_source_writes": false,
+    "evidence": {
+      "directory": "sibling private evidence/integration-policy-deployment-20261015",
+      "files_sha256": {
+        "policy-window-summary.json": "7f2e31fb3a5b401ba06f8e5a151e46bfc7c8b402c2b3c33db7ad5e5cc08aa176",
+        "policy-window-api-trace.json": "b6d32224539776718be8ef742894fda98fdb98c014c2f4cf47fdf81dad1bf2e8",
+        "graph-trace-v2.jsonl": "1c3e53805a626b423a13b57fa699187b2f722d291270cd241725c8d3dc6d36f4",
+        "observation-wrapper-v2-result.json": "60b50a2247495f79c59030aa0c402e2a63c9c7cdce43a6bd8886fb97efa47082"
+      }
+    },
+    "source_runtime": {
+      "source_sha": "47c77af19246bd6a455ee873a7c55884ed6e4122",
+      "tool_files": {
+        "robot-scope-policy-graph-v2.py": "72895cf21feff87b2ac3e36059a3ea8dfc806b0853dcd36d56fdde7a4994b699",
+        "robot-scope-policy-window-v2.py": "38668e54e243d57484fb221f676a3c2500e46b584ac2af2cb6a177958c36b108",
+        "robot-scope-policy-observe-owned-v2.py": "4b8d42e77bbaf5071b3aafd618f71abd9b398f440d65318db89e9c34e5c9cf24"
+      },
+      "dashboard": {
+        "MainPID": "54752",
+        "ActiveState": "active",
+        "SubState": "running",
+        "InvocationID": "f1f5a924a4494901917d1d4f8fe6d66e"
+      },
+      "runtime_process_generations": [
+        59632
+      ],
+      "runtime_instance_generation_count": 1,
+      "runtime_binding_variant_count": 1,
+      "api_job_pair_variant_count": 1
+    },
+    "observation_interval": {
+      "start_utc": "2026-10-15T13:01:32.349162+00:00",
+      "end_utc": "2026-10-15T13:02:32.349642+00:00",
+      "duration_s": 60.00047968700028,
+      "api_samples": 60,
+      "api_first_sample_started_utc": "2026-10-15T13:01:32.349186+00:00",
+      "api_last_sample_started_utc": "2026-10-15T13:02:31.349306+00:00",
+      "graph_samples_in_exact_interval": 59,
+      "graph_samples_total": 77,
+      "graph_first_utc": "2026-10-15T13:01:32.624892+00:00",
+      "graph_last_utc": "2026-10-15T13:02:32.080830+00:00",
+      "graph_cadence_s": {
+        "min": 1.000137814000027,
+        "max": 1.050026447000164,
+        "median": 1.0243135804998929
+      }
+    },
+    "result": {
+      "collector_success": true,
+      "live_acceptance": false,
+      "localization_live_verified": false,
+      "observation": "COMPLETED_POLICY_ONLY_60S",
+      "initialpose_requests": 0,
+      "lease_requests": 0,
+      "goal_requests": 0,
+      "thresholds_or_runtime_timeouts_changed": false
+    },
+    "policy": {
+      "evidence_status_counts": {
+        "unavailable": 60
+      },
+      "reason_counts": {
+        "PARAMETERS_CHANGED": 1,
+        "POLICY_READBACK_TIMEOUT": 59
+      },
+      "runtime_policy_enforced_true_samples": 0,
+      "all_policy_sequence_and_age_unavailable": true,
+      "blocking_reason_counts": {
+        "FRESH_OPERATIONAL_POSE_REQUIRED": 60,
+        "GOAL_ADMISSION_UNAVAILABLE": 60,
+        "EFFECTIVE_FOOTPRINT_UNAVAILABLE": 60,
+        "RUNTIME_POLICY_NOT_ENFORCED": 60,
+        "EFFECTIVE_PLANNER_CONFIG_UNAVAILABLE": 60,
+        "POLICY_READBACK_UNAVAILABLE": 60,
+        "PARAMETERS_CHANGED": 1,
+        "POLICY_READBACK_TIMEOUT": 59
+      },
+      "bounds": "60 API samples saw unavailable cache. 59 POLICY_READBACK_TIMEOUT values are sampled cache reasons, not 59 distinct batches or proof that all 10 futures timed out.",
+      "source_ordering_limit": "RosPolicyReadback.tick checks elapsed > 0.5 s before testing all futures.done(); delayed tick/polling can therefore produce timeout even if replies completed before the check. Per-future completion and dispatch/tick timing were not recorded."
+    },
+    "independent_graph": {
+      "all_five_gid_sets_distinct_within_each_sample": true,
+      "all_five_stable_unique_24byte_authorities_observed": true,
+      "all_ten_services_ready_each_sample": true,
+      "service_calls_total": 0,
+      "action_calls_total": 0,
+      "per_node": {
+        "/bt_navigator": {
+          "samples": 59,
+          "node_counts": [
+            1
+          ],
+          "parameter_event_publisher_counts": [
+            1
+          ],
+          "gid_lengths_bytes": [
+            24
+          ],
+          "all_gids_nonzero": true,
+          "distinct_gid_count": 1,
+          "stable_gid": true,
+          "parameters_ready_true_samples": 59,
+          "state_ready_true_samples": 59,
+          "parameters_service_types": [
+            [
+              "rcl_interfaces/srv/GetParameters"
+            ]
+          ],
+          "state_service_types": [
+            [
+              "lifecycle_msgs/srv/GetState"
+            ]
+          ]
+        },
+        "/controller_server": {
+          "samples": 59,
+          "node_counts": [
+            1
+          ],
+          "parameter_event_publisher_counts": [
+            1
+          ],
+          "gid_lengths_bytes": [
+            24
+          ],
+          "all_gids_nonzero": true,
+          "distinct_gid_count": 1,
+          "stable_gid": true,
+          "parameters_ready_true_samples": 59,
+          "state_ready_true_samples": 59,
+          "parameters_service_types": [
+            [
+              "rcl_interfaces/srv/GetParameters"
+            ]
+          ],
+          "state_service_types": [
+            [
+              "lifecycle_msgs/srv/GetState"
+            ]
+          ]
+        },
+        "/global_costmap/global_costmap": {
+          "samples": 59,
+          "node_counts": [
+            1
+          ],
+          "parameter_event_publisher_counts": [
+            1
+          ],
+          "gid_lengths_bytes": [
+            24
+          ],
+          "all_gids_nonzero": true,
+          "distinct_gid_count": 1,
+          "stable_gid": true,
+          "parameters_ready_true_samples": 59,
+          "state_ready_true_samples": 59,
+          "parameters_service_types": [
+            [
+              "rcl_interfaces/srv/GetParameters"
+            ]
+          ],
+          "state_service_types": [
+            [
+              "lifecycle_msgs/srv/GetState"
+            ]
+          ]
+        },
+        "/local_costmap/local_costmap": {
+          "samples": 59,
+          "node_counts": [
+            1
+          ],
+          "parameter_event_publisher_counts": [
+            1
+          ],
+          "gid_lengths_bytes": [
+            24
+          ],
+          "all_gids_nonzero": true,
+          "distinct_gid_count": 1,
+          "stable_gid": true,
+          "parameters_ready_true_samples": 59,
+          "state_ready_true_samples": 59,
+          "parameters_service_types": [
+            [
+              "rcl_interfaces/srv/GetParameters"
+            ]
+          ],
+          "state_service_types": [
+            [
+              "lifecycle_msgs/srv/GetState"
+            ]
+          ]
+        },
+        "/planner_server": {
+          "samples": 59,
+          "node_counts": [
+            1
+          ],
+          "parameter_event_publisher_counts": [
+            1
+          ],
+          "gid_lengths_bytes": [
+            24
+          ],
+          "all_gids_nonzero": true,
+          "distinct_gid_count": 1,
+          "stable_gid": true,
+          "parameters_ready_true_samples": 59,
+          "state_ready_true_samples": 59,
+          "parameters_service_types": [
+            [
+              "rcl_interfaces/srv/GetParameters"
+            ]
+          ],
+          "state_service_types": [
+            [
+              "lifecycle_msgs/srv/GetState"
+            ]
+          ]
+        }
+      },
+      "bounds": "Readiness and authorities were observed from the separate graph helper node at 59 instants. These do not establish the dashboard gateway node's own discovery cache, callback/executor progress, RPC replies, parameter values, lifecycle states, or applied policy."
+    },
+    "localization_inputs": {
+      "diagnostic_first_to_last_span_s": 59.40441490000012,
+      "wait_reason_counts": {
+        "cloud_not_fresh": 1,
+        "inputs_ready_waiting_initial_pose": 59
+      },
+      "health_state_counts": {
+        "DEGRADED": 60
+      },
+      "health_reason_code_counts": {
+        "INITIAL_POSE_REQUIRED": 60
+      },
+      "session_state_counts": {
+        "waiting_initial_pose": 60
+      },
+      "inputs": {
+        "cloud": {
+          "source_generations": [
+            1
+          ],
+          "publisher_counts": [
+            1
+          ],
+          "distinct_publisher_gid_sets": 1,
+          "first_counts": {
+            "callback_count": 1,
+            "accepted_count": 0,
+            "rejected_count": 1,
+            "accepted_since_generation": 0,
+            "publisher_change_count": 0
+          },
+          "last_counts": {
+            "callback_count": 595,
+            "accepted_count": 594,
+            "rejected_count": 1,
+            "accepted_since_generation": 594,
+            "publisher_change_count": 0
+          },
+          "first_to_last_count_deltas": {
+            "callback_count": 594,
+            "accepted_count": 594,
+            "rejected_count": 0,
+            "accepted_since_generation": 594,
+            "publisher_change_count": 0
+          },
+          "first_reject_counts_nonzero": {
+            "publisher_not_unique": 1
+          },
+          "reject_count_deltas": {
+            "callback_error": 0,
+            "controller_gate_rejected": 0,
+            "future_stamp": 0,
+            "heading_jump": 0,
+            "insufficient_scan_bins": 0,
+            "invalid_cloud_layout": 0,
+            "invalid_pose": 0,
+            "invalid_stamp": 0,
+            "missing_stamp": 0,
+            "nonincreasing_stamp": 0,
+            "publisher_not_unique": 0,
+            "stale_stamp": 0,
+            "timing_discontinuity": 0,
+            "translation_jump": 0,
+            "unexpected_frame": 0
+          },
+          "accepted_age_s": {
+            "min": 0.004862922000029357,
+            "max": 0.015843850999772258,
+            "null_samples": 1
+          },
+          "accepted_frequency_hz": {
+            "min": 9.960763185013061,
+            "max": 10.027591581350592,
+            "null_samples": 1
+          }
+        },
+        "odometry": {
+          "source_generations": [
+            1
+          ],
+          "publisher_counts": [
+            1
+          ],
+          "distinct_publisher_gid_sets": 1,
+          "first_counts": {
+            "callback_count": 2,
+            "accepted_count": 0,
+            "rejected_count": 2,
+            "accepted_since_generation": 0,
+            "publisher_change_count": 0
+          },
+          "last_counts": {
+            "callback_count": 595,
+            "accepted_count": 593,
+            "rejected_count": 2,
+            "accepted_since_generation": 593,
+            "publisher_change_count": 0
+          },
+          "first_to_last_count_deltas": {
+            "callback_count": 593,
+            "accepted_count": 593,
+            "rejected_count": 0,
+            "accepted_since_generation": 593,
+            "publisher_change_count": 0
+          },
+          "first_reject_counts_nonzero": {
+            "publisher_not_unique": 2
+          },
+          "reject_count_deltas": {
+            "callback_error": 0,
+            "controller_gate_rejected": 0,
+            "future_stamp": 0,
+            "heading_jump": 0,
+            "insufficient_scan_bins": 0,
+            "invalid_cloud_layout": 0,
+            "invalid_pose": 0,
+            "invalid_stamp": 0,
+            "missing_stamp": 0,
+            "nonincreasing_stamp": 0,
+            "publisher_not_unique": 0,
+            "stale_stamp": 0,
+            "timing_discontinuity": 0,
+            "translation_jump": 0,
+            "unexpected_frame": 0
+          },
+          "accepted_age_s": {
+            "min": 0.002705470999899262,
+            "max": 0.10347846800004845,
+            "null_samples": 1
+          },
+          "accepted_frequency_hz": {
+            "min": 9.91863101309156,
+            "max": 10.051413286990625,
+            "null_samples": 1
+          }
+        }
+      },
+      "bounds": "Deltas cover first-to-last diagnostic snapshots, not every instant of the full 60 s. Accepted input progression in this run does not establish the root cause of historical stale startup."
+    },
+    "control": {
+      "lease_active_samples": 0,
+      "dashboard_commands_all_exact_zero_deadman_false": true,
+      "accepted_commands_all_exact_zero_deadman_false": true,
+      "first_to_last_bridge_count_deltas": {
+        "published_count": 112,
+        "stop_count": 112,
+        "move_count": 0,
+        "zero_move_count": 0,
+        "nonzero_move_count": 0,
+        "malformed_move_count": 0,
+        "action_count": 0,
+        "other_count": 0,
+        "motion_run_nonzero_move_count": 0
+      },
+      "preflight_to_last_observation_bridge_count_deltas": {
+        "published_count": 130,
+        "stop_count": 130,
+        "move_count": 0,
+        "zero_move_count": 0,
+        "nonzero_move_count": 0,
+        "malformed_move_count": 0,
+        "action_count": 0,
+        "other_count": 0,
+        "motion_run_nonzero_move_count": 0
+      },
+      "preflight_to_final_cleanup_bridge_count_deltas": {
+        "published_count": 144,
+        "stop_count": 144,
+        "move_count": 0,
+        "zero_move_count": 0,
+        "nonzero_move_count": 0,
+        "malformed_move_count": 0,
+        "action_count": 0,
+        "other_count": 0,
+        "motion_run_nonzero_move_count": 0
+      },
+      "session_initial_pose_counts": [
+        0
+      ],
+      "goal_admission_true_samples": 0,
+      "bounds": "API command and bridge request counters verify no observed nonzero request; no independent physical-motion acceptance was performed."
+    },
+    "cleanup": {
+      "post_attempts": [
+        {
+          "utc": "2026-10-15T13:01:22.601778+00:00",
+          "path": "/api/v1/navigation/localization/start",
+          "status": 202,
+          "error_type": null,
+          "timeout_s": 3.0,
+          "elapsed_s": 0.4427923739999642
+        },
+        {
+          "utc": "2026-10-15T13:02:32.532497+00:00",
+          "path": "/api/v1/navigation/localization/stop",
+          "status": null,
+          "error_type": "TimeoutError",
+          "timeout_s": 3.0,
+          "elapsed_s": 3.0029207160000624
+        }
+      ],
+      "start_attempts": 1,
+      "stop_attempts": 1,
+      "stop_response_uncertain": true,
+      "cleanup": "API_OWNER_CLEAN",
+      "verified": true,
+      "elapsed_s": 6.593711,
+      "navigation_pipeline_state": "idle",
+      "navigation_job_absent": true,
+      "localization_session_active": false,
+      "localization_session_state": "idle",
+      "mapping_pipeline_state": "stopped",
+      "mapping_exit_code": 0,
+      "shared_owner_absent": true,
+      "final_process_matches": 0,
+      "manual_action_needed": false,
+      "collector_exit": 0,
+      "graph_exit": 0,
+      "bounds": "The sole STOP HTTP request timed out after approximately 3 s; it was not retried. Subsequent GET ownership cleanup and final process absence establish successful cleanup, rather than an HTTP STOP response."
+    },
+    "next_minimal_software_work": "Add bounded gateway-observer batch diagnostics for dispatch time, poll elapsed, callback group/executor progress, per-node/method ready-at-dispatch and future done/cancelled/error state at deadline. Regress delayed-tick/all-done and partial-future cases while preserving 0.5 s batch deadline, 0.75 s evidence TTL, policy enforcement false and all existing freshness gates. No further hardware start is inferred."
+  },
+  "tooling_corrections": [
+    {
+      "operation": "initial activation",
+      "reported_status": "FAIL; rollback validator also FAIL",
+      "actual_recovery": "old clean source and active service independently verified; all selected state unchanged, schematic25->25",
+      "cause": "checker incorrectly required eager per-restart schematic revision; actual constructor is lazy",
+      "correction": "zero..qualified-incarnations revision-only delta; other payload exact; delta0 requires exact bytes"
+    },
+    {
+      "operation": "first graph-helper wrapper",
+      "localization_start_attempts": 0,
+      "cause": "private ROS Context passed to node but global executor used",
+      "correction": "owned SingleThreadedExecutor(context=context), remove node and shutdown executor in finally"
+    },
+    {
+      "operation": "collector pre-runtime review",
+      "cause": "empty DDS discovery can create positive generation before first publisher",
+      "correction": "pin only qualified nonempty publisher identity; separate diagnostic drift from API ownership replacement"
+    }
+  ],
+  "verification": {
+    "exact_candidate_ci": {
+      "run_id": 38733978639,
+      "status": "SUCCESS",
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38733978639",
+      "jobs": [
+        "Ubuntu22.04/Python3.10",
+        "Ubuntu24.04/Python3.12"
+      ],
+      "python_tests": 1998,
+      "python_optional_skips": 1,
+      "javascript_tests": 381,
+      "chromium_tests": 100
+    },
+    "local_python": {
+      "tests": 1998,
+      "passed": 1996,
+      "skipped": 2,
+      "failed": 0,
+      "skip_reasons": [
+        "optional rosbags backend not installed",
+        "Linux process-session /proc check on macOS"
+      ]
+    },
+    "local_javascript": {
+      "passed": 381,
+      "failed": 0
+    },
+    "collector_fake_transport": {
+      "passed": 34,
+      "failed": 0,
+      "evidence_type": "fake API fixtures and actual diagnostic-class reproduction; not native acceptance"
+    }
+  },
+  "acceptance": {
+    "SOFTWARE_CLOSURE": false,
+    "LOCALIZATION_LIVE_VERIFIED": false,
+    "MR_MS_003": "PARTIAL",
+    "D01": "BLOCKED",
+    "D04": "BLOCKED",
+    "D05": "BLOCKED",
+    "NativePlanner_product_execution": "NOT_RUN",
+    "MS_native_reuse": "BLOCKED",
+    "MAP_02": "PARTIAL/BLOCKED",
+    "stages41_43": "NOT_RUN"
+  },
+  "private_evidence_hashes": {
+    "before.json": "9ab24565650f86acb3765804931f71b6d9817f23026d67347186bec9ea5fb84e",
+    "candidate-ci.json": "2330faeff0737dbaf51c4f8de32b180bb75b299a26cbdf318ad9882de58d3f17",
+    "candidate-metadata.json": "48c3310f4ae6bf1a715816bb9b6ca3b072baaf88fc829643a33a39469070ecff",
+    "collector-stderr-v2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "collector-stdout-v2.log": "423cd122c908af851a35e4473a501cf1ee81147185ebaf04cf5746f54164389d",
+    "current-window-confirmation.json": "443565fbc86e065fe065dd9c0fc2c5414d934474cc0664cc44ad648fcaaea2b3",
+    "finalize-stage.py": "ebf4362d747a4817795009a999e119da8856e7e8943c5374ed0f1d24a310bc72",
+    "graph-stderr-v2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "graph-stderr.log": "58257bfe3eda74a32e2a83460a59b9f6c028ac5d3a87b10a729a062c6a0d7393",
+    "graph-trace-v2.jsonl": "1c3e53805a626b423a13b57fa699187b2f722d291270cd241725c8d3dc6d36f4",
+    "observation-tools-v2.json": "5bf24adc03d341beffa277ae397e25f23182e63e71eba70d24751a5c93209287",
+    "observation-tools.json": "a5644e168b4912e90368def1c79cc2d124428142950484a849350fc0d4ffdb81",
+    "observation-wrapper-result.json": "14e0e41fbf795a73a9425352c7decdd179fde3f4c47a48f74a8d907ad3d3c702",
+    "observation-wrapper-v2-result.json": "60b50a2247495f79c59030aa0c402e2a63c9c7cdce43a6bd8886fb97efa47082",
+    "policy-window-api-trace.json": "b6d32224539776718be8ef742894fda98fdb98c014c2f4cf47fdf81dad1bf2e8",
+    "policy-window-summary.json": "7f2e31fb3a5b401ba06f8e5a151e46bfc7c8b402c2b3c33db7ad5e5cc08aa176",
+    "robot-scope-policy-activate-v2.py": "dfe6869ca3ba49b9f5cdb635f0d0006815e82cdb5872500d54498e8dc0629c59",
+    "robot-scope-policy-activate.py": "5850f067a7c08ae88ff9ced9391ee468791206abf01251e35218b81ed34264d8",
+    "robot-scope-policy-activation-result.json": "2f73c6aaeb4eeb45a91b692ecf9d99144437a9f9bc084da92b74cb83c13a6eb2",
+    "robot-scope-policy-activation-summary.json": "1ddc06b5a2ccae3f1bfa03bed4cd7e955297e07e9e5bcbc843f113f64dd93ca7",
+    "robot-scope-policy-activation-v2-result.json": "79503dcc2553180142eb3fb52c3d1eb885e9fb29ccef4d727daeedaa3040b112",
+    "robot-scope-policy-activation-v2-summary.json": "e628be75ee346eb4a1333253c4b6f30ec94cdfddb188b21c56a73d631637ce15",
+    "robot-scope-policy-after-rollback.json": "32672048529c9313dad1b3bd0e56508dbfb6a52ed928a84d5e2bb474859a690a",
+    "robot-scope-policy-after-window.json": "9d6d6fa01b8937e2e81830a793d79bb57e6f64fc79adc2fc3992526078c5a5b4",
+    "robot-scope-policy-current.py": "d9bf2ba5355cd4820b069ca6332f0d428170dad0094ff10c82bcd84e2a5db1ab",
+    "robot-scope-policy-graph-v2.py": "72895cf21feff87b2ac3e36059a3ea8dfc806b0853dcd36d56fdde7a4994b699",
+    "robot-scope-policy-graph.py": "d52ee07722efc82e691ed1448f82dd19aab4943061594bf894052ae1fea2c114",
+    "robot-scope-policy-identity-reproduction-results.json": "b467c16faf123c1f11c23860dc6469c6fa495949b6ac542ee99837553686784f",
+    "robot-scope-policy-identity-reproduction.py": "a1b97722293f2999c8ac076adb82b92245bf84ecb7ea3a2940e1b666aa691dfb",
+    "robot-scope-policy-live-analysis.json": "40b5aceac9a846d9efbff60844c5aa2df355d5e1c81609e524a8eb52b97efeb4",
+    "robot-scope-policy-observe-owned-v2.py": "4b8d42e77bbaf5071b3aafd618f71abd9b398f440d65318db89e9c34e5c9cf24",
+    "robot-scope-policy-observe-owned.py": "f43c204d6aa483cad015de892bacb148421f242fccc7a2cdec62ae64d915d765",
+    "robot-scope-policy-ui-served.json": "fc644da8bf4f02ed6f1690bf5c40289165de63a010428705a1417d9cd94567df",
+    "robot-scope-policy-window-js.log": "f065dc4d53be704739d50e4e1ae3203d7a339f4896fd5fa39ddae0458db9d99e",
+    "robot-scope-policy-window-python.log": "262c2f4ae14221d9ec29743a19c01c144e0eb6d8528a4ce297c9d3e70764200d",
+    "robot-scope-policy-window-smoke-results.json": "f10d968a758592e6aec11c5caf412b2dc875ac3a629a9d6db86b42168f2afa84",
+    "robot-scope-policy-window-smoke.py": "6995968fb4edd7316e4c7c47c2f3116e4a50694e7d1b8b2160add259135015eb",
+    "robot-scope-policy-window-v2-smoke-results.json": "bd2d3cc7cfcab0d1abbc84efe1d77077cc04605ac6e29f226bcd91e774834f93",
+    "robot-scope-policy-window-v2-smoke.py": "4f097b75fb4c8fb9c04c965f6a2d3ab096a0ed0dc8e52c88072fb3c9e6642bd5",
+    "robot-scope-policy-window-v2.py": "38668e54e243d57484fb221f676a3c2500e46b584ac2af2cb6a177958c36b108",
+    "robot-scope-policy-window.py": "735e87158065044a89130a0bf8834582fc1e1fe562e2157c01d139355d7a2030",
+    "stage.py": "08f8218299ebaedb713271b82dbd328c721b92db8e5b42d2c45ff7bf228a726e",
+    "staging-result.json": "aa9aacfb754bff5ecdf16f9b825c5eda3adcdcf1de8bdf061a2164bbbd02b6ae",
+    "start-input.json": "5167d0290704104ea2cd69349c2a41a1612fe29105b3accc737de4227e7084dc"
+  },
+  "next_minimum_action": "Add bounded gateway-observer batch diagnostics for dispatch time, poll elapsed, callback group/executor progress, per-node/method ready-at-dispatch and future done/cancelled/error state at deadline. Regress delayed-tick/all-done and partial-future cases while preserving 0.5 s batch deadline, 0.75 s evidence TTL, policy enforcement false and all existing freshness gates. No further hardware start is inferred.",
+  "final_user_instruction": "Scope briefly extended to41, then user explicitly requested immediate completion before any41 operation. Stop after completed stage40 evidence and publication; no pending device action or continuation."
+}

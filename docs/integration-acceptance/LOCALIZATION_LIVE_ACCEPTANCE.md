@@ -1,5 +1,13 @@
 # Stage40 localization live acceptance — partial, window closed
 
+Latest controlled follow-up: candidate47c77af is deployed and the one-start,
+no-pose60-second policy diagnostic window is complete. Cleanup and preservation
+are verified; readback remains unavailable with bounded timeout evidence. See
+[POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md) and its exact validation JSON.
+The following sections preserve the earlier timestamped evidence.
+
+## Earlier evidence
+
 Approved candidate863682e completed one retry with one existing initialpose and180.0007s stationary observation. No goal/lease/motion/camera workload was issued. Owned localization/FAST-LIO and observers were stopped; existing dashboard/preview/bridge/camera remain under their normal owners. Detailed identities, evidence hashes and final state: [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json).
 
 ## Timeline and source identity

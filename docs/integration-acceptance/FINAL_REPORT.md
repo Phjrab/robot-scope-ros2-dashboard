@@ -1,21 +1,32 @@
 # Integration final report — through40
 
-Stages30–36 software integration and the authorized stage40 deployment/localization window are finished. Candidate863682e was deployed; existing initialpose1 and180s stationary observation completed, with goal/motion0 and owned cleanup confirmed. Full live acceptance and SOFTWARE_CLOSURE remain false. Actual policy evidence was unavailable; full TF authority and independent map alignment remain unproved. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md).
+Final user instruction: stop and finish here. Scope was briefly extended to41,
+but no41 operation began before the stop request. No additional device action
+or background continuation is pending.
 
-The user additionally requested the current dashboard UI changes, explicitly choosing the global control-status HUD and its SOFTWARE STOP only in Settings (the existing Controls-page STOP remains). UI381 JS/96 Chromium/83-module syntax checks passed; commit1656e4d was applied without restart and all3 HTTP static hashes matched. See [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md). This does not reopen localization or41–43.
+Candidate `47c77af19246bd6a455ee873a7c55884ed6e4122` is now deployed, including
+the a67c5f5 UI repairs and bounded policy diagnostics. The approved one-start,
+no-initialpose policy window completed60 seconds and owned cleanup. All60 policy
+samples were unavailable (59 readback-timeout reasons); independent graph samples
+showed five unique authorities and ten ready services, without proving replies.
+No deadline/freshness was relaxed. Exact source/runtime/config, tooling corrections,
+preservation, regressions and limits are in [POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md)
+and [POLICY_RUNTIME_WINDOW.json](POLICY_RUNTIME_WINDOW.json).
 
-The user reopened software investigation within40. Bounded observer diagnostics
-and partial-dispatch future cleanup are now implemented and fixture-tested; the
-new backend source is not deployed. See
-[POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md) and its
-[validation record](POLICY_DIAGNOSTICS_VALIDATION.json). Separate concurrent UI
-source/test edits are preserved and excluded from this policy publication.
+Final inspection at2026-10-15T13:03:52Z: clean main47c77af, dashboard PID54752,
+HTTP200,1265 matching source files,54 maps and five selected-state files preserved.
+Bridge/camera invocations remain unchanged. Navigation/session/goal idle,
+initialpose0, lease/deadman false, command0 and no owned runtime/observer remain.
+The five updated UI files are served with exact hashes and no-store. Global
+HUD/STOP stays Settings-only by user choice; the Controls-page STOP remains.
 
-Smallest next work: apply and observe this diagnostic candidate in a qualified
-current window, isolate effective parameter/lifecycle readback, then implement
-qualified policy ingestion/enforcement. NativePlanner product execution, MS native
-map reuse and complete retained-map export still require their own conditions.
-Historical stale startup cause remains unconfirmed. No follow-up is scheduled.
+This60-second diagnostic does not replace the prior localized180-second result.
+Full live acceptance and SOFTWARE_CLOSURE remain false; NativePlanner product
+execution, MS native reuse and MAP-02 completeness remain unverified. No41–43
+operation or additional runtime window was performed. Next minimum policy work:
+bounded per-endpoint future state and tick/batch timings, preserving500ms/750ms
+and semantic revisions. Historical stale-startup cause remains UNCONFIRMED.
+No background continuation is scheduled.
 
 ## Historical stage36 software snapshot
 

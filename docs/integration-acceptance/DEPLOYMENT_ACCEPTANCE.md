@@ -1,5 +1,13 @@
 # Stage40 controlled deployment — executed, acceptance partial
 
+Latest controlled follow-up: candidate47c77af is deployed and the one-start,
+no-pose60-second policy diagnostic window is complete. Cleanup and preservation
+are verified; readback remains unavailable with bounded timeout evidence. See
+[POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md) and its exact validation JSON.
+The following sections preserve the earlier timestamped evidence.
+
+## Earlier evidence
+
 The user extended the completed30–36 scope through40 and confirmed stationarity, immediate physical stop/independent recovery, and the same recorded initial position/orientation.41–43 remain outside scope. Exact results are in [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json); live limits are in [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md).
 
 Application source is `4b189d1f59fb08667faaf3922f08b6e145f0db4b`; deployed candidate is `863682ed4c566a56e676c2a4ed42fef1808885e5`. Source CI38716730829 and exact candidate CI38717978720 both succeeded on Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12. Final documentation publication is separate from this installed candidate.

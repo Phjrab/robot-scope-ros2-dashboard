@@ -1,5 +1,13 @@
 # Policy readback follow-up within stage40
 
+Latest controlled follow-up: candidate47c77af is deployed and the one-start,
+no-pose60-second policy diagnostic window is complete. Cleanup and preservation
+are verified; readback remains unavailable with bounded timeout evidence. See
+[POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md) and its exact validation JSON.
+The following sections preserve the earlier timestamped evidence.
+
+## Earlier evidence
+
 The user's continuation reopens software investigation through40. It does not
 repeat the consumed localization retry or extend execution to41–43. The dashboard
 address is `http://192.168.50.30:8088` on the robot management network. The

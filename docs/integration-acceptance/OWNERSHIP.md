@@ -1,17 +1,17 @@
 # Integration ownership — 2026-10-15
 
-## Latest user-requested continuation within40
+Final user instruction: stop and finish here. Scope was briefly extended to41,
+but no41 operation began before the stop request. No additional device action
+or background continuation is pending.
 
-Integration owns only policy diagnostic/provider/gateway/observer changes, their
-regressions and acceptance records. Delegated gateway and dispatch owners completed
-their disjoint writes; an independent review found no actionable issue. The device
-was inspected read-only at2026-10-15T11:52:29Z; no runtime/camera/service owner was
-acquired. The previously consumed localization retry remains closed. Separate
-UI changes appeared during validation (mission-route workspace CSS/JS, SLAM
-dashboard JS/CSS, mission-control.css and UI E2E tests). Their writer is not attributed by this
-chat; they were independently published as a67c5f5 during validation and remain
-preserved as the integration parent, outside this focused policy change. New policy source
-is not deployed. See POLICY_DIAGNOSTICS_FOLLOWUP.md and its validation record.
+## Latest deployment and policy window
+
+Integration acquired only the approved dashboard deployment and one localization-only
+window for47c77af. Corrected private tooling after verified no-START preflight
+failures; actual START1/STOP1, pose/goal/lease0, then owned runtime and graph
+cleanup. Bridge/camera invocations and stored data were preserved. Dashboard
+remains active on the candidate; no runtime/camera ownership remains acquired.
+No41–43 operation occurred. Details: [POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md).
 
 ## Historical takeover
 

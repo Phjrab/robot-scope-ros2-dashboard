@@ -1,30 +1,32 @@
 # Integration progress — through40
 
-Latest device check at2026-10-15T12:19:36Z confirms the separately deployed UI
-a67c5f5, HTTP200, unchanged post-reboot service invocations and54 preserved maps.
-Policy source a328879 remains undeployed. See the follow-up validation record.
+Final user instruction: stop and finish here. Scope was briefly extended to41,
+but no41 operation began before the stop request. No additional device action
+or background continuation is pending.
 
-The user reopened software investigation within40. Bounded policy observer
-diagnostics now survive incomplete readback, optional gateway setup/readback
-failures preserve STOP, and partial request dispatch cleans up every owned future.
-See [POLICY_DIAGNOSTICS_FOLLOWUP.md](POLICY_DIAGNOSTICS_FOLLOWUP.md) and its exact-byte
-[validation record](POLICY_DIAGNOSTICS_VALIDATION.json). This source is not deployed;
-after a user-reported reboot, a12:10:57Z read-only check confirms clean1656e4d
-checkout, HTTP200, new service invocations and idle/zero controls. No initialpose
-was replayed. Exact a328879 CI38732453021 passed both Linux jobs
-(1998 Python with1 skip,381 JS,100 Chromium). Separate
-UI changes appearing during validation remain untouched and excluded. No live row
-is promoted; no localization retry or41–43 action was initiated.
+Candidate `47c77af19246bd6a455ee873a7c55884ed6e4122` is now deployed, including
+the a67c5f5 UI repairs and bounded policy diagnostics. The approved one-start,
+no-initialpose policy window completed60 seconds and owned cleanup. All60 policy
+samples were unavailable (59 readback-timeout reasons); independent graph samples
+showed five unique authorities and ten ready services, without proving replies.
+No deadline/freshness was relaxed. Exact source/runtime/config, tooling corrections,
+preservation, regressions and limits are in [POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md)
+and [POLICY_RUNTIME_WINDOW.json](POLICY_RUNTIME_WINDOW.json).
 
-Stages30–36 software integration and the authorized stage40 deployment/localization window are finished. Candidate863682e was deployed; existing initialpose1 and180s stationary observation completed, with goal/motion0 and owned cleanup confirmed. Full live acceptance and SOFTWARE_CLOSURE remain false. Actual policy evidence was unavailable; full TF authority and independent map alignment remain unproved. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md).
+Final inspection at2026-10-15T13:03:52Z: clean main47c77af, dashboard PID54752,
+HTTP200,1265 matching source files,54 maps and five selected-state files preserved.
+Bridge/camera invocations remain unchanged. Navigation/session/goal idle,
+initialpose0, lease/deadman false, command0 and no owned runtime/observer remain.
+The five updated UI files are served with exact hashes and no-store. Global
+HUD/STOP stays Settings-only by user choice; the Controls-page STOP remains.
 
-The user additionally requested the current dashboard UI changes, explicitly choosing the global control-status HUD and its SOFTWARE STOP only in Settings (the existing Controls-page STOP remains). UI381 JS/96 Chromium/83-module syntax checks passed; commit1656e4d was applied without restart and all3 HTTP static hashes matched. See [UI_ACCEPTANCE.md](UI_ACCEPTANCE.md). This does not reopen localization or41–43.
-
-Smallest next work: use the bounded diagnostics in a qualified current runtime
-window to isolate effective parameter/lifecycle readback, then implement qualified
-policy ingestion/enforcement. NativePlanner product execution, MS native map reuse
-and complete retained-map export still require their own qualified native conditions.
-Historical stale startup cause remains unconfirmed. No follow-up is scheduled.
+This60-second diagnostic does not replace the prior localized180-second result.
+Full live acceptance and SOFTWARE_CLOSURE remain false; NativePlanner product
+execution, MS native reuse and MAP-02 completeness remain unverified. No41–43
+operation or additional runtime window was performed. Next minimum policy work:
+bounded per-endpoint future state and tick/batch timings, preserving500ms/750ms
+and semantic revisions. Historical stale-startup cause remains UNCONFIRMED.
+No background continuation is scheduled.
 
 ## Historical stage36 software snapshot
 
