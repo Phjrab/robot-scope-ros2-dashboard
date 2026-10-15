@@ -1,0 +1,336 @@
+{
+  "schema": "robot-scope.stage40-validation.v1",
+  "recorded_at_utc": "2026-10-15T10:57:18.370979+00:00",
+  "stop_after_stage": 40,
+  "application_source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+  "deployed_candidate_sha": "863682ed4c566a56e676c2a4ed42fef1808885e5",
+  "previous_device_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
+  "source_ci": {
+    "id": 38716730829,
+    "conclusion": "success"
+  },
+  "candidate_ci": {
+    "id": 38717978720,
+    "conclusion": "success"
+  },
+  "final_documentation_ci": "verify separately after publication; no self-SHA embedded",
+  "deployment": {
+    "status": "PASS",
+    "method": "clean checkout fast-forward and dashboard-only controlled restart",
+    "dashboard_pid_before": 996,
+    "dashboard_pid_after": 62370,
+    "dashboard_invocation": "f614b41a474543b5b272b83f335669aa",
+    "cwd": "/home/unitree/robot-scope",
+    "python": "/usr/bin/python3.10",
+    "archive_sha256": "a0b9207e8bb917b1913be9111c1cf6561cb31add1c6ce758453e0552610be824",
+    "verified_files": 1255,
+    "file_mismatches": 0,
+    "checkout_clean": true,
+    "unit_environment_enable_policy_changed": false,
+    "rollback_executed": false,
+    "effective_policy_readback": "unavailable",
+    "aggregate_loaded_config_digest": null,
+    "per_loaded_module_attestation": false
+  },
+  "preservation": {
+    "bridge_pid": 984,
+    "bridge_invocation": "f1c66ebfa68d43cdaf66cfbc0bd4dbef",
+    "camera_pid": 988,
+    "camera_invocation": "b529cd0ed2fe4767b213a8bab65807ef",
+    "bridge_camera_units_unchanged": true,
+    "map_files_hashed": 54,
+    "map_file_hashes_unchanged": true,
+    "mission_api_unchanged": true,
+    "selected_state_byte_equal": 4,
+    "selected_state_total": 5,
+    "selected_state_exception": "existing schematic restart restore increments revision24 to25; all other JSON content equal",
+    "maps_bags_native_installations_edited": false,
+    "user_ui_test_changes_excluded": false,
+    "user_ui_test_changes_note": "Initially preserved/excluded, then explicitly requested by user and adopted for reviewed UI publication/deployment."
+  },
+  "execution": {
+    "localization_starts_total": 2,
+    "first_window": "WAITING_INITIAL_POSE; stationary collector aborted before pose due installed Humble callback arity",
+    "first_window_initialpose_requests": 0,
+    "retry_approval": "user explicitly approved one retry after automatic review rejected unapproved retry; rejected call did not execute",
+    "retry_preflight_abort": "attempts0: stopped exact prior owned dependency was incorrectly required idle; collector predicate corrected with exact job/exit0/stopped_at/no live child guards",
+    "retry_start_result": "WAITING_INITIAL_POSE",
+    "retry_observer_exit_code": 0,
+    "runtime_instance_generation": "81270:4252395617568",
+    "initialpose_requests": 1,
+    "stationary_observation": "COMPLETED_180S",
+    "observed_seconds": 180.00070060300004,
+    "stationary_observer_exit_code": 0,
+    "goal_requests": 0,
+    "lease_acquisitions": 0,
+    "nonzero_move_count": 0,
+    "thresholds_changed": false,
+    "historical_stale_root_cause": "UNCONFIRMED",
+    "first_health_collector": {
+      "trace_written": true,
+      "exit_code": 1,
+      "cause": "rclpy double shutdown during cleanup after valid bounded trace; corrected collector exit0 on approved retry"
+    }
+  },
+  "policy_live": {
+    "endpoint": "GET /api/v1/mission-plans context",
+    "samples": 20,
+    "span_seconds": 12.079548,
+    "sampling_scope": "tail of active stationary window only; main180s runner sampled slam context, which has no policy readback",
+    "enforced": false,
+    "evidence_status": "unavailable",
+    "planner_config_digest": null,
+    "footprint_revision": null,
+    "radius": null,
+    "semantic_revision_count": 1,
+    "snapshot_sequence_count": 20,
+    "setup_probe": "PASS on same installed source/ROS environment; no spin, service calls0, native pipeline inactive",
+    "positive_enforcement_proof": false,
+    "full_window_effective_readback_proof": false,
+    "next_minimum_action": "Preserve bounded raw observer status/reason even with incomplete parameters, then isolate real parameter/lifecycle authority/service failure on the fixed profile. No policy=true or TTL changes."
+  },
+  "final_state": {
+    "dashboard": "active/enabled same PID62370; served UI1656e4d; backend source bytes unchanged from controlled863682e restart",
+    "navigation_job_id": null,
+    "localization_session": "idle/inactive; count1 retained",
+    "owned_fastlio": "stopped/exit0",
+    "persistent_lidar_preview": "running",
+    "owned_processes_remaining": [],
+    "lease": false,
+    "deadman": false,
+    "command_zero": true,
+    "goal_state": "idle",
+    "nonzero_move_count": 0,
+    "bridge_camera": "same PID/invocation",
+    "background_followup": false,
+    "observed_at_utc": "2026-10-15T10:54:13.902204+00:00"
+  },
+  "stage40_all_acceptance_passed": false,
+  "localization_live_verified": false,
+  "software_closure": false,
+  "stages41_43": "NOT_RUN; outside current user scope",
+  "absolute_pose_error_m": null,
+  "regression": {
+    "source_candidate_full_results": "VALIDATION.json and CI.json",
+    "final_python_full": {
+      "run": 1987,
+      "passed_in_sandbox": 1963,
+      "skipped": 2,
+      "errors": 22,
+      "error_cause": "sandbox Unix socket bind denied in test_slam_broker only"
+    },
+    "affected_broker_module_retry": {
+      "run": 22,
+      "passed": 22,
+      "errors": 0,
+      "approved_local_socket_test": true
+    },
+    "javascript": {
+      "passed": 381,
+      "failed": 0
+    },
+    "browser_e2e": "96 PASS locally on exact adopted UI source; source/candidate CI are separately recorded",
+    "dirty_ui_tests": "User explicitly adopted and published existing UI/test changes in1656e4d; no excluded UI changes remain."
+  },
+  "localization_health": {
+    "observer_saved_records": 188,
+    "populated_records": 187,
+    "unique_saved_health_sequences": 180,
+    "trailing_cached_records_after_stop": 7,
+    "sampled_raw_ready_localized": 186,
+    "prepose_not_ready": 1,
+    "cloud_odom_fresh_records": 187,
+    "api_active_samples": 155,
+    "api_health_states": {
+      "READY": 80,
+      "DEGRADED": 74,
+      "STALE": 1
+    },
+    "api_initial_stale": "first+0.185s: map_to_odom_age null in API runtime-health snapshot while TF observer already had map->odom; telemetry/cache gap, inputs fresh; remaining154 samples not STALE",
+    "rate_degraded": "nominal10Hz estimate crosses existing10.0Hz min; exact go2-onboard rate_gate.enabled false; unchanged thresholds",
+    "diagnostic_counter_span_seconds": 180.999970534,
+    "each_input_callback_delta": 1810,
+    "each_input_accepted_delta": 1810,
+    "each_input_rejected_delta": 0,
+    "source_generation_count": 1,
+    "each_input_publisher_gid_count": 1,
+    "publisher_change_delta": 0,
+    "sampled_odometry_receipt_age_s": [
+      0.0236,
+      0.0502
+    ],
+    "sampled_odometry_source_age_s": [
+      0.0745,
+      0.0839
+    ],
+    "sampled_raw_cloud_age_s": [
+      0.0392,
+      0.0595
+    ],
+    "periodic_record_max_gap_s": 1.058253363,
+    "api_poll_max_gap_s": 1.286620329,
+    "rmw_queue_samples": 0,
+    "rmw_queue_values": null,
+    "whole_window_continuous_READY": false,
+    "counter_limits": "Endpoint counter deltas cover bounded diagnostics span including margins; ~1Hz saved records/ring8 do not preserve every health/callback event; cached post-stop records are not fresh runtime evidence."
+  },
+  "map_alignment": {
+    "status": "PARTIAL",
+    "map_identity_revision_family_match": true,
+    "current_image_bytes_independently_fetched": false,
+    "active_scans": 35,
+    "same_stamp_bracket_usable_scans": 35,
+    "finite_in_range_points": 50400,
+    "in_bounds_points": 50366,
+    "in_bounds_fraction": 0.9993253968253968,
+    "endpoint_occupied_fraction": 0.2071834173847437,
+    "nearest_occupied_center_distance_m": {
+      "p50": 0.345,
+      "p95": 1.627
+    },
+    "max_dynamic_tf_bracket_span_s": 0.073647471,
+    "max_nearest_tf_stamp_skew_s": 0.025972928,
+    "max_relative_horizontal_displacement_m": 0.0078943807,
+    "max_relative_yaw_change_deg": 0.1359561,
+    "static_extrinsic_matches_health_config": true,
+    "tf_message_info_supported": false,
+    "tf_graph_endpoint_sets": 1,
+    "tf_graph_publishers": 2,
+    "single_tf_child_authority_proven": false,
+    "unexpected_competing_parent_edges_captured": false,
+    "absolute_pose_error_m": null,
+    "limitations": [
+      "Initialpose anchors map->odom; overlay does not prove relocalization/absolute accuracy.",
+      "Substantial overlay residuals do not establish good map alignment.",
+      "Dynamic TF is timer-stamped from latest accepted odometry, not independently reconstructed sensor-time pose.",
+      "No message GID attribution or full /tf_static and /scan endpoint inventories."
+    ]
+  },
+  "evidence_files": {
+    "deployment-manifest.json": {
+      "sha256": "1a471830407eb5e105589cba2762cca0f7e74a367f6778f085dc4bd1900a29e8",
+      "bytes": 154050
+    },
+    "activation-result.json": {
+      "sha256": "75de4a6f6bab802b85f18364f432b8561614bc3795beb8ca76acbf50bb8ff99f",
+      "bytes": 26985
+    },
+    "second-start-summary.json": {
+      "sha256": "f9abb11795758816d31d3622511f996f6a21b8f171bf1914a8463cf6281b231f",
+      "bytes": 63159
+    },
+    "second-start-api-trace.json": {
+      "sha256": "68452fd8f78c4dab38afad7d1c0295ce2f2f2da96a0649bd5355a507b55b6098",
+      "bytes": 598432
+    },
+    "second-runtime-health-trace.json": {
+      "sha256": "b7229b4e692468451d681c61ad3331d0d5aedd030e63cf4f60295c6dcf18db7c",
+      "bytes": 99081
+    },
+    "stationary-v2-summary.json": {
+      "sha256": "62c6dce185e993ca9232e7ebbdebcb6d58993629a0bca86bc333346cb14052ca",
+      "bytes": 118648
+    },
+    "stationary-v2-api-trace.json": {
+      "sha256": "e3d6a69286bcdb188a099fefbcc30c6219bbeb4535cbcce0849bdbf51bcb42eb",
+      "bytes": 7092257
+    },
+    "stationary-observer-trace.json": {
+      "sha256": "56f723f74a701c596f31593eef9fe6dea319cefbdaba4ca018eeb3e4be186cb4",
+      "bytes": 8387950
+    },
+    "stationary-observer-aborted-trace.json": {
+      "sha256": "13f3622c877a7ac8cc93a8869a2fa3c9f3fa7114789b77f25c4b2444deb13518",
+      "bytes": 541
+    },
+    "localization-analysis.json": {
+      "sha256": "85f566920da9eb1ae597dddffaa44569d7c5aa79f39eb157e91dcba33378b448",
+      "bytes": 23524
+    },
+    "map-alignment-analysis.json": {
+      "sha256": "acdb7758e475673739f4b56bb303bacedf342559788669b1de3df4dae5c1ef04",
+      "bytes": 46975
+    },
+    "map-alignment-overlay.png": {
+      "sha256": "cb31dd1f6da73e184e24bf76a5e3f4a97b212a42296891ac295682c4ce464494",
+      "bytes": 165829
+    },
+    "robot-scope-stage40-final-inspection.json": {
+      "sha256": "5a5248e3ff18e0da5cd9770866c427dd69bacb048254895f81bd6bb7580c7148",
+      "bytes": 74995
+    },
+    "robot-scope-stage40-policy-sample.json": {
+      "sha256": "11e9279ce2fcd26d563762a6416cb69bfe0da89eab3076a4e30afbfd22467f70",
+      "bytes": 530978
+    },
+    "robot-scope-stage40-policy-setup-probe.json": {
+      "sha256": "832910e9cb86ce245352f7a2d3a92ca56af710916a45f9b872c646584e6b369d",
+      "bytes": 124
+    },
+    "robot-scope-stage40-final-python.log": {
+      "sha256": "fb3f7e320aec5e5b92f20f68e3183b9147ed28c94f83ff67f2c3aebf0b71cd9b",
+      "bytes": 377191
+    },
+    "robot-scope-stage40-final-broker.log": {
+      "sha256": "fdad19e29fd016bb4138ec39f89dd779191b2c1f6a8337e671e9d6846d2b477f",
+      "bytes": 3871
+    },
+    "robot-scope-stage40-final-js.log": {
+      "sha256": "b8b1a762ae2f6293f337fdf1b1a04bd4a4a7fbd399b51b903d539ceb012b6dcf",
+      "bytes": 102692
+    },
+    "ui-deployment-result.json": {
+      "sha256": "729e73fb3d045f65d2527399e284fdc6c876df820d7fea58a767f14fde526c33",
+      "bytes": 17843
+    },
+    "robot-scope-stage40-ui-manifest.json": {
+      "sha256": "2dad430b878e4ddab4918ce17f38441acd95ca157a22385b8eef2780ea47a50d",
+      "bytes": 152433
+    },
+    "robot-scope-stage40-after-ui-inspection.json": {
+      "sha256": "d6639b5310d402fe043b8dbb37f373639b973ed71b76e8581a826f0daf762107",
+      "bytes": 74981
+    },
+    "robot-scope-stage40-final-ui-e2e.log": {
+      "sha256": "b84f6c68f7a295eb942796f3dcb1442add50c6676441925e4a3ef151e03ef872",
+      "bytes": 12585
+    }
+  },
+  "ui_scope_extension": {
+    "authorization": "User requested dashboard/UI changes through40 and explicitly selected status panel and SOFTWARE STOP visible only in Settings",
+    "status": "DEPLOYED_AND_HTTP_HASH_VERIFIED",
+    "static_files": [
+      "robot_dashboard/static/index.html",
+      "robot_dashboard/static/mission-control.css",
+      "robot_dashboard/static/features/cockpit/safety_hud_view.js"
+    ],
+    "other_changes": [
+      "Sensor telemetry spans a full row below camera/capture, before library",
+      "Navigation duplicate robot model preview removed",
+      "Cockpit layout controls remain in inspector independently of Settings HUD"
+    ],
+    "backend_changed": false,
+    "robot_window_reopened": false,
+    "commit_sha": "1656e4d15d752e82178e1c0272824c5ed3252f37",
+    "source_manifest": "UI_SOURCE_MANIFEST.json",
+    "ui_ci": {
+      "id": 38723233583,
+      "head_sha": "1656e4d15d752e82178e1c0272824c5ed3252f37",
+      "result_note": "Exact final outcome verified separately after publication; retained in private evidence and final chat"
+    },
+    "verified_archive_files": 1256,
+    "static_http_status": 200,
+    "static_http_sha256_match": true,
+    "cache_control": "no-store",
+    "service_restart": false,
+    "service_pid_invocation_unchanged": true,
+    "maps_selected_state_missions_unchanged": true,
+    "chromium_e2e_passed": 96,
+    "javascript_passed": 381,
+    "syntax_modules": 83,
+    "global_hud_stop_location": "Settings only by explicit user choice; legacy Controls-page STOP retained",
+    "backend_runtime_source_bytes_unchanged": true
+  },
+  "deployed_checkout_sha": "1656e4d15d752e82178e1c0272824c5ed3252f37",
+  "backend_controlled_restart_candidate_sha": "863682ed4c566a56e676c2a4ed42fef1808885e5"
+}

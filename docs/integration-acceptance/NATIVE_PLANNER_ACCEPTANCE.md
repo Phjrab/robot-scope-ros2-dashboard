@@ -1,5 +1,7 @@
 # 33 — 제품 NativePlanner acceptance
 
+> Current scope through40: the user explicitly extended the completed stage36 snapshot. Candidate863682e was deployed; initialpose1 and180s stationary observation were completed and owned resources cleaned. Live acceptance remains partial/false. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). Earlier stop-after36/no-deployment statements below describe the historical software snapshot.41–43 remain NOT_RUN.
+
 기록일: 2026-10-15 KST. Baseline source는 `2555f3763996c7b331389924bb5df48d62094736`이며 아래 변경은 그 위의 통합 변경이다. **SOFTWARE_TEST 통과 / 제품 native 실행 NOT_RUN / 운영 acceptance BLOCKED**다. 로컬 Mac의 `.venv/bin/python`은 Python 3.13.2이며 `ros2` executable과 `rclpy`가 없다. planner 하위 작업은 장비에 접속하지 않았다. 통합 담당의 read-only 장비 조사는 BASELINE.md에 별도 기록했다. 서비스 변경, ROS pipeline, 카메라, initialpose, motion goal은 실행하지 않았다. 전체 통합 source tip과 회귀 결과는 통합 진행 기록에 남긴다.
 
 ## 실제 제품 경로와 고친 결함

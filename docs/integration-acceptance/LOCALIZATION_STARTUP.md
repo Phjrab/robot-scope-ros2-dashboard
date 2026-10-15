@@ -1,5 +1,7 @@
 # Localization startup follow-up — 2026-10-15
 
+> Current scope through40: the user explicitly extended the completed stage36 snapshot. Candidate863682e was deployed; initialpose1 and180s stationary observation were completed and owned resources cleaned. Live acceptance remains partial/false. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). Earlier stop-after36/no-deployment statements below describe the historical software snapshot.41–43 remain NOT_RUN.
+
 **Historical operational startup cause: UNCONFIRMED. Diagnostics: SOFTWARE_READY. Reproduced software regressions: SOFTWARE_FIXED. Latest device reproduction: BLOCKED.** The two failures in [04_new_map_followup](../hardware-validation/04_new_map_followup.md) remain failures. The localization subtask made no device changes. The integration owner separately performed the read-only device inspection recorded in BASELINE.md. No localization, initial pose, goal, deployment, service restart or ROS subscription was performed.
 
 The inspected local source baseline is `2555f3763996c7b331389924bb5df48d62094736` on `main`, followed by the changes in this integration commit. The device source recorded by the inherited evidence is `416d25c`; local source and fixtures are not a deployment claim. The initial local checkout was clean. Other integration owners change the gateway, planner, and Multi-SLAM files separately.

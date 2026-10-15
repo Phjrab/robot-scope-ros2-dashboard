@@ -1,6 +1,6 @@
 {
   "schema": "robot-scope.integration-followup-acceptance.v1",
-  "purpose": "stage30_36_software_followup_actual_results",
+  "purpose": "stage30_36_software_and_stage40_actual_results",
   "created_date_kst": "2026-10-15",
   "reference_repository_sha": "2555f3763996c7b331389924bb5df48d62094736",
   "allowed_statuses": [
@@ -159,16 +159,17 @@
       "expected": "원인 가설과 확정 근거를 구분하고 수정은 재현 반례를 통과한다",
       "status": "BLOCKED",
       "evidence_type": "repository_inspection",
-      "observed": "Historical stage04 cause not established on latest runtime; separate code defects fixed with counterexamples.",
+      "observed": "Historical stage04 stale cause remains unconfirmed. Stage40 starts reached waiting; observed startup publisher discovery recovered without freshness relaxation.",
       "evidence_refs": [
-        "HANDOFF.md"
+        "LOCALIZATION_STARTUP.md",
+        "LOCALIZATION_LIVE_ACCEPTANCE.md"
       ],
       "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
       "blocking_reason": "Historical stage04 cause not established on latest runtime; separate code defects fixed with counterexamples.",
-      "next_minimum_action": "Stage40 one authorized traced localization-only startup on exact candidate."
+      "next_minimum_action": "Compare preserved historical source-stamp/generation evidence with current trace; no repeat of unchanged startup in this finished scope."
     },
     {
       "check_id": "P01",
@@ -858,18 +859,20 @@
         "LOCALIZATION_LIVE_VERIFIED"
       ],
       "expected": "승인된 exact artifact가 실제 PID/cwd/hash/effective config로 확인된다",
-      "status": "NOT_RUN",
-      "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "observed": "Candidate863682e clean restart, PID/cwd/interpreter and1255 file hashes pinned; effective policy parameters/config readback unavailable.",
       "evidence_refs": [
-        "OWNERSHIP.md"
+        "STAGE40_VALIDATION.json",
+        "DEPLOYMENT_ACCEPTANCE.md",
+        "LOCALIZATION_LIVE_ACCEPTANCE.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
-      "runtime_generation": null,
+      "runtime_generation": "81270:4252395617568",
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "No complete effective runtime parameter/config readback or per-loaded-module attestation.",
+      "next_minimum_action": "Expose bounded observer failure reason and isolate fixed-profile GetParameters/GetState authority/service failure."
     },
     {
       "check_id": "D02",
@@ -878,18 +881,20 @@
         "LOCALIZATION_LIVE_VERIFIED"
       ],
       "expected": "bridge/제조사/기존 지도·실험 자산이 보존된다",
-      "status": "NOT_RUN",
-      "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "observed": "Bridge/camera PID+invocation/units/env unchanged;54 map hashes and mission API unchanged; selected schematic revision24→25 only, other content unchanged.",
       "evidence_refs": [
-        "OWNERSHIP.md"
+        "STAGE40_VALIDATION.json",
+        "DEPLOYMENT_ACCEPTANCE.md",
+        "LOCALIZATION_LIVE_ACCEPTANCE.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
-      "runtime_generation": null,
+      "runtime_generation": "81270:4252395617568",
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": null,
+      "next_minimum_action": null
     },
     {
       "check_id": "D03",
@@ -898,18 +903,20 @@
         "LOCALIZATION_LIVE_VERIFIED"
       ],
       "expected": "startup trace가 정상 ready 또는 좁혀진 실패 원인을 실제로 기록한다",
-      "status": "NOT_RUN",
-      "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "status": "PASS",
+      "evidence_type": "live_stationary",
+      "observed": "Both actual starts reached initial-pose waiting; approved retry initialpose1 and180s collected. Historical stale cause unconfirmed; post-pose transition and nominal10Hz rate diagnostics retained.",
       "evidence_refs": [
-        "OWNERSHIP.md"
+        "STAGE40_VALIDATION.json",
+        "DEPLOYMENT_ACCEPTANCE.md",
+        "LOCALIZATION_LIVE_ACCEPTANCE.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
-      "runtime_generation": null,
+      "runtime_generation": "81270:4252395617568",
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": null,
+      "next_minimum_action": null
     },
     {
       "check_id": "D04",
@@ -918,18 +925,20 @@
         "LOCALIZATION_LIVE_VERIFIED"
       ],
       "expected": "현재 실제 위치의 승인된 initialpose·지도 정렬·단일 TF가 확인된다",
-      "status": "NOT_RUN",
-      "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "observed": "Current physical pose confirmed and existing initialpose1 applied; fixed-edge geometry collected; per-message GID missing and competing parent edges not fully inventoried.",
       "evidence_refs": [
-        "OWNERSHIP.md"
+        "STAGE40_VALIDATION.json",
+        "DEPLOYMENT_ACCEPTANCE.md",
+        "LOCALIZATION_LIVE_ACCEPTANCE.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
-      "runtime_generation": null,
+      "runtime_generation": "81270:4252395617568",
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Single TF authority and independent map alignment/accuracy are not fully established.",
+      "next_minimum_action": "Use bounded all-child TF/scan endpoint authority capture and independent pose/map witness in a separately authorized window."
     },
     {
       "check_id": "D05",
@@ -938,18 +947,20 @@
         "LOCALIZATION_LIVE_VERIFIED"
       ],
       "expected": "정지 관측에서 실제 policy readback/freshness와 세대가 유지된다",
-      "status": "NOT_RUN",
-      "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "status": "BLOCKED",
+      "evidence_type": "live_stationary",
+      "observed": "180s stationary trace completed, but actual mission policy sample20/12.08s reports unavailable; enforcementfalse/digestsnull. Semantic revision stable while snapshot_seq advanced.",
       "evidence_refs": [
-        "OWNERSHIP.md"
+        "STAGE40_VALIDATION.json",
+        "DEPLOYMENT_ACCEPTANCE.md",
+        "LOCALIZATION_LIVE_ACCEPTANCE.md"
       ],
-      "source_sha": null,
+      "source_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
       "runtime_sha": null,
-      "runtime_generation": null,
+      "runtime_generation": "81270:4252395617568",
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "No fresh effective policy readback across the180s; API health includes transition/rate nonready samples.",
+      "next_minimum_action": "Diagnose effective readback without TTL relaxation; preserve observer reason on incomplete params; qualify full-window policy/readiness separately."
     },
     {
       "check_id": "V01",
@@ -960,7 +971,7 @@
       "expected": "대시보드에서 실제 Stereo 매핑 mode와 effective params를 확인한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -968,8 +979,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "V02",
@@ -980,7 +991,7 @@
       "expected": "실제 IR 영상과 현재 관측점이 같은 time/frame/map epoch로 표시된다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -988,8 +999,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "V03",
@@ -1000,7 +1011,7 @@
       "expected": "시야 밖 글로벌 영역·궤적과 coverage/cap 표기가 실제 입력으로 확인된다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1008,8 +1019,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "V04",
@@ -1020,7 +1031,7 @@
       "expected": "새 native map save·hash·브라우저 재조회가 원본을 보존한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1028,8 +1039,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "V05",
@@ -1040,7 +1051,7 @@
       "expected": "별도 session localize가 callback 후 fresh 해당 세대 pose·정렬까지 성공한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1048,8 +1059,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "V06",
@@ -1060,7 +1071,7 @@
       "expected": "source loss/camera busy/cleanup과 승인된 handback이 실제로 확인된다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1068,8 +1079,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "H01",
@@ -1080,7 +1091,7 @@
       "expected": "현장 운영자·물리 정지·실제 저속·지도·source 조건을 확인한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1088,8 +1099,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "H02",
@@ -1100,7 +1111,7 @@
       "expected": "최소 수동 이동/정지·STOP 실제 동작을 먼저 확인한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1108,8 +1119,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "H03",
@@ -1120,7 +1131,7 @@
       "expected": "짧은 순차 미션의 실제 이동·도달·goal identity가 기록된다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1128,8 +1139,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "H04",
@@ -1140,7 +1151,7 @@
       "expected": "마지막 hold와 사후 확인 전에 completed가 되지 않는다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1148,8 +1159,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "H05",
@@ -1160,7 +1171,7 @@
       "expected": "pause/resume/abort에 재주행·stale 확인·자동 권한 복원이 없다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1168,8 +1179,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "H06",
@@ -1180,7 +1191,7 @@
       "expected": "종료 시 실제 정지·goal/lease 해제·명령zero·자원 상태를 확인한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1188,8 +1199,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "C01",
@@ -1200,7 +1211,7 @@
       "expected": "상호배제에 맞는 실제 workload와600초 창을 사전 고정한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1208,8 +1219,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "C02",
@@ -1220,7 +1231,7 @@
       "expected": "resource·freshness·frame·drop·OOM/restart를 같은 창에서 측정한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1228,8 +1239,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "C03",
@@ -1240,7 +1251,7 @@
       "expected": "재연결/승인된 복구가 자동 ARM/goal resume을 만들지 않는다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1248,8 +1259,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "C04",
@@ -1260,7 +1271,7 @@
       "expected": "전체 지도/지도 reuse/운영 pose/정확도/주행을 별도 판정한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1268,8 +1279,8 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     },
     {
       "check_id": "C05",
@@ -1280,7 +1291,7 @@
       "expected": "종료 상태·보존 데이터·rollback 범위·최소 다음 작업을 인계한다",
       "status": "NOT_RUN",
       "evidence_type": null,
-      "observed": "Outside final user scope; stop after36. No stage40–43 action executed.",
+      "observed": "Stages41–43 remain outside current scope through40; not executed.",
       "evidence_refs": [
         "OWNERSHIP.md"
       ],
@@ -1288,16 +1299,19 @@
       "runtime_sha": null,
       "runtime_generation": null,
       "config_digest": null,
-      "blocking_reason": "Separate current approval/field conditions; not requested in this run.",
-      "next_minimum_action": "Open explicit later acceptance scope only if user requests it."
+      "blocking_reason": "Separate current resource/field conditions and explicit later scope are required.",
+      "next_minimum_action": "No action scheduled; open only on a new user request."
     }
   ],
-  "updated_at": "2026-10-15T10:06:52.890039+00:00",
+  "updated_at": "2026-10-15T10:57:18.370979+00:00",
   "source_identity_basis": "SOURCE_MANIFEST.json (pre-commit source bytes; exact resulting commit recorded in VALIDATION.json)",
   "software_closure": false,
-  "device_deployed": false,
-  "stop_after_stage": 36,
-  "deployed_checkout_sha": "416d25c6e1c98b0c51097c9d6576b6ae34a690e9",
-  "runtime_identity_note": "runtime_sha is null: checkout/file readback is not loaded module/native runtime proof",
-  "source_commit_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b"
+  "device_deployed": true,
+  "stop_after_stage": 40,
+  "deployed_checkout_sha": "1656e4d15d752e82178e1c0272824c5ed3252f37",
+  "runtime_identity_note": "Controlled runtime restart/native trace belongs to863682e; UI-only clean1656e4d checkout/HTTP hashes verified without restart. Managed-run runtime_sha and effective policy digest remain null.",
+  "source_commit_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
+  "stage40_validation_ref": "STAGE40_VALIDATION.json",
+  "localization_live_verified": false,
+  "ui_acceptance_ref": "UI_ACCEPTANCE.md"
 }

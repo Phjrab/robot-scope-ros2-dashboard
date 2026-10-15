@@ -1,5 +1,7 @@
 # Stage30 baseline — 2026-10-15 KST
 
+> Current scope through40: the user explicitly extended the completed stage36 snapshot. Candidate863682e was deployed; initialpose1 and180s stationary observation were completed and owned resources cleaned. Live acceptance remains partial/false. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). Earlier stop-after36/no-deployment statements below describe the historical software snapshot.41–43 remain NOT_RUN.
+
 Main and fetched origin/main were clean at `2555f3763996c7b331389924bb5df48d62094736`.
 GitHub Actions38695600100 completed success at2026-10-15T07:05:37Z.
 MS implementation72641da/portability d866a3b and MR implementation22c7913,

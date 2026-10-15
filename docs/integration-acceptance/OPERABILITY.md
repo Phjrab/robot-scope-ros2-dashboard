@@ -1,5 +1,7 @@
 # Stage35 operability and provenance
 
+> Current scope through40: the user explicitly extended the completed stage36 snapshot. Candidate863682e was deployed; initialpose1 and180s stationary observation were completed and owned resources cleaned. Live acceptance remains partial/false. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). Earlier stop-after36/no-deployment statements below describe the historical software snapshot.41–43 remain NOT_RUN.
+
 No startup/deployed-artifact manifest proving loaded source/config identity exists
 for new managed runs. `source_sha`/`runtime_sha` remain null and provenance remains
 unavailable; the local Git HEAD and device checkout are not substituted. Existing

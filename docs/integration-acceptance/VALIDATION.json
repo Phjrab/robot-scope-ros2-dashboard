@@ -1,7 +1,7 @@
 {
   "schema": "robot-scope.integration-validation.v1",
-  "recorded_at_utc": "2026-10-15T10:06:52.890039+00:00",
-  "stop_after_stage": 36,
+  "recorded_at_utc": "2026-10-15T10:57:18.370979+00:00",
+  "stop_after_stage": 40,
   "baseline_sha": "2555f3763996c7b331389924bb5df48d62094736",
   "source_commit_sha": "4b189d1f59fb08667faaf3922f08b6e145f0db4b",
   "source_identity": "SOURCE_MANIFEST.json exact source bytes in published source commit; run source/runtime provenance remains separate and unavailable",
@@ -418,12 +418,17 @@
     "installed_header_sha256": "fd1bd9eb4db0f396c8047d1500583c603b9f8a5680ad43203ecbce00a69dbaa2",
     "loaded_library_sha256": null
   },
-  "actual_native_ros": "NOT_RUN",
-  "live_stationary": "NOT_RUN",
+  "actual_native_ros": "Localization ROS EXECUTED in stage40; product NativePlanner and MS native lifecycle/reuse NOT_RUN (see STAGE40_VALIDATION.json)",
+  "live_stationary": "EXECUTED_180S; acceptance partial, see STAGE40_VALIDATION.json",
   "live_motion": "NOT_RUN",
   "software_closure": false,
-  "device_modifications": [],
-  "data_modifications": [],
+  "device_modifications": [
+    "explicit stage40 clean-candidate dashboard deployment and owned localization-only/FAST-LIO start/stop",
+    "explicit UI static-only fast-forward to1656e4d, no service restart"
+  ],
+  "data_modifications": [
+    "existing schematic restart revision24\u219225 only; other selected content unchanged; no maps/history/bags/native-install edits"
+  ],
   "background_followup": false,
   "limitations": [
     "Historical localization startup cause unconfirmed; software counterexamples are separate defects.",
@@ -433,5 +438,9 @@
     "New run source/runtime provenance and live_plan/ETA remain null/unavailable.",
     "Initial system-Python/test-import and socket-restricted probes were environment failures, then replaced by supported venv/approved local socket checks; not reported as acceptance passes."
   ],
-  "documentation_tip_ci_note": "This docs follow-up has its own exact CI run, verified in the final chat and retained in private evidence. Source CI never substitutes for docs-tip CI; this file does not recursively embed its own commit SHA."
+  "documentation_tip_ci_note": "This docs follow-up has its own exact CI run, verified in the final chat and retained in private evidence. Source CI never substitutes for docs-tip CI; this file does not recursively embed its own commit SHA.",
+  "stage36_snapshot_recorded_at_utc": "2026-10-15T10:06:52.890039+00:00",
+  "stage36_device_readback_note": "Historical before deployment; current deployment/live results are in STAGE40_VALIDATION.json",
+  "stage40_validation_ref": "STAGE40_VALIDATION.json",
+  "ui_validation_ref": "UI_ACCEPTANCE.md"
 }
