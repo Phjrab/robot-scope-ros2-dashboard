@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
@@ -11,6 +10,7 @@ from pydantic import Field, StrictBool, StrictInt
 
 from ...slam_packages import MapPackageError
 from ...slam_sessions import SlamError, SlamSessionManager
+from ...slam_transport import SlamGeometryTransport, encode_stream_frame
 from ..dependencies import (require_component, require_competition_unlocked,
                             require_manual_operation_mode, require_same_origin,
                             runtime_from_request, runtime_from_websocket, websocket_same_origin)
@@ -253,13 +253,11 @@ async def stream(websocket: WebSocket) -> None:
         await websocket.close(code=1013)
         return
     await websocket.accept()
+    transport = SlamGeometryTransport(enabled=websocket.query_params.get("geometry_updates") == "1")
     # One latest snapshot, no client queues and no client-created ROS subscriptions.
     try:
         while True:
-            frame = await asyncio.to_thread(manager.frame)
-            wire = json.dumps(frame, allow_nan=False, separators=(",", ":"))
-            if len(wire.encode()) > 8 * 1024**2:
-                raise SlamError("VISUALIZATION_LIMIT")
+            wire = await asyncio.to_thread(encode_stream_frame, manager, transport)
             await asyncio.wait_for(websocket.send_text(wire), timeout=1)
             try:
                 message = await asyncio.wait_for(websocket.receive(), timeout=0.1)

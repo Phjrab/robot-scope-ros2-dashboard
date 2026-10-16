@@ -53,8 +53,9 @@ async function install(page, { available = true, state = null } = {}) {
       ws.send(JSON.stringify(shared.frameTransform ? shared.frameTransform(frame) : frame));
     }
   };
-  await page.routeWebSocket('**/api/v1/ws/slam', (ws) => {
+  await page.routeWebSocket('**/api/v1/ws/slam*', (ws) => {
     expect(new URL(ws.url()).pathname).toBe('/api/v1/ws/slam');
+    expect(new URL(ws.url()).searchParams.get('geometry_updates')).toBe('1');
     shared.socketPaths.push(new URL(ws.url()).pathname);
     shared.sockets.add(ws);
     ws.onClose(() => shared.sockets.delete(ws));
@@ -231,6 +232,110 @@ test('SLAM camera frustum rejects changed calibration and stale optical pose whi
   await expect(page.locator('#slamGlobalCanvas')).toHaveAttribute('data-camera-view', 'unavailable', { timeout: 4000 });
   await expect(page.locator('#slamCameraViewStatus')).toContainText('STALE_SOURCE');
   await expect(page.locator('#slamMapCoverage')).toContainText('coverage subset');
+});
+
+test('SLAM geometry references survive redraw and reconnect while bad references hide only geometry', async ({ page }) => {
+  const fixture = await install(page);
+  let full = true;
+  fixture.shared.frameTransform = (frame) => ({ ...frame,
+    global_map: full ? frame.global_map : null, trajectory: full ? frame.trajectory : null,
+    geometry_updates: { version: 1, layers: {
+      global_map: { kind: full ? 'full' : 'reference', token: '1' },
+      trajectory: { kind: full ? 'full' : 'reference', token: '2' },
+    } } });
+  await open(page); await startStereo(page); fixture.send();
+  await expect(page.locator('#slamMapCoverage')).toContainText('표시 3');
+  await page.evaluate(() => {
+    window.slamCloudRebuilds = 0;
+    const original = window.RobotScene3D.prototype.setPointCloud;
+    window.RobotScene3D.prototype.setPointCloud = function (...args) {
+      if (this.canvas.id === 'slamGlobalCanvas') window.slamCloudRebuilds += 1;
+      return original.apply(this, args);
+    };
+  });
+  full = false; fixture.send();
+  await expect(page.locator('#slamMapCoverage')).toContainText('표시 3');
+  await expect(page.locator('#slamCameraPose')).toContainText('1.000 / 0.000 / 0.000');
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  expect(await page.evaluate(() => window.slamCloudRebuilds)).toBe(0);
+  fixture.shared.frameTransform = (frame) => ({ ...frame, global_map: null, trajectory: null,
+    geometry_updates: { version: 1, layers: { global_map: { kind: 'reference', token: '999' } } } });
+  fixture.send();
+  await expect(page.locator('#slamMapCoverage')).toContainText('전역 지도 출력 대기');
+  await expect(page.locator('#slamImageStatus')).toContainText('입력 이미지 available');
+  await expect(page.locator('#slamCameraPose')).toContainText('1.000 / 0.000 / 0.000');
+  fixture.shared.frameTransform = null;
+  for (const socket of [...fixture.shared.sockets]) socket.close();
+  await expect.poll(() => fixture.shared.socketPaths.length).toBeGreaterThan(1);
+  fixture.send();
+  await expect(page.locator('#slamMapCoverage')).toContainText('표시 3');
+  expect(fixture.shared.mutations.map(item => item.path)).toEqual(['/sessions']);
+});
+
+test('SLAM session readback reconnects when the first new-epoch geometry arrived too early', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page); fixture.send();
+  await expect(page.locator('#slamMapCoverage')).toContainText('표시 3');
+  const originalConnections = fixture.shared.socketPaths.length;
+  const next = { ...fixture.shared.session, map_epoch: 'replacement-epoch' };
+  const early = fixtureFrame(next, String(++fixture.shared.sequence));
+  early.geometry_updates = { version: 1, layers: { global_map: { kind: 'full', token: '10' }, trajectory: { kind: 'full', token: '11' } } };
+  for (const socket of fixture.shared.sockets) socket.send(JSON.stringify(early));
+  const seeded = new Set([originalConnections]);
+  fixture.shared.frameTransform = (frame) => {
+    const connection = fixture.shared.socketPaths.length;
+    const full = !seeded.has(connection); seeded.add(connection);
+    return { ...frame, global_map: full ? frame.global_map : null, trajectory: full ? frame.trajectory : null,
+      geometry_updates: { version: 1, layers: { global_map: { kind: full ? 'full' : 'reference', token: '10' },
+        trajectory: { kind: full ? 'full' : 'reference', token: '11' } } } };
+  };
+  fixture.shared.session = next; fixture.send();
+  await expect.poll(() => fixture.shared.socketPaths.length).toBeGreaterThan(originalConnections);
+  await expect(page.locator('#slamProvenance')).toContainText('replacement-epoch');
+  await expect(page.locator('#slamMapCoverage')).toContainText('표시 3');
+  expect(fixture.shared.mutations.map(item => item.path)).toEqual(['/sessions']);
+});
+
+test('SLAM removes painted tracks immediately on LOST or toggle off during a slow image decode', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page);
+  await page.evaluate(() => {
+    const NativeImage = window.Image;
+    window.slamPendingLoads = []; window.slamHoldImageDecode = false;
+    window.Image = function (...args) {
+      const image = new NativeImage(...args); let handler = null;
+      Object.defineProperty(image, 'onload', { get: () => handler, set: value => { handler = value; } });
+      image.addEventListener('load', () => {
+        const fire = () => handler?.call(image);
+        if (window.slamHoldImageDecode) window.slamPendingLoads.push(fire); else fire();
+      });
+      return image;
+    };
+  });
+  await startStereo(page); fixture.send();
+  const pixel = () => page.locator('#slamCameraCanvas').evaluate(canvas => [...canvas.getContext('2d').getImageData(0, 0, 1, 1).data]);
+  await expect.poll(pixel).toEqual([101, 255, 158, 255]);
+  await page.evaluate(() => { window.slamHoldImageDecode = true; });
+  fixture.shared.frameTransform = frame => ({ ...frame, tracking_state: 'LOST',
+    readiness: { ...frame.readiness, tracking_state: 'LOST' },
+    image: { ...frame.image, stamp_ns: '9007199254740993002' },
+    overlay: { overlay_kind: 'unavailable', reason: 'LOST' } });
+  fixture.send();
+  await expect.poll(() => page.evaluate(() => window.slamPendingLoads.length)).toBeGreaterThan(0);
+  await expect.poll(pixel).not.toEqual([101, 255, 158, 255]);
+  expect((await pixel())[3]).toBe(255); // raw image remains, rather than blanking the canvas
+  await page.evaluate(() => { window.slamHoldImageDecode = false; window.slamPendingLoads.splice(0).forEach(fire => fire()); });
+  fixture.shared.frameTransform = null; fixture.send();
+  await expect.poll(pixel).toEqual([101, 255, 158, 255]);
+  await page.evaluate(() => { window.slamHoldImageDecode = true; });
+  fixture.shared.frameTransform = frame => ({ ...frame,
+    image: { ...frame.image, stamp_ns: '9007199254740993003' },
+    overlay: { ...frame.overlay, image: { ...frame.overlay.image, source_timestamp_ns: '9007199254740993003' } } });
+  fixture.send();
+  await expect.poll(() => page.evaluate(() => window.slamPendingLoads.length)).toBeGreaterThan(0);
+  await page.locator('#slamOverlay').uncheck();
+  await expect.poll(pixel).not.toEqual([101, 255, 158, 255]);
+  expect((await pixel())[3]).toBe(255);
 });
 
 test('SLAM fresh image and camera 6DoF remain visible without overlay, global map or trajectory', async ({ page }) => {

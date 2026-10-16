@@ -281,18 +281,20 @@ class SlamApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(json.loads(archive.read("provenance.json"))["native_full_map_export"])
         self.assertEqual(self.manager.calls, [])
 
-    async def websocket_messages(self, origin="http://testserver"):
+    async def websocket_messages(self, origin="http://testserver", *, query=b"", frames=1):
         headers = [(b"host", b"testserver")]
         if origin is not None:
             headers.append((b"origin", origin.encode()))
-        queue = [dict(type="websocket.connect"), dict(type="websocket.disconnect", code=1000)]
+        queue = [dict(type="websocket.connect"),
+                 *[dict(type="websocket.receive", text="") for _ in range(frames-1)],
+                 dict(type="websocket.disconnect", code=1000)]
         sent = []
         async def receive():
             return queue.pop(0)
         async def send(value):
             sent.append(value)
         await self.app(dict(type="websocket", asgi={"version": "3.0"}, scheme="ws",
-            path="/api/v1/ws/slam", raw_path=b"/api/v1/ws/slam", query_string=b"", root_path="",
+            path="/api/v1/ws/slam", raw_path=b"/api/v1/ws/slam", query_string=query, root_path="",
             server=("testserver", 80), client=("127.0.0.1", 1000), headers=headers,
             subprotocols=[]), receive, send)
         return sent
@@ -318,6 +320,19 @@ class SlamApiTests(unittest.IsolatedAsyncioTestCase):
                 self.manager.frame_value = value
                 messages = await self.websocket_messages()
                 self.assertFalse(any(m["type"] == "websocket.send" for m in messages))
+
+    async def test_geometry_protocol_is_opt_in_and_new_connection_sends_full(self):
+        self.manager.frame_value.update(engine_id="visual_stereo", session_id="session", generation=1,
+            map_epoch="epoch", frame_id="map", global_map={"points": [[1, 2, 3]]})
+        for query, enabled in ((b"", False), (b"geometry_updates=0", False), (b"geometry_updates=1", True)):
+            for _ in range(2):
+                messages = await self.websocket_messages(query=query, frames=2)
+                received = [json.loads(m["text"]) for m in messages if m["type"] == "websocket.send"]
+                self.assertEqual(len(received), 2)
+                self.assertIsNotNone(received[0]["global_map"])
+                self.assertEqual("geometry_updates" in received[0], enabled)
+                self.assertEqual(received[1]["global_map"] is None, enabled)
+        self.assertEqual(self.manager.calls, [])
 
 
 if __name__ == "__main__":

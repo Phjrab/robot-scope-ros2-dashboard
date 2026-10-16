@@ -11,6 +11,113 @@ const controllers = new WeakMap();
 export const SLAM_STREAM_PATH = '/api/v1/ws/slam';
 export const SLAM_REQUEST_TIMEOUT_MS = 15_000;
 
+// Cache at most two complete layers per connection. References never cross a
+// session/map/frame boundary. Invalid references hide only their own channel.
+export function geometryFrameHydrator() {
+  let context = null;
+  const layers = new Map();
+  return {
+    clear() { context = null; layers.clear(); },
+    hydrate(frame) {
+      const nextContext = JSON.stringify([frame.engine_id, frame.session_id, frame.generation, frame.map_epoch, frame.frame_id]);
+      if (nextContext !== context) { layers.clear(); context = nextContext; }
+      const protocol = frame.geometry_updates;
+      if (protocol == null) { layers.clear(); return frame; }
+      const result = { ...frame };
+      for (const [name, limit] of [['global_map', MAX_MAP_POINTS], ['trajectory', 10_001]]) {
+        const update = protocol.version === 1 ? protocol.layers?.[name] : null;
+        const tokenValid = typeof update?.token === 'string' && /^\d{1,20}$/.test(update.token);
+        const layer = frame[name];
+        if (tokenValid && update.kind === 'full' && layer?.map_epoch === frame.map_epoch &&
+            layer.coordinate_frame === frame.frame_id && Array.isArray(layer.points) &&
+            layer.points.length <= limit && layer.points.every((point) => Array.isArray(point) &&
+              point.length === 3 && point.every(Number.isFinite))) {
+          layers.set(name, { token: update.token, layer });
+        } else if (tokenValid && update.kind === 'reference' && layer == null && layers.get(name)?.token === update.token) {
+          result[name] = layers.get(name).layer;
+        } else {
+          layers.delete(name); result[name] = null;
+        }
+      }
+      return result;
+    },
+  };
+}
+
+// Keep one render opportunity and replace its payload, never queue old frames.
+export function latestFrameRenderer(request, cancel, render) {
+  let scheduled = null, latest = null;
+  return {
+    submit(frame) {
+      latest = frame;
+      if (scheduled != null) return;
+      scheduled = request(() => {
+        scheduled = null;
+        const frame = latest; latest = null;
+        if (frame) render(frame);
+      });
+    },
+    clear() {
+      if (scheduled != null) cancel(scheduled);
+      scheduled = null; latest = null;
+    },
+  };
+}
+
+export function sameImageSource(left, right) {
+  if (!sameSessionContext(left, right)) return false;
+  const a = left?.image, b = right?.image;
+  return Boolean(a && b && ['stamp_ns', 'frame_id', 'camera_id', 'width', 'height', 'rectified',
+    'jpeg_base64', 'png_base64'].every((key) => a[key] === b[key]));
+}
+
+// One decoder, one latest pending frame and one decoded image. A new pose or
+// overlay for the exact same input image can reuse that image without decoding.
+export function latestImageDecoder(createImage, isCurrent, draw, failed) {
+  let active = null, latest = null, cached = null, serial = 0;
+  const identity = (frame) => ({ session_id: frame.session_id, generation: frame.generation,
+    engine_id: frame.engine_id, map_epoch: frame.map_epoch, image: frame.image });
+  function pump() {
+    if (active || !latest) return;
+    const frame = latest; latest = null;
+    if (!isCurrent(frame)) return;
+    if (cached && sameImageSource(cached.source, frame)) { draw(cached.image, frame); return; }
+    const image = createImage(), ticket = serial;
+    active = { image, frame };
+    const finish = (error = null) => {
+      if (ticket !== serial || active?.image !== image) return;
+      image.onload = null; image.onerror = null;
+      active = null;
+      const target = latest && sameImageSource(frame, latest) ? latest : frame;
+      if (target === latest) latest = null;
+      if (!error && (image.naturalWidth !== frame.image.width || image.naturalHeight !== frame.image.height)) error = 'IMAGE_DIMENSION_MISMATCH';
+      if (!error) cached = { source: identity(frame), image };
+      if (isCurrent(target)) {
+        if (error) failed(error, target);
+        else draw(image, target);
+      }
+      pump();
+    };
+    image.onload = () => finish();
+    image.onerror = () => finish('IMAGE_DECODE_UNAVAILABLE');
+    image.src = `data:image/${frame.image.jpeg_base64 ? 'jpeg' : 'png'};base64,${frame.image.jpeg_base64 || frame.image.png_base64}`;
+  }
+  return {
+    submit(frame) { latest = frame; pump(); },
+    clear() {
+      serial += 1; latest = null; cached = null;
+      if (active) { active.image.onload = null; active.image.onerror = null; active.image.src = ''; }
+      active = null;
+    },
+  };
+}
+
+export function samePointGeometry(left, right) {
+  return Array.isArray(left) && Array.isArray(right) && (left === right || left.length === right.length &&
+    left.every((point, index) => Array.isArray(point) && Array.isArray(right[index]) &&
+      point.length === right[index].length && point.every((value, axis) => value === right[index][axis])));
+}
+
 export function sameSessionContext(left, right) {
   return Boolean(left?.session_id && right?.session_id && left.session_id === right.session_id &&
     left.generation != null && left.generation === right.generation && left.map_epoch === right.map_epoch &&
@@ -67,11 +174,7 @@ export function frameAvailability(frame, transportLive = true) {
   const freshness = frame?.readiness?.freshness || {};
   const live = transportLive === true;
   const result = (available, reason) => ({ available: Boolean(available), reason });
-  const image = frame?.image;
-  const encoded = image?.jpeg_base64 || image?.png_base64;
-  const imageValid = typeof encoded === 'string' && encoded.length > 0 && encoded.length <= MAX_WIRE_BYTES &&
-    Number.isInteger(image.width) && image.width > 0 && image.width <= 1920 &&
-    Number.isInteger(image.height) && image.height > 0 && image.height <= 1080;
+  const imageState = imageAvailability(frame, live);
   const pose = frame?.camera_pose;
   const vector = (value, length) => Array.isArray(value) && value.length === length && value.every(Number.isFinite);
   const poseValid = vector(pose?.position, 3) && pose.position.every((value) => Math.abs(value) <= 1_000_000) &&
@@ -84,18 +187,29 @@ export function frameAvailability(frame, transportLive = true) {
   const trajectory = frame?.trajectory;
   const layerValid = (layer, limit) => layer && layer.map_epoch === frame?.map_epoch &&
     layer.coordinate_frame === frame?.frame_id && Array.isArray(layer.points) &&
-    boundedPoints(layer.points, limit).length === layer.points.length;
-  const imageAvailable = live && freshness.image !== false && imageValid;
+    layer.points.length <= limit && layer.points.every((point) => Array.isArray(point) &&
+      point.length === 3 && point.every(Number.isFinite));
+  const imageAvailable = imageState.available;
   const mapAvailable = layerValid(map, MAX_MAP_POINTS);
   const trajectoryAvailable = layerValid(trajectory, 10_001);
   return {
-    image: result(imageAvailable, !live ? 'STALE_SOURCE' : freshness.image === false ? 'IMAGE_STALE' : imageValid ? 'IMAGE_RECEIVED' : image?.preview_unavailable_reason || 'IMAGE_UNAVAILABLE'),
+    image: imageState,
     pose: result(live && freshness.pose !== false && poseValid, !live ? 'STALE_SOURCE' : freshness.pose === false ? 'POSE_STALE' : poseValid ? 'CAMERA_POSE_RECEIVED' : 'CAMERA_POSE_UNAVAILABLE'),
     tracking: result(live && freshness.tracking !== false && trackingValid, !live ? 'STALE_SOURCE' : freshness.tracking === false ? 'TRACKING_STALE' : tracking),
     overlay: result(imageAvailable && overlayMatchesImage(frame), !live ? 'STALE_SOURCE' : frame?.overlay?.reason || (overlayMatchesImage(frame) ? frame.overlay.overlay_kind : 'IMAGE_ALIGNMENT_UNAVAILABLE')),
     global_map: result(mapAvailable, mapAvailable ? `coverage ${map.coverage || 'unknown'}` : map ? 'GLOBAL_MAP_CONTEXT_OR_POINTS_INVALID' : 'GLOBAL_MAP_UNAVAILABLE'),
     trajectory: result(trajectoryAvailable, trajectoryAvailable ? `${trajectory.trajectory_kind || 'unknown'} · ${trajectory.points.length}점` : trajectory ? 'TRAJECTORY_CONTEXT_OR_POINTS_INVALID' : 'TRAJECTORY_UNAVAILABLE'),
   };
+}
+
+function imageAvailability(frame, live) {
+  const image = frame?.image, encoded = image?.jpeg_base64 || image?.png_base64;
+  const valid = typeof encoded === 'string' && encoded.length > 0 && encoded.length <= MAX_WIRE_BYTES &&
+    Number.isInteger(image.width) && image.width > 0 && image.width <= 1920 &&
+    Number.isInteger(image.height) && image.height > 0 && image.height <= 1080;
+  const fresh = frame?.readiness?.freshness?.image !== false;
+  return { available: Boolean(live && fresh && valid), reason: !live ? 'STALE_SOURCE' : !fresh ? 'IMAGE_STALE' :
+    valid ? 'IMAGE_RECEIVED' : image?.preview_unavailable_reason || 'IMAGE_UNAVAILABLE' };
 }
 
 export function describeCameraPose(frame, availability = frameAvailability(frame)) {
@@ -226,7 +340,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
   const state = { activePage: doc.documentElement.dataset.activePage || win.location.hash.slice(1),
     session: null, generation: null, engines: [], packages: [], legacyMaps: [], selectedPackage: null,
     frame: null, socket: null, scene: null, previewScene: null, pending: false, disposed: false,
-    pollTimer: 0, retryTimer: 0, staleTimer: 0, imageTicket: 0, transportSerial: 0,
+    pollTimer: 0, retryTimer: 0, staleTimer: 0, transportSerial: 0, imagePaintedAt: 0, paintedImage: null, cloudGeometry: null,
     refreshSerial: 0, activationSerial: 0, polling: false,
     receiveAt: 0, staleCleared: false, requestControllers: new Set(), job: null, jobSession: null, saveRequest: null,
     localizationResult: null, localizationAttempted: false, actionError: null };
@@ -513,8 +627,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
       state.localizationAttempted = true;
     }
     if (previous?.session_id !== state.session?.session_id || previous?.generation !== state.session?.generation ||
-        previous?.map_epoch !== state.session?.map_epoch) {
-      clearLive(); verifiedHint.input.checked = false; replaceUnsaved.input.checked = false;
+        previous?.map_epoch !== state.session?.map_epoch || previous?.engine_id !== state.session?.engine_id) {
+      // The first full frame for a new context may have arrived before this
+      // session readback and been rejected. A new socket must reseed geometry.
+      disconnectStream(); clearLive(); verifiedHint.input.checked = false; replaceUnsaved.input.checked = false;
     }
     status.textContent = state.session?.state || 'IDLE';
     const source = value.operational_pose_source;
@@ -605,11 +721,31 @@ export function mountSlamDashboard(doc = document, options = {}) {
       maxCloudRadius: 1_000_000, manualPanStopsFollow: true, worldFrameTrail: true, storage: null });
   }
 
+  const frameRenderer = latestFrameRenderer(
+    (callback) => win.requestAnimationFrame ? win.requestAnimationFrame(callback) : win.setTimeout(callback, 16),
+    (handle) => win.cancelAnimationFrame ? win.cancelAnimationFrame(handle) : win.clearTimeout(handle), paintFrame);
+  const imageDecoder = latestImageDecoder(() => new win.Image(), imageFrameIsCurrent, drawDecodedImage, imageDecodeFailed);
+  const geometryHydrator = geometryFrameHydrator();
+  const frameReceipts = new WeakMap();
+
+  function imageFrameIsCurrent(frame) {
+    // A bounded in-flight decode may finish after a newer frame arrives. Show
+    // its own matching pixels/overlay while still fresh, then decode only the
+    // newest pending frame. Requiring object equality here starves slow clients.
+    return !state.disposed && !doc.hidden && state.activePage === 'mapping' && sameSessionContext(state.frame, frame) &&
+      frameIsCurrent(frame, state.session) && state.socket?.readyState === 1 && Date.now() - state.receiveAt <= 1500 &&
+      Date.now() - (frameReceipts.get(frame) ?? -Infinity) <= 1500 &&
+      imageAvailability(state.frame, true).available && imageAvailability(frame, true).available;
+  }
+
+  function clearImage() {
+    imageDecoder.clear(); state.imagePaintedAt = 0; state.paintedImage = null;
+    imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+  }
+
   function clearLive() {
     state.frame = null;
-    state.imageTicket += 1;
-    const context = imageCanvas.getContext('2d');
-    context?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    frameRenderer.clear(); clearImage(); geometryHydrator.clear(); state.cloudGeometry = null;
     state.scene?.setPointCloud({ points: [] });
     state.scene?.setTrail([]);
     state.scene?.setRobotPose(null);
@@ -625,11 +761,14 @@ export function mountSlamDashboard(doc = document, options = {}) {
   function updateAvailability(frame, live) {
     const availability = frameAvailability(frame, live);
     for (const [key, value] of Object.entries(availability)) {
-      availabilityNodes[key].dataset.availability = value.available ? 'available' : 'unavailable';
+      const available = value.available ? 'available' : 'unavailable';
+      if (availabilityNodes[key].dataset.availability !== available) availabilityNodes[key].dataset.availability = available;
       const snapshot = ['global_map', 'trajectory'].includes(key) && value.available && !live ? ' · 정적 snapshot 유지' : '';
-      availabilityNodes[key].textContent = `${availabilityLabels[key]} · ${value.available ? 'available' : 'unavailable'} · ${value.reason}${snapshot}`;
+      const label = `${availabilityLabels[key]} · ${available} · ${value.reason}${snapshot}`;
+      if (availabilityNodes[key].textContent !== label) availabilityNodes[key].textContent = label;
     }
-    poseStatus.textContent = describeCameraPose(frame, availability);
+    const pose = describeCameraPose(frame, availability);
+    if (poseStatus.textContent !== pose) poseStatus.textContent = pose;
     return availability;
   }
 
@@ -638,14 +777,24 @@ export function mountSlamDashboard(doc = document, options = {}) {
     const live = frame.stream_connected !== false && state.socket?.readyState === 1 && Date.now() - state.receiveAt <= 1500;
     const availability = frameAvailability(frame, live);
     const map = frame.global_map;
-    const global = mapToggle.input.checked && availability.global_map.available ? boundedPoints(map.points) : [];
+    const global = mapToggle.input.checked && availability.global_map.available ? map.points : [];
     const observations = frame.current_observations;
     const current = live && obsToggle.input.checked && observations?.available === true && observations.map_epoch === frame.map_epoch &&
       observations.coordinate_frame === frame.frame_id ? boundedPoints(observations.points, MAX_OBSERVATIONS) : [];
-    state.scene?.setPointCloud({ points: [...global, ...current], frame_id: frame.frame_id,
-      data_provenance: String(map?.provenance || '').toLowerCase().includes('fixture') ? 'SYNTHETIC_FIXTURE' : map?.provenance }, { fit: undefined });
+    const provenance = String(map?.provenance || '').toLowerCase().includes('fixture') ? 'SYNTHETIC_FIXTURE' : map?.provenance;
+    const previous = state.cloudGeometry;
+    // Compare every coordinate: equal count/stamp/revision is not proof that a
+    // replacement map has unchanged geometry (loop corrections can move it).
+    if (!previous || previous.frameId !== frame.frame_id || previous.provenance !== provenance ||
+        !sameSessionContext(previous.context, frame) || !samePointGeometry(previous.global, global) ||
+        !samePointGeometry(previous.current, current)) {
+      state.scene?.setPointCloud({ points: current.length ? [...global, ...current] : global,
+        frame_id: frame.frame_id, data_provenance: provenance }, { fit: undefined });
+      state.cloudGeometry = { global, current, frameId: frame.frame_id, provenance,
+        context: { session_id: frame.session_id, generation: frame.generation, map_epoch: frame.map_epoch, engine_id: frame.engine_id } };
+    }
     const trajectory = frame.trajectory;
-    const trail = trailToggle.input.checked && availability.trajectory.available ? boundedPoints(trajectory.points, 10_001) : [];
+    const trail = trailToggle.input.checked && availability.trajectory.available ? trajectory.points : [];
     // RobotScene3D's public trail cache is bounded at 400. Decimate the entire
     // trajectory evenly so early, out-of-view segments remain accessible.
     const samples = trail.length > 400 ? Array.from({ length: 400 }, (_, index) => trail[Math.round(index * (trail.length - 1) / 399)]) : trail;
@@ -661,73 +810,93 @@ export function mountSlamDashboard(doc = document, options = {}) {
     mapCanvas.dataset.cameraView = geometry ? (cameraToggle.input.checked ? 'visible' : 'hidden') : 'unavailable';
     cameraStatus.textContent = geometry ? `검증된 optical 카메라 위치·시야 · 표시선 ${geometry.ray_length_m}m · 실측 깊이 unknown · calibration ${frame.camera_view.calibration_revision} · ${frame.camera_view.provenance || 'unknown'}` :
       `카메라 위치·시야 unavailable · ${live ? frame.camera_view?.reason || 'CAMERA_ALIGNMENT_UNAVAILABLE' : 'STALE_SOURCE'}`;
-    state.scene?.setCameraMode(followToggle.input.checked ? 'follow' : 'world');
+    const cameraMode = followToggle.input.checked ? 'follow' : 'world';
+    if (state.scene && state.scene.cameraMode !== cameraMode) state.scene.setCameraMode(cameraMode);
     state.scene?.setStatus({ online: live, message: `${frame.tracking_state || 'UNKNOWN'} · ${trajectory?.trajectory_kind || 'SLAM/VO unknown'}` });
     mapStatus.textContent = describeCoverage(map) + ` · 궤적 ${trajectory?.trajectory_kind || 'unknown'} ${trail.length} → ${samples.length} 표시`;
   }
 
   function renderImage(frame) {
-    const image = frame.image;
-    const ticket = ++state.imageTicket;
-    const context = imageCanvas.getContext('2d');
-    context?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
     const live = state.socket?.readyState === 1 && Date.now() - state.receiveAt <= 1500;
     const availability = updateAvailability(frame, live);
     if (!availability.image.available) {
+      clearImage();
       imageStatus.textContent = `입력 이미지 unavailable · ${availability.image.reason} · 현재 관측점 숨김`; return;
     }
     const overlay = frame.overlay;
     const canOverlay = overlayMatchesImage(frame);
+    // Keep fresh pixels during replacement decode, but never keep green tracks
+    // after their channel becomes unavailable or the operator hides them.
+    if ((!canOverlay || !overlayToggle.input.checked) && state.paintedImage) {
+      drawDecodedImage(state.paintedImage.decoded, state.paintedImage.frame);
+    }
     imageStatus.textContent = `입력 이미지 available · 오버레이 ${overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${overlay?.displayed_count ?? 0}점` : overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'} · 수신 후 ${overlay?.receive_age_seconds == null ? 'unknown' : Number(overlay.receive_age_seconds).toFixed(2) + 's'}`;
-    const encoded = image?.jpeg_base64 || image?.png_base64;
-    if (!encoded || typeof encoded !== 'string' || encoded.length > MAX_WIRE_BYTES ||
-        !Number.isInteger(image.width) || !Number.isInteger(image.height) || image.width < 1 || image.width > 1920 || image.height < 1 || image.height > 1080) return;
-    const decoded = new win.Image();
-    decoded.onload = () => {
-      if (state.disposed || state.activePage !== 'mapping' || ticket !== state.imageTicket || state.frame !== frame) return;
-      if (decoded.naturalWidth !== image.width || decoded.naturalHeight !== image.height) {
-        imageStatus.textContent = '입력 이미지 unavailable · IMAGE_DIMENSION_MISMATCH';
-        availabilityNodes.image.dataset.availability = 'unavailable';
-        availabilityNodes.image.textContent = `${availabilityLabels.image} · unavailable · IMAGE_DIMENSION_MISMATCH`;
-        return;
-      }
-      imageCanvas.width = image.width; imageCanvas.height = image.height;
-      context.drawImage(decoded, 0, 0);
-      if (!overlayToggle.input.checked || !canOverlay) return;
-      context.fillStyle = '#65ff9e';
-      for (const [u, v] of boundedPoints(overlay.points, MAX_OBSERVATIONS, 2)) {
-        if (u < 0 || v < 0 || u >= image.width || v >= image.height) continue;
-        context.beginPath(); context.arc(u, v, 2.4, 0, 2 * Math.PI); context.fill();
-      }
-    };
-    decoded.onerror = () => {
-      if (ticket !== state.imageTicket) return;
-      imageStatus.textContent = '입력 이미지 unavailable · IMAGE_DECODE_UNAVAILABLE';
-      availabilityNodes.image.dataset.availability = 'unavailable';
-      availabilityNodes.image.textContent = `${availabilityLabels.image} · unavailable · IMAGE_DECODE_UNAVAILABLE`;
-    };
-    decoded.src = `data:image/${image.jpeg_base64 ? 'jpeg' : 'png'};base64,${encoded}`;
+    imageDecoder.submit(frame);
   }
 
-  function receiveFrame(frame) {
-    if (!frameIsCurrent(frame, state.session, state.frame)) return false;
-    state.frame = frame; state.receiveAt = Date.now(); state.staleCleared = false;
+  function drawDecodedImage(decoded, frame) {
+    if (!imageFrameIsCurrent(frame)) return;
+    const image = frame.image, context = imageCanvas.getContext('2d');
+    if (!context) return;
+    if (imageCanvas.width !== image.width) imageCanvas.width = image.width;
+    if (imageCanvas.height !== image.height) imageCanvas.height = image.height;
+    context.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    context.drawImage(decoded, 0, 0);
+    state.imagePaintedAt = frameReceipts.get(frame);
+    state.paintedImage = { decoded, frame };
+    availabilityNodes.image.dataset.availability = 'available';
+    availabilityNodes.image.textContent = `${availabilityLabels.image} · available · IMAGE_RECEIVED`;
+    const canOverlay = overlayMatchesImage(frame) && overlayMatchesImage(state.frame);
+    imageStatus.textContent = `입력 이미지 available · stamp ${image.stamp_ns} · 오버레이 ${frame.overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${frame.overlay?.displayed_count ?? 0}점` : frame.overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'}`;
+    if (!overlayToggle.input.checked || !canOverlay) return;
+    context.fillStyle = '#65ff9e';
+    context.beginPath();
+    for (const [u, v] of boundedPoints(frame.overlay.points, MAX_OBSERVATIONS, 2)) {
+      if (u < 0 || v < 0 || u >= image.width || v >= image.height) continue;
+      context.moveTo(u + 2.4, v); context.arc(u, v, 2.4, 0, 2 * Math.PI);
+    }
+    context.fill();
+  }
+
+  function imageDecodeFailed(reason, frame) {
+    if (!imageFrameIsCurrent(frame)) return;
+    imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    state.imagePaintedAt = 0; state.paintedImage = null;
+    imageStatus.textContent = `입력 이미지 unavailable · ${reason}`;
+    availabilityNodes.image.dataset.availability = 'unavailable';
+    availabilityNodes.image.textContent = `${availabilityLabels.image} · unavailable · ${reason}`;
+  }
+
+  function paintFrame(frame) {
+    if (state.disposed || doc.hidden || state.activePage !== 'mapping' || state.frame !== frame ||
+        !frameIsCurrent(frame, state.session)) return;
     renderMap(frame); renderImage(frame);
     sourceStatus.textContent = `출처 ${frame.global_map?.provenance || frame.overlay?.provenance || 'unknown'} · engine ${frame.engine_id} · session ${frame.session_id} · generation ${frame.generation} · epoch ${frame.map_epoch}`;
     heartbeatStatus.textContent = `stream ${frame.stream_connected ? 'connected' : 'disconnected'} · runtime heartbeat ${frame.heartbeat_receive_age_seconds ?? 'unknown'}s · 지도 snapshot ${frame.global_map?.source_timestamp_ns || 'unknown'} · 센서→브라우저 지연 unknown`;
+  }
+
+  function receiveFrame(frame) {
+    if (state.disposed || doc.hidden || state.activePage !== 'mapping') return false;
+    if (!frameIsCurrent(frame, state.session, state.frame)) return false;
+    frame = geometryHydrator.hydrate(frame);
+    state.frame = frame; state.receiveAt = Date.now(); state.staleCleared = false;
+    frameReceipts.set(frame, state.receiveAt);
+    frameRenderer.submit(frame);
     return true;
   }
 
   function disconnectStream() {
     state.transportSerial += 1;
     win.clearTimeout(state.retryTimer); state.retryTimer = 0;
+    geometryHydrator.clear(); frameRenderer.clear(); clearImage();
     if (state.socket) { state.socket.onclose = null; state.socket.close(); state.socket = null; }
   }
 
   function connectStream() {
     if (state.socket || state.disposed || doc.hidden || state.activePage !== 'mapping') return;
     const serial = ++state.transportSerial;
-    const socket = new win.WebSocket(`${win.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${win.location.host}${SLAM_STREAM_PATH}`);
+    geometryHydrator.clear();
+    const socket = new win.WebSocket(`${win.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${win.location.host}${SLAM_STREAM_PATH}?geometry_updates=1`);
     state.socket = socket;
     socket.onmessage = (event) => {
       if (state.socket !== socket || typeof event.data !== 'string' || event.data.length > MAX_WIRE_BYTES) return;
@@ -737,8 +906,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
       if (state.socket !== socket || serial !== state.transportSerial) return;
       state.socket = null;
       heartbeatStatus.textContent = '시각화 연결 끊김 · 세션 상태는 서버에서 확인 중';
-      state.imageTicket += 1;
-      imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      geometryHydrator.clear(); frameRenderer.clear(); clearImage();
       updateAvailability(state.frame, false);
       if (state.frame) renderMap(state.frame);
       if (!doc.hidden && state.activePage === 'mapping' && !state.disposed) state.retryTimer = win.setTimeout(connectStream, 2000);
@@ -878,7 +1046,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
   on(doc, 'visibilitychange', () => setActive(state.activePage));
   on(win, 'pagehide', (event) => {
     if (!event.persisted) { controller.dispose(); return; }
-    disconnectStream(); win.clearTimeout(state.pollTimer); state.imageTicket += 1;
+    disconnectStream(); win.clearTimeout(state.pollTimer); frameRenderer.clear(); clearImage(); state.cloudGeometry = null;
     state.scene?.destroy(); state.scene = null; state.previewScene?.destroy(); state.previewScene = null;
   });
   on(win, 'pageshow', (event) => { if (event.persisted) setActive(doc.documentElement.dataset.activePage || win.location.hash.slice(1)); });
@@ -886,9 +1054,18 @@ export function mountSlamDashboard(doc = document, options = {}) {
   const legacyList = mapsHost.querySelector('#savedMapList');
   if (legacyList) observer.observe(legacyList, { childList: true });
   state.staleTimer = win.setInterval(() => {
+    // A slow replacement decode must not keep the previous image alive merely
+    // because newer transport frames continue arriving.
+    if (state.imagePaintedAt && Date.now() - state.imagePaintedAt > 1500) {
+      imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      state.imagePaintedAt = 0; state.paintedImage = null;
+      imageStatus.textContent = '입력 이미지 unavailable · IMAGE_DISPLAY_STALE';
+      availabilityNodes.image.dataset.availability = 'unavailable';
+      availabilityNodes.image.textContent = `${availabilityLabels.image} · unavailable · IMAGE_DISPLAY_STALE`;
+    }
     if (state.frame && !state.staleCleared && Date.now() - state.receiveAt > 1500) {
       state.staleCleared = true;
-      state.imageTicket += 1; imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      frameRenderer.clear(); clearImage();
       renderMap(state.frame);
       updateAvailability(state.frame, false);
       imageStatus.textContent = 'STALE_SOURCE · 현재 관측점 숨김';
@@ -901,7 +1078,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
       if (state.disposed) return;
       state.disposed = true;
       disconnectStream(); win.clearTimeout(state.pollTimer); win.clearInterval(state.staleTimer);
-      state.imageTicket += 1;
+      frameRenderer.clear(); clearImage(); state.cloudGeometry = null;
       for (const request of state.requestControllers) request.abort();
       state.scene?.destroy(); state.previewScene?.destroy(); observer.disconnect();
       disposers.splice(0).forEach((dispose) => dispose());

@@ -6,7 +6,8 @@ import { runInNewContext } from 'node:vm';
 const source = readFileSync(new URL('../robot_dashboard/static/features/slam/dashboard.js', import.meta.url), 'utf8');
 const { boundedPoints, overlayMatchesImage, frameIsCurrent, describeCoverage, cameraFrustumGeometry,
   describeLocalization, frameAvailability, describeCameraPose, errorText, SLAM_STREAM_PATH,
-  sameSessionContext, saveJobIsCurrent, SLAM_REQUEST_TIMEOUT_MS } = await import(
+  sameSessionContext, saveJobIsCurrent, SLAM_REQUEST_TIMEOUT_MS, geometryFrameHydrator,
+  latestFrameRenderer, latestImageDecoder, sameImageSource, samePointGeometry } = await import(
   'data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 
 const session = { session_id: 'session-a', generation: 4, map_epoch: 'epoch-a', engine_id: 'visual_stereo' };
@@ -14,6 +15,102 @@ const frame = { ...session, sequence: '1', tracking_state: 'MAPPING', stream_con
   image: { jpeg_base64: 'AA==', stamp_ns: '9007199254740993001', frame_id: 'left_optical', width: 640, height: 480, camera_id: 'left', rectified: true },
   overlay: { overlay_kind: 'current_observations_reprojected', reason: null, points: [[10, 20]],
     image: { source_timestamp_ns: '9007199254740993001', frame_id: 'left_optical', width: 640, height: 480, camera_id: 'left' } } };
+
+const geometryFrame = () => ({ ...structuredClone(frame), frame_id: 'map',
+  global_map: { coordinate_frame: 'map', map_epoch: session.map_epoch, points: [[1, 2, 3]] },
+  trajectory: { coordinate_frame: 'map', map_epoch: session.map_epoch, points: [[0, 0, 0]] },
+  geometry_updates: { version: 1, layers: { global_map: { kind: 'full', token: '1' }, trajectory: { kind: 'full', token: '2' } } } });
+
+test('geometry references preserve exact complete layer and fresh independent channels', () => {
+  const cache = geometryFrameHydrator(), full = geometryFrame();
+  const first = cache.hydrate(full);
+  const reference = { ...full, global_map: null, trajectory: null, camera_pose: { position: [4, 5, 6] },
+    geometry_updates: { version: 1, layers: { global_map: { kind: 'reference', token: '1' }, trajectory: { kind: 'reference', token: '2' } } } };
+  const next = cache.hydrate(reference);
+  assert.equal(next.global_map, first.global_map);
+  assert.equal(next.trajectory, first.trajectory);
+  assert.equal(next.image, reference.image);
+  assert.equal(next.camera_pose, reference.camera_pose);
+  assert.equal(reference.global_map, null);
+  const corrected = geometryFrame();
+  corrected.global_map.points[0][0] = 42;
+  corrected.geometry_updates.layers.global_map.token = '3';
+  assert.equal(cache.hydrate(corrected).global_map.points[0][0], 42);
+});
+
+test('missing or invalid geometry references clear only that layer and never cross contexts', () => {
+  for (const change of [{ session_id: 'other' }, { generation: 5 }, { engine_id: 'other' },
+    { map_epoch: 'other' }, { frame_id: 'other' }, {}]) {
+    const cache = geometryFrameHydrator(), full = geometryFrame();
+    cache.hydrate(full);
+    const ref = { ...full, ...change, global_map: null, trajectory: null,
+      geometry_updates: { version: 1, layers: { global_map: { kind: 'reference', token: change.session_id ? '1' : '999' } } } };
+    const result = cache.hydrate(ref);
+    assert.equal(result.global_map, null); assert.equal(result.trajectory, null);
+    assert.equal(result.image, full.image); assert.equal(result.overlay, full.overlay);
+  }
+  for (const clear of ['explicit', 'legacy', 'absent', 'badversion', 'invalidpoints']) {
+    const cache = geometryFrameHydrator(), full = geometryFrame();
+    cache.hydrate(full);
+    if (clear === 'explicit') cache.clear();
+    if (clear === 'legacy') cache.hydrate({ ...full, geometry_updates: undefined });
+    if (clear === 'absent') cache.hydrate({ ...full, global_map: null, geometry_updates: { version: 1, layers: {} } });
+    if (clear === 'badversion') cache.hydrate({ ...full, geometry_updates: { version: 2, layers: full.geometry_updates.layers } });
+    if (clear === 'invalidpoints') cache.hydrate({ ...full, global_map: { ...full.global_map, points: [[NaN, 0, 0]] } });
+    assert.equal(cache.hydrate({ ...full, global_map: null,
+      geometry_updates: { version: 1, layers: { global_map: { kind: 'reference', token: '1' } } } }).global_map, null);
+  }
+});
+
+test('latest-frame renderer bounds backlog and cancels pending renders', () => {
+  const callbacks = new Map(), painted = []; let id = 0;
+  const renderer = latestFrameRenderer((fn) => { callbacks.set(++id, fn); return id; },
+    (key) => callbacks.delete(key), (value) => painted.push(value));
+  for (let i = 0; i < 100; i++) renderer.submit({ sequence: i });
+  assert.equal(callbacks.size, 1);
+  const flush = () => { const [key, fn] = callbacks.entries().next().value; callbacks.delete(key); fn(); };
+  flush(); assert.deepEqual(painted, [{ sequence: 99 }]);
+  renderer.submit({ sequence: 100 }); renderer.clear();
+  assert.equal(callbacks.size, 0); assert.equal(painted.length, 1);
+  renderer.submit({ sequence: 101 }); flush(); assert.equal(painted.at(-1).sequence, 101);
+});
+
+test('one decoder skips intermediate images, keeps matched overlays and reuses identical pixels', () => {
+  const images = [], painted = [], failures = [];
+  const decoder = latestImageDecoder(() => { const image = { naturalWidth: 640, naturalHeight: 480 }; images.push(image); return image; },
+    () => true, (image, value) => painted.push({ image, value }), (error) => failures.push(error));
+  const a = structuredClone(frame), b = structuredClone(frame), c = structuredClone(frame);
+  b.image.stamp_ns = '2'; c.image.stamp_ns = '3';
+  decoder.submit(a); decoder.submit(b); decoder.submit(c);
+  assert.equal(images.length, 1); images[0].onload();
+  assert.equal(painted[0].value, a); assert.equal(images.length, 2);
+  images[1].onload(); assert.equal(painted[1].value, c);
+  const newOverlay = { ...c, overlay: { ...c.overlay, points: [[5, 6]] } };
+  decoder.submit(newOverlay);
+  assert.equal(images.length, 2); assert.equal(painted.at(-1).value, newOverlay);
+  assert.equal(sameImageSource(a, b), false);
+  assert.equal(sameImageSource(c, { ...c, map_epoch: 'other' }), false);
+  assert.deepEqual(failures, []);
+});
+
+test('decoder clear, expired contexts, dimensions and errors cannot paint stale pixels', () => {
+  const images = [], painted = [], failures = []; let current = true;
+  const decoder = latestImageDecoder(() => { const image = { naturalWidth: 640, naturalHeight: 480 }; images.push(image); return image; },
+    () => current, (_, value) => painted.push(value), (error) => failures.push(error));
+  decoder.submit(frame); const oldLoad = images[0].onload; decoder.clear(); oldLoad();
+  assert.equal(painted.length, 0); assert.equal(images[0].src, '');
+  decoder.submit(frame); current = false; images[1].onload(); assert.equal(painted.length, 0);
+  decoder.clear(); current = true; decoder.submit(frame); images[2].naturalWidth = 2; images[2].onload();
+  assert.deepEqual(failures, ['IMAGE_DIMENSION_MISMATCH']);
+  decoder.submit(frame); images[3].onerror();
+  assert.deepEqual(failures, ['IMAGE_DIMENSION_MISMATCH', 'IMAGE_DECODE_UNAVAILABLE']);
+});
+
+test('point equality detects coordinate corrections even when array counts match', () => {
+  assert.equal(samePointGeometry([[1, 2, 3]], [[1, 2, 3]]), true);
+  assert.equal(samePointGeometry([[1, 2, 3]], [[1, 2, 4]]), false);
+  assert.equal(samePointGeometry([[1, 2, 3]], []), false);
+});
 
 test('save results require the originating session, generation, engine and map epoch', () => {
   const job = { job_id: 'save-a', session_id: session.session_id, generation: session.generation };

@@ -714,27 +714,33 @@ class IsaacStereoAdapter:
     def frame(self, session: dict[str, Any]) -> dict[str, Any]:
         job = self._owned(session)
         with job["lock"]:
-            frames = copy.deepcopy(job["frames"])
+            # Geometry/path caches are delivered by FeatureStream below. Copying
+            # them again here holds the sensor callback lock for no useful work.
+            frames = {key: copy.deepcopy(job["frames"][key])
+                      for key in ("image", "pose") if key in job["frames"]}
             now = time.monotonic()
             history = {str(image["stamp_ns"]): image for image in job.get("image_history", ())
                        if now-image["received_monotonic"] <= 1.0}
-            result = job["features"].frame(now_monotonic=now, image_timestamps_ns=list(history))
+            features = job["features"]
+            result = features.capture_frame(now_monotonic=now, image_timestamps_ns=list(history))
             retained = job.get("image_history", ())
-            diagnostics = result.get("alignment_diagnostics")
-            # FeatureStream may omit optional diagnostics to preserve geometry
-            # within its wire budget. Do not recreate them or suppress media.
-            if isinstance(diagnostics, dict):
-                diagnostics["pixel_cache"] = {
-                    "retained_count": len(retained), "fresh_count": len(history),
-                    "capacity": STEREO_HISTORY_SIZE, "byte_limit": MAX_IMAGE_HISTORY_BYTES,
-                    "retained_bytes": sum(len(item["data"]) for item in retained),
-                    "evicted_count": job.get("image_history_evictions", 0),
-                    "min_stamp_ns": str(min(item["stamp_ns"] for item in retained)) if retained else None,
-                    "max_stamp_ns": str(max(item["stamp_ns"] for item in retained)) if retained else None,
-                }
+            pixel_cache = {
+                "retained_count": len(retained), "fresh_count": len(history),
+                "capacity": STEREO_HISTORY_SIZE, "byte_limit": MAX_IMAGE_HISTORY_BYTES,
+                "retained_bytes": sum(len(item["data"]) for item in retained),
+                "evicted_count": job.get("image_history_evictions", 0),
+                "min_stamp_ns": str(min(item["stamp_ns"] for item in retained)) if retained else None,
+                "max_stamp_ns": str(max(item["stamp_ns"] for item in retained)) if retained else None,
+            }
             selection = result.get("image_selection", {})
             if selection.get("kind") == "newest_fresh_completed_quartet":
                 frames["image"] = copy.deepcopy(history[selection["selected_timestamp_ns"]])
+        # JSON/budget work cannot hold either lock needed by sensor callbacks.
+        result = features.finalize_frame(result)
+        diagnostics = result.get("alignment_diagnostics")
+        # Preserve the optional diagnostics budget: never recreate omitted data.
+        if isinstance(diagnostics, dict):
+            diagnostics["pixel_cache"] = pixel_cache
         result.update({"session_id": session["session_id"], "generation": session["generation"],
                        "map_epoch": session.get("map_epoch"), "engine_id": self.engine_id,
                        "installed_contract_verified": bool(job["effective_parameters"]),

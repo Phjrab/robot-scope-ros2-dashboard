@@ -1,0 +1,88 @@
+{
+  "schema": "robot-scope.slam-display-performance.v1",
+  "source_base": "4bf1ec4",
+  "scope": "software_only_robot_powered_off",
+  "source_sha256": {
+    "robot_dashboard/slam_transport.py": "d8f3788886710bc62e916ac7504107766fa6cec5c8d76eed8d25a28f88f0fa04",
+    "robot_dashboard/api/routers/slam.py": "e049dc8fc5ed6f8daad4784d137c871de943a1dd910b8e6d5da1381ff64cefa5",
+    "robot_dashboard/slam_features.py": "b50a7411f46aea7d3c2306ee4bebbb3c4ceb6860821a8ef9ab8a3f38552cb4f2",
+    "robot_dashboard/slam_ros_runtime.py": "a37028db04033e4396b2be41a3ae38369087a7236af8ca59ecf78ffed90b4e24",
+    "robot_dashboard/static/features/slam/dashboard.js": "54c782aac2c407fd9e5e955bda6db7eca03b16561f39a8f1a63383365451b239",
+    "tests/test_slam_transport.py": "a4786e2086355b28d51fccaeccdb1ed84d6392947bf2049b0fb51c33ba64912b",
+    "tests/test_slam_api.py": "d125035deeb8d992c0e771c127e254e200d4b81bc9da7a97e639150fd55cc4b9",
+    "tests/test_slam_features.py": "7b8fc55c1396704ef4d5308595761f507fa8ca0d63e364afc01186b2d4f235c7",
+    "tests/test_slam_ros_runtime.py": "90d99c259539d5dcf472779fe000af5a675b0b3cc59072481a58ea8d9aa547f0",
+    "tests/test_slam_ui.mjs": "72f24a9d4990170f541407a9d21be1e0be6c38b4b951932a2e3d8d2b703f13f1",
+    "tests/e2e/slam.spec.mjs": "f6d961fde393251a64448df0277b56fc457866e1fff380fa2d741a834256b4c6"
+  },
+  "validation": {
+    "python_total": 2165,
+    "python_passed": 2163,
+    "python_skipped": 2,
+    "python_seconds": 80.567,
+    "js_unit_passed": 393,
+    "final_slam_js_passed": 22,
+    "final_slam_chromium_passed": 20,
+    "presentation_chromium_passed": 10,
+    "ruff": "PASS",
+    "configured_mypy": "PASS_4_modules",
+    "secret_scan": "PASS",
+    "frontend_syntax_modules": 84,
+    "independent_review": "CLOSED_two_frontend_findings_fixed",
+    "sandbox_failed_attempts_excluded": true
+  },
+  "replay": {
+    "scope": "offline frozen real-snapshot replay, 1 initial + 50 repeats, uncompressed JSON",
+    "source": "private/manual01/frame-11.json",
+    "source_sha256": "3c7bba2e9ea75613422c9357dbe1449b8121ed9242c669a60fd92603085aa00d",
+    "python": "3.13.2",
+    "platform": "macOS-26.3-arm64-arm-64bit-Mach-O",
+    "global_points": 13993,
+    "runs": {
+      "legacy": {
+        "first_bytes": 963087,
+        "repeat_bytes": 963087,
+        "total_bytes_51": 49117479,
+        "repeat_encode_median_ms": 16.005000000000003,
+        "repeat_encode_max_ms": 89.557583
+      },
+      "references": {
+        "first_bytes": 963213,
+        "repeat_bytes": 62174,
+        "total_bytes_51": 4071955,
+        "repeat_encode_median_ms": 0.5322085,
+        "repeat_encode_max_ms": 0.63375
+      }
+    },
+    "repeat_wire_reduction_percent": 93.5443007744887,
+    "input_unchanged": true,
+    "limitations": [
+      "not actual sensor FPS",
+      "not browser FPS",
+      "not end-to-end latency",
+      "excludes upstream feature assembly and broker JSON",
+      "frozen replay is not continuous live evidence"
+    ]
+  },
+  "log_sha256": {
+    "python-full-local.log": "59c49d31a76941ef9428a31148f76af3ca9e83b2ab58bb378bdbb5b23d755254",
+    "js-unit.log": "90f5ca2fed94bb02dc1092ec10fc3e37b5caefc3fad6b43b37b4425f05ec0d27",
+    "js-slam-final.log": "30c3e7711f1cdb03d971fe2d50b3a3352dd7f548000de9add4640b992b2965a9",
+    "e2e-local.log": "8f8bf9b7d720beddee1312fc031f7598ea237a58ab16ff3270fd29798df9bf13",
+    "e2e-stream-final.log": "01e08ce32f5a7eb3a288a27f6e94ba47cf5799c5bced264c1f4606529453543a",
+    "e2e-cache.log": "d2f679eb6f550714089b4664cc512715e83666d9854dec495647998bb0b700b8",
+    "replay-transport.json": "336db45175869db2d3546b2f4417d5d25f4042d15d39c8097e15cdeec58bc6b7",
+    "replay_transport.py": "ac649f7f23cb00e667ed1e9609b1ebe098a8205581415b8062721d0d7218790e"
+  },
+  "runtime": {
+    "device_power": "OFF_user_reported",
+    "device_access_this_change": false,
+    "deployment": false,
+    "hardware_performance_measured": false,
+    "geometry_accuracy_qualified": false,
+    "driving": false,
+    "bridge_restoration": false,
+    "background_continuation_scheduled": false,
+    "old_3986a75_bundle_contains_this_change": false
+  }
+}

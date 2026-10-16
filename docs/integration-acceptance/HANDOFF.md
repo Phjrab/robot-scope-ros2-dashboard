@@ -1,4 +1,17 @@
-# Current native/precision follow-up — 2026-10-16
+# Current display optimization — 2026-10-16
+
+The user authorized mapping-display software optimization and confirmed the
+robot is powered OFF. No new device access, deployment or runtime observation
+occurred. Read [SLAM_DISPLAY_PERFORMANCE.md](SLAM_DISPLAY_PERFORMANCE.md) and its
+validation JSON first. Unchanged geometry references, bounded latest display
+work and shorter callback lock sections passed hardware-free validation.
+The frozen real-sample replay reduced repeated JSON bytes93.54%; actual robot
+FPS/latency is unmeasured. All device work remains deferred, bridge restoration
+excluded, and no background continuation is scheduled. The old3986a75 deployment
+pack does not include these changes. The user's duplicated-wall report remains
+an unqualified geometry/rotation-tracking issue, separate from display speed.
+
+# Previous native/precision follow-up — 2026-10-16
 
 The user reopened remaining non-driving work and confirmed that independent
 truth/extrinsic measurements do not exist yet. Reviewed software and preparation

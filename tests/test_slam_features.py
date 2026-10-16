@@ -1,10 +1,12 @@
 """SYNTHETIC / UI CONTRACT TEST: these fixtures are not engine evidence."""
 
 from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor
 import json
 import math
 import random
 import struct
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -180,6 +182,74 @@ class FeaturePairingTests(unittest.TestCase):
         self.assertIsNone(overlay["confidence"])
         self.assertFalse(overlay["native_ids_available"])
         self.assertIsNone(overlay["sensor_to_browser_latency_seconds"])
+
+    def test_json_finalization_does_not_block_a_source_callback_or_resample_freshness(self):
+        self.inputs()
+        entered, release = threading.Event(), threading.Event()
+        encode = json.dumps
+
+        def blocked_encode(value, *args, **kwargs):
+            entered.set()
+            if not release.wait(3):
+                raise AssertionError("test finalizer was not released")
+            return encode(value, *args, **kwargs)
+
+        with (ThreadPoolExecutor(max_workers=2) as workers,
+              patch("robot_dashboard.slam_features.json.dumps", side_effect=blocked_encode)):
+            pending = workers.submit(self.stream.frame, now_monotonic=100.1)
+            try:
+                self.assertTrue(entered.wait(2))
+                callback = workers.submit(self.stream.heartbeat, context=self.context,
+                    tracking_state="LOST", received_at=102)
+                self.assertTrue(callback.result(timeout=2))
+            finally:
+                release.set()
+            frame = pending.result(timeout=2)
+        self.assertEqual(frame["tracking_state"], "TRACKING")
+        self.assertTrue(frame["stream_connected"])
+        self.assertEqual(frame["published_at"], 100.1)
+        self.assertEqual(frame["overlay"]["points"], [[50, 50]])
+        self.assertEqual(frame["overlay"]["image"]["source_timestamp_ns"], str(self.stamp))
+        self.assertEqual(self.stream.frame(now_monotonic=102)["overlay"]["reason"], "LOST")
+
+    def test_capture_detaches_all_geometry_before_finalization(self):
+        self.inputs()
+        self.stream.replace_global(cloud([(1, 2, 3)], stamp=self.stamp),
+            context=self.context, source_id="map", provenance="engine")
+        self.stream.replace_trajectory([(0, 0, 0), (1, 2, 3)], context=self.context,
+            stamp_ns=self.stamp, source_id="path", provenance="engine")
+        captured = self.stream.capture_frame(now_monotonic=100.1)
+        for key in ("overlay", "current_observations", "global_map", "trajectory"):
+            captured[key]["points"][0][0] = 999
+            captured[key]["points"].append([999, 999, 999])
+        captured["camera_view"]["position"][0] = 999
+        captured["alignment_diagnostics"]["metadata_caches"]["image"]["count"] = 999
+        source = self.stream.frame(now_monotonic=100.1)
+        self.assertEqual(source["overlay"]["points"], [[50, 50]])
+        self.assertEqual(source["current_observations"]["points"], [[0, 0, 2]])
+        self.assertEqual(source["global_map"]["points"], [[1, 2, 3]])
+        self.assertEqual(source["trajectory"]["points"], [[0, 0, 0], [1, 2, 3]])
+        self.assertEqual(source["camera_view"]["position"], [0, 0, 0])
+        self.assertEqual(source["alignment_diagnostics"]["metadata_caches"]["image"]["count"], 1)
+
+    def test_finalizing_a_capture_after_epoch_reset_keeps_its_original_context(self):
+        self.inputs()
+        self.stream.replace_global(cloud([(1, 2, 3)], stamp=self.stamp),
+            context=self.context, source_id="map", provenance="engine")
+        self.stream.replace_trajectory([(0, 0, 0), (1, 2, 3)], context=self.context,
+            stamp_ns=self.stamp, source_id="path", provenance="engine")
+        captured = self.stream.capture_frame(now_monotonic=100.1,
+            image_timestamps_ns=[str(self.stamp)])
+        original = deepcopy(captured)
+        replacement = StreamContext("replacement", 3, "epoch-2")
+        self.stream.reset(replacement)
+        self.stream.replace_global(cloud([(9, 8, 7)], stamp=self.stamp+1),
+            context=replacement, source_id="new-map", provenance="engine")
+        self.stream.replace_trajectory([(9, 8, 7)], context=replacement,
+            stamp_ns=self.stamp+1, source_id="new-path", provenance="engine")
+        self.assertEqual(self.stream.finalize_frame(captured), original)
+        self.assertEqual(captured["map_epoch"], "epoch-1")
+        self.assertEqual(self.stream.frame(now_monotonic=100.2)["map_epoch"], "epoch-2")
 
     def test_tolerance_checks_total_bundle_span(self):
         self.inputs(observation_stamp=self.stamp+10_000_000, pose_stamp=self.stamp-10_000_000)

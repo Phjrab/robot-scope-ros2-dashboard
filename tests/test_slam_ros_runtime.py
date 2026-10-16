@@ -1,6 +1,7 @@
 """Hardware-free checks for the real ROS adapter's validation boundaries."""
 
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import io
 import json
 from pathlib import Path
@@ -203,6 +204,69 @@ class RuntimeCallbackTests(unittest.TestCase):
             self._image("right_image", stamp + 33_333_333)
             self.assertEqual(self.adapter.status(self.session)["stereo_pair"]["left_timestamp_ns"],
                              str(stamp + 33_333_333))
+
+    def test_feature_json_releases_runtime_lock_without_mixing_new_pixels(self):
+        self._production_observer()
+        stamp = 1_792_119_083_803_611_392
+        newer = stamp + 33_333_333
+        entered, release = threading.Event(), threading.Event()
+        encode = json.dumps
+
+        def blocked_encode(value, *args, **kwargs):
+            entered.set()
+            if not release.wait(3):
+                raise AssertionError("test finalizer was not released")
+            return encode(value, *args, **kwargs)
+
+        def receive_new_pixels():
+            self._image("image", newer)
+            self._image("right_image", newer)
+
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", stamp)
+            self._image("right_image", stamp)
+            self._calibration_and_tracking(stamp)
+            observations = cloud([(3, 2, 3)])
+            observations.header = header(stamp=stamp)
+            self.adapter._receive(self.job, "observations", observations)
+            with (ThreadPoolExecutor(max_workers=2) as workers,
+                  patch("robot_dashboard.slam_features.json.dumps", side_effect=blocked_encode),
+                  patch.dict("sys.modules", {"PIL": None})):
+                pending = workers.submit(self.adapter.frame, self.session)
+                try:
+                    self.assertTrue(entered.wait(2))
+                    workers.submit(receive_new_pixels).result(timeout=2)
+                    self.assertEqual(self.job["frames"]["image"]["stamp_ns"], newer)
+                finally:
+                    release.set()
+                frame = pending.result(timeout=2)
+        self.assertEqual(self.job["errors"], [])
+        self.assertEqual(frame["image"]["stamp_ns"], str(stamp))
+        self.assertEqual(frame["overlay"]["image"]["source_timestamp_ns"], str(stamp))
+        self.assertEqual(frame["camera_view"]["image_source_timestamp_ns"], str(stamp))
+        self.assertEqual(frame["camera_pose"]["stamp_ns"], str(stamp))
+        self.assertEqual(frame["readiness"]["stereo_pair"]["left_timestamp_ns"], str(newer))
+        self.assertEqual(frame["alignment_diagnostics"]["pixel_cache"]["retained_count"], 1)
+        self.assertEqual(frame["overlay"]["points"], [[2, 2]])
+        expected = encode_png(dict(encoding="mono8", width=4, height=4, step=4, data=bytes([64]*16)))
+        self.assertEqual(base64.b64decode(frame["image"]["png_base64"]), expected)
+
+    def test_frame_copies_only_media_pose_and_detaches_mutable_pose_values(self):
+        class UnusedGeometry:
+            def __deepcopy__(self, memo):
+                raise AssertionError("unused callback geometry must not be copied")
+
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", 100_000_000_000)
+            self._calibration_and_tracking(100_000_000_000)
+            for key in ("observations", "landmarks", "path"):
+                self.job["frames"][key] = {"unused": UnusedGeometry()}
+            frame = self.adapter.frame(self.session)
+        frame["camera_pose"]["position"][0] = 999
+        frame["camera_pose"]["quaternion_xyzw"][0] = 999
+        self.assertEqual(self.job["frames"]["pose"]["position"], [1, 2, 3])
+        self.assertEqual(self.job["frames"]["pose"]["quaternion_xyzw"], [0.5]*4)
+        self.assertEqual(self.job["frames"]["image"]["data"], bytes([64]*16))
 
     def test_stereo_pair_cache_keeps_only_bounded_metadata(self):
         self._production_observer()

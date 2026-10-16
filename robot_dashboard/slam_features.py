@@ -318,7 +318,8 @@ def project_map_points(points: Sequence[tuple[float, float, float]], *,
 class FeatureStream:
     """One shared adapter cache; independent consumers get latest snapshots.
 
-    All mutation and serialization is serialized. A fresh context clears image,
+    Mutation and snapshot capture share a lock; serialization uses detached
+    snapshots outside it. A fresh context clears image,
     pose, observation and global caches. Callbacks holding old contexts fail
     closed. Limits reduce visualization only and never alter estimator inputs.
     Image bytes travel through the existing media path; image_sequence/stamp
@@ -791,6 +792,17 @@ class FeatureStream:
 
     def frame(self, *, now_monotonic: float | None = None,
               image_timestamps_ns: Sequence[Any] | None = None) -> dict[str, Any]:
+        """Capture one consistent frame, then apply its wire budget unlocked."""
+        return self.finalize_frame(self.capture_frame(now_monotonic=now_monotonic,
+            image_timestamps_ns=image_timestamps_ns))
+
+    def capture_frame(self, *, now_monotonic: float | None = None,
+                      image_timestamps_ns: Sequence[Any] | None = None) -> dict[str, Any]:
+        """Detach a consistent snapshot; callers must finalize before delivery.
+
+        An adapter may hold its media-history lock during capture so the selected
+        feature timestamp and retained pixels belong to the same snapshot.
+        """
         with self._lock:
             now = self._received(now_monotonic)
             self._sequence += 1
@@ -837,44 +849,52 @@ class FeatureStream:
                 camera_view=self.camera_view(now_monotonic=now, image_timestamp_ns=selected_stamp),
                 current_observations=observations,
                 alignment_diagnostics=self._alignment_diagnostics(now, evaluated, stamps),
-                global_map=self.global_snapshot(), trajectory=None if self._trajectory is None else dict(self._trajectory))
+                global_map=self.global_snapshot(), trajectory=None if self._trajectory is None else
+                    dict(self._trajectory, points=[list(point) for point in self._trajectory["points"]]))
             if image_timestamps_ns is not None:
                 result["image_selection"] = dict(kind="newest_fresh_completed_quartet" if selected_stamp else "latest_input",
                     selected_timestamp_ns=None if selected_image is None else selected_image["stamp"],
                     latest_timestamp_ns=None if latest_image is None else latest_image["stamp"],
                     receive_age_seconds=None if selected_image is None else max(0.0, now-selected_image["received"]))
-            # Each call returns a detached snapshot. No consumer queue can append
-            # to this source; transports retain at most their latest two frames.
-            while True:
-                encoded = json.dumps(result, separators=(",", ":"), allow_nan=False).encode("utf-8")
-                if len(encoded) <= self.max_wire_bytes:
-                    return json.loads(encoded)
-                # Optional diagnostics must never consume a visualization's
-                # existing media/geometry budget or prevent a valid frame.
-                if "alignment_diagnostics" in result:
-                    diagnostic = result["alignment_diagnostics"]
-                    details = diagnostic.get("evaluated_candidates", [])
-                    if details:
-                        details.pop()
-                        diagnostic["candidate_details_omitted_for_wire_budget"] = (
-                            diagnostic.get("candidate_details_omitted_for_wire_budget", 0) + 1)
-                    else:
-                        result.pop("alignment_diagnostics")
-                    continue
-                candidates = [item for item in (result["global_map"], result["trajectory"], overlay, observations)
-                              if item is not None and item.get("points")]
-                if not candidates:
-                    raise FeatureValidationError("FRAME_METADATA_LIMIT")
-                item = max(candidates, key=lambda p: len(p["points"]))
-                if item is result["global_map"] and len(item["points"]) > 1:
-                    item["points"] = spatial_lod(item["points"], max(1, len(item["points"]) // 2))
-                elif item is result["trajectory"] and len(item["points"]) > 2:
-                    endpoint = item["points"][-1]
-                    item["points"] = item["points"][::2]
-                    if item["points"][-1] != endpoint:
-                        item["points"].append(endpoint)
+            return result
+
+    def finalize_frame(self, result: dict[str, Any]) -> dict[str, Any]:
+        """Consume a detached capture without holding a source or media lock.
+
+        This step only decimates delivery and never re-samples source state or
+        changes the capture's exact timestamps, freshness or context.
+        """
+        while True:
+            encoded = json.dumps(result, separators=(",", ":"), allow_nan=False).encode("utf-8")
+            if len(encoded) <= self.max_wire_bytes:
+                return json.loads(encoded)
+            # Optional diagnostics must never consume a visualization's
+            # existing media/geometry budget or prevent a valid frame.
+            if "alignment_diagnostics" in result:
+                diagnostic = result["alignment_diagnostics"]
+                details = diagnostic.get("evaluated_candidates", [])
+                if details:
+                    details.pop()
+                    diagnostic["candidate_details_omitted_for_wire_budget"] = (
+                        diagnostic.get("candidate_details_omitted_for_wire_budget", 0) + 1)
                 else:
-                    item["points"] = item["points"][::2] if len(item["points"]) > 1 else []
-                item["displayed_count"] = len(item["points"])
-                item["decimation"] = True
-                item["wire_decimated"] = True
+                    result.pop("alignment_diagnostics")
+                continue
+            candidates = [item for item in (result["global_map"], result["trajectory"],
+                          result["overlay"], result["current_observations"])
+                          if item is not None and item.get("points")]
+            if not candidates:
+                raise FeatureValidationError("FRAME_METADATA_LIMIT")
+            item = max(candidates, key=lambda p: len(p["points"]))
+            if item is result["global_map"] and len(item["points"]) > 1:
+                item["points"] = spatial_lod(item["points"], max(1, len(item["points"]) // 2))
+            elif item is result["trajectory"] and len(item["points"]) > 2:
+                endpoint = item["points"][-1]
+                item["points"] = item["points"][::2]
+                if item["points"][-1] != endpoint:
+                    item["points"].append(endpoint)
+            else:
+                item["points"] = item["points"][::2] if len(item["points"]) > 1 else []
+            item["displayed_count"] = len(item["points"])
+            item["decimation"] = True
+            item["wire_decimated"] = True
