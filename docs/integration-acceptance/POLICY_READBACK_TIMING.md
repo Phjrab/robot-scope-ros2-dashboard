@@ -1,12 +1,15 @@
 # Non-driving policy follow-up — 2026-10-16
 
-The user reopened remaining work excluding driving. This change completes the
-next software diagnostic unit identified in [POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md).
-It does not complete MR-MS-003 enforcement or turn the earlier timeout into a
-diagnosed transport failure. No device operation, service change, ROS query,
-deployment, pipeline start, initialpose, goal, TF publication or motion was
-performed by this policy subtask. The control bridge remains under the user's
-manual-control handover; this change does not restore it.
+The user reopened remaining work excluding driving. The diagnostic software
+identified in [POLICY_RUNTIME_WINDOW.md](POLICY_RUNTIME_WINDOW.md) was deployed
+as `cdebee40d212759703300ffc1e2de17ed93a4846` and used in one separately approved
+operating localization-only window on 2026-10-16. That window reached fresh input
+readiness without initialpose, then retained **ABORTED: 38 complete samples plus
+one partial API sample** because the collector hit its observation boundary.
+Owned cleanup succeeded. The planner's two readback futures remained pending
+while its global costmap waited for the absent map transform; the evidence below
+separates this runtime condition from the collector error. MR-MS-003 enforcement
+remains incomplete. The bridge remains stopped under the manual-control handover.
 
 ## Actual change
 
@@ -50,12 +53,13 @@ introduced.
 
 ## Source, local validation and runtime boundary
 
-The local baseline is clean main `361c019` before the coordinated follow-up.
-The following hashes pin this subtask's source/test bytes; the integration owner
-records the final combined source commit, full regressions and any separately
-qualified deployment. Local interpreter is CPython 3.13.2 from the repository
-`.venv`; this environment has neither `rclpy` nor a `ros2` executable. There is no
-new native runtime/config identity for this software-only subtask.
+The original software baseline was clean main `361c019`. The following hashes
+also match the subsequently deployed, clean source
+`cdebee40d212759703300ffc1e2de17ed93a4846`; they were checked against that Git
+revision rather than reassigned from a later source tip. The local software
+validation used CPython 3.13.2 from `.venv`, without `rclpy` or a `ros2` executable.
+The later actual device window is recorded separately below and in
+[NONMOTION_FOLLOWUP.md](NONMOTION_FOLLOWUP.md).
 
 | File | SHA-256 |
 | --- | --- |
@@ -78,10 +82,84 @@ fixtures. They cover all-ten-done late polling, a single named pending endpoint,
 partial dispatch/cleanup, authority/service absence, retained-record age,
 unchanged exact deadline/freshness boundaries, sanitization, semantic stability
 and no goal submission. Existing dispatch tests cover every one of the ten
-partial-dispatch failure positions and healthy recovery. Local Ruff could not
-run from `.venv/bin/ruff` or `python3 -m ruff` because it is not installed there;
-the integration owner performs repository-wide static checks with the existing
-validation environment. No package was installed for this subtask.
+partial-dispatch failure positions and healthy recovery. The initial focused
+Ruff invocation was unavailable in that interpreter; the integration owner
+subsequently completed the combined static/full checks with the existing
+validation environment, recorded in `NONMOTION_VALIDATION.json`. No package was
+installed for this subtask.
+
+## Actual approved policy window
+
+One start and one stop ran on 2026-10-16, from 11:13:55.592Z to 11:15:16.219Z.
+The source was clean `cdebee40d212759703300ffc1e2de17ed93a4846`, dashboard
+PID 87657/invocation `162f310dab5a44ac8526e803f6a05c74`, and localization runtime
+invocation `102796:5146075596344`. Operating ROS remained domain 0,
+`rmw_cyclonedds_cpp`, interface `enP8p1s0`; the Isaac environment was not applied
+to the dashboard. The map and parameter revisions were pinned by the collector;
+the parameter revision was
+`194c9c18648f9201df464802884022184095422d1b0b91e6d9a75917c9519d77`.
+There were zero initialpose, lease and navigation-goal requests. Fifty complete
+host probes retained bridge `inactive/dead/MainPID0` and one dashboard identity.
+Historical bridge counters were unavailable and were not used as fresh motion
+or stationarity evidence. The approved launcher did emit its existing static
+and odometry TF; there was no `map → odom` alignment or localized pose.
+
+Startup reached `WAITING_INITIAL_POSE` after 12.3669s. The collector then began
+its 60s observation at 11:14:09.784Z. Its original result remains `ABORTED` and
+`collector_success=false`: 38 samples completed host/safety/ownership checks;
+the last partial sample contained all ten HTTP responses but had no host probe,
+completion timestamp or final safety/ownership check. The last complete sample
+finished at observation elapsed 58.9110s. All ten GETs in the partial sample
+returned HTTP200, leaving only about 3.43ms before the observation deadline.
+`host_probe()` reused that remaining budget for a subprocess and raised
+`TimeoutExpired`; the exact host command was not logged. This is a collector
+boundary error, distinct from ROS `POLICY_READBACK_TIMEOUT`. The 39 API payloads
+are usable diagnostic observations, not 39 fully qualified collector samples.
+Neither this record nor a later collector repair converts the run to PASS.
+
+All 39 API samples contained distinct finished-attempt diagnostics (attempts
+2385 through 2453, with intervening attempts not sampled). Every sample reported
+`POLICY_READBACK_TIMEOUT`, unavailable policy evidence and false enforcement:
+
+| Pre-cleanup future state | Samples |
+| --- | --- |
+| `/planner_server/get_parameters` and `/planner_server/get_state`: dispatched, pending, not cancelled | 39/39 |
+| Other eight fixed node/costmap endpoints: dispatched, done, not cancelled | 39/39 |
+| All ten done at a late poll | 0/39 |
+
+The batch age at capture ranged from 0.5026s to 0.7654s; tick-entry gaps were
+0.2342–0.2662s, authority lookup 0.0012–0.0149s and dispatch 0.0009–0.0193s.
+These are local observer durations, not server/network latency. A done future
+at capture does not prove completion within the 500ms deadline. Retained
+diagnostic age reached 0.9150s; that is separate from successful policy-evidence
+freshness. Successful policy sequence and age remained null. Semantic context
+revision stayed constant. The 250/500/750ms timer/deadline/freshness contract was
+not changed.
+
+The exact navigation job's retained log ring contains 300 entries, seq172–471;
+earlier entries were explicitly truncated. Between 11:14:19.824Z and
+11:15:09.825Z, 101 entries report global-costmap waits for `base_link → map`
+because frame `map` does not exist. This matches the deliberately omitted
+initialpose and absent map alignment. After owned STOP began at seq391,
+11:15:10.237Z, the costmap transition unwound, planner logged `Activating plugin
+GridBased`, and context-invalid transition/bringup errors followed. All retained
+ERROR entries are after STOP; they are not evidence of a pre-stop stale-input
+failure. The logs strongly support incomplete planner activation behind the
+missing map transform as the explanation for its two pending service futures.
+They do not establish an exact native executor stack or a DDS transport fault.
+The dashboard's `readiness.planner` flag checks `/plan` publisher presence, not
+lifecycle ACTIVE, so its true value does not contradict these observations.
+
+STOP's HTTP response exceeded the collector's separate 3s response budget.
+The consumed stop attempt was not retried. Subsequent owned-job polls reached
+`API_OWNER_CLEAN`, the final process scan was empty, `cleanup_verified=true`,
+and no manual recovery was required. Cleanup took 6.4307s. No additional native
+window was executed to repair or reinterpret these results.
+
+Private evidence remains outside Git under the coordinated follow-up directory:
+`device-evidence/policy-window/policy-window-summary.json`,
+`policy-window-api-trace.json`, `device-evidence/navigation-retained-log-pages.json`
+and `policy-review.json`. The integration record indexes the exact captures.
 
 ## Remaining policy and planner work
 
@@ -89,13 +167,15 @@ The production path already exists:
 `NavigationRosGateway → RosPolicyReadback → RuntimePolicyProvider →`
 `configure_mission_routes(default) → NavigationContext → compile/start/dispatch`.
 Reimplementing it would not supply missing collision enforcement. MR-MS-003
-still needs a versioned map/annotation-pinned mask producer and qualified actual
-global/local costmap, controller, BT-replanning and map-epoch ingestion evidence.
+now has a separate geometry-only artifact builder documented in
+[COLLISION_MASK_ARTIFACT.md](COLLISION_MASK_ARTIFACT.md). It still needs a native
+publisher and qualified global/local costmap, controller, BT-replanning and
+map-epoch ingestion evidence, including verified effective footprint behavior.
 All four enforcement scopes remain false. This is a remaining software/native
 integration dependency, not merely missing equipment permission. None of it is
 a prerequisite for independent Stereo VSLAM observation or new-map creation.
 
-NativePlanner's existing product route was inspected without a native call:
+NativePlanner's existing product route is:
 `POST /api/v1/mission-plans/{identifier}/plan-preview → MissionRoutes.preview →`
 `NativePlanner.plan → /compute_path_to_pose`, fixed `GridBased`, `map` and
 `use_start=true`. `app.py` passes only the explicit server-side
@@ -104,19 +184,30 @@ shared reservation, environment/server identity checks, bounded cleanup and
 uncertain-goal quarantine are already implemented. Source hashes are
 `wiring.py=a79872372ef0a4369d7ef48dc0c2e5989dd333fa7a43e9f9ff1f13d3e78e6ae4`
 and `planner.py=115d96fd064f4e8c79fda5de74ea9a87d8bf31a02336fcd8d5bc1864ab5dde83`.
-Inspection is not product-native execution acceptance. The matrix in
-[NATIVE_PLANNER_ACCEPTANCE.md](NATIVE_PLANNER_ACCEPTANCE.md) still requires an
-isolated Humble planning-only window with exact loaded plugin/config/server
-identity and product HTTP evidence; no Nav2 pipeline is started here.
+The separately approved isolated synthetic-map product HTTP run on deployed
+`cdebee4` now reports `actual_native_synthetic_http_route=PASS`, with qualified
+owned cleanup. It used domain 84/localhost CycloneDDS and private map/TF topics;
+the real router, factory and NativePlanner reached the installed native planner.
+Free-space planning succeeded, invalid authored targets were rejected, a
+disconnected target was native-infeasible, and the unknown-crossing case was
+rejected by product path validation. These results do not prove native unknown
+collision enforcement, operating-map acceptance or mission execution. The
+production policy stayed false. See the current combined record in
+[NONMOTION_FOLLOWUP.md](NONMOTION_FOLLOWUP.md); the older acceptance matrix's
+NOT_RUN statements describe its earlier snapshot and must not erase this actual
+isolated result or promote it to broader operating acceptance.
 
-The next minimum runtime diagnostic is an approved exact-candidate,
-localization-only window collecting the production context's new finished-attempt
-record, own gateway graph and runtime invocation. It needs no new initialpose to
-diagnose the readback's client-future state. A successful parameter reply still
-cannot prove collision enforcement. If all futures are done at a late poll,
-investigate executor scheduling/authority lookup with the recorded timings; if
-specific futures remain pending, inspect only those fixed service endpoints and
-their qualified responders. Do not infer transport failure from pending clients.
+The minimum diagnostic proposed before this run has been executed: its pending
+endpoints and retained native logs now identify the missing-map-frame condition.
+No additional localization source fix, longer policy deadline or looser
+freshness gate is justified by that deliberately no-initialpose window. The
+private v4 collector preparation now distinguishes its observation-boundary
+exception and complete/partial records; 54 existing and 26 focused fake checks
+passed. It has not run on the device, and it preserves this original v3 result.
+A future policy readback window needs its actual map-frame/lifecycle
+prerequisites and current field authorization; do not repeat the same condition,
+inject an unverified transform or replay an old initialpose merely to pass.
+Successful parameter replies would still not establish collision enforcement.
 
 ### Concrete stationary-window constraints
 
@@ -150,11 +241,12 @@ dashboard invocation/configuration; setting an unrelated environment variable
 will not enable it.
 
 Even with that window enabled, the current global costmap uses `global_frame=map`
-and `robot_base_frame=base_link`. No-initialpose startup may leave its activation
-or costmap updates waiting on the absent map transform. A hypothetical action
+and `robot_base_frame=base_link`. This actual no-initialpose startup retained
+global-costmap waits on the absent map transform. A hypothetical action
 start bypasses current-pose selection in the request, not this costmap lifecycle
-requirement. The current evidence does not guarantee a successful path in that
-window. Do not inject an unverified transform or replay historical initialpose
+requirement. The successful isolated synthetic-map run does not guarantee a
+successful path in that operating window. Do not inject an unverified transform
+or replay historical initialpose
 to make it pass. A missing/inactive server is a native blocked/negative result;
 positive product acceptance instead needs a qualified isolated planning
 environment or independently authorized valid alignment. Collision-mask and
@@ -175,5 +267,22 @@ callback/accepted deltas of 1810 each with no new rejection, stable invocation
 and publisher generations. That is useful successful current-input evidence;
 it does not establish the cause of the older stale startup. The historical cause
 remains **UNCONFIRMED**, as do independent geometry/TF-authority acceptance rows.
-See [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). No further
-speculative runtime change or repetition of unchanged full tests was made.
+
+In the new `cdebee4` window, all 39 API observations reported
+`INITIAL_POSE_REQUIRED` and `inputs_ready_waiting_initial_pose`; no retained
+health record reported STALE. Maximum current health ages were cloud 0.0401s,
+odometry 0.1223s and runtime health 0.1220s. Cloud and odometry diagnostic accepted
+counters each advanced from 20 to 603, with one initial `publisher_not_unique`
+rejection apiece and no additional rejection; publisher GIDs and source generation 1 stayed
+stable. This agrees with normal graph-discovery warmup, not a permanent rejection
+latch. The 39 API records contain 37 distinct producer diagnostic sequences
+because those snapshots are emitted at about 1Hz and carry their own timestamps.
+RMW receive metadata remained unavailable, so executor-queue latency cannot be
+inferred by substituting source or callback timestamps.
+
+These are actual fresh-input observations before initialpose. They do not prove
+map localization, precision accuracy, body alignment or the historical stale
+failure's cause; no localized pose was produced in this window. See
+[LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). No further
+speculative runtime change or repeated unchanged full validation was required by
+this evidence review.

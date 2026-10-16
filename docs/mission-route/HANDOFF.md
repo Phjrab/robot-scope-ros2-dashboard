@@ -1,10 +1,20 @@
-# Current non-driving continuation
+# Current non-driving results — 2026-10-16
 
-The user reopened all remaining work except driving on 2026-10-16.
-See [NONMOTION_FOLLOWUP.md](../integration-acceptance/NONMOTION_FOLLOWUP.md) and its validation record for the
-new candidate. The control bridge remains intentionally stopped for manual
-handover; preserve that state across any separately approved deployment.
-The historical windows and approvals below do not override this current record.
+Actual clean deployment is cdebee4; software-only collision-mask source is
+4497f7f. Dashboard Stereo start/image/camera6DoF/features/map/trajectory/save/
+export/stop passed within bounded stationary windows. Native reuse failed
+CUVSLAM_CAN_NOT_LOCALIZE. Isolated domain84 product NativePlanner HTTP/native
+execution passed a narrow synthetic-map matrix; operating policy remained false.
+The one operating diagnostic window ended ABORTED at the collector boundary,
+with useful partial evidence and verified cleanup; stale startup did not recur.
+See [../integration-acceptance/NONMOTION_FOLLOWUP.md](../integration-acceptance/NONMOTION_FOLLOWUP.md) and its validation JSON for exact
+source/runtime/config, counts, failures, remaining work and evidence hashes.
+
+Final readback11:23:39Z: SLAM IDLE, camera free, navigation/FAST-LIO stopped;
+control bridge intentionally inactive and dashboard bridge-autostart disabled. Existing
+Hesai preview remains running. No driving, initialpose or goal was issued.
+Do not restore the bridge from this document. Historical approvals and results
+below do not override this current record. No further runtime window is pending.
 
 # MR 인계
 

@@ -118,3 +118,25 @@ incarnation and clear/restart witness; controller/internal-replan enforcement;
 and active-run loss tests. Only those producers and native evidence can justify a
 future positive production policy branch. Do not weaken freshness, timeouts or
 the existing false policy scopes to consume this artifact.
+
+## Actual catalogue input — offline artifact, 2026-10-16
+
+Source4497f7f built a private artifact from the actual supplied catalogue map:
+302×176 cells,0.05m resolution, frame map, source map revision
+`cd5a43773f7e4d2e9b21d3b1cb8822a4ef0ce1bf6a7cf5de61eafd7a5b71db2c`.
+A read-only cdebee4 source-byte-verified extractor captured the remote normalized
+snapshot and exact family/PCD/occupancy pins at11:14:47–48Z. Local reconstruction
+preserved those identities rather than rebinding them to copied local paths.
+Source bytes/annotations were not changed. Extractor fake regression:8 PASS.
+
+Snapshot SHA256:
+`e190c8b85952c7cc47031efca79d4ebdd4adf7497bf3e22ba2094c0b9cec4546`;
+artifact digest:
+`84d4146e4d47543e77c9f3e2ddb6eeac3f3029cc98f2dd85f94e858cddc20427`.
+The actual annotation set is empty, revision
+`574d8500b8b2e5d081a215c4dcf20abb533bd1ce865404980182476b01959da7`.
+This is actual-source offline geometry evidence, not an actual KEEP_OUT test,
+native map/costmap ingestion, footprint expansion or runtime enforcement.
+All generated map bytes and the reconstruction receipt remain private.
+Exact source CI38891097324 passed both Linux/Python matrices; no4497f7f runtime
+deployment was performed. The next native integration units above remain open.

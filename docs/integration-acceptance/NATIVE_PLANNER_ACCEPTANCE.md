@@ -1,3 +1,34 @@
+# Current actual native evidence — 2026-10-16
+
+**ACTUAL_NATIVE_SYNTHETIC_HTTP_ROUTE PASS**, deployed source
+`cdebee40d212759703300ffc1e2de17ed93a4846`. The approved domain84 localhost
+CycloneDDS harness used the product HTTP route/default factory/NativePlanner,
+installed Humble planner and synthetic80×80 geometry with private TF. Free-space
+HTTP200 returned27 native poses, unsafe endpoints were authoring-rejected and
+disconnected geometry returned HTTP409/PLANNER_DID_NOT_SUCCEED. Cleanup qualified;
+no controller, BT, bridge, camera, operating TF or navigation goal was involved.
+Production policy remained false and operational pose absent.
+
+Exact executable SHA256:
+`b79eb3d780f4019f2057bf5e987153b974c139c960f80b7f9abf124e5e2efd4d`;
+loaded Navfn library:
+`299a0bdb9e580f97d5816407baae5fbc2f5f1c0c6804a9e40c4a76e63a417376`;
+params SHA256:
+`9f50823914b32c16c99ea78f76f75bc6e76da17a6c0685dbd7bc71cda5a3719b`.
+Readback: Navfn/A*, allow_unknown=true, tolerance0.5, static+inflation layers,
+radius0.22m, padding0.01m, inflation0.25m, track_unknown_space=true.
+Selected loaded-library hashes are not a complete dependency attestation.
+
+The unknown-crossing case is OBSERVATION_ONLY (76 FOOTPRINT_CLEARANCE, no explicit
+UNKNOWN result, original rejected path absent). No unknown/KEEP_OUT enforcement
+claim follows. Eighteen independent checks passed. Full production UI/real-map,
+context-loss, concurrent ownership, controller/internal-replan and collision
+policy acceptance remain open; the older operational matrix below is not all
+promoted to PASS by this isolated run. Exact evidence and next minimum work:
+[NONMOTION_FOLLOWUP.md](NONMOTION_FOLLOWUP.md), `NONMOTION_VALIDATION.json`.
+
+## Historical stage33 and operating acceptance requirements
+
 # 33 — 제품 NativePlanner acceptance
 
 > Current scope through40: the user explicitly extended the completed stage36 snapshot. Candidate863682e was deployed; initialpose1 and180s stationary observation were completed and owned resources cleaned. Live acceptance remains partial/false. See [STAGE40_VALIDATION.json](STAGE40_VALIDATION.json), [DEPLOYMENT_ACCEPTANCE.md](DEPLOYMENT_ACCEPTANCE.md) and [LOCALIZATION_LIVE_ACCEPTANCE.md](LOCALIZATION_LIVE_ACCEPTANCE.md). Earlier stop-after36/no-deployment statements below describe the historical software snapshot.41–43 remain NOT_RUN.

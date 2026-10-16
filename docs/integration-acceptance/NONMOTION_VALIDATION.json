@@ -57,7 +57,7 @@
   "pip_check": "PASS",
   "diff_check": "PASS",
   "evidence_type": "hardware_free_software_regression",
-  "live_candidate_validation": "NOT_RUN",
+  "live_candidate_validation": "ACTUAL_OBSERVATION_AND_EXPORT_PASS_REUSE_FAILED_POLICY_COLLECTOR_ABORTED",
   "precision_evaluation": "NOT_RUN",
   "driving_application": false,
   "logs": {
@@ -146,6 +146,237 @@
       "footprint_expansion",
       "runtime_enforcement",
       "deployment"
-    ]
+    ],
+    "published_source": "4497f7fbc0dd862b0e606e82ac9a1488ce630031",
+    "exact_source_ci": {
+      "run_id": 38891097324,
+      "conclusion": "success",
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38891097324",
+      "matrices": [
+        "ubuntu-22.04/Python3.10",
+        "ubuntu-24.04/Python3.12"
+      ]
+    },
+    "actual_source_offline_artifact": {
+      "artifact_digest": "84d4146e4d47543e77c9f3e2ddb6eeac3f3029cc98f2dd85f94e858cddc20427",
+      "snapshot_sha256": "e190c8b85952c7cc47031efca79d4ebdd4adf7497bf3e22ba2094c0b9cec4546",
+      "remote_identity_preserved": true,
+      "annotations_empty": true,
+      "native_ingestion": false,
+      "extractor_fake_tests_passed": 8
+    }
+  },
+  "actual_device": {
+    "final_readback_at_utc": "2026-10-16T11:23:39.844991+00:00",
+    "source": {
+      "head": "cdebee40d212759703300ffc1e2de17ed93a4846",
+      "dirty": ""
+    },
+    "units": {
+      "dashboard": {
+        "MainPID": "87657",
+        "ActiveState": "active",
+        "SubState": "running",
+        "InvocationID": "162f310dab5a44ac8526e803f6a05c74"
+      },
+      "bridge": {
+        "MainPID": "0",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "InvocationID": "cf73218119104f01af84134b6b340ef3"
+      },
+      "broker": {
+        "MainPID": "87441",
+        "ActiveState": "active",
+        "SubState": "running",
+        "InvocationID": "29240030c5be4cb9b36773e35f35e74b"
+      }
+    },
+    "dashboard_environment": {
+      "ROS_DOMAIN_ID": "0",
+      "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+      "ROBOT_SCOPE_SLAM_BROKER_SOCKET": "/run/robot-scope-slam/broker.sock",
+      "ROBOT_SCOPE_CONTROL_BRIDGE_AUTOSTART": "0"
+    },
+    "stereo_config_sha256": {
+      "scope.json": "b9a9279f0e48e3773b96a859e18c0c9af60a0ba385d6b70fa0c25012e252d76e",
+      "input.json": "5d92b6a3f0e5bc0f7395158b7a0e0ce7f496debd1d72dcad4681665bfb4fc36c",
+      "camera.json": "3f65c345a18c2cca678e5dfdf3b486c2e9cb2b7f968787f489865ccd87fa3a5b",
+      "runtime.json": "e0b35b1ddc752099fcbe9ff07868f4b42596cef655e38ca61fb547940ee712d8"
+    },
+    "isaac_image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+    "isaac_domain": 71,
+    "isaac_rmw": "rmw_fastrtps_cpp",
+    "bridge_autostart_enabled": false,
+    "systemd_bridge_unit_boot_enabled": true,
+    "slam": "IDLE",
+    "camera_owner": "free",
+    "camera_reserved": false,
+    "navigation": "idle",
+    "fastlio_pipeline": "stopped",
+    "persistent_hesai_preview": "running",
+    "initialpose_count": 0,
+    "driving_application": false
+  },
+  "stationary_observation": {
+    "source": "cdebee40d212759703300ffc1e2de17ed93a4846",
+    "pose_reference": "vslam_lab_camera_link",
+    "body_extrinsic_qualified": false,
+    "imu_fusion": false,
+    "operational_vslam_tf": false,
+    "sessions": [
+      {
+        "id": "4e8eee4e310b4b5a89330e1857c5ef15",
+        "generation": 1,
+        "result": "UI_SAVE_EXPORT_PASS",
+        "cleanup_age_s": 85.377,
+        "collector_series": "NOT_COLLECTED_INVALID_FRAME_LIMIT"
+      },
+      {
+        "id": "d13575d226454688b2e8e1f9ec90891c",
+        "generation": 2,
+        "result": "OFFICIAL_LOCALIZATION_FAILED",
+        "native_error": 3,
+        "native_error_name": "CUVSLAM_CAN_NOT_LOCALIZE",
+        "native_load": "unknown",
+        "localization_success": false,
+        "corrected_pose_confirmed": false,
+        "cleanup_age_s": 72.645,
+        "collector_series": "NOT_COLLECTED_INVALID_FRAME_LIMIT"
+      },
+      {
+        "id": "9d1e58c7297f4f09a69eff80f0fc3b97",
+        "generation": 3,
+        "result": "SAMPLED_LIVE_OBSERVATION_AND_UI_SAVE_PASS",
+        "cleanup_age_s": 77.618,
+        "active_samples": 114,
+        "all_eight_channels_ready_samples": 114,
+        "sampled_span_s": 51.0405,
+        "overlay_skew_ns_range": [
+          40,
+          992
+        ],
+        "selected_older_matched_quartet_samples": 76,
+        "unique_saved_jpegs": 10,
+        "continuous_readiness_claim": false,
+        "full_current_camera_info_static_tf_equality": "NOT_REQUALIFIED"
+      }
+    ],
+    "export": {
+      "package_id": "np_f297168960ef4c668eb6a3f64a492b3e",
+      "independent_checks_passed": 84,
+      "xyz_rows": 162,
+      "trajectory_rows": 1024,
+      "camera_pose_rows": 1,
+      "native_bytes": 688128,
+      "coverage": "unknown",
+      "preview_consistency": "approximate",
+      "browser_download_completion": "NOT_CONFIRMED",
+      "official_http_downloads": "PASS"
+    },
+    "independent_stereo03_checks_passed": 19,
+    "latest_saved_package_id": "np_2ac3530408cd43e68f3238a64e5d307d"
+  },
+  "native_planner_actual": {
+    "result": "ACTUAL_NATIVE_SYNTHETIC_HTTP_ROUTE_PASS",
+    "source": "cdebee40d212759703300ffc1e2de17ed93a4846",
+    "domain": 84,
+    "localhost_only": true,
+    "operating_runtime_used": false,
+    "synthetic_map_cells": [
+      80,
+      80
+    ],
+    "free_path_poses": 27,
+    "unsafe_targets": "AUTHORING_REJECTED",
+    "disconnected": "HTTP409_PLANNER_DID_NOT_SUCCEED",
+    "unknown_crossing": "OBSERVATION_ONLY",
+    "independent_checks_passed": 18,
+    "cleanup_qualified": true,
+    "runtime_policy_enforced": false
+  },
+  "policy_actual": {
+    "source": "cdebee40d212759703300ffc1e2de17ed93a4846",
+    "windows": 1,
+    "collector_result": "ABORTED",
+    "complete_samples": 38,
+    "partial_http_only_samples": 1,
+    "policy_attempts": 39,
+    "pending_endpoints": [
+      "/planner_server/get_parameters",
+      "/planner_server/get_state"
+    ],
+    "other_futures_done_per_attempt": 8,
+    "startup_s": 12.366901,
+    "startup_state": "WAITING_INITIAL_POSE",
+    "stale_startup_reproduced": false,
+    "historical_stale_cause": "UNCONFIRMED",
+    "costmap_missing_map_tf_waits": 101,
+    "stop_attempts": 1,
+    "stop_response": "TIMEOUT",
+    "cleanup": "VERIFIED",
+    "cleanup_s": 6.430658,
+    "initialpose_count": 0,
+    "policy_enforcement_scopes_positive": false,
+    "private_v4_runtime_run": false,
+    "private_v4_preparation": {
+      "kind": "PRIVATE_SOFTWARE_FAKE_ONLY",
+      "original_fake_passed": 54,
+      "focused_fake_passed": 26,
+      "runner_sha256": "f41df0c66849571f9d6b5cce6295ed1bfca53383dd1705211eea07ff7cc643e4",
+      "independent_review": "PASS_NO_REMAINING_ACTIONABLE_FINDINGS",
+      "device_run": false,
+      "original_actual_result": "ABORTED_UNCHANGED"
+    }
+  },
+  "private_actual_evidence": {
+    "root": "nonmotion-followup-20261016",
+    "files": {
+      "device-evidence/deployment-result.json": {
+        "sha256": "cace7af37511d806bd87090d3ac6ca18d6eca01736793bf336db85a539dbdeb7",
+        "bytes": 2233
+      },
+      "stereo01-export/validation.json": {
+        "sha256": "8b6d1fa9a64727ffb31d67301caf64bf11d651fa36a62d6bc0ecad5d9dfa4de5",
+        "bytes": 15949
+      },
+      "stereo03-review.json": {
+        "sha256": "80cd5a035997a136c59032c88155114ef9e027008724632598876d8575b066b5",
+        "bytes": 24070
+      },
+      "stereo-review.json": {
+        "sha256": "977569350b7b4080ee59853fd195aa4d738e0ce63eeb25d943a8d0d5e36f7057",
+        "bytes": 15394
+      },
+      "native-review.json": {
+        "sha256": "96d0c1d753db9175b8c2dea118c5ca1cb70101b58addc1c8bdb485a005ef86e2",
+        "bytes": 17884
+      },
+      "policy-review.json": {
+        "sha256": "27db8bf440300f2ea31565e85a9da58e2f613a6acc6a1d44920025a0573d284e",
+        "bytes": 25418
+      },
+      "device-evidence/stereo03/observation/summary.json": {
+        "sha256": "673441c0f56a7fe377d6f4925e7eb2f7a09ed8ed4f27dc8f8f526073b463d2bf",
+        "bytes": 2209
+      },
+      "collision-mask-preparation/reconstruction-receipt.json": {
+        "sha256": "6ed2f7ce7474575fbb81156b07eb9e7fad284dae9504b273ae68d14dc5252d3e",
+        "bytes": 2397
+      },
+      "final-device-state.json": {
+        "sha256": "be5dfc3f0440f1fe941eb55741dd28a143d0e60da84ebdce4caa5c8ac1614ae0",
+        "bytes": 38740
+      },
+      "policy-window-v4/preparation-manifest.json": {
+        "sha256": "fef409162d76d130d20de21d551b8f1174045eeaccce7cce7a539605d2655ad3",
+        "bytes": 3571
+      },
+      "policy-window-v4/independent-review.json": {
+        "sha256": "bb6fe4e39258a6bd9a4fa39ae2510efc2042aa6992199afe195c03b3517a95d2",
+        "bytes": 1681
+      }
+    },
+    "raw_data_in_git": false
   }
 }

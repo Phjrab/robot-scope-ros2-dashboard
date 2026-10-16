@@ -5,6 +5,20 @@ visualization and access to every retained native landmark are separate results.
 This follow-up fixes a false completeness condition and investigates the actual
 installed SDK without starting a container, camera, ROS pipeline or GPU job.
 
+## Current actual bounded export — 2026-10-16
+
+The approved cdebee4 stationary run completed UI native Save, package requery,
+native ZIP and preview ZIP. Independent84 checks validated162 finite XYZ rows,
+1024 bounded trajectory rows, one camera pose and exact archive/member hashes.
+A later observed session showed526–646 global preview points and saved another
+native package. These are actual bounded visualization/save/export results,
+not every retained landmark. Coverage remains unknown, engine total null and
+preview consistency approximate. New-session native localization failed Error3;
+that does not erase the successfully exported bytes. See
+[NONMOTION_FOLLOWUP.md](NONMOTION_FOLLOWUP.md) for exact identities and cleanup.
+The SDK completeness gap below remains; no unsupported native DB parser or
+unlimited sentinel was introduced.
+
 ## Evidence and verified boundaries
 
 | Evidence | Exact identity | What it establishes |
