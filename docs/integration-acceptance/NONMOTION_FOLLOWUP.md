@@ -54,6 +54,19 @@ Independent review reproduced and repaired diagnostics exceeding a supported
 small wire budget and optional camera-pose context mismatches. Neither finding
 establishes the historical live UI-save or stale-startup cause.
 
+Source candidate `cdebee40d212759703300ffc1e2de17ed93a4846` was published.
+Exact [CI38888252489](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38888252489)
+passed both Ubuntu22.04/Python3.10 and Ubuntu24.04/Python3.12 matrices.
+
+A subsequent software-only unit adds an exact-pinned geometry collision-mask
+builder and offline CLI. It preserves normalized source occupancy bytes, blocks
+unknown/non-free cells and all closed-cell KEEP_OUT intersections, and creates
+new immutable hash-bound private outputs. Rotation, thin polygons and boundary
+contacts are covered. It has no runtime publisher or policy-positive branch and
+is not included in the prepared `cdebee4` deployment bundle. See
+[COLLISION_MASK_ARTIFACT.md](COLLISION_MASK_ARTIFACT.md) for geometry, numerical
+bounds, source preservation and validation details.
+
 ## Validation and actual acceptance boundary
 
 Combined source/test hashes and local results are recorded in

@@ -97,5 +97,55 @@
       "sha256": "a8bffe5b924a788048b73baaa7f585eac6ecc9495560c6db4a2bce412fde2e25",
       "bytes": 308
     }
+  },
+  "published_source": "cdebee40d212759703300ffc1e2de17ed93a4846",
+  "exact_source_ci": {
+    "run_id": 38888252489,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38888252489",
+    "matrices": [
+      "ubuntu-22.04/Python3.10",
+      "ubuntu-24.04/Python3.12"
+    ]
+  },
+  "collision_mask_followup": {
+    "kind": "software_only_geometry_artifact",
+    "runtime_policy_enforced": false,
+    "files": {
+      "robot_dashboard/navigation_collision_mask.py": {
+        "sha256": "2208725b82b7a567a7926d21079af385dbf91e0f3b98a817e43372e0643cd933",
+        "bytes": 14680
+      },
+      "scripts/build_navigation_collision_mask.py": {
+        "sha256": "f3eafe55f4505feb9c9d629684d6cbcf42e3b0c939cab11e156eb9681692708f",
+        "bytes": 4175
+      },
+      "tests/test_navigation_collision_mask.py": {
+        "sha256": "61082b6d0c294dcd2834d2b97bf7b8241157fa92b7fdfbd4fc4db04f49475a22",
+        "bytes": 17549
+      }
+    },
+    "validation": {
+      "python_total": 2091,
+      "combined_passed": 2089,
+      "skipped": 2,
+      "initial_sandbox_socket_bind_errors": 24,
+      "same_source_local_socket_permission_rerun": {
+        "total": 24,
+        "passed": 24
+      },
+      "focused_new_tests": 21,
+      "ruff": "PASS",
+      "configured_mypy": "PASS",
+      "cli_help": "PASS",
+      "independent_review": "no_actionable_findings"
+    },
+    "not_qualified": [
+      "native_ingestion",
+      "footprint_expansion",
+      "runtime_enforcement",
+      "deployment"
+    ]
   }
 }
