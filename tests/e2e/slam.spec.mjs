@@ -459,13 +459,14 @@ test('SLAM native preview remains renderer only; revisions and archive errors su
   const fixture = await install(page);
   await open(page, 'maps');
   await expect(page.locator('#slamPackageRows button')).toHaveCount(1);
+  await page.locator('#slamPackageFilter').selectOption('vslam');
   await page.locator('#slamPackageRows button').click();
   await expect(page.locator('#slamPackageDetail')).toContainText('SYNTHETIC_FIXTURE');
   await expect(page.locator('#slamPackageDetail')).toContainText('approximate');
   await expect(page.locator('#slamPackageExport')).toHaveAttribute('href', `/api/v1/slam/packages/${PACKAGE_ID}/export?expected_revision=${REVISION}`);
   await expect(page.locator('#slamPackagePreviewExport')).toHaveAttribute('href', `/api/v1/slam/packages/${PACKAGE_ID}/preview-export?expected_revision=${REVISION}`);
   await expect(page.locator('#slamPackagePreviewExport')).toHaveAttribute('download', `preview-${PACKAGE_ID}.zip`);
-  await expect(page.locator('#slamNativeDetail')).toContainText('전체 관측 경로를 보장하지 않습니다.');
+  await expect(page.locator('.slam-archive-support')).toContainText('전체 관측 경로를 보장하지 않습니다.');
   await expect(page.locator('#slamPackageLibrary img')).toHaveCount(0);
   await page.locator('#slamPackageFilter').selectOption('vslam');
   await expect(page.locator('[data-page=maps] .saved-layout')).toBeHidden();
@@ -487,8 +488,9 @@ test('SLAM localization needs an operator verified frame/pose and never invents 
   await open(page); await startStereo(page);
   await page.evaluate(() => { location.hash = 'maps'; });
   await expect(page.locator('#slamPackageRows button')).toHaveCount(1);
+  await page.locator('#slamPackageFilter').selectOption('vslam');
   await page.locator('#slamPackageRows button').click();
-  await page.locator('#slamNativeDetail summary').click();
+  await page.locator('#slamArchiveReuse summary').click();
   await expect(page.locator('#slamHintPosition')).toHaveValue('');
   await expect(page.locator('#slamHintQuaternion')).toHaveValue('');
   await expect(page.locator('#slamPackageLocalize')).toBeDisabled();

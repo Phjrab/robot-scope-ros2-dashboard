@@ -67,6 +67,8 @@ export function mountSlamPresentation(doc = document) {
   views.after(footer);
 
   const filter = get('slamPackageFilter');
+  filter.querySelector('option[value="all"]').remove();
+  filter.value = 'lidar';
   const libraryHeader = library.querySelector('.slam-heading');
   libraryHeader.classList.add('panel-header', 'compact');
   libraryHeader.querySelector('h2').replaceWith(heading('MAP LIBRARY', '저장 지도', 'h2'));
@@ -81,7 +83,7 @@ export function mountSlamPresentation(doc = document) {
     make('p', '', '목록에서 지도를 선택하면 특징점·궤적 미리보기와 저장 정보를 확인할 수 있습니다.'));
   empty.id = 'slamArchiveEmpty';
   const listEmpty = make('p', 'slam-list-empty', '저장된 VSLAM 지도가 없습니다. 새 지도를 만들거나 ZIP 파일을 가져오세요.');
-  const listHeader = make('div', 'panel-header compact', heading('VSLAM ARCHIVE', '저장 지도 목록'));
+  const listHeader = make('div', 'panel-header compact', heading('MAP LIBRARY', '저장 지도 목록'));
   const sidebar = make('aside', 'slam-archive-sidebar', listHeader, rows, listEmpty,
     make('div', 'slam-library-tools', importRow, sessionLink));
   const preview = make('section', 'slam-archive-preview',
@@ -90,8 +92,6 @@ export function mountSlamPresentation(doc = document) {
   const archive = make('div', 'slam-archive-layout', preview, sidebar);
   library.append(archive);
   const localization = details('지도 재사용·위치찾기 결과', get('slamPackageLocalizationStatus'));
-  localization.classList.add('slam-archive-localization');
-  preview.append(localization);
   nativeDetail.classList.add('slam-archive-detail');
   const management = nativeDetail.querySelector('.slam-control-row');
   management.classList.add('slam-package-management');
@@ -99,7 +99,31 @@ export function mountSlamPresentation(doc = document) {
     heading('SELECTED MAP', '선택 지도 관리'), management,
     details('저장 상세 · revision·보정·출처', get('slamPackageDetail')));
   sidebar.querySelector('.slam-library-tools').before(selectedManagement);
+  const reuse = nativeDetail.querySelector('details');
+  reuse.id = 'slamArchiveReuse';
+  reuse.classList.add('slam-technical');
+  const support = make('section', 'slam-archive-support', nativeDetail.querySelector('.slam-muted'), reuse, localization);
+  sidebar.append(support);
   get('slamPackageImport').setAttribute('aria-label', 'VSLAM 지도 ZIP 가져오기');
+
+  // Both engines share one header and one bounded preview/inspector row.
+  // Move the existing nodes so the original LiDAR listeners stay attached.
+  const lidarLayout = doc.querySelector('[data-page="maps"] .saved-layout');
+  const lidarSidebar = lidarLayout.querySelector('.saved-library-panel');
+  const lidarPreviewHeader = lidarLayout.querySelector('.saved-map-panel > .panel-header');
+  lidarPreviewHeader.querySelector('.eyebrow').textContent = 'PREVIEW';
+  const health = lidarPreviewHeader.querySelector('.panel-header-status');
+  health.classList.add('slam-archive-health');
+  lidarSidebar.querySelector('.panel-header').after(health);
+  const metadata = lidarSidebar.querySelector('.saved-map-detail dl');
+  const metadataDetails = details('저장 상세 · revision·출처', metadata);
+  lidarSidebar.querySelector('.saved-map-detail').append(metadataDetails);
+  archive.before(lidarLayout);
+  for (const [inspector, label] of [[lidarSidebar, 'LiDAR 저장 지도 관리'], [sidebar, 'VSLAM 저장 지도 관리']]) {
+    inspector.setAttribute('role', 'region');
+    inspector.setAttribute('aria-label', label);
+    inspector.tabIndex = 0;
+  }
 
   function syncMapping() {
     // The controller chooses this using the active server session first. A
@@ -123,6 +147,7 @@ export function mountSlamPresentation(doc = document) {
     archive.hidden = rows.hidden;
     empty.hidden = !nativeDetail.hidden;
     selectedManagement.hidden = nativeDetail.hidden;
+    support.hidden = nativeDetail.hidden;
     listEmpty.hidden = rows.childElementCount !== 0;
     for (const row of rows.children) {
       if (row.dataset.presentation) continue;
@@ -142,6 +167,7 @@ export function mountSlamPresentation(doc = document) {
   observer.observe(rows, { attributes: true, attributeFilter: ['hidden'], childList: true });
   observer.observe(nativeDetail, { attributes: true, attributeFilter: ['hidden'] });
   win.addEventListener('pagehide', event => { if (!event.persisted) observer.disconnect(); });
+  filter.dispatchEvent(new win.Event('change'));
   syncMapping();
   syncLibrary();
 }

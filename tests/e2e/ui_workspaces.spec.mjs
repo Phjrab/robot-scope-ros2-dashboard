@@ -48,6 +48,7 @@ for (const width of [390, 768, 1024, 1440]) {
     await page.goto('/#maps');
     await expect(page.locator('#slamPackageRows button')).toHaveCount(1);
     await expect(page.locator('#slamNativeDetail')).toBeHidden();
+    await page.locator('#slamPackageFilter').selectOption('vslam');
     await page.locator('#slamPackageRows button').click();
     await expect(page.locator('#slamNativeDetail')).toBeVisible();
     await expect(page.locator('#slamPackageRows button')).toHaveAttribute('aria-pressed', 'true');

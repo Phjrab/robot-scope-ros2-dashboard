@@ -101,11 +101,57 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-stream-notes { border-top: 1px solid var(--line); padding: 10px 20px; background: var(--bg-soft); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-stream-notes p { margin: 4px 0; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] > .slam-muted { margin: 0; padding: 12px 20px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--inspector-width, 330px); }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(.slam-archive-preview, .slam-archive-sidebar) { min-width: 0; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-sidebar { border-left: 1px solid var(--line); background: var(--bg-soft); }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-layout .panel-header { padding: 16px 20px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list { display: grid; gap: 8px; margin: 0; padding: 16px; max-height: 360px; overflow: auto; }
+#slamPackageLibrary[data-presentation] {
+  --archive-preview-height: clamp(360px, calc(100dvh - 420px), 560px);
+  --archive-heading-height: 72px;
+}
+#slamPackageLibrary[data-presentation] :is(.slam-archive-layout, .saved-layout) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--inspector-width, 330px);
+  gap: 0;
+  align-items: start;
+}
+#slamPackageLibrary[data-presentation] :is(.slam-archive-preview, .saved-map-panel, .slam-archive-sidebar, .saved-library-panel) {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+#slamPackageLibrary[data-presentation] :is(.slam-archive-sidebar, .saved-library-panel) {
+  position: static;
+  height: calc(var(--archive-preview-height) + var(--archive-heading-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-left: 1px solid var(--line);
+  background: var(--bg-soft);
+}
+#slamPackageLibrary[data-presentation] :is(.slam-archive-layout, .saved-layout) .panel-header {
+  height: var(--archive-heading-height);
+  min-height: 0;
+  padding: 16px 20px;
+  margin: 0;
+}
+#slamPackageLibrary[data-presentation] :is(.slam-archive-layout, .saved-layout) .panel-header :is(h2, h3) { margin: 4px 0 0; font-size: 14px; font-weight: 600; }
+#slamPackageLibrary[data-presentation] :is(.slam-archive-preview, .saved-map-panel) { overflow: hidden; }
+#slamPackageLibrary[data-presentation] .slam-archive-health { padding: 12px 16px 0; justify-content: space-between; flex-wrap: wrap; }
+#slamPackageLibrary[data-presentation] :is(.saved-map-stage, #slamPackageCanvas, .slam-archive-empty) {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: var(--archive-preview-height);
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+#slamPackageLibrary[data-presentation] .saved-map-stage :is(button, select) { width: auto; min-height: 28px; padding: 4px 7px; font-size: 10px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list { display: grid; gap: 8px; margin: 0; padding: 16px; max-height: 240px; overflow: auto; }
+#slamPackageLibrary[data-presentation] .saved-map-list { max-height: 240px; padding: 16px; }
+#slamPackageLibrary[data-presentation] .saved-map-detail { padding: 16px; }
+#slamPackageLibrary[data-presentation] #savedMapDeleteButton { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button { display: grid; gap: 5px; padding: 13px; text-align: left; min-height: 64px; line-height: 1.8; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button small { color: var(--muted); font-size: 11px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button[aria-pressed="true"] { border-color: var(--green); background: color-mix(in srgb, var(--green) 10%, var(--panel)); box-shadow: inset 3px 0 var(--green); }
@@ -114,18 +160,18 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-library-tools a { color: var(--green); font-size: 12px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] input[type="file"] { max-width: 100%; min-width: 0; font: 12px var(--font-ui); color: var(--muted); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] input::file-selector-button { background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px; border-radius: 6px; margin-right: 8px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-empty { min-height: 300px; display: grid; align-content: center; justify-items: center; padding: 32px; text-align: center; background: var(--bg-soft); }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-empty { display: grid; align-content: center; justify-items: center; padding: 32px; text-align: center; background: var(--bg-soft); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-empty p { max-width: 370px; font-size: 13px; color: var(--muted); line-height: 1.8; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-list-empty { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 12px; line-height: 1.8; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-detail { border: 0; padding: 20px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-detail { border: 0; padding: 0; margin: 0; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-selected-management { border-top: 1px solid var(--line); padding: 16px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamPackageCanvas { max-width: none; height: clamp(280px, 40dvh, 440px); border: 1px solid var(--line); margin-bottom: 20px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamPackageDetail { max-height: 230px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-management { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-management .slam-field { grid-column: 1 / -1; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-management a { grid-column: span 3; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-detail details { line-height: 1.8; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-localization { margin: 0; padding: 16px 20px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support { border-top: 1px solid var(--line); padding: 16px; font-size: 12px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support > p { margin: 0; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support .slam-control-row { display: grid; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-dialog { background: var(--panel); color: var(--text); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] [hidden] { display: none !important; }
 /* Match the existing LiDAR workspace: visualization left, session inspector right. */
@@ -141,9 +187,8 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
   [data-slam-view="vslam"] #slamConsole > .slam-views { grid-column: 1; grid-row: 4; align-self: start; }
 }
 @media (max-width: 1100px) {
-  :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-layout { grid-template-columns: minmax(0, 1fr); }
-  :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-sidebar { grid-row: 1; border-left: 0; border-bottom: 1px solid var(--line); }
-  :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list { max-height: 240px; }
+  #slamPackageLibrary[data-presentation] :is(.slam-archive-layout, .saved-layout) { grid-template-columns: minmax(0, 1fr); }
+  #slamPackageLibrary[data-presentation] :is(.slam-archive-sidebar, .saved-library-panel) { height: 480px; border-left: 0; border-top: 1px solid var(--line); }
 }
 @media (max-width: 800px) {
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(.slam-session-layout, .slam-views) { grid-template-columns: minmax(0, 1fr); }
@@ -153,7 +198,7 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
 }
 @media (max-width: 480px) {
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-heading.panel-header,
-  :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(.slam-session-form, .slam-session-diagnostics, .slam-archive-detail) { padding: 16px; }
+  :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(.slam-session-form, .slam-session-diagnostics) { padding: 16px; }
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-form-fields { grid-template-columns: minmax(0, 1fr); }
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-session-actions { grid-template-columns: 1fr 1fr; }
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-session-actions #slamStart { grid-column: 1 / -1; }
