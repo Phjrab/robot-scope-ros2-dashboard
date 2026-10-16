@@ -278,6 +278,17 @@ class LifecycleCoordinatorTests(unittest.TestCase):
         self.assertFalse(snapshot["can_start"])
         self.assertNotIn(("bridge_start", True), self.events)
 
+    def test_manual_handover_blocks_automatic_start_but_keeps_confirmed_recovery(self):
+        coordinator = self.make_coordinator(control_bridge_autostart=False)
+        snapshot = coordinator.ensure_control_bridge_started()
+        self.assertFalse(snapshot["automatic_start_enabled"])
+        self.assertEqual(snapshot["systemd"]["active_state"], "inactive")
+        self.assertNotIn(("bridge_start", True), self.events)
+        self.assertTrue(coordinator.control_bridge_snapshot()["can_start"])
+        self.assertEqual(coordinator.schedule_control_bridge_start(confirmed=False)["confirmed"], False)
+        self.assertEqual(coordinator.schedule_control_bridge_start(confirmed=True)["action"], "start")
+        self.assertIn(("bridge_start", True), self.events)
+
     def test_new_work_gate_reports_the_exact_busy_lifecycle(self):
         self.coordinator.require_idle()
 
@@ -324,6 +335,7 @@ class LifecycleCoordinatorTests(unittest.TestCase):
         environment = {
             "ROBOT_SCOPE_SERVICE_LIFECYCLE_ENABLED": "1",
             "ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED": "1",
+            "ROBOT_SCOPE_CONTROL_BRIDGE_AUTOSTART": "0",
         }
         with mock.patch.object(
             ServiceLifecycleManager,
@@ -357,6 +369,9 @@ class LifecycleCoordinatorTests(unittest.TestCase):
                 environ=environment,
             )
 
+        self.assertFalse(coordinator.control_bridge_snapshot()["automatic_start_enabled"])
+        self.assertEqual(coordinator.ensure_control_bridge_started()["systemd"]["active_state"], "inactive")
+        self.assertNotIn(("bridge_start", True), self.events)
         self.assertIs(coordinator.service_lifecycle, service)
         self.assertIs(coordinator.control_bridge_lifecycle, bridge)
         self.assertIs(captured["service_environ"], environment)

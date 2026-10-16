@@ -8,6 +8,7 @@ prevents new robot work while either local service is transitioning.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from ..control_bridge_lifecycle import (
@@ -82,6 +83,7 @@ class LifecycleCoordinator:
         dataset_capture_active_provider: FlagProvider,
         service_lifecycle: ServiceLifecyclePort | None = None,
         control_bridge_lifecycle: ControlBridgeLifecyclePort | None = None,
+        control_bridge_autostart: bool = True,
     ) -> None:
         self._control_snapshot_provider = control_snapshot_provider
         self._navigation_runtime_snapshot_provider = (
@@ -96,6 +98,7 @@ class LifecycleCoordinator:
         self._dataset_capture_active_provider = dataset_capture_active_provider
         self._service_lifecycle = service_lifecycle
         self._control_bridge_lifecycle = control_bridge_lifecycle
+        self._control_bridge_autostart = control_bridge_autostart is True
 
     @classmethod
     def from_environment(
@@ -112,6 +115,7 @@ class LifecycleCoordinator:
     ) -> "LifecycleCoordinator":
         """Build the fixed managers with callbacks bound to one coordinator."""
 
+        values = os.environ if environ is None else environ
         coordinator = cls(
             control_snapshot_provider=control_snapshot_provider,
             navigation_runtime_snapshot_provider=(
@@ -124,6 +128,8 @@ class LifecycleCoordinator:
                 navigation_start_snapshot_provider
             ),
             dataset_capture_active_provider=dataset_capture_active_provider,
+            control_bridge_autostart=str(values.get("ROBOT_SCOPE_CONTROL_BRIDGE_AUTOSTART", "1"))
+                .strip().casefold() in {"1", "true", "yes", "on"},
         )
         coordinator._service_lifecycle = (
             ServiceLifecycleManager.from_environment(
@@ -282,7 +288,8 @@ class LifecycleCoordinator:
         return self.service_lifecycle.schedule_stop(confirmed=confirmed)
 
     def control_bridge_snapshot(self) -> dict[str, Any]:
-        return self.control_bridge_lifecycle.snapshot()
+        return {**self.control_bridge_lifecycle.snapshot(),
+                "automatic_start_enabled": self._control_bridge_autostart}
 
     def schedule_control_bridge_start(
         self, *, confirmed: bool
@@ -297,7 +304,9 @@ class LifecycleCoordinator:
         preflight and immutable-service checks still run in ``schedule_start``.
         """
 
-        snapshot = self.control_bridge_lifecycle.snapshot()
+        snapshot = self.control_bridge_snapshot()
+        if not self._control_bridge_autostart:
+            return snapshot
         systemd = (
             snapshot.get("systemd")
             if isinstance(snapshot.get("systemd"), Mapping)

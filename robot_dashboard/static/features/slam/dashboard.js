@@ -9,6 +9,18 @@ const RESOURCE_LABELS = { navigation: '내비게이션', mission: '미션', miss
 const ACTIVE_PAGES = new Set(['mapping', 'maps']);
 const controllers = new WeakMap();
 export const SLAM_STREAM_PATH = '/api/v1/ws/slam';
+export const SLAM_REQUEST_TIMEOUT_MS = 15_000;
+
+export function sameSessionContext(left, right) {
+  return Boolean(left?.session_id && right?.session_id && left.session_id === right.session_id &&
+    left.generation != null && left.generation === right.generation && left.map_epoch === right.map_epoch &&
+    left.engine_id && left.engine_id === right.engine_id);
+}
+
+export function saveJobIsCurrent(job, context, session) {
+  return Boolean(job?.job_id && sameSessionContext(context, session) &&
+    job.session_id === context.session_id && job.generation === context.generation);
+}
 
 export function boundedPoints(points, limit = MAX_MAP_POINTS, dimensions = 3) {
   if (!Array.isArray(points)) return [];
@@ -216,7 +228,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     frame: null, socket: null, scene: null, previewScene: null, pending: false, disposed: false,
     pollTimer: 0, retryTimer: 0, staleTimer: 0, imageTicket: 0, transportSerial: 0,
     refreshSerial: 0, activationSerial: 0, polling: false,
-    receiveAt: 0, staleCleared: false, requestControllers: new Set(), job: null,
+    receiveAt: 0, staleCleared: false, requestControllers: new Set(), job: null, jobSession: null, saveRequest: null,
     localizationResult: null, localizationAttempted: false, actionError: null };
   const panel = el('article', { className: 'panel slam-console', id: 'slamConsole', 'aria-label': 'SLAM 엔진과 관측' });
   const message = text('p', '서버 SLAM 상태 확인 중', { id: 'slamMessage', role: 'status', 'aria-live': 'polite' });
@@ -237,7 +249,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     confirmed.input.checked = false;
     await refresh();
   }));
-  const save = button('native 지도 저장', 'slamSave', () => perform(saveMap));
+  const save = button('native 지도 저장', 'slamSave', () => perform(saveMap, 'native 저장 요청 중'));
   const stop = button('세션 중지', 'slamStop', () => openStop());
   const refreshButton = button('상태 새로고침', 'slamRefresh', () => perform(async () => { await loadEngines(); await refresh(); }));
   panel.append(el('div', { className: 'slam-heading' }, el('div', {}, text('div', 'SLAM ENGINE', { className: 'eyebrow' }),
@@ -280,7 +292,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
     stopDialog.close();
     // Mapping continues while official save completes. The explicit choice also
     // authorizes discarding observations collected after the saved snapshot.
-    perform(async () => { await saveMap(true); await stopSession(true); });
+    perform(async () => {
+      const session = { ...currentSession() };
+      await saveMap(true); await stopSession(true, session);
+    }, 'native 저장 완료 확인 중');
   });
   const discardStop = button('저장하지 않고 중지', 'slamDiscardThenStop', () => {
     stopDialog.close(); perform(() => stopSession(Boolean(state.session?.unsaved)));
@@ -301,6 +316,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
   const packageName = el('input', { id: 'slamPackageName', maxlength: 120, 'aria-label': 'native 지도 이름' });
   const previewCanvas = el('canvas', { id: 'slamPackageCanvas', 'aria-label': '저장 native 지도 미리보기' });
   const download = text('a', 'native ZIP 내보내기', { id: 'slamPackageExport', 'aria-disabled': 'true' });
+  const previewDownload = text('a', '특징점·궤적 내보내기', { id: 'slamPackagePreviewExport', 'aria-disabled': 'true' });
   const importFile = el('input', { id: 'slamPackageImport', type: 'file', accept: '.zip,application/zip' });
   const mutate = (operation) => perform(async () => {
     const selected = state.selectedPackage;
@@ -354,7 +370,8 @@ export function mountSlamDashboard(doc = document, options = {}) {
     text('p', 'LiDAR 원본 목록과 VSLAM native DB를 함께 관리합니다. 미리보기는 저장 데이터만 읽습니다.', { className: 'slam-muted' }),
     packageStatus, packageLocalizationStatus, text('a', '세션 중지·새 세션 설정 →', { href: '#mapping' }), packageRows,
     el('div', { className: 'slam-native-detail', id: 'slamNativeDetail', hidden: true }, previewCanvas, packageDetail,
-      el('div', { className: 'slam-control-row' }, field('표시 이름', packageName), renameButton, copyButton, deleteButton, download),
+      el('div', { className: 'slam-control-row' }, field('표시 이름', packageName), renameButton, copyButton, deleteButton, download, previewDownload),
+      text('p', '특징점·궤적 ZIP은 저장 미리보기와 출처 기록을 내보냅니다. 궤적은 제한된 snapshot이며 전체 관측 경로를 보장하지 않습니다.', { className: 'slam-muted' }),
       el('details', {}, text('summary', '저장 지도에서 관측용 위치찾기 · 명시적 검증 힌트 필요'),
         text('p', 'native load·위치찾기 성공은 별도 결과입니다. 운영 위치 소스와 주행 지도는 자동 변경되지 않습니다.'),
         el('div', { className: 'slam-control-row' }, field('frame', frameInput), field('position', positionInput), field('quaternion xyzw', quaternionInput)),
@@ -368,32 +385,67 @@ export function mountSlamDashboard(doc = document, options = {}) {
     doc.head.append(link);
   }
 
-  async function api(path, { method = 'GET', body, headers = {} } = {}) {
+  async function api(path, { method = 'GET', body, headers = {}, timeoutMs = method === 'GET' ? SLAM_REQUEST_TIMEOUT_MS : 0 } = {}) {
     const controller = new win.AbortController();
+    let timedOut = false;
+    const timer = timeoutMs > 0 ? win.setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs) : null;
     state.requestControllers.add(controller);
     try {
       const response = await fetcher(`/api/v1/slam${path}`, { method, credentials: 'same-origin',
         cache: 'no-store', signal: controller.signal,
         headers: body == null || body instanceof win.Blob ? headers : { 'Content-Type': 'application/json', ...headers },
         body: body == null || body instanceof win.Blob ? body : JSON.stringify(body) });
-      const value = await response.json().catch(() => ({}));
+      const value = await response.json().catch(() => {
+        if (response.ok) throw Object.assign(new Error('INVALID_JSON_RESPONSE'), { transportUncertain: true });
+        return {};
+      });
       if (!response.ok) throw new Error(errorText(value, `HTTP ${response.status}`));
       return value;
-    } finally { state.requestControllers.delete(controller); }
+    } catch (error) {
+      if (timedOut) throw Object.assign(new Error('SLAM_REQUEST_TIMEOUT'), { transportUncertain: true });
+      if (error.name === 'TypeError') error.transportUncertain = true;
+      throw error;
+    } finally { win.clearTimeout(timer); state.requestControllers.delete(controller); }
   }
 
-  async function perform(action) {
+  async function perform(action, label = 'SLAM 요청 처리 중') {
     if (state.pending || state.disposed) return;
     state.pending = true; state.actionError = null;
+    message.textContent = label;
     updateButtons();
     try { await action(); }
-    catch (error) { state.actionError = error.message; message.textContent = `SLAM: ${error.message}`; packageStatus.textContent = `지도 작업: ${error.message}`; }
-    finally { state.pending = false; updateButtons(); }
+    catch (error) {
+      if (!state.disposed && !error.staleAction) {
+        state.actionError = error.message; message.textContent = `SLAM: ${error.message}`; packageStatus.textContent = `지도 작업: ${error.message}`;
+      }
+    }
+    finally {
+      state.pending = false;
+      if (message.textContent === label) message.textContent = sessionMessage();
+      updateButtons();
+    }
   }
 
   function currentSession() {
     if (!state.session || state.session.state === 'IDLE') throw new Error('NO_ACTIVE_SESSION');
     return state.session;
+  }
+
+  function requireSession(context) {
+    if (state.disposed || !sameSessionContext(context, state.session)) {
+      throw Object.assign(new Error('SLAM_SESSION_CHANGED'), { staleAction: true });
+    }
+  }
+
+  function describeSave(job) {
+    return `native 저장 ${job.state || '요청됨'} ${job.reason || ''}${job.package_id ? ` · ${job.package_id}` : ''}`;
+  }
+
+  function sessionMessage() {
+    return state.actionError || (saveJobIsCurrent(state.job, state.jobSession, state.session) && describeSave(state.job)) ||
+      (state.session?.reason && errorText({ detail: { code: state.session.reason,
+        resources: state.session.resource_conflicts } }, state.session.reason)) ||
+      (state.session ? `session ${state.session.session_id} · generation ${state.session.generation}` : '실행 중인 SLAM 세션 없음');
   }
 
   function updateButtons() {
@@ -408,16 +460,22 @@ export function mountSlamDashboard(doc = document, options = {}) {
     for (const option of task.options) option.disabled = !tasks.includes(option.value);
     if (!tasks.includes(task.value) && tasks.includes('mapping')) task.value = 'mapping';
     start.disabled = state.pending || active || !selected?.available_now || !tasks.includes(task.value) || !confirmed.input.checked;
-    save.disabled = state.pending || state.session?.state !== 'MAPPING' || state.session?.task !== 'mapping';
-    stop.disabled = state.pending || !active || ['SAVING', 'LOCALIZING', 'STOPPING'].includes(state.session?.state);
+    const unconfirmedSave = sameSessionContext(state.saveRequest?.session, state.session);
+    save.textContent = unconfirmedSave ? '저장 요청 결과 확인' : 'native 지도 저장';
+    save.disabled = state.pending || (!unconfirmedSave && (state.session?.state !== 'MAPPING' || state.session?.task !== 'mapping'));
+    stop.disabled = state.pending || unconfirmedSave || !active || ['SAVING', 'LOCALIZING', 'STOPPING'].includes(state.session?.state);
+    refreshButton.disabled = state.pending;
+    name.disabled = state.pending || unconfirmedSave;
+    panel.setAttribute('aria-busy', String(state.pending));
     engine.disabled = active || state.pending;
     task.disabled = active || state.pending;
-    create2d.input.disabled = engine.value !== 'lidar_fastlio';
+    create2d.input.disabled = state.pending || unconfirmedSave || engine.value !== 'lidar_fastlio';
     for (const node of [renameButton, copyButton, deleteButton]) node.disabled = state.pending || active || !state.selectedPackage;
     importFile.disabled = state.pending || active;
     localize.disabled = state.pending || !state.selectedPackage || state.session?.engine_id !== 'visual_stereo' ||
       !['MAPPING', 'TRACKING'].includes(state.session?.state) || !verifiedHint.input.checked || !replaceUnsaved.input.checked || state.localizationAttempted;
     download.setAttribute('aria-disabled', state.selectedPackage ? 'false' : 'true');
+    previewDownload.setAttribute('aria-disabled', state.selectedPackage ? 'false' : 'true');
     const reason = selected?.blocked_reason || (selected?.available_now ? '현재 실행 가능' : 'ENGINE_UNAVAILABLE');
     capability.textContent = `${reason} · 설치 ${selected?.installed ?? 'unknown'} · software verified ${selected?.software_verified ?? false} · hardware verified ${selected?.hardware_verified ?? false}`;
   }
@@ -441,6 +499,11 @@ export function mountSlamDashboard(doc = document, options = {}) {
     const previous = state.session;
     state.session = value.active_session || null;
     state.generation = value.generation;
+    if ((state.jobSession && !sameSessionContext(state.jobSession, state.session)) ||
+        (state.saveRequest && !sameSessionContext(state.saveRequest.session, state.session))) {
+      state.job = null; state.jobSession = null; state.saveRequest = null; state.actionError = null;
+      message.textContent = `세션이 변경되어 이전 저장 결과 확인을 종료했습니다. ${sessionMessage()}`;
+    }
     if (previous?.session_id !== state.session?.session_id || previous?.generation !== state.session?.generation) {
       state.localizationResult = null; state.localizationAttempted = false;
     }
@@ -456,9 +519,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     status.textContent = state.session?.state || 'IDLE';
     const source = value.operational_pose_source;
     identities.textContent = `선택 ${LABELS[engine.value] || engine.value} · 실행 ${state.session?.engine_id || '없음'} / ${state.session?.effective_mode || '—'} · 운영 pose ${typeof source === 'string' ? source : source?.source || 'unknown'} (generation ${source?.generation ?? 'unknown'})`;
-    if (!state.pending) message.textContent = state.actionError || (state.session?.reason && errorText({ detail: {
-      code: state.session.reason, resources: state.session.resource_conflicts } }, state.session.reason)) ||
-      (state.session ? `session ${state.session.session_id} · generation ${state.session.generation}` : '실행 중인 SLAM 세션 없음');
+    if (!state.pending) message.textContent = sessionMessage();
     updateButtons();
     updateLocalizationStatus();
     if (state.activePage === 'mapping') connectStream();
@@ -470,24 +531,52 @@ export function mountSlamDashboard(doc = document, options = {}) {
   }
 
   async function saveMap(wait = false) {
-    const session = currentSession();
+    const session = { ...currentSession() };
     if (!name.value.trim()) throw new Error('저장 지도 이름을 입력하세요.');
-    let job = await api(`/sessions/${encodeURIComponent(session.session_id)}/save`, { method: 'POST', body: {
-      generation: session.generation, request_id: requestId(win), name: name.value.trim(), create_2d: create2d.input.checked } });
-    state.job = job;
-    message.textContent = `native 저장 ${job.state || '요청됨'} · ${job.job_id || ''}`;
+    const request = state.saveRequest || { session, path: `/sessions/${encodeURIComponent(session.session_id)}/save`,
+      body: { generation: session.generation, request_id: requestId(win), name: name.value.trim(),
+        create_2d: session.engine_id === 'lidar_fastlio' && create2d.input.checked } };
+    requireSession(request.session);
+    state.saveRequest = request;
+    let job;
+    // An aborted browser request does not cancel native work. Reuse the exact
+    // idempotency body; catalogue jobs cannot identify an unacknowledged save.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        job = await api(request.path, { method: 'POST', body: request.body, timeoutMs: SLAM_REQUEST_TIMEOUT_MS });
+        requireSession(request.session);
+        if (!saveJobIsCurrent(job, request.session, state.session)) {
+          throw Object.assign(new Error('INVALID_SAVE_RESPONSE'), { transportUncertain: true });
+        }
+        break;
+      } catch (error) {
+        requireSession(request.session);
+        if (!error.transportUncertain && !request.uncertain) { state.saveRequest = null; throw error; }
+        request.uncertain = true;
+        if (attempt === 1) throw new Error('SAVE_RESPONSE_UNCONFIRMED · 서버 저장은 계속될 수 있습니다. 저장 요청 결과 확인을 누르면 같은 요청 ID로 확인합니다.');
+        message.textContent = '저장 응답 미확인 · 같은 요청 ID로 결과 확인 중';
+      }
+    }
+    state.saveRequest = null;
+    state.job = job; state.jobSession = request.session;
+    message.textContent = describeSave(job);
     if (wait) {
       const deadline = Date.now() + 180_000;
       while (!['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(job.state)) {
         if (state.disposed || Date.now() > deadline) throw new Error('SAVE_COMPLETION_TIMEOUT');
         await new Promise((resolve) => win.setTimeout(resolve, 500));
+        requireSession(request.session);
         job = await api(`/jobs/${encodeURIComponent(job.job_id)}`);
-        message.textContent = `native 저장 ${job.state}`;
+        requireSession(request.session);
+        if (!saveJobIsCurrent(job, request.session, state.session)) throw new Error('INVALID_SAVE_JOB');
+        state.job = job;
+        message.textContent = describeSave(job);
       }
       if (job.state !== 'SUCCEEDED') throw new Error(job.reason || 'NATIVE_SAVE_FAILED');
     }
     state.job = job;
     await refresh();
+    requireSession(request.session);
     return job;
   }
 
@@ -501,7 +590,8 @@ export function mountSlamDashboard(doc = document, options = {}) {
     stopDialog.showModal();
   }
 
-  async function stopSession(discard) {
+  async function stopSession(discard, expectedSession = null) {
+    if (expectedSession) requireSession(expectedSession);
     const session = currentSession();
     await api(`/sessions/${encodeURIComponent(session.session_id)}/stop`, { method: 'POST', body: {
       generation: session.generation, request_id: requestId(win), discard_unsaved: discard } });
@@ -674,7 +764,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     packageStatus.textContent = `VSLAM native ${state.packages.length}개 · LiDAR ${state.legacyMaps.length}개 · 호환성은 load 시 서버 검증`;
     if (!state.selectedPackage) {
       packageDetail.textContent = 'VSLAM native 지도를 선택하세요.';
-      packageName.value = ''; download.removeAttribute('href');
+      packageName.value = ''; download.removeAttribute('href'); previewDownload.removeAttribute('href');
       state.previewScene?.setPointCloud({ points: [] });
       state.previewScene?.setTrail([]);
     }
@@ -694,6 +784,8 @@ export function mountSlamDashboard(doc = document, options = {}) {
       `compatibility ${entry.compatibility?.status || 'unknown'} · sparse map → navigation unavailable`].join('\n');
     download.href = `/api/v1/slam/packages/${encodeURIComponent(entry.id)}/export?expected_revision=${encodeURIComponent(entry.revision)}`;
     download.download = `native-${entry.id}.zip`;
+    previewDownload.href = `/api/v1/slam/packages/${encodeURIComponent(entry.id)}/preview-export?expected_revision=${encodeURIComponent(entry.revision)}`;
+    previewDownload.download = `preview-${entry.id}.zip`;
     verifiedHint.input.checked = false;
     replaceUnsaved.input.checked = false;
     positionInput.value = ''; quaternionInput.value = ''; frameInput.value = '';
@@ -731,10 +823,19 @@ export function mountSlamDashboard(doc = document, options = {}) {
     try {
       await refresh();
       if (state.job?.job_id && !['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(state.job.state)) {
-        state.job = await api(`/jobs/${encodeURIComponent(state.job.job_id)}`);
-        message.textContent = `native 저장 ${state.job.state} ${state.job.reason || ''}${state.job.package_id ? ` · ${state.job.package_id}` : ''}`;
+        const context = state.jobSession;
+        const jobId = state.job.job_id;
+        try {
+          const job = await api(`/jobs/${encodeURIComponent(jobId)}`);
+          if (state.job?.job_id === jobId && saveJobIsCurrent(job, context, state.session)) {
+            state.job = job;
+            if (!state.pending) message.textContent = describeSave(job);
+          }
+        } catch (error) {
+          if (state.job?.job_id === jobId && sameSessionContext(context, state.session)) throw error;
+        }
       }
-    } catch (error) { if (error.name !== 'AbortError') message.textContent = `SLAM 상태: ${error.message}`; }
+    } catch (error) { if (error.name !== 'AbortError' && !state.pending) message.textContent = `SLAM 상태: ${error.message}`; }
     finally {
       state.polling = false;
       win.clearTimeout(state.pollTimer);

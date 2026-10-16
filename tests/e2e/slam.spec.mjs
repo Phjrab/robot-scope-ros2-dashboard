@@ -43,6 +43,9 @@ function fixtureFrame(session, sequence = '1') {
 async function install(page, { available = true, state = null } = {}) {
   await installDashboardBackend(page);
   const shared = state || { session: null, packages: [nativePackage()], mutations: [], sockets: new Set(), socketPaths: [], sequence: 0 };
+  shared.jobs ||= [];
+  shared.saveRequests ||= new Map();
+  shared.nativeSaves ||= 0;
   const send = () => {
     if (!shared.session || shared.session.state === 'IDLE') return;
     for (const ws of shared.sockets) {
@@ -71,8 +74,16 @@ async function install(page, { available = true, state = null } = {}) {
         blocked_reason: available ? null : 'CAMERA_HANDOFF_REQUIRED', software_verified: true, hardware_verified: false },
       { engine_id: 'visual_inertial', available_now: false, tasks: [], blocked_reason: 'IMU_NOT_QUALIFIED' },
     ] });
-    if (path === '/session') return reply({ active_session: shared.session, generation: shared.session?.generation || 0,
-      operational_pose_source: { source: '/Odometry', generation: 7 } });
+    if (path === '/session') {
+      const value = { active_session: shared.session, generation: shared.session?.generation || 0,
+        jobs: shared.jobs, operational_pose_source: { source: '/Odometry', generation: 7 } };
+      if (shared.holdNextSessionResponse) {
+        shared.holdNextSessionResponse = false;
+        shared.releaseSessionResponse = () => reply(value);
+        return;
+      }
+      return reply(value);
+    }
     if (path === '/sessions' && method === 'POST') {
       if (shared.startConflict) return reply({ detail: { code: 'RESOURCE_CONFLICT', resources: shared.startConflict } }, 409);
       if (shared.session && shared.session.state !== 'IDLE') return reply({ detail: 'SLAM_SESSION_ACTIVE' }, 409);
@@ -82,11 +93,23 @@ async function install(page, { available = true, state = null } = {}) {
       return reply({ session_id: shared.session.session_id, generation: 1 });
     }
     if (path.endsWith('/save')) {
-      shared.session.state = 'SAVING';
-      // Real manager semantics: the saved snapshot is immutable, while the
-      // running mapper can already have a newer unsaved observation tail.
-      shared.session.unsaved = true;
-      return reply({ job_id: 'fixture-job', state: 'SAVING', package_id: null });
+      if (shared.saveError) return reply({ detail: shared.saveError }, 409);
+      const requestBody = body();
+      let job = shared.saveRequests.get(requestBody.request_id);
+      if (!job) {
+        shared.nativeSaves += 1;
+        job = { job_id: `fixture-job-${shared.nativeSaves}`, state: 'SAVING', package_id: null,
+          session_id: shared.session.session_id, generation: shared.session.generation };
+        shared.saveRequests.set(requestBody.request_id, structuredClone(job));
+        shared.jobs.push(job);
+        shared.session.state = 'SAVING';
+        // The snapshot is immutable while mapping may collect an unsaved tail.
+        shared.session.unsaved = true;
+      }
+      if (shared.holdSaveResponse) { shared.releaseSaveResponse = () => reply(job); return; }
+      if (shared.hangSaveResponse) return;
+      if (shared.loseSaveResponses > 0) { shared.loseSaveResponses -= 1; return route.abort('failed'); }
+      return reply(job);
     }
     if (path.endsWith('/stop')) {
       if (shared.session.state === 'SAVING') return reply({ detail: 'SAVE_IN_PROGRESS' }, 409);
@@ -94,9 +117,14 @@ async function install(page, { available = true, state = null } = {}) {
       shared.session.state = 'IDLE'; return reply({ active_session: shared.session });
     }
     if (path.startsWith('/jobs/')) {
-      shared.session.state = 'MAPPING'; shared.session.unsaved = true;
-      if (shared.failSave) return reply({ job_id: 'fixture-job', state: 'FAILED', reason: 'NATIVE_SAVE_FAILED' });
-      return reply({ job_id: 'fixture-job', state: 'SUCCEEDED', package_id: PACKAGE_ID });
+      const job = shared.jobs.find((value) => value.job_id === path.slice('/jobs/'.length));
+      if (!job) return reply({ detail: 'JOB_NOT_FOUND' }, 404);
+      if (shared.holdJobResponse) { shared.releaseJobResponse = () => reply({ ...job, state: 'SUCCEEDED', package_id: PACKAGE_ID }); return; }
+      if (shared.session.session_id === job.session_id && shared.session.generation === job.generation) {
+        shared.session.state = 'MAPPING'; shared.session.unsaved = true;
+      }
+      Object.assign(job, shared.failSave ? { state: 'FAILED', reason: 'NATIVE_SAVE_FAILED' } : { state: 'SUCCEEDED', package_id: PACKAGE_ID });
+      return reply(job);
     }
     if (path === '/packages') return reply({ packages: shared.packages });
     if (path.endsWith('/preview')) return reply(fixtureFrame({ session_id: 'saved', generation: 1, engine_id: 'visual_stereo', map_epoch: 'saved-epoch' }));
@@ -295,6 +323,138 @@ test('SLAM save-then-stop never discards or stops after a failed native save', a
   expect(fixture.shared.session.state).toBe('MAPPING');
 });
 
+test('SLAM direct native Save posts the selected name and exposes pending and completion', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  fixture.shared.holdSaveResponse = true;
+  await page.locator('#slamMapName').fill('direct-save-fixture');
+  await page.locator('#slamSave').click();
+  await expect.poll(() => Boolean(fixture.shared.releaseSaveResponse)).toBe(true);
+  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#slamMessage')).toContainText('native 저장 요청 중');
+  for (const id of ['slamSave', 'slamRefresh', 'slamMapName']) await expect(page.locator(`#${id}`)).toBeDisabled();
+  const request = fixture.shared.mutations.find((value) => value.path.endsWith('/save'));
+  expect(request).toMatchObject({ method: 'POST', path: '/sessions/fixture-session/save',
+    body: { generation: 1, name: 'direct-save-fixture', create_2d: false } });
+  expect(request.body.request_id).toMatch(/^[A-Za-z0-9_-]{8,96}$/);
+  await fixture.shared.releaseSaveResponse();
+  await expect(page.locator('#slamMessage')).toContainText('SUCCEEDED');
+  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'false');
+  expect(fixture.shared.nativeSaves).toBe(1);
+  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(0);
+});
+
+test('SLAM direct native Save exposes missing names and admission failures without retrying rejected writes', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  await page.locator('#slamSave').click();
+  await expect(page.locator('#slamMessage')).toContainText('저장 지도 이름을 입력하세요.');
+  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/save'))).toHaveLength(0);
+  fixture.shared.saveError = 'RESOURCE_CONFLICT';
+  await page.locator('#slamMapName').fill('rejected-fixture');
+  await page.locator('#slamSave').click();
+  await expect(page.locator('#slamMessage')).toContainText('RESOURCE_CONFLICT');
+  await expect(page.locator('#slamSave')).toBeEnabled();
+  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/save'))).toHaveLength(1);
+  expect(fixture.shared.nativeSaves).toBe(0);
+});
+
+test('SLAM background session polling leaves direct Save available and cannot replace the newer response', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  fixture.shared.holdNextSessionResponse = true;
+  await expect.poll(() => Boolean(fixture.shared.releaseSessionResponse)).toBe(true);
+  await expect(page.locator('#slamSave')).toBeEnabled();
+  await page.locator('#slamMapName').fill('poll-overlap-fixture');
+  await page.locator('#slamSave').click();
+  await expect.poll(() => fixture.shared.nativeSaves).toBe(1);
+  await fixture.shared.releaseSessionResponse();
+  await expect(page.locator('#slamMessage')).toContainText('SUCCEEDED');
+  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/save'))).toHaveLength(1);
+});
+
+test('SLAM lost Save acknowledgement recovers the exact idempotent request instead of adopting catalogue jobs', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  fixture.shared.jobs.push({ job_id: 'old-same-session-job', session_id: 'fixture-session', generation: 1,
+    state: 'SUCCEEDED', package_id: 'old-package' }, { job_id: 'foreign-job', session_id: 'foreign-session', generation: 2,
+    state: 'SUCCEEDED', package_id: 'foreign-package' });
+  fixture.shared.loseSaveResponses = 1;
+  await page.locator('#slamMapName').fill('response-lost-fixture');
+  await page.locator('#slamSave').click();
+  await expect(page.locator('#slamMessage')).toContainText('SUCCEEDED');
+  await expect(page.locator('#slamMessage')).toContainText(PACKAGE_ID);
+  const requests = fixture.shared.mutations.filter((value) => value.path.endsWith('/save'));
+  expect(requests).toHaveLength(2);
+  expect(requests[1].body).toEqual(requests[0].body);
+  expect(fixture.shared.nativeSaves).toBe(1);
+  await expect(page.locator('#slamMessage')).not.toContainText('old-package');
+  await expect(page.locator('#slamMessage')).not.toContainText('foreign-package');
+});
+
+test('SLAM timed out Save remains explicit and result confirmation reuses its original request', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  await page.clock.install();
+  fixture.shared.hangSaveResponse = true;
+  await page.locator('#slamMapName').fill('timeout-fixture');
+  await page.locator('#slamSave').click();
+  await expect.poll(() => fixture.shared.mutations.filter((value) => value.path.endsWith('/save')).length).toBe(1);
+  await page.clock.fastForward(15_001);
+  await expect.poll(() => fixture.shared.mutations.filter((value) => value.path.endsWith('/save')).length).toBe(2);
+  await page.clock.fastForward(15_001);
+  await expect(page.locator('#slamMessage')).toContainText('SAVE_RESPONSE_UNCONFIRMED');
+  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('#slamSave')).toHaveText('저장 요청 결과 확인');
+  await expect(page.locator('#slamSave')).toBeEnabled();
+  await expect(page.locator('#slamStop')).toBeDisabled();
+  await expect(page.locator('#slamMapName')).toBeDisabled();
+  fixture.shared.hangSaveResponse = false;
+  await page.locator('#slamSave').click();
+  await page.clock.fastForward(1501);
+  await expect(page.locator('#slamMessage')).toContainText('SUCCEEDED');
+  const requests = fixture.shared.mutations.filter((value) => value.path.endsWith('/save'));
+  expect(requests).toHaveLength(3);
+  expect(requests.map((value) => value.body)).toEqual(Array(3).fill(requests[0].body));
+  expect(fixture.shared.nativeSaves).toBe(1);
+});
+
+test('SLAM late Save acknowledgement cannot stop a replacement generation', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  fixture.shared.holdSaveResponse = true;
+  await page.locator('#slamMapName').fill('old-generation-fixture');
+  await page.locator('#slamStop').click();
+  await page.locator('#slamSaveThenStop').click();
+  await expect.poll(() => Boolean(fixture.shared.releaseSaveResponse)).toBe(true);
+  fixture.shared.session = { ...fixture.shared.session, generation: 2, map_epoch: 'new-epoch', state: 'MAPPING' };
+  await expect(page.locator('#slamSourceIdentity')).toContainText('generation 7');
+  await expect(page.locator('#slamMessage')).toContainText('세션이 변경');
+  await fixture.shared.releaseSaveResponse();
+  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'false');
+  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(0);
+  expect(fixture.shared.nativeSaves).toBe(1);
+  await expect(page.locator('#slamMessage')).not.toContainText('SUCCEEDED');
+  expect(fixture.shared.session.generation).toBe(2);
+});
+
+test('SLAM late job completion cannot overwrite another session after an independent refresh', async ({ page }) => {
+  const fixture = await install(page);
+  await open(page); await startStereo(page);
+  fixture.shared.holdJobResponse = true;
+  await page.locator('#slamMapName').fill('old-job-fixture');
+  await page.locator('#slamSave').click();
+  await expect.poll(() => Boolean(fixture.shared.releaseJobResponse)).toBe(true);
+  fixture.shared.session = { ...fixture.shared.session, session_id: 'replacement-session', generation: 2,
+    map_epoch: 'replacement-epoch', state: 'MAPPING' };
+  await page.locator('#slamRefresh').click();
+  await expect(page.locator('#slamMessage')).toContainText('replacement-session');
+  await fixture.shared.releaseJobResponse();
+  await expect(page.locator('#slamMessage')).toContainText('replacement-session');
+  await expect(page.locator('#slamMessage')).not.toContainText('SUCCEEDED');
+  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(0);
+});
+
 test('SLAM native preview remains renderer only; revisions and archive errors surface safely', async ({ page }) => {
   const fixture = await install(page);
   await open(page, 'maps');
@@ -302,6 +462,10 @@ test('SLAM native preview remains renderer only; revisions and archive errors su
   await page.locator('#slamPackageRows button').click();
   await expect(page.locator('#slamPackageDetail')).toContainText('SYNTHETIC_FIXTURE');
   await expect(page.locator('#slamPackageDetail')).toContainText('approximate');
+  await expect(page.locator('#slamPackageExport')).toHaveAttribute('href', `/api/v1/slam/packages/${PACKAGE_ID}/export?expected_revision=${REVISION}`);
+  await expect(page.locator('#slamPackagePreviewExport')).toHaveAttribute('href', `/api/v1/slam/packages/${PACKAGE_ID}/preview-export?expected_revision=${REVISION}`);
+  await expect(page.locator('#slamPackagePreviewExport')).toHaveAttribute('download', `preview-${PACKAGE_ID}.zip`);
+  await expect(page.locator('#slamNativeDetail')).toContainText('전체 관측 경로를 보장하지 않습니다.');
   await expect(page.locator('#slamPackageLibrary img')).toHaveCount(0);
   await page.locator('#slamPackageFilter').selectOption('vslam');
   await expect(page.locator('[data-page=maps] .saved-layout')).toBeHidden();

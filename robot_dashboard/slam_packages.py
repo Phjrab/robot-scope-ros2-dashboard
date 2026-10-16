@@ -27,6 +27,8 @@ from functools import wraps
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, Mapping
 
+from .slam_preview_export import MAX_EXPORT_BYTES, PreviewExportError, preview_export_files
+
 
 SCHEMA = "robot-scope.native-slam-package/v1"
 ID_RE = re.compile(r"^np_[0-9a-f]{32}$")
@@ -688,6 +690,36 @@ class MapPackageStore:
                 return output, {"id": package_id, "revision": manifest["revision"],
                                 "filename": "robot-scope-native-" + package_id + ".zip",
                                 "bytes": size}
+            except BaseException:
+                output.close()
+                raise
+
+    @_path_safe
+    def export_preview(self, package_id: str, *, expected_revision: str) -> tuple[BinaryIO, dict]:
+        """Derived XYZ/CSV/provenance from one hash-verified saved preview only."""
+        with self._lock:
+            manifest = self._manifest(package_id)
+            self._expected(manifest, expected_revision)
+            preview = self.get_preview(package_id, expected_revision=expected_revision)
+            try:
+                files = preview_export_files(manifest, preview, max_bytes=self.max_archive_bytes)
+            except PreviewExportError as exc:
+                _fail(str(exc), "Saved preview cannot be exported under the declared bounds.")
+            output = tempfile.TemporaryFile(mode="w+b", dir=self._staging_root)
+            try:
+                os.fchmod(output.fileno(), 0o600)
+                with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as archive:
+                    for name, payload in files.items():
+                        info = zipfile.ZipInfo(name)
+                        info.create_system = 3
+                        info.external_attr = (stat.S_IFREG | 0o600) << 16
+                        archive.writestr(info, payload)
+                size = output.tell()
+                if size > min(self.max_archive_bytes, MAX_EXPORT_BYTES):
+                    _fail("PACKAGE_LIMIT", "Preview export exceeds configured limits.")
+                output.seek(0)
+                return output, {"id": package_id, "revision": manifest["revision"],
+                                "filename": package_id + "-preview.zip", "bytes": size}
             except BaseException:
                 output.close()
                 raise

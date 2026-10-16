@@ -5,7 +5,8 @@ import { runInNewContext } from 'node:vm';
 
 const source = readFileSync(new URL('../robot_dashboard/static/features/slam/dashboard.js', import.meta.url), 'utf8');
 const { boundedPoints, overlayMatchesImage, frameIsCurrent, describeCoverage, cameraFrustumGeometry,
-  describeLocalization, frameAvailability, describeCameraPose, errorText, SLAM_STREAM_PATH } = await import(
+  describeLocalization, frameAvailability, describeCameraPose, errorText, SLAM_STREAM_PATH,
+  sameSessionContext, saveJobIsCurrent, SLAM_REQUEST_TIMEOUT_MS } = await import(
   'data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 
 const session = { session_id: 'session-a', generation: 4, map_epoch: 'epoch-a', engine_id: 'visual_stereo' };
@@ -13,6 +14,21 @@ const frame = { ...session, sequence: '1', tracking_state: 'MAPPING', stream_con
   image: { jpeg_base64: 'AA==', stamp_ns: '9007199254740993001', frame_id: 'left_optical', width: 640, height: 480, camera_id: 'left', rectified: true },
   overlay: { overlay_kind: 'current_observations_reprojected', reason: null, points: [[10, 20]],
     image: { source_timestamp_ns: '9007199254740993001', frame_id: 'left_optical', width: 640, height: 480, camera_id: 'left' } } };
+
+test('save results require the originating session, generation, engine and map epoch', () => {
+  const job = { job_id: 'save-a', session_id: session.session_id, generation: session.generation };
+  assert.equal(SLAM_REQUEST_TIMEOUT_MS, 15_000);
+  assert.equal(saveJobIsCurrent(job, session, { ...session }), true);
+  for (const change of [{ session_id: 'session-b' }, { generation: 5 }, { map_epoch: 'epoch-b' }, { engine_id: 'lidar_fastlio' }]) {
+    assert.equal(sameSessionContext(session, { ...session, ...change }), false);
+    assert.equal(saveJobIsCurrent(job, session, { ...session, ...change }), false);
+  }
+  for (const change of [{ job_id: null }, { session_id: 'session-b' }, { generation: 5 }, { generation: undefined }]) {
+    assert.equal(saveJobIsCurrent({ ...job, ...change }, session, session), false);
+  }
+  assert.equal(sameSessionContext({ session_id: 'x' }, { session_id: 'x' }), false);
+  assert.equal(saveJobIsCurrent(job, null, session), false);
+});
 
 test('SLAM websocket uses the registered backend route rather than an unregistered short path', () => {
   const router = readFileSync(new URL('../robot_dashboard/api/routers/slam.py', import.meta.url), 'utf8');

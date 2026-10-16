@@ -590,6 +590,34 @@ class FeatureStream:
         images = [p for p in self._images if stamp is None or p["stamp"] == stamp]
         return max(images, key=lambda p: int(p["stamp"])) if images else None
 
+    def _alignment_diagnostics(self, now: float, candidates: list[dict[str, Any]],
+                               pixel_stamps: list[str] | None) -> dict[str, Any]:
+        """Bounded source evidence, without inferring why callbacks were absent."""
+        caches = {}
+        for name, cache in (("image", self._images), ("calibration", self._calibrations),
+                            ("pose", self._poses), ("observations", self._observations)):
+            stamps = [int(item["stamp"]) for item in cache]
+            ages = [max(0.0, now-item["received"]) for item in cache if "received" in item]
+            caches[name] = dict(count=len(cache), capacity=self.cache_size,
+                min_stamp_ns=str(min(stamps)) if stamps else None,
+                max_stamp_ns=str(max(stamps)) if stamps else None,
+                fresh_count=sum(age <= self.stale_after for age in ages) if ages else None,
+                max_receive_age_s=max(ages) if ages else None)
+        return dict(schema_version=1, tolerance_ns=str(self.tolerance_ns),
+            stale_after_s=self.stale_after, metadata_caches=caches,
+            pixel_candidate_count=None if pixel_stamps is None else len(pixel_stamps),
+            pixel_min_stamp_ns=min(pixel_stamps, key=int) if pixel_stamps else None,
+            pixel_max_stamp_ns=max(pixel_stamps, key=int) if pixel_stamps else None,
+            evaluated_count=len(candidates),
+            candidate_reason_counts=dict(Counter(item.get("reason") or "ALIGNED" for item in candidates)),
+            candidate_details_limit=4,
+            evaluated_candidates=[dict(
+                image_stamp_ns=item.get("image", {}).get("source_timestamp_ns"),
+                reason=item.get("reason"), skew_ns=item.get("overlay_skew_ns"),
+                source_stamps=item.get("alignment_source_timestamps_ns"),
+                image_receive_age_s=item.get("receive_age_seconds")) for item in candidates[:4]],
+            evidence_scope="retained_candidates_only; absent callbacks are not diagnosed")
+
     def _overlay(self, now: float, image_stamp: str | None = None) -> dict[str, Any]:
         result: dict[str, Any] = dict(overlay_kind="unavailable", reason="WAITING_IMAGE", points=[],
                                     native_ids_available=False, confidence=None, track_age=None)
@@ -769,6 +797,8 @@ class FeatureStream:
             context = self.context
             overlay = self._overlay(now)
             selected_stamp = None
+            evaluated = []
+            stamps = None
             # Only the adapter can attest that exact pixels remain available.
             # A metadata-only historical image must never replace current media.
             if image_timestamps_ns is not None:
@@ -777,6 +807,7 @@ class FeatureStream:
                 stamps = sorted({timestamp_ns(stamp) for stamp in image_timestamps_ns}, key=int, reverse=True)
                 for stamp in stamps:
                     candidate = overlay if stamp == overlay.get("image", {}).get("source_timestamp_ns") else self._overlay(now, stamp)
+                    evaluated.append(candidate)
                     if candidate["reason"] is None:
                         overlay, selected_stamp = candidate, stamp
                         break
@@ -805,6 +836,7 @@ class FeatureStream:
                 discarded_context_frames=self._discarded_contexts, overlay=overlay,
                 camera_view=self.camera_view(now_monotonic=now, image_timestamp_ns=selected_stamp),
                 current_observations=observations,
+                alignment_diagnostics=self._alignment_diagnostics(now, evaluated, stamps),
                 global_map=self.global_snapshot(), trajectory=None if self._trajectory is None else dict(self._trajectory))
             if image_timestamps_ns is not None:
                 result["image_selection"] = dict(kind="newest_fresh_completed_quartet" if selected_stamp else "latest_input",
@@ -817,6 +849,18 @@ class FeatureStream:
                 encoded = json.dumps(result, separators=(",", ":"), allow_nan=False).encode("utf-8")
                 if len(encoded) <= self.max_wire_bytes:
                     return json.loads(encoded)
+                # Optional diagnostics must never consume a visualization's
+                # existing media/geometry budget or prevent a valid frame.
+                if "alignment_diagnostics" in result:
+                    diagnostic = result["alignment_diagnostics"]
+                    details = diagnostic.get("evaluated_candidates", [])
+                    if details:
+                        details.pop()
+                        diagnostic["candidate_details_omitted_for_wire_budget"] = (
+                            diagnostic.get("candidate_details_omitted_for_wire_budget", 0) + 1)
+                    else:
+                        result.pop("alignment_diagnostics")
+                    continue
                 candidates = [item for item in (result["global_map"], result["trajectory"], overlay, observations)
                               if item is not None and item.get("points")]
                 if not candidates:

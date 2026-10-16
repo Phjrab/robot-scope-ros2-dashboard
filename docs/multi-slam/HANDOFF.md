@@ -1,3 +1,11 @@
+# Current non-driving continuation
+
+The user reopened all remaining work except driving on 2026-10-16.
+See [NONMOTION_FOLLOWUP.md](../integration-acceptance/NONMOTION_FOLLOWUP.md) and its validation record for the
+new candidate. The control bridge remains intentionally stopped for manual
+handover; preserve that state across any separately approved deployment.
+The historical windows and approvals below do not override this current record.
+
 # Current Stereo observation follow-up
 
 Updated 2026-10-16 KST. The latest acceptance is the onsite handheld-controller

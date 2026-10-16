@@ -10,7 +10,7 @@ import copy
 import threading
 import time
 
-from ..navigation_policy import POLICY_SCHEMA, POLICY_TTL_S
+from ..navigation_policy import POLICY_DIAGNOSTICS_SCHEMA, POLICY_ENDPOINTS, POLICY_SCHEMA, POLICY_TTL_S
 
 PARAMETERS = {
     "/planner_server": ("planner_plugins", "GridBased.plugin", "GridBased.allow_unknown", "GridBased.use_astar", "GridBased.tolerance"),
@@ -54,6 +54,11 @@ class RosPolicyReadback:
         self._cache = {"schema": POLICY_SCHEMA, "status": "unavailable", "parameters": {}, "authorities": {}, "lifecycle": {}}
         self._received = None
         self._clients = {}
+        self._last_tick = None
+        self._attempt_sequence = 0
+        self._dispatch_duration = None
+        self._diagnostics = None
+        self._diagnostics_received = None
 
     def setup(self):
         from rcl_interfaces.msg import ParameterEvent
@@ -93,10 +98,52 @@ class RosPolicyReadback:
             raise ValueError("POLICY_AUTHORITY_NOT_UNIQUE")
         return {name: values[0] for name, values in result.items()}
 
+    def _finish_diagnostics(self, *, reason, now, tick_gap, authority_duration):
+        """Keep one bounded attempt, with future state observed before cleanup.
+
+        A done future at a late poll does not prove its completion time or transport
+        latency. Pending client futures likewise do not identify a server failure.
+        """
+        batch = self._batch
+        endpoints = {name: {"dispatched": False, "done": None, "cancelled": None}
+                     for name in POLICY_ENDPOINTS}
+        if batch is not None:
+            for name, pair in batch[3].items():
+                for service, future in zip(("get_parameters", "get_state"), pair):
+                    # A diagnostic failure must not disrupt cleanup or policy gates.
+                    try:
+                        done = bool(future.done())
+                    except Exception:
+                        done = None
+                    try:
+                        is_cancelled = bool(future.cancelled())
+                    except Exception:
+                        is_cancelled = None
+                    endpoints[name + "/" + service] = {
+                        "dispatched": True, "done": done, "cancelled": is_cancelled}
+        with self._lock:
+            self._diagnostics = {"schema": POLICY_DIAGNOSTICS_SCHEMA,
+                "attempt_sequence": self._attempt_sequence,
+                "outcome": "failed" if reason else "completed", "reason": reason,
+                "batch_age_s": None if batch is None else max(0.0, now - batch[0]),
+                "tick_gap_s": tick_gap, "authority_duration_s": authority_duration,
+                "dispatch_duration_s": self._dispatch_duration, "endpoints": endpoints}
+            self._diagnostics_received = now
+
     def tick(self):
         now = self.clock()
+        tick_gap = None if self._last_tick is None else max(0.0, now - self._last_tick)
+        self._last_tick = now
+        authority_duration = None
+        if self._batch is None:
+            self._attempt_sequence = min(2**63 - 1, self._attempt_sequence + 1)
+            self._dispatch_duration = None
         try:
-            identities = self._authorities()
+            authority_start = self.clock()
+            try:
+                identities = self._authorities()
+            finally:
+                authority_duration = max(0.0, self.clock() - authority_start)
             if self._batch is None:
                 with self._lock:
                     if self._cache["authorities"] != identities:
@@ -107,12 +154,16 @@ class RosPolicyReadback:
                 # Own every dispatched future before the next call can fail,
                 # including a parameter request whose state partner never starts.
                 self._batch = (now, self._epoch, identities, futures)
-                for name, (params, state) in self._clients.items():
-                    pair = futures[name] = []
-                    request = self._param_type.Request()
-                    request.names = list(PARAMETERS[name])
-                    pair.append(params.call_async(request))
-                    pair.append(state.call_async(self._state_type.Request()))
+                dispatch_start = self.clock()
+                try:
+                    for name, (params, state) in self._clients.items():
+                        pair = futures[name] = []
+                        request = self._param_type.Request()
+                        request.names = list(PARAMETERS[name])
+                        pair.append(params.call_async(request))
+                        pair.append(state.call_async(self._state_type.Request()))
+                finally:
+                    self._dispatch_duration = max(0.0, self.clock() - dispatch_start)
                 return
             started, epoch, original, futures = self._batch
             if original != identities or epoch != self._epoch:
@@ -134,12 +185,19 @@ class RosPolicyReadback:
                     "lifecycle": lifecycle, "authorities": identities, "sequence": self._sequence, "reason": None}
                 # Age is measured from request start, never rebased to a late reply.
                 self._received = started
+            self._finish_diagnostics(reason=None, now=self.clock(), tick_gap=tick_gap,
+                                     authority_duration=authority_duration)
             self._batch = None
         except Exception as exc:
             # Do not export exception strings (paths/environment/remote data).
             known = {"POLICY_AUTHORITY_NOT_UNIQUE", "POLICY_SERVICES_UNAVAILABLE",
                 "POLICY_SOURCE_CHANGED_DURING_READBACK", "POLICY_READBACK_TIMEOUT", "POLICY_PARTIAL_READBACK"}
-            self._invalidate(str(exc) if isinstance(exc, ValueError) and str(exc) in known else "POLICY_READBACK_FAILED")
+            reason = str(exc) if isinstance(exc, ValueError) and str(exc) in known else "POLICY_READBACK_FAILED"
+            self._invalidate(reason)
+            # Record pre-cleanup state: our own cancellation must not disguise a
+            # still-pending endpoint as a response received before the deadline.
+            self._finish_diagnostics(reason=reason, now=self.clock(), tick_gap=tick_gap,
+                                     authority_duration=authority_duration)
             if self._batch is not None:
                 for pair in self._batch[3].values():
                     for future in pair:
@@ -151,8 +209,13 @@ class RosPolicyReadback:
         with self._lock:
             value = copy.deepcopy(self._cache)
             received = self._received
+            diagnostics = copy.deepcopy(self._diagnostics)
+            diagnostics_received = self._diagnostics_received
         age = None if received is None else max(0.0, self.clock() - received)
         value["age_s"] = age
+        if diagnostics is not None:
+            diagnostics["age_s"] = max(0.0, self.clock() - diagnostics_received)
+            value["diagnostics"] = diagnostics
         if age is None or age > POLICY_TTL_S:
             value["status"] = "stale" if received is not None else "unavailable"
         return value

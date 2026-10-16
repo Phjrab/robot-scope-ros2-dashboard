@@ -21,6 +21,45 @@ POLICY_OBSERVER_REASONS = frozenset((
     "POLICY_SERVICES_UNAVAILABLE", "POLICY_SOURCE_CHANGED_DURING_READBACK",
     "POLICY_READBACK_TIMEOUT", "POLICY_PARTIAL_READBACK", "POLICY_READBACK_FAILED",
 ))
+POLICY_DIAGNOSTICS_SCHEMA = "robot-scope.nav2-policy-timing.v1"
+POLICY_ENDPOINTS = tuple(node + "/" + service for node in sorted(REQUIRED_NODES)
+                         for service in ("get_parameters", "get_state"))
+
+
+def _nonnegative_finite(value):
+    try:
+        return value if type(value) in {int, float} and math.isfinite(value) and value >= 0 else None
+    except OverflowError:
+        return None
+
+
+def _readback_diagnostics(value):
+    """Project the last finished attempt; timestamps never attest enforcement."""
+    if not isinstance(value, dict) or value.get("schema") != POLICY_DIAGNOSTICS_SCHEMA:
+        return None
+    outcome = value.get("outcome")
+    reason = value.get("reason")
+    if outcome not in ("completed", "failed"):
+        return None
+    if reason is not None and (not isinstance(reason, str) or reason not in POLICY_OBSERVER_REASONS):
+        reason = "POLICY_READBACK_FAILED"
+    sequence = value.get("attempt_sequence")
+    if type(sequence) is not int or not 0 <= sequence <= 2**63 - 1:
+        sequence = None
+    result = {"schema": POLICY_DIAGNOSTICS_SCHEMA, "outcome": outcome,
+              "reason": reason, "attempt_sequence": sequence}
+    for name in ("age_s", "batch_age_s", "tick_gap_s", "authority_duration_s", "dispatch_duration_s"):
+        result[name] = _nonnegative_finite(value.get(name))
+    raw = value.get("endpoints")
+    result["endpoints"] = {}
+    if isinstance(raw, dict):
+        for endpoint in POLICY_ENDPOINTS:
+            entry = raw.get(endpoint)
+            if isinstance(entry, dict):
+                result["endpoints"][endpoint] = {
+                    key: entry.get(key) if type(entry.get(key)) is bool else None
+                    for key in ("dispatched", "done", "cancelled")}
+    return result
 
 
 def _observer_evidence(readback):
@@ -41,7 +80,11 @@ def _observer_evidence(readback):
     sequence = readback.get("sequence")
     if type(sequence) is not int or not 0 <= sequence <= 2**63 - 1:
         sequence = None
-    return {"observer_status": status, "reason": reason, "age_s": age, "sequence": sequence}
+    result = {"observer_status": status, "reason": reason, "age_s": age, "sequence": sequence}
+    diagnostics = _readback_diagnostics(readback.get("diagnostics"))
+    if diagnostics is not None:
+        result["diagnostics"] = diagnostics
+    return result
 
 
 def semantic_policy(policy):

@@ -208,6 +208,25 @@ async def export(package_id: str, request: Request,
     return StreamingResponse(chunks(), media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="{package_id}.zip"'})
 
 
+@router.get("/api/v1/slam/packages/{package_id}/preview-export")
+async def export_preview(package_id: str, request: Request,
+                         expected_revision: str = Query(pattern=r"^[0-9a-f]{64}$")) -> StreamingResponse:
+    try:
+        handle, _ = await asyncio.to_thread(_manager(request).packages.export_preview,
+                                           package_id, expected_revision=expected_revision)
+    except MapPackageError as exc:
+        raise _error(exc) from exc
+
+    def chunks():
+        try:
+            while chunk := handle.read(65536):
+                yield chunk
+        finally:
+            handle.close()
+    return StreamingResponse(chunks(), media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{package_id}-preview.zip"'})
+
+
 @router.post("/api/v1/slam/packages/import", status_code=201)
 async def import_package(request: Request) -> dict[str, Any]:
     require_same_origin(request)

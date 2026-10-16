@@ -1,6 +1,6 @@
 # MAP-02 retained-landmark completeness
 
-Updated 2026-10-15 KST. **PARTIAL / hardware acceptance BLOCKED.** Global map
+Updated 2026-10-16 KST. **PARTIAL / full-retained acceptance BLOCKED.** Global map
 visualization and access to every retained native landmark are separate results.
 This follow-up fixes a false completeness condition and investigates the actual
 installed SDK without starting a container, camera, ROS pipeline or GPU job.
@@ -116,3 +116,47 @@ candidate verification belongs to the integration owner.
 
 Other LiDAR/MR acceptance can proceed independently. MS's full original retained
 map requirement remains unfulfilled and must not be reported COMPLETE.
+
+## Saved visualization export follow-up
+
+The existing dashboard native ZIP already preserves the official native DB,
+manifest and saved preview JSON. The saved manual-observation preview has13,993
+exported global XYZ points, a1024-point bounded SLAM path and one saved camera
+pose. The independent private collector's230 camera samples are separate
+evidence; a saved preview does not contain that full sample series. The exact
+runtime and observation record remain in `STEREO_OBSERVATION.json`.
+
+`GET /api/v1/slam/packages/{id}/preview-export?expected_revision=<revision>` now
+adds a separate read-only ZIP with XYZ, trajectory CSV, single camera-pose CSV
+and provenance JSON. It reuses the package store's revision/hash checks and
+private spooled download path. The native ZIP format/import path is unchanged.
+The export never starts an adapter, contacts hardware, reads native DB layout,
+adds points or synthesizes native IDs. Each source stamp/frame/epoch remains
+bound to the saved layer; current runtime identity or download time is not
+substituted for missing capture evidence. The saved approximate preview
+relationship remains approximate.
+
+The exporter independently rejects nonfinite/out-of-range coordinates,
+frame/epoch mismatches, invalid pose geometry and CSV identifiers, more than
+60,000 points per layer and output beyond32MiB/store limits. File hashes and row
+counts are recorded. A source `complete` declaration is retained only as a
+declaration; derived coverage remains unknown, engine total remains null and
+native completeness is explicitly unverified. Source subset coverage stays
+subset. This completes usable export of saved visualization data, not MAP-02's
+full retained native export.
+
+Focused software regression: saved-preview export5 PASS, SLAM API16 PASS and
+existing native packages20 PASS. These cover exact coordinates/source stamps,
+unknown capture time, no native reads/runtime calls, bounded validation,
+revision/hash conflicts, source completeness claims and unchanged native ZIP
+roundtrip. No full source suite, deployment, SDK installation, camera or robot
+operation was repeated for this follow-up. Full-retained acceptance still
+requires the vendor/SDK guarantees and qualified runtime comparison listed above.
+
+The same serializer was also checked offline against the retained real manual
+preview:13,993 XYZ rows,1024 bounded trajectory rows and one camera-pose row,
+with unknown coverage, approximate consistency and null capture time preserved.
+This is saved-evidence software verification, not deployed runtime acceptance.
+The derived ZIP and hash/identity record remain private as
+`vslam-followup-20261016-1852/manual01/product-preview-export-offline-v3.zip`
+and its `-verification.json` sibling. Original native/preview evidence is intact.

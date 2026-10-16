@@ -2,11 +2,13 @@
 
 import asyncio
 from copy import deepcopy
+import io
 import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+import zipfile
 
 from fastapi import FastAPI
 
@@ -117,13 +119,13 @@ class SlamApiTests(unittest.IsolatedAsyncioTestCase):
         return SimpleNamespace(status=start["status"], content=content, json=lambda: json.loads(content),
                                headers=dict(start["headers"]))
 
-    async def publish(self):
+    async def publish(self, preview=None):
         staging = self.store.create_staging()
         (staging.native_path / "data.mdb").write_bytes(b"SYNTHETIC native fixture")
         return self.store.publish_staging(staging.token, official_save_completed=True,
             required_native_files=["data.mdb"], metadata={"name": "Fixture room",
                 "engine_id": "visual_stereo", "data_provenance": "synthetic_fixture", "map_frame": "map"},
-            preview={"points": [[1, 2, 3]], "coverage": "unknown"})
+            preview=preview if preview is not None else {"points": [[1, 2, 3]], "coverage": "unknown"})
 
     def start_body(self, **changes):
         return dict(engine_id="visual_stereo", task="mapping", request_id="request-0001",
@@ -261,6 +263,22 @@ class SlamApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.request("GET", path+"?expected_revision="+package["revision"])
         self.assertEqual(response.status, 200)
         self.assertTrue(response.content.startswith(b"PK"))
+        self.assertEqual(self.manager.calls, [])
+
+    async def test_saved_preview_export_requires_revision_and_does_not_launch_runtime(self):
+        package = await self.publish(preview=dict(frame_id="map", map_epoch="fixture-epoch",
+            global_map=dict(points=[[1, 2, 3]], coordinate_frame="map", map_epoch="fixture-epoch",
+                            coverage="unknown", source_timestamp_ns="1792144977080785000")))
+        path = f'/api/v1/slam/packages/{package["id"]}/preview-export'
+        self.assertEqual((await self.request("GET", path)).status, 422)
+        self.assertEqual((await self.request("GET", path+"?expected_revision="+"0"*64)).status, 409)
+        self.competition.locked = True
+        response = await self.request("GET", path+"?expected_revision="+package["revision"], headers={"origin": None})
+        self.assertEqual(response.status, 200, response.content)
+        self.assertEqual(response.headers[b"content-type"], b"application/zip")
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            self.assertEqual(archive.read("global-map.xyz"), b"1 2 3\n")
+            self.assertFalse(json.loads(archive.read("provenance.json"))["native_full_map_export"])
         self.assertEqual(self.manager.calls, [])
 
     async def websocket_messages(self, origin="http://testserver"):

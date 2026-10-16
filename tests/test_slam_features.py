@@ -7,6 +7,7 @@ import random
 import struct
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from robot_dashboard.slam_features import (
     FeatureStream, FeatureValidationError, NativeFullSnapshotEvidence, StreamContext,
@@ -238,6 +239,81 @@ class FeaturePairingTests(unittest.TestCase):
         reset = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[self.stamp])
         self.assertEqual(reset["overlay"]["reason"], "WAITING_IMAGE")
         self.assertIsNone(reset["image_selection"]["selected_timestamp_ns"])
+
+    def test_alignment_diagnostics_distinguish_missing_pixels_from_metadata_and_reset(self):
+        self.inputs()
+        newer = self.stamp + 33_333_333
+        self.stream.record_image(context=self.context, stamp_ns=newer, camera_id="left", width=100,
+            height=100, calibration_revision="cal-1", frame_id="left_optical", received_at=100.1)
+        failed = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[newer])
+        diagnostic = failed["alignment_diagnostics"]
+        self.assertEqual(diagnostic["metadata_caches"]["image"]["count"], 2)
+        self.assertEqual(diagnostic["pixel_candidate_count"], 1)
+        self.assertEqual(diagnostic["pixel_min_stamp_ns"], str(newer))
+        self.assertEqual(diagnostic["candidate_reason_counts"], {"NO_VALID_TIME_ALIGNMENT": 1})
+        self.assertEqual(diagnostic["evaluated_candidates"][0]["source_stamps"]["pose"], str(self.stamp))
+        self.assertEqual(failed["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
+        success = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[newer, self.stamp])
+        self.assertEqual(success["alignment_diagnostics"]["candidate_reason_counts"],
+                         {"NO_VALID_TIME_ALIGNMENT": 1, "ALIGNED": 1})
+        diagnostic["metadata_caches"]["pose"]["count"] = 999
+        self.assertEqual(success["alignment_diagnostics"]["metadata_caches"]["pose"]["count"], 1)
+        self.stream.reset(StreamContext("next", 3, "new-epoch"))
+        reset = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[])
+        self.assertTrue(all(item["count"] == 0 for item in reset["alignment_diagnostics"]["metadata_caches"].values()))
+
+    def test_alignment_diagnostic_candidate_details_are_bounded_without_changing_guard(self):
+        stamps = [self.stamp + i*33_333_333 for i in range(16)]
+        self.inputs(pose_stamp=self.stamp-100_000_000)
+        for stamp in stamps[1:]:
+            self.stream.record_image(context=self.context, stamp_ns=stamp, camera_id="left", width=100,
+                height=100, calibration_revision="cal-1", frame_id="left_optical", received_at=100)
+        result = self.stream.frame(now_monotonic=100.1, image_timestamps_ns=stamps)
+        diagnostic = result["alignment_diagnostics"]
+        self.assertEqual(diagnostic["evaluated_count"], 16)
+        self.assertEqual(len(diagnostic["evaluated_candidates"]), 4)
+        self.assertEqual(diagnostic["candidate_reason_counts"], {"NO_VALID_TIME_ALIGNMENT": 16})
+        self.assertEqual(diagnostic["tolerance_ns"], "20000000")
+        self.assertEqual(diagnostic["stale_after_s"], 1.0)
+        self.assertEqual(result["overlay"]["points"], [])
+
+    def test_wire_budget_reduces_candidate_details_without_changing_failed_selection(self):
+        self.inputs(pose_stamp=self.stamp-100_000_000)
+        stamps = [self.stamp + i*33_333_333 for i in range(4)]
+        for stamp in stamps[1:]:
+            self.stream.record_image(context=self.context, stamp_ns=stamp, camera_id="left",
+                width=100, height=100, calibration_revision="cal-1", frame_id="left_optical", received_at=100)
+        self.stream.max_wire_bytes = 4096
+        with patch.object(self.stream, "_alignment_diagnostics", return_value={}):
+            baseline = self.stream.frame(now_monotonic=100.1, image_timestamps_ns=stamps)
+        result = self.stream.frame(now_monotonic=100.1, image_timestamps_ns=stamps)
+        self.assertLessEqual(len(json.dumps(result, separators=(",", ":")).encode()), 4096)
+        diagnostic = result["alignment_diagnostics"]
+        self.assertEqual(diagnostic["evaluated_count"], 4)
+        self.assertLess(len(diagnostic["evaluated_candidates"]), 4)
+        self.assertGreater(diagnostic["candidate_details_omitted_for_wire_budget"], 0)
+        for frame in (baseline, result):
+            frame.pop("sequence")
+            frame.pop("alignment_diagnostics", None)
+        self.assertEqual(result, baseline)
+
+    def test_wire_budget_omits_diagnostics_before_reducing_product_geometry(self):
+        for count in (10, 20):
+            with self.subTest(source_points=count):
+                self.setUp()
+                self.inputs()
+                self.stream.replace_global(cloud([(i/7, i/13, i/17) for i in range(count)]),
+                    context=self.context, source_id="map", provenance="engine")
+                self.stream.max_wire_bytes = 4096
+                with patch.object(self.stream, "_alignment_diagnostics", return_value={}):
+                    baseline = self.stream.frame(now_monotonic=100.1, image_timestamps_ns=[self.stamp])
+                result = self.stream.frame(now_monotonic=100.1, image_timestamps_ns=[self.stamp])
+                self.assertLessEqual(len(json.dumps(result, separators=(",", ":")).encode()), 4096)
+                self.assertNotIn("alignment_diagnostics", result)
+                for frame in (baseline, result):
+                    frame.pop("sequence")
+                    frame.pop("alignment_diagnostics", None)
+                self.assertEqual(result, baseline)
 
     def test_out_of_order_packets_choose_newest_source_image(self):
         self.inputs(image_stamp=self.stamp+5_000_000, info_stamp=self.stamp+5_000_000,

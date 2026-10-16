@@ -537,6 +537,7 @@ class IsaacStereoAdapter:
                     while (len(history) > STEREO_HISTORY_SIZE
                            or sum(len(item["data"]) for item in history) > MAX_IMAGE_HISTORY_BYTES):
                         history.popleft()
+                        job["image_history_evictions"] = job.get("image_history_evictions", 0) + 1
                 if key in {"image", "right_image"}:
                     # Callback order is not a stereo synchronizer. Retain only
                     # bounded metadata, not another history of image payloads,
@@ -655,6 +656,17 @@ class IsaacStereoAdapter:
             ready = all(fresh.values()) and tracking == "TRACKING" and bool(job["effective_parameters"])
             pair = self._stereo_pair(job, now)
             stereo = {"matched": pair is not None, "source_tolerance_ns": "5000000"}
+            cached = job.get("stereo_history", {})
+            stereo["histories"] = {}
+            for side in ("image", "right_image"):
+                entries = list(cached.get(side, [frames[side]] if side in frames else []))
+                stamps = [item["stamp_ns"] for item in entries]
+                stereo["histories"][side] = {
+                    "retained_count": len(entries), "capacity": STEREO_HISTORY_SIZE,
+                    "fresh_count": sum(now-item["received_monotonic"] <= 1.0 for item in entries),
+                    "min_stamp_ns": str(min(stamps)) if stamps else None,
+                    "max_stamp_ns": str(max(stamps)) if stamps else None,
+                }
             if pair is not None:
                 left, right = pair
                 stereo.update(left_timestamp_ns=str(left["stamp_ns"]),
@@ -700,6 +712,19 @@ class IsaacStereoAdapter:
             history = {str(image["stamp_ns"]): image for image in job.get("image_history", ())
                        if now-image["received_monotonic"] <= 1.0}
             result = job["features"].frame(now_monotonic=now, image_timestamps_ns=list(history))
+            retained = job.get("image_history", ())
+            diagnostics = result.get("alignment_diagnostics")
+            # FeatureStream may omit optional diagnostics to preserve geometry
+            # within its wire budget. Do not recreate them or suppress media.
+            if isinstance(diagnostics, dict):
+                diagnostics["pixel_cache"] = {
+                    "retained_count": len(retained), "fresh_count": len(history),
+                    "capacity": STEREO_HISTORY_SIZE, "byte_limit": MAX_IMAGE_HISTORY_BYTES,
+                    "retained_bytes": sum(len(item["data"]) for item in retained),
+                    "evicted_count": job.get("image_history_evictions", 0),
+                    "min_stamp_ns": str(min(item["stamp_ns"] for item in retained)) if retained else None,
+                    "max_stamp_ns": str(max(item["stamp_ns"] for item in retained)) if retained else None,
+                }
             selection = result.get("image_selection", {})
             if selection.get("kind") == "newest_fresh_completed_quartet":
                 frames["image"] = copy.deepcopy(history[selection["selected_timestamp_ns"]])
@@ -824,6 +849,7 @@ class IsaacStereoAdapter:
             job["frames"].clear()
             job.pop("stereo_history", None)
             job.pop("image_history", None)
+            job.pop("image_history_evictions", None)
         completed = False
         try:
             response = self._call(job, LocalizeInMap, SLAM_ROOT + "/localize_in_map", request, 25.0)
@@ -833,6 +859,7 @@ class IsaacStereoAdapter:
                 job["features"].reset(job["feature_context"])
                 job["frames"].clear()
                 job.pop("image_history", None)
+                job.pop("image_history_evictions", None)
                 # A failed/timeout request may still have changed the native
                 # estimator. Require new source-time output in either outcome.
                 try:

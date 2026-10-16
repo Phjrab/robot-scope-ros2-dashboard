@@ -12,6 +12,16 @@ discarded. Cleanup uncertainty retains ownership/private files. Preview is
 approximate unless an authoritative common native snapshot ID is available.
 Camera pixels are excluded from saved previews.
 
+The original native ZIP retains `manifest.json`, native artifacts and
+`preview/snapshot.json`. A separate revision-pinned preview export derives
+`global-map.xyz`, bounded `trajectory.csv`, single-pose `camera-pose.csv` and
+`provenance.json` from that saved snapshot. It preserves source stamps and the
+saved approximate/unknown capture relationship; it does not read the native DB
+or claim full native landmark coverage. Missing layers are declared unavailable,
+invalid geometry rejects the whole export, and no points or IDs are invented.
+Per-layer60,000-point and32MiB/store limits bound the derived ZIP. A native ZIP
+remains the importable package; the derived preview ZIP is an analysis artifact.
+
 Display rename preserves ID/native bytes and changes metadata revision. Copy/
 export/import verify original hashes. Native bytes are never parsed or edited.
 Archives reject traversal, absolute/backslash/drive paths, links, special files,

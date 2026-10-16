@@ -1,3 +1,11 @@
+# Current non-driving continuation
+
+The user reopened all remaining work except driving on 2026-10-16.
+See [NONMOTION_FOLLOWUP.md](../integration-acceptance/NONMOTION_FOLLOWUP.md) and its validation record for the
+new candidate. The control bridge remains intentionally stopped for manual
+handover; preserve that state across any separately approved deployment.
+The historical windows and approvals below do not override this current record.
+
 # MR 인계
 
 기록 UTC: 2026-10-15T06:45:34.358571+00:00. source `22c7913c879afcca536a78d552dcdf98f0f53098` / base `7747ef7`. **전체 PARTIAL**: 실제 제품 코드와 software 통합은 적용·검증됐지만 MR-MS-003 policy_provider 미연결로 실행 시작이 차단된다. 먼저 PROGRESS, OWNERSHIP, INTEGRATION_REQUESTS와 VALIDATION을 읽는다.

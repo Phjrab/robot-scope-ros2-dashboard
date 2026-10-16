@@ -186,6 +186,8 @@ class RuntimeCallbackTests(unittest.TestCase):
             self.assertEqual(status["stereo_pair"]["left_timestamp_ns"], str(stamp))
             self.assertEqual(status["stereo_pair"]["right_timestamp_ns"], str(stamp))
             self.assertEqual(status["stereo_pair"]["skew_ns"], "0")
+            self.assertEqual(status["stereo_pair"]["histories"]["image"]["retained_count"], 2)
+            self.assertEqual(status["stereo_pair"]["histories"]["right_image"]["fresh_count"], 1)
             # Pixels keep their actual newest stamp; unmatched optical geometry
             # is unavailable without suppressing the image or corrected 6DoF pose.
             frame = self.adapter.frame(self.session)
@@ -241,6 +243,38 @@ class RuntimeCallbackTests(unittest.TestCase):
             self.assertEqual(fallback["image"]["stamp_ns"], str(latest))
             self.assertEqual(fallback["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
 
+    def test_small_feature_wire_budget_preserves_runtime_image_pose_and_geometry_without_diagnostics(self):
+        self._production_observer()
+        self.job["topics"]["landmarks"] = "/test/landmarks"
+        self.job["features"].max_wire_bytes = 4096
+        stamp = 100_000_000_000
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", stamp)
+            self._image("right_image", stamp)
+            self._calibration_and_tracking(stamp)
+            self.adapter._receive(self.job, "observations", cloud([(3,2,3)]))
+            self.adapter._receive(self.job, "landmarks", cloud([(i/7, i/13, i/17) for i in range(4)]))
+            with patch.dict("sys.modules", {"PIL": None}):
+                with patch.object(self.job["features"], "_alignment_diagnostics", return_value={}):
+                    baseline = self.adapter.frame(self.session)
+                frame = self.adapter.frame(self.session)
+        self.assertNotIn("alignment_diagnostics", frame)
+        self.assertTrue(frame["readiness"]["ready"])
+        self.assertEqual(frame["image"]["stamp_ns"], str(stamp))
+        expected = encode_png(dict(encoding="mono8", width=4, height=4, step=4, data=bytes([64]*16)))
+        self.assertEqual(base64.b64decode(frame["image"]["png_base64"]), expected)
+        self.assertEqual(frame["camera_pose"]["position"], [1,2,3])
+        self.assertEqual(frame["camera_pose"]["quaternion_xyzw"], [0.5]*4)
+        self.assertEqual(frame["camera_pose"]["stamp_ns"], str(stamp))
+        self.assertEqual(frame["image_selection"]["kind"], "newest_fresh_completed_quartet")
+        self.assertTrue(frame["camera_view"]["available"])
+        self.assertEqual(frame["overlay"]["points"], [[2.0,2.0]])
+        self.assertEqual(len(frame["global_map"]["points"]), 4)
+        for result in (baseline, frame):
+            result.pop("sequence")
+            result.pop("alignment_diagnostics", None)
+        self.assertEqual(frame, baseline)
+
     def test_pixel_history_is_bounded_by_count_and_bytes_and_expired_pixels_do_not_align(self):
         self._production_observer()
         self.assertEqual(MAX_IMAGE_HISTORY_BYTES, 16*1024*1024)
@@ -248,6 +282,11 @@ class RuntimeCallbackTests(unittest.TestCase):
             for index in range(STEREO_HISTORY_SIZE+3):
                 self._image("image", 100_000_000_000+index*33_333_333)
             self.assertEqual(len(self.job["image_history"]), STEREO_HISTORY_SIZE)
+            diagnostic = self.adapter.frame(self.session)["alignment_diagnostics"]["pixel_cache"]
+            self.assertEqual(diagnostic["evicted_count"], 3)
+            self.assertEqual(diagnostic["retained_count"], STEREO_HISTORY_SIZE)
+            self.assertEqual(diagnostic["fresh_count"], STEREO_HISTORY_SIZE)
+            self.assertEqual(diagnostic["retained_bytes"], STEREO_HISTORY_SIZE*16)
         with patch("robot_dashboard.slam_ros_runtime.MAX_IMAGE_HISTORY_BYTES", 32), \
                 patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
             self._image("image", 101_000_000_000)
@@ -265,6 +304,9 @@ class RuntimeCallbackTests(unittest.TestCase):
         self.assertEqual(frame["image"]["stamp_ns"], "100033333333")
         self.assertEqual(frame["image_selection"]["kind"], "latest_input")
         self.assertEqual(frame["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
+        diagnostic = frame["alignment_diagnostics"]["pixel_cache"]
+        self.assertEqual(diagnostic["retained_count"], 2)
+        self.assertEqual(diagnostic["fresh_count"], 1)
 
     def test_pair_matching_preserves_five_millisecond_limit(self):
         for skew, expected in ((5_000_000, True), (5_000_001, False)):

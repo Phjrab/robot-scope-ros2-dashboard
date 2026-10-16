@@ -1,3 +1,11 @@
+# Current non-driving continuation
+
+The user reopened all remaining work except driving on 2026-10-16.
+See [NONMOTION_FOLLOWUP.md](NONMOTION_FOLLOWUP.md) and its validation record for the
+new candidate. The control bridge remains intentionally stopped for manual
+handover; preserve that state across any separately approved deployment.
+The historical windows and approvals below do not override this current record.
+
 # Current integration priority — Stereo observation
 
 The 2026-10-16 user request reopens work specifically for real dashboard-controlled

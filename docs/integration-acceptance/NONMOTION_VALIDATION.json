@@ -1,0 +1,101 @@
+{
+  "schema": "robot-scope.nonmotion-software-validation.v1",
+  "recorded_at_utc": "2026-10-16T10:34:52.646388+00:00",
+  "baseline_source": "361c0191e7a0816947f40f8bfb462466a7b8aa41",
+  "deployed_source_before": "50a30f29580df19450e033fd35777862845b99f7",
+  "source_and_test_sha256": {
+    "deploy/robot-scope.env.example": "0394a1a4a79c46950a6709a763a8708e4d2aec42c83fdd6b031d4a7e2b25b5ef",
+    "robot_dashboard/api/routers/slam.py": "48dff5bacba149a175913f14157072e320254783d26f529513873091292417eb",
+    "robot_dashboard/application/lifecycle_coordinator.py": "e1893dcea28a0289cc9bf86ae3f0dbb6d878974f1da54c6a4c2857f269134a0e",
+    "robot_dashboard/navigation_policy.py": "510722c323cafe332da7bb5d4f211163663416a7ed1117661b7d1a6d87845a05",
+    "robot_dashboard/ros/policy_readback.py": "e2ddf6fa9428f600736f48a8bf1bfa82d754784ad19abc2e95418fbeefcf63f3",
+    "robot_dashboard/slam_features.py": "3e3c7e1e795c3df167f6ef79b4ec3e2a00bb96c7f4da5ed367a2b2efbe09e4fd",
+    "robot_dashboard/slam_packages.py": "ab0a6902dbf033c8870d8fb93b2af336f11f4153666d3a0b4956e90ebe0aa1bb",
+    "robot_dashboard/slam_ros_runtime.py": "62c63305712e7b12cebc8facc9067bbd0a04eb0073ba97db06d11db2e90a12d4",
+    "robot_dashboard/static/features/slam/dashboard.js": "e2632e68738e16c3cf05aa8fdf22679708cd2da5df07b8122abb7389cc34383d",
+    "tests/e2e/slam.spec.mjs": "20abfb3bfccc52dff20fc86eafcf43f6b56f558820df4d7b55922f93561a2d97",
+    "tests/test_api_contract_phase8.py": "95c46181ffde39b31c4204bf66cbd832ea764d98c9520299756a3a0f1ab74e04",
+    "tests/test_lifecycle_coordinator.py": "70c0d0376f86ddde7549447ee5a13300d46153f48c1c1b1cd8b0c652acb12654",
+    "tests/test_runtime_policy.py": "b405be8c30c340e71f5259dbb1a6db4a32ba0867a2c0c600347d62b13f9b7a24",
+    "tests/test_slam_api.py": "c64859b680cd7253d2dafe074f0e6f7df83035206931115abf197248af2fa5ac",
+    "tests/test_slam_features.py": "84116da6fa194d23c5c50e090dc8d006c64a9cab4e525ffe34163919932c94e7",
+    "tests/test_slam_ros_runtime.py": "d1702c441d426a28363aaff227bdef63fbcefa4cb02707fcb425dcfc4d2df6dd",
+    "tests/test_slam_ui.mjs": "7f240c267d0fc222b9af0bb43bcf0d438bdfcb0fc6844520b2ae236674a27038",
+    "robot_dashboard/slam_preview_export.py": "e658a1346e0fdc8894f1aef9b970c60572148c7511d3f2de0d7a884b04f23890",
+    "tests/test_policy_readback_diagnostics.py": "afd1bdc62c32b16886e25f22efd6da4e205896d9c2121d6bbb71cc286b6fa0eb",
+    "tests/test_slam_preview_export.py": "7bd585a3e2c9212f11fb1e68ca3ce7851dc4d56a9d0cb452329a65128bd81eb3"
+  },
+  "python": {
+    "tests": 2070,
+    "passed": 2068,
+    "skipped": 2,
+    "failed": 0,
+    "skips": [
+      "optional rosbags backend unavailable",
+      "Linux process session /proc test on macOS"
+    ],
+    "coverage_percent": 76
+  },
+  "javascript": {
+    "passed": 387,
+    "failed": 0
+  },
+  "chromium_e2e": {
+    "passed": 110,
+    "failed": 0
+  },
+  "ruff": "PASS",
+  "mypy": {
+    "status": "PASS",
+    "configured_files": 4
+  },
+  "frontend_syntax": {
+    "status": "PASS",
+    "modules": 83
+  },
+  "tracked_secret_scan": "PASS",
+  "pip_check": "PASS",
+  "diff_check": "PASS",
+  "evidence_type": "hardware_free_software_regression",
+  "live_candidate_validation": "NOT_RUN",
+  "precision_evaluation": "NOT_RUN",
+  "driving_application": false,
+  "logs": {
+    "unittest-final": {
+      "sha256": "ff357b985068bd0b97620e7d917a99dbc764dd91ece0af17e952d5734c3dfcfc",
+      "bytes": 366264
+    },
+    "node": {
+      "sha256": "6d8d6d4dcf044bccacb4eec21ccf86ea55f089b78bc4530b37b1b1d805d8ebcf",
+      "bytes": 104132
+    },
+    "e2e": {
+      "sha256": "a73214a6d49b91bb6d720b42c2aaffcc709dfa53ba1800d557d7097f6fd0ada7",
+      "bytes": 14523
+    },
+    "coverage": {
+      "sha256": "817b7757aad5be2463bb64305698292e5f36fde87ff4c0659af6b0badcd890e3",
+      "bytes": 32249
+    },
+    "ruff": {
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "bytes": 19
+    },
+    "mypy": {
+      "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb",
+      "bytes": 43
+    },
+    "syntax": {
+      "sha256": "15e47e59b945e4709058e7b657507d16b233fc34c6c858207ddcd7b75bea921d",
+      "bytes": 51
+    },
+    "secrets": {
+      "sha256": "f51365351584839cc9f4c5f0d4f0c9ead3ca82b9668aee614bb118f7edb4ae66",
+      "bytes": 34
+    },
+    "pip-check": {
+      "sha256": "a8bffe5b924a788048b73baaa7f585eac6ecc9495560c6db4a2bce412fde2e25",
+      "bytes": 308
+    }
+  }
+}

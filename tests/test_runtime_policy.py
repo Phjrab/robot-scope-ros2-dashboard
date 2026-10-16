@@ -6,7 +6,7 @@ import tempfile
 from types import SimpleNamespace as NS
 import unittest
 
-from robot_dashboard.navigation_policy import POLICY_SCHEMA, POLICY_OBSERVER_REASONS, REQUIRED_NODES, RuntimePolicyProvider
+from robot_dashboard.navigation_policy import POLICY_SCHEMA, POLICY_DIAGNOSTICS_SCHEMA, POLICY_OBSERVER_REASONS, REQUIRED_NODES, RuntimePolicyProvider
 from robot_dashboard.ros.policy_readback import RosPolicyReadback, PARAMETERS, parameter_value
 from robot_dashboard.mission_routes.context import NavigationContext
 from robot_dashboard.mission_routes.wiring import configure_mission_routes
@@ -126,6 +126,50 @@ class PolicyProjectionTests(unittest.TestCase):
         self.assertEqual(self.provider()['evidence'], {'status': 'unavailable'})
         self.assertEqual(RuntimePolicyProvider(lambda: 1 / 0)()['evidence'], {'status': 'unavailable'})
 
+    def test_finished_batch_diagnostics_are_allowlisted_without_changing_semantic_pin(self):
+        for parameters in ({}, observed()['policy_readback']['parameters']):
+            self.raw['policy_readback']['parameters'] = parameters
+            before = self.context.snapshot()['navigation_context_revision']
+            self.raw['policy_readback']['diagnostics'] = {
+                'schema': POLICY_DIAGNOSTICS_SCHEMA, 'outcome': 'failed',
+                'reason': 'POLICY_READBACK_TIMEOUT', 'attempt_sequence': 12,
+                'age_s': .1, 'batch_age_s': .7, 'tick_gap_s': .6,
+                'authority_duration_s': .03, 'dispatch_duration_s': .02,
+                'secret': '/private/path', 'endpoints': {
+                    '/planner_server/get_parameters': {'dispatched': True, 'done': False,
+                        'cancelled': False, 'secret': '/private/path'},
+                    '/unexpected/secret': {'done': True}}}
+            result = self.context.snapshot()
+            diagnostic = result['policy_evidence']['diagnostics']
+            self.assertEqual(result['navigation_context_revision'], before)
+            self.assertFalse(result['runtime_policy_enforced'])
+            self.assertEqual(set(diagnostic['endpoints']), {'/planner_server/get_parameters'})
+            self.assertNotIn('/private/path', repr(diagnostic))
+            self.assertNotIn('secret', repr(diagnostic))
+            self.assertEqual(diagnostic['attempt_sequence'], 12)
+            self.assertEqual(diagnostic['batch_age_s'], .7)
+
+    def test_malformed_batch_diagnostics_remain_bounded_and_unavailable(self):
+        raw = {'schema': POLICY_DIAGNOSTICS_SCHEMA, 'outcome': 'failed',
+            'reason': {'private': 'secret'}, 'attempt_sequence': True,
+            'age_s': float('nan'), 'batch_age_s': 2**4096, 'tick_gap_s': -1,
+            'authority_duration_s': True, 'dispatch_duration_s': 'secret',
+            'endpoints': {'/planner_server/get_parameters': {'dispatched': 1, 'done': 'secret',
+                'cancelled': []}}}
+        self.raw['policy_readback'].update(parameters={}, diagnostics=raw)
+        result = self.provider()
+        diagnostic = result['evidence']['diagnostics']
+        self.assertFalse(result['runtime_policy_enforced'])
+        self.assertEqual(diagnostic['reason'], 'POLICY_READBACK_FAILED')
+        for key in ('attempt_sequence', 'age_s', 'batch_age_s', 'tick_gap_s',
+                    'authority_duration_s', 'dispatch_duration_s'):
+            self.assertIsNone(diagnostic[key])
+        self.assertEqual(diagnostic['endpoints']['/planner_server/get_parameters'],
+            dict(dispatched=None, done=None, cancelled=None))
+        for value in ({'schema': 'unknown'}, {**raw, 'outcome': ['private']}, [], 'secret'):
+            self.raw['policy_readback']['diagnostics'] = value
+            self.assertNotIn('diagnostics', self.provider()['evidence'])
+
     def test_explicit_legacy_provider_heartbeat_ignored(self):
         p = dict(runtime_policy_enforced=True, planner_config_digest='a'*64, footprint_revision='b'*64, robot_radius_m=.25)
         self.context.policy_provider = lambda: p
@@ -228,11 +272,17 @@ class ProductionFactoryTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(report['planner_config_digest'])
             self.assertIn('POLICY_MASK_INGESTION_UNVERIFIED', report['blocking_reasons'])
             raw['policy_readback'].update(parameters={}, status='unavailable',
-                reason='POLICY_SERVICES_UNAVAILABLE', age_s=None, sequence=0)
+                reason='POLICY_SERVICES_UNAVAILABLE', age_s=None, sequence=0,
+                diagnostics={'schema': POLICY_DIAGNOSTICS_SCHEMA, 'outcome': 'failed',
+                    'reason': 'POLICY_SERVICES_UNAVAILABLE', 'attempt_sequence': 1,
+                    'endpoints': {'/planner_server/get_parameters': {
+                        'dispatched': False, 'done': None, 'cancelled': None}}})
             report = runtime.mission_routes.context.snapshot()
             self.assertFalse(report['runtime_policy_enforced'])
             self.assertIn('POLICY_SERVICES_UNAVAILABLE', report['blocking_reasons'])
             self.assertEqual(report['policy_evidence']['reason'], 'POLICY_SERVICES_UNAVAILABLE')
             self.assertEqual(report['policy_evidence']['status'], 'unavailable')
+            self.assertFalse(report['policy_evidence']['diagnostics']['endpoints']
+                             ['/planner_server/get_parameters']['dispatched'])
             self.assertEqual(nav.sent, [])
             await mission.close()
