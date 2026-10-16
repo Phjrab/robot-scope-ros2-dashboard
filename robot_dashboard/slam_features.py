@@ -586,15 +586,19 @@ class FeatureStream:
                 self._poses.clear()
             return True
 
-    def _overlay(self, now: float) -> dict[str, Any]:
+    def _image(self, stamp: str | None = None) -> dict[str, Any] | None:
+        images = [p for p in self._images if stamp is None or p["stamp"] == stamp]
+        return max(images, key=lambda p: int(p["stamp"])) if images else None
+
+    def _overlay(self, now: float, image_stamp: str | None = None) -> dict[str, Any]:
         result: dict[str, Any] = dict(overlay_kind="unavailable", reason="WAITING_IMAGE", points=[],
                                     native_ids_available=False, confidence=None, track_age=None)
         if self._clock_reset:
             result["reason"] = "SOURCE_CLOCK_RESET"
             return result
-        if not self._images:
+        image = self._image(image_stamp)
+        if image is None:
             return result
-        image = max(self._images, key=lambda p: int(p["stamp"]))
         result["image"] = {k: v for k, v in image.items() if k not in ("received", "stamp")}
         result["image"]["source_timestamp_ns"] = image["stamp"]
         result["receive_age_seconds"] = max(0.0, now-image["received"])
@@ -624,6 +628,8 @@ class FeatureStream:
             return result
         stamps = [int(p["stamp"]) for p in (image, info, observations, pose)]
         skew = max(stamps)-min(stamps)
+        result["alignment_source_timestamps_ns"] = dict(image=image["stamp"],
+            calibration=info["stamp"], observations=observations["stamp"], pose=pose["stamp"])
         result["overlay_skew_ns"] = str(skew)
         if skew > self.tolerance_ns:
             result["reason"] = "NO_VALID_TIME_ALIGNMENT"
@@ -693,7 +699,8 @@ class FeatureStream:
             source_count=parsed.source_count, decimation=len(points) < len(parsed.points))
         return result
 
-    def camera_view(self, *, now_monotonic: float | None = None) -> dict[str, Any]:
+    def camera_view(self, *, now_monotonic: float | None = None,
+                    image_timestamp_ns: Any = None) -> dict[str, Any]:
         """Confirmed optical camera geometry, independent of feature export.
 
         A renderer may use this pinhole pose for illustrative rays/frusta. Its
@@ -716,9 +723,9 @@ class FeatureStream:
             if self._tracking_state in ("LOST", "STOPPED"):
                 result["reason"] = self._tracking_state
                 return result
-            if not self._images:
+            image = self._image(None if image_timestamp_ns is None else timestamp_ns(image_timestamp_ns))
+            if image is None:
                 return result
-            image = max(self._images, key=lambda p: int(p["stamp"]))
             if now-image["received"] > self.stale_after:
                 result["reason"] = "STALE_SOURCE"
                 return result
@@ -736,6 +743,9 @@ class FeatureStream:
             info, pose = nearest(infos), nearest(poses)
             stamps = [int(p["stamp"]) for p in (image, info, pose)]
             skew = max(stamps)-min(stamps)
+            result["alignment_source_timestamps_ns"] = dict(image=image["stamp"],
+                calibration=info["stamp"], pose=pose["stamp"])
+            result["skew_ns"] = str(skew)
             if skew > self.tolerance_ns:
                 result["reason"] = "NO_VALID_TIME_ALIGNMENT"
                 return result
@@ -751,17 +761,31 @@ class FeatureStream:
                 skew_ns=str(skew), image_sequence=image["sequence"])
             return result
 
-    def frame(self, *, now_monotonic: float | None = None) -> dict[str, Any]:
+    def frame(self, *, now_monotonic: float | None = None,
+              image_timestamps_ns: Sequence[Any] | None = None) -> dict[str, Any]:
         with self._lock:
             now = self._received(now_monotonic)
             self._sequence += 1
             context = self.context
             overlay = self._overlay(now)
+            selected_stamp = None
+            # Only the adapter can attest that exact pixels remain available.
+            # A metadata-only historical image must never replace current media.
+            if image_timestamps_ns is not None:
+                if len(image_timestamps_ns) > self.cache_size:
+                    raise FeatureValidationError("IMAGE_SELECTION_LIMIT")
+                stamps = sorted({timestamp_ns(stamp) for stamp in image_timestamps_ns}, key=int, reverse=True)
+                for stamp in stamps:
+                    candidate = overlay if stamp == overlay.get("image", {}).get("source_timestamp_ns") else self._overlay(now, stamp)
+                    if candidate["reason"] is None:
+                        overlay, selected_stamp = candidate, stamp
+                        break
             observations = self._current_observations(now)
             latest_image = max(self._images, key=lambda p: int(p["stamp"])) if self._images else None
+            selected_image = self._image(selected_stamp) if selected_stamp is not None else latest_image
             source_stamp = overlay.get("source_timestamp_ns", overlay.get("image", {}).get("source_timestamp_ns"))
             source_id = overlay.get("source_id", overlay.get("image", {}).get("source_id"))
-            receipt = latest_image["received"] if latest_image is not None else None
+            receipt = selected_image["received"] if selected_image is not None else None
             if source_stamp is None and observations.get("available"):
                 source_stamp, source_id = observations["source_timestamp_ns"], observations["source_id"]
                 receipt = observations["received_at"]
@@ -779,9 +803,14 @@ class FeatureStream:
                 heartbeat_receive_age_seconds=None if self._heartbeat_at is None else max(0, now-self._heartbeat_at),
                 stream_connected=self._heartbeat_at is not None and now-self._heartbeat_at <= self.stale_after,
                 discarded_context_frames=self._discarded_contexts, overlay=overlay,
-                camera_view=self.camera_view(now_monotonic=now),
+                camera_view=self.camera_view(now_monotonic=now, image_timestamp_ns=selected_stamp),
                 current_observations=observations,
                 global_map=self.global_snapshot(), trajectory=None if self._trajectory is None else dict(self._trajectory))
+            if image_timestamps_ns is not None:
+                result["image_selection"] = dict(kind="newest_fresh_completed_quartet" if selected_stamp else "latest_input",
+                    selected_timestamp_ns=None if selected_image is None else selected_image["stamp"],
+                    latest_timestamp_ns=None if latest_image is None else latest_image["stamp"],
+                    receive_age_seconds=None if selected_image is None else max(0.0, now-selected_image["received"]))
             # Each call returns a detached snapshot. No consumer queue can append
             # to this source; transports retain at most their latest two frames.
             while True:

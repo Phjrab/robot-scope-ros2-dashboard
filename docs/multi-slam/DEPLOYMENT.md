@@ -1,14 +1,23 @@
-# Deployment gate — not executed
+# Deployment gate — first observation completed
 
-This document is a review checklist for stage16, not permission to operate.
+This document preserves the stage16 review gates, not permission to operate.
 Do not deploy/restart/take camera merely because software tests pass.
+
+The user approved the reviewed installation of source `ffa1b21` and the first
+stationary dashboard-controlled Stereo session completed successfully, including
+normal stop and camera cleanup. Overlay alignment remains partial; the
+matched-image improvement awaits a short stationary revalidation with unchanged
+guards. Exact source/runtime/config and the completed versus remaining scope are
+recorded in [STEREO_OBSERVATION.md](../integration-acceptance/STEREO_OBSERVATION.md)
+and [STEREO_OBSERVATION.json](../integration-acceptance/STEREO_OBSERVATION.json).
 
 Record exact candidate SHA and completed CI, current deployed SHA/dirty state,
 rollback release, named operator/resource window, camera owner/viewers/container,
 map/config hashes and private backup location. Preserve the existing Isaac image,
 experiment workspace, datasets, maps, Nav2 policies and control services.
 MS is the shared integrator; agree a deployment/performance window with MR and
-hardware/UI/resource owners. None exists for this software delivery.
+hardware/UI/resource owners. The first approved stationary window is complete;
+extensions must follow their current applicable conditions.
 
 The dashboard loads the integration without starting devices. Its preferred
 optional environment key is ROBOT_SCOPE_SLAM_BROKER_SOCKET, an absolute private
@@ -23,7 +32,8 @@ multi-slam/packages), private0700 parents,0600 files, same UID, and shared camer
 lock visible to both broker and RGB relay. The relay's ROBOT_SCOPE_CAMERA_LOCK
 must name this same file; do not allow an uncoordinated relay to respawn.
 Do not remove an existing broker socket without owner/process investigation.
-No new systemd unit or restart has been installed by this change.
+The reviewed probe, cooperative relay, broker user service and dashboard restart
+were installed for the approved first observation.
 
 The private runtime config contains observed input_contract/camera_contract paths,
 stereo_profile and distinct domain_id/operational_domain_id. It accepts only
@@ -53,7 +63,8 @@ timestamps from this request (at most 5s old). Free, occupied and unavailable ar
 distinct. Missing helper, incomplete FD visibility, stale/invalid reports and
 uncooperative relays fail closed; there is no partial unprivileged-probe fallback.
 The helper neither acquires a camera nor stops processes. Its installation and
-the relay's shared-lock installation require a separate deployment approval.
+the relay's shared-lock installation were included in the approved deployment;
+subsequent changes retain the applicable deployment gates.
 
 The same-UID broker holds the domain flock before its existing live DDS graph
 check and child launch. The per-start reservation proof records the original
@@ -78,7 +89,7 @@ an error disappear. Direct testing retains the legacy attestation path; the
 managed reservation path is bound through the broker's actual camera owner.
 Broker configures its own localhost FastDDS environment.
 
-After approval: read-only baseline, stationary tracking, mapping/readback, actual
+Acceptance sequence: read-only baseline, stationary tracking, mapping/readback, actual
 left IR/projection/global stream, two viewers, native save, stop/owner handback,
 offline preview, separately approved native reuse with known hint. Record exact
 SHA/config/source stamps/frame/coverage, actual publisher/process inventory and
@@ -87,4 +98,5 @@ A new600s visualization-inclusive workload needs an exclusive resource window;
 previous VO/LiDAR measurements cannot be reused. Follow stage16 gates A–E.
 
 Stage17 operational pose, initial pose, Nav2 goals and movement remain separate.
-Sparse landmark absence is never free-space evidence. No deployment performed.
+Sparse landmark absence is never free-space evidence. First observation success
+does not establish native save/reuse, full retained export or driving readiness.

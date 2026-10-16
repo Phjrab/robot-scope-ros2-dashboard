@@ -13,7 +13,7 @@ from robot_dashboard.slam_features import FeatureStream, StreamContext
 from robot_dashboard.slam_ros_runtime import (
     CORRECTED_POSE_TOPIC, EXPECTED_PARAMETERS, IsaacRuntimeError, IsaacStereoAdapter,
     MAP_FRAME, _private_json, compose_optical_pose, decode_cloud, encode_png,
-    STEREO_HISTORY_SIZE,
+    STEREO_HISTORY_SIZE, MAX_IMAGE_HISTORY_BYTES,
 )
 
 
@@ -147,7 +147,7 @@ class RuntimeCallbackTests(unittest.TestCase):
     def _production_observer(self):
         self.job["node"] = NS(count_publishers=lambda topic: 1)
         self.job["topics"] = {key: "/test/" + key for key in
-            ("image", "right_image", "camera_info", "right_camera_info", "pose", "tracking")}
+            ("image", "right_image", "camera_info", "right_camera_info", "pose", "tracking", "observations")}
         self.job["config"]["input"].update(baseline_m=0.05,
             right={"image_frame": "right_optical"})
 
@@ -207,6 +207,64 @@ class RuntimeCallbackTests(unittest.TestCase):
             history = self.job["stereo_history"]["image"]
             self.assertEqual(len(history), STEREO_HISTORY_SIZE)
             self.assertTrue(all("data" not in item for item in history))
+
+    def test_actual_pixel_history_selects_completed_quartet_without_restamping_or_changing_latest_pose(self):
+        self._production_observer()
+        completed = 1_792_119_083_803_611_392
+        latest = 1_792_119_083_836_909_056
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", completed)
+            self._image("right_image", completed)
+            self._calibration_and_tracking(completed)
+            observations = cloud([(3,2,3)])
+            observations.header = header(stamp=1_792_119_083_803_611_000)
+            self.adapter._receive(self.job, "observations", observations)
+            self._image("image", latest)
+            self._image("right_image", latest)
+            self.job["frames"]["image"]["data"] = bytes([255]*16)
+            self._calibration_and_tracking(latest)
+            with patch.dict("sys.modules", {"PIL": None}):
+                frame = self.adapter.frame(self.session)
+            self.assertEqual(frame["image"]["stamp_ns"], str(completed))
+            self.assertEqual(frame["overlay"]["image"]["source_timestamp_ns"], str(completed))
+            self.assertEqual(frame["camera_view"]["image_source_timestamp_ns"], str(completed))
+            self.assertEqual(frame["camera_pose"]["stamp_ns"], str(latest))
+            self.assertEqual(frame["overlay"]["overlay_skew_ns"], "392")
+            self.assertEqual(frame["overlay"]["points"], [[2.0,2.0]])
+            expected = encode_png(dict(encoding="mono8", width=4, height=4, step=4, data=bytes([64]*16)))
+            self.assertEqual(base64.b64decode(frame["image"]["png_base64"]), expected)
+            self.assertEqual(frame["readiness"]["stereo_pair"]["left_timestamp_ns"], str(latest))
+            self.assertTrue(frame["readiness"]["ready"])
+            # Evicted media must never be recovered from feature metadata alone.
+            self.job["image_history"].popleft()
+            fallback = self.adapter.frame(self.session)
+            self.assertEqual(fallback["image"]["stamp_ns"], str(latest))
+            self.assertEqual(fallback["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
+
+    def test_pixel_history_is_bounded_by_count_and_bytes_and_expired_pixels_do_not_align(self):
+        self._production_observer()
+        self.assertEqual(MAX_IMAGE_HISTORY_BYTES, 16*1024*1024)
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            for index in range(STEREO_HISTORY_SIZE+3):
+                self._image("image", 100_000_000_000+index*33_333_333)
+            self.assertEqual(len(self.job["image_history"]), STEREO_HISTORY_SIZE)
+        with patch("robot_dashboard.slam_ros_runtime.MAX_IMAGE_HISTORY_BYTES", 32), \
+                patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", 101_000_000_000)
+            self.assertEqual(len(self.job["image_history"]), 2)
+            self.assertLessEqual(sum(len(image["data"]) for image in self.job["image_history"]), 32)
+        self.setUp()
+        self._production_observer()
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", 100_000_000_000)
+            self._calibration_and_tracking(100_000_000_000)
+            self.adapter._receive(self.job, "observations", cloud([(3,2,3)]))
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=101.01):
+            self._image("image", 100_033_333_333)
+            frame = self.adapter.frame(self.session)
+        self.assertEqual(frame["image"]["stamp_ns"], "100033333333")
+        self.assertEqual(frame["image_selection"]["kind"], "latest_input")
+        self.assertEqual(frame["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
 
     def test_pair_matching_preserves_five_millisecond_limit(self):
         for skew, expected in ((5_000_000, True), (5_000_001, False)):
@@ -483,6 +541,7 @@ class RuntimeCallbackTests(unittest.TestCase):
         self._image("image", 100_000_000_000)
         self._image("right_image", 100_000_000_000)
         self.assertIn("stereo_history", self.job)
+        self.assertIn("image_history", self.job)
         self.job["node"] = NS(get_clock=lambda: NS(now=lambda: NS(nanoseconds=100_000_000_000)))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
@@ -494,6 +553,7 @@ class RuntimeCallbackTests(unittest.TestCase):
         self.assertEqual(self.job["source_stamp_floor_ns"], 100_000_000_000)
         self.assertEqual(self.job["frames"], {})
         self.assertNotIn("stereo_history", self.job)
+        self.assertNotIn("image_history", self.job)
         self.assertEqual(self.job["feature_context"].map_epoch, session["map_epoch"])
         fresh = cloud([(7,0,1)])
         fresh.header = header(stamp=100_000_000_001)

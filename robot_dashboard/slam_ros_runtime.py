@@ -44,6 +44,7 @@ MAX_MAP_POINTS = 32768
 MAX_OBSERVATIONS = 2048
 MAX_PATH_POSES = 1024
 STEREO_HISTORY_SIZE = 16
+MAX_IMAGE_HISTORY_BYTES = 16 * 1024 * 1024
 EXPECTED_PARAMETERS = {
     "enable_imu_fusion": False,
     "enable_localization_n_mapping": True,
@@ -528,6 +529,14 @@ class IsaacStereoAdapter:
                 if previous is not None and "stamp_ns" in value and value["stamp_ns"] <= previous["stamp_ns"]:
                     raise IsaacRuntimeError("SLAM source stamp did not advance")
                 job["frames"][key] = value
+                if key == "image":
+                    # Actual immutable left pixels, separate from stereo pair
+                    # readiness metadata. Never restamp delayed native output.
+                    history = job.setdefault("image_history", deque())
+                    history.append(value)
+                    while (len(history) > STEREO_HISTORY_SIZE
+                           or sum(len(item["data"]) for item in history) > MAX_IMAGE_HISTORY_BYTES):
+                        history.popleft()
                 if key in {"image", "right_image"}:
                     # Callback order is not a stereo synchronizer. Retain only
                     # bounded metadata, not another history of image payloads,
@@ -546,7 +555,8 @@ class IsaacStereoAdapter:
         shared = {"context": context, "camera_id": "left", "calibration_revision": job["calibration_revision"]}
         if key == "image":
             stream.record_image(**shared, stamp_ns=value["stamp_ns"], width=value["width"],
-                                height=value["height"], frame_id=value["frame_id"])
+                                height=value["height"], frame_id=value["frame_id"],
+                                received_at=value["received_monotonic"])
         elif key == "camera_info":
             roi = message.roi
             stream.record_camera_info(**shared, stamp_ns=value["stamp_ns"], width=value["width"],
@@ -686,7 +696,13 @@ class IsaacStereoAdapter:
         job = self._owned(session)
         with job["lock"]:
             frames = copy.deepcopy(job["frames"])
-            result = job["features"].frame()
+            now = time.monotonic()
+            history = {str(image["stamp_ns"]): image for image in job.get("image_history", ())
+                       if now-image["received_monotonic"] <= 1.0}
+            result = job["features"].frame(now_monotonic=now, image_timestamps_ns=list(history))
+            selection = result.get("image_selection", {})
+            if selection.get("kind") == "newest_fresh_completed_quartet":
+                frames["image"] = copy.deepcopy(history[selection["selected_timestamp_ns"]])
         result.update({"session_id": session["session_id"], "generation": session["generation"],
                        "map_epoch": session.get("map_epoch"), "engine_id": self.engine_id,
                        "installed_contract_verified": bool(job["effective_parameters"]),
@@ -807,6 +823,7 @@ class IsaacStereoAdapter:
             job["features"].reset(job["feature_context"])
             job["frames"].clear()
             job.pop("stereo_history", None)
+            job.pop("image_history", None)
         completed = False
         try:
             response = self._call(job, LocalizeInMap, SLAM_ROOT + "/localize_in_map", request, 25.0)
@@ -815,6 +832,7 @@ class IsaacStereoAdapter:
             with job["lock"]:
                 job["features"].reset(job["feature_context"])
                 job["frames"].clear()
+                job.pop("image_history", None)
                 # A failed/timeout request may still have changed the native
                 # estimator. Require new source-time output in either outcome.
                 try:

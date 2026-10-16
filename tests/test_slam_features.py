@@ -197,6 +197,48 @@ class FeaturePairingTests(unittest.TestCase):
         self.assertEqual(overlay["points"], [])
         self.assertEqual(overlay["image"]["sequence"], 5)
 
+    def test_observed_one_frame_native_lag_selects_only_available_exact_pixels(self):
+        # Real first-session frame03: native cloud rounds its source to us,
+        # while camera/pose keep ns; newest input is 33.297664ms ahead.
+        completed = 1_792_119_083_803_611_392
+        latest = 1_792_119_083_836_909_056
+        observations = 1_792_119_083_803_611_000
+        self.inputs(image_stamp=completed, info_stamp=completed, pose_stamp=completed,
+                    observation_stamp=observations)
+        self.stream.record_image(context=self.context, stamp_ns=latest, camera_id="left", width=100,
+            height=100, calibration_revision="cal-1", frame_id="left_optical", sequence=5, received_at=100.1)
+        unaligned = self.stream.frame(now_monotonic=100.2)
+        self.assertEqual(unaligned["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
+        self.assertEqual(unaligned["overlay"]["overlay_skew_ns"], "33298056")
+        matched = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[str(latest), str(completed)])
+        self.assertIsNone(matched["overlay"]["reason"])
+        self.assertEqual(matched["overlay"]["image"]["source_timestamp_ns"], str(completed))
+        self.assertEqual(matched["overlay"]["overlay_skew_ns"], "392")
+        self.assertEqual(matched["camera_view"]["image_source_timestamp_ns"], str(completed))
+        self.assertEqual(matched["image_selection"]["latest_timestamp_ns"], str(latest))
+        self.assertEqual(matched["overlay"]["alignment_source_timestamps_ns"],
+            dict(image=str(completed), calibration=str(completed), observations=str(observations), pose=str(completed)))
+        # Metadata remaining in the cache never proves old pixels remain.
+        absent = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[latest])
+        self.assertEqual(absent["overlay"]["reason"], "NO_VALID_TIME_ALIGNMENT")
+        self.assertEqual(absent["image_selection"]["kind"], "latest_input")
+
+    def test_completed_selection_chooses_newest_fresh_bundle_and_clears_on_epoch_reset(self):
+        for offset in (0, 33_333_333):
+            self.inputs(image_stamp=self.stamp+offset, info_stamp=self.stamp+offset,
+                        observation_stamp=self.stamp+offset, pose_stamp=self.stamp+offset)
+        matched = self.stream.frame(now_monotonic=100.2,
+            image_timestamps_ns=[self.stamp, self.stamp+33_333_333])
+        self.assertEqual(matched["image_selection"]["selected_timestamp_ns"], str(self.stamp+33_333_333))
+        stale = self.stream.frame(now_monotonic=101.01,
+            image_timestamps_ns=[self.stamp, self.stamp+33_333_333])
+        self.assertEqual(stale["overlay"]["reason"], "STALE_SOURCE")
+        self.assertEqual(stale["image_selection"]["kind"], "latest_input")
+        self.stream.reset(StreamContext("next", 3, "new-epoch"))
+        reset = self.stream.frame(now_monotonic=100.2, image_timestamps_ns=[self.stamp])
+        self.assertEqual(reset["overlay"]["reason"], "WAITING_IMAGE")
+        self.assertIsNone(reset["image_selection"]["selected_timestamp_ns"])
+
     def test_out_of_order_packets_choose_newest_source_image(self):
         self.inputs(image_stamp=self.stamp+5_000_000, info_stamp=self.stamp+5_000_000,
                     observation_stamp=self.stamp+5_000_000, pose_stamp=self.stamp+5_000_000,

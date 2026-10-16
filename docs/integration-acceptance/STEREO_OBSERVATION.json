@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "scope": "Stationary dashboard-controlled Stereo VSLAM observation",
+  "software_source": "ffa1b218f68e9675d7de9fe7e5f107c087c5f67c",
+  "ci": {
+    "run_id": 38841524522,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38841524522",
+    "conclusion": "success",
+    "matrix": ["Ubuntu22.04/Python3.10", "Ubuntu24.04/Python3.12"]
+  },
+  "runtime": {
+    "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+    "engine_version": "3.2.6",
+    "effective_mode": "slam_vo",
+    "broker_uid": 1000,
+    "observer_domain": 71,
+    "observer_rmw": "rmw_fastrtps_cpp",
+    "dashboard_domain": 0,
+    "dashboard_rmw": "rmw_cyclonedds_cpp",
+    "operational_dds_changed": false,
+    "input_contract_sha256": "5d92b6a3f0e5bc0f7395158b7a0e0ce7f496debd1d72dcad4681665bfb4fc36c",
+    "camera_contract_sha256": "3f65c345a18c2cca678e5dfdf3b486c2e9cb2b7f968787f489865ccd87fa3a5b",
+    "runtime_config_sha256": "e0b35b1ddc752099fcbe9ff07868f4b42596cef655e38ca61fb547940ee712d8",
+    "managed_scope_sha256": "b9a9279f0e48e3773b96a859e18c0c9af60a0ba385d6b70fa0c25012e252d76e"
+  },
+  "first_session": {
+    "session_id": "a54707bcb05c4a2a8df2f5b5dacc2b58",
+    "generation": 1,
+    "map_epoch": "081cfeeb61aa4907bc7a472e414590ea",
+    "created_at_utc": "2026-10-16T02:50:40.923463Z",
+    "first_ready_observed_utc": "2026-10-16T02:50:53.899799Z",
+    "last_ready_observed_utc": "2026-10-16T02:51:51.460430Z",
+    "ready_sample_span_s": 57.560586402,
+    "ready_bracketing_span_upper_s": 58.134537946,
+    "websocket_messages": 521,
+    "active_frames": 180,
+    "ready_tracking_frames": 180,
+    "matched_stereo_pairs": 180,
+    "stereo_skew_ns_max": 0,
+    "stereo_receive_age_s_max": 0.649393,
+    "image": {"width": 640, "height": 480, "encoding": "mono8", "saved_original_frames": 6},
+    "camera_pose": {"reference": "vslam_lab_camera_link", "frame": "vslam_lab_map", "source": "/vslam_lab/visual_slam/vis/slam_odometry", "unique_advancing_stamps": 180, "body_extrinsic_verified": false},
+    "current_observations": {"available_frames": 180, "min_points": 86, "max_points": 314, "source": "/vslam_lab/visual_slam/vis/observations_cloud", "native_ids_available": false, "actual_finite_xyz_verified": true},
+    "overlay": {"aligned_frames": 65, "alignment_unavailable_frames": 115, "point_range_when_aligned": [88, 312], "failure_reason": "NO_VALID_TIME_ALIGNMENT", "guard_relaxed": false},
+    "global_map": {"max_reported_points": 238, "frames_reporting_nonzero": 11, "snapshot_id": 2, "coverage": "unknown", "engine_total_count": null, "completeness_evidence": null, "coordinates_retained_in_first_session_evidence": false},
+    "trajectory": {"kind": "slam", "max_source_points": 1024, "actual_saved_arrays_verified": true},
+    "native_save_performed": false
+  },
+  "cleanup": {
+    "observed_at_utc": "2026-10-16T02:52:26.548411Z",
+    "session_state": "IDLE",
+    "cleanup_required": false,
+    "camera_reserved": false,
+    "rgb_available": true,
+    "actual_device_owner": "free",
+    "owned_native_processes": 0,
+    "camera_and_domain_locks_released": true,
+    "locks_deleted": false
+  },
+  "motion": {"lease_active": false, "move_count": 0, "nonzero_move_count": 0, "initialpose_count": 0, "goal_state": "idle", "operational_pose_applied": false, "operational_tf_publication": false},
+  "result_categories": {
+    "actual_observation_success": "PASS: actual UI start, image/camera pose/tracking/current points/global count/trajectory, UI stop and owner cleanup",
+    "incomplete_visualization": "PARTIAL: overlay is intermittent; global coordinate export not captured in first session; full retained coverage remains unknown",
+    "precision_evaluation": "NOT_PERFORMED",
+    "driving_application": "NOT_APPLIED"
+  },
+  "next_minimum_work": "Keep thresholds unchanged; send the actual timestamp-matched image pixels with their completed pose/observation/calibration quartet, then repeat a short stationary display/save/requery check. Supervised motion remains separate."
+}

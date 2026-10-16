@@ -6,7 +6,9 @@ preserved Isaac Stereo path. Current work and deployment boundaries are in
 The new fixed managed scope and read-only owner probe are described in
 [DEPLOYMENT.md](DEPLOYMENT.md). Earlier stage16/MAP-02 full-export gates remain
 historical/deferred and are not prerequisites for image/camera-pose observation.
-No new device operation has yet been performed in this follow-up.
+The grouped deployment was approved and completed. The first actual Stereo
+start/display/stop and camera cleanup passed on `ffa1b21`; remaining overlay
+alignment and global-coordinate retention are tracked in that report.
 
 # MS / MR handoff
 

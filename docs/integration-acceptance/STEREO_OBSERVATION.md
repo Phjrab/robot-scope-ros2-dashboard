@@ -11,7 +11,31 @@ retained export and independent accuracy evaluation are deferred. Their open
 rows are not admission gates for this observation/new-map task. VIO IMU absence
 is not a Stereo gate. Camera-to-Go2 extrinsics remain unverified.
 
-## Actual baseline and ownership
+## First actual observation completed
+
+The user approved the grouped deployment/current stationary conditions and ran
+the reviewed administrator installer. Source `ffa1b21` is deployed; exact CI
+[38841524522](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38841524522)
+passed both Linux matrices. The actual dashboard button → API → same-UID broker
+→ preserved Isaac image → stereo/VSLAM → WebSocket → screen path ran, then the
+dashboard stop cleaned the native processes and returned the camera.
+
+The first session produced 180 READY/TRACKING frames over a sampled57.56s span.
+All180 stereo pairs matched with0ns skew; image/camera6DoF/current observations
+(86–314 points) and SLAM trajectory were fresh. Overlay aligned65/180 frames;
+115 were correctly withheld by the unchanged20ms guard because the latest
+image preceded completed pose/observations by1–4 frames. No freshness/timeout
+threshold was widened. The maximum reported global snapshot was238 points,
+coverage unknown; its coordinates were not retained in the first collector.
+This is not a full retained export or independent accuracy result.
+
+Cleanup readback: IDLE, cleanup_required=false, device owner free, zero native
+children, camera/domain locks released, RGB available. No lock was deleted.
+Control bridge invocation stayed unchanged; movement/initialpose counts are0
+and goal idle. Exact source/runtime/config hashes, timestamps, metrics and
+limitations are in [STEREO_OBSERVATION.json](STEREO_OBSERVATION.json).
+
+## Historical pre-deployment baseline and ownership
 
 Fetched source main/origin was `caa4472`; the clean deployed checkout remains
 `47c77af19246bd6a455ee873a7c55884ed6e4122` at the read-only 2026-10-16T02:28Z
@@ -48,7 +72,7 @@ workaround is used.
   image/pose/path. Resource conflicts survive asynchronous failure and uncertain
   cleanup. Camera pose is not labeled as verified Go2 body pose.
 
-## Prepared deployment and first observation
+## Approved deployment and first observation
 
 The private reviewed bundle pins exact source, the existing Isaac camera image
 `sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5`,
@@ -59,15 +83,13 @@ The dashboard keeps domain0/CycloneDDS; only its Unix broker socket is added.
 The broker sources `/opt/ros/humble/setup.bash` and the preserved
 `/opt/vslam_lab/realsense/setup.bash` and uses localhost FastDDS/domain71.
 
-A single additional authorization bundle covers the root-owned read-only probe,
+The approved authorization bundle covers the root-owned read-only probe,
 cooperative RGB relay installation, broker user service/new pinned container,
 dashboard candidate restart and a short stationary mapping observation plus
-normal same-scope rechecks and cleanup. Current stationarity, onsite immediate
-physical stop and independent recovery must be confirmed. Prior days' approvals
-are not restamped. The root installation needs one reviewed administrator action. The current
-D435i USB node is root:root mode0664 (UID1000 cannot write); the reviewed bundle
-includes a D435i-only video-group mode0660 rule and exact current-node permission
-change, with the previous owner/mode retained for rollback.
+normal same-scope rechecks and cleanup. The user confirmed current stationarity, onsite immediate physical stop and
+independent recovery and completed the reviewed administrator action. The
+previously root:root mode0664 D435i USB node now uses the approved D435i-only
+video-group mode0660 rule; the previous owner/mode is retained for rollback.
 
 First acceptance requires the actual dashboard start path, advancing exact
 session/generation WebSocket frames, actual mono8 Image/CameraInfo geometry,
@@ -94,8 +116,8 @@ for the new changes. No unchanged baseline suite or VSLAM installation is repeat
 
 | Requested reporting category | Current evidence |
 | --- | --- |
-| Actual observation success | NOT_RUN: new camera/broker/service deployment not yet authorized or executed |
-| Incomplete visualization | Independent display implemented and fixture-tested; real six-channel availability not yet observed |
+| Actual observation success | PASS: actual UI start, image/camera6DoF/TRACKING/current points/trajectory/global-count readback, UI stop and device cleanup |
+| Incomplete visualization | PARTIAL: overlay65/180; global238 count observed but first collector omitted its coordinates; coverage remains unknown |
 | Precision evaluation not performed | NOT_RUN; no independent ground truth or body extrinsic qualification |
 | No driving integration | No operational TF/initialpose/goal/movement; camera observation only |
 
@@ -103,5 +125,16 @@ Private evidence/bundle: sibling `robot-scope-hardware-validation-private/`
 `vslam-observation-20261016/`. Original calibration/profile observations, device
 config/environment contents, raw images/maps and installation bytes stay out of
 Git. Existing maps, missions, bags and the preserved VSLAM installation remain.
-Next minimum action is the one reviewed deployment/current-conditions approval,
-then the short actual dashboard session, stop and owner handback.
+The matched-image correction now retains actual left pixels for at most16
+frames/16MiB and selects the newest fresh completed image/calibration/pose/
+observations quartet, preserving the1s/20ms guards. Exact selected pixels are
+sent with the overlay; current raw camera pose remains independently available.
+Real measured33.298ms-lag regression selects the matching pixels at392ns skew.
+
+Correction validation: full Python2046 execution (2020 passed,2 expected skips,
+24 broker tests initially blocked by local socket sandbox permission); those24
+passed on a focused permitted rerun, yielding2044 passed/2 skipped overall.
+JavaScript386, SLAM Chromium10, Ruff, configured mypy, syntax and secret scan
+passed. The unchanged old baseline was not rerun.
+Next minimum action is a short same-scope stationary display/save/requery check.
+Supervised motion remains separate.

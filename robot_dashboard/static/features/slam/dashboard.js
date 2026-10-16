@@ -588,7 +588,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     }
     const overlay = frame.overlay;
     const canOverlay = overlayMatchesImage(frame);
-    imageStatus.textContent = `입력 이미지 available · ${overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${overlay?.displayed_count ?? 0}점` : overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'} · 수신 후 ${overlay?.receive_age_seconds == null ? 'unknown' : Number(overlay.receive_age_seconds).toFixed(2) + 's'}`;
+    imageStatus.textContent = `입력 이미지 available · 오버레이 ${overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${overlay?.displayed_count ?? 0}점` : overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'} · 수신 후 ${overlay?.receive_age_seconds == null ? 'unknown' : Number(overlay.receive_age_seconds).toFixed(2) + 's'}`;
     const encoded = image?.jpeg_base64 || image?.png_base64;
     if (!encoded || typeof encoded !== 'string' || encoded.length > MAX_WIRE_BYTES ||
         !Number.isInteger(image.width) || !Number.isInteger(image.height) || image.width < 1 || image.width > 1920 || image.height < 1 || image.height > 1080) return;

@@ -59,6 +59,15 @@ test('zero current observations are valid while stale, lost and unavailable over
   assert.equal(overlayMatchesImage({ ...frame, overlay: { ...frame.overlay, overlay_kind: 'unavailable' } }), false);
 });
 
+test('image caption names the unavailable overlay separately from the available input image', () => {
+  const assignment = source.split('\n').find((line) => line.includes('imageStatus.textContent = `입력 이미지 available'));
+  assert.ok(assignment);
+  const imageStatus = { textContent: '' };
+  runInNewContext(assignment, { imageStatus, canOverlay: false,
+    overlay: { overlay_kind: 'unavailable', reason: 'NO_VALID_TIME_ALIGNMENT' } });
+  assert.match(imageStatus.textContent, /^입력 이미지 available · 오버레이 unavailable · NO_VALID_TIME_ALIGNMENT/);
+});
+
 test('session, generation, engine, epoch and exact increasing sequence fence stream frames', () => {
   assert.equal(frameIsCurrent(frame, session), true);
   for (const change of [{ session_id: 'old' }, { generation: 3 }, { engine_id: 'lidar_fastlio' }, { map_epoch: 'old' }]) {
