@@ -1,4 +1,13 @@
-# Robot Scope integration handoff — through40
+# Current integration priority — Stereo observation
+
+The 2026-10-16 user request reopens work specifically for real dashboard-controlled
+Stereo VSLAM mapping/observation. See [STEREO_OBSERVATION.md](STEREO_OBSERVATION.md)
+for the current source, runtime, approval boundary, software changes and exact
+next action. Policy/MR-MS-003/missions/full reuse/MAP-02/precision evaluation are
+separate follow-ups, not Stereo observation gates. The closed stage40 record
+below remains historical; it does not authorize current service/camera actions.
+
+# Historical integration handoff — through40
 
 Final user instruction: stop and finish here. Scope was briefly extended to41,
 but no41 operation began before the stop request. No additional device action

@@ -66,7 +66,10 @@ def _mutation(request: Request) -> SlamSessionManager:
 
 def _error(exc: Exception) -> HTTPException:
     if isinstance(exc, SlamError):
-        return HTTPException(status_code=exc.status, detail={"code": exc.code})
+        detail: dict[str, Any] = {"code": exc.code}
+        if exc.resources:
+            detail["resources"] = exc.resources
+        return HTTPException(status_code=exc.status, detail=detail)
     if isinstance(exc, MapPackageError):
         code = exc.code
         status = 404 if code == "PACKAGE_NOT_FOUND" else 409 if code in {"REVISION_CONFLICT", "MAP_IN_USE", "MAP_INCOMPATIBLE"} else 422

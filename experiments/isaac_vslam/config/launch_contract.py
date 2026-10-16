@@ -158,6 +158,17 @@ def validate_camera(contract, stereo_profile, enable_imu=False, gyro_fps=0, acce
     age = (now - checked).total_seconds()
     if age < -5 or age > 300:
         raise ValueError("Recheck camera owners/profiles immediately before launch (observation older than 5 minutes)")
+    return validate_camera_profile(contract, stereo_profile, enable_imu, gyro_fps, accel_fps, emitter)
+
+
+def validate_camera_profile(contract, stereo_profile, enable_imu=False, gyro_fps=0, accel_fps=0,
+                            emitter="preserve"):
+    """Historical observed sensor capabilities; never evidence of current ownership.
+
+    Managed callers must separately validate their live reservation proof.
+    Standalone experiment callers retain validate_camera's ownership/age gates.
+    """
+    require_observation(contract)
     for name in ("serial", "model", "firmware", "usb_speed", "sdk_version", "wrapper_version"):
         observed(contract.get(name), name)
     if "D435I" not in contract["model"].upper():

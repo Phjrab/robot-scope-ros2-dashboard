@@ -251,6 +251,29 @@ class SlamSessionTests(unittest.IsolatedAsyncioTestCase):
         self.lock.release()
         await self.error("RESOURCE_CONFLICT", task)
 
+    async def test_resource_conflict_preserves_specific_blocker_and_never_launches(self):
+        self.blockers.extend(["navigation_active", "control_lease_active", "/private/state"])
+        with self.assertRaises(SlamError) as raised:
+            await self.manager.start(engine_id="visual_stereo", task="mapping",
+                request_id="resource-detail-01", operator_confirmed=True)
+        self.assertEqual(raised.exception.resources, [
+            {"resource": "navigation", "reason": "navigation_active"},
+            {"resource": "control", "reason": "control_lease_active"}])
+        self.assertEqual(self.engine.calls, [])
+
+    async def test_async_broker_conflict_survives_owned_cleanup_for_display(self):
+        self.engine.preflight_error = SlamError("RESOURCE_CONFLICT", resources=[
+            {"resource": "ros_domain", "reason": "domain_busy"}])
+        await self.manager.start(engine_id="visual_stereo", task="mapping",
+            request_id="resource-detail-02", operator_confirmed=True)
+        await self.settled()
+        current = self.manager.snapshot()["active_session"]
+        self.assertEqual(current["state"], "IDLE")
+        self.assertEqual(current["reason"], "RESOURCE_CONFLICT")
+        self.assertEqual(current["resource_conflicts"], [
+            {"resource": "ros_domain", "reason": "domain_busy"}])
+        self.assertEqual(self.camera.acquisitions, [])
+
     async def test_two_concurrent_starts_cannot_own_two_sessions(self):
         self.engine.start_gate.clear()
         first = await self.manager.start(engine_id="visual_stereo", task="mapping",

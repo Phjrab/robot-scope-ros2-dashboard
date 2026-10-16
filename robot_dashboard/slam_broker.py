@@ -18,11 +18,24 @@ import struct
 import threading
 from typing import Any
 
-from .slam_camera import CameraOwnerCoordinator
+from .slam_camera import CameraBusy, CameraOwnerCoordinator
+from .slam_managed_scope import ManagedScopeError
 from .slam_sessions import SlamError, _validate_hint
 
 MAX_REQUEST = 64 * 1024
 MAX_RESPONSE = 8 * 1024**2
+RESOURCE_LABELS = {"navigation", "mission", "mission_route", "dataset_capture", "control",
+                   "lidar", "lifecycle", "camera", "ros_domain", "broker", "session"}
+
+
+def _resources(value: Any) -> list[dict[str, str]]:
+    if (not isinstance(value, list) or not 1 <= len(value) <= 16
+            or any(not isinstance(item, dict) or set(item) != {"resource", "reason"}
+                   or not isinstance(item["resource"], str) or item["resource"] not in RESOURCE_LABELS
+                   or not isinstance(item["reason"], str)
+                   or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", item["reason"]) for item in value)):
+        raise SlamError("INVALID_BROKER_RESPONSE", 503)
+    return value
 
 
 def peer_uid(connection: Any) -> int | None:
@@ -59,6 +72,9 @@ class BrokerDispatcher:
         self._owned: dict[str, Any] | None = None
         self._cancel = threading.Event()
         self._running_operation = False
+        bind_camera = getattr(adapter, "bind_camera_coordinator", None)
+        if bind_camera is not None:
+            bind_camera(camera)
 
     def _native_path(self, value: Any, group: str) -> Path:
         if not isinstance(value, str):
@@ -113,7 +129,7 @@ class BrokerDispatcher:
                 if self._owned is not None:
                     if self._owned == session:
                         return {"ok": True}
-                    raise SlamError("CAMERA_BUSY")
+                    raise SlamError("CAMERA_BUSY", resources=[{"resource": "camera", "reason": "reservation_owned"}])
                 self.camera.acquire(session)
                 self._owned = session
                 self._cancel = threading.Event()
@@ -180,8 +196,15 @@ class BrokerHandler(socketserver.StreamRequestHandler):
             if len(response) > MAX_RESPONSE:
                 raise SlamError("VISUALIZATION_LIMIT")
         except Exception as exc:
-            code = exc.code if isinstance(exc, SlamError) else "ENGINE_OPERATION_FAILED"
-            response = _wire({"ok": False, "code": code})
+            code = exc.code if isinstance(exc, (SlamError, CameraBusy, ManagedScopeError)) else "ENGINE_OPERATION_FAILED"
+            error = {"ok": False, "code": code}
+            resources = getattr(exc, "resources", None)
+            if resources:
+                try:
+                    error["resources"] = _resources(resources)
+                except SlamError:
+                    pass
+            response = _wire(error)
         self.wfile.write(response)
 
 
@@ -289,11 +312,13 @@ class BrokerIsaacAdapter:
             raise SlamError("INVALID_BROKER_RESPONSE", 503)
         if result["ok"] and not isinstance(result["result"], dict):
             raise SlamError("INVALID_BROKER_RESPONSE", 503)
-        if not result["ok"] and set(result) != {"ok", "code"}:
+        if not result["ok"] and set(result) not in ({"ok", "code"}, {"ok", "code", "resources"}):
             raise SlamError("INVALID_BROKER_RESPONSE", 503)
         if result.get("ok") is not True:
             code = result.get("code", "ENGINE_OPERATION_FAILED")
-            raise SlamError(code if isinstance(code, str) and re.fullmatch(r"[A-Z_]{1,80}", code) else "ENGINE_OPERATION_FAILED", 503)
+            resources = _resources(result["resources"]) if "resources" in result else None
+            raise SlamError(code if isinstance(code, str) and re.fullmatch(r"[A-Z_]{1,80}", code) else "ENGINE_OPERATION_FAILED",
+                            409 if code == "RESOURCE_CONFLICT" else 503, resources=resources)
         return result["result"]
 
     def capability(self) -> dict[str, Any]:

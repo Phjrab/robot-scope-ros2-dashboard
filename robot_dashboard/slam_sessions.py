@@ -17,10 +17,29 @@ from .slam_camera import CameraBusy, CameraOwnerCoordinator
 from .slam_packages import MapPackageStore
 
 
+def normalize_resource_conflicts(value: Any) -> list[dict[str, str]]:
+    """Bounded resource labels only; never forward device paths or exceptions."""
+    allowed = {"navigation", "mission", "mission_route", "dataset_capture", "control",
+               "lidar", "lifecycle", "camera", "ros_domain", "broker", "session"}
+    result: list[dict[str, str]] = []
+    if not isinstance(value, (list, tuple)):
+        return result
+    for item in value[:16]:
+        if (isinstance(item, dict) and set(item) == {"resource", "reason"}
+                and isinstance(item["resource"], str) and item["resource"] in allowed
+                and isinstance(item["reason"], str)
+                and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", item["reason"])):
+            entry = {"resource": item["resource"], "reason": item["reason"]}
+            if entry not in result:
+                result.append(entry)
+    return result
+
+
 class SlamError(RuntimeError):
-    def __init__(self, code: str, status: int = 409) -> None:
+    def __init__(self, code: str, status: int = 409, *, resources: Any = None) -> None:
         self.code = code
         self.status = status
+        self.resources = normalize_resource_conflicts(resources)
         super().__init__(code)
 
 
@@ -165,7 +184,16 @@ class SlamSessionManager:
         except Exception as exc:
             raise SlamError("RESOURCE_STATE_UNAVAILABLE", 503) from exc
         if reasons:
-            raise SlamError("RESOURCE_CONFLICT")
+            labels = {"navigation_active": "navigation", "mission_active": "mission",
+                      "mission_route_active": "mission_route", "dataset_capture_active": "dataset_capture",
+                      "control_state_unavailable": "control", "control_lease_active": "control",
+                      "mapping_operation_active": "lidar", "existing_lidar_pipeline_active": "lidar",
+                      "lifecycle_unavailable": "lifecycle"}
+            resources = [{"resource": labels[reason], "reason": reason} for reason in reasons
+                         if isinstance(reason, str) and reason in labels]
+            if not resources:
+                resources = [{"resource": "session", "reason": "resource_state_conflict"}]
+            raise SlamError("RESOURCE_CONFLICT", resources=resources)
 
     def _duplicate(self, request_id: str, value: Any) -> dict[str, Any] | None:
         if not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{8,96}", request_id):
@@ -252,6 +280,7 @@ class SlamSessionManager:
             session["state"] = ("MAPPING" if session["task"] == "mapping" else "TRACKING") if result.get("ready") else "WAITING_INPUT"
         except Exception as exc:
             session.update(state="ERROR", reason=_reason(exc), cleanup_required=True)
+            session["resource_conflicts"] = normalize_resource_conflicts(getattr(exc, "resources", None))
             try:
                 if runtime_start_attempted:
                     await asyncio.to_thread(adapter.stop, deepcopy(session))

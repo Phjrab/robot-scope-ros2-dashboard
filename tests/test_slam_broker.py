@@ -161,6 +161,23 @@ class SlamBrokerTests(unittest.TestCase):
         self.assertFalse(self.camera.snapshot()["reserved"])
         self.assertIsNone(self.dispatcher._owned)
 
+    def test_camera_probe_failure_keeps_specific_resource_reason_over_private_broker(self):
+        self.camera._probe = lambda _: False
+        with self.assertRaises(SlamError) as caught:
+            self.reserve()
+        self.assertEqual(caught.exception.code, "CAMERA_BUSY")
+        self.assertEqual(caught.exception.resources, [{"resource": "camera", "reason": "device_busy"}])
+        self.assertIsNone(self.dispatcher._owned)
+        self.assertFalse(self.camera.snapshot()["reserved"])
+
+    def test_resource_conflict_keeps_bounded_details_and_status(self):
+        self.engine.preflight = lambda _: (_ for _ in ()).throw(SlamError("RESOURCE_CONFLICT", resources=[
+            {"resource": "ros_domain", "reason": "foreign_participant"}]))
+        with self.assertRaises(SlamError) as caught:
+            self.proxy.preflight("mapping")
+        self.assertEqual(caught.exception.status, 409)
+        self.assertEqual(caught.exception.resources, [{"resource": "ros_domain", "reason": "foreign_participant"}])
+
     def test_operation_allowlist_and_operation_specific_extra_fields(self):
         self.assert_code("INVALID_BROKER_REQUEST", lambda: self.dispatcher.dispatch({"operation": "exec"}))
         for request in ({"operation": "capability", "argv": ["shell"]},
@@ -435,6 +452,9 @@ class SlamBrokerTests(unittest.TestCase):
         self.server.RequestHandlerClass = MalformedResponse
         for response in (b"[]\n", b'{"ok":true}\n', b'{"ok":true,"result":NaN}\n',
                          b'{"ok":true,"result":[]}\n',
+                         b'{"ok":false,"code":"RESOURCE_CONFLICT","resources":[]}\n',
+                         b'{"ok":false,"code":"RESOURCE_CONFLICT","resources":[{"resource":[],"reason":"busy"}]}\n',
+                         b'{"ok":false,"code":"RESOURCE_CONFLICT","resources":[{"resource":"camera","reason":"/private/path"}]}\n',
                          b'{"ok":true,"result":{}}\n{"second":true}\n'):
             with self.subTest(response=response):
                 self.server.synthetic_response = response

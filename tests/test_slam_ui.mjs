@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm';
 
 const source = readFileSync(new URL('../robot_dashboard/static/features/slam/dashboard.js', import.meta.url), 'utf8');
 const { boundedPoints, overlayMatchesImage, frameIsCurrent, describeCoverage, cameraFrustumGeometry,
-  describeLocalization, SLAM_STREAM_PATH } = await import(
+  describeLocalization, frameAvailability, describeCameraPose, errorText, SLAM_STREAM_PATH } = await import(
   'data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 
 const session = { session_id: 'session-a', generation: 4, map_epoch: 'epoch-a', engine_id: 'visual_stereo' };
@@ -89,6 +89,95 @@ test('global extent and source completeness labels do not invent engine totals',
   assert.match(label, /engine revision unknown/);
 });
 
+function liveCameraFrame() {
+  return { ...frame, frame_id: 'map', camera_pose: { position: [1, 2, 3], quaternion_xyzw: [0, 0, 0, 1],
+    frame_id: 'map', stamp_ns: '9007199254740993001' },
+    readiness: { ready: false, tracking_state: 'TRACKING', pose_reference: 'camera_link', operational_pose_approved: false,
+      freshness: { image: true, pose: true, tracking: true } },
+    overlay: { overlay_kind: 'unavailable', reason: 'OBSERVATIONS_UNAVAILABLE' } };
+}
+
+test('fresh camera image, camera 6DoF and tracking survive absent overlay, map and trajectory', () => {
+  const current = liveCameraFrame();
+  const channels = frameAvailability(current);
+  assert.equal(channels.image.available, true);
+  assert.equal(channels.pose.available, true);
+  assert.equal(channels.tracking.available, true);
+  assert.equal(channels.overlay.available, false);
+  assert.equal(channels.global_map.available, false);
+  assert.equal(channels.trajectory.available, false);
+  // Feature-stream heartbeat and aggregate readiness are not image/pose gates.
+  assert.equal(frameAvailability({ ...current, stream_connected: false }).image.available, true);
+  assert.equal(frameAvailability({ ...current, stream_connected: false }).pose.available, true);
+  const label = describeCameraPose(current);
+  assert.match(label, /카메라 6DoF/);
+  assert.match(label, /camera_link/);
+  assert.match(label, /1\.000 \/ 2\.000 \/ 3\.000/);
+  assert.match(label, /9007199254740993001/);
+  assert.match(label, /Go2 body pose 미검증/);
+  assert.match(label, /camera→Go2 extrinsic 필요/);
+  assert.match(label, /주행 승인 안 됨/);
+  assert.doesNotMatch(label, /PASS/);
+});
+
+test('each live output obeys its own freshness while subset snapshots remain independently available', () => {
+  const current = liveCameraFrame();
+  const layers = { ...current,
+    global_map: { coordinate_frame: 'map', map_epoch: session.map_epoch, coverage: 'subset', points: [[1, 2, 3]] },
+    trajectory: { coordinate_frame: 'map', map_epoch: session.map_epoch, trajectory_kind: 'slam', points: [[0, 0, 0]] } };
+  for (const coverage of ['subset', 'unknown']) {
+    assert.equal(frameAvailability({ ...layers, global_map: { ...layers.global_map, coverage } }).global_map.available, true);
+  }
+  const missingMap = frameAvailability({ ...layers, global_map: null });
+  assert.equal(missingMap.global_map.available, false);
+  assert.equal(missingMap.trajectory.available, true);
+  const invalidMap = frameAvailability({ ...layers, global_map: { ...layers.global_map, map_epoch: 'old' } });
+  assert.equal(invalidMap.global_map.available, false);
+  assert.equal(invalidMap.global_map.reason, 'GLOBAL_MAP_CONTEXT_OR_POINTS_INVALID');
+  assert.equal(invalidMap.trajectory.available, true);
+  const stale = frameAvailability(layers, false);
+  for (const key of ['image', 'pose', 'tracking', 'overlay']) assert.equal(stale[key].available, false, key);
+  assert.equal(stale.global_map.available, true);
+  assert.equal(stale.trajectory.available, true);
+  const imageStale = frameAvailability({ ...layers, readiness: { ...layers.readiness,
+    freshness: { image: false, pose: true, tracking: false } } });
+  assert.equal(imageStale.image.available, false);
+  assert.equal(imageStale.pose.available, true);
+  assert.equal(imageStale.tracking.available, false);
+  assert.equal(frameAvailability({ ...layers, camera_pose: null }).image.available, true);
+});
+
+test('camera pose display rejects malformed or wrong-frame pose without hiding valid image', () => {
+  const current = liveCameraFrame();
+  for (const change of [{ position: [NaN, 0, 0] }, { quaternion_xyzw: [0, 0, 0, 0] },
+    { frame_id: 'body' }, { stamp_ns: 9007199254740993001 }]) {
+    const invalid = { ...current, camera_pose: { ...current.camera_pose, ...change } };
+    assert.equal(frameAvailability(invalid).pose.available, false);
+    assert.equal(frameAvailability(invalid).image.available, true);
+    assert.match(describeCameraPose(invalid), /pose unavailable/);
+  }
+});
+
+test('resource conflict names concrete bounded resources and uses an unknown fallback', () => {
+  const label = errorText({ detail: { code: 'RESOURCE_CONFLICT', resources: [
+    { resource: 'lidar', reason: 'existing_lidar_pipeline_active' },
+    { resource: 'camera', reason: 'camera_owner_active' },
+    { resource: '__proto__', reason: '<private>' },
+  ] } }, 'fallback');
+  assert.match(label, /RESOURCE_CONFLICT/);
+  assert.match(label, /LiDAR \(existing_lidar_pipeline_active\)/);
+  assert.match(label, /카메라 \(camera_owner_active\)/);
+  assert.match(label, /알 수 없는 자원/);
+  assert.doesNotMatch(label, /<private>|__proto__/);
+  const cleanup = errorText({ detail: { code: 'CLEANUP_REQUIRED', resources: [
+    { resource: 'ros_domain', reason: 'foreign_participant' },
+  ] } }, 'fallback');
+  assert.equal(cleanup, 'CLEANUP_REQUIRED · ROS domain (foreign_participant)');
+  assert.ok(errorText({ detail: { code: 'RESOURCE_CONFLICT', resources: Array(1000).fill({
+    resource: 'camera', reason: 'x'.repeat(10000) }) } }, '').length < 300);
+  assert.equal(errorText({ detail: { code: 'CAMERA_BUSY' } }, 'fallback'), 'CAMERA_BUSY');
+});
+
 function opticalFrame() {
   const stamp = '9007199254740993001';
   return { ...frame, camera_pose: { position: [99, 99, 99] },
@@ -114,6 +203,8 @@ test('camera frustum comes from calibrated optical pose and bounded visual ray l
   assert.equal(cameraFrustumGeometry(current.camera_view, current, Infinity), null);
   const noObservations = { ...current, overlay: { ...current.overlay, overlay_kind: 'unavailable', reason: 'OBSERVATIONS_UNAVAILABLE' } };
   assert.ok(cameraFrustumGeometry(noObservations.camera_view, noObservations));
+  const unrelatedMap = { ...current, global_map: { coordinate_frame: 'wrong' } };
+  assert.ok(cameraFrustumGeometry(unrelatedMap.camera_view, unrelatedMap));
 });
 
 test('camera frustum rejects unverified, stale, old-context and mismatched source calibration', () => {

@@ -13,6 +13,7 @@ from robot_dashboard.slam_features import FeatureStream, StreamContext
 from robot_dashboard.slam_ros_runtime import (
     CORRECTED_POSE_TOPIC, EXPECTED_PARAMETERS, IsaacRuntimeError, IsaacStereoAdapter,
     MAP_FRAME, _private_json, compose_optical_pose, decode_cloud, encode_png,
+    STEREO_HISTORY_SIZE,
 )
 
 
@@ -142,6 +143,113 @@ class RuntimeCallbackTests(unittest.TestCase):
                     "effective_parameters": dict(EXPECTED_PARAMETERS),
                     "process": NS(poll=lambda: None), "config": {"input": {"base_frame": "camera_link", "left": {"image_frame": "left_optical"}}}}
         self.adapter._job = self.job
+
+    def _production_observer(self):
+        self.job["node"] = NS(count_publishers=lambda topic: 1)
+        self.job["topics"] = {key: "/test/" + key for key in
+            ("image", "right_image", "camera_info", "right_camera_info", "pose", "tracking")}
+        self.job["config"]["input"].update(baseline_m=0.05,
+            right={"image_frame": "right_optical"})
+
+    def _image(self, key, stamp):
+        message = NS(header=header(stamp=stamp, frame="left_optical" if key == "image" else "right_optical"),
+                     width=4, height=4, step=4, encoding="mono8", data=bytes([64]*16))
+        self.adapter._receive(self.job, key, message)
+
+    def _calibration_and_tracking(self, stamp, *, optical_tf=True):
+        for side in ("left", "right"):
+            info = NS(header=header(stamp=stamp, frame=side + "_optical"), width=4, height=4,
+                      k=[2,0,2,0,2,2,0,0,1],
+                      p=[2,0,2,-0.1 if side == "right" else 0,0,2,2,0,0,0,1,0],
+                      r=[1,0,0,0,1,0,0,0,1], d=[], distortion_model="plumb_bob",
+                      roi=NS(x_offset=0,y_offset=0,width=0,height=0), binning_x=0, binning_y=0)
+            self.adapter._receive(self.job, "camera_info" if side == "left" else "right_camera_info", info)
+        transform = NS(transform=NS(translation=NS(x=0,y=0,z=0), rotation=NS(x=0,y=0,z=0,w=1)))
+        self.job["tf_buffer"] = NS(lookup_transform=unittest.mock.Mock(
+            return_value=transform, side_effect=None if optical_tf else LookupError("missing optical chain")))
+        pose = NS(header=header(stamp=stamp), child_frame_id="camera_link",
+                  pose=NS(pose=NS(position=NS(x=1,y=2,z=3), orientation=NS(x=0.5,y=0.5,z=0.5,w=0.5))))
+        with patch.dict("sys.modules", {"rclpy.time": NS(Time=lambda **kwargs: kwargs)}):
+            self.adapter._receive(self.job, "pose", pose)
+        self.adapter._receive(self.job, "tracking", NS(vo_state=1, header=header(stamp=stamp)))
+
+    def test_received_stereo_pair_survives_a_newer_unmatched_left_callback(self):
+        self._production_observer()
+        stamp = 100_000_000_000
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", stamp)
+            self._image("right_image", stamp)
+            self._calibration_and_tracking(stamp)
+            self._image("image", stamp + 33_333_333)
+            status = self.adapter.status(self.session)
+            self.assertTrue(status["ready"])
+            self.assertEqual(status["stereo_pair"]["left_timestamp_ns"], str(stamp))
+            self.assertEqual(status["stereo_pair"]["right_timestamp_ns"], str(stamp))
+            self.assertEqual(status["stereo_pair"]["skew_ns"], "0")
+            # Pixels keep their actual newest stamp; unmatched optical geometry
+            # is unavailable without suppressing the image or corrected 6DoF pose.
+            frame = self.adapter.frame(self.session)
+            self.assertEqual(frame["image"]["stamp_ns"], str(stamp + 33_333_333))
+            self.assertFalse(frame["camera_view"]["available"])
+            self.assertEqual(frame["camera_pose"]["position"], [1,2,3])
+            self.assertEqual(frame["camera_pose"]["quaternion_xyzw"], [0.5]*4)
+            self.assertEqual(frame["camera_pose"]["child_frame_id"], "camera_link")
+            self.assertEqual(frame["camera_pose"]["pose_reference"], "camera_link")
+            self._image("right_image", stamp + 33_333_333)
+            self.assertEqual(self.adapter.status(self.session)["stereo_pair"]["left_timestamp_ns"],
+                             str(stamp + 33_333_333))
+
+    def test_stereo_pair_cache_keeps_only_bounded_metadata(self):
+        self._production_observer()
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            for index in range(STEREO_HISTORY_SIZE + 3):
+                self._image("image", 100_000_000_000 + index*33_333_333)
+            history = self.job["stereo_history"]["image"]
+            self.assertEqual(len(history), STEREO_HISTORY_SIZE)
+            self.assertTrue(all("data" not in item for item in history))
+
+    def test_pair_matching_preserves_five_millisecond_limit(self):
+        for skew, expected in ((5_000_000, True), (5_000_001, False)):
+            with self.subTest(skew=skew):
+                self.setUp()
+                self._production_observer()
+                with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+                    self._image("image", 100_000_000_000)
+                    self._image("right_image", 100_000_000_000 + skew)
+                    self._calibration_and_tracking(100_000_000_000)
+                    status = self.adapter.status(self.session)
+                self.assertEqual(status["ready"], expected)
+                self.assertEqual(status["stereo_pair"]["matched"], expected)
+
+    def test_expired_pair_cannot_approve_fresh_unmatched_inputs(self):
+        self._production_observer()
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", 100_000_000_000)
+            self._image("right_image", 100_000_000_000)
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=101.01):
+            self._image("image", 200_000_000_000)
+            self._image("right_image", 200_033_333_333)
+            self._calibration_and_tracking(200_000_000_000)
+            status = self.adapter.status(self.session)
+        self.assertTrue(all(status["freshness"].values()))
+        self.assertFalse(status["stereo_pair"]["matched"])
+        self.assertFalse(status["ready"])
+
+    def test_missing_visualization_and_optical_tf_do_not_block_input_pose_tracking(self):
+        self._production_observer()
+        stamp = 100_000_000_000
+        with patch("robot_dashboard.slam_ros_runtime.time.monotonic", return_value=100.0):
+            self._image("image", stamp)
+            self._image("right_image", stamp)
+            self._calibration_and_tracking(stamp, optical_tf=False)
+            frame = self.adapter.frame(self.session)
+        self.assertTrue(frame["readiness"]["ready"])
+        self.assertIsNotNone(frame["image"])
+        self.assertEqual(frame["camera_pose"]["source_topic"], CORRECTED_POSE_TOPIC)
+        self.assertFalse(frame["camera_view"]["available"])
+        self.assertFalse(frame["current_observations"]["available"])
+        self.assertIsNone(frame["global_map"])
+        self.assertIsNone(frame["trajectory"])
 
     def _feed_post_localize_output(self, stamp=100_000_000_001, *, pose_frame=MAP_FRAME):
         self.job["node"] = None
@@ -372,6 +480,9 @@ class RuntimeCallbackTests(unittest.TestCase):
         hint = {"frame_id": MAP_FRAME, "operator_verified": True,
                 "position": [1,2,3], "quaternion_xyzw": [0,0,0,1]}
         session = dict(self.session, map_epoch="uncertain-native-map-epoch")
+        self._image("image", 100_000_000_000)
+        self._image("right_image", 100_000_000_000)
+        self.assertIn("stereo_history", self.job)
         self.job["node"] = NS(get_clock=lambda: NS(now=lambda: NS(nanoseconds=100_000_000_000)))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
@@ -382,6 +493,7 @@ class RuntimeCallbackTests(unittest.TestCase):
         self.assertTrue(self.job["localizing"])
         self.assertEqual(self.job["source_stamp_floor_ns"], 100_000_000_000)
         self.assertEqual(self.job["frames"], {})
+        self.assertNotIn("stereo_history", self.job)
         self.assertEqual(self.job["feature_context"].map_epoch, session["map_epoch"])
         fresh = cloud([(7,0,1)])
         fresh.header = header(stamp=100_000_000_001)

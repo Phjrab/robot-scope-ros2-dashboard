@@ -3,6 +3,9 @@ const MAX_WIRE_BYTES = 8 * 1024 * 1024;
 const MAX_MAP_POINTS = 60_000;
 const MAX_OBSERVATIONS = 4096;
 const LABELS = { lidar_fastlio: 'LiDAR · FAST-LIO', visual_stereo: 'Stereo VSLAM · Isaac', visual_inertial: 'VIO · IMU 미검증' };
+const RESOURCE_LABELS = { navigation: '내비게이션', mission: '미션', mission_route: '경로·미션',
+  dataset_capture: '데이터 수집', control: '제어', lidar: 'LiDAR', lifecycle: '서비스 수명주기',
+  camera: '카메라', ros_domain: 'ROS domain', broker: '실행 broker', session: 'SLAM 세션' };
 const ACTIVE_PAGES = new Set(['mapping', 'maps']);
 const controllers = new WeakMap();
 export const SLAM_STREAM_PATH = '/api/v1/ws/slam';
@@ -48,6 +51,54 @@ export function describeCoverage(map) {
     `snapshot ${map.snapshot_id ?? 'unknown'}`, `engine revision ${map.engine_revision ?? 'unknown'}`].join(' · ');
 }
 
+export function frameAvailability(frame, transportLive = true) {
+  const freshness = frame?.readiness?.freshness || {};
+  const live = transportLive === true;
+  const result = (available, reason) => ({ available: Boolean(available), reason });
+  const image = frame?.image;
+  const encoded = image?.jpeg_base64 || image?.png_base64;
+  const imageValid = typeof encoded === 'string' && encoded.length > 0 && encoded.length <= MAX_WIRE_BYTES &&
+    Number.isInteger(image.width) && image.width > 0 && image.width <= 1920 &&
+    Number.isInteger(image.height) && image.height > 0 && image.height <= 1080;
+  const pose = frame?.camera_pose;
+  const vector = (value, length) => Array.isArray(value) && value.length === length && value.every(Number.isFinite);
+  const poseValid = vector(pose?.position, 3) && pose.position.every((value) => Math.abs(value) <= 1_000_000) &&
+    vector(pose?.quaternion_xyzw, 4) && Math.abs(pose.quaternion_xyzw.reduce((sum, value) => sum + value * value, 0) - 1) <= 0.02 &&
+    typeof pose.frame_id === 'string' && pose.frame_id.length > 0 && pose.frame_id === frame?.frame_id &&
+    typeof pose.stamp_ns === 'string' && /^\d{1,20}$/.test(pose.stamp_ns);
+  const tracking = frame?.readiness?.tracking_state || frame?.tracking_state || 'UNKNOWN';
+  const trackingValid = ['TRACKING', 'MAPPING', 'LOCALIZING'].includes(tracking);
+  const map = frame?.global_map;
+  const trajectory = frame?.trajectory;
+  const layerValid = (layer, limit) => layer && layer.map_epoch === frame?.map_epoch &&
+    layer.coordinate_frame === frame?.frame_id && Array.isArray(layer.points) &&
+    boundedPoints(layer.points, limit).length === layer.points.length;
+  const imageAvailable = live && freshness.image !== false && imageValid;
+  const mapAvailable = layerValid(map, MAX_MAP_POINTS);
+  const trajectoryAvailable = layerValid(trajectory, 10_001);
+  return {
+    image: result(imageAvailable, !live ? 'STALE_SOURCE' : freshness.image === false ? 'IMAGE_STALE' : imageValid ? 'IMAGE_RECEIVED' : image?.preview_unavailable_reason || 'IMAGE_UNAVAILABLE'),
+    pose: result(live && freshness.pose !== false && poseValid, !live ? 'STALE_SOURCE' : freshness.pose === false ? 'POSE_STALE' : poseValid ? 'CAMERA_POSE_RECEIVED' : 'CAMERA_POSE_UNAVAILABLE'),
+    tracking: result(live && freshness.tracking !== false && trackingValid, !live ? 'STALE_SOURCE' : freshness.tracking === false ? 'TRACKING_STALE' : tracking),
+    overlay: result(imageAvailable && overlayMatchesImage(frame), !live ? 'STALE_SOURCE' : frame?.overlay?.reason || (overlayMatchesImage(frame) ? frame.overlay.overlay_kind : 'IMAGE_ALIGNMENT_UNAVAILABLE')),
+    global_map: result(mapAvailable, mapAvailable ? `coverage ${map.coverage || 'unknown'}` : map ? 'GLOBAL_MAP_CONTEXT_OR_POINTS_INVALID' : 'GLOBAL_MAP_UNAVAILABLE'),
+    trajectory: result(trajectoryAvailable, trajectoryAvailable ? `${trajectory.trajectory_kind || 'unknown'} · ${trajectory.points.length}점` : trajectory ? 'TRAJECTORY_CONTEXT_OR_POINTS_INVALID' : 'TRAJECTORY_UNAVAILABLE'),
+  };
+}
+
+export function describeCameraPose(frame, availability = frameAvailability(frame)) {
+  const pose = frame?.camera_pose;
+  const reference = frame?.readiness?.pose_reference || 'camera_link';
+  const lines = [`카메라 6DoF · reference ${reference}`];
+  if (availability.pose.available) {
+    lines.push(`위치 x/y/z (m): ${pose.position.map((value) => value.toFixed(3)).join(' / ')}`,
+      `자세 qx/qy/qz/qw: ${pose.quaternion_xyzw.map((value) => value.toFixed(4)).join(' / ')}`,
+      `frame ${pose.frame_id} · stamp ${pose.stamp_ns} · source ${frame.pose_origin_topic || frame.readiness?.pose_source || 'unknown'}`);
+  } else lines.push(`pose unavailable · ${availability.pose.reason}`);
+  lines.push('Go2 body pose 미검증 · camera→Go2 extrinsic 필요 · 주행 승인 안 됨');
+  return lines.join('\n');
+}
+
 export function describeLocalization(result, session = null) {
   if (!result && session?.state !== 'LOCALIZING') return '저장 지도 위치찾기 · 실행 기록 없음';
   const pending = result?.state === 'LOCALIZING' || session?.state === 'LOCALIZING';
@@ -67,7 +118,7 @@ export function describeLocalization(result, session = null) {
 
 export function cameraFrustumGeometry(view, frame, rayLength = 1) {
   if (view?.available !== true || view.projection_convention !== 'rectified_optical_x_right_y_down_z_forward' ||
-      view.coordinate_frame !== (frame?.global_map?.coordinate_frame || frame?.frame_id) || view.map_epoch !== frame?.map_epoch ||
+      view.coordinate_frame !== (frame?.frame_id || frame?.global_map?.coordinate_frame) || view.map_epoch !== frame?.map_epoch ||
       view.session_id !== frame?.session_id || view.generation !== frame?.generation || view.engine_id !== frame?.engine_id ||
       !Number.isFinite(rayLength) || rayLength < 0.05 || rayLength > 10 ||
       frame?.stream_connected === false || ['LOST', 'STOPPED', 'WAITING_INPUT'].includes(frame?.tracking_state)) return null;
@@ -108,10 +159,18 @@ export function cameraFrustumGeometry(view, frame, rayLength = 1) {
   return { position: position.slice(), corners, frame_id: view.coordinate_frame, ray_length_m: rayLength };
 }
 
-function errorText(value, fallback) {
+export function errorText(value, fallback) {
   const detail = value?.detail ?? value;
-  if (typeof detail === 'string') return detail;
-  return detail?.reason || detail?.message || detail?.code || value?.error || fallback;
+  const reason = typeof detail === 'string' ? detail : detail?.reason || detail?.message || detail?.code || value?.error || fallback;
+  const resources = detail?.resources || detail?.resource_conflicts || value?.resource_conflicts;
+  if (!['RESOURCE_CONFLICT', 'CLEANUP_REQUIRED'].includes(reason) || !Array.isArray(resources)) return String(reason).slice(0, 512);
+  const labels = resources.slice(0, 16).map((item) => {
+    const resource = typeof item === 'string' ? item : item?.resource;
+    const label = Object.hasOwn(RESOURCE_LABELS, resource) ? RESOURCE_LABELS[resource] : '알 수 없는 자원';
+    const code = typeof item?.reason === 'string' && /^[a-z0-9_]{1,80}$/.test(item.reason) ? item.reason : null;
+    return code ? `${label} (${code})` : label;
+  });
+  return labels.length ? `${reason} · ${labels.join(' · ')}` : reason;
 }
 
 function requestId(win) {
@@ -158,7 +217,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     pollTimer: 0, retryTimer: 0, staleTimer: 0, imageTicket: 0, transportSerial: 0,
     refreshSerial: 0, activationSerial: 0, polling: false,
     receiveAt: 0, staleCleared: false, requestControllers: new Set(), job: null,
-    localizationResult: null, localizationAttempted: false };
+    localizationResult: null, localizationAttempted: false, actionError: null };
   const panel = el('article', { className: 'panel slam-console', id: 'slamConsole', 'aria-label': 'SLAM 엔진과 관측' });
   const message = text('p', '서버 SLAM 상태 확인 중', { id: 'slamMessage', role: 'status', 'aria-live': 'polite' });
   const status = text('strong', 'UNKNOWN', { id: 'slamSessionState' });
@@ -195,6 +254,12 @@ export function mountSlamDashboard(doc = document, options = {}) {
   followToggle.input.disabled = true;
   const imageCanvas = el('canvas', { id: 'slamCameraCanvas', width: 640, height: 480, 'aria-label': '실제 왼쪽 rectified IR 입력과 현재 관측 특징점' });
   const imageStatus = text('p', '왼쪽 rectified IR 입력 대기', { id: 'slamImageStatus', role: 'status' });
+  const poseStatus = text('pre', describeCameraPose(null), { id: 'slamCameraPose', className: 'slam-detail', role: 'status' });
+  const availabilityLabels = { image: '입력 이미지', pose: '카메라 6DoF', tracking: 'Tracking',
+    overlay: '특징점 오버레이', global_map: '전역 지도', trajectory: '궤적' };
+  const availabilityNodes = Object.fromEntries(Object.entries(availabilityLabels).map(([key, label]) =>
+    [key, text('p', `${label} · 대기`, { id: `slamAvailability-${key}`, 'data-availability': 'unavailable' })]));
+  const availabilityPanel = el('div', { className: 'slam-availability', id: 'slamAvailability', 'aria-label': 'VSLAM 출력별 가용성' }, ...Object.values(availabilityNodes));
   const mapCanvas = el('canvas', { id: 'slamGlobalCanvas', 'aria-label': '현재 시야 밖을 포함한 VSLAM 전역 특징점 지도' });
   const mapStatus = text('p', describeCoverage(null), { id: 'slamMapCoverage' });
   const sourceStatus = text('p', '실측 데이터 출처 대기', { id: 'slamProvenance' });
@@ -202,11 +267,11 @@ export function mountSlamDashboard(doc = document, options = {}) {
   const cameraStatus = text('p', '카메라 시야 대기 · 보정과 optical pose 필요', { id: 'slamCameraViewStatus' });
   const fit = button('전체 지도 FIT', 'slamFit', () => state.scene?.fitToPointCloud());
   const observationViews = el('div', { className: 'slam-views', hidden: true },
-    el('section', { className: 'slam-view' }, text('h3', '입력 카메라 · 현재 관측'), imageCanvas, overlayToggle.label, imageStatus),
+    el('section', { className: 'slam-view' }, text('h3', '입력 카메라 · 현재 관측'), imageCanvas, overlayToggle.label, imageStatus, poseStatus),
     el('section', { className: 'slam-view' }, text('h3', '전역 3D 지도'), mapCanvas,
       el('div', { className: 'slam-layer-row' }, mapToggle.label, obsToggle.label, trailToggle.label, cameraToggle.label, followToggle.label, fit),
       text('small', '드래그 회전 · 우클릭/Shift 드래그 이동 · 휠 확대/축소'), mapStatus, cameraStatus));
-  panel.append(observationViews, sourceStatus, heartbeatStatus);
+  panel.append(availabilityPanel, observationViews, sourceStatus, heartbeatStatus);
   mappingHost.prepend(panel);
 
   const stopDialog = el('dialog', { id: 'slamStopDialog', className: 'slam-dialog', 'aria-labelledby': 'slamStopTitle' });
@@ -319,10 +384,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
 
   async function perform(action) {
     if (state.pending || state.disposed) return;
-    state.pending = true;
+    state.pending = true; state.actionError = null;
     updateButtons();
     try { await action(); }
-    catch (error) { message.textContent = `SLAM: ${error.message}`; packageStatus.textContent = `지도 작업: ${error.message}`; }
+    catch (error) { state.actionError = error.message; message.textContent = `SLAM: ${error.message}`; packageStatus.textContent = `지도 작업: ${error.message}`; }
     finally { state.pending = false; updateButtons(); }
   }
 
@@ -335,6 +400,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     const active = Boolean(state.session && state.session.state !== 'IDLE');
     const visualEngine = (active ? state.session.engine_id : engine.value)?.startsWith('visual_');
     observationViews.hidden = !visualEngine;
+    availabilityPanel.hidden = !visualEngine;
     sourceStatus.hidden = !visualEngine;
     heartbeatStatus.hidden = !visualEngine;
     const selected = state.engines.find((value) => value.engine_id === engine.value);
@@ -390,7 +456,8 @@ export function mountSlamDashboard(doc = document, options = {}) {
     status.textContent = state.session?.state || 'IDLE';
     const source = value.operational_pose_source;
     identities.textContent = `선택 ${LABELS[engine.value] || engine.value} · 실행 ${state.session?.engine_id || '없음'} / ${state.session?.effective_mode || '—'} · 운영 pose ${typeof source === 'string' ? source : source?.source || 'unknown'} (generation ${source?.generation ?? 'unknown'})`;
-    if (!state.pending) message.textContent = state.session?.reason ||
+    if (!state.pending) message.textContent = state.actionError || (state.session?.reason && errorText({ detail: {
+      code: state.session.reason, resources: state.session.resource_conflicts } }, state.session.reason)) ||
       (state.session ? `session ${state.session.session_id} · generation ${state.session.generation}` : '실행 중인 SLAM 세션 없음');
     updateButtons();
     updateLocalizationStatus();
@@ -462,21 +529,33 @@ export function mountSlamDashboard(doc = document, options = {}) {
     imageStatus.textContent = '동일 session/generation의 왼쪽 IR 입력 대기';
     mapStatus.textContent = describeCoverage(null);
     cameraStatus.textContent = '카메라 시야 대기 · 보정과 optical pose 필요';
+    updateAvailability(null, false);
+  }
+
+  function updateAvailability(frame, live) {
+    const availability = frameAvailability(frame, live);
+    for (const [key, value] of Object.entries(availability)) {
+      availabilityNodes[key].dataset.availability = value.available ? 'available' : 'unavailable';
+      const snapshot = ['global_map', 'trajectory'].includes(key) && value.available && !live ? ' · 정적 snapshot 유지' : '';
+      availabilityNodes[key].textContent = `${availabilityLabels[key]} · ${value.available ? 'available' : 'unavailable'} · ${value.reason}${snapshot}`;
+    }
+    poseStatus.textContent = describeCameraPose(frame, availability);
+    return availability;
   }
 
   function renderMap(frame) {
     if (!state.scene) state.scene = makeScene(mapCanvas);
-    const map = frame.global_map;
-    const global = mapToggle.input.checked && map?.map_epoch === frame.map_epoch ? boundedPoints(map.points) : [];
-    const observations = frame.current_observations;
     const live = frame.stream_connected !== false && state.socket?.readyState === 1 && Date.now() - state.receiveAt <= 1500;
+    const availability = frameAvailability(frame, live);
+    const map = frame.global_map;
+    const global = mapToggle.input.checked && availability.global_map.available ? boundedPoints(map.points) : [];
+    const observations = frame.current_observations;
     const current = live && obsToggle.input.checked && observations?.available === true && observations.map_epoch === frame.map_epoch &&
-      observations.coordinate_frame === (map?.coordinate_frame || frame.frame_id) ? boundedPoints(observations.points, MAX_OBSERVATIONS) : [];
-    state.scene?.setPointCloud({ points: [...global, ...current], frame_id: map?.coordinate_frame || frame.frame_id,
+      observations.coordinate_frame === frame.frame_id ? boundedPoints(observations.points, MAX_OBSERVATIONS) : [];
+    state.scene?.setPointCloud({ points: [...global, ...current], frame_id: frame.frame_id,
       data_provenance: String(map?.provenance || '').toLowerCase().includes('fixture') ? 'SYNTHETIC_FIXTURE' : map?.provenance }, { fit: undefined });
     const trajectory = frame.trajectory;
-    const trail = trailToggle.input.checked && trajectory?.map_epoch === frame.map_epoch &&
-      trajectory.coordinate_frame === (map?.coordinate_frame || frame.frame_id) ? boundedPoints(trajectory.points, 10_001) : [];
+    const trail = trailToggle.input.checked && availability.trajectory.available ? boundedPoints(trajectory.points, 10_001) : [];
     // RobotScene3D's public trail cache is bounded at 400. Decimate the entire
     // trajectory evenly so early, out-of-view segments remain accessible.
     const samples = trail.length > 400 ? Array.from({ length: 400 }, (_, index) => trail[Math.round(index * (trail.length - 1) / 399)]) : trail;
@@ -502,19 +581,26 @@ export function mountSlamDashboard(doc = document, options = {}) {
     const ticket = ++state.imageTicket;
     const context = imageCanvas.getContext('2d');
     context?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-    if (state.socket?.readyState !== 1 || Date.now() - state.receiveAt > 1500) {
-      imageStatus.textContent = 'STALE_SOURCE · 현재 관측점 숨김'; return;
+    const live = state.socket?.readyState === 1 && Date.now() - state.receiveAt <= 1500;
+    const availability = updateAvailability(frame, live);
+    if (!availability.image.available) {
+      imageStatus.textContent = `입력 이미지 unavailable · ${availability.image.reason} · 현재 관측점 숨김`; return;
     }
     const overlay = frame.overlay;
     const canOverlay = overlayMatchesImage(frame);
-    imageStatus.textContent = `${overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${overlay?.displayed_count ?? 0}점` : overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'} · 수신 후 ${overlay?.receive_age_seconds == null ? 'unknown' : Number(overlay.receive_age_seconds).toFixed(2) + 's'}`;
+    imageStatus.textContent = `입력 이미지 available · ${overlay?.overlay_kind || 'unavailable'} · ${canOverlay ? `현재 ${overlay?.displayed_count ?? 0}점` : overlay?.reason || 'IMAGE_ALIGNMENT_UNAVAILABLE'} · 수신 후 ${overlay?.receive_age_seconds == null ? 'unknown' : Number(overlay.receive_age_seconds).toFixed(2) + 's'}`;
     const encoded = image?.jpeg_base64 || image?.png_base64;
     if (!encoded || typeof encoded !== 'string' || encoded.length > MAX_WIRE_BYTES ||
         !Number.isInteger(image.width) || !Number.isInteger(image.height) || image.width < 1 || image.width > 1920 || image.height < 1 || image.height > 1080) return;
     const decoded = new win.Image();
     decoded.onload = () => {
       if (state.disposed || state.activePage !== 'mapping' || ticket !== state.imageTicket || state.frame !== frame) return;
-      if (decoded.naturalWidth !== image.width || decoded.naturalHeight !== image.height) { imageStatus.textContent = 'IMAGE_DIMENSION_MISMATCH'; return; }
+      if (decoded.naturalWidth !== image.width || decoded.naturalHeight !== image.height) {
+        imageStatus.textContent = '입력 이미지 unavailable · IMAGE_DIMENSION_MISMATCH';
+        availabilityNodes.image.dataset.availability = 'unavailable';
+        availabilityNodes.image.textContent = `${availabilityLabels.image} · unavailable · IMAGE_DIMENSION_MISMATCH`;
+        return;
+      }
       imageCanvas.width = image.width; imageCanvas.height = image.height;
       context.drawImage(decoded, 0, 0);
       if (!overlayToggle.input.checked || !canOverlay) return;
@@ -524,7 +610,12 @@ export function mountSlamDashboard(doc = document, options = {}) {
         context.beginPath(); context.arc(u, v, 2.4, 0, 2 * Math.PI); context.fill();
       }
     };
-    decoded.onerror = () => { if (ticket === state.imageTicket) imageStatus.textContent = 'IMAGE_DECODE_UNAVAILABLE'; };
+    decoded.onerror = () => {
+      if (ticket !== state.imageTicket) return;
+      imageStatus.textContent = '입력 이미지 unavailable · IMAGE_DECODE_UNAVAILABLE';
+      availabilityNodes.image.dataset.availability = 'unavailable';
+      availabilityNodes.image.textContent = `${availabilityLabels.image} · unavailable · IMAGE_DECODE_UNAVAILABLE`;
+    };
     decoded.src = `data:image/${image.jpeg_base64 ? 'jpeg' : 'png'};base64,${encoded}`;
   }
 
@@ -558,6 +649,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
       heartbeatStatus.textContent = '시각화 연결 끊김 · 세션 상태는 서버에서 확인 중';
       state.imageTicket += 1;
       imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+      updateAvailability(state.frame, false);
       if (state.frame) renderMap(state.frame);
       if (!doc.hidden && state.activePage === 'mapping' && !state.disposed) state.retryTimer = win.setTimeout(connectStream, 2000);
     };
@@ -697,6 +789,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
       state.staleCleared = true;
       state.imageTicket += 1; imageCanvas.getContext('2d')?.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
       renderMap(state.frame);
+      updateAvailability(state.frame, false);
       imageStatus.textContent = 'STALE_SOURCE · 현재 관측점 숨김';
       heartbeatStatus.textContent = 'stream 새 frame 대기 · 정적 지도 snapshot은 유지';
     }

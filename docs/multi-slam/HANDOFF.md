@@ -1,3 +1,13 @@
+# Current Stereo observation follow-up
+
+The 2026-10-16 integration request prioritizes the actual dashboard → broker →
+preserved Isaac Stereo path. Current work and deployment boundaries are in
+[STEREO_OBSERVATION.md](../integration-acceptance/STEREO_OBSERVATION.md).
+The new fixed managed scope and read-only owner probe are described in
+[DEPLOYMENT.md](DEPLOYMENT.md). Earlier stage16/MAP-02 full-export gates remain
+historical/deferred and are not prerequisites for image/camera-pose observation.
+No new device operation has yet been performed in this follow-up.
+
 # MS / MR handoff
 
 Updated 2026-10-15 KST. Read PROGRESS and FINAL_REPORT (when present).

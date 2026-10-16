@@ -18,6 +18,10 @@
 #slamStop,#slamPackageDelete,#slamDiscardThenStop{border-color:#855454}
 #slamMessage,#slamPackageStatus{min-height:20px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
 .slam-muted,#slamSourceIdentity{font-size:12px;color:var(--muted,#93a5ad);overflow-wrap:anywhere}
+.slam-availability{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;margin:10px 0}
+.slam-availability p{margin:0;padding:7px 9px;border:1px solid var(--line,#35434b);border-radius:5px;font-size:11px;line-height:1.5;overflow-wrap:anywhere;color:var(--muted,#93a5ad)}
+.slam-availability [data-availability=available]{border-color:#328e79;color:var(--text,#dceee8)}
+#slamCameraPose{max-height:none;margin:8px 0 0}
 .slam-views{display:grid;grid-template-columns:1fr 1.2fr;gap:12px;margin:12px 0 8px}
 .slam-view{min-width:0;border:1px solid var(--line,#35434b);border-radius:7px;padding:12px}
 .slam-view h3{font-size:13px;margin-bottom:10px}

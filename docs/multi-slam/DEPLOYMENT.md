@@ -26,18 +26,57 @@ Do not remove an existing broker socket without owner/process investigation.
 No new systemd unit or restart has been installed by this change.
 
 The private runtime config contains observed input_contract/camera_contract paths,
-stereo_profile, distinct domain_id/operational_domain_id, domain_available and
-current domain_checked_at_utc. It accepts only observed live rectified inputs.
+stereo_profile and distinct domain_id/operational_domain_id. It accepts only
+observed live rectified inputs.
 The preserved experiments/isaac_vslam/config/launch_contract.py validates them.
 Do not manufacture contracts, calibration hashes or unused-domain evidence.
-Camera handoff requires lock_protocol=robot-scope-camera-v1, checked_at_epoch,
-relay_released=true and exact devices; it expires after300s. Recheck actual owner
-immediately before acquisition. OS owner probe fails closed.
+Legacy configuration retains domain_available/current domain_checked_at_utc and
+the 300s camera handoff: lock_protocol=robot-scope-camera-v1, checked_at_epoch,
+relay_released=true and exact devices. The existing standalone camera launcher
+also retains its current-owner/time-slot/300s observation requirement.
+
+The broker may instead use an explicitly approved fixed managed scope. Runtime
+config's managed_scope and --camera-handoff must identify the same private,
+canonical same-UID JSON policy. Its exact schema is SCOPE_FIELDS in
+robot_dashboard/slam_managed_scope.py: fixed scope ID, camera device inventory,
+distinct domain IDs, separate shared camera/domain lock paths, cooperative owner
+policy, installed relay path/source hash, lock-helper hash, observed host PID
+namespace and fixed owner_probe_socket. No example values or expiry timestamp
+establish current ownership. A policy/source/device/namespace change requires a
+new reviewed scope; never refresh old observation timestamps to enable startup.
+
+Every managed acquisition first holds the shared camera flock, verifies that
+the actual relay source and waiting process use that lock, and requests a new
+read-only ownership report from the fixed root-owned local probe service. The
+client authenticates the root peer, exact device inventory/host namespace and
+timestamps from this request (at most 5s old). Free, occupied and unavailable are
+distinct. Missing helper, incomplete FD visibility, stale/invalid reports and
+uncooperative relays fail closed; there is no partial unprivileged-probe fallback.
+The helper neither acquires a camera nor stops processes. Its installation and
+the relay's shared-lock installation require a separate deployment approval.
+
+The same-UID broker holds the domain flock before its existing live DDS graph
+check and child launch. The per-start reservation proof records the original
+successful probe timestamps and live parent FDs/inodes; proof reads never
+restamp them. The managed launcher checks that evidence separately from the
+unchanged historical sensor/profile contract. Native image/pose source stamps,
+stereo synchronization and runtime freshness checks remain authoritative.
+Both reservations survive client disconnects and remain held until exact owned
+child/observer cleanup is confirmed. RESOURCE_CONFLICT carries bounded resource
+and reason labels; it never forwards raw process output or filesystem paths.
+
+Host PID visibility is necessary for relay and reservation checks. The prepared
+isolated broker configuration uses --pid=host, --network=none, --ipc=private and
+the existing runtime UID with exact shared paths; it exposes no Docker socket.
+It must not receive broad root/privileged ownership merely to bypass a probe.
+The fixed read-only host probe is responsible for complete device-owner checks.
 
 For explicitly isolated direct testing only, ROBOT_SCOPE_SLAM_ENABLE=1 and
 ROBOT_SCOPE_SLAM_RUNTIME_CONFIG select the same fixed adapter; localhost FastDDS
 is required. Never set these isolation keys on the operational dashboard to make
-an error disappear. Broker configures its own localhost FastDDS environment.
+an error disappear. Direct testing retains the legacy attestation path; the
+managed reservation path is bound through the broker's actual camera owner.
+Broker configures its own localhost FastDDS environment.
 
 After approval: read-only baseline, stationary tracking, mapping/readback, actual
 left IR/projection/global stream, two viewers, native save, stop/owner handback,

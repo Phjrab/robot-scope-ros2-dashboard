@@ -8,6 +8,7 @@ handoff/locking belongs to the application owner which calls this adapter.
 from __future__ import annotations
 
 import base64
+from collections import deque
 import copy
 import datetime as dt
 import hashlib
@@ -31,6 +32,8 @@ import xml.etree.ElementTree as ET
 import zlib
 
 from .slam_features import FeatureStream, FeatureValidationError, StreamContext
+from .slam_managed_scope import (DomainReservation, ManagedScopeError, load_managed_scope,
+                                 validate_reservation_proof)
 
 
 MAP_FRAME = "vslam_lab_map"
@@ -40,6 +43,7 @@ MAX_IMAGE_BYTES = 4 * 1024 * 1024
 MAX_MAP_POINTS = 32768
 MAX_OBSERVATIONS = 2048
 MAX_PATH_POSES = 1024
+STEREO_HISTORY_SIZE = 16
 EXPECTED_PARAMETERS = {
     "enable_imu_fusion": False,
     "enable_localization_n_mapping": True,
@@ -179,6 +183,14 @@ class IsaacStereoAdapter:
         self._last_compatibility: dict[str, Any] = {}
         self._confirmation_clock = confirmation_clock
         self._confirmation_wait = confirmation_wait
+        self._camera_coordinator: Any = None
+
+    def bind_camera_coordinator(self, camera: Any) -> None:
+        """Bind the broker's actual reservation owner without opening a device."""
+        with self._lock:
+            if self._job is not None:
+                raise ManagedScopeError("session", "reservation_owner_change")
+            self._camera_coordinator = camera
 
     @classmethod
     def from_environment(cls, project_dir: Path, runtime_root: Path) -> Any:
@@ -227,13 +239,20 @@ class IsaacStereoAdapter:
         domain = config.get("domain_id")
         if type(domain) is not int or not 1 <= domain <= 232 or domain == config.get("operational_domain_id", 0):
             raise IsaacRuntimeError("SLAM requires a distinct administrator-checked ROS domain")
-        try:
-            checked = dt.datetime.fromisoformat(str(config["domain_checked_at_utc"]).replace("Z", "+00:00"))
-            age = (dt.datetime.now(dt.timezone.utc) - checked).total_seconds()
-        except (KeyError, ValueError, TypeError) as exc:
-            raise IsaacRuntimeError("isolated domain observation is missing") from exc
-        if config.get("domain_available") is not True or not -5 <= age <= 300:
-            raise IsaacRuntimeError("isolated domain must be checked within five minutes")
+        managed_path = config.get("managed_scope")
+        if managed_path is not None:
+            if not isinstance(managed_path, str):
+                raise ManagedScopeError("session", "managed_scope_invalid")
+            config["_managed_scope"] = load_managed_scope(Path(managed_path), domain_id=domain,
+                operational_domain_id=config.get("operational_domain_id", 0))
+        else:
+            try:
+                checked = dt.datetime.fromisoformat(str(config["domain_checked_at_utc"]).replace("Z", "+00:00"))
+                age = (dt.datetime.now(dt.timezone.utc) - checked).total_seconds()
+            except (KeyError, ValueError, TypeError) as exc:
+                raise IsaacRuntimeError("isolated domain observation is missing") from exc
+            if config.get("domain_available") is not True or not -5 <= age <= 300:
+                raise IsaacRuntimeError("isolated domain must be checked within five minutes")
         contract_module = runpy.run_path(str(self.project_dir / "experiments/isaac_vslam/config/launch_contract.py"))
         for name in ("input_contract", "camera_contract"):
             if not isinstance(config.get(name), str):
@@ -245,7 +264,8 @@ class IsaacStereoAdapter:
         if inputs.get("rectified_images") is not True:
             raise IsaacRuntimeError("managed stereo overlay requires observed rectified input")
         contract_module["validate_input"](inputs, "slam_vo" if task == "mapping" else "vo", False)
-        contract_module["validate_camera"](camera, config.get("stereo_profile", ""))
+        contract_module["validate_camera_profile" if managed_path is not None else "validate_camera"](
+            camera, config.get("stereo_profile", ""))
         config["input"] = inputs
         for key, document in (("input", inputs), ("camera", camera)):
             encoded = json.dumps(document, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -309,6 +329,17 @@ class IsaacStereoAdapter:
                 raise IsaacRuntimeError("an owned Isaac stereo session already exists")
             self._job = job
         try:
+            scope = config.get("_managed_scope")
+            camera_proof = None
+            if scope is not None:
+                if self._camera_coordinator is None:
+                    raise ManagedScopeError("camera", "managed_reservation_missing")
+                camera_proof = self._camera_coordinator.reservation_proof(session)
+                if (camera_proof["scope_id"] != scope["scope_id"]
+                        or camera_proof["scope_sha256"] != scope["scope_sha256"]):
+                    raise ManagedScopeError("camera", "managed_scope_changed")
+                job["domain_reservation"] = DomainReservation(scope)
+                job["domain_reservation"].acquire()
             self._attach_ros(job)
             environment = dict(os.environ)
             for key in ("CYCLONEDDS_URI", "FASTDDS_DEFAULT_PROFILES_FILE", "FASTRTPS_DEFAULT_PROFILES_FILE"):
@@ -321,6 +352,17 @@ class IsaacStereoAdapter:
                        "camera_contract:=" + str(config["camera_contract"]),
                        "stereo_profile:=" + str(config["stereo_profile"]), "run_dir:=" + str(run_dir),
                        "mode:=" + job["effective_mode"]]
+            if scope is not None:
+                proof = dict(camera_proof, schema_version=1, evidence_kind="live_managed_reservation",
+                    session_id=identity[0], generation=identity[1], domain_id=scope["domain_id"],
+                    domain_lock=job["domain_reservation"].evidence())
+                validate_reservation_proof(proof, scope)
+                proof_path = run_dir / "reservation_proof.json"
+                descriptor = os.open(proof_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(descriptor, "w") as output:
+                    json.dump(proof, output, allow_nan=False, sort_keys=True)
+                command.extend(["managed_scope:=" + str(config["managed_scope"]),
+                                "reservation_proof:=" + str(proof_path)])
             log_file = (run_dir / "runtime.log").open("xb")
             job["log_file"] = log_file
             job["process"] = subprocess.Popen(command, cwd=self.project_dir, env=environment,
@@ -410,12 +452,13 @@ class IsaacStereoAdapter:
         job["thread"] = thread
         thread.start()
         # Observe the isolated graph before this owner starts any child.  The
-        # recent administrator observation is necessary but is not a lock.
+        # Legacy attestations and fixed managed policy are never a graph probe.
+        # Managed starts already hold their exact domain reservation here.
         time.sleep(0.25)
         foreign = [(name, namespace) for name, namespace in node.get_node_names_and_namespaces()
                    if name not in {"robot_scope_slam_observer", "transform_listener_impl"}]
         if foreign:
-            raise IsaacRuntimeError("isolated ROS domain already contains another owner")
+            raise ManagedScopeError("ros_domain", "foreign_participant")
 
     def _receive(self, job: dict[str, Any], key: str, message: Any) -> None:
         try:
@@ -459,6 +502,8 @@ class IsaacStereoAdapter:
                 if value["frame_id"] != MAP_FRAME or str(message.child_frame_id) != job["config"]["input"]["base_frame"]:
                     raise IsaacRuntimeError("corrected SLAM pose has the wrong map frame")
                 value["source_topic"] = CORRECTED_POSE_TOPIC
+                value["child_frame_id"] = str(message.child_frame_id)
+                value["pose_reference"] = str(message.child_frame_id)
             elif key == "path":
                 if str(message.header.frame_id) != MAP_FRAME or len(message.poses) > MAX_PATH_POSES:
                     raise IsaacRuntimeError("SLAM path frame or bounded source count is invalid")
@@ -483,6 +528,14 @@ class IsaacStereoAdapter:
                 if previous is not None and "stamp_ns" in value and value["stamp_ns"] <= previous["stamp_ns"]:
                     raise IsaacRuntimeError("SLAM source stamp did not advance")
                 job["frames"][key] = value
+                if key in {"image", "right_image"}:
+                    # Callback order is not a stereo synchronizer. Retain only
+                    # bounded metadata, not another history of image payloads,
+                    # so a newer unmatched callback cannot hide a real pair.
+                    history = job.setdefault("stereo_history", {})
+                    history.setdefault(key, deque(maxlen=STEREO_HISTORY_SIZE)).append({
+                        field: value[field] for field in
+                        ("stamp_ns", "received_monotonic", "width", "height", "frame_id")})
                 self._record_features(job, key, message, value)
         except (AttributeError, TypeError, ValueError, IsaacRuntimeError, FeatureValidationError) as exc:
             with job["lock"]:
@@ -568,6 +621,19 @@ class IsaacStereoAdapter:
             effective[name] = bool(value.bool_value)
         job["effective_parameters"] = effective
 
+    @staticmethod
+    def _stereo_pair(job: dict[str, Any], now: float) -> tuple[dict[str, Any], dict[str, Any]] | None:
+        """Select actual received input within the existing 5 ms/1 s bounds."""
+        history, frames = job.get("stereo_history", {}), job["frames"]
+        samples = {key: [value for value in history.get(key, [frames.get(key, {})])
+                         if "stamp_ns" in value and now-value["received_monotonic"] <= 1.0]
+                   for key in ("image", "right_image")}
+        pairs = [(left, right) for left in samples["image"] for right in samples["right_image"]
+                 if abs(left["stamp_ns"]-right["stamp_ns"]) <= 5_000_000
+                 and all(left.get(key) == right.get(key) for key in ("width", "height"))]
+        return max(pairs, key=lambda pair: (min(value["stamp_ns"] for value in pair),
+                   -abs(pair[0]["stamp_ns"]-pair[1]["stamp_ns"]))) if pairs else None
+
     def status(self, session: dict[str, Any]) -> dict[str, Any]:
         job = self._owned(session)
         now = time.monotonic()
@@ -577,13 +643,21 @@ class IsaacStereoAdapter:
                      for key in ("image", "right_image", "pose", "tracking")}
             tracking = frames.get("tracking", {}).get("state", "UNKNOWN")
             ready = all(fresh.values()) and tracking == "TRACKING" and bool(job["effective_parameters"])
+            pair = self._stereo_pair(job, now)
+            stereo = {"matched": pair is not None, "source_tolerance_ns": "5000000"}
+            if pair is not None:
+                left, right = pair
+                stereo.update(left_timestamp_ns=str(left["stamp_ns"]),
+                              right_timestamp_ns=str(right["stamp_ns"]),
+                              skew_ns=str(abs(left["stamp_ns"]-right["stamp_ns"])),
+                              receive_age_s=max(now-value["received_monotonic"] for value in pair))
             if job.get("node") is not None:
                 required = ("image", "right_image", "camera_info", "right_camera_info", "pose", "tracking")
                 unique = all(job["node"].count_publishers(job["topics"][key]) == 1 for key in required)
                 ready = ready and unique
-                left, right = frames.get("image", {}), frames.get("right_image", {})
+                left, right = pair if pair is not None else ({}, {})
                 info, right_info = frames.get("camera_info", {}), frames.get("right_camera_info", {})
-                aligned = (abs(left.get("stamp_ns", 0) - right.get("stamp_ns", 0)) <= 5_000_000
+                aligned = (pair is not None
                            and all(info.get(key) == left.get(key) == right.get(key) == right_info.get(key)
                                    for key in ("width", "height"))
                            and all(key in frames and now-frames[key]["received_monotonic"] <= 1.0
@@ -601,9 +675,11 @@ class IsaacStereoAdapter:
                     "stopping": bool(job.get("stopping", False)),
                     "localizing": bool(job.get("localizing", False)),
                     "tracking_state": tracking, "freshness": fresh,
+                    "stereo_pair": stereo,
                     "effective_parameters": dict(job["effective_parameters"]),
                     "installed_contract_verified": bool(job["effective_parameters"]),
-                    "pose_source": CORRECTED_POSE_TOPIC, "pose_reference": "camera_link",
+                    "pose_source": CORRECTED_POSE_TOPIC,
+                    "pose_reference": job["config"]["input"]["base_frame"],
                     "operational_pose_approved": False, "errors": list(job["errors"])}
 
     def frame(self, session: dict[str, Any]) -> dict[str, Any]:
@@ -730,6 +806,7 @@ class IsaacStereoAdapter:
             job["feature_context"] = StreamContext(session["session_id"], session["generation"], session["map_epoch"], "ros")
             job["features"].reset(job["feature_context"])
             job["frames"].clear()
+            job.pop("stereo_history", None)
         completed = False
         try:
             response = self._call(job, LocalizeInMap, SLAM_ROOT + "/localize_in_map", request, 25.0)
@@ -834,6 +911,8 @@ class IsaacStereoAdapter:
             context.shutdown()
         if job.get("log_file") is not None:
             job["log_file"].close()
+        if job.get("domain_reservation") is not None:
+            job["domain_reservation"].release()
         with self._lock:
             if self._job is job:
                 self._job = None

@@ -201,6 +201,18 @@ class SlamApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.json()["points"], [[1, 2, 3]])
         self.assertEqual(self.manager.calls, [])
 
+    async def test_resource_conflict_explains_resource_without_forwarding_private_details(self):
+        self.manager.error = SlamError("RESOURCE_CONFLICT", resources=[
+            {"resource": "camera", "reason": "device_busy"},
+            {"resource": "camera", "reason": "/private/device/path"},
+            {"resource": ["camera"], "reason": "device_busy"},
+            {"resource": "camera", "reason": "device_busy", "owner": "/private/process"},
+        ])
+        response = await self.request("POST", "/api/v1/slam/sessions", body=self.start_body())
+        self.assertEqual(response.status, 409)
+        self.assertEqual(response.json(), {"detail": {"code": "RESOURCE_CONFLICT",
+            "resources": [{"resource": "camera", "reason": "device_busy"}]}})
+
     async def test_map_ids_revisions_and_names_cannot_supply_native_paths(self):
         package = await self.publish()
         response = await self.request("GET", "/api/v1/slam/packages/not-an-opaque-id")

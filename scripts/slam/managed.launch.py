@@ -30,7 +30,18 @@ def setup(context):
     parameters.update(enable_slam_visualization=True, enable_landmarks_view=True,
                       enable_observations_view=True, path_max_size=1024,
                       publish_map_to_odom_tf=False, publish_odom_to_base_tf=False)
-    camera = CONTRACT["validate_camera"](json.loads(Path(camera_path).read_text()), value("stereo_profile"))
+    scope_path, proof_path = value("managed_scope"), value("reservation_proof")
+    if scope_path or proof_path:
+        if not scope_path or not proof_path:
+            raise ValueError("managed scope and live reservation proof must be supplied together")
+        from robot_dashboard.slam_managed_scope import load_managed_scope, private_json, validate_reservation_proof
+        scope = load_managed_scope(Path(scope_path), domain_id=int(os.environ["ROS_DOMAIN_ID"]),
+            operational_domain_id=int(os.environ["VSLAM_LAB_OPERATIONAL_DOMAIN_ID"]))
+        proof = private_json(Path(proof_path))
+        validate_reservation_proof(proof, scope)
+        camera = CONTRACT["validate_camera_profile"](json.loads(Path(camera_path).read_text()), value("stereo_profile"))
+    else:
+        camera = CONTRACT["validate_camera"](json.loads(Path(camera_path).read_text()), value("stereo_profile"))
     CONTRACT["record_launch"](value("run_dir"), "managed_slam_launch.json", input_path, parameters,
                              mode=mode, namespace="/vslam_lab", remappings=remaps)
     CONTRACT["record_launch"](value("run_dir"), "managed_camera_launch.json", camera_path, camera)
@@ -51,5 +62,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("input_contract"), DeclareLaunchArgument("camera_contract"),
         DeclareLaunchArgument("stereo_profile"), DeclareLaunchArgument("run_dir"),
+        DeclareLaunchArgument("managed_scope", default_value=""),
+        DeclareLaunchArgument("reservation_proof", default_value=""),
         DeclareLaunchArgument("mode", choices=["vo", "slam_vo"]),
         OpaqueFunction(function=setup)])

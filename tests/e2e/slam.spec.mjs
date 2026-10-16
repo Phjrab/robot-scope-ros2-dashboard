@@ -34,7 +34,10 @@ function fixtureFrame(session, sequence = '1') {
       source_timestamp_ns: '9007199254740993001', provenance: 'SYNTHETIC_FIXTURE' },
     current_observations: { available: true, points: [[0, 0, 1]], coordinate_frame: 'map', map_epoch: session.map_epoch },
     trajectory: { points: [[0, 0, 0], [1, 0, 0]], trajectory_kind: 'slam', coordinate_frame: 'map', map_epoch: session.map_epoch },
-    camera_pose: { position: [1, 0, 0], quaternion_xyzw: [0, 0, 0, 1], frame_id: 'map' } };
+    camera_pose: { position: [1, 0, 0], quaternion_xyzw: [0, 0, 0, 1], frame_id: 'map', stamp_ns: '9007199254740993001' },
+    readiness: { ready: true, tracking_state: 'TRACKING', pose_reference: 'camera_link',
+      operational_pose_approved: false, pose_source: '/fixture/corrected_pose',
+      freshness: { image: true, pose: true, tracking: true } } };
 }
 
 async function install(page, { available = true, state = null } = {}) {
@@ -42,7 +45,10 @@ async function install(page, { available = true, state = null } = {}) {
   const shared = state || { session: null, packages: [nativePackage()], mutations: [], sockets: new Set(), socketPaths: [], sequence: 0 };
   const send = () => {
     if (!shared.session || shared.session.state === 'IDLE') return;
-    for (const ws of shared.sockets) ws.send(JSON.stringify(fixtureFrame(shared.session, String(++shared.sequence))));
+    for (const ws of shared.sockets) {
+      const frame = fixtureFrame(shared.session, String(++shared.sequence));
+      ws.send(JSON.stringify(shared.frameTransform ? shared.frameTransform(frame) : frame));
+    }
   };
   await page.routeWebSocket('**/api/v1/ws/slam', (ws) => {
     expect(new URL(ws.url()).pathname).toBe('/api/v1/ws/slam');
@@ -68,6 +74,7 @@ async function install(page, { available = true, state = null } = {}) {
     if (path === '/session') return reply({ active_session: shared.session, generation: shared.session?.generation || 0,
       operational_pose_source: { source: '/Odometry', generation: 7 } });
     if (path === '/sessions' && method === 'POST') {
+      if (shared.startConflict) return reply({ detail: { code: 'RESOURCE_CONFLICT', resources: shared.startConflict } }, 409);
       if (shared.session && shared.session.state !== 'IDLE') return reply({ detail: 'SLAM_SESSION_ACTIVE' }, 409);
       shared.session = { session_id: 'fixture-session', generation: 1, map_epoch: 'fixture-epoch',
         engine_id: body().engine_id, task: body().task, effective_mode: 'isaac_slam', state: 'MAPPING', unsaved: true };
@@ -196,6 +203,83 @@ test('SLAM camera frustum rejects changed calibration and stale optical pose whi
   await expect(page.locator('#slamGlobalCanvas')).toHaveAttribute('data-camera-view', 'unavailable', { timeout: 4000 });
   await expect(page.locator('#slamCameraViewStatus')).toContainText('STALE_SOURCE');
   await expect(page.locator('#slamMapCoverage')).toContainText('coverage subset');
+});
+
+test('SLAM fresh image and camera 6DoF remain visible without overlay, global map or trajectory', async ({ page }) => {
+  const fixture = await install(page);
+  fixture.shared.frameTransform = (frame) => ({ ...frame, stream_connected: false,
+    readiness: { ...frame.readiness, ready: false },
+    overlay: { overlay_kind: 'unavailable', reason: 'OBSERVATIONS_UNAVAILABLE' },
+    camera_view: { available: false, reason: 'CAMERA_ALIGNMENT_UNAVAILABLE' },
+    global_map: null, trajectory: null });
+  await open(page); await startStereo(page); fixture.send();
+
+  await expect(page.locator('#slamCameraCanvas')).toBeVisible();
+  await expect(page.locator('#slamCameraCanvas')).toHaveJSProperty('width', 1);
+  for (const channel of ['image', 'pose', 'tracking']) {
+    await expect(page.locator(`#slamAvailability-${channel}`)).toHaveAttribute('data-availability', 'available');
+  }
+  for (const channel of ['overlay', 'global_map', 'trajectory']) {
+    await expect(page.locator(`#slamAvailability-${channel}`)).toHaveAttribute('data-availability', 'unavailable');
+  }
+  await expect(page.locator('#slamImageStatus')).toContainText('입력 이미지 available');
+  await expect(page.locator('#slamCameraPose')).toContainText('1.000 / 0.000 / 0.000');
+  await expect(page.locator('#slamCameraPose')).toContainText('카메라 6DoF');
+  await expect(page.locator('#slamCameraPose')).toContainText('Go2 body pose 미검증');
+  await expect(page.locator('#slamCameraPose')).toContainText('camera→Go2 extrinsic 필요');
+  await expect(page.locator('#slamCameraPose')).toContainText('주행 승인 안 됨');
+  await expect(page.locator('#slamCameraPose')).not.toContainText('PASS');
+});
+
+test('SLAM stale image and pose do not hide subset global map or trajectory snapshots', async ({ page }) => {
+  const fixture = await install(page);
+  fixture.shared.frameTransform = (frame) => ({ ...frame, tracking_state: 'LOST',
+    readiness: { ...frame.readiness, ready: false, tracking_state: 'LOST',
+      freshness: { image: false, pose: false, tracking: false } },
+    overlay: { ...frame.overlay, overlay_kind: 'unavailable', reason: 'LOST' } });
+  await open(page); await startStereo(page); fixture.send();
+
+  for (const channel of ['image', 'pose', 'tracking', 'overlay']) {
+    await expect(page.locator(`#slamAvailability-${channel}`)).toHaveAttribute('data-availability', 'unavailable');
+  }
+  for (const channel of ['global_map', 'trajectory']) {
+    await expect(page.locator(`#slamAvailability-${channel}`)).toHaveAttribute('data-availability', 'available');
+  }
+  await expect(page.locator('#slamGlobalCanvas')).toBeVisible();
+  await expect(page.locator('#slamMapCoverage')).toContainText('coverage subset');
+  await expect(page.locator('#slamMapCoverage')).toContainText('engine total unknown');
+  await expect(page.locator('#slamImageStatus')).toContainText('IMAGE_STALE');
+  await expect(page.locator('#slamCameraPose')).toContainText('POSE_STALE');
+  await expect(page.locator('#slamCameraPose')).not.toContainText('1.000 / 0.000 / 0.000');
+});
+
+test('SLAM resource conflict exposes concrete resources for request and asynchronous startup failure', async ({ page }) => {
+  const fixture = await install(page);
+  fixture.shared.startConflict = [
+    { resource: 'lidar', reason: 'existing_lidar_pipeline_active' },
+    { resource: 'camera', reason: 'camera_owner_active' },
+  ];
+  await open(page);
+  await page.locator('#slamEngine').selectOption('visual_stereo');
+  await page.locator('#slamOperatorConfirmed').check();
+  await page.locator('#slamStart').click();
+  await expect(page.locator('#slamMessage')).toContainText('RESOURCE_CONFLICT');
+  await expect(page.locator('#slamMessage')).toContainText('LiDAR (existing_lidar_pipeline_active)');
+  await expect(page.locator('#slamMessage')).toContainText('카메라 (camera_owner_active)');
+
+  fixture.shared.startConflict = null;
+  await page.locator('#slamStart').click();
+  await expect(page.locator('#slamSessionState')).toHaveText('MAPPING');
+  fixture.shared.session.state = 'ERROR';
+  fixture.shared.session.reason = 'RESOURCE_CONFLICT';
+  fixture.shared.session.resource_conflicts = [{ resource: 'ros_domain', reason: 'domain_owner_active' }];
+  await expect(page.locator('#slamMessage')).toContainText('ROS domain (domain_owner_active)');
+  // Failed owned cleanup changes the primary reason, but must preserve the
+  // original resource diagnostics alongside that more urgent cleanup state.
+  fixture.shared.session.reason = 'CLEANUP_REQUIRED';
+  fixture.shared.session.cleanup_required = true;
+  await expect(page.locator('#slamMessage')).toContainText('CLEANUP_REQUIRED');
+  await expect(page.locator('#slamMessage')).toContainText('ROS domain (domain_owner_active)');
 });
 
 test('SLAM save-then-stop never discards or stops after a failed native save', async ({ page }) => {
