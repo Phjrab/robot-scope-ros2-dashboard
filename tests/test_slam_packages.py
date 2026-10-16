@@ -8,9 +8,12 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
+from robot_dashboard.slam_broker import BrokerDispatcher
 from robot_dashboard.slam_packages import MapPackageError, MapPackageStore
+from robot_dashboard.slam_sessions import SlamError
 
 
 class NativeMapPackageTests(unittest.TestCase):
@@ -102,6 +105,82 @@ class NativeMapPackageTests(unittest.TestCase):
             self.assertEqual(item["size_bytes"], len(native[item["path"]]))
             self.assertEqual(item["sha256"], hashlib.sha256(native[item["path"]]).hexdigest())
         self.assertEqual(self.store.get_preview(package["id"]), self.preview)
+
+    def test_store_save_and_load_paths_pass_actual_broker_guards_under_service_umask(self):
+        # Observed deployment uses UMask=0022: mkdir(parents=True, mode=0700)
+        # previously made the opaque token parent 0755 and broker rejected it.
+        session = dict(session_id="a"*32, generation=1, map_epoch="b"*32,
+                       engine_id="visual_stereo", task="mapping")
+        native_bytes = b"synthetic-native-lmdb"
+        def save(_session, path):
+            (path / "data.mdb").write_bytes(native_bytes)
+            return dict(official_save_completed=True, required_native_files=["data.mdb"])
+        def localize(_session, path, _hint):
+            self.assertEqual((path / "data.mdb").read_bytes(), native_bytes)
+            (path / "data.mdb").write_bytes(b"scratch writer")
+            return dict(localize_success=True)
+        engine = SimpleNamespace(save=Mock(side_effect=save), localize=Mock(side_effect=localize))
+        broker = BrokerDispatcher(engine, SimpleNamespace(acquire=Mock()), self.store.root)
+        broker.dispatch(dict(operation="reserve_camera", session=session))
+        previous = os.umask(0o022)
+        try:
+            staging = self.store.create_staging()
+            for path in (self.store.root, staging.native_path.parent.parent,
+                         staging.native_path.parent, staging.native_path):
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o700)
+            result = broker.dispatch(dict(operation="save", session=session, native_path=str(staging.native_path)))
+            self.assertTrue(result["official_save_completed"])
+            package = self.store.publish_staging(staging.token, metadata=self.metadata,
+                official_save_completed=True, required_native_files=result["required_native_files"])
+            runtime = {key: self.metadata[key] for key in ("engine_id", "engine_version",
+                "native_format_version", "calibration_hash", "sensor_config_hash")}
+            scratch = self.store.prepare_load(package["id"], expected_revision=package["revision"], runtime=runtime)
+            for path in (scratch.native_path.parent.parent, scratch.native_path.parent, scratch.native_path):
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o700)
+            hint = dict(frame_id="map", position=[0,0,0], quaternion_xyzw=[0,0,0,1], operator_verified=True)
+            result = broker.dispatch(dict(operation="localize", session=session,
+                native_path=str(scratch.native_path), hint=hint))
+            self.assertTrue(result["localize_success"])
+        finally:
+            os.umask(previous)
+        engine.save.assert_called_once_with(session, staging.native_path)
+        engine.localize.assert_called_once_with(session, scratch.native_path, hint)
+        self.assertEqual(self.native_bytes(package), {"data.mdb": native_bytes})
+        self.store.release_scratch(scratch.scratch_id)
+
+    def test_existing_public_token_directory_is_rejected_without_chmod_or_reference_leak(self):
+        package = self.publish()
+        token = "c"*32
+        for group in ("staging", "scratch"):
+            workspace = self.store.root / group / token
+            workspace.mkdir(mode=0o755)
+            workspace.chmod(0o755)
+            (workspace / "keep.txt").write_bytes(b"preserve existing evidence")
+            references = dict(self.store._references)
+            with patch("robot_dashboard.slam_packages.uuid.uuid4", return_value=SimpleNamespace(hex=token)):
+                if group == "staging":
+                    self.assert_code("UNSAFE_ROOT", self.store.create_staging)
+                else:
+                    self.assert_code("UNSAFE_ROOT", lambda: self.store.prepare_load(package["id"],
+                        expected_revision=package["revision"], runtime=self.metadata))
+            self.assertEqual(stat.S_IMODE(workspace.stat().st_mode), 0o755)
+            self.assertEqual((workspace / "keep.txt").read_bytes(), b"preserve existing evidence")
+            self.assertFalse((workspace / "native").exists())
+            self.assertEqual(self.store._references, references)
+
+    def test_broker_does_not_accept_or_repair_public_store_workspace(self):
+        session = dict(session_id="a"*32, generation=1, map_epoch="b"*32,
+                       engine_id="visual_stereo", task="mapping")
+        staging = self.store.create_staging()
+        staging.native_path.parent.chmod(0o755)
+        engine = SimpleNamespace(save=Mock())
+        broker = BrokerDispatcher(engine, SimpleNamespace(acquire=Mock()), self.store.root)
+        broker.dispatch(dict(operation="reserve_camera", session=session))
+        with self.assertRaises(SlamError) as raised:
+            broker.dispatch(dict(operation="save", session=session, native_path=str(staging.native_path)))
+        self.assertEqual(raised.exception.code, "INVALID_NATIVE_PATH")
+        engine.save.assert_not_called()
+        self.assertEqual(stat.S_IMODE(staging.native_path.parent.stat().st_mode), 0o755)
 
     def test_missing_empty_required_files_and_zero_declared_requirements_block(self):
         staging = self.staging()

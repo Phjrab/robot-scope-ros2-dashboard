@@ -210,7 +210,10 @@ class MapPackageStore:
     def create_staging(self) -> NativeSaveStaging:
         with self._lock:
             token = uuid.uuid4().hex
-            native = _private_dir(self._staging_root / token / "native")
+            # pathlib applies mode only to the leaf when parents=True. Create
+            # and validate the opaque token directory before its native child.
+            workspace = _private_dir(self._staging_root / token)
+            native = _private_dir(workspace / "native")
             staging = NativeSaveStaging(token, native)
             self._staging[token] = staging
             return staging
@@ -623,10 +626,11 @@ class MapPackageStore:
             if self.compatibility(package_id, runtime=runtime)["status"] != "compatible":
                 _fail("MAP_INCOMPATIBLE", "Native map is incompatible or compatibility is unknown.")
             signatures = self._verify_native(package_id, manifest)
+            scratch_id = uuid.uuid4().hex
+            workspace = _private_dir(self._scratch_root / scratch_id)
+            native = _private_dir(workspace / "native")
             reference = self.acquire_reference(package_id, expected_revision=expected_revision,
                                                purpose="localize_saved")
-            scratch_id = uuid.uuid4().hex
-            native = _private_dir(self._scratch_root / scratch_id / "native")
             try:
                 self._copy_native(self._path(package_id) / "native", native, signatures)
             except BaseException:
