@@ -3,8 +3,10 @@
 The current user priority is dashboard-controlled Stereo mapping observation:
 SLAM button → API → broker → preserved Isaac environment → real stereo/VSLAM →
 WebSocket → image, camera 6DoF, tracking, current points, available global map and
-trajectory. This request supersedes the prior closed stage40 scope. It does not
-reopen motion or operating localization.
+trajectory. The three stationary runs below were followed by a separately
+approved onsite handheld-motion observation. Codex owned VSLAM observation;
+the onsite operator owned movement. Operating localization and Codex movement
+were not applied.
 
 Nav2 policy readback, MR-MS-003, missions, complete native map reuse, MAP-02 full
 retained export and independent accuracy evaluation are deferred. Their open
@@ -119,6 +121,70 @@ The control bridge retained PID982 and InvocationID
 their IDs, image references and stopped states. Movement and
 initialpose counts remained0, goal idle and operational pose application false.
 
+## Fourth observation: onsite manual motion, API save and UI stop
+
+The local source main was `7ee131139b8c62a19d1c14d5ac00f0f58b4689b2`.
+The deployed runtime remained `50a30f29580df19450e033fd35777862845b99f7`;
+the image and four contract/config hashes in the JSON runtime record were
+unchanged. No deployment or installation was repeated. The user confirmed the
+current onsite conditions, physical stop/recovery and handheld control. The
+existing control bridge was normally stopped before dashboard UI SLAM start.
+Codex sent no movement command. After the movement window the user confirmed
+that manual movement was complete and the robot stationary.
+
+The bounded read-only collector ran180s (180.162s including shutdown), received
+328 WebSocket messages and retained230 active frames. All230 had fresh image,
+camera pose, current observations and TRACKING;228 were READY. The two nonready
+frames had fresh inputs but no matched stereo pair. Overlay aligned181/230
+(78.70%);49 were withheld for NO_VALID_TIME_ALIGNMENT. All181 aligned frames
+used identical transmitted/selected/overlay image stamps, identical image,
+calibration and pose stamps, and0–992ns quartet skew. The unchanged1s freshness,
+5ms stereo and20ms overlay guards were preserved. Summary tracking and channel
+counts were independently reconciled against the retained messages.
+
+Failed latest-quartet skew was33.292–299.656ms. Pose, observations and calibration
+could each differ from the latest image; all failed image receive ages remained
+below1s. The wire evidence does not identify whether candidate-history eviction,
+callback gaps or delivery delay caused each failure. The next minimum overlay
+investigation is bounded cache stamp/candidate-rejection diagnostics under the
+existing guards. Current observations ranged16–233 points. The largest retained
+global snapshot and saved preview contain13,993 finite bounded XYZ points with
+matching frame, epoch and counts; coverage remains unknown and engine total is
+absent. The live/saved trajectory is capped at1024 points. The sampled camera
+estimate changed8.027m and91.157° from first to latest pose; this is neither Go2
+body motion nor independent ground truth or precision qualification.
+
+The UI save click produced no observed save job; its cause remains unknown.
+The authorized API save succeeded with official acknowledgement, package
+`np_faa8630479e94dd0a03ea9b820d7e388`, revision
+`e75d02b8e46400782475c2e446721c9356ad01cc99801380f62accd09a17821d`
+and50,511,872-byte `data.mdb`. Catalog requery retained the package/revision;
+the private archive's native size/hash, manifest fields and exact preview match
+were verified. Selecting the saved map in the UI showed the same revision and
+13,993-point offline preview. A private CSV retains230 sampled camera poses;
+the saved1024-point trajectory is not the full movement path. Native load/reuse
+and full retained coverage remain untested.
+The actual dashboard stop followed successful save and preserved both packages.
+
+The planned observation bound was180s, but saving, confirmation and UI stop
+extended the active session beyond it. Creation was10:01:02.342415Z; UI stop was
+around10:04:10Z and the first IDLE read around10:04:20Z. The exact stop/cleanup
+timestamps were not retained, so these approximate times are not an exact
+continuous runtime duration. The180s collector does not cover the whole session.
+The10:05:01Z inspection confirmed IDLE, unsaved=false, cleanup_required=false,
+camera free and RGB available; later process/lock inspection found no owned
+native children and both locks free. Existing maps, the earlier native package,
+missions, environment, configuration and deployed source were preserved.
+All ten stopped experiment containers retained their IDs, images, names, states
+and commands.
+
+The bridge was restored after observation, then separately stopped again at
+10:08:08.977401Z (19:08KST) on the user's current manual-control handover approval.
+**Latest state: bridge inactive/dead, disconnected, no lease/deadman; leave it
+stopped until the user confirms stationarity and requests restoration.** VSLAM
+remained IDLE; subsequent onsite movement was not observed in this run. No
+operational TF, initialpose, Nav2 goal or Codex movement was applied.
+
 ## Historical pre-deployment baseline and ownership
 
 Fetched source main/origin was `caa4472`; the clean deployed checkout remains
@@ -200,19 +266,22 @@ for the new changes. No unchanged baseline suite or VSLAM installation is repeat
 
 | Requested reporting category | Current evidence |
 | --- | --- |
-| Actual observation | PASS: third UI start, image/camera6DoF/TRACKING/current points, aligned overlay159/162, finite308-point global snapshot and live trajectory |
-| Native map save | PASS: official save acknowledgement, native package and nonempty1,159,168-byte data.mdb |
-| Requery and saved preview | PASS: same package/revision, archive/native hashes and exact preview match; UI native map count1, preview308 points and saved trajectory460 |
-| Normal UI stop and preservation | PASS: post-save observation discard through stop modal, IDLE/free camera/released locks; existing maps, missions, configuration and bridge invocation preserved |
-| Incomplete visualization | Overlay withheld in3/162 frames by unchanged alignment guard; complete global coverage and engine total unknown |
+| Actual observation | PASS: fourth actual UI start and onsite manual observation;230 TRACKING,228 READY, overlay181/230, finite13,993-point global snapshot and live trajectory |
+| Native map save | PASS via API: official acknowledgement and50,511,872-byte data.mdb; fourth UI save click produced no observed job, cause unknown |
+| Requery and saved preview | PASS: same package/revision, verified native archive hash/manifest and exact preview;13,993 global points and1024 trajectory points |
+| Normal UI stop and preservation | PASS: fourth UI stop, saved packages preserved, IDLE/free camera/released locks; maps, missions, source and configuration preserved |
+| Current control ownership | Bridge separately stopped for onsite handheld control after observation; restore only after user stationarity confirmation and restoration request |
+| Incomplete visualization | Overlay withheld in49/230 frames; two stereo pairs unmatched; unchanged guards, global coverage and engine total unknown |
 | Precision evaluation not performed | NOT_RUN: independent ground truth and camera-to-Go2 body extrinsic qualification |
-| No driving application | NOT_APPLIED: operational TF, initialpose, Nav2 goal and movement0; supervised motion remains separate |
+| No driving application | NOT_APPLIED: operational TF, initialpose, Nav2 goal and Codex movement; observed movement belonged to the onsite handheld operator |
 | Deferred follow-up | Native localization/reuse and MAP-02 full retained export remain separate |
 
 Private evidence/bundle: sibling `robot-scope-hardware-validation-private/`
 `vslam-observation-20261016/`. Original calibration/profile observations, device
 config/environment contents, raw images/maps and installation bytes stay out of
 Git. Existing maps, missions, bags and the preserved VSLAM installation remain.
+Fourth-run private evidence is in `vslam-followup-20261016-1852/`; its collector,
+raw image/XYZ arrays, native archive and control handover records stay private.
 The matched-image correction now retains actual left pixels for at most16
 frames/16MiB and selects the newest fresh completed image/calibration/pose/
 observations quartet, preserving the1s/20ms guards. Exact selected pixels are
@@ -230,7 +299,11 @@ Package regressions also passed under both0022 and0077 umasks (20 each);
 unsafe-directory fixtures now explicitly set their intended permissions.
 The third actual run above supplies the native save/requery acceptance evidence.
 
-The stationary observation, native save, requery/preview and normal-stop scope
-is complete. Full retained coverage, native reuse with a validated hint,
-independent ground truth, camera-to-Go2 extrinsic qualification and supervised
-motion remain separate follow-up work under their applicable current conditions.
+The stationary and onsite manual observation/save/requery/normal-stop scopes
+are complete. Full retained coverage, native reuse with a validated hint,
+independent ground truth, camera-to-Go2 extrinsics and Codex-controlled motion
+qualification remain separate. This documentation update reuses exact-source
+CI evidence; the unchanged source suite was not rerun, per the user's direction.
+Next operational work is only a user-requested bridge restoration after current
+stationarity confirmation; overlay diagnosis and deferred qualification remain
+separate work under their applicable current conditions.

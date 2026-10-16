@@ -1,32 +1,48 @@
 # Current Stereo observation follow-up
 
-The 2026-10-16 integration request prioritizes the actual dashboard → broker →
-preserved Isaac Stereo path. Current work and deployment boundaries are in
-[STEREO_OBSERVATION.md](../integration-acceptance/STEREO_OBSERVATION.md).
-The new fixed managed scope and read-only owner probe are described in
-[DEPLOYMENT.md](DEPLOYMENT.md). Earlier stage16/MAP-02 full-export gates remain
-historical/deferred and are not prerequisites for image/camera-pose observation.
-The grouped deployment was approved and completed. The final deployed source is
-`50a30f29580df19450e033fd35777862845b99f7` with a clean robot checkout.
-Actual dashboard start, stereo image/camera6DoF/TRACKING/overlay/global landmarks/
-SLAM trajectory, native save, UI stop and camera cleanup passed. The saved native
-package was reread through the catalogue, offline preview and exported ZIP;
-artifact hashes match. The308-point saved preview has unknown global coverage
-and approximate consistency with the native save, not full retained export.
+Updated 2026-10-16 KST. The latest acceptance is the onsite handheld-controller
+movement observation in [STEREO_OBSERVATION.md](../integration-acceptance/STEREO_OBSERVATION.md)
+and its JSON record. Main was `7ee131139b8c62a19d1c14d5ac00f0f58b4689b2`;
+the unchanged deployed production source is `50a30f29580df19450e033fd35777862845b99f7`.
+No deployment, installation or DDS/config change was needed for this follow-up.
 
-Corrections: timestamp-matched actual pixels for delayed native observations
-(`6590c97`); private0700 staging/scratch token parents under service umask0022
-(`50a30f2`). Freshness/sync/timeout and broker path guards remain unchanged.
-The first and second failed/partial observations remain in the acceptance report.
-Current handback: IDLE, camera free, native child processes absent, both locks
-released. Passive broker/owner probe/cooperative relay stay installed. Operational
-DDS/control bridge and all18 prior LiDAR map catalogue entries/mission API state
-remain unchanged. No movement, initialpose, Nav2 goal or operational VSLAM TF.
+Actual dashboard start and stop passed. All230 collected active samples had
+fresh images, camera6DoF and TRACKING;228 were READY. Overlay aligned181/230;
+49 were withheld by the unchanged time-alignment guard. Two samples lacked a
+matched stereo pair. The saved approximate global preview contains13,993 points
+with unknown coverage, and the official native save produced50,511,872 bytes.
+Catalogue requery, offline UI preview, archive/native hashes and preview equality
+passed. A direct UI save click did not produce a job; its cause is unresolved.
+The save completed through the official API, so this run does not claim UI-save
+acceptance. Bounded cache diagnostics and direct save-button request evidence
+are the next minimal software investigation; do not relax freshness or sync.
 
-The current stationary observation/save/requery scope is complete. A future
-supervised movement observation needs its own current onsite/motion conditions.
-Body extrinsic, independent precision evaluation, native map localization/reuse,
-MAP-02 full retained coverage and Nav2/MR-MS-003 remain separate follow-up work.
+The operator alone moved the robot with the existing handheld controller.
+Camera pose changed about8.03m and91.16deg between collected endpoints; these
+are SLAM estimates, not ground-truth accuracy or verified Go2 body pose.
+Codex issued no motion command, initialpose, Nav2 goal or operational VSLAM TF.
+The planned180-second session limit was exceeded during save/stop handling;
+the collector ran180seconds, while runtime cleanup took longer. See the exact
+available timestamps and their limits in the acceptance record.
+
+**Current ownership:** VSLAM is IDLE, camera free, native children absent and
+camera/domain locks released. The bridge was restored successfully after the
+observation. The user then separately approved returning control to the onsite
+operator: at19:08:08KST the control bridge was stopped again and left inactive.
+Do not restart it until the user confirms stationarity and requests restoration.
+SOFTWARE STOP and the Robot Scope command watchdog are unavailable during this
+manual-control handover; physical stop and recovery belong to the onsite operator.
+Avoid dashboard/service restart or connection reconfiguration during this window,
+as those paths may automatically start the bridge. Post-handover movement is not
+part of the recorded VSLAM session.
+
+The existing18 LiDAR maps, prior stationary native package, missions, runtime
+config, preserved experiment containers and operational DDS were retained.
+The broker/owner probe/cooperative relay remain installed. Body extrinsic,
+independent precision evaluation, native map localization/reuse, MAP-02 full
+retained coverage and Nav2/MR-MS-003 remain separate follow-up work and do not
+block basic Stereo observation or new-map creation. Existing exact production CI
+applies; only acceptance documents/private evidence changed in this follow-up.
 
 # MS / MR handoff
 

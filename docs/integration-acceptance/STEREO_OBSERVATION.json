@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Stationary dashboard-controlled Stereo VSLAM observation",
+  "scope": "Dashboard-controlled Stereo VSLAM observation: three stationary runs and separately approved onsite handheld-motion run",
   "software_source": "ffa1b218f68e9675d7de9fe7e5f107c087c5f67c",
   "software_source_scope": "first_session_and_initial_deployment_records",
   "latest_observation_source": "50a30f29580df19450e033fd35777862845b99f7",
@@ -365,6 +365,218 @@
       "operational_tf_publication": false
     }
   },
+  "fourth_manual_session": {
+    "software_source": "50a30f29580df19450e033fd35777862845b99f7",
+    "local_source_main": "7ee131139b8c62a19d1c14d5ac00f0f58b4689b2",
+    "runtime_record_ref": "runtime",
+    "runtime_configs_and_operational_dds_unchanged": true,
+    "deployment_or_installation_repeated": false,
+    "engine_id": "visual_stereo",
+    "session_id": "6d4d53bc0ad340aeaaa73973b9cbc9aa",
+    "generation": 1,
+    "map_epoch": "76f357577ee24a3a88abc8395e2b4ced",
+    "scope": "Onsite handheld-motion observation; Codex observes VSLAM only",
+    "current_conditions_confirmed": true,
+    "ui_start_performed": true,
+    "created_at_utc": "2026-10-16T10:01:02.342415Z",
+    "planned_observation_max_s": 180,
+    "collector_started_at_utc": "2026-10-16T10:00:53.087083+00:00",
+    "collector_finished_at_utc": "2026-10-16T10:03:53.232992+00:00",
+    "collector_duration_limit_s": 180.0,
+    "collector_elapsed_s": 180.16235566700016,
+    "collector_read_only_paths": [
+      "/api/v1/slam/session",
+      "/api/v1/ws/slam"
+    ],
+    "collector_runtime_actions_performed": [],
+    "first_ready_observed_utc": "2026-10-16T10:01:10.366863Z",
+    "last_ready_observed_utc": "2026-10-16T10:03:52.585900Z",
+    "ready_sample_span_s": 162.23510308300047,
+    "ui_stop_observed_utc_approx": "2026-10-16T10:04:10Z",
+    "first_idle_read_utc_approx": "2026-10-16T10:04:20Z",
+    "exact_continuous_runtime_duration_known": false,
+    "planned_session_bound_exceeded": true,
+    "timing_limitations": "Save, confirmation and UI stop extended the active session beyond180s. Exact stop/cleanup timestamps were not retained; approximate timeline times are not exact continuous duration. Collector does not cover the whole session.",
+    "websocket_messages": 328,
+    "active_frames": 230,
+    "tracking_frames": 230,
+    "ready_frames": 228,
+    "ready_fraction_of_active_frames": 0.991304347826087,
+    "fresh_image_pose_tracking_frames": 230,
+    "matched_stereo_pairs": 228,
+    "unmatched_stereo_pair_frames": 2,
+    "unmatched_stereo_pair_freshness_all_true": true,
+    "stereo_skew_ns_max_when_matched": 0,
+    "collector_aggregates_reconciled_against_jsonl": true,
+    "channel_available_frames": {
+      "image": 230,
+      "camera_pose": 230,
+      "tracking": 230,
+      "overlay": 181,
+      "camera_view": 186,
+      "current_observations": 230,
+      "trajectory": 230,
+      "global_map": 174
+    },
+    "image": {
+      "width": 640,
+      "height": 480,
+      "encoding": "mono8",
+      "saved_original_frames": 12,
+      "additional_global_snapshots_with_pixels": 2,
+      "latest_image_stamp_duplicate_or_backward_count": 0
+    },
+    "camera_pose": {
+      "source": "/vslam_lab/visual_slam/vis/slam_odometry",
+      "reference": "vslam_lab_camera_link",
+      "frame": "vslam_lab_map",
+      "unique_advancing_stamps": 230,
+      "body_extrinsic_verified": false,
+      "first_to_latest_translation_distance_m": 8.027005449844841,
+      "first_to_latest_rotation_angle_deg": 91.15702194649108,
+      "sampled_camera_path_length_m": 13.02221315578995,
+      "interpretation": "Sampled camera SLAM estimates only; no Go2 body, whole-run path, ground-truth or precision claim.",
+      "private_camera_csv_rows": 230
+    },
+    "current_observations": {
+      "available_frames": 230,
+      "min_points": 16,
+      "max_points": 233,
+      "native_ids_available": false
+    },
+    "overlay": {
+      "aligned_frames": 181,
+      "fraction_of_active_frames": 0.7869565217391304,
+      "fraction_of_ready_frames": 0.793859649122807,
+      "alignment_unavailable_frames": 49,
+      "failure_reason": "NO_VALID_TIME_ALIGNMENT",
+      "stale_source_frames": 0,
+      "quartet_skew_ns_min_when_aligned": 0,
+      "quartet_skew_ns_max_when_aligned": 992,
+      "exact_selected_image_overlay_quartet_stamp_matches": 181,
+      "failed_latest_quartet_skew_ms_range": [
+        33.292376,
+        299.65568
+      ],
+      "failed_image_receive_age_s_range": [
+        0.08084702099995411,
+        0.44658156700006657
+      ],
+      "guard_relaxed": false,
+      "cause_status": "UNRESOLVED: retained wire does not expose candidate history; cannot distinguish eviction, callback gaps and delivery delay.",
+      "next_minimum_work": "Add bounded cache stamp ranges and candidate rejection diagnostics without changing1s freshness,5ms stereo or20ms overlay guards."
+    },
+    "global_map": {
+      "max_reported_and_saved_preview_points": 13993,
+      "actual_finite_bounded_xyz_verified": true,
+      "source_export_display_counts_agree": true,
+      "frame_and_epoch_agree": true,
+      "coverage": "unknown",
+      "engine_total_count": null,
+      "completeness_evidence": null,
+      "native_ids_available": false,
+      "decimation": false,
+      "rejected_nonfinite": 0,
+      "rejected_range": 0
+    },
+    "trajectory": {
+      "kind": "slam",
+      "max_live_source_points": 1024,
+      "saved_preview_points": 1024,
+      "scope": "Bounded native snapshot; not the full manual-motion path."
+    },
+    "native_save": {
+      "ui_click_attempted": true,
+      "ui_click_created_observed_job": false,
+      "ui_click_no_job_cause": "UNKNOWN",
+      "successful_save_path": "authorized_API",
+      "job_state": "SUCCEEDED",
+      "save_completion": "official_save_acknowledged",
+      "verified_at_utc": "2026-10-16T10:03:48.308826+00:00",
+      "package_id": "np_faa8630479e94dd0a03ea9b820d7e388",
+      "revision": "e75d02b8e46400782475c2e446721c9356ad01cc99801380f62accd09a17821d",
+      "artifact": "data.mdb",
+      "native_bytes": 50511872,
+      "native_sha256": "c93dd90078f17f56480feced9fef08c421124188190c2ce02ed8aeb1f4b6d1ef",
+      "success": true
+    },
+    "requery": {
+      "catalog_reread": true,
+      "same_package_and_revision": true,
+      "archive_sha256": "4f154e18cef2bf7038b18f694aaf0ea12c25f4b7186b7d4fad56b71b7c9abbe0",
+      "archive_size_bytes": 51424424,
+      "archive_integrity_verified": true,
+      "native_artifact_size_and_hash_verified": true,
+      "all_archive_manifest_fields_match_api_package": true,
+      "preview_exactly_matches_archive": true,
+      "preview_global_points": 13993,
+      "preview_trajectory_points": 1024,
+      "preview_consistency": "approximate",
+      "ui_saved_map_selected": true,
+      "ui_offline_preview_and_same_revision_observed": true,
+      "native_load_performed": false
+    },
+    "ui_stop": {
+      "performed": true,
+      "after_save_success_confirmed": true,
+      "saved_package_preserved": true
+    },
+    "manual_motion": {
+      "owner": "onsite_handheld_operator",
+      "codex_movement_commands": 0,
+      "movement_complete_and_stationary_confirmed": true,
+      "onsite_stationary_reply_recorded_utc": "2026-10-16T10:03:06.272825Z",
+      "operational_pose_applied": false,
+      "operational_tf_publication": false,
+      "initialpose_count": 0,
+      "goal_state": "idle"
+    },
+    "private_evidence_relative": "vslam-followup-20261016-1852/"
+  },
+  "fourth_cleanup": {
+    "observed_at_utc": "2026-10-16T10:05:01.584961+00:00",
+    "session_state": "IDLE",
+    "unsaved": false,
+    "cleanup_required": false,
+    "camera_reserved": false,
+    "rgb_available": true,
+    "actual_device_owner": "free",
+    "owned_native_processes": 0,
+    "camera_and_domain_locks_released": true,
+    "preservation": {
+      "source_unchanged": true,
+      "config_hashes_unchanged": true,
+      "environment_unchanged": true,
+      "missions_unchanged": true,
+      "saved_maps_unchanged": true,
+      "old_package_preserved": true,
+      "preserved_stopped_experiment_containers": {
+        "count": 10,
+        "id_image_name_state_command_unchanged": true
+      }
+    },
+    "bridge_restored_after_observation": true,
+    "bridge_restoration_is_historical_latest_state_ref": "latest_control_handover"
+  },
+  "latest_control_handover": {
+    "observed_at_utc": "2026-10-16T10:08:09.296462+00:00",
+    "scope": "post-observation manual control handover; leave bridge stopped until user stationary confirmation and restore request",
+    "authorization": "Current onsite conditions and manual control handover explicitly confirmed",
+    "bridge_stop_completed_at_utc": "2026-10-16T10:08:08.977401+00:00",
+    "bridge_operation_state": "succeeded",
+    "bridge_active_state": "inactive",
+    "bridge_sub_state": "dead",
+    "bridge_connected": false,
+    "lease_active": false,
+    "deadman": false,
+    "restore_condition": "Keep stopped until user confirms current stationarity and requests restoration.",
+    "slam_state": "IDLE",
+    "vslam_restarted": false,
+    "subsequent_onsite_movement_observed": false,
+    "operational_pose_applied": false,
+    "initialpose_count": 0,
+    "goal_state": "idle"
+  },
   "third_cleanup": {
     "observed_at_utc": "2026-10-16T03:17:49.669367Z",
     "trigger": "normal_ui_stop_after_successful_save",
@@ -387,7 +599,8 @@
     "control_bridge_pid": 982,
     "control_bridge_invocation_id": "f721d0ea26274d00a0c5bf19456a8cf9",
     "experiment_containers_preserved": 10,
-    "experiment_container_ids_images_states_unchanged": true
+    "experiment_container_ids_images_states_unchanged": true,
+    "scope": "Historical first three stationary sessions; see fourth_cleanup and latest_control_handover for the manual run and current control state."
   },
   "second_cleanup": {
     "observed_at_utc": "2026-10-16T03:09:04.219207Z",
@@ -421,16 +634,18 @@
     "initialpose_count": 0,
     "goal_state": "idle",
     "operational_pose_applied": false,
-    "operational_tf_publication": false
+    "operational_tf_publication": false,
+    "scope": "Historical stationary sessions and Codex command/application counters; fourth run onsite manual motion is recorded separately."
   },
   "result_categories": {
-    "actual_observation_success": "PASS: third actual UI image/camera pose/TRACKING/current points/trajectory/global308; overlay159/162 with unchanged guards",
-    "native_map_save": "PASS: official save acknowledgement and native package with nonempty data.mdb",
-    "requery_and_saved_preview": "PASS: same package/revision, verified archive/native hashes, exact archived preview match; UI native map count1 and preview308/trajectory460",
-    "normal_stop_and_preservation": "PASS: saved package retained after additional-observation discard; IDLE/free camera/released locks and existing maps/missions/configuration/bridge preserved",
+    "actual_observation_success": "PASS: fourth UI start;230 TRACKING/228 READY, overlay181/230; finite13993-point global snapshot and bounded trajectory",
+    "native_map_save": "PASS via API: official acknowledgement and50511872-byte data.mdb; fourth UI click created no observed job, cause unknown",
+    "requery_and_saved_preview": "PASS: same package/revision, native hash/manifest and exact archived preview; selected UI offline preview13993/trajectory1024",
+    "normal_stop_and_preservation": "PASS: fourth actual UI stop, IDLE/free camera/released locks and both packages/maps/missions/config preserved",
+    "current_control_ownership": "Bridge stopped again after observation for explicitly approved onsite manual control; leave stopped until user stationarity confirmation and restoration request",
     "precision_evaluation": "NOT_PERFORMED",
-    "driving_application": "NOT_APPLIED",
-    "incomplete_visualization": "PARTIAL: overlay withheld in3/162 frames by unchanged alignment guard; global coverage and engine total remain unknown"
+    "driving_application": "NOT_APPLIED: operational TF, initialpose, goal and Codex movement; onsite handheld motion observed separately",
+    "incomplete_visualization": "PARTIAL:49/230 overlays withheld and2 unmatched stereo pairs; guards unchanged, global coverage and engine total unknown"
   },
   "package_token_permission_fix_validation": {
     "python_cases": 2049,
@@ -449,7 +664,11 @@
     "native_reuse_with_validated_hint",
     "independent_ground_truth",
     "camera_to_Go2_extrinsics",
-    "supervised_motion"
+    "Codex_controlled_motion_qualification",
+    "overlay_candidate_history_diagnostics"
   ],
-  "next_minimum_work": "Stationary observation/save/requery/normal-stop scope is complete. Deferred follow-ups remain separate work under their applicable current conditions."
+  "next_minimum_work": "Keep bridge stopped; restoration requires current user stationarity confirmation and restoration request. Independently prepare bounded overlay cache/candidate diagnostics; native reuse/full retained coverage and accuracy qualification remain separate.",
+  "latest_local_source_main": "7ee131139b8c62a19d1c14d5ac00f0f58b4689b2",
+  "manual_observation_scope": "COMPLETE_WITH_RECORDED_LIMITATIONS",
+  "documentation_update_validation_scope": "Documentation only. Reuse exact deployed-source CI evidence; unchanged source suite not rerun per user direction."
 }
