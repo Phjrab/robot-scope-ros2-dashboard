@@ -7,8 +7,10 @@ it cannot assert any runtime enforcement scope. This boundary is deliberate.
 from __future__ import annotations
 
 import math
+import json
 
 from .mission_routes.models import digest
+from .navigation_collision_profile import MASK_TTL_S, parse_mask_binding
 
 POLICY_SCHEMA = "robot-scope.nav2-policy-readback.v1"
 POLICY_TTL_S = 0.75  # existing navigation runtime-health freshness boundary
@@ -84,7 +86,31 @@ def _observer_evidence(readback):
     diagnostics = _readback_diagnostics(readback.get("diagnostics"))
     if diagnostics is not None:
         result["diagnostics"] = diagnostics
+    source = _mask_source(readback.get("collision_mask_source"))
+    if source is not None:
+        result["collision_mask_source"] = source
     return result
+
+
+def _mask_source(value):
+    if value is None:
+        return None
+    try:
+        if not isinstance(value, dict):
+            raise ValueError()
+        binding = parse_mask_binding(json.dumps(value["binding"], allow_nan=False))
+        authorities = value["authorities"]
+        if (not isinstance(authorities, dict) or set(authorities) != {"mask", "binding"}
+                or not all(isinstance(v, str) and len(v) == 48 and any(c != "0" for c in v)
+                           and all(c in "0123456789abcdef" for c in v) for v in authorities.values())):
+            raise ValueError()
+        age = _nonnegative_finite(value.get("age_s"))
+        current = value.get("status") == "current" and age is not None and age <= MASK_TTL_S
+        return {"status": "current" if current else "invalid", "age_s": age,
+                "binding": binding, "authorities": authorities,
+                "evidence_kind": "publication_only", "native_ingestion_verified": False}
+    except Exception:
+        return {"status": "unavailable", "evidence_kind": "publication_only", "native_ingestion_verified": False}
 
 
 def semantic_policy(policy):
@@ -173,6 +199,12 @@ class RuntimePolicyProvider:
                     "robot_radius_m": radius, "authorities": authorities,
                     "runtime_generation": (raw.get("runtime_health") or {}).get("runtime_instance_generation")
                         or (raw.get("runtime_health") or {}).get("process_generation")}
+        source = evidence.get("collision_mask_source") or {}
+        if "binding" in source:
+            semantic["collision_mask_source"] = {
+                "binding": {key: value for key, value in source["binding"].items() if key != "sequence"},
+                "authorities": source["authorities"],
+            }
         return {"planner_config_digest": fingerprint, "footprint_revision": footprint_revision,
                 "robot_radius_m": radius, "runtime_policy_enforced": False,
                 "semantic": semantic, "scopes": scopes, "blocking_reasons": sorted(set(reasons)),

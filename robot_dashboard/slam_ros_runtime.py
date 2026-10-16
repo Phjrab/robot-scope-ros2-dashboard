@@ -34,6 +34,8 @@ import zlib
 from .slam_features import FeatureStream, FeatureValidationError, StreamContext
 from .slam_managed_scope import (DomainReservation, ManagedScopeError, load_managed_scope,
                                  validate_reservation_proof)
+from .slam_native_diagnostics import (NativeLogDiagnostics, digest, opaque_native_identity,
+                                      persist_attempt)
 
 
 MAP_FRAME = "vslam_lab_map"
@@ -315,7 +317,8 @@ class IsaacStereoAdapter:
                                "run_dir": run_dir, "process": None, "context": None,
                                "node": None, "executor": None, "thread": None,
                                "lock": threading.RLock(), "frames": {}, "errors": [],
-                               "effective_parameters": {}, "stopping": False}
+                               "effective_parameters": {}, "stopping": False,
+                               "native_log_diagnostics": NativeLogDiagnostics()}
         job["effective_mode"] = "slam_vo" if session.get("task", "mapping") == "mapping" else "vo"
         job["expected_parameters"] = dict(EXPECTED_PARAMETERS,
             enable_localization_n_mapping=job["effective_mode"] == "slam_vo")
@@ -397,12 +400,16 @@ class IsaacStereoAdapter:
         total = 0
         try:
             while True:
-                chunk = stream.read(4096)
+                # read1 observes available native messages without waiting to
+                # fill 4096 bytes. The retained raw log remains capped at1MiB.
+                chunk = stream.read1(4096)
                 if not chunk:
                     return
+                job["native_log_diagnostics"].feed(chunk)
                 retained = chunk[:max(0, 1024 * 1024 - total)]
                 if retained:
                     job["log_file"].write(retained)
+                    job["log_file"].flush()
                     total += len(retained)
                 if len(retained) != len(chunk):
                     job["log_truncated"] = True
@@ -839,6 +846,7 @@ class IsaacStereoAdapter:
             setattr(request.pose_hint.position, key, float(value))
         for key, value in zip(("x", "y", "z", "w"), orientation):
             setattr(request.pose_hint.orientation, key, float(value))
+        native_identity = opaque_native_identity(path / "data.mdb")
         with job["lock"]:
             if job.get("localizing", False):
                 raise IsaacRuntimeError("native localization is already in progress")
@@ -850,11 +858,47 @@ class IsaacStereoAdapter:
             job.pop("stereo_history", None)
             job.pop("image_history", None)
             job.pop("image_history_evictions", None)
+            attempt = job["native_localization_attempt"] = job.get("native_localization_attempt", 0) + 1
+            log_diagnostics = job.setdefault("native_log_diagnostics", NativeLogDiagnostics())
+            log_sequence = log_diagnostics.sequence
+            try:
+                dispatch_fence = job["node"].get_clock().now().nanoseconds
+                if type(dispatch_fence) is not int or dispatch_fence < 0:
+                    dispatch_fence = None
+            except (AttributeError, KeyError, TypeError, ValueError):
+                dispatch_fence = None
+        reference = job["config"]["input"].get("base_frame")
+        if not isinstance(reference, str) or re.fullmatch(r"[A-Za-z][A-Za-z0-9_/]{0,127}", reference) is None:
+            reference = None
+        normalized_hint = {"frame_id": MAP_FRAME, "pose_reference": reference,
+            "operator_verified": True, "position": [float(value) for value in position],
+            "quaternion_xyzw": [float(value) for value in orientation]}
+        trace = {"schema_version": 1, "attempt_sequence": attempt,
+            "context_digest": digest({key: session.get(key) for key in ("session_id", "generation", "map_epoch")}),
+            "hint": normalized_hint, "native_artifact": native_identity,
+            "dispatch_source_fence_ns": str(dispatch_fence) if dispatch_fence is not None else None,
+            "service": SLAM_ROOT + "/localize_in_map", "response_received": False,
+            "official_success": None, "native_sdk_status": None,
+            "operational_pose_approved": False}
+        trace["request_digest"] = digest(trace)
+        trace["private_request_recorded"] = persist_attempt(job.get("run_dir"), attempt, "request", trace)
         completed = False
+        response = None
+        service_reason = "SERVICE_CALL_INCOMPLETE"
+        started = time.monotonic()
         try:
             response = self._call(job, LocalizeInMap, SLAM_ROOT + "/localize_in_map", request, 25.0)
             completed = True
+            service_reason = "RESPONSE_RECEIVED"
+        except Exception as exc:
+            service_reason = {"Isaac service operation timed out": "SERVICE_TIMEOUT",
+                "required Isaac service is unavailable": "SERVICE_UNAVAILABLE",
+                "Isaac service returned no result": "SERVICE_NO_RESULT"}.get(str(exc), "SERVICE_CALL_ERROR")
+            raise
         finally:
+            elapsed = max(0.0, time.monotonic() - started)
+            fence = None
+            clock_error = None
             with job["lock"]:
                 job["features"].reset(job["feature_context"])
                 job["frames"].clear()
@@ -867,20 +911,38 @@ class IsaacStereoAdapter:
                     if type(fence) is not int or fence < 0:
                         raise ValueError("invalid observer clock")
                 except (AttributeError, KeyError, TypeError, ValueError) as exc:
-                    raise IsaacRuntimeError("native localization source clock fence is unavailable") from exc
-                job["source_stamp_floor_ns"] = max(fence, job.get("source_stamp_floor_ns", -1))
+                    clock_error = exc
+                if fence is not None and clock_error is None:
+                    job["source_stamp_floor_ns"] = max(fence, job.get("source_stamp_floor_ns", -1))
                 # Canceling a service future cannot cancel server-side work.
                 # On timeout/error the coordinator must stop this owned job;
                 # keep its visualization quarantined until cleanup completes.
-                job["localizing"] = not completed
+                job["localizing"] = not completed or clock_error is not None
+                context_matches = job["feature_context"] == StreamContext(session["session_id"],
+                    session["generation"], session["map_epoch"], "ros")
+            trace.update(response_received=completed, official_success=bool(response.success) if completed else None,
+                service_outcome=service_reason, service_elapsed_seconds=elapsed, context_matches=context_matches,
+                completion_source_fence_ns=str(fence) if clock_error is None else None,
+                native_log=log_diagnostics.window(log_sequence, dispatch_fence, fence if clock_error is None else None))
+            if not completed or clock_error is not None:
+                persist_attempt(job.get("run_dir"), attempt, "result", trace)
+                with job["lock"]:
+                    job["native_localization_diagnostics"] = copy.deepcopy(trace)
+            if clock_error is not None:
+                raise IsaacRuntimeError("native localization source clock fence is unavailable") from clock_error
         official = bool(response.success)
         reason = self._confirm_localization(job, session, job["source_stamp_floor_ns"]) if official else "OFFICIAL_LOCALIZATION_FAILED"
         confirmed = official and reason is None
+        trace.update(fresh_pose_tracking_confirmed=confirmed, confirmation_reason=reason)
+        persist_attempt(job.get("run_dir"), attempt, "result", trace)
+        with job["lock"]:
+            job["native_localization_diagnostics"] = copy.deepcopy(trace)
         return {"success": confirmed, "localize_success": confirmed, "reason": reason,
                 "official_localization_completed": official,
                 "fresh_pose_tracking_confirmed": confirmed, "confirmation_reason": reason,
                 "native_load": "verified" if response.success else "unknown",
-                "operational_pose_approved": False, "pose_reference": "camera_link"}
+                "operational_pose_approved": False, "pose_reference": "camera_link",
+                "native_localization_diagnostics": trace}
 
     def _confirm_localization(self, job: dict[str, Any], session: dict[str, Any], fence: int) -> str | None:
         """Require new corrected output after the official service completed.

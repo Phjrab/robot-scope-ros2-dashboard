@@ -1,0 +1,79 @@
+{
+  "schema": "robot-scope.pose-precision-input.v1",
+  "evidence_type": "recorded_real",
+  "units": "m_rad",
+  "convention": "T_parent_child_column_vectors",
+  "frames": {
+    "world": "survey_world",
+    "map": "vslam_lab_map",
+    "camera": "vslam_lab_camera_link",
+    "body": "base_link"
+  },
+  "camera_axes": "ros_link_x_forward_y_left_z_up",
+  "body_axes": "ros_x_forward_y_left_z_up",
+  "provenance": {
+    "truth_method": null,
+    "truth_independent_of_estimate": false,
+    "alignment_independent_of_evaluation_samples": false,
+    "extrinsic_independently_measured": false,
+    "mount_unchanged": false,
+    "current_camera_chain_verified": false,
+    "instrument_id": null,
+    "mount_id": null,
+    "measured_at_utc": null,
+    "estimate_source_commit": null,
+    "estimate_runtime_identity": null,
+    "estimate_config_sha256": null
+  },
+  "evidence": {
+    "estimate": {"path": null, "sha256": null},
+    "truth": {"path": null, "sha256": null},
+    "extrinsic": {"path": null, "sha256": null},
+    "world_alignment": {"path": null, "sha256": null},
+    "timing": {"path": null, "sha256": null},
+    "camera_calibration": {"path": null, "sha256": null}
+  },
+  "uncertainty": {
+    "truth": {"translation_bound_m": null, "rotation_bound_rad": null},
+    "extrinsic": {"translation_bound_m": null, "rotation_bound_rad": null},
+    "world_alignment": {"translation_bound_m": null, "rotation_bound_rad": null}
+  },
+  "timing": {
+    "estimate_clock": null,
+    "truth_clock": null,
+    "offset_convention": "estimate_ns=truth_ns+offset_ns",
+    "truth_to_estimate_offset_ns": null,
+    "offset_uncertainty_ns": null,
+    "max_pair_skew_ns": null,
+    "offset_measured_independently": false,
+    "matching": "mutual_unique_nearest_no_interpolation"
+  },
+  "fixed_transforms": {
+    "T_world_map": {
+      "parent_frame": "survey_world",
+      "child_frame": "vslam_lab_map",
+      "translation_m": null,
+      "quaternion_xyzw": null
+    },
+    "T_body_camera": {
+      "parent_frame": "base_link",
+      "child_frame": "vslam_lab_camera_link",
+      "translation_m": null,
+      "quaternion_xyzw": null
+    }
+  },
+  "estimate": {
+    "acquisition_id": null,
+    "parent_frame": "vslam_lab_map",
+    "child_frame": "vslam_lab_camera_link",
+    "epoch": null,
+    "samples": []
+  },
+  "truth": {
+    "acquisition_id": null,
+    "parent_frame": "survey_world",
+    "child_frame": "base_link",
+    "epoch": null,
+    "samples": []
+  }
+}

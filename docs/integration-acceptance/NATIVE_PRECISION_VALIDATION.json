@@ -1,0 +1,86 @@
+{
+  "schema": "robot-scope.native-precision-followup.v1",
+  "source_base": "dba753c4c2f29342cd410da77bb7a80ba9061ae8",
+  "selected_source_sha256": {
+    "robot_dashboard/slam_native_diagnostics.py": "0674c7b9028bee15d1cb0df2928e3ebd22522f239b7da4c9bce864ffa6cd7d52",
+    "robot_dashboard/slam_ros_runtime.py": "fbd4adb27c5c8e072c1413390d1e6b9f90b484ae8665d2d2703866ed428f7194",
+    "robot_dashboard/navigation_collision_profile.py": "2a66639ac545106ff8c70055d2a75005df0b206a6a2b17ef74a96fd4b969b7be",
+    "robot_dashboard/navigation_policy.py": "036bc6dda376cecfb92ce3cb514728628f0bf47ea6be5f4cc8fac81666f84ec2",
+    "robot_dashboard/ros/collision_mask_publisher.py": "7a91912d6dbb0f7061ad0326b5b3ed4e6ee71634c7d2f21f3511a77d8930d71b",
+    "robot_dashboard/ros/policy_readback.py": "4f447391e018d655a7ebab40c5eeed50b69fce965a212067dbbb9d2f20281d84",
+    "robot_dashboard/pose_precision.py": "f345bbac0eeee81650f91b61d90be7375118c9b77ff068947c06d0523fa588ad",
+    "scripts/evaluate_pose_precision.py": "474f084b25b9401ebcc0bf72f8987d096b8c54ccd24728976da63015b81cdaba",
+    "scripts/run_navigation_collision_mask.py": "6708fe478435b10446aee317ca29d9202c632d3f7c5387af35a9511f899a1d9e",
+    "experiments/isaac_vslam/metrics/collect.py": "6205fd445b85f1e2c67e3cd592abd997b9914cc7fe45b2f592557c54e1e51ff9",
+    "config/robot_scope_collision_replan.xml": "d85f8908c501bfc74ef657e26f149b931f88159b3cb524a7fa56251cbd8a038b"
+  },
+  "software": {
+    "python": {
+      "total": 2152,
+      "passed": 2150,
+      "skipped": 2,
+      "seconds": 77.304,
+      "type": "hardware_free_full_project_venv"
+    },
+    "javascript": {
+      "passed": 387,
+      "type": "unit"
+    },
+    "chromium": {
+      "passed": 43,
+      "type": "focused_slam_presentation_mission_route"
+    },
+    "ruff": "PASS",
+    "mypy": "PASS_configured_4_source_files",
+    "frontend_syntax_modules": 84,
+    "secret_scan": "PASS",
+    "diff_check": "PASS",
+    "first_system_python_attempt": {
+      "status": "FAILED_ENVIRONMENT",
+      "errors": 25,
+      "included_in_acceptance": false
+    }
+  },
+  "log_sha256": {
+    "python-full.log": "09ea75878e71eebedbba8e65722818c30be35ed1089369cf5092f1c03af6fece",
+    "python-full-venv.log": "61674098cb4fda802561e40ca7d187d404a7920296a9d40897a4dbebe2ad7808",
+    "js-unit.log": "20bf9ccdcdc93d793ecde4bee5cfef235b7559dbed6173e5bfb65568bee71696",
+    "e2e-focused.log": "aa9d85b63c8addf6d60d9b1aae08e306c95c2a96711197baf5cc63ac374474e5"
+  },
+  "runtime": {
+    "deployed_backend": "cdebee40d212759703300ffc1e2de17ed93a4846",
+    "new_candidate_deployed": false,
+    "stereo_diagnostics": "NOT_RUN",
+    "full_camera_calibration_capture": "NOT_RUN",
+    "native_collision_ingestion": "NOT_RUN_PREPARED",
+    "policy_enforced": false,
+    "independent_accuracy": "BLOCKED_NO_INDEPENDENT_TRUTH",
+    "go2_body_pose": "BLOCKED_NO_MEASURED_EXTRINSIC",
+    "driving": "NOT_RUN",
+    "bridge": "OFF"
+  },
+  "extractor_experiments": [
+    {
+      "name": "experiment01",
+      "status": "EXPERIMENT_FAILED",
+      "elapsed_seconds": 36.12940867299949,
+      "source_sha": "33da60662b27c0c5b63e0597bd778066af2731ed",
+      "report_sha256": "f7f91a285e470aecc895642ff836341b0d52159df8e850c9d2984663f7ab6e09",
+      "input_copy_unchanged": true,
+      "experiment_copy_unchanged": true,
+      "coverage": "unknown",
+      "completeness_attestation": false
+    },
+    {
+      "name": "experiment02",
+      "status": "EXPERIMENT_FAILED",
+      "elapsed_seconds": 213.14471012600006,
+      "source_sha": "33da60662b27c0c5b63e0597bd778066af2731ed",
+      "report_sha256": "ee73330bcbb7aa529b24a581212a16319f9e0f7efbb0a14e0bb427f831b332ba",
+      "input_copy_unchanged": true,
+      "experiment_copy_unchanged": true,
+      "coverage": "unknown",
+      "completeness_attestation": false
+    }
+  ]
+}

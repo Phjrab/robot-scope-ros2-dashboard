@@ -11,6 +11,8 @@ import threading
 import time
 
 from ..navigation_policy import POLICY_DIAGNOSTICS_SCHEMA, POLICY_ENDPOINTS, POLICY_SCHEMA, POLICY_TTL_S
+from ..navigation_collision_profile import BINDING_TOPIC, MASK_TTL_S, parse_mask_binding
+from .collision_mask_publisher import source_authorities
 
 PARAMETERS = {
     "/planner_server": ("planner_plugins", "GridBased.plugin", "GridBased.allow_unknown", "GridBased.use_astar", "GridBased.tolerance"),
@@ -19,6 +21,14 @@ PARAMETERS = {
     "/global_costmap/global_costmap": ("global_frame", "robot_base_frame", "robot_radius", "footprint", "footprint_padding", "track_unknown_space", "plugins", "filters", "static_layer.plugin", "static_layer.map_topic", "static_layer.enabled", "keepout_filter.plugin", "keepout_filter.enabled", "keepout_filter.filter_info_topic"),
     "/local_costmap/local_costmap": ("global_frame", "robot_base_frame", "robot_radius", "footprint", "footprint_padding", "track_unknown_space", "plugins", "filters", "static_layer.plugin", "static_layer.map_topic", "static_layer.enabled", "keepout_filter.plugin", "keepout_filter.enabled", "keepout_filter.filter_info_topic"),
 }
+for _costmap in ("/global_costmap/global_costmap", "/local_costmap/local_costmap"):
+    PARAMETERS[_costmap] += (
+        "policy_layer.plugin", "policy_layer.enabled", "policy_layer.map_topic",
+        "policy_layer.map_subscribe_transient_local", "policy_layer.subscribe_to_updates",
+        "policy_layer.footprint_clearing_enabled", "use_maximum", "unknown_cost_value",
+        "lethal_cost_threshold", "trinary_costmap",
+        "inflation_layer.inflation_radius", "resolution", "rolling_window",
+    )
 
 
 def parameter_value(value):
@@ -59,6 +69,8 @@ class RosPolicyReadback:
         self._dispatch_duration = None
         self._diagnostics = None
         self._diagnostics_received = None
+        self._mask_cache = None
+        self._mask_received = None
 
     def setup(self):
         from rcl_interfaces.msg import ParameterEvent
@@ -66,6 +78,8 @@ class RosPolicyReadback:
         from lifecycle_msgs.srv import GetState
         from rclpy.qos import qos_profile_parameter_events
         from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+        from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
+        from std_msgs.msg import String
         self._group = MutuallyExclusiveCallbackGroup()
         for node in PARAMETERS:
             self._clients[node] = (
@@ -74,7 +88,58 @@ class RosPolicyReadback:
         self._param_type, self._state_type = GetParameters, GetState
         self._events = self.node.create_subscription(ParameterEvent, "/parameter_events", self._on_event,
             qos_profile_parameter_events, callback_group=self._group)
+        self._mask_subscription = self.node.create_subscription(String, BINDING_TOPIC, self._on_mask,
+            QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                       durability=DurabilityPolicy.VOLATILE), callback_group=self._group)
         self._timer = self.node.create_timer(0.25, self.tick, callback_group=self._group)
+
+    def _mask_invalid(self, reason):
+        with self._lock:
+            if self._mask_cache is not None:
+                self._mask_cache.update(status="invalid", reason=reason)
+
+    def _check_mask_source(self):
+        # No mask configured remains backward-compatible. If a publication has
+        # been observed, source loss invalidates it independently of service GETs.
+        with self._lock:
+            previous = None if self._mask_cache is None else self._mask_cache.get("authorities")
+        if previous is None:
+            return
+        try:
+            if source_authorities(self.node) != previous:
+                self._mask_invalid("MASK_SOURCE_CHANGED")
+        except Exception:
+            self._mask_invalid("MASK_SOURCE_NOT_UNIQUE")
+
+    def _on_mask(self, message, info):
+        try:
+            binding = parse_mask_binding(message.data)
+            authorities = source_authorities(self.node)
+            if bytes(info.publisher_gid).hex() != authorities["binding"]:
+                raise ValueError("MASK_MESSAGE_AUTHORITY_MISMATCH")
+            now = self.clock()
+            with self._lock:
+                previous = self._mask_cache
+                if previous is not None:
+                    prior = previous.get("binding", {})
+                    same_incarnation = prior.get("incarnation") == binding["incarnation"]
+                    prior_semantic = {k: v for k, v in prior.items() if k != "sequence"}
+                    current_semantic = {k: v for k, v in binding.items() if k != "sequence"}
+                    if same_incarnation and (prior_semantic != current_semantic
+                            or previous.get("authorities") != authorities
+                            or binding["sequence"] <= prior.get("sequence", 0)):
+                        raise ValueError("MASK_SOURCE_CHANGED")
+                self._mask_cache = {"status": "current", "reason": None, "binding": binding,
+                                    "authorities": authorities}
+                self._mask_received = now
+        except Exception:
+            # Never expose remote payloads/exceptions; a malformed message cannot
+            # preserve a fresh source heartbeat or attest costmap ingestion.
+            with self._lock:
+                if self._mask_cache is None:
+                    self._mask_cache = {"status": "invalid", "reason": "MASK_SOURCE_INVALID"}
+                else:
+                    self._mask_cache.update(status="invalid", reason="MASK_SOURCE_INVALID")
 
     def _on_event(self, message):
         if message.node in PARAMETERS:
@@ -131,6 +196,7 @@ class RosPolicyReadback:
             self._diagnostics_received = now
 
     def tick(self):
+        self._check_mask_source()
         now = self.clock()
         tick_gap = None if self._last_tick is None else max(0.0, now - self._last_tick)
         self._last_tick = now
@@ -211,6 +277,8 @@ class RosPolicyReadback:
             received = self._received
             diagnostics = copy.deepcopy(self._diagnostics)
             diagnostics_received = self._diagnostics_received
+            mask = copy.deepcopy(self._mask_cache)
+            mask_received = self._mask_received
         age = None if received is None else max(0.0, self.clock() - received)
         value["age_s"] = age
         if diagnostics is not None:
@@ -218,4 +286,9 @@ class RosPolicyReadback:
             value["diagnostics"] = diagnostics
         if age is None or age > POLICY_TTL_S:
             value["status"] = "stale" if received is not None else "unavailable"
+        if mask is not None:
+            mask["age_s"] = None if mask_received is None else max(0.0, self.clock() - mask_received)
+            if mask["age_s"] is None or mask["age_s"] > MASK_TTL_S:
+                mask["status"] = "unavailable" if mask_received is None else "stale"
+            value["collision_mask_source"] = mask
         return value

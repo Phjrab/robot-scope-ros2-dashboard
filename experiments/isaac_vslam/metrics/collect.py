@@ -54,7 +54,9 @@ def sample_fields(stream, message):
         result.update(width=message.width, height=message.height,
                       distortion_model=message.distortion_model,
                       d=list(message.d), k=list(message.k), r=list(message.r), p=list(message.p),
-                      binning_x=message.binning_x, binning_y=message.binning_y)
+                      binning_x=message.binning_x, binning_y=message.binning_y,
+                      roi={key: getattr(message.roi, key) for key in
+                           ("x_offset", "y_offset", "height", "width", "do_rectify")})
     elif stream == "imu":
         result.update(angular_velocity_rad_s=vector(message.angular_velocity),
                       linear_acceleration_m_s2=vector(message.linear_acceleration),

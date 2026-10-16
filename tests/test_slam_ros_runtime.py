@@ -1,6 +1,8 @@
 """Hardware-free checks for the real ROS adapter's validation boundaries."""
 
 import base64
+import io
+import json
 from pathlib import Path
 import struct
 import tempfile
@@ -10,6 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from robot_dashboard.slam_features import FeatureStream, StreamContext
+from robot_dashboard.slam_native_diagnostics import NativeLogDiagnostics
 from robot_dashboard.slam_ros_runtime import (
     CORRECTED_POSE_TOPIC, EXPECTED_PARAMETERS, IsaacRuntimeError, IsaacStereoAdapter,
     MAP_FRAME, _private_json, compose_optical_pose, decode_cloud, encode_png,
@@ -601,6 +604,94 @@ class RuntimeCallbackTests(unittest.TestCase):
         fresh.header = header(stamp=100_000_000_001)
         self.adapter._receive(self.job, "landmarks", fresh)
         self.assertEqual(self.job["frames"], {})
+
+    def test_native_failure_diagnostics_keep_bool_authority_and_private_request_identity(self):
+        kind = NS(Request=lambda: NS(map_folder_path="", pose_hint=NS(position=NS(), orientation=NS())))
+        hint = {"frame_id": MAP_FRAME, "operator_verified": True,
+                "position": [1,2,3], "quaternion_xyzw": [0,0,0,1]}
+        clock_ns = [100_000_000_000]
+        self.job["node"] = NS(get_clock=lambda: NS(now=lambda: NS(nanoseconds=clock_ns[0])))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            (path / "data.mdb").write_bytes(b"native-copy")
+            self.job["run_dir"] = path
+            def call(*_args):
+                for message in ("Trying to localize in map '/private/secret/native' around [1, 2, 3]",
+                                "Failed to localize in map. Error 3"):
+                    self.job["native_log_diagnostics"].feed(("[ERROR] [100.000000001] "
+                        "[vslam_lab.visual_slam_node]: " + message + "\n").encode())
+                clock_ns[0] += 2
+                return NS(success=False)
+            with patch.dict("sys.modules", {"isaac_ros_visual_slam_interfaces.srv": NS(LocalizeInMap=kind)}), patch.object(self.adapter, "_call", side_effect=call):
+                result = self.adapter.localize(self.session, path, hint)
+            trace = result["native_localization_diagnostics"]
+            self.assertTrue(trace["response_received"])
+            self.assertFalse(trace["official_success"])
+            self.assertEqual(trace["service_outcome"], "RESPONSE_RECEIVED")
+            self.assertGreaterEqual(trace["service_elapsed_seconds"], 0)
+            self.assertEqual(trace["hint"]["pose_reference"], "camera_link")
+            self.assertEqual(trace["hint"]["quaternion_xyzw"], [0.0,0.0,0.0,1.0])
+            self.assertIsNone(trace["native_sdk_status"])
+            self.assertEqual(trace["native_log"]["correlation"], "unknown")
+            self.assertEqual(trace["native_log"]["candidate_events"][-1]["sdk_status_candidate"], 3)
+            self.assertEqual(result["native_load"], "unknown")
+            self.assertFalse(result["localize_success"])
+            persisted = (path / "native-localization-1-result.json").read_text()
+            self.assertNotIn(directory, persisted)
+            self.assertNotIn("secret", persisted)
+            request = json.loads((path / "native-localization-1-request.json").read_text())
+            self.assertEqual(request["request_digest"], trace["request_digest"])
+
+    def test_service_timeout_retains_structured_private_evidence_without_exception_text(self):
+        kind = NS(Request=lambda: NS(map_folder_path="", pose_hint=NS(position=NS(), orientation=NS())))
+        hint = {"frame_id": MAP_FRAME, "operator_verified": True,
+                "position": [1,2,3], "quaternion_xyzw": [0,0,0,1]}
+        self.job["node"] = NS(get_clock=lambda: NS(now=lambda: NS(nanoseconds=100_000_000_000)))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            (path / "data.mdb").write_bytes(b"native-copy")
+            self.job["run_dir"] = path
+            with patch.dict("sys.modules", {"isaac_ros_visual_slam_interfaces.srv": NS(LocalizeInMap=kind)}), \
+                    patch.object(self.adapter, "_call", side_effect=IsaacRuntimeError("Isaac service operation timed out")):
+                with self.assertRaisesRegex(IsaacRuntimeError, "timed out"):
+                    self.adapter.localize(self.session, path, hint)
+            trace = json.loads((path / "native-localization-1-result.json").read_text())
+        self.assertEqual(trace["service_outcome"], "SERVICE_TIMEOUT")
+        self.assertFalse(trace["response_received"])
+        self.assertIsNone(trace["official_success"])
+        self.assertTrue(self.job["localizing"])
+        self.assertNotIn("exception", json.dumps(trace))
+
+    def test_success_log_cannot_promote_failed_official_service(self):
+        kind = NS(Request=lambda: NS(map_folder_path="", pose_hint=NS(position=NS(), orientation=NS())))
+        hint = {"frame_id": MAP_FRAME, "operator_verified": True,
+                "position": [1,2,3], "quaternion_xyzw": [0,0,0,1]}
+        clock_ns = [100_000_000_000]
+        self.job["node"] = NS(get_clock=lambda: NS(now=lambda: NS(nanoseconds=clock_ns[0])))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            (path / "data.mdb").write_bytes(b"native-copy")
+            def call(*_args):
+                self.job["native_log_diagnostics"].feed(b"[INFO] [100.000000001] [vslam_lab.visual_slam_node]: Successfully localized at {1, 2, 3}\n")
+                clock_ns[0] += 2
+                return NS(success=False)
+            with patch.dict("sys.modules", {"isaac_ros_visual_slam_interfaces.srv": NS(LocalizeInMap=kind)}), patch.object(self.adapter, "_call", side_effect=call):
+                result = self.adapter.localize(self.session, path, hint)
+        self.assertEqual(result["reason"], "OFFICIAL_LOCALIZATION_FAILED")
+        self.assertFalse(result["localize_success"])
+        self.assertFalse(result["operational_pose_approved"])
+        self.assertIsNone(result["native_localization_diagnostics"]["native_sdk_status"])
+
+    def test_log_reader_drains_beyond_raw_cap_and_keeps_only_bounded_event_codes(self):
+        raw = b"x" * (1024 * 1024 + 1) + b"\n" + b"[ERROR] [100.000000001] [vslam_lab.visual_slam_node]: Failed to localize in map. Error 3\n"
+        log = io.BytesIO()
+        job = {"process": NS(stdout=io.BytesIO(raw)), "log_file": log,
+               "native_log_diagnostics": NativeLogDiagnostics()}
+        self.adapter._read_log(job)
+        self.assertEqual(len(log.getvalue()), 1024 * 1024)
+        self.assertTrue(job["log_truncated"])
+        event = job["native_log_diagnostics"].window(0, 0, 101_000_000_000)["candidate_events"][-1]
+        self.assertEqual(event["sdk_status_candidate"], 3)
 
 
 if __name__ == "__main__":

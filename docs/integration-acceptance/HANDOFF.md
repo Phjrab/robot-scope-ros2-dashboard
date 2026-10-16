@@ -1,4 +1,16 @@
-# Current non-driving results — 2026-10-16
+# Current native/precision follow-up — 2026-10-16
+
+The user reopened remaining non-driving work and confirmed that independent
+truth/extrinsic measurements do not exist yet. Reviewed software and preparation
+are in [NATIVE_PRECISION_FOLLOWUP.md](NATIVE_PRECISION_FOLLOWUP.md) and
+[NATIVE_PRECISION_VALIDATION.json](NATIVE_PRECISION_VALIDATION.json).
+Read this newer record before the historical acceptance below. Policy publication
+does not authorize a true enforcement scope; precision/body claims remain blocked
+on actual measurements. The control bridge remains OFF. Current grouped approval
+is required before the newly prepared deployment/camera/native-consumer window;
+the earlier operating localization window is not authorized to repeat.
+
+# Previous non-driving results — 2026-10-16
 
 Actual clean deployment is cdebee4; software-only collision-mask source is
 4497f7f. Dashboard Stereo start/image/camera6DoF/features/map/trajectory/save/

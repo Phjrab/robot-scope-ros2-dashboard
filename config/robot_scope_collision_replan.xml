@@ -1,0 +1,12 @@
+<!-- Opt-in collision profile: one planner and controller, continuous replanning.
+     No clearing/recovery/motion primitive is introduced by this tree. -->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <PipelineSequence name="CollisionBoundNavigate">
+      <RateController hz="1.0">
+        <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+      </RateController>
+      <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="goal_checker"/>
+    </PipelineSequence>
+  </BehaviorTree>
+</root>

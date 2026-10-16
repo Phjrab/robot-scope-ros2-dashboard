@@ -7,10 +7,11 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from experiments.isaac_vslam.metrics.analyze import analyze, distribution, pose_metrics, read_jsonl, stereo_metrics
-from experiments.isaac_vslam.metrics.collect import finite_json, parse_args, status_schema_matches
+from experiments.isaac_vslam.metrics.collect import finite_json, parse_args, sample_fields, status_schema_matches
 
 
 def run_start(**extra):
@@ -30,6 +31,23 @@ def end(at=1., reason="duration_complete"):
 
 
 class IsaacVslamMetricsTests(unittest.TestCase):
+    def test_camera_info_preserves_roi_binning_and_projection_without_frame_rewrite(self):
+        message = SimpleNamespace(
+            header=SimpleNamespace(stamp=SimpleNamespace(sec=123, nanosec=456), frame_id="left_optical"),
+            width=640, height=480, distortion_model="plumb_bob", d=[0.1, 0, 0, 0, 0],
+            k=[400, 0, 320, 0, 400, 240, 0, 0, 1], r=[1, 0, 0, 0, 1, 0, 0, 0, 1],
+            p=[400, 0, 320, -20, 0, 400, 240, 0, 0, 0, 1, 0], binning_x=2, binning_y=3,
+            roi=SimpleNamespace(x_offset=12, y_offset=9, width=600, height=450, do_rectify=True))
+        result = sample_fields("right_info", message)
+        self.assertEqual(result["roi"], {"x_offset": 12, "y_offset": 9, "width": 600,
+                                        "height": 450, "do_rectify": True})
+        self.assertEqual((result["binning_x"], result["binning_y"]), (2, 3))
+        self.assertEqual(result["frame_id"], "left_optical")
+        self.assertEqual(result["stamp_ns"], 123_000_000_456)
+        self.assertEqual(result["p"], message.p)
+        self.assertEqual(result["k"], message.k)
+        self.assertEqual(result["d"], message.d)
+
     def test_percentiles_are_linear_and_sample_count_explicit(self):
         result = distribution([0, 1, 2, 3, 4])
         self.assertEqual(result["samples"], 5)

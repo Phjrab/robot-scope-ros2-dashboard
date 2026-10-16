@@ -174,3 +174,119 @@ This is saved-evidence software verification, not deployed runtime acceptance.
 The derived ZIP and hash/identity record remain private as
 `vslam-followup-20261016-1852/manual01/product-preview-export-offline-v3.zip`
 and its `-verification.json` sibling. Original native/preview evidence is intact.
+
+## Latest official source and offline extraction qualification
+
+The official source was checked again at Isaac ROS commit
+`9058506efd0b967ac894a717bdbe98df017637e5` (release5.0,2026-09-22).
+Its ROS package is now `isaac_ros_cuvslam`; the installed3.2.6 runtime and SDK12.6
+were not upgraded. Its [.gitmodules](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam/blob/9058506efd0b967ac894a717bdbe98df017637e5/.gitmodules)
+pins [cuVSLAM33da60662b27c0c5b63e0597bd778066af2731ed](https://github.com/nvidia-isaac/cuVSLAM/tree/33da60662b27c0c5b63e0597bd778066af2731ed),
+whose VERSION is15.0.0. These are different source/API versions; a new source
+contract does not establish compatibility with preserved12.6 native DB bytes.
+
+The [new public API](https://github.com/nvidia-isaac/cuVSLAM/blob/33da60662b27c0c5b63e0597bd778066af2731ed/libs/cuvslam/cuvslam2.h)
+still documents a maximum allocation for `Slam::EnableReadingData` and returns
+landmarks plus a timestamp from `ReadLandmarks`. It supplies no documented
+independent retained total, page cursor/exhaustion or frozen-generation token.
+Its `Odometry::GetFinalLandmarks` describes final VO landmarks across frames;
+that is not a contract for every retained saved SLAM landmark. The latest ROS
+visualization helper still publishes XYZ/RGB rather than immutable native IDs.
+No unlimited sentinel or count copied from the returned vector was inferred.
+
+A useful new candidate is NVIDIA's official
+[tools/map_extractor](https://github.com/nvidia-isaac/cuVSLAM/blob/33da60662b27c0c5b63e0597bd778066af2731ed/tools/map_extractor/map_extractor.cpp).
+It opens a saved DB with `READ_ONLY_EXISTS`, queries its spatial index and
+writes `map.json` in its working directory. It uses the vendor's own classes;
+the dashboard has no new internal DB parser. The tool serializes landmark IDs
+with `static_cast<int>`, so its JSON does not establish lossless64-bit IDs.
+No12.6→15.0 saved-DB guarantee, independent total, pinned snapshot identity,
+coordinate-conversion qualification or resource guarantee was found in the
+inspected API/README/build/tool sources. Successful execution alone would be an
+observable saved-map export with unknown coverage, not full-retained acceptance.
+
+Private preparation is in `map02-supported-extractor-20261016/`. The exact
+official source archive is250,635,594 bytes, SHA256
+`b38c50db8264c011b6efeadf524beaee40522ab6a01bf03be8ecbbba09833cc1`.
+Its895 regular/directory members and257,157,690 uncompressed bytes were checked.
+The manual native ZIP was read only as opaque bytes into a new0400 scratch
+copy:50,511,872 bytes, SHA256
+`c93dd90078f17f56480feced9fef08c421124188190c2ce02ed8aeb1f4b6d1ef`.
+Original native ZIP/package/preview hashes were unchanged. The local prepare
+check passed without building or executing cuVSLAM. Public source/dependency
+URLs, pinned hashes and a bounded experiment runner remain private; no SDK,
+maps, generated JSON or build tree is committed.
+
+The integration owner separately ran the initial CPU-only configure experiment
+in a new Jetson scratch tree. It failed after36.129 seconds because the host's
+optional OpenCV CMake config referenced missing `libopencv_core.so.4.8.0`.
+Owned-session cleanup was verified and both native copies remained unchanged;
+no native extractor ran. A second, fresh experiment used the standard
+[`CMAKE_DISABLE_FIND_PACKAGE_OpenCV=TRUE`](https://cmake.org/cmake/help/latest/variable/CMAKE_DISABLE_FIND_PACKAGE_PackageName.html)
+option in a fresh configure. The extractor target does not need OpenCV, while
+its optional tests/tools try to discover it. `BUILD_TESTING=OFF` alone does not
+skip the project's unconditional test subdirectories. The operating OpenCV
+installation/configuration is preserved.
+
+Experiment02 configured successfully with those exact sources/options, then
+the CPU-only build failed at53% after213.144710126 seconds. The pinned
+`libs/sof/image_context.h` declares `support_depth_` only under `USE_CUDA`, while
+its constructor and accessor in `image_context.cpp:22,161` reference it
+unconditionally. This is an observed upstream CPU-compilation failure; the
+native extractor never ran and saved-DB compatibility remains unverified.
+Both input copies stayed byte-identical and owned-session cleanup qualified.
+Private `experiment02/` retains exact configure/build logs, process records and
+report. A minimal CPU-only declaration repair can be evaluated separately in a
+new scratch tree, explicitly as modified upstream source, without changing the
+preserved source archive or operating SDK. Build success from such an experiment
+would still supply no retained-total or completeness guarantee.
+
+The private runner builds only `map_extractor`, parallel2/nice10, with CUDA,
+ENFORCE_GPU, NVTX, RERUN, CERES and CUNLS disabled and LMDB enabled. It installs
+no system packages and isolates HOME/cache/tmp and CMake/Git registries inside
+new scratch. It checks the reviewed archive and opaque copied map, uses
+cooperative wall-budget checkpoints, bounds retained logs/output and polls
+scratch/owned-session RSS/free resources. Each fresh session/PGID is checked
+by Linux start ticks and cleaned on failure or normal leader exit. This covers
+the pinned compiler's owned session; hostile `setsid` escape and hard real-time
+syscall/JSON-parser limits are not claimed. Twenty hardware-free boundary
+checks passed. Build/DB compatibility and qualified complete export remain
+separate results requiring actual experiment evidence and vendor guarantees.
+
+## Native localization diagnostic follow-up
+
+The existing service path now produces a bounded structured request/result
+diagnostic: normalized map_T_camera_link hint and configured base reference,
+opaque native-file SHA256/size, session/generation/epoch digest, request digest,
+service-response boolean, elapsed time, source-clock fences and confirmation
+reason. Up to64 attempts write separate request/result JSON files (0600,
+32KiB maximum each) in the existing private owned run directory. This preserves
+evidence even when the service call raises and the coordinator stops the job.
+Native hashing reads at most256MiB; oversized/unavailable/changing bytes remain
+explicitly unverified and do not invent a hash. This is a pre-request byte
+observation, not an SDK map-format interpretation or retained-count source.
+
+The raw runtime log remains capped at1MiB, with available bytes read/flushed
+promptly. A separate128-event ring accepts only known localization event/code
+patterns from the exact native ROS logger, with4096-byte line and16-event
+window limits. It drops paths, raw messages, poses from log text and exception
+text. Candidate error names are referenced specifically to the preserved12.6
+header; unknown codes receive no invented meaning. Both the log-sequence fence
+and the native emitted source timestamp must fit the request's clock window.
+Missing/changed clocks and old/foreign logs do not qualify. Since native logs
+contain no request ID, correlation and attributed SDK status remain unknown
+even when candidate events fall inside the window. A logged success can never
+promote a false service response.
+
+The25-second service timeout,5-second fresh corrected-pose/TRACKING confirmation,
+frame/epoch fences, failure quarantine and `operational_pose_approved=false`
+are unchanged. The API still cannot diagnose the underlying cause of native
+Error3 from the boolean alone. Fresh runtime traces under separately current
+conditions, a legitimate operator-verified map_T_vslam_lab_camera_link hint and
+the exact preserved package/config are the next minimum native-reuse evidence.
+The historical manual-map camera pose does not become a current hint after
+movement. Focused helper9 and runtime38 software regressions passed, including
+private-data exclusion, bounded logs/hashes, old-event rejection, timeout
+evidence, a nonblocking FIFO rejection and unchanged success/freshness authority; scoped Ruff/diff checks
+passed. The new diagnostic code has not been deployed or exercised on hardware
+by this MAP-02 follow-up.
