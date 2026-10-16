@@ -57,7 +57,14 @@
     "independent_accuracy": "BLOCKED_NO_INDEPENDENT_TRUTH",
     "go2_body_pose": "BLOCKED_NO_MEASURED_EXTRINSIC",
     "driving": "NOT_RUN",
-    "bridge": "OFF"
+    "bridge": "OFF",
+    "candidate_approval": "PENDING_GROUPED_CURRENT_FIELD_CONFIRMATION",
+    "final_readback_utc": "2026-10-16T12:38:15.141642+00:00",
+    "final_readback_sha256": "1c0e5ed701e417ca0ed2599a5388cd2b6a098ef931f931348182db0a6edf8e29",
+    "dashboard_invocation": "162f310dab5a44ac8526e803f6a05c74",
+    "broker_invocation": "29240030c5be4cb9b36773e35f35e74b",
+    "camera": "FREE",
+    "slam": "IDLE"
   },
   "extractor_experiments": [
     {
@@ -81,6 +88,59 @@
       "experiment_copy_unchanged": true,
       "coverage": "unknown",
       "completeness_attestation": false
+    },
+    {
+      "name": "experiment03",
+      "status": "EXPERIMENT_FAILED",
+      "elapsed_seconds": 367.0586306219993,
+      "source_sha": "33da60662b27c0c5b63e0597bd778066af2731ed",
+      "binary_sha256": "08ba6286e9663c98c0b8e46342f18e2c629f7186a70b3f22cb194abde9f79720",
+      "official_upstream_binary": false,
+      "report_sha256": "89445bf414bf4b70757f99ad2df01eecded87236c9c4847a4ffc99e7c1fc9db0",
+      "input_copy_unchanged": true,
+      "experiment_copy_unchanged": true,
+      "coverage": "unknown",
+      "completeness_attestation": false,
+      "owned_process_cleanup_qualified": true
+    },
+    {
+      "name": "experiment04",
+      "status": "MODIFIED_UPSTREAM_CPU_EXTRACTOR_OBSERVED_COVERAGE_UNKNOWN",
+      "elapsed_seconds": 0.6217061089992058,
+      "source_sha": "33da60662b27c0c5b63e0597bd778066af2731ed",
+      "binary_sha256": "08ba6286e9663c98c0b8e46342f18e2c629f7186a70b3f22cb194abde9f79720",
+      "official_upstream_binary": false,
+      "report_sha256": "853cce8003647e39c22d6c8f1020cb44d83ac72bcd1efc167063d38fb59af3c9",
+      "input_copy_unchanged": true,
+      "experiment_copy_unchanged": true,
+      "coverage": "unknown",
+      "completeness_attestation": false,
+      "owned_process_cleanup_qualified": true,
+      "output": {
+        "completeness_attestation": false,
+        "coordinate_frame": "official_internal_native_frame_unqualified",
+        "coverage": "unknown",
+        "duplicate_exported_int_ids": 0,
+        "engine_retained_total": null,
+        "exported_landmark_rows": 13993,
+        "exported_unique_int_ids": 13993,
+        "native_id_64bit_preservation": "unverified_official_static_cast_int",
+        "sha256": "22224cef79077d12ef27f8e760b3d7b2d77a015ece1290c9083d30418e2a506a",
+        "size": 2614229
+      },
+      "keyframes": 175,
+      "edges": 178,
+      "independent_validation_sha256": "b94c531e2847b858e3069b8723a9de981a6421414c503005793d0aebbc96f9fe",
+      "derived_export_receipt_sha256": "67d80fd716a761e3862171cb40329954c23cdc1d4bdc13e985f6f878c1a0921f",
+      "pose_direction": "UNQUALIFIED_UPSTREAM_SOURCE_CONFLICT"
     }
-  ]
+  ],
+  "implementation_source": "3986a75ff0bfaecd6ceb5ea33958d494cedf4343",
+  "ci": {
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38900248792",
+    "status": "SUCCESS",
+    "head_sha": "3986a75ff0bfaecd6ceb5ea33958d494cedf4343",
+    "linux_matrices_passed": 2,
+    "receipt_sha256": "a51f8b93d8e2866ad6570b73a0e1d33aae940ca9e4d81743be1a80dc49873094"
+  }
 }

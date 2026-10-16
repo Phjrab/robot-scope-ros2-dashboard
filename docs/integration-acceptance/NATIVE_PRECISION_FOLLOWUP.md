@@ -90,7 +90,56 @@ extractor-boundary20 and native-mask-preparation11 tests are separate from real
 native execution. Independent code reviews found and closed cleanup/identity,
 interrupt evidence and FIFO blocking issues.
 
-The next deployable candidate includes these source changes and the published UI.
+The deployable candidate is `3986a75ff0bfaecd6ceb5ea33958d494cedf4343`,
+published to main. Its exact GitHub CI run38900248792 passed on Ubuntu22.04
+Python3.10 and Ubuntu24.04 Python3.12, including full browser CI. The candidate
+includes these source changes and the separately published UI. Deployment
+review closed two findings: the delayed restart API cannot be treated as a
+new-process witness, and current lifecycle blockers must be checked before
+source mutation. The prepared script now requires changed dashboard/broker
+InvocationIDs, current product idle gates and exact environment/source hashes.
+
+### Actual CPU extraction after candidate publication
+
+Experiment03 applied the independently reviewed CPU-only declaration repair to
+fresh upstream scratch; the archive and installed VSLAM were unchanged. It built
+the extractor successfully, binary SHA256
+`08ba6286e9663c98c0b8e46342f18e2c629f7186a70b3f22cb194abde9f79720`.
+The first extraction then returned255 with `Failed to load the map!`.
+Source inspection found a10GiB read-only LMDB mapping request conflicting with
+the runner's2GiB virtual-address cap. That generic error alone did not prove
+DB incompatibility. The complete run took367.059s and qualified all owned
+process cleanup and copied-input preservation.
+
+Experiment04 reused that exact binary without rebuilding, in fresh scratch.
+Only the extractor's virtual-address cap became12GiB to accommodate that mapping;
+monitored RSS6GiB, freeRAM2GiB, disk/scratch and60s work bounds stayed unchanged.
+It completed in0.621706s with13993 unique exported integer-ID landmarks,175
+keyframes and178 edges. Output JSON is2,614,229 bytes, SHA256
+`22224cef79077d12ef27f8e760b3d7b2d77a015ece1290c9083d30418e2a506a`.
+The input source/copy and binary source/copy hashes were unchanged and owned
+cleanup passed. This is **actual modified-upstream CPU extraction**, not an
+official unmodified binary or a qualified general12.6→15 compatibility result.
+Raw XYZ and a neutrally labeled keyframe-transform CSV are retained privately.
+An independent offline check found finite geometry, unit quaternion error at
+most2.616e-7, no duplicate serialized IDs/relations/edges, no missing serialized
+pose references and one connected pose component. All23676 landmark-to-keyframe
+references and both derived files were checked against the unchanged JSON.
+There were no exact-zero XYZ rows. These checks validate this output's internal
+consistency, not its completeness relative to the original native database.
+
+Independent source review found that the extractor ignores loader/traversal
+return values, can skip missing poses and narrows native IDs to int. Its local
+variable `rig_from_world` also conflicts with the getter's documented
+`world_from_keyframe` direction. No inverse, ROS coordinate conversion or body
+pose is inferred. An initially direction-labeled private CSV is explicitly
+superseded by the raw neutral CSV; original JSON is unchanged. Timestamp-free
+keyframes are not a time-indexed trajectory. Exit0, finite geometry and unique
+exported IDs do not prove retained completeness. MAP-02 remains unqualified
+pending loader/error/count/ID/frame/weight and source-format evidence.
+
+### Pending grouped device observation
+
 The grouped runtime scope is deployment/dashboard+broker restart; two stationary
 same-pose Stereo sessions with native save/requery and one reuse dispatch, full
 CameraInfo/TF observation,90s stop-request/150s cleanup targets; then domain84
@@ -100,6 +149,10 @@ read its local costmap, but sends no FollowPath or NavigateToPose goal and runs
 no BT. Its nominal watchdog/cleanup envelope is190.5s plus scheduling/I/O.
 That scope needs current field confirmation before execution. No operating
 localization window is included. Successful preparation is not actual execution.
+The grouped approval was requested once and is pending. At12:38:15Z the device
+still had the same dashboard/broker invocations, backendcdebee4 with the three
+preserved UI files, SLAM IDLE, camera free and bridge inactive/PID0. No candidate
+deployment, new camera session or native costmap window has been executed.
 
 Private raw evidence is under sibling
 `robot-scope-hardware-validation-private/followup-native-precision-20261016/`

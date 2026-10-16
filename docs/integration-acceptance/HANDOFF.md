@@ -9,6 +9,12 @@ does not authorize a true enforcement scope; precision/body claims remain blocke
 on actual measurements. The control bridge remains OFF. Current grouped approval
 is required before the newly prepared deployment/camera/native-consumer window;
 the earlier operating localization window is not authorized to repeat.
+Candidate3986a75 is published and its two Linux CI jobs passed. Separate copied-DB
+CPU extraction observed13993 landmarks/175 keyframes/178 edges; retained
+completeness and pose direction remain unqualified. Grouped field approval is
+pending; no new service/camera/native-consumer window has started. Last readback
+12:38:15Z still shows backendcdebee4 with preserved published UI, SLAM IDLE,
+camera free and bridgeOFF. See the newer follow-up for source and binary hashes.
 
 # Previous non-driving results — 2026-10-16
 

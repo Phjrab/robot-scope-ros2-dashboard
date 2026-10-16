@@ -290,3 +290,30 @@ private-data exclusion, bounded logs/hashes, old-event rejection, timeout
 evidence, a nonblocking FIFO rejection and unchanged success/freshness authority; scoped Ruff/diff checks
 passed. The new diagnostic code has not been deployed or exercised on hardware
 by this MAP-02 follow-up.
+
+## Actual modified CPU extractor observation
+
+After candidate3986a75 publication, a separate build with the reviewed CPU-only
+`support_depth_` declaration repair succeeded. No installed SDK/source was
+changed. The modified binary hash is
+`08ba6286e9663c98c0b8e46342f18e2c629f7186a70b3f22cb194abde9f79720`.
+Its first generic load failure under2GiB virtual AS was not DB incompatibility
+proof: the pinned loader requests a10GiB read-only LMDB map. Reusing the same
+binary in new scratch with extractor AS12GiB and unchanged RSS/freeRAM/disk/
+cleanup controls produced JSON in0.621706s, without rebuilding or camera use.
+
+Observed output:13993 landmarks/unique exported integer IDs,175 keyframes,
+178 endpoint edges;2,614,229 bytes, SHA256
+`22224cef79077d12ef27f8e760b3d7b2d77a015ece1290c9083d30418e2a506a`.
+Input and binary sources/copies were unchanged; owned cleanup passed. The raw
+JSON/XYZ and neutral raw-transform CSV remain in private experiment04 evidence.
+This is an actual extraction observation with retained coverageunknown.
+
+Do not promote it to complete retained export. The pinned source ignores loader
+and query completion status, narrows IDs, can omit poses and can produce fallback
+coordinates. The extractor variable name and pose getter's documented direction
+conflict; no pose inversion or ROS frame assignment is justified. Keyframes lack
+timestamps; edge output lacks transforms/covariances. Independent retained total,
+native64-bit ID/weight and frame/unit/rig/source-format contracts remain needed.
+See [NATIVE_PRECISION_FOLLOWUP.md](NATIVE_PRECISION_FOLLOWUP.md) for exact
+experiment separation, the failed attempts and current pending device scope.
