@@ -138,21 +138,37 @@ keyframes are not a time-indexed trajectory. Exit0, finite geometry and unique
 exported IDs do not prove retained completeness. MAP-02 remains unqualified
 pending loader/error/count/ID/frame/weight and source-format evidence.
 
-### Pending grouped device observation
+### Device observation deferred by the user; software closeout
 
-The grouped runtime scope is deployment/dashboard+broker restart; two stationary
+On 2026-10-16 the user answered the grouped approval request:
+“소프트웨어만 마무리·장비 관측 보류”. The request is resolved as deferred;
+it is not pending approval and is not authorization to execute. Candidate3986a75
+remains published but undeployed. No deployment, service restart, camera session,
+domain84 run or new device inspection was performed for this closeout. The
+reviewed deployment pack is retained unchanged for a possible later request.
+Software acceptance uses the existing passing exact-source tests and CI above;
+the closeout changes only documentation and checks JSON/source-hash consistency
+and the documentation diff. It does not repeat identical-code full validation.
+
+The prepared grouped runtime scope covers deployment/dashboard+broker restart; two stationary
 same-pose Stereo sessions with native save/requery and one reuse dispatch, full
 CameraInfo/TF observation,90s stop-request/150s cleanup targets; then domain84
 isolated native global/local costmap ingestion/clear/expiry and product planner
 checks. This newly prepared harness also activates the controller lifecycle to
 read its local costmap, but sends no FollowPath or NavigateToPose goal and runs
 no BT. Its nominal watchdog/cleanup envelope is190.5s plus scheduling/I/O.
-That scope needs current field confirmation before execution. No operating
+This is retained preparation only. Resuming it requires a new user request and
+current field confirmation before execution. No operating
 localization window is included. Successful preparation is not actual execution.
-The grouped approval was requested once and is pending. At12:38:15Z the device
+At the last read-only check,12:38:15Z, the device
 still had the same dashboard/broker invocations, backendcdebee4 with the three
 preserved UI files, SLAM IDLE, camera free and bridge inactive/PID0. No candidate
 deployment, new camera session or native costmap window has been executed.
+This timestamped state is not continuous or newly refreshed evidence. Bridge
+restoration remains excluded; no device work or background continuation is
+scheduled. Actual reuse success, native policy enforcement and retained-map
+completeness remain unqualified. Accuracy/body-pose evaluation remains unperformed
+until the independent measurements in the linked guide exist.
 
 Private raw evidence is under sibling
 `robot-scope-hardware-validation-private/followup-native-precision-20261016/`

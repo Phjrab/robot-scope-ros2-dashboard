@@ -316,4 +316,5 @@ conflict; no pose inversion or ROS frame assignment is justified. Keyframes lack
 timestamps; edge output lacks transforms/covariances. Independent retained total,
 native64-bit ID/weight and frame/unit/rig/source-format contracts remain needed.
 See [NATIVE_PRECISION_FOLLOWUP.md](NATIVE_PRECISION_FOLLOWUP.md) for exact
-experiment separation, the failed attempts and current pending device scope.
+experiment separation, the failed attempts and the device scope deferred by the
+user in favor of software-only closeout.

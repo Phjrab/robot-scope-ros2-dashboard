@@ -6,15 +6,20 @@ are in [NATIVE_PRECISION_FOLLOWUP.md](NATIVE_PRECISION_FOLLOWUP.md) and
 [NATIVE_PRECISION_VALIDATION.json](NATIVE_PRECISION_VALIDATION.json).
 Read this newer record before the historical acceptance below. Policy publication
 does not authorize a true enforcement scope; precision/body claims remain blocked
-on actual measurements. The control bridge remains OFF. Current grouped approval
-is required before the newly prepared deployment/camera/native-consumer window;
-the earlier operating localization window is not authorized to repeat.
+on actual measurements. The control bridge must remain OFF. The user selected
+**software-only closeout; defer device observation** on 2026-10-16. The prepared
+deployment/camera/native-consumer window is not authorized to run; the earlier
+operating localization window is not authorized to repeat.
 Candidate3986a75 is published and its two Linux CI jobs passed. Separate copied-DB
 CPU extraction observed13993 landmarks/175 keyframes/178 edges; retained
-completeness and pose direction remain unqualified. Grouped field approval is
-pending; no new service/camera/native-consumer window has started. Last readback
+completeness and pose direction remain unqualified. The grouped approval request
+is resolved as deferred, not pending; no new service/camera/native-consumer window
+has started. Last readback
 12:38:15Z still shows backendcdebee4 with preserved published UI, SLAM IDLE,
-camera free and bridgeOFF. See the newer follow-up for source and binary hashes.
+camera free and bridgeOFF. This is historical readback, not a new device check.
+Software closeout reuses the exact implementation's passing test/CI evidence;
+only documentation changed. No device action or background continuation is
+scheduled. See the newer follow-up for source and binary hashes.
 
 # Previous non-driving results — 2026-10-16
 
