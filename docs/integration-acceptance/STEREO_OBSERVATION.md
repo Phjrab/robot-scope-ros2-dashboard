@@ -14,7 +14,7 @@ is not a Stereo gate. Camera-to-Go2 extrinsics remain unverified.
 ## First actual observation completed
 
 The user approved the grouped deployment/current stationary conditions and ran
-the reviewed administrator installer. Source `ffa1b21` is deployed; exact CI
+the reviewed administrator installer. Source `ffa1b21` was deployed for this run; exact CI
 [38841524522](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38841524522)
 passed both Linux matrices. The actual dashboard button → API → same-UID broker
 → preserved Isaac image → stereo/VSLAM → WebSocket → screen path ran, then the
@@ -34,6 +34,90 @@ children, camera/domain locks released, RGB available. No lock was deleted.
 Control bridge invocation stayed unchanged; movement/initialpose counts are0
 and goal idle. Exact source/runtime/config hashes, timestamps, metrics and
 limitations are in [STEREO_OBSERVATION.json](STEREO_OBSERVATION.json).
+
+## Second observation: matched pixels confirmed, native save failed
+
+Source `6590c97` ran the second stationary dashboard session. Actual UI image,
+camera 6DoF, overlay, global landmarks and trajectory were observed. The collector
+received549 WebSocket messages, including90 active frames, plus one separately
+recorded connection-close error. READY/TRACKING held for81/90 active frames
+(90%) over a sampled24.265264297s READY span. The full active-frame span was
+26.768485389s. Session creation to first observed IDLE was35.683131s; polling
+places actual cleanup completion after34.615950s and at or before35.683131s.
+These sample spans do not establish an exact continuous runtime duration.
+
+All81 READY frames had an aligned overlay (100%). Across all90 active frames,
+84 aligned (93.33%), two were withheld for NO_VALID_TIME_ALIGNMENT and four for
+STALE_SOURCE. The last nine frames, around save/cleanup, were not READY and
+reported the source-publisher-uniqueness guard. All84 aligned payloads used the
+exact selected image stamp in the transmitted image, overlay reference and
+alignment quartet. Quartet skew was8–992ns; camera-view skew was0ns. In35 of
+81 READY frames the selected pixels preceded the latest image, confirming that
+the completed quartet selects matching actual pixels. The1s freshness,5ms
+stereo and20ms overlay guards were unchanged.
+
+The retained observation snapshot contains501 actual finite bounded XYZ points;
+source/export/display counts, frame and map epoch agree, with no decimation or
+rejected points. Coverage remains unknown and engine total/completeness evidence
+remain absent. The SLAM trajectory reached666 source points. This confirms
+visualization data, not a complete retained native map or accuracy qualification.
+
+Clicking native map save produced a FAILED job with INVALID_NATIVE_PATH and no
+package. Fail-safe cleanup reached IDLE with cleanup_required=false, camera free,
+RGB available, zero native children and both locks released. The unsaved flag
+remained true. UI stop was not performed in this second run; the first run's
+successful UI stop remains separate evidence. The minimum package-token
+permission correction is now implemented: create its directory with mode0700
+before native save. Actual save/requery revalidation and subsequent native reuse
+were pending at this checkpoint; the third run below completes save/requery.
+Native reuse remains deferred. No initialpose, goal, operational pose application
+or movement occurred.
+
+## Third observation: native save, requery and normal UI stop completed
+
+Source `50a30f29580df19450e033fd35777862845b99f7` completed the final stationary
+session. Its CI [38844522011](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38844522011)
+passed both Linux matrices. The preceding `6590c97` CI
+[38843818559](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38843818559)
+also passed. The preserved Isaac image, input/camera contracts, runtime config,
+managed scope and operational DDS remained unchanged; exact hashes are recorded
+in the JSON runtime record.
+
+The actual UI start produced495 WebSocket messages, including162 active frames.
+All162 were READY/TRACKING with fresh image, camera pose and current observations,
+matched stereo pairs and0ns stereo skew. The READY sample span was55.143477513s.
+Overlay aligned159/162 frames (98.15%), with exact selected-image/overlay/quartet
+stamp identity and8–992ns quartet skew. Three frames were withheld for
+NO_VALID_TIME_ALIGNMENT under the unchanged guard. Current observations ranged
+104–332 points; the live SLAM path reached1024 points. A308-point actual global
+XYZ snapshot was finite, bounded and consistent with its frame, epoch and counts.
+Coverage and engine total remain unknown.
+
+Native save succeeded through the UI and returned package
+`np_0a62c6f8130f493baca70a94f57201ad`, revision
+`e57e9d40da3165440c848ea13228424df64230048ada3b4ec1fca635fcb8d7aa`.
+The official save acknowledgement and nonempty `data.mdb` (1,159,168 bytes) were
+verified. After stopping, catalog requery returned the same package/revision;
+the archive hash and native artifact size/hash matched, all archive manifest
+fields matched the API package, and archived preview exactly matched the reread
+preview. The UI showed one native saved map and its308-point preview with a
+460-point saved trajectory. Preview consistency is approximate; native load,
+reuse and complete retained-map coverage were not exercised.
+
+After save success was confirmed, the normal dashboard stop dialog's
+“저장하지 않고 중지” action discarded only observations accumulated after that
+save. The saved package remained queryable. The first IDLE sample was
+2026-10-16T03:17:38.802235Z; polling bounds creation-to-cleanup at more than
+63.925205s and at most65.025593s. Cleanup readback confirmed IDLE, unsaved=false,
+cleanup_required=false, camera owner free, RGB available, zero native children
+and released camera/domain locks.
+
+Independent before/after comparison confirmed the existing saved-maps API,
+missions API, dashboard environment and configuration inventory were unchanged.
+The control bridge retained PID982 and InvocationID
+`f721d0ea26274d00a0c5bf19456a8cf9`, with identical unit readback. All ten preserved experiment containers retained
+their IDs, image references and stopped states. Movement and
+initialpose counts remained0, goal idle and operational pose application false.
 
 ## Historical pre-deployment baseline and ownership
 
@@ -116,10 +200,14 @@ for the new changes. No unchanged baseline suite or VSLAM installation is repeat
 
 | Requested reporting category | Current evidence |
 | --- | --- |
-| Actual observation success | PASS: actual UI start, image/camera6DoF/TRACKING/current points/trajectory/global-count readback, UI stop and device cleanup |
-| Incomplete visualization | PARTIAL: overlay65/180; global238 count observed but first collector omitted its coordinates; coverage remains unknown |
-| Precision evaluation not performed | NOT_RUN; no independent ground truth or body extrinsic qualification |
-| No driving integration | No operational TF/initialpose/goal/movement; camera observation only |
+| Actual observation | PASS: third UI start, image/camera6DoF/TRACKING/current points, aligned overlay159/162, finite308-point global snapshot and live trajectory |
+| Native map save | PASS: official save acknowledgement, native package and nonempty1,159,168-byte data.mdb |
+| Requery and saved preview | PASS: same package/revision, archive/native hashes and exact preview match; UI native map count1, preview308 points and saved trajectory460 |
+| Normal UI stop and preservation | PASS: post-save observation discard through stop modal, IDLE/free camera/released locks; existing maps, missions, configuration and bridge invocation preserved |
+| Incomplete visualization | Overlay withheld in3/162 frames by unchanged alignment guard; complete global coverage and engine total unknown |
+| Precision evaluation not performed | NOT_RUN: independent ground truth and camera-to-Go2 body extrinsic qualification |
+| No driving application | NOT_APPLIED: operational TF, initialpose, Nav2 goal and movement0; supervised motion remains separate |
+| Deferred follow-up | Native localization/reuse and MAP-02 full retained export remain separate |
 
 Private evidence/bundle: sibling `robot-scope-hardware-validation-private/`
 `vslam-observation-20261016/`. Original calibration/profile observations, device
@@ -136,5 +224,13 @@ Correction validation: full Python2046 execution (2020 passed,2 expected skips,
 passed on a focused permitted rerun, yielding2044 passed/2 skipped overall.
 JavaScript386, SLAM Chromium10, Ruff, configured mypy, syntax and secret scan
 passed. The unchanged old baseline was not rerun.
-Next minimum action is a short same-scope stationary display/save/requery check.
-Supervised motion remains separate.
+The package-token0700 correction passed2049 Python cases (2047 passed,2 expected
+skips),15 relevant JavaScript cases, Ruff, configured mypy and the secret scan.
+Package regressions also passed under both0022 and0077 umasks (20 each);
+unsafe-directory fixtures now explicitly set their intended permissions.
+The third actual run above supplies the native save/requery acceptance evidence.
+
+The stationary observation, native save, requery/preview and normal-stop scope
+is complete. Full retained coverage, native reuse with a validated hint,
+independent ground truth, camera-to-Go2 extrinsic qualification and supervised
+motion remain separate follow-up work under their applicable current conditions.

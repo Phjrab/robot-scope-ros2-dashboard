@@ -1,13 +1,14 @@
-# Deployment gate — first observation completed
+# Deployment gate — stationary observation and save completed
 
 This document preserves the stage16 review gates, not permission to operate.
 Do not deploy/restart/take camera merely because software tests pass.
 
-The user approved the reviewed installation of source `ffa1b21` and the first
-stationary dashboard-controlled Stereo session completed successfully, including
-normal stop and camera cleanup. Overlay alignment remains partial; the
-matched-image improvement awaits a short stationary revalidation with unchanged
-guards. Exact source/runtime/config and the completed versus remaining scope are
+The user approved the reviewed installation of source `ffa1b21` and normal
+same-scope stationary rechecks. Final deployed source `50a30f2` completes actual
+stereo display, matched-pixel overlay, native save, normal UI stop and camera
+cleanup. Catalogue/offline preview/export reread and artifact hashes passed.
+The guard-preserving corrections are described in the acceptance report.
+Exact source/runtime/config and the completed versus remaining scope are
 recorded in [STEREO_OBSERVATION.md](../integration-acceptance/STEREO_OBSERVATION.md)
 and [STEREO_OBSERVATION.json](../integration-acceptance/STEREO_OBSERVATION.json).
 
@@ -16,7 +17,8 @@ rollback release, named operator/resource window, camera owner/viewers/container
 map/config hashes and private backup location. Preserve the existing Isaac image,
 experiment workspace, datasets, maps, Nav2 policies and control services.
 MS is the shared integrator; agree a deployment/performance window with MR and
-hardware/UI/resource owners. The first approved stationary window is complete;
+hardware/UI/resource owners. The approved stationary observation/save/requery
+window is complete;
 extensions must follow their current applicable conditions.
 
 The dashboard loads the integration without starting devices. Its preferred
@@ -98,5 +100,6 @@ A new600s visualization-inclusive workload needs an exclusive resource window;
 previous VO/LiDAR measurements cannot be reused. Follow stage16 gates A–E.
 
 Stage17 operational pose, initial pose, Nav2 goals and movement remain separate.
-Sparse landmark absence is never free-space evidence. First observation success
-does not establish native save/reuse, full retained export or driving readiness.
+Sparse landmark absence is never free-space evidence. Native save and offline
+requery are verified; native localization/reuse, full retained export and driving
+readiness are not established.

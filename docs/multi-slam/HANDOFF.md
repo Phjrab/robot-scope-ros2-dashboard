@@ -6,9 +6,27 @@ preserved Isaac Stereo path. Current work and deployment boundaries are in
 The new fixed managed scope and read-only owner probe are described in
 [DEPLOYMENT.md](DEPLOYMENT.md). Earlier stage16/MAP-02 full-export gates remain
 historical/deferred and are not prerequisites for image/camera-pose observation.
-The grouped deployment was approved and completed. The first actual Stereo
-start/display/stop and camera cleanup passed on `ffa1b21`; remaining overlay
-alignment and global-coordinate retention are tracked in that report.
+The grouped deployment was approved and completed. The final deployed source is
+`50a30f29580df19450e033fd35777862845b99f7` with a clean robot checkout.
+Actual dashboard start, stereo image/camera6DoF/TRACKING/overlay/global landmarks/
+SLAM trajectory, native save, UI stop and camera cleanup passed. The saved native
+package was reread through the catalogue, offline preview and exported ZIP;
+artifact hashes match. The308-point saved preview has unknown global coverage
+and approximate consistency with the native save, not full retained export.
+
+Corrections: timestamp-matched actual pixels for delayed native observations
+(`6590c97`); private0700 staging/scratch token parents under service umask0022
+(`50a30f2`). Freshness/sync/timeout and broker path guards remain unchanged.
+The first and second failed/partial observations remain in the acceptance report.
+Current handback: IDLE, camera free, native child processes absent, both locks
+released. Passive broker/owner probe/cooperative relay stay installed. Operational
+DDS/control bridge and all18 prior LiDAR map catalogue entries/mission API state
+remain unchanged. No movement, initialpose, Nav2 goal or operational VSLAM TF.
+
+The current stationary observation/save/requery scope is complete. A future
+supervised movement observation needs its own current onsite/motion conditions.
+Body extrinsic, independent precision evaluation, native map localization/reuse,
+MAP-02 full retained coverage and Nav2/MR-MS-003 remain separate follow-up work.
 
 # MS / MR handoff
 

@@ -2,11 +2,30 @@
   "schema_version": 1,
   "scope": "Stationary dashboard-controlled Stereo VSLAM observation",
   "software_source": "ffa1b218f68e9675d7de9fe7e5f107c087c5f67c",
+  "software_source_scope": "first_session_and_initial_deployment_records",
+  "latest_observation_source": "50a30f29580df19450e033fd35777862845b99f7",
+  "latest_ci": {
+    "run_id": 38844522011,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38844522011",
+    "conclusion": "success",
+    "matrix": [
+      "Ubuntu22.04/Python3.10",
+      "Ubuntu24.04/Python3.12"
+    ]
+  },
+  "second_session_ci": {
+    "software_source": "6590c97043011564dece2cb6b1709a4b3a16f71f",
+    "run_id": 38843818559,
+    "conclusion": "success"
+  },
   "ci": {
     "run_id": 38841524522,
     "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38841524522",
     "conclusion": "success",
-    "matrix": ["Ubuntu22.04/Python3.10", "Ubuntu24.04/Python3.12"]
+    "matrix": [
+      "Ubuntu22.04/Python3.10",
+      "Ubuntu24.04/Python3.12"
+    ]
   },
   "runtime": {
     "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
@@ -38,13 +57,351 @@
     "matched_stereo_pairs": 180,
     "stereo_skew_ns_max": 0,
     "stereo_receive_age_s_max": 0.649393,
-    "image": {"width": 640, "height": 480, "encoding": "mono8", "saved_original_frames": 6},
-    "camera_pose": {"reference": "vslam_lab_camera_link", "frame": "vslam_lab_map", "source": "/vslam_lab/visual_slam/vis/slam_odometry", "unique_advancing_stamps": 180, "body_extrinsic_verified": false},
-    "current_observations": {"available_frames": 180, "min_points": 86, "max_points": 314, "source": "/vslam_lab/visual_slam/vis/observations_cloud", "native_ids_available": false, "actual_finite_xyz_verified": true},
-    "overlay": {"aligned_frames": 65, "alignment_unavailable_frames": 115, "point_range_when_aligned": [88, 312], "failure_reason": "NO_VALID_TIME_ALIGNMENT", "guard_relaxed": false},
-    "global_map": {"max_reported_points": 238, "frames_reporting_nonzero": 11, "snapshot_id": 2, "coverage": "unknown", "engine_total_count": null, "completeness_evidence": null, "coordinates_retained_in_first_session_evidence": false},
-    "trajectory": {"kind": "slam", "max_source_points": 1024, "actual_saved_arrays_verified": true},
+    "image": {
+      "width": 640,
+      "height": 480,
+      "encoding": "mono8",
+      "saved_original_frames": 6
+    },
+    "camera_pose": {
+      "reference": "vslam_lab_camera_link",
+      "frame": "vslam_lab_map",
+      "source": "/vslam_lab/visual_slam/vis/slam_odometry",
+      "unique_advancing_stamps": 180,
+      "body_extrinsic_verified": false
+    },
+    "current_observations": {
+      "available_frames": 180,
+      "min_points": 86,
+      "max_points": 314,
+      "source": "/vslam_lab/visual_slam/vis/observations_cloud",
+      "native_ids_available": false,
+      "actual_finite_xyz_verified": true
+    },
+    "overlay": {
+      "aligned_frames": 65,
+      "alignment_unavailable_frames": 115,
+      "point_range_when_aligned": [
+        88,
+        312
+      ],
+      "failure_reason": "NO_VALID_TIME_ALIGNMENT",
+      "guard_relaxed": false
+    },
+    "global_map": {
+      "max_reported_points": 238,
+      "frames_reporting_nonzero": 11,
+      "snapshot_id": 2,
+      "coverage": "unknown",
+      "engine_total_count": null,
+      "completeness_evidence": null,
+      "coordinates_retained_in_first_session_evidence": false
+    },
+    "trajectory": {
+      "kind": "slam",
+      "max_source_points": 1024,
+      "actual_saved_arrays_verified": true
+    },
     "native_save_performed": false
+  },
+  "second_session": {
+    "software_source": "6590c97043011564dece2cb6b1709a4b3a16f71f",
+    "session_id": "b1a728187e5d4b3aaa85f6ebad0aa98d",
+    "generation": 1,
+    "map_epoch": "2838fd2d6ef8421e93e79db4e7faee6c",
+    "created_at_utc": "2026-10-16T03:07:59.619781Z",
+    "first_ready_observed_utc": "2026-10-16T03:08:07.191153Z",
+    "last_ready_observed_utc": "2026-10-16T03:08:31.456491Z",
+    "first_nonready_observed_utc": "2026-10-16T03:08:31.761289Z",
+    "last_active_frame_observed_utc": "2026-10-16T03:08:33.959662Z",
+    "first_idle_observed_utc": "2026-10-16T03:08:35.302912Z",
+    "startup_to_first_ready_observed_s": 7.571372,
+    "ready_sample_span_s": 24.265264297,
+    "ready_bracketing_span_upper_s": 24.884711335,
+    "active_frame_sample_span_s": 26.768485389,
+    "created_to_last_saving_observed_s": 34.61595,
+    "created_to_first_idle_observed_s": 35.683131,
+    "exact_continuous_runtime_duration_known": false,
+    "collector_elapsed_s": 115.077757914,
+    "websocket_messages": 549,
+    "websocket_connection_close_error_records": 1,
+    "active_frames": 90,
+    "ready_tracking_frames": 81,
+    "ready_fraction_of_active_frames": 0.9,
+    "nonready_frames_during_save_cleanup": 9,
+    "nonready_guard": "SLAM source publisher is not unique",
+    "matched_stereo_pairs": 86,
+    "stereo_skew_ns_max_when_matched": 0,
+    "stereo_receive_age_s_max_when_matched": 0.935436,
+    "image": {
+      "width": 640,
+      "height": 480,
+      "encoding": "mono8",
+      "saved_original_frames": 6,
+      "additional_global_snapshot_with_pixels": 1,
+      "selected_stamp_matches_transmitted_image_frames": 90,
+      "ready_frames_selecting_older_than_latest_pixels": 35,
+      "ready_image_stamp_unique": 80,
+      "timestamp_backward_count": 0
+    },
+    "camera_pose": {
+      "reference": "vslam_lab_camera_link",
+      "frame": "vslam_lab_map",
+      "source": "/vslam_lab/visual_slam/vis/slam_odometry",
+      "body_extrinsic_verified": false
+    },
+    "current_observations": {
+      "available_frames": 85,
+      "min_points": 150,
+      "max_points": 350,
+      "source": "/vslam_lab/visual_slam/vis/observations_cloud",
+      "native_ids_available": false
+    },
+    "overlay": {
+      "aligned_frames": 84,
+      "fraction_of_active_frames": 0.9333333333333333,
+      "aligned_ready_frames": 81,
+      "fraction_of_ready_frames": 1.0,
+      "alignment_unavailable_frames": 2,
+      "stale_source_frames": 4,
+      "point_range_when_aligned": [
+        150,
+        353
+      ],
+      "quartet_skew_ns_min_when_aligned": 8,
+      "quartet_skew_ns_max_when_aligned": 992,
+      "exact_selected_image_overlay_quartet_stamp_matches": 84,
+      "recorded_skew_matches_actual_quartet_span_frames": 84,
+      "guard_relaxed": false
+    },
+    "camera_view": {
+      "available_frames": 84,
+      "skew_ns_max_when_available": 0
+    },
+    "representative_pixel_identity": {
+      "sequence": 3,
+      "selected_image_timestamp_ns": "1792120087227161344",
+      "transmitted_image_timestamp_ns": "1792120087227161344",
+      "overlay_image_timestamp_ns": "1792120087227161344",
+      "calibration_timestamp_ns": "1792120087227161344",
+      "pose_timestamp_ns": "1792120087227161344",
+      "observations_timestamp_ns": "1792120087227161000",
+      "quartet_skew_ns": 344,
+      "jpeg_sha256": "ff07ce0363ab3a320ef2af52c8103995ac1a50f3c9b2786baf8ae7997cd41f35"
+    },
+    "global_map": {
+      "max_reported_points": 501,
+      "frames_reporting_nonzero": 89,
+      "snapshot_id": 1,
+      "coverage": "unknown",
+      "engine_total_count": null,
+      "completeness_evidence": null,
+      "coordinates_retained_in_observation_evidence": true,
+      "actual_finite_bounded_xyz_verified": true,
+      "source_export_display_counts_agree": true,
+      "frame_and_epoch_agree": true,
+      "decimation": false,
+      "rejected_nonfinite": 0,
+      "rejected_range": 0,
+      "source": "/vslam_lab/visual_slam/vis/landmarks_cloud"
+    },
+    "trajectory": {
+      "kind": "slam",
+      "max_source_points": 666,
+      "actual_saved_arrays_verified": true
+    },
+    "native_save": {
+      "attempted_from_ui": true,
+      "job_state": "FAILED",
+      "reason": "INVALID_NATIVE_PATH",
+      "package_count_after_cleanup": 0,
+      "success": false,
+      "package_token_mode_correction": "0700",
+      "permission_correction_state": "IMPLEMENTED_RUNTIME_REVALIDATION_PENDING"
+    },
+    "ui_stop_performed": false,
+    "cleanup_trigger": "native_save_failure",
+    "motion": {
+      "lease_active": false,
+      "move_count": 0,
+      "nonzero_move_count": 0,
+      "initialpose_count": 0,
+      "goal_state": "idle",
+      "operational_pose_applied": false,
+      "operational_tf_publication": false
+    }
+  },
+  "third_session": {
+    "software_source": "50a30f29580df19450e033fd35777862845b99f7",
+    "runtime_record_ref": "runtime",
+    "runtime_configs_and_operational_dds_unchanged": true,
+    "session_id": "c51b65689fe8493a88c04a2b2aa9ba8d",
+    "generation": 1,
+    "map_epoch": "8ad6162938b34ee9a5ee3a5b44008ee1",
+    "created_at_utc": "2026-10-16T03:16:33.776642Z",
+    "first_ready_observed_utc": "2026-10-16T03:16:41.301549Z",
+    "last_ready_observed_utc": "2026-10-16T03:17:36.445076Z",
+    "first_idle_observed_utc": "2026-10-16T03:17:38.802235Z",
+    "ready_sample_span_s": 55.143477513,
+    "ready_bracketing_span_upper_s": 55.559490434,
+    "created_to_last_stopping_observed_s": 63.925205,
+    "created_to_first_idle_observed_s": 65.025593,
+    "exact_continuous_runtime_duration_known": false,
+    "collector_elapsed_s": 115.154700207,
+    "websocket_messages": 495,
+    "active_frames": 162,
+    "ready_tracking_frames": 162,
+    "ready_fraction_of_active_frames": 1.0,
+    "matched_stereo_pairs": 162,
+    "stereo_skew_ns_max": 0,
+    "stereo_receive_age_s_max": 0.662838,
+    "image": {
+      "width": 640,
+      "height": 480,
+      "encoding": "mono8",
+      "saved_original_frames": 11,
+      "ready_frames_selecting_older_than_latest_pixels": 86,
+      "unique_selected_stamps": 139,
+      "timestamp_backward_count": 0
+    },
+    "camera_pose": {
+      "source": "/vslam_lab/visual_slam/vis/slam_odometry",
+      "reference": "vslam_lab_camera_link",
+      "frame": "vslam_lab_map",
+      "unique_advancing_stamps": 162,
+      "body_extrinsic_verified": false
+    },
+    "current_observations": {
+      "available_frames": 162,
+      "min_points": 104,
+      "max_points": 332,
+      "source": "/vslam_lab/visual_slam/vis/observations_cloud",
+      "native_ids_available": false
+    },
+    "overlay": {
+      "aligned_frames": 159,
+      "fraction_of_active_and_ready_frames": 0.9814814814814815,
+      "alignment_unavailable_frames": 3,
+      "stale_source_frames": 0,
+      "point_range_when_aligned": [
+        105,
+        332
+      ],
+      "quartet_skew_ns_min_when_aligned": 8,
+      "quartet_skew_ns_max_when_aligned": 992,
+      "exact_selected_image_overlay_quartet_stamp_matches": 159,
+      "recorded_skew_matches_actual_quartet_span_frames": 159,
+      "guard_relaxed": false
+    },
+    "global_map": {
+      "actual_points": 308,
+      "frames_reporting_nonzero": 161,
+      "actual_finite_bounded_xyz_verified": true,
+      "source_export_display_counts_agree": true,
+      "frame_and_epoch_agree": true,
+      "coverage": "unknown",
+      "engine_total_count": null,
+      "completeness_evidence": null,
+      "decimation": false,
+      "rejected_nonfinite": 0,
+      "rejected_range": 0
+    },
+    "trajectory": {
+      "kind": "slam",
+      "max_live_source_points": 1024,
+      "saved_preview_points": 460
+    },
+    "native_save": {
+      "attempted_from_ui": true,
+      "job_state": "SUCCEEDED",
+      "save_completion": "official_save_acknowledged",
+      "verified_at_utc": "2026-10-16T03:16:58.565885Z",
+      "package_id": "np_0a62c6f8130f493baca70a94f57201ad",
+      "revision": "e57e9d40da3165440c848ea13228424df64230048ada3b4ec1fca635fcb8d7aa",
+      "artifact": "data.mdb",
+      "native_bytes": 1159168,
+      "native_sha256": "c9688e4c146c87b75c02ce52b44bbc74ed746fef0c01ba65a8fee61ded0795e7",
+      "success": true,
+      "name": "stereo_stationary_20261016_1216",
+      "compatibility_metadata": {
+        "calibration_hash": "942c72cf97d11959ae11ddd6603ecf670fe33810e40c7518cf52f7d96029d262",
+        "sensor_config_hash": "673bd55ca4e47d96a71ce58eed4301e19c806699599f2cee34e6bd156fe02be9",
+        "engine_version": "3.2.6",
+        "native_format_version": "isaac-cuvslam-3.2-lmdb"
+      }
+    },
+    "requery": {
+      "observed_at_utc": "2026-10-16T03:19:06.601667Z",
+      "catalog_reread": true,
+      "same_package_and_revision": true,
+      "archive_sha256": "6a90ac13e574763ddf38083bce3ccef4b199fb0bcab90e9768289db873657cbd",
+      "archive_size_bytes": 1239746,
+      "archive_hash_verified": true,
+      "native_artifact_size_and_hash_verified": true,
+      "all_archive_manifest_fields_match_api_package": true,
+      "preview_exactly_matches_archive": true,
+      "preview_global_points": 308,
+      "preview_trajectory_points": 460,
+      "preview_xyz_finite_bounded": true,
+      "preview_consistency": "approximate",
+      "ui_native_saved_map_count": 1,
+      "ui_saved_preview_observed": true,
+      "native_load_performed": false
+    },
+    "ui_stop": {
+      "performed": true,
+      "after_save_success_confirmed": true,
+      "modal_action": "저장하지 않고 중지",
+      "discard_scope": "additional_unsaved_observations_after_successful_save",
+      "saved_package_preserved": true
+    },
+    "motion": {
+      "lease_active": false,
+      "move_count": 0,
+      "nonzero_move_count": 0,
+      "initialpose_count": 0,
+      "goal_state": "idle",
+      "operational_pose_applied": false,
+      "operational_tf_publication": false
+    }
+  },
+  "third_cleanup": {
+    "observed_at_utc": "2026-10-16T03:17:49.669367Z",
+    "trigger": "normal_ui_stop_after_successful_save",
+    "session_state": "IDLE",
+    "unsaved": false,
+    "cleanup_required": false,
+    "camera_reserved": false,
+    "rgb_available": true,
+    "actual_device_owner": "free",
+    "owned_native_processes": 0,
+    "camera_and_domain_locks_released": true
+  },
+  "preservation": {
+    "independent_before_after_comparison": true,
+    "existing_saved_maps_api_unchanged": true,
+    "missions_api_unchanged": true,
+    "dashboard_environment_unchanged": true,
+    "configuration_inventory_unchanged": true,
+    "control_bridge_unit_readback_unchanged": true,
+    "control_bridge_pid": 982,
+    "control_bridge_invocation_id": "f721d0ea26274d00a0c5bf19456a8cf9",
+    "experiment_containers_preserved": 10,
+    "experiment_container_ids_images_states_unchanged": true
+  },
+  "second_cleanup": {
+    "observed_at_utc": "2026-10-16T03:09:04.219207Z",
+    "trigger": "native_save_failure",
+    "ui_stop_performed": false,
+    "session_state": "IDLE",
+    "reason": "INVALID_NATIVE_PATH",
+    "unsaved": true,
+    "cleanup_required": false,
+    "camera_reserved": false,
+    "rgb_available": true,
+    "actual_device_owner": "free",
+    "owned_native_processes": 0,
+    "camera_and_domain_locks_released": true
   },
   "cleanup": {
     "observed_at_utc": "2026-10-16T02:52:26.548411Z",
@@ -57,12 +414,42 @@
     "camera_and_domain_locks_released": true,
     "locks_deleted": false
   },
-  "motion": {"lease_active": false, "move_count": 0, "nonzero_move_count": 0, "initialpose_count": 0, "goal_state": "idle", "operational_pose_applied": false, "operational_tf_publication": false},
-  "result_categories": {
-    "actual_observation_success": "PASS: actual UI start, image/camera pose/tracking/current points/global count/trajectory, UI stop and owner cleanup",
-    "incomplete_visualization": "PARTIAL: overlay is intermittent; global coordinate export not captured in first session; full retained coverage remains unknown",
-    "precision_evaluation": "NOT_PERFORMED",
-    "driving_application": "NOT_APPLIED"
+  "motion": {
+    "lease_active": false,
+    "move_count": 0,
+    "nonzero_move_count": 0,
+    "initialpose_count": 0,
+    "goal_state": "idle",
+    "operational_pose_applied": false,
+    "operational_tf_publication": false
   },
-  "next_minimum_work": "Keep thresholds unchanged; send the actual timestamp-matched image pixels with their completed pose/observation/calibration quartet, then repeat a short stationary display/save/requery check. Supervised motion remains separate."
+  "result_categories": {
+    "actual_observation_success": "PASS: third actual UI image/camera pose/TRACKING/current points/trajectory/global308; overlay159/162 with unchanged guards",
+    "native_map_save": "PASS: official save acknowledgement and native package with nonempty data.mdb",
+    "requery_and_saved_preview": "PASS: same package/revision, verified archive/native hashes, exact archived preview match; UI native map count1 and preview308/trajectory460",
+    "normal_stop_and_preservation": "PASS: saved package retained after additional-observation discard; IDLE/free camera/released locks and existing maps/missions/configuration/bridge preserved",
+    "precision_evaluation": "NOT_PERFORMED",
+    "driving_application": "NOT_APPLIED",
+    "incomplete_visualization": "PARTIAL: overlay withheld in3/162 frames by unchanged alignment guard; global coverage and engine total remain unknown"
+  },
+  "package_token_permission_fix_validation": {
+    "python_cases": 2049,
+    "python_passed": 2047,
+    "python_expected_skips": 2,
+    "relevant_javascript_passed": 15,
+    "ruff": "PASS",
+    "configured_mypy": "PASS",
+    "secret_scan": "PASS",
+    "actual_native_save_revalidated": true,
+    "package_tests_umask_0022_and_0077": "20 passed under each; explicit unsafe fixture permissions"
+  },
+  "stationary_observation_scope": "COMPLETE",
+  "deferred_followups": [
+    "full_retained_map_coverage",
+    "native_reuse_with_validated_hint",
+    "independent_ground_truth",
+    "camera_to_Go2_extrinsics",
+    "supervised_motion"
+  ],
+  "next_minimum_work": "Stationary observation/save/requery/normal-stop scope is complete. Deferred follow-ups remain separate work under their applicable current conditions."
 }

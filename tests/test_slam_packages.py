@@ -407,6 +407,7 @@ class NativeMapPackageTests(unittest.TestCase):
     def test_public_root_permissions_rejected_and_reopen_catalog_works(self):
         exposed = self.root / "exposed"
         exposed.mkdir(mode=0o755)
+        exposed.chmod(0o755)
         self.assert_code("UNSAFE_ROOT", lambda: MapPackageStore(exposed))
         package = self.publish()
         reopened = MapPackageStore(self.store.root, quiescence_seconds=0.001)
