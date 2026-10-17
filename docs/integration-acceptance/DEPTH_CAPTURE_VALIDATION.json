@@ -15,8 +15,8 @@
   ],
   "software_validation": {
     "python": {
-      "run": 2219,
-      "passed": 2217,
+      "run": 2220,
+      "passed": 2218,
       "skipped": 2,
       "failed": 0
     },
@@ -37,7 +37,9 @@
     "configured_mypy": "PASS (4 configured source files)",
     "python_310_ast": "PASS (7 new/changed modules)",
     "frontend_syntax": "PASS (85 modules)",
-    "independent_review": "completed; optional store startup coupling fixed"
+    "independent_review": "completed; optional store startup coupling fixed",
+    "pitch_consumer_contract": "PASS: qualified export accepted by existing validator after simulated user selections; original points remain empty; per-sample timing excluded from static alignment",
+    "optional_prototype_entire_suite": "NOT_RUN: standalone TestClient import requires missing httpx2; no dependency installed; prototype source unchanged"
   },
   "limits": [
     "No live current device/firmware/depth profiles or effective enable_depth readback",
@@ -53,15 +55,19 @@
     "robot_dashboard/api/routers/depth_capture.py": "ffa36db5843d36a341e3f69f76f13ca476f0b0609f2ef35b92a4c2f143db120f",
     "robot_dashboard/depth_capture_contract.py": "bfd9bd3b329670d5f6582c1f8ac47adf4ebaf280a50c682d1ad20b550cdb9bf7",
     "robot_dashboard/depth_capture_runtime.py": "e61dc0d8f0490d7d4c0e455e54bce1083a0db033a298a8e362aad789b35c23ea",
-    "robot_dashboard/depth_capture_store.py": "2a72b39e59d1c179914399fb91515592cafd6ccbd9b7218bbd9709984a47cb0d",
+    "robot_dashboard/depth_capture_store.py": "4add5f7821d5c11f152f4a4804b94fe14d1ecf343a98cf53351dc45ed4694c62",
     "robot_dashboard/static/features/slam/depth_capture.js": "402ed0dbc6570de4d5f0f6feac03fe866678f35389895b9d7e445e6a92bb3a57",
-    "robot_dashboard/static/index.html": "f4c1031f59bcbfabc5c61f2c9a8cf2cb93f73b48f679ed7b23a37e1750a99e04"
+    "robot_dashboard/static/index.html": "f4c1031f59bcbfabc5c61f2c9a8cf2cb93f73b48f679ed7b23a37e1750a99e04",
+    "tests/test_depth_capture_consumer.py": "bcab8100df27445854f420f384c5b5fd9995626441b6efbe716bf964ba6a38e7"
   },
   "private_evidence_sha256": {
     "baseline-runtime.txt": "f52fb85f81d5d2ad5d6e8cf9c9edcc038dcaab54608286c78c98e6b7c2afe4f7",
     "python-full.log": "c59dcdb6bf869d42e93bf5910313fefc4929e93b7ecdcad3776841e9fee1222c",
     "e2e-full.log": "a38758b53b95a17587225a4c182e5703108f6a3d86ed525431bb40bb8f6008da",
     "js-unit-final.log": "fa953364bd5e18d382dca343ca59552657f86ad4173d0d6d740882839127125e",
-    "ui-synthetic/verification.json": "ac51174769a809073664248cdc1612a9005233764e04012440a7f28d240708d9"
-  }
+    "ui-synthetic/verification.json": "ac51174769a809073664248cdc1612a9005233764e04012440a7f28d240708d9",
+    "python-full-merged.log": "923129f7984b00a6b4d893f649633eff74779cda65ed0071ba4cf6398e64af05",
+    "prototype-suite-unavailable.log": "92252a8dc46820e887e8e5a67662cad53d5bd07af590a66e4436d9b7c0ec0cb3"
+  },
+  "concurrent_main_merged": "98ef9e1"
 }

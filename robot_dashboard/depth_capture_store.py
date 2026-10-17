@@ -256,9 +256,13 @@ def _compatibility(capture, ir, depth, ir_raw, depth_raw):
             "frame_id_source": ir["frame_id_source"], "profile_id": hashlib.sha256(_json(profiles)).hexdigest(),
             "rectified": True, "synthetic": False, "depth_semantics": "optical_z", "click_image_file": "click.png",
             "rectification_basis": "actual_zero_distortion_intrinsics_and_identity_depth_to_ir1_no_resampling",
+            "source_timestamp": ir["timestamp_ms"] / 1000.0,
+            "source_timestamp_unit": "seconds", "source_timestamp_stream": "ir1",
+            "clock_domain": domain,
             "source_timestamps_ms": {"ir1": ir["timestamp_ms"], "depth": depth["timestamp_ms"]},
             "timestamp_domain": domain, "frame_numbers": {"ir1": ir["frame_number"], "depth": depth["frame_number"]},
-            "alignment": {"frameset_verified": True, "source_skew_ms": skew, "max_source_skew_ms": MAX_SKEW_MS,
+            "synchronization": {"frameset_verified": True, "source_skew_ms": skew, "max_source_skew_ms": MAX_SKEW_MS},
+            "alignment": {"method": "verified_identity_depth_to_ir1_no_resampling",
                 "depth_to_ir1": extrinsics, "ir1_intrinsics": a, "depth_intrinsics": b,
                 "intrinsics_relative_tolerance": 1e-9, "extrinsics_absolute_tolerance": 1e-8}}}
 
@@ -393,6 +397,7 @@ class DepthCaptureStore:
                     artifacts["depth.png"] = depth_png
             if compatibility is not None:
                 compatibility["id"] = sample_id
+                compatibility["metadata"]["capture_id"] = sample_id
                 artifacts["compatibility.json"] = _json(compatibility, MAX_SAMPLE_BYTES)
             total = sum(map(len, artifacts.values()))
             if total > MAX_SAMPLE_BYTES:

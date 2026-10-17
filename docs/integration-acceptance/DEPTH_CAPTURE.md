@@ -8,7 +8,9 @@ Existing stereo VSLAM and Isaac versions remain unchanged.
 ## Baseline and hardware qualification
 
 Source baseline: `c6fedc05e5086fa755cc92b1a2cf2daa56ffc41a`; the working tree was clean
-before this task and `origin/main` matched. Read-only inspection on 2026-10-17 found
+before this task and `origin/main` matched. During publication, the independently
+developed pitch prototype `98ef9e1` arrived on main and was merged without modifying
+its implementation; export metadata was then checked against its input validator. Read-only inspection on 2026-10-17 found
 robot source `91f9006de6162d9e48f635f5f79a76e014950fd8`, clean; `robot-scope.service`
 PID 19437 and the user `robot-scope-slam-broker.service` PID 19266 active. The last
 Stereo session was IDLE with no camera reservation. Control bridge was inactive
@@ -138,12 +140,25 @@ Illustrative JSON shape only (not a captured measurement):
  "depth_semantics":"optical_z","click_image_file":"click.png",
  "source_timestamps_ms":{"ir1":1234.0,"depth":1234.0},
  "timestamp_domain":"timestamp_domain.hardware_clock",
- "alignment":{"frameset_verified":true,"source_skew_ms":0.0}}}
+ "source_timestamp":1.234,"source_timestamp_unit":"seconds",
+ "clock_domain":"timestamp_domain.hardware_clock",
+ "alignment":{"method":"verified_identity_depth_to_ir1_no_resampling"},
+ "synchronization":{"frameset_verified":true,"source_skew_ms":0.0}}}
 ```
 
 `depth_m` is a single row-major array of exactly width×height entries. The actual
 artifact also records frame numbers and the exact alignment/intrinsics proof.
 The original archive remains separate from this convenience JSON.
+
+The separate `experiments/realsense_mount_calibration` prototype accepts this
+individual object for point selection. For multiple angles, combine unchanged
+objects into `{"samples":[sample1,sample2]}` before importing (2–12 samples; that
+prototype currently supports at most 640×480). `points` remains empty until the
+user selects them there. Its required `source_timestamp` alias uses IR1 SDK time
+in seconds in the explicitly named `clock_domain`; original per-stream milliseconds
+are also preserved. Static geometric `alignment` is separated from per-capture
+`synchronization`, so small valid pairing differences do not masquerade as a
+changed calibration. This integration adds no pitch-solving code.
 
 ## Storage and enabling
 
@@ -182,7 +197,7 @@ Software fixture validation covers normal sample+export, missing depth, effectiv
 and per-frame profile mismatch, source-time/domain mismatch, disconnect/no-frame,
 post-confirmation freshness, storage failure, exact session retry, mode exclusion,
 stop failure/retained lock and explicit return to Stereo. Fixtures are not real
-sensor captures. Final local Python run: 2,219 tests, 2,217 passed and two existing skips.
+sensor captures. Final local Python run: 2,220 tests, 2,218 passed and two existing skips.
 Ruff, configured mypy and Python 3.10 AST checks passed. JavaScript/browser
 E2E: 127 passed, including four synthetic depth DOM scenarios. Full JS unit
 results are recorded in DEPTH_CAPTURE_VALIDATION.json. Browser tests verify
@@ -204,3 +219,9 @@ must currently confirm the seated fixed posture, stopped camera and immediate
 physical recovery. A subsequent Stereo check is a separate explicit mode transition
 inside that same agreed window. Do not send sit/stand/move, initialpose or goals.
 Depth collection is not a fix for duplicated walls or native SLAM trajectory jumps.
+
+The concurrently published prototype source was preserved. Its standalone full
+TestClient suite could not run in the current root environment because httpx2 is
+absent; no package was installed. The new export-to-existing-validator contract
+test passes within the root suite. This is format interoperability, not an angle
+accuracy or camera calibration result.
