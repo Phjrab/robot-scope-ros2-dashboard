@@ -48,6 +48,7 @@ from .api.routers.system import router as system_router
 from .api.routers.resources import router as resources_router
 from .api.routers.telemetry import router as telemetry_router
 from .api.routers.slam import router as slam_router
+from .api.routers.depth_capture import router as depth_capture_router
 from .slam_wiring import close_slam, configure_slam
 from .api.models import (
     ControlArmRequest,
@@ -405,6 +406,7 @@ app.include_router(route_planner_router)
 app.include_router(relocalization_router)
 app.include_router(resources_router)
 app.include_router(slam_router)
+app.include_router(depth_capture_router)
 app.include_router(mission_routes_router)
 def require_navigation_idle(detail: str) -> None:
     if navigation_coordinator().is_active():

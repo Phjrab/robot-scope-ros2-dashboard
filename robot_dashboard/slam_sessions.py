@@ -156,15 +156,17 @@ class SlamSessionManager:
         owned = self._session
         session = deepcopy(owned)
         fence = (session.get("state"), session.get("map_epoch")) if session else None
-        if session and session["state"] in {"WAITING_INPUT", "TRACKING", "MAPPING", "LOST"}:
+        if session and session["state"] in {"WAITING_INPUT", "TRACKING", "MAPPING", "CAPTURING", "LOST"}:
             try:
                 health = self.adapters[session["engine_id"]].status(session)
+                if session["engine_id"] == "realsense_depth":
+                    session["depth_capture"] = health
                 if health.get("alive") is False:
-                    session.update(state="ERROR", reason="CHILD_EXITED", cleanup_required=True)
+                    session.update(state="ERROR", reason=health.get("reason") if session["engine_id"] == "realsense_depth" else "CHILD_EXITED", cleanup_required=True)
                 elif health.get("tracking_state") == "LOST":
                     session.update(state="LOST", reason="TRACKING_LOST")
                 elif health.get("ready") is True:
-                    session.update(state="MAPPING" if session["task"] == "mapping" else "TRACKING", reason=None)
+                    session.update(state=_ready_state(session), reason=None)
                 else:
                     session.update(state="WAITING_INPUT", reason="STALE_SOURCE")
             except Exception:
@@ -235,7 +237,7 @@ class SlamSessionManager:
             if engine_id not in self.adapters:
                 raise SlamError("ENGINE_UNAVAILABLE", 503)
             adapter = self.adapters[engine_id]
-            if task not in {"tracking", "mapping"}:
+            if task not in {"tracking", "mapping", "calibration"} or (task == "calibration") != (engine_id == "realsense_depth"):
                 raise SlamError("MODE_UNSUPPORTED", 422)
             cap = await asyncio.to_thread(adapter.capability)
             if not cap.get("available_now"):
@@ -260,7 +262,7 @@ class SlamSessionManager:
             await asyncio.to_thread(adapter.preflight, session["task"])
             if cancel.is_set():
                 raise SlamError("START_CANCELLED")
-            if session["engine_id"] == "visual_stereo":
+            if session["engine_id"] in {"visual_stereo", "realsense_depth"}:
                 if self.camera is None:
                     raise SlamError("CAMERA_HANDOFF_REQUIRED")
                 # An RPC may reserve the device and then lose its response.
@@ -277,7 +279,7 @@ class SlamSessionManager:
                 raise SlamError("START_CANCELLED")
             session["effective_mode"] = result.get("effective_mode")
             session["effective_parameters"] = result.get("effective_parameters")
-            session["state"] = ("MAPPING" if session["task"] == "mapping" else "TRACKING") if result.get("ready") else "WAITING_INPUT"
+            session["state"] = _ready_state(session) if result.get("ready") else "WAITING_INPUT"
         except Exception as exc:
             session.update(state="ERROR", reason=_reason(exc), cleanup_required=True)
             session["resource_conflicts"] = normalize_resource_conflicts(getattr(exc, "resources", None))
@@ -356,6 +358,24 @@ class SlamSessionManager:
             session["state"] = "SAVING"
             self._operation = asyncio.create_task(self._save(session, job, name, create_2d))
             return self._remember(request_id, value, deepcopy(job))
+
+    async def capture_depth(self, session_id: str, *, generation: int, request_id: str,
+                            confirmation: dict[str, Any]) -> dict[str, Any]:
+        """One bounded capture, fenced by the existing cross-feature session lock."""
+        from .depth_capture_contract import validate_confirmation
+        validate_confirmation(confirmation)
+        value = ["capture_depth", session_id, generation, confirmation]
+        async with self.coordination_lock:
+            duplicate = self._duplicate(request_id, value)
+            if duplicate is not None:
+                return duplicate
+            session = self._match(session_id, generation)
+            self._check_blockers()
+            if session["engine_id"] != "realsense_depth" or session["state"] not in {"WAITING_INPUT", "CAPTURING"}:
+                raise SlamError("DEPTH_CAPTURE_NOT_ACTIVE")
+            result = await asyncio.to_thread(self.adapters["realsense_depth"].capture,
+                deepcopy(session), deepcopy(confirmation), request_id=request_id)
+            return self._remember(request_id, value, result)
 
     async def _save(self, session: dict[str, Any], job: dict[str, Any], name: str, create_2d: bool) -> None:
         staging = None
@@ -467,6 +487,9 @@ class SlamSessionManager:
 
     def frame(self) -> dict[str, Any]:
         session = self.snapshot()["active_session"]
+        if session and session["engine_id"] == "realsense_depth":
+            return {"schema_version": 1, "session_id": None, "generation": self._generation,
+                    "reason": "DEPTH_CAPTURE_SEPARATE_MODE"}
         if not session or session["state"] in {"IDLE", "PREFLIGHT", "STARTING", "STOPPING", "ERROR", "LOCALIZING"}:
             return {"schema_version": 1, "session_id": None, "generation": self._generation, "reason": "NO_ACTIVE_STREAM"}
         frame = self.adapters[session["engine_id"]].frame(deepcopy(session))
@@ -500,6 +523,10 @@ class SlamSessionManager:
                 await asyncio.shield(self._operation)
             self._cancel.set()
             await self._stop(session, self._operation)
+
+
+def _ready_state(session: dict[str, Any]) -> str:
+    return {"mapping": "MAPPING", "tracking": "TRACKING", "calibration": "CAPTURING"}[session["task"]]
 
 
 def _reason(exc: Exception) -> str:

@@ -1,3 +1,27 @@
+# Stationary depth collection software — 2026-10-17
+
+Read [DEPTH_CAPTURE.md](DEPTH_CAPTURE.md) and [validation](DEPTH_CAPTURE_VALIDATION.json) for the collection/export contract and
+explicit mode transition. The additive `realsense_depth/calibration` mode shares
+SLAM session, broker, managed camera/domain locks and cleanup authority. The
+Mapping panel requires fresh seated/robot-stationary/camera-stationary attestations
+per sample; no pitch algorithm, point-selection calibration UI, body-level
+assumption, motion command, TF application or Isaac/RGB-D migration is included.
+Raw IR1/Z16 and factory metadata remain separate from a qualified flat optical-Z
+compatibility JSON. Missing/unsupported correspondence withholds compatibility.
+
+Software fixtures and browser tests are not real camera captures. Read-only robot
+inspection still found deployed `91f9006`, prior Stereo session IDLE and camera
+unreserved, bridge inactive/disabled. The preserved SDK2.55.1 native libraries are
+present, but the Python namespace has only pyrsutils, without pipeline bindings;
+new depth capability fails closed until that dependency is provisioned. No new
+sample, service restart, configuration write or hardware collection occurred.
+
+Next hardware work requires a bundled current approval: provision the matching
+SDK Python binding without upgrading existing components, deploy the reviewed
+candidate, add the separate private depth config, restart dashboard/broker, then
+stationary sample→export→stop→camera-free and explicit return-to-Stereo checks.
+Keep bridge OFF. Do not reuse the old movement/session approval for this new mode.
+
 # Latest manual Stereo observation — 2026-10-17
 
 Read [SLAM_MANUAL_OBSERVATION.md](SLAM_MANUAL_OBSERVATION.md) and its JSON first.

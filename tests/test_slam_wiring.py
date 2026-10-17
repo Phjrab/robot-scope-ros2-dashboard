@@ -72,6 +72,14 @@ class SlamWiringTests(unittest.IsolatedAsyncioTestCase):
     async def test_broker_camera_owner_replaces_dashboard_camera_owner(self):
         self.assertIs(self.runtime.slam.camera, self.camera)
 
+    async def test_optional_depth_storage_failure_preserves_existing_stereo_manager(self):
+        from robot_dashboard.depth_capture_store import DepthCaptureError
+        with patch("robot_dashboard.depth_capture_store.DepthCaptureStore", side_effect=DepthCaptureError("UNSAFE_CAPTURE_ROOT", "fixture")):
+            configure_slam(self.runtime, Path.cwd(), self.root / "other-runtime")
+        self.assertIsNone(self.runtime.slam.depth_samples)
+        self.assertIs(self.runtime.slam.adapters["visual_stereo"], self.visual)
+        self.visual.start.assert_not_called()
+
     async def test_actual_manual_arm_hook_blocks_every_owned_slam_state_before_lease_acquisition(self):
         # Execute the actual route body without importing app.py's ROS startup.
         tree = ast.parse((Path(__file__).resolve().parents[1] / "robot_dashboard/app.py").read_text())

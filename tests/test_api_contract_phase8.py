@@ -61,14 +61,14 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 164)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 163)
+        self.assertEqual(len(http), 170)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 169)
         self.assertEqual(
             {
                 method: sum(candidate == method for candidate, _ in http)
                 for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             },
-            {"GET": 71, "POST": 81, "PUT": 1, "PATCH": 6, "DELETE": 5},
+            {"GET": 75, "POST": 83, "PUT": 1, "PATCH": 6, "DELETE": 5},
         )
         self.assertTrue(
             {
@@ -156,10 +156,22 @@ class Phase8ApiContractTests(unittest.TestCase):
             for entry in route_inventory()
             if entry[0] in {"POST", "PUT", "PATCH", "DELETE"}
         ]
-        self.assertEqual(len(mutations), 93)
+        self.assertEqual(len(mutations), 95)
         for method, path, _, function in mutations:
             with self.subTest(method=method, path=path):
                 self.assertTrue(calls_name(function, "require_same_origin"))
+
+    def test_depth_capture_inventory_is_explicit(self):
+        observed = {(method, path) for method, path, source, _ in route_inventory()
+                    if source.name == "depth_capture.py"}
+        self.assertEqual(observed, {
+            ("POST", "/api/v1/slam/depth/sessions"),
+            ("POST", "/api/v1/slam/sessions/{session_id}/depth-samples"),
+            ("GET", "/api/v1/slam/depth/samples"),
+            ("GET", "/api/v1/slam/depth/samples/{sample_id}/export"),
+            ("GET", "/api/v1/slam/depth/samples/{sample_id}/compatibility"),
+            ("GET", "/api/v1/slam/depth/samples/{sample_id}/image"),
+        })
 
     def test_mission_route_inventory_is_explicit(self):
         observed = {(method, path) for method, path, source, _ in route_inventory()

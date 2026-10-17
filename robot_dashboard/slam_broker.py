@@ -6,6 +6,7 @@ no command, Docker, sudo, topic, domain or general filesystem operation.
 from __future__ import annotations
 
 import argparse
+from collections import OrderedDict
 import json
 import os
 from pathlib import Path
@@ -58,13 +59,15 @@ def _session(value: Any) -> dict[str, Any]:
         raise SlamError("INVALID_SESSION", 422)
     if type(value["generation"]) is not int or not 1 <= value["generation"] < 2**31:
         raise SlamError("INVALID_SESSION", 422)
-    if value["engine_id"] != "visual_stereo" or value["task"] not in {"tracking", "mapping"}:
+    if (value["engine_id"], value["task"]) not in {
+            ("visual_stereo", "tracking"), ("visual_stereo", "mapping"), ("realsense_depth", "calibration")}:
         raise SlamError("INVALID_SESSION", 422)
     return value
 
 
 class BrokerDispatcher:
-    def __init__(self, adapter: Any, camera: CameraOwnerCoordinator, package_root: Path) -> None:
+    def __init__(self, adapter: Any, camera: CameraOwnerCoordinator, package_root: Path, *,
+                 depth_adapter: Any = None, depth_store: Any = None) -> None:
         self.adapter = adapter
         self.camera = camera
         self.package_root = package_root.resolve()
@@ -72,9 +75,14 @@ class BrokerDispatcher:
         self._owned: dict[str, Any] | None = None
         self._cancel = threading.Event()
         self._running_operation = False
+        self.depth_adapter = depth_adapter
+        self.depth_store = depth_store
+        self._captures: OrderedDict[str, tuple[Any, dict[str, Any]]] = OrderedDict()
         bind_camera = getattr(adapter, "bind_camera_coordinator", None)
         if bind_camera is not None:
             bind_camera(camera)
+        if depth_adapter is not None:
+            depth_adapter.bind_camera_coordinator(camera)
 
     def _native_path(self, value: Any, group: str) -> Path:
         if not isinstance(value, str):
@@ -101,7 +109,7 @@ class BrokerDispatcher:
         return path
 
     def dispatch(self, request: Any) -> Any:
-        if not isinstance(request, dict) or set(request) - {"operation", "session", "task", "native_path", "hint"}:
+        if not isinstance(request, dict) or set(request) - {"operation", "session", "task", "native_path", "hint", "confirmation", "request_id"}:
             raise SlamError("INVALID_BROKER_REQUEST", 422)
         operation = request.get("operation")
         fields = {
@@ -109,9 +117,20 @@ class BrokerDispatcher:
             **{op: {"operation", "session"} for op in ("reserve_camera", "release_camera", "start", "stop", "cancel", "status", "frame")},
             "save": {"operation", "session", "native_path"},
             "localize": {"operation", "session", "native_path", "hint"},
+            "depth_capability": {"operation"}, "depth_preflight": {"operation", "task"},
+            "depth_capture": {"operation", "session", "confirmation", "request_id"},
         }
         if operation not in fields or set(request) != fields[operation]:
             raise SlamError("INVALID_BROKER_REQUEST", 422)
+        if operation in {"depth_capability", "depth_preflight"}:
+            if self.depth_adapter is None or self.depth_store is None:
+                raise SlamError("DEPTH_CAPTURE_DISABLED", 503)
+            if operation == "depth_capability":
+                return self.depth_adapter.capability()
+            if request["task"] != "calibration":
+                raise SlamError("MODE_UNSUPPORTED", 422)
+            self.depth_adapter.preflight("calibration")
+            return {"ok": True}
         if operation == "capability":
             cap = self.adapter.capability()
             with self._lock:
@@ -124,6 +143,18 @@ class BrokerDispatcher:
             self.adapter.preflight(request["task"])
             return {"ok": True}
         session = _session(request.get("session"))
+        adapter = self.depth_adapter if session["engine_id"] == "realsense_depth" else self.adapter
+        if adapter is None:
+            raise SlamError("DEPTH_CAPTURE_DISABLED", 503)
+        if session["engine_id"] == "realsense_depth" and operation in {"save", "localize", "frame"}:
+            raise SlamError("MODE_UNSUPPORTED", 422)
+        if operation == "depth_capture":
+            from .depth_capture_contract import validate_confirmation
+            validate_confirmation(request["confirmation"])
+            if session["engine_id"] != "realsense_depth" or self.depth_store is None:
+                raise SlamError("MODE_UNSUPPORTED", 422)
+            if not isinstance(request["request_id"], str) or not re.fullmatch(r"[A-Za-z0-9_-]{8,96}", request["request_id"]):
+                raise SlamError("INVALID_REQUEST_ID", 422)
         with self._lock:
             if operation == "reserve_camera":
                 if self._owned is not None:
@@ -143,29 +174,43 @@ class BrokerDispatcher:
                 if operation in {"stop", "release_camera"} and self._owned is None:
                     return {"ok": True}
                 raise SlamError("SESSION_GENERATION_CONFLICT")
+            if operation == "depth_capture" and request["request_id"] in self._captures:
+                fingerprint, receipt = self._captures[request["request_id"]]
+                if fingerprint != [session, request["confirmation"]]:
+                    raise SlamError("REQUEST_ID_CONFLICT")
+                return receipt
             if operation == "cancel":
                 self._cancel.set()
                 return {"ok": True}
-            if operation in {"start", "save", "localize", "stop", "release_camera"}:
+            if operation in {"start", "save", "localize", "stop", "release_camera", "depth_capture"}:
                 if self._running_operation:
                     raise SlamError("OPERATION_IN_PROGRESS")
                 self._running_operation = True
         try:
             if operation == "start":
-                return self.adapter.start(session, self._cancel)
+                return adapter.start(session, self._cancel)
             if operation == "stop":
                 self._cancel.set()
-                self.adapter.stop(session)
+                adapter.stop(session)
                 return {"ok": True}
             if operation == "release_camera":
                 # Reconfirm child cleanup before relinquishing the device lock.
-                self.adapter.stop(session)
+                adapter.stop(session)
                 self.camera.release(session)
                 with self._lock:
                     self._owned = None
                 return {"ok": True}
             if operation == "status":
-                return self.adapter.status(session)
+                return adapter.status(session)
+            if operation == "depth_capture":
+                receipt = self.depth_store.save_sample(adapter.capture(session, request["confirmation"]))
+                receipt = dict(receipt, session_id=session["session_id"], generation=session["generation"],
+                               engine_id=session["engine_id"])
+                with self._lock:
+                    self._captures[request["request_id"]] = ([session, request["confirmation"]], receipt)
+                    while len(self._captures) > 128:
+                        self._captures.popitem(last=False)
+                return receipt
             if operation == "frame":
                 return self.adapter.frame(session)
             if operation == "save":
@@ -175,7 +220,7 @@ class BrokerDispatcher:
                 return self.adapter.localize(session, self._native_path(request.get("native_path"), "scratch"), request["hint"])
             raise SlamError("OPERATION_UNSUPPORTED", 422)
         finally:
-            if operation in {"start", "save", "localize", "stop", "release_camera"}:
+            if operation in {"start", "save", "localize", "stop", "release_camera", "depth_capture"}:
                 with self._lock:
                     self._running_operation = False
 
@@ -196,7 +241,8 @@ class BrokerHandler(socketserver.StreamRequestHandler):
             if len(response) > MAX_RESPONSE:
                 raise SlamError("VISUALIZATION_LIMIT")
         except Exception as exc:
-            code = exc.code if isinstance(exc, (SlamError, CameraBusy, ManagedScopeError)) else "ENGINE_OPERATION_FAILED"
+            from .depth_capture_store import DepthCaptureError
+            code = exc.code if isinstance(exc, (SlamError, CameraBusy, ManagedScopeError, DepthCaptureError)) else "ENGINE_OPERATION_FAILED"
             error = {"ok": False, "code": code}
             resources = getattr(exc, "resources", None)
             if resources:
@@ -286,7 +332,7 @@ class BrokerIsaacAdapter:
             connection.connect(str(self.socket_path))
             connection.sendall(payload)
             import time
-            deadline = time.monotonic() + (55 if operation in {"start", "save", "localize", "stop", "release_camera"} else 4)
+            deadline = time.monotonic() + (55 if operation in {"start", "save", "localize", "stop", "release_camera", "depth_capture"} else 4)
             response = bytearray()
             cancel_sent = False
             while b"\n" not in response:
@@ -351,6 +397,23 @@ class BrokerIsaacAdapter:
         return self._request("localize", session=session, native_path=str(native_path), hint=hint)
 
 
+class BrokerDepthAdapter(BrokerIsaacAdapter):
+    """The same broker/socket/owner; raw pixels never traverse control IPC."""
+
+    def capability(self) -> dict[str, Any]:
+        try:
+            return self._request("depth_capability")
+        except (OSError, ValueError, SlamError):
+            return {"available_now": False, "blocked_reason": "DEPTH_CAPTURE_UNAVAILABLE",
+                    "tasks": ["calibration"], "hardware_verified": False}
+
+    def preflight(self, task: str) -> None:
+        self._request("depth_preflight", task=task)
+
+    def capture(self, session: dict[str, Any], confirmation: dict[str, Any], *, request_id: str) -> dict[str, Any]:
+        return self._request("depth_capture", session=session, confirmation=confirmation, request_id=request_id)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--socket", required=True, type=Path)
@@ -359,6 +422,7 @@ def main() -> None:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--camera-handoff", required=True, type=Path)
     parser.add_argument("--camera-lock", required=True, type=Path)
+    parser.add_argument("--depth-config", type=Path, help="Optional separate calibration capture configuration")
     args = parser.parse_args()
     # This is a separate service process, never the operational dashboard.
     for key in ("CYCLONEDDS_URI", "FASTDDS_DEFAULT_PROFILES_FILE", "FASTRTPS_DEFAULT_PROFILES_FILE"):
@@ -369,7 +433,16 @@ def main() -> None:
     adapter = IsaacStereoAdapter(Path(__file__).resolve().parents[1], args.runtime_root,
                                   enabled=True, config_path=args.config)
     camera = CameraOwnerCoordinator(args.camera_lock, args.camera_handoff)
-    dispatcher = BrokerDispatcher(adapter, camera, args.package_root)
+    from .depth_capture_runtime import RealSenseDepthCaptureAdapter
+    from .depth_capture_store import DepthCaptureError, DepthCaptureStore
+    depth_config = args.depth_config or args.config.with_name("depth-capture.json")
+    depth = RealSenseDepthCaptureAdapter(config_path=depth_config, enabled=depth_config.is_file())
+    try:
+        depth_store = DepthCaptureStore(args.package_root.parent / "depth-samples")
+    except DepthCaptureError:
+        depth_store = None
+    dispatcher = BrokerDispatcher(adapter, camera, args.package_root,
+        depth_adapter=depth, depth_store=depth_store)
     with BrokerServer(args.socket, dispatcher) as server:
         def request_shutdown(_signum: int, _frame: Any) -> None:
             def settle() -> None:

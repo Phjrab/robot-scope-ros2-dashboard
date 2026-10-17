@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "date_kst": "2026-10-17",
+  "source_baseline": "c6fedc05e5086fa755cc92b1a2cf2daa56ffc41a",
+  "deployed_implementation_read_only": "91f9006de6162d9e48f635f5f79a76e014950fd8",
+  "deployment_performed": false,
+  "sensor_collection_performed": false,
+  "new_real_samples": 0,
+  "stereo_simultaneous_capture_supported": false,
+  "calibration_or_tf_applied": false,
+  "motion_commands_sent": false,
+  "hardware_blockers": [
+    "current_authorization_required_for_deployment_and_camera_window",
+    "preserved_py_realsense2_namespace_missing_pipeline_binding"
+  ],
+  "software_validation": {
+    "python": {
+      "run": 2219,
+      "passed": 2217,
+      "skipped": 2,
+      "failed": 0
+    },
+    "javascript_unit": {
+      "passed": 415,
+      "failed": 0
+    },
+    "browser_e2e": {
+      "passed": 127,
+      "failed": 0,
+      "scope": "synthetic localhost; before final small UI refinement"
+    },
+    "final_depth_dom": {
+      "passed": 4,
+      "failed": 0
+    },
+    "ruff": "PASS",
+    "configured_mypy": "PASS (4 configured source files)",
+    "python_310_ast": "PASS (7 new/changed modules)",
+    "frontend_syntax": "PASS (85 modules)",
+    "independent_review": "completed; optional store startup coupling fixed"
+  },
+  "limits": [
+    "No live current device/firmware/depth profiles or effective enable_depth readback",
+    "No real sample/USB/CPU/GPU/memory/tracking regression measurement",
+    "No native browser file-save qualification",
+    "No camera-to-body calibration, pitch estimation or native SLAM geometry fix"
+  ],
+  "source_sha256": {
+    "robot_dashboard/app.py": "c1222bf972c0ab070a0f6e2b14e204c624303ec3ab8b229aa087365ea6fc7b23",
+    "robot_dashboard/slam_broker.py": "a285c89aff4356322a5f6f11b43cf107042b20e56bc95a17feafbe88fd474df7",
+    "robot_dashboard/slam_sessions.py": "f433dc8d8ac0a721cc4dec3e19e1396de730712460d668bb5ed0a9133e0a6b96",
+    "robot_dashboard/slam_wiring.py": "52e141ceb0dddc7f6ac1b1aa8dd2bc3243ed817ff51de73097e830428e44f079",
+    "robot_dashboard/api/routers/depth_capture.py": "ffa36db5843d36a341e3f69f76f13ca476f0b0609f2ef35b92a4c2f143db120f",
+    "robot_dashboard/depth_capture_contract.py": "bfd9bd3b329670d5f6582c1f8ac47adf4ebaf280a50c682d1ad20b550cdb9bf7",
+    "robot_dashboard/depth_capture_runtime.py": "e61dc0d8f0490d7d4c0e455e54bce1083a0db033a298a8e362aad789b35c23ea",
+    "robot_dashboard/depth_capture_store.py": "2a72b39e59d1c179914399fb91515592cafd6ccbd9b7218bbd9709984a47cb0d",
+    "robot_dashboard/static/features/slam/depth_capture.js": "402ed0dbc6570de4d5f0f6feac03fe866678f35389895b9d7e445e6a92bb3a57",
+    "robot_dashboard/static/index.html": "f4c1031f59bcbfabc5c61f2c9a8cf2cb93f73b48f679ed7b23a37e1750a99e04"
+  },
+  "private_evidence_sha256": {
+    "baseline-runtime.txt": "f52fb85f81d5d2ad5d6e8cf9c9edcc038dcaab54608286c78c98e6b7c2afe4f7",
+    "python-full.log": "c59dcdb6bf869d42e93bf5910313fefc4929e93b7ecdcad3776841e9fee1222c",
+    "e2e-full.log": "a38758b53b95a17587225a4c182e5703108f6a3d86ed525431bb40bb8f6008da",
+    "js-unit-final.log": "fa953364bd5e18d382dca343ca59552657f86ad4173d0d6d740882839127125e",
+    "ui-synthetic/verification.json": "ac51174769a809073664248cdc1612a9005233764e04012440a7f28d240708d9"
+  }
+}

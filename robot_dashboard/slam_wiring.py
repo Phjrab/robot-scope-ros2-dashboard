@@ -69,12 +69,25 @@ def configure_slam(runtime: Any, project_dir: Path, runtime_root: Path) -> None:
 
     adapters = {"visual_stereo": IsaacStereoAdapter.from_environment(project_dir, runtime_root / "sessions")}
     camera = getattr(adapters["visual_stereo"], "camera_coordinator", camera)
+    # Depth is an explicit separate broker mode; never import an SDK into the
+    # operational DDS process or start a second RealSense producer here.
+    socket_path = os.environ.get("ROBOT_SCOPE_SLAM_BROKER_SOCKET")
+    if socket_path:
+        from .slam_broker import BrokerDepthAdapter
+        adapters["realsense_depth"] = BrokerDepthAdapter(Path(socket_path))
     if runtime.mapping is not None:
         adapters["lidar_fastlio"] = FastLioAdapter(runtime.mapping, input_ready=lidar_ready)
     runtime.slam = SlamSessionManager(adapters, MapPackageStore(runtime_root / "packages"),
         coordination_lock=runtime.pipeline_coordination_lock, blockers=blockers,
         navigation_context=lambda: project_navigation_context(runtime), camera=camera,
         legacy_save=runtime.mapping.save if runtime.mapping else None)
+    from .depth_capture_store import DepthCaptureError, DepthCaptureStore
+    try:
+        runtime.slam.depth_samples = DepthCaptureStore(runtime_root / "depth-samples")
+    except DepthCaptureError:
+        # An optional collection directory cannot disable existing navigation
+        # or Stereo startup. Its own API remains unavailable, without repair.
+        runtime.slam.depth_samples = None
 
     def legacy_blocked() -> bool:
         mission = runtime.mission
