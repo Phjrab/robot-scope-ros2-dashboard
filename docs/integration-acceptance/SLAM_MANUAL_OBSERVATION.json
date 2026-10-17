@@ -1,0 +1,952 @@
+{
+  "schema": "robot-scope.slam-manual-observation.v1",
+  "date_kst": "2026-10-17",
+  "implementation_commit": "91f9006de6162d9e48f635f5f79a76e014950fd8",
+  "documentation_base_commit": "e9aefd39f300cfc0778c9fa18bac078bf0d2546f",
+  "scope": {
+    "single_session": true,
+    "motion_operator": "human existing physical remote",
+    "codex_motion_commands": 0,
+    "stop_request_limit_s": 300,
+    "cleanup_target_s": 360,
+    "commanded_physical_motion_duration_cap_s": 90,
+    "actual_physical_motion_duration_independently_measured": false,
+    "initial_mixed_translation_segment_not_rotation_only": true,
+    "independent_truth_available": false,
+    "native_package_saved": false,
+    "temporary_session_discarded": true,
+    "new_deployment": false,
+    "calibration_emitter_threshold_changes": false
+  },
+  "session": {
+    "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+    "generation": 2,
+    "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+    "engine_id": "visual_stereo",
+    "task": "mapping",
+    "effective_mode": "slam_vo",
+    "state": "MAPPING",
+    "reason": null,
+    "unsaved": true,
+    "created_at_epoch": 1792226508.8075554,
+    "operational_pose_applied": false,
+    "evidence_type": "unverified_session",
+    "effective_parameters": {
+      "enable_imu_fusion": false,
+      "enable_localization_n_mapping": true,
+      "enable_slam_visualization": true,
+      "enable_landmarks_view": true,
+      "enable_observations_view": true,
+      "publish_map_to_odom_tf": false,
+      "publish_odom_to_base_tf": false,
+      "use_sim_time": false
+    }
+  },
+  "runtime": {
+    "dashboard_unit": {
+      "MainPID": "19437",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "InvocationID": "4b27c3eee261402a9ba0355f2fbb1347"
+    },
+    "broker_user_unit": {
+      "MainPID": "19266",
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "InvocationID": "6bf04e70f8464bdca9d56731b8b6bf51"
+    },
+    "control_bridge_unit": {
+      "MainPID": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "UnitFileState": "disabled",
+      "InvocationID": ""
+    },
+    "container": {
+      "id": "91020e60fb911b556d057876289297070f54792c700912bd7ed33de97d17edfa",
+      "image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+      "user": "1000:1000",
+      "running": true
+    },
+    "dashboard_domain": 0,
+    "dashboard_rmw": "rmw_cyclonedds_cpp",
+    "broker_domain": 71,
+    "broker_rmw": "rmw_fastrtps_cpp",
+    "broker_localhost_only": true,
+    "broker_socket": "/run/robot-scope-slam/broker.sock",
+    "broker_source": "/home/unitree/robot-scope",
+    "runtime_config_path": "/home/unitree/.config/robot-scope/stereo-observation/runtime.json",
+    "stereo_config_sha256": {
+      "scope.json": "b9a9279f0e48e3773b96a859e18c0c9af60a0ba385d6b70fa0c25012e252d76e",
+      "input.json": "5d92b6a3f0e5bc0f7395158b7a0e0ce7f496debd1d72dcad4681665bfb4fc36c",
+      "camera.json": "3f65c345a18c2cca678e5dfdf3b486c2e9cb2b7f968787f489865ccd87fa3a5b",
+      "runtime.json": "e0b35b1ddc752099fcbe9ff07868f4b42596cef655e38ca61fb547940ee712d8"
+    },
+    "config_hashes_unchanged": true,
+    "runtime_details_basis": "same service invocation and container as prior deployment; current unit/container readback and four config hashes"
+  },
+  "receipt": {
+    "started_at_utc": "2026-10-17T08:42:17.249871+00:00",
+    "finished_at_utc": "2026-10-17T08:47:37.259823+00:00",
+    "elapsed_s": 320.0159469999926,
+    "measurements": {
+      "counts": {
+        "connection_attempts": 1,
+        "valid_json_frames": 364,
+        "active_context_frames": 353,
+        "inactive_frames": 11
+      },
+      "channel_available_frames": {
+        "image": 353,
+        "camera_pose": 353,
+        "tracking": 353,
+        "overlay": 325,
+        "current_observations": 353,
+        "trajectory": 353,
+        "global_map": 257
+      },
+      "geometry_declared_counts": {
+        "global_map:absent_or_invalid": 96,
+        "trajectory:full": 353,
+        "global_map:full": 48,
+        "global_map:reference": 209,
+        "global_map:legacy": 11,
+        "trajectory:legacy": 11
+      },
+      "connections": 1,
+      "observed_context_count": 1,
+      "valid_frame_json_bytes_total": 69977182,
+      "frame_json_bytes": {
+        "min": 81,
+        "median": 143243,
+        "p95": 577768,
+        "max": 1190163
+      },
+      "within_connection_receipt_gaps_s": {
+        "count": 363,
+        "min": 0.26561774998845067,
+        "median": 0.523366958994302,
+        "p95": 2.327847374996054,
+        "max": 5.9538447500090115
+      }
+    },
+    "active_gap_statistics": {
+      "active_pairs_same_context_connection": {
+        "count": 352,
+        "min": 0.26561774998845067,
+        "median": 0.521905917004915,
+        "p95": 2.092960000009043,
+        "max": 4.586257082992233
+      },
+      "active_pairs_same_context_connection_phase": {
+        "count": 347,
+        "min": 0.26561774998845067,
+        "median": 0.5182614590012236,
+        "p95": 2.119841916995938,
+        "max": 4.586257082992233
+      }
+    },
+    "map_size_bins": {
+      "absent": {
+        "sample_count": 96,
+        "decoded_json_bytes": {
+          "count": 96,
+          "min": 116974,
+          "median": 146049,
+          "p95": 149027,
+          "max": 149851
+        },
+        "same_context_receipt_gap_s": {
+          "count": 95,
+          "min": 0.27241141599370167,
+          "median": 0.39966679200006183,
+          "p95": 0.4982536660099868,
+          "max": 0.5375992500048596
+        },
+        "global_delivery_kinds": {
+          "absent_or_invalid": 96
+        },
+        "gaps_with_both_endpoints_in_bin_s": {
+          "count": 95,
+          "min": 0.27241141599370167,
+          "median": 0.39966679200006183,
+          "p95": 0.4982536660099868,
+          "max": 0.5375992500048596
+        },
+        "note": "Same run observation; phase/time/native updates/observer load confound causality."
+      },
+      "0-999": {
+        "sample_count": 41,
+        "decoded_json_bytes": {
+          "count": 41,
+          "min": 139391,
+          "median": 146206,
+          "p95": 158172,
+          "max": 190753
+        },
+        "same_context_receipt_gap_s": {
+          "count": 41,
+          "min": 0.26561774998845067,
+          "median": 0.39922341700003017,
+          "p95": 0.5242104170029052,
+          "max": 0.5437738330074353
+        },
+        "global_delivery_kinds": {
+          "full": 3,
+          "reference": 38
+        },
+        "gaps_with_both_endpoints_in_bin_s": {
+          "count": 40,
+          "min": 0.26561774998845067,
+          "median": 0.40312674999586307,
+          "p95": 0.5242104170029052,
+          "max": 0.5437738330074353
+        },
+        "note": "Same run observation; phase/time/native updates/observer load confound causality."
+      },
+      "1000-4999": {
+        "sample_count": 141,
+        "decoded_json_bytes": {
+          "count": 141,
+          "min": 130912,
+          "median": 138125,
+          "p95": 345433,
+          "max": 447947
+        },
+        "same_context_receipt_gap_s": {
+          "count": 141,
+          "min": 0.31430104200262576,
+          "median": 0.5615537089906866,
+          "p95": 1.326511457999004,
+          "max": 1.9484240839956328
+        },
+        "global_delivery_kinds": {
+          "full": 15,
+          "reference": 126
+        },
+        "gaps_with_both_endpoints_in_bin_s": {
+          "count": 139,
+          "min": 0.31430104200262576,
+          "median": 0.5620433750009397,
+          "p95": 1.326511457999004,
+          "max": 1.9484240839956328
+        },
+        "note": "Same run observation; phase/time/native updates/observer load confound causality."
+      },
+      "5000-9999": {
+        "sample_count": 21,
+        "decoded_json_bytes": {
+          "count": 21,
+          "min": 160377,
+          "median": 555209,
+          "p95": 672643,
+          "max": 725821
+        },
+        "same_context_receipt_gap_s": {
+          "count": 21,
+          "min": 0.5710836249927524,
+          "median": 0.8267555410129717,
+          "p95": 1.3047225420014001,
+          "max": 1.3312382500007516
+        },
+        "global_delivery_kinds": {
+          "full": 19,
+          "reference": 2
+        },
+        "gaps_with_both_endpoints_in_bin_s": {
+          "count": 19,
+          "min": 0.5710836249927524,
+          "median": 0.8267555410129717,
+          "p95": 1.3047225420014001,
+          "max": 1.3312382500007516
+        },
+        "note": "Same run observation; phase/time/native updates/observer load confound causality."
+      },
+      "10000-14999": {
+        "sample_count": 53,
+        "decoded_json_bytes": {
+          "count": 53,
+          "min": 131123,
+          "median": 140738,
+          "p95": 952547,
+          "max": 1027797
+        },
+        "same_context_receipt_gap_s": {
+          "count": 53,
+          "min": 0.9714069589972496,
+          "median": 1.8473586670006625,
+          "p95": 2.4349513750057667,
+          "max": 4.586257082992233
+        },
+        "global_delivery_kinds": {
+          "full": 10,
+          "reference": 43
+        },
+        "gaps_with_both_endpoints_in_bin_s": {
+          "count": 51,
+          "min": 0.9714069589972496,
+          "median": 1.8716422080033226,
+          "p95": 2.5160957500047516,
+          "max": 4.586257082992233
+        },
+        "note": "Same run observation; phase/time/native updates/observer load confound causality."
+      },
+      "15000+": {
+        "sample_count": 1,
+        "decoded_json_bytes": {
+          "count": 1,
+          "min": 1190163,
+          "median": 1190163,
+          "p95": 1190163,
+          "max": 1190163
+        },
+        "same_context_receipt_gap_s": {
+          "count": 1,
+          "min": 2.6955331249919254,
+          "median": 2.6955331249919254,
+          "p95": 2.6955331249919254,
+          "max": 2.6955331249919254
+        },
+        "global_delivery_kinds": {
+          "full": 1
+        },
+        "gaps_with_both_endpoints_in_bin_s": {
+          "count": 0,
+          "min": null,
+          "median": null,
+          "p95": null,
+          "max": null
+        },
+        "note": "Same run observation; phase/time/native updates/observer load confound causality."
+      }
+    },
+    "global_delivery_groups": {
+      "full": {
+        "sample_count": 48,
+        "decoded_json_bytes": {
+          "count": 48,
+          "min": 158172,
+          "median": 546329,
+          "p95": 999941,
+          "max": 1190163
+        },
+        "same_context_receipt_gap_s": {
+          "count": 48,
+          "min": 0.38655787499737926,
+          "median": 0.9051104999962263,
+          "p95": 2.1598231670068344,
+          "max": 2.6955331249919254
+        },
+        "global_delivery_kinds": {
+          "full": 48
+        }
+      },
+      "reference": {
+        "sample_count": 209,
+        "decoded_json_bytes": {
+          "count": 209,
+          "min": 130912,
+          "median": 139391,
+          "p95": 150292,
+          "max": 160908
+        },
+        "same_context_receipt_gap_s": {
+          "count": 209,
+          "min": 0.26561774998845067,
+          "median": 0.5615537089906866,
+          "p95": 2.2273512090032455,
+          "max": 4.586257082992233
+        },
+        "global_delivery_kinds": {
+          "reference": 209
+        }
+      },
+      "absent_or_invalid": {
+        "sample_count": 96,
+        "decoded_json_bytes": {
+          "count": 96,
+          "min": 116974,
+          "median": 146049,
+          "p95": 149027,
+          "max": 149851
+        },
+        "same_context_receipt_gap_s": {
+          "count": 95,
+          "min": 0.27241141599370167,
+          "median": 0.39966679200006183,
+          "p95": 0.4982536660099868,
+          "max": 0.5375992500048596
+        },
+        "global_delivery_kinds": {
+          "absent_or_invalid": 96
+        }
+      }
+    },
+    "max_delivered_points": 17027,
+    "last_main_receiver_points": 13555,
+    "later_browser_stop_view_points": 13264,
+    "large_map_capacity_qualified": false,
+    "sensor_or_browser_fps_measured": false
+  },
+  "display": {
+    "clock_offset_envelope_robot_minus_mac_ms": [
+      -17.353694,
+      -10.089974
+    ],
+    "regular_sampling_groups": {
+      "stationary_restart_500ms_sampling": {
+        "count": 30,
+        "age_lower_ms": {
+          "n": 30,
+          "min": 459.65283203125,
+          "median": 971.65283203125,
+          "p95": 1493.979736328125,
+          "max": 1645.901611328125
+        },
+        "age_upper_ms": {
+          "n": 30,
+          "min": 477.91650390625,
+          "median": 986.91650390625,
+          "p95": 1508.243408203125,
+          "max": 1661.165283203125
+        }
+      },
+      "manual_rotation_retry_500ms_sampling": {
+        "count": 30,
+        "age_lower_ms": {
+          "n": 30,
+          "min": 654.718017578125,
+          "median": 1237.02294921875,
+          "p95": 2303.61865234375,
+          "max": 2647.86865234375
+        },
+        "age_upper_ms": {
+          "n": 30,
+          "min": 669.981689453125,
+          "median": 1252.28662109375,
+          "p95": 2323.88232421875,
+          "max": 2664.13232421875
+        }
+      },
+      "stationary_rotation_return_500ms_sampling": {
+        "count": 20,
+        "age_lower_ms": {
+          "n": 20,
+          "min": 726.203125,
+          "median": 1456.663330078125,
+          "p95": 2126.56201171875,
+          "max": 2268.87255859375
+        },
+        "age_upper_ms": {
+          "n": 20,
+          "min": 749.466796875,
+          "median": 1471.927001953125,
+          "p95": 2141.82568359375,
+          "max": 2292.13623046875
+        }
+      }
+    },
+    "limitations": [
+      "DOM label was written after canvas drawImage; compositor/monitor presentation and exact exposure time not measured.",
+      "Source contract host_ros uses approximate RealSense driver hardware-to-host mapping; unknown mapping bias remains.",
+      "Bounds are conditional on host-clock continuity and offset staying inside the measured envelope between endpoint probes. Probes do not prove this for all intermediate times.",
+      "These are ages of images held on screen at observation times, not event decode/paint duration or calibrated glass-to-glass latency.",
+      "Only labels containing an actual image stamp are accepted; missing/transient labels are counted, never replaced by a pose timestamp.",
+      "manual_rotation group is a short 20-read burst; do not pool it with approximately500ms sampling groups.",
+      "Read-only DOM sampling itself adds overhead; browser FPS and bottleneck attribution are not established."
+    ],
+    "physical_glass_to_glass_qualified": false
+  },
+  "rotation_self_consistency": {
+    "return_residuals": [
+      {
+        "identity": {
+          "connection": 1,
+          "context": {
+            "engine_id": "visual_stereo",
+            "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+            "generation": 2,
+            "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+            "frame_id": "vslam_lab_map"
+          },
+          "channel": "camera_view",
+          "coordinate_frame": "vslam_lab_map",
+          "pose_reference": "vslam_lab_camera_infra1_optical_frame",
+          "source_topic": null,
+          "projection_convention": "rectified_optical_x_right_y_down_z_forward",
+          "child_frame_id": null,
+          "calibration_revision": "942c72cf97d11959ae11ddd6603ecf670fe33810e40c7518cf52f7d96029d262",
+          "provenance": "timestamped_slam_map_rectified_optical_pose"
+        },
+        "start_phase": "stationary_restart",
+        "end_phase": "stationary_rotation_return",
+        "translation_in_start_camera_reference_m": [
+          0.062368651054422866,
+          -0.015470078099803095,
+          0.12340276951511839
+        ],
+        "translation_norm_m": 0.13913092925285808,
+        "relative_quaternion_xyzw": [
+          -0.0034030890613839238,
+          0.05832985360628787,
+          0.008490568379922875,
+          0.9982554569906921
+        ],
+        "rotation_angle_deg": 6.76973429865941
+      },
+      {
+        "identity": {
+          "connection": 1,
+          "context": {
+            "engine_id": "visual_stereo",
+            "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+            "generation": 2,
+            "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+            "frame_id": "vslam_lab_map"
+          },
+          "channel": "camera_pose",
+          "coordinate_frame": "vslam_lab_map",
+          "pose_reference": "vslam_lab_camera_link",
+          "source_topic": "/vslam_lab/visual_slam/vis/slam_odometry",
+          "projection_convention": null,
+          "child_frame_id": "vslam_lab_camera_link",
+          "calibration_revision": null,
+          "provenance": null
+        },
+        "start_phase": "stationary_restart",
+        "end_phase": "stationary_rotation_return",
+        "translation_in_start_camera_reference_m": [
+          0.12344236199916411,
+          -0.062391472429558135,
+          0.01544400240188772
+        ],
+        "translation_norm_m": 0.1391733802781642,
+        "relative_quaternion_xyzw": [
+          0.00850092116698291,
+          0.003409548842794194,
+          -0.05831452469238369,
+          0.9982562424176985
+        ],
+        "rotation_angle_deg": 6.768209751154426
+      }
+    ],
+    "stationary_jitter": [
+      {
+        "phase": "stationary_start",
+        "groups": [
+          {
+            "identity": {
+              "connection": 1,
+              "context": {
+                "engine_id": "visual_stereo",
+                "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+                "generation": 2,
+                "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+                "frame_id": "vslam_lab_map"
+              },
+              "channel": "camera_pose",
+              "coordinate_frame": "vslam_lab_map",
+              "pose_reference": "vslam_lab_camera_link",
+              "source_topic": "/vslam_lab/visual_slam/vis/slam_odometry",
+              "projection_convention": null,
+              "child_frame_id": "vslam_lab_camera_link",
+              "calibration_revision": null,
+              "provenance": null
+            },
+            "unique_pose_timestamps": 89,
+            "jitter": {
+              "position_rms_radius_m": 0.0007912836889725591,
+              "position_radius_m": {
+                "count": 89,
+                "min": 0.0001536143570475181,
+                "median": 0.0007850159691057365,
+                "p95": 0.0010443460135441272,
+                "max": 0.001164092634737062
+              },
+              "orientation_from_mean_deg": {
+                "count": 89,
+                "min": 0.01570232044414128,
+                "median": 0.058459305671863866,
+                "p95": 0.07361292117469513,
+                "max": 0.0800433629782892
+              }
+            }
+          },
+          {
+            "identity": {
+              "connection": 1,
+              "context": {
+                "engine_id": "visual_stereo",
+                "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+                "generation": 2,
+                "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+                "frame_id": "vslam_lab_map"
+              },
+              "channel": "camera_view",
+              "coordinate_frame": "vslam_lab_map",
+              "pose_reference": "vslam_lab_camera_infra1_optical_frame",
+              "source_topic": null,
+              "projection_convention": "rectified_optical_x_right_y_down_z_forward",
+              "child_frame_id": null,
+              "calibration_revision": "942c72cf97d11959ae11ddd6603ecf670fe33810e40c7518cf52f7d96029d262",
+              "provenance": "timestamped_slam_map_rectified_optical_pose"
+            },
+            "unique_pose_timestamps": 77,
+            "jitter": {
+              "position_rms_radius_m": 0.0007902479438705759,
+              "position_radius_m": {
+                "count": 77,
+                "min": 0.00012444857444423828,
+                "median": 0.0007706151736851187,
+                "p95": 0.0010896121588803661,
+                "max": 0.0011599572441025356
+              },
+              "orientation_from_mean_deg": {
+                "count": 77,
+                "min": 0.014771878241570335,
+                "median": 0.055138447963311,
+                "p95": 0.07217960896291838,
+                "max": 0.07881937091643426
+              }
+            }
+          }
+        ]
+      },
+      {
+        "phase": "stationary_restart",
+        "groups": [
+          {
+            "identity": {
+              "connection": 1,
+              "context": {
+                "engine_id": "visual_stereo",
+                "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+                "generation": 2,
+                "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+                "frame_id": "vslam_lab_map"
+              },
+              "channel": "camera_pose",
+              "coordinate_frame": "vslam_lab_map",
+              "pose_reference": "vslam_lab_camera_link",
+              "source_topic": "/vslam_lab/visual_slam/vis/slam_odometry",
+              "projection_convention": null,
+              "child_frame_id": "vslam_lab_camera_link",
+              "calibration_revision": null,
+              "provenance": null
+            },
+            "unique_pose_timestamps": 50,
+            "jitter": {
+              "position_rms_radius_m": 0.0013955348228902554,
+              "position_radius_m": {
+                "count": 50,
+                "min": 0.00034497477600772434,
+                "median": 0.001189307397416866,
+                "p95": 0.0026128304882574397,
+                "max": 0.002841648315089131
+              },
+              "orientation_from_mean_deg": {
+                "count": 50,
+                "min": 0.01418043020739148,
+                "median": 0.09340682379236645,
+                "p95": 0.21312410204242274,
+                "max": 0.23289056582882425
+              }
+            }
+          },
+          {
+            "identity": {
+              "connection": 1,
+              "context": {
+                "engine_id": "visual_stereo",
+                "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+                "generation": 2,
+                "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+                "frame_id": "vslam_lab_map"
+              },
+              "channel": "camera_view",
+              "coordinate_frame": "vslam_lab_map",
+              "pose_reference": "vslam_lab_camera_infra1_optical_frame",
+              "source_topic": null,
+              "projection_convention": "rectified_optical_x_right_y_down_z_forward",
+              "child_frame_id": null,
+              "calibration_revision": "942c72cf97d11959ae11ddd6603ecf670fe33810e40c7518cf52f7d96029d262",
+              "provenance": "timestamped_slam_map_rectified_optical_pose"
+            },
+            "unique_pose_timestamps": 48,
+            "jitter": {
+              "position_rms_radius_m": 0.0014117933667341352,
+              "position_radius_m": {
+                "count": 48,
+                "min": 0.0004475788360595539,
+                "median": 0.0012176882250795715,
+                "p95": 0.0025442124307262027,
+                "max": 0.0028325850200121632
+              },
+              "orientation_from_mean_deg": {
+                "count": 48,
+                "min": 0.019623814540334714,
+                "median": 0.09569411415661214,
+                "p95": 0.2141210829997033,
+                "max": 0.22751601184997836
+              }
+            }
+          }
+        ]
+      },
+      {
+        "phase": "stationary_rotation_return",
+        "groups": [
+          {
+            "identity": {
+              "connection": 1,
+              "context": {
+                "engine_id": "visual_stereo",
+                "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+                "generation": 2,
+                "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+                "frame_id": "vslam_lab_map"
+              },
+              "channel": "camera_pose",
+              "coordinate_frame": "vslam_lab_map",
+              "pose_reference": "vslam_lab_camera_link",
+              "source_topic": "/vslam_lab/visual_slam/vis/slam_odometry",
+              "projection_convention": null,
+              "child_frame_id": "vslam_lab_camera_link",
+              "calibration_revision": null,
+              "provenance": null
+            },
+            "unique_pose_timestamps": 40,
+            "jitter": {
+              "position_rms_radius_m": 0.010123033761556897,
+              "position_radius_m": {
+                "count": 40,
+                "min": 0.0017799878542928322,
+                "median": 0.0031117809654163447,
+                "p95": 0.03135049771652969,
+                "max": 0.04127006474090366
+              },
+              "orientation_from_mean_deg": {
+                "count": 40,
+                "min": 0.04313155927942621,
+                "median": 0.09318280708379802,
+                "p95": 0.44550758569132193,
+                "max": 0.5113010388934217
+              }
+            }
+          },
+          {
+            "identity": {
+              "connection": 1,
+              "context": {
+                "engine_id": "visual_stereo",
+                "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+                "generation": 2,
+                "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+                "frame_id": "vslam_lab_map"
+              },
+              "channel": "camera_view",
+              "coordinate_frame": "vslam_lab_map",
+              "pose_reference": "vslam_lab_camera_infra1_optical_frame",
+              "source_topic": null,
+              "projection_convention": "rectified_optical_x_right_y_down_z_forward",
+              "child_frame_id": null,
+              "calibration_revision": "942c72cf97d11959ae11ddd6603ecf670fe33810e40c7518cf52f7d96029d262",
+              "provenance": "timestamped_slam_map_rectified_optical_pose"
+            },
+            "unique_pose_timestamps": 39,
+            "jitter": {
+              "position_rms_radius_m": 0.010053445953261957,
+              "position_radius_m": {
+                "count": 39,
+                "min": 0.001797368328716468,
+                "median": 0.0031232769017774534,
+                "p95": 0.03156814999870236,
+                "max": 0.03874636981290922
+              },
+              "orientation_from_mean_deg": {
+                "count": 39,
+                "min": 0.043326651884455024,
+                "median": 0.09301224956855311,
+                "p95": 0.4469777734222198,
+                "max": 0.48233053192236414
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "absolute_accuracy_qualified": false,
+    "body_pose_qualified": false,
+    "duplicated_wall_cause_established": false
+  },
+  "matching": {
+    "active_overlay_available": 325,
+    "active_overlay_unavailable": 28,
+    "reason": "NO_VALID_TIME_ALIGNMENT",
+    "rotation_retry_overlay_available": 29,
+    "rotation_retry_messages": 46,
+    "saved_full_snapshots": 11,
+    "all_saved_stereo_pair_skew_ns": 0,
+    "continuous_rotation_pairing_qualified": false
+  },
+  "fit": {
+    "saved_point_count": 13555,
+    "xyz_extent_m": [
+      114.109,
+      124.683,
+      80.063
+    ],
+    "radius_about_coordinate_median_p95_m": 5.719,
+    "points_beyond_20m": 78,
+    "points_beyond_50m": 25,
+    "source_formula_default_camera_distance_m_approx": 247.83,
+    "production_points_filtered": false,
+    "point_invalidity_independently_proven": false
+  },
+  "resource_observer": {
+    "request_attempts": 160,
+    "successful_samples": 0,
+    "interval_s": 2,
+    "private_request_deadline_s": 1.5,
+    "cpu_gpu_bottleneck_qualified": false,
+    "extra_request_load_is_a_confounder": true
+  },
+  "cleanup": {
+    "guard": {
+      "schema": "robot-scope.manual-observation-session-guard.v1",
+      "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+      "generation": 2,
+      "engine_id": "visual_stereo",
+      "discard_owned_unsaved": true,
+      "stop_request_at_session_age_s": 300.0,
+      "cleanup_target_session_age_s": 360.0,
+      "late_attach_cleanup_window_s": 60.0,
+      "cleanup_confirmed": true,
+      "events": [
+        {
+          "at_utc": "2026-10-17T08:42:05.447033+00:00",
+          "kind": "armed",
+          "request_id": "d57ecddde6a448a1879abcf550a33fd2"
+        },
+        {
+          "at_utc": "2026-10-17T08:46:47.860023+00:00",
+          "kind": "request_failed",
+          "error": "TimeoutError"
+        },
+        {
+          "at_utc": "2026-10-17T08:46:52.863881+00:00",
+          "kind": "request_failed",
+          "error": "TimeoutError"
+        },
+        {
+          "at_utc": "2026-10-17T08:47:01.369319+00:00",
+          "kind": "api_cleanup_confirmed",
+          "session_age_s": 312.5617425925325,
+          "budget_exceeded": false
+        }
+      ],
+      "cleanup_within_target": true
+    },
+    "final_session": {
+      "session_id": "77fdc2a25ec548c789ac0dddd55ab01e",
+      "generation": 2,
+      "map_epoch": "db3ab27761a545f4885aea8bcdcc4f4a",
+      "engine_id": "visual_stereo",
+      "task": "mapping",
+      "effective_mode": "slam_vo",
+      "state": "IDLE",
+      "reason": null,
+      "unsaved": false,
+      "created_at_epoch": 1792226508.8075554,
+      "operational_pose_applied": false,
+      "evidence_type": "unverified_session",
+      "effective_parameters": {
+        "enable_imu_fusion": false,
+        "enable_localization_n_mapping": true,
+        "enable_slam_visualization": true,
+        "enable_landmarks_view": true,
+        "enable_observations_view": true,
+        "publish_map_to_odom_tf": false,
+        "publish_odom_to_base_tf": false,
+        "use_sim_time": false
+      },
+      "cleanup_required": false
+    },
+    "camera": {
+      "reserved": false,
+      "session_id": null,
+      "generation": null,
+      "reservation_unknown": false,
+      "rgb_available": true,
+      "owner_location": "isaac_broker"
+    },
+    "live_owner_state": "free",
+    "live_owner_checked_at_epoch": 1792227040.5948749,
+    "bridge": {
+      "available": true,
+      "active_state": "inactive",
+      "sub_state": "dead",
+      "load_state": "loaded",
+      "unit_file_state": "disabled",
+      "invocation_id": "",
+      "running": false,
+      "transitioning": false
+    },
+    "robot_git_status": "",
+    "ui_stop_clicked": true,
+    "ui_stop_readback_timeout_observed": true,
+    "later_ui_idle_with_sticky_timeout": true,
+    "future_session_scheduled": false
+  },
+  "validation": {
+    "unchanged_implementation_ci": {
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38998046853",
+      "conclusion": "success",
+      "linux_matrix_jobs_passed": 2
+    },
+    "full_production_tests_reused_not_repeated": true,
+    "private_observer_analyzer_tests": 26,
+    "private_guard_tests": 19,
+    "private_resource_observer_tests": 2,
+    "new_production_code": false,
+    "new_production_documentation": true
+  },
+  "private_evidence_directory_name": "slam-motion-observation-20261017",
+  "private_evidence_sha256": {
+    "approved-plan.json": "c8eef09ded3165bf2e8f2901c7f149d28ee1356c49cb8303c080a3bea96e9c44",
+    "current-baseline.json": "0d5434dff1d5c4b72fd9ae1073fafa4416e374b87be1c19e4083b10dba94929d",
+    "prestart-current.json": "0065cec3746b8c7f8b1c9feddb8dd50fa216b8fd6e3918ef81af5f416e94cfa7",
+    "session-start.json": "d02e6149af3da8cda5a3fe2b890293d71c0c6b03f2516f9ab1236425743af612",
+    "phases.jsonl": "e5e9323f68d58becf5d3f420ab7551401e0b31aa06d60e9a701307a0e1f4703a",
+    "wire01/summary.json": "dc65ed7ef9e265b236ac26f32ebda863f11ce6293e87fb1ea53e901c2e75dd4d",
+    "wire01/samples.jsonl": "96ed8cc75790092bf4427eb7505ade7dbd82abcee68c912ceda17e350ae5d932",
+    "final-live-snapshot/frame-00.json": "616c572178834a86d113c63dd7faab10fd2bcff6938254caab41158b38035a9f",
+    "rotation-snapshot/summary.json": "45814ed4a7f47386da15e8aa0da0de67ecfeed27e51fe72d720d93ee404a2eb6",
+    "resources01/summary.json": "ab292c383e2d6b6e04d76a7c7502cea57c8a2b708e5ee06ecdf3c0196a5232bc",
+    "resources01/events.jsonl": "6be32ca9cbd0a7208b028c1e386a631dd013befec4e31b72b53c4cb7c65d79b2",
+    "display-samples.json": "ce9b5156fa9734a8d37c26b3b8e9cc9b32dbc3776bdcb0d11f847a5943eabe78",
+    "display-age-analysis-v2.json": "6a3f02dc53b853068a02517996cb441b307345da563e2db88dedece51e33931a",
+    "clock-live-start.json": "84db58bab8d3028a825d887be0366d1b7f3728f6d3cbd4b132da9fb6607c4d24",
+    "clock-live-end.json": "884cb05613af3ca32efd181e1fd630d9aad55859cf76d5e414dc817d46acd6fb",
+    "rotation-analysis.json": "f46669c1f99bdbbcff42036819b93cbaefa9618febd33218852a21188d84f898",
+    "mixed-episode-analysis.json": "a323ad1f7edad6b1aebc0e9fcf794f35c85a7d83eb99530c364fb962cdce4306",
+    "saved-evidence-analysis.json": "a04f68cd87b9186f44625b5c7fd406434ccec6f28feb35404f5ead8c07b7250d",
+    "active-gap-statistics.json": "14a21e7076d40b6dd626b0b7f6d432fbf1b25cc103f20e412f53b791609a60b9",
+    "final-state01.json": "f1a0dff23fc9f9cf7758b29a1924c2eafc1eac33f442e0a7aeec0c218bb050b2",
+    "final-ownership.json": "65046a7ef01263afa67ee5bba9b1e2189ec28852737062cb3502eb67748447b7",
+    "runtime-identity-final.json": "b9e2a176aa240702983ccec5f70e3e619658e502357e825299fd366560fcce94",
+    "broker-user-unit-final.txt": "81c4919ca1132cb3b0ed896bea220d7f84aba05fa153fe59e5c25c70c5a5d7bd",
+    "stationary-start.png": "83e6dd4e1929621871246c0c03a35e200689afbdcb77497dab08705b9ec42539",
+    "rotation.png": "d3a13ad3f2bdb0b77bcc7702cb6b400262626fb70dda2183966ef991791859d0",
+    "rotation-return-live.png": "323763937c38d143295be0111258ae5a10c0240591d2fc59e0004727c65ceba1",
+    "stopped-final.png": "75a5d1bfbc52c002c827d11088430f85f2d380dcfd83e9322028ea263ce4111b",
+    "observe_wire.py": "3eabe3ffb2a477c278fccd0496f9b3874d695de32a4e20e16342ad8462a9b26b",
+    "analyze_motion.py": "27849973d6e089bff82d719639c71ca1b95a15a6aa8e4947119ca48bdba94a06",
+    "session_guard.py": "1c9b4a90369167b2d02411a1c2299575477f5e0498dbe6dc057cccfa777146c4",
+    "observe_resources.py": "d40ba718dc27f609a57d0b7c3beb958ac483b0fa480e2a204bd0d4df9bf2347e",
+    "analyze_display.py": "327ca3155e77ee2ae50feacebfd00df833a215df5b8c5584821c355efc73037c",
+    "analyze_saved_evidence.py": "d1c5892bb246e9893d1beec6eaa7ae2a20ae85ef3f552dc9b2c6b1757315a215"
+  }
+}

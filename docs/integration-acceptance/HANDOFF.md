@@ -1,4 +1,22 @@
-# Current deployed display optimization — 2026-10-17
+# Latest manual Stereo observation — 2026-10-17
+
+Read [SLAM_MANUAL_OBSERVATION.md](SLAM_MANUAL_OBSERVATION.md) and its JSON first.
+The approved single session on unchanged `91f9006` is complete, including operator
+remote movement/rotation. Codex sent no motion command. Real image/camera pose/
+tracking were received; delivered map peaked at 17,027 points. At 10K–15K points,
+receipt gaps had median 1.872 s; sampled displayed image age during rotation had
+median about 1.25 s and maximum about 2.66 s, conditional on host-clock mapping.
+These are not camera FPS or calibrated glass-to-glass latency.
+Rotation return camera self-consistency was 0.139 m / 6.77 degrees with unmeasured
+physical return error, not absolute accuracy. Rare distant map points dominate
+full FIT; duplicated-wall cause and calibration repair remain unqualified.
+All resource GET observations timed out, so no CPU/GPU bottleneck is established.
+Dashboard Stop completed cleanup, but delayed readback left an old timeout label.
+Final API and live owner probe confirm IDLE, camera free, bridge inactive/disabled;
+all four Stereo configs and deployed implementation are unchanged. Keep bridge OFF.
+No additional session, deployment, movement or background work is scheduled.
+
+# Earlier deployment and stationary observation — 2026-10-17
 
 Candidate `91f9006de6162d9e48f635f5f79a76e014950fd8` is deployed with both Linux
 CI jobs passed. Read [SLAM_DISPLAY_RUNTIME.md](SLAM_DISPLAY_RUNTIME.md) and its
