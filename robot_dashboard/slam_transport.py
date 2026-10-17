@@ -13,6 +13,22 @@ from typing import Any
 from .slam_sessions import SlamError
 
 
+def _copy_layer(layer: dict[str, Any]) -> dict[str, Any]:
+    """Detach validated XYZ rows without generic recursive scalar copying.
+
+    Unknown/malformed layer shapes keep the conservative deepcopy behavior.
+    Mutable metadata and every row remain independent of the source frame.
+    """
+    points = layer.get("points")
+    if (type(points) is list and all(type(point) is list and len(point) == 3
+            and type(point[0]) in (int, float) and type(point[1]) in (int, float)
+            and type(point[2]) in (int, float) for point in points)):
+        result = deepcopy({key: value for key, value in layer.items() if key != "points"})
+        result["points"] = [point.copy() for point in points]
+        return result
+    return deepcopy(layer)
+
+
 class SlamGeometryTransport:
     def __init__(self, enabled: bool = False) -> None:
         self.enabled = enabled
@@ -49,7 +65,7 @@ class SlamGeometryTransport:
             else:
                 self._sequence += 1
                 token = str(self._sequence)
-                self._layers[name] = (token, deepcopy(layer))
+                self._layers[name] = (token, _copy_layer(layer))
                 kind = "full"
             updates[name] = {"kind": kind, "token": token}
         result["geometry_updates"] = {"version": 1, "layers": updates}

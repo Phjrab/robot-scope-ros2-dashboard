@@ -3,7 +3,9 @@
 The user reported choppy mapping display and authorized software optimization.
 They confirmed the robot is powered OFF. Device observation remains deferred:
 no SSH/device probe, deployment, service restart, camera session, movement or
-operating ROS change occurred. The source base is `4bf1ec4`; implementation and
+operating ROS change occurred. The source base is `4bf1ec4`; initial optimization was published as
+`302aa87d3978412ee82f872542d591ca2041882f`. The follow-up reduces changed-map
+cache-copy overhead; exact final implementation and
 test file hashes are in [SLAM_DISPLAY_PERFORMANCE.json](SLAM_DISPLAY_PERFORMANCE.json).
 The previous native candidate3986a75 remains undeployed. Any future deployment
 must prepare and validate the new source, not reuse that older bundle as though
@@ -32,6 +34,9 @@ decode, causing blank intervals while replacement pixels were loading.
   and one trajectory. Initial/changed layers are sent in full. An exactly equal
   layer is referenced by a connection-local token. The whole layer is compared;
   count, timestamp or snapshot ID alone cannot suppress a geometry correction.
+  Cached numeric XYZ rows use independent row copies, with recursively copied
+  metadata; unknown shapes retain generic deep-copy behavior. Existing finite
+  JSON and browser validation still apply.
   Source metadata, native map data and export paths are unchanged.
 - Legacy clients still receive full frames. The browser hydrates references
   only within engine/session/generation/epoch/frame context. Invalid references
@@ -61,7 +66,7 @@ or qualify SLAM geometry accuracy.
 
 ## Verification
 
-Full Python:2165 total,2163 passed/2 skipped (80.567s). JS:393 passed, with the
+Full Python:2166 total,2164 passed/2 skipped (80.753s). JS:393 passed, with the
 22 SLAM unit checks rerun after the final frontend fixes. Browser fixtures:20
 SLAM checks passed after final fixes, plus10 presentation checks in the earlier
 combined28-check run. The final stream tests cover actual canvas pixels during
@@ -80,11 +85,19 @@ A repeat-delivery microbenchmark replays the preserved final real sample once
 then50 times with new transport sequence numbers. It deliberately freezes the
 sample and is not a reconstruction of missing full records. Uncompressed repeat
 messages fell from963087 to62174 bytes (**93.54% reduction**); initial referenced
-delivery is963213 bytes. Local median repeat encoding time was16.005ms versus
-0.532ms on macOS/Python3.13.2. The numbers exclude upstream feature assembly,
+delivery is963213 bytes. Final local median repeat encoding time was15.941ms
+versus0.508ms on macOS/Python3.13.2. The numbers exclude upstream feature assembly,
 broker JSON, networking and browser drawing. They do not predict robot FPS or
 end-to-end speedup. Image, pose, overlay, observations and readiness compared
 exactly to the source sample; the private input hash was unchanged.
+
+A separate synthetic cache-miss scenario changes the map snapshot ID every
+iteration while keeping the source coordinates and trajectory fixed. This
+exposed generic deep-copy overhead: about26.9ms per encoded frame versus15.1ms
+legacy. The specialized detached-row copy reduced it to18.0ms versus15.6ms in
+the final comparison. The remaining cost means this is not a uniform encode
+speedup when the map changes; the frozen trajectory alone reduced those messages
+to901901 bytes. Both scenarios and the earlier result are retained separately.
 
 Private scripts, replay output, review/test logs and original failed attempts:
 `robot-scope-hardware-validation-private/slam-display-performance-20261016/`.

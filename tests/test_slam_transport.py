@@ -4,7 +4,7 @@ import json
 import unittest
 
 from robot_dashboard.slam_sessions import SlamError
-from robot_dashboard.slam_transport import SlamGeometryTransport
+from robot_dashboard.slam_transport import SlamGeometryTransport, _copy_layer
 
 
 def frame():
@@ -18,6 +18,16 @@ def frame():
 
 
 class SlamGeometryTransportTests(unittest.TestCase):
+    def test_detached_rows_and_metadata_do_not_share_mutable_source_state(self):
+        for points in ([[1, 2, 3]], [[1, 2]], [{"unexpected": [1, 2, 3]}]):
+            layer = {"points": points, "metadata": {"nested": ["original"]}}
+            original = deepcopy(layer)
+            copied = _copy_layer(layer)
+            self.assertEqual(copied, original)
+            copied["metadata"]["nested"].clear()
+            copied["points"][0].clear()
+            self.assertEqual(layer, original)
+
     def test_legacy_is_complete_and_has_no_protocol_fields(self):
         source = frame()
         transport = SlamGeometryTransport()

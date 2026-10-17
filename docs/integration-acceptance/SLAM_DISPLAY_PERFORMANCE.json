@@ -3,12 +3,12 @@
   "source_base": "4bf1ec4",
   "scope": "software_only_robot_powered_off",
   "source_sha256": {
-    "robot_dashboard/slam_transport.py": "d8f3788886710bc62e916ac7504107766fa6cec5c8d76eed8d25a28f88f0fa04",
+    "robot_dashboard/slam_transport.py": "9a4cffdf1c1c35acced836fa485771216213c496872a7d84612edf33e497ff31",
     "robot_dashboard/api/routers/slam.py": "e049dc8fc5ed6f8daad4784d137c871de943a1dd910b8e6d5da1381ff64cefa5",
     "robot_dashboard/slam_features.py": "b50a7411f46aea7d3c2306ee4bebbb3c4ceb6860821a8ef9ab8a3f38552cb4f2",
     "robot_dashboard/slam_ros_runtime.py": "a37028db04033e4396b2be41a3ae38369087a7236af8ca59ecf78ffed90b4e24",
     "robot_dashboard/static/features/slam/dashboard.js": "54c782aac2c407fd9e5e955bda6db7eca03b16561f39a8f1a63383365451b239",
-    "tests/test_slam_transport.py": "a4786e2086355b28d51fccaeccdb1ed84d6392947bf2049b0fb51c33ba64912b",
+    "tests/test_slam_transport.py": "707387b5238b1835dcd99cea23606430762222a9bb49230e627b3f42e54b5d06",
     "tests/test_slam_api.py": "d125035deeb8d992c0e771c127e254e200d4b81bc9da7a97e639150fd55cc4b9",
     "tests/test_slam_features.py": "7b8fc55c1396704ef4d5308595761f507fa8ca0d63e364afc01186b2d4f235c7",
     "tests/test_slam_ros_runtime.py": "90d99c259539d5dcf472779fe000af5a675b0b3cc59072481a58ea8d9aa547f0",
@@ -16,10 +16,10 @@
     "tests/e2e/slam.spec.mjs": "f6d961fde393251a64448df0277b56fc457866e1fff380fa2d741a834256b4c6"
   },
   "validation": {
-    "python_total": 2165,
-    "python_passed": 2163,
+    "python_total": 2166,
+    "python_passed": 2164,
     "python_skipped": 2,
-    "python_seconds": 80.567,
+    "python_seconds": 80.753,
     "js_unit_passed": 393,
     "final_slam_js_passed": 22,
     "final_slam_chromium_passed": 20,
@@ -28,8 +28,10 @@
     "configured_mypy": "PASS_4_modules",
     "secret_scan": "PASS",
     "frontend_syntax_modules": 84,
-    "independent_review": "CLOSED_two_frontend_findings_fixed",
-    "sandbox_failed_attempts_excluded": true
+    "independent_review": "CLOSED_two_frontend_findings_fixed_and_cache_copy_reviewed",
+    "sandbox_failed_attempts_excluded": true,
+    "python_final_log": "python-full-final.log",
+    "frontend_unchanged_since_validated_commit": "302aa87d3978412ee82f872542d591ca2041882f"
   },
   "replay": {
     "scope": "offline frozen real-snapshot replay, 1 initial + 50 repeats, uncompressed JSON",
@@ -43,15 +45,15 @@
         "first_bytes": 963087,
         "repeat_bytes": 963087,
         "total_bytes_51": 49117479,
-        "repeat_encode_median_ms": 16.005000000000003,
-        "repeat_encode_max_ms": 89.557583
+        "repeat_encode_median_ms": 15.941396000000001,
+        "repeat_encode_max_ms": 25.080417
       },
       "references": {
         "first_bytes": 963213,
         "repeat_bytes": 62174,
         "total_bytes_51": 4071955,
-        "repeat_encode_median_ms": 0.5322085,
-        "repeat_encode_max_ms": 0.63375
+        "repeat_encode_median_ms": 0.5082709999999999,
+        "repeat_encode_max_ms": 0.584125
       }
     },
     "repeat_wire_reduction_percent": 93.5443007744887,
@@ -71,8 +73,12 @@
     "e2e-local.log": "8f8bf9b7d720beddee1312fc031f7598ea237a58ab16ff3270fd29798df9bf13",
     "e2e-stream-final.log": "01e08ce32f5a7eb3a288a27f6e94ba47cf5799c5bced264c1f4606529453543a",
     "e2e-cache.log": "d2f679eb6f550714089b4664cc512715e83666d9854dec495647998bb0b700b8",
-    "replay-transport.json": "336db45175869db2d3546b2f4417d5d25f4042d15d39c8097e15cdeec58bc6b7",
-    "replay_transport.py": "ac649f7f23cb00e667ed1e9609b1ebe098a8205581415b8062721d0d7218790e"
+    "replay-transport.json": "cf169ca0a738cae6633239e58c41acf1cfe6660f4eea0416f11535616b5528e7",
+    "replay_transport.py": "ac649f7f23cb00e667ed1e9609b1ebe098a8205581415b8062721d0d7218790e",
+    "python-full-final.log": "d5ce0c286a002f54b0dacfe98a9db095a16fca1e07b2343b5d475d8d63f1816a",
+    "replay-transport-before-copy-optimization.json": "336db45175869db2d3546b2f4417d5d25f4042d15d39c8097e15cdeec58bc6b7",
+    "replay-changing-map.json": "ccf43772dc0ce65c066e1bd4165a33a7c51789d15119b2aa08260cf7fa22bab1",
+    "replay-changing-map-final.json": "ac34bab2cf362bac4ff5fff6811c7e54e06d39111beead1cfadbc5ee104750a6"
   },
   "runtime": {
     "device_power": "OFF_user_reported",
@@ -84,5 +90,45 @@
     "bridge_restoration": false,
     "background_continuation_scheduled": false,
     "old_3986a75_bundle_contains_this_change": false
+  },
+  "initial_implementation_commit": "302aa87d3978412ee82f872542d591ca2041882f",
+  "followup_scope": "detached numeric XYZ cache-copy optimization; exact content pinned below",
+  "cache_miss_replay": {
+    "before": {
+      "scope": "offline worst-case cache-miss scenario: source snapshot ID changed every iteration, coordinates frozen, not a real run",
+      "source_sha256": "3c7bba2e9ea75613422c9357dbe1449b8121ed9242c669a60fd92603085aa00d",
+      "iterations": 51,
+      "runs": {
+        "legacy": {
+          "repeat_encode_median_ms": 15.1455835,
+          "repeat_bytes": 963087
+        },
+        "references": {
+          "repeat_encode_median_ms": 26.896292,
+          "repeat_bytes": 901901
+        }
+      },
+      "note": "Full-map updates incur cache-copy overhead. No claim of uniform speedup or end-to-end improvement."
+    },
+    "after": {
+      "scope": "offline cache-miss scenario: map snapshot ID changed every iteration, coordinates and trajectory frozen; not a real run",
+      "source_sha256": "3c7bba2e9ea75613422c9357dbe1449b8121ed9242c669a60fd92603085aa00d",
+      "iterations": 51,
+      "runs": {
+        "legacy": {
+          "repeat_encode_median_ms": 15.621312,
+          "repeat_bytes": 963087
+        },
+        "references": {
+          "repeat_encode_median_ms": 17.9834585,
+          "repeat_bytes": 901901
+        }
+      },
+      "note": "No claim of uniform speedup or end-to-end improvement."
+    }
+  },
+  "replay_history": {
+    "initial_result": "replay-transport-before-copy-optimization.json",
+    "provenance": "Initial benchmark output reconstructed byte-exactly from the committed validation record after the working output was replaced; verified against its original SHA256."
   }
 }
