@@ -91,7 +91,10 @@
     "resources.jsonl": "e642de4eec177ea640c8a15f66057824bf4b2ef2b122e08d2f5dcf490fe90875",
     "final-runtime-state.json": "7602237245d902d82068239bdd4a8eca88338338d49bb65a299be4c7c33c9034",
     "final-cleanup-check.json": "c74e7b70139ebb305003a376ca6d5b30c18f03022e4245a947c2b4ae777750b4",
-    "deployed-depth-sample.png": "dea81499543b0079469f308f60f6febd37f553d6d49a7bbd5ebcba6427bece64"
+    "deployed-depth-sample.png": "dea81499543b0079469f308f60f6febd37f553d6d49a7bbd5ebcba6427bece64",
+    "python-merged-settings.log": "ec559651dcb2edb8a3b6598ce2f06084acad0b80fe31b48a2c5bee5cdf516172",
+    "python-socket-recheck.log": "b164eaf46881524f01d6aee609ee9f090803eec201731662260695526cb7970f",
+    "js-merged-settings.log": "f18707e9e26badca0158c97f8f09f9dce5030256a5c07bfe842c84ca22da7a20"
   },
   "concurrent_main_merged": "98ef9e1",
   "deployed_implementation": "78e23ce9edb59790a665055dfd23f230be018b43",
@@ -401,5 +404,27 @@
     ],
     "camera_or_slam_child_processes_remaining": false
   },
-  "private_evidence_root": "robot-scope-hardware-validation-private/depth-capture-20261017/ (outside repository)"
+  "private_evidence_root": "robot-scope-hardware-validation-private/depth-capture-20261017/ (outside repository)",
+  "source_sha256_revision": "78e23ce9edb59790a665055dfd23f230be018b43",
+  "closeout_integration": {
+    "concurrent_remote_source": "eb0a9c67c51b3c2805a42843baafe30ff5deb36e",
+    "concurrent_feature": "Settings imported-depth mount pitch calibration",
+    "remote_ci": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/39022199531",
+    "remote_ci_conclusion": "success",
+    "merged_product_code_identical_to_concurrent_remote": true,
+    "deployed_on_robot": false,
+    "note": "Preserved concurrent feature during documentation publication; deployed runtime remains separately qualified 78e23ce. Source SHA256 above intentionally identifies that deployed revision, not newer main.",
+    "local_validation": {
+      "python_initial_run": 2260,
+      "python_initial_passed": 2233,
+      "python_initial_skipped": 2,
+      "python_initial_socket_permission_errors": 25,
+      "exact_failed_socket_cases_rechecked_outside_sandbox": 25,
+      "socket_recheck_passed": 25,
+      "remaining_product_failures": 0,
+      "combined_distinct_passed": 2258,
+      "javascript_passed": 428,
+      "browser_ci": "Reused passing eb0a9c6 CI; product/test/experiment tree matches that exact commit. No repeat full browser run."
+    }
+  }
 }

@@ -143,6 +143,20 @@ cost or a causal regression benchmark. Sparse GPU samples do not prove no GPU us
 cuVSLAM reports `use_gpu=true`. USB throughput and calibrated sensor-to-screen
 latency were not measured.
 
+## Concurrent main publication
+
+During closeout, concurrent commit `eb0a9c67c51b3c2805a42843baafe30ff5deb36e`
+added Settings import/point-selection calibration. Its passing CI and code were
+preserved in the documentation merge; no duplicate solver/UI was added here.
+That newer Settings integration was **not deployed in this camera window**.
+The actual device/evidence qualification remains pinned to `78e23ce`; validation
+source hashes identify that deployed revision rather than the newer main.
+Merged-source validation ran 2,260 Python tests: 2,233 passed, two existing skips,
+and 25 temporary Unix-socket cases blocked by the local sandbox. Those exact
+25 cases passed when rerun with local socket permission; no product failures
+remain. JavaScript: 428 passed. Passing `eb0a9c6` browser CI is reused because
+the merged product/test/experiment tree matches it; only evidence docs differ.
+
 ## Collection and return to Stereo
 
 1. Finish and explicitly stop the current SLAM mode. Resolve unsaved-map choices

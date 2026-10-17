@@ -12,6 +12,7 @@ import { initializeCockpitWindowMode, initializeCockpitWorkspace, projectCockpit
 import { MISSION_PAGE_META, missionPageFromHash, syncMissionShell, filterSavedMapEntries, setSoftwareStopFeedback, frameProvenance } from './features/cockpit/mission_shell.js';
 import { navigationBlockerLabel } from './features/cockpit/status_labels.js';
 import './features/route_planner/dashboard_page.js';
+import { initializeMountCalibrationFeature } from './features/settings/mount_calibration.js';
 import { initializeServiceLifecycleFeature } from './features/settings/service_lifecycle.js';
 import { initializeControlBridgeServiceFeature } from './features/control/bridge_service.js';
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
@@ -6824,6 +6825,7 @@ datasetFeature = createDatasetFeature({ showToast });
 datasetFeature.start();
 window.RobotScopeDatasetCapture = datasetFeature;
 window.RobotScopeDiagnosticsExport = createDiagnosticsExportFeature({ showToast }).start();
+initializeMountCalibrationFeature();
 bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();

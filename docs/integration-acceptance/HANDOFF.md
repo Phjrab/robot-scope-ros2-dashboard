@@ -53,6 +53,13 @@ depth collection does not resolve those problems. Same-device concurrent
 Stereo+depth is deliberately unsupported. Source is unchanged after its passing
 software/CI checks; this closeout only records hardware evidence.
 
+During closeout, concurrent commit `eb0a9c67c51b3c2805a42843baafe30ff5deb36e`
+added Settings import/point-selection calibration. Its passing CI and code were
+preserved in the documentation merge; no duplicate solver/UI was added here.
+That newer Settings integration was **not deployed in this camera window**.
+The actual device/evidence qualification remains pinned to `78e23ce`; validation
+source hashes identify that deployed revision rather than the newer main.
+
 # Latest manual Stereo observation — 2026-10-17
 
 Read [SLAM_MANUAL_OBSERVATION.md](SLAM_MANUAL_OBSERVATION.md) and its JSON first.
