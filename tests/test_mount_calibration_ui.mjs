@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { savedDepthFixture, artifactHeaders } from './fixtures/saved_depth_fixture.mjs';
 
 const source = readFileSync(new URL('../robot_dashboard/static/features/settings/mount_calibration.js', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
@@ -68,7 +69,7 @@ function analysis(input, override = {}) {
       plane_rmse_m: .0002, inlier_points: s.points.length, valid_points: s.points.length, inlier_ratio: 1,
       normal_camera: [0, 0, -1], warnings: [], validated_points: s.points.map((point) => ({ ...point, valid: true, inlier: true })) })), ...override };
 }
-function harness(handler) {
+function harness(handler, options = {}) {
   const elements = new Map();
   for (const match of html.matchAll(/id="(mount-calibration-[^"]+)"/g)) elements.set(match[1], new Element());
   const el = (id) => elements.get(prefix + id);
@@ -77,7 +78,7 @@ function harness(handler) {
   const document = { getElementById: (id) => elements.get(id), body: new Element('body'),
     createDocumentFragment: () => new Element('fragment'),
     createElement: (tag) => { if (tag === 'canvas') allocations.canvas += 1; return new Element(tag); } };
-  const calls = [], downloads = [];
+  const calls = [], downloads = [], fetches = [], images = [];
   const api = async (path, options = {}) => {
     const call = { path, options }; calls.push(call);
     if (handler) { const value = handler(call); if (value !== undefined) return value; }
@@ -85,16 +86,49 @@ function harness(handler) {
     const input = JSON.parse(options.body);
     return path.endsWith('/export') ? { input, analysis: analysis(input) } : analysis(input);
   };
-  const context = { AbortController, Blob, document, api, setTimeout: (fn) => { fn(); return 0; },
+  const fetch = async (path, init = {}) => { const call = { path, options: init }; fetches.push(call); return options.fetch(call); };
+  const decodeImage = options.decodeImage || (async () => { const image = { width: 40, height: 30, close() { this.closed = true; } }; images.push(image); return image; });
+  const context = { AbortController, Blob, document, api, fetch, Uint8Array, TextDecoder, setTimeout: (fn) => { fn(); return 0; },
     URL: { createObjectURL: (blob) => { downloads.push(blob); return 'blob:unit'; }, revokeObjectURL() {} } };
   vm.runInNewContext(source.replace(/^import[^\n]+\n/, '').replace('export function initializeMountCalibrationFeature', 'function initializeMountCalibrationFeature') + '\nthis.initialize = initializeMountCalibrationFeature;', context);
-  const feature = context.initialize({ document, api });
+  const feature = context.initialize({ document, api, fetch, decodeImage });
   const importFiles = (values) => {
     el('file-input').files = values.map((value, index) => value.text ? value : ({ name: `capture-${index}.json`, size: 100, text: async () => JSON.stringify(value) }));
     return el('file-input').dispatch('change');
   };
   const confirm = async () => { for (const id of assertions) { el(id).checked = true; await el(id).dispatch('change'); } };
-  return { el, feature, calls, downloads, allocations, context, document, api, importFiles, confirm };
+  return { el, feature, calls, downloads, fetches, images, allocations, context, document, api, importFiles, confirm };
+}
+
+function savedHarness(fixtures = [savedDepthFixture()], options = {}) {
+  let catalogueReads = 0;
+  const h = harness((call) => {
+    if (call.path === '/api/v1/slam/depth/samples') {
+      catalogueReads++;
+      return options.catalogue?.(catalogueReads) ?? { samples: fixtures.map((fixture) => structuredClone(fixture.manifest)) };
+    }
+    return options.api?.(call);
+  }, {
+    decodeImage: options.decodeImage,
+    fetch: (call) => {
+      const override = options.fetch?.(call);
+      if (override !== undefined) return override;
+      const fixture = fixtures.find((entry) => call.path.includes(entry.sample.id));
+      assert.ok(fixture, `unexpected artifact ${call.path}`);
+      const json = call.path.endsWith('/compatibility');
+      assert.ok(json || call.path.endsWith('/image'), 'only read-only artifact endpoints may be used');
+      const filename = json ? 'compatibility.json' : 'click.png';
+      const body = json ? fixture.body.json : fixture.body.png;
+      return new Response(body, { headers: artifactHeaders(fixture.manifest.files[filename], json ? 'application/json' : 'image/png') });
+    },
+  });
+  h.refreshSaved = () => h.el('saved-refresh').click();
+  h.selectSaved = async (...indexes) => {
+    const rows = descendants(h.el('saved-list'), (el) => el.type === 'checkbox');
+    for (const index of indexes) { rows[index].checked = true; await rows[index].dispatch('change'); }
+  };
+  h.importSaved = () => h.el('saved-import').click();
+  return h;
 }
 
 test('native Settings integration is scoped and never embeds the standalone prototype', () => {
@@ -279,4 +313,120 @@ test('destroy removes static handlers, aborts status/analysis and invalidates as
   const restarted = h.context.initialize({ document: h.document, api: h.api });
   assert.notEqual(restarted, h.feature);
   assert.equal(h.el('demo-button').listeners.get('click').size, 1);
+});
+
+test('saved capture catalogue is explicit and read-only; unavailable exports cannot be selected', async () => {
+  const available = savedDepthFixture();
+  const unavailable = savedDepthFixture('b'.repeat(32));
+  unavailable.manifest.compatibility = { available: false, reason: 'DISTORTION_NOT_PINHOLE' };
+  const h = savedHarness([available, unavailable]); await flush();
+  assert.equal(h.calls.length, 1, 'initialization does not list or acquire cameras');
+  await h.refreshSaved();
+  const choices = descendants(h.el('saved-list'), (el) => el.type === 'checkbox');
+  assert.equal(choices.length, 2);
+  assert.equal(choices[0].disabled, false);
+  assert.equal(choices[1].disabled, true);
+  assert.match(h.el('saved-list').textContent, /DISTORTION_NOT_PINHOLE/);
+  assert.equal(h.el('saved-import').disabled, true);
+  await h.selectSaved(0);
+  assert.equal(h.el('saved-import').disabled, false);
+  assert.ok(h.calls.every((call) => !call.options.method || call.options.method === 'GET'));
+  assert.equal(h.fetches.length, 0, 'selection alone does not download or capture');
+});
+
+test('saved capture imports matching image and depth at native coordinates without treating archive time as current', async () => {
+  const stored = savedDepthFixture();
+  stored.manifest.captured_at_utc = '2020-01-01T00:00:00Z'; // Old archives remain useful; never refresh their source time.
+  const h = savedHarness([stored]); await h.refreshSaved(); await h.selectSaved(0); await h.importSaved();
+  assert.equal(h.feature.snapshot().sampleCount, 1);
+  assert.equal(h.feature.snapshot().referenceId, stored.sample.id);
+  assert.equal(h.el('depth-canvas').width, 40);
+  assert.equal(h.el('depth-canvas').height, 30);
+  assert.equal(h.el('image-toggle').hidden, false);
+  assert.match(h.el('metadata-list').textContent, /55.*56|55[\s\S]*56/);
+  h.el('depth-canvas').getBoundingClientRect = () => ({ left: 20, top: 10, width: 400, height: 300 });
+  await h.el('depth-canvas').dispatch('click', { clientX: 125, clientY: 165 });
+  assert.match(h.el('point-list').textContent, /10.*15/);
+  assert.equal(h.el('point-count').textContent, '1');
+  assert.equal(h.el('estimate-button').disabled, true, 'one real-shaped capture is insufficient for relative pitch');
+  assert.equal(h.calls.filter((call) => call.path === '/api/v1/slam/depth/samples').length, 2, 'catalogue rechecked before installing');
+  assert.equal(h.fetches.length, 2);
+  assert.ok(h.fetches.every((call) => !call.options.method || call.options.method === 'GET'));
+  assert.ok(h.fetches.every((call) => call.options.cache === 'no-store'));
+  h.feature.destroy();
+  assert.equal(h.images[0].closed, true, 'decoded image ownership ends with the feature');
+});
+
+test('saved imports reject mismatched profile, unit, frame, timestamp and rectification contracts', async () => {
+  const corruptions = [
+    ['profile', (s) => { s.metadata.profile_id = ''; }],
+    ['timestamp unit', (s) => { s.metadata.source_timestamp_unit = 'milliseconds'; }],
+    ['depth unit', (s) => { s.metadata.depth_unit = 'mm'; }],
+    ['depth units', (s) => { s.metadata.depth_units = 'mm'; }],
+    ['frame', (s) => { s.metadata.frame_id = 'different_optical_frame'; }],
+    ['capture session', (s) => { s.metadata.capture_session_id = 'd'.repeat(32); }],
+    ['frame number', (s) => { s.metadata.frame_numbers.ir1++; }],
+    ['timestamp', (s) => { s.metadata.source_timestamps_ms.ir1 += 10; }],
+    ['depth semantics', (s) => { s.metadata.depth_semantics = 'radial_range'; }],
+    ['intrinsics', (s) => { s.metadata.alignment.ir1_intrinsics.fx += 1; }],
+    ['distortion', (s) => { s.metadata.alignment.depth_intrinsics.coeffs = [0.1, 0, 0, 0, 0]; }],
+  ];
+  for (const [name, mutate] of corruptions) {
+    const stored = savedDepthFixture(); mutate(stored.sample); stored.body = stored.rebuild();
+    const h = savedHarness([stored]); await h.refreshSaved(); await h.selectSaved(0); await h.importSaved();
+    assert.equal(h.feature.snapshot().sampleCount, 0, name);
+    assert.match(h.el('notice').textContent, /실패/, name);
+    assert.equal(h.el('export-button').disabled, true, name);
+  }
+});
+
+test('image decoding and dimension failures retain depth with an explicit unavailable image', async () => {
+  for (const decodeImage of [async () => { throw Error('SYNTHETIC decode failure'); }, async () => ({ width: 39, height: 30, close() {} })]) {
+    const h = savedHarness([savedDepthFixture()], { decodeImage });
+    await h.refreshSaved(); await h.selectSaved(0); await h.importSaved();
+    assert.equal(h.feature.snapshot().sampleCount, 1, 'verified depth remains usable');
+    assert.equal(h.el('image-toggle').hidden, true);
+    assert.equal(h.el('depth-canvas').width, 40);
+    assert.match(h.el('canvas-caption').textContent + h.el('notice').textContent, /영상.*(?:실패|없|불가)|깊이/);
+  }
+});
+
+test('changed catalogue or artifact headers prevent replacement and clear previous results', async () => {
+  for (const kind of ['catalogue', 'header']) {
+    const stored = savedDepthFixture();
+    const h = savedHarness([stored], {
+      catalogue: (read) => {
+        if (kind !== 'catalogue' || read < 2) return;
+        const changed = structuredClone(stored.manifest); changed.files['compatibility.json'].sha256 = '0'.repeat(64);
+        return { samples: [changed] };
+      },
+      fetch: (call) => {
+        if (kind !== 'header' || !call.path.endsWith('/compatibility')) return;
+        return new Response(stored.body.json, { headers: artifactHeaders({ ...stored.manifest.files['compatibility.json'], sha256: '0'.repeat(64) }, 'application/json') });
+      },
+    });
+    await h.importFiles([sample('old-a'), sample('old-b')]); await h.confirm(); await h.el('estimate-button').click();
+    assert.equal(h.feature.snapshot().hasResult, true);
+    await h.refreshSaved(); await h.selectSaved(0);
+    assert.equal(h.feature.snapshot().hasResult, false, 'selecting new inputs invalidates prior analysis');
+    await h.importSaved();
+    assert.equal(h.feature.snapshot().referenceId, 'old-a', `${kind}: atomic import preserves prior captures`);
+    assert.equal(h.feature.snapshot().hasResult, false);
+    assert.match(h.el('notice').textContent, /실패|변경/);
+    assert.equal(h.el('export-button').disabled, true);
+  }
+});
+
+test('late saved artifact response cannot overwrite newer local input or restore previous analysis', async () => {
+  const stored = savedDepthFixture(), gate = deferred();
+  const h = savedHarness([stored], { fetch: (call) => call.path.endsWith('/compatibility') ? gate.promise : undefined });
+  await h.refreshSaved(); await h.selectSaved(0);
+  const pending = h.importSaved();
+  await h.importFiles([sample('new-a'), sample('new-b')]);
+  gate.resolve(new Response(stored.body.json, { headers: artifactHeaders(stored.manifest.files['compatibility.json'], 'application/json') }));
+  await pending;
+  assert.equal(h.feature.snapshot().referenceId, 'new-a');
+  assert.equal(h.feature.snapshot().sampleCount, 2);
+  assert.equal(h.feature.snapshot().hasResult, false);
+  assert.equal(h.el('export-button').disabled, true);
 });

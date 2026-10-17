@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { installDashboardBackend } from './dashboard_backend.mjs';
+import { savedDepthFixture, artifactHeaders } from '../fixtures/saved_depth_fixture.mjs';
 
 // These are hardware-free browser integration tests. Every API response below is
 // a SYNTHETIC fixture, not a call to the Python solver or a real camera/robot.
@@ -86,6 +87,36 @@ async function fixture(page, options = {}) {
     throw new Error(`Unexpected mount calibration request: ${method} ${path}`);
   });
   return { backend, errors, writes, requests };
+}
+
+async function savedBackend(page, fixtures, options = {}) {
+  const reads = [];
+  let listCount = 0;
+  await page.route('**/api/v1/slam/depth/samples**', async (route) => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    reads.push({ method: request.method(), path });
+    expect(request.method()).toBe('GET');
+    if (path === '/api/v1/slam/depth/samples') {
+      listCount++;
+      const value = options.catalogue?.(listCount) ?? fixtures.map((entry) => entry.manifest);
+      return route.fulfill({ json: { samples: value } });
+    }
+    const stored = fixtures.find((entry) => path.includes(entry.sample.id));
+    expect(stored, path).toBeTruthy();
+    const json = path.endsWith('/compatibility');
+    expect(json || path.endsWith('/image')).toBe(true);
+    if (options.beforeArtifact) await options.beforeArtifact({ path, route });
+    const filename = json ? 'compatibility.json' : 'click.png';
+    return route.fulfill({ body: json ? stored.body.json : stored.body.png,
+      headers: artifactHeaders(stored.manifest.files[filename], json ? 'application/json' : 'image/png') });
+  });
+  return { reads };
+}
+
+async function selectSaved(page, indexes = [0]) {
+  await field(page, 'saved-refresh').click();
+  for (const index of indexes) await field(page, 'saved-list').locator('input[type="checkbox"]').nth(index).check();
+  await field(page, 'saved-import').click();
 }
 
 async function openSettings(page) {
@@ -306,6 +337,107 @@ test.describe('Settings mount calibration · SYNTHETIC mocked integration', () =
     await expect(field(page, 'notice')).toContainText('SYNTHETIC fixture: depth metadata is inconsistent.');
     await expectInvalidated(page);
     await expect(field(page, 'estimate-button')).toBeEnabled();
+    expectNoHardwareEffects(state);
+  });
+
+  test('imports saved SYNTHETIC artifacts into the existing image canvas, selects native pixels and exports relative-only input', async ({ page }) => {
+    const state = await fixture(page);
+    const captures = [savedDepthFixture(), savedDepthFixture('b'.repeat(32))];
+    const saved = await savedBackend(page, captures);
+    await openSettings(page);
+    expect(saved.reads).toEqual([], 'catalogue lookup requires an explicit click');
+    await selectSaved(page, [0, 1]);
+    await expect(sampleButtons(page)).toHaveCount(2);
+    await expect(field(page, 'image-toggle')).toBeEnabled();
+    await expect(field(page, 'point-count')).toHaveText('0');
+    for (const id of checks) await expect(field(page, id)).not.toBeChecked();
+    const canvas = field(page, 'depth-canvas');
+    await expect(canvas).toHaveJSProperty('width', 40);
+    await expect(canvas).toHaveJSProperty('height', 30);
+    const bounds = await canvas.boundingBox();
+    await canvas.click({ position: { x: bounds.width * 10.5 / 40, y: bounds.height * 15.5 / 30 } });
+    await expect(field(page, 'point-list')).toContainText(/10.*15/);
+    await field(page, 'undo-button').click();
+    await panel(page).locator('.manual-points summary').click();
+    for (let i = 0; i < captures.length; i++) {
+      await sampleButtons(page).nth(i).click();
+      for (const [u, v] of [[4, 4], [20, 4], [35, 4], [4, 25], [20, 25], [35, 25]]) {
+        await field(page, 'point-u').fill(String(u)); await field(page, 'point-v').fill(String(v));
+        await field(page, 'point-form').getByRole('button', { name: '점 추가' }).click();
+      }
+    }
+    await confirmConditions(page); await estimate(page);
+    const input = state.requests.find((entry) => entry.path === `${API}/estimate`).body;
+    expect(input.samples[0].intrinsics).toEqual(captures[0].sample.intrinsics);
+    expect(input.samples[0].metadata).toEqual({ ...captures[0].sample.metadata, saved_capture: {
+      schema: captures[0].manifest.schema, sample_id: captures[0].manifest.sample_id,
+      capture_session_id: captures[0].manifest.session_id, generation: captures[0].manifest.generation,
+      captured_at_utc: captures[0].manifest.captured_at_utc, files: captures[0].manifest.files,
+    } });
+    expect(input.samples[0].depth_m).toEqual(captures[0].sample.depth_m);
+    const downloadPromise = page.waitForEvent('download', { timeout: 5000 });
+    await field(page, 'export-button').click();
+    const downloaded = await downloadPromise, stream = await downloaded.createReadStream();
+    let output = ''; for await (const chunk of stream) output += chunk.toString('utf8');
+    const exported = JSON.parse(output);
+    expect(exported.analysis.status).toBe('RELATIVE_ONLY');
+    expect(exported.analysis.body_extrinsic_validated).toBe(false);
+    expect(exported.input.samples[0].metadata.source_timestamp).toBe(captures[0].sample.metadata.source_timestamp);
+    expect(saved.reads.filter((entry) => entry.path === '/api/v1/slam/depth/samples')).toHaveLength(2);
+    expectNoHardwareEffects(state);
+  });
+
+  test('unavailable and changed saved artifacts stay unimportable and invalidate old results', async ({ page }) => {
+    const state = await fixture(page);
+    const capture = savedDepthFixture(), unavailable = savedDepthFixture('b'.repeat(32));
+    unavailable.manifest.compatibility = { available: false, reason: 'DISTORTION_NOT_PINHOLE' };
+    await savedBackend(page, [capture, unavailable], { catalogue: (count) => {
+      if (count < 2) return;
+      const changed = structuredClone(capture.manifest); changed.files['compatibility.json'].sha256 = '0'.repeat(64);
+      return [changed, unavailable.manifest];
+    } });
+    await openSettings(page); await loadDemo(page); await confirmConditions(page); await estimate(page);
+    await field(page, 'saved-refresh').click();
+    const rows = field(page, 'saved-list').locator('input[type="checkbox"]');
+    await expect(rows.nth(1)).toBeDisabled();
+    await expect(field(page, 'saved-list')).toContainText('DISTORTION_NOT_PINHOLE');
+    await rows.first().check(); await expectInvalidated(page);
+    await field(page, 'saved-import').click();
+    await expect(field(page, 'notice')).toContainText(/실패|변경/);
+    await expect(sampleButtons(page)).toHaveCount(3);
+    await expect(sampleButtons(page).first()).toContainText('데모');
+    await expectInvalidated(page);
+    expectNoHardwareEffects(state);
+  });
+
+  test('saved frame or timestamp mismatch cannot display a mismatched click image', async ({ page }) => {
+    const state = await fixture(page), capture = savedDepthFixture();
+    capture.sample.metadata.frame_id = 'SYNTHETIC_DIFFERENT_OPTICAL_FRAME';
+    capture.body = capture.rebuild();
+    await savedBackend(page, [capture]);
+    await openSettings(page); await selectSaved(page);
+    await expect(field(page, 'notice')).toContainText('실패');
+    await expect(sampleButtons(page)).toHaveCount(0);
+    await expect(field(page, 'depth-canvas')).toBeHidden();
+    await expect(field(page, 'export-button')).toBeDisabled();
+    expectNoHardwareEffects(state);
+  });
+
+  test('a late saved artifact cannot replace a newer demo or restore its previous result', async ({ page }) => {
+    const state = await fixture(page), capture = savedDepthFixture();
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const saved = await savedBackend(page, [capture], { beforeArtifact: async ({ path }) => {
+      if (path.endsWith('/compatibility')) await gate;
+    } });
+    await openSettings(page); await selectSaved(page);
+    await expect.poll(() => saved.reads.filter((entry) => entry.path.endsWith('/compatibility')).length).toBe(1);
+    await loadDemo(page);
+    release();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(sampleButtons(page)).toHaveCount(3);
+    await expect(sampleButtons(page).first()).toContainText('데모');
+    await expectInvalidated(page);
     expectNoHardwareEffects(state);
   });
 

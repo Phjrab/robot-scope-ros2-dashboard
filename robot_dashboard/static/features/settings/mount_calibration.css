@@ -115,3 +115,13 @@
   .mount-calibration .calibration-card { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .mount-calibration * { transition: none; } }
+
+.mount-calibration .saved-captures { margin: 14px 0; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.mount-calibration .saved-list { display: grid; gap: 8px; max-height: 310px; overflow: auto; margin: 10px 0; }
+.mount-calibration .saved-sample { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; font-size: 11px; line-height: 1.6; }
+.mount-calibration .saved-sample label { display: flex; align-items: flex-start; gap: 8px; width: 100%; min-width: 0; }
+.mount-calibration .saved-sample label > span { min-width: 0; overflow-wrap: anywhere; }
+.mount-calibration .saved-sample small { display: block; color: var(--muted); }
+.mount-calibration .saved-sample a { color: var(--green); margin-left: 21px; }
+.mount-calibration .canvas-caption { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.mount-calibration .canvas-caption button { min-height: 28px; padding: 4px 6px; font-size: 11px; }

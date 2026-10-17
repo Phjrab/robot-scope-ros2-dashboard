@@ -869,24 +869,31 @@
           <article id="mount-calibration-panel" class="panel settings-panel mount-calibration" aria-labelledby="mount-calibration-heading">
             <div class="panel-header">
               <div><div class="eyebrow">CAMERA MOUNT · RELATIVE PITCH</div><h2 id="mount-calibration-heading">카메라 장착 각도 보정</h2></div>
-              <div id="mount-calibration-status" class="panel-state waiting" role="status" aria-live="polite">IMPORT ONLY · 실시간 보정 캡처 미연동</div>
+              <div id="mount-calibration-status" class="panel-state waiting" role="status" aria-live="polite">IMPORT ONLY · 저장 샘플 / JSON</div>
             </div>
             <div class="settings-card-body">
-              <p class="calibration-intro">앉은 채 정지한 Go2에서 카메라 피치만 조절하고, 같은 전방 벽의 깊이 점으로 기준 촬영 대비 회전을 비교합니다. 현재는 파일 가져오기 모드이며, 이 보정 화면의 실시간 깊이 캡처는 아직 연동되지 않았습니다.</p>
+              <p class="calibration-intro">앉은 채 정지한 Go2에서 카메라 피치만 조절하고, 같은 전방 벽의 깊이 점으로 기준 촬영 대비 회전을 비교합니다. Mapping의 ‘정지 Depth 캡처’로 저장한 샘플 또는 JSON 파일을 가져오세요. 이 화면은 저장 데이터만 읽습니다. 기준 촬영의 0°는 몸체 기준 절대 0°가 아닙니다.</p>
     <div id="mount-calibration-notice" class="notice" role="status" aria-live="polite" hidden></div>
     <div class="calibration-workspace">
       <aside class="sample-panel calibration-card">
         <div class="section-title"><h3>촬영 목록</h3><span id="mount-calibration-sample-total" class="count-pill">0</span></div>
         <p class="section-copy">비교할 촬영을 고르고, 하나를 기준으로 지정하세요.</p>
         <div class="source-controls"><button id="mount-calibration-import-button" class="button secondary" type="button"><span aria-hidden="true">↥</span> JSON 파일 가져오기</button><input id="mount-calibration-file-input" type="file" accept=".json,application/json" multiple hidden><button id="mount-calibration-demo-button" class="text-button" type="button">합성 데모 불러오기</button></div>
+        <div class="saved-captures" aria-label="저장된 Depth 캡처">
+          <div class="section-title"><h3>저장된 Depth 샘플</h3><button id="mount-calibration-saved-refresh" type="button">목록 새로고침</button></div>
+          <p id="mount-calibration-saved-status" class="section-copy" role="status" aria-live="polite">새로고침하면 서버의 보관 샘플을 조회합니다. 카메라는 실행하지 않습니다.</p>
+          <div id="mount-calibration-saved-list" class="saved-list"></div>
+          <button id="mount-calibration-saved-import" type="button" disabled>선택한 저장 샘플 가져오기</button>
+          <p class="section-copy">선택한 샘플로 아래 분석 목록을 교체합니다. 과거 촬영의 정지 조건과 같은 벽 여부는 직접 확인하세요.</p>
+        </div>
         <div id="mount-calibration-sample-list" class="sample-list" aria-label="촬영 데이터"></div>
         <div class="import-hint"><strong>가져오기 형식</strong><p>샘플, {samples}, 또는 내보낸 {input} JSON. 여러 파일을 함께 선택할 수 있습니다.<br>이전 목록을 교체합니다. 합계 최대 30 MB · 12개 촬영 · 640 × 480</p><details><summary>데이터 조건 보기</summary><p>보정된 깊이 영상의 실제 픽셀만 선택합니다. 깊이는 미터 단위 optical_z이며, 같은 깊이 스트림의 내부 파라미터가 필요합니다. RGB 사진과 깊이 픽셀의 일치는 가정하지 않습니다.</p></details></div>
       </aside>
       <section class="depth-panel calibration-card" aria-labelledby="mount-calibration-depth-heading">
         <div class="depth-heading"><div><div class="eyebrow small">DEPTH POINT PICKER</div><h3 id="mount-calibration-depth-heading">전방 벽에서 점 선택</h3></div><span id="mount-calibration-source-badge" class="source-badge" hidden>가져오기 대기</span></div>
         <div class="viewer-toolbar"><span id="mount-calibration-current-sample-label">촬영 선택</span><span id="mount-calibration-image-dimensions" class="mono">—</span></div>
-        <div class="canvas-wrap" id="mount-calibration-canvas-wrap"><div id="mount-calibration-depth-empty" class="depth-empty">촬영 데이터를 가져오면 깊이 영상을 표시합니다.<br>합성 데모로 점 선택과 분석 흐름을 확인할 수도 있습니다.</div><canvas hidden id="mount-calibration-depth-canvas" width="320" height="240" tabindex="0" aria-label="깊이 영상. 마우스로 같은 벽 위의 지점을 선택하거나 아래 픽셀 좌표 입력을 사용하세요."></canvas><div class="canvas-caption"><span class="live-off-dot"></span>깊이 히트맵 · 라이브 영상 아님</div></div>
-        <div class="depth-legend"><span>가까움 <b id="mount-calibration-depth-min">—</b></span><div class="gradient-line"></div><span><b id="mount-calibration-depth-max">—</b> 멀음</span></div>
+        <div class="canvas-wrap" id="mount-calibration-canvas-wrap"><div id="mount-calibration-depth-empty" class="depth-empty">촬영 데이터를 가져오면 깊이 영상을 표시합니다.<br>합성 데모로 점 선택과 분석 흐름을 확인할 수도 있습니다.</div><canvas hidden id="mount-calibration-depth-canvas" width="320" height="240" tabindex="0" aria-label="깊이 영상. 마우스로 같은 벽 위의 지점을 선택하거나 아래 픽셀 좌표 입력을 사용하세요."></canvas><div class="canvas-caption"><span id="mount-calibration-canvas-caption">깊이 히트맵 · 라이브 영상 아님</span><button id="mount-calibration-image-toggle" type="button" hidden>깊이 히트맵 보기</button></div></div>
+        <div id="mount-calibration-depth-legend" class="depth-legend"><span>가까움 <b id="mount-calibration-depth-min">—</b></span><div class="gradient-line"></div><span><b id="mount-calibration-depth-max">—</b> 멀음</span></div>
         <div class="point-toolbar"><div><strong id="mount-calibration-point-count">0</strong><span>개 선택</span><span class="muted"> / 최소 6개</span></div><div><button id="mount-calibration-undo-button" class="button subtle" type="button">↶ 되돌리기</button><button id="mount-calibration-clear-button" class="button subtle" type="button">모두 지우기</button></div></div>
         <p id="mount-calibration-point-quality" class="point-quality">한 직선에 모이지 않도록 가로·세로로 넓게 선택하세요.</p>
         <details class="manual-points"><summary>픽셀 좌표로 점 추가 · 선택 목록</summary><form id="mount-calibration-point-form"><label>u <input id="mount-calibration-point-u" type="number" min="0" step="1" required placeholder="160" aria-label="점의 u 좌표"></label><label>v <input id="mount-calibration-point-v" type="number" min="0" step="1" required placeholder="120" aria-label="점의 v 좌표"></label><button id="mount-calibration-point-add" type="submit" class="button secondary" disabled>점 추가</button></form><div id="mount-calibration-point-list" class="point-list"></div></details>

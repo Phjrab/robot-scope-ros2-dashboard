@@ -1,5 +1,6 @@
 """Synthetic shared ownership/API/IPC regressions; no camera or calibration."""
 import asyncio
+import hashlib
 from copy import deepcopy
 import io
 import tempfile
@@ -170,13 +171,27 @@ class DepthApiTests(unittest.IsolatedAsyncioTestCase):
             base = "/api/v1/slam/depth/samples/" + receipt["sample_id"]
             listing = await self.request("GET", "/api/v1/slam/depth/samples")
             self.assertEqual(listing.json()["samples"][0]["sample_id"], receipt["sample_id"])
+            self.assertEqual(listing.headers[b"cache-control"], b"no-store")
             image = await self.request("GET", base+"/image")
             self.assertEqual(image.content, store.click_png(receipt["sample_id"]))
             compatibility = await self.request("GET", base+"/compatibility")
             self.assertEqual(compatibility.json()["depth_m"], [None, 1.0, 2.0, 65.535])
+            for response, name in ((image, "click.png"), (compatibility, "compatibility.json")):
+                expected = receipt["files"][name]
+                self.assertEqual(response.content, (store.root / receipt["sample_id"] / name).read_bytes())
+                self.assertEqual(hashlib.sha256(response.content).hexdigest(), expected["sha256"])
+                self.assertEqual(response.headers[b"x-robot-scope-artifact-sha256"].decode(), expected["sha256"])
+                self.assertEqual(int(response.headers[b"x-robot-scope-artifact-bytes"]), len(response.content))
             archive = await self.request("GET", base+"/export")
             with zipfile.ZipFile(io.BytesIO(archive.content)) as zipped:
                 self.assertEqual(zipped.read("depth.z16"), value["frames"]["depth"]["data"])
+                self.assertEqual(zipped.read("compatibility.json"), compatibility.content)
+            # A changed on-disk artifact is refused, not labelled with the old receipt.
+            (store.root / receipt["sample_id"] / "click.png").write_bytes(image.content + b"bad")
+            failed_image = await self.request("GET", base+"/image")
+            self.assertEqual(failed_image.status, 409)
+            self.assertNotIn(b"x-robot-scope-artifact-sha256", failed_image.headers)
+            self.assertEqual(self.manager.calls, [])
             value["frames"]["depth"] = {}
             receipt = store.save_sample(value)
             failed = await self.request("GET", "/api/v1/slam/depth/samples/"+receipt["sample_id"]+"/compatibility")

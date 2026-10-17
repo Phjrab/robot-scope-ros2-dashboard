@@ -116,6 +116,96 @@ def _frame_id(value: Any, path: str) -> str | int:
     return value
 
 
+def _capture_evidence(meta: dict[str, Any], k: dict[str, float], width: int,
+                      height: int, prefix: str) -> tuple[Any, ...] | None:
+    """Check retained collector evidence, without turning it into live readiness.
+
+    A retained capture has no age expiry. Its source clock must not be replaced
+    by import time; repeated source frames are not a second angle measurement.
+    Generic rectified imports may omit this evidence and remain unverified.
+    """
+    path = f"{prefix}.metadata"
+    if "source_timestamp_unit" in meta and meta["source_timestamp_unit"] != "seconds":
+        raise CalibrationError(f"{path}.source_timestamp_unit must be seconds.")
+    if "timestamp_domain" in meta and meta["timestamp_domain"] != meta.get("clock_domain"):
+        raise CalibrationError(f"{path}.timestamp_domain must match clock_domain.")
+    counters = meta.get("frame_numbers")
+    if counters is not None:
+        if not isinstance(counters, dict):
+            raise CalibrationError(f"{path}.frame_numbers must contain ir1 and depth counters.")
+        for stream in ("ir1", "depth"):
+            _integer(counters.get(stream), f"{path}.frame_numbers.{stream}", 0, 2**53 - 1)
+    timestamps, synchronization = meta.get("source_timestamps_ms"), meta.get("synchronization")
+    exposure = None
+    paired_evidence = False
+    if meta.get("capture_session_id") is not None:
+        _text(meta["capture_session_id"], f"{path}.capture_session_id")
+    if timestamps is not None or synchronization is not None:
+        if not isinstance(timestamps, dict) or not isinstance(synchronization, dict):
+            raise CalibrationError(f"{path} requires source_timestamps_ms and synchronization together.")
+        times = {stream: _number(timestamps.get(stream), f"{path}.source_timestamps_ms.{stream}")
+                 for stream in ("ir1", "depth")}
+        if any(value < 0 for value in times.values()):
+            raise CalibrationError(f"{path}.source_timestamps_ms cannot be negative.")
+        if meta.get("source_timestamp_unit") != "seconds" or meta.get("source_timestamp_stream") != "ir1":
+            raise CalibrationError(f"{path} paired timestamps require the ir1 source_timestamp in seconds.")
+        if not math.isclose(_number(meta.get("source_timestamp"), f"{path}.source_timestamp"),
+                            times["ir1"] / 1000, rel_tol=0, abs_tol=1e-6):
+            raise CalibrationError(f"{path}.source_timestamp does not match the original ir1 timestamp.")
+        skew = abs(times["ir1"] - times["depth"])
+        reported_skew = _number(synchronization.get("source_skew_ms"), f"{path}.synchronization.source_skew_ms")
+        maximum = _number(synchronization.get("max_source_skew_ms"), f"{path}.synchronization.max_source_skew_ms")
+        if (synchronization.get("frameset_verified") is not True or not 0 <= maximum <= 1
+                or skew > maximum or not math.isclose(skew, reported_skew, rel_tol=0, abs_tol=1e-6)):
+            raise CalibrationError(f"{path}.synchronization contradicts the paired timestamps or exceeds the 1 ms collector contract.")
+        if counters is not None:
+            paired_evidence = True
+            # Hardware-clock counters restart when the device starts. Without
+            # a capture-session epoch, matching numbers across files are
+            # ambiguous and must not reject legitimate historical captures.
+            domain, epoch = meta.get("clock_domain"), meta.get("capture_session_id")
+            if epoch is not None or domain in ("global_time", "system_time", "timestamp_domain.global_time", "timestamp_domain.system_time"):
+                exposure = (domain, epoch, times["ir1"], times["depth"], counters["ir1"], counters["depth"])
+
+    alignment = meta.get("alignment")
+    identity_method = "verified_identity_depth_to_ir1_no_resampling"
+    identity_basis = "actual_zero_distortion_intrinsics_and_identity_depth_to_ir1_no_resampling"
+    if (isinstance(alignment, dict) and alignment.get("method") == identity_method
+            or meta.get("rectification_basis") == identity_basis):
+        if not isinstance(alignment, dict) or alignment.get("method") != identity_method:
+            raise CalibrationError(f"{path}.alignment must contain the claimed identity projection evidence.")
+        if not paired_evidence:
+            raise CalibrationError(f"{path} identity collector exports require original frame_numbers and synchronization evidence.")
+        for name in ("ir1_intrinsics", "depth_intrinsics"):
+            intrinsics = alignment.get(name)
+            if not isinstance(intrinsics, dict):
+                raise CalibrationError(f"{path}.alignment.{name} is required.")
+            if (type(intrinsics.get("width")) is not int or type(intrinsics.get("height")) is not int
+                    or intrinsics["width"] != width or intrinsics["height"] != height):
+                raise CalibrationError(f"{path}.alignment.{name} does not match the image profile.")
+            for key, sdk_key in (("fx", "fx"), ("fy", "fy"), ("cx", "ppx"), ("cy", "ppy")):
+                if not math.isclose(_number(intrinsics.get(sdk_key), f"{path}.alignment.{name}.{sdk_key}"),
+                                    k[key], rel_tol=1e-9, abs_tol=1e-9):
+                    raise CalibrationError(f"{path}.alignment.{name} does not match the click intrinsics.")
+            coeffs = intrinsics.get("coeffs")
+            if (intrinsics.get("model") not in ("none", "brown_conrady", "distortion.none", "distortion.brown_conrady")
+                    or not isinstance(coeffs, list) or len(coeffs) != 5
+                    or any(_number(value, f"{path}.alignment.{name}.coeffs") != 0 for value in coeffs)):
+                raise CalibrationError(f"{path}.alignment.{name} must be actual zero-distortion pinhole intrinsics.")
+        extrinsics = alignment.get("depth_to_ir1")
+        if not isinstance(extrinsics, dict):
+            raise CalibrationError(f"{path}.alignment.depth_to_ir1 is required.")
+        for name, expected in (("rotation", (1, 0, 0, 0, 1, 0, 0, 0, 1)), ("translation", (0, 0, 0))):
+            values = extrinsics.get(name)
+            if (not isinstance(values, list) or len(values) != len(expected)
+                    or any(abs(_number(value, f"{path}.alignment.depth_to_ir1.{name}") - target) > 1e-8
+                           for value, target in zip(values, expected))):
+                raise CalibrationError(f"{path}.alignment.depth_to_ir1 must be identity; no-resampling pixels would otherwise differ.")
+        if extrinsics.get("translation_unit", "metres") not in ("m", "metres", "meters"):
+            raise CalibrationError(f"{path}.alignment.depth_to_ir1 translation_unit must be metres.")
+    return exposure
+
+
 def _validate_sample(raw: Any, index: int) -> dict[str, Any]:
     prefix = f"samples[{index}]"
     if not isinstance(raw, dict):
@@ -167,7 +257,7 @@ def _validate_sample(raw: Any, index: int) -> dict[str, Any]:
             raise CalibrationError(f"{prefix}.metadata.source_timestamp cannot be negative.")
     if meta.get("depth_semantics", "optical_z") != "optical_z":
         raise CalibrationError(f"{prefix} depth_semantics must be optical_z; ray-range depth is unsupported.")
-    if meta.get("depth_units", "m") not in ("m", "metres", "meters"):
+    if any(meta.get(key, "m") not in ("m", "metres", "meters") for key in ("depth_unit", "depth_units")):
         raise CalibrationError(f"{prefix} depth units must be metres.")
     if meta.get("projection_model", "pinhole") != "pinhole":
         raise CalibrationError(f"{prefix} projection_model must be pinhole.")
@@ -184,6 +274,7 @@ def _validate_sample(raw: Any, index: int) -> dict[str, Any]:
     for key in ("depth_profile_id", "image_profile_id", "intrinsics_profile_id"):
         if key in meta and ("profile_id" not in meta or meta[key] != meta["profile_id"]):
             raise CalibrationError(f"{prefix}.metadata.{key} does not match profile_id.")
+    exposure = _capture_evidence(meta, k, width, height, prefix)
     depth_raw = raw.get("depth_m")
     if not isinstance(depth_raw, list) or len(depth_raw) != width * height:
         raise CalibrationError(f"{prefix}.depth_m must be a flat array of exactly width*height values in metres.")
@@ -220,7 +311,10 @@ def _validate_sample(raw: Any, index: int) -> dict[str, Any]:
         warnings.append("Only the shared coordinate frame_id was supplied; image/depth projection alignment was not independently verified.")
     if not any(key in meta for key in ("frame_number", "capture_id")):
         warnings.append("No exposure frame_number/capture_id supplied; unique sample ids do not independently prove distinct exposures.")
-    return {"id": sid, "width": width, "height": height, "intrinsics": k, "metadata": meta, "depth": depth, "picks": picks, "warnings": warnings}
+    if "source_timestamps_ms" in meta and exposure is None:
+        warnings.append("No capture-session epoch for paired hardware-clock frames; matching timestamps/counters across retained sessions do not prove repeated exposures.")
+    return {"id": sid, "width": width, "height": height, "intrinsics": k, "metadata": meta, "depth": depth, "picks": picks, "warnings": warnings,
+            "source_exposure": exposure}
 
 
 def _deproject(sample: dict[str, Any]) -> tuple[np.ndarray, list[dict[str, Any]], list[str]]:
@@ -355,6 +449,7 @@ def estimate(payload: Any) -> dict[str, Any]:
     reference_sample = samples[ids.index(reference_id)]
     meta0 = reference_sample["metadata"]
     exposure_ids: dict[str, list[Any]] = {"frame_number": [], "capture_id": []}
+    source_exposures: set[tuple[Any, ...]] = set()
     for sample in samples:
         meta = sample["metadata"]
         for key in ("serial", "frame_id", "synthetic", "profile_id", "camera_model", "model", "product_id",
@@ -374,6 +469,10 @@ def estimate(payload: Any) -> dict[str, Any]:
                 if value in exposure_ids[key]:
                     raise CalibrationError(f"Each capture must have a distinct metadata.{key}; frame_id is the common coordinate frame.")
                 exposure_ids[key].append(value)
+        if sample["source_exposure"] is not None:
+            if sample["source_exposure"] in source_exposures:
+                raise CalibrationError("Each capture must contain a distinct source exposure; a retained frame replay is not another angle sample.")
+            source_exposures.add(sample["source_exposure"])
     results = [_fit(sample) for sample in samples]
     reference = results[ids.index(reference_id)]
     for result in results:

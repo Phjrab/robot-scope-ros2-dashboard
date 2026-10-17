@@ -398,6 +398,7 @@ class DepthCaptureStore:
             if compatibility is not None:
                 compatibility["id"] = sample_id
                 compatibility["metadata"]["capture_id"] = sample_id
+                compatibility["metadata"]["capture_session_id"] = metadata.get("session_id")
                 artifacts["compatibility.json"] = _json(compatibility, MAX_SAMPLE_BYTES)
             total = sum(map(len, artifacts.values()))
             if total > MAX_SAMPLE_BYTES:
@@ -455,18 +456,29 @@ class DepthCaptureStore:
 
     @_io_safe
     def compatibility_json(self, sample_id):
+        return json.loads(self.verified_artifact(sample_id, "compatibility.json")[0])
+
+    @_io_safe
+    def verified_artifact(self, sample_id, name):
+        """Return exact immutable download bytes and their verified receipt.
+
+        Keep receipt and bytes under the same lock, so a browser can bind a
+        selected catalogue entry to its original JSON/image even on plain HTTP.
+        These hashes provide stored-artifact correspondence, not TLS authenticity.
+        """
+        if name not in {"compatibility.json", "click.png"}:
+            _fail("CAPTURE_FILE_UNAVAILABLE", "Requested capture artifact is unavailable.", 409)
         with self._lock:
             path = self._sample(sample_id)
             manifest = self._manifest(path)
-            if manifest["compatibility"].get("available") is not True:
+            if name == "compatibility.json" and manifest["compatibility"].get("available") is not True:
                 _fail("COMPATIBILITY_UNAVAILABLE", "This sample preserves raw evidence only; compatibility is unavailable.", 409)
-            return json.loads(self._verified_file(path, manifest, "compatibility.json"))
+            raw = self._verified_file(path, manifest, name)
+            return raw, dict(manifest["files"][name])
 
     @_io_safe
     def click_png(self, sample_id):
-        with self._lock:
-            path = self._sample(sample_id)
-            return self._verified_file(path, self._manifest(path), "click.png")
+        return self.verified_artifact(sample_id, "click.png")[0]
 
     @_io_safe
     def export_zip(self, sample_id):

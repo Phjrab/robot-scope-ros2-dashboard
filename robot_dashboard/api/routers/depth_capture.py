@@ -5,7 +5,7 @@ import asyncio
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import Field, StrictBool, StrictInt
 
 from ...depth_capture_contract import validate_confirmation
@@ -66,9 +66,10 @@ def _store(request: Request):
 
 
 @router.get("/api/v1/slam/depth/samples")
-async def samples(request: Request) -> dict[str, Any]:
+async def samples(request: Request) -> JSONResponse:
     try:
-        return {"samples": await asyncio.to_thread(_store(request).list_samples)}
+        return JSONResponse({"samples": await asyncio.to_thread(_store(request).list_samples)},
+                            headers={"Cache-Control": "no-store"})
     except DepthCaptureError as exc:
         raise HTTPException(exc.status, detail={"code": exc.code}) from exc
 
@@ -76,20 +77,22 @@ async def samples(request: Request) -> dict[str, Any]:
 async def _download(request: Request, sample_id: str, kind: str) -> Response:
     try:
         store = _store(request)
+        artifact_headers = {}
         if kind == "compatibility":
-            import json
-            value = await asyncio.to_thread(store.compatibility_json, sample_id)
-            payload = json.dumps(value, allow_nan=False, separators=(",", ":")).encode()
+            payload, receipt = await asyncio.to_thread(store.verified_artifact, sample_id, "compatibility.json")
             mime, suffix = "application/json", "json"
         elif kind == "image":
-            payload = await asyncio.to_thread(store.click_png, sample_id)
+            payload, receipt = await asyncio.to_thread(store.verified_artifact, sample_id, "click.png")
             mime, suffix = "image/png", "png"
         else:
             payload = await asyncio.to_thread(store.export_zip, sample_id)
             mime, suffix = "application/zip", "zip"
+        if kind in {"compatibility", "image"}:
+            artifact_headers = {"X-Robot-Scope-Artifact-SHA256": receipt["sha256"],
+                                "X-Robot-Scope-Artifact-Bytes": str(receipt["bytes"])}
         return Response(payload, media_type=mime, headers={
             "Content-Disposition": f'{"inline" if kind == "image" else "attachment"}; filename="{sample_id}.{suffix}"',
-            "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
+            "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", **artifact_headers})
     except DepthCaptureError as exc:
         raise HTTPException(exc.status, detail={"code": exc.code}) from exc
 

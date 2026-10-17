@@ -1,3 +1,42 @@
+# Saved depth → native Settings integration — 2026-10-17
+
+Read [MOUNT_CALIBRATION_SETTINGS.md](MOUNT_CALIBRATION_SETTINGS.md) first for this
+follow-up. Clean main `316b1a4` retained both the existing `eb0a9c6` Settings UI and
+`78e23ce` collector. The existing Settings panel now lists/selects/imports saved
+samples with GET-only access, displays matching original IR pixels, and retains
+original timestamps, frame counters and artifact provenance in relative analysis
+exports. No duplicate camera controls or angle algorithm were added.
+
+Exact original JSON/image downloads are verified against their stored hashes and
+catalogue receipt. Pair/intrinsics/zero-distortion/identity-alignment evidence is
+checked, the 1 ms gate stays unchanged, and changed catalogue entries or late
+responses cannot restore previous results. Historical samples are not expired
+merely by age; same-exposure replay is rejected with hardware clock epochs scoped
+to their capture session when available. New exports include capture_session_id.
+
+At 10:15:02Z the robot was still clean `78e23ce`, IDLE, camera free/known and bridge
+OFF/disabled. SDK 2.55.1 pipeline/context/config imports and original native hash
+passed without opening a device; USB recognizes D435i. The earlier SDK-unavailable
+note is superseded. Device profiles/firmware remain evidence from the previous
+actual capture, not a new profile probe. This follow-up has not started a camera,
+restarted a robot service or deployed Settings.
+
+The real archived sample was loaded into the product Settings panel on a local
+no-hardware harness using the actual routers/store: IR display, original 640×480
+pixel selection, six picks, metadata and one-sample estimate/export blocking passed.
+No actual relative angle is claimed. A separate synthetic demo traversed the real
+Python estimate/export APIs and returned RELATIVE_ONLY with 0/+9.999446/−8.000435°.
+Whole Python 2,266 (2 skip), JavaScript 434, related browser 18, ruff/mypy/source
+secret/diff checks passed. Private sensor evidence stays outside Git.
+
+Next minimum step is one current approval for the prepared exact candidate's
+dashboard/broker restart, two stationary same-wall captures with operator-only
+pitch adjustment, end-to-end Settings analysis/export, cleanup and explicit
+sequential Stereo return. SDK/config provisioning is unnecessary. Preserve IDLE
+and existing raw sample/map data; do not terminate an unsaved session. Keep the
+bridge OFF. Body attitude/absolute extrinsics, independent accuracy, native SLAM
+wall duplication and trajectory jumps remain unqualified and separate.
+
 # Stationary depth collection deployed and observed — 2026-10-17
 
 Read [DEPTH_CAPTURE.md](DEPTH_CAPTURE.md) and [validation](DEPTH_CAPTURE_VALIDATION.json)

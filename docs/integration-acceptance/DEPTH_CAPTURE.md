@@ -159,6 +159,16 @@ the merged product/test/experiment tree matches it; only evidence docs differ.
 
 ## Collection and return to Stereo
 
+The native Settings panel now has a read-only saved-sample catalogue/import path;
+see [MOUNT_CALIBRATION_SETTINGS.md](MOUNT_CALIBRATION_SETTINGS.md). It reuses these
+GET endpoints and exact stored bytes, without adding camera controls. Existing
+stored captures are preserved. New compatibility exports also record
+`metadata.capture_session_id` so hardware-clock resets can be distinguished across
+sessions. The consumer accepts older files without this field and keeps their
+original timestamps; it does not relabel historical evidence as a fresh capture.
+This software integration has not yet been deployed over the actual `78e23ce`
+camera trial described above.
+
 1. Finish and explicitly stop the current SLAM mode. Resolve unsaved-map choices
    in that mode; the depth panel never discards a map or switches mode automatically.
 2. In Mapping, use **정지 Depth 캡처**. The operator seats and
