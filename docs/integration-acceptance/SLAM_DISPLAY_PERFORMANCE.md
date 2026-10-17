@@ -1,5 +1,10 @@
 # SLAM display performance — 2026-10-16
 
+This is the historical offline implementation record. The subsequent approved
+deployment and stationary observation are in
+[SLAM_DISPLAY_RUNTIME.md](SLAM_DISPLAY_RUNTIME.md); use that record for current
+device/source ownership and measured runtime results.
+
 The user reported choppy mapping display and authorized software optimization.
 They confirmed the robot is powered OFF. Device observation remains deferred:
 no SSH/device probe, deployment, service restart, camera session, movement or

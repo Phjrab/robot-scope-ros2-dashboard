@@ -1,4 +1,19 @@
-# Current display optimization — 2026-10-16
+# Current deployed display optimization — 2026-10-17
+
+Candidate `91f9006de6162d9e48f635f5f79a76e014950fd8` is deployed with both Linux
+CI jobs passed. Read [SLAM_DISPLAY_RUNTIME.md](SLAM_DISPLAY_RUNTIME.md) and its
+JSON record before the historical offline result below. One approved stationary
+observation received 176 messages in 60.122 seconds; median receipt gap 0.334 s.
+Real image/camera pose/tracking and overlays were displayed; a 158-point global
+map used one full transfer plus 38 references. This is not a large-map FPS claim.
+The guard stopped at session age 90.786 s and cleanup completed at 96.275 s.
+SLAM is IDLE, camera free, source clean, and the control bridge is now confirmed
+inactive AND systemd disabled after the user's administrator step. Keep it OFF.
+No movement, operating TF/initialpose/goal, reuse or second camera window occurred.
+Existing UI, environment/stereo configs and protected map metadata/revisions were
+preserved. No further device action or background continuation is scheduled.
+
+# Historical offline display optimization — 2026-10-16
 
 The user authorized mapping-display software optimization and confirmed the
 robot is powered OFF. No new device access, deployment or runtime observation

@@ -1,0 +1,235 @@
+{
+  "schema": "robot-scope.slam-display-runtime.v1",
+  "date_kst": "2026-10-17",
+  "implementation_commit": "91f9006de6162d9e48f635f5f79a76e014950fd8",
+  "previous_runtime_commit": "cdebee40d212759703300ffc1e2de17ed93a4846",
+  "ci": {
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/38998046853",
+    "conclusion": "success",
+    "linux_matrix_jobs_passed": 2
+  },
+  "scope": "approved full-main deployment plus one stationary Stereo observation; no driving",
+  "deployment": {
+    "source_files_verified": 1307,
+    "published_ui_preserved": true,
+    "config_unchanged": true,
+    "source_update_includes_preexisting_diagnostic_policy_code": true,
+    "new_native_mask_or_navigation_execution": false,
+    "events": [
+      {
+        "name": "previous_source_backup",
+        "epoch": 1792224735.2085311
+      },
+      {
+        "name": "preflight_and_backups_complete",
+        "epoch": 1792224735.2094064
+      },
+      {
+        "name": "published_ui_preserved_in_stash",
+        "epoch": 1792224735.267318
+      },
+      {
+        "name": "source_fast_forwarded_environment_unchanged",
+        "epoch": 1792224735.7392955
+      },
+      {
+        "name": "broker_restarted",
+        "epoch": 1792224736.6022675
+      },
+      {
+        "name": "dashboard_restart_requested",
+        "epoch": 1792224736.7068355
+      },
+      {
+        "name": "ready_bridge_off_camera_free",
+        "epoch": 1792224742.0222325
+      }
+    ]
+  },
+  "runtime": {
+    "dashboard": {
+      "MainPID": "19437",
+      "ActiveState": "active",
+      "InvocationID": "4b27c3eee261402a9ba0355f2fbb1347"
+    },
+    "broker": {
+      "MainPID": "19266",
+      "ActiveState": "active",
+      "InvocationID": "6bf04e70f8464bdca9d56731b8b6bf51"
+    },
+    "dashboard_domain": 0,
+    "dashboard_rmw": "rmw_cyclonedds_cpp",
+    "broker_domain": 71,
+    "broker_rmw": "rmw_fastrtps_cpp",
+    "broker_uid": 1000,
+    "broker_socket": "/run/robot-scope-slam/broker.sock",
+    "broker_source": "/home/unitree/robot-scope",
+    "isaac_image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5",
+    "python": "3.10.12",
+    "websockets": "15.0.1",
+    "environment_sha256": "bf76434dbcb4fdd96efdf9e221c18fb746ad273d59e26885ab555161e35f6066",
+    "stereo_config_sha256": {
+      "scope.json": "b9a9279f0e48e3773b96a859e18c0c9af60a0ba385d6b70fa0c25012e252d76e",
+      "input.json": "5d92b6a3f0e5bc0f7395158b7a0e0ce7f496debd1d72dcad4681665bfb4fc36c",
+      "camera.json": "3f65c345a18c2cca678e5dfdf3b486c2e9cb2b7f968787f489865ccd87fa3a5b",
+      "runtime.json": "e0b35b1ddc752099fcbe9ff07868f4b42596cef655e38ca61fb547940ee712d8"
+    },
+    "served_ui": {
+      "robot_dashboard/static/features/slam/dashboard.js": {
+        "sha256": "54c782aac2c407fd9e5e955bda6db7eca03b16561f39a8f1a63383365451b239",
+        "matches_candidate": true,
+        "cache_control": "no-store"
+      },
+      "robot_dashboard/static/features/slam/presentation.js": {
+        "sha256": "0d4902a3514f92821f1a6cc5fefb82e95486d0883f8bbf43016ff5e0fa3374b0",
+        "matches_candidate": true,
+        "cache_control": "no-store"
+      },
+      "robot_dashboard/static/features/slam/presentation.css": {
+        "sha256": "b5b34e3baf951afc6a31aa0cdf3c374ee015bac9c181bdb6a22e70e660296b67",
+        "matches_candidate": true,
+        "cache_control": "no-store"
+      }
+    }
+  },
+  "observation": {
+    "session_id": "8ff8b15104b2476b9ccc1838fa3055bb",
+    "generation": 1,
+    "map_epoch": "03795fe7bf0b4a9eb3c75b383ab42a7d",
+    "started_at_utc": "2026-10-17T08:14:15.123550+00:00",
+    "finished_at_utc": "2026-10-17T08:15:15.243956+00:00",
+    "elapsed_s": 60.12154387499322,
+    "measurements": {
+      "counts": {
+        "connection_attempts": 1,
+        "valid_json_frames": 176,
+        "active_context_frames": 176
+      },
+      "channel_available_frames": {
+        "image": 176,
+        "camera_pose": 176,
+        "tracking": 176,
+        "overlay": 174,
+        "current_observations": 176,
+        "trajectory": 176,
+        "global_map": 39
+      },
+      "geometry_declared_counts": {
+        "global_map:absent_or_invalid": 137,
+        "trajectory:full": 176,
+        "global_map:full": 1,
+        "global_map:reference": 38
+      },
+      "connections": 1,
+      "observed_context_count": 1,
+      "valid_frame_json_bytes_total": 22733534,
+      "frame_json_bytes": {
+        "min": 92973,
+        "median": 140565,
+        "p95": 142380,
+        "max": 150926
+      },
+      "within_connection_receipt_gaps_s": {
+        "count": 175,
+        "min": 0.22340350000013132,
+        "median": 0.3339952499954961,
+        "p95": 0.43093499999667984,
+        "max": 0.4963686669943854
+      }
+    },
+    "global_map_first_receiver_elapsed_s": 47.17094941699179,
+    "global_map_points": 158,
+    "overlay_alignment_unavailable_frames": 2,
+    "overlay_unavailable_reason": "NO_VALID_TIME_ALIGNMENT",
+    "browser_visuals": "live image/overlay/camera pose; retained global map/trajectory after stop",
+    "manual_dashboard_start": "observed",
+    "manual_dashboard_stop": "not_requalified_guard_had_stopped_before_click",
+    "stop_guard": {
+      "schema": "robot-scope.stationary-session-guard.v1",
+      "session_id": "8ff8b15104b2476b9ccc1838fa3055bb",
+      "generation": 1,
+      "stop_request_at_session_age_s": 90,
+      "cleanup_budget_s": 150,
+      "cleanup_confirmed": true,
+      "events": [
+        {
+          "at_utc": "2026-10-17T08:14:10.918824+00:00",
+          "kind": "armed"
+        },
+        {
+          "at_utc": "2026-10-17T08:15:25.458365+00:00",
+          "kind": "stop_requested",
+          "state": "STOPPING",
+          "session_age_s": 90.78635870098242
+        },
+        {
+          "at_utc": "2026-10-17T08:15:30.923616+00:00",
+          "kind": "api_cleanup_confirmed",
+          "session_age_s": 96.27468389598243,
+          "budget_exceeded": false
+        }
+      ],
+      "cleanup_within_budget": true
+    }
+  },
+  "preservation": {
+    "state_json_count": 17,
+    "native_packages": 7,
+    "metadata_hashes_and_native_preview_revisions_unchanged": true,
+    "comparison_note": "Initial cross-process comparison used decoded lists versus Python tuples; JSON-normalized comparison and per-file hashes matched. Both receipts retained."
+  },
+  "final_state": {
+    "at_utc": "2026-10-17T08:19:45.209676+00:00",
+    "slam": "IDLE",
+    "cleanup_required": false,
+    "camera_owner": "free",
+    "camera_reserved": false,
+    "owned_runtime_processes": [],
+    "bridge": "inactive",
+    "bridge_main_pid": 0,
+    "bridge_unit_file_state": "disabled",
+    "bridge_autostart_env": false,
+    "driving": false,
+    "operational_pose_applied": false,
+    "background_continuation_scheduled": false
+  },
+  "validation_reused": {
+    "full_python_total": 2166,
+    "python_passed": 2164,
+    "python_skipped": 2,
+    "js_passed": 393,
+    "exact_candidate_ci": "success",
+    "new_private_observer_offline_tests": 17,
+    "unchanged_code_tests_not_repeated": true
+  },
+  "limitations": [
+    "receiver cadence is not camera/browser FPS or calibrated end-to-end latency",
+    "158-point stationary map is not the prior13993-point moving-map workload",
+    "observer and browser are two consumers; observer compression disabled and its parsing/disk costs included",
+    "two unmatched overlays correctly withheld while image and pose remained available",
+    "retained completeness/map reuse/precision/body pose/rotation distortion not qualified",
+    "manual UI stop was disabled after guard stop; this window validates guard/API cleanup",
+    "no second camera session started"
+  ],
+  "private_evidence_relative": "robot-scope-hardware-validation-private/slam-display-deploy-20261017/",
+  "evidence_sha256": {
+    "approval.json": "44137d9dbfa1ffd70637a16662eed6392d862a88b62c2590eb97a398434e2c44",
+    "baseline-readonly.json": "49903df84abcdc2b99cd40383ab774e838fb024366596eaffbf0d765e0c8468c",
+    "owners-and-inventory.json": "f5b6a97780ec64b401b5c1a4ccb107533ad2f66473b950afc3dee8a59547bfb9",
+    "deployment-manifest.json": "494fb391b37f94b4e89eb23c53d26ab36f56cdd8d9f404523f455123fa2754cd",
+    "deployment-result.json": "58fca69d496bd1916be4b78d8f8a208002da1f80d9024fc2d88e900cb0565c22",
+    "ci.json": "fcac48ab0356e1046428a5aaa5766f5e54a5bcc5f2c77cc7d0f5b4facf973d07",
+    "source-sha256.json": "b9b6091d4d0d02a13a8fc648a5f55ac149a0a437fa9be087693f716a625e810d",
+    "observe_wire.py": "88bcf5f5d809532b42636d8663058a498b940d2a4c80232826c1a91ad1c923a8",
+    "observe_wire_test.py": "8e3ba652eabff7b2910707b744f695e45d0fed359338f8c287364c1dfa708e56",
+    "wire01/summary.json": "fd4a608e9152016dd3f63d9514ac33795c746d9abcbcb8bcc4340ff43d7c9a82",
+    "wire01/samples.jsonl": "43a8ee01ed65e0c03c390f9315633bd81e90ec9ba1b537e5f85bf675aecda040",
+    "final-state.json": "ec90e04e6a5811e395bda30dd7c2d9ee5125a8dbb5a99697fad8c8b1c99c07fb",
+    "final-preservation.json": "b13a0d630fcc72557b3aa571d7f752163d491863c823562b2e355c045038fe21",
+    "final-preservation-normalized.json": "f36fe6a801611de618b830bde477c1a7374bb7753d01b148dfa2d179832da09b",
+    "served-ui.json": "dc3220b99558637d6f849c31a7e9bf9432973462c14dca024aecd513f7dcad56",
+    "live-stereo01.png": "3701fb5d44a4143507f9855437ade33471b1ce700b36cfc3281f5d06bce888a9",
+    "stopped-stereo01.png": "cd4e9828de1d3c792dc5867607447cb094793a9cd1d24308277fab8fdae51c47",
+    "global-map-stopped01.png": "e3fa5efbb69df25f8ff7fbdd8aad165edca99ea625d36c739734415896048883"
+  }
+}
