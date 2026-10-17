@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="/static/typography.css">
   <link rel="stylesheet" href="/static/features/resources/view.css">
   <link rel="stylesheet" href="/static/features/slam/presentation.css">
+  <link rel="stylesheet" href="/static/features/settings/mount_calibration.css">
   <script src="/static/typography.js" defer></script>
 </head>
 <body>
@@ -863,6 +864,48 @@
               </label>
               <label><span>Odometry</span><select id="odomSource"><option value="">탐색 중…</option></select></label>
               <label><span>2D 맵</span><select id="mapSource"><option value="">없음</option></select></label>
+            </div>
+          </article>
+          <article id="mount-calibration-panel" class="panel settings-panel mount-calibration" aria-labelledby="mount-calibration-heading">
+            <div class="panel-header">
+              <div><div class="eyebrow">CAMERA MOUNT · RELATIVE PITCH</div><h2 id="mount-calibration-heading">카메라 장착 각도 보정</h2></div>
+              <div id="mount-calibration-status" class="panel-state waiting" role="status" aria-live="polite">IMPORT ONLY · 실시간 보정 캡처 미연동</div>
+            </div>
+            <div class="settings-card-body">
+              <p class="calibration-intro">앉은 채 정지한 Go2에서 카메라 피치만 조절하고, 같은 전방 벽의 깊이 점으로 기준 촬영 대비 회전을 비교합니다. 현재는 파일 가져오기 모드이며, 이 보정 화면의 실시간 깊이 캡처는 아직 연동되지 않았습니다.</p>
+    <div id="mount-calibration-notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <div class="calibration-workspace">
+      <aside class="sample-panel calibration-card">
+        <div class="section-title"><h3>촬영 목록</h3><span id="mount-calibration-sample-total" class="count-pill">0</span></div>
+        <p class="section-copy">비교할 촬영을 고르고, 하나를 기준으로 지정하세요.</p>
+        <div class="source-controls"><button id="mount-calibration-import-button" class="button secondary" type="button"><span aria-hidden="true">↥</span> JSON 파일 가져오기</button><input id="mount-calibration-file-input" type="file" accept=".json,application/json" multiple hidden><button id="mount-calibration-demo-button" class="text-button" type="button">합성 데모 불러오기</button></div>
+        <div id="mount-calibration-sample-list" class="sample-list" aria-label="촬영 데이터"></div>
+        <div class="import-hint"><strong>가져오기 형식</strong><p>샘플, {samples}, 또는 내보낸 {input} JSON. 여러 파일을 함께 선택할 수 있습니다.<br>이전 목록을 교체합니다. 합계 최대 30 MB · 12개 촬영 · 640 × 480</p><details><summary>데이터 조건 보기</summary><p>보정된 깊이 영상의 실제 픽셀만 선택합니다. 깊이는 미터 단위 optical_z이며, 같은 깊이 스트림의 내부 파라미터가 필요합니다. RGB 사진과 깊이 픽셀의 일치는 가정하지 않습니다.</p></details></div>
+      </aside>
+      <section class="depth-panel calibration-card" aria-labelledby="mount-calibration-depth-heading">
+        <div class="depth-heading"><div><div class="eyebrow small">DEPTH POINT PICKER</div><h3 id="mount-calibration-depth-heading">전방 벽에서 점 선택</h3></div><span id="mount-calibration-source-badge" class="source-badge" hidden>가져오기 대기</span></div>
+        <div class="viewer-toolbar"><span id="mount-calibration-current-sample-label">촬영 선택</span><span id="mount-calibration-image-dimensions" class="mono">—</span></div>
+        <div class="canvas-wrap" id="mount-calibration-canvas-wrap"><div id="mount-calibration-depth-empty" class="depth-empty">촬영 데이터를 가져오면 깊이 영상을 표시합니다.<br>합성 데모로 점 선택과 분석 흐름을 확인할 수도 있습니다.</div><canvas hidden id="mount-calibration-depth-canvas" width="320" height="240" tabindex="0" aria-label="깊이 영상. 마우스로 같은 벽 위의 지점을 선택하거나 아래 픽셀 좌표 입력을 사용하세요."></canvas><div class="canvas-caption"><span class="live-off-dot"></span>깊이 히트맵 · 라이브 영상 아님</div></div>
+        <div class="depth-legend"><span>가까움 <b id="mount-calibration-depth-min">—</b></span><div class="gradient-line"></div><span><b id="mount-calibration-depth-max">—</b> 멀음</span></div>
+        <div class="point-toolbar"><div><strong id="mount-calibration-point-count">0</strong><span>개 선택</span><span class="muted"> / 최소 6개</span></div><div><button id="mount-calibration-undo-button" class="button subtle" type="button">↶ 되돌리기</button><button id="mount-calibration-clear-button" class="button subtle" type="button">모두 지우기</button></div></div>
+        <p id="mount-calibration-point-quality" class="point-quality">한 직선에 모이지 않도록 가로·세로로 넓게 선택하세요.</p>
+        <details class="manual-points"><summary>픽셀 좌표로 점 추가 · 선택 목록</summary><form id="mount-calibration-point-form"><label>u <input id="mount-calibration-point-u" type="number" min="0" step="1" required placeholder="160" aria-label="점의 u 좌표"></label><label>v <input id="mount-calibration-point-v" type="number" min="0" step="1" required placeholder="120" aria-label="점의 v 좌표"></label><button id="mount-calibration-point-add" type="submit" class="button secondary" disabled>점 추가</button></form><div id="mount-calibration-point-list" class="point-list"></div></details>
+      </section>
+      <aside class="inspector-panel">
+        <section class="calibration-card metadata-panel"><div class="section-title"><h3>소스 메타데이터</h3><span class="tiny-label">READ ONLY</span></div><dl id="mount-calibration-metadata-list" class="metadata-list"></dl><div id="mount-calibration-fixture-note" class="fixture-note"></div></section>
+        <section class="calibration-card schematic-panel"><div class="section-title"><h3>피치 회전 개념도</h3><span class="tiny-label">SIDE VIEW</span></div>
+          <svg id="mount-calibration-pitch-schematic" viewBox="0 0 300 176" role="img" aria-label="정지한 로봇에서 카메라만 기울이는 측면 개념도. 실제 로봇 모델이나 자세가 아닙니다.">
+            <defs><linearGradient id="mount-calibration-body-fill" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#486476"/><stop offset="1" stop-color="#253c4c"/></linearGradient><marker id="mount-calibration-ray-arrow" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6" fill="#55e1c1"/></marker></defs>
+            <path d="M24 146 H278" stroke="#294454" stroke-width="1"/><path d="M42 111 L87 87 L167 90 L193 111 L149 132 L64 130Z" fill="url(#mount-calibration-body-fill)" stroke="#668090"/><path d="M42 111 L64 130 L64 138 L43 123Z M149 132 L193 111 L193 123 L149 143Z" fill="#203341" stroke="#425d6d"/><path d="M65 121 L54 139 L80 144 M160 121 L174 138 L146 146 M91 109 L96 139 L113 144" fill="none" stroke="#68828d" stroke-width="7" stroke-linecap="round"/>
+            <path d="M139 94 L139 67" stroke="#8497a2" stroke-width="5"/><path d="M139 67 L268 67" stroke="#687f8a" stroke-width="1.5" stroke-dasharray="5 5"/>
+            <g id="mount-calibration-camera-rotation" transform="rotate(0 139 67)"><path d="M139 67 L263 67" stroke="#55e1c1" stroke-width="2" marker-end="url(#mount-calibration-ray-arrow)"/><rect x="122" y="56" width="40" height="21" rx="5" fill="#d5e6e9"/><rect x="153" y="60" width="12" height="13" rx="3" fill="#46cdb2"/><circle cx="130" cy="66" r="3" fill="#3a5263"/></g>
+            <circle cx="139" cy="67" r="3" fill="#102a32"/><text x="194" y="48" fill="#91a9b5" font-size="10">기준 방향</text><text id="mount-calibration-schematic-angle" x="207" y="97" fill="#5ee0c0" font-size="17" font-weight="600">—</text><text x="25" y="165" fill="#718b9a" font-size="10">앉은 상태 · 본체 고정 조건</text>
+          </svg><p>실제 로봇 모델·자세가 아닙니다.<br>추정 완료 후 선택 촬영의 상대 회전을 표시합니다.</p></section>
+      </aside>
+    </div>
+    <section class="conditions-panel calibration-card" aria-labelledby="mount-calibration-conditions-heading"><div class="conditions-intro"><div class="eyebrow small">BEFORE ESTIMATING</div><h3 id="mount-calibration-conditions-heading">촬영 조건 확인</h3><p id="mount-calibration-conditions-description">촬영 당시의 세 가지 고정 조건을 직접 확인하세요. 장치 검증을 대신하지 않습니다.</p></div><fieldset id="mount-calibration-conditions"><legend class="sr-only">추정에 필요한 고정 조건</legend><label><input id="mount-calibration-stationary-check" type="checkbox"><span><strong>Go2는 앉은 상태로 정지</strong><small>촬영 사이 본체 자세와 위치가 변하지 않음</small></span></label><label><input id="mount-calibration-wall-check" type="checkbox"><span><strong>모든 점은 같은 고정 평면 벽</strong><small>벽 모서리·바닥·다른 물체의 점은 제외</small></span></label><label><input id="mount-calibration-pitch-check" type="checkbox"><span><strong>마운트의 피치만 변경</strong><small>좌우 회전·롤 회전 없이 카메라 기울기만 조절</small></span></label></fieldset><div class="estimate-action"><button id="mount-calibration-estimate-button" class="button primary" type="button" disabled><span aria-hidden="true">↗</span> 상대 피치 추정</button><p id="mount-calibration-estimate-readiness">위 세 가지 조건을 확인하세요.</p></div></section>
+    <section class="results-panel calibration-card" aria-labelledby="mount-calibration-results-heading"><div class="results-top"><div><div class="eyebrow small">RELATIVE PITCH ESTIMATE</div><h3 id="mount-calibration-results-heading">추정 결과</h3></div><button id="mount-calibration-export-button" class="button secondary" type="button" disabled>↓ 분석 JSON 내보내기</button></div><div id="mount-calibration-results-empty" class="results-empty"><span aria-hidden="true">⌁</span><div><strong>아직 계산한 결과가 없습니다.</strong><p>점 선택과 촬영 조건을 확인한 뒤 추정하세요. 기준 대비 각도와 평면 적합 품질을 함께 보여드립니다.</p></div></div><div id="mount-calibration-results-content" hidden><div id="mount-calibration-results-summary" class="results-summary"></div><div class="table-scroll"><table><thead><tr><th scope="col">촬영</th><th scope="col">기준 대비 피치</th><th scope="col">평면 RMSE</th><th scope="col">인라이어</th><th scope="col">법선 [x, y, z]</th><th scope="col">상태</th></tr></thead><tbody id="mount-calibration-results-body"></tbody></table></div><div id="mount-calibration-result-warnings" class="result-warnings"></div></div><div class="verification-warning"><span aria-hidden="true">ⓘ</span><p>이 값은 기준 촬영 대비 상대 피치입니다. 카메라↔Go2의 절대 실장 각도나 전체 6DoF 외부 파라미터를 확정하지 않습니다. 마운트 회전축에 따른 광학 중심 이동도 별도 검증이 필요합니다.</p></div></section>
+              <p class="calibration-scope-note">분석 JSON에는 원시 깊이·내부 파라미터·선택 점과 품질 경고를 함께 보관합니다. TF 저장·적용이나 VSLAM 시작은 수행하지 않습니다.</p>
             </div>
           </article>
           <article class="panel settings-panel control-bridge-service-panel" aria-labelledby="controlBridgeServiceHeading">

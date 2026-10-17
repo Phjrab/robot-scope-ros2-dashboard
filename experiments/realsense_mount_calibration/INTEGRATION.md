@@ -1,6 +1,6 @@
 # 운영 대시보드 연결 전 인계
 
-이 폴더는 다른 VSLAM 작업과 충돌하지 않는 독립 실험이다. 기존 robot_dashboard 파일·카메라 설정·운영 TF를 변경하지 않는다.
+초기 독립 실험의 계산 코드는 이제 robot_dashboard/mount_calibration.py에서 재사용하며, 기본 대시보드 설정 패널과 API가 import 기반 분석을 제공합니다. 이 폴더는 별도 데모 실행과 검증 자료를 보존합니다. 카메라 설정·운영 TF·장치 flash에는 적용하지 않습니다. 현재 UI/API 연결은 docs/integration-acceptance/MOUNT_CALIBRATION_SETTINGS.md를 참고하세요.
 
 ## 다른 Codex 채팅의 역할
 - 현재 카메라/ROS 상태를 확인하고, 기존 owner/broker/session lock을 재사용하는 depth 수집 모드 구현

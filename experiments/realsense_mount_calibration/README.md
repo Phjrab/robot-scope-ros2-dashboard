@@ -1,5 +1,7 @@
 # RealSense 장착 pitch 보정 — 오프라인 시제품
 
+이 코드는 전체 Robot Scope checkout에서 실행합니다. 계산 핵심은 `robot_dashboard/mount_calibration.py`를 재사용하며, 현재 대시보드 설정 패널 통합 안내는 `docs/integration-acceptance/MOUNT_CALIBRATION_SETTINGS.md`를 참고하세요.
+
 로봇을 **앉은 초기 자세에서 정지**시킨 뒤 카메라의 상하 각도만 바꾸어 같은 벽을 촬영하고, 사용자가 선택한 여러 깊이 점으로 **기준 샘플 대비 상대 pitch**를 계산하는 독립 실험입니다.
 
 ## 구현 범위와 한계
