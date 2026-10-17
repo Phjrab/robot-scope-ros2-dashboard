@@ -1,26 +1,57 @@
-# Stationary depth collection software — 2026-10-17
+# Stationary depth collection deployed and observed — 2026-10-17
 
-Read [DEPTH_CAPTURE.md](DEPTH_CAPTURE.md) and [validation](DEPTH_CAPTURE_VALIDATION.json) for the collection/export contract and
-explicit mode transition. The additive `realsense_depth/calibration` mode shares
-SLAM session, broker, managed camera/domain locks and cleanup authority. The
-Mapping panel requires fresh seated/robot-stationary/camera-stationary attestations
-per sample; no pitch algorithm, point-selection calibration UI, body-level
-assumption, motion command, TF application or Isaac/RGB-D migration is included.
-Raw IR1/Z16 and factory metadata remain separate from a qualified flat optical-Z
-compatibility JSON. Missing/unsupported correspondence withholds compatibility.
+Read [DEPTH_CAPTURE.md](DEPTH_CAPTURE.md) and [validation](DEPTH_CAPTURE_VALIDATION.json)
+for the collection/export contract, actual evidence and limits. The user approved
+exact source `78e23ce9edb59790a665055dfd23f230be018b43` and the current seated/fixed
+conditions. Exact-candidate CI passed; clean deployment matched 1,335 source hashes.
+This completed window supersedes the initial software-only/no-sample depth note.
 
-Software fixtures and browser tests are not real camera captures. Read-only robot
-inspection still found deployed `91f9006`, prior Stereo session IDLE and camera
-unreserved, bridge inactive/disabled. The preserved SDK2.55.1 native libraries are
-present, but the Python namespace has only pyrsutils, without pipeline bindings;
-new depth capability fails closed until that dependency is provisioned. No new
-sample, service restart, configuration write or hardware collection occurred.
+The matching SDK 2.55.1 Python extension was extracted from an existing preserved
+source image and exposed through broker-only private PYTHONPATH. No build, pip,
+Isaac/SDK upgrade or device calibration write occurred. Existing dashboard DDS,
+Stereo config, native library/image and protected data were preserved. Only the
+separate private depth config and reviewed broker entry changed; dashboard/broker
+restarted under the approval. Shared session/camera/domain ownership still applies.
 
-Next hardware work requires a bundled current approval: provision the matching
-SDK Python binding without upgrading existing components, deploy the reviewed
-candidate, add the separate private depth config, restart dashboard/broker, then
-stationary sample→export→stop→camera-free and explicit return-to-Stereo checks.
-Keep bridge OFF. Do not reuse the old movement/session approval for this new mode.
+One actual IR1+Z16 sample `a58f3549f327424f8b6241d89783974f` is stored in the robot's
+`multi-slam/depth-samples/` directory. Actual D435I identity/firmware/profiles were
+retained; 640×480×30 nominal profiles have zero source-time skew in global_time.
+All 307,200 pixels of exported optical-Z JSON/PNGs were checked against raw data;
+293,270 valid nonzero values and 13,930 nulls match exactly. Equal zero-distortion
+intrinsics and identity extrinsics qualify same-pixel correspondence. Body attitude
+is absent and body level is not assumed. The real panel selected/displayed the
+sample; HTTP ZIP/JSON/image rereads passed, but native browser file-save completion
+is unverified because its download wait timed out.
+
+After depth cleanup an explicit 60-second Stereo tracking window confirmed actual
+IR1/IR2 profiles and live `enable_depth=false`, `enable_sync=false`. Six retained
+matched pairs had zero skew. 159 active WebSocket observations had image/camera
+pose/tracking/current observations/trajectory; 157 had overlay. This is a return-to-
+Stereo observation, not a no-regression claim: 93 native interframe-gap warnings,
+25 libusb warnings and widening timestamp-cache spans were recorded. Whole-Jetson
+CPU/GPU/RAM samples exist, but no matched pre/post baseline, sustained IR FPS,
+USB-throughput measurement or calibrated display-latency result exists. Full
+current ROS CameraInfo matrices/static-TF equality remain unrecorded; actual SDK
+calibration and WebSocket intrinsics are available.
+
+The windows completed cleanup (depth 10.56 s; Stereo 65.59 s from start, guard stop
+at 60.22 s). Final state is IDLE, camera free/known, bridge OFF and disabled. No motion,
+posture command, operating TF application, initialpose or goal occurred. Keep the
+bridge OFF. The approved bounded window is complete; no next session is scheduled.
+The final 10:03:00Z check stopped the observation-created domain 71 CLI daemon and
+confirmed that only the existing broker Python remained in the camera container.
+Deployed source stayed clean; original config hashes and package revisions matched. After the window,
+the UI showed Go2 direct ROS disconnected at 19:01 KST; dashboard/API and the saved
+sample still served. Its cause is unqualified, so do not report the overall robot
+connection as currently healthy.
+
+Next minimum work is operator-directed multi-angle collection with fresh stationary
+confirmation per sample and use of the independently developed point-selection/
+pitch UI. No angle solver or duplicate calibration UI was added here. Independent
+accuracy, body extrinsics and native SLAM wall/trajectory diagnosis remain separate;
+depth collection does not resolve those problems. Same-device concurrent
+Stereo+depth is deliberately unsupported. Source is unchanged after its passing
+software/CI checks; this closeout only records hardware evidence.
 
 # Latest manual Stereo observation — 2026-10-17
 

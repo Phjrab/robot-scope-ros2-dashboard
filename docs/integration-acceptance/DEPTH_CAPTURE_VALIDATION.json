@@ -1,18 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "date_kst": "2026-10-17",
   "source_baseline": "c6fedc05e5086fa755cc92b1a2cf2daa56ffc41a",
   "deployed_implementation_read_only": "91f9006de6162d9e48f635f5f79a76e014950fd8",
-  "deployment_performed": false,
-  "sensor_collection_performed": false,
-  "new_real_samples": 0,
+  "deployment_performed": true,
+  "sensor_collection_performed": true,
+  "new_real_samples": 1,
   "stereo_simultaneous_capture_supported": false,
   "calibration_or_tf_applied": false,
   "motion_commands_sent": false,
-  "hardware_blockers": [
-    "current_authorization_required_for_deployment_and_camera_window",
-    "preserved_py_realsense2_namespace_missing_pipeline_binding"
-  ],
+  "hardware_blockers": [],
   "software_validation": {
     "python": {
       "run": 2220,
@@ -39,13 +36,21 @@
     "frontend_syntax": "PASS (85 modules)",
     "independent_review": "completed; optional store startup coupling fixed",
     "pitch_consumer_contract": "PASS: qualified export accepted by existing validator after simulated user selections; original points remain empty; per-sample timing excluded from static alignment",
-    "optional_prototype_entire_suite": "NOT_RUN: standalone TestClient import requires missing httpx2; no dependency installed; prototype source unchanged"
+    "optional_prototype_entire_suite": "NOT_RUN: standalone TestClient import requires missing httpx2; no dependency installed; prototype source unchanged",
+    "unchanged_source_hardware_followup": "Existing passing exact-source results reused; no repeat full run during this documentation-only closeout."
   },
   "limits": [
-    "No live current device/firmware/depth profiles or effective enable_depth readback",
-    "No real sample/USB/CPU/GPU/memory/tracking regression measurement",
-    "No native browser file-save qualification",
-    "No camera-to-body calibration, pitch estimation or native SLAM geometry fix"
+    "Single stationary depth sample; no pitch result or independent geometric ground truth.",
+    "No body attitude measurement; user confirmation only; seated body not assumed level.",
+    "No VSLAM+depth concurrency; modes intentionally exclusive.",
+    "No matched before/after Stereo baseline; cannot claim no performance regression or attribute timing warnings to prior depth session.",
+    "No measured sustained IR frame rate and no calibrated sensor-to-screen latency.",
+    "Full current ROS CameraInfo matrices/static TF equality not captured; current SDK calibration and WS intrinsics retained.",
+    "No USB throughput capture; only actual device USB2.1 link and control-transfer warnings.",
+    "No movement, operational TF application, initialpose, goal, or navigation validation in this trial.",
+    "Native browser file-save completion remains unverified after download wait timeout.",
+    "Only one actual angle; multi-angle collection and separate pitch UI workflow remain.",
+    "After the completed window, the dashboard showed Go2 direct ROS disconnected at 19:01 KST; dashboard/API/sample remained available. Overall current robot connection health is not established."
   ],
   "source_sha256": {
     "robot_dashboard/app.py": "c1222bf972c0ab070a0f6e2b14e204c624303ec3ab8b229aa087365ea6fc7b23",
@@ -67,7 +72,334 @@
     "js-unit-final.log": "fa953364bd5e18d382dca343ca59552657f86ad4173d0d6d740882839127125e",
     "ui-synthetic/verification.json": "ac51174769a809073664248cdc1612a9005233764e04012440a7f28d240708d9",
     "python-full-merged.log": "923129f7984b00a6b4d893f649633eff74779cda65ed0071ba4cf6398e64af05",
-    "prototype-suite-unavailable.log": "92252a8dc46820e887e8e5a67662cad53d5bd07af590a66e4436d9b7c0ec0cb3"
+    "prototype-suite-unavailable.log": "92252a8dc46820e887e8e5a67662cad53d5bd07af590a66e4436d9b7c0ec0cb3",
+    "hardware-analysis.json": "bfbc30cf2aea9658d5977be39bc406fea7b3edeffd5a07150b3e22be473f7f81",
+    "binding-result.json": "da2c4c38a88edcf65fab9e132b8baada4c389fd295d0fdcd538bea20ca2f9fea",
+    "binding-provision.json": "f6ec7f3ad79fe36b9f54dcf76734246cbd55f332d7af585953e90bccad506d62",
+    "deployment-result.json": "67d354b8af570b0ff7e2624f12e5152e26dc2fa7b8a69d97b91cef0ac34dfb5d",
+    "current-approval.json": "ea8140e3660746c8affdb475df3cf652259f98f16c60e50dd613789e43337a33",
+    "candidate-78e23ce9edb5/ci.json": "a841fe5575d309f6829971ee8305058c3853103f8c3a5c79208822d5d58b21da",
+    "depth-run-1/sample-receipt.json": "592f253e758976e562351ce879addb7823c9977742e81d9aa199a1c68cfcbbc9",
+    "depth-run-1/download-verification.json": "57b4396ab849b7b3ee994a527d06b53be814466d243e58db9f668fa4f80112ff",
+    "depth-run-1/cleanup.json": "b83380a359341273265846e959036d12191f0421681d1b8810e261d4776a2c3b",
+    "depth-run-1/a58f3549f327424f8b6241d89783974f.zip": "0bb8552cd83509be33b3d738d4f8af77171320ec0dac7f9e59bf90d4ea416d2a",
+    "stereo-camera-params.yaml": "2c8aa445c2d88eb76193456e891462a4bd5abd6492cf28309471f6c455370035",
+    "stereo-native-runtime/runtime.log": "fe72e322bae8755498d6408a6ac44b47991dabeb6510cdb0ada38456c5395c59",
+    "stereo-run-1/tracking-effective-parameters.json": "fb1e126d9aaf5b8d9498ca364f04696ac7fd586d59fc8010625c902344c7e2c3",
+    "stereo-run-1/cleanup.json": "9d1d630ef78e5fe97e40839aa5ea51f74ff25eebb635a41dc9b9c93fe3316120",
+    "stereo-wire/samples.jsonl": "d00d986e0eef1f53d90960b971b79c3e64ed72ddf698bc24e5ebf98da7e0e305",
+    "resources.jsonl": "e642de4eec177ea640c8a15f66057824bf4b2ef2b122e08d2f5dcf490fe90875",
+    "final-runtime-state.json": "7602237245d902d82068239bdd4a8eca88338338d49bb65a299be4c7c33c9034",
+    "final-cleanup-check.json": "c74e7b70139ebb305003a376ca6d5b30c18f03022e4245a947c2b4ae777750b4",
+    "deployed-depth-sample.png": "dea81499543b0079469f308f60f6febd37f553d6d49a7bbd5ebcba6427bece64"
   },
-  "concurrent_main_merged": "98ef9e1"
+  "concurrent_main_merged": "98ef9e1",
+  "deployed_implementation": "78e23ce9edb59790a665055dfd23f230be018b43",
+  "initial_read_only_inspection": {
+    "source": "91f9006de6162d9e48f635f5f79a76e014950fd8",
+    "historical_superseded": true,
+    "missing_python_pipeline_binding_at_that_time": true,
+    "no_camera_started_at_that_time": true
+  },
+  "deployment": {
+    "authorization": "current_user_approved_exact_candidate_stationary_depth_then_stereo",
+    "source_file_hashes_matched": 1335,
+    "ci": {
+      "headSha": "78e23ce9edb59790a665055dfd23f230be018b43",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/39021392502"
+    },
+    "dashboard_service": "robot-scope.service",
+    "broker_service": "user robot-scope-slam-broker.service",
+    "dashboard_dds": "domain0/CycloneDDS unchanged",
+    "broker_dds": "domain71/localhost/FastDDS unchanged",
+    "configuration_path": "/home/unitree/.config/robot-scope/stereo-observation/depth-capture.json",
+    "configuration_sha256": "4f7e99aff49cc5047489f6e7d0ece62855baaf55b998ee40390f8952a07b9d29",
+    "environment_sha256": "bf76434dbcb4fdd96efdf9e221c18fb746ad273d59e26885ab555161e35f6066",
+    "original_stereo_configuration_and_protected_inventory": "preserved",
+    "binding_source": "existing preserved SDK source image; binary extracted, no build/pip/upgrade",
+    "binding_private_directory": "/home/unitree/.config/robot-scope/stereo-observation/python-sdk-2.55.1/",
+    "broker_only_pythonpath_modified": true,
+    "binding": {
+      "pipeline": true,
+      "context": true,
+      "config": true,
+      "sdk_version": "2.55.1",
+      "module": "/binding/pyrealsense2.cpython-310-aarch64-linux-gnu.so",
+      "loaded_native_paths": [
+        "/usr/local/lib/librealsense2.so.2.55.1"
+      ],
+      "original_native_sha256": "29a4a449467099d760f60792bace16becebace674af3c0885a5ef930e8d22d26",
+      "device_opened": false,
+      "artifact_sha256": "8399161c0a44d6c83f7139278158062ff1236690b75e93d0fc9feb76cf3bcf31",
+      "source_image": "sha256:8828a7d09209290696b2f88660906971445a9520ead21e21f2a25f4006055f69",
+      "camera_image": "sha256:f9d47c621390b34544de684fea8d62c9bba82f834daa6696733277773f85fdb5"
+    },
+    "final_original_stereo_config_sha256": {
+      "scope.json": "b9a9279f0e48e3773b96a859e18c0c9af60a0ba385d6b70fa0c25012e252d76e",
+      "input.json": "5d92b6a3f0e5bc0f7395158b7a0e0ce7f496debd1d72dcad4681665bfb4fc36c",
+      "camera.json": "3f65c345a18c2cca678e5dfdf3b486c2e9cb2b7f968787f489865ccd87fa3a5b",
+      "runtime.json": "e0b35b1ddc752099fcbe9ff07868f4b42596cef655e38ca61fb547940ee712d8"
+    },
+    "final_source_clean": true,
+    "final_map_package_revisions_unchanged": true
+  },
+  "actual_depth": {
+    "sample_id": "a58f3549f327424f8b6241d89783974f",
+    "device": {
+      "firmware_version": "5.17.3.10",
+      "name": "Intel RealSense D435I",
+      "physical_port": "1-1-4",
+      "product_id": "0B3A",
+      "product_line": "D400",
+      "serial_number": "242322077753",
+      "usb_type_descriptor": "2.1"
+    },
+    "sdk_version": "2.55.1",
+    "effective_profiles": {
+      "depth": {
+        "format": "format.z16",
+        "fps": 30,
+        "height": 480,
+        "index": 0,
+        "stream": "stream.depth",
+        "width": 640
+      },
+      "ir1": {
+        "format": "format.y8",
+        "fps": 30,
+        "height": 480,
+        "index": 1,
+        "stream": "stream.infrared",
+        "width": 640
+      }
+    },
+    "current_supported_profile_count": 107,
+    "source_clock_domain": "timestamp_domain.global_time",
+    "source_timestamps_ms": {
+      "ir1": 1792230743487.6013,
+      "depth": 1792230743487.6013
+    },
+    "frame_numbers": {
+      "ir1": 55,
+      "depth": 56
+    },
+    "frame_counter_note": "IR and depth counters differ (55 and56); actual SDK source timestamps and sensor metadata timestamp match. Counters are preserved, not rewritten.",
+    "source_skew_ms": 0.0,
+    "depth_scale_m": 0.0010000000474974513,
+    "confirmation": {
+      "body_attitude": null,
+      "camera_stationary": true,
+      "robot_seated": true,
+      "robot_stationary": true
+    },
+    "full_ros_camera_info_observed": false,
+    "checks": {
+      "width": 640,
+      "height": 480,
+      "pixel_count": 307200,
+      "depth_array_length": 307200,
+      "raw_bytes": 614400,
+      "raw_zero_pixels": 13930,
+      "json_null_pixels": 13930,
+      "nonzero_pixels": 293270,
+      "valid_ratio": 0.9546549479166667,
+      "null_correspondence_all_pixels": true,
+      "nonzero_values_all_pixels_match_raw_times_scale_exactly": true,
+      "max_absolute_mismatch_m": 0.0,
+      "ir_png_all_pixels_equal_raw": true,
+      "depth_png_all_pixels_equal_raw": true,
+      "png_dimensions": {
+        "click": [
+          640,
+          480
+        ],
+        "depth": [
+          640,
+          480
+        ]
+      },
+      "downloaded_compatibility_matches_archive": true,
+      "downloaded_image_matches_archive": true,
+      "all_archive_manifest_hashes_match": true,
+      "manifest_file_results": {
+        "camera_info.json": true,
+        "click.png": true,
+        "compatibility.json": true,
+        "depth.png": true,
+        "depth.z16": true,
+        "ir1.y8": true,
+        "metadata.json": true
+      },
+      "points_empty": true,
+      "intrinsics_equal_actual_ir1_and_depth": true,
+      "identity_extrinsics": {
+        "rotation": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_layout": "column_major",
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "translation_unit": "metres"
+      },
+      "rectification_basis": "actual_zero_distortion_intrinsics_and_identity_depth_to_ir1_no_resampling",
+      "depth_semantics": "optical_z",
+      "synthetic": false
+    },
+    "session_duration_to_cleanup_s": 10.558976888656616,
+    "cleanup_camera_reserved": false,
+    "capture_session_id": "d81a694df06d4237a40d8e67554f584c",
+    "captured_at_utc": "2026-10-17T09:52:23.508534+00:00",
+    "actual_sample_directory": "/home/unitree/robot-scope-data/runtime/state/navigation/multi-slam/depth-samples/a58f3549f327424f8b6241d89783974f/",
+    "sustained_delivery_fps_measured": false,
+    "sdk_derived_info_not_ros_camera_info": true
+  },
+  "stereo_sequential_return": {
+    "engine": "visual_stereo",
+    "task": "tracking",
+    "actual_opened_profiles": [
+      "stream_type: Infra(1), Format: Y8, Width: 640, Height: 480, FPS: 30",
+      "stream_type: Infra(2), Format: Y8, Width: 640, Height: 480, FPS: 30"
+    ],
+    "enable_depth_live": false,
+    "enable_color_live": false,
+    "enable_infra1_live": true,
+    "enable_infra2_live": true,
+    "enable_sync_live": false,
+    "synchronization": "Driver Sync Mode Off; backend timestamp-matched pair readiness,5ms bound. Six hydrated retained snapshots each match at0ns. This does not assert every emitted pair was recorded.",
+    "actual_sensor_or_delivery_fps_measured": false,
+    "nominal_profile_fps": 30,
+    "full_current_ros_camera_info_matrix_retained": false,
+    "current_live_intrinsics_available": true,
+    "effective_parameters": {
+      "enable_imu_fusion": false,
+      "enable_localization_n_mapping": false,
+      "enable_slam_visualization": true,
+      "enable_landmarks_view": true,
+      "enable_observations_view": true,
+      "publish_map_to_odom_tf": false,
+      "publish_odom_to_base_tf": false,
+      "use_sim_time": false
+    },
+    "session_observation_state_counts": {
+      "PREFLIGHT": 1,
+      "STARTING": 6,
+      "TRACKING": 46
+    },
+    "active_ws_observations": 159,
+    "active_ws_tracking_state_counts": {
+      "TRACKING": 159
+    },
+    "active_ws_available_counts": {
+      "image": 159,
+      "camera_pose": 159,
+      "tracking": 159,
+      "overlay": 157,
+      "current_observations": 159,
+      "trajectory": 159,
+      "global_map": 0
+    },
+    "ws_connection_errors": 1,
+    "ws_connections": 2,
+    "native_interframe_gap_warning_count": 93,
+    "native_interframe_gap_ms": {
+      "n": 93,
+      "min": 34.04672,
+      "median": 66.593792,
+      "mean": 70.96377531182796,
+      "p95_nearest_rank": 99.902464,
+      "max": 166.502912
+    },
+    "native_gap_warning_count_greater_60ms": 87,
+    "libusb_resource_temporarily_unavailable_warnings": 25,
+    "device_usb_2_1_warning": true,
+    "retained_cache_rate_caution": "Last16 timestamps span grows from roughly0.5s to1.5s. This indicates reduced observer/cache input cadence, not an independent measurement of actual sensor FPS. Interframe warnings support a delivery/processing issue. No matched baseline isolates the cause.",
+    "guard_stop_age_s": 60.22152604599796,
+    "time_to_cleanup_s": 65.58512711524963,
+    "cleanup_camera_reserved": false,
+    "retained_pair_snapshots": 6,
+    "all_retained_pairs_skew_ns": 0,
+    "matched_prepost_stereo_baseline": false,
+    "performance_regression_absence_proven": false
+  },
+  "resource_observation": {
+    "source": "tegrastats via resources.jsonl; approx1s samples",
+    "scope": "Whole Jetson utilization, not per-process cost; sessions sequential and unequal lengths; includes launch/shutdown and measurement overhead. No causal baseline for added depth impact.",
+    "sample_count": 179,
+    "cpu_metric": "Mean of8 per-core utilization percentages at each sample, then summarized; not a process percentage.",
+    "gpu_metric": "Sampled GR3D utilization; sparse0% samples do not prove GPU unused. cuVSLAM log explicitly use_gpu=true.",
+    "memory_unit": "MB as emitted by tegrastats",
+    "usb_throughput_measured": false,
+    "phases": {
+      "before_depth": {
+        "sample_count": 14,
+        "cpu_mean_per_core_percent": 25.625,
+        "ram_mean_MB": 1502.2857142857142,
+        "gpu_GR3D_mean_percent": 0
+      },
+      "depth_session_including_start_stop": {
+        "sample_count": 10,
+        "cpu_mean_per_core_percent": 35.6875,
+        "ram_mean_MB": 1541.4,
+        "gpu_GR3D_mean_percent": 0
+      },
+      "between_sessions": {
+        "sample_count": 94,
+        "cpu_mean_per_core_percent": 28.756648936170212,
+        "ram_mean_MB": 1522.627659574468,
+        "gpu_GR3D_mean_percent": 0
+      },
+      "stereo_session_including_startup": {
+        "sample_count": 60,
+        "cpu_mean_per_core_percent": 43.675,
+        "ram_mean_MB": 1810.3,
+        "gpu_GR3D_mean_percent": 7.6
+      },
+      "stereo_stopping_partial": {
+        "sample_count": 1,
+        "cpu_mean_per_core_percent": 40.75,
+        "ram_mean_MB": 1846,
+        "gpu_GR3D_mean_percent": 0
+      }
+    }
+  },
+  "actual_ui": {
+    "saved_real_sample_selected": true,
+    "real_click_image_visible": true,
+    "http_zip_json_image_reread": "PASS",
+    "native_browser_file_save": "UNVERIFIED: CUA download wait timed out; no save-completion claim",
+    "actual_sample_screenshot": "deployed-depth-sample.png",
+    "post_window_go2_direct_ros_state": "DISCONNECTED displayed after 19:01 KST; cause not established",
+    "dashboard_api_and_saved_sample_served_after_disconnect": true,
+    "overall_robot_ros_connection_healthy_claimed": false
+  },
+  "final_cleanup": {
+    "session_state": "IDLE",
+    "camera_reserved": false,
+    "camera_reservation_unknown": false,
+    "bridge": "OFF and disabled",
+    "automatic_next_session_scheduled": false,
+    "checked_at_utc": "2026-10-17T10:03:00.834449+00:00",
+    "cli_domain71_observation_daemon_stopped": true,
+    "camera_container_remaining_processes": [
+      {
+        "pid": 133623,
+        "role": "existing broker Python"
+      }
+    ],
+    "camera_or_slam_child_processes_remaining": false
+  },
+  "private_evidence_root": "robot-scope-hardware-validation-private/depth-capture-20261017/ (outside repository)"
 }
