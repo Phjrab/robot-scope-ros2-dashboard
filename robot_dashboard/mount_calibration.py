@@ -47,6 +47,10 @@ COORDINATE_CONVENTION = {
 class CalibrationError(ValueError):
     """A request is unsafe, malformed, or geometrically insufficient."""
 
+    def __init__(self, message: str, diagnostics: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.diagnostics = diagnostics
+
 
 def _validate_json_values(value: Any) -> None:
     """Validate retained export data, including unknown metadata, without copying it."""
@@ -324,23 +328,46 @@ def _deproject(sample: dict[str, Any]) -> tuple[np.ndarray, list[dict[str, Any]]
         patch = depth[max(0, v - NEIGHBORHOOD_RADIUS):v + NEIGHBORHOOD_RADIUS + 1,
                       max(0, u - NEIGHBORHOOD_RADIUS):u + NEIGHBORHOOD_RADIUS + 1]
         valid = patch[np.isfinite(patch) & (patch >= MIN_DEPTH_M) & (patch <= MAX_DEPTH_M)]
-        if len(valid) < max(5, math.ceil(patch.size * .5)):
-            picked.append({"u": u, "v": v, "valid": False, "inlier": False, "reason": "insufficient valid neighborhood depth"})
+        required = max(5, math.ceil(patch.size * .5))
+        center = float(depth[v, u])
+        item: dict[str, Any] = {
+            "u": u, "v": v, "valid": False, "inlier": None, "plane_residual_m": None,
+            "center_depth_m": center if math.isfinite(center) and center > 0 else None,
+            "center_valid": bool(math.isfinite(center) and MIN_DEPTH_M <= center <= MAX_DEPTH_M),
+            "neighborhood_pixel_count": int(patch.size), "neighborhood_valid_count": len(valid),
+            "neighborhood_required_count": required, "neighborhood_valid_fraction": len(valid) / patch.size,
+            "neighborhood_median_m": None, "neighborhood_iqr_m": None, "discontinuity_limit_m": None,
+        }
+        picked.append(item)
+        # Report robust patch statistics even if too few samples pass the gate.
+        if len(valid):
+            z = float(np.median(valid))
+            q25, q75 = np.percentile(valid, [25, 75])
+            item.update(neighborhood_median_m=z, neighborhood_iqr_m=float(q75 - q25),
+                        discontinuity_limit_m=max(.03, .03 * z))
+        if len(valid) < required:
+            item.update(inlier=False, reason="insufficient valid neighborhood depth")
             continue
-        z = float(np.median(valid))
         # A discontinuity-rich patch must not produce a fictitious midpoint.
-        q25, q75 = np.percentile(valid, [25, 75])
-        if float(q75 - q25) > max(.03, .03 * z):
-            picked.append({"u": u, "v": v, "valid": False, "inlier": False, "reason": "depth discontinuity in neighborhood"})
+        if item["neighborhood_iqr_m"] > item["discontinuity_limit_m"]:
+            item.update(inlier=False, reason="depth discontinuity in neighborhood")
             continue
-        p = [(u - k["cx"]) * z / k["fx"], (v - k["cy"]) * z / k["fy"], z]
-        points.append(p)
-        picked.append({"u": u, "v": v, "valid": True, "depth_m": z})
-    if len(points) < MIN_POINTS:
-        raise CalibrationError(f"Sample '{sample['id']}' has only {len(points)} valid depth points; at least {MIN_POINTS} are required.")
+        points.append([(u - k["cx"]) * z / k["fx"], (v - k["cy"]) * z / k["fy"], z])
+        item.update(valid=True, depth_m=z, reason="plane not checked")
     if len(points) < len(sample["picks"]):
         warnings.append(f"{len(sample['picks']) - len(points)} selected point(s) excluded for invalid/discontinuous depth.")
     return np.asarray(points), picked, warnings
+
+
+def _pixel_distribution(sample: dict[str, Any]) -> dict[str, Any]:
+    pixels = np.asarray(sample["picks"], dtype=float)
+    lo, hi = pixels.min(axis=0), pixels.max(axis=0)
+    singular = np.linalg.svd(pixels - pixels.mean(axis=0), compute_uv=False)
+    return {"bounds_uv": [float(x) for x in (*lo, *hi)],
+            "width_fraction": float((hi[0] - lo[0]) / sample["width"]),
+            "height_fraction": float((hi[1] - lo[1]) / sample["height"]),
+            "minor_major_ratio": float(singular[1] / max(singular[0], 1e-12)),
+            "basis": "all_selected_pixels_not_metric_plane_coverage"}
 
 
 def _svd_plane(points: np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
@@ -355,8 +382,30 @@ def _svd_plane(points: np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
 def _fit(sample: dict[str, Any]) -> dict[str, Any]:
     points, picked, warnings = _deproject(sample)
     n = len(points)
+    diagnostics: dict[str, Any] = {
+        "id": sample["id"], "status": "QUALITY_REJECTED", "failure_code": None,
+        "selected_points": len(picked), "valid_points": n, "inlier_points": None,
+        "minimum_inlier_points": max(MIN_POINTS, math.ceil(.65 * n)),
+        "neighborhood_size": 2 * NEIGHBORHOOD_RADIUS + 1,
+        "validated_points": picked, "pixel_distribution": _pixel_distribution(sample),
+        "residual_basis": "not_computed", "warnings": warnings,
+    }
+
+    def fail(code: str, message: str) -> None:
+        diagnostics.update(failure_code=code, reason=message)
+        raise CalibrationError(message, diagnostics)
+
+    def record_plane(residuals: np.ndarray, mask: np.ndarray) -> None:
+        diagnostics.update(inlier_points=int(mask.sum()), residual_basis="rejected_candidate_plane")
+        for item, residual, inlier in zip((p for p in picked if p["valid"]), residuals, mask):
+            item.update(inlier=bool(inlier), plane_residual_m=float(residual),
+                        reason="within candidate plane tolerance" if inlier else "outside plane tolerance")
+
+    if n < MIN_POINTS:
+        fail("INSUFFICIENT_NEIGHBORHOOD_DEPTH", f"Sample '{sample['id']}' has only {n} valid depth points; at least {MIN_POINTS} are required.")
     median_depth = float(np.median(points[:, 2]))
     tolerance = max(.004, min(.020, .005 * median_depth))
+    diagnostics["ransac_tolerance_m"] = tolerance
     total_combinations = math.comb(n, 3)
     if total_combinations <= 512:
         candidates = list(itertools.combinations(range(n), 3))
@@ -380,38 +429,47 @@ def _fit(sample: dict[str, Any]) -> dict[str, Any]:
         score = (int(mask.sum()), -float(np.median(residuals[mask])))
         if score > best_score:
             best_score, best_mask = score, mask
+            record_plane((points - points[a]) @ normal, mask)
     minimum_inliers = max(MIN_POINTS, math.ceil(.65 * n))
     if best_mask is None or best_mask.sum() < minimum_inliers:
-        raise CalibrationError(f"Sample '{sample['id']}' has no reliable planar consensus; spread points across one wall and avoid outliers.")
+        fail("NO_PLANAR_CONSENSUS", f"Sample '{sample['id']}' has no reliable planar consensus; spread points across one wall and avoid outliers.")
     mask = best_mask
     for _ in range(4):
         normal, distance, singular = _svd_plane(points[mask])
-        new_mask = np.abs(points @ normal - distance) <= tolerance
+        candidate_residuals = points @ normal - distance
+        new_mask = np.abs(candidate_residuals) <= tolerance
+        record_plane(candidate_residuals, new_mask)
         if np.array_equal(mask, new_mask):
             break
         if new_mask.sum() < minimum_inliers:
-            raise CalibrationError(f"Sample '{sample['id']}' loses planar consensus after robust refinement.")
+            fail("REFINEMENT_LOST_CONSENSUS", f"Sample '{sample['id']}' loses planar consensus after robust refinement.")
         mask = new_mask
     normal, distance, singular = _svd_plane(points[mask])
     residuals = points @ normal - distance
+    record_plane(residuals, mask)
     rmse = float(np.sqrt(np.mean(residuals[mask] ** 2)))
     spread_major, spread_minor = float(singular[0] / math.sqrt(mask.sum())), float(singular[1] / math.sqrt(mask.sum()))
     spread_ratio = spread_minor / max(spread_major, 1e-12)
     normalized_spread = spread_minor / median_depth
+    diagnostics.update(plane_rmse_m=rmse, spread_ratio=spread_ratio, normalized_minor_spread=normalized_spread,
+                       normalized_major_spread=spread_major / median_depth)
     if spread_ratio < .08 or normalized_spread < .008 or spread_major / median_depth < .03:
-        raise CalibrationError(f"Sample '{sample['id']}' points are collinear, clustered, or too narrow; cover a broad two-dimensional wall area.")
+        fail("NARROW_POINT_DISTRIBUTION", f"Sample '{sample['id']}' points are collinear, clustered, or too narrow; cover a broad two-dimensional wall area.")
     normalized_planarity = rmse / max(spread_minor, 1e-12)
+    diagnostics["normalized_planarity"] = normalized_planarity
     if rmse > tolerance * .8 or normalized_planarity > .06:
-        raise CalibrationError(f"Sample '{sample['id']}' is not sufficiently planar for a stable normal estimate.")
+        fail("UNSTABLE_PLANE_NORMAL", f"Sample '{sample['id']}' is not sufficiently planar for a stable normal estimate.")
     if normal[2] < .35:
-        raise CalibrationError(f"Sample '{sample['id']}' is not a front-facing wall; positive normal_z must be at least 0.35.")
+        fail("WALL_NOT_FRONT_FACING", f"Sample '{sample['id']}' is not a front-facing wall; positive normal_z must be at least 0.35.")
     if distance <= 0:
-        raise CalibrationError(f"Sample '{sample['id']}' has an invalid wall distance.")
+        fail("INVALID_WALL_DISTANCE", f"Sample '{sample['id']}' has an invalid wall distance.")
+    diagnostics.update(status="PLANE_ACCEPTED", residual_basis="accepted_plane")
     j = 0
     for item in picked:
         if item["valid"]:
             item["inlier"] = bool(mask[j])
             item["plane_residual_m"] = float(residuals[j])
+            item["reason"] = "accepted plane inlier" if mask[j] else "outside plane tolerance"
             j += 1
     if not mask.all():
         warnings.append(f"{int((~mask).sum())} valid-depth point(s) rejected as plane outliers.")
@@ -424,7 +482,7 @@ def _fit(sample: dict[str, Any]) -> dict[str, Any]:
         "normalized_planarity": normalized_planarity, "ransac_tolerance_m": tolerance,
         "pitch_proxy_deg": math.degrees(math.atan2(-normal[1], normal[2])),
         "relative_pitch_deg": None, "relative_pitch_candidate_deg": None,
-        "pitch_only_consistent": True, "validated_points": picked, "warnings": warnings,
+        "pitch_only_consistent": True, "validated_points": picked, "warnings": warnings, "diagnostics": diagnostics,
     }
 
 
@@ -473,7 +531,21 @@ def estimate(payload: Any) -> dict[str, Any]:
             if sample["source_exposure"] in source_exposures:
                 raise CalibrationError("Each capture must contain a distinct source exposure; a retained frame replay is not another angle sample.")
             source_exposures.add(sample["source_exposure"])
-    results = [_fit(sample) for sample in samples]
+    results, sample_diagnostics, failures = [], [], []
+    for sample in samples:
+        try:
+            fitted = _fit(sample)
+            results.append(fitted)
+            sample_diagnostics.append(fitted["diagnostics"])
+        except CalibrationError as exc:
+            failures.append(str(exc))
+            sample_diagnostics.append(exc.diagnostics)
+    if failures:
+        raise CalibrationError(failures[0], {
+            "status": "QUALITY_REJECTED", "mode": "RELATIVE_ONLY", "samples": sample_diagnostics,
+            "body_extrinsic_validated": False, "absolute_pitch_validated": False,
+            "relative_angles_available": False,
+        })
     reference = results[ids.index(reference_id)]
     for result in results:
         angle = result["pitch_proxy_deg"] - reference["pitch_proxy_deg"]

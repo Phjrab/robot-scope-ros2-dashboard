@@ -468,3 +468,44 @@ test.describe('Settings mount calibration · SYNTHETIC mocked integration', () =
     });
   }
 });
+
+test('quality rejection retains 5x5 point diagnostics and never exposes an angle · SYNTHETIC', async ({ page }) => {
+  const state = await fixture(page, { estimate: ({ route, body }) => route.fulfill({ status: 422, json: {
+    detail: 'SYNTHETIC: no reliable planar consensus',
+    diagnostics: { status: 'QUALITY_REJECTED', relative_angles_available: false,
+      samples: body.samples.map((sample) => ({
+        id: sample.id, status: 'QUALITY_REJECTED', failure_code: 'NO_PLANAR_CONSENSUS',
+        reason: 'SYNTHETIC: 6개 중 5개 후보 인라이어 · 실제 센서 결과 아님',
+        selected_points: 6, valid_points: 6, minimum_inlier_points: 6, inlier_points: 5,
+        residual_basis: 'rejected_candidate_plane', pixel_distribution: { width_fraction: .7, height_fraction: .6 },
+        validated_points: sample.points.map((point, index) => ({ ...point, valid: true, inlier: index < 5,
+          center_valid: true, center_depth_m: 2.2, neighborhood_valid_count: 25, neighborhood_pixel_count: 25,
+          neighborhood_valid_fraction: 1, neighborhood_required_count: 13, neighborhood_iqr_m: .001,
+          discontinuity_limit_m: .066, plane_residual_m: index < 5 ? .001 : .2,
+          reason: index < 5 ? 'within candidate plane tolerance' : 'outside plane tolerance' })),
+      })),
+    },
+  } }) });
+  await openSettings(page);
+  await field(page, 'file-input').setInputFiles({ name: 'synthetic-quality.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(syntheticImport())) });
+  await confirmConditions(page);
+  await field(page, 'estimate-button').click();
+  await expect(field(page, 'notice')).toContainText('추정 실패');
+  if (process.env.OFFLINE_FOLLOWUP_CAPTURE) {
+    await panel(page).screenshot({ path: `${process.env.OFFLINE_FOLLOWUP_CAPTURE}/mount-diagnostics-after.png` });
+  }
+  await expect(field(page, 'diagnostics-status')).toContainText('분석 차단 · 각도 없음');
+  await expect(field(page, 'diagnostics-body').locator('tr')).toHaveCount(6);
+  await expect(field(page, 'diagnostics-body')).toContainText('200.00 mm');
+  await expect(field(page, 'diagnostics-body')).toContainText('평면 잔차 초과');
+  await expect(field(page, 'diagnostics-spread')).toContainText('실패한 후보 평면');
+  await expect(field(page, 'results-content')).toBeHidden();
+  await expect(field(page, 'export-button')).toBeDisabled();
+  await sampleButtons(page).nth(1).click();
+  await expect(field(page, 'diagnostics-status')).toContainText('분석 차단');
+  await field(page, 'undo-button').click();
+  await expect(field(page, 'diagnostics-status')).toContainText('서버 평면 검사 전');
+  await expect(field(page, 'diagnostics-body')).not.toContainText('200.00 mm');
+  await expect(field(page, 'export-button')).toBeDisabled();
+  expectNoHardwareEffects(state);
+});

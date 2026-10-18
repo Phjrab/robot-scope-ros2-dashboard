@@ -896,6 +896,13 @@
         <div id="mount-calibration-depth-legend" class="depth-legend"><span>가까움 <b id="mount-calibration-depth-min">—</b></span><div class="gradient-line"></div><span><b id="mount-calibration-depth-max">—</b> 멀음</span></div>
         <div class="point-toolbar"><div><strong id="mount-calibration-point-count">0</strong><span>개 선택</span><span class="muted"> / 최소 6개</span></div><div><button id="mount-calibration-undo-button" class="button subtle" type="button">↶ 되돌리기</button><button id="mount-calibration-clear-button" class="button subtle" type="button">모두 지우기</button></div></div>
         <p id="mount-calibration-point-quality" class="point-quality">한 직선에 모이지 않도록 가로·세로로 넓게 선택하세요.</p>
+        <p class="point-guidance">클릭 시에는 중심 1픽셀의 0.1–30 m 깊이만 확인합니다. 분석은 5×5 주변의 유효 깊이 수와 사분위 범위(IQR), 평면 잔차를 따로 검사합니다. 영상 가장자리의 주변 영역은 잘립니다. 같은 벽의 가로·세로에 12–20개 점을 넓게 선택하고 물체 경계·가림·반사면을 피하세요. 평면 인라이어는 주변 검사를 통과한 점의 65% 이상이면서 최소 6개가 필요합니다. 정확히 6개를 선택하면 6개 모두 주변 검사와 평면 인라이어 기준을 통과해야 합니다.</p>
+        <section id="mount-calibration-diagnostics" class="point-diagnostics" hidden aria-labelledby="mount-calibration-diagnostics-heading">
+          <h4 id="mount-calibration-diagnostics-heading">선택점 품질 진단</h4>
+          <p id="mount-calibration-diagnostics-status" role="status"></p>
+          <p id="mount-calibration-diagnostics-spread"></p><p id="mount-calibration-diagnostics-reason"></p>
+          <div class="table-scroll"><table><thead><tr><th>점 (u, v)</th><th>중심 픽셀</th><th>5×5 유효 깊이</th><th>IQR / 허용</th><th>평면 잔차 |r|</th><th>판정</th></tr></thead><tbody id="mount-calibration-diagnostics-body"></tbody></table></div>
+        </section>
         <details class="manual-points"><summary>픽셀 좌표로 점 추가 · 선택 목록</summary><form id="mount-calibration-point-form"><label>u <input id="mount-calibration-point-u" type="number" min="0" step="1" required placeholder="160" aria-label="점의 u 좌표"></label><label>v <input id="mount-calibration-point-v" type="number" min="0" step="1" required placeholder="120" aria-label="점의 v 좌표"></label><button id="mount-calibration-point-add" type="submit" class="button secondary" disabled>점 추가</button></form><div id="mount-calibration-point-list" class="point-list"></div></details>
       </section>
       <aside class="inspector-panel">

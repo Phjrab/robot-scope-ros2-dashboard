@@ -7,7 +7,8 @@ const source = readFileSync(new URL('../robot_dashboard/static/features/slam/das
 const { boundedPoints, overlayMatchesImage, frameIsCurrent, describeCoverage, cameraFrustumGeometry,
   describeLocalization, frameAvailability, describeCameraPose, errorText, SLAM_STREAM_PATH,
   sameSessionContext, saveJobIsCurrent, SLAM_REQUEST_TIMEOUT_MS, geometryFrameHydrator,
-  latestFrameRenderer, latestImageDecoder, sameImageSource, samePointGeometry } = await import(
+  latestFrameRenderer, latestImageDecoder, sameImageSource, samePointGeometry,
+  reconcileStopProgress, describeStopProgress, sessionReadbackIsCurrent, sessionSnapshotIsValid } = await import(
   'data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 
 const session = { session_id: 'session-a', generation: 4, map_epoch: 'epoch-a', engine_id: 'visual_stereo' };
@@ -372,4 +373,151 @@ test('renderer camera hook draws only bounded same-frame geometry; opt-in map tr
   scene.options.worldFrameTrail = false;
   assert.equal(scene._displayTrail().length, 0);
   scene.destroy();
+});
+
+function stopActionFixture({ post, readback } = {}) {
+  const start = source.indexOf('  async function stopSession(');
+  const end = source.indexOf('\n  function ', start + 3);
+  const state = { session: { ...session, state: 'MAPPING' }, refreshSerial: 0 };
+  const writes = [];
+  const sandbox = { state, requestId: () => 'stop-request-a', win: {},
+    sameSessionContext, SLAM_REQUEST_TIMEOUT_MS,
+    currentSession: () => state.session,
+    requireSession(expected) {
+      if (!sameSessionContext(expected, state.session)) throw Object.assign(new Error('SLAM_SESSION_CHANGED'), { staleAction: true });
+    },
+    updateButtons() {}, renderSessionStatus() {},
+    message: { textContent: '' }, sessionMessage: () => '',
+    api: async (path, options) => { writes.push({ path, options });
+      return post ? post(state) : { session_id: session.session_id, generation: session.generation, state: 'STOPPING' }; },
+    refresh: async () => readback ? readback(state) : undefined };
+  const action = runInNewContext(`(${source.slice(start, end).trim()})`, sandbox);
+  return { state, writes, action };
+}
+
+// This failed with SLAM_REQUEST_TIMEOUT before the fix: the actual production
+// action used to discard the POST acknowledgement and throw the GET failure.
+test('accepted Stop survives immediate status timeout without reporting mapping or retrying', async () => {
+  const fixture = stopActionFixture({ readback: async () => { throw new Error('SLAM_REQUEST_TIMEOUT'); } });
+  await fixture.action(true);
+  const { state, writes } = fixture;
+  assert.equal(state.stopRequest.phase, 'accepted');
+  assert.equal(state.stopRequest.readbackError, 'SLAM_REQUEST_TIMEOUT');
+  const display = describeStopProgress(state.stopRequest, state.session);
+  assert.equal(display.status, 'STOP_ACCEPTED');
+  assert.match(display.message, /중지 요청 수락/);
+  assert.match(display.message, /완료는 아직 미확인/);
+  assert.match(display.message, /상태 조회 실패/);
+  await fixture.action(true);
+  assert.equal(writes.length, 1);
+});
+
+test('Stop readback distinguishes cleaning, confirmed IDLE and actual cleanup failure', () => {
+  const accepted = { session, phase: 'accepted', readbackError: 'SLAM_REQUEST_TIMEOUT' };
+  const stopping = reconcileStopProgress(accepted, { ...session, state: 'STOPPING' });
+  assert.equal(stopping.phase, 'stopping'); assert.equal(stopping.readbackError, null);
+  assert.match(describeStopProgress(stopping, session).message, /서버 정리 중/);
+  const failure = reconcileStopProgress(stopping, { ...session, state: 'ERROR', cleanup_required: true, reason: 'CLEANUP_REQUIRED' });
+  assert.equal(failure.phase, 'cleanup_failed');
+  assert.match(describeStopProgress(failure, session).message, /서버 정리 실패.*자원 해제 미확인/);
+  const idle = reconcileStopProgress(stopping, { ...session, state: 'IDLE', cleanup_required: false });
+  assert.equal(idle.phase, 'idle');
+  assert.equal(describeStopProgress(idle, session).status, 'IDLE');
+  assert.match(describeStopProgress(idle, session).message, /서버 IDLE 확인/);
+  const contradictory = reconcileStopProgress(stopping, { ...session, state: 'IDLE', cleanup_required: true });
+  assert.equal(contradictory.phase, 'cleanup_failed');
+});
+
+test('cleanup retry follows server STOPPING and IDLE while historical failure reason remains', () => {
+  const failedSession = { ...session, state: 'ERROR', cleanup_required: true, reason: 'CLEANUP_REQUIRED' };
+  const retry = { session: failedSession, phase: 'accepted' };
+  const stopping = reconcileStopProgress(retry, { ...failedSession, state: 'STOPPING' });
+  assert.equal(stopping.phase, 'stopping');
+  assert.equal(describeStopProgress(stopping, failedSession).status, 'STOPPING');
+  const finished = reconcileStopProgress(stopping, { ...failedSession, state: 'IDLE', cleanup_required: false });
+  assert.equal(finished.phase, 'idle');
+  assert.equal(describeStopProgress(finished, failedSession).status, 'IDLE');
+  assert.doesNotMatch(describeStopProgress(finished, failedSession).message, /실패/);
+});
+
+test('incomplete or invalid session snapshots cannot be interpreted as confirmed IDLE', () => {
+  const valid = { generation: 4, active_session: { ...session, state: 'MAPPING' } };
+  assert.equal(sessionSnapshotIsValid(valid), true);
+  assert.equal(sessionSnapshotIsValid({ generation: 0, active_session: null }), true);
+  for (const value of [null, {}, { generation: 4 }, { active_session: null }, { generation: -1, active_session: null },
+    { ...valid, active_session: { ...valid.active_session, state: 'INVENTED' } },
+    { ...valid, active_session: { ...valid.active_session, map_epoch: null } },
+    { ...valid, active_session: { ...valid.active_session, cleanup_required: 'false' } }]) {
+    assert.equal(sessionSnapshotIsValid(value), false);
+    assert.equal(sessionReadbackIsCurrent(value, session, 4), false);
+  }
+});
+
+test('Stop receipts never migrate to another session, epoch or generation', () => {
+  const request = { session, phase: 'accepted' };
+  for (const change of [{ session_id: 'other' }, { generation: 5 }, { map_epoch: 'new' }, { engine_id: 'other' }]) {
+    assert.equal(reconcileStopProgress(request, { ...session, ...change, state: 'IDLE' }), null);
+    assert.equal(describeStopProgress(request, { ...session, ...change }), null);
+  }
+  assert.equal(reconcileStopProgress(request, null), null);
+});
+
+test('session reads reject older generations and cannot revive an already IDLE generation', () => {
+  const idle = { ...session, state: 'IDLE' };
+  assert.equal(sessionReadbackIsCurrent({ generation: 3, active_session: { ...session, generation: 3 } }, idle, 4), false);
+  assert.equal(sessionReadbackIsCurrent({ generation: 4, active_session: { ...session, generation: 3 } }, idle, 4), false);
+  assert.equal(sessionReadbackIsCurrent({ generation: 4, active_session: { ...session, state: 'MAPPING' } }, idle, 4), false);
+  assert.equal(sessionReadbackIsCurrent({ generation: 4, active_session: idle }, idle, 4), true);
+  assert.equal(sessionReadbackIsCurrent({ generation: 5, active_session: { ...session, generation: 5, state: 'MAPPING' } }, idle, 4), true);
+});
+
+test('unknown Stop response stays unconfirmed and does not automatically repeat writes', async () => {
+  for (const post of [async () => { throw Object.assign(new Error('SLAM_REQUEST_TIMEOUT'), { transportUncertain: true }); },
+    async () => ({ session_id: 'wrong-session', generation: 4, state: 'STOPPING' }), async () => null]) {
+    const fixture = stopActionFixture({ post });
+    await fixture.action(true); await fixture.action(true);
+    assert.equal(fixture.state.stopRequest.phase, 'unconfirmed');
+    assert.equal(describeStopProgress(fixture.state.stopRequest, fixture.state.session).status, 'STOP_UNCONFIRMED');
+    assert.equal(fixture.writes.length, 1);
+  }
+});
+
+test('late Stop acknowledgement cannot demote confirmed cleanup or overwrite a replacement', async () => {
+  let resolve;
+  const fixture = stopActionFixture({ post: () => new Promise((done) => { resolve = done; }) });
+  const pending = fixture.action(true);
+  fixture.state.session = { ...session, state: 'IDLE' };
+  fixture.state.stopRequest = reconcileStopProgress(fixture.state.stopRequest, fixture.state.session);
+  resolve({ session_id: session.session_id, generation: session.generation, state: 'STOPPING' });
+  await pending;
+  assert.equal(fixture.state.stopRequest.phase, 'idle');
+  const other = stopActionFixture({ post: () => new Promise((done) => { resolve = done; }) });
+  const obsolete = other.action(true);
+  other.state.session = { ...session, generation: 5, state: 'MAPPING' };
+  other.state.stopRequest = null;
+  resolve({ session_id: session.session_id, generation: session.generation, state: 'STOPPING' });
+  await assert.rejects(obsolete, { message: 'SLAM_SESSION_CHANGED', staleAction: true });
+  assert.equal(other.state.stopRequest, null); assert.equal(other.state.session.generation, 5);
+});
+
+test('explicit Stop rejection releases only its own pending request for operator correction', async () => {
+  const fixture = stopActionFixture({ post: async () => { throw new Error('UNSAVED_MAP_CONFIRMATION_REQUIRED'); } });
+  await assert.rejects(fixture.action(false), /UNSAVED_MAP_CONFIRMATION_REQUIRED/);
+  assert.equal(fixture.state.stopRequest, null); assert.equal(fixture.writes.length, 1);
+});
+
+test('older failed session GET cannot overwrite a newer readback or stop acknowledgement', async () => {
+  const start = source.indexOf('  async function refresh()');
+  const end = source.indexOf('\n  function updateLocalizationStatus(', start);
+  let reject;
+  const state = { activePage: 'mapping', refreshSerial: 0, session, stopRequest: { session, phase: 'idle' } };
+  const message = { textContent: '서버 IDLE 확인' };
+  const refresh = runInNewContext(`(${source.slice(start, end).trim()})`, {
+    state, message, ACTIVE_PAGES: new Set(['mapping']), doc: { hidden: false }, sameSessionContext,
+    api: () => new Promise((_, fail) => { reject = fail; }),
+  });
+  const pending = refresh(); state.refreshSerial += 1;
+  reject(new Error('SLAM_REQUEST_TIMEOUT')); await pending;
+  assert.equal(state.stopRequest.readbackError, undefined);
+  assert.equal(message.textContent, '서버 IDLE 확인');
 });

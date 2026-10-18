@@ -10,6 +10,8 @@
  *   scene.setAxesVisible(boolean); scene.toggleAxesVisible();
  *   scene.setStatus({ online, lidarOnline, message });
  *   scene.resetView(); scene.topView(); scene.frontView();
+ *   scene.fitToPointCloud(); scene.fitToMainPointCloud(); scene.centerOnPose();
+ *   scene.getViewAvailability(); // { fit, center }; view-only controls
  *   scene.bindControls({ reset, top, front, axes });
  *   scene.resize(); scene.render(); scene.destroy();
  *
@@ -146,6 +148,28 @@
     values.sort((a, b) => a - b);
     const middle = Math.floor(values.length / 2);
     return values.length % 2 ? values[middle] : values[middle - 1] / 2 + values[middle] / 2;
+  }
+
+  function mainDisplayBounds(points) {
+    // A view-only, bounded sample. Never sort/filter the point buffer itself:
+    // original extrema remain available through the existing full-map FIT.
+    const count = Math.floor(points.length / 3);
+    const sampled = Math.min(count, 10001);
+    const coordinates = [[], [], []];
+    for (let index = 0; index < sampled; index += 1) {
+      const source = Math.floor(index * count / sampled) * 3;
+      const point = [points[source], points[source + 1], points[source + 2]];
+      if (!point.every(Number.isFinite)) continue;
+      point.forEach((value, axis) => coordinates[axis].push(value));
+    }
+    if (!coordinates[0].length) return null;
+    coordinates.forEach((axis) => axis.sort((a, b) => a - b));
+    // Small clouds keep every point; 50+ points can trim 2% at either end.
+    const trim = Math.floor(coordinates[0].length * 0.02);
+    return {
+      min: coordinates.map((axis) => axis[trim]),
+      max: coordinates.map((axis) => axis[axis.length - trim - 1]),
+    };
   }
 
   function reasonableAdvertisedBounds(advertised, sampledBounds, medians, maxRadius) {
@@ -746,6 +770,40 @@
       this._saveHome();
       this._invalidateStatic();
       if (render) this.render();
+    }
+
+    getViewAvailability() {
+      const pose = this.robotPose;
+      return {
+        fit: Boolean(this.cloud.bounds && this.cloud.points.length >= 3),
+        center: Boolean(pose && pose.frameId &&
+          (!this.cloud.frameId || pose.frameId === this.cloud.frameId) &&
+          [pose.x, pose.y, pose.z].every(Number.isFinite)),
+      };
+    }
+
+    fitToMainPointCloud(render = true) {
+      const bounds = mainDisplayBounds(this.cloud.points);
+      if (!bounds) return false;
+      const { min, max } = bounds;
+      const radius = Math.max(Math.hypot(max[0] - min[0], max[1] - min[1], max[2] - min[2]) / 2, 0.75);
+      this.camera.target = min.map((value, axis) => (value + max[axis]) / 2);
+      this.camera.distance = clamp(radius / Math.tan(this.options.fov / 2) * 1.18, this.options.minDistance, this.options.maxDistance);
+      this._saveHome();
+      this._invalidateStatic();
+      if (render) this.render();
+      return true;
+    }
+
+    centerOnPose(render = true) {
+      if (!this.getViewAvailability().center) return false;
+      // Current camera pose in the map frame. This is a one-shot view action;
+      // it neither publishes a pose nor changes zoom, orientation or follow.
+      this.camera.target = [this.robotPose.x, this.robotPose.y, this.robotPose.z];
+      this._saveHome();
+      this._invalidateStatic();
+      if (render) this.render();
+      return true;
     }
 
     resetView() {

@@ -1,5 +1,11 @@
 # 03 — 실데이터 SE3 qualification과 오프라인 도구
 
+2026-10-18 로컬 후속: [오프라인 통합 보고서](../integration-acceptance/OFFLINE_FOLLOWUP_20261018.md)의
+`inspect_se3_pair.py`가 이 문서의 입력 qualification과 기존 solver를 재사용해
+seed 전후 지표·XY/XZ/YZ 도표를 저장한다. 이번에는 합성 3개 seed만 실행했고,
+기존 recorded manifest는 계속 BLOCKED였다. 실제 센서 수집·운영 적용·배포는
+하지 않았다. 아래 10월 14일 실기 기록과 구분한다.
+
 2026-10-14. Run ID: `run-20261014T041650Z`. [02단계](02_sensor_tf_and_capture.md)에서 실제 registered cloud 후보 6개와 원본 timestamp를 확보했다.
 
 **실제 독립 입력의 6DoF 평가·절대 정확도·Jetson 성능은 BLOCKED다.** 실제 데이터가 생겼다는 이유로 sparse FAST-LIO 출력을 바로 적격 `REGISTERED_QUERY`로 바꾸지 않았다. synthetic 회귀와 recorded 입력 qualification 도구를 완료했다.

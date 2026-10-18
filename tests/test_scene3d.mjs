@@ -93,6 +93,99 @@ test('point-cloud preview without advertised bounds uses its sampled bounds', ()
   scene.destroy();
 });
 
+test('main-area FIT changes only the view while full FIT keeps distant extrema', () => {
+  const { scene } = sceneHarness();
+  const input = Array.from({ length: 400 }, (_, index) => [index % 20 / 10 - 1, Math.floor(index / 20) / 10 - 1, index % 5 / 10]);
+  input.push([-100, 0, 0], [100, 0, 0]);
+  const original = JSON.stringify(input);
+  scene.setPointCloud({ points: input, frame_id: 'map' });
+  const cloud = scene.cloud;
+  const buffer = scene.cloud.points;
+  const bytes = Array.from(buffer);
+  const bounds = JSON.stringify(cloud.bounds);
+  scene.fitToPointCloud(false);
+  const full = scene.camera.distance;
+  assert.equal(scene.getViewAvailability().fit, true);
+  assert.equal(scene.fitToMainPointCloud(false), true);
+  assert.ok(scene.camera.distance < full / 20, 'central room should not shrink to fit two distant points');
+  assert.ok(Math.abs(scene.camera.target[0]) < 0.2);
+  assert.strictEqual(scene.cloud, cloud);
+  assert.strictEqual(scene.cloud.points, buffer);
+  assert.deepEqual(Array.from(buffer), bytes);
+  assert.equal(JSON.stringify(cloud.bounds), bounds);
+  assert.equal(JSON.stringify(input), original);
+  scene.fitToPointCloud(false);
+  assert.equal(scene.camera.distance, full);
+  scene.destroy();
+});
+
+test('main-area FIT retains sparse-cloud extrema and is a no-op without points', () => {
+  const { scene } = sceneHarness();
+  const camera = JSON.stringify(scene.camera);
+  assert.equal(scene.getViewAvailability().fit, false);
+  assert.equal(scene.fitToMainPointCloud(false), false);
+  assert.equal(JSON.stringify(scene.camera), camera);
+  scene.setPointCloud({ points: [[-50, 0, 0], [0, 0, 0], [50, 0, 0]], frame_id: 'map' });
+  scene.fitToPointCloud(false);
+  const full = JSON.stringify(scene.camera);
+  assert.equal(scene.fitToMainPointCloud(false), true);
+  assert.equal(JSON.stringify(scene.camera), full);
+  scene.clearPointCloud();
+  assert.equal(scene.getViewAvailability().fit, false);
+  scene.destroy();
+});
+
+test('position centering needs an explicit matching pose frame and preserves zoom and data', () => {
+  const { scene } = sceneHarness();
+  scene.setPointCloud({ points: [[0, 0, 0], [1, 1, 1]], frame_id: 'map' });
+  const camera = JSON.stringify(scene.camera);
+  assert.equal(scene.getViewAvailability().center, false);
+  assert.equal(scene.centerOnPose(false), false);
+  for (const frameId of ['', 'odom']) {
+    scene.setRobotPose({ x: 5, y: 6, z: 7, frameId });
+    assert.equal(scene.getViewAvailability().center, false);
+    assert.equal(scene.centerOnPose(false), false);
+    assert.equal(JSON.stringify(scene.camera), camera);
+  }
+  scene.setRobotPose({ x: 5, y: 6, z: 7, frameId: 'map' });
+  const cloud = scene.cloud;
+  const pose = scene.robotPose;
+  const { distance, yaw, pitch } = scene.camera;
+  const mode = scene.cameraMode;
+  assert.equal(scene.getViewAvailability().center, true);
+  assert.equal(scene.centerOnPose(false), true);
+  assert.deepEqual(Array.from(scene.camera.target), [5, 6, 7]);
+  assert.equal(scene.camera.distance, distance);
+  assert.equal(scene.camera.yaw, yaw);
+  assert.equal(scene.camera.pitch, pitch);
+  assert.equal(scene.cameraMode, mode);
+  assert.strictEqual(scene.cloud, cloud);
+  assert.strictEqual(scene.robotPose, pose);
+  scene.setRobotPose(null);
+  assert.equal(scene.getViewAvailability().center, false);
+  scene.destroy();
+});
+
+test('main-area FIT leaves a shared prevalidated typed buffer and advertised bounds intact', () => {
+  const { scene } = sceneHarness();
+  const input = new Float32Array(Array.from({ length: 600 }, (_, index) => (index % 60) / 10));
+  input[0] = -80;
+  input[input.length - 3] = 80;
+  const source = Array.from(input);
+  const advertised = { min: [-100, -100, -100], max: [100, 100, 100] };
+  scene.setPointCloud({ points: input, prevalidated: true, frame_id: 'map', bounds: advertised });
+  const cloud = scene.cloud;
+  scene.fitToMainPointCloud(false);
+  assert.strictEqual(scene.cloud, cloud);
+  assert.deepEqual(Array.from(input), source);
+  assert.deepEqual(Array.from(scene.cloud.bounds.min), advertised.min);
+  assert.deepEqual(Array.from(scene.cloud.bounds.max), advertised.max);
+  scene.fitToPointCloud(false);
+  assert.deepEqual(Array.from(scene.camera.target), [0, 0, 0]);
+  assert.ok(scene.camera.distance > 400);
+  scene.destroy();
+});
+
 test('cockpit first follow pose centers and pan disables following until reset', () => {
   const { scene } = sceneHarness({ options: { autoFitOnFirstCloud: false, manualPanStopsFollow: true } });
   scene.setCameraMode('follow'); scene.setRobotPose({ x: 20, y: -9, z: 0.4 });

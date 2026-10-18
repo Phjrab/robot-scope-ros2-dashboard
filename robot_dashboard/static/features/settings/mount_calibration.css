@@ -125,3 +125,11 @@
 .mount-calibration .saved-sample a { color: var(--green); margin-left: 21px; }
 .mount-calibration .canvas-caption { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .mount-calibration .canvas-caption button { min-height: 28px; padding: 4px 6px; font-size: 11px; }
+
+.mount-calibration .point-guidance { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 10px 0; }
+.mount-calibration .point-diagnostics { border-top: 1px solid var(--line); padding-top: 10px; margin: 12px 0; }
+.mount-calibration .point-diagnostics h4 { font-size: 13px; margin: 0 0 8px; }
+.mount-calibration .point-diagnostics p { font-size: 11px; line-height: 1.6; margin: 4px 0; overflow-wrap: anywhere; }
+.mount-calibration .point-diagnostics .table-scroll { max-height: 260px; overflow: auto; margin-top: 10px; }
+.mount-calibration .point-diagnostics table { font-size: 11px; }
+.mount-calibration .point-diagnostics th, .mount-calibration .point-diagnostics td { padding: 7px 8px; white-space: normal; min-width: 85px; }

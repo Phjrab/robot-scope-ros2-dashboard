@@ -1,3 +1,28 @@
+# Local-only Stop, map view and calibration diagnostics — 2026-10-18
+
+Read [OFFLINE_FOLLOWUP_20261018.md](OFFLINE_FOLLOWUP_20261018.md) first. From local
+main `a79c67a`, preserved changes now distinguish Stop acceptance/cleanup/unconfirmed
+readback/confirmed IDLE, fence stale responses, add display-only main-area FIT and
+camera centering, and retain point-level calibration diagnostics on HTTP 422.
+Original full FIT, cloud/export inputs and calibration thresholds are unchanged.
+No push, release, robot access, service restart, deployment or motion occurred.
+The last installed `40276a5` and IDLE/free/bridge-OFF observations below are historical.
+
+Existing real October 17 samples were replayed through the actual local API and
+Settings panel. Both nearby six-point selections pass neighborhood depth but have
+only 4/6 plane inliers: angles and analysis export remain blocked. No new capture
+or pitch adjustment occurred. A seed-by-seed SE3 inspection reuses existing tools:
+three synthetic seeds produced rejection/candidate/rejection, while the recorded
+manifest remains BLOCKED on provenance. Global relocalization/operating use are NOT_RUN.
+
+Python 2,275 (3 skip), JS 452, and 150 unique browser cases passed. The initial
+browser run passed 136; its 14 fixture-contract failures passed after fixture-only
+correction, without repeating the whole suite. See the report for environment
+mistakes, optional plot coverage, exact evidence and remaining field checks.
+Wall duplication, absolute accuracy/body pose and actual Stop/camera behavior of
+this new source remain unverified. Closeout is local only; no background robot
+work or automatic next session is authorized or scheduled.
+
 # Saved depth → deployed native Settings observation — 2026-10-17
 
 Read [MOUNT_CALIBRATION_SETTINGS.md](MOUNT_CALIBRATION_SETTINGS.md) first for this
