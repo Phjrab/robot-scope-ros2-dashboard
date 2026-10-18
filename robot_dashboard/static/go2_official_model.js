@@ -254,8 +254,12 @@
     if (!pose) return;
     const asset = runtime.asset;
     const config = scene._go2OfficialConfig;
-    // World geometry must not grow as the camera zooms out. Labels remain screen-sized.
-    const scale = clamp(finite(config.scale, 1), 0.05, 20);
+    const approximateWidth = finite(asset.model?.approximate_size_m?.[0], 0.8);
+    const worldPerPixel = 2 * scene.camera.distance * Math.tan(scene.options.fov / 2) / Math.max(scene.height, 1);
+    const requestedScale = clamp(finite(config.scale, 1), 0.05, 20);
+    const scale = config.adaptiveScale === false
+      ? requestedScale
+      : clamp(Math.max(requestedScale, worldPerPixel * 58 / approximateWidth), requestedScale, 7);
     const groundAnchored = config.poseOrigin !== 'base';
     const baseHeight = finite(config.baseHeight, finite(asset.model?.base_height_m, 0.32));
     const baseZ = pose.z + (groundAnchored ? baseHeight * scale : 0);
@@ -329,7 +333,8 @@
   function drawModelPlaceholder(scene) {
     const pose = scene._effectiveRobotPose();
     if (!pose) return;
-    const scale = 1;
+    const worldPerPixel = 2 * scene.camera.distance * Math.tan(scene.options.fov / 2) / Math.max(scene.height, 1);
+    const scale = clamp(Math.max(1, worldPerPixel * 38 / 0.45), 1, 6);
     scene._drawCuboid(scene._robotWorldPoint([0, 0, 0.18], pose, scale), [0.34 * scale, 0.28 * scale, 0.24 * scale], pose.yaw, {
       fill: 'rgba(41, 105, 92, .72)',
       side: 'rgba(17, 54, 47, .78)',
@@ -353,7 +358,7 @@
       enabled: options.enabled !== false,
       assetUrl: options.assetUrl || DEFAULT_ASSET_URL,
       poseOrigin: options.poseOrigin || 'ground',
-      adaptiveScale: false, // Kept for caller compatibility; geometry is always metric.
+      adaptiveScale: options.adaptiveScale !== false,
       scale: finite(options.scale, 1),
       baseHeight: options.baseHeight,
     };
@@ -390,7 +395,6 @@
         .catch((error) => {
           if (this._go2OfficialLoadingUrl !== target) throw error;
           this._go2OfficialState = 'error';
-          this._go2OfficialFailedUrl = target;
           this._go2OfficialError = error;
           this.render();
           throw error;
@@ -412,7 +416,7 @@
       if (Object.prototype.hasOwnProperty.call(value, 'enabled')) config.enabled = Boolean(value.enabled);
       if (value.assetUrl) config.assetUrl = String(value.assetUrl);
       if (value.poseOrigin === 'base' || value.poseOrigin === 'ground') config.poseOrigin = value.poseOrigin;
-      config.adaptiveScale = false;
+      if (Object.prototype.hasOwnProperty.call(value, 'adaptiveScale')) config.adaptiveScale = Boolean(value.adaptiveScale);
       if (Number.isFinite(Number(value.scale))) config.scale = clamp(Number(value.scale), 0.05, 20);
       if (Number.isFinite(Number(value.baseHeight))) config.baseHeight = Number(value.baseHeight);
       this.render();
@@ -450,8 +454,7 @@
       if (this._go2OfficialRuntime && this._go2OfficialLoadedUrl === config.assetUrl) {
         return drawOfficialRobot(this, this._go2OfficialRuntime);
       }
-      if ((!this._go2OfficialPromise || this._go2OfficialLoadingUrl !== config.assetUrl)
-          && (this._go2OfficialState !== 'error' || this._go2OfficialFailedUrl !== config.assetUrl)) {
+      if (!this._go2OfficialPromise || this._go2OfficialLoadingUrl !== config.assetUrl) {
         this.loadOfficialRobotModel(config.assetUrl).catch(() => {});
       }
       return this._robotModelType && this._robotModelType !== 'go2'

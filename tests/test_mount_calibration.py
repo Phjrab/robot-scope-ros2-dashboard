@@ -48,75 +48,6 @@ def request(*samples, reference_id=None):
 
 
 class CalibrationTests(unittest.TestCase):
-    def test_failed_neighborhood_retains_every_point_and_sample_diagnostics(self):
-        payload = request()
-        sample = payload["samples"][0]
-        sample["points"] = sample["points"][:6]
-        depth = np.array(sample["depth_m"]).reshape(sample["height"], sample["width"])
-        for point in sample["points"]:
-            u, v = point["u"], point["v"]
-            depth[v - 2:v + 3, u - 2:u + 3] = 0
-            depth[v, u] = 2.0  # A valid single pixel cannot pass the 5x5 gate.
-        sample["depth_m"] = depth.ravel().tolist()
-        with self.assertRaises(CalibrationError) as raised:
-            estimate(payload)
-        diagnostics = raised.exception.diagnostics
-        self.assertEqual(diagnostics["status"], "QUALITY_REJECTED")
-        self.assertEqual(len(diagnostics["samples"]), 2)
-        rejected, passed = diagnostics["samples"]
-        self.assertEqual(rejected["failure_code"], "INSUFFICIENT_NEIGHBORHOOD_DEPTH")
-        self.assertEqual(rejected["valid_points"], 0)
-        self.assertEqual(rejected["selected_points"], 6)
-        self.assertEqual(len(rejected["validated_points"]), 6)
-        point = rejected["validated_points"][0]
-        self.assertTrue(point["center_valid"])
-        self.assertEqual(point["neighborhood_valid_fraction"], 1 / 25)
-        self.assertEqual(point["neighborhood_required_count"], 13)
-        self.assertIsNone(point["plane_residual_m"])
-        self.assertEqual(passed["status"], "PLANE_ACCEPTED")
-        self.assertNotIn("relative_pitch_deg", json.dumps(diagnostics))
-        json.dumps(diagnostics, allow_nan=False)
-
-    def test_discontinuity_diagnostics_and_boundary_patch_keep_existing_thresholds(self):
-        payload = request()
-        sample = payload["samples"][0]
-        sample["points"] = [{"u": 0, "v": 0}] + sample["points"]
-        depth = np.array(sample["depth_m"]).reshape(sample["height"], sample["width"])
-        point = sample["points"][1]
-        depth[point["v"] - 2:point["v"] + 3, point["u"] - 2:point["u"]] = 5
-        sample["depth_m"] = depth.ravel().tolist()
-        result = estimate(payload)["samples"][0]
-        corner, rejected = result["validated_points"][:2]
-        self.assertEqual(corner["neighborhood_pixel_count"], 9)
-        self.assertEqual(corner["neighborhood_required_count"], 5)
-        self.assertEqual(rejected["reason"], "depth discontinuity in neighborhood")
-        self.assertEqual(rejected["neighborhood_valid_fraction"], 1)
-        self.assertEqual(rejected["neighborhood_iqr_m"], 3)
-        self.assertEqual(rejected["discontinuity_limit_m"], .06)
-        self.assertFalse(rejected["valid"])
-        self.assertIsNone(rejected["plane_residual_m"])
-        self.assertEqual(result["diagnostics"]["status"], "PLANE_ACCEPTED")
-
-    def test_failed_six_point_consensus_retains_candidate_residuals_without_pitch(self):
-        payload = request()
-        sample = payload["samples"][0]
-        sample["points"] = [sample["points"][i] for i in (0, 1, 3, 8, 9, 11)]
-        point = sample["points"][-1]
-        depth = np.array(sample["depth_m"]).reshape(sample["height"], sample["width"])
-        depth[point["v"] - 2:point["v"] + 3, point["u"] - 2:point["u"] + 3] += .2
-        sample["depth_m"] = depth.ravel().tolist()
-        with self.assertRaisesRegex(CalibrationError, "planar consensus") as raised:
-            estimate(payload)
-        detail = raised.exception.diagnostics["samples"][0]
-        self.assertEqual(detail["minimum_inlier_points"], 6)
-        self.assertEqual(detail["inlier_points"], 5)
-        self.assertEqual(detail["failure_code"], "NO_PLANAR_CONSENSUS")
-        self.assertEqual(detail["residual_basis"], "rejected_candidate_plane")
-        self.assertGreater(detail["validated_points"][-1]["plane_residual_m"], .1)
-        self.assertEqual(detail["validated_points"][-1]["reason"], "outside plane tolerance")
-        self.assertGreater(detail["pixel_distribution"]["width_fraction"], .5)
-        self.assertNotIn("pitch_proxy_deg", detail)
-
     def test_known_signed_pitch_and_normal(self):
         result = estimate(request(capture("zero"), capture("down", 10), capture("up", -8)))
         self.assertEqual(result["status"], "RELATIVE_ONLY")
@@ -415,32 +346,6 @@ class MountCalibrationApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(item.headers[b"content-type"], b"application/json")
         self.assertEqual(exported.headers[b"content-disposition"],
                          b'attachment; filename="relative-wall-pitch-analysis.json"')
-
-    async def test_quality_rejection_returns_diagnostics_but_never_exports_an_angle(self):
-        payload = request()
-        sample = payload["samples"][0]
-        sample["points"] = sample["points"][:6]
-        depth = np.array(sample["depth_m"]).reshape(sample["height"], sample["width"])
-        for point in sample["points"]:
-            depth[point["v"] - 2:point["v"] + 3, point["u"] - 2:point["u"] + 3] = 0
-            depth[point["v"], point["u"]] = 2.0
-        sample["depth_m"] = depth.ravel().tolist()
-        for endpoint in ("estimate", "export"):
-            response = await self.request("POST", endpoint, body=payload)
-            self.assertEqual(response.status, 422)
-            self.assertIsInstance(response.json()["detail"], str)
-            diagnostics = response.json()["diagnostics"]
-            self.assertEqual(len(diagnostics["samples"]), 2)
-            self.assertEqual(diagnostics["status"], "QUALITY_REJECTED")
-            self.assertFalse(diagnostics["relative_angles_available"])
-            self.assertNotIn("relative_pitch_deg", response.content.decode())
-            self.assertNotIn(b"content-disposition", response.headers)
-            self.assertEqual(response.headers[b"cache-control"], b"no-store")
-        # A contract error cannot reuse a previously successful geometry report.
-        payload["samples"][1]["metadata"]["profile_id"] = "wrong-profile"
-        response = await self.request("POST", "estimate", body=payload)
-        self.assertEqual(response.status, 422)
-        self.assertNotIn("diagnostics", response.json())
 
     async def test_wrong_or_missing_origin_is_rejected_before_body_reads(self):
         for origin in (None, "null", "http://attacker.example", "http://testserver:81", "http://testserver/path"):

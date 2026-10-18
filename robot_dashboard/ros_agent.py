@@ -65,7 +65,6 @@ from .ros.navigation_gateway import (
     public_navigation_reason as _public_navigation_reason,
 )
 from .ros.pointcloud import PointCloudHub
-from .ros.observation_identity import wrap_observation_callback
 from .ros.relocalization_evidence import (
     FIXED_TOPICS as RELOCALIZATION_FIXED_TOPICS,
     RelocalizationEvidenceHub,
@@ -133,7 +132,6 @@ class RosAgent:
         self.robot_ip = self._valid_ip(robot_ip)
         normalized_cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
         self.profile = self._load_profile(profile_path)
-        self._observation_callbacks: Dict[str, object] = {}
         self._startup_profile_name = str(self.profile.get("name", "Generic ROS 2"))
         self._robot_type = infer_robot_type(self.profile)
         # These values describe the immutable ROS/DDS control transport that
@@ -1854,10 +1852,6 @@ class RosAgent:
             return False
         try:
             message_type = get_message(type_name)
-            observation_callback = callback in (self._summary_callback, self._pointcloud_callback)
-            callback_token = object()
-            if observation_callback:
-                self._observation_callbacks[key] = callback_token
 
             def wrapped(message: Any, topic_name: str = topic, ros_type: str = type_name) -> None:
                 callback(topic_name, ros_type, message)
@@ -1865,8 +1859,7 @@ class RosAgent:
             subscription = node.create_subscription(
                 message_type,
                 topic,
-                wrap_observation_callback(callback, topic, type_name,
-                    lambda: self._observation_callbacks.get(key) is callback_token) if observation_callback else wrapped,
+                wrapped,
                 self._qos_for(topic, type_name),
             )
             with self._lock:
@@ -1881,7 +1874,6 @@ class RosAgent:
     def _destroy_subscription(self, key: str) -> None:
         node = self._node
         with self._lock:
-            self._observation_callbacks.pop(key, None)
             subscription = self._subscriptions.pop(key, None)
         if node and subscription:
             try:
@@ -1892,14 +1884,14 @@ class RosAgent:
     def _tick(self, topic: str, now: float) -> None:
         self._graph_monitor.tick(topic, now)
 
-    def _summary_callback(self, topic: str, type_name: str, message: Any, *, message_info: Any = None) -> None:
+    def _summary_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
         self._tick(topic, now)
         if type_name == "nav_msgs/msg/Odometry":
-            self._update_pose(topic, type_name, message, now, message_info=message_info)
+            self._update_pose(topic, type_name, message, now)
         self._store_summary(topic, type_name, message, now)
 
-    def _update_pose(self, topic: str, type_name: str, message: Any, now: float, *, message_info: Any = None) -> None:
+    def _update_pose(self, topic: str, type_name: str, message: Any, now: float) -> None:
         self._telemetry_hub.update_pose(
             topic,
             type_name,
@@ -1907,8 +1899,6 @@ class RosAgent:
             now,
             selected_topic=lambda: self._sources.get("odometry", ""),
             stamp_ns=self._stamp_ns,
-            message_info=message_info,
-            publisher_count=self._graph.get(topic, {}).get("publishers"),
         )
 
     def _store_summary(self, topic: str, type_name: str, message: Any, now: float) -> None:
@@ -1961,7 +1951,7 @@ class RosAgent:
     def _prepare_h264(self, payload: bytes) -> Tuple[bytes, bool]:
         return self._camera_hub.prepare_h264(payload)
 
-    def _pointcloud_callback(self, topic: str, type_name: str, message: Any, *, message_info: Any = None) -> None:
+    def _pointcloud_callback(self, topic: str, type_name: str, message: Any) -> None:
         now = time.monotonic()
         with self._lock:
             if topic != self._sources.get("pointcloud", ""):
@@ -1975,8 +1965,6 @@ class RosAgent:
                 selected_topic=lambda: self._sources.get("pointcloud", ""),
                 stamp_ns=self._stamp_ns,
                 robot_pose_in_frame=self._robot_pose_in_cloud_frame,
-                message_info=message_info,
-                publisher_count=self._graph.get(topic, {}).get("publishers"),
             )
         except Exception as exc:
             with self._lock:
@@ -2464,9 +2452,6 @@ class RosAgent:
 
     def _pose_snapshot_locked(self, now: float) -> Dict[str, Any]:
         return self._telemetry_hub.pose_snapshot_locked(now)
-
-    def observation_pose_near(self, observation: Dict[str, Any]) -> Dict[str, Any] | None:
-        return self._telemetry_hub.observation_pose_near(observation, time.monotonic())
 
     def pose_snapshot(self) -> Dict[str, Any]:
         """Return the selected world pose without the large state payload."""

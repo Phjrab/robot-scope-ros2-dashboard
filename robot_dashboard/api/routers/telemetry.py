@@ -192,7 +192,7 @@ async def pointcloud_stream(websocket: WebSocket) -> None:
         nonlocal last_seq
         snapshot = current.pointcloud_binary_snapshot()
         seq = int(snapshot.get("seq", 0))
-        if seq != last_seq and (snapshot.get("points_bytes") or (snapshot.get("observation") or {}).get("invalidated")):
+        if seq != last_seq and snapshot.get("points_bytes"):
             await websocket.send_bytes(
                 await _cached_pointcloud_binary_frame(runtime, snapshot)
             )

@@ -16,8 +16,6 @@
   <link rel="stylesheet" href="/static/features/resources/view.css">
   <link rel="stylesheet" href="/static/features/slam/presentation.css">
   <link rel="stylesheet" href="/static/features/settings/mount_calibration.css">
-  <link rel="stylesheet" href="/static/features/settings/settings.css">
-  <link rel="stylesheet" href="/static/features/map_editor3d/editor.css">
   <script src="/static/typography.js" defer></script>
 </head>
 <body>
@@ -344,7 +342,6 @@
               <div><div class="eyebrow">NON-DESTRUCTIVE CLEANUP</div><h2>2D 지도 잡음 편집</h2></div>
               <div class="panel-state waiting" id="mapEditorState"><span></span>NO MAP</div>
             </div>
-            <div id="mapEditor2D">
             <div class="map-editor-toolbar" aria-label="2D 지도 편집 도구">
               <div class="map-editor-tool-group" role="group" aria-label="편집 모드">
                 <button type="button" data-map-editor-tool="brush" class="is-active" aria-pressed="true">BRUSH</button>
@@ -375,7 +372,6 @@
               <button id="mapEditorSave" class="map-primary-action" type="button" disabled>SAVE AS COPY</button>
             </div>
             <p id="mapEditorMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM은 변경하지 않습니다. 회전은 지도 중심 기준이며 편집 결과는 주석이 없는 새 지도 복사본으로만 저장됩니다.</p>
-            </div>
           </article>
           <article class="panel map-crop-panel">
             <div class="panel-header compact">
@@ -900,13 +896,6 @@
         <div id="mount-calibration-depth-legend" class="depth-legend"><span>가까움 <b id="mount-calibration-depth-min">—</b></span><div class="gradient-line"></div><span><b id="mount-calibration-depth-max">—</b> 멀음</span></div>
         <div class="point-toolbar"><div><strong id="mount-calibration-point-count">0</strong><span>개 선택</span><span class="muted"> / 최소 6개</span></div><div><button id="mount-calibration-undo-button" class="button subtle" type="button">↶ 되돌리기</button><button id="mount-calibration-clear-button" class="button subtle" type="button">모두 지우기</button></div></div>
         <p id="mount-calibration-point-quality" class="point-quality">한 직선에 모이지 않도록 가로·세로로 넓게 선택하세요.</p>
-        <p class="point-guidance">클릭 시에는 중심 1픽셀의 0.1–30 m 깊이만 확인합니다. 분석은 5×5 주변의 유효 깊이 수와 사분위 범위(IQR), 평면 잔차를 따로 검사합니다. 영상 가장자리의 주변 영역은 잘립니다. 같은 벽의 가로·세로에 12–20개 점을 넓게 선택하고 물체 경계·가림·반사면을 피하세요. 평면 인라이어는 주변 검사를 통과한 점의 65% 이상이면서 최소 6개가 필요합니다. 정확히 6개를 선택하면 6개 모두 주변 검사와 평면 인라이어 기준을 통과해야 합니다.</p>
-        <section id="mount-calibration-diagnostics" class="point-diagnostics" hidden aria-labelledby="mount-calibration-diagnostics-heading">
-          <h4 id="mount-calibration-diagnostics-heading">선택점 품질 진단</h4>
-          <p id="mount-calibration-diagnostics-status" role="status"></p>
-          <p id="mount-calibration-diagnostics-spread"></p><p id="mount-calibration-diagnostics-reason"></p>
-          <div class="table-scroll" tabindex="0" role="region" aria-label="선택점 품질 진단 표 · 좌우 스크롤"><table><thead><tr><th>점 (u, v)</th><th>중심 픽셀</th><th>5×5 유효 깊이</th><th>IQR / 허용</th><th>평면 잔차 |r|</th><th>판정</th></tr></thead><tbody id="mount-calibration-diagnostics-body"></tbody></table></div>
-        </section>
         <details class="manual-points"><summary>픽셀 좌표로 점 추가 · 선택 목록</summary><form id="mount-calibration-point-form"><label>u <input id="mount-calibration-point-u" type="number" min="0" step="1" required placeholder="160" aria-label="점의 u 좌표"></label><label>v <input id="mount-calibration-point-v" type="number" min="0" step="1" required placeholder="120" aria-label="점의 v 좌표"></label><button id="mount-calibration-point-add" type="submit" class="button secondary" disabled>점 추가</button></form><div id="mount-calibration-point-list" class="point-list"></div></details>
       </section>
       <aside class="inspector-panel">
@@ -922,7 +911,7 @@
       </aside>
     </div>
     <section class="conditions-panel calibration-card" aria-labelledby="mount-calibration-conditions-heading"><div class="conditions-intro"><div class="eyebrow small">BEFORE ESTIMATING</div><h3 id="mount-calibration-conditions-heading">촬영 조건 확인</h3><p id="mount-calibration-conditions-description">촬영 당시의 세 가지 고정 조건을 직접 확인하세요. 장치 검증을 대신하지 않습니다.</p></div><fieldset id="mount-calibration-conditions"><legend class="sr-only">추정에 필요한 고정 조건</legend><label><input id="mount-calibration-stationary-check" type="checkbox"><span><strong>Go2는 앉은 상태로 정지</strong><small>촬영 사이 본체 자세와 위치가 변하지 않음</small></span></label><label><input id="mount-calibration-wall-check" type="checkbox"><span><strong>모든 점은 같은 고정 평면 벽</strong><small>벽 모서리·바닥·다른 물체의 점은 제외</small></span></label><label><input id="mount-calibration-pitch-check" type="checkbox"><span><strong>마운트의 피치만 변경</strong><small>좌우 회전·롤 회전 없이 카메라 기울기만 조절</small></span></label></fieldset><div class="estimate-action"><button id="mount-calibration-estimate-button" class="button primary" type="button" disabled><span aria-hidden="true">↗</span> 상대 피치 추정</button><p id="mount-calibration-estimate-readiness">위 세 가지 조건을 확인하세요.</p></div></section>
-    <section class="results-panel calibration-card" aria-labelledby="mount-calibration-results-heading"><div class="results-top"><div><div class="eyebrow small">RELATIVE PITCH ESTIMATE</div><h3 id="mount-calibration-results-heading">추정 결과</h3></div><button id="mount-calibration-export-button" class="button secondary" type="button" disabled>↓ 분석 JSON 내보내기</button></div><div id="mount-calibration-results-empty" class="results-empty"><span aria-hidden="true">⌁</span><div><strong>아직 계산한 결과가 없습니다.</strong><p>점 선택과 촬영 조건을 확인한 뒤 추정하세요. 기준 대비 각도와 평면 적합 품질을 함께 보여드립니다.</p></div></div><div id="mount-calibration-results-content" hidden><div id="mount-calibration-results-summary" class="results-summary"></div><div class="table-scroll" tabindex="0" role="region" aria-label="상대 피치 추정 결과 표 · 좌우 스크롤"><table><thead><tr><th scope="col">촬영</th><th scope="col">기준 대비 피치</th><th scope="col">평면 RMSE</th><th scope="col">인라이어</th><th scope="col">법선 [x, y, z]</th><th scope="col">상태</th></tr></thead><tbody id="mount-calibration-results-body"></tbody></table></div><div id="mount-calibration-result-warnings" class="result-warnings"></div></div><div class="verification-warning"><span aria-hidden="true">ⓘ</span><p>이 값은 기준 촬영 대비 상대 피치입니다. 카메라↔Go2의 절대 실장 각도나 전체 6DoF 외부 파라미터를 확정하지 않습니다. 마운트 회전축에 따른 광학 중심 이동도 별도 검증이 필요합니다.</p></div></section>
+    <section class="results-panel calibration-card" aria-labelledby="mount-calibration-results-heading"><div class="results-top"><div><div class="eyebrow small">RELATIVE PITCH ESTIMATE</div><h3 id="mount-calibration-results-heading">추정 결과</h3></div><button id="mount-calibration-export-button" class="button secondary" type="button" disabled>↓ 분석 JSON 내보내기</button></div><div id="mount-calibration-results-empty" class="results-empty"><span aria-hidden="true">⌁</span><div><strong>아직 계산한 결과가 없습니다.</strong><p>점 선택과 촬영 조건을 확인한 뒤 추정하세요. 기준 대비 각도와 평면 적합 품질을 함께 보여드립니다.</p></div></div><div id="mount-calibration-results-content" hidden><div id="mount-calibration-results-summary" class="results-summary"></div><div class="table-scroll"><table><thead><tr><th scope="col">촬영</th><th scope="col">기준 대비 피치</th><th scope="col">평면 RMSE</th><th scope="col">인라이어</th><th scope="col">법선 [x, y, z]</th><th scope="col">상태</th></tr></thead><tbody id="mount-calibration-results-body"></tbody></table></div><div id="mount-calibration-result-warnings" class="result-warnings"></div></div><div class="verification-warning"><span aria-hidden="true">ⓘ</span><p>이 값은 기준 촬영 대비 상대 피치입니다. 카메라↔Go2의 절대 실장 각도나 전체 6DoF 외부 파라미터를 확정하지 않습니다. 마운트 회전축에 따른 광학 중심 이동도 별도 검증이 필요합니다.</p></div></section>
               <p class="calibration-scope-note">분석 JSON에는 원시 깊이·내부 파라미터·선택 점과 품질 경고를 함께 보관합니다. TF 저장·적용이나 VSLAM 시작은 수행하지 않습니다.</p>
             </div>
           </article>

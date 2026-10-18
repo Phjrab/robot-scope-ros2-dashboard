@@ -10,7 +10,7 @@ async function fixture(page) {
     const value = path.endsWith('/engines') ? { engines: [
       { engine_id: 'lidar_fastlio', available_now: true, tasks: ['mapping'] },
       { engine_id: 'visual_stereo', available_now: true, tasks: ['mapping'] },
-    ] } : path.endsWith('/session') ? { active_session: null, generation: 0 }
+    ] } : path.endsWith('/session') ? { active_session: null }
       : path.endsWith('/packages') ? { packages }
         : path.endsWith('/preview') ? { global_map: { points: [], coverage: 'unknown', provenance: 'SYNTHETIC_FIXTURE' } } : {};
     return route.fulfill({ json: value });

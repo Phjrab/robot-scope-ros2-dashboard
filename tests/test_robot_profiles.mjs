@@ -161,29 +161,3 @@ test('a transient model fetch failure can be retried without reloading the page'
   assert.equal(fetchCount, 2);
   assert.equal(scene.getOfficialRobotModelStatus().state, 'ready');
 });
-
-test('official Go2 projected geometry stays metre-scaled across zoom and applies full RPY', async () => {
-  const asset = JSON.parse(readFileSync(new URL('../robot_dashboard/static/assets/go2/go2-official-lite.json', import.meta.url), 'utf8'));
-  let points = [];
-  let pose = { x: 1, y: 2, z: 3, roll: .2, pitch: -.3, yaw: .4 };
-  class Scene {
-    constructor() {
-      this.camera = { distance: 2 }; this.options = { fov: .8 }; this.width = 640; this.height = 360;
-      this.ctx = new Proxy({}, { get: () => () => {} });
-    }
-    _drawRobot() {}
-    _drawRobotLabel() {}
-    render() {}
-    _effectiveRobotPose() { return pose; }
-    _project(p) { points.push(Array.from(p)); return { x: 320 + p[0], y: 180 + p[1], depth: 2 }; }
-  }
-  const sandbox = { RobotScene3D: Scene, fetch: async () => ({ ok: true, json: async () => asset }) };
-  sandbox.window = sandbox; sandbox.globalThis = sandbox; runInNewContext(rendererSource, sandbox);
-  const scene = new Scene(); scene.configureOfficialRobot({ poseOrigin: 'base', scale: 1, adaptiveScale: true });
-  await scene.loadOfficialRobotModel(); scene._drawRobot(); const near = points;
-  points = []; scene.camera.distance = 200; scene._drawRobot();
-  assert.deepEqual(points, near, 'camera zoom must not change any world vertex');
-  assert.ok(points.length > 1000);
-  const tilted = points[0]; points = []; pose = { ...pose, roll: 0, pitch: 0 }; scene._drawRobot();
-  assert.ok(Math.hypot(...points[0].map((v, i) => v - tilted[i])) > .001);
-});

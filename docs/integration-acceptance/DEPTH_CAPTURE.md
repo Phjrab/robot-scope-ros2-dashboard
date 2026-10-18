@@ -5,12 +5,6 @@ not estimate an angle, assume a level seated body, change factory calibration,
 write camera flash, publish TF, change the VSLAM base frame, or send robot commands.
 Existing stereo VSLAM and Isaac versions remain unchanged.
 
-Current installed product source is `40276a51b2e08c77732317a856cc879cc23e1ef6`.
-The latest approved window collected two same-angle samples, verified their raw
-exports and deployed Settings import, and returned sequentially to Stereo.
-Actual relative-angle analysis/export was blocked by depth-neighborhood/plane
-quality; see the later result below and [Settings evidence](MOUNT_CALIBRATION_SETTINGS.md).
-
 ## Initial read-only baseline (superseded by the approved trial below)
 
 Source baseline: `c6fedc05e5086fa755cc92b1a2cf2daa56ffc41a`; the working tree was clean
@@ -54,7 +48,7 @@ The initial inspection found native SDK 2.55.1 libraries and `pyrsutils` in
 binding. The software correctly failed closed. That prerequisite was resolved
 within the later approved window below; this initial inspection is historical.
 
-## Earlier approved deployment and actual collection — 2026-10-17 (`78e23ce`)
+## Approved deployment and actual collection — 2026-10-17
 
 The user approved the exact candidate and confirmed seated fixed posture, a stopped
 camera and onsite physical recovery. Source `78e23ce9edb59790a665055dfd23f230be018b43`
@@ -149,79 +143,19 @@ cost or a causal regression benchmark. Sparse GPU samples do not prove no GPU us
 cuVSLAM reports `use_gpu=true`. USB throughput and calibrated sensor-to-screen
 latency were not measured.
 
-## Earlier concurrent main publication (`78e23ce` camera window)
+## Concurrent main publication
 
 During closeout, concurrent commit `eb0a9c67c51b3c2805a42843baafe30ff5deb36e`
 added Settings import/point-selection calibration. Its passing CI and code were
 preserved in the documentation merge; no duplicate solver/UI was added here.
 That newer Settings integration was **not deployed in this camera window**.
-The device/evidence qualification of that earlier window remains pinned to `78e23ce`; validation
+The actual device/evidence qualification remains pinned to `78e23ce`; validation
 source hashes identify that deployed revision rather than the newer main.
 Merged-source validation ran 2,260 Python tests: 2,233 passed, two existing skips,
 and 25 temporary Unix-socket cases blocked by the local sandbox. Those exact
 25 cases passed when rerun with local socket permission; no product failures
 remain. JavaScript: 428 passed. Passing `eb0a9c6` browser CI is reused because
 the merged product/test/experiment tree matches it; only evidence docs differ.
-
-## Latest Settings deployment and same-angle collection — 2026-10-17 (`40276a5`)
-
-Exact product source `40276a51b2e08c77732317a856cc879cc23e1ef6` passed
-[CI run 39024766108](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/39024766108)
-and was deployed under current approval by clean fast-forward; 1,345 source-file
-hashes matched. Existing dashboard and user broker services restarted. SDK 2.55.1,
-the private binding and original native library, broker entry, dashboard environment
-and all Stereo/depth configs stayed unchanged. No dependency provisioning,
-Isaac upgrade, factory calibration write or operating DDS change occurred.
-
-The user skipped pitch adjustment for this window. Two independent stationary
-sessions therefore captured the same camera setting, not different measured angles:
-
-| Sample | Capture UTC | Session / generation | Valid depth | Source skew |
-| --- | --- | --- | ---: | ---: |
-| `0f301ed2870243e5bb0a6bac68dc5b94` | 10:36:36.616828 | `b697a8eaa06b4e9ea88cb00285f33241` / 1 | 95.1712% | 0 ms |
-| `c92c6700bc5a4125b9bf3d9408d5fe8e` | 10:37:03.575887 | `67b0f9f0172d42178dd3c01fffbd1617` / 2 | 95.2738% | 0 ms |
-
-Both real 640×480 samples passed all 307,200 raw-depth/optical-Z-or-null pixel
-comparisons, lossless PNG correspondence and ZIP hash/readback checks. Raw ZIP and
-compatibility JSON export succeeded; new capture-session provenance and source
-timestamps were retained. Files remain under the existing robot
-`multi-slam/depth-samples/<sample_id>/` store. No old sample/map/package was replaced.
-The camera_info.json artifact is derived from actual SDK intrinsics observations;
-it does not claim a live ROS CameraInfo message or complete R/P observation.
-
-The deployed Settings UI listed and imported both samples via GET, displayed the
-original IR image and accepted six native-pixel picks. Actual analysis returned
-HTTP 422: the first selection had only one valid depth neighborhood; a nearby
-0–2.83-pixel selection adjustment still had no reliable planar consensus. Analysis
-export also returned HTTP 422 and the UI export button stayed disabled. No quality
-or synchronization gate was relaxed. This is successful capture/raw export and
-Settings import with **actual relative analysis/export incomplete due to quality**,
-not an end-to-end angle success, measured zero-angle result or body calibration.
-Exact selected pixels and responses are recorded in the linked Settings document.
-
-The unchanged camera then returned to the existing Stereo native-VO path with
-IMU=false and TF publish=false. Session `8c083c88e3914bf78c804efd227e6b40`, generation
-3, started at 10:42:02.302Z, reached TRACKING at 10:42:09.730Z, received stop at
-age 60.546 seconds and completed cleanup at 10:43:08.102Z (about 65.81 seconds).
-This verifies sequential mode return only. No new WebSocket/FPS/CPU measurements
-or simultaneous Stereo+depth test were made; the earlier performance numbers above
-belong to the separate `78e23ce` window.
-
-Final readback at 10:45:54.953551Z confirmed clean `40276a5`, IDLE, camera reserved=false
-and reservation_unknown=false, with bridge PID 0/inactive/disabled. The root owner
-probe at 10:45:53.819Z independently reported the camera free. Config/environment,
-entry/binding and existing map/package/sample inventories matched; only the two new
-depth samples were added. No posture, motion, ARM, initialpose or goal was commanded.
-
-Private evidence is under `robot-scope-hardware-validation-private/mount-settings-20261017/`:
-`deployment-result.json`, `depth-repeat-1/`, `depth-repeat-2/`,
-`actual-depth-contract-report.json`, `actual-analysis-api-report.json`,
-`settings-actual-wall-quality-blocked.png` and `final-runtime.json`.
-The next minimum observation needs a closer, unobstructed textured wall chosen by
-the user, any necessary independently safe manual repositioning, and a stationary
-same-angle repeat that first passes plane quality. Multi-angle comparison follows
-only after that and fresh stop confirmation for each adjustment. Independent
-angle/accuracy truth and camera-to-body extrinsics remain unavailable.
 
 ## Collection and return to Stereo
 
@@ -232,8 +166,8 @@ stored captures are preserved. New compatibility exports also record
 `metadata.capture_session_id` so hardware-clock resets can be distinguished across
 sessions. The consumer accepts older files without this field and keeps their
 original timestamps; it does not relabel historical evidence as a fresh capture.
-This integration is deployed in `40276a5`; its actual capture/import and quality
-failure results are recorded above, separately from the earlier `78e23ce` trial.
+This software integration has not yet been deployed over the actual `78e23ce`
+camera trial described above.
 
 1. Finish and explicitly stop the current SLAM mode. Resolve unsaved-map choices
    in that mode; the depth panel never discards a map or switches mode automatically.

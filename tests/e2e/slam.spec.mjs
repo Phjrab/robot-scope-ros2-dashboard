@@ -1,6 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
 import { installDashboardBackend } from './dashboard_backend.mjs';
 
 const PACKAGE_ID = 'np_' + 'a'.repeat(32);
@@ -78,11 +76,8 @@ async function install(page, { available = true, state = null } = {}) {
       { engine_id: 'visual_inertial', available_now: false, tasks: [], blocked_reason: 'IMU_NOT_QUALIFIED' },
     ] });
     if (path === '/session') {
-      const value = structuredClone({ active_session: shared.session, generation: shared.session?.generation || 0,
-        jobs: shared.jobs, operational_pose_source: { source: '/Odometry', generation: 7 } });
-      shared.sessionReads = (shared.sessionReads || 0) + 1;
-      if (shared.hangSessionResponses) return;
-      if (shared.invalidSessionResponse) return reply({});
+      const value = { active_session: shared.session, generation: shared.session?.generation || 0,
+        jobs: shared.jobs, operational_pose_source: { source: '/Odometry', generation: 7 } };
       if (shared.holdNextSessionResponse) {
         shared.holdNextSessionResponse = false;
         shared.releaseSessionResponse = () => reply(value);
@@ -120,12 +115,7 @@ async function install(page, { available = true, state = null } = {}) {
     if (path.endsWith('/stop')) {
       if (shared.session.state === 'SAVING') return reply({ detail: 'SAVE_IN_PROGRESS' }, 409);
       if (shared.session.unsaved && body().discard_unsaved !== true) return reply({ detail: 'UNSAVED_MAP' }, 409);
-      if (shared.invalidReadbackAfterStop) shared.invalidSessionResponse = true;
-      const receipt = { session_id: shared.session.session_id, generation: shared.session.generation, state: 'STOPPING' };
-      shared.session.state = shared.stopState || 'IDLE';
-      if (shared.holdStopResponse) { shared.releaseStopResponse = () => reply(receipt); return; }
-      if (shared.hangStopResponse) return;
-      return reply(receipt);
+      shared.session.state = 'IDLE'; return reply({ active_session: shared.session });
     }
     if (path.startsWith('/jobs/')) {
       const job = shared.jobs.find((value) => value.job_id === path.slice('/jobs/'.length));
@@ -225,134 +215,6 @@ test('SLAM real action path renders bounded observation/global stream and requir
   const actions = fixture.shared.mutations.map((value) => value.path);
   expect(actions).toEqual(['/sessions', '/sessions/fixture-session/save', '/sessions/fixture-session/stop']);
   expect(fixture.shared.mutations.at(-1).body.discard_unsaved).toBe(true);
-});
-
-async function captureStopEvidence(page, name) {
-  const directory = process.env.OFFLINE_FOLLOWUP_CAPTURE;
-  if (!directory) return;
-  await mkdir(directory, { recursive: true });
-  await page.locator('#slamConsole').screenshot({ path: path.join(directory, name) });
-}
-
-test('SLAM accepted Stop remains explicit across status timeout then reconciles confirmed IDLE', async ({ page }) => {
-  const fixture = await install(page);
-  await open(page); await startStereo(page); await page.clock.install();
-  fixture.shared.hangSessionResponses = true;
-  await page.locator('#slamStop').click(); await page.locator('#slamDiscardThenStop').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('STOP_ACCEPTED');
-  await expect(page.locator('#slamMessage')).toContainText('중지 요청 수락');
-  await expect(page.locator('#slamMessage')).toContainText('아직 미확인');
-  await page.clock.fastForward(15_001);
-  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('#slamMessage')).toContainText('상태 조회 실패 (SLAM_REQUEST_TIMEOUT)');
-  await expect(page.locator('#slamSessionState')).toHaveText('STOP_ACCEPTED');
-  await expect(page.locator('#slamStop')).toBeDisabled();
-  await expect(page.locator('#slamRefresh')).toBeEnabled();
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(1);
-  await captureStopEvidence(page, 'stop-accepted-unconfirmed.png');
-  fixture.shared.hangSessionResponses = false;
-  await page.locator('#slamRefresh').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('IDLE');
-  await expect(page.locator('#slamMessage')).toContainText('서버 IDLE 확인');
-  await expect(page.locator('#slamMessage')).not.toContainText('SLAM_REQUEST_TIMEOUT');
-  await captureStopEvidence(page, 'stop-idle.png');
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(1);
-});
-
-test('SLAM Stop cleanup failure is distinct from request acceptance and can be explicitly retried', async ({ page }) => {
-  const fixture = await install(page);
-  await open(page); await startStereo(page);
-  fixture.shared.stopState = 'STOPPING';
-  await page.locator('#slamStop').click(); await page.locator('#slamDiscardThenStop').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('STOPPING');
-  await expect(page.locator('#slamMessage')).toContainText('서버 정리 중');
-  await expect(page.locator('#slamStop')).toBeDisabled();
-  Object.assign(fixture.shared.session, { state: 'ERROR', reason: 'CLEANUP_REQUIRED', cleanup_required: true });
-  await page.locator('#slamRefresh').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('ERROR');
-  await expect(page.locator('#slamMessage')).toContainText('서버 정리 실패');
-  await expect(page.locator('#slamMessage')).toContainText('자원 해제 미확인');
-  await expect(page.locator('#slamStop')).toBeEnabled();
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(1);
-  // Match the actual manager: retry leaves the old flag/reason in STOPPING;
-  // successful cleanup clears the flag but retains reason=CLEANUP_REQUIRED.
-  await page.locator('#slamStop').click(); await page.locator('#slamDiscardThenStop').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('STOPPING');
-  await expect(page.locator('#slamMessage')).toContainText('서버 정리 중');
-  Object.assign(fixture.shared.session, { state: 'IDLE', cleanup_required: false, unsaved: false });
-  expect(fixture.shared.session.reason).toBe('CLEANUP_REQUIRED');
-  await page.locator('#slamRefresh').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('IDLE');
-  await expect(page.locator('#slamMessage')).toContainText('서버 IDLE 확인');
-  await expect(page.locator('#slamMessage')).not.toContainText('실패');
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(2);
-
-});
-
-test('SLAM late Stop receipt and old session snapshot cannot replace a newer session', async ({ page }) => {
-  const fixture = await install(page);
-  await open(page); await startStereo(page);
-  fixture.shared.stopState = 'STOPPING'; fixture.shared.holdStopResponse = true;
-  await page.locator('#slamStop').click(); await page.locator('#slamDiscardThenStop').click();
-  await expect.poll(() => Boolean(fixture.shared.releaseStopResponse)).toBe(true);
-  fixture.shared.session = { ...fixture.shared.session, session_id: 'replacement-session', generation: 2,
-    map_epoch: 'new-epoch', state: 'MAPPING' };
-  await expect(page.locator('#slamSessionState')).toHaveText('MAPPING');
-  await fixture.shared.releaseStopResponse();
-  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('#slamMessage')).toContainText('replacement-session');
-  await expect(page.locator('#slamMessage')).not.toContainText('중지 요청 수락');
-  await expect(page.locator('#slamSessionState')).toHaveText('MAPPING');
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(1);
-});
-
-test('SLAM lost Stop acknowledgement uses readback only and never automatically repeats stop', async ({ page }) => {
-  const fixture = await install(page);
-  await open(page); await startStereo(page); await page.clock.install();
-  fixture.shared.hangStopResponse = true; fixture.shared.hangSessionResponses = true;
-  await page.locator('#slamStop').click(); await page.locator('#slamDiscardThenStop').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('STOP_REQUESTING');
-  await page.clock.fastForward(15_001);
-  await expect(page.locator('#slamSessionState')).toHaveText('STOP_UNCONFIRMED');
-  await expect(page.locator('#slamMessage')).toContainText('종료 여부 미확인');
-  await page.clock.fastForward(15_001);
-  await expect(page.locator('#slamConsole')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('#slamStop')).toBeDisabled();
-  fixture.shared.hangSessionResponses = false;
-  await page.locator('#slamRefresh').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('IDLE');
-  await expect(page.locator('#slamMessage')).toContainText('서버 IDLE 확인');
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(1);
-});
-
-test('SLAM invalid status snapshot cannot erase accepted Stop or invent IDLE', async ({ page }) => {
-  const fixture = await install(page);
-  await open(page); await startStereo(page);
-  fixture.shared.invalidReadbackAfterStop = true;
-  await page.locator('#slamStop').click(); await page.locator('#slamDiscardThenStop').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('STOP_ACCEPTED');
-  await expect(page.locator('#slamMessage')).toContainText('INVALID_SESSION_RESPONSE');
-  await expect(page.locator('#slamStop')).toBeDisabled();
-  fixture.shared.invalidSessionResponse = false;
-  await page.locator('#slamRefresh').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('IDLE');
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(1);
-});
-
-test('SLAM server generation reset is explicit UNKNOWN until a new page reads current state', async ({ page }) => {
-  const fixture = await install(page);
-  await open(page); await startStereo(page);
-  fixture.shared.session = null;
-  await page.locator('#slamRefresh').click();
-  await expect(page.locator('#slamSessionState')).toHaveText('UNKNOWN');
-  await expect(page.locator('#slamMessage')).toContainText('SESSION_GENERATION_RESET');
-  await expect(page.locator('#slamMessage')).toContainText('이전 세션 종료 미확인');
-  await expect(page.locator('#slamStop')).toBeDisabled();
-  await expect(page.locator('#slamStart')).toBeDisabled();
-  await page.reload();
-  await expect(page.locator('#slamSessionState')).toHaveText('IDLE');
-  await expect(page.locator('#slamMessage')).not.toContainText('SESSION_GENERATION_RESET');
-  expect(fixture.shared.mutations.filter((value) => value.path.endsWith('/stop'))).toHaveLength(0);
 });
 
 test('SLAM camera frustum rejects changed calibration and stale optical pose while retaining global map', async ({ page }) => {

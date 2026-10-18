@@ -25,7 +25,7 @@ export function initializeMountCalibrationFeature(options = {}) {
     element.addEventListener(event, handler);
     listeners.push(() => element.removeEventListener(event, handler));
   };
-  const state = { samples: [], selectedId: null, referenceId: null, result: null, diagnostics: null, version: 0, controller: null, busy: false, heatmaps: new Map(), saved: [], savedSelection: new Set(), savedEvidence: new Map(), importing: false, imageView: true };
+  const state = { samples: [], selectedId: null, referenceId: null, result: null, version: 0, controller: null, busy: false, heatmaps: new Map(), saved: [], savedSelection: new Set(), savedEvidence: new Map(), importing: false, imageView: true };
   const checks = ['stationary-check', 'wall-check', 'pitch-check'];
   const maxFileBytes = 30 * 1024 * 1024;
   const maxPoints = 100;
@@ -59,8 +59,6 @@ export function initializeMountCalibrationFeature(options = {}) {
     state.controller = null;
     state.busy = false;
     state.result = null;
-    state.diagnostics = null;
-    renderDiagnostics();
     $('results-content').hidden = true;
     $('results-empty').hidden = false;
     $('export-button').disabled = true;
@@ -85,7 +83,7 @@ export function initializeMountCalibrationFeature(options = {}) {
     const minor = (trace - discriminant) / 2;
     if (major <= 0 || minor / major < 0.0064) return { ok: false, message: '점들이 한 직선에 가깝습니다. 가로·세로로 분산해 추가하세요.' };
     if (Math.sqrt(minor / points.length) / Math.min(sample.width, sample.height) < 0.012) return { ok: false, message: '점들이 너무 좁게 모여 있습니다. 같은 벽의 넓은 영역을 선택하세요.' };
-    return { ok: true, message: `${points.length}개 중심 픽셀 유효 · 화면상 분포 양호. 5×5 주변 깊이와 실제 평면 품질은 별도 검사합니다.` };
+    return { ok: true, message: `${points.length}개 유효 점 · 화면상 분포 양호. 실제 평면 적합 품질은 추정 후 확인하세요.` };
   }
 
   function readiness() {
@@ -201,11 +199,11 @@ export function initializeMountCalibrationFeature(options = {}) {
       ? '저장 IR1 영상 · 원본 픽셀과 optical-Z 깊이 대응 확인 · 라이브 아님'
       : evidence?.imageError ? `깊이 히트맵 · 대응 영상 미표시: ${evidence.imageError}` : '깊이 히트맵 · 라이브 영상 아님';
     canvas.setAttribute('aria-label', showImage ? '저장된 IR1 영상. 같은 벽 위의 지점을 선택하세요. 원본 픽셀 좌표를 사용합니다.' : '깊이 히트맵. 같은 벽 위의 지점을 선택하거나 픽셀 좌표를 입력하세요.');
-    const analysis = state.diagnostics?.samples?.find((item) => item.id === sample.id) || state.result?.samples?.find((item) => item.id === sample.id);
+    const analysis = state.result?.samples?.find((item) => item.id === sample.id);
     const markerRadius = Math.max(3.5, sample.width / 85);
     sample.points.forEach((point, index) => {
       const validated = analysis?.validated_points?.find((item) => item.u === point.u && item.v === point.v);
-      const rejected = validated && (!validated.valid || validated.inlier === false);
+      const rejected = validated && (!validated.valid || !validated.inlier);
       context.beginPath(); context.arc(point.u, point.v, markerRadius + 1.2, 0, Math.PI * 2);
       context.fillStyle = rejected ? '#e27f6b' : '#103c41'; context.fill();
       context.strokeStyle = rejected ? '#ffe1c2' : '#edfff7'; context.lineWidth = 1.2; context.stroke();
@@ -260,88 +258,8 @@ export function initializeMountCalibrationFeature(options = {}) {
     $('point-list').replaceChildren(fragment);
   }
 
-  // Preview the same bounded 5x5 statistics; only the Python solver decides
-  // plane acceptance. No points are moved or automatically included/excluded.
-  function neighborhood(sample, point) {
-    const values = [];
-    let count = 0;
-    for (let v = Math.max(0, point.v - 2); v <= Math.min(sample.height - 1, point.v + 2); v++) {
-      for (let u = Math.max(0, point.u - 2); u <= Math.min(sample.width - 1, point.u + 2); u++) {
-        count++; const depth = sample.depth_m[v * sample.width + u];
-        if (validDepth(depth)) values.push(depth);
-      }
-    }
-    values.sort((a, b) => a - b);
-    const quantile = (fraction) => {
-      if (!values.length) return null;
-      const offset = (values.length - 1) * fraction, left = Math.floor(offset), right = Math.ceil(offset);
-      return values[left] + (values[right] - values[left]) * (offset - left);
-    };
-    const median = quantile(.5), iqr = values.length ? quantile(.75) - quantile(.25) : null;
-    const limit = median === null ? null : Math.max(.03, .03 * median), required = Math.max(5, Math.ceil(count * .5));
-    const center = sample.depth_m[point.v * sample.width + point.u];
-    const reason = values.length < required ? 'insufficient valid neighborhood depth'
-      : iqr > limit ? 'depth discontinuity in neighborhood' : 'plane not checked';
-    return { ...point, center_depth_m: validDepth(center) ? center : null, center_valid: validDepth(center),
-      neighborhood_valid_count: values.length, neighborhood_pixel_count: count, neighborhood_required_count: required,
-      neighborhood_valid_fraction: values.length / count, neighborhood_median_m: median,
-      neighborhood_iqr_m: iqr, discontinuity_limit_m: limit, reason, plane_residual_m: null };
-  }
-
-  function renderDiagnostics() {
-    const sample = selected();
-    $('diagnostics').hidden = !sample;
-    if (!sample) { $('diagnostics-body').replaceChildren(); return; }
-    const diagnostic = state.diagnostics?.samples?.find((entry) => entry.id === sample.id);
-    const rejected = state.diagnostics?.status === 'QUALITY_REJECTED';
-    $('diagnostics-status').textContent = diagnostic
-      ? rejected ? `분석 차단 · 각도 없음 · ${diagnostic.failure_code || '이 촬영의 평면만 통과'}`
-        : '서버 평면 검사 완료 · 상대 보정 범위만'
-      : '로컬 주변 깊이 미리보기 · 서버 평면 검사 전';
-    const points = sample.points.map((point) => diagnostic?.validated_points?.find((entry) => entry.u === point.u && entry.v === point.v) || neighborhood(sample, point));
-    const reasons = {
-      'insufficient valid neighborhood depth': '주변 유효 깊이 부족',
-      'depth discontinuity in neighborhood': '주변 깊이 불연속',
-      'outside plane tolerance': '평면 잔차 초과',
-      'within candidate plane tolerance': '후보 평면 내 · 전체 검사 실패',
-      'accepted plane inlier': '평면 인라이어', 'plane not checked': '주변 통과 · 평면 미검사',
-    };
-    const rows = document.createDocumentFragment();
-    points.forEach((point, index) => {
-      const row = node('tr');
-      const ratio = finite(point.neighborhood_valid_fraction) ? `${pretty(point.neighborhood_valid_fraction * 100, 0)}%` : '—';
-      const count = `${point.neighborhood_valid_count ?? '—'}/${point.neighborhood_pixel_count ?? '—'}`;
-      row.append(node('td', '', `${index + 1} (${point.u}, ${point.v})`),
-        node('td', '', point.center_valid ? `${pretty(point.center_depth_m)} m` : '유효하지 않음'),
-        node('td', '', `${count} · ${ratio} (최소 ${point.neighborhood_required_count ?? '—'})`),
-        node('td', '', `${pretty(finite(point.neighborhood_iqr_m) ? point.neighborhood_iqr_m * 1000 : null, 1)} / ${pretty(finite(point.discontinuity_limit_m) ? point.discontinuity_limit_m * 1000 : null, 1)} mm`),
-        node('td', '', finite(point.plane_residual_m) ? `${pretty(Math.abs(point.plane_residual_m) * 1000, 2)} mm` : '미계산'),
-        node('td', '', reasons[point.reason] || point.reason || '미검사'));
-      rows.append(row);
-    });
-    $('diagnostics-body').replaceChildren(rows);
-    const spread = diagnostic?.pixel_distribution;
-    const xs = sample.points.map((point) => point.u), ys = sample.points.map((point) => point.v);
-    const width = spread?.width_fraction ?? (xs.length ? (Math.max(...xs) - Math.min(...xs)) / sample.width : 0);
-    const height = spread?.height_fraction ?? (ys.length ? (Math.max(...ys) - Math.min(...ys)) / sample.height : 0);
-    const consensus = diagnostic ? ` · 깊이 통과 ${diagnostic.valid_points}/${diagnostic.selected_points} · 인라이어 ${diagnostic.inlier_points ?? '미계산'} / 필요 ${diagnostic.minimum_inlier_points}` : '';
-    const residual = diagnostic?.residual_basis === 'rejected_candidate_plane' ? ' · 잔차는 실패한 후보 평면 기준이며 유효 보정값이 아닙니다.' : '';
-    $('diagnostics-spread').textContent = `선택 범위: 영상 너비 ${pretty(width * 100, 1)}% · 높이 ${pretty(height * 100, 1)}%${consensus}${residual}`;
-    $('diagnostics-reason').textContent = diagnostic?.reason || '';
-  }
-
-  function retainQualityFailure(error) {
-    if (error.diagnostics?.status !== 'QUALITY_REJECTED' || !Array.isArray(error.diagnostics.samples)) return;
-    // Export also recomputes: a newly rejected analysis must clear any earlier
-    // successful angle and remain unavailable for download.
-    invalidate();
-    state.diagnostics = error.diagnostics;
-    renderDiagnostics(); drawDepth();
-  }
-
   function render() {
     renderSampleList();
-    renderDiagnostics();
     const sample = selected();
     $('depth-empty').hidden = Boolean(sample);
     $('depth-canvas').hidden = !sample;
@@ -455,8 +373,6 @@ export function initializeMountCalibrationFeature(options = {}) {
   function renderResults(result) {
     if (!result || !Array.isArray(result.samples)) throw new Error('서버 결과에 촬영별 분석이 없습니다.');
     state.result = result;
-    state.diagnostics = { status: result.status, samples: result.samples.map((sample) => sample.diagnostics || sample) };
-    renderDiagnostics();
     $('results-empty').hidden = true;
     $('results-content').hidden = false;
     $('export-button').disabled = false;
@@ -730,10 +646,7 @@ export function initializeMountCalibrationFeature(options = {}) {
       renderResults(result);
       notify(result.pitch_only_consistent === false ? '분석은 완료했지만 일부 촬영이 피치 전용 조건과 맞지 않습니다. 보류된 결과와 경고를 확인하세요.' : '평면 비교를 완료했습니다. 아래 상대 피치와 적합 품질을 함께 확인하세요.', result.pitch_only_consistent === false ? '' : 'success');
     } catch (error) {
-      if (!destroyed && error.name !== 'AbortError' && version === state.version) {
-        retainQualityFailure(error);
-        notify(`추정 실패: ${error.message}${error instanceof TypeError ? ' 대시보드 서버 연결을 확인하세요.' : ''}`, 'error');
-      }
+      if (error.name !== 'AbortError' && version === state.version) notify(`추정 실패: ${error.message}${error instanceof TypeError ? ' 대시보드 서버 연결을 확인하세요.' : ''}`, 'error');
     } finally {
       if (version === state.version) { state.busy = false; state.controller = null; updateReadiness(); }
     }
@@ -756,12 +669,7 @@ export function initializeMountCalibrationFeature(options = {}) {
       document.body.append(link); link.click(); link.remove();
       setTimeout(() => { URL.revokeObjectURL(url); if (downloadUrl === url) downloadUrl = ''; }, 1000);
       notify('현재 입력으로 분석을 다시 계산한 JSON 다운로드를 시작했습니다. 실장비 적용 승인을 뜻하지 않습니다.', 'success');
-    } catch (error) {
-      if (!destroyed && error.name !== 'AbortError' && version === state.version) {
-        retainQualityFailure(error);
-        notify(`내보내기 실패: ${error.message}`, 'error');
-      }
-    }
+    } catch (error) { if (error.name !== 'AbortError' && version === state.version) notify(`내보내기 실패: ${error.message}`, 'error'); }
     finally { if (version === state.version) { state.busy = false; state.controller = null; $('export-button').disabled = !state.result; updateReadiness(); } }
   });
 

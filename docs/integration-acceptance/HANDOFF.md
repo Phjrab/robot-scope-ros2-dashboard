@@ -1,50 +1,7 @@
-# Saved 3D observation/editor integration — local candidate, 2026-10-18
-
-Read [SAVED_3D_OBSERVATION.md](SAVED_3D_OBSERVATION.md) for the current source,
-transform/identity/freshness contracts, numerical bounds and remaining field work.
-The existing Maps view now separates approximate odometry propagation from an
-opt-in scan-to-map candidate. The transferred 2D/3D editor preserves its original
-source and exports local proposals/copies. No runtime map installation occurs.
-
-A new offline calculation using the retained 25,666-point 3D reference and
-424-point query produced a numerical candidate (~413 ms, RMSE 0.02663 m). This is
-not independent pose accuracy or live acceptance; the previous rejection remains
-preserved. Robot deployment/restart/sensor execution remain held pending readiness
-after charging. The historical installed source is still `40276a5`; no new device
-operation is claimed. Local validation and candidate hashes are in the private
-`local-integration-qa` closeout. No push or public release is part of this stage.
-
-## Previous records (preserved)
-
-# Local-only Stop, map view and calibration diagnostics — 2026-10-18
-
-Read [OFFLINE_FOLLOWUP_20261018.md](OFFLINE_FOLLOWUP_20261018.md) first. From local
-main `a79c67a`, preserved changes now distinguish Stop acceptance/cleanup/unconfirmed
-readback/confirmed IDLE, fence stale responses, add display-only main-area FIT and
-camera centering, and retain point-level calibration diagnostics on HTTP 422.
-Original full FIT, cloud/export inputs and calibration thresholds are unchanged.
-No push, release, robot access, service restart, deployment or motion occurred.
-The last installed `40276a5` and IDLE/free/bridge-OFF observations below are historical.
-
-Existing real October 17 samples were replayed through the actual local API and
-Settings panel. Both nearby six-point selections pass neighborhood depth but have
-only 4/6 plane inliers: angles and analysis export remain blocked. No new capture
-or pitch adjustment occurred. A seed-by-seed SE3 inspection reuses existing tools:
-three synthetic seeds produced rejection/candidate/rejection, while the recorded
-manifest remains BLOCKED on provenance. Global relocalization/operating use are NOT_RUN.
-
-Python 2,275 (3 skip), JS 452, and 150 unique browser cases passed. The initial
-browser run passed 136; its 14 fixture-contract failures passed after fixture-only
-correction, without repeating the whole suite. See the report for environment
-mistakes, optional plot coverage, exact evidence and remaining field checks.
-Wall duplication, absolute accuracy/body pose and actual Stop/camera behavior of
-this new source remain unverified. Closeout is local only; no background robot
-work or automatic next session is authorized or scheduled.
-
-# Saved depth → deployed native Settings observation — 2026-10-17
+# Saved depth → native Settings integration — 2026-10-17
 
 Read [MOUNT_CALIBRATION_SETTINGS.md](MOUNT_CALIBRATION_SETTINGS.md) first for this
-follow-up. Source `40276a51b2e08c77732317a856cc879cc23e1ef6` retains the existing `eb0a9c6` Settings UI and
+follow-up. Clean main `316b1a4` retained both the existing `eb0a9c6` Settings UI and
 `78e23ce` collector. The existing Settings panel now lists/selects/imports saved
 samples with GET-only access, displays matching original IR pixels, and retains
 original timestamps, frame counters and artifact provenance in relative analysis
@@ -57,16 +14,14 @@ responses cannot restore previous results. Historical samples are not expired
 merely by age; same-exposure replay is rejected with hardware clock epochs scoped
 to their capture session when available. New exports include capture_session_id.
 
-Exact-source CI [39024766108](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/39024766108)
-passed in both Ubuntu/Python jobs. Under the user's bundled approval, source/config/
-binding backups preceded deployment and dashboard/broker restart. The robot reached
-clean `40276a5` at 10:35:54Z; all 1,345 source hashes matched. SDK 2.55.1 and its
-broker-private binding, Isaac image, configuration and operational DDS were retained.
-The earlier SDK-unavailable note is superseded by actual capture evidence. GitHub
-publication, this hardware installation, and the later documentation closeout are
-distinct; the installed runtime remains `40276a5`.
+At 10:15:02Z the robot was still clean `78e23ce`, IDLE, camera free/known and bridge
+OFF/disabled. SDK 2.55.1 pipeline/context/config imports and original native hash
+passed without opening a device; USB recognizes D435i. The earlier SDK-unavailable
+note is superseded. Device profiles/firmware remain evidence from the previous
+actual capture, not a new profile probe. This follow-up has not started a camera,
+restarted a robot service or deployed Settings.
 
-Before deployment, the old real archived sample was loaded into the product Settings panel on a local
+The real archived sample was loaded into the product Settings panel on a local
 no-hardware harness using the actual routers/store: IR display, original 640×480
 pixel selection, six picks, metadata and one-sample estimate/export blocking passed.
 No actual relative angle is claimed. A separate synthetic demo traversed the real
@@ -74,58 +29,15 @@ Python estimate/export APIs and returned RELATIVE_ONLY with 0/+9.999446/−8.000
 Whole Python 2,266 (2 skip), JavaScript 434, related browser 18, ruff/mypy/source
 secret/diff checks passed. Private sensor evidence stays outside Git.
 
-The user then skipped camera adjustment. Two fresh stationary **same-angle**
-captures were saved: `0f301ed2870243e5bb0a6bac68dc5b94` at 10:36:36.616828Z and
-`c92c6700bc5a4125b9bf3d9408d5fe8e` at 10:37:03.575887Z. Each 640×480 IR1/Z16
-capture passed full raw/PNG/optical-Z(m) JSON and ZIP hash correspondence; valid
-depth was 95.1712% / 95.2738%, source skew 0 ms. Actual SDK intrinsics/zero
-distortion/identity extrinsics support same-pixel correspondence. The recorded
-camera_info.json is derived from SDK observations, not an observed ROS CameraInfo
-message. Body attitude is absent.
+Next minimum step is one current approval for the prepared exact candidate's
+dashboard/broker restart, two stationary same-wall captures with operator-only
+pitch adjustment, end-to-end Settings analysis/export, cleanup and explicit
+sequential Stereo return. SDK/config provisioning is unnecessary. Preserve IDLE
+and existing raw sample/map data; do not terminate an unsaved session. Keep the
+bridge OFF. Body attitude/absolute extrinsics, independent accuracy, native SLAM
+wall duplication and trajectory jumps remain unqualified and separate.
 
-The deployed Settings page successfully listed/imported the two new captures,
-displayed original IR pixels/metadata and accepted six native-coordinate picks.
-The first visible-wall selection failed the existing neighborhood gate (only one
-accepted point). A nearby selection, chosen solely by the unchanged neighborhood
-gate and pixel distance, then failed `no reliable planar consensus`. Both deployed
-estimate and export APIs returned 422; the UI kept result export disabled. Thus
-**actual collection/import/picking passed, but relative-angle analysis and analysis
-JSON export are BLOCKED by these samples' selected-plane quality**. Raw ZIP and
-compatibility JSON exports passed. No actual angle or body calibration is claimed,
-and no numerical/freshness/synchronization threshold was relaxed.
-
-After depth cleanup, an explicit Stereo tracking-only session
-`8c083c88e3914bf78c804efd227e6b40` (generation 3) reached TRACKING at 10:42:09.730Z.
-The guard requested Stop at session age 60.546 s; clean IDLE/camera release followed
-at 10:43:08.102Z (65.807 s from creation). Native IMU fusion, mapping and both TF
-publish flags were false. This proves sequential mode return, not simultaneous
-Stereo+depth, unchanged performance or full mapping regression. No new FPS/load/
-WebSocket/display-latency measurement was made in this return window.
-
-The final 10:45:54.954Z read-only check found clean installed `40276a5`, IDLE,
-known-free camera with a fresh independent owner probe, bridge inactive/disabled,
-unchanged configs/environment/entry/binding, unchanged map/package revisions and
-all prior sample bytes. Only the two approved samples were added. No motion,
-posture, ARM, bridge activation, operational TF, initialpose or goal was sent.
-The approved window is finished; no camera session is left running or scheduled.
-
-Private evidence is under `robot-scope-hardware-validation-private/mount-settings-20261017/`:
-`deployment-result.json`, `actual-depth-contract-report.json`, both `depth-repeat-*`
-directories, `actual-analysis-api-report.json`, `replay_actual_analysis.py`,
-`settings-actual-wall-quality-blocked.png`, `stereo-return/`, and `final-runtime.json`.
-The replay uses the same stored files/picks/provenance as the UI; it is not a claim
-of intercepted browser request bytes. Sensor files and images remain outside Git.
-
-Next minimum field work, when the user chooses to resume, is a stationary repeat
-with a nearer, unobstructed textured wall that supplies broadly distributed stable
-depth. Any robot repositioning requires a separate explicit manual-control scope;
-do not send robot commands to arrange the scene. First obtain reliable plane
-quality, then let the user adjust pitch only between released sessions and compare
-new captures. The user skipped that adjustment now. Keep the bridge OFF. Changed-
-angle validation, independent accuracy, body attitude/absolute extrinsics and
-native SLAM wall duplication/trajectory jumps remain separate and unqualified.
-
-# Earlier stationary depth collection on 78e23ce — 2026-10-17
+# Stationary depth collection deployed and observed — 2026-10-17
 
 Read [DEPTH_CAPTURE.md](DEPTH_CAPTURE.md) and [validation](DEPTH_CAPTURE_VALIDATION.json)
 for the collection/export contract, actual evidence and limits. The user approved

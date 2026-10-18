@@ -1,6 +1,0 @@
-after: dark 1440 complete
-after: dark 1024 complete
-after: dark 390 complete
-after: light 1440 complete
-after: light 1024 complete
-after: light 390 complete

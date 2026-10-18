@@ -29,7 +29,6 @@ export async function api(path, options = {}) {
     const payload = await response.json().catch(() => ({}));
     const error = new Error(payload.detail || `HTTP ${response.status}`);
     error.status = response.status;
-    error.diagnostics = payload.diagnostics;
     throw error;
   }
   return response.json();

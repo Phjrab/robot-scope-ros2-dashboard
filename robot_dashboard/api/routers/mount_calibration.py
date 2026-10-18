@@ -84,10 +84,6 @@ def _render_analysis(
     try:
         result = operation(payload)
     except CalibrationError as exc:
-        # Geometry rejection is still an error, with diagnostics (never angles).
-        if exc.diagnostics is not None:
-            return JSONResponse({"detail": str(exc), "diagnostics": exc.diagnostics}, status_code=422,
-                                headers={"Cache-Control": "no-store"})
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return JSONResponse(result, headers=headers)
 

@@ -1,38 +1,4 @@
-# Saved 3D observation/editor integration — local candidate, 2026-10-18
-
-Read [SAVED_3D_OBSERVATION.md](SAVED_3D_OBSERVATION.md) for the current source,
-transform/identity/freshness contracts, numerical bounds and remaining field work.
-The existing Maps view now separates approximate odometry propagation from an
-opt-in scan-to-map candidate. The transferred 2D/3D editor preserves its original
-source and exports local proposals/copies. No runtime map installation occurs.
-
-A new offline calculation using the retained 25,666-point 3D reference and
-424-point query produced a numerical candidate (~413 ms, RMSE 0.02663 m). This is
-not independent pose accuracy or live acceptance; the previous rejection remains
-preserved. Robot deployment/restart/sensor execution remain held pending readiness
-after charging. The historical installed source is still `40276a5`; no new device
-operation is claimed. Local validation and candidate hashes are in the private
-`local-integration-qa` closeout. No push or public release is part of this stage.
-
-## Previous records (preserved)
-
-# Local recorded 3D diagnostics — 2026-10-18
-
-Current work is stored-data analysis and local UI/regression only. No robot
-access, deployment, services, TF, initialpose or driving was performed. The prior
-runtime/state observations below are historical, not refreshed claims.
-
-The existing experiment page now overlays recorded map/query points with a
-before/after control and explicit rejected/unqualified diagnostics. The Go2
-reference model retains metre scale under zoom. Input/session/body semantics,
-source precision, residual support and limitations are documented in
-[RECORDED_3D_DIAGNOSTICS.md](RECORDED_3D_DIAGNOSTICS.md). Private recordings and
-screenshots remain outside Git. Software validation and the exact local commit
-are recorded in the private closeout; Git publication and robot deployment are
-not part of this change.
-
-## Historical stage40 closure
-
+# Integration progress — through40
 
 Final user instruction: stop and finish here. Scope was briefly extended to41,
 but no41 operation began before the stop request. No additional device action

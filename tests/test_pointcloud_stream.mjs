@@ -103,16 +103,3 @@ test('camera relay is requested only while the Sensors page is visible', () => {
   assert.match(appSource, /function disconnectCamera\(\)[\s\S]{0,180}disconnectCameraSlot\(slot\)/);
   assert.doesNotMatch(appSource, /initializeRobotProfiles\(\);\s*connectCamera\(\)/);
 });
-
-test('metadata-only source invalidation decodes and drops accumulated publisher geometry', () => {
-  const reservoir = new stream.RegisteredCloudReservoir(1000);
-  const observation = { identity_status: 'OBSERVED_PUBLISHER', observer_id: 'observer', publisher_epoch: 'first' };
-  const first = { seq:1, topic:'/cloud_registered', frame_id:'map', points:new Float32Array([1,2,3]), observation };
-  reservoir.ingest(first, null);
-  const invalid = stream.decodeFrame(encodeFrame({seq:2, observation:{identity_status:'UNAVAILABLE', invalidated:true}}, []));
-  reservoir.ingest(invalid, null);
-  assert.equal(reservoir.size, 0);
-  const replacement = reservoir.ingest({...first, seq:3, points:new Float32Array([4,5,6]),
-    observation:{...observation,publisher_epoch:'second'}}, null);
-  assert.deepEqual(Array.from(replacement.points), [4,5,6]);
-});

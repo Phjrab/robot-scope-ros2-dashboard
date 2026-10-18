@@ -18,7 +18,7 @@ async function fixture(page, { engine = null, empty = false, packageCount = 1 } 
     const value = path.endsWith('/engines') ? { engines: [
       { engine_id: 'lidar_fastlio', available_now: true, tasks: ['mapping'] },
       { engine_id: 'visual_stereo', available_now: true, tasks: ['mapping'] },
-    ] } : path.endsWith('/session') ? { generation: engine ? 1 : 0, active_session: engine ? {
+    ] } : path.endsWith('/session') ? { active_session: engine ? {
       session_id: 'fixture', generation: 1, engine_id: engine, state: 'MAPPING', task: 'mapping', map_epoch: 'fixture',
     } : null } : path.endsWith('/packages') ? { packages }
       : path.endsWith('/preview') ? { global_map: { points: [[0, 0, 0], [1, 1, 0]],

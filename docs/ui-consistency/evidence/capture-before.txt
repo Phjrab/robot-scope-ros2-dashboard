@@ -1,6 +1,0 @@
-before: dark 1440 complete
-before: dark 1024 complete
-before: dark 390 complete
-before: light 1440 complete
-before: light 1024 complete
-before: light 390 complete

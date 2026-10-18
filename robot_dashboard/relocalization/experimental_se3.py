@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -39,7 +39,7 @@ class Cloud:
     unit: str = "m"
     stamp_ns: int | None = None
 
-    def validated(self, *, reference: bool, max_points: int = MAX_POINTS) -> "Cloud":
+    def validated(self, *, reference: bool) -> "Cloud":
         expected = "REGISTERED_MAP" if reference else "REGISTERED_QUERY"
         if self.kind != expected:
             raise ExperimentalSE3Error(f"cloud kind must be {expected}; raw sensor clouds need explicit calibration")
@@ -53,9 +53,7 @@ class Cloud:
                               not isinstance(self.stamp_ns, int) or self.stamp_ns <= 0):
             raise ExperimentalSE3Error("registered query needs a positive source timestamp")
         points = np.asarray(self.points, dtype=np.float64)
-        if not MAX_POINTS <= max_points <= 100_000 or (not reference and max_points != MAX_POINTS):
-            raise ExperimentalSE3Error("invalid reference point limit")
-        if points.ndim != 2 or points.shape[1] != 3 or not MIN_POINTS <= len(points) <= max_points:
+        if points.ndim != 2 or points.shape[1] != 3 or not MIN_POINTS <= len(points) <= MAX_POINTS:
             raise ExperimentalSE3Error("cloud point count or shape is invalid")
         if not np.isfinite(points).all() or np.max(np.abs(points)) > MAX_COORDINATE_M:
             raise ExperimentalSE3Error("cloud coordinates are nonfinite or outside metre bounds")
@@ -210,15 +208,10 @@ def _rpy(rotation: np.ndarray) -> list[float]:
     return [roll, pitch, yaw]
 
 
-def register_se3(
-    reference: Cloud, query: Cloud, initial_t_target_source: Any, *,
-    reference_limit: int = MAX_POINTS,
-    nearest: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]] | None = None,
-) -> dict[str, Any]:
+def register_se3(reference: Cloud, query: Cloud, initial_t_target_source: Any) -> dict[str, Any]:
     """One bounded local hypothesis, not global relocalization or pose application."""
-    target = reference.validated(reference=True, max_points=reference_limit)
+    target = reference.validated(reference=True)
     source = query.validated(reference=False)
-    nearest_points = nearest or _nearest
     pose = validate_transform(initial_t_target_source)
     started = time.monotonic()
     centered = target.points - target.points.mean(axis=0)
@@ -230,7 +223,7 @@ def register_se3(
     iterations = 0
     for iterations in range(1, MAX_ITERATIONS + 1):
         moved = transform_points(pose, source.points)
-        indices, squared = nearest_points(moved, target.points)
+        indices, squared = _nearest(moved, target.points)
         mask = squared <= MAX_CORRESPONDENCE_M ** 2
         if int(mask.sum()) < MIN_POINTS:
             reason = "INSUFFICIENT_OVERLAP"
@@ -244,7 +237,7 @@ def register_se3(
             reason = "CANDIDATE"
             break
     moved = transform_points(pose, source.points)
-    _, squared = nearest_points(moved, target.points)
+    _, squared = _nearest(moved, target.points)
     mask = squared <= MAX_CORRESPONDENCE_M ** 2
     overlap = float(mask.mean())
     rmse = float(math.sqrt(float(squared[mask].mean()))) if mask.any() else None

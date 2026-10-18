@@ -82,7 +82,7 @@ export function createPointcloudTransport(options = {}) {
 
   function acceptCloud(cloud) {
     const sequence = Number(cloud?.seq);
-    if (!Number.isSafeInteger(sequence) || sequence <= 0 || (!cloud?.points?.length && cloud?.observation?.invalidated !== true)) return false;
+    if (!Number.isSafeInteger(sequence) || sequence <= 0 || !cloud?.points?.length) return false;
     const incomingStreamId = String(cloud.stream_id || '');
     const streamChanged = Boolean(incomingStreamId && streamId && incomingStreamId !== streamId);
     const legacyRollback = !incomingStreamId && lastSequence >= 0 && sequence < lastSequence;

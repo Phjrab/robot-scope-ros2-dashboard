@@ -124,60 +124,6 @@ export function sameSessionContext(left, right) {
     left.engine_id && left.engine_id === right.engine_id);
 }
 
-// A Stop acknowledgement is not a cleanup result. Keep that receipt until the
-// same session is read back as IDLE or reports a real cleanup failure.
-export function reconcileStopProgress(request, session) {
-  if (!sameSessionContext(request?.session, session)) return null;
-  let phase = request.phase;
-  // The server retains the previous reason while retrying cleanup, and even
-  // after successful IDLE. Current lifecycle state and the explicit flag win.
-  if (session.state === 'STOPPING') phase = 'stopping';
-  else if (session.state === 'IDLE' && session.cleanup_required !== true) phase = 'idle';
-  else if (session.cleanup_required === true || session.reason === 'CLEANUP_REQUIRED') phase = 'cleanup_failed';
-  return { ...request, phase, reason: phase === 'cleanup_failed' ? session.reason || 'CLEANUP_REQUIRED' : null,
-    readbackError: null };
-}
-
-export function sessionSnapshotIsValid(value) {
-  if (!value || !Number.isSafeInteger(value.generation) || value.generation < 0 ||
-      !Object.hasOwn(value, 'active_session')) return false;
-  const next = value.active_session;
-  if (next === null) return true;
-  return Boolean(next && ['session_id', 'engine_id', 'map_epoch'].every((key) =>
-    typeof next[key] === 'string' && next[key].length > 0) && next.generation === value.generation &&
-    ['PREFLIGHT', 'STARTING', 'WAITING_INPUT', 'TRACKING', 'MAPPING', 'CAPTURING', 'LOST',
-      'SAVING', 'LOCALIZING', 'STOPPING', 'ERROR', 'IDLE'].includes(next.state) &&
-    (next.cleanup_required == null || typeof next.cleanup_required === 'boolean'));
-}
-
-export function sessionReadbackIsCurrent(value, session, generation, stopRequest = null) {
-  if (!sessionSnapshotIsValid(value)) return false;
-  if (Number.isInteger(value.generation) && Number.isInteger(generation) && value.generation < generation) return false;
-  const next = value.active_session;
-  if (next && next.generation !== value.generation) return false;
-  // A finished generation cannot resume mapping. A new session needs its own
-  // identity; a delayed snapshot cannot revive the stopped generation.
-  if (sameSessionContext(session, next) && (session?.state === 'IDLE' ||
-      (sameSessionContext(stopRequest?.session, session) && stopRequest.phase === 'idle')) && next.state !== 'IDLE') return false;
-  return true;
-}
-
-export function describeStopProgress(request, session) {
-  if (!sameSessionContext(request?.session, session)) return null;
-  const phases = {
-    requesting: ['STOP_REQUESTING', '중지 요청 전송 중 · 서버 수락 확인 전'],
-    unconfirmed: ['STOP_UNCONFIRMED', '중지 응답 미확인 · 종료 여부 미확인 · 상태 새로고침으로 확인하세요. 중지 요청은 자동 반복하지 않습니다.'],
-    accepted: ['STOP_ACCEPTED', '중지 요청 수락 · 실제 자원 정리 완료는 아직 미확인'],
-    stopping: ['STOPPING', '서버 정리 중 · 실제 IDLE 확인 대기'],
-    idle: ['IDLE', '서버 IDLE 확인 · 세션 정리 완료'],
-    cleanup_failed: ['ERROR', `서버 정리 실패 · ${request.reason || 'CLEANUP_REQUIRED'} · 자원 해제 미확인`],
-  };
-  const value = phases[request.phase];
-  if (!value) return null;
-  return { status: value[0], message: value[1] + (request.readbackError ?
-    ` · 상태 조회 실패 (${request.readbackError}) · 상태 새로고침으로 확인` : '') };
-}
-
 export function saveJobIsCurrent(job, context, session) {
   return Boolean(job?.job_id && sameSessionContext(context, session) &&
     job.session_id === context.session_id && job.generation === context.generation);
@@ -397,8 +343,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
     pollTimer: 0, retryTimer: 0, staleTimer: 0, transportSerial: 0, imagePaintedAt: 0, paintedImage: null, cloudGeometry: null,
     refreshSerial: 0, activationSerial: 0, polling: false,
     receiveAt: 0, staleCleared: false, requestControllers: new Set(), job: null, jobSession: null, saveRequest: null,
-    localizationResult: null, localizationAttempted: false, actionError: null, stopRequest: null,
-    sessionReadbackError: null, sessionResetRequired: false };
+    localizationResult: null, localizationAttempted: false, actionError: null };
   const panel = el('article', { className: 'panel slam-console', id: 'slamConsole', 'aria-label': 'SLAM 엔진과 관측' });
   const message = text('p', '서버 SLAM 상태 확인 중', { id: 'slamMessage', role: 'status', 'aria-live': 'polite' });
   const status = text('strong', 'UNKNOWN', { id: 'slamSessionState' });
@@ -447,16 +392,11 @@ export function mountSlamDashboard(doc = document, options = {}) {
   const heartbeatStatus = text('p', 'stream 대기 · 센서→브라우저 지연 unknown', { id: 'slamHeartbeat' });
   const cameraStatus = text('p', '카메라 시야 대기 · 보정과 optical pose 필요', { id: 'slamCameraViewStatus' });
   const fit = button('전체 지도 FIT', 'slamFit', () => state.scene?.fitToPointCloud());
-  const mainFit = button('주요 영역 FIT', 'slamFitMain', () => state.scene?.fitToMainPointCloud());
-  const centerPose = button('현재 위치 중심', 'slamCenterPose', () => state.scene?.centerOnPose());
-  for (const node of [fit, mainFit, centerPose]) node.disabled = true;
-  mainFit.title = '표시점 표본의 축별 2–98% 범위 · 먼 점도 원본에는 보존됩니다';
-  centerPose.title = '현재 카메라 pose를 중심으로 표시 · 확대율과 방향 유지';
   const observationViews = el('div', { className: 'slam-views', hidden: true },
     el('section', { className: 'slam-view' }, text('h3', '입력 카메라 · 현재 관측'), imageCanvas, overlayToggle.label, imageStatus, poseStatus),
     el('section', { className: 'slam-view' }, text('h3', '전역 3D 지도'), mapCanvas,
-      el('div', { className: 'slam-layer-row' }, mapToggle.label, obsToggle.label, trailToggle.label, cameraToggle.label, followToggle.label, fit, mainFit, centerPose),
-      text('small', '드래그 회전 · 우클릭/Shift 드래그 이동 · 휠 확대/축소 · 주요 영역 FIT는 표시 범위만 변경 · 전체 FIT로 복귀'), mapStatus, cameraStatus));
+      el('div', { className: 'slam-layer-row' }, mapToggle.label, obsToggle.label, trailToggle.label, cameraToggle.label, followToggle.label, fit),
+      text('small', '드래그 회전 · 우클릭/Shift 드래그 이동 · 휠 확대/축소'), mapStatus, cameraStatus));
   panel.append(availabilityPanel, observationViews, sourceStatus, heartbeatStatus);
   mappingHost.prepend(panel);
 
@@ -606,7 +546,7 @@ export function mountSlamDashboard(doc = document, options = {}) {
   }
 
   function requireSession(context) {
-    if (state.disposed || state.sessionResetRequired || !sameSessionContext(context, state.session)) {
+    if (state.disposed || !sameSessionContext(context, state.session)) {
       throw Object.assign(new Error('SLAM_SESSION_CHANGED'), { staleAction: true });
     }
   }
@@ -615,13 +555,8 @@ export function mountSlamDashboard(doc = document, options = {}) {
     return `native 저장 ${job.state || '요청됨'} ${job.reason || ''}${job.package_id ? ` · ${job.package_id}` : ''}`;
   }
 
-  function renderSessionStatus() {
-    status.textContent = state.sessionReadbackError ? 'UNKNOWN' :
-      describeStopProgress(state.stopRequest, state.session)?.status || state.session?.state || 'IDLE';
-  }
-
   function sessionMessage() {
-    return state.sessionReadbackError || describeStopProgress(state.stopRequest, state.session)?.message || state.actionError || (saveJobIsCurrent(state.job, state.jobSession, state.session) && describeSave(state.job)) ||
+    return state.actionError || (saveJobIsCurrent(state.job, state.jobSession, state.session) && describeSave(state.job)) ||
       (state.session?.reason && errorText({ detail: { code: state.session.reason,
         resources: state.session.resource_conflicts } }, state.session.reason)) ||
       (state.session ? `session ${state.session.session_id} · generation ${state.session.generation}` : '실행 중인 SLAM 세션 없음');
@@ -629,7 +564,6 @@ export function mountSlamDashboard(doc = document, options = {}) {
 
   function updateButtons() {
     const active = Boolean(state.session && state.session.state !== 'IDLE');
-    const untrusted = Boolean(state.sessionReadbackError || state.sessionResetRequired);
     const visualEngine = (active ? state.session.engine_id : engine.value)?.startsWith('visual_');
     observationViews.hidden = !visualEngine;
     availabilityPanel.hidden = !visualEngine;
@@ -639,22 +573,20 @@ export function mountSlamDashboard(doc = document, options = {}) {
     const tasks = selected?.tasks || [];
     for (const option of task.options) option.disabled = !tasks.includes(option.value);
     if (!tasks.includes(task.value) && tasks.includes('mapping')) task.value = 'mapping';
-    start.disabled = state.pending || untrusted || active || !selected?.available_now || !tasks.includes(task.value) || !confirmed.input.checked;
+    start.disabled = state.pending || active || !selected?.available_now || !tasks.includes(task.value) || !confirmed.input.checked;
     const unconfirmedSave = sameSessionContext(state.saveRequest?.session, state.session);
-    const stopping = sameSessionContext(state.stopRequest?.session, state.session) &&
-      !['idle', 'cleanup_failed'].includes(state.stopRequest.phase);
     save.textContent = unconfirmedSave ? '저장 요청 결과 확인' : 'native 지도 저장';
-    save.disabled = state.pending || untrusted || stopping || (!unconfirmedSave && (state.session?.state !== 'MAPPING' || state.session?.task !== 'mapping'));
-    stop.disabled = state.pending || untrusted || stopping || unconfirmedSave || !active || ['SAVING', 'LOCALIZING', 'STOPPING'].includes(state.session?.state);
+    save.disabled = state.pending || (!unconfirmedSave && (state.session?.state !== 'MAPPING' || state.session?.task !== 'mapping'));
+    stop.disabled = state.pending || unconfirmedSave || !active || ['SAVING', 'LOCALIZING', 'STOPPING'].includes(state.session?.state);
     refreshButton.disabled = state.pending;
     name.disabled = state.pending || unconfirmedSave;
     panel.setAttribute('aria-busy', String(state.pending));
     engine.disabled = active || state.pending;
     task.disabled = active || state.pending;
     create2d.input.disabled = state.pending || unconfirmedSave || engine.value !== 'lidar_fastlio';
-    for (const node of [renameButton, copyButton, deleteButton]) node.disabled = state.pending || untrusted || active || !state.selectedPackage;
-    importFile.disabled = state.pending || untrusted || active;
-    localize.disabled = state.pending || untrusted || stopping || !state.selectedPackage || state.session?.engine_id !== 'visual_stereo' ||
+    for (const node of [renameButton, copyButton, deleteButton]) node.disabled = state.pending || active || !state.selectedPackage;
+    importFile.disabled = state.pending || active;
+    localize.disabled = state.pending || !state.selectedPackage || state.session?.engine_id !== 'visual_stereo' ||
       !['MAPPING', 'TRACKING'].includes(state.session?.state) || !verifiedHint.input.checked || !replaceUnsaved.input.checked || state.localizationAttempted;
     download.setAttribute('aria-disabled', state.selectedPackage ? 'false' : 'true');
     previewDownload.setAttribute('aria-disabled', state.selectedPackage ? 'false' : 'true');
@@ -676,43 +608,11 @@ export function mountSlamDashboard(doc = document, options = {}) {
   async function refresh() {
     if (!ACTIVE_PAGES.has(state.activePage) || doc.hidden || state.disposed) return;
     const serial = ++state.refreshSerial;
-    let value;
-    try { value = await api('/session'); }
-    catch (error) {
-      // An older failed read must not replace a newer success or stop receipt.
-      if (serial !== state.refreshSerial || state.disposed) return;
-      if (sameSessionContext(state.stopRequest?.session, state.session)) {
-        state.stopRequest.readbackError = error.message;
-        renderSessionStatus(); message.textContent = sessionMessage();
-        return;
-      }
-      throw error;
-    }
+    const value = await api('/session');
     if (serial !== state.refreshSerial || state.disposed) return;
-    if (!sessionSnapshotIsValid(value)) {
-      if (sameSessionContext(state.stopRequest?.session, state.session)) state.stopRequest.readbackError = 'INVALID_SESSION_RESPONSE';
-      else state.sessionReadbackError = 'INVALID_SESSION_RESPONSE · 현재 세션 상태 미확인 · 상태 새로고침으로 확인하세요.';
-      renderSessionStatus(); message.textContent = sessionMessage(); updateButtons(); return;
-    }
-    if (Number.isInteger(state.generation) && value.generation < state.generation) {
-      state.sessionResetRequired = true;
-      state.sessionReadbackError = 'SESSION_GENERATION_RESET · 서버 재시작 또는 이전 응답 가능 · 이전 세션 종료 미확인 · 페이지를 다시 열어 현재 상태를 확인하세요.';
-      disconnectStream(); clearLive();
-    }
-    if (state.sessionResetRequired) {
-      renderSessionStatus(); message.textContent = sessionMessage(); updateButtons(); return;
-    }
-    if (!sessionReadbackIsCurrent(value, state.session, state.generation, state.stopRequest)) return;
-    state.sessionReadbackError = null;
     const previous = state.session;
-    const previousStop = state.stopRequest;
     state.session = value.active_session || null;
-    state.stopRequest = reconcileStopProgress(state.stopRequest, state.session);
     state.generation = value.generation;
-    if (previousStop && !state.stopRequest) {
-      state.actionError = null;
-      message.textContent = `세션이 변경되어 이전 중지 결과 확인을 종료했습니다. ${sessionMessage()}`;
-    }
     if ((state.jobSession && !sameSessionContext(state.jobSession, state.session)) ||
         (state.saveRequest && !sameSessionContext(state.saveRequest.session, state.session))) {
       state.job = null; state.jobSession = null; state.saveRequest = null; state.actionError = null;
@@ -732,10 +632,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
       // session readback and been rejected. A new socket must reseed geometry.
       disconnectStream(); clearLive(); verifiedHint.input.checked = false; replaceUnsaved.input.checked = false;
     }
-    renderSessionStatus();
+    status.textContent = state.session?.state || 'IDLE';
     const source = value.operational_pose_source;
     identities.textContent = `선택 ${LABELS[engine.value] || engine.value} · 실행 ${state.session?.engine_id || '없음'} / ${state.session?.effective_mode || '—'} · 운영 pose ${typeof source === 'string' ? source : source?.source || 'unknown'} (generation ${source?.generation ?? 'unknown'})`;
-    if (!state.pending || state.stopRequest) message.textContent = sessionMessage();
+    if (!state.pending) message.textContent = sessionMessage();
     updateButtons();
     updateLocalizationStatus();
     if (state.activePage === 'mapping') connectStream();
@@ -808,53 +708,10 @@ export function mountSlamDashboard(doc = document, options = {}) {
 
   async function stopSession(discard, expectedSession = null) {
     if (expectedSession) requireSession(expectedSession);
-    const session = { ...currentSession() };
-    if (sameSessionContext(state.stopRequest?.session, session) &&
-        !['idle', 'cleanup_failed'].includes(state.stopRequest.phase)) return;
-    const request = { session, phase: 'requesting', readbackError: null,
-      request_id: requestId(win) };
-    state.stopRequest = request;
-    // Fence snapshots started before this mutation. The POST result is only an
-    // acceptance receipt; subsequent GETs alone establish cleanup completion.
-    state.refreshSerial += 1;
-    renderSessionStatus(); message.textContent = sessionMessage(); updateButtons();
-    try {
-      const receipt = await api(`/sessions/${encodeURIComponent(session.session_id)}/stop`, { method: 'POST', body: {
-        generation: session.generation, request_id: request.request_id, discard_unsaved: discard }, timeoutMs: SLAM_REQUEST_TIMEOUT_MS });
-      requireSession(session);
-      if (state.stopRequest?.request_id !== request.request_id) return;
-      const accepted = receipt?.session_id === session.session_id && receipt.generation === session.generation && receipt.state === 'STOPPING';
-      const completed = sameSessionContext(receipt?.active_session, session) && receipt.active_session.state === 'IDLE';
-      if (!accepted && !completed) throw Object.assign(new Error('INVALID_STOP_RESPONSE'), { transportUncertain: true });
-      // Preserve a newer terminal readback while an acknowledgement was late.
-      if (!['stopping', 'idle', 'cleanup_failed'].includes(state.stopRequest.phase)) state.stopRequest.phase = 'accepted';
-      state.refreshSerial += 1;
-    } catch (error) {
-      requireSession(session);
-      if (state.stopRequest?.request_id !== request.request_id) return;
-      if (['stopping', 'idle', 'cleanup_failed'].includes(state.stopRequest.phase)) {
-        renderSessionStatus(); message.textContent = sessionMessage(); return;
-      }
-      if (!error.transportUncertain) { state.stopRequest = null; renderSessionStatus(); throw error; }
-      if (!['stopping', 'idle', 'cleanup_failed'].includes(state.stopRequest.phase)) state.stopRequest.phase = 'unconfirmed';
-      state.stopRequest.readbackError = error.message;
-    }
-    renderSessionStatus(); message.textContent = sessionMessage();
-    try { await refresh(); }
-    catch (error) {
-      requireSession(session);
-      if (state.stopRequest?.request_id !== request.request_id) return;
-      state.stopRequest.readbackError = error.message;
-    }
-    if (sameSessionContext(session, state.session)) {
-      renderSessionStatus(); message.textContent = sessionMessage();
-    }
-  }
-
-  function updateMapViewControls() {
-    const available = state.scene?.getViewAvailability?.();
-    fit.disabled = mainFit.disabled = !available?.fit;
-    centerPose.disabled = !available?.center;
+    const session = currentSession();
+    await api(`/sessions/${encodeURIComponent(session.session_id)}/stop`, { method: 'POST', body: {
+      generation: session.generation, request_id: requestId(win), discard_unsaved: discard } });
+    await refresh();
   }
 
   function makeScene(canvas) {
@@ -899,7 +756,6 @@ export function mountSlamDashboard(doc = document, options = {}) {
     mapStatus.textContent = describeCoverage(null);
     cameraStatus.textContent = '카메라 시야 대기 · 보정과 optical pose 필요';
     updateAvailability(null, false);
-    updateMapViewControls();
   }
 
   function updateAvailability(frame, live) {
@@ -958,7 +814,6 @@ export function mountSlamDashboard(doc = document, options = {}) {
     if (state.scene && state.scene.cameraMode !== cameraMode) state.scene.setCameraMode(cameraMode);
     state.scene?.setStatus({ online: live, message: `${frame.tracking_state || 'UNKNOWN'} · ${trajectory?.trajectory_kind || 'SLAM/VO unknown'}` });
     mapStatus.textContent = describeCoverage(map) + ` · 궤적 ${trajectory?.trajectory_kind || 'unknown'} ${trail.length} → ${samples.length} 표시`;
-    updateMapViewControls();
   }
 
   function renderImage(frame) {

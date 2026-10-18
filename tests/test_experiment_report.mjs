@@ -68,12 +68,10 @@ test('experiment page is local-file-only and separate from control and cockpit',
   assert.match(html, /ACTUAL_NAV2_NOT_RUN/);
   assert.match(view, /await file\.text\(\)/);
   assert.doesNotMatch(view, /fetch\(|XMLHttpRequest|WebSocket|\/api\/|initialpose|cmd_vel|MissionCoordinator|lease|ARM|deadman/);
-  // Explicit whitelist: local display/import actions only, never robot control.
+  // The sole button changes a local display preference, never experiment/control state.
   const buttons = html.match(/<button\b[^>]*>/g) || [];
-  assert.deepEqual(buttons.map(tag => tag.match(/id="([^"]+)"/)[1]).sort(),
-    ['themeToggle', 'clearRecorded', 'recordedFit', 'recordedCenter'].sort());
-  const recorded = readFileSync(new URL('../robot_dashboard/static/features/experiments/recorded_view.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(recorded, /fetch\(|XMLHttpRequest|WebSocket|\/api\/|initialpose|cmd_vel|MissionCoordinator|lease|ARM|deadman/);
+  assert.equal(buttons.length, 1);
+  assert.match(buttons[0], /id="themeToggle"/);
   const theme = readFileSync(new URL('../robot_dashboard/static/theme.js', import.meta.url), 'utf8');
   assert.doesNotMatch(theme, /fetch\(|XMLHttpRequest|WebSocket|\/api\//);
 });
