@@ -15,9 +15,10 @@ from typing import Any
 import numpy as np
 
 from ..ros.observation_identity import subscription_evidence_key
+from .observation_timing import measure, note
 
 from .experimental_se3 import (
-    Cloud, ExperimentalSE3Error, MAX_CORRESPONDENCE_M, compose, from_translation_quaternion,
+    Cloud, MAX_CORRESPONDENCE_M, compose, from_translation_quaternion,
     from_translation_rpy, inverse, register_se3, transform_points, validate_transform, MIN_GEOMETRY_RATIO,
 )
 
@@ -46,15 +47,18 @@ class RadiusGrid:
     def nearest(self, query: np.ndarray, *, deadline: float = float("inf")) -> tuple[np.ndarray, np.ndarray]:
         ids = np.zeros(len(query), dtype=np.int64)
         distances = np.full(len(query), np.inf)
-        for i, (point, cell) in enumerate(zip(query, np.floor(query / MAX_CORRESPONDENCE_M).astype(np.int64))):
+        groups: dict[tuple[int, ...], list[int]] = {}
+        for i, cell in enumerate(np.floor(query / MAX_CORRESPONDENCE_M).astype(np.int64)):
+            groups.setdefault(tuple(int(v) for v in cell), []).append(i)
+        for key, query_indices in groups.items():
             if time.monotonic() > deadline:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
-            key = x, y, z = tuple(int(v) for v in cell)
+            x, y, z = key
             candidates = self.neighbour_cache.get(key)
             if candidates is None:
                 values = [j for dx, dy, dz in self.offsets
                           for j in self.buckets.get((x + dx, y + dy, z + dz), ())]
-                candidates = np.asarray(values, dtype=np.int64)
+                candidates = np.sort(np.asarray(values, dtype=np.int64))
                 # Bound reusable index storage to 4 MB and 2,048 cells. The
                 # candidate set remains exact when a new cell is not cached.
                 if self.cached_indices + len(candidates) <= 500_000 and len(self.neighbour_cache) < 2048:
@@ -62,13 +66,24 @@ class RadiusGrid:
                     self.cached_indices += len(candidates)
             if not len(candidates):
                 continue
-            diff = self.points[candidates] - point
-            squared = np.einsum("ij,ij->i", diff, diff)
-            # Ties select the lowest original index, matching the reference implementation.
-            minimum = squared.min()
-            if minimum <= MAX_CORRESPONDENCE_M ** 2:
-                ids[i] = candidates[squared == minimum].min()
-                distances[i] = minimum
+            # Bound the largest float64 difference array to 16 * 4096 * 3
+            # elements (1.5 MiB), independent of cell density. Sorted candidate
+            # chunks and strict improvement retain the lowest original ID on ties.
+            for query_start in range(0, len(query_indices), 16):
+                rows = np.asarray(query_indices[query_start:query_start + 16], dtype=np.int64)
+                query_chunk = query[rows]
+                for candidate_start in range(0, len(candidates), 4096):
+                    if time.monotonic() > deadline:
+                        raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+                    candidate_ids = candidates[candidate_start:candidate_start + 4096]
+                    diff = self.points[candidate_ids][None, :, :] - query_chunk[:, None, :]
+                    squared = np.einsum("qci,qci->qc", diff, diff)
+                    local_ids = np.argmin(squared, axis=1)
+                    minimum = squared[np.arange(len(rows)), local_ids]
+                    improved = (minimum <= MAX_CORRESPONDENCE_M ** 2) & (minimum < distances[rows])
+                    ids[rows[improved]] = candidate_ids[local_ids[improved]]
+                    distances[rows[improved]] = minimum[improved]
+                    del diff, squared
         if time.monotonic() > deadline:
             raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
         return ids, distances
@@ -175,39 +190,51 @@ class ObservationAligner:
             deadline = started + .6
             provenance_mode = body.get("provenance_mode", "native_publisher")
             identifier, revision = body["map_id"], body["map_revision"]
-            meta = catalog.metadata(identifier)
+            with measure("catalog_metadata"):
+                meta = catalog.metadata(identifier)
             if meta.get("kind") != "pointcloud3d" or meta.get("revision") != revision:
                 raise ObservationAlignmentError("MAP_CHANGED")
             if not 60 <= int(meta.get("point_count", 0)) <= 100_000:
                 raise ObservationAlignmentError("REFERENCE_LIMIT_60_TO_100000")
-            if self.cache is None or self.cache[0] != (identifier, revision):
-                data = catalog.data(identifier, None)
-                points = np.asarray(data["points"], dtype=np.float64).reshape(-1, 3)
-                if (data.get("revision") != revision or data.get("display_capped")
-                        or int(data.get("source_points", len(points))) != len(points)):
-                    raise ObservationAlignmentError("INCOMPLETE_REFERENCE")
-                Cloud(points, data["frame_id"], "REGISTERED_MAP").validated(reference=True, max_points=100_000)
-                self.cache = ((identifier, revision), points, RadiusGrid(points, deadline=deadline), data["frame_id"])
-            cloud = agent.pointcloud_binary_snapshot()
-            pose = (agent.observation_pose_near(cloud.get("observation") or {}, provenance_mode=provenance_mode)
-                    if provenance_mode == "subscription_observation"
-                    else agent.observation_pose_near(cloud.get("observation") or {}))
-            if pose is None:
-                raise ObservationAlignmentError("NO_PAIRED_POSE")
-            points, frame, provenance = project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
+            with measure("input_snapshot_and_validation"):
+                cloud = agent.pointcloud_binary_snapshot()
+                pose = (agent.observation_pose_near(cloud.get("observation") or {}, provenance_mode=provenance_mode)
+                        if provenance_mode == "subscription_observation"
+                        else agent.observation_pose_near(cloud.get("observation") or {}))
+                if pose is None:
+                    raise ObservationAlignmentError("NO_PAIRED_POSE")
+                points, frame, provenance = project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
             for key in ("observer_id", "cloud_epoch", "pose_epoch"):
                 if body.get(key) != provenance[key]:
                     raise ObservationAlignmentError("SOURCE_CHANGED")
+            note("reference_cache_hit", self.cache is not None and self.cache[0] == (identifier, revision))
+            if self.cache is None or self.cache[0] != (identifier, revision):
+                with measure("catalog_data"):
+                    data = catalog.data(identifier, None)
+                with measure("reference_array"):
+                    reference_points = np.asarray(data["points"], dtype=np.float64).reshape(-1, 3)
+                if (data.get("revision") != revision or data.get("display_capped")
+                        or int(data.get("source_points", len(reference_points))) != len(reference_points)):
+                    raise ObservationAlignmentError("INCOMPLETE_REFERENCE")
+                Cloud(reference_points, data["frame_id"], "REGISTERED_MAP").validated(reference=True, max_points=100_000)
+                with measure("reference_grid"):
+                    grid = RadiusGrid(reference_points, deadline=deadline)
+                self.cache = ((identifier, revision), reference_points, grid, data["frame_id"])
             seed = validate_transform(body["T_map_odom_seed"])
             _, reference, grid, target_frame = self.cache
             if time.monotonic() > deadline:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
-            result = register_se3(Cloud(reference, target_frame, "REGISTERED_MAP"),
-                Cloud(points, frame, "REGISTERED_QUERY", stamp_ns=int(provenance["source_stamp_ns"])), seed,
-                reference_limit=100_000, nearest=lambda query, _: grid.nearest(query, deadline=deadline))
+            def nearest(query, _):
+                with measure("nearest"):
+                    return grid.nearest(query, deadline=deadline)
+            with measure("registration"):
+                result = register_se3(Cloud(reference, target_frame, "REGISTERED_MAP"),
+                    Cloud(points, frame, "REGISTERED_QUERY", stamp_ns=int(provenance["source_stamp_ns"])), seed,
+                    reference_limit=100_000, nearest=nearest)
             p = result["pose"]
             transform = from_translation_rpy([p[k] for k in ("x", "y", "z")], [p[k] for k in ("roll_rad", "pitch_rad", "yaw_rad")])
-            indices, squared = grid.nearest(transform_points(transform, points), deadline=deadline)
+            indices, squared = nearest(transform_points(transform, points), reference)
+            note("iterations", result["metrics"]["iterations"])
             matched = reference[indices[squared <= MAX_CORRESPONDENCE_M ** 2]]
             ratio = 0.0
             if len(matched) >= 60:
@@ -217,21 +244,22 @@ class ObservationAligner:
             if ratio < MIN_GEOMETRY_RATIO:
                 result["status"], result["reason"] = "REJECTED", "DEGENERATE_MATCHED_GEOMETRY"
             result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
-            if catalog.metadata(identifier).get("revision") != revision:
-                raise ObservationAlignmentError("MAP_CHANGED")
-            current_cloud, current_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
-            if observed_key(current_cloud, provenance_mode=provenance_mode) != observed_key(cloud, provenance_mode=provenance_mode):
-                raise ObservationAlignmentError("SOURCE_CHANGED")
-            if observed_key(current_pose, provenance_mode=provenance_mode) != observed_key(pose, provenance_mode=provenance_mode):
-                raise ObservationAlignmentError("POSE_SOURCE_CHANGED")
-            if provenance_mode == "subscription_observation":
-                for current, original in ((current_cloud, cloud), (current_pose, pose)):
-                    if subscription_evidence_key(current["observation"], time.monotonic()) != subscription_evidence_key(original["observation"], time.monotonic()):
-                        raise ObservationAlignmentError("SUBSCRIPTION_EVIDENCE_CHANGED")
-            # Revalidate the actual pair, not just the newest input, after the worker finishes.
-            project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
-            if time.monotonic() > deadline:
-                raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+            with measure("completion_validation"):
+                if catalog.metadata(identifier).get("revision") != revision:
+                    raise ObservationAlignmentError("MAP_CHANGED")
+                current_cloud, current_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+                if observed_key(current_cloud, provenance_mode=provenance_mode) != observed_key(cloud, provenance_mode=provenance_mode):
+                    raise ObservationAlignmentError("SOURCE_CHANGED")
+                if observed_key(current_pose, provenance_mode=provenance_mode) != observed_key(pose, provenance_mode=provenance_mode):
+                    raise ObservationAlignmentError("POSE_SOURCE_CHANGED")
+                if provenance_mode == "subscription_observation":
+                    for current, original in ((current_cloud, cloud), (current_pose, pose)):
+                        if subscription_evidence_key(current["observation"], time.monotonic()) != subscription_evidence_key(original["observation"], time.monotonic()):
+                            raise ObservationAlignmentError("SUBSCRIPTION_EVIDENCE_CHANGED")
+                # Revalidate the actual pair, not just the newest input, after the worker finishes.
+                project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
+                if time.monotonic() > deadline:
+                    raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
             if provenance_mode == "subscription_observation" and result["status"] == "CANDIDATE":
                 result["status"] = "CANDIDATE_SOURCE_UNVERIFIED"
                 result["reason"] = "CANDIDATE_SOURCE_UNVERIFIED"

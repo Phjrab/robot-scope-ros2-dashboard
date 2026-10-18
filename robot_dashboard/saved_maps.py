@@ -29,6 +29,8 @@ from typing import Any, Callable, ContextManager, Dict, Iterable, Mapping, Optio
 
 import numpy as np
 
+from .relocalization.observation_timing import measured_lock
+
 from .map_annotations import (
     AnnotationGoal,
     MAX_DOCUMENT_BYTES,
@@ -456,7 +458,7 @@ class SavedMapCatalog:
             }
 
     def metadata(self, map_id: str) -> Dict[str, Any]:
-        with self._lock:
+        with measured_lock(self._lock, "catalog_lock"):
             return self._find(map_id).public()
 
     @staticmethod
@@ -1043,7 +1045,7 @@ class SavedMapCatalog:
         value.  Occupancy maps do not use the point-cloud response limit.
         """
 
-        with self._lock:
+        with measured_lock(self._lock, "catalog_lock"):
             record = self._find(map_id)
             try:
                 self._validate_record(record)

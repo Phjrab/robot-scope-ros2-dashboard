@@ -185,7 +185,8 @@ class PointCloudHub:
         return snapshot
 
     def binary_snapshot(self) -> Dict[str, Any]:
-        with self._lock:
+        from ..relocalization.observation_timing import measured_lock
+        with measured_lock(self._lock, "cloud_lock"):
             snapshot = dict(self.cloud)
             snapshot["stream_id"] = self.stream_id
             return snapshot

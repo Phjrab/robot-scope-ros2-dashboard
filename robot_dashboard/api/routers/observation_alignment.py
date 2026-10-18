@@ -2,16 +2,22 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal
+import json
+import logging
+import time
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
+from starlette.responses import JSONResponse
+from ...relocalization.observation_timing import ObservationTiming, measure, note
 
 from ...relocalization.observation_alignment import ObservationAligner, ObservationAlignmentError
 from ...saved_maps import SavedMapError
 from ..dependencies import require_component, require_same_origin, runtime_from_request
 
 router = APIRouter()
+LOGGER = logging.getLogger("uvicorn.error.observation")
 Row = Annotated[list[float], Field(min_length=4, max_length=4)]
 
 
@@ -27,16 +33,32 @@ class ObservationRequest(BaseModel):
 
 
 @router.post("/api/v1/observations/map-alignment")
-async def estimate_observation(request: Request, body: ObservationRequest) -> dict:
+async def estimate_observation(request: Request, body: ObservationRequest) -> JSONResponse:
     require_same_origin(request)
     runtime = runtime_from_request(request)
     catalog = require_component(runtime.saved_maps, "saved maps unavailable")
     agent = require_component(runtime.agent, "observations unavailable")
     if runtime.observation_aligner is None:
         runtime.observation_aligner = ObservationAligner()
+    trace = ObservationTiming()
+    def worker():
+        with trace.bind():
+            # Includes AnyIO dispatch, thread scheduling and GIL delay, not just queueing.
+            note("dispatch_to_worker_ms", (time.monotonic() - trace.started) * 1000)
+            with measure("worker"):
+                return runtime.observation_aligner.estimate(catalog, agent, body.model_dump())
+    status = 200
     try:
-        return await run_in_threadpool(runtime.observation_aligner.estimate, catalog, agent, body.model_dump())
+        payload = await run_in_threadpool(worker)
     except ObservationAlignmentError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except SavedMapError as exc:
-        raise HTTPException(status_code=409, detail="saved map changed or unavailable") from exc
+        status, payload = 409, {"detail": str(exc)}
+    except SavedMapError:
+        status, payload = 409, {"detail": "saved map changed or unavailable"}
+    except Exception:
+        LOGGER.info("observation_timing %s", json.dumps(dict(trace.summary(), http_status=500)))
+        raise
+    with trace.bind(), measure("serialization"):
+        response = JSONResponse(payload, status_code=status)
+    # Fixed-size aggregate only; no inputs, coordinates, tokens or source identifiers.
+    LOGGER.info("observation_timing %s", json.dumps(dict(trace.summary(), http_status=status)))
+    return response

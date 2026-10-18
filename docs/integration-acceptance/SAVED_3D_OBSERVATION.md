@@ -236,3 +236,74 @@ architecture size gate remains unchanged. Synthetic regressions cover Humble
 message-only callbacks, modern native metadata selection, graph/session/QoS
 changes, pending-handle and late-callback races, unavailable graph telemetry,
 stale pairs and the exact Python/JavaScript response contract.
+
+## Bounded performance investigation — 2026-10-18
+
+A single read-only recording of existing `/velodyne_points` and
+`/utlidar/robot_odom` retained raw CDR, all 16,000 finite XYZ points, the exact
+8,000-point product display input, the original receipt/source stamps and a
+pose window. The 2.32-second recording received 20 clouds and 303 poses; the
+selected receipt pair differed by 3.020 ms. No producer, camera, localization or
+control service was started. The original PCD and eight captured files are
+hash-verified private evidence, excluded from Git.
+
+Reproducible ROS-free trials use an explicitly historical clock starting at the
+original pair and advancing with real elapsed time. They never replace original
+timestamps or make recorded data current. The copied map has its own catalogue
+identity; its bytes and the exact profile hash match the capture. Trial clocks
+and reference-cache reuse are documented, and earlier failed trials remain
+preserved. A map-only replay directory removes incidental capture-JSON scanning
+from catalogue timings. These isolated trials do not measure service lock/GIL
+contention or UI latency.
+
+On the Jetson, both system Python and the dashboard venv use NumPy 1.26.4 and
+hit the unchanged 600 ms limit with the previous implementation. Exact nearest
+search consumed 434–540 ms before the deadline, with about 53–62 ms of catalogue
+preparation and 39 ms of index construction. The optimization groups query
+points sharing a radius-grid cell and computes bounded 16-query/4,096-candidate
+chunks. It preserves every reference point, the 0.75 m gate and lowest original
+index for ties. Difference/squared-distance temporaries are bounded to about
+2 MiB; reusable index limits remain unchanged. No SciPy/SDK/environment upgrade,
+BLAS thread setting or timeout increase is required.
+
+The same recorded input on the candidate completed four Jetson trials:
+426–430 ms cold, 317–318 ms with the reference cache. All returned
+**REJECTED / HIGH_RESIDUAL**, 29 iterations, overlap 0.644 and inlier RMSE
+0.301079679 m. This is computational completion, not a qualified position or
+absolute accuracy. The unchanged 0.05 m RMSE criterion correctly rejects it.
+A separate Mac comparison checks exact numerical equivalence; timing figures
+from different machines are not interchangeable.
+
+Subscription pose pairing now checks candidates in stable receipt-distance order
+and stops at the first valid candidate, preserving previous tie and validity
+semantics. A normal 160-entry history requires three evidence checks instead of
+162. Map eligibility still precedes source validation, but unavailable source
+identity is rejected before expensive reference preparation. All original
+single-flight, 1 Hz, freshness, completion and geometry gates remain in place.
+
+Each numerical API request emits one bounded `observation_timing` aggregate to
+the Uvicorn log. It distinguishes dispatch-to-worker latency (including worker
+scheduling/GIL delay), catalogue/cloud/pose lock wait and hold, reference
+preparation, nearest search, registration, completion revalidation and response
+serialization. Nested stage times are inclusive and must not be summed. Records
+contain no clouds, poses, file paths, tokens or device identifiers. Diagnostic
+contexts are request-local, restored on failure, and no-ops for ordinary telemetry.
+The API request/response and browser validity contracts are unchanged.
+
+Private evidence: `robot-scope-hardware-validation-private/observation-performance-20261018/`.
+Actual service deployment and stationary response timings are recorded separately
+from these software/replay results. No control, TF, initialpose or goal application
+is part of this change.
+
+The later operator clarification reports small fore/aft/lateral displacement and
+approximately unchanged heading. The earlier same-position prior is therefore
+withdrawn. Translation and yaw are unmeasured; the zero-offset seed used in the
+recorded performance experiment is a historical hypothesis, not a current pose.
+The residual investigation compares it with the earlier registered-cloud test
+as different input conditions. No result is applied to operational localization.
+
+Performance candidate validation: full Python 2,337 tests passed (3 skipped),
+related JavaScript 22 passed, architecture 10 passed and scoped Ruff passed.
+The first sandboxed full run's 25 UNIX-socket `PermissionError` results are
+preserved separately; the same source passed in the local socket-capable run.
+No test gate was removed or weakened.

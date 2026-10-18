@@ -302,7 +302,17 @@ class TelemetryHub:
     def observation_pose_near(
         self, observation: Dict[str, Any], now: float, *, provenance_mode: str = "native_publisher",
     ) -> Dict[str, Any] | None:
-        with self._lock:
+        from ..relocalization.observation_timing import measured_lock, note
+
+        with measured_lock(self._lock, "pose_lock"):
+            return self._observation_pose_near_locked(observation, now, provenance_mode, note)
+
+    def _observation_pose_near_locked(
+        self, observation: Dict[str, Any], now: float, provenance_mode: str, note: Callable[[str, Any], None],
+    ) -> Dict[str, Any] | None:
+        evidence_checks = 0
+        note("pose_history_count", len(self.pose_history))
+        try:
             if provenance_mode not in {"native_publisher", "subscription_observation"}:
                 return None
             current_epoch = (self.pose.get("observation") or {}).get("publisher_epoch")
@@ -310,15 +320,40 @@ class TelemetryHub:
                           if p["observation"]["publisher_epoch"] == current_epoch
                           and p["observation"]["observer_id"] == observation.get("observer_id")]
             if provenance_mode == "subscription_observation":
+                evidence_checks += 1
                 current_key = subscription_evidence_key(self.pose.get("observation"), now)
-                if current_key is None or subscription_evidence_key(observation, now) is None:
+                if current_key is None:
                     return None
-                candidates = [p for p in candidates if subscription_evidence_key(p["observation"], now) == current_key]
+                evidence_checks += 1
+                if subscription_evidence_key(observation, now) is None:
+                    return None
             received = observation.get("received_monotonic_s")
             if not candidates or not isinstance(received, (int, float)):
                 return None
+            if provenance_mode == "subscription_observation":
+                ranked = [(abs(p["updated"] - received), p) for p in candidates]
+                if all(math.isfinite(distance) for distance, _ in ranked):
+                    # Stable sorting preserves the history order for equal
+                    # distances, matching min() after the original filtering.
+                    for _, candidate in sorted(ranked, key=lambda item: item[0]):
+                        evidence_checks += 1
+                        if subscription_evidence_key(candidate["observation"], now) == current_key:
+                            return self._pose_payload(candidate, now)
+                    return None
+                # Preserve the original min/filter behavior for nonfinite
+                # distances rather than introducing a new input policy here.
+                valid = []
+                for candidate in candidates:
+                    evidence_checks += 1
+                    if subscription_evidence_key(candidate["observation"], now) == current_key:
+                        valid.append(candidate)
+                candidates = valid
+                if not candidates:
+                    return None
             best = min(candidates, key=lambda p: abs(p["updated"] - received))
             return self._pose_payload(best, now)
+        finally:
+            note("pose_evidence_checks", evidence_checks)
 
     def _pose_payload(self, data: Dict[str, Any], now: float) -> Dict[str, Any]:
         payload = odometry_pose_payload(
