@@ -1,0 +1,19 @@
+/* Settings and diagnostics reuse the dashboard's theme and density. */
+.settings-grid > .settings-panel { min-width: 0; }
+.settings-panel .panel-header { flex-wrap: wrap; gap: 12px; }
+.settings-panel .panel-state { white-space: normal; overflow-wrap: anywhere; }
+.settings-panel :is(button, input, select, summary):focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.settings-panel :is(button, input:not([type="checkbox"]):not([type="radio"]), select) { min-height: 44px; max-width: 100%; border-radius: var(--radius); }
+.settings-panel :is(.settings-card-body, .service-lifecycle-body) { padding: 16px; }
+.settings-panel :is(.service-lifecycle-message, .control-bridge-service-message, .connection-runtime-note, .robot-type-note) { color: var(--muted); overflow-wrap: anywhere; }
+.settings-panel :is(.service-lifecycle-message.error, .control-bridge-service-message.error) { color: var(--danger); }
+.settings-panel :is(.service-lifecycle-warning, .control-bridge-service-warning) { color: var(--muted); font-size: var(--type-secondary); line-height: var(--leading-body); }
+.settings-panel .service-lifecycle-warning strong { color: var(--text); }
+.diagnostics-export-body { gap: 16px; }
+.diagnostics-export-body p { margin: 0; }
+.diagnostics-export-body .service-lifecycle-message { margin-top: 12px; }
+.diagnostics-export-body > button { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .settings-panel :is(.settings-card-body, .service-lifecycle-body) { padding: 12px; }
+  .diagnostics-export-body > button { width: 100%; }
+}

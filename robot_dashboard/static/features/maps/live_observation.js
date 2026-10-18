@@ -34,6 +34,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     wasVisible = context.visible;
     const state = model.snapshot();
     el('State').textContent = error || state.status;
+    el('State').dataset.status = error ? 'ERROR' : state.status;
     el('Anchor').disabled = !state.canAnchor || !el('Confirm').checked;
     el('Center').disabled = !state.pose; el('Export').disabled = !model.samples.length;
     el('Registration').disabled = !state.anchor;
