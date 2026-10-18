@@ -8,9 +8,17 @@ const id = 'a'.repeat(24), revision = 'b'.repeat(64);
 const points = [-2,-2,0, 2,-2,0, 2,2,0, -2,2,0, 0,0,1];
 const meta = { id, revision, name: 'SYNTHETIC saved 3D reference', kind: 'pointcloud3d', frame_id: 'map',
   format:'pcd-binary', file_name:'fixture.pcd', point_count:5, size_bytes:1000, data_url:`/api/v1/saved-maps/${id}/data` };
-function obs(seq, epoch='c') { return { observer_id:'d'.repeat(32), publisher_epoch:epoch.repeat(32), publisher_gid:epoch.repeat(32),
-  publisher_count:1, identity_status:'OBSERVED_PUBLISHER', source_stamp_ns:String(1792309179130175352n+BigInt(seq)),
-  received_monotonic_s:Date.now()/1000, receipt_clock:'OBSERVER_HOST_MONOTONIC' }; }
+function obs(seq, epoch='c', identityUnavailable=false, evidence=null) {
+  const received=Date.now()/1000, type=evidence?.kind==='pose'?'nav_msgs/msg/Odometry':'sensor_msgs/msg/PointCloud2';
+  const qos={reliability:'BEST_EFFORT',durability:'VOLATILE',history:'KEEP_LAST',depth:1};
+  return { observer_id:'d'.repeat(32), publisher_epoch:epoch.repeat(32), publisher_gid:identityUnavailable?null:epoch.repeat(32),
+  publisher_count:1, identity_status:identityUnavailable?'UNAVAILABLE':'OBSERVED_PUBLISHER', source_stamp_ns:String(1792309179130175352n+BigInt(seq)),
+  received_monotonic_s:received, receipt_clock:'OBSERVER_HOST_MONOTONIC', ...(evidence?{subscription_evidence:{
+    schema:'robot-scope.subscription-observation.v1',session_id:evidence.session,topic:evidence.kind==='pose'?'/Odometry':'/cloud_registered',
+    type_name:type,subscription_qos:qos,per_message_publisher_verified:false,identity_basis:'LOCAL_SUBSCRIPTION_AND_ROS_GRAPH_ONLY',
+    graph:{state:'ok',observed_monotonic_s:received-evidence.graphAge,endpoint_count:1,reported_publisher_count:1,fingerprint:evidence.fingerprint,
+      endpoints:[{node_name:'synthetic',node_namespace:'/',topic_type:type,endpoint_gid:'3'.repeat(48),qos}]},
+  }}:{}) }; }
 function binary(seq, observation) {
   const metadata = Buffer.from(JSON.stringify({ seq, stream_id:'synthetic-observer', topic:'/cloud_registered', pipeline_stage:'registered',
     frame_id:'odom', units:'m', encoding:'float32le', point_count:points.length/3, source_points:points.length/3, observation }));
@@ -19,24 +27,30 @@ function binary(seq, observation) {
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page) {
-  const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false }, writes=[], errors=[];
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false}={}) {
+  const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
+    session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1 }, writes=[], errors=[];
+  const evidence=kind=>subscriptionEvidence?{kind,session:state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=> { if(r.method()!=='GET') writes.push(new URL(r.url()).pathname); });
   const backend=await installDashboardBackend(page,{ pointcloudFrame:seq=> {
-    if(!state.streaming) return null; state.lastCloud=obs(seq,state.epoch); return binary(seq,state.lastCloud);
+    if(!state.streaming) return null; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud')); return binary(seq,state.lastCloud);
   }});
   backend.on('/api/v1/saved-maps',({json})=>json({maps:[meta],total_size_bytes:1000}));
   backend.on(meta.data_url,({json})=>json({...meta,map_id:id,seq:1,points,units:'m',source_points:5}));
-  backend.on('/api/v1/observations/map-alignment',({json,body})=>json({schema:'robot-scope.observation-alignment.v1',experimental:true,
+  backend.on('/api/v1/observations/map-alignment',({json,body})=>{
+    const fallback=body.provenance_mode==='subscription_observation',candidate=fallback?'CANDIDATE_SOURCE_UNVERIFIED':'CANDIDATE';
+    const provenance=fallback?{provenance_mode:'subscription_observation',per_message_publisher_verified:false,body_extrinsic_verified:false}:{};
+    return json({schema:'robot-scope.observation-alignment.v1',experimental:true,
     operational_application:'NOT_RUN',map_id:id,map_revision:revision,target_frame:'map',
-    source:{...body,received_monotonic_s:state.lastCloud.received_monotonic_s},
-    status:state.rejected?'REJECTED':'CANDIDATE',reason:state.rejected?'HIGH_RESIDUAL':'CANDIDATE',
+    ...provenance,...(fallback?{body_pose_verified:false}:{}),source:{...body,...provenance,received_monotonic_s:state.lastCloud.received_monotonic_s},
+    status:state.rejected?'REJECTED':candidate,reason:state.rejected?'HIGH_RESIDUAL':candidate,
     T_map_odom:body.T_map_odom_seed,correspondence_gate_m:.75,
-    metrics:{converged:true,rmse_m:.02,overlap_ratio:.8,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2}}));
+    metrics:{converged:true,rmse_m:.02,overlap_ratio:.8,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2}});
+  });
   await page.routeWebSocket('**/api/v1/ws/pose',socket=>{
     let seq=0; const send=()=>{ if(state.streaming) socket.send(JSON.stringify({seq:++seq,topic:'/Odometry',frame_id:'odom',child_frame_id:'base_link',
-      state:'ok',age_s:0,position:{x:state.jump?5:0,y:0,z:.3},orientation:{x:0,y:0,z:0,w:1},observation:obs(seq,'f')})); };
+      state:'ok',age_s:0,position:{x:state.jump?5:0,y:0,z:.3},orientation:{x:0,y:0,z:0,w:1},observation:obs(seq,'f',state.identityUnavailable,evidence('pose'))})); };
     send(); const timer=setInterval(send,150); socket.onClose(()=>clearInterval(timer));
   });
   await page.goto('/#maps');
@@ -50,9 +64,12 @@ async function fixture(page) {
   });
   await page.locator('#savedLiveEnabled').check();
   await page.locator('#savedLiveConfirm').check();
-  await expect(page.locator('#savedLiveAnchor')).toBeEnabled();
-  await page.locator('#savedLiveAnchor').click();
-  await expect(page.locator('#savedLiveState')).toHaveText('ODOMETRY_PROPAGATED_UNVERIFIED');
+  if(identityUnavailable) await expect(page.locator('#savedLiveState')).toHaveText('SOURCE_IDENTITY_UNAVAILABLE');
+  else {
+    await expect(page.locator('#savedLiveAnchor')).toBeEnabled();
+    await page.locator('#savedLiveAnchor').click();
+    await expect(page.locator('#savedLiveState')).toHaveText('ODOMETRY_PROPAGATED_UNVERIFIED');
+  }
   return {state,writes,errors};
 }
 
@@ -92,4 +109,70 @@ test('source replacement and odometry jump require reanchor without robot comman
   await expect(page.locator('#savedLiveObservation')).toBeVisible();
   await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   expect(writes).toEqual([]); expect(errors).toEqual([]);
+});
+
+test('missing publisher metadata shows raw receipt while numerical map alignment stays unavailable',async({page},testInfo)=>{
+  const {state,writes,errors}=await fixture(page,{identityUnavailable:true});
+  const source=page.locator('#savedLiveSource');
+  await expect(page.locator('#savedLiveAvailability')).toContainText('이 ROS runtime에서 메시지별 publisher 정보가 제공되지 않습니다.');
+  await expect(page.locator('#savedLiveAvailability')).toContainText('출처 연속성을 확인할 수 없어 기본 저장 지도 정합 계산은 사용할 수 없습니다.');
+  await expect(source).toContainText('점군: 원본 수신 · /cloud_registered [odom]');
+  await expect(source).toContainText('5점 · source 179230917913017');
+  await expect(source).toContainText('native odometry: 원본 수신 · /Odometry [odom → base_link]');
+  await expect(source).toContainText('저장 지도 위치·검증된 본체 자세가 아닙니다.');
+  await expect(page.locator('#savedLiveMetrics')).toHaveText('지도 정합: UNAVAILABLE · NOT_RUN · 지도 기준 pose·잔차 없음');
+  for(const id of ['Anchor','Center','Registration','Export']) await expect(page.locator(`#savedLive${id}`)).toBeDisabled();
+  const original=await page.evaluate(()=>Array.from(window.observationScene.cloud.points));
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
+  expect(await page.locator('#savedLiveObservation').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-identity-unavailable.png')});
+  state.streaming=false;
+  await expect(source).toContainText('점군: 마지막 수신 · STALE');
+  await expect(source).toContainText('native odometry: 마지막 수신 · STALE');
+  await page.locator('#savedLiveClear').click();
+  await expect(source).toContainText('점군: 현재 수신 요약 없음 | native odometry: 현재 수신 요약 없음');
+  await expect(source).not.toContainText('/cloud_registered');
+  await page.locator('#savedLiveEnabled').uncheck(); await page.locator('#savedLiveEnabled').check();
+  await expect(source).not.toContainText('/Odometry');
+  state.streaming=true;
+  await expect(source).toContainText('점군: 원본 수신');
+  state.identityUnavailable=false;
+  await expect(page.locator('#savedLiveAnchor')).toBeEnabled();
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  await expect(page.locator('#savedLiveAvailability')).toBeHidden();
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  expect(await page.evaluate(()=>Array.from(window.observationScene.cloud.points))).toEqual(original);
+  expect(writes).toEqual([]); expect(errors).toEqual([]);
+});
+
+test('subscription graph candidates require explicit opt-in and reanchor after mode or source changes',async({page},testInfo)=>{
+  const {state,writes,errors}=await fixture(page,{identityUnavailable:true,subscriptionEvidence:true});
+  const allow=page.locator('#savedLiveSourceUnverified'),confirm=page.locator('#savedLiveConfirm');
+  await expect(allow).not.toBeChecked();
+  await expect(page.locator('#savedLiveAnchor')).toBeDisabled(); expect(writes).toEqual([]);
+  await allow.check();
+  await expect(confirm).not.toBeChecked(); await expect(page.locator('#savedLiveProvenanceNote')).toBeVisible();
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  await confirm.check(); await expect(page.locator('#savedLiveAnchor')).toBeEnabled();
+  await page.locator('#savedLiveAnchor').click();
+  await expect(page.locator('#savedLiveState')).toHaveText('ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED');
+  expect(writes).toEqual([]);
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toHaveText('SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED');
+  await expect(page.locator('#savedLiveProvenanceNote')).toContainText('메시지별 publisher·센서 외부변환·본체 자세는 검증되지 않습니다.');
+  expect(await page.evaluate(()=>window.observationScene.options.robotPoseLabel)).toBe('GO2 ESTIMATE · SOURCE UNVERIFIED');
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-source-unverified-candidate.png')});
+  state.session='4'.repeat(32);
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  await page.locator('#savedLiveAnchor').click();
+  await expect(page.locator('#savedLiveState')).toHaveText('SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED');
+  await allow.uncheck();
+  await expect(confirm).not.toBeChecked(); await expect(page.locator('#savedLiveRegistration')).not.toBeChecked();
+  await expect(page.locator('#savedLiveAnchor')).toBeDisabled(); await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  await expect(page.locator('#savedLiveState')).toHaveText('SOURCE_IDENTITY_UNAVAILABLE');
+  expect(writes.length).toBeGreaterThan(0); expect(writes.every(p=>p==='/api/v1/observations/map-alignment')).toBe(true);
+  expect(errors).toEqual([]);
 });

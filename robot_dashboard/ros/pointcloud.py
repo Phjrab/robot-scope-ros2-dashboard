@@ -112,15 +112,27 @@ class PointCloudHub:
         robot_pose_in_frame: Callable[[str], Dict[str, Any] | None],
         message_info: Any = None,
         publisher_count: int | None = None,
+        observation_context: Any = None,
     ) -> bool:
         with self._lock:
             if topic != selected_topic():
+                return False
+            if callable(observation_context):
+                observation_context = observation_context()
+                if observation_context is None:
+                    return False
+            graph = (observation_context or {}).get("graph") or {}
+            graph_received = graph.get("observed_monotonic_s")
+            # A callback can wait behind a newer graph refresh. Drop that sample
+            # before changing its epoch; retain the original callback receipt.
+            if graph.get("state") == "ok" and type(graph_received) in {int, float} and graph_received > now:
                 return False
             frame_id = str(getattr(getattr(message, "header", None), "frame_id", ""))
             source_stamp = stamp_ns(message)
             observation = self.observation_identity.observe(
                 topic=topic, frame=frame_id, stamp_ns=source_stamp,
                 received=now, message_info=message_info, publisher_count=publisher_count,
+                observation_context=observation_context,
             )
             if observation["reset_reason"]:
                 self.cloud = {**self.cloud, "seq": self.cloud["seq"] + 1,

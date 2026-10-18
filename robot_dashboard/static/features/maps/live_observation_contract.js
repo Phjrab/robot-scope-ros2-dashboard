@@ -34,7 +34,33 @@ export function odometryMatrix(p) {
   if (!isRigidTransform(m)) throw new Error('INVALID_ODOMETRY');
   return m;
 }
-function sourceKey(s) {
+function subscriptionGraphAge(value) {
+  return (value?.observation?.received_monotonic_s - value?.observation?.subscription_evidence?.graph?.observed_monotonic_s) * 1000;
+}
+function subscriptionKey(s, kind) {
+  const o = s?.observation, e = o?.subscription_evidence, g = e?.graph, endpoint = g?.endpoints?.[0];
+  const type = kind === 'pose' ? 'nav_msgs/msg/Odometry' : 'sensor_msgs/msg/PointCloud2';
+  const qos = value => value && ['RELIABLE', 'BEST_EFFORT'].includes(value.reliability)
+    && ['VOLATILE', 'TRANSIENT_LOCAL'].includes(value.durability) && ['KEEP_LAST', 'KEEP_ALL'].includes(value.history)
+    && Number.isSafeInteger(value.depth) && value.depth >= 0;
+  const graphAge = subscriptionGraphAge(s);
+  if (!o?.observer_id || !o.publisher_epoch || !exactStamp(o.source_stamp_ns)
+      || !finite(o.received_monotonic_s) || o.receipt_clock !== 'OBSERVER_HOST_MONOTONIC'
+      || !Number.isSafeInteger(s.seq) || s.seq <= 0 || !s.topic || !s.frame_id || o.invalidated || o.reset_reason === 'SOURCE_STAMP_STALLED'
+      || e?.schema !== 'robot-scope.subscription-observation.v1' || !/^[0-9a-f]{32}$/.test(e.session_id || '')
+      || e.topic !== s.topic || !e.topic.startsWith('/') || e.type_name !== type || !qos(e.subscription_qos)
+      || e.per_message_publisher_verified !== false || e.identity_basis !== 'LOCAL_SUBSCRIPTION_AND_ROS_GRAPH_ONLY'
+      || g?.state !== 'ok' || !finite(g.observed_monotonic_s) || !finite(graphAge) || graphAge < 0 || graphAge > 3000
+      || g.endpoint_count !== 1 || g.reported_publisher_count !== 1 || !Array.isArray(g.endpoints) || g.endpoints.length !== 1
+      || !/^[0-9a-f]{64}$/.test(g.fingerprint || '') || typeof endpoint?.node_name !== 'string' || !endpoint.node_name
+      || typeof endpoint.node_namespace !== 'string' || !endpoint.node_namespace
+      || endpoint.topic_type !== type || !/^(?:[0-9a-f]{32}|[0-9a-f]{48})$/.test(endpoint.endpoint_gid || '') || /^0+$/.test(endpoint.endpoint_gid)
+      || !qos(endpoint.qos)) throw new Error('SOURCE_IDENTITY_UNAVAILABLE');
+  return JSON.stringify([o.observer_id, o.publisher_epoch, e.session_id, e.topic, s.frame_id, s.child_frame_id || '',
+    e.type_name, e.subscription_qos, g.fingerprint]);
+}
+function sourceKey(s, mode = 'native_publisher', kind) {
+  if (mode === 'subscription_observation') return subscriptionKey(s, kind);
   const o = s?.observation;
   if (o?.identity_status !== 'OBSERVED_PUBLISHER' || o.publisher_count !== 1 || !o.publisher_gid
       || !o.observer_id || !o.publisher_epoch || !exactStamp(o.source_stamp_ns)
@@ -49,20 +75,82 @@ function jump(a, b) {
   return Math.hypot(d[0][3], d[1][3], d[2][3]) > OBSERVATION_LIMITS.jumpMetres || angle > OBSERVATION_LIMITS.jumpRadians;
 }
 
+// Metadata for explaining receipt is separate from inputs accepted for geometry.
+// Never keep points, transforms or native position/orientation in this summary.
+function telemetryMetadata(value, kind, arrived) {
+  const o = value?.observation || {}, e = o.subscription_evidence, text = v => typeof v === 'string' ? v.slice(0, 160) : '';
+  return {
+    topic: text(value?.topic), frame_id: text(value?.frame_id), child_frame_id: text(value?.child_frame_id),
+    seq: Number.isSafeInteger(value?.seq) && value.seq > 0 ? value.seq : null,
+    state: kind === 'pose' ? text(value?.state) : value?.points?.length ? 'received' : 'waiting',
+    point_count: kind === 'cloud' ? Math.max(0, Math.floor((value?.points?.length || 0) / 3)) : null,
+    source_stamp_ns: exactStamp(o.source_stamp_ns) ? o.source_stamp_ns : null,
+    identity_status: text(o.identity_status) || 'UNAVAILABLE', publisher_gid_present: Boolean(o.publisher_gid),
+    publisher_count: Number.isSafeInteger(o.publisher_count) ? o.publisher_count : null,
+    observer_id: text(o.observer_id), publisher_epoch: text(o.publisher_epoch), invalidated: o.invalidated === true,
+    subscription_session_id: text(e?.session_id), graph_fingerprint: text(e?.graph?.fingerprint),
+    graph_state: text(e?.graph?.state), graph_endpoint_count: Number.isSafeInteger(e?.graph?.endpoint_count) ? e.graph.endpoint_count : null,
+    age_s: kind === 'pose' && finite(value?.age_s) && value.age_s >= 0 ? value.age_s : 0,
+    arrived_ms: arrived,
+  };
+}
+function telemetrySource(summary) {
+  return JSON.stringify([summary.topic, summary.frame_id, summary.child_frame_id,
+    summary.observer_id, summary.publisher_epoch, summary.publisher_count, summary.subscription_session_id, summary.graph_fingerprint]);
+}
+
 export class LiveMapObservation {
   constructor(now = () => performance.now()) {
     this.now = now; this.map = null; this.enabled = false; this.anchor = null;
     this.pose = null; this.cloud = null; this.history = []; this.trail = [];
     this.reason = 'OFF'; this.generation = 0; this.geometryCache = null; this.samples = [];
     this.registration = null; this.registrationEnabled = false;
+    this.provenanceMode = 'native_publisher';
     this.alignmentRevision = 0;
+    this.telemetrySummary = { pose: null, cloud: null };
+    this.telemetryReceipt = { pose: null, cloud: null };
   }
   enable(value) {
     this.enabled = Boolean(value); this.invalidate(value ? 'NO_ANCHOR' : 'OFF');
     this.pose = null; this.cloud = null; this.history = [];
   }
-  invalidate(reason) { this.anchor = null; this.reason = reason; this.trail = []; this.samples = []; this.geometryCache = null; this.registration = null; this.generation++; }
+  setProvenanceMode(mode) {
+    if (!['native_publisher', 'subscription_observation'].includes(mode)) throw new Error('INVALID_PROVENANCE_MODE');
+    if (mode === this.provenanceMode) return;
+    this.provenanceMode = mode; this.registrationEnabled = false; this.resetInputs('PROVENANCE_MODE_CHANGED');
+  }
+  invalidate(reason, keepTelemetry = false) {
+    this.anchor = null; this.reason = reason; this.trail = []; this.samples = []; this.geometryCache = null; this.registration = null; this.generation++;
+    if (!keepTelemetry) this.telemetrySummary = { pose: null, cloud: null };
+  }
   resetInputs(reason) { this.invalidate(reason); this.pose = null; this.cloud = null; this.history = []; }
+  rememberTelemetry(kind, value) {
+    const next = telemetryMetadata(value, kind, this.now()), previous = this.telemetrySummary[kind];
+    const source = telemetrySource(next), receipt = this.telemetryReceipt[kind];
+    if (receipt?.source === source && next.seq !== null && receipt.seq !== null && next.seq <= receipt.seq) {
+      // Keep the receipt fence after clear/disable so cached snapshots cannot
+      // revive hidden diagnostics or become a new freshness window.
+      if (previous && next.seq === receipt.seq) {
+        if (next.state === 'stale') previous.state = 'stale';
+        if (next.invalidated) previous.invalidated = true;
+      }
+      return;
+    }
+    if (previous && telemetrySource(previous) !== source) this.telemetrySummary = { pose: null, cloud: null };
+    this.telemetryReceipt[kind] = { source, seq: next.seq };
+    this.telemetrySummary[kind] = next;
+  }
+  telemetrySnapshot() {
+    return Object.fromEntries(['pose', 'cloud'].map(kind => {
+      const value = this.telemetrySummary[kind];
+      if (!value) return [kind, null];
+      const { arrived_ms, age_s, ...metadata } = value;
+      const age_ms = age_s * 1000 + Math.max(0, this.now() - arrived_ms);
+      const freshness = value.invalidated ? 'INVALIDATED' : value.state === 'stale' || age_ms > OBSERVATION_LIMITS.staleMs
+        ? 'STALE' : ['ok', 'received'].includes(value.state) ? 'RECEIVED' : 'WAITING';
+      return [kind, { ...metadata, age_ms, freshness }];
+    }));
+  }
   setMap(meta, loaded) {
     const next = meta?.kind === 'pointcloud3d' && meta.id && meta.revision && loaded?.points?.length
       && !loaded.demo_snapshot && loaded.revision === meta.revision
@@ -73,7 +161,7 @@ export class LiveMapObservation {
   ingestPose(value) {
     if (!this.enabled) return;
     try {
-      const key = sourceKey(value), matrix = odometryMatrix(value);
+      const key = sourceKey(value, this.provenanceMode, 'pose'), matrix = odometryMatrix(value);
       if (value.child_frame_id !== 'base_link') throw new Error('BODY_FRAME_UNAVAILABLE');
       if (value.state !== 'ok' || !finite(value.age_s) || value.age_s < 0 || value.age_s > 1) throw new Error('POSE_STALE');
       const last = this.pose;
@@ -83,18 +171,20 @@ export class LiveMapObservation {
       if (last?.key === key && jump(last.matrix, matrix)) this.invalidate('POSE_JUMP');
       this.pose = { value, key, matrix, arrived: this.now() };
       this.history.push(this.pose); this.history = this.history.slice(-80);
-    } catch (error) { this.pose = null; this.history = []; this.invalidate(error.message); }
+    } catch (error) { this.pose = null; this.history = []; this.invalidate(error.message, true); }
+    finally { this.rememberTelemetry('pose', value); }
   }
   ingestCloud(value) {
     if (!this.enabled) return;
     try {
-      const key = sourceKey(value);
+      const key = sourceKey(value, this.provenanceMode, 'cloud');
       if (!value.points?.length || value.points.length % 3 || value.units !== 'm') throw new Error('CLOUD_INVALID');
       if (this.cloud?.key === key && value.seq <= this.cloud.value.seq) return;
       if (this.cloud && this.cloud.key !== key) this.invalidate('CLOUD_SOURCE_CHANGED');
       if (this.cloud?.key === key && BigInt(value.observation.source_stamp_ns) < BigInt(this.cloud.value.observation.source_stamp_ns)) this.invalidate('CLOUD_TIME_REVERSED');
       this.cloud = { value, key, arrived: this.now() }; this.geometryCache = null;
-    } catch (error) { this.cloud = null; this.invalidate(error.message); }
+    } catch (error) { this.cloud = null; this.invalidate(error.message, true); }
+    finally { this.rememberTelemetry('cloud', value); }
   }
   pair() {
     const cloud = this.cloud?.value;
@@ -123,7 +213,12 @@ export class LiveMapObservation {
     if (!this.map) throw new Error('SELECT_SAVED_3D_MAP');
     if (!this.pose || !this.cloud) throw new Error(this.reason === 'OFF' ? 'WAITING_INPUTS' : this.reason);
     if (this.pose.value.age_s * 1000 + this.now() - this.pose.arrived > 1000 || this.now() - this.cloud.arrived > 1000) throw new Error('STALE');
-    return this.pair();
+    if (this.provenanceMode === 'subscription_observation' && [this.pose, this.cloud].some(input =>
+      subscriptionGraphAge(input.value) + this.now() - input.arrived > 3000)) throw new Error('SUBSCRIPTION_GRAPH_STALE');
+    const pair = this.pair(), paired = pair.paired;
+    if (!finite(paired.value.age_s) || paired.value.age_s < 0
+        || paired.value.age_s * 1000 + this.now() - paired.arrived > 1000) throw new Error('STALE');
+    return pair;
   }
   setAnchor(target, confirmed) {
     if (confirmed !== true) throw new Error('OPERATOR_ESTIMATE_CONFIRMATION_REQUIRED');
@@ -132,30 +227,33 @@ export class LiveMapObservation {
     this.anchor = { generation: this.generation, map: { ...this.map }, poseKey: this.pose.key, cloudKey: this.cloud.key,
       T_map_odom: multiply(targetMatrix, inverseRigid(this.pose.matrix)), target_pose: { ...target },
       pose_stamp_ns: this.pose.value.observation.source_stamp_ns, kind: pair.kind, extrinsic: pair.extrinsic,
-      basis: 'OPERATOR_APPROXIMATE_DISPLAY_ANCHOR', accepted_registration: false, body_calibration_verified: false };
-    this.reason = 'ODOMETRY_PROPAGATED_UNVERIFIED'; this.trail = []; this.samples = []; this.geometryCache = null;
+      basis: 'OPERATOR_APPROXIMATE_DISPLAY_ANCHOR', accepted_registration: false, body_calibration_verified: false,
+      provenance_mode: this.provenanceMode, per_message_publisher_verified: this.provenanceMode === 'native_publisher', body_extrinsic_verified: false };
+    this.reason = this.provenanceMode === 'subscription_observation' ? 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'; this.trail = []; this.samples = []; this.geometryCache = null;
     this.registration = null;
   }
   snapshot() {
     const base = { enabled: this.enabled, status: this.reason, map: this.map, anchor: this.anchor,
       pose: null, points: null, trail: [], absolute_accuracy_m: null, map_registration: this.registration?.status || 'NOT_RUN',
-      source_to_display_latency_ms: null, body_pose_verified: false };
+      source_to_display_latency_ms: null, body_pose_verified: false, body_extrinsic_verified: false,
+      provenance_mode: this.provenanceMode, per_message_publisher_verified: Boolean(this.provenanceMode === 'native_publisher' && this.pose && this.cloud), telemetry: this.telemetrySnapshot() };
     if (!this.enabled) return base;
     let pair;
     try { pair = this.ready(); } catch (e) {
-      if (this.anchor && ['STALE', 'POSE_STALE'].includes(e.message)) this.invalidate(e.message);
+      if (this.anchor && ['STALE', 'POSE_STALE', 'SUBSCRIPTION_GRAPH_STALE'].includes(e.message)) this.invalidate(e.message, true);
       return { ...base, anchor: this.anchor, status: e.message };
     }
-    if (!this.anchor) return { ...base, canAnchor: true, status: this.reason, pairing: pair.kind };
+    if (!this.anchor) return { ...base, canAnchor: true, status: this.reason === 'SOURCE_IDENTITY_UNAVAILABLE' ? 'NO_ANCHOR' : this.reason, pairing: pair.kind };
     if (this.anchor.poseKey !== this.pose.key || this.anchor.cloudKey !== this.cloud.key
         || this.anchor.kind !== pair.kind || JSON.stringify(this.anchor.extrinsic) !== JSON.stringify(pair.extrinsic)) {
       this.invalidate('SOURCE_CONTRACT_CHANGED'); return { ...base, anchor: null, status: this.reason };
     }
     const registrationStale = this.registration && (this.now() - this.registration.received > 2000
       || this.cloud.value.observation.received_monotonic_s - (this.registration.source?.received_monotonic_s ?? -Infinity) > 1);
-    if (this.registrationEnabled && (!this.registration || this.registration.status !== 'CANDIDATE' || registrationStale)) {
+    const candidate = this.provenanceMode === 'subscription_observation' ? 'CANDIDATE_SOURCE_UNVERIFIED' : 'CANDIDATE';
+    if (this.registrationEnabled && (!this.registration || this.registration.status !== candidate || registrationStale)) {
       return { ...base, canAnchor: true, status: this.registration
-        ? `SCAN_TO_MAP_${registrationStale && this.registration.status === 'CANDIDATE' ? 'STALE' : this.registration.status} · ${this.registration.reason}`
+        ? `SCAN_TO_MAP_${registrationStale && this.registration.status === candidate ? 'STALE' : this.registration.status} · ${this.registration.reason}`
         : 'SCAN_TO_MAP_WAITING', registration: this.registration };
     }
     const pose = matrixPose(multiply(this.anchor.T_map_odom, this.pose.matrix), this.map.frame);
@@ -178,7 +276,9 @@ export class LiveMapObservation {
         source_delta_ns: pair.source_delta_ns, clock_relation: 'UNVERIFIED', observed_browser_ms: this.now() });
       this.samples = this.samples.slice(-400);
     }
-    return { ...base, status: this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED', canAnchor: true, pose,
+    return { ...base, status: this.provenanceMode === 'subscription_observation'
+      ? (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED')
+      : (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'), canAnchor: true, pose,
       registration: this.registration,
       points: this.geometryCache.points, geometryKey: cacheKey, trail: this.trail,
       pairing: pair.kind, receipt_pair_delta_s: pair.receipt_delta_s, source_delta_ns: pair.source_delta_ns,
@@ -188,17 +288,23 @@ export class LiveMapObservation {
   alignmentRequest() {
     this.ready();
     if (!this.anchor) throw new Error('NO_ANCHOR');
-    return { map_id: this.map.id, map_revision: this.map.revision, T_map_odom_seed: this.anchor.T_map_odom,
+    return { map_id: this.map.id, map_revision: this.map.revision, T_map_odom_seed: this.anchor.T_map_odom, provenance_mode: this.provenanceMode,
       observer_id: this.cloud.value.observation.observer_id,
       cloud_epoch: this.cloud.value.observation.publisher_epoch, pose_epoch: this.pose.value.observation.publisher_epoch };
   }
   applyAlignment(value, generation, requestedAt = this.now()) {
     if (generation !== this.generation || !this.anchor || !this.registrationEnabled) return false;
     const expected = this.alignmentRequest();
+    const subscription = this.provenanceMode === 'subscription_observation', candidate = subscription ? 'CANDIDATE_SOURCE_UNVERIFIED' : 'CANDIDATE';
     if (value.schema !== 'robot-scope.observation-alignment.v1' || value.experimental !== true
         || value.operational_application !== 'NOT_RUN' || value.map_id !== expected.map_id
         || value.map_revision !== expected.map_revision || value.target_frame !== this.map.frame
-        || ['observer_id', 'cloud_epoch', 'pose_epoch'].some(k => value.source?.[k] !== expected[k])) {
+        || ['observer_id', 'cloud_epoch', 'pose_epoch'].some(k => value.source?.[k] !== expected[k])
+        || (value.provenance_mode != null && value.provenance_mode !== expected.provenance_mode)
+        || (value.source?.provenance_mode != null && value.source.provenance_mode !== expected.provenance_mode)
+        || (subscription && (value.provenance_mode !== expected.provenance_mode || value.source?.provenance_mode !== expected.provenance_mode
+          || value.per_message_publisher_verified !== false || value.source?.per_message_publisher_verified !== false
+          || value.body_pose_verified !== false || value.body_extrinsic_verified !== false || value.source?.body_extrinsic_verified !== false))) {
       this.alignmentFailed('RESULT_IDENTITY_MISMATCH', generation); return false;
     }
     if (!finite(requestedAt) || this.now() - requestedAt > 1000 || this.now() < requestedAt
@@ -207,9 +313,9 @@ export class LiveMapObservation {
       this.alignmentFailed('RESULT_STALE', generation); return false;
     }
     this.registration = { ...value, received: requestedAt };
-    if (value.status !== 'CANDIDATE') return false;
+    if (value.status !== candidate) return false;
     const m = value.metrics;
-    if (value.reason !== 'CANDIDATE' || !isRigidTransform(value.T_map_odom) || m?.converged !== true
+    if (value.reason !== candidate || !isRigidTransform(value.T_map_odom) || m?.converged !== true
         || !finite(m.rmse_m) || m.rmse_m < 0 || m.rmse_m > .05 || !finite(m.overlap_ratio) || m.overlap_ratio < .60 || m.overlap_ratio > 1
         || !finite(m.geometry_min_max_eigen_ratio) || m.geometry_min_max_eigen_ratio < .002
         || !finite(m.matched_geometry_min_max_eigen_ratio) || m.matched_geometry_min_max_eigen_ratio < .002 || value.correspondence_gate_m !== .75) {
@@ -231,6 +337,7 @@ export class LiveMapObservation {
       generated_at: new Date().toISOString(), limits: OBSERVATION_LIMITS, map: state.map,
       anchor: state.anchor, status: state.status, map_registration: this.registration || 'NOT_RUN', absolute_accuracy_m: null,
       operational_application: 'NOT_RUN', body_pose_verified: false, samples: this.samples,
+      provenance_mode: this.provenanceMode, per_message_publisher_verified: Boolean(this.provenanceMode === 'native_publisher' && this.pose && this.cloud), body_extrinsic_verified: false,
       source: { pose: this.pose?.value.observation || null, cloud: this.cloud?.value.observation || null } };
   }
 }

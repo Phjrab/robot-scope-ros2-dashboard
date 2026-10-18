@@ -1,7 +1,7 @@
 """Stateless, single-flight numerical observation analysis; no ROS mutation."""
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,6 +23,7 @@ class ObservationRequest(BaseModel):
     cloud_epoch: str = Field(pattern=r"^[a-f0-9]{32}$")
     pose_epoch: str = Field(pattern=r"^[a-f0-9]{32}$")
     T_map_odom_seed: list[Row] = Field(min_length=4, max_length=4)
+    provenance_mode: Literal["native_publisher", "subscription_observation"] = "native_publisher"
 
 
 @router.post("/api/v1/observations/map-alignment")

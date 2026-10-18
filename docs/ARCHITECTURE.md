@@ -68,6 +68,8 @@ robot_dashboard/
 ├── ros/
 │   ├── runtime.py            ROS thread/executor lifetime
 │   ├── graph.py              graph snapshot/cardinality observation
+│   ├── observation_identity.py native publisher and subscription evidence
+│   ├── observation_subscriptions.py graph/session lifecycle and callback fences
 │   ├── sources.py            selected sources and sensor metadata authority
 │   ├── telemetry.py          bounded sensor/joint/pose summaries
 │   ├── cameras.py            fixed camera source ownership

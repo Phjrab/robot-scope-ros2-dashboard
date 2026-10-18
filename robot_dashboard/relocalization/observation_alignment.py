@@ -7,11 +7,14 @@ qualification. Original offline results and all experimental gates are unchanged
 from __future__ import annotations
 
 import itertools
+import re
 import threading
 import time
 from typing import Any
 
 import numpy as np
+
+from ..ros.observation_identity import subscription_evidence_key
 
 from .experimental_se3 import (
     Cloud, ExperimentalSE3Error, MAX_CORRESPONDENCE_M, compose, from_translation_quaternion,
@@ -71,8 +74,24 @@ class RadiusGrid:
         return ids, distances
 
 
-def observed_key(value: dict[str, Any]) -> tuple[str, str]:
+def observed_key(value: dict[str, Any], *, provenance_mode: str = "native_publisher",
+                 now: float | None = None) -> tuple[str, str]:
     observation = value.get("observation") or {}
+    if provenance_mode == "subscription_observation":
+        evidence = observation.get("subscription_evidence") or {}
+        if (observation.get("invalidated")
+                or type(observation.get("publisher_count")) is not int or observation.get("publisher_count") != 1
+                or observation.get("reset_reason") == "SOURCE_STAMP_STALLED"
+                or observation.get("receipt_clock") != "OBSERVER_HOST_MONOTONIC"
+                or subscription_evidence_key(observation, time.monotonic() if now is None else now) is None
+                or evidence.get("topic") != value.get("topic")
+                or not re.fullmatch(r"[a-f0-9]{32}", str(observation.get("observer_id", "")))
+                or not re.fullmatch(r"[a-f0-9]{32}", str(observation.get("publisher_epoch", "")))
+                or not re.fullmatch(r"[1-9][0-9]*", str(observation.get("source_stamp_ns", "")))):
+            raise ObservationAlignmentError("SUBSCRIPTION_EVIDENCE_UNAVAILABLE")
+        return observation["observer_id"], observation["publisher_epoch"]
+    if provenance_mode != "native_publisher":
+        raise ObservationAlignmentError("INVALID_PROVENANCE_MODE")
     if (observation.get("identity_status") != "OBSERVED_PUBLISHER"
             or observation.get("publisher_count") != 1
             or not observation.get("publisher_gid") or observation.get("invalidated")):
@@ -80,9 +99,16 @@ def observed_key(value: dict[str, Any]) -> tuple[str, str]:
     return str(observation["observer_id"]), str(observation["publisher_epoch"])
 
 
-def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float) -> tuple[np.ndarray, str, dict[str, Any]]:
-    cloud_key, pose_key = observed_key(cloud), observed_key(pose)
+def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
+                  provenance_mode: str = "native_publisher") -> tuple[np.ndarray, str, dict[str, Any]]:
+    cloud_key = observed_key(cloud, provenance_mode=provenance_mode, now=now)
+    pose_key = observed_key(pose, provenance_mode=provenance_mode, now=now)
     co, po = cloud["observation"], pose["observation"]
+    if provenance_mode == "subscription_observation" and (
+        co["subscription_evidence"].get("type_name") != "sensor_msgs/msg/PointCloud2"
+        or po["subscription_evidence"].get("type_name") != "nav_msgs/msg/Odometry"
+    ):
+        raise ObservationAlignmentError("SUBSCRIPTION_TYPE_MISMATCH")
     delta = po["received_monotonic_s"] - co["received_monotonic_s"]
     if cloud_key[0] != pose_key[0] or abs(delta) > .15:
         raise ObservationAlignmentError("RECEIPT_TIME_MISMATCH")
@@ -124,6 +150,11 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float) -> tu
         "pose_source_stamp_ns": po["source_stamp_ns"],
         "received_monotonic_s": co["received_monotonic_s"],
         "pose_received_monotonic_s": po["received_monotonic_s"],
+        "provenance_mode": provenance_mode,
+        "per_message_publisher_verified": provenance_mode == "native_publisher",
+        "cloud_subscription_evidence": co.get("subscription_evidence"),
+        "pose_subscription_evidence": po.get("subscription_evidence"),
+        "map_origin_verified": False,
     }
 
 
@@ -142,6 +173,7 @@ class ObservationAligner:
                 raise ObservationAlignmentError("RATE_LIMIT_1HZ")
             self.last_started = started
             deadline = started + .6
+            provenance_mode = body.get("provenance_mode", "native_publisher")
             identifier, revision = body["map_id"], body["map_revision"]
             meta = catalog.metadata(identifier)
             if meta.get("kind") != "pointcloud3d" or meta.get("revision") != revision:
@@ -157,10 +189,12 @@ class ObservationAligner:
                 Cloud(points, data["frame_id"], "REGISTERED_MAP").validated(reference=True, max_points=100_000)
                 self.cache = ((identifier, revision), points, RadiusGrid(points, deadline=deadline), data["frame_id"])
             cloud = agent.pointcloud_binary_snapshot()
-            pose = agent.observation_pose_near(cloud.get("observation") or {})
+            pose = (agent.observation_pose_near(cloud.get("observation") or {}, provenance_mode=provenance_mode)
+                    if provenance_mode == "subscription_observation"
+                    else agent.observation_pose_near(cloud.get("observation") or {}))
             if pose is None:
                 raise ObservationAlignmentError("NO_PAIRED_POSE")
-            points, frame, provenance = project_query(cloud, pose, time.monotonic())
+            points, frame, provenance = project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
             for key in ("observer_id", "cloud_epoch", "pose_epoch"):
                 if body.get(key) != provenance[key]:
                     raise ObservationAlignmentError("SOURCE_CHANGED")
@@ -185,16 +219,27 @@ class ObservationAligner:
             result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
             if catalog.metadata(identifier).get("revision") != revision:
                 raise ObservationAlignmentError("MAP_CHANGED")
-            if observed_key(agent.pointcloud_binary_snapshot()) != observed_key(cloud):
+            current_cloud, current_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+            if observed_key(current_cloud, provenance_mode=provenance_mode) != observed_key(cloud, provenance_mode=provenance_mode):
                 raise ObservationAlignmentError("SOURCE_CHANGED")
-            if observed_key(agent.pose_snapshot()) != observed_key(pose):
+            if observed_key(current_pose, provenance_mode=provenance_mode) != observed_key(pose, provenance_mode=provenance_mode):
                 raise ObservationAlignmentError("POSE_SOURCE_CHANGED")
+            if provenance_mode == "subscription_observation":
+                for current, original in ((current_cloud, cloud), (current_pose, pose)):
+                    if subscription_evidence_key(current["observation"], time.monotonic()) != subscription_evidence_key(original["observation"], time.monotonic()):
+                        raise ObservationAlignmentError("SUBSCRIPTION_EVIDENCE_CHANGED")
             # Revalidate the actual pair, not just the newest input, after the worker finishes.
-            project_query(cloud, pose, time.monotonic())
+            project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
             if time.monotonic() > deadline:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+            if provenance_mode == "subscription_observation" and result["status"] == "CANDIDATE":
+                result["status"] = "CANDIDATE_SOURCE_UNVERIFIED"
+                result["reason"] = "CANDIDATE_SOURCE_UNVERIFIED"
             return {"schema": "robot-scope.observation-alignment.v1", "experimental": True,
                 "operational_application": "NOT_RUN", "body_pose_verified": False, "absolute_accuracy_m": None,
+                "body_extrinsic_verified": False,
+                "provenance_mode": provenance_mode,
+                "per_message_publisher_verified": provenance_mode == "native_publisher",
                 "map_id": identifier, "map_revision": revision, "target_frame": target_frame,
                 "source": provenance, "status": result["status"], "reason": result["reason"],
                 "T_map_odom": transform.tolist(), "metrics": result["metrics"],

@@ -9,7 +9,7 @@ from collections import deque
 from typing import Any, Callable, Dict, Optional
 
 import numpy as np
-from .observation_identity import ObservationIdentity
+from .observation_identity import ObservationIdentity, subscription_evidence_key
 
 from ..serializers import (
     classify_type,
@@ -122,17 +122,30 @@ class TelemetryHub:
         stamp_ns: Callable[[Any], int],
         message_info: Any = None,
         publisher_count: int | None = None,
+        observation_context: Any = None,
     ) -> None:
         with self._lock:
             if topic != selected_topic():
+                return
+            if callable(observation_context):
+                observation_context = observation_context()
+                if observation_context is None:
+                    return
+            graph = (observation_context or {}).get("graph") or {}
+            graph_received = graph.get("observed_monotonic_s")
+            if graph.get("state") == "ok" and type(graph_received) in {int, float} and graph_received > now:
                 return
             header = getattr(message, "header", None)
             observation = self.pose_identity.observe(
                 topic=topic, frame=str(getattr(header, "frame_id", "")),
                 child=str(getattr(message, "child_frame_id", "")), stamp_ns=stamp_ns(message),
                 received=now, message_info=message_info, publisher_count=publisher_count,
+                observation_context=observation_context,
             )
-            if observation["reset_reason"] or observation["identity_status"] != "OBSERVED_PUBLISHER":
+            if observation["reset_reason"] or (
+                observation["identity_status"] != "OBSERVED_PUBLISHER"
+                and subscription_evidence_key(observation, now) is None
+            ):
                 self.pose_history.clear()
                 self.pose = {"seq": self.pose["seq"] + 1, "topic": topic, "type": type_name,
                              "pose": None, "stamp_ns": stamp_ns(message), "updated": now,
@@ -286,12 +299,21 @@ class TelemetryHub:
     def pose_snapshot_locked(self, now: float) -> Dict[str, Any]:
         return self._pose_payload(dict(self.pose), now)
 
-    def observation_pose_near(self, observation: Dict[str, Any], now: float) -> Dict[str, Any] | None:
+    def observation_pose_near(
+        self, observation: Dict[str, Any], now: float, *, provenance_mode: str = "native_publisher",
+    ) -> Dict[str, Any] | None:
         with self._lock:
+            if provenance_mode not in {"native_publisher", "subscription_observation"}:
+                return None
             current_epoch = (self.pose.get("observation") or {}).get("publisher_epoch")
             candidates = [p for p in self.pose_history
                           if p["observation"]["publisher_epoch"] == current_epoch
                           and p["observation"]["observer_id"] == observation.get("observer_id")]
+            if provenance_mode == "subscription_observation":
+                current_key = subscription_evidence_key(self.pose.get("observation"), now)
+                if current_key is None or subscription_evidence_key(observation, now) is None:
+                    return None
+                candidates = [p for p in candidates if subscription_evidence_key(p["observation"], now) == current_key]
             received = observation.get("received_monotonic_s")
             if not candidates or not isinstance(received, (int, float)):
                 return None

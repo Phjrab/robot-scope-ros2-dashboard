@@ -195,13 +195,14 @@ class AlignmentTests(unittest.TestCase):
 
 
 class IdentityTests(unittest.TestCase):
-    def test_callback_requires_message_info_and_fences_destroyed_subscription(self):
+    def test_supported_callback_receives_message_info_and_fences_destroyed_subscription(self):
         active, calls = [True], []
-        callback = wrap_observation_callback(lambda *a, **kw: calls.append((a, kw)), '/odom', 'nav_msgs/msg/Odometry', lambda: active[0])
-        parameters = list(inspect.signature(callback).parameters.values())
-        self.assertEqual(len(parameters), 2)
-        self.assertTrue(all(p.default is inspect.Parameter.empty for p in parameters))
+        with patch('robot_dashboard.ros.observation_identity._supports_message_info', return_value=True):
+            callback = wrap_observation_callback(lambda *a, **kw: calls.append((a, kw)), '/odom', 'nav_msgs/msg/Odometry', lambda: active[0])
         info = SimpleNamespace(publisher_gid=bytes([1])*16)
+        with self.assertRaises(TypeError):
+            inspect.signature(callback).bind('message')
+        inspect.signature(callback).bind('message', info)
         callback('message', info)
         active[0] = False
         callback('late', info)

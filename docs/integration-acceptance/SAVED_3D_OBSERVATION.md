@@ -144,3 +144,95 @@ Jetson compute load/600 ms budget and actual 3D display have not been measured.
 Only after stationary validation and current manual-operation conditions should
 operator-driven movement observation be considered. No automatic driving,
 Nav2/bridge activation or posture command is part of this feature.
+
+## Actual Humble compatibility finding — 2026-10-18
+
+The later exact-candidate deployment of `859e964` failed actual callback dispatch:
+`wrap_observation_callback.<locals>.wrapped() missing 1 required positional
+argument: 'message_info'`. The installed Humble executor calls subscriptions with
+one argument and discards the second item returned by native `take_message`.
+The dashboard was recovered through robot-local commit `8714275` to the exact
+`40276a5` source tree. Point-cloud/pose reception recovered; all 28 backed-up
+configuration files and 103 retained map/sample/package/route files preserved
+their hashes. No control bridge, FAST-LIO, Nav2 or camera producer was started.
+Only the approved dashboard and its existing owned XT16 preview were restarted.
+
+The corrective wrapper detects the actual rclpy callback-dispatch capability.
+Humble uses a one-argument-compatible callback; runtimes advertising native
+`WithMessageInfo` retain a required second argument so their dispatcher actually
+supplies metadata. The parser accepts only valid native GID bytes from supported
+attribute/dictionary forms; missing, zero or malformed GIDs remain unavailable.
+No graph-derived or fabricated identity fills the gap.
+
+Actual read-only probes of installed `ros-humble-rclpy
+3.3.22-1jammy.20260907.232408` found only `source_timestamp` and
+`received_timestamp` (zero) in native metadata for both `/velodyne_points` and
+`/utlidar/robot_odom`. There was no publisher GID. Running the corrective wrapper
+through that installed MultiThreadedExecutor delivered 10 cloud and 149 odometry
+messages in about 1.2 seconds, with identity correctly `UNAVAILABLE`; a final
+cleanup check also completed without a pending worker warning. These are actual
+input/compatibility checks, **not live saved-map registration or accuracy checks**.
+
+The saved-map observation panel separates received source diagnostics from
+qualified alignment input. In the default strict mode, missing publisher identity leaves scan-to-map
+`UNAVAILABLE / NOT_RUN`, no residual/candidate, and no saved-map robot overlay.
+It does not make valid ordinary telemetry disappear or claim that native odometry
+is a verified body pose in the saved map. Existing freshness, source continuity,
+geometry, residual and compute-budget gates remain unchanged.
+
+The operator reconfirmed that current location/heading matches the October 18
+mapping start. This remains an approximate initial prior, not ground truth.
+Actual per-message identity support is still needed before the strict mode can
+qualify an input. The separately authorized mode below does not provide this
+qualification. No Isaac/ROS upgrade, new sensor service or lower numerical
+confidence threshold was used. Per-candidate deployment/recovery and exact
+source hashes are retained privately in
+`lidar-localization-20261018T071823Z/deploy-observe-859e964-20261018/`.
+
+
+## Explicit subscription observation mode
+
+The default `native_publisher` mode remains unchanged. A default-off checkbox
+allows `subscription_observation` for a display-only numerical hypothesis on
+runtimes without per-message GID. It requires the actual local subscription
+session, topic/type/frame, observed subscription QoS, host-monotonic receipt time,
+and a recent ROS graph with exactly one matching endpoint. Graph endpoint GID is
+stored only as graph evidence; native `publisher_gid` stays unavailable.
+
+Evidence uses `robot-scope.subscription-observation.v1`, records
+`per_message_publisher_verified=false`, and expires after three seconds. Subscription
+replacement, endpoint changes, graph failure, backwards/stalled source time or
+receipt gaps reset the epoch and retained pairing history. The unchanged input
+freshness bound is one second, including the actual historical pose selected for
+a scan; receipt pairing remains 150 ms. Source clocks, deskew, map origin and
+configured sensor/body extrinsic remain unverified.
+
+Before a numerical fit, the overlay says
+`ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED`. A passing numerical fit says
+`SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED`; API status is
+`CANDIDATE_SOURCE_UNVERIFIED`. Rejections retain their actual reason. API responses
+keep `body_pose_verified=false`, `body_extrinsic_verified=false`,
+`operational_application=NOT_RUN` and `absolute_accuracy_m=null`. Changing mode
+clears the anchor, result, trail and confirmation. A source or freshness failure
+clears the overlay; receiving ordinary telemetry alone never becomes a fit.
+
+The existing 600 ms computation budget, 1 Hz request limit, single-flight lock,
+0.75 m correspondence radius, 0.05 m RMSE, 0.60 overlap and geometry gates remain
+unchanged. The saved October 18 map and same-start report provide an approximate
+seed only. Numerical residual is not independent localization accuracy.
+
+Actual pre-deployment Humble subscription probe: 10 existing cloud messages and
+151 existing odometry messages were received in 1.22 seconds. Every sample had
+valid separately labelled subscription evidence while native identity remained
+`UNAVAILABLE` and `publisher_gid=null`. Native publisher/subscriber QoS depth
+values were integers. This isolated read-only probe did not start a producer or
+restart a service. Cross-language synthetic Python-response/JavaScript-consumer
+checks also passed with graph evidence observed before receipt; synthetic data
+is not a measured map fit.
+
+Subscription lifecycle code is isolated in `ros/observation_subscriptions.py`;
+the RosAgent facade keeps its existing public subscription methods. The
+architecture size gate remains unchanged. Synthetic regressions cover Humble
+message-only callbacks, modern native metadata selection, graph/session/QoS
+changes, pending-handle and late-callback races, unavailable graph telemetry,
+stale pairs and the exact Python/JavaScript response contract.
