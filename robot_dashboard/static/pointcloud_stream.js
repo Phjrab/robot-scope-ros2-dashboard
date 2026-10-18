@@ -115,7 +115,11 @@
 
     ingest(cloud, requestedLimit) {
       if (!cloud?.points || typeof cloud.points.length !== 'number') return cloud;
-      const key = `${cloud.topic || ''}:${cloud.frame_id || ''}`;
+      if (cloud.observation && cloud.observation.identity_status !== 'OBSERVED_PUBLISHER') {
+        this.reset();
+        return cloud;
+      }
+      const key = `${cloud.topic || ''}:${cloud.frame_id || ''}:${cloud.observation?.observer_id || ''}:${cloud.observation?.publisher_epoch || ''}`;
       this._configure(key, requestedLimit);
       if (this.lastSeq === cloud.seq && this.lastPayload) return this.lastPayload;
 

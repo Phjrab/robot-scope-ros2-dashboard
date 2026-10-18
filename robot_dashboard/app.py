@@ -36,6 +36,7 @@ from .api.routers.dataset import create_router as create_dataset_router
 from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
 from .api.routers.mount_calibration import router as mount_calibration_router
+from .api.routers.observation_alignment import router as observation_alignment_router
 from .api.routers.mission_routes import router as mission_routes_router
 from .mission_routes.wiring import configure_mission_routes
 from .api.routers.navigation_presets import router as navigation_presets_router
@@ -401,6 +402,7 @@ for api_router in (system_router, telemetry_router, cameras_router, competition_
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
 app.include_router(mount_calibration_router)
+app.include_router(observation_alignment_router)
 app.include_router(map_crop_router)
 app.include_router(model_registry_router)
 app.include_router(perception_router)

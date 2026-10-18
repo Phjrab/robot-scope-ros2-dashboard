@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/static/features/resources/view.css">
   <link rel="stylesheet" href="/static/features/slam/presentation.css">
   <link rel="stylesheet" href="/static/features/settings/mount_calibration.css">
+  <link rel="stylesheet" href="/static/features/map_editor3d/editor.css">
   <script src="/static/typography.js" defer></script>
 </head>
 <body>
@@ -342,6 +343,7 @@
               <div><div class="eyebrow">NON-DESTRUCTIVE CLEANUP</div><h2>2D 지도 잡음 편집</h2></div>
               <div class="panel-state waiting" id="mapEditorState"><span></span>NO MAP</div>
             </div>
+            <div id="mapEditor2D">
             <div class="map-editor-toolbar" aria-label="2D 지도 편집 도구">
               <div class="map-editor-tool-group" role="group" aria-label="편집 모드">
                 <button type="button" data-map-editor-tool="brush" class="is-active" aria-pressed="true">BRUSH</button>
@@ -372,6 +374,7 @@
               <button id="mapEditorSave" class="map-primary-action" type="button" disabled>SAVE AS COPY</button>
             </div>
             <p id="mapEditorMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM은 변경하지 않습니다. 회전은 지도 중심 기준이며 편집 결과는 주석이 없는 새 지도 복사본으로만 저장됩니다.</p>
+            </div>
           </article>
           <article class="panel map-crop-panel">
             <div class="panel-header compact">

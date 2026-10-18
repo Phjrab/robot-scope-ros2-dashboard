@@ -1,0 +1,14 @@
+.saved-live-observation { padding: 16px 18px; margin: 12px 0; display: grid; gap: 12px; font-size: 12px; }
+.saved-live-observation[hidden] { display: none; }
+.saved-live-heading, .saved-live-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.saved-live-observation p { margin: 0; opacity: .8; }
+.saved-live-anchor { display: grid; grid-template-columns: repeat(6, minmax(70px, 1fr)); gap: 8px; }
+.saved-live-anchor label { display: grid; gap: 4px; }
+.saved-live-anchor input { min-width: 0; width: 100%; padding: 8px; color: var(--text); background: var(--bg-soft); border: 1px solid var(--line); border-radius: 7px; }
+.saved-live-observation input[type=checkbox] { width: auto; accent-color: #ffb566; }
+.saved-live-observation button { padding: 8px 12px; min-height: 36px; color: var(--text); border: 1px solid var(--line-strong); border-radius: 7px; background: var(--panel-strong); }
+.saved-live-observation button:hover:not(:disabled) { border-color: var(--green); }
+.saved-live-observation button:disabled { opacity: .4; cursor: not-allowed; }
+.saved-live-observation #savedLiveState { color: #ffb566; overflow-wrap: anywhere; }
+.saved-live-observation #savedLiveSource { opacity: .75; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .saved-live-anchor { grid-template-columns: repeat(3, minmax(60px, 1fr)); } }

@@ -1,0 +1,13 @@
+.map-editor-panel #mapEditor2D[hidden], .map-editor-panel #mapEditor3D[hidden], .map-editor-panel #mapEditorState[hidden] { display: none !important; }
+.map3-mode-row, .map3-tools { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; }
+.map3-mode-row { border-bottom:1px solid #38515e; padding-bottom:16px; }
+.map3-mode-row span, #mapEditor3D p { font-size:13px; line-height:1.65; color:#a8c3cd; }
+#mapEditor3D button, #mapEditor3D select, #mapEditorMode, #mapEditor3D input { background:#122a35; color:#e2f3f8; border:1px solid #446775; border-radius:6px; padding:9px 12px; font:inherit; }
+#mapEditor3D button { cursor:pointer; } #mapEditor3D button:disabled { opacity:.45; cursor:default; }
+#mapEditor3D label { display:flex; gap:7px; align-items:center; font-size:13px; }
+#mapEditor3D input[type=number] { width:95px; }
+#map3Canvas { width:100%; height:auto; display:block; background:#07151c; border:1px solid #446775; border-radius:9px; cursor:crosshair; touch-action:manipulation; }
+#mapEditor3D .map3-safety { border-left:3px solid #ffb65d; padding:10px; background:#342919; color:#ffcf8e; }
+#map3Status[data-error=true] { color:#ff9292; } #map3Regions { max-height:140px; overflow:auto; color:#b3cad2; font-size:13px; }
+#mapEditor2D > .map-tool-message { padding:0 14px 14px; }
+#mapEditor3D, .map3-mode-row { padding-left:14px; padding-right:14px; }

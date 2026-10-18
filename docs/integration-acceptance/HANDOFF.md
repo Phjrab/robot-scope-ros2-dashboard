@@ -1,3 +1,21 @@
+# Saved 3D observation/editor integration — local candidate, 2026-10-18
+
+Read [SAVED_3D_OBSERVATION.md](SAVED_3D_OBSERVATION.md) for the current source,
+transform/identity/freshness contracts, numerical bounds and remaining field work.
+The existing Maps view now separates approximate odometry propagation from an
+opt-in scan-to-map candidate. The transferred 2D/3D editor preserves its original
+source and exports local proposals/copies. No runtime map installation occurs.
+
+A new offline calculation using the retained 25,666-point 3D reference and
+424-point query produced a numerical candidate (~413 ms, RMSE 0.02663 m). This is
+not independent pose accuracy or live acceptance; the previous rejection remains
+preserved. Robot deployment/restart/sensor execution remain held pending readiness
+after charging. The historical installed source is still `40276a5`; no new device
+operation is claimed. Local validation and candidate hashes are in the private
+`local-integration-qa` closeout. No push or public release is part of this stage.
+
+## Previous records (preserved)
+
 # Local-only Stop, map view and calibration diagnostics — 2026-10-18
 
 Read [OFFLINE_FOLLOWUP_20261018.md](OFFLINE_FOLLOWUP_20261018.md) first. From local

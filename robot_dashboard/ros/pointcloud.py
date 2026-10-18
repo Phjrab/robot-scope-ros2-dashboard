@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict
 import numpy as np
 
 from ..pointcloud import extract_xyz, reject_spatial_outliers
+from .observation_identity import ObservationIdentity
 
 
 class PointCloudHub:
@@ -37,6 +38,7 @@ class PointCloudHub:
         }
         self.stream_id = secrets.token_urlsafe(12)
         self.last_processed = 0.0
+        self.observation_identity = ObservationIdentity()
 
     @classmethod
     def normalize_limit(cls, value: int | None) -> int | None:
@@ -82,6 +84,7 @@ class PointCloudHub:
         return self.settings()
 
     def reset(self, topic: str) -> None:
+        self.observation_identity.reset()
         self.cloud = {
             "seq": int(self.cloud.get("seq", 0)) + 1,
             "points_bytes": b"",
@@ -94,6 +97,7 @@ class PointCloudHub:
             "topic": topic,
             "robot_pose_in_frame": None,
             "updated": 0.0,
+            "observation": {"identity_status": "UNAVAILABLE", "invalidated": True},
         }
         self.last_processed = 0.0
 
@@ -106,10 +110,23 @@ class PointCloudHub:
         selected_topic: Callable[[], str],
         stamp_ns: Callable[[Any], int],
         robot_pose_in_frame: Callable[[str], Dict[str, Any] | None],
+        message_info: Any = None,
+        publisher_count: int | None = None,
     ) -> bool:
         with self._lock:
             if topic != selected_topic():
                 return False
+            frame_id = str(getattr(getattr(message, "header", None), "frame_id", ""))
+            source_stamp = stamp_ns(message)
+            observation = self.observation_identity.observe(
+                topic=topic, frame=frame_id, stamp_ns=source_stamp,
+                received=now, message_info=message_info, publisher_count=publisher_count,
+            )
+            if observation["reset_reason"]:
+                self.cloud = {**self.cloud, "seq": self.cloud["seq"] + 1,
+                              "points_bytes": b"", "sent_points": 0,
+                              "observation": {**observation, "invalidated": True}}
+                self.last_processed = 0.0
             point_limit = self.max_points
             frame_interval = self.frame_interval(point_limit)
             if now - self.last_processed < frame_interval:
@@ -125,9 +142,9 @@ class PointCloudHub:
         mins = [float(value) for value in np.min(array, axis=0)]
         maxs = [float(value) for value in np.max(array, axis=0)]
         packed = np.ascontiguousarray(array, dtype="<f4").reshape(-1).tobytes()
-        frame_id = str(getattr(getattr(message, "header", None), "frame_id", ""))
         with self._lock:
-            if topic != selected_topic():
+            if (topic != selected_topic() or observation["publisher_epoch"] != self.observation_identity.epoch
+                    or now < self.cloud.get("updated", 0)):
                 return False
             self.cloud = {
                 "seq": self.cloud["seq"] + 1,
@@ -135,7 +152,8 @@ class PointCloudHub:
                 "sent_points": int(array.shape[0]),
                 "source_points": source_points,
                 "frame_id": frame_id,
-                "stamp_ns": stamp_ns(message),
+                "stamp_ns": source_stamp,
+                "observation": observation,
                 "units": "m",
                 "bounds": {"min": mins, "max": maxs},
                 "topic": topic,

@@ -9,6 +9,7 @@ from collections import deque
 from typing import Any, Callable, Dict, Optional
 
 import numpy as np
+from .observation_identity import ObservationIdentity
 
 from ..serializers import (
     classify_type,
@@ -77,6 +78,8 @@ class TelemetryHub:
         }
         self.pose_stale_after_s = pose_stale_after_s
         self.pose_position_limit_m = pose_position_limit_m
+        self.pose_identity = ObservationIdentity()
+        self.pose_history: deque[Dict[str, Any]] = deque(maxlen=160)
         self.pose: Dict[str, Any] = {
             "seq": 0,
             "topic": "",
@@ -97,6 +100,8 @@ class TelemetryHub:
         }
 
     def reset_pose(self, topic: str, type_name: str) -> None:
+        self.pose_identity.reset()
+        self.pose_history.clear()
         self.pose = {
             "seq": int(self.pose.get("seq", 0)) + 1,
             "topic": topic,
@@ -115,10 +120,23 @@ class TelemetryHub:
         *,
         selected_topic: Callable[[], str],
         stamp_ns: Callable[[Any], int],
+        message_info: Any = None,
+        publisher_count: int | None = None,
     ) -> None:
         with self._lock:
             if topic != selected_topic():
                 return
+            header = getattr(message, "header", None)
+            observation = self.pose_identity.observe(
+                topic=topic, frame=str(getattr(header, "frame_id", "")),
+                child=str(getattr(message, "child_frame_id", "")), stamp_ns=stamp_ns(message),
+                received=now, message_info=message_info, publisher_count=publisher_count,
+            )
+            if observation["reset_reason"] or observation["identity_status"] != "OBSERVED_PUBLISHER":
+                self.pose_history.clear()
+                self.pose = {"seq": self.pose["seq"] + 1, "topic": topic, "type": type_name,
+                             "pose": None, "stamp_ns": stamp_ns(message), "updated": now,
+                             "observation": {**observation, "invalidated": True}}
         pose = extract_odometry_pose(
             message,
             type_name,
@@ -127,7 +145,8 @@ class TelemetryHub:
         if pose is None:
             return
         with self._lock:
-            if topic != selected_topic():
+            if (topic != selected_topic() or observation["publisher_epoch"] != self.pose_identity.epoch
+                    or now < self.pose.get("updated", 0)):
                 return
             self.pose = {
                 "seq": int(self.pose.get("seq", 0)) + 1,
@@ -136,7 +155,9 @@ class TelemetryHub:
                 "pose": pose,
                 "stamp_ns": stamp_ns(message),
                 "updated": now,
+                "observation": observation,
             }
+            self.pose_history.append(dict(self.pose))
 
     def store_summary(self, topic: str, type_name: str, message: Any, now: float) -> None:
         with self._lock:
@@ -263,8 +284,22 @@ class TelemetryHub:
         )
 
     def pose_snapshot_locked(self, now: float) -> Dict[str, Any]:
-        data = dict(self.pose)
-        return odometry_pose_payload(
+        return self._pose_payload(dict(self.pose), now)
+
+    def observation_pose_near(self, observation: Dict[str, Any], now: float) -> Dict[str, Any] | None:
+        with self._lock:
+            current_epoch = (self.pose.get("observation") or {}).get("publisher_epoch")
+            candidates = [p for p in self.pose_history
+                          if p["observation"]["publisher_epoch"] == current_epoch
+                          and p["observation"]["observer_id"] == observation.get("observer_id")]
+            received = observation.get("received_monotonic_s")
+            if not candidates or not isinstance(received, (int, float)):
+                return None
+            best = min(candidates, key=lambda p: abs(p["updated"] - received))
+            return self._pose_payload(best, now)
+
+    def _pose_payload(self, data: Dict[str, Any], now: float) -> Dict[str, Any]:
+        payload = odometry_pose_payload(
             topic=str(data.get("topic", "")),
             type_name=str(data.get("type", "")),
             pose=data.get("pose"),
@@ -274,6 +309,8 @@ class TelemetryHub:
             seq=int(data.get("seq", 0)),
             stamp_ns=int(data.get("stamp_ns", 0)),
         )
+        payload["observation"] = dict(data.get("observation") or {})
+        return payload
 
     def map_snapshot(self) -> Dict[str, Any]:
         with self._lock:
