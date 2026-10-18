@@ -1,5 +1,10 @@
 # WP05: read-only offline experiment view
 
+2026-10-18 extension: the synthetic importer below remains unchanged. A separate
+[recorded diagnostic contract](integration-acceptance/RECORDED_3D_DIAGNOSTICS.md)
+now shares this page; it remains offline and cannot apply operational poses.
+The original implementation description below is historical.
+
 ## Implemented boundary
 
 `/static/experiments.html` is a separate dashboard page linked from the

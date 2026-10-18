@@ -264,6 +264,8 @@
         worldFrameTrail: options.worldFrameTrail === true,
         showAxes: options.showAxes !== false,
         heightColor: options.heightColor !== false,
+        pointColor: /^#[0-9a-f]{6}$/i.test(options.pointColor || '') ? options.pointColor : null,
+        robotPoseLabel: typeof options.robotPoseLabel === 'string' ? options.robotPoseLabel.slice(0, 100) : '',
         nearFieldEmphasis: options.nearFieldEmphasis === true,
         background: options.background || '#11161c',
       };
@@ -303,6 +305,7 @@
         usedAdvertisedBounds: false,
         robotPoseInFrame: null,
       };
+      this.pointCloudOverlay = null;
       this.robotPose = null;
       this.trail = [];
       this.spatialOverlay = null;
@@ -372,7 +375,24 @@
       this._unsubscribeFonts = global.RobotScopeTypography?.subscribe(() => this.render());
     }
 
+    // A bounded, frame-matched diagnostic layer; base changes invalidate it.
+    setPointCloudOverlay(payload) {
+      this.pointCloudOverlay = null;
+      const valid = payload && payload.frame_id === this.cloud.frameId
+        && /^#[0-9a-f]{6}$/i.test(payload.color)
+        && Array.isArray(payload.points) && payload.points.length <= 10000
+        && payload.points.every((p) => Array.isArray(p) && p.length === 3
+          && p.every((v) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= 1000));
+      if (valid) this.pointCloudOverlay = {
+        points: new Float32Array(payload.points.flat()), color: payload.color,
+      };
+      this._invalidateStatic();
+      this.render();
+      return Boolean(valid);
+    }
+
     setPointCloud(payload, options = {}) {
+      this.pointCloudOverlay = null;
       this.status.provenance = payload?.data_provenance === 'SYNTHETIC_FIXTURE' ? 'FIXTURE' : payload?.data_provenance === 'REPLAY' ? 'REPLAY' : '';
       const updateStartedAt = monotonicNow();
       const cloud = payload && payload.points != null ? payload : { points: payload };
@@ -542,6 +562,7 @@
     }
 
     clearPointCloud() {
+      this.pointCloudOverlay = null;
       this.cloud = {
         points: new Float32Array(0), bounds: null, frameId: '', sourcePoints: 0, stamp: null,
         medians: null, rejectedPoints: 0, usedAdvertisedBounds: false, robotPoseInFrame: null,
@@ -1173,10 +1194,16 @@
     }
 
     _drawPointCloud() {
-      const points = this.cloud.points;
-      if (!points.length) return;
+      const count = this._drawCloudPoints(this.cloud.points, this.cloud.bounds, this.options.pointColor);
+      const overlay = this.pointCloudOverlay;
+      this._performance.renderedPoints = count + (overlay
+        ? this._drawCloudPoints(overlay.points, this.cloud.bounds, overlay.color, 1.8) : 0);
+    }
+
+    _drawCloudPoints(points, bounds, color, sizeMultiplier = 1) {
+      if (!points.length) return 0;
+      const heightColor = this.options.heightColor && !color;
       const ctx = this.ctx;
-      const bounds = this.cloud.bounds;
       const minZ = bounds?.min?.[2] ?? 0;
       const spanZ = Math.max((bounds?.max?.[2] ?? 1) - minZ, 0.15);
       const available = Math.floor(points.length / 3);
@@ -1206,18 +1233,18 @@
         const target = projectedCount * 3;
         this._pointScratch[target] = screenX;
         this._pointScratch[target + 1] = screenY;
-        this._pointScratch[target + 2] = clamp(this.options.pointSize * scale * emphasis, 1, 4.2);
-        this._pointBins[projectedCount] = this.options.heightColor ? Math.min(13, Math.floor(heightRatio * 14)) : 0;
+        this._pointScratch[target + 2] = clamp(this.options.pointSize * scale * emphasis * sizeMultiplier, 1, 4.2);
+        this._pointBins[projectedCount] = heightColor ? Math.min(13, Math.floor(heightRatio * 14)) : 0;
         projectedCount += 1;
       }
 
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      const binCount = this.options.heightColor ? 14 : 1;
+      const binCount = heightColor ? 14 : 1;
       for (let bin = 0; bin < binCount; bin += 1) {
-        const ratio = this.options.heightColor ? bin / 13 : 0;
+        const ratio = heightColor ? bin / 13 : 0;
         const hue = 181 - ratio * 135;
-        ctx.fillStyle = `hsla(${hue}, 82%, ${58 + ratio * 10}%, .76)`;
+        ctx.fillStyle = color || `hsla(${hue}, 82%, ${58 + ratio * 10}%, .76)`;
         ctx.beginPath();
         for (let pointIndex = 0; pointIndex < projectedCount; pointIndex += 1) {
           if (this._pointBins[pointIndex] !== bin) continue;
@@ -1228,7 +1255,7 @@
         ctx.fill();
       }
       ctx.restore();
-      this._performance.renderedPoints = projectedCount;
+      return projectedCount;
     }
 
     _effectiveRobotPose() {
@@ -1389,22 +1416,25 @@
     }
 
     _robotWorldPoint(local, pose, scale) {
-      const cos = Math.cos(pose.yaw);
-      const sin = Math.sin(pose.yaw);
-      const x = local[0] * scale;
-      const y = local[1] * scale;
+      const cr = Math.cos(pose.roll || 0), sr = Math.sin(pose.roll || 0);
+      const cp = Math.cos(pose.pitch || 0), sp = Math.sin(pose.pitch || 0);
+      const cy = Math.cos(pose.yaw || 0), sy = Math.sin(pose.yaw || 0);
+      const [x, y, z] = local.map((v) => v * scale);
       return [
-        pose.x + cos * x - sin * y,
-        pose.y + sin * x + cos * y,
-        pose.z + local[2] * scale,
+        pose.x + cy * cp * x + (cy * sp * sr - sy * cr) * y + (cy * sp * cr + sy * sr) * z,
+        pose.y + sy * cp * x + (sy * sp * sr + cy * cr) * y + (sy * sp * cr - cy * sr) * z,
+        pose.z - sp * x + cp * sr * y + cp * cr * z,
       ];
     }
 
     _drawRobot() {
-      const pose = this._effectiveRobotPose();
-      if (!pose) return;
-      const worldPerPixel = 2 * this.camera.distance * Math.tan(this.options.fov / 2) / Math.max(this.height, 1);
-      const scale = clamp(Math.max(1, worldPerPixel * 44 / 0.72), 1, 7);
+      const inputPose = this._effectiveRobotPose();
+      if (!inputPose) return;
+      const origin = this._go2OfficialConfig?.poseOrigin === 'base'
+        ? this._robotWorldPoint([0, 0, -0.44], inputPose, 1) : [inputPose.x, inputPose.y, inputPose.z];
+      const pose = { ...inputPose, x: origin[0], y: origin[1], z: origin[2] };
+      // Geometry stays in metres even when the official asset is unavailable.
+      const scale = 1;
       const ctx = this.ctx;
       const legs = [];
       const hips = [
@@ -1435,15 +1465,15 @@
         this._drawJoint(leg.footWorld, 3.1, '#d9fff0');
       });
 
-      this._drawCuboid(this._robotWorldPoint([0, 0, 0.44], pose, scale), [0.70 * scale, 0.31 * scale, 0.18 * scale], pose.yaw, {
+      this._drawCuboid(this._robotWorldPoint([0, 0, 0.44], pose, scale), [0.70 * scale, 0.31 * scale, 0.18 * scale], pose, {
         fill: pose.frameMismatch || pose.preview ? 'rgba(113, 84, 40, .88)' : 'rgba(23, 91, 70, .92)',
         side: pose.frameMismatch || pose.preview ? 'rgba(76, 58, 33, .9)' : 'rgba(12, 56, 45, .95)',
         stroke: pose.frameMismatch || pose.preview ? '#ffd38f' : '#bcffe2',
       });
-      this._drawCuboid(this._robotWorldPoint([0.41, 0, 0.47], pose, scale), [0.17 * scale, 0.25 * scale, 0.15 * scale], pose.yaw, {
+      this._drawCuboid(this._robotWorldPoint([0.41, 0, 0.47], pose, scale), [0.17 * scale, 0.25 * scale, 0.15 * scale], pose, {
         fill: 'rgba(204, 255, 232, .92)', side: 'rgba(73, 145, 117, .96)', stroke: '#edfff7',
       });
-      this._drawCuboid(this._robotWorldPoint([-0.04, 0, 0.555], pose, scale), [0.28 * scale, 0.20 * scale, 0.035 * scale], pose.yaw, {
+      this._drawCuboid(this._robotWorldPoint([-0.04, 0, 0.555], pose, scale), [0.28 * scale, 0.20 * scale, 0.035 * scale], pose, {
         fill: 'rgba(62, 214, 163, .94)', side: 'rgba(22, 108, 81, .94)', stroke: '#9fffd6',
       });
 
@@ -1493,13 +1523,9 @@
         [-dx, -dy, -dz], [dx, -dy, -dz], [dx, dy, -dz], [-dx, dy, -dz],
         [-dx, -dy, dz], [dx, -dy, dz], [dx, dy, dz], [-dx, dy, dz],
       ];
-      const cos = Math.cos(yaw);
-      const sin = Math.sin(yaw);
-      const vertices = local.map((point) => [
-        center[0] + cos * point[0] - sin * point[1],
-        center[1] + sin * point[0] + cos * point[1],
-        center[2] + point[2],
-      ]).map((point) => this._project(point));
+      const orientation = typeof yaw === 'object' ? yaw : { yaw };
+      const pose = { ...orientation, x: center[0], y: center[1], z: center[2] };
+      const vertices = local.map((point) => this._project(this._robotWorldPoint(point, pose, 1)));
       if (vertices.some((point) => !point)) return;
       const faces = [
         [0, 1, 2, 3], [4, 7, 6, 5], [0, 4, 5, 1],
@@ -1528,7 +1554,7 @@
     _drawRobotLabel(anchor, pose) {
       const ctx = this.ctx;
       const modelLabel = String(this._robotModelLabel || 'ROBOT').trim().toUpperCase();
-      const primary = pose.sensorRelative ? `${modelLabel} · SENSOR EXTRINSIC` : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? `${modelLabel} · PREVIEW` : `${modelLabel} · LIVE POSE`;
+      const primary = this.options.robotPoseLabel || (pose.sensorRelative ? `${modelLabel} · SENSOR EXTRINSIC` : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? `${modelLabel} · PREVIEW` : `${modelLabel} · LIVE POSE`);
       const secondary = this.robotPose
         ? `X ${this.robotPose.x.toFixed(2)}  Y ${this.robotPose.y.toFixed(2)}  YAW ${((this.robotPose.yaw / DEG + 360) % 360).toFixed(0)}°`
         : 'ODOMETRY WAITING';

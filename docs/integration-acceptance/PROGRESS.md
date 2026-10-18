@@ -1,4 +1,20 @@
-# Integration progress — through40
+# Local recorded 3D diagnostics — 2026-10-18
+
+Current work is stored-data analysis and local UI/regression only. No robot
+access, deployment, services, TF, initialpose or driving was performed. The prior
+runtime/state observations below are historical, not refreshed claims.
+
+The existing experiment page now overlays recorded map/query points with a
+before/after control and explicit rejected/unqualified diagnostics. The Go2
+reference model retains metre scale under zoom. Input/session/body semantics,
+source precision, residual support and limitations are documented in
+[RECORDED_3D_DIAGNOSTICS.md](RECORDED_3D_DIAGNOSTICS.md). Private recordings and
+screenshots remain outside Git. Software validation and the exact local commit
+are recorded in the private closeout; Git publication and robot deployment are
+not part of this change.
+
+## Historical stage40 closure
+
 
 Final user instruction: stop and finish here. Scope was briefly extended to41,
 but no41 operation began before the stop request. No additional device action

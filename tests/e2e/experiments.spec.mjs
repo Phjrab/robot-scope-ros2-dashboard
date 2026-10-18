@@ -44,7 +44,7 @@ test('offline experiment viewer shows synthetic provenance and no control action
   await expect(page.locator('#caseDecision')).toContainText('CANDIDATE');
   await expect(page.locator('#truthError')).toContainText('동일 지도 합성 정답');
   await expect(page.getByText('ACTUAL_NAV2_NOT_RUN')).toBeVisible();
-  await expect(page.locator('canvas')).toHaveCount(2);
+  await expect(page.locator('canvas:visible')).toHaveCount(2);
   await upload(page, '#baselineFile', report());
   await expect(page.locator('#baselineMetric')).toContainText('Δ');
   expect(failures).toEqual([]);

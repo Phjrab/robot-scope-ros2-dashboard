@@ -380,3 +380,35 @@ test('removed navigation model preview leaves no XYZ control in the page', () =>
   assert.doesNotMatch(indexSource, /id="navigationRobotAxesButton"/);
   assert.match(stylesSource, /\.scene-controls \.scene-axes-toggle\[aria-pressed="true"\]/);
 });
+
+test('diagnostic overlay is bounded, colored and cleared on base replacement or frame mismatch', () => {
+  const { scene } = sceneHarness({ options: { pointColor: '#50adc7' } });
+  scene.setPointCloud({ points: [[0, 0, 0]], frame_id: 'map' });
+  const overlay = { points: [[1, 2, 3]], frame_id: 'map', color: '#ffad54' };
+  assert.equal(scene.setPointCloudOverlay(overlay), true);
+  assert.equal(scene.pointCloudOverlay.color, '#ffad54');
+  const layers = []; scene._drawCloudPoints = (points, bounds, color) => { layers.push(color); return points.length / 3; };
+  scene._drawPointCloud(); assert.deepEqual(layers, ['#50adc7', '#ffad54']);
+  assert.equal(scene._performance.renderedPoints, 2);
+  scene.setPointCloud({ points: [[0, 0, 0]], frame_id: 'other' });
+  assert.equal(scene.pointCloudOverlay, null);
+  assert.equal(scene.setPointCloudOverlay(overlay), false);
+  assert.equal(scene.setPointCloudOverlay({ ...overlay, frame_id: 'other', points: [[Infinity, 0, 0]] }), false);
+  scene.setPointCloudOverlay({ ...overlay, frame_id: 'other' }); scene.clearPointCloud();
+  assert.equal(scene.pointCloudOverlay, null);
+});
+
+test('fallback robot world dimensions and full attitude stay fixed across zoom', () => {
+  const { scene } = sceneHarness();
+  scene.ctx = new Proxy({ measureText: () => ({ width: 1 }) }, { get: (o, k) => o[k] || (() => {}) });
+  scene._project = () => ({ x: 1, y: 1, depth: 2 });
+  scene.setRobotPose({ x: 0, y: 0, z: 0, yaw: 0, frameId: 'map' });
+  const sizes = [];
+  scene._drawCuboid = (center, dimensions) => { sizes.push(Array.from(dimensions)); };
+  scene.camera.distance = 2; scene._drawRobot();
+  scene.camera.distance = 200; scene._drawRobot();
+  assert.deepEqual(sizes.slice(0, 3), sizes.slice(3));
+  assert.equal(sizes[0][0], .7);
+  const p = scene._robotWorldPoint([1, 0, 0], { x: 0, y: 0, z: 0, pitch: Math.PI / 2, roll: 0, yaw: 0 }, 1);
+  assert.ok(Math.abs(p[0]) < 1e-8); assert.equal(p[2], -1);
+});

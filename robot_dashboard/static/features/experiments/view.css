@@ -35,3 +35,11 @@ dd { margin: 0; font-size: .84rem; overflow-wrap: anywhere; font-variant-numeric
 .provenance dl { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }
 .experiment-caveat { font-size: .8rem; border: 1px solid #735b35; background: #2a2117; padding: .85rem 1rem; border-radius: 10px; }
 @media (max-width: 800px) { .experiment-intro, .scene-grid, .result-grid, .provenance dl { grid-template-columns: 1fr; } .scene-panel canvas { height: 280px; } }
+
+.recorded-import { margin: 1.5rem 0; padding: 1rem; border: 1px solid #477769; border-radius: 12px; }
+.recorded-import input { max-width: 100%; }
+.recorded-import button { margin-left: .7rem; }
+#recordedCanvas { height: clamp(360px, 48vw, 620px); }
+.map-key { color: #50adc7; } .query-key { color: #ffad54; }
+#recordedStatus { overflow-wrap: anywhere; }
+#recordedStatus.error { color: #ffb6a4; }

@@ -747,8 +747,8 @@ async function applyRobotModel(profile = activeRobotProfile()) {
   const assetUrl = String(profile.model?.asset_url || '').trim();
   const renderers = [
     { renderer: scene3d, poseOrigin: 'base', adaptiveScale: false },
-    { renderer: savedScene3d, poseOrigin: 'ground', adaptiveScale: true },
-    { renderer: navigationScene3d, poseOrigin: 'ground', adaptiveScale: true },
+    { renderer: savedScene3d, poseOrigin: 'ground', adaptiveScale: false },
+    { renderer: navigationScene3d, poseOrigin: 'ground', adaptiveScale: false },
   ].filter((entry) => Boolean(entry.renderer));
   robotModelsReady = false;
   robotModelsFailed = false;

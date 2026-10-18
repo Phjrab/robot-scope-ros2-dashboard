@@ -204,7 +204,7 @@ test('navigation retains the 2D map without the removed robot model preview', ()
 test('navigation 3D preview reuses profile assets and gates every live joint path', () => {
   assert.match(appSource, /const navigationScene3d = window\.RobotScene3D/);
   assert.match(appSource, /const navigationScene3d[\s\S]{0,360}initialDistance: 3/);
-  assert.match(appSource, /renderer: navigationScene3d, poseOrigin: 'ground', adaptiveScale: true/);
+  assert.match(appSource, /renderer: navigationScene3d, poseOrigin: 'ground', adaptiveScale: false/);
   assert.doesNotMatch(appSource, /renderers\.length !== 2/);
   assert.match(appSource, /renderers\.map\(\(\{ renderer \}\) => renderer\.loadOfficialRobotModel\(assetUrl\)\)/);
   assert.match(appSource, /const liveJoints = compatible && robotModelsReady && !robotModelsFailed && profile\.id === 'go2' && jointLive/);
