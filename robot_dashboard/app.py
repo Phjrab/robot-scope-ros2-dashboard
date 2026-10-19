@@ -28,6 +28,7 @@ from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
 from .application.runtime import ApplicationRuntime, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
+from .application.global_observation import close_global_observation, configure_global_observation
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -37,6 +38,7 @@ from .api.routers.discovery import router as discovery_router
 from .api.routers.missions import router as missions_router
 from .api.routers.mount_calibration import router as mount_calibration_router
 from .api.routers.observation_alignment import router as observation_alignment_router
+from .api.routers.global_observation import router as global_observation_router
 from .api.routers.mission_routes import router as mission_routes_router
 from .mission_routes.wiring import configure_mission_routes
 from .api.routers.navigation_presets import router as navigation_presets_router
@@ -174,6 +176,7 @@ async def lifespan(fastapi: FastAPI):
     try:
         yield
     finally:
+        await close_global_observation(runtime, LOGGER)
         await close_relocalization(runtime, LOGGER)
         # Mission state is persisted and active goals are canceled before the
         # lower-level navigation owner begins its terminal cleanup.
@@ -403,6 +406,7 @@ app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
 app.include_router(mount_calibration_router)
 app.include_router(observation_alignment_router)
+app.include_router(global_observation_router)
 app.include_router(map_crop_router)
 app.include_router(model_registry_router)
 app.include_router(perception_router)
@@ -1553,6 +1557,7 @@ def main() -> None:
         dataset_capture_active_provider=RUNTIME.dataset_capture.is_active,
     )
     configure_stationary_relocalization(RUNTIME, args, project_dir, catalog)
+    configure_global_observation(RUNTIME)
     configure_slam(RUNTIME, project_dir, Path(args.navigation_runtime_dir).expanduser().resolve() / "multi-slam")
     configure_mission_routes(
         RUNTIME,
@@ -1560,9 +1565,7 @@ def main() -> None:
         native_planner_window=args.mission_native_preview,
     )
     configure_competition(RUNTIME, Path(args.competition_state_dir))
-    RUNTIME.operator_events = OperatorEventTimeline(
-        Path(args.operator_event_dir).expanduser()
-    )
+    RUNTIME.operator_events = OperatorEventTimeline(Path(args.operator_event_dir).expanduser())
     RUNTIME.diagnostics = DiagnosticsBundleService(
         project_dir=project_dir,
         profile_provider=lambda: RUNTIME.agent.profile if RUNTIME.agent else {},

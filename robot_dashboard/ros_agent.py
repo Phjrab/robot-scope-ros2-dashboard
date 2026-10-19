@@ -65,6 +65,7 @@ from .ros.navigation_gateway import (
     public_navigation_reason as _public_navigation_reason,
 )
 from .ros.pointcloud import PointCloudHub
+from .ros.raw_observation_access import RawObservationAccessMixin
 from .ros.observation_subscriptions import ObservationSubscriptionMixin
 from .ros.relocalization_evidence import (
     FIXED_TOPICS as RELOCALIZATION_FIXED_TOPICS,
@@ -115,7 +116,7 @@ __all__ = [
 ]
 
 
-class RosAgent(ObservationSubscriptionMixin):
+class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
     """ROS observability agent with an isolated, signed control transport."""
 
     MIN_CLOUD_POINTS = PointCloudHub.MIN_CLOUD_POINTS

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import secrets
 import threading
 from typing import Any, Callable, Dict
@@ -10,6 +11,9 @@ import numpy as np
 
 from ..pointcloud import extract_xyz, reject_spatial_outliers
 from .observation_identity import ObservationIdentity
+from .raw_pointcloud_capture import (
+    DEFAULT_MAX_BYTES, DEFAULT_MAX_POINTS, RawPointCloudCaptureLatch, capture_xyz,
+)
 
 
 class PointCloudHub:
@@ -39,6 +43,34 @@ class PointCloudHub:
         self.stream_id = secrets.token_urlsafe(12)
         self.last_processed = 0.0
         self.observation_identity = ObservationIdentity()
+        self._raw_capture = RawPointCloudCaptureLatch(lock)
+        self._raw_context: Dict[str, Any] = {"topic": "", "frame_id": "", "observation": {}}
+
+    def request_raw_capture(
+        self, topic: str, *, timeout_s: float = 5., max_points: int = DEFAULT_MAX_POINTS,
+        max_bytes: int = DEFAULT_MAX_BYTES,
+    ) -> Dict[str, Any]:
+        """Arm one capture on this existing subscription; no new producer starts."""
+        with self._lock:
+            return self._raw_capture.request(topic, self.observation_identity.epoch,
+                                             timeout_s=timeout_s, max_points=max_points, max_bytes=max_bytes)
+
+    def raw_capture_snapshot(self, capture_id: str | None = None) -> Dict[str, Any] | None:
+        return self._raw_capture.snapshot(capture_id)
+
+    def take_raw_capture(self, capture_id: str) -> Dict[str, Any]:
+        return self._raw_capture.take(capture_id)
+
+    def cancel_raw_capture(self, capture_id: str) -> Dict[str, Any]:
+        return self._raw_capture.cancel(capture_id)
+
+    def invalidate_raw_capture(self, reason: str = "CONTEXT_CHANGED") -> None:
+        self._raw_capture.invalidate(reason)
+
+    def raw_context_snapshot(self) -> Dict[str, Any]:
+        """Latest accepted callback identity, independent of viewport throttling."""
+        with self._lock:
+            return copy.deepcopy(self._raw_context)
 
     @classmethod
     def normalize_limit(cls, value: int | None) -> int | None:
@@ -84,22 +116,25 @@ class PointCloudHub:
         return self.settings()
 
     def reset(self, topic: str) -> None:
-        self.observation_identity.reset()
-        self.cloud = {
-            "seq": int(self.cloud.get("seq", 0)) + 1,
-            "points_bytes": b"",
-            "sent_points": 0,
-            "source_points": 0,
-            "frame_id": "",
-            "stamp_ns": 0,
-            "units": "m",
-            "bounds": None,
-            "topic": topic,
-            "robot_pose_in_frame": None,
-            "updated": 0.0,
-            "observation": {"identity_status": "UNAVAILABLE", "invalidated": True},
-        }
-        self.last_processed = 0.0
+        with self._lock:
+            self.observation_identity.reset()
+            self._raw_capture.invalidate("POINTCLOUD_RESET")
+            self._raw_context = {"topic": topic, "frame_id": "", "observation": {}}
+            self.cloud = {
+                "seq": int(self.cloud.get("seq", 0)) + 1,
+                "points_bytes": b"",
+                "sent_points": 0,
+                "source_points": 0,
+                "frame_id": "",
+                "stamp_ns": 0,
+                "units": "m",
+                "bounds": None,
+                "topic": topic,
+                "robot_pose_in_frame": None,
+                "updated": 0.0,
+                "observation": {"identity_status": "UNAVAILABLE", "invalidated": True},
+            }
+            self.last_processed = 0.0
 
     def process(
         self,
@@ -135,15 +170,40 @@ class PointCloudHub:
                 observation_context=observation_context,
             )
             if observation["reset_reason"]:
+                self._raw_capture.invalidate(observation["reset_reason"])
                 self.cloud = {**self.cloud, "seq": self.cloud["seq"] + 1,
                               "points_bytes": b"", "sent_points": 0,
                               "observation": {**observation, "invalidated": True}}
                 self.last_processed = 0.0
+            capture_ticket = self._raw_capture.begin(
+                topic=topic, frame_id=frame_id, source_stamp_ns=source_stamp,
+                received_monotonic_s=now, observation=observation,
+            )
+            # Store metadata references only; explicit readers copy the small
+            # envelope. No XYZ work is added to the no-capture callback path.
+            self._raw_context = {"topic": topic, "frame_id": frame_id, "observation": observation}
             point_limit = self.max_points
             frame_interval = self.frame_interval(point_limit)
-            if now - self.last_processed < frame_interval:
-                return False
-            self.last_processed = now
+            display_due = now - self.last_processed >= frame_interval
+            if display_due:
+                self.last_processed = now
+        # An explicit capture sees the next eligible original message, including
+        # callbacks throttled for the viewport. It never reads viewport bytes.
+        if capture_ticket is not None:
+            captured, capture_error = None, None
+            try:
+                captured = capture_xyz(message, max_points=capture_ticket.max_points,
+                                       max_bytes=capture_ticket.max_bytes)
+            except Exception:
+                # A malformed/oversized one-shot input must not disable the
+                # existing viewport path or leak an exception to its producer.
+                capture_error = "CAPTURE_INPUT_INVALID"
+            with self._lock:
+                self._raw_capture.finish(capture_ticket, captured, reason=capture_error,
+                                         current_topic=selected_topic(),
+                                         observer_epoch=self.observation_identity.epoch)
+        if not display_due:
+            return False
         extraction_limit = (
             self.MAX_CUSTOM_CLOUD_POINTS if point_limit is None else point_limit
         )

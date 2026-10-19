@@ -1,3 +1,23 @@
+# Dashboard deployment and local asynchronous observation — 2026-10-19
+
+Installed dashboard source is now `d7807de8f15fb457942039bb90ab41cf68d384c6`.
+The explicitly approved dashboard restart (including its existing Hesai/XT16
+preview) completed once. Source and 28 configuration / 3,721 retained data files
+were verified; the one expected restart event appended to an unchanged history
+prefix. Protected camera/broker identities stayed unchanged; control bridge
+remained inactive/disabled. A 60-second read-only window received all 62 HTTP
+samples successfully and the saved October 18 3D map displayed. This is input
+and display verification, not localization or body-pose acceptance.
+
+The separate [asynchronous historical observation](ASYNC_GLOBAL_OBSERVATION.md)
+API/UI/worker changes remain local and undeployed. They preserve full received
+XYZ and original map coordinates, pin the external backend, support cancellation,
+and keep every result historical/sensor-only. No new real registration or device
+window was run. Public push and further deployment are held. A standalone private
+desktop handoff records final commit/test evidence and transfer dependencies.
+
+The following records retain their original dates and pre-deployment status.
+
 # LiDAR provisional observation — local candidate, 2026-10-19
 
 Current read-only runtime/source inspection and the explicit 10cm residual-only

@@ -21,7 +21,7 @@ import { initializeNavigationLogFeature } from './features/navigation/log_contro
 import { createNavigationPresetCatalog, initializeNavigationPresetFeature } from './features/navigation/presets.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
-import { initializeLiveMapObservation } from './features/maps/live_observation.js';
+import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
 import { initializeMapEditor3D, savedCloudEditorSource } from './features/map_editor3d/workspace.js';
 import { initializeMapCropFeature, suggestedDerivedMapName, validSavedMapName } from './features/maps/crop.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
@@ -585,7 +585,7 @@ if (liveMap2d) {
 
 const savedScene3d = createSavedMapScene(ui);
 
-const savedMapObservation = initializeLiveMapObservation({
+const savedMapObservation = initializeSavedMapObservations({
   scene: savedScene3d,
   getContext: () => ({ meta: selectedSavedMapMeta, cloud: savedSceneCloud(),
     visible: activePage === 'maps' && savedMapViewPreference === 'cloud' && !document.hidden,

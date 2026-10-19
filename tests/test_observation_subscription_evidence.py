@@ -22,6 +22,7 @@ from robot_dashboard.ros.observation_identity import (
 )
 from robot_dashboard.ros.pointcloud import PointCloudHub
 from robot_dashboard.ros.observation_subscriptions import ObservationSubscriptionMixin
+from robot_dashboard.ros.raw_observation_access import RawObservationAccessMixin
 from robot_dashboard.ros.telemetry import TelemetryHub
 
 
@@ -83,6 +84,7 @@ def agent_type():
                                             keywords=[], body=methods, decorator_list=[])],
                           type_ignores=[])
     namespace = {"time": time, "get_message": lambda _: object,
+                 "RawObservationAccessMixin": RawObservationAccessMixin,
                  "ObservationSubscriptionMixin": ObservationSubscriptionMixin}
     exec(compile(ast.fix_missing_locations(isolated), str(source), "exec"), namespace)
     return namespace["AgentAdapter"]

@@ -1,0 +1,11 @@
+.saved-global-observation { margin-top: 12px; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
+.saved-global-observation p { margin: 8px 0; font-size: 13px; line-height: 1.5; }
+.saved-global-observation small { display: block; margin-top: 10px; color: var(--text-muted, #8a98ad); }
+.saved-global-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.saved-global-actions button { min-height: 44px; padding: 9px 12px; color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); font-size: var(--type-control); }
+.saved-global-actions button:hover:not(:disabled) { color: var(--green); border-color: var(--green); }
+.saved-global-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.saved-global-observation :is(button, summary):focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+#savedGlobalState { display: block; padding: 10px 12px; color: var(--amber); border-left: 3px solid var(--amber); background: var(--bg-soft); }
+.saved-global-observation pre { max-height: 360px; overflow: auto; white-space: pre-wrap; font-size: 12px; }
+.saved-global-observation details { margin-top: 12px; }

@@ -461,6 +461,85 @@ class SavedMapCatalog:
         with measured_lock(self._lock, "catalog_lock"):
             return self._find(map_id).public()
 
+    def raw_global_reference(
+        self, map_id: str, revision: str, *, max_points: int = 1_000_000,
+        max_bytes: int = 32 * 1024 * 1024,
+    ) -> Dict[str, Any]:
+        """Pin original numeric PCD XYZ, without the viewport normalization.
+
+        The bytes are private to the local observation owner. PCD does not
+        encode a ROS frame or physical unit: product conventions are recorded
+        explicitly as unverified, rather than inferred from a file name.
+        """
+        import io
+
+        with self._lock:
+            record = self._find(map_id)
+            if record.kind != "pointcloud3d" or record.format != "pcd-binary":
+                raise SavedMapFormatError("raw global reference requires binary PCD")
+            if record.revision != revision:
+                raise SavedMapConflict("raw global reference revision changed")
+            signature = self._regular_signature(record.path)
+            if signature[2] > max_bytes:
+                raise SavedMapPointLimitError("raw global reference exceeds its byte limit")
+            source = self._read_download_source(record.path, signature)
+            if self._signature_revision((record.path,)) != revision:
+                raise SavedMapConflict("raw global reference changed while reading")
+        stream = io.BytesIO(source)
+        fields: Dict[str, list[str]] = {}
+        while stream.tell() < 64 * 1024:
+            line = stream.readline()
+            if not line:
+                break
+            decoded = line.decode("ascii", errors="strict").strip()
+            if not decoded or decoded.startswith("#"):
+                continue
+            key, *values = decoded.split()
+            fields[key.upper()] = values
+            if key.upper() == "DATA":
+                break
+        try:
+            if fields["DATA"] != ["binary"]:
+                raise ValueError("binary PCD required")
+            names, sizes, kinds = fields["FIELDS"], list(map(int, fields["SIZE"])), fields["TYPE"]
+            counts = list(map(int, fields.get("COUNT", ["1"] * len(names))))
+            count = int(fields.get("POINTS", fields.get("WIDTH", ["0"]))[0])
+            if (not names or len(set(names)) != len(names)
+                    or not len(names) == len(sizes) == len(kinds) == len(counts)
+                    or not 0 < count <= max_points or count * 24 > max_bytes
+                    or any(name not in names for name in ("x", "y", "z"))):
+                raise ValueError("invalid PCD dimensions")
+            scalar_types = {("F", 4): "<f4", ("F", 8): "<f8", ("I", 1): "i1",
+                            ("I", 2): "<i2", ("I", 4): "<i4", ("U", 1): "u1",
+                            ("U", 2): "<u2", ("U", 4): "<u4"}
+            formats, offsets, offset = [], [], 0
+            for name, size, kind, elements in zip(names, sizes, kinds, counts):
+                scalar = scalar_types.get((kind, size))
+                if scalar is None or elements != 1:
+                    raise ValueError("unsupported PCD field")
+                formats.append(scalar)
+                offsets.append(offset)
+                offset += size
+            if stream.tell() + count * offset != len(source):
+                raise ValueError("PCD payload size mismatch")
+            dtype = np.dtype(dict(names=names, formats=formats, offsets=offsets, itemsize=offset))
+            rows = np.frombuffer(source, dtype=dtype, count=count, offset=stream.tell())
+            xyz = np.column_stack((rows["x"], rows["y"], rows["z"])).astype("<f8", copy=False)
+            packed = xyz.tobytes(order="C")
+        except (KeyError, ValueError, TypeError, OverflowError) as exc:
+            raise SavedMapFormatError("raw global PCD input is invalid or exceeds its limit") from exc
+        array_hash = hashlib.sha256(packed).hexdigest()
+        return {"xyz_bytes": packed, "map_id": map_id, "map_revision": revision,
+                "encoding": "float64_le_xyz", "sha256": array_hash, "array_sha256": array_hash,
+                "source_sha256": hashlib.sha256(source).hexdigest(), "point_count": count,
+                "shape": [count, 3], "dtype": "<f8", "frame_id": "camera_init",
+                "frame_basis": "PCD_PRODUCT_DEFAULT_UNVERIFIED", "units": "m",
+                "units_basis": "PCD_PRODUCT_CONVENTION_UNVERIFIED",
+                "source_order_preserved": True, "nonfinite_rows_preserved": True,
+                "zero_rows_preserved": True, "sampling_applied": False,
+                "spatial_filter_applied": False, "transform_applied": False,
+                "coordinate_rounding_applied": False, "source_payload_bytes": len(source)}
+
     @staticmethod
     def _read_download_source(
         source: Path,
