@@ -1,7 +1,8 @@
 # Historical raw global observation — local software, 2026-10-19
 
-This change is **not deployed**. The robot remains on approved dashboard commit
-`d7807de8f15fb457942039bb90ab41cf68d384c6`. No backend installation, new sensor
+This change is **not deployed**. The handoff reported dashboard commit
+`d7807de8f15fb457942039bb90ab41cf68d384c6` on the robot; that is historical evidence,
+not a fresh verification of its current checkout. No backend installation, new sensor
 session, registration against real input, TF, initialpose, goal or movement was
 performed for this change. The user subsequently authorized GitHub publication
 of source and the [public desktop handoff](DESKTOP_HANDOFF.md), while deployment
@@ -34,6 +35,88 @@ product conventions because PCD does not encode ROS frame/unit semantics.
 The backend currently requires finite input: any nonfinite row fails explicitly;
 it is never silently filtered. Zero XYZ rows remain. Default input limits are
 one million points and 32 MiB per array/source; acquisition timeout is 5 seconds.
+
+## Independent stationary diagnostic recorder (local preparation only)
+
+`scripts/capture_stationary_lidar.py` is a separate, opt-in diagnostic. Its
+default path validates a JSON plan without importing ROS, creating a node or
+writing a capture. It reuses the existing full-XYZ decoder and observation
+identity helpers; it does not change dashboard subscriptions or localization.
+Only synthetic ROS-shaped tests have been run for this recorder.
+
+The plan requires `cloud_topic`, `odom_topic`, and one to sixteen explicit
+`tf_edges` with `parent`, `child`, and boolean `static`. Optional fields are
+`duration_s` (default 5, maximum 15), `cloud_count` (1–3, default 3),
+`max_cloud_bytes` (at most 33,554,432), `max_total_bytes` (at most 268,435,456),
+and `max_events` (at most 5,000). The input JSON is limited to 16 KiB. Extra keys,
+duplicate JSON keys, nonfinite numbers, conflicting topic roles, and invalid
+layouts are rejected. Derived policy fields in the output manifest are not
+accepted as input plan keys.
+
+Before any future live use, establish the actual ROS distribution, compatible
+Python/NumPy and message packages, existing producer ownership, DDS/domain/NIC
+configuration, topic types/QoS, and actual TF edges. Do not guess or overwrite
+sensor-to-body extrinsics or equate FAST-LIO pose with controller odometry.
+The recorder subscribes to one explicitly chosen odometry stream; the manifest
+does not prove that its frames form the required geometric chain to the scan.
+Existing launch scripts for different hosts are not interchangeable environment
+profiles. This procedure does not start sensors or repair a missing ROS graph.
+
+From an isolated checkout or the supplied minimal runtime bundle, first run:
+
+```sh
+python3 scripts/capture_stationary_lidar.py --plan /absolute/confirmed-plan.json
+```
+
+The expected output is `PLAN_VALIDATED_ONLY`. After separate authorization and
+operator preparation, the following is the single bounded capture command:
+
+```sh
+timeout --signal=INT --kill-after=2s 20s python3 scripts/capture_stationary_lidar.py \
+  --plan /absolute/confirmed-plan.json --execute --stationary-confirmed \
+  --output /absolute/existing-private-parent/new-capture-directory
+```
+
+The output directory must be new and absolute; existing directories and symlink
+parents are rejected. The command must use a confirmed ROS-compatible Python.
+There is a graph discovery preflight of at most three seconds, followed by the
+declared capture interval. A fixed 0.5-second odometry/TF pre-roll is inside
+that interval. The outside timeout bounds an unresponsive native middleware
+call or teardown; a forced kill can leave partial artifacts and no manifest.
+Neither Python checks nor the timeout provide an OS memory hard limit.
+
+For each retained cloud, output includes exact `PointCloud2.data` bytes, all
+declared fields/layout/header/frame, and a separate full numeric XYZ file in
+source order, including zeros and nonfinite values. SHA256 hashes distinguish
+raw bytes from converted XYZ. This is not CDR, rosbag, or original sensor-packet
+archival. At most the requested first clouds are retained; later callbacks are
+counted and checked for continuity, not advertised as stored scans.
+Odometry pose/twist/covariance and declared TF edges retain original stamps.
+Callback receipt monotonic time and available RMW timestamps remain separate.
+No original source time is replaced by the current time.
+
+Dynamic odometry/TF must bracket each retained cloud within 150 ms of callback
+receipt. This is receipt association, not sensor-clock synchronization or
+interpolation. Static transforms may retain stamp zero and repeat unchanged;
+they do not supply fresh dynamic pose evidence. Each stream has its own local
+subscription/observer continuity fence. A local epoch is not a native sensor
+session. Missing or ambiguous authority is retained as incomplete evidence;
+unknown clocks, extrinsics, native sessions, physical stationarity, and tracking
+remain unverified even for a complete record.
+
+`manifest.json` reports `READY_FOR_OFFLINE_INSPECTION`, `PARTIAL`, `TIMED_OUT`,
+or `CANCELLED`. `runtime-summary.json` reports middleware cleanup separately.
+Only data ready plus cleanup `COMPLETE` yields exit code 0. Missing graph before
+arming is `NOT_RUN` and creates no capture. A ready record is not a current
+robot pose, successful map registration, accuracy proof, or navigation approval.
+Check both JSON records and file hashes before offline use.
+
+The application creates only the declared subscriptions, disables rosout and
+parameter services, and creates no command publisher, client, action, or
+control service. Native rclpy may still create its own node infrastructure
+(for example parameter-event publication); zero DDS writes are not promised.
+No deployment, service change, robot connection or live subscription was part
+of the local preparation and regression tests.
 
 ## Ownership and result semantics
 
