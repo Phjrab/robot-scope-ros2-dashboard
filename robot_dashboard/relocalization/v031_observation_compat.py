@@ -1,7 +1,8 @@
 """Dashboard policy adapter for the received v0.3.1 source, kept byte intact.
 
-Only the residual gate changes, before the original branch ranking/retention
-and ambiguity checks. Original scoring, fitting and lifecycle code is reused.
+Only the numerical residual selection gate is removed, before the original
+branch ranking/retention and ambiguity checks. The 5 cm and 10 cm thresholds
+remain comparison metrics. Original scoring, fitting and lifecycle code is reused.
 This never verifies a body pose, coordinate calibration or temporal tracking.
 """
 from __future__ import annotations
@@ -19,16 +20,17 @@ REVIEWED_HASHES = {
     "auto_localization/isolated.py": "a9693de08db555c95d59d864df8d5a8ccd52610aaeb50f08f541cec6288f39a2",
 }
 SELECTION_POLICY = {
-    "schema": "robot-scope.global-provisional-selection.v1",
-    "adapter": "dashboard-v031-residual-gate-v1",
+    "schema": "robot-scope.global-provisional-selection.v2",
+    "adapter": "dashboard-v031-observation-no-rmse-gate-v1",
     "original_max_rmse_m": 0.05,
     "provisional_max_rmse_m": 0.10,
+    "rmse_thresholds_purpose": "COMPARISON_ONLY",
+    "rmse_selection_gate_enabled": False,
     "scoring": "UNCHANGED_ORIGINAL_REFERENCE_POPULATION",
     "scope": "PROVISIONAL_OBSERVATION_ONLY",
     "original_selection_replayed": False,
 }
 ORIGINAL_GATE = "RMSE_ABOVE_0.05M"
-PROVISIONAL_GATE = "RMSE_ABOVE_0.10M"
 
 
 def supports_pin(files: dict[str, str]) -> bool:
@@ -40,8 +42,8 @@ def observer_class(backend):
     base = backend.SE3Observation
     @dataclass
     class ComparedCandidate(backend.Candidate):
-        # Records the original residual gate, not an original 5 cm selection.
-        # Subsequent stationarity/error/ambiguity gates stay in gate_reasons.
+        # Records the original residual comparison, not an original 5 cm selection.
+        # Other geometry/overlap/stationarity/error/ambiguity gates stay intact.
         original_residual_gate: str | None = None
 
     @dataclass
@@ -56,9 +58,7 @@ def observer_class(backend):
                 ORIGINAL_GATE if ORIGINAL_GATE in original.gate_reasons else None
             )
             candidate.gate_reasons = [
-                PROVISIONAL_GATE if reason == ORIGINAL_GATE else reason
-                for reason in original.gate_reasons
-                if reason != ORIGINAL_GATE or not candidate.rmse_m <= 0.10
+                reason for reason in original.gate_reasons if reason != ORIGINAL_GATE
             ]
             return candidate
 

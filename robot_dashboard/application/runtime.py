@@ -59,6 +59,7 @@ class ApplicationRuntime:
     mission_routes: Any | None = None
     observation_aligner: Any | None = None
     global_observation: Any | None = None
+    sensor_tracking: Any | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)

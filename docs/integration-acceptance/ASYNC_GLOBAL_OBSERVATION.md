@@ -1,12 +1,16 @@
-# Historical raw global observation — local software, 2026-10-19
+# Historical global observation and temporal sensor candidates — 2026-10-19
 
-This change is **not deployed**. The handoff reported dashboard commit
+The original global-observation implementation was **not deployed** when this
+document was first written. The handoff reported dashboard commit
 `d7807de8f15fb457942039bb90ab41cf68d384c6` on the robot; that is historical evidence,
 not a fresh verification of its current checkout. No backend installation, new sensor
 session, registration against real input, TF, initialpose, goal or movement was
 performed for this change. The user subsequently authorized GitHub publication
 of source and the [public desktop handoff](DESKTOP_HANDOFF.md), while deployment
-and private evidence transfer remain held.
+and private evidence transfer remained held at that point. These are historical
+milestones, not deployment authorization or the current robot state. Stage 3
+software contracts are described below; deployment and runtime results belong
+in the separately dated verification report.
 
 ## Path and input contract
 
@@ -131,20 +135,24 @@ cannot repopulate a current pose.
 Every result has `historical_only=true`, `current_result=null`, `body_pose=null`,
 `tracking_verified=false`, and `operational_application=NOT_RUN`. The native
 matrix is **T_map_sensor**, not T_map_odom or T_map_base. No verified sensor-to-body
-extrinsic or same-epoch propagation/new-scan validation is implemented. The UI
-does not receive the live scene or apply a result to its current robot marker.
+extrinsic or same-epoch odometry propagation is implemented. The global result
+never updates the current robot marker. The separate sensor-observation owner
+below can use an admissible result to seed new-scan checks.
 
 The received v0.3.1 backend is preserved byte for byte. For the exact reviewed
 seven-file source hash set, a dashboard-owned adapter calls the original scorer
-and changes only its residual gate from `> 0.05 m` to `> 0.10 m`, before the
-original branch ranking/retention and ambiguity checks. Thus a 7 cm stationary
-candidate can be retained, while two distinct passing alternatives remain
-ambiguous. Stationarity/overlap/inliers/geometry and transform gates are unchanged.
+and removes only its numerical residual gate before original branch
+ranking/retention and ambiguity checks. This supersedes the earlier 10 cm
+selection policy following the user's subsequent policy change. Both 5 cm and
+10 cm remain comparison values; neither selects a candidate. Two distinct
+otherwise admissible alternatives remain ambiguous.
+Stationarity/overlap/inliers/geometry and transform gates are unchanged.
 Scoring still uses every supplied scan point and the full original reference,
 with the original 0.75 m association mask; full-scan/capped metrics also survive.
 No fitting subset becomes the evaluation population.
 
-`selection_policy` identifies this provisional policy. Candidate/stage
+`selection_policy` uses `robot-scope.global-provisional-selection.v2`, with
+`rmse_selection_gate_enabled=false` and comparison-only thresholds. Candidate/stage
 `original_residual_gate` preserves the original 5 cm residual decision; this
 does **not** replay or claim the old stochastic pipeline's overall selection.
 Unknown pinned source versions run their original policy without this label.
@@ -154,8 +162,42 @@ The independent `residual_comparisons` sidecar only compares stored RMSE; it
 does not perform further selection. Its policy metadata is stored once, with
 candidate-index-aligned comparison rows, to avoid repeated metadata exceeding
 64 KiB. Failed candidates and complete backend diagnostics remain visible.
-A numerical pass is a historical provisional sensor candidate, never verified
-physical accuracy, current body pose, temporal tracking or navigation readiness.
+A numerical comparison never verifies physical accuracy, current body pose,
+temporal tracking or navigation readiness.
+
+## Separate temporal sensor observations (Stage 3)
+
+`GET/POST /api/v1/observations/sensor-tracking` and
+`POST /api/v1/observations/sensor-tracking/stop` expose a process-local owner.
+Start accepts only a successful server-owned `global_job_id` and an idempotency
+`request_id`; client poses and transforms are forbidden. The historical result,
+full input counts and hashes, reviewed source pin, independent candidate gates,
+map revision, source identity and receipt freshness must match.
+
+A persistent isolated worker loads the map once. Each local alignment has its
+own unchanged 600 ms end-to-end limit and 65,536-byte response limit. Captures
+must be newer complete XYZ populations from the same observer epoch, with
+receipt age at most one second. Three successive admitted new scans are needed
+before `SENSOR_CANDIDATE`. The original local refinement/scoring methods are
+reused; unused FPFH computation is omitted for local point-to-point refinement.
+The fitting population and full original evaluation population are unchanged.
+Local branches do not establish global uniqueness after the initial search.
+
+The API preserves exact original source stamps and separately reports observer
+receipt age. It does not restamp old input or propagate it using unverified
+odometry. Its `T_map_sensor` represents the accepted scan's sensor observation.
+`body_pose=null`, `tracking_verified=false`, `source_clock_verified=false`,
+`body_extrinsic_verified=false`, `globally_verified=false`, and
+`operational_application=NOT_RUN` remain fixed. Temporal consistency is a
+separate flag, not an absolute position or body-pose claim.
+
+The 3D view draws a separate sensor marker, XYZ axes and at most 40 trail entries.
+It never passes that transform to the GO2 body renderer. Map/source/global-job
+replacement, stale or reversed input, rejected/ambiguous alignment, cancellation,
+timeout and late responses invalidate the observation and clear its trail.
+Explicit operator global search is required after loss; no automatic global
+retry, control command, navigation goal or operational TF update is introduced.
+Workers and temporary scan files are cleaned on success, error, stop and shutdown.
 
 ## Backend preparation and limits
 

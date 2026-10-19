@@ -148,6 +148,31 @@ test('verified provisional policy is labelled historical and actual backend gate
   assert.doesNotMatch(globalObservationSummary(record), /잠정 10cm 선택 후보/);
 });
 
+test('v2 selected candidate is historical and residual thresholds are labelled comparison only', () => {
+  const record = completed(), observation = record.result.observation;
+  observation.selection_policy = { schema: 'robot-scope.global-provisional-selection.v2',
+    adapter: 'dashboard-v031-observation-no-rmse-gate-v1', original_max_rmse_m: .05,
+    provisional_max_rmse_m: .10, rmse_thresholds_purpose: 'COMPARISON_ONLY',
+    rmse_selection_gate_enabled: false, scoring: 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION',
+    scope: 'PROVISIONAL_OBSERVATION_ONLY', original_selection_replayed: false };
+  observation.selected_candidate = 0;
+  observation.gate_reasons = [];
+  observation.candidates = [{ rmse_m: .144, gate_reasons: [], map_from_scan: [[1,0,0,1],[0,1,0,2],[0,0,1,0],[0,0,0,1]] }];
+  observation.residual_comparison_policy = {
+    schema: 'robot-scope.residual-comparison-policy.v1', candidate_index_basis: 'CANDIDATE_ARRAY_INDEX',
+    comparison_fields: ['residual_passed', 'original_residual_passed'],
+    policy: { unit: 'm', max_rmse_m: .10 }, original_policy: { max_rmse_m: .05 },
+    overall_candidate_acceptance_evaluated: false, overall_candidate_accepted: null };
+  observation.residual_comparisons = [[false, false]];
+  assert.match(globalObservationSummary(record), /잔차 문턱 없는 잠정 관측 후보 0/);
+  assert.match(globalObservationSummary(record), /과거 가설/);
+  assert.match(globalObservationSummary(record), /후보 선택 문턱으로 사용하지 않/);
+  assert.match(globalResidualText(observation), /원본 5cm 비교 초과 · 잠정 10cm 비교 초과/);
+  assert.doesNotMatch(globalResidualText(observation), /통과/);
+  observation.selection_policy.rmse_selection_gate_enabled = true;
+  assert.match(globalObservationSummary(record), /선택 정책 미검증/);
+});
+
 test('edited full-source reference warns that its residual cannot demonstrate parent-map improvement', () => {
   const record = completed();
   const reference = { map_id: map.id, map_revision: map.revision, frame_id: 'map',

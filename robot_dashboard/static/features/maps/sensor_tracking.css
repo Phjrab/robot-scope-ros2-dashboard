@@ -1,0 +1,11 @@
+.saved-sensor-tracking { margin-top: 12px; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
+.saved-sensor-tracking[hidden] { display: none; }
+.saved-sensor-tracking p { margin: 8px 0; font-size: 13px; line-height: 1.5; }
+.saved-sensor-tracking small { display: block; margin-top: 10px; color: var(--text-muted, #8a98ad); }
+.saved-sensor-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.saved-sensor-actions button { min-height: 44px; padding: 9px 12px; color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); font-size: var(--type-control); }
+.saved-sensor-actions button:hover:not(:disabled) { color: var(--green); border-color: var(--green); }
+.saved-sensor-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.saved-sensor-tracking button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+#savedSensorState { display: block; padding: 10px 12px; color: var(--amber); border-left: 3px solid var(--amber); background: var(--bg-soft); }
+#savedSensorState:is([data-state="LOST"], [data-state="STALE"], [data-state="ERROR"]) { color: var(--danger); border-color: var(--danger); }

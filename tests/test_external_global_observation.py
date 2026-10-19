@@ -59,9 +59,10 @@ _original_run_se3_isolated = run_se3_isolated
 def run_se3_isolated(manifest_path, timeout_s, max_results):
  values=_original_run_se3_isolated(manifest_path, timeout_s, max_results)
  value=values[0]
- value['selection_policy']={'schema':'robot-scope.global-provisional-selection.v1',
-   'adapter':'dashboard-v031-residual-gate-v1','original_max_rmse_m':.05,
-   'provisional_max_rmse_m':.10,'scoring':'UNCHANGED_ORIGINAL_REFERENCE_POPULATION',
+ value['selection_policy']={'schema':'robot-scope.global-provisional-selection.v2',
+   'adapter':'dashboard-v031-observation-no-rmse-gate-v1','original_max_rmse_m':.05,
+   'provisional_max_rmse_m':.10,'rmse_thresholds_purpose':'COMPARISON_ONLY',
+   'rmse_selection_gate_enabled':False,'scoring':'UNCHANGED_ORIGINAL_REFERENCE_POPULATION',
    'scope':'PROVISIONAL_OBSERVATION_ONLY','original_selection_replayed':False}
  for candidate in value['candidates']:
   candidate['original_residual_gate']='RMSE_ABOVE_0.05M'

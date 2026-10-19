@@ -1,16 +1,29 @@
 import { GlobalObservationController } from './global_observation_contract.js';
 
+function comparisonOnlySelection(selection) {
+  return selection?.schema === 'robot-scope.global-provisional-selection.v2'
+    && selection.adapter === 'dashboard-v031-observation-no-rmse-gate-v1'
+    && selection.scope === 'PROVISIONAL_OBSERVATION_ONLY'
+    && selection.scoring === 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION'
+    && selection.original_max_rmse_m === .05 && selection.provisional_max_rmse_m === .10
+    && selection.rmse_selection_gate_enabled === false
+    && selection.rmse_thresholds_purpose === 'COMPARISON_ONLY'
+    && selection.original_selection_replayed === false;
+}
+
 export function globalObservationSummary(record) {
   const value = record?.result?.observation;
   if (!value) return '';
   const selection = value.selection_policy;
+  const comparisonOnly = comparisonOnlySelection(selection);
   const provisional = selection?.schema === 'robot-scope.global-provisional-selection.v1'
     && selection.adapter === 'dashboard-v031-residual-gate-v1'
     && selection.scope === 'PROVISIONAL_OBSERVATION_ONLY'
     && selection.scoring === 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION'
     && selection.original_max_rmse_m === .05 && selection.provisional_max_rmse_m === .10
     && selection.original_selection_replayed === false;
-  const label = selection == null ? '원본 선택 후보' : provisional ? '잠정 10cm 선택 후보' : '선택 정책 미검증';
+  const label = selection == null ? '원본 선택 후보' : comparisonOnly ? '잔차 문턱 없는 잠정 관측 후보'
+    : provisional ? '잠정 10cm 선택 후보' : '선택 정책 미검증';
   const selected = label === '선택 정책 미검증' ? label
     : Number.isInteger(value.selected_candidate) ? `${label} ${value.selected_candidate}` : `${label} 없음`;
   const gateReasons = Array.isArray(value.gate_reasons) ? value.gate_reasons : value.rejection_reasons;
@@ -25,11 +38,13 @@ export function globalObservationSummary(record) {
       || provenance.direct_parent.revision !== captured.map_revision);
   const comparisonNote = editedReference
     ? ' · 선택한 편집 지도의 전체 XYZ로 채점했습니다. 부모 원본 지도와 RMSE를 직접 비교할 수 없으며, 낮은 잔차가 원본 대비 정확도 개선을 뜻하지 않습니다.' : '';
-  return `${value.status || '상태 미제공'} · ${selected} · 거부 사유 ${gates || '없음'} · T_map_sensor는 캡처 시점 센서의 과거 가설입니다. 현재 pose·본체 pose·추적으로 적용하지 않습니다.${comparisonNote}`;
+  return `${value.status || '상태 미제공'} · ${selected} · 거부 사유 ${gates || '없음'}${comparisonOnly ? ' · RMSE 5cm·10cm는 비교값이며 후보 선택 문턱으로 사용하지 않습니다.' : ''} · T_map_sensor는 캡처 시점 센서의 과거 가설입니다. 현재 pose·본체 pose·추적으로 적용하지 않습니다.${comparisonNote}`;
 }
 
 export function globalResidualText(observation) {
   if (!Array.isArray(observation?.residual_comparisons)) return '원본 5cm / 잠정 10cm 잔차 비교 미제공';
+  if (observation.selection_policy?.schema === 'robot-scope.global-provisional-selection.v2'
+      && !comparisonOnlySelection(observation.selection_policy)) return '원본 5cm / 잠정 10cm 잔차 비교 선택 정책 미검증';
   const policy = observation.residual_comparison_policy;
   const compact = policy?.schema === 'robot-scope.residual-comparison-policy.v1'
     && policy.candidate_index_basis === 'CANDIDATE_ARRAY_INDEX'
@@ -59,9 +74,12 @@ export function globalResidualText(observation) {
         || typeof original !== 'boolean' || typeof provisional !== 'boolean'
         || original !== (rmse <= .05) || provisional !== (rmse <= .10))
       return `후보 ${candidateIndex}: 잔차 비교 미검증`;
-    return `후보 ${candidateIndex}: RMSE ${rmse.toFixed(5)} m · 원본 5cm ${original ? '통과' : '미통과'} · 잠정 10cm ${provisional ? '통과' : '미통과'}`;
+    const comparisonOnly = comparisonOnlySelection(observation.selection_policy);
+    return comparisonOnly
+      ? `후보 ${candidateIndex}: RMSE ${rmse.toFixed(5)} m · 원본 5cm 비교 ${original ? '이하' : '초과'} · 잠정 10cm 비교 ${provisional ? '이하' : '초과'}`
+      : `후보 ${candidateIndex}: RMSE ${rmse.toFixed(5)} m · 원본 5cm ${original ? '통과' : '미통과'} · 잠정 10cm ${provisional ? '통과' : '미통과'}`;
   });
-  return parts.join(' | ') + ' · 이 잔차 비교 표시는 후보 선택·다른 gate·실제 정확도 판정을 바꾸지 않습니다.';
+  return parts.join(' | ') + ' · 원본 전체 기준점군 잔차 비교이며 실제 위치 정확도·본체 자세를 검증하지 않습니다.';
 }
 
 export function initializeGlobalMapObservation({ getContext }) {
@@ -70,7 +88,7 @@ export function initializeGlobalMapObservation({ getContext }) {
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/static/features/maps/global_observation.css'; document.head.append(style);
   const panel = document.createElement('section'); panel.id = 'savedGlobalObservation'; panel.className = 'panel saved-global-observation';
   panel.innerHTML = `<strong>저장 3D 지도 · 비동기 전역 관측</strong>
-    <p>수신 PointCloud2의 XYZ 전체 한 장으로 초기 위치 가설을 찾습니다. 변환 전 센서 원본 archive는 아니며, upstream 처리도 미검증입니다. 완료돼도 과거 관측으로만 보존합니다.</p>
+    <p>수신 PointCloud2의 XYZ 전체 한 장으로 초기 위치 가설을 찾습니다. 5cm·10cm RMSE는 비교값이며 잠정 관측 후보 선택의 문턱은 아닙니다. 변환 전 센서 원본 archive는 아니며, upstream 처리도 미검증입니다. 완료돼도 과거 관측으로만 보존합니다.</p>
     <p id="savedGlobalProvider" role="status">실행 환경 확인 중</p>
     <div class="saved-global-actions"><button id="savedGlobalStart" type="button" disabled>수신 점군 전역 관측 시작</button><button id="savedGlobalRetry" type="button" hidden>같은 요청 재확인</button><button id="savedGlobalCancel" type="button" disabled>관측 취소</button><button id="savedGlobalExport" type="button" disabled>과거 관측 JSON</button></div>
     <strong id="savedGlobalState" role="status">IDLE · HISTORICAL_ONLY</strong><p id="savedGlobalCapture"></p>
@@ -117,6 +135,6 @@ export function initializeGlobalMapObservation({ getContext }) {
   const timer = setInterval(() => { sync(); if (visible || model.snapshot().busy || model.pending) void model.poll(); }, 1000);
   const mutation = new MutationObserver(sync); mutation.observe(layout, { attributes: true, attributeFilter: ['hidden'] });
   sync(); if (visible) void model.poll();
-  return { render: sync, ingestCloud: cloud => model.ingestCloud(cloud), reset: reason => { model.invalidate(reason); model.source = null; },
+  return { render: sync, snapshot: () => model.snapshot(), ingestCloud: cloud => model.ingestCloud(cloud), reset: reason => { model.invalidate(reason); model.source = null; },
     destroy: () => { disposed = true; model.destroy(); clearInterval(timer); mutation.disconnect(); panel.remove(); style.remove(); } };
 }

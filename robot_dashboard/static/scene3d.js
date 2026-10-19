@@ -101,6 +101,30 @@
     };
   }
 
+  function normalizedSensorTransform(matrix) {
+    if (!Array.isArray(matrix) || matrix.length !== 4 || matrix.some((row) =>
+      !Array.isArray(row) || row.length !== 4 || row.some((item) => !Number.isFinite(item)))) return null;
+    if (matrix[3].some((item, index) => Math.abs(item - (index === 3 ? 1 : 0)) > 1e-6)) return null;
+    const origin = [matrix[0][3], matrix[1][3], matrix[2][3]];
+    if (origin.some((item) => Math.abs(item) > 1_000_000)) return null;
+    const axes = [0, 1, 2].map((column) => [matrix[0][column], matrix[1][column], matrix[2][column]]);
+    if (axes.some((axis) => Math.abs(Math.hypot(...axis) - 1) > 0.05)
+        || Math.abs(dot(axes[0], axes[1])) > 0.05
+        || Math.abs(dot(axes[0], axes[2])) > 0.05
+        || Math.abs(dot(axes[1], axes[2])) > 0.05
+        || dot(cross(axes[0], axes[1]), axes[2]) < 0.9) return null;
+    return { origin, axes };
+  }
+
+  function normalizedSensorObservationOverlay(value) {
+    if (!value || typeof value.frameId !== 'string' || !value.frameId || value.frameId.length > 128) return null;
+    const pose = normalizedSensorTransform(value.T_map_sensor);
+    if (!pose || !Array.isArray(value.trail) || value.trail.length > 40) return null;
+    const trail = value.trail.map(normalizedSensorTransform);
+    if (trail.some((item) => !item)) return null;
+    return { frameId: value.frameId, pose, trail };
+  }
+
   function normalizedSpatialOverlay(value) {
     if (!value) return null;
     const bounded = (items, limit) => (Array.isArray(items) ? items : []).slice(-limit).map(normalizedPose).filter(Boolean);
@@ -309,6 +333,7 @@
       this.robotPose = null;
       this.trail = [];
       this.spatialOverlay = null;
+      this.sensorObservationOverlay = null;
       this.cameraFrustum = null;
       this.robotVisible = this.options.showRobot;
       this.trailVisible = this.options.showTrail;
@@ -688,6 +713,14 @@
     clearSpatialOverlay() {
       this.spatialOverlay = null;
       this.render();
+    }
+
+    setSensorObservationOverlay(value) {
+      // A sensor-frame observation has its own layer. Never route it through
+      // setRobotPose or the GO2 body model without a verified body transform.
+      this.sensorObservationOverlay = normalizedSensorObservationOverlay(value);
+      this.render();
+      return Boolean(this.sensorObservationOverlay);
     }
 
     setCameraFrustum(value) {
@@ -1135,6 +1168,7 @@
       if (this.trailVisible) this._drawTrail();
       this._drawCameraFrustum();
       this._drawSpatialOverlay();
+      this._drawSensorObservationOverlay();
       if (this.robotVisible) this._drawRobot();
       this._drawHud();
       const completedAt = monotonicNow();
@@ -1390,6 +1424,34 @@
         ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, TAU); ctx.stroke();
         ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13, 500) || `500 ${13}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`; ctx.fillText(`${index + 1} · ${marker.name}`, point.x + 12, point.y + 3); ctx.restore();
       });
+    }
+
+    _drawSensorObservationOverlay() {
+      const overlay = this.sensorObservationOverlay;
+      if (!overlay || overlay.frameId !== this.cloud.frameId) return;
+      const ctx = this.ctx;
+      const trail = overlay.trail.map((item) => this._project(item.origin)).filter(Boolean);
+      ctx.save();
+      if (trail.length > 1) {
+        ctx.strokeStyle = 'rgba(255, 184, 107, .82)'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        trail.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+        ctx.stroke();
+      }
+      const origin = overlay.pose.origin, projected = this._project(origin);
+      if (projected) {
+        ctx.lineWidth = 2.5;
+        [['#ff737d', 0], ['#68e4a8', 1], ['#6eb7ff', 2]].forEach(([color, index]) => {
+          const axis = overlay.pose.axes[index];
+          ctx.strokeStyle = color;
+          this._stroke3DLine(origin, origin.map((value, dimension) => value + axis[dimension] * 0.35));
+        });
+        ctx.strokeStyle = '#ffb86b'; ctx.fillStyle = '#ffb86b';
+        ctx.beginPath(); ctx.arc(projected.x, projected.y, 6, 0, TAU); ctx.stroke();
+        ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 12, 500) || '500 12px monospace';
+        ctx.fillText('SENSOR CANDIDATE · BODY UNVERIFIED', projected.x + 10, projected.y - 9);
+      }
+      ctx.restore();
     }
 
     _drawWorldAxes() {
