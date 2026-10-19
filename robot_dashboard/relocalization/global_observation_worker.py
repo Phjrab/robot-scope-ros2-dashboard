@@ -30,6 +30,13 @@ def main(folder: Path) -> None:
     # Copy verified source only: an existing unverified .pyc cannot override it.
     sys.path.insert(0, str(verified_source))
     from auto_localization.isolated import run_se3_isolated
+    # -I omits the script directory. Add only this dashboard-owned directory;
+    # client input cannot choose a module or adapter. Unknown pins retain their
+    # original policy and never receive the provisional-selection label.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from v031_observation_compat import run_provisional_isolated, supports_pin
+    if supports_pin(pin):
+        run_se3_isolated = run_provisional_isolated
     import numpy as np
 
     context = envelope["context"]

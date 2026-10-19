@@ -3,20 +3,65 @@ import { GlobalObservationController } from './global_observation_contract.js';
 export function globalObservationSummary(record) {
   const value = record?.result?.observation;
   if (!value) return '';
-  const selected = Number.isInteger(value.selected_candidate) ? `원본 선택 후보 ${value.selected_candidate}` : '원본 선택 후보 없음';
-  const gates = Array.isArray(value.rejection_reasons) ? value.rejection_reasons.join(', ') : '미제공';
-  return `${value.status || '상태 미제공'} · ${selected} · 거부 사유 ${gates || '없음'} · T_map_sensor는 캡처 시점 센서의 과거 가설입니다. 현재 pose·본체 pose·추적으로 적용하지 않습니다.`;
+  const selection = value.selection_policy;
+  const provisional = selection?.schema === 'robot-scope.global-provisional-selection.v1'
+    && selection.adapter === 'dashboard-v031-residual-gate-v1'
+    && selection.scope === 'PROVISIONAL_OBSERVATION_ONLY'
+    && selection.scoring === 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION'
+    && selection.original_max_rmse_m === .05 && selection.provisional_max_rmse_m === .10
+    && selection.original_selection_replayed === false;
+  const label = selection == null ? '원본 선택 후보' : provisional ? '잠정 10cm 선택 후보' : '선택 정책 미검증';
+  const selected = label === '선택 정책 미검증' ? label
+    : Number.isInteger(value.selected_candidate) ? `${label} ${value.selected_candidate}` : `${label} 없음`;
+  const gateReasons = Array.isArray(value.gate_reasons) ? value.gate_reasons : value.rejection_reasons;
+  const gates = Array.isArray(gateReasons) ? gateReasons.join(', ') : '미제공';
+  const captured = record.captured_context, reference = captured?.map, provenance = reference?.reference_provenance;
+  const editedReference = provenance?.asset_role === 'EDITED_FULL_SOURCE'
+    && provenance.scoring_population === 'THIS_EDITED_MAP_COMPLETE_XYZ'
+    && provenance.parent_score_comparable === false
+    && reference.map_id === captured.map_id && reference.map_revision === captured.map_revision
+    && reference.frame_id === captured.map_frame
+    && provenance.direct_parent && (provenance.direct_parent.map_id !== captured.map_id
+      || provenance.direct_parent.revision !== captured.map_revision);
+  const comparisonNote = editedReference
+    ? ' · 선택한 편집 지도의 전체 XYZ로 채점했습니다. 부모 원본 지도와 RMSE를 직접 비교할 수 없으며, 낮은 잔차가 원본 대비 정확도 개선을 뜻하지 않습니다.' : '';
+  return `${value.status || '상태 미제공'} · ${selected} · 거부 사유 ${gates || '없음'} · T_map_sensor는 캡처 시점 센서의 과거 가설입니다. 현재 pose·본체 pose·추적으로 적용하지 않습니다.${comparisonNote}`;
 }
 
 export function globalResidualText(observation) {
   if (!Array.isArray(observation?.residual_comparisons)) return '원본 5cm / 잠정 10cm 잔차 비교 미제공';
-  return observation.residual_comparisons.map(item => {
-    const e = item.evaluation;
-    if (!e || e.policy?.unit !== 'm' || e.original_policy?.max_rmse_m !== .05
-        || e.policy?.max_rmse_m !== .10 || e.overall_candidate_acceptance_evaluated !== false
-        || e.overall_candidate_accepted !== null) return `후보 ${item.candidate_index}: 잔차 비교 미검증`;
-    return `후보 ${item.candidate_index}: RMSE ${Number.isFinite(e.rmse_m) ? e.rmse_m.toFixed(5) : '—'} m · 원본 5cm ${e.original_residual_passed ? '통과' : '미통과'} · 잠정 10cm ${e.residual_passed ? '통과' : '미통과'}`;
-  }).join(' | ') + ' · 저장 잔차만 비교하며 원본 선택·다른 gate·실제 정확도 판정을 바꾸지 않습니다.';
+  const policy = observation.residual_comparison_policy;
+  const compact = policy?.schema === 'robot-scope.residual-comparison-policy.v1'
+    && policy.candidate_index_basis === 'CANDIDATE_ARRAY_INDEX'
+    && Array.isArray(policy.comparison_fields) && policy.comparison_fields.length === 2
+    && policy.comparison_fields[0] === 'residual_passed'
+    && policy.comparison_fields[1] === 'original_residual_passed'
+    && policy.policy?.unit === 'm' && policy.policy?.max_rmse_m === .10
+    && policy.original_policy?.max_rmse_m === .05
+    && policy.overall_candidate_acceptance_evaluated === false
+    && policy.overall_candidate_accepted === null
+    && Array.isArray(observation.candidates)
+    && observation.residual_comparisons.length === observation.candidates.length;
+  if (policy != null && !compact) return '원본 5cm / 잠정 10cm 잔차 비교 미검증';
+  const parts = observation.residual_comparisons.map((item, index) => {
+    const candidateIndex = compact ? index : item?.candidate_index;
+    const rmse = compact ? observation.candidates[index]?.rmse_m : item?.evaluation?.rmse_m;
+    const original = compact && Array.isArray(item) ? item[1] : item?.evaluation?.original_residual_passed;
+    const provisional = compact && Array.isArray(item) ? item[0] : item?.evaluation?.residual_passed;
+    const legacy = !compact && item?.evaluation?.policy?.unit === 'm'
+      && item?.evaluation?.original_policy?.max_rmse_m === .05
+      && item?.evaluation?.policy?.max_rmse_m === .10
+      && item?.evaluation?.overall_candidate_acceptance_evaluated === false
+      && item?.evaluation?.overall_candidate_accepted === null;
+    if ((compact && (!Array.isArray(item) || item.length !== 2)) || (!compact && !legacy))
+      return `후보 ${candidateIndex}: 잔차 비교 미검증`;
+    if (!Number.isInteger(candidateIndex) || !Number.isFinite(rmse) || rmse < 0
+        || typeof original !== 'boolean' || typeof provisional !== 'boolean'
+        || original !== (rmse <= .05) || provisional !== (rmse <= .10))
+      return `후보 ${candidateIndex}: 잔차 비교 미검증`;
+    return `후보 ${candidateIndex}: RMSE ${rmse.toFixed(5)} m · 원본 5cm ${original ? '통과' : '미통과'} · 잠정 10cm ${provisional ? '통과' : '미통과'}`;
+  });
+  return parts.join(' | ') + ' · 이 잔차 비교 표시는 후보 선택·다른 gate·실제 정확도 판정을 바꾸지 않습니다.';
 }
 
 export function initializeGlobalMapObservation({ getContext }) {

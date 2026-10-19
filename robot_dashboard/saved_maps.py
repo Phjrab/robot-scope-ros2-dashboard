@@ -30,6 +30,8 @@ from typing import Any, Callable, ContextManager, Dict, Iterable, Mapping, Optio
 import numpy as np
 
 from .relocalization.observation_timing import measured_lock
+from .pcd_editing.pcd import MAX_RECORD_BYTES as MAX_PCD_RECORD_BYTES
+from .pcd_editing.store import PcdEditError, PcdEditStore, SourceAsset, read_manifest
 
 from .map_annotations import (
     AnnotationGoal,
@@ -142,9 +144,9 @@ class SavedMapRecord:
             "modified_at": modified,
             "size_bytes": self.size_bytes,
             "manageable": self.manageable,
-            # The filesystem signature revision is an opaque string so it is
-            # exact across the JavaScript boundary and changes when either
-            # artifact in a YAML/PGM pair is replaced.
+            # Opaque revision: legacy files use filesystem signatures, while
+            # immutable edited PCDs use their validated semantic manifest.
+            # Both stay exact across the JavaScript boundary.
             "revision": self.revision,
             "data_url": f"/api/v1/saved-maps/{self.map_id}/data",
         }
@@ -433,6 +435,44 @@ class SavedMapCatalog:
             ),
         )
 
+    def _pcd_edit_source_asset(self, map_id: str) -> SourceAsset:
+        # This resolver is server-owned; clients never choose a filesystem path.
+        with self._lock:
+            record = self._find(map_id)
+            if record.format != "pcd-binary":
+                raise SavedMapFormatError("full-source editing requires binary PCD")
+            return SourceAsset(
+                map_id=record.map_id,
+                revision=record.revision,
+                path=record.path,
+                frame_id=str(record.details["frame_id"]),
+                units=str(record.details.get("units", "m")),
+                origin=record.details.get("origin"),
+                edit_history=tuple(record.details.get("edit_history", ())),
+            )
+
+    def _pcd_edit_store(self) -> PcdEditStore:
+        if not self.managed_roots or self.max_depth < 2:
+            raise SavedMapReadOnly("full-source editing requires a managed root with depth >= 2")
+        return PcdEditStore(
+            root=self.managed_roots[0] / "pcd-edits",
+            source_resolver=self._pcd_edit_source_asset,
+            max_bytes=min(self.max_file_bytes, 256 * 1024**2),
+            max_points=20_000_000,
+        )
+
+    def pcd_edit_source(self, map_id: str) -> Dict[str, Any]:
+        """Return identity for the complete original asset, never preview data."""
+        return self._pcd_edit_store().descriptor(map_id)
+
+    def save_pcd_edited_copy(self, map_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Publish a new immutable PCD revision; never install or select it."""
+        if not isinstance(payload, dict) or not isinstance(payload.get("source"), dict):
+            raise SavedMapFormatError("source descriptor is required")
+        if payload["source"].get("map_id") != map_id:
+            raise SavedMapConflict("route and source map identity differ")
+        return self._pcd_edit_store().save(payload)
+
     @property
     def enabled(self) -> bool:
         return bool(self.roots)
@@ -479,12 +519,38 @@ class SavedMapCatalog:
                 raise SavedMapFormatError("raw global reference requires binary PCD")
             if record.revision != revision:
                 raise SavedMapConflict("raw global reference revision changed")
+            edited = record.details.get("schema") == "robot-scope.pcd-edited-map.v1"
+            if edited and (record.details.get("asset_role") != "full_source"
+                           or record.details.get("units") != "m"):
+                raise SavedMapFormatError("edited global reference requires full-source metres")
             signature = self._regular_signature(record.path)
             if signature[2] > max_bytes:
                 raise SavedMapPointLimitError("raw global reference exceeds its byte limit")
             source = self._read_download_source(record.path, signature)
-            if self._signature_revision((record.path,)) != revision:
-                raise SavedMapConflict("raw global reference changed while reading")
+            source_sha256 = hashlib.sha256(source).hexdigest()
+            if edited:
+                # Edited maps have a semantic revision, not a filesystem-signature
+                # revision. Recheck the immutable manifest and bind the exact
+                # snapshot bytes to its ID, revision, frame, units and hash.
+                try:
+                    manifest = read_manifest(record.path.parent, verify_pcd=False)
+                except (OSError, PcdEditError) as exc:
+                    raise SavedMapConflict("edited global reference manifest changed") from exc
+                if (manifest["id"] != map_id or manifest["revision"] != revision
+                        or manifest["sha256"] != source_sha256
+                        or manifest["frame_id"] != record.details.get("frame_id")
+                        or manifest["units"] != record.details.get("units")
+                        or record.path.name != manifest["file_name"]):
+                    raise SavedMapConflict("edited global reference identity or hash changed")
+                frame_id = manifest["frame_id"]
+                frame_basis = "PCD_EDIT_MANIFEST_DECLARED_UNVERIFIED"
+                units_basis = "PCD_EDIT_MANIFEST_DECLARED_UNVERIFIED"
+            else:
+                if self._signature_revision((record.path,)) != revision:
+                    raise SavedMapConflict("raw global reference changed while reading")
+                frame_id = "camera_init"
+                frame_basis = "PCD_PRODUCT_DEFAULT_UNVERIFIED"
+                units_basis = "PCD_PRODUCT_CONVENTION_UNVERIFIED"
         stream = io.BytesIO(source)
         fields: Dict[str, list[str]] = {}
         while stream.tell() < 64 * 1024:
@@ -511,17 +577,23 @@ class SavedMapCatalog:
                 raise ValueError("invalid PCD dimensions")
             scalar_types = {("F", 4): "<f4", ("F", 8): "<f8", ("I", 1): "i1",
                             ("I", 2): "<i2", ("I", 4): "<i4", ("U", 1): "u1",
-                            ("U", 2): "<u2", ("U", 4): "<u4"}
+                            ("U", 2): "<u2", ("U", 4): "<u4", ("I", 8): "<i8",
+                            ("U", 8): "<u8"}
             formats, offsets, offset = [], [], 0
             for name, size, kind, elements in zip(names, sizes, kinds, counts):
                 scalar = scalar_types.get((kind, size))
-                if scalar is None or elements != 1:
+                if (scalar is None or elements <= 0 or
+                        (name in {"x", "y", "z"} and elements != 1)):
                     raise ValueError("unsupported PCD field")
-                formats.append(scalar)
+                formats.append(scalar if elements == 1 else (scalar, (elements,)))
                 offsets.append(offset)
-                offset += size
+                offset += size * elements
+                if offset > max_bytes:
+                    raise ValueError("PCD point record exceeds the byte limit")
             if stream.tell() + count * offset != len(source):
                 raise ValueError("PCD payload size mismatch")
+            if edited and count != manifest["point_count"]:
+                raise ValueError("edited PCD point count changed")
             dtype = np.dtype(dict(names=names, formats=formats, offsets=offsets, itemsize=offset))
             rows = np.frombuffer(source, dtype=dtype, count=count, offset=stream.tell())
             xyz = np.column_stack((rows["x"], rows["y"], rows["z"])).astype("<f8", copy=False)
@@ -529,16 +601,32 @@ class SavedMapCatalog:
         except (KeyError, ValueError, TypeError, OverflowError) as exc:
             raise SavedMapFormatError("raw global PCD input is invalid or exceeds its limit") from exc
         array_hash = hashlib.sha256(packed).hexdigest()
-        return {"xyz_bytes": packed, "map_id": map_id, "map_revision": revision,
+        result = {"xyz_bytes": packed, "map_id": map_id, "map_revision": revision,
                 "encoding": "float64_le_xyz", "sha256": array_hash, "array_sha256": array_hash,
-                "source_sha256": hashlib.sha256(source).hexdigest(), "point_count": count,
-                "shape": [count, 3], "dtype": "<f8", "frame_id": "camera_init",
-                "frame_basis": "PCD_PRODUCT_DEFAULT_UNVERIFIED", "units": "m",
-                "units_basis": "PCD_PRODUCT_CONVENTION_UNVERIFIED",
+                "source_sha256": source_sha256, "point_count": count,
+                "shape": [count, 3], "dtype": "<f8", "frame_id": frame_id,
+                "frame_basis": frame_basis, "units": "m",
+                "units_basis": units_basis,
                 "source_order_preserved": True, "nonfinite_rows_preserved": True,
                 "zero_rows_preserved": True, "sampling_applied": False,
                 "spatial_filter_applied": False, "transform_applied": False,
                 "coordinate_rounding_applied": False, "source_payload_bytes": len(source)}
+        if edited:
+            # A result scored against this complete edited map is not directly
+            # comparable with a result scored against its parent population.
+            # Keep only bounded identity, never copy the edit history into a job.
+            parent_identity = {key: manifest["source"][key]
+                               for key in ("map_id", "revision", "sha256")}
+            root_identity = {key: manifest["origin"][key]
+                             for key in ("map_id", "revision", "sha256")}
+            result["reference_provenance"] = {
+                "asset_role": "EDITED_FULL_SOURCE",
+                "scoring_population": "THIS_EDITED_MAP_COMPLETE_XYZ",
+                "direct_parent": parent_identity,
+                "original_root": root_identity,
+                "parent_score_comparable": False,
+            }
+        return result
 
     @staticmethod
     def _read_download_source(
@@ -673,11 +761,7 @@ class SavedMapCatalog:
                         record.auxiliary_path is not None
                         and self._regular_signature(record.auxiliary_path) != auxiliary_signature
                     )
-                    or self._signature_revision(
-                        (record.path, record.auxiliary_path)
-                        if record.auxiliary_path is not None
-                        else (record.path,)
-                    ) != expected_revision
+                    or self._find(map_id).revision != expected_revision
                 ):
                     raise SavedMapConflict("saved map changed while preparing download")
                 size = output.tell()
@@ -3052,6 +3136,32 @@ class SavedMapCatalog:
         auxiliary: Optional[Path] = None
         manageable = root in self.managed_roots
         if suffix == ".pcd":
+            # Published edits have content-verified manifests and stable IDs.
+            # Invalid/incomplete publications must never fall back to a path ID.
+            edited_root = next((item / "pcd-edits" for item in self.managed_roots
+                                if resolved.parent.parent == item / "pcd-edits"), None)
+            if edited_root is not None:
+                try:
+                    metadata = read_manifest(resolved.parent, verify_pcd=True)
+                except PcdEditError as exc:
+                    raise SavedMapFormatError("edited PCD manifest is invalid") from exc
+                if resolved.name != "map.pcd" or metadata["id"] != resolved.parent.name:
+                    raise SavedMapFormatError("edited PCD identity does not match publication")
+                header = self._read_pcd_header(resolved)
+                if header["data"] != "binary" or header["points"] != metadata["point_count"]:
+                    raise SavedMapFormatError("edited PCD header disagrees with manifest")
+                # Legacy rename/delete only operate on a single PCD and cannot
+                # atomically maintain its manifest. Keep published revisions immutable.
+                details = {key: value for key, value in metadata.items()
+                           if key not in {"id", "name", "kind", "format", "file_name",
+                                          "revision", "manageable"}}
+                details.update({"fields": header["fields"], "manageable": False})
+                return SavedMapRecord(
+                    map_id=metadata["id"], name=metadata["name"], kind="pointcloud3d",
+                    format="pcd-binary", path=resolved, root=root,
+                    modified_ns=stat.st_mtime_ns, revision=metadata["revision"],
+                    size_bytes=stat.st_size, details=details, manageable=False,
+                )
             header = self._read_pcd_header(resolved)
             if header["data"] != "binary":
                 return None
@@ -3235,6 +3345,8 @@ class SavedMapCatalog:
         max_points: Optional[int],
     ) -> Dict[str, Any]:
         header = self._read_pcd_header(record.path)
+        if header["data"] != "binary":
+            raise SavedMapFormatError("binary PCD required for saved map preview")
         if max_points is None and header["points"] > self.max_full_view_points:
             raise SavedMapPointLimitError(
                 "saved point cloud exceeds the configured full-view limit of "
@@ -3243,20 +3355,25 @@ class SavedMapCatalog:
         scalar_types = {
             ("F", 4): "<f4", ("F", 8): "<f8",
             ("I", 1): "i1", ("I", 2): "<i2", ("I", 4): "<i4",
-            ("U", 1): "u1", ("U", 2): "<u2", ("U", 4): "<u4",
+            ("I", 8): "<i8", ("U", 1): "u1", ("U", 2): "<u2",
+            ("U", 4): "<u4", ("U", 8): "<u8",
         }
+        if len(header["fields"]) > 256 or len(set(header["fields"])) != len(header["fields"]):
+            raise SavedMapFormatError("invalid PCD preview fields")
         names, formats, offsets = [], [], []
         offset = 0
         for name, size, kind, count in zip(
             header["fields"], header["sizes"], header["types"], header["counts"]
         ):
             scalar = scalar_types.get((kind, size))
-            if scalar is None or count != 1:
+            if scalar is None or count <= 0 or (name in {"x", "y", "z"} and count != 1):
                 raise SavedMapFormatError(f"unsupported PCD field: {name} {kind}{size}x{count}")
             names.append(name)
-            formats.append(scalar)
+            formats.append(scalar if count == 1 else (scalar, (count,)))
             offsets.append(offset)
-            offset += size
+            offset += size * count
+            if offset > MAX_PCD_RECORD_BYTES:
+                raise SavedMapFormatError("PCD preview point record exceeds the size limit")
         expected = header["data_offset"] + header["points"] * offset
         if expected > record.path.stat().st_size:
             raise SavedMapFormatError("PCD payload is truncated")
@@ -3285,7 +3402,7 @@ class SavedMapCatalog:
             record,
             points,
             header["points"],
-            "camera_init",
+            str(record.details.get("frame_id", "camera_init")),
             max_points,
         )
 

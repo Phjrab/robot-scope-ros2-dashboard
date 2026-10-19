@@ -23,6 +23,7 @@ import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
 import { initializeMapEditor3D, savedCloudEditorSource } from './features/map_editor3d/workspace.js';
+import { createFullSourceSaveHandler, saveFullSourceCopy } from './features/map_editor3d/full_source.js';
 import { initializeMapCropFeature, suggestedDerivedMapName, validSavedMapName } from './features/maps/crop.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
 import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
@@ -1499,14 +1500,14 @@ function formatBounds(bounds) {
   return span.every(Number.isFinite) ? `${span.map((value) => value.toFixed(1)).join(' × ')} m` : '—';
 }
 
-function updateSavedMapOverview() {
+function updateSavedMapOverview({ preserveSelection = false } = {}) {
   const cloud = savedSceneCloud();
   const entries = savedMapCatalog.length ? savedMapCatalog : (cloud ? [{
     id: '__fallback_cloud', name: cloud.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
     kind: 'pointcloud3d', file_name: cloud.topic || '/saved/map', point_count: cloudPointCount(cloud),
     frame_id: cloud.frame_id || 'map', bounds: cloud.bounds,
   }] : []);
-  if (!selectedSavedMapMeta && entries.length) {
+  if (!preserveSelection && !selectedSavedMapMeta && entries.length) {
     selectedSavedMapMeta = entries[0];
     selectedSavedMapId = entries[0].id;
   }
@@ -6892,4 +6893,6 @@ initializeMapEditor3D({
   is2DDirty: () => mapEditorHasChanges(mapEditorSession),
   redraw2D: () => scheduleMapEditorDraw(),
   getSource: () => savedCloudEditorSource(selectedSavedMapMeta, offlineCloudSnapshot),
+  saveFullSourceCopy: createFullSourceSaveHandler({ api, saveCopy: saveFullSourceCopy, showToast,
+    updateCatalog: payload => { savedMapCatalog = Object.assign(Array.isArray(payload.maps) ? payload.maps : [], { totalSizeBytes: payload.total_size_bytes }); updateSavedMapOverview({ preserveSelection: true }); } }),
 });

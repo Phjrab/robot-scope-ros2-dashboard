@@ -129,3 +129,64 @@ test('residual sidecar remains separate from original selection and all gates', 
   observation.residual_comparisons[0].evaluation.policy.unit = 'cm';
   assert.match(globalResidualText(observation), /잔차 비교 미검증/);
 });
+
+test('verified provisional policy is labelled historical and actual backend gate reasons remain visible', () => {
+  const record = completed(), observation = record.result.observation;
+  observation.gate_reasons = ['AMBIGUOUS_ALTERNATIVES'];
+  observation.rejection_reasons = ['LEGACY_REASON'];
+  observation.selection_policy = { schema: 'robot-scope.global-provisional-selection.v1',
+    adapter: 'dashboard-v031-residual-gate-v1', original_max_rmse_m: .05,
+    provisional_max_rmse_m: .10, scoring: 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION',
+    scope: 'PROVISIONAL_OBSERVATION_ONLY', original_selection_replayed: false };
+  const summary = globalObservationSummary(record);
+  assert.match(summary, /잠정 10cm 선택 후보 없음/);
+  assert.match(summary, /AMBIGUOUS_ALTERNATIVES/);
+  assert.doesNotMatch(summary, /LEGACY_REASON/);
+  assert.match(summary, /과거 가설/);
+  observation.selection_policy.scope = 'OPERATIONAL';
+  assert.match(globalObservationSummary(record), /선택 정책 미검증/);
+  assert.doesNotMatch(globalObservationSummary(record), /잠정 10cm 선택 후보/);
+});
+
+test('edited full-source reference warns that its residual cannot demonstrate parent-map improvement', () => {
+  const record = completed();
+  const reference = { map_id: map.id, map_revision: map.revision, frame_id: 'map',
+    reference_provenance: { asset_role: 'EDITED_FULL_SOURCE', scoring_population: 'THIS_EDITED_MAP_COMPLETE_XYZ',
+      parent_score_comparable: false, direct_parent: { map_id: 'd'.repeat(24), revision: 'e'.repeat(64), sha256: 'f'.repeat(64) } } };
+  record.captured_context = { ...capture, map: reference };
+  record.result.captured_context = record.captured_context;
+  assert.equal(validateGlobalJob(record, globalMapIdentity(map)), true);
+  const summary = globalObservationSummary(record);
+  assert.match(summary, /선택한 편집 지도의 전체 XYZ로 채점/);
+  assert.match(summary, /부모 원본 지도와 RMSE를 직접 비교할 수 없/);
+  assert.match(summary, /낮은 잔차가 원본 대비 정확도 개선을 뜻하지 않/);
+  assert.match(summary, /과거 가설/);
+  assert.equal(record.current_result, null); assert.equal(record.tracking_verified, false);
+  reference.reference_provenance.parent_score_comparable = true;
+  assert.doesNotMatch(globalObservationSummary(record), /부모 원본 지도와 RMSE/);
+  reference.reference_provenance.parent_score_comparable = false;
+  reference.map_revision = '0'.repeat(64);
+  assert.doesNotMatch(globalObservationSummary(record), /부모 원본 지도와 RMSE/);
+  assert.doesNotMatch(globalObservationSummary(completed()), /부모 원본 지도와 RMSE/);
+});
+
+test('compact indexed residual sidecar uses stored candidate RMSE and rejects malformed comparisons', () => {
+  const observation = completed().result.observation;
+  observation.candidates = [{ rmse_m: .07, gate_reasons: ['REFINEMENT_NOT_STATIONARY'] },
+    { rmse_m: .11, gate_reasons: ['RMSE_ABOVE_0.10M'] }];
+  observation.residual_comparison_policy = {
+    schema: 'robot-scope.residual-comparison-policy.v1', candidate_index_basis: 'CANDIDATE_ARRAY_INDEX',
+    comparison_fields: ['residual_passed', 'original_residual_passed'],
+    policy: { unit: 'm', max_rmse_m: .10 }, original_policy: { max_rmse_m: .05 },
+    overall_candidate_acceptance_evaluated: false, overall_candidate_accepted: null };
+  observation.residual_comparisons = [[true, false], [false, false]];
+  const text = globalResidualText(observation);
+  assert.match(text, /후보 0: RMSE 0\.07000 m · 원본 5cm 미통과 · 잠정 10cm 통과/);
+  assert.match(text, /후보 1: RMSE 0\.11000 m · 원본 5cm 미통과 · 잠정 10cm 미통과/);
+  observation.residual_comparisons[0] = null;
+  assert.match(globalResidualText(observation), /후보 0: 잔차 비교 미검증/);
+  observation.residual_comparisons[0] = [true, true];
+  assert.match(globalResidualText(observation), /후보 0: 잔차 비교 미검증/);
+  observation.residual_comparison_policy.candidate_index_basis = 'UNVERIFIED';
+  assert.equal(globalResidualText(observation), '원본 5cm / 잠정 10cm 잔차 비교 미검증');
+});

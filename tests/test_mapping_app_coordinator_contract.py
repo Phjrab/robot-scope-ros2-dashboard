@@ -9,6 +9,7 @@ MAP_FAMILIES_ROUTER_PATH = (
     ROOT / "robot_dashboard" / "api" / "routers" / "map_families.py"
 )
 MAP_CROP_ROUTER_PATH = ROOT / "robot_dashboard" / "api" / "routers" / "map_crop.py"
+PCD_EDITING_ROUTER_PATH = ROOT / "robot_dashboard" / "api" / "routers" / "pcd_editing.py"
 COORDINATOR_PATH = (
     ROOT / "robot_dashboard" / "application" / "mapping_coordinator.py"
 )
@@ -79,6 +80,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
         cls.app_tree = parsed(APP_PATH)
         cls.map_families_router_tree = parsed(MAP_FAMILIES_ROUTER_PATH)
         cls.map_crop_router_tree = parsed(MAP_CROP_ROUTER_PATH)
+        cls.pcd_editing_router_tree = parsed(PCD_EDITING_ROUTER_PATH)
         cls.app_functions = functions(cls.app_tree)
         cls.transport_functions = {**cls.app_functions, **functions(cls.map_crop_router_tree)}
         cls.coordinator_tree = parsed(COORDINATOR_PATH)
@@ -103,6 +105,8 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
             ("post", "/api/v1/saved-maps/{map_id}/convert-2d"),
             ("post", "/api/v1/saved-maps/{map_id}/edited-copy"),
             ("post", "/api/v1/saved-maps/{map_id}/cropped-copy"),
+            ("get", "/api/v1/saved-maps/{map_id}/pcd-edit-source"),
+            ("post", "/api/v1/saved-maps/{map_id}/pcd-edited-copy"),
             ("get", "/api/v1/saved-maps/{map_id}"),
             ("get", "/api/v1/saved-maps/{map_id}/family"),
             ("get", "/api/v1/saved-maps/{map_id}/download"),
@@ -119,6 +123,7 @@ class MappingAppCoordinatorContractTests(unittest.TestCase):
                 declared_app_routes(self.app_tree)
                 | declared_app_routes(self.map_families_router_tree)
                 | declared_app_routes(self.map_crop_router_tree)
+                | declared_app_routes(self.pcd_editing_router_tree)
             )
             if route[1].startswith("/api/v1/mapping")
             or route[1].startswith("/api/v1/saved-maps")

@@ -1,0 +1,604 @@
+diff --git a/robot_dashboard/saved_maps.py b/robot_dashboard/saved_maps.py
+--- a/robot_dashboard/saved_maps.py
++++ b/robot_dashboard/saved_maps.py
+@@ -30,6 +30,7 @@
+ import numpy as np
+
+ from .relocalization.observation_timing import measured_lock
++from .pcd_editing.store import PcdEditError, PcdEditStore, SourceAsset, read_manifest
+
+ from .map_annotations import (
+     AnnotationGoal,
+@@ -432,6 +433,44 @@
+                 DEFAULT_MAX_EDITED_CELLS,
+             ),
+         )
++
++    def _pcd_edit_source_asset(self, map_id: str) -> SourceAsset:
++        # This resolver is server-owned; clients never choose a filesystem path.
++        with self._lock:
++            record = self._find(map_id)
++            if record.format != "pcd-binary":
++                raise SavedMapFormatError("full-source editing requires binary PCD")
++            return SourceAsset(
++                map_id=record.map_id,
++                revision=record.revision,
++                path=record.path,
++                frame_id=str(record.details["frame_id"]),
++                units=str(record.details.get("units", "m")),
++                origin=record.details.get("origin"),
++                edit_history=tuple(record.details.get("edit_history", ())),
++            )
++
++    def _pcd_edit_store(self) -> PcdEditStore:
++        if not self.managed_roots or self.max_depth < 2:
++            raise SavedMapReadOnly("full-source editing requires a managed root with depth >= 2")
++        return PcdEditStore(
++            root=self.managed_roots[0] / "pcd-edits",
++            source_resolver=self._pcd_edit_source_asset,
++            max_bytes=min(self.max_file_bytes, 256 * 1024**2),
++            max_points=20_000_000,
++        )
++
++    def pcd_edit_source(self, map_id: str) -> Dict[str, Any]:
++        """Return identity for the complete original asset, never preview data."""
++        return self._pcd_edit_store().descriptor(map_id)
++
++    def save_pcd_edited_copy(self, map_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
++        """Publish a new immutable PCD revision; never install or select it."""
++        if not isinstance(payload, dict) or not isinstance(payload.get("source"), dict):
++            raise SavedMapFormatError("source descriptor is required")
++        if payload["source"].get("map_id") != map_id:
++            raise SavedMapConflict("route and source map identity differ")
++        return self._pcd_edit_store().save(payload)
+
+     @property
+     def enabled(self) -> bool:
+@@ -673,11 +712,7 @@
+                         record.auxiliary_path is not None
+                         and self._regular_signature(record.auxiliary_path) != auxiliary_signature
+                     )
+-                    or self._signature_revision(
+-                        (record.path, record.auxiliary_path)
+-                        if record.auxiliary_path is not None
+-                        else (record.path,)
+-                    ) != expected_revision
++                    or self._find(map_id).revision != expected_revision
+                 ):
+                     raise SavedMapConflict("saved map changed while preparing download")
+                 size = output.tell()
+@@ -3052,6 +3087,32 @@
+         auxiliary: Optional[Path] = None
+         manageable = root in self.managed_roots
+         if suffix == ".pcd":
++            # Published edits have content-verified manifests and stable IDs.
++            # Invalid/incomplete publications must never fall back to a path ID.
++            edited_root = next((item / "pcd-edits" for item in self.managed_roots
++                                if resolved.parent.parent == item / "pcd-edits"), None)
++            if edited_root is not None:
++                try:
++                    metadata = read_manifest(resolved.parent, verify_pcd=True)
++                except PcdEditError as exc:
++                    raise SavedMapFormatError("edited PCD manifest is invalid") from exc
++                if resolved.name != "map.pcd" or metadata["id"] != resolved.parent.name:
++                    raise SavedMapFormatError("edited PCD identity does not match publication")
++                header = self._read_pcd_header(resolved)
++                if header["data"] != "binary" or header["points"] != metadata["point_count"]:
++                    raise SavedMapFormatError("edited PCD header disagrees with manifest")
++                # Legacy rename/delete only operate on a single PCD and cannot
++                # atomically maintain its manifest. Keep published revisions immutable.
++                details = {key: value for key, value in metadata.items()
++                           if key not in {"id", "name", "kind", "format", "file_name",
++                                          "revision", "manageable"}}
++                details.update({"fields": header["fields"], "manageable": False})
++                return SavedMapRecord(
++                    map_id=metadata["id"], name=metadata["name"], kind="pointcloud3d",
++                    format="pcd-binary", path=resolved, root=root,
++                    modified_ns=stat.st_mtime_ns, revision=metadata["revision"],
++                    size_bytes=stat.st_size, details=details, manageable=False,
++                )
+             header = self._read_pcd_header(resolved)
+             if header["data"] != "binary":
+                 return None
+@@ -3285,7 +3346,7 @@
+             record,
+             points,
+             header["points"],
+-            "camera_init",
++            str(record.details.get("frame_id", "camera_init")),
+             max_points,
+         )
+
+diff --git a/robot_dashboard/app.py b/robot_dashboard/app.py
+--- a/robot_dashboard/app.py
++++ b/robot_dashboard/app.py
+@@ -139,6 +139,7 @@
+     prepare_private_map_root,
+ )
+ from .spatial_routes import SpatialRouteCatalog
++from .pcd_editing.store import PcdEditConflict, PcdEditError
+ STATIC_DIR = Path(__file__).resolve().parent / "static"
+ LOGGER = logging.getLogger(__name__)
+ RUNTIME = ApplicationRuntime()
+@@ -1228,6 +1229,37 @@
+     return {"map": metadata}
+
+
++@app.get("/api/v1/saved-maps/{map_id}/pcd-edit-source")
++async def saved_pcd_edit_source(map_id: str) -> Dict[str, Any]:
++    try:
++        return await asyncio.to_thread(saved_maps().pcd_edit_source, map_id)
++    except SavedMapError as exc:
++        raise saved_map_error(exc) from exc
++    except PcdEditConflict as exc:
++        raise HTTPException(status_code=409, detail=str(exc)) from exc
++    except PcdEditError as exc:
++        raise HTTPException(status_code=422, detail=str(exc)) from exc
++
++
++@app.post("/api/v1/saved-maps/{map_id}/pcd-edited-copy", status_code=201)
++async def save_pcd_edited_copy(
++    map_id: str,
++    body: Dict[str, Any],
++    request: Request,
++) -> Dict[str, Any]:
++    require_same_origin(request)
++    require_competition_unlocked(RUNTIME, "full-source PCD revision creation")
++    try:
++        metadata = await asyncio.to_thread(saved_maps().save_pcd_edited_copy, map_id, body)
++    except SavedMapError as exc:
++        raise saved_map_error(exc) from exc
++    except PcdEditConflict as exc:
++        raise HTTPException(status_code=409, detail=str(exc)) from exc
++    except PcdEditError as exc:
++        raise HTTPException(status_code=422, detail=str(exc)) from exc
++    return {"map": metadata}
++
++
+ @app.get("/api/v1/saved-maps/{map_id}")
+ async def saved_map_metadata(map_id: str) -> Dict[str, Any]:
+     try:
+diff --git a/robot_dashboard/static/features/map_editor3d/workspace.js b/robot_dashboard/static/features/map_editor3d/workspace.js
+--- a/robot_dashboard/static/features/map_editor3d/workspace.js
++++ b/robot_dashboard/static/features/map_editor3d/workspace.js
+@@ -8,8 +8,8 @@
+     frame_id: snapshot.frame_id, points: snapshot.points, source_points: snapshot.source_points };
+ }
+
+-// Saved-cloud annotation editor only. No ROS commands or network writes.
+-export function initializeMapEditor3D({ panel, getSource, is2DDirty = () => false, redraw2D = () => {} }) {
++// The optional callback receives annotations only; it owns server persistence.
++export function initializeMapEditor3D({ panel, getSource, is2DDirty = () => false, redraw2D = () => {}, saveFullSourceCopy = null }) {
+   if (!panel) return null;
+   const doc = panel.ownerDocument;
+   const make = (tag, text, attrs = {}) => { const e = doc.createElement(tag); if (text) e.textContent = text; Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
+@@ -81,6 +81,29 @@
+     setTimeout(() => URL.revokeObjectURL(url), 1000);
+     status.textContent = `${complete ? '로드된 전체 정규화 점군' : 'PREVIEW ONLY · 샘플 또는 완전성 미확인 점군'} 복사본을 내보냈습니다. 원본 PCD와 런타임은 변경되지 않았습니다.`;
+   });
++  let serverBusy = false;
++  const serverNameLabel = make('label', '새 PCD 이름 ');
++  const serverName = make('input', '', { id: 'map3ServerName', type: 'text', maxlength: '64', placeholder: 'edited-map' });
++  serverNameLabel.append(serverName); files.append(serverNameLabel);
++  const serverSave = make('button', '전체 원본에 편집 적용 · 새 PCD 저장', { id: 'map3ServerSave', type: 'button' }); files.append(serverSave);
++  serverNameLabel.hidden = serverSave.hidden = typeof saveFullSourceCopy !== 'function';
++  const updateServerSave = () => {
++    serverSave.disabled = serverBusy || !editor || polygon.length > 0 || !/^[A-Za-z0-9_-]{1,64}$/.test(serverName.value.trim()) || typeof saveFullSourceCopy !== 'function';
++  };
++  serverName.addEventListener('input', updateServerSave);
++  serverSave.addEventListener('click', async () => {
++    if (serverSave.disabled) return;
++    const target = editor, annotation = editor.exportVersion();
++    const savedRegions = JSON.stringify(target.regions);
++    serverBusy = true; updateServerSave(); status.dataset.error = 'false';
++    status.textContent = '서버에서 전체 원본 PCD에 편집을 적용하고 새 복사본을 저장합니다…';
++    try {
++      const result = await saveFullSourceCopy({ name: serverName.value.trim(), purpose: copyPurpose.value, annotation });
++      if (editor === target && JSON.stringify(target.regions) === savedRegions && !polygon.length) exported = savedRegions;
++      refresh(); status.textContent = `새 PCD ${result.map.name} (${result.map.id})를 저장·등록했습니다. 원본·현재 선택·런타임은 유지됩니다.`;
++    } catch (e) { status.textContent = e.message; status.dataset.error = 'true'; }
++    finally { serverBusy = false; updateServerSave(); }
++  });
+   const fileLabel = make('label', '주석 버전 IMPORT (최대 2 MB) '); const file = make('input', '', { id: 'map3Import', type: 'file', accept: '.json,application/json' }); fileLabel.append(file); files.append(fileLabel);
+   file.addEventListener('change', async () => {
+     const selected = file.files?.[0], target = editor; file.value = ''; if (!selected) return;
+@@ -125,6 +148,7 @@
+   }
+   function refresh() {
+     if (editor && !cachedPreview) cachedPreview = editor.preview();
++    updateServerSave();
+     add.disabled = !editor || polygon.length < 3; undo.disabled = !editor?.canUndo; redo.disabled = !editor?.canRedo; reset.disabled = !editor || !editor.regions.length; save.disabled = !editor; copyExport.disabled = !editor; copyPurpose.disabled = !editor; file.disabled = !editor; preview.disabled = !editor;
+     copyExport.textContent = editor && source.source_points === cachedPreview.counts.total ? '편집된 점군 COPY · JSON' : 'PREVIEW ONLY 점군 COPY · JSON';
+     stats.textContent = editor ? `SOURCE ${source.map_id} · REV ${source.revision} · FRAME ${source.frame_id} · ${cachedPreview.counts.total.toLocaleString()} loaded points${source.source_points > cachedPreview.counts.total ? ` / ${Number(source.source_points).toLocaleString()} source points (sampled)` : ''} · 숨김 ${cachedPreview.counts.visibility} / 위치추정 제외 ${cachedPreview.counts.localization} / 진입금지 ${cachedPreview.counts.keepout} · 선택 ${polygon.length} vertices · COPY ${Number.isSafeInteger(source.source_points) && source.source_points === cachedPreview.counts.total ? '전체 정규화 스냅샷' : 'PREVIEW ONLY'}` : 'NO 3D MAP';
+diff --git a/robot_dashboard/static/app.js b/robot_dashboard/static/app.js
+--- a/robot_dashboard/static/app.js
++++ b/robot_dashboard/static/app.js
+@@ -23,6 +23,7 @@
+ import { renderSavedMapDownloadState } from './features/maps/download.js';
+ import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
+ import { initializeMapEditor3D, savedCloudEditorSource } from './features/map_editor3d/workspace.js';
++import { saveFullSourceCopy } from './features/map_editor3d/full_source.js';
+ import { initializeMapCropFeature, suggestedDerivedMapName, validSavedMapName } from './features/maps/crop.js';
+ import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
+ import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
+@@ -1499,14 +1500,14 @@
+   return span.every(Number.isFinite) ? `${span.map((value) => value.toFixed(1)).join(' × ')} m` : '—';
+ }
+
+-function updateSavedMapOverview() {
++function updateSavedMapOverview({ preserveSelection = false } = {}) {
+   const cloud = savedSceneCloud();
+   const entries = savedMapCatalog.length ? savedMapCatalog : (cloud ? [{
+     id: '__fallback_cloud', name: cloud.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
+     kind: 'pointcloud3d', file_name: cloud.topic || '/saved/map', point_count: cloudPointCount(cloud),
+     frame_id: cloud.frame_id || 'map', bounds: cloud.bounds,
+   }] : []);
+-  if (!selectedSavedMapMeta && entries.length) {
++  if (!preserveSelection && !selectedSavedMapMeta && entries.length) {
+     selectedSavedMapMeta = entries[0];
+     selectedSavedMapId = entries[0].id;
+   }
+@@ -6892,4 +6893,18 @@
+   is2DDirty: () => mapEditorHasChanges(mapEditorSession),
+   redraw2D: () => scheduleMapEditorDraw(),
+   getSource: () => savedCloudEditorSource(selectedSavedMapMeta, offlineCloudSnapshot),
++  saveFullSourceCopy: async ({ name, purpose, annotation }) => {
++    const source = await api(`/api/v1/saved-maps/${encodeURIComponent(annotation.source.map_id)}/pcd-edit-source`);
++    const result = await saveFullSourceCopy({ name, purpose, source, annotation });
++    // Refresh catalogue display only. Do not select, install, switch, or localize.
++    try {
++      const payload = await api('/api/v1/saved-maps');
++      savedMapCatalog = Array.isArray(payload.maps) ? payload.maps : [];
++      savedMapCatalog.totalSizeBytes = payload.total_size_bytes;
++      updateSavedMapOverview({ preserveSelection: true });
++    } catch {
++      showToast(`PCD는 저장·등록되었습니다 (${result.map.id}). 지도 목록 새로고침에 실패했습니다.`, true);
++    }
++    return result;
++  },
+ });
+diff --git a/tests/test_map_editor3d_workspace.mjs b/tests/test_map_editor3d_workspace.mjs
+--- a/tests/test_map_editor3d_workspace.mjs
++++ b/tests/test_map_editor3d_workspace.mjs
+@@ -1,5 +1,6 @@
+ import assert from 'node:assert/strict';
+ import { readFileSync } from 'node:fs';
++import { runInNewContext } from 'node:vm';
+ import test from 'node:test';
+ import { initializeMapEditor3D, savedCloudEditorSource } from '../robot_dashboard/static/features/map_editor3d/workspace.js';
+
+@@ -24,7 +25,7 @@
+
+ const fixtureSource = () => ({ kind: 'pointcloud3d', map_id: '3'.repeat(24), revision: 'b'.repeat(64), frame_id: 'map', points: [-5, -5, 0, 0, 0, 0, 5, 5, 0] });
+
+-function mount(t, initialSource = fixtureSource()) {
++function mount(t, initialSource = fixtureSource(), options = {}) {
+   const document = { createElement(tag) { return new Element(tag, document); } };
+   const panel = document.createElement('article');
+   for (const [tag, id] of [['h2', 'heading'], ['div', 'mapEditorState'], ['div', 'mapEditor2D']]) { const element = document.createElement(tag); element.setAttribute('id', id); panel.append(element); }
+@@ -36,7 +37,7 @@
+   }
+   t.mock.method(URL, 'createObjectURL', (blob) => { downloads.push(blob); return 'blob:map-editor-test'; });
+   t.mock.method(URL, 'revokeObjectURL', () => {});
+-  const controller = initializeMapEditor3D({ panel, getSource: () => source, is2DDirty: () => true, redraw2D: () => { redraws += 1; } });
++  const controller = initializeMapEditor3D({ ...options, panel, getSource: () => source, is2DDirty: () => true, redraw2D: () => { redraws += 1; } });
+   const $ = (id) => panel.querySelector(`#${id}`);
+   return { $, panel, controller, downloads, listeners, get redraws() { return redraws; }, get writes() { return writes; }, get confirms() { return confirms; }, setSource(value) { source = value; }, setConfirm(value) { confirmValue = value; } };
+ }
+@@ -188,3 +189,105 @@
+   assert.equal(getSource({ ...meta, kind: 'occupancy2d' }, snapshot), null);
+   assert.equal(getSource(null, snapshot), null); assert.equal(getSource(meta, null), null);
+ });
++
++
++test('optional server save sends only annotations and preserves source selection', async (t) => {
++  let request, release;
++  const f = mount(t, { ...fixtureSource(), source_points: 50 }, {
++    saveFullSourceCopy: async (value) => { request = value; return new Promise((resolve) => { release = resolve; }); },
++  });
++  f.controller.setMode('3d'); await f.$('map3Load').click();
++  assert.equal(f.$('map3ServerSave').hidden, false);
++  assert.equal(f.$('map3ServerSave').disabled, true);
++  f.$('map3ServerName').value = 'synthetic-copy'; await f.$('map3ServerName').emit('input');
++  await polygon(f); assert.equal(f.$('map3ServerSave').disabled, true);
++  await f.$('map3Add').click(); assert.equal(f.$('map3ServerSave').disabled, false);
++  const pending = f.$('map3ServerSave').click();
++  assert.equal(f.$('map3ServerSave').disabled, true);
++  assert.deepEqual(Object.keys(request).sort(), ['annotation', 'name', 'purpose']);
++  assert.equal(request.name, 'synthetic-copy'); assert.equal(request.annotation.source.map_id, fixtureSource().map_id);
++  assert.equal(JSON.stringify(request).includes('points'), false);
++  release({ map: { name: 'synthetic-copy', id: 'a'.repeat(24) } }); await pending;
++  assert.match(f.$('map3Status').textContent, /저장·등록/);
++  assert.match(f.$('map3Stats').textContent, new RegExp(fixtureSource().map_id));
++  assert.equal(f.writes, 0);
++});
++
++test('server failure and in-flight draft edits keep unsaved annotations', async (t) => {
++  let reject;
++  const f = mount(t, fixtureSource(), { saveFullSourceCopy: () => new Promise((_, rejectPromise) => { reject = rejectPromise; }) });
++  f.controller.setMode('3d'); await f.$('map3Load').click(); await polygon(f); await f.$('map3Add').click();
++  f.$('map3ServerName').value = 'copy'; await f.$('map3ServerName').emit('input');
++  const pending = f.$('map3ServerSave').click(); await polygon(f, [[500,320]]);
++  reject(new Error('stale source')); await pending;
++  assert.equal(f.$('map3Status').dataset.error, 'true'); assert.match(f.$('map3Status').textContent, /stale/);
++  assert.equal(f.$('map3Regions').children.length, 1);
++  let prevented = false; f.listeners.beforeunload({ preventDefault() { prevented = true; } }); assert.equal(prevented, true);
++});
++
++test('server integration is optional and refreshes catalogue without map selection', (t) => {
++  const f = mount(t); assert.equal(f.$('map3ServerSave').hidden, true);
++  const app = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
++  const wiring = app.slice(app.lastIndexOf('initializeMapEditor3D({'));
++  assert.match(wiring, /pcd-edit-source/); assert.match(wiring, /saveFullSourceCopy\(\{ name, purpose, source, annotation \}\)/);
++  assert.match(wiring, /updateSavedMapOverview\(\{ preserveSelection: true \}\)/);
++  assert.doesNotMatch(wiring, /selectSavedMap\(|refreshSavedMaps\(|syncNavigationMapOptions\(/);
++});
++
++
++function dashboardSaveHarness({ failCatalogue = false, selection = null } = {}) {
++  const app = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
++  const start = app.indexOf('function updateSavedMapOverview(');
++  const overview = app.slice(start, app.indexOf('\nfunction updateSavedMapManagement()', start));
++  const wiring = app.slice(app.lastIndexOf('initializeMapEditor3D({'));
++  const saved = { map: { id: 'a'.repeat(24), name: 'synthetic-copy' } };
++  const entries = [saved.map], toasts = [], apiCalls = [];
++  const context = {
++    document: { querySelector: () => ({ value: '', textContent: '' }) },
++    ui: new Proxy({}, { get(target, key) { return target[key] ||= {}; } }),
++    selectedSavedMapMeta: selection, selectedSavedMapId: selection?.id || '', savedMapCatalog: [],
++    savedSceneCloud: () => null, savedOccupancySnapshot: null, offlineCloudSnapshot: null,
++    filterSavedMapEntries: (value) => value, escapeHtml: (value) => value,
++    renderSavedMapDownloadState() {}, setStatePill() {}, updateSavedPointBudgetAvailability() {},
++    updateSavedMapManagement() {}, mapCropFeature: null, syncMapConversionPanel() {},
++    mapEditorHasChanges: () => false, mapEditorSession: null, scheduleMapEditorDraw() {},
++    savedCloudEditorSource: () => null,
++    initializeMapEditor3D: (options) => { context.options = options; },
++    saveFullSourceCopy: async () => saved,
++    showToast: (...args) => toasts.push(args),
++    api: async (url) => {
++      apiCalls.push(url);
++      if (url.endsWith('/pcd-edit-source')) return { map_id: fixtureSource().map_id };
++      if (failCatalogue) throw new Error('catalogue offline after successful save');
++      return { maps: entries, total_size_bytes: 1024 };
++    },
++  };
++  runInNewContext(`${overview}\n${wiring}`, context);
++  return { context, saved, toasts, apiCalls, async save() {
++    return context.options.saveFullSourceCopy({ name: 'synthetic-copy', purpose: 'visibility',
++      annotation: { source: { map_id: fixtureSource().map_id } } });
++  } };
++}
++
++test('dashboard callback keeps the successful save ID when catalogue refresh fails', async () => {
++  const originalSelection = { id: 'b'.repeat(24) };
++  const h = dashboardSaveHarness({ failCatalogue: true, selection: originalSelection });
++  assert.strictEqual(await h.save(), h.saved);
++  assert.strictEqual(h.context.selectedSavedMapMeta, originalSelection);
++  assert.equal(h.context.selectedSavedMapId, originalSelection.id);
++  assert.equal(h.toasts.length, 1); assert.equal(h.toasts[0][1], true);
++  assert.match(h.toasts[0][0], new RegExp(h.saved.map.id));
++  assert.match(h.toasts[0][0], /저장·등록.*새로고침/);
++  assert.equal(h.apiCalls.length, 2);
++});
++
++test('dashboard save refresh preserves cleared selection while ordinary refresh keeps its default', async () => {
++  const h = dashboardSaveHarness();
++  assert.strictEqual(await h.save(), h.saved);
++  assert.equal(h.context.savedMapCatalog.length, 1);
++  assert.equal(h.context.selectedSavedMapMeta, null); assert.equal(h.context.selectedSavedMapId, '');
++  assert.equal(h.toasts.length, 0);
++  h.context.updateSavedMapOverview();
++  assert.strictEqual(h.context.selectedSavedMapMeta, h.saved.map);
++  assert.equal(h.context.selectedSavedMapId, h.saved.map.id);
++});
+diff --git a/tests/test_pcd_editing_integration.py b/tests/test_pcd_editing_integration.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_pcd_editing_integration.py
+@@ -0,0 +1,206 @@
++"""Optional common wiring contract; synthetic local fixtures only."""
++import ast
++import asyncio
++import hashlib
++import json
++import struct
++import tempfile
++import threading
++import zipfile
++import unittest
++from pathlib import Path
++from typing import Any, Dict
++from types import SimpleNamespace
++from unittest.mock import patch
++
++from fastapi import FastAPI, HTTPException, Request
++import httpx
++
++from robot_dashboard.pcd_editing.store import PcdEditConflict, PcdEditError
++from robot_dashboard.saved_maps import (
++    SavedMapCatalog, SavedMapConflict, SavedMapError, SavedMapNotFound,
++)
++from robot_dashboard.api.dependencies import require_same_origin, require_competition_unlocked
++from robot_dashboard.competition import CompetitionConflict
++
++
++def write_pcd(path):
++    points = [(0., 0., 0., 11.), (1., 1., 0., 12.), (8., 8., 0., 13.)]
++    header = ("VERSION .7\nFIELDS x y z intensity\nSIZE 4 4 4 4\nTYPE F F F F\n"
++              "COUNT 1 1 1 1\nWIDTH 3\nHEIGHT 1\nPOINTS 3\nDATA binary\n").encode()
++    path.write_bytes(header + b''.join(struct.pack('<ffff', *row) for row in points))
++
++
++def payload(source):
++    identity = {key: source[key] for key in ('map_id', 'revision', 'frame_id')}
++    return {
++        'schema': 'robot-scope.pcd-edit-request.v1', 'name': 'synthetic-edited',
++        'purpose': 'visibility', 'source': source,
++        'annotation': {
++            'schema': 'robot-dashboard.map-editor3d', 'schema_version': 1,
++            'version_id': 'synthetic-annotation', 'source': identity,
++            'runtime_installed': False,
++            'regions': [{'kind': 'visibility', 'selection': 'inside',
++                         'polygon': [[-.5, -.5], [1.5, -.5], [1.5, 1.5], [-.5, 1.5]],
++                         'z_min': -1., 'z_max': 1.}],
++        },
++    }
++
++
++class CatalogueIntegrationTests(unittest.TestCase):
++    def setUp(self):
++        self.directory = tempfile.TemporaryDirectory()
++        self.addCleanup(self.directory.cleanup)
++        self.root = Path(self.directory.name)
++        self.source = self.root / 'synthetic.pcd'
++        write_pcd(self.source)
++        self.catalogue = SavedMapCatalog([self.root], managed_roots=[self.root])
++        self.original = self.catalogue.list_snapshot()['maps'][0]
++
++    def test_full_source_roundtrip_preserves_hash_and_semantic_identity(self):
++        before = self.source.read_bytes()
++        descriptor = self.catalogue.pcd_edit_source(self.original['id'])
++        self.assertEqual(set(descriptor), {'map_id', 'revision', 'frame_id', 'units', 'sha256', 'asset_role'})
++        self.assertEqual(descriptor['sha256'], hashlib.sha256(before).hexdigest())
++        result = self.catalogue.save_pcd_edited_copy(self.original['id'], payload(descriptor))
++        self.assertEqual(self.source.read_bytes(), before)
++        self.assertNotEqual(result['id'], self.original['id'])
++        self.assertEqual(result['point_count'], 1)
++        self.assertFalse(result['runtime_installed'])
++        fresh = SavedMapCatalog([self.root], managed_roots=[self.root])
++        registered = fresh.metadata(result['id'])
++        for key in ('id', 'name', 'revision', 'frame_id', 'units', 'sha256', 'origin', 'edit_history'):
++            self.assertEqual(registered[key], result[key])
++        self.assertFalse(registered['manageable'])
++        bundle, bundle_meta = fresh.download_bundle(result['id'])
++        with bundle, zipfile.ZipFile(bundle) as archive:
++            downloaded = json.loads(archive.read('manifest.json'))
++            self.assertEqual(downloaded['map']['revision'], result['revision'])
++            self.assertEqual(hashlib.sha256(archive.read('map.pcd')).hexdigest(), result['sha256'])
++            self.assertEqual(bundle_meta['revision'], result['revision'])
++        self.assertEqual(fresh.pcd_edit_source(result['id'])['revision'], result['revision'])
++        child = fresh.save_pcd_edited_copy(result['id'], payload(fresh.pcd_edit_source(result['id'])))
++        self.assertEqual(child['origin'], result['origin'])
++        self.assertEqual(len(child['edit_history']), 2)
++
++    def test_tampered_or_incomplete_publication_is_not_listed_under_a_fallback_id(self):
++        descriptor = self.catalogue.pcd_edit_source(self.original['id'])
++        result = self.catalogue.save_pcd_edited_copy(self.original['id'], payload(descriptor))
++        folder = self.root / 'pcd-edits' / result['id']
++        (folder / 'map.pcd').write_bytes((folder / 'map.pcd').read_bytes() + b'tampered')
++        self.assertEqual(self.catalogue.list_snapshot()['count'], 1)
++        (folder / 'manifest.json').unlink()
++        self.assertEqual(self.catalogue.list_snapshot()['count'], 1)
++
++    def test_source_id_and_revision_conflicts_fail_without_changing_catalogue(self):
++        descriptor = self.catalogue.pcd_edit_source(self.original['id'])
++        request = payload(descriptor)
++        with self.assertRaises(SavedMapConflict):
++            self.catalogue.save_pcd_edited_copy('f' * 24, request)
++        request['source']['revision'] = 'f' * 64
++        with self.assertRaises(PcdEditConflict):
++            self.catalogue.save_pcd_edited_copy(self.original['id'], request)
++        self.assertEqual(self.catalogue.list_snapshot()['count'], 1)
++
++    def test_preview_retains_manifest_frame_instead_of_legacy_default(self):
++        descriptor = self.catalogue.pcd_edit_source(self.original['id'])
++        # A trusted resolver can supply an explicit frame for registered output.
++        original_resolver = self.catalogue._pcd_edit_source_asset
++        from dataclasses import replace
++        with patch.object(self.catalogue, '_pcd_edit_source_asset',
++                          side_effect=lambda map_id: replace(original_resolver(map_id), frame_id='survey_origin')):
++            descriptor = self.catalogue.pcd_edit_source(self.original['id'])
++            result = self.catalogue.save_pcd_edited_copy(self.original['id'], payload(descriptor))
++        preview = self.catalogue.data(result['id'])
++        self.assertEqual(preview['frame_id'], 'survey_origin')
++
++
++class HttpIntegrationTests(unittest.TestCase):
++    def setUp(self):
++        # Execute the real route definitions in a minimal FastAPI harness. No
++        # application lifespan, robot agent, ROS connection, or configured host.
++        source = Path(__file__).parents[1] / 'robot_dashboard' / 'app.py'
++        tree = ast.parse(source.read_text())
++        wanted = {'saved_pcd_edit_source', 'save_pcd_edited_copy'}
++        route_nodes = [node for node in tree.body if isinstance(node, ast.AsyncFunctionDef) and node.name in wanted]
++        self.assertEqual({node.name for node in route_nodes}, wanted)
++        self.app = FastAPI()
++        self.main_thread = threading.get_ident()
++        self.thread_ids = []
++        self.calls = []
++        self.failure = None
++        self.locked = False
++        def describe(map_id):
++            self.thread_ids.append(threading.get_ident())
++            if self.failure: raise self.failure
++            return {'map_id': map_id, 'asset_role': 'full_source'}
++        def save(map_id, body):
++            self.thread_ids.append(threading.get_ident())
++            self.calls.append((map_id, body))
++            if self.failure: raise self.failure
++            return {'id': 'a' * 24, 'runtime_installed': False}
++        def unlocked(action):
++            if self.locked: raise CompetitionConflict('locked')
++        runtime = SimpleNamespace(competition=SimpleNamespace(require_unlocked=unlocked))
++        def map_error(exc):
++            return HTTPException(404 if isinstance(exc, SavedMapNotFound) else 409, 'map error')
++        namespace = dict(app=self.app, asyncio=asyncio, saved_maps=lambda: SimpleNamespace(
++            pcd_edit_source=describe, save_pcd_edited_copy=save),
++            SavedMapError=SavedMapError, saved_map_error=map_error,
++            PcdEditError=PcdEditError, PcdEditConflict=PcdEditConflict,
++            HTTPException=HTTPException, Request=Request, Dict=Dict, Any=Any,
++            require_same_origin=require_same_origin, require_competition_unlocked=require_competition_unlocked, RUNTIME=runtime)
++        exec(compile(ast.Module(body=route_nodes, type_ignores=[]), str(source), 'exec'), namespace)
++        # No socket/server or cross-thread anyio portal is needed for ASGI.
++        self.client = self
++
++    def request(self, method, url, **kwargs):
++        async def send():
++            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app),
++                                         base_url='http://testserver') as client:
++                return await client.request(method, url, **kwargs)
++        loop = asyncio.new_event_loop()
++        # Some restricted Linux sandboxes suppress the self-pipe wakeup used by
++        # call_soon_threadsafe. A pending timer also bounds the selector wait.
++        def tick():
++            loop.call_later(.01, tick)
++        loop.call_soon(tick)
++        try:
++            return loop.run_until_complete(send())
++        finally:
++            loop.run_until_complete(loop.shutdown_asyncgens())
++            loop.run_until_complete(loop.shutdown_default_executor())
++            loop.close()
++
++    def get(self, url, **kwargs):
++        return self.request('GET', url, **kwargs)
++
++    def post(self, url, **kwargs):
++        return self.request('POST', url, **kwargs)
++
++    def test_routes_offload_catalogue_io_and_return_creation_status(self):
++        self.assertEqual(self.client.get('/api/v1/saved-maps/test/pcd-edit-source').status_code, 200)
++        response = self.client.post('/api/v1/saved-maps/test/pcd-edited-copy', json={}, headers={'Origin': 'http://testserver'})
++        self.assertEqual(response.status_code, 201)
++        self.assertEqual(response.json()['map']['runtime_installed'], False)
++        self.assertEqual(len(self.calls), 1)
++        self.assertTrue(all(value != self.main_thread for value in self.thread_ids))
++
++    def test_post_requires_same_origin_and_unlocked_state_before_io(self):
++        for headers in ({}, {'Origin': 'https://other.invalid'}):
++            self.assertEqual(self.client.post('/api/v1/saved-maps/test/pcd-edited-copy', json={}, headers=headers).status_code, 403)
++        self.locked = True
++        response = self.client.post('/api/v1/saved-maps/test/pcd-edited-copy', json={}, headers={'Origin': 'http://testserver'})
++        self.assertEqual(response.status_code, 423)
++        self.assertFalse(self.calls)
++
++    def test_conflict_bad_payload_and_notfound_status_mapping(self):
++        for failure, expected in [(PcdEditConflict('stale'), 409), (PcdEditError('invalid'), 422), (SavedMapNotFound('missing'), 404)]:
++            self.failure = failure
++            with self.subTest(expected=expected):
++                self.assertEqual(self.client.get('/api/v1/saved-maps/test/pcd-edit-source').status_code, expected)
++                self.assertEqual(self.client.post('/api/v1/saved-maps/test/pcd-edited-copy', json={}, headers={'Origin': 'http://testserver'}).status_code, expected)
++
++
++if __name__ == '__main__':
++    unittest.main()

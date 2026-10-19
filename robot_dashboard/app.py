@@ -43,6 +43,7 @@ from .api.routers.mission_routes import router as mission_routes_router
 from .mission_routes.wiring import configure_mission_routes
 from .api.routers.navigation_presets import router as navigation_presets_router
 from .api.routers.map_families import create_router as create_map_families_router
+from .api.routers.pcd_editing import create_router as create_pcd_editing_router
 from .api.routers.map_crop import router as map_crop_router
 from .api.routers.model_registry import router as model_registry_router
 from .api.routers.perception import router as perception_router
@@ -613,6 +614,7 @@ def saved_map_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=500, detail="saved map mutation failed")
     return HTTPException(status_code=500, detail="saved map operation failed")
 app.include_router(create_map_families_router(saved_maps, saved_map_error))
+app.include_router(create_pcd_editing_router(saved_maps, saved_map_error, RUNTIME))
 
 
 def parse_saved_point_limit(value: str) -> int | None:
@@ -640,7 +642,6 @@ async def index() -> FileResponse:
         STATIC_DIR / "index.html",
         headers={"Cache-Control": "no-store"},
     )
-
 
 
 @app.get("/api/v1/control")
@@ -1315,7 +1316,6 @@ async def saved_map_data(map_id: str, max_points: str = "all") -> Response:
         media_type="application/json",
         headers={"Cache-Control": "private, no-cache"},
     )
-
 
 
 def parse_args() -> argparse.Namespace:

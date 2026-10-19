@@ -61,14 +61,14 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 178)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 177)
+        self.assertEqual(len(http), 180)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 179)
         self.assertEqual(
             {
                 method: sum(candidate == method for candidate, _ in http)
                 for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             },
-            {"GET": 78, "POST": 88, "PUT": 1, "PATCH": 6, "DELETE": 5},
+            {"GET": 79, "POST": 89, "PUT": 1, "PATCH": 6, "DELETE": 5},
         )
         self.assertTrue(
             {
@@ -86,6 +86,8 @@ class Phase8ApiContractTests(unittest.TestCase):
                 ("POST", "/api/v1/datasets/{session_id}/export"),
                 ("GET", "/api/v1/datasets/exports/{export_id}"),
                 ("GET", "/api/v1/saved-maps/{map_id}/download"),
+                ("GET", "/api/v1/saved-maps/{map_id}/pcd-edit-source"),
+                ("POST", "/api/v1/saved-maps/{map_id}/pcd-edited-copy"),
                 ("POST", "/api/v1/saved-maps/{map_id}/cropped-copy"),
                 ("GET", "/api/v1/models"),
                 ("GET", "/api/v1/models/active"),
@@ -161,7 +163,7 @@ class Phase8ApiContractTests(unittest.TestCase):
             for entry in route_inventory()
             if entry[0] in {"POST", "PUT", "PATCH", "DELETE"}
         ]
-        self.assertEqual(len(mutations), 100)
+        self.assertEqual(len(mutations), 101)
         for method, path, _, function in mutations:
             with self.subTest(method=method, path=path):
                 self.assertTrue(calls_name(function, "require_same_origin"))

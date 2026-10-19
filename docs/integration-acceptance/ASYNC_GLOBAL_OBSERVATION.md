@@ -51,12 +51,28 @@ matrix is **T_map_sensor**, not T_map_odom or T_map_base. No verified sensor-to-
 extrinsic or same-epoch propagation/new-scan validation is implemented. The UI
 does not receive the live scene or apply a result to its current robot marker.
 
-The frozen backend keeps its original 5 cm ranking, ambiguity and all gates.
-An additive `residual_comparisons` field compares stored RMSE with exact
-`<= 0.10 m` and original `<= 0.05 m`. It does not reselect a global candidate,
-relax stationarity/overlap/inliers/geometry, or establish physical accuracy.
-In particular, a saved `selected_candidate=null` stays null even if its residual
-alone passes 10 cm. Failed candidates and complete diagnostics remain visible.
+The received v0.3.1 backend is preserved byte for byte. For the exact reviewed
+seven-file source hash set, a dashboard-owned adapter calls the original scorer
+and changes only its residual gate from `> 0.05 m` to `> 0.10 m`, before the
+original branch ranking/retention and ambiguity checks. Thus a 7 cm stationary
+candidate can be retained, while two distinct passing alternatives remain
+ambiguous. Stationarity/overlap/inliers/geometry and transform gates are unchanged.
+Scoring still uses every supplied scan point and the full original reference,
+with the original 0.75 m association mask; full-scan/capped metrics also survive.
+No fitting subset becomes the evaluation population.
+
+`selection_policy` identifies this provisional policy. Candidate/stage
+`original_residual_gate` preserves the original 5 cm residual decision; this
+does **not** replay or claim the old stochastic pipeline's overall selection.
+Unknown pinned source versions run their original policy without this label.
+The original deduplication/search is not an exhaustive uniqueness proof.
+
+The independent `residual_comparisons` sidecar only compares stored RMSE; it
+does not perform further selection. Its policy metadata is stored once, with
+candidate-index-aligned comparison rows, to avoid repeated metadata exceeding
+64 KiB. Failed candidates and complete backend diagnostics remain visible.
+A numerical pass is a historical provisional sensor candidate, never verified
+physical accuracy, current body pose, temporal tracking or navigation readiness.
 
 ## Backend preparation and limits
 
@@ -73,7 +89,7 @@ must configure all three server-side variables:
 The manifest must cover every package `.py` file exactly. Configuration status
 checks source hashes; it does not import/probe Open3D. The fixed product worker
 copies only verified source (excluding existing bytecode), loads the fixed
-`run_se3_isolated` callable under the configured interpreter, and accepts one
+isolated runner under the configured interpreter, and accepts one
 result with matching input hashes/counts/frames/stamp. The parent owns a separate
 process group, drains bounded logs, requires normal exit, and terminates/kills on
 cancel, timeout or invalid/oversized output. Deadline is 120 seconds including
@@ -82,6 +98,56 @@ Acquisition/reference preparation is a preceding phase. Result limit is 64 KiB,
 including the additive residual diagnostics; nothing is truncated to fit.
 There is no OS memory hard limit or security sandbox. No install or DDS change
 is performed by configuration or start.
+
+For the reviewed v0.3.1 source only, the adapter installs an in-memory subclass
+inside the disposable spawned worker and reuses the original isolated worker
+and deadline/cancellation controller. It never edits the source package. The
+65,536-byte limit applies to both the worker result and the enriched observation;
+oversized diagnostics still fail explicitly, without truncation or a larger cap.
+
+## Linux local follow-up (not published or deployed)
+
+The source archive received on this desktop has SHA256
+`0e4abbc70de139fdef45e90b6958d0f1f7c997a52b7ffb24bee718355bd12593`
+and size 69,619 bytes. Its per-file manifest was generated on receipt; it is not
+an upstream manifest. The earlier 7.04 cm real-data report belongs to v0.3, not
+evidence of v0.3.1 residual improvement. No real saved point-cloud inputs were
+included. Linux synthetic regression cannot substitute for that replay.
+
+The source-change/reanchor race also requires a fresh accepted counterpart
+receipt after a stream identity changes. Per-topic subscription session IDs
+remain independent. Duplicate or older messages cannot reopen the reanchor gate;
+existing source, sequence, timestamp, freshness and operator-anchor checks remain.
+This follow-up authorizes local edits/tests only, with no commit, push, deployment
+or robot action. The earlier deployment statement above is handoff history;
+current backend checkout identity still requires a trusted read-only verification.
+
+## Full-source PCD editor integration (local only)
+
+The integration combines editor module commit
+`af30ce70c0b2ffc9ca0e8283ddb02c12ed03908f`, its common Maps wiring and the local
+localization changes based on `3de44c7df57730b7ebb6f0bc1e6159e182f44c73`.
+The original main working tree and editor worktree are preserved separately.
+
+Saving an edit creates an immutable, separately identified PCD/manifest pair.
+The preview buffer is never the save input. After explicit map selection, the
+observation reader binds the edited semantic revision and PCD hash to the full
+XYZ array, frame and metre declaration. Non-XYZ multi-count fields are retained
+in the PCD and safely skipped when extracting XYZ. Nonfinite/zero XYZ rows remain
+present; the external backend still rejects nonfinite inputs rather than dropping
+them. Legacy file-signature revisions continue to use their existing check.
+
+An edited reference carries only bounded parent/root IDs, revisions and hashes
+in `reference_provenance`, with `parent_score_comparable=false`. A residual
+against the edited reference must not be presented as an improvement against
+the unchanged parent map. Both references keep their own results. Frame/unit
+metadata remains a declaration, not physical calibration evidence.
+
+The Maps save action refreshes the catalogue display and does not install the
+new map, start a global observation or switch the robot's localization runtime.
+The historical-only job flags, session/epoch fences and original live timing
+limits remain unchanged. The deployment and real-data/field validation gates
+in this document still apply.
 
 ## Validation and next work
 

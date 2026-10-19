@@ -189,16 +189,27 @@ class ExternalGlobalObservationRunner:
                 for stream in (process.stdout, process.stderr):
                     stream.close()
             check()
-        # No global re-selection: old 5 cm ranking/ambiguity and every gate survive.
+        # This sidecar never reselects; the pinned backend owns its own
+        # selection policy, ranking, ambiguity and non-residual gates.
+        # The fixed policy is identical for every candidate. Retain its entire
+        # metadata once so a diagnostics-heavy valid backend result can still
+        # fit the unchanged 64 KiB result limit after the comparison is added.
+        comparison_policy = evaluate_residual(0., policy=PROVISIONAL_RESIDUAL_POLICY).as_dict()
+        for field in ("rmse_m", "residual_passed", "original_residual_passed"):
+            comparison_policy.pop(field)
+        comparison_policy["schema"] = "robot-scope.residual-comparison-policy.v1"
+        comparison_policy["candidate_index_basis"] = "CANDIDATE_ARRAY_INDEX"
+        comparison_policy["comparison_fields"] = ["residual_passed", "original_residual_passed"]
         comparisons = []
-        for index, candidate in enumerate(result["candidates"]):
+        for candidate in result["candidates"]:
             try:
-                evaluation = evaluate_residual(candidate.get("rmse_m"), policy=PROVISIONAL_RESIDUAL_POLICY).as_dict()
-                reason = None
+                value = evaluate_residual(candidate.get("rmse_m"), policy=PROVISIONAL_RESIDUAL_POLICY)
+                comparison = [value.residual_passed, value.original_residual_passed]
             except ValueError:
-                evaluation, reason = None, "INVALID_STORED_RMSE"
-            comparisons.append({"candidate_index": index, "evaluation": evaluation, "reason": reason})
+                comparison = {"reason": "INVALID_STORED_RMSE"}
+            comparisons.append(comparison)
         result.update(residual_comparisons=comparisons,
+                      residual_comparison_policy=comparison_policy,
                       residual_comparison_scope="STORED_RMSE_ONLY_NO_GLOBAL_RESELECTION",
                       execution={"elapsed_s": time.monotonic() - started, "source_pin_sha256": pin_sha,
                                  "backend_id": BACKEND_ID, "deadline_s": self.timeout_s,
