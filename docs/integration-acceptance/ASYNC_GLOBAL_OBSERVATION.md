@@ -3,7 +3,9 @@
 This change is **not deployed**. The robot remains on approved dashboard commit
 `d7807de8f15fb457942039bb90ab41cf68d384c6`. No backend installation, new sensor
 session, registration against real input, TF, initialpose, goal or movement was
-performed for this change. Git publication is also held.
+performed for this change. The user subsequently authorized GitHub publication
+of source and the [public desktop handoff](DESKTOP_HANDOFF.md), while deployment
+and private evidence transfer remain held.
 
 ## Path and input contract
 

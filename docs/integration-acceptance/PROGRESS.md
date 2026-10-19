@@ -10,11 +10,13 @@ samples successfully and the saved October 18 3D map displayed. This is input
 and display verification, not localization or body-pose acceptance.
 
 The separate [asynchronous historical observation](ASYNC_GLOBAL_OBSERVATION.md)
-API/UI/worker changes remain local and undeployed. They preserve full received
+API/UI/worker changes remain undeployed. They preserve full received
 XYZ and original map coordinates, pin the external backend, support cancellation,
 and keep every result historical/sensor-only. No new real registration or device
-window was run. Public push and further deployment are held. A standalone private
-desktop handoff records final commit/test evidence and transfer dependencies.
+window was run. The user subsequently authorized GitHub publication of code and
+the [public desktop handoff](DESKTOP_HANDOFF.md). Further robot deployment remains
+held. The handoff distinguishes source publication, installed source, test results
+and private backend dependencies; private evidence is not uploaded.
 
 The following records retain their original dates and pre-deployment status.
 
