@@ -112,9 +112,9 @@ def _coarse_source(observer: Any, scan: Any) -> Any:
 
 def _align(observer: Any, backend: Any, isolated: Any, scan: Any, seed: Any,
            context: dict[str, Any], map_metadata: dict[str, Any],
-           pin_sha: str) -> dict[str, Any]:
+           pin_sha: str, *, allow_ambiguous: bool = False) -> dict[str, Any]:
     import numpy as np
-    from v031_observation_compat import SELECTION_POLICY
+    from v031_observation_compat import SELECTION_POLICY, apply_ambiguity_override
 
     started = time.monotonic()
     matrix = np.asarray(seed, dtype=float)
@@ -159,6 +159,7 @@ def _align(observer: Any, backend: Any, isolated: Any, scan: Any, seed: Any,
     # search for alternate basins.
     ranked = sorted(branches, key=lambda item: (bool(item.gate_reasons), item.capped_full_rmse_m))
     result: dict[str, Any] = isolated._json_observation(observer._finish(ranked))
+    apply_ambiguity_override(result, allow_ambiguous=allow_ambiguous)
     result.update(status="OBSERVATION_ONLY_UNVERIFIED",
                   backend="open3d_unrestricted_se3_observation",
                   selection_policy=dict(SELECTION_POLICY),
@@ -187,6 +188,9 @@ def _align(observer: Any, backend: Any, isolated: Any, scan: Any, seed: Any,
 
 def main(folder: Path, channel: int) -> None:
     configuration = json.loads((folder / "config.json").read_text())
+    allow_ambiguous = configuration.get("allow_ambiguous")
+    if type(allow_ambiguous) is not bool:
+        raise ValueError("SENSOR_AMBIGUITY_OPT_IN_INVALID")
     observer_class, backend, isolated = _source(folder, configuration)
     map_metadata = configuration["context"]["map"]
     world = _array(folder / "map.f64", map_metadata)
@@ -215,7 +219,8 @@ def main(folder: Path, channel: int) -> None:
         scan = _array(folder / f"scan-{sequence:08d}.f64", context["scan"])
         try:
             result = _align(observer, backend, isolated, scan, request["seed_matrix"],
-                            context, map_metadata, configuration["pin_sha256"])
+                            context, map_metadata, configuration["pin_sha256"],
+                            allow_ambiguous=allow_ambiguous)
             _send(channel, {"sequence": sequence, "result": result})
         except (ValueError, RuntimeError, TypeError, KeyError) as error:
             _send(channel, {"sequence": sequence, "error": "SENSOR_LOCAL_ALIGNMENT_FAILED",

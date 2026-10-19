@@ -216,7 +216,8 @@ class SensorTrackingProcess:
             work.chmod(0o700)
             _private_file(work, "map.f64", map_bytes)
             configuration = {"context": map_context, "source_root": str(source),
-                             "pin": pin, "pin_sha256": pin_sha}
+                             "pin": pin, "pin_sha256": pin_sha,
+                             "allow_ambiguous": self._runner.allow_ambiguous}
             _private_file(work, "config.json", json.dumps(configuration, allow_nan=False).encode())
             parent, child = socket.socketpair()
             try:
@@ -349,7 +350,8 @@ class SensorTrackingProcess:
             if reply.get("sequence") != sequence or not isinstance(reply.get("result"), dict):
                 raise SensorTrackingError("SENSOR_REPLY_SEQUENCE_MISMATCH")
             result = reply["result"]
-            ExternalGlobalObservationRunner._validate_result(result, payload_context)
+            ExternalGlobalObservationRunner._validate_result(
+                result, payload_context, allow_ambiguous=self._runner.allow_ambiguous)
             if (result.get("selection_policy") != SELECTION_POLICY
                     or result.get("source_pin_sha256") != pin_sha
                     or result.get("observer_id") != identity[0]

@@ -1,11 +1,14 @@
+import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -13,6 +16,7 @@ from robot_dashboard.relocalization.external_global_observation import (
     ExternalGlobalObservationError, ExternalGlobalObservationRunner,
 )
 from robot_dashboard.relocalization.global_observation_jobs import GlobalObservationJobManager
+from robot_dashboard.relocalization.v031_observation_compat import apply_ambiguity_override
 
 
 FAKE = '''import hashlib,json
@@ -91,12 +95,13 @@ class ExternalGlobalObservationTests(unittest.TestCase):
             self.context[name] = dict(encoding='float64_le_xyz', point_count=2,
                                       sha256=hashlib.sha256(self.raw).hexdigest())
 
-    def runner(self, source=FAKE, timeout=5.):
+    def runner(self, source=FAKE, timeout=5., *, allow_ambiguous=False):
         (self.package / 'isolated.py').write_text(source)
         files = {str(p.relative_to(self.root)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in self.package.glob('*.py')}
         self.pin.write_text(json.dumps({'schema':'robot-scope.global-source-pin.v1','files':files}))
-        return ExternalGlobalObservationRunner(sys.executable, str(self.root), str(self.pin), timeout_s=timeout)
+        return ExternalGlobalObservationRunner(sys.executable, str(self.root), str(self.pin),
+                                               timeout_s=timeout, allow_ambiguous=allow_ambiguous)
 
     def run_one(self, runner, cancel=None):
         return runner.run_arrays(scan_bytes=self.raw, map_bytes=self.raw,
@@ -110,6 +115,57 @@ class ExternalGlobalObservationTests(unittest.TestCase):
         self.assertFalse(runner.status()['available'])
         with self.assertRaisesRegex(ExternalGlobalObservationError, 'HASH_MISMATCH'):
             self.run_one(runner)
+
+    def test_ambiguity_flag_is_explicit_and_unreviewed_source_cannot_enable_it(self):
+        self.assertFalse(ExternalGlobalObservationRunner().allow_ambiguous)
+        with self.assertRaises(ValueError):
+            ExternalGlobalObservationRunner(allow_ambiguous=1)
+        with mock.patch.dict(os.environ, {'ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS': '1'}):
+            self.assertTrue(ExternalGlobalObservationRunner.from_environment().allow_ambiguous)
+        with mock.patch.dict(os.environ, {'ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS': 'true'}):
+            self.assertFalse(ExternalGlobalObservationRunner.from_environment().allow_ambiguous)
+        runner = self.runner(allow_ambiguous=True)
+        self.assertFalse(runner.status()['available'])
+        self.assertEqual(runner.status()['reason'], 'AMBIGUITY_OVERRIDE_REQUIRES_REVIEWED_SOURCE')
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'REVIEWED_SOURCE'):
+            self.run_one(runner)
+
+    def test_ambiguous_selection_requires_exact_opt_in_and_preserved_gates(self):
+        context = {**self.context, 'scan': {**self.context['scan'], 'point_count': 100}}
+        matrix = np.eye(4).tolist()
+        candidate = {'rmse_m': .14, 'overlap': .95, 'scan_count': 100,
+                     'inlier_count': 95, 'distinct_inlier_voxel_count': 90,
+                     'full_scan_rmse_m': .20, 'capped_full_rmse_m': .16,
+                     'geometry_min_max_eigen_ratio': .1,
+                     'inlier_geometry_min_max_eigen_ratio': .08,
+                     'refinement_stationary': True, 'map_from_scan': matrix,
+                     'gate_reasons': ['AMBIGUOUS_ALTERNATIVES']}
+        value = {'status': 'OBSERVATION_ONLY_UNVERIFIED', 'map_frame': context['map_frame'],
+                 'scan_frame': context['source_frame'], 'frame_id': context['source_frame'],
+                 'source_stamp_ns': context['source_stamp_ns'], 'session_id': context['observer_epoch'],
+                 'map_id': 'sha256:' + context['map']['sha256'],
+                 'input_points': 100, 'reference_points': context['map']['point_count'],
+                 'selected_candidate': None, 'gate_reasons': ['AMBIGUOUS_ALTERNATIVES'],
+                 'candidates': [candidate]}
+        apply_ambiguity_override(value, allow_ambiguous=True)
+        ExternalGlobalObservationRunner._validate_result(value, context, allow_ambiguous=True)
+        for field in ('enabled', 'applied'):
+            with self.subTest(field=field):
+                numeric = copy.deepcopy(value)
+                numeric['ambiguity_override'][field] = 1
+                with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+                    ExternalGlobalObservationRunner._validate_result(numeric, context, allow_ambiguous=True)
+        compact = copy.deepcopy(value)
+        compact['selected_candidate'] = None
+        compact.pop('estimate_label')
+        compact['ambiguity_override'] = {'enabled': 1, 'applied': 0}
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+            ExternalGlobalObservationRunner._validate_result(compact, context, allow_ambiguous=True)
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+            ExternalGlobalObservationRunner._validate_result(value, context, allow_ambiguous=False)
+        value['candidates'][0]['gate_reasons'].append('REFINEMENT_NOT_STATIONARY')
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+            ExternalGlobalObservationRunner._validate_result(value, context, allow_ambiguous=True)
 
     def test_success_keeps_stamp_zero_population_and_rejections(self):
         result = self.run_one(self.runner())

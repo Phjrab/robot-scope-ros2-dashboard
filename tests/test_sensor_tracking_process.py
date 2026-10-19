@@ -79,6 +79,22 @@ try:
                   'selection_policy': %s, 'source_pin_sha256': config['pin_sha256'],
                   'tracking_verified': False, 'body_pose': None, 'current_pose': None,
                   'map_from_scan': request['seed_matrix'], 'rmse_m': .14, 'overlap': .94}
+        if mode == 'ambiguous-near-limit':
+            assert config['allow_ambiguous'] is True
+            candidate['gate_reasons'] = ['AMBIGUOUS_ALTERNATIVES']
+            result['gate_reasons'] = ['AMBIGUOUS_ALTERNATIVES']
+            result['ambiguity_override'] = {
+                'enabled': True, 'applied': True,
+                'selection_rule': 'LOWEST_RMSE_M_THEN_ORIGINAL_INDEX',
+                'original_selected_candidate': None,
+                'original_gate_reasons': ['AMBIGUOUS_ALTERNATIVES']}
+            result['estimate_label'] = 'AMBIGUOUS_UNVERIFIED_ESTIMATE'
+            candidate['refinement_diagnostics'] = {'trace': ''}
+            target = 64000
+            raw = json.dumps(result, allow_nan=False, separators=(',', ':')).encode()
+            assert len(raw) < target
+            candidate['refinement_diagnostics']['trace'] = 'd' * (target - len(raw))
+            assert len(json.dumps(result, allow_nan=False, separators=(',', ':')).encode()) == target
         send(sock, {'sequence': request['sequence'], 'result': result})
 finally:
     os.close(sock)
@@ -86,8 +102,8 @@ finally:
 
 
 class StubRunner(ExternalGlobalObservationRunner):
-    def __init__(self):
-        super().__init__(sys.executable, "/unused", "/unused")
+    def __init__(self, *, allow_ambiguous=False):
+        super().__init__(sys.executable, "/unused", "/unused", allow_ambiguous=allow_ambiguous)
         self.pin_sha = "a" * 64
 
     def _configuration(self):
@@ -146,6 +162,24 @@ class SensorTrackingProcessTests(unittest.TestCase):
         self.assertFalse(result["selection_policy"]["rmse_selection_gate_enabled"])
         self.assertTrue(self.process.close())
         self.assertFalse(folder.exists())
+
+    def test_opted_in_ambiguous_near_limit_result_is_preserved_without_truncation(self):
+        process = subject.SensorTrackingProcess(StubRunner(allow_ambiguous=True))
+        self.addCleanup(process.close)
+        scan_bytes, scan_metadata = blob([[float(i), float(i % 7), float(i % 11)]
+                                         for i in range(100)])
+        context = {**self.context, "scan": scan_metadata}
+        with mock.patch.dict(os.environ, {"SENSOR_FAKE_MODE": "ambiguous-near-limit"}):
+            process.start(self.map_bytes, self.context, self.cancel)
+            result = process.align(scan_bytes, context, self.seed, self.cancel)
+        self.assertEqual(result["gate_reasons"], ["AMBIGUOUS_ALTERNATIVES"])
+        self.assertEqual(result["candidates"][0]["gate_reasons"], ["AMBIGUOUS_ALTERNATIVES"])
+        self.assertTrue(result["ambiguity_override"]["applied"])
+        self.assertEqual(result["estimate_label"], "AMBIGUOUS_UNVERIFIED_ESTIMATE")
+        self.assertGreater(len(result["candidates"][0]["refinement_diagnostics"]["trace"]), 62_000)
+        self.assertLessEqual(len(json.dumps(result, allow_nan=False, separators=(',', ':')).encode()), 65_536)
+        self.assertFalse(result["tracking_verified"])
+        self.assertIsNone(result["body_pose"])
 
     def test_duplicate_stamp_epoch_and_map_changes_fail_closed(self):
         self._start()

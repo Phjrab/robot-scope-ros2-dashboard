@@ -9,3 +9,4 @@
 .saved-sensor-tracking button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
 #savedSensorState { display: block; padding: 10px 12px; color: var(--amber); border-left: 3px solid var(--amber); background: var(--bg-soft); }
 #savedSensorState:is([data-state="LOST"], [data-state="STALE"], [data-state="ERROR"]) { color: var(--danger); border-color: var(--danger); }
+#savedSensorAlternatives pre { max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }

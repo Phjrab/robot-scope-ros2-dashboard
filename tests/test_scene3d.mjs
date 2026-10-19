@@ -94,6 +94,11 @@ test('sensor observation layer stores true 3D sensor origin and axes without cre
   assert.equal(scene.robotPose, null);
   assert.deepEqual(Array.from(scene.sensorObservationOverlay.pose.origin), [2, 3, 1.2]);
   assert.deepEqual(Array.from(scene.sensorObservationOverlay.pose.axes[0]), [0, 1, 0]);
+  assert.equal(scene.sensorObservationOverlay.ambiguous, false);
+  assert.equal(scene.setSensorObservationOverlay({ frameId: 'map', T_map_sensor: matrix,
+    trail: [matrix], ambiguous: true }), true);
+  assert.equal(scene.sensorObservationOverlay.ambiguous, true);
+  assert.equal(scene.robotPose, null);
   assert.equal(scene.setSensorObservationOverlay({ frameId: 'map', T_map_sensor: [[1]], trail: [] }), false);
   assert.equal(scene.sensorObservationOverlay, null);
   scene.destroy();

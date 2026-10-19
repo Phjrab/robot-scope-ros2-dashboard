@@ -22,6 +22,7 @@ from typing import Any
 import numpy as np
 
 from .residual_policy import PROVISIONAL_RESIDUAL_POLICY, evaluate_residual
+from .v031_observation_compat import valid_ambiguity_override, supports_pin
 
 MAX_RESULT_BYTES = 65_536
 MAX_ARRAY_BYTES = 32 * 1024 * 1024
@@ -42,19 +43,28 @@ def _strict_json(raw: bytes) -> Any:
 
 class ExternalGlobalObservationRunner:
     def __init__(self, python: str | None = None, source_root: str | None = None,
-                 pin_file: str | None = None, *, timeout_s: float = 120.) -> None:
+                 pin_file: str | None = None, *, timeout_s: float = 120.,
+                 allow_ambiguous: bool = False) -> None:
         if isinstance(timeout_s, bool) or not math.isfinite(timeout_s) or not 0 < timeout_s <= 120:
             raise ValueError("deadline must be positive and at most 120 seconds")
+        if type(allow_ambiguous) is not bool:
+            raise ValueError("allow_ambiguous must be an explicit bool")
         self.python = python
         self.source_root = source_root
         self.pin_file = pin_file
         self.timeout_s = timeout_s
+        self._allow_ambiguous = allow_ambiguous
+
+    @property
+    def allow_ambiguous(self) -> bool:
+        return self._allow_ambiguous
 
     @classmethod
     def from_environment(cls) -> ExternalGlobalObservationRunner:
         return cls(os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_PYTHON"),
                    os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_SOURCE"),
-                   os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_PIN"))
+                   os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_PIN"),
+                   allow_ambiguous=os.environ.get("ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS") == "1")
 
     def _configuration(self) -> tuple[Path, Path, dict[str, Any], str]:
         if not all((self.python, self.source_root, self.pin_file)):
@@ -82,6 +92,8 @@ class ExternalGlobalObservationRunner:
             if (path.resolve() != path or not path.is_file() or not isinstance(expected, str)
                     or hashlib.sha256(path.read_bytes()).hexdigest() != expected):
                 raise ExternalGlobalObservationError("GLOBAL_SOURCE_HASH_MISMATCH")
+        if self.allow_ambiguous and not supports_pin(files):
+            raise ExternalGlobalObservationError("AMBIGUITY_OVERRIDE_REQUIRES_REVIEWED_SOURCE")
         return python, root, pin, hashlib.sha256(raw).hexdigest()
 
     def status(self) -> dict[str, Any]:
@@ -89,10 +101,12 @@ class ExternalGlobalObservationRunner:
             _, _, _, pin_sha = self._configuration()
             return {"available": True, "reason": None, "backend_id": BACKEND_ID,
                     "source_pin_sha256": pin_sha, "deadline_s": self.timeout_s,
+                    "allow_ambiguous": self.allow_ambiguous,
                     "dependency_runtime_probe_performed": False}
         except (OSError, ValueError, TypeError, ExternalGlobalObservationError) as exc:
             reason = str(exc) if isinstance(exc, ExternalGlobalObservationError) else "GLOBAL_SOURCE_PIN_INVALID"
-            return {"available": False, "reason": reason, "backend_id": BACKEND_ID}
+            return {"available": False, "reason": reason, "backend_id": BACKEND_ID,
+                    "allow_ambiguous": self.allow_ambiguous}
 
     @staticmethod
     def _array(data: bytes, metadata: dict[str, Any]) -> None:
@@ -135,6 +149,7 @@ class ExternalGlobalObservationRunner:
                 path.write_bytes(data)
                 path.chmod(0o600)
             envelope = {"context": context, "source_root": str(source), "source_pin": pin,
+                        "allow_ambiguous": self.allow_ambiguous,
                         "remaining_s": max(0., deadline - time.monotonic())}
             (folder / "input.json").write_text(json.dumps(envelope, allow_nan=False))
             check()
@@ -169,7 +184,7 @@ class ExternalGlobalObservationRunner:
                 if not result_path.is_file() or result_path.is_symlink() or not 0 < result_path.stat().st_size <= MAX_RESULT_BYTES:
                     raise ExternalGlobalObservationError("GLOBAL_RESULT_MISSING_OR_OVERSIZED")
                 result = _strict_json(result_path.read_bytes())
-                self._validate_result(result, context)
+                self._validate_result(result, context, allow_ambiguous=self.allow_ambiguous)
                 check()
             finally:
                 # Reap descendants too: the trusted backend may spawn a native worker.
@@ -220,7 +235,7 @@ class ExternalGlobalObservationRunner:
         return result
 
     @staticmethod
-    def _validate_result(value: Any, context: dict[str, Any]) -> None:
+    def _validate_result(value: Any, context: dict[str, Any], *, allow_ambiguous: bool = False) -> None:
         if (not isinstance(value, dict) or value.get("status") != "OBSERVATION_ONLY_UNVERIFIED"
                 or value.get("map_frame") != context["map_frame"]
                 or value.get("scan_frame") != context["source_frame"]
@@ -232,6 +247,17 @@ class ExternalGlobalObservationRunner:
                 or value.get("reference_points") != context["map"]["point_count"]
                 or not isinstance(value.get("candidates"), list)):
             raise ExternalGlobalObservationError("GLOBAL_RESULT_IDENTITY_MISMATCH")
+        override = value.get("ambiguity_override")
+        compact_override = (isinstance(override, dict)
+                            and type(override.get("enabled")) is bool
+                            and type(override.get("applied")) is bool
+                            and override == {"enabled": allow_ambiguous, "applied": False})
+        if override is not None and not compact_override:
+            if not valid_ambiguity_override(value, allowed=allow_ambiguous):
+                raise ExternalGlobalObservationError("GLOBAL_AMBIGUITY_OVERRIDE_INVALID")
+        if override is None or override.get("applied") is not True:
+            if value.get("estimate_label") == "AMBIGUOUS_UNVERIFIED_ESTIMATE":
+                raise ExternalGlobalObservationError("GLOBAL_AMBIGUITY_OVERRIDE_INVALID")
         selected = value.get("selected_candidate")
         if selected is not None and (type(selected) is not int or not 0 <= selected < len(value["candidates"])):
             raise ExternalGlobalObservationError("GLOBAL_SELECTED_CANDIDATE_INVALID")
@@ -245,6 +271,10 @@ class ExternalGlobalObservationRunner:
                         or not np.allclose(a[:3, :3].T @ a[:3, :3], np.eye(3), atol=1e-6)
                         or not math.isclose(float(np.linalg.det(a[:3, :3])), 1., abs_tol=1e-6)):
                     raise ExternalGlobalObservationError("GLOBAL_CANDIDATE_TRANSFORM_INVALID")
-        if selected is not None and (value["candidates"][selected]["gate_reasons"]
-                                     or value["candidates"][selected].get("map_from_scan") is None):
-            raise ExternalGlobalObservationError("GLOBAL_SELECTED_CANDIDATE_REJECTED")
+        if selected is not None:
+            if value["gate_reasons"]:
+                if not valid_ambiguity_override(value, allowed=allow_ambiguous):
+                    raise ExternalGlobalObservationError("GLOBAL_SELECTED_CANDIDATE_REJECTED")
+            elif (value["candidates"][selected]["gate_reasons"]
+                  or value["candidates"][selected].get("map_from_scan") is None):
+                raise ExternalGlobalObservationError("GLOBAL_SELECTED_CANDIDATE_REJECTED")

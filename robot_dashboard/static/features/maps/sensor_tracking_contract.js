@@ -1,4 +1,4 @@
-import { globalMapIdentity } from './global_observation_contract.js';
+import { globalMapIdentity, validatedAmbiguityMetadata, validatedAmbiguityOverride } from './global_observation_contract.js';
 
 const ROOT = '/api/v1/observations/sensor-tracking';
 const SCHEMA = 'robot-scope.sensor-tracking.v1';
@@ -33,11 +33,15 @@ export function selectedGlobalObservation(record, map) {
   const selected = observation?.selected_candidate;
   const candidate = Number.isInteger(selected) && selected >= 0 ? observation?.candidates?.[selected] : null;
   const capture = record?.captured_context;
+  const ambiguous = validatedAmbiguityOverride(observation);
+  const ambiguityClaimed = observation?.ambiguity_override?.applied === true
+    || observation?.estimate_label === 'AMBIGUOUS_UNVERIFIED_ESTIMATE';
+  const gateFree = Array.isArray(observation?.gate_reasons) && observation.gate_reasons.length === 0
+    && Array.isArray(candidate?.gate_reasons) && candidate.gate_reasons.length === 0;
   if (record?.state !== 'succeeded' || record.worker_active !== false || !ID.test(record.job_id || '') || !Number.isSafeInteger(record.generation)
       || !sameMap(capture, map) || record?.historical_only !== true || record?.tracking_verified !== false
       || observation?.status !== 'OBSERVATION_ONLY_UNVERIFIED'
-      || !Array.isArray(observation?.gate_reasons) || observation.gate_reasons.length
-      || !candidate || !Array.isArray(candidate.gate_reasons) || candidate.gate_reasons.length
+      || !candidate || (ambiguityClaimed && !ambiguous) || (!gateFree && !ambiguous)
       || candidate.refinement_stationary !== true || !Number.isFinite(candidate.rmse_m) || candidate.rmse_m < 0
       || !Number.isFinite(candidate.overlap) || candidate.overlap < .60 || candidate.overlap > 1
       || !validMatrix(candidate.map_from_scan)
@@ -50,7 +54,8 @@ export function selectedGlobalObservation(record, map) {
       || policy?.original_selection_replayed !== false
       || policy?.original_max_rmse_m !== .05 || policy?.provisional_max_rmse_m !== .10) return null;
   return { job_id: record.job_id, generation: record.generation, selected_candidate: selected,
-    map_id: map.map_id, map_revision: map.map_revision, map_frame: map.map_frame };
+    map_id: map.map_id, map_revision: map.map_revision, map_frame: map.map_frame,
+    ambiguity_override_applied: ambiguous };
 }
 
 export function validateSensorTrackingSnapshot(value, map) {
@@ -60,6 +65,12 @@ export function validateSensorTrackingSnapshot(value, map) {
       || value.body_extrinsic_verified !== false || value.operational_application !== 'NOT_RUN'
       || typeof value.temporal_consistency_confirmed !== 'boolean'
       || !Array.isArray(value.trail) || value.trail.length > 40) return false;
+  const ambiguous = value.ambiguity_override?.applied === true;
+  if (ambiguous && (!validatedAmbiguityMetadata(value.ambiguity_override)
+      || value.estimate_label !== 'AMBIGUOUS_UNVERIFIED_ESTIMATE'
+      || !['GLOBAL', 'LOCAL'].includes(value.ambiguity_source))) return false;
+  if (!ambiguous && (value.estimate_label === 'AMBIGUOUS_UNVERIFIED_ESTIMATE'
+      || value.ambiguity_source != null)) return false;
   const serverMap = value.map;
   if (serverMap != null && (typeof serverMap.map_id !== 'string' || typeof serverMap.map_revision !== 'string'
       || typeof serverMap.frame_id !== 'string')) return false;
@@ -117,7 +128,8 @@ export class SensorTrackingController {
     this.global = selected;
     if (activeJobId && (!selected || selected.job_id !== activeJobId
         || selected.generation !== previous?.generation
-        || selected.selected_candidate !== previous?.selected_candidate)) {
+        || selected.selected_candidate !== previous?.selected_candidate
+        || selected.ambiguity_override_applied !== previous?.ambiguity_override_applied)) {
       this.invalidate('GLOBAL_SELECTION_CHANGED');
       return;
     }
@@ -199,6 +211,12 @@ export class SensorTrackingController {
         || value.source_global_job?.generation !== this.global.generation
         || value.source_global_job?.selected_candidate !== this.global.selected_candidate)) {
       this.value = null; this.clearFreshness(); this.error = 'GLOBAL_SELECTION_CHANGED'; this.changed(); return false;
+    }
+    if (ACTIVE.has(value.state) && this.global?.ambiguity_override_applied
+        && (!validatedAmbiguityMetadata(value.ambiguity_override)
+          || value.ambiguity_source !== 'GLOBAL')) {
+      this.value = null; this.clearFreshness(); this.error = 'TRACKING_AMBIGUITY_CONTRACT_MISMATCH';
+      this.changed(); return false;
     }
     this.value = value; this.error = '';
     if (this.pending && value.source_global_job?.job_id === this.pending.job_id) {

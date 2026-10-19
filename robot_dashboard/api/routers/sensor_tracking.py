@@ -53,6 +53,8 @@ async def sensor_tracking_status(request: Request) -> JSONResponse:
             "state": "WAITING_GLOBAL", "reason": "SENSOR_TRACKING_UNAVAILABLE",
             "generation": 0, "worker_active": False, "source_global_job": None,
             "map": None, "source": None, "sensor_pose": None, "trail": [],
+            "ambiguity_override": None, "ambiguity_source": None, "last_alignment": None,
+            "estimate_label": "UNVERIFIED_SENSOR_ESTIMATE",
             "temporal_consistency_confirmed": False, "globally_verified": False,
             "body_pose": None, "tracking_verified": False,
             "source_clock_verified": False, "body_extrinsic_verified": False,

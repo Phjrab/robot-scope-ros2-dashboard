@@ -19,7 +19,7 @@ from typing import Any, Callable, cast
 
 import numpy as np
 
-from ..relocalization.v031_observation_compat import SELECTION_POLICY
+from ..relocalization.v031_observation_compat import SELECTION_POLICY, valid_ambiguity_override
 from ..ros.raw_pointcloud_capture import RawCaptureBusy, RawCaptureUnavailable
 
 
@@ -86,7 +86,20 @@ def _safe_map(context: dict[str, Any]) -> dict[str, Any]:
             "xyz_sha256": reference["sha256"]}
 
 
-def _handoff(job: dict[str, Any], expected_id: str) -> tuple[dict[str, Any], list[list[float]], int]:
+def _admissible_gates(observation: dict[str, Any], candidate: dict[str, Any], *, allowed: bool) -> bool:
+    override = observation.get("ambiguity_override")
+    if override is not None and not isinstance(override, dict):
+        return False
+    if override is not None and (type(override.get("enabled")) is not bool
+                                 or type(override.get("applied")) is not bool):
+        return False
+    if ((override or {}).get("applied") is True
+            or observation.get("estimate_label") == "AMBIGUOUS_UNVERIFIED_ESTIMATE"):
+        return valid_ambiguity_override(observation, allowed=allowed)
+    return not observation["gate_reasons"] and not candidate["gate_reasons"]
+
+
+def _handoff(job: dict[str, Any], expected_id: str, *, allow_ambiguous: bool = False) -> tuple[dict[str, Any], list[list[float]], int]:
     """Check the immutable, successful historical result before admitting work."""
     try:
         context = job["captured_context"]
@@ -108,8 +121,9 @@ def _handoff(job: dict[str, Any], expected_id: str) -> tuple[dict[str, Any], lis
                  and observation["status"] == "OBSERVATION_ONLY_UNVERIFIED"
                  and observation["selection_policy"] == SELECTION_POLICY
                  and isinstance(pin, str) and _HEX64.fullmatch(pin)
-                 and type(index) is int and index >= 0 and not observation["gate_reasons"]
-                 and not candidate["gate_reasons"] and matrix is not None
+                 and type(index) is int and index >= 0
+                 and _admissible_gates(observation, candidate, allowed=allow_ambiguous)
+                 and matrix is not None
                  and residual is not None and residual >= 0.
                  and overlap is not None and .60 <= overlap <= 1.
                  and type(candidate["scan_count"]) is int
@@ -168,11 +182,18 @@ def _handoff(job: dict[str, Any], expected_id: str) -> tuple[dict[str, Any], lis
 class SensorTrackingOwner:
     def __init__(self, catalog: Any, agent: Any, global_observation: Any,
                  process_factory: Callable[[], Any], *, pin_provider: Callable[[], dict[str, Any]] | None = None,
+                 allow_ambiguous: bool = False,
                  capture_timeout_s: float = 1.,
                  max_points: int = 1_000_000, max_bytes: int = 32 * 1024 * 1024,
                  now: Callable[[], float] = time.monotonic) -> None:
         self._catalog, self._agent, self._global = catalog, agent, global_observation
         self._process_factory, self._pin_provider, self._now = process_factory, pin_provider, now
+        if type(allow_ambiguous) is not bool:
+            raise ValueError("allow_ambiguous must be an explicit boolean")
+        self._allow_ambiguous = allow_ambiguous
+        self._ambiguity_override: dict[str, Any] | None = None
+        self._ambiguity_source: str | None = None
+        self._last_alignment: dict[str, Any] | None = None
         self._capture_timeout_s, self._max_points, self._max_bytes = capture_timeout_s, max_points, max_bytes
         self._lock = threading.RLock()
         self._generation = 0
@@ -207,6 +228,11 @@ class SensorTrackingOwner:
                 "map": _safe_map(self._context) if self._context else None,
                 "source": source, "sensor_pose": copy.deepcopy(self._sensor_pose),
                 "trail": copy.deepcopy(self._trail),
+                "ambiguity_override": copy.deepcopy(self._ambiguity_override),
+                "ambiguity_source": self._ambiguity_source,
+                "estimate_label": ("AMBIGUOUS_UNVERIFIED_ESTIMATE" if self._ambiguity_override
+                                   else "UNVERIFIED_SENSOR_ESTIMATE"),
+                "last_alignment": copy.deepcopy(self._last_alignment),
                 "temporal_consistency_confirmed": self._state == "SENSOR_CANDIDATE",
                 "globally_verified": False, "body_pose": None, "tracking_verified": False,
                 "source_clock_verified": False, "body_extrinsic_verified": False,
@@ -292,7 +318,7 @@ class SensorTrackingOwner:
             job = self._global.job(global_job_id)
         except Exception as exc:
             raise SensorTrackingNotFound("global observation job was not found") from exc
-        context, matrix, index = _handoff(job, global_job_id)
+        context, matrix, index = _handoff(job, global_job_id, allow_ambiguous=self._allow_ambiguous)
         global_state = self._global.snapshot()
         if global_state.get("active") is not None:
             raise SensorTrackingConflict("GLOBAL_OBSERVATION_STILL_ACTIVE")
@@ -338,6 +364,11 @@ class SensorTrackingOwner:
             self._global_job = {"job_id": global_job_id, "generation": job["generation"],
                                 "selected_candidate": index}
             self._source, self._sensor_pose = None, None
+            observation = job["result"]["observation"]
+            ambiguous = valid_ambiguity_override(observation, allowed=self._allow_ambiguous)
+            self._ambiguity_override = copy.deepcopy(observation["ambiguity_override"]) if ambiguous else None
+            self._ambiguity_source = "GLOBAL" if ambiguous else None
+            self._last_alignment = None
             self._trail, self._confirmations = [], 0
             self._last_stamp, self._last_receipt = _stamp(context["source_stamp_ns"]) or 0, 0.
             self._cancel, self._process = cancel, process
@@ -435,7 +466,7 @@ class SensorTrackingOwner:
 
     @staticmethod
     def _validate_alignment(result: dict[str, Any], context: dict[str, Any],
-                            scan: dict[str, Any], stamp: int) -> tuple[list[list[float]], float, float]:
+                            scan: dict[str, Any], stamp: int, *, allow_ambiguous: bool = False) -> tuple[list[list[float]], float, float]:
         try:
             index = result["selected_candidate"]
             candidate = result["candidates"][index]
@@ -455,7 +486,7 @@ class SensorTrackingOwner:
                     and result["reference_points"] == context["map"]["point_count"]
                     and type(index) is int and index >= 0
                     and result["selection_policy"] == SELECTION_POLICY
-                    and not result["gate_reasons"] and not candidate["gate_reasons"]
+                    and _admissible_gates(result, candidate, allowed=allow_ambiguous)
                     and matrix is not None and rmse is not None and rmse >= 0.
                     and overlap is not None and .60 <= overlap <= 1.
                     and type(candidate["scan_count"]) is int
@@ -516,7 +547,8 @@ class SensorTrackingOwner:
                                           ("encoding", "point_count", "sha256")},
                                      scan=scan, source_stamp_ns=str(stamp))
                 result = process.align(payload, align_context, seed, cancel)
-                matrix, rmse, overlap = self._validate_alignment(result, context, scan, stamp)
+                matrix, rmse, overlap = self._validate_alignment(
+                    result, context, scan, stamp, allow_ambiguous=self._allow_ambiguous)
                 if not self._current_matches(context) or not 0 <= self._now() - receipt <= 1.:
                     raise SensorTrackingConflict("ALIGNMENT_REPLY_STALE_OR_SOURCE_CHANGED")
                 if not _motion_consistent(seed, matrix):
@@ -525,6 +557,11 @@ class SensorTrackingOwner:
                     if cancel.is_set() or generation != self._generation:
                         return
                     self._last_stamp, self._last_receipt, self._last_matrix = stamp, receipt, matrix
+                    self._last_alignment = copy.deepcopy(result)
+                    if (self._ambiguity_override is None
+                            and valid_ambiguity_override(result, allowed=self._allow_ambiguous)):
+                        self._ambiguity_override = copy.deepcopy(result["ambiguity_override"])
+                        self._ambiguity_source = "LOCAL"
                     self._confirmations += 1
                     seed = matrix
                     self._source = {"topic": capture["topic"], "frame_id": capture["source_frame"],
@@ -606,7 +643,8 @@ def configure_sensor_tracking(runtime: Any) -> None:
 
     runner = ExternalGlobalObservationRunner.from_environment()
     runtime.sensor_tracking = SensorTrackingOwner(runtime.saved_maps, runtime.require_agent(),
-        runtime.global_observation, lambda: SensorTrackingProcess(runner), pin_provider=runner.status)
+        runtime.global_observation, lambda: SensorTrackingProcess(runner), pin_provider=runner.status,
+        allow_ambiguous=runner.allow_ambiguous)
 
 
 async def close_sensor_tracking(runtime: Any, logger: Any) -> None:

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GlobalObservationController, globalMapIdentity, validateGlobalJob } from '../robot_dashboard/static/features/maps/global_observation_contract.js';
+import { GlobalObservationController, globalMapIdentity, validateGlobalJob, validatedAmbiguityOverride } from '../robot_dashboard/static/features/maps/global_observation_contract.js';
 import { globalObservationSummary, globalResidualText } from '../robot_dashboard/static/features/maps/global_observation.js';
 
 const map = { id: 'a'.repeat(24), revision: 'b'.repeat(64), frame_id: 'map', kind: 'pointcloud3d' };
@@ -171,6 +171,43 @@ test('v2 selected candidate is historical and residual thresholds are labelled c
   assert.doesNotMatch(globalResidualText(observation), /통과/);
   observation.selection_policy.rmse_selection_gate_enabled = true;
   assert.match(globalObservationSummary(record), /선택 정책 미검증/);
+});
+
+test('ambiguous opt-in labels a historical unverified estimate and preserves original gates and alternatives', () => {
+  const record = completed(), observation = record.result.observation;
+  observation.selection_policy = { schema: 'robot-scope.global-provisional-selection.v2',
+    adapter: 'dashboard-v031-observation-no-rmse-gate-v1', original_max_rmse_m: .05,
+    provisional_max_rmse_m: .10, rmse_thresholds_purpose: 'COMPARISON_ONLY',
+    rmse_selection_gate_enabled: false, scoring: 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION',
+    scope: 'PROVISIONAL_OBSERVATION_ONLY', original_selection_replayed: false };
+  observation.gate_reasons = ['AMBIGUOUS_ALTERNATIVES'];
+  observation.ambiguity_override = { enabled: true, applied: true,
+    selection_rule: 'LOWEST_RMSE_M_THEN_ORIGINAL_INDEX', original_selected_candidate: null,
+    original_gate_reasons: ['AMBIGUOUS_ALTERNATIVES'] };
+  observation.estimate_label = 'AMBIGUOUS_UNVERIFIED_ESTIMATE';
+  const candidate = rmse_m => ({ gate_reasons: ['AMBIGUOUS_ALTERNATIVES'], refinement_stationary: true,
+    rmse_m, full_scan_rmse_m: .21, capped_full_rmse_m: .19, overlap: .95,
+    geometry_min_max_eigen_ratio: .02, inlier_geometry_min_max_eigen_ratio: .02,
+    scan_count: 600, inlier_count: 560, distinct_inlier_voxel_count: 140,
+    map_from_scan: [[1,0,0,1],[0,1,0,2],[0,0,1,0],[0,0,0,1]] });
+  observation.candidates = [candidate(.144), candidate(.151)];
+  observation.selected_candidate = 0;
+  assert.equal(validatedAmbiguityOverride(observation), true);
+  const summary = globalObservationSummary(record);
+  assert.match(summary, /모호한 미검증 추정 후보 0/);
+  assert.match(summary, /AMBIGUOUS_ALTERNATIVES/);
+  assert.match(summary, /대안 1개/);
+  assert.match(summary, /RMSE 최저, 동률이면 원본 인덱스/);
+  assert.match(summary, /과거 가설/);
+  observation.candidates[1].rmse_m = .140;
+  assert.equal(validatedAmbiguityOverride(observation), false);
+  assert.match(globalObservationSummary(record), /모호성 예외 검증 실패/);
+  observation.candidates[1].rmse_m = .151;
+  observation.candidates[0].gate_reasons.push('LOW_OVERLAP');
+  assert.equal(validatedAmbiguityOverride(observation), false);
+  observation.candidates[0].gate_reasons.pop();
+  observation.ambiguity_override.enabled = false;
+  assert.equal(validatedAmbiguityOverride(observation), false);
 });
 
 test('edited full-source reference warns that its residual cannot demonstrate parent-map improvement', () => {

@@ -122,7 +122,7 @@
     if (!pose || !Array.isArray(value.trail) || value.trail.length > 40) return null;
     const trail = value.trail.map(normalizedSensorTransform);
     if (trail.some((item) => !item)) return null;
-    return { frameId: value.frameId, pose, trail };
+    return { frameId: value.frameId, pose, trail, ambiguous: value.ambiguous === true };
   }
 
   function normalizedSpatialOverlay(value) {
@@ -1449,7 +1449,8 @@
         ctx.strokeStyle = '#ffb86b'; ctx.fillStyle = '#ffb86b';
         ctx.beginPath(); ctx.arc(projected.x, projected.y, 6, 0, TAU); ctx.stroke();
         ctx.font = globalThis.RobotScopeTypography?.canvasFont('mono', 12, 500) || '500 12px monospace';
-        ctx.fillText('SENSOR CANDIDATE · BODY UNVERIFIED', projected.x + 10, projected.y - 9);
+        ctx.fillText(overlay.ambiguous ? 'AMBIGUOUS SENSOR ESTIMATE · BODY UNVERIFIED'
+          : 'SENSOR CANDIDATE · BODY UNVERIFIED', projected.x + 10, projected.y - 9);
       }
       ctx.restore();
     }

@@ -1,11 +1,13 @@
 """Policy boundary tests; actual private backend replay is tested separately."""
 from dataclasses import dataclass, field
+import copy
 from types import SimpleNamespace
 import unittest
 
 from robot_dashboard.relocalization.v031_observation_compat import (
+    AMBIGUITY_GATE, AMBIGUOUS_ESTIMATE_LABEL, AMBIGUITY_SELECTION_RULE,
     ORIGINAL_GATE, REVIEWED_HASHES, SELECTION_POLICY,
-    observer_class, supports_pin,
+    apply_ambiguity_override, observer_class, supports_pin, valid_ambiguity_override,
 )
 
 
@@ -107,6 +109,74 @@ class V031CompatibilityTests(unittest.TestCase):
             self.assertFalse(supports_pin(files))
         self.assertFalse(supports_pin({}))
         self.assertFalse(supports_pin({**REVIEWED_HASHES, "extra.py": "0" * 64}))
+
+    @staticmethod
+    def ambiguous_result():
+        matrix = [[1., 0., 0., 0.], [0., 1., 0., 0.],
+                  [0., 0., 1., 0.], [0., 0., 0., 1.]]
+        candidates = []
+        for rmse in (.16, .14, .14):
+            candidates.append(dict(map_from_scan=copy.deepcopy(matrix), rmse_m=rmse,
+                overlap=.94, scan_count=16000, inlier_count=15000,
+                distinct_inlier_voxel_count=100, full_scan_rmse_m=.22,
+                capped_full_rmse_m=.17, geometry_min_max_eigen_ratio=.1,
+                inlier_geometry_min_max_eigen_ratio=.08,
+                refinement_stationary=True, gate_reasons=[AMBIGUITY_GATE]))
+        return dict(candidates=candidates, selected_candidate=None,
+                    gate_reasons=[AMBIGUITY_GATE], status="OBSERVATION_ONLY_UNVERIFIED")
+
+    def test_explicit_ambiguity_opt_in_preserves_original_gates_and_chooses_lowest_rmse(self):
+        original = self.ambiguous_result()
+        disabled = apply_ambiguity_override(copy.deepcopy(original), allow_ambiguous=False)
+        self.assertIsNone(disabled["selected_candidate"])
+        self.assertEqual(disabled["ambiguity_override"], {"enabled": False, "applied": False})
+        enabled = apply_ambiguity_override(copy.deepcopy(original), allow_ambiguous=True)
+        self.assertEqual(enabled["selected_candidate"], 1)  # index resolves equal RMSE
+        self.assertEqual(enabled["gate_reasons"], original["gate_reasons"])
+        self.assertEqual([item["gate_reasons"] for item in enabled["candidates"]],
+                         [item["gate_reasons"] for item in original["candidates"]])
+        self.assertEqual([item["rmse_m"] for item in enabled["candidates"]], [.16, .14, .14])
+        self.assertEqual(enabled["ambiguity_override"]["selection_rule"], AMBIGUITY_SELECTION_RULE)
+        self.assertIsNone(enabled["ambiguity_override"]["original_selected_candidate"])
+        self.assertEqual(enabled["ambiguity_override"]["original_gate_reasons"], [AMBIGUITY_GATE])
+        self.assertEqual(enabled["estimate_label"], AMBIGUOUS_ESTIMATE_LABEL)
+        self.assertTrue(valid_ambiguity_override(enabled, allowed=True))
+        self.assertFalse(valid_ambiguity_override(enabled, allowed=False))
+
+    def test_ambiguity_opt_in_never_bypasses_other_gates_or_accepts_forged_metadata(self):
+        with_extra_top_gate = self.ambiguous_result()
+        with_extra_top_gate["gate_reasons"].append("OVERLAP_BELOW_0.60")
+        self.assertIsNone(apply_ambiguity_override(
+            with_extra_top_gate, allow_ambiguous=True)["selected_candidate"])
+        not_stationary = self.ambiguous_result()
+        not_stationary["candidates"][1]["refinement_stationary"] = False
+        self.assertEqual(apply_ambiguity_override(
+            not_stationary, allow_ambiguous=True)["selected_candidate"], 2)
+        other_candidate_gate = self.ambiguous_result()
+        other_candidate_gate["candidates"][1]["gate_reasons"].append("INVALID_SE3")
+        self.assertEqual(apply_ambiguity_override(
+            other_candidate_gate, allow_ambiguous=True)["selected_candidate"], 2)
+        no_eligible = self.ambiguous_result()
+        for item in no_eligible["candidates"]:
+            item["rmse_m"] = float("inf")
+        no_eligible = apply_ambiguity_override(no_eligible, allow_ambiguous=True)
+        self.assertIsNone(no_eligible["selected_candidate"])
+        self.assertFalse(no_eligible["ambiguity_override"]["applied"])
+        valid = apply_ambiguity_override(self.ambiguous_result(), allow_ambiguous=True)
+        for mutation in (lambda value: value.update(selected_candidate=2),
+                         lambda value: value["candidates"][1]["gate_reasons"].append("INVALID_SE3"),
+                         lambda value: value["ambiguity_override"].update(original_gate_reasons=[]),
+                         lambda value: value["ambiguity_override"].update(enabled=1),
+                         lambda value: value["ambiguity_override"].update(applied=1),
+                         lambda value: value.update(estimate_label="VERIFIED")):
+            with self.subTest(mutation=mutation):
+                altered = copy.deepcopy(valid)
+                mutation(altered)
+                self.assertFalse(valid_ambiguity_override(altered, allowed=True))
+        huge_score = self.ambiguous_result()
+        huge_score["candidates"][1]["rmse_m"] = 10 ** 10000
+        self.assertEqual(apply_ambiguity_override(
+            huge_score, allow_ambiguous=True)["selected_candidate"], 2)
 
 
 if __name__ == "__main__":

@@ -136,6 +136,22 @@ class SensorTrackingWorkerTests(unittest.TestCase):
         self.assertEqual(result["local_scope"],
                          "ONE_SEED_THREE_REFINEMENT_BRANCHES_NOT_GLOBAL_AMBIGUITY_RECHECK")
 
+    def test_explicit_local_ambiguity_opt_in_selects_only_observation_branch(self):
+        observer = FakeObserver()
+        result = subject._align(observer, self.backend, self.isolated, self.scan, self.seed,
+                                self.context, self.metadata, "b" * 64, allow_ambiguous=True)
+        self.assertEqual(result["selected_candidate"], 0)
+        self.assertEqual(result["gate_reasons"], ["AMBIGUOUS_ALTERNATIVES"])
+        self.assertEqual([candidate["gate_reasons"] for candidate in result["candidates"]],
+                         [["AMBIGUOUS_ALTERNATIVES"]] * 3)
+        self.assertTrue(result["ambiguity_override"]["applied"])
+        self.assertEqual(result["estimate_label"], "AMBIGUOUS_UNVERIFIED_ESTIMATE")
+        self.assertEqual(result["rmse_m"], .14)
+        self.assertEqual(result["input_points"], 16_000)
+        self.assertEqual(result["reference_points"], 25_666)
+        self.assertFalse(result["tracking_verified"])
+        self.assertIsNone(result["body_pose"])
+
     def test_nonstationary_branches_are_not_selected(self):
         observer = FakeObserver(stationary=(False, True, False))
         result = subject._align(observer, self.backend, self.isolated, self.scan, self.seed,

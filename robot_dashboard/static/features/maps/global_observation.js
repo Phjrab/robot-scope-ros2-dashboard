@@ -1,4 +1,4 @@
-import { GlobalObservationController } from './global_observation_contract.js';
+import { GlobalObservationController, validatedAmbiguityOverride } from './global_observation_contract.js';
 
 function comparisonOnlySelection(selection) {
   return selection?.schema === 'robot-scope.global-provisional-selection.v2'
@@ -16,15 +16,21 @@ export function globalObservationSummary(record) {
   if (!value) return '';
   const selection = value.selection_policy;
   const comparisonOnly = comparisonOnlySelection(selection);
+  const ambiguityClaimed = value.ambiguity_override?.applied === true
+    || value.estimate_label === 'AMBIGUOUS_UNVERIFIED_ESTIMATE'
+    || (Number.isInteger(value.selected_candidate) && Array.isArray(value.gate_reasons)
+      && value.gate_reasons.includes('AMBIGUOUS_ALTERNATIVES'));
+  const ambiguity = comparisonOnly && validatedAmbiguityOverride(value);
   const provisional = selection?.schema === 'robot-scope.global-provisional-selection.v1'
     && selection.adapter === 'dashboard-v031-residual-gate-v1'
     && selection.scope === 'PROVISIONAL_OBSERVATION_ONLY'
     && selection.scoring === 'UNCHANGED_ORIGINAL_REFERENCE_POPULATION'
     && selection.original_max_rmse_m === .05 && selection.provisional_max_rmse_m === .10
     && selection.original_selection_replayed === false;
-  const label = selection == null ? '원본 선택 후보' : comparisonOnly ? '잔차 문턱 없는 잠정 관측 후보'
+  const label = ambiguityClaimed ? (ambiguity ? '모호한 미검증 추정 후보' : '모호성 예외 검증 실패')
+    : selection == null ? '원본 선택 후보' : comparisonOnly ? '잔차 문턱 없는 잠정 관측 후보'
     : provisional ? '잠정 10cm 선택 후보' : '선택 정책 미검증';
-  const selected = label === '선택 정책 미검증' ? label
+  const selected = label === '선택 정책 미검증' || label === '모호성 예외 검증 실패' ? label
     : Number.isInteger(value.selected_candidate) ? `${label} ${value.selected_candidate}` : `${label} 없음`;
   const gateReasons = Array.isArray(value.gate_reasons) ? value.gate_reasons : value.rejection_reasons;
   const gates = Array.isArray(gateReasons) ? gateReasons.join(', ') : '미제공';
@@ -38,7 +44,8 @@ export function globalObservationSummary(record) {
       || provenance.direct_parent.revision !== captured.map_revision);
   const comparisonNote = editedReference
     ? ' · 선택한 편집 지도의 전체 XYZ로 채점했습니다. 부모 원본 지도와 RMSE를 직접 비교할 수 없으며, 낮은 잔차가 원본 대비 정확도 개선을 뜻하지 않습니다.' : '';
-  return `${value.status || '상태 미제공'} · ${selected} · 거부 사유 ${gates || '없음'}${comparisonOnly ? ' · RMSE 5cm·10cm는 비교값이며 후보 선택 문턱으로 사용하지 않습니다.' : ''} · T_map_sensor는 캡처 시점 센서의 과거 가설입니다. 현재 pose·본체 pose·추적으로 적용하지 않습니다.${comparisonNote}`;
+  const ambiguityNote = ambiguity ? ` · 서버 설정으로 모호성 제한을 임시 해제했습니다. 적격 후보 중 RMSE 최저, 동률이면 원본 인덱스 순으로 표시했습니다. 원본 모호성 gate와 대안 ${Math.max(0, value.candidates.length - 1)}개를 보존합니다. 추정은 모호하며 검증되지 않았습니다.` : '';
+  return `${value.status || '상태 미제공'} · ${selected} · 거부 사유 ${gates || '없음'}${comparisonOnly ? ' · RMSE 5cm·10cm는 비교값이며 후보 선택 문턱으로 사용하지 않습니다.' : ''}${ambiguityNote} · T_map_sensor는 캡처 시점 센서의 과거 가설입니다. 현재 pose·본체 pose·추적으로 적용하지 않습니다.${comparisonNote}`;
 }
 
 export function globalResidualText(observation) {
@@ -88,7 +95,7 @@ export function initializeGlobalMapObservation({ getContext }) {
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/static/features/maps/global_observation.css'; document.head.append(style);
   const panel = document.createElement('section'); panel.id = 'savedGlobalObservation'; panel.className = 'panel saved-global-observation';
   panel.innerHTML = `<strong>저장 3D 지도 · 비동기 전역 관측</strong>
-    <p>수신 PointCloud2의 XYZ 전체 한 장으로 초기 위치 가설을 찾습니다. 5cm·10cm RMSE는 비교값이며 잠정 관측 후보 선택의 문턱은 아닙니다. 변환 전 센서 원본 archive는 아니며, upstream 처리도 미검증입니다. 완료돼도 과거 관측으로만 보존합니다.</p>
+    <p>수신 PointCloud2의 XYZ 전체 한 장으로 초기 위치 가설을 찾습니다. 5cm·10cm RMSE는 비교값이며 잠정 관측 후보 선택의 문턱은 아닙니다. 모호성 임시 허용은 서버 설정이며 원본 gate·대안은 보존합니다. 변환 전 센서 원본 archive는 아니며, upstream 처리도 미검증입니다. 완료돼도 과거 관측으로만 보존합니다.</p>
     <p id="savedGlobalProvider" role="status">실행 환경 확인 중</p>
     <div class="saved-global-actions"><button id="savedGlobalStart" type="button" disabled>수신 점군 전역 관측 시작</button><button id="savedGlobalRetry" type="button" hidden>같은 요청 재확인</button><button id="savedGlobalCancel" type="button" disabled>관측 취소</button><button id="savedGlobalExport" type="button" disabled>과거 관측 JSON</button></div>
     <strong id="savedGlobalState" role="status">IDLE · HISTORICAL_ONLY</strong><p id="savedGlobalCapture"></p>
@@ -103,8 +110,10 @@ export function initializeGlobalMapObservation({ getContext }) {
     if (disposed) return;
     const state = model.snapshot(), job = state.job;
     panel.hidden = !visible;
+    const ambiguitySetting = state.provider?.allow_ambiguous === true ? ' · 서버 모호성 임시 허용 활성'
+      : state.provider?.allow_ambiguous === false ? ' · 서버 모호성 제한 유지' : ' · 서버 모호성 설정 미제공';
     el('Provider').textContent = state.provider?.available
-      ? `고정 소스 설정 확인 · ${state.provider.backend_id || 'backend 미제공'} · 실행 의존성은 작업 시작 시 검사합니다.`
+      ? `고정 소스 설정 확인 · ${state.provider.backend_id || 'backend 미제공'}${ambiguitySetting} · 실행 의존성은 작업 시작 시 검사합니다.`
       : `실행 불가 · ${state.provider?.reason || '상태 확인 필요'} · 실행 환경이 확인되기 전 시작할 수 없습니다.`;
     el('Start').disabled = !state.canStart; el('Retry').hidden = !state.canRetry;
     el('Cancel').disabled = !state.canCancel; el('Export').disabled = !state.record;

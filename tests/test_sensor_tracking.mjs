@@ -17,6 +17,22 @@ const globalRecord = () => ({ state: 'succeeded', worker_active: false, job_id: 
   result: { observation: { status: 'OBSERVATION_ONLY_UNVERIFIED', selection_policy: { ...policy },
     selected_candidate: 0, gate_reasons: [], candidates: [{ map_from_scan: T, gate_reasons: [],
       refinement_stationary: true, rmse_m: .144, overlap: .95 }] } } });
+const ambiguityOverride = () => ({ enabled: true, applied: true,
+  selection_rule: 'LOWEST_RMSE_M_THEN_ORIGINAL_INDEX', original_selected_candidate: null,
+  original_gate_reasons: ['AMBIGUOUS_ALTERNATIVES'] });
+const ambiguousGlobalRecord = () => {
+  const record = globalRecord(), observation = record.result.observation;
+  observation.ambiguity_override = ambiguityOverride();
+  observation.estimate_label = 'AMBIGUOUS_UNVERIFIED_ESTIMATE';
+  observation.gate_reasons = ['AMBIGUOUS_ALTERNATIVES'];
+  observation.candidates = [.144, .151].map(rmse_m => ({
+    map_from_scan: T, gate_reasons: ['AMBIGUOUS_ALTERNATIVES'], refinement_stationary: true,
+    rmse_m, full_scan_rmse_m: .20, capped_full_rmse_m: .18, overlap: .95,
+    geometry_min_max_eigen_ratio: .02, inlier_geometry_min_max_eigen_ratio: .02,
+    scan_count: 600, inlier_count: 560, distinct_inlier_voxel_count: 140,
+  }));
+  return record;
+};
 const safe = { globally_verified: false, body_pose: null, tracking_verified: false,
   source_clock_verified: false, body_extrinsic_verified: false, operational_application: 'NOT_RUN' };
 const source = { topic: '/velodyne_points', frame_id: 'hesai_lidar', observer_id: 'observer',
@@ -46,6 +62,45 @@ test('comparison-only global selection admits >10 cm for observation start when 
   rejected.result.observation.candidates[0].refinement_stationary = true;
   rejected.result.observation.selection_policy.rmse_selection_gate_enabled = true;
   assert.equal(selectedGlobalObservation(rejected, map), null);
+});
+
+test('ambiguity opt-in admits only the lowest otherwise-qualified original-index candidate', () => {
+  const record = ambiguousGlobalRecord();
+  assert.equal(selectedGlobalObservation(record, map)?.ambiguity_override_applied, true);
+  record.result.observation.candidates[1].rmse_m = .140;
+  assert.equal(selectedGlobalObservation(record, map), null);
+  record.result.observation.candidates[1].rmse_m = .144;
+  assert.equal(selectedGlobalObservation(record, map)?.selected_candidate, 0);
+  record.result.observation.candidates[0].gate_reasons.push('LOW_OVERLAP');
+  assert.equal(selectedGlobalObservation(record, map), null);
+  record.result.observation.candidates[0].gate_reasons.pop();
+  record.result.observation.gate_reasons.push('SOURCE_CHANGED');
+  assert.equal(selectedGlobalObservation(record, map), null);
+  record.result.observation.gate_reasons.pop();
+  record.result.observation.ambiguity_override.enabled = false;
+  assert.equal(selectedGlobalObservation(record, map), null);
+});
+
+test('ambiguous sensor snapshot requires exact warning metadata and global source continuity', async () => {
+  const ambiguous = snapshot({ ambiguity_override: ambiguityOverride(), ambiguity_source: 'GLOBAL',
+    estimate_label: 'AMBIGUOUS_UNVERIFIED_ESTIMATE' });
+  assert.equal(validateSensorTrackingSnapshot(ambiguous, map), true);
+  assert.match(sensorTrackingStateText({ value: ambiguous, state: 'SENSOR_CANDIDATE', error: '',
+    global: { ambiguity_override_applied: true } }), /모호한 미검증 추정/);
+  assert.match(sensorTrackingDetailText({ value: ambiguous,
+    global: { ambiguity_override_applied: true } }), /대안·gate는 원본 기록 보존/);
+  assert.equal(validateSensorTrackingSnapshot({ ...ambiguous, ambiguity_source: null }, map), false);
+  assert.equal(validateSensorTrackingSnapshot({ ...ambiguous,
+    ambiguity_override: { ...ambiguityOverride(), original_gate_reasons: ['OTHER'] } }, map), false);
+  const controller = new SensorTrackingController({ request: async () => reply(ambiguous), now: () => 100 });
+  controller.setMap(meta, null); controller.setGlobalRecord(ambiguousGlobalRecord());
+  await controller.poll(); assert.equal(controller.snapshot().state, 'SENSOR_CANDIDATE');
+  const mismatched = { ...ambiguous, ambiguity_source: 'LOCAL' };
+  controller.request = async () => reply(mismatched);
+  await controller.poll();
+  assert.equal(controller.snapshot().error, 'TRACKING_AMBIGUITY_CONTRACT_MISMATCH');
+  assert.equal(controller.snapshot().value, null);
+  controller.destroy();
 });
 
 test('snapshot contract preserves sensor-only marker, frame, source stamp and body restrictions', () => {

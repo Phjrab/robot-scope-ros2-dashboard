@@ -8,6 +8,10 @@ This never verifies a body pose, coordinate calibration or temporal tracking.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
+from typing import Any
+
+import numpy as np
 
 
 REVIEWED_HASHES = {
@@ -31,10 +35,103 @@ SELECTION_POLICY = {
     "original_selection_replayed": False,
 }
 ORIGINAL_GATE = "RMSE_ABOVE_0.05M"
+AMBIGUITY_GATE = "AMBIGUOUS_ALTERNATIVES"
+AMBIGUITY_SELECTION_RULE = "LOWEST_RMSE_M_THEN_ORIGINAL_INDEX"
+AMBIGUOUS_ESTIMATE_LABEL = "AMBIGUOUS_UNVERIFIED_ESTIMATE"
 
 
 def supports_pin(files: dict[str, str]) -> bool:
     return files == REVIEWED_HASHES
+
+
+def _finite_nonnegative(value: Any) -> bool:
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value) and value >= 0
+    except OverflowError:
+        return False
+
+
+def _ambiguity_eligible(candidate: Any) -> bool:
+    """The original finish may add only its ambiguity reason to a sound fit."""
+    if not isinstance(candidate, dict) or candidate.get("gate_reasons") != [AMBIGUITY_GATE]:
+        return False
+    count, inliers, voxels = (candidate.get(key) for key in
+                              ("scan_count", "inlier_count", "distinct_inlier_voxel_count"))
+    if (candidate.get("refinement_stationary") is not True
+            or type(count) is not int or type(inliers) is not int or type(voxels) is not int
+            or not 60 <= voxels <= inliers <= count
+            or not all(_finite_nonnegative(candidate.get(key)) for key in
+                       ("rmse_m", "full_scan_rmse_m", "capped_full_rmse_m",
+                        "overlap", "geometry_min_max_eigen_ratio",
+                        "inlier_geometry_min_max_eigen_ratio"))
+            or not .60 <= candidate["overlap"] <= 1.
+            or candidate["geometry_min_max_eigen_ratio"] < .002
+            or candidate["inlier_geometry_min_max_eigen_ratio"] < .002):
+        return False
+    try:
+        matrix = np.asarray(candidate["map_from_scan"], dtype=float)
+        return bool(matrix.shape == (4, 4) and np.isfinite(matrix).all()
+                    and np.allclose(matrix[3], [0., 0., 0., 1.], atol=1e-8)
+                    and np.allclose(matrix[:3, :3].T @ matrix[:3, :3], np.eye(3), atol=1e-6)
+                    and math.isclose(float(np.linalg.det(matrix[:3, :3])), 1., abs_tol=1e-6))
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def _ambiguity_choice(observation: dict[str, Any]) -> int | None:
+    candidates = observation.get("candidates")
+    if not isinstance(candidates, list):
+        return None
+    eligible = [(candidate["rmse_m"], index) for index, candidate in enumerate(candidates)
+                if _ambiguity_eligible(candidate)]
+    return min(eligible)[1] if eligible else None
+
+
+def apply_ambiguity_override(observation: dict[str, Any], *, allow_ambiguous: bool) -> dict[str, Any]:
+    """After the original finish, select one ambiguous fit for observation only.
+
+    The original top and candidate gates, alternatives, scores and diagnostics
+    remain untouched. An absent/false opt-in never selects an ambiguous fit.
+    """
+    if type(allow_ambiguous) is not bool:
+        raise TypeError("allow_ambiguous must be a bool")
+    observation["ambiguity_override"] = {"enabled": allow_ambiguous, "applied": False}
+    if (not allow_ambiguous or observation.get("gate_reasons") != [AMBIGUITY_GATE]
+            or observation.get("selected_candidate") is not None):
+        return observation
+    selected = _ambiguity_choice(observation)
+    if selected is None:
+        return observation
+    observation["selected_candidate"] = selected
+    observation["ambiguity_override"] = {
+        "enabled": True, "applied": True,
+        "selection_rule": AMBIGUITY_SELECTION_RULE,
+        "original_selected_candidate": None,
+        "original_gate_reasons": [AMBIGUITY_GATE],
+    }
+    observation["estimate_label"] = AMBIGUOUS_ESTIMATE_LABEL
+    return observation
+
+
+def valid_ambiguity_override(observation: Any, *, allowed: bool) -> bool:
+    """Fail-closed check shared by global/local result consumers and owners."""
+    if type(allowed) is not bool or not allowed or not isinstance(observation, dict):
+        return False
+    override = observation.get("ambiguity_override")
+    if (not isinstance(override, dict)
+            or type(override.get("enabled")) is not bool
+            or type(override.get("applied")) is not bool
+            or override != {"enabled": True, "applied": True,
+                            "selection_rule": AMBIGUITY_SELECTION_RULE,
+                            "original_selected_candidate": None,
+                            "original_gate_reasons": [AMBIGUITY_GATE]}
+            or observation.get("estimate_label") != AMBIGUOUS_ESTIMATE_LABEL
+            or observation.get("gate_reasons") != [AMBIGUITY_GATE]):
+        return False
+    selected = observation.get("selected_candidate")
+    return type(selected) is int and selected == _ambiguity_choice(observation)
 
 
 def observer_class(backend):

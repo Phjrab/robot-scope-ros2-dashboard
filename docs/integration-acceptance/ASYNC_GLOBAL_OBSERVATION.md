@@ -158,6 +158,31 @@ does **not** replay or claim the old stochastic pipeline's overall selection.
 Unknown pinned source versions run their original policy without this label.
 The original deduplication/search is not an exhaustive uniqueness proof.
 
+### Explicit temporary ambiguity observation option
+
+The subsequent user request permits ambiguous candidates for stationary
+observation/development. Set `ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS=1` explicitly
+in the server process; the default is disabled. This is not a client pose input
+or a navigation setting. The provider reports `allow_ambiguous`.
+
+After the original finish, the adapter may choose a candidate only when the
+original top-level rejection is exactly `AMBIGUOUS_ALTERNATIVES`. Eligible
+candidates must have that sole reason and satisfy the unchanged finite rigid
+transform, stationarity, support, overlap and geometry checks. The explicit
+rule is the lowest original `rmse_m`, then the original candidate array index
+for a tie. This may differ from the backend's capped-full-RMSE ordering and is
+not asserted to be the correct physical location.
+
+Original top/candidate gates, all alternatives, metrics, stages and transforms
+are retained. `ambiguity_override` records the original null selection, original
+gate, enabled/applied flags and `LOWEST_RMSE_M_THEN_ORIGINAL_INDEX` rule. An applied
+override has `estimate_label=AMBIGUOUS_UNVERIFIED_ESTIMATE`; it does not change
+the observation-only status or any body/clock/tracking verification flag. A
+sensor session keeps the ambiguous label if its global seed or a later local
+observation needed the override. The API retains the complete most recent
+accepted local result in `last_alignment` as historical diagnostics, including
+after loss/stop. That record is never a fresh pose by itself.
+
 The independent `residual_comparisons` sidecar only compares stored RMSE; it
 does not perform further selection. Its policy metadata is stored once, with
 candidate-index-aligned comparison rows, to avoid repeated metadata exceeding
@@ -195,6 +220,9 @@ The 3D view draws a separate sensor marker, XYZ axes and at most 40 trail entrie
 It never passes that transform to the GO2 body renderer. Map/source/global-job
 replacement, stale or reversed input, rejected/ambiguous alignment, cancellation,
 timeout and late responses invalidate the observation and clear its trail.
+Ambiguous results invalidate it unless the explicit observation option above
+is enabled and the complete override contract is valid; other rejections still
+invalidate it.
 Explicit operator global search is required after loss; no automatic global
 retry, control command, navigation goal or operational TF update is introduced.
 Workers and temporary scan files are cleaned on success, error, stop and shutdown.
