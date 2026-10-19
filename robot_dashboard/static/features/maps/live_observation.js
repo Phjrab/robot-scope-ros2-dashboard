@@ -23,6 +23,18 @@ export function observationTelemetryText(telemetry = {}) {
   return `${describe('cloud', '점군')} | ${describe('pose', 'native odometry')} · 원본 frame의 관측이며 저장 지도 위치·검증된 본체 자세가 아닙니다. 센서→화면 전체 지연은 미측정입니다.`;
 }
 
+export function observationRegistrationText(registration) {
+  if (!registration) return '';
+  const m = registration.metrics, e = registration.residual_evaluation;
+  const rmse = typeof m?.rmse_m === 'number' && Number.isFinite(m.rmse_m) ? `${m.rmse_m.toFixed(5)} m` : '미제공';
+  const overlap = typeof m?.overlap_ratio === 'number' && Number.isFinite(m.overlap_ratio) ? `${(m.overlap_ratio * 100).toFixed(0)}%` : '미제공';
+  const residual = registration.provisional === true
+    ? `잠정 10cm 잔차 ${e ? (e.residual_passed ? '통과' : '미통과') : '미평가'} · 원본 5cm 잔차 ${e ? (e.original_residual_passed ? '통과' : '미통과') : '미평가'}`
+    : `원본 5cm 잔차 ${m?.rmse_m == null ? '미평가' : m.rmse_m <= .05 ? '통과' : '미통과'}`;
+  const original = registration.original_assessment;
+  return `RMSE ${rmse} · overlap ${overlap} · ${residual}${original ? ` · 원본 판정 ${original.status} (${original.reason})` : ''} · 정합 잔차≠실제 위치오차 · 본체/추적 미검증`;
+}
+
 export function initializeLiveMapObservation({ scene, getContext, demandChanged }) {
   const host = document.querySelector('.saved-map-panel');
   const layout = host?.closest('.saved-layout');
@@ -68,7 +80,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     el('Availability').textContent = availability; el('Availability').hidden = !availability;
     const r = state.registration;
     el('Metrics').textContent = state.pose
-      ? `X ${state.pose.x.toFixed(3)} · Y ${state.pose.y.toFixed(3)} · Z ${state.pose.z.toFixed(3)} m | R ${(state.pose.roll*180/Math.PI).toFixed(1)}° · P ${(state.pose.pitch*180/Math.PI).toFixed(1)}° · Y ${(state.pose.yaw*180/Math.PI).toFixed(1)}° | 수신 pair Δ ${(state.receipt_pair_delta_s*1000).toFixed(0)} ms${r?.metrics ? ` | RMSE ${r.metrics.rmse_m?.toFixed(3) ?? '—'} m · overlap ${(r.metrics.overlap_ratio*100).toFixed(0)}%` : ''}` : (state.status === 'SOURCE_IDENTITY_UNAVAILABLE' ? '지도 정합: UNAVAILABLE · NOT_RUN · 지도 기준 pose·잔차 없음' : r ? `${r.reason} · 이전 후보는 현재 결과로 표시하지 않습니다.` : '유효한 현재 입력과 근사 기준점이 필요합니다.');
+      ? `X ${state.pose.x.toFixed(3)} · Y ${state.pose.y.toFixed(3)} · Z ${state.pose.z.toFixed(3)} m | R ${(state.pose.roll*180/Math.PI).toFixed(1)}° · P ${(state.pose.pitch*180/Math.PI).toFixed(1)}° · Y ${(state.pose.yaw*180/Math.PI).toFixed(1)}° | 수신 pair Δ ${(state.receipt_pair_delta_s*1000).toFixed(0)} ms${r?.metrics ? ` | ${observationRegistrationText(r)}` : ''}` : (state.status === 'SOURCE_IDENTITY_UNAVAILABLE' ? '지도 정합: UNAVAILABLE · NOT_RUN · 지도 기준 pose·잔차 없음' : r ? `${r.reason}${r.metrics ? ` | ${observationRegistrationText(r)}` : ''} · 이전 후보는 현재 결과로 표시하지 않습니다.` : '유효한 현재 입력과 근사 기준점이 필요합니다.');
     el('Source').textContent = observationTelemetryText(state.telemetry);
     if (!model.enabled) return false;
     if (!context.visible || !state.pose || !state.points) { clearDynamic(baseChanged); return true; }
@@ -80,7 +92,9 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
       }
       geometryKey = state.geometryKey;
     }
-    scene.options.robotPoseLabel = state.provenance_mode === 'subscription_observation' ? 'GO2 ESTIMATE · SOURCE UNVERIFIED' : 'GO2 ESTIMATE · UNVERIFIED';
+    scene.options.robotPoseLabel = r?.provisional === true
+      ? `GO2 ESTIMATE · PROVISIONAL · ${state.provenance_mode === 'subscription_observation' ? 'SOURCE / BODY UNVERIFIED' : 'BODY UNVERIFIED'}`
+      : state.provenance_mode === 'subscription_observation' ? 'GO2 ESTIMATE · SOURCE UNVERIFIED' : 'GO2 ESTIMATE · UNVERIFIED';
     scene.setRobotVisible(context.robotVisible); scene.setRobotPose(state.pose);
     scene.setTrail(state.trail); scene.setTrailVisible(true);
     scene.setStatus({ online: true, snapshot: false, message: state.status });

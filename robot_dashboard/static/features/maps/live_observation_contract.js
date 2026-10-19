@@ -3,6 +3,47 @@ import { identity, isRigidTransform, multiply, matrixPose, transformPoints } fro
 
 const finite = v => typeof v === 'number' && Number.isFinite(v);
 const exactStamp = v => typeof v === 'string' && /^[1-9][0-9]{0,19}$/.test(v);
+const ORIGINAL_POLICY_ID = 'robot-scope.residual-policy.original-0.05m.v1';
+const PROVISIONAL_POLICY_ID = 'robot-scope.residual-policy.provisional-0.10m.v1';
+const policyFields = Object.freeze({ source_policy_id: ORIGINAL_POLICY_ID, original_max_rmse_m: .05,
+  unit: 'm', evaluation_scope: 'STORED_RMSE_ONLY', observation_only: true, no_accuracy_claim: true, accuracy_verified: false });
+const qualificationFields = ['residual_evaluation', 'original_assessment', 'gate_reasons', 'provisional', 'candidate_kind', 'body_pose', 'tracking_verified'];
+function exactFields(value, expected) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).length === Object.keys(expected).length
+    && Object.entries(expected).every(([key, item]) => value[key] === item);
+}
+function validPolicy(value, provisional) {
+  return exactFields(value, { ...policyFields, policy_id: provisional ? PROVISIONAL_POLICY_ID : ORIGINAL_POLICY_ID,
+    max_rmse_m: provisional ? .10 : .05, provisional,
+    qualifier: provisional ? 'PROVISIONAL_RESIDUAL_ONLY' : 'ORIGINAL_RESIDUAL_ONLY' });
+}
+// Residual metadata cannot grant candidate acceptance. The independent numeric
+// gates and every source/lifecycle fence below still apply to the live wrapper.
+function observationQualification(value, candidate) {
+  if (!qualificationFields.some(key => Object.hasOwn(value, key))) return { valid: true, provisional: false };
+  const m = value.metrics, e = value.residual_evaluation, original = value.original_assessment;
+  const activeCandidate = value.status === candidate;
+  if (!qualificationFields.every(key => Object.hasOwn(value, key)) || value.provisional !== true
+      || value.candidate_kind !== 'PROVISIONAL_OBSERVATION_HYPOTHESIS' || value.body_pose !== null
+      || value.tracking_verified !== false || value.body_pose_verified !== false || value.body_extrinsic_verified !== false
+      || value.absolute_accuracy_m !== null || !['CANDIDATE', 'REJECTED'].includes(original?.status)
+      || typeof original.reason !== 'string' || !original.reason || original.max_rmse_m !== .05
+      || (original.status === 'CANDIDATE') !== (original.reason === 'CANDIDATE')
+      || !Array.isArray(value.gate_reasons) || !value.gate_reasons.every(reason => typeof reason === 'string' && /^[A-Z][A-Z0-9_]{0,99}$/.test(reason))
+      || new Set(value.gate_reasons).size !== value.gate_reasons.length
+      || ![candidate, 'REJECTED'].includes(value.status) || activeCandidate !== (value.gate_reasons.length === 0)) return { valid: false };
+  if (e === null) return { valid: !activeCandidate && m?.rmse_m === null && original.status === 'REJECTED', provisional: true };
+  if (!e || typeof e !== 'object' || Array.isArray(e) || Object.keys(e).length !== 7
+      || !finite(m?.rmse_m) || m.rmse_m < 0 || e.rmse_m !== m.rmse_m
+      || !validPolicy(e.policy, true) || !validPolicy(e.original_policy, false)
+      || e.residual_passed !== (m.rmse_m <= .10) || e.original_residual_passed !== (m.rmse_m <= .05)
+      || e.overall_candidate_acceptance_evaluated !== false || e.overall_candidate_accepted !== null
+      || (original.status === 'CANDIDATE' && !e.original_residual_passed)) return { valid: false };
+  if (activeCandidate && (original.status !== (e.original_residual_passed ? 'CANDIDATE' : 'REJECTED')
+      || original.reason !== (e.original_residual_passed ? 'CANDIDATE' : 'HIGH_RESIDUAL'))) return { valid: false };
+  return { valid: true, provisional: true };
+}
 export const OBSERVATION_LIMITS = Object.freeze({ staleMs: 1000, pairSeconds: .15, maxPoints: 10000, jumpMetres: 1, jumpRadians: Math.PI / 3 });
 export function inverseRigid(m) {
   if (!isRigidTransform(m)) throw new Error('INVALID_TRANSFORM');
@@ -235,7 +276,7 @@ export class LiveMapObservation {
   snapshot() {
     const base = { enabled: this.enabled, status: this.reason, map: this.map, anchor: this.anchor,
       pose: null, points: null, trail: [], absolute_accuracy_m: null, map_registration: this.registration?.status || 'NOT_RUN',
-      source_to_display_latency_ms: null, body_pose_verified: false, body_extrinsic_verified: false,
+      source_to_display_latency_ms: null, body_pose_verified: false, body_extrinsic_verified: false, body_pose: null, tracking_verified: false,
       provenance_mode: this.provenanceMode, per_message_publisher_verified: Boolean(this.provenanceMode === 'native_publisher' && this.pose && this.cloud), telemetry: this.telemetrySnapshot() };
     if (!this.enabled) return base;
     let pair;
@@ -312,13 +353,20 @@ export class LiveMapObservation {
         || Math.abs(this.cloud.value.observation.received_monotonic_s - value.source.received_monotonic_s) > 1) {
       this.alignmentFailed('RESULT_STALE', generation); return false;
     }
+    const qualification = observationQualification(value, candidate);
+    if (!qualification.valid) {
+      this.alignmentFailed('RESULT_POLICY_MISMATCH', generation); return false;
+    }
     this.registration = { ...value, received: requestedAt };
     if (value.status !== candidate) return false;
     const m = value.metrics;
     if (value.reason !== candidate || !isRigidTransform(value.T_map_odom) || m?.converged !== true
-        || !finite(m.rmse_m) || m.rmse_m < 0 || m.rmse_m > .05 || !finite(m.overlap_ratio) || m.overlap_ratio < .60 || m.overlap_ratio > 1
+        || !finite(m.rmse_m) || m.rmse_m < 0 || m.rmse_m > (qualification.provisional ? .10 : .05) || !finite(m.overlap_ratio) || m.overlap_ratio < .60 || m.overlap_ratio > 1
         || !finite(m.geometry_min_max_eigen_ratio) || m.geometry_min_max_eigen_ratio < .002
-        || !finite(m.matched_geometry_min_max_eigen_ratio) || m.matched_geometry_min_max_eigen_ratio < .002 || value.correspondence_gate_m !== .75) {
+        || !finite(m.matched_geometry_min_max_eigen_ratio) || m.matched_geometry_min_max_eigen_ratio < .002 || value.correspondence_gate_m !== .75
+        || (qualification.provisional && (m.geometry_min_max_eigen_ratio > 1 || m.matched_geometry_min_max_eigen_ratio > 1
+          || !Number.isSafeInteger(value.query_points) || value.query_points < 60 || value.query_points > 512
+          || !Number.isSafeInteger(m.inlier_count) || m.inlier_count < 60 || m.inlier_count > value.query_points))) {
       this.alignmentFailed('RESULT_GATE_MISMATCH', generation); return false;
     }
     if (jump(multiply(this.anchor.T_map_odom, this.pose.matrix), multiply(value.T_map_odom, this.pose.matrix))) { this.invalidate('ALIGNMENT_JUMP'); return false; }
@@ -336,7 +384,7 @@ export class LiveMapObservation {
     return { schema: 'robot-scope.live-map-observation.v1', data_kind: 'OBSERVATION_ESTIMATE',
       generated_at: new Date().toISOString(), limits: OBSERVATION_LIMITS, map: state.map,
       anchor: state.anchor, status: state.status, map_registration: this.registration || 'NOT_RUN', absolute_accuracy_m: null,
-      operational_application: 'NOT_RUN', body_pose_verified: false, samples: this.samples,
+      operational_application: 'NOT_RUN', body_pose_verified: false, body_pose: null, tracking_verified: false, samples: this.samples,
       provenance_mode: this.provenanceMode, per_message_publisher_verified: Boolean(this.provenanceMode === 'native_publisher' && this.pose && this.cloud), body_extrinsic_verified: false,
       source: { pose: this.pose?.value.observation || null, cloud: this.cloud?.value.observation || null } };
   }

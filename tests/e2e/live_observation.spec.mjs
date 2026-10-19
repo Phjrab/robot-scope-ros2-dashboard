@@ -27,9 +27,9 @@ function binary(seq, observation) {
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false}={}) {
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
-    session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1 }, writes=[], errors=[];
+    session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false }, writes=[], errors=[];
   const evidence=kind=>subscriptionEvidence?{kind,session:state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=> { if(r.method()!=='GET') writes.push(new URL(r.url()).pathname); });
@@ -41,12 +41,24 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
   backend.on('/api/v1/observations/map-alignment',({json,body})=>{
     const fallback=body.provenance_mode==='subscription_observation',candidate=fallback?'CANDIDATE_SOURCE_UNVERIFIED':'CANDIDATE';
     const provenance=fallback?{provenance_mode:'subscription_observation',per_message_publisher_verified:false,body_extrinsic_verified:false}:{};
+    const originalPolicy={policy_id:'robot-scope.residual-policy.original-0.05m.v1',source_policy_id:'robot-scope.residual-policy.original-0.05m.v1',
+      max_rmse_m:.05,original_max_rmse_m:.05,provisional:false,qualifier:'ORIGINAL_RESIDUAL_ONLY',unit:'m',
+      evaluation_scope:'STORED_RMSE_ONLY',observation_only:true,no_accuracy_claim:true,accuracy_verified:false};
+    const qualification=provisional?{provisional:true,candidate_kind:'PROVISIONAL_OBSERVATION_HYPOTHESIS',
+      body_pose:null,tracking_verified:false,body_pose_verified:false,body_extrinsic_verified:false,absolute_accuracy_m:null,
+      query_points:100,gate_reasons:state.nonconverged?['NOT_CONVERGED']:[],
+      original_assessment:{status:'REJECTED',reason:'HIGH_RESIDUAL',max_rmse_m:.05},
+      residual_evaluation:{rmse_m:.07,residual_passed:true,original_residual_passed:false,
+        policy:{...originalPolicy,policy_id:'robot-scope.residual-policy.provisional-0.10m.v1',max_rmse_m:.10,
+          provisional:true,qualifier:'PROVISIONAL_RESIDUAL_ONLY',unit:state.policyMismatch?'cm':'m'},original_policy:originalPolicy,
+        overall_candidate_acceptance_evaluated:false,overall_candidate_accepted:null}}:{};
     return json({schema:'robot-scope.observation-alignment.v1',experimental:true,
     operational_application:'NOT_RUN',map_id:id,map_revision:revision,target_frame:'map',
-    ...provenance,...(fallback?{body_pose_verified:false}:{}),source:{...body,...provenance,received_monotonic_s:state.lastCloud.received_monotonic_s},
-    status:state.rejected?'REJECTED':candidate,reason:state.rejected?'HIGH_RESIDUAL':candidate,
+    ...provenance,...(fallback?{body_pose_verified:false}:{}),...qualification,source:{...body,...provenance,received_monotonic_s:state.lastCloud.received_monotonic_s},
+    status:state.rejected||state.nonconverged?'REJECTED':candidate,reason:state.nonconverged?'NOT_CONVERGED':state.rejected?'HIGH_RESIDUAL':candidate,
     T_map_odom:body.T_map_odom_seed,correspondence_gate_m:.75,
-    metrics:{converged:true,rmse_m:.02,overlap_ratio:.8,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2}});
+    metrics:{converged:!state.nonconverged,rmse_m:provisional?.07:.02,overlap_ratio:.8,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2,
+      ...(provisional?{inlier_count:80}:{})}});
   });
   await page.routeWebSocket('**/api/v1/ws/pose',socket=>{
     let seq=0; const send=()=>{ if(state.streaming) socket.send(JSON.stringify({seq:++seq,topic:'/Odometry',frame_id:'odom',child_frame_id:'base_link',
@@ -173,6 +185,49 @@ test('subscription graph candidates require explicit opt-in and reanchor after m
   await expect(page.locator('#savedLiveAnchor')).toBeDisabled(); await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
   await expect(page.locator('#savedLiveState')).toHaveText('SOURCE_IDENTITY_UNAVAILABLE');
+  expect(writes.length).toBeGreaterThan(0); expect(writes.every(p=>p==='/api/v1/observations/map-alignment')).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('provisional 7cm observation preserves original rejection and clears nonconverged geometry while keeping residual',async({page},testInfo)=>{
+  const {state,writes,errors}=await fixture(page,{provisional:true});
+  const original=await page.evaluate(()=>Array.from(window.observationScene.cloud.points));
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toHaveText('SCAN_TO_MAP_CANDIDATE_UNVERIFIED');
+  const metrics=page.locator('#savedLiveMetrics');
+  await expect(metrics).toContainText('RMSE 0.07000 m');
+  await expect(metrics).toContainText('잠정 10cm 잔차 통과 · 원본 5cm 잔차 미통과');
+  await expect(metrics).toContainText('원본 판정 REJECTED (HIGH_RESIDUAL)');
+  await expect(metrics).toContainText('정합 잔차≠실제 위치오차 · 본체/추적 미검증');
+  expect(await page.evaluate(()=>window.observationScene.options.robotPoseLabel)).toBe('GO2 ESTIMATE · PROVISIONAL · BODY UNVERIFIED');
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay.points.length)).toBe(points.length);
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-provisional-7cm.png')});
+  state.nonconverged=true;
+  await expect(page.locator('#savedLiveState')).toContainText('REJECTED · NOT_CONVERGED');
+  await expect(metrics).toContainText('RMSE 0.07000 m');
+  await expect(metrics).toContainText('잠정 10cm 잔차 통과 · 원본 5cm 잔차 미통과');
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
+  expect(await page.evaluate(()=>Array.from(window.observationScene.cloud.points))).toEqual(original);
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  expect(writes.length).toBeGreaterThan(0); expect(writes.every(p=>p==='/api/v1/observations/map-alignment')).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('source-unverified provisional observation still rejects altered residual-policy metadata',async({page})=>{
+  const {state,writes,errors}=await fixture(page,{identityUnavailable:true,subscriptionEvidence:true,provisional:true});
+  await page.locator('#savedLiveSourceUnverified').check();
+  await page.locator('#savedLiveConfirm').check();
+  await expect(page.locator('#savedLiveAnchor')).toBeEnabled(); await page.locator('#savedLiveAnchor').click();
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toHaveText('SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED');
+  await expect(page.locator('#savedLiveMetrics')).toContainText('잠정 10cm 잔차 통과 · 원본 5cm 잔차 미통과');
+  expect(await page.evaluate(()=>window.observationScene.options.robotPoseLabel)).toBe('GO2 ESTIMATE · PROVISIONAL · SOURCE / BODY UNVERIFIED');
+  state.policyMismatch=true;
+  await expect(page.locator('#savedLiveState')).toContainText('RESULT_POLICY_MISMATCH');
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
+  await expect(page.locator('#savedLiveMetrics')).not.toContainText('잠정 10cm 잔차 통과');
   expect(writes.length).toBeGreaterThan(0); expect(writes.every(p=>p==='/api/v1/observations/map-alignment')).toBe(true);
   expect(errors).toEqual([]);
 });

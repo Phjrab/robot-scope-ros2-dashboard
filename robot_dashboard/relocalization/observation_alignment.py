@@ -2,7 +2,8 @@
 
 Raw scans are explicitly projected through an unverified configured extrinsic
 and receipt-paired odometry. A candidate is a display estimate, not localization
-qualification. Original offline results and all experimental gates are unchanged.
+qualification. The original offline result is retained alongside an explicit
+provisional residual policy; all other input and numerical gates remain in place.
 """
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ import numpy as np
 
 from ..ros.observation_identity import subscription_evidence_key
 from .observation_timing import measure, note
+from .observation_policy import qualify_observation
 
 from .experimental_se3 import (
     Cloud, MAX_CORRESPONDENCE_M, compose, from_translation_quaternion,
@@ -244,6 +246,8 @@ class ObservationAligner:
             if ratio < MIN_GEOMETRY_RATIO:
                 result["status"], result["reason"] = "REJECTED", "DEGENERATE_MATCHED_GEOMETRY"
             result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
+            result["metrics"]["inlier_count"] = len(matched)
+            assessment = qualify_observation(result, inlier_count=len(matched), query_count=len(points))
             with measure("completion_validation"):
                 if catalog.metadata(identifier).get("revision") != revision:
                     raise ObservationAlignmentError("MAP_CHANGED")
@@ -260,16 +264,16 @@ class ObservationAligner:
                 project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)
                 if time.monotonic() > deadline:
                     raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
-            if provenance_mode == "subscription_observation" and result["status"] == "CANDIDATE":
-                result["status"] = "CANDIDATE_SOURCE_UNVERIFIED"
-                result["reason"] = "CANDIDATE_SOURCE_UNVERIFIED"
+            if provenance_mode == "subscription_observation" and assessment["status"] == "CANDIDATE":
+                assessment["status"] = "CANDIDATE_SOURCE_UNVERIFIED"
+                assessment["reason"] = "CANDIDATE_SOURCE_UNVERIFIED"
             return {"schema": "robot-scope.observation-alignment.v1", "experimental": True,
                 "operational_application": "NOT_RUN", "body_pose_verified": False, "absolute_accuracy_m": None,
                 "body_extrinsic_verified": False,
                 "provenance_mode": provenance_mode,
                 "per_message_publisher_verified": provenance_mode == "native_publisher",
                 "map_id": identifier, "map_revision": revision, "target_frame": target_frame,
-                "source": provenance, "status": result["status"], "reason": result["reason"],
+                "source": provenance, **assessment,
                 "T_map_odom": transform.tolist(), "metrics": result["metrics"],
                 "reference_points": len(reference), "query_points": len(points),
                 "correspondence_gate_m": MAX_CORRESPONDENCE_M, "sampling": "uniform_stride_query_max512_full_normalized_reference",

@@ -1,3 +1,14 @@
+# LiDAR provisional observation — local candidate, 2026-10-19
+
+Current read-only runtime/source inspection and the explicit 10cm residual-only
+policy are recorded in [LIDAR_PROVISIONAL_OBSERVATION.md](LIDAR_PROVISIONAL_OBSERVATION.md).
+Installed source is `fe5bc2b`; control bridge is inactive/disabled. New code stays
+local pending separate deployment approval. The original 5cm results, raw point
+clouds/maps and nonresidual gates remain preserved. No new registration, sensor
+service, robot motion, pose/TF application or public push occurred in this stage.
+
+The following sections are historical snapshots with their original dates.
+
 # Saved 3D observation/editor integration — local candidate, 2026-10-18
 
 Read [SAVED_3D_OBSERVATION.md](SAVED_3D_OBSERVATION.md) for the current source,

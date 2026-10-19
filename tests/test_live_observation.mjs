@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LiveMapObservation, inverseRigid, rpyMatrix } from '../robot_dashboard/static/features/maps/live_observation_contract.js';
-import { observationAvailabilityText, observationTelemetryText } from '../robot_dashboard/static/features/maps/live_observation.js';
+import { observationAvailabilityText, observationRegistrationText, observationTelemetryText } from '../robot_dashboard/static/features/maps/live_observation.js';
 import { identity, multiply, transformPoints } from '../robot_dashboard/static/features/experiments/recorded_report.js';
 
 const stamp = 1792309179130175352n;
@@ -62,6 +62,23 @@ function result(model, changes = {}) {
     source: { ...body, ...provenance, received_monotonic_s: model.cloud.value.observation.received_monotonic_s },
     status: fallback ? 'CANDIDATE_SOURCE_UNVERIFIED' : 'CANDIDATE', reason: fallback ? 'CANDIDATE_SOURCE_UNVERIFIED' : 'CANDIDATE', T_map_odom: model.anchor.T_map_odom, correspondence_gate_m: .75,
     metrics: { converged: true, rmse_m: .02, overlap_ratio: .8, geometry_min_max_eigen_ratio: .2, matched_geometry_min_max_eigen_ratio: .2 }, ...changes };
+}
+function provisionalResult(model, rmse = .07) {
+  const originalPolicy = { policy_id: 'robot-scope.residual-policy.original-0.05m.v1',
+    source_policy_id: 'robot-scope.residual-policy.original-0.05m.v1', max_rmse_m: .05,
+    provisional: false, qualifier: 'ORIGINAL_RESIDUAL_ONLY', original_max_rmse_m: .05,
+    unit: 'm', evaluation_scope: 'STORED_RMSE_ONLY', observation_only: true, no_accuracy_claim: true, accuracy_verified: false };
+  return result(model, { provisional: true, candidate_kind: 'PROVISIONAL_OBSERVATION_HYPOTHESIS',
+    body_pose: null, body_pose_verified: false, body_extrinsic_verified: false, tracking_verified: false, absolute_accuracy_m: null,
+    query_points: 100, gate_reasons: [],
+    metrics: { converged: true, rmse_m: rmse, overlap_ratio: .8, inlier_count: 80,
+      geometry_min_max_eigen_ratio: .2, matched_geometry_min_max_eigen_ratio: .2 },
+    original_assessment: { status: rmse <= .05 ? 'CANDIDATE' : 'REJECTED', reason: rmse <= .05 ? 'CANDIDATE' : 'HIGH_RESIDUAL', max_rmse_m: .05 },
+    residual_evaluation: { rmse_m: rmse, residual_passed: rmse <= .10, original_residual_passed: rmse <= .05,
+      policy: { ...originalPolicy, policy_id: 'robot-scope.residual-policy.provisional-0.10m.v1', max_rmse_m: .10,
+        provisional: true, qualifier: 'PROVISIONAL_RESIDUAL_ONLY' }, original_policy: originalPolicy,
+      overall_candidate_acceptance_evaluated: false, overall_candidate_accepted: null },
+  });
 }
 function close(a, b) { assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`); }
 
@@ -365,4 +382,136 @@ test('identity guidance distinguishes received raw data from unavailable map reg
   model.invalidate('CLEARED');
   assert.match(observationTelemetryText(model.snapshot().telemetry), /점군: 현재 수신 요약 없음 \| native odometry: 현재 수신 요약 없음/);
   assert.doesNotMatch(observationTelemetryText(model.snapshot().telemetry), /\/cloud_registered|source 1792/);
+});
+
+test('explicit provisional policy permits 10cm boundary while preserving original 5cm assessment', () => {
+  for (const prepare of [setup, setupSubscription]) for (const rmse of [.05, .07, .10]) {
+    const { model } = prepare(); model.registrationEnabled = true;
+    const value = provisionalResult(model, rmse);
+    assert.equal(model.applyAlignment(value, model.generation), true);
+    const state = model.snapshot(), exported = model.exportRecord();
+    assert.ok(state.pose); assert.ok(state.points);
+    assert.deepEqual(state.registration.original_assessment, value.original_assessment);
+    assert.equal(state.registration.residual_evaluation.original_residual_passed, rmse <= .05);
+    assert.equal(exported.map_registration.residual_evaluation.overall_candidate_acceptance_evaluated, false);
+    assert.equal(exported.map_registration.residual_evaluation.overall_candidate_accepted, null);
+    assert.equal(exported.body_pose, null); assert.equal(exported.tracking_verified, false);
+    assert.equal(state.body_pose_verified, false); assert.equal(state.tracking_verified, false);
+    assert.match(observationRegistrationText(state.registration), /잠정 10cm 잔차 통과/);
+  }
+  const { model } = setup(); model.registrationEnabled = true;
+  const legacy = result(model); legacy.metrics.rmse_m = .07;
+  assert.equal(model.applyAlignment(legacy, model.generation), false);
+  assert.equal(model.registration.reason, 'RESULT_GATE_MISMATCH');
+});
+
+test('provisional residual boundary is direct and failed results keep scores and original reason', () => {
+  const { model } = setup(); model.registrationEnabled = true;
+  const value = provisionalResult(model, .10 + Number.EPSILON * .10);
+  assert.equal(value.residual_evaluation.residual_passed, false);
+  // A forged candidate above the exact threshold is rejected even when its
+  // displayed decimal value would round to 0.10000 m.
+  assert.equal(model.applyAlignment(value, model.generation), false);
+  assert.equal(model.registration.reason, 'RESULT_GATE_MISMATCH');
+  value.status = 'REJECTED'; value.reason = 'HIGH_RESIDUAL'; value.gate_reasons = ['HIGH_RESIDUAL'];
+  assert.equal(model.applyAlignment(value, model.generation), false);
+  assert.equal(model.registration.metrics.rmse_m, value.metrics.rmse_m);
+  assert.equal(model.snapshot().pose, null);
+  const text = observationRegistrationText(model.snapshot().registration);
+  assert.match(text, /RMSE 0.10000 m/); assert.match(text, /잠정 10cm 잔차 미통과/);
+  assert.match(text, /원본 5cm 잔차 미통과/); assert.match(text, /원본 판정 REJECTED \(HIGH_RESIDUAL\)/);
+  assert.match(text, /정합 잔차≠실제 위치오차 · 본체\/추적 미검증/);
+  const missing = provisionalResult(model); missing.status = 'REJECTED'; missing.reason = 'RESIDUAL_UNAVAILABLE';
+  missing.gate_reasons = ['RESIDUAL_UNAVAILABLE']; missing.metrics.rmse_m = null; missing.residual_evaluation = null;
+  assert.equal(model.applyAlignment(missing, model.generation), false);
+  assert.equal(model.registration.reason, 'RESIDUAL_UNAVAILABLE');
+  assert.match(observationRegistrationText(model.registration), /RMSE 미제공.*잠정 10cm 잔차 미평가/);
+});
+
+test('provisional metadata fails closed for altered identity, flags, values and partial policy', () => {
+  const mutations = [
+    v => { delete v.residual_evaluation; }, v => { v.residual_evaluation = null; },
+    v => { v.residual_evaluation.policy.policy_id = 'unknown'; },
+    v => { v.residual_evaluation.policy.source_policy_id = 'unknown'; },
+    v => { v.residual_evaluation.policy.max_rmse_m = .20; },
+    v => { v.residual_evaluation.policy.original_max_rmse_m = .10; },
+    v => { v.residual_evaluation.policy.unit = 'cm'; },
+    v => { v.residual_evaluation.policy.evaluation_scope = 'FULL_ACCEPTANCE'; },
+    v => { v.residual_evaluation.policy.provisional = false; },
+    v => { v.residual_evaluation.policy.qualifier = 'ORIGINAL_RESIDUAL_ONLY'; },
+    v => { v.residual_evaluation.policy.observation_only = false; },
+    v => { v.residual_evaluation.policy.no_accuracy_claim = false; },
+    v => { v.residual_evaluation.policy.accuracy_verified = true; },
+    v => { v.residual_evaluation.original_policy.max_rmse_m = .10; },
+    v => { v.residual_evaluation.rmse_m = .05; },
+    v => { v.residual_evaluation.residual_passed = false; },
+    v => { v.residual_evaluation.original_residual_passed = true; },
+    v => { v.residual_evaluation.overall_candidate_acceptance_evaluated = true; },
+    v => { v.residual_evaluation.overall_candidate_accepted = true; },
+    v => { v.provisional = false; }, v => { v.candidate_kind = 'BODY_POSE'; },
+    v => { v.tracking_verified = true; }, v => { v.body_pose = {}; },
+    v => { v.body_pose_verified = true; }, v => { v.body_extrinsic_verified = true; },
+    v => { v.absolute_accuracy_m = .10; }, v => { v.original_assessment.max_rmse_m = .10; },
+    v => { v.original_assessment.status = 'CANDIDATE'; v.original_assessment.reason = 'CANDIDATE'; },
+    v => { v.original_assessment.reason = 'NOT_CONVERGED'; },
+    v => { v.gate_reasons = ['NOT_CONVERGED']; }, v => { v.gate_reasons = null; },
+  ];
+  for (const mutate of mutations) {
+    const { model } = setup(); model.registrationEnabled = true;
+    const originalAnchor = model.anchor.T_map_odom, value = provisionalResult(model); mutate(value);
+    assert.equal(model.applyAlignment(value, model.generation), false);
+    assert.equal(model.registration.reason, 'RESULT_POLICY_MISMATCH');
+    assert.equal(model.snapshot().pose, null); assert.equal(model.anchor.T_map_odom, originalAnchor);
+  }
+});
+
+test('provisional residual pass cannot bypass nonresidual numeric gates', () => {
+  for (const mutate of [
+    v => { v.metrics.converged = false; }, v => { v.metrics.overlap_ratio = .59; },
+    v => { v.metrics.geometry_min_max_eigen_ratio = .001; },
+    v => { v.metrics.matched_geometry_min_max_eigen_ratio = .001; },
+    v => { v.metrics.geometry_min_max_eigen_ratio = 1.1; },
+    v => { v.metrics.inlier_count = 59; }, v => { v.metrics.inlier_count = 101; },
+    v => { v.metrics.inlier_count = 60.5; }, v => { delete v.metrics.inlier_count; },
+    v => { v.query_points = 59; }, v => { v.query_points = 513; },
+    v => { v.correspondence_gate_m = .10; },
+  ]) {
+    const { model } = setup(); model.registrationEnabled = true;
+    const value = provisionalResult(model); mutate(value);
+    assert.equal(model.applyAlignment(value, model.generation), false);
+    assert.equal(model.registration.reason, 'RESULT_GATE_MISMATCH');
+    assert.equal(model.snapshot().pose, null);
+  }
+  const { model } = setup(); model.registrationEnabled = true;
+  const rejected = provisionalResult(model); rejected.status = 'REJECTED'; rejected.reason = 'NOT_CONVERGED';
+  rejected.metrics.converged = false; rejected.gate_reasons = ['NOT_CONVERGED'];
+  // Original geometry can be the highest-priority original reason while the
+  // separate 10cm residual passes. Keep that historical decision visible.
+  rejected.original_assessment.reason = 'DEGENERATE_MATCHED_GEOMETRY';
+  assert.equal(model.applyAlignment(rejected, model.generation), false);
+  assert.equal(model.registration.reason, 'NOT_CONVERGED'); assert.equal(model.snapshot().pose, null);
+  assert.match(observationRegistrationText(model.registration), /잠정 10cm 잔차 통과.*DEGENERATE_MATCHED_GEOMETRY/);
+});
+
+test('provisional results retain map, epoch, generation, timeout, freshness and jump fences', () => {
+  for (const mutate of [
+    v => { v.map_revision = 'e'.repeat(64); }, v => { v.source.cloud_epoch = 'e'.repeat(32); },
+    v => { v.source.pose_epoch = 'e'.repeat(32); }, v => { v.source.observer_id = 'e'.repeat(32); },
+  ]) {
+    const { model } = setup(); model.registrationEnabled = true;
+    const value = provisionalResult(model); mutate(value);
+    assert.equal(model.applyAlignment(value, model.generation), false);
+    assert.equal(model.registration.reason, 'RESULT_IDENTITY_MISMATCH');
+  }
+  const { model, setNow } = setup(); model.registrationEnabled = true;
+  const value = provisionalResult(model), generation = model.generation;
+  setNow(1001); model.ingestPose(pose(2)); model.ingestCloud(cloud(2));
+  assert.equal(model.applyAlignment(value, generation, 0), false); assert.equal(model.registration.reason, 'RESULT_STALE');
+  model.setAnchor(guess, true); model.registrationEnabled = true;
+  assert.equal(model.applyAlignment(value, generation), false); assert.equal(model.registration, null);
+  const fresh = provisionalResult(model); fresh.T_map_odom = fresh.T_map_odom.map(row => [...row]); fresh.T_map_odom[0][3] += 2;
+  assert.equal(model.applyAlignment(fresh, model.generation), false); assert.equal(model.reason, 'ALIGNMENT_JUMP');
+  const f = setup(); f.model.registrationEnabled = true;
+  assert.equal(f.model.applyAlignment(provisionalResult(f.model), f.model.generation), true);
+  f.setNow(1001); assert.equal(f.model.snapshot().pose, null); assert.equal(f.model.anchor, null); assert.equal(f.model.registration, null);
 });

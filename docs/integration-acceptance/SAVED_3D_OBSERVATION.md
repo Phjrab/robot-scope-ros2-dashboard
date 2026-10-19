@@ -307,3 +307,25 @@ related JavaScript 22 passed, architecture 10 passed and scoped Ruff passed.
 The first sandboxed full run's 25 UNIX-socket `PermissionError` results are
 preserved separately; the same source passed in the local socket-capable run.
 No test gate was removed or weakened.
+
+## Provisional residual policy — 2026-10-19 (local candidate)
+
+The subsequent explicit user instruction sets the observation residual limit to
+`RMSE <= 0.10 m`, preserving the original 5 cm assessment. This supersedes only
+the live wrapper's residual gate described above. Input populations, original
+offline solver/validator, convergence, overlap, geometry, freshness, source/map
+identity and compute limits remain unchanged. A residual pass is not a verified
+body pose, accuracy measurement or tracking result.
+
+[Current implementation and runtime evidence](LIDAR_PROVISIONAL_OBSERVATION.md)
+separate the existing bounded live path from the unintegrated raw v0.3.1 global
+worker. The latter's `T_map_sensor` must not be interpreted as `T_map_odom`.
+The historical raw879 result remains rejected for nonstationary refinement;
+only its stored 7.04 cm residual satisfies the provisional limit.
+
+The operator currently reports the October 18 mapping start position and
+heading again. This is a newly stated approximate prior, not a correction to
+the older captured conditions or a measured ground-truth pose. Read-only robot
+inspection found installed `fe5bc2b`, bridge inactive/disabled, and existing
+XT16/IMU/native odometry reception. No current-stage deployment or restart has
+been authorized or performed.
