@@ -1,0 +1,14 @@
+{
+  "schema": "robot-scope.global-source-pin.v1",
+  "provenance": "GENERATED_ON_LINUX_RECEIPT_NOT_ORIGINAL_UPSTREAM_MANIFEST",
+  "archive_sha256": "0e4abbc70de139fdef45e90b6958d0f1f7c997a52b7ffb24bee718355bd12593",
+  "files": {
+    "auto_localization/__init__.py": "f25384be464f4f5262f3c218b83fd9aadb8e511ee72ade354c20a48e10fb7711",
+    "auto_localization/engine.py": "8b38adcc876b3dfb9b7277e0190e465f1fafa3e2731412e20b2101609a6c0061",
+    "auto_localization/isolated.py": "a9693de08db555c95d59d864df8d5a8ccd52610aaeb50f08f541cec6288f39a2",
+    "auto_localization/observation_adapter.py": "c1a01e6aad05fda1ab962cbb4e7b3e23792fc7cccdbf7e52236dae583ed1908d",
+    "auto_localization/open3d_backend.py": "d28f216f973d69e60a2c273d92c177ec4ccdeab0bc613e518b54ccab239b1036",
+    "auto_localization/replay.py": "7fffb24b6899c758647ff6197bdb1ed16dd6efa637f73a0667ef92c398bd5a0a",
+    "auto_localization/se3_observation.py": "bb3205011ae188bfc20d059c9708e31fb0270fdac515b7663093aad3fccfd5a9"
+  }
+}
