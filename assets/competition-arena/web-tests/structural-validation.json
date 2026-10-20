@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "validationKind": "Actual GLTFLoader parsing and static integration; no browser runtime or GPU rendering claim",
+  "glbBytes": 359372,
+  "gltfVersion": "2.0",
+  "threeRevision": "180",
+  "meshCount": 83,
+  "triangles": 6692,
+  "categories": {
+    "floor": 15,
+    "wall": 30,
+    "ramp": 2,
+    "stair": 4,
+    "signal": 12,
+    "marking": 10,
+    "label": 6,
+    "zone": 4
+  },
+  "worldBoundsYUp": {
+    "min": [
+      0,
+      -0.05999999865889549,
+      -6.01800012588501
+    ],
+    "max": [
+      8,
+      0.8399999886751175,
+      0
+    ]
+  },
+  "metadataDimensions": 12,
+  "metadataAssumptions": 14,
+  "metadataObjects": 83,
+  "coordinateChecks": 83,
+  "browserRuntime": "NOT VERIFIED: sandbox Chromium socket permission error; approved execution retry failed due to sandbox setup read-only path error. No browser screenshot was produced.",
+  "checks": [
+    "GLB header, version, and declared byte length",
+    "Embedded resources only",
+    "Actual vendored GLTFLoader parses every mesh",
+    "Finite vertex bounds and nonzero triangles",
+    "Expected named geometry classes",
+    "Every metadata object resolves to a GLB mesh",
+    "Per-object Z-up to Y-up bounding-box coordinate conversion",
+    "All dependencies locally present",
+    "No external asset URLs in application"
+  ]
+}

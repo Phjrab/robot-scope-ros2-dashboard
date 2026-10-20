@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#182f2b">
+  <title>경기장 3D 검토 | Competition Arena</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="importmap">
+    {"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">⌁</span><div><p class="eyebrow">COMPETITION ARENA</p><h1>경기장 3D 검토</h1></div></div>
+    <div class="header-meta"><span class="local-tag">로컬 미리보기</span><span class="version">Blender → glTF 2.0</span></div>
+  </header>
+  <main class="workspace">
+    <aside class="sidebar" aria-label="모델 정보 및 레이어">
+      <section class="intro">
+        <p class="eyebrow dark">IMAGE-BASED RECONSTRUCTION</p>
+        <h2>경기장을 한눈에.</h2>
+        <p class="subtle">모델을 회전하고, 평면으로 확인하고,<br>확인된 치수와 추정값을 함께 검토하세요.</p>
+        <div class="model-status" role="status"><span class="status-dot"></span><span id="load-status">GLB 모델 불러오는 중…</span></div>
+      </section>
+      <section class="notice" aria-label="중요한 제한">
+        <strong>검토용 모델 · 주행 검증 전</strong>
+        <p>사진과 도면으로 재구성한 시각화입니다. 추정 치수는 현장 실측이 필요하며, 로봇의 경로 계획·충돌 판정에 바로 사용하지 마세요.</p>
+      </section>
+      <section class="panel">
+        <div class="section-heading"><h3>표시 레이어</h3><span id="mesh-count" class="quiet">—</span></div>
+        <div class="layer-list">
+          <label class="layer-row"><span><i class="swatch floor"></i>바닥 · 구역</span><input type="checkbox" data-layer="floor" checked><span class="switch" aria-hidden="true"></span></label>
+          <label class="layer-row"><span><i class="swatch wall"></i>벽 · 경계</span><input type="checkbox" data-layer="walls" checked><span class="switch" aria-hidden="true"></span></label>
+          <label class="layer-row"><span><i class="swatch obstacle"></i>장애물 · 경사로</span><input type="checkbox" data-layer="obstacles" checked><span class="switch" aria-hidden="true"></span></label>
+          <label class="layer-row"><span><i class="swatch label"></i>라벨 · 치수선</span><input type="checkbox" data-layer="labels" checked><span class="switch" aria-hidden="true"></span></label>
+          <label class="layer-row"><span><i class="swatch grid"></i>1 m 기준 격자</span><input type="checkbox" data-layer="grid" checked><span class="switch" aria-hidden="true"></span></label>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>치수와 가정</h3>
+        <p class="subtle small">길이 단위 m · 원본 좌표계 Z-up</p>
+        <div class="evidence-legend"><span><i class="evidence-dot given"></i>명시 치수</span><span><i class="evidence-dot estimated"></i>추정 / 재구성</span></div>
+        <div id="dimension-summary" class="dimension-list"><p class="quiet">arena.json을 확인하고 있습니다.</p></div>
+        <button class="text-button" id="show-details">전체 치수 · 추정 근거 보기 <span>↗</span></button>
+      </section>
+      <section class="panel selection-panel" aria-live="polite">
+        <div class="section-heading"><h3>선택 객체</h3><button class="tiny-button" id="clear-selection" aria-label="선택 해제">해제</button></div>
+        <p id="selection-name" class="object-name">모델의 객체를 클릭하세요</p>
+        <div id="selection-details" class="small subtle">선택한 객체의 원본 좌표와 모델 외접상자를 확인할 수 있습니다.</div>
+      </section>
+      <footer class="sidebar-footer"><a href="../arena.glb" download>GLB</a><a href="../arena.json" download>치수 JSON</a><a href="../README_WEB.md">사용 안내</a><span>로컬 파일 · 외부 전송 없음</span></footer>
+    </aside>
+    <section class="viewport" aria-label="경기장 3D 뷰어">
+      <div class="viewport-toolbar"><div class="segmented" role="group" aria-label="시점 선택"><button id="perspective" aria-pressed="true">입체 보기</button><button id="top" aria-pressed="false">평면 보기</button></div><button id="reset" class="reset-button" title="시점, 레이어, 선택을 초기 상태로 되돌립니다">↻ <span>초기화</span></button></div>
+      <div id="canvas-host"></div>
+      <div class="viewport-top-label"><span class="green-dot"></span>실제 GLB 파일 렌더링</div>
+      <div class="axis-caption"><span class="axis-badge">m</span><div><strong id="view-caption">입체 · 원근 투영</strong><span>평면 기준 +X 오른쪽 / +Y 위쪽</span></div></div>
+      <div class="gesture-caption">드래그 회전 · 우클릭 이동 · 스크롤 확대<span>터치: 한 손가락 회전 · 두 손가락 이동/확대</span></div>
+      <div id="error-message" class="error-message" hidden></div>
+      <noscript><div class="error-message">이 미리보기는 JavaScript가 필요합니다. 최신 브라우저에서 로컬 HTTP 서버로 여세요.</div></noscript>
+    </section>
+  </main>
+  <dialog id="details-dialog" aria-labelledby="details-title">
+    <header class="dialog-header"><div><p class="eyebrow dark">MODEL ASSUMPTIONS</p><h2 id="details-title">전체 치수와 재구성 근거</h2></div><button id="close-details" class="close-button" aria-label="닫기">×</button></header>
+    <div class="dialog-body"><p class="dialog-notice">아래 값은 arena.json 원본에서 읽습니다. 명시 치수라도 실제 시공 치수나 로봇 통과 가능성이 검증된 것은 아닙니다.</p><div id="metadata-view"></div><details class="raw-details"><summary>전체 원본 JSON 펼치기</summary><pre id="raw-json"></pre></details></div>
+    <footer class="dialog-footer"><span>좌표 변환: Blender (x, y, z) → glTF (x, z, −y)</span><a href="../arena.json" download>arena.json 내려받기</a></footer>
+  </dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
