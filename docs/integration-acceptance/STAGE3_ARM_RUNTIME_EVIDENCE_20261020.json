@@ -1,0 +1,308 @@
+{
+  "schema": "robot-scope.stage3-arm-runtime-checkpoint.v1",
+  "created_at_utc": "2026-10-20T11:49:19.034850+00:00",
+  "origin": "execution-generated summary; not upstream manifest or ground truth",
+  "remote_git_head": "d7807de8f15fb457942039bb90ab41cf68d384c6",
+  "deployment_kind": "verified_37_file_overlay_with_4_backend_env_entries",
+  "original_source": {
+    "original_files_checked": 48,
+    "file_mismatches": [],
+    "archive_bytes": 69619,
+    "archive_sha256": "0e4abbc70de139fdef45e90b6958d0f1f7c997a52b7ffb24bee718355bd12593",
+    "manifest_origin": "receipt-generated; not original upstream file manifest",
+    "source_pin_sha256": "47ea8760ff6a0522067850a6bd10b330ca8a21c9c5ed12c82a1936ba9541bcef"
+  },
+  "arm_runtime": {
+    "python": "3.10.12",
+    "architecture": "aarch64",
+    "open3d": "0.19.0",
+    "wheel_sha256": "b3e37bdc3ec5ab413bf59bc9028a9a9613b886ba25df0639ef6a5e0022768023",
+    "pip_check_exit": 0,
+    "native_import_exit": 0,
+    "original_backend_tests": {
+      "run": 50,
+      "passed": 50,
+      "seconds": 111.463
+    },
+    "system_packages_changed": false,
+    "wheel_portability_verified": false
+  },
+  "desktop_regression_including_preserved_uncommitted_tests": {
+    "python_run": 2571,
+    "python_passed": 2568,
+    "python_skipped": 3,
+    "python_seconds": 75.858,
+    "javascript_test_file_groups": 65,
+    "javascript_failed_groups": 0
+  },
+  "prior_public_ci": {
+    "head_sha": "debba9ca745701241ab04ab635b86bc2c0a093ec",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/39333842947",
+    "conclusion": "success",
+    "per_matrix_job": {
+      "python_run": 2544,
+      "python_passed": 2542,
+      "python_skipped": 2,
+      "javascript_tests": 564,
+      "browser_e2e_tests": 169
+    }
+  },
+  "stored_arm_search": {
+    "schema": "robot-scope.public-replay-result.v1",
+    "mode": "on",
+    "source_pin_sha256": "47ea8760ff6a0522067850a6bd10b330ca8a21c9c5ed12c82a1936ba9541bcef",
+    "historical_only": true,
+    "source_clock_verified": false,
+    "body_extrinsic_verified": false,
+    "tracking_verified": false,
+    "body_pose": null,
+    "current_pose": null,
+    "absolute_accuracy_m": null,
+    "scans": [
+      {
+        "scan_index": 0,
+        "source_stamp_ns": "1792406869346463680",
+        "selected_candidate": 8,
+        "recorded_selected_candidate": 10,
+        "rmse_m": 0.24345552673027124,
+        "recorded_rmse_m": 0.15495233603827516,
+        "gate_reasons": [
+          "AMBIGUOUS_ALTERNATIVES"
+        ],
+        "input_points": 16000,
+        "reference_points": 25666,
+        "historical_sensor_observation_only": true
+      }
+    ]
+  },
+  "live_stationary_trial": {
+    "type": "live_robot_stationary_observation_not_measured_pose_error",
+    "field_report_stationary": true,
+    "physical_stationarity_independently_verified": false,
+    "job_state": "succeeded",
+    "selected_candidate": 2,
+    "input_points": 16000,
+    "reference_points": 25666,
+    "scan_count": 16000,
+    "inlier_count": 16000,
+    "rmse_m": 0.16968029009030783,
+    "full_scan_rmse_m": 0.16968029009030783,
+    "overlap": 1.0,
+    "gate_reasons": [
+      "AMBIGUOUS_ALTERNATIVES"
+    ],
+    "within_10cm": false,
+    "within_5cm": false,
+    "historical_only": true,
+    "source_stamp_ns": "1792495475776237249",
+    "sensor_before_stop": "LOST",
+    "sensor_reason": "SENSOR_DEADLINE_EXCEEDED",
+    "global_cleanup": "SETTLED_TERMINAL",
+    "sensor_cleanup": "SETTLED",
+    "stop_race_limit": "GET_THEN_PARAMETERLESS_POST_NOT_ATOMIC",
+    "backend_elapsed_s": 11.331035424999754,
+    "job_elapsed_s": 17.278382995000356,
+    "external_runner_elapsed_s": 14.761198745999536
+  },
+  "isolated_pipeline_experiment": {
+    "schema": "robot-scope.arm-local-pipeline-thread-prototype.v1",
+    "scope": "ISOLATED_ARCHIVED_SCAN_ONLY_NOT_PRODUCT_OR_LIVE_ROBOT",
+    "received_archive_sha256_from_receipt": "0e4abbc70de139fdef45e90b6958d0f1f7c997a52b7ffb24bee718355bd12593",
+    "source_pin_sha256": "47ea8760ff6a0522067850a6bd10b330ca8a21c9c5ed12c82a1936ba9541bcef",
+    "original_backend_changed": false,
+    "product_changed": false,
+    "input_points": 16000,
+    "reference_points": 25666,
+    "source_clock_verified": false,
+    "body_pose": null,
+    "tracking_verified": false,
+    "operational_deadline_s_unchanged": 0.6,
+    "diagnostic_limit_s": 5.0,
+    "prototype_excludes_product_parent_preflight_and_ipc": true,
+    "open3d_thread_safety_proven": false,
+    "original_backend_declares_serialized_use": true,
+    "adoption_recommended": false,
+    "serial_reference": {
+      "variant": "serial",
+      "limit_s": 5.0,
+      "prototype_not_operational": true,
+      "limit_extended_for_diagnosis": true,
+      "startup_s": 1.9928710860003775,
+      "observer_count": 1,
+      "status": "DONE",
+      "wall_s": 0.7943288790002043,
+      "child_wall_s": 0.7931131590003133,
+      "child_cpu_s": 0.7907759039999998,
+      "result_bytes": 10026,
+      "result_packet_bytes": 10054,
+      "phase": {},
+      "worker_closed": true,
+      "selected_candidate": 0,
+      "gate_reasons": [],
+      "input_points": 16000,
+      "reference_points": 25666,
+      "tracking_verified": false,
+      "body_pose": null,
+      "candidate_full_scan_counts": [
+        16000,
+        16000,
+        16000
+      ],
+      "candidate_stages": [
+        "multiscale_point_to_plane",
+        "coarse_icp",
+        "robust_full_reference"
+      ]
+    },
+    "parallel_bounded": [
+      {
+        "variant": "parallel_pipeline",
+        "limit_s": 0.6,
+        "prototype_not_operational": true,
+        "limit_extended_for_diagnosis": false,
+        "startup_s": 4.2767742860005455,
+        "observer_count": 3,
+        "status": "DONE",
+        "wall_s": 0.5799249479996433,
+        "child_wall_s": 0.5784217629998238,
+        "child_cpu_s": 0.8162289600000001,
+        "result_bytes": 10025,
+        "result_packet_bytes": 10053,
+        "phase": {
+          "multiscale_point_to_plane_start_offset_s": 0.002588788000139175,
+          "coarse_icp_start_offset_s": 0.006799837000471598,
+          "robust_full_reference_start_offset_s": 0.05002658500052348,
+          "coarse_icp_end_offset_s": 0.0911469290003879,
+          "multiscale_point_to_plane_end_offset_s": 0.24325010899974586,
+          "robust_full_reference_end_offset_s": 0.5759378749999087
+        },
+        "worker_closed": true,
+        "selected_candidate": 0,
+        "gate_reasons": [],
+        "input_points": 16000,
+        "reference_points": 25666,
+        "tracking_verified": false,
+        "body_pose": null,
+        "candidate_full_scan_counts": [
+          16000,
+          16000,
+          16000
+        ],
+        "candidate_stages": [
+          "multiscale_point_to_plane",
+          "coarse_icp",
+          "robust_full_reference"
+        ]
+      },
+      {
+        "variant": "parallel_pipeline",
+        "limit_s": 0.6,
+        "prototype_not_operational": true,
+        "limit_extended_for_diagnosis": false,
+        "startup_s": 4.327722207000079,
+        "observer_count": 3,
+        "status": "DEADLINE_EXCEEDED",
+        "worker_closed": true
+      }
+    ],
+    "injected_timeout": {
+      "variant": "parallel_pipeline",
+      "limit_s": 0.6,
+      "prototype_not_operational": true,
+      "limit_extended_for_diagnosis": false,
+      "startup_s": 4.296581415000219,
+      "observer_count": 3,
+      "status": "DEADLINE_EXCEEDED",
+      "worker_closed": true
+    },
+    "parallel_diagnostic_if_needed": {
+      "variant": "parallel_pipeline",
+      "limit_s": 5.0,
+      "prototype_not_operational": true,
+      "limit_extended_for_diagnosis": true,
+      "startup_s": 4.313060888000109,
+      "observer_count": 3,
+      "status": "DONE",
+      "wall_s": 0.5696539439995831,
+      "child_wall_s": 0.5682990190007331,
+      "child_cpu_s": 0.7945270720000002,
+      "result_bytes": 10026,
+      "result_packet_bytes": 10054,
+      "phase": {
+        "multiscale_point_to_plane_start_offset_s": 0.0025220659999831696,
+        "coarse_icp_start_offset_s": 0.005870174000847328,
+        "robust_full_reference_start_offset_s": 0.04952128700006142,
+        "coarse_icp_end_offset_s": 0.09338827900046454,
+        "multiscale_point_to_plane_end_offset_s": 0.23894410699995206,
+        "robust_full_reference_end_offset_s": 0.5660716190004678
+      },
+      "worker_closed": true,
+      "selected_candidate": 0,
+      "gate_reasons": [],
+      "input_points": 16000,
+      "reference_points": 25666,
+      "tracking_verified": false,
+      "body_pose": null,
+      "candidate_full_scan_counts": [
+        16000,
+        16000,
+        16000
+      ],
+      "candidate_stages": [
+        "multiscale_point_to_plane",
+        "coarse_icp",
+        "robust_full_reference"
+      ]
+    },
+    "comparisons": [
+      {
+        "pair": "serial_vs_parallel_bounded_1",
+        "within_1e_minus_8": true,
+        "mismatch_count": 0,
+        "first_mismatch_paths": [],
+        "compared_float_values": 233,
+        "largest_absolute_float_delta": 0.0
+      },
+      {
+        "pair": "serial_vs_parallel_diagnostic_5s",
+        "within_1e_minus_8": true,
+        "mismatch_count": 0,
+        "first_mismatch_paths": [],
+        "compared_float_values": 233,
+        "largest_absolute_float_delta": 0.0
+      }
+    ],
+    "status": "DIAGNOSTIC_COMPLETE",
+    "injected_timeout_fail_closed": true,
+    "owned_children_reaped": true
+  },
+  "pipeline_executed_script_sha256": "8755016db7c1929066b486e5043a0bd27a2380b0650990e76ead84ef7939bdbe",
+  "final_readback": {
+    "service": "MainPID=128205\nActiveState=active\nSubState=running\nInvocationID=1478ada93d464fcfa790c9ca61e08131\n",
+    "product_paths_checked": 37,
+    "product_hash_mismatches": 0,
+    "protected_map_config_files_checked": 72,
+    "protected_map_config_mismatches": 0,
+    "sensor_state": "STOPPED",
+    "sensor_worker_active": false,
+    "sensor_pose": null,
+    "trail": [],
+    "body_pose": null,
+    "tracking_verified": false,
+    "source_clock_verified": false,
+    "body_extrinsic_verified": false,
+    "global_active": null
+  },
+  "private_local_evidence_sha256": {
+    "local-full-python-regression-isolated-fixture.log": "3bf5981df5fbd401b7e300bc600252161ead57b2af3c5669684e01ed43794298",
+    "local-js-regression-node-runtime.log": "bbfdc1a281351455fd7ab7800e97fa11442599473812255e5d0e326013314ff2",
+    "arm-native-results-with-pipeline.json": "466ca1f0cdee720db84b4a649b021d9ef4410560bbb3dc8529c7e80c9ebb0875",
+    "live-trial-01-evidence.json": "3c67b226b7c4678efd7d098b09be01889ded13a8de074d6d84d3458d01e2fbc0",
+    "remote-source-integrity-final.json": "473ccde2b013c72035a5440d5a77d28f0dd8739c55c5b2f274b5a05d10a8a627",
+    "deployment-final-readback.json": "8d73b1896761ee8ca6b8304cfa563999609e4052de2fb411462c89393d3bc004",
+    "remote-protected-postdeploy.json": "e1d15bbbfd4b2de8536b83321c8c67a6eabc334c971bc5c4f93f38bda87547d6"
+  },
+  "prototype_adopted": false,
+  "motion_posture_nav2_cmd_vel_commands_executed": false,
+  "product_file_source_commit": "debba9ca745701241ab04ab635b86bc2c0a093ec"
+}

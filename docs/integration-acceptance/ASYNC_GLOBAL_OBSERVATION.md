@@ -1,5 +1,7 @@
 # Historical global observation and temporal sensor candidates — 2026-10-19
 
+> 2026-10-20: 사용자 승인 후의 실제 배포·ARM 시험·정지 관측 결과와 한계는 [최신 실행 기록](STAGE3_ARM_RUNTIME_20261020.md)을 참조한다. 아래의 배포 전 상태와 제한은 해당 시점의 기록이다.
+
 The original global-observation implementation was **not deployed** when this
 document was first written. The handoff reported dashboard commit
 `d7807de8f15fb457942039bb90ab41cf68d384c6` on the robot; that is historical evidence,
