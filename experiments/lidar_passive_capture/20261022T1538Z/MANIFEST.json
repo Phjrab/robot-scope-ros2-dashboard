@@ -1,0 +1,209 @@
+{
+  "schema": "robot-scope.public-passive-sensor-samples.v1",
+  "synthetic": false,
+  "frozen_source_manifest_sha256": "5139c1035956290e6360f00c034620fc9275802e29ed0bb995ba108e242bf18a",
+  "recorded_capture_start_utc": "2026-10-22T15:39:26.699385+00:00",
+  "recorded_capture_end_utc": "2026-10-22T15:39:37.800070+00:00",
+  "subscription_duration_s": 10.001540056000522,
+  "retained_sequence_in_each_topic": [
+    1,
+    30,
+    70
+  ],
+  "continuous_bag": false,
+  "time_synchronized_cross_topic_set": false,
+  "operator_confirmed_stationary": true,
+  "stationarity_automatically_verified": false,
+  "clock_verified": false,
+  "calibration_verified": false,
+  "absolute_truth": null,
+  "topics": {
+    "/lidar_points": {
+      "messages_received_in_window": 100,
+      "messages_retained": 3
+    },
+    "/velodyne_points": {
+      "messages_received_in_window": 100,
+      "messages_retained": 3
+    },
+    "/imu/body": {
+      "messages_received_in_window": 4536,
+      "messages_retained": 3
+    },
+    "/utlidar/robot_odom": {
+      "messages_received_in_window": 1499,
+      "messages_retained": 3
+    }
+  },
+  "payload_policy": "All 42 sample files are byte-identical to their frozen originals; no resampling, reserialization, normalization or timestamp rewriting.",
+  "files": {
+    "imu__body__000001.cdr": {
+      "bytes": 324,
+      "sha256": "b74e36441df79ded7a8eb5bc81bee6d898092c29fee146ec2a4cce3a0ce04033"
+    },
+    "imu__body__000001.json": {
+      "bytes": 2738,
+      "sha256": "473f3008bb37e530af14d5d08eaa1c069412821db75ff3a89312fc0f913162b1"
+    },
+    "imu__body__000030.cdr": {
+      "bytes": 324,
+      "sha256": "6813e7528b087ab208956a33cc1bcb8f98c3867e876da4637ee36ebe9fc6bcda"
+    },
+    "imu__body__000030.json": {
+      "bytes": 2735,
+      "sha256": "a6ebfa8cf6d3b09e77a0f6cf6a3d8c972dd0e76cc48a11d392c06980d7ba042d"
+    },
+    "imu__body__000070.cdr": {
+      "bytes": 324,
+      "sha256": "fb1fc00d99143be4c82328a5beedbb818919e88b996471db8385f437016bb18d"
+    },
+    "imu__body__000070.json": {
+      "bytes": 2736,
+      "sha256": "d2fe3a559c0efb19847464760a440543cb7f674298a345c23a79a2fbd8132382"
+    },
+    "lidar_points__000001.cdr": {
+      "bytes": 1664200,
+      "sha256": "f0681d419476fc5de6e2d7d078f4f91b328270ea90f0ba83f1fb889f64c3169d"
+    },
+    "lidar_points__000001.json": {
+      "bytes": 3879,
+      "sha256": "710299a3d8bdba9c713ac274cfad28b0ee64842836ad9852cb200f5344a07070"
+    },
+    "lidar_points__000001.npz": {
+      "bytes": 333452,
+      "sha256": "e0f75bf95444acf95bdf66a336d1354438d9516abcbb8f8236f539997bb88cae"
+    },
+    "lidar_points__000001.pointcloud2-data.bin": {
+      "bytes": 1664000,
+      "sha256": "e915fe4a8b5a75f318ae9b7411f5b161a7d1a665b55eeeb55b2169e03d91b98d"
+    },
+    "lidar_points__000001.xyz-f64le.bin": {
+      "bytes": 1536000,
+      "sha256": "d17f453cddaa54101a5beb528da6ccf1b8f12c25095274e612daf3809034c5d6"
+    },
+    "lidar_points__000030.cdr": {
+      "bytes": 1664200,
+      "sha256": "9592605fb1b3ccd38b215233f3c72c28e94d14e52559e335769f591003dd93db"
+    },
+    "lidar_points__000030.json": {
+      "bytes": 3882,
+      "sha256": "3a7c7698e93bb6577c118c6de37c66991c714864f1ac60159eb79ebf5158cb44"
+    },
+    "lidar_points__000030.npz": {
+      "bytes": 333457,
+      "sha256": "958288ab9b162129acd31891cef4536320ba0238790bf06b3671dc353ef83834"
+    },
+    "lidar_points__000030.pointcloud2-data.bin": {
+      "bytes": 1664000,
+      "sha256": "96216401d117785aaf06ae799733e5585c0034da651c0acd054b446b881d1ecd"
+    },
+    "lidar_points__000030.xyz-f64le.bin": {
+      "bytes": 1536000,
+      "sha256": "10187f6707beb924c10cf55901592ae8bb8370e1f820e140594ffc560aa5945d"
+    },
+    "lidar_points__000070.cdr": {
+      "bytes": 1664200,
+      "sha256": "50e373c72e18721a966bd465419d797b2f2cc1816c9a87686094a9dfc5e9eaf2"
+    },
+    "lidar_points__000070.json": {
+      "bytes": 3882,
+      "sha256": "2adca0e7dd4be8796f4be29fb40ea091193af24795baedc2f85d8f8578804c44"
+    },
+    "lidar_points__000070.npz": {
+      "bytes": 333492,
+      "sha256": "a7f1b190d7ea63038d162b272a5242a7c0dd10a76c0c6a1fd13aff0e5cc73226"
+    },
+    "lidar_points__000070.pointcloud2-data.bin": {
+      "bytes": 1664000,
+      "sha256": "8b4d9a791fa60bf435ac662d3f5533af69b6f0f4a8be4bcbbff0e1274f98c71a"
+    },
+    "lidar_points__000070.xyz-f64le.bin": {
+      "bytes": 1536000,
+      "sha256": "4534311fed79fffc6b9943065aaa6f19d9fde561a2d771373e6f59b79846fdc7"
+    },
+    "utlidar__robot_odom__000001.cdr": {
+      "bytes": 724,
+      "sha256": "86919a98bf26efc26eba4c2647aaaf49eec91bc2d3bce1edd9c9ed9bd7a83c88"
+    },
+    "utlidar__robot_odom__000001.json": {
+      "bytes": 2757,
+      "sha256": "1e696cfc15d8164fa8685535f17156d6b6f0e100753e9f8d9324cc78ee4d6980"
+    },
+    "utlidar__robot_odom__000030.cdr": {
+      "bytes": 724,
+      "sha256": "4fdd5305596c251d845ee72c179bf5d1a7c470854556afe5d51c468c20105f96"
+    },
+    "utlidar__robot_odom__000030.json": {
+      "bytes": 2780,
+      "sha256": "5b438882e5f775540608e7229f0b38c7ad6ff7c81401568c7728d0822695eee3"
+    },
+    "utlidar__robot_odom__000070.cdr": {
+      "bytes": 724,
+      "sha256": "2f46330c9f5658e734c1cae92b6b7fc08e1c3ae48015a742092eecef1293bb43"
+    },
+    "utlidar__robot_odom__000070.json": {
+      "bytes": 2780,
+      "sha256": "a3025e1319e1c2b551d9008bfe021aa353be0c0c34680e6ed473aea3704f399e"
+    },
+    "velodyne_points__000001.cdr": {
+      "bytes": 352196,
+      "sha256": "4b17b84a8f52abcef7e33946bc676e5f9b8b272c574ecf07ef1c983524076fb1"
+    },
+    "velodyne_points__000001.json": {
+      "bytes": 3851,
+      "sha256": "ab06b8651dfa5c8e78ff512e47304b92fe9de218c0ac04b88cc28c294d459057"
+    },
+    "velodyne_points__000001.npz": {
+      "bytes": 90012,
+      "sha256": "c7ba31b3eb7992a4e4b7b32c03d62013b02b05d9cf6097643ead936ebf49ffda"
+    },
+    "velodyne_points__000001.pointcloud2-data.bin": {
+      "bytes": 352000,
+      "sha256": "2cf4d9aa01e356e96b9bceb2af492fcbf66b1462a93af63e22eea64276095f4d"
+    },
+    "velodyne_points__000001.xyz-f64le.bin": {
+      "bytes": 384000,
+      "sha256": "894d4d255dd0ae517ad1224c92da900e6b6118342a2c848607b95d55d3af31a3"
+    },
+    "velodyne_points__000030.cdr": {
+      "bytes": 352196,
+      "sha256": "0d73d41f22f60dba9171a449cf7b7e517081dfddc63740d8ccb7e16209f99ebb"
+    },
+    "velodyne_points__000030.json": {
+      "bytes": 3857,
+      "sha256": "ce282181047a2cbcca74f7169d31bdf4079a5089166fd27398f2b6554d42762d"
+    },
+    "velodyne_points__000030.npz": {
+      "bytes": 90068,
+      "sha256": "f79c46d9a8384aaaddd77c1c2e32a927d42dc05834ff4afede286edd3bc1fd28"
+    },
+    "velodyne_points__000030.pointcloud2-data.bin": {
+      "bytes": 352000,
+      "sha256": "bee5af8ee597242332ba5a2accaf9d6a652b445deb9cb2efbc07742f7fbce8bb"
+    },
+    "velodyne_points__000030.xyz-f64le.bin": {
+      "bytes": 384000,
+      "sha256": "b462f3a54428686783e0fd19411881b5e80f0fde9ddd78a748255c6a38aac566"
+    },
+    "velodyne_points__000070.cdr": {
+      "bytes": 352196,
+      "sha256": "12291b8540a14cb466c5d6c8fa5c31ef4d5a3d97160047f1ac9dd6745aef1775"
+    },
+    "velodyne_points__000070.json": {
+      "bytes": 3855,
+      "sha256": "e35d85c59c380d8c446b9766b691fed36cd1061cef4afa5a5335c2a84a4c4fc6"
+    },
+    "velodyne_points__000070.npz": {
+      "bytes": 90215,
+      "sha256": "bc2e49cb1b53edee1c8c971f983e9fa0333be258c60af003e5583acabea7d4a6"
+    },
+    "velodyne_points__000070.pointcloud2-data.bin": {
+      "bytes": 352000,
+      "sha256": "2944102c537593592d5d2d57ab1a010a829e4be76878aaf670c1264ee28b8859"
+    },
+    "velodyne_points__000070.xyz-f64le.bin": {
+      "bytes": 384000,
+      "sha256": "b1fb6d864e97db24f5ee661610093f89c9e494467eb756adab3417d72b72251e"
+    }
+  }
+}

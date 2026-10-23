@@ -7,6 +7,58 @@ const idPattern = /^[a-f0-9]{24}$/;
 const revisionPattern = /^[a-f0-9]{64}$/;
 const stampPattern = /^[1-9][0-9]{0,19}$/;
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
+const ambiguityOnly = reasons => Array.isArray(reasons) && reasons.length === 1
+  && reasons[0] === 'AMBIGUOUS_ALTERNATIVES';
+const finiteNonnegative = value => Number.isFinite(value) && value >= 0;
+function ambiguityRigid(matrix) {
+  if (!Array.isArray(matrix) || matrix.length !== 4 || matrix.some(row =>
+    !Array.isArray(row) || row.length !== 4 || row.some(value => !Number.isFinite(value)))) return false;
+  if (matrix[3].some((value, index) => Math.abs(value - (index === 3 ? 1 : 0)) > 1e-8)) return false;
+  const axes = [0, 1, 2].map(index => [matrix[0][index], matrix[1][index], matrix[2][index]]);
+  const dot = (a, b) => a.reduce((sum, value, index) => sum + value * b[index], 0);
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  return axes.every((axis, index) => Math.abs(dot(axis, axis) - 1) <= 1e-5
+    && axes.every((other, otherIndex) => index === otherIndex || Math.abs(dot(axis, other)) <= 1e-5))
+    && Math.abs(dot(cross(axes[0], axes[1]), axes[2]) - 1) <= 1e-6;
+}
+function ambiguityEligible(candidate) {
+  if (!ambiguityOnly(candidate?.gate_reasons) || candidate.refinement_stationary !== true
+      || !Number.isSafeInteger(candidate.scan_count) || !Number.isSafeInteger(candidate.inlier_count)
+      || !Number.isSafeInteger(candidate.distinct_inlier_voxel_count)
+      || candidate.distinct_inlier_voxel_count < 60
+      || candidate.distinct_inlier_voxel_count > candidate.inlier_count
+      || candidate.inlier_count > candidate.scan_count
+      || !['rmse_m', 'full_scan_rmse_m', 'capped_full_rmse_m', 'overlap',
+        'geometry_min_max_eigen_ratio', 'inlier_geometry_min_max_eigen_ratio']
+        .every(key => finiteNonnegative(candidate[key]))
+      || candidate.overlap < .60 || candidate.overlap > 1
+      || candidate.geometry_min_max_eigen_ratio < .002
+      || candidate.inlier_geometry_min_max_eigen_ratio < .002) return false;
+  return ambiguityRigid(candidate.map_from_scan);
+}
+
+export function validatedAmbiguityMetadata(override) {
+  return override?.enabled === true && override.applied === true
+    && Object.keys(override).sort().join(',')
+      === 'applied,enabled,original_gate_reasons,original_selected_candidate,selection_rule'
+    && override.selection_rule === 'LOWEST_RMSE_M_THEN_ORIGINAL_INDEX'
+    && override.original_selected_candidate === null
+    && ambiguityOnly(override.original_gate_reasons);
+}
+
+export function validatedAmbiguityOverride(observation) {
+  const override = observation?.ambiguity_override, selected = observation?.selected_candidate;
+  if (!validatedAmbiguityMetadata(override)
+      || !ambiguityOnly(observation.gate_reasons)
+      || observation.estimate_label !== 'AMBIGUOUS_UNVERIFIED_ESTIMATE'
+      || !Array.isArray(observation.candidates)
+      || !Number.isInteger(selected) || selected < 0 || selected >= observation.candidates.length) return false;
+  const eligible = observation.candidates.map((candidate, index) => ({ candidate, index }))
+    .filter(({ candidate }) => ambiguityEligible(candidate));
+  if (!eligible.length) return false;
+  eligible.sort((a, b) => a.candidate.rmse_m - b.candidate.rmse_m || a.index - b.index);
+  return eligible[0].index === selected;
+}
 export function globalObservationRequestId() {
   // Robot dashboards are commonly served on a LAN HTTP address where
   // randomUUID is unavailable, while getRandomValues remains supported.

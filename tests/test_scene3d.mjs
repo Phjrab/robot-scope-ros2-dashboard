@@ -84,6 +84,26 @@ function sceneHarness({ storage, stored = {}, options = {} } = {}) {
   return { scene, canvas, preference, sandbox };
 }
 
+test('sensor observation layer stores true 3D sensor origin and axes without creating a GO2 pose', () => {
+  const { scene } = sceneHarness();
+  scene.render = () => {};
+  scene.setPointCloud({ points: [[0, 0, 0], [1, 0, 0]], frame_id: 'map' });
+  const matrix = [[0, -1, 0, 2], [1, 0, 0, 3], [0, 0, 1, 1.2], [0, 0, 0, 1]];
+  assert.equal(scene.setSensorObservationOverlay({ frameId: 'map', T_map_sensor: matrix,
+    trail: [matrix] }), true);
+  assert.equal(scene.robotPose, null);
+  assert.deepEqual(Array.from(scene.sensorObservationOverlay.pose.origin), [2, 3, 1.2]);
+  assert.deepEqual(Array.from(scene.sensorObservationOverlay.pose.axes[0]), [0, 1, 0]);
+  assert.equal(scene.sensorObservationOverlay.ambiguous, false);
+  assert.equal(scene.setSensorObservationOverlay({ frameId: 'map', T_map_sensor: matrix,
+    trail: [matrix], ambiguous: true }), true);
+  assert.equal(scene.sensorObservationOverlay.ambiguous, true);
+  assert.equal(scene.robotPose, null);
+  assert.equal(scene.setSensorObservationOverlay({ frameId: 'map', T_map_sensor: [[1]], trail: [] }), false);
+  assert.equal(scene.sensorObservationOverlay, null);
+  scene.destroy();
+});
+
 test('point-cloud preview without advertised bounds uses its sampled bounds', () => {
   const { scene } = sceneHarness();
   scene.render = () => {};

@@ -107,6 +107,11 @@ class LifecycleRouterCoordinatorTests(unittest.TestCase):
         self.assertEqual(
             actual,
             {
+                "ownership_readback_status": (
+                    "get",
+                    "/api/v1/system/ownership-readback",
+                    None,
+                ),
                 "service_lifecycle_status": (
                     "get",
                     "/api/v1/system/service",

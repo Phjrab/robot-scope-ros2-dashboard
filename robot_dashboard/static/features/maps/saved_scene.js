@@ -1,4 +1,11 @@
 // Existing saved-map scene setup and cloud counts shared by map views.
+export function sameSavedCloudRevision(meta, selectedId, previousMeta, cloud) {
+  // Retain the immutable reference during reload; changed selections still clear.
+  return Boolean(meta.kind === 'pointcloud3d' && meta.revision &&
+    selectedId === meta.id && previousMeta?.revision === meta.revision &&
+    cloud?.revision === meta.revision && !cloud.demo_snapshot);
+}
+
 export function createSavedMapScene(ui, environment = window) {
   const savedScene3d = environment.RobotScene3D && ui.savedSceneCanvas
     ? new environment.RobotScene3D(ui.savedSceneCanvas, {

@@ -132,6 +132,7 @@ class ApplicationRuntimeOwnershipTests(unittest.TestCase):
 class DomainRouterContractTests(unittest.TestCase):
     def test_extracted_transport_paths_are_preserved_exactly(self):
         expected = {
+            ("get", "/api/v1/system/ownership-readback"),
             ("get", "/api/v1/system/service"),
             ("post", "/api/v1/system/service/restart"),
             ("post", "/api/v1/system/service/stop"),

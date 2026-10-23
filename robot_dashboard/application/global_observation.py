@@ -61,10 +61,13 @@ class GlobalObservationCoordinator:
             status = dict(self._runner.status())
             if status.get("available") is not True:
                 return dict(available=False, reason=status.get("reason") or "TRUSTED_LOCAL_RUNNER_UNAVAILABLE",
-                            backend_id=status.get("backend_id"))
-            return dict(available=True, reason=None, backend_id=status.get("backend_id"))
+                            backend_id=status.get("backend_id"),
+                            allow_ambiguous=status.get("allow_ambiguous") is True)
+            return dict(available=True, reason=None, backend_id=status.get("backend_id"),
+                        allow_ambiguous=status.get("allow_ambiguous") is True)
         except Exception:
-            return dict(available=False, reason="TRUSTED_LOCAL_RUNNER_UNAVAILABLE", backend_id=None)
+            return dict(available=False, reason="TRUSTED_LOCAL_RUNNER_UNAVAILABLE", backend_id=None,
+                        allow_ambiguous=False)
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:

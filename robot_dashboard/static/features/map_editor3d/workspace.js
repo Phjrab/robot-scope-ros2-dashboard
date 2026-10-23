@@ -8,8 +8,8 @@ export function savedCloudEditorSource(meta, snapshot) {
     frame_id: snapshot.frame_id, points: snapshot.points, source_points: snapshot.source_points };
 }
 
-// Saved-cloud annotation editor only. No ROS commands or network writes.
-export function initializeMapEditor3D({ panel, getSource, is2DDirty = () => false, redraw2D = () => {} }) {
+// The optional callback receives annotations only; it owns server persistence.
+export function initializeMapEditor3D({ panel, getSource, is2DDirty = () => false, redraw2D = () => {}, saveFullSourceCopy = null }) {
   if (!panel) return null;
   const doc = panel.ownerDocument;
   const make = (tag, text, attrs = {}) => { const e = doc.createElement(tag); if (text) e.textContent = text; Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
@@ -81,6 +81,31 @@ export function initializeMapEditor3D({ panel, getSource, is2DDirty = () => fals
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     status.textContent = `${complete ? '로드된 전체 정규화 점군' : 'PREVIEW ONLY · 샘플 또는 완전성 미확인 점군'} 복사본을 내보냈습니다. 원본 PCD와 런타임은 변경되지 않았습니다.`;
   });
+  let serverBusy = false;
+  const serverNameLabel = make('label', '새 PCD 이름 ');
+  const serverName = make('input', '', { id: 'map3ServerName', type: 'text', maxlength: '64', placeholder: 'edited-map' });
+  serverNameLabel.append(serverName); files.append(serverNameLabel);
+  const serverSave = make('button', '전체 원본에 편집 적용 · 새 PCD 저장', { id: 'map3ServerSave', type: 'button' }); files.append(serverSave);
+  const serverNote = make('small', '화면 점은 샘플 미리보기입니다. 서버는 동일 ID·revision·frame·SHA-256의 전체 원본 PCD에 주석을 적용해 새 지도를 등록합니다. 현재 선택·위치추정·런타임은 바뀌지 않습니다.', { id: 'map3ServerNote' });
+  files.append(serverNote);
+  serverNameLabel.hidden = serverSave.hidden = serverNote.hidden = typeof saveFullSourceCopy !== 'function';
+  const updateServerSave = () => {
+    serverSave.disabled = serverBusy || !editor || polygon.length > 0 || !/^[A-Za-z0-9_-]{1,64}$/.test(serverName.value.trim()) || typeof saveFullSourceCopy !== 'function';
+  };
+  serverName.addEventListener('input', updateServerSave);
+  serverSave.addEventListener('click', async () => {
+    if (serverSave.disabled) return;
+    const target = editor, annotation = editor.exportVersion();
+    const savedRegions = JSON.stringify(target.regions);
+    serverBusy = true; updateServerSave(); status.dataset.error = 'false';
+    status.textContent = '서버에서 전체 원본 PCD에 편집을 적용하고 새 복사본을 저장합니다…';
+    try {
+      const result = await saveFullSourceCopy({ name: serverName.value.trim(), purpose: copyPurpose.value, annotation });
+      if (editor === target && JSON.stringify(target.regions) === savedRegions && !polygon.length) exported = savedRegions;
+      refresh(); status.textContent = `새 PCD ${result.map.name} (${result.map.id})를 저장·등록했습니다. 원본·현재 선택·런타임은 유지됩니다.`;
+    } catch (e) { status.textContent = e.message; status.dataset.error = 'true'; }
+    finally { serverBusy = false; updateServerSave(); }
+  });
   const fileLabel = make('label', '주석 버전 IMPORT (최대 2 MB) '); const file = make('input', '', { id: 'map3Import', type: 'file', accept: '.json,application/json' }); fileLabel.append(file); files.append(fileLabel);
   file.addEventListener('change', async () => {
     const selected = file.files?.[0], target = editor; file.value = ''; if (!selected) return;
@@ -125,6 +150,7 @@ export function initializeMapEditor3D({ panel, getSource, is2DDirty = () => fals
   }
   function refresh() {
     if (editor && !cachedPreview) cachedPreview = editor.preview();
+    updateServerSave();
     add.disabled = !editor || polygon.length < 3; undo.disabled = !editor?.canUndo; redo.disabled = !editor?.canRedo; reset.disabled = !editor || !editor.regions.length; save.disabled = !editor; copyExport.disabled = !editor; copyPurpose.disabled = !editor; file.disabled = !editor; preview.disabled = !editor;
     copyExport.textContent = editor && source.source_points === cachedPreview.counts.total ? '편집된 점군 COPY · JSON' : 'PREVIEW ONLY 점군 COPY · JSON';
     stats.textContent = editor ? `SOURCE ${source.map_id} · REV ${source.revision} · FRAME ${source.frame_id} · ${cachedPreview.counts.total.toLocaleString()} loaded points${source.source_points > cachedPreview.counts.total ? ` / ${Number(source.source_points).toLocaleString()} source points (sampled)` : ''} · 숨김 ${cachedPreview.counts.visibility} / 위치추정 제외 ${cachedPreview.counts.localization} / 진입금지 ${cachedPreview.counts.keepout} · 선택 ${polygon.length} vertices · COPY ${Number.isSafeInteger(source.source_points) && source.source_points === cachedPreview.counts.total ? '전체 정규화 스냅샷' : 'PREVIEW ONLY'}` : 'NO 3D MAP';

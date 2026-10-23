@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import test from 'node:test';
+import { createFullSourceSaveHandler } from '../robot_dashboard/static/features/map_editor3d/full_source.js';
 import { initializeMapEditor3D, savedCloudEditorSource } from '../robot_dashboard/static/features/map_editor3d/workspace.js';
 
 // Small deterministic DOM fixture. These are controller tests, not visual/browser
@@ -24,7 +26,7 @@ class Element {
 
 const fixtureSource = () => ({ kind: 'pointcloud3d', map_id: '3'.repeat(24), revision: 'b'.repeat(64), frame_id: 'map', points: [-5, -5, 0, 0, 0, 0, 5, 5, 0] });
 
-function mount(t, initialSource = fixtureSource()) {
+function mount(t, initialSource = fixtureSource(), options = {}) {
   const document = { createElement(tag) { return new Element(tag, document); } };
   const panel = document.createElement('article');
   for (const [tag, id] of [['h2', 'heading'], ['div', 'mapEditorState'], ['div', 'mapEditor2D']]) { const element = document.createElement(tag); element.setAttribute('id', id); panel.append(element); }
@@ -36,7 +38,7 @@ function mount(t, initialSource = fixtureSource()) {
   }
   t.mock.method(URL, 'createObjectURL', (blob) => { downloads.push(blob); return 'blob:map-editor-test'; });
   t.mock.method(URL, 'revokeObjectURL', () => {});
-  const controller = initializeMapEditor3D({ panel, getSource: () => source, is2DDirty: () => true, redraw2D: () => { redraws += 1; } });
+  const controller = initializeMapEditor3D({ ...options, panel, getSource: () => source, is2DDirty: () => true, redraw2D: () => { redraws += 1; } });
   const $ = (id) => panel.querySelector(`#${id}`);
   return { $, panel, controller, downloads, listeners, get redraws() { return redraws; }, get writes() { return writes; }, get confirms() { return confirms; }, setSource(value) { source = value; }, setConfirm(value) { confirmValue = value; } };
 }
@@ -187,4 +189,109 @@ test('dashboard source adapter refuses stale clouds and propagates original coor
   assert.equal(getSource(meta, { ...snapshot, points: [] }), null);
   assert.equal(getSource({ ...meta, kind: 'occupancy2d' }, snapshot), null);
   assert.equal(getSource(null, snapshot), null); assert.equal(getSource(meta, null), null);
+});
+
+
+test('optional server save sends only annotations and preserves source selection', async (t) => {
+  let request, release;
+  const f = mount(t, { ...fixtureSource(), source_points: 50 }, {
+    saveFullSourceCopy: async (value) => { request = value; return new Promise((resolve) => { release = resolve; }); },
+  });
+  f.controller.setMode('3d'); await f.$('map3Load').click();
+  assert.equal(f.$('map3ServerSave').hidden, false);
+  assert.match(f.$('map3ServerNote').textContent, /샘플 미리보기.*전체 원본 PCD/);
+  assert.equal(f.$('map3ServerSave').disabled, true);
+  f.$('map3ServerName').value = 'synthetic-copy'; await f.$('map3ServerName').emit('input');
+  await polygon(f); assert.equal(f.$('map3ServerSave').disabled, true);
+  await f.$('map3Add').click(); assert.equal(f.$('map3ServerSave').disabled, false);
+  const pending = f.$('map3ServerSave').click();
+  assert.equal(f.$('map3ServerSave').disabled, true);
+  assert.deepEqual(Object.keys(request).sort(), ['annotation', 'name', 'purpose']);
+  assert.equal(request.name, 'synthetic-copy'); assert.equal(request.annotation.source.map_id, fixtureSource().map_id);
+  assert.equal(JSON.stringify(request).includes('points'), false);
+  release({ map: { name: 'synthetic-copy', id: 'a'.repeat(24) } }); await pending;
+  assert.match(f.$('map3Status').textContent, /저장·등록/);
+  assert.match(f.$('map3Stats').textContent, new RegExp(fixtureSource().map_id));
+  assert.equal(f.writes, 0);
+});
+
+test('server failure and in-flight draft edits keep unsaved annotations', async (t) => {
+  let reject;
+  const f = mount(t, fixtureSource(), { saveFullSourceCopy: () => new Promise((_, rejectPromise) => { reject = rejectPromise; }) });
+  f.controller.setMode('3d'); await f.$('map3Load').click(); await polygon(f); await f.$('map3Add').click();
+  f.$('map3ServerName').value = 'copy'; await f.$('map3ServerName').emit('input');
+  const pending = f.$('map3ServerSave').click(); await polygon(f, [[500,320]]);
+  reject(new Error('stale source')); await pending;
+  assert.equal(f.$('map3Status').dataset.error, 'true'); assert.match(f.$('map3Status').textContent, /stale/);
+  assert.equal(f.$('map3Regions').children.length, 1);
+  let prevented = false; f.listeners.beforeunload({ preventDefault() { prevented = true; } }); assert.equal(prevented, true);
+});
+
+test('server integration is optional and refreshes catalogue without map selection', (t) => {
+  const f = mount(t); assert.equal(f.$('map3ServerSave').hidden, true);
+  assert.equal(f.$('map3ServerNote').hidden, true);
+  const app = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+  const wiring = app.slice(app.lastIndexOf('initializeMapEditor3D({'));
+  assert.match(wiring, /createFullSourceSaveHandler\(\{ api, saveCopy: saveFullSourceCopy, showToast/);
+  assert.match(wiring, /updateSavedMapOverview\(\{ preserveSelection: true \}\)/);
+  assert.doesNotMatch(wiring, /selectSavedMap\(|refreshSavedMaps\(|syncNavigationMapOptions\(/);
+});
+
+
+function dashboardSaveHarness({ failCatalogue = false, selection = null } = {}) {
+  const app = readFileSync(new URL('../robot_dashboard/static/app.js', import.meta.url), 'utf8');
+  const start = app.indexOf('function updateSavedMapOverview(');
+  const overview = app.slice(start, app.indexOf('\nfunction updateSavedMapManagement()', start));
+  const wiring = app.slice(app.lastIndexOf('initializeMapEditor3D({'));
+  const saved = { map: { id: 'a'.repeat(24), name: 'synthetic-copy' } };
+  const entries = [saved.map], toasts = [], apiCalls = [];
+  const context = {
+    document: { querySelector: () => ({ value: '', textContent: '' }) },
+    ui: new Proxy({}, { get(target, key) { return target[key] ||= {}; } }),
+    selectedSavedMapMeta: selection, selectedSavedMapId: selection?.id || '', savedMapCatalog: [],
+    savedSceneCloud: () => null, savedOccupancySnapshot: null, offlineCloudSnapshot: null,
+    filterSavedMapEntries: (value) => value, escapeHtml: (value) => value,
+    renderSavedMapDownloadState() {}, setStatePill() {}, updateSavedPointBudgetAvailability() {},
+    updateSavedMapManagement() {}, mapCropFeature: null, syncMapConversionPanel() {},
+    mapEditorHasChanges: () => false, mapEditorSession: null, scheduleMapEditorDraw() {},
+    savedCloudEditorSource: () => null,
+    initializeMapEditor3D: (options) => { context.options = options; },
+    createFullSourceSaveHandler,
+    saveFullSourceCopy: async () => saved,
+    showToast: (...args) => toasts.push(args),
+    api: async (url) => {
+      apiCalls.push(url);
+      if (url.endsWith('/pcd-edit-source')) return { map_id: fixtureSource().map_id };
+      if (failCatalogue) throw new Error('catalogue offline after successful save');
+      return { maps: entries, total_size_bytes: 1024 };
+    },
+  };
+  runInNewContext(`${overview}\n${wiring}`, context);
+  return { context, saved, toasts, apiCalls, async save() {
+    return context.options.saveFullSourceCopy({ name: 'synthetic-copy', purpose: 'visibility',
+      annotation: { source: { map_id: fixtureSource().map_id } } });
+  } };
+}
+
+test('dashboard callback keeps the successful save ID when catalogue refresh fails', async () => {
+  const originalSelection = { id: 'b'.repeat(24) };
+  const h = dashboardSaveHarness({ failCatalogue: true, selection: originalSelection });
+  assert.strictEqual(await h.save(), h.saved);
+  assert.strictEqual(h.context.selectedSavedMapMeta, originalSelection);
+  assert.equal(h.context.selectedSavedMapId, originalSelection.id);
+  assert.equal(h.toasts.length, 1); assert.equal(h.toasts[0][1], true);
+  assert.match(h.toasts[0][0], new RegExp(h.saved.map.id));
+  assert.match(h.toasts[0][0], /저장·등록.*새로고침/);
+  assert.equal(h.apiCalls.length, 2);
+});
+
+test('dashboard save refresh preserves cleared selection while ordinary refresh keeps its default', async () => {
+  const h = dashboardSaveHarness();
+  assert.strictEqual(await h.save(), h.saved);
+  assert.equal(h.context.savedMapCatalog.length, 1);
+  assert.equal(h.context.selectedSavedMapMeta, null); assert.equal(h.context.selectedSavedMapId, '');
+  assert.equal(h.toasts.length, 0);
+  h.context.updateSavedMapOverview();
+  assert.strictEqual(h.context.selectedSavedMapMeta, h.saved.map);
+  assert.equal(h.context.selectedSavedMapId, h.saved.map.id);
 });

@@ -1,17 +1,22 @@
+import copy
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 import numpy as np
 
 from robot_dashboard.relocalization.external_global_observation import (
     ExternalGlobalObservationError, ExternalGlobalObservationRunner,
 )
+from robot_dashboard.relocalization.global_observation_jobs import GlobalObservationJobManager
+from robot_dashboard.relocalization.v031_observation_compat import apply_ambiguity_override
 
 
 FAKE = '''import hashlib,json
@@ -27,6 +32,49 @@ def run_se3_isolated(manifest_path, timeout_s, max_results):
  'input_points':len(scan),'reference_points':len(world),'selected_candidate':None,
  'candidates':[{'rmse_m':.07,'map_from_scan':np.eye(4).tolist(),
  'gate_reasons':['RMSE_ABOVE_0.05M','REFINEMENT_NOT_STATIONARY']}]}]
+'''
+
+# Mirrors a valid, diagnostics-heavy backend result near the unchanged 64 KiB
+# worker limit. Repeating policy metadata for each candidate makes the enclosing
+# result exceed that limit, even though the worker's raw result fits.
+NEAR_LIMIT = FAKE + '''
+_base_run_se3_isolated = run_se3_isolated
+def run_se3_isolated(manifest_path, timeout_s, max_results):
+ values=_base_run_se3_isolated(manifest_path, timeout_s, max_results)
+ value=values[0];template=value['candidates'][0]
+ value['candidates']=[dict(template,attempt=i,overlap=.95,inlier_count=15200,
+   refinement_stages=[{'stage':'robust_full_reference','map_from_scan':template['map_from_scan'],
+                       'rmse_m':.07,'overlap':.95,'gate_reasons':template['gate_reasons'],
+                       'refinement_diagnostics':{'fit_support':15200}} for _ in range(4 if i<6 else 1)],
+   refinement_diagnostics={'trace':''}) for i in range(18)]
+ target=61556
+ raw=json.dumps(value,allow_nan=False,separators=(',',':')).encode()
+ assert len(raw)<target
+ value['candidates'][0]['refinement_diagnostics']['trace']='d'*(target-len(raw))
+ assert len(json.dumps(value,allow_nan=False,separators=(',',':')).encode())==target
+ return values
+'''
+
+# Model the reviewed v0.3.1 adapter's extra selection policy and original 5 cm
+# residual-gate evidence on all 18 candidates and 36 stages, on top of the
+# same 61,556-byte original diagnostic payload.
+NEAR_LIMIT_WITH_SELECTION = NEAR_LIMIT + '''
+_original_run_se3_isolated = run_se3_isolated
+def run_se3_isolated(manifest_path, timeout_s, max_results):
+ values=_original_run_se3_isolated(manifest_path, timeout_s, max_results)
+ value=values[0]
+ value['selection_policy']={'schema':'robot-scope.global-provisional-selection.v2',
+   'adapter':'dashboard-v031-observation-no-rmse-gate-v1','original_max_rmse_m':.05,
+   'provisional_max_rmse_m':.10,'rmse_thresholds_purpose':'COMPARISON_ONLY',
+   'rmse_selection_gate_enabled':False,'scoring':'UNCHANGED_ORIGINAL_REFERENCE_POPULATION',
+   'scope':'PROVISIONAL_OBSERVATION_ONLY','original_selection_replayed':False}
+ for candidate in value['candidates']:
+  candidate['original_residual_gate']='RMSE_ABOVE_0.05M'
+  candidate['gate_reasons']=['REFINEMENT_NOT_STATIONARY']
+  for stage in candidate['refinement_stages']:
+   stage['original_residual_gate']='RMSE_ABOVE_0.05M'
+   stage['gate_reasons']=['REFINEMENT_NOT_STATIONARY']
+ return values
 '''
 
 
@@ -47,12 +95,13 @@ class ExternalGlobalObservationTests(unittest.TestCase):
             self.context[name] = dict(encoding='float64_le_xyz', point_count=2,
                                       sha256=hashlib.sha256(self.raw).hexdigest())
 
-    def runner(self, source=FAKE, timeout=5.):
+    def runner(self, source=FAKE, timeout=5., *, allow_ambiguous=False):
         (self.package / 'isolated.py').write_text(source)
         files = {str(p.relative_to(self.root)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in self.package.glob('*.py')}
         self.pin.write_text(json.dumps({'schema':'robot-scope.global-source-pin.v1','files':files}))
-        return ExternalGlobalObservationRunner(sys.executable, str(self.root), str(self.pin), timeout_s=timeout)
+        return ExternalGlobalObservationRunner(sys.executable, str(self.root), str(self.pin),
+                                               timeout_s=timeout, allow_ambiguous=allow_ambiguous)
 
     def run_one(self, runner, cancel=None):
         return runner.run_arrays(scan_bytes=self.raw, map_bytes=self.raw,
@@ -67,17 +116,135 @@ class ExternalGlobalObservationTests(unittest.TestCase):
         with self.assertRaisesRegex(ExternalGlobalObservationError, 'HASH_MISMATCH'):
             self.run_one(runner)
 
+    def test_ambiguity_flag_is_explicit_and_unreviewed_source_cannot_enable_it(self):
+        self.assertFalse(ExternalGlobalObservationRunner().allow_ambiguous)
+        with self.assertRaises(ValueError):
+            ExternalGlobalObservationRunner(allow_ambiguous=1)
+        with mock.patch.dict(os.environ, {'ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS': '1'}):
+            self.assertTrue(ExternalGlobalObservationRunner.from_environment().allow_ambiguous)
+        with mock.patch.dict(os.environ, {'ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS': 'true'}):
+            self.assertFalse(ExternalGlobalObservationRunner.from_environment().allow_ambiguous)
+        runner = self.runner(allow_ambiguous=True)
+        self.assertFalse(runner.status()['available'])
+        self.assertEqual(runner.status()['reason'], 'AMBIGUITY_OVERRIDE_REQUIRES_REVIEWED_SOURCE')
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'REVIEWED_SOURCE'):
+            self.run_one(runner)
+
+    def test_ambiguous_selection_requires_exact_opt_in_and_preserved_gates(self):
+        context = {**self.context, 'scan': {**self.context['scan'], 'point_count': 100}}
+        matrix = np.eye(4).tolist()
+        candidate = {'rmse_m': .14, 'overlap': .95, 'scan_count': 100,
+                     'inlier_count': 95, 'distinct_inlier_voxel_count': 90,
+                     'full_scan_rmse_m': .20, 'capped_full_rmse_m': .16,
+                     'geometry_min_max_eigen_ratio': .1,
+                     'inlier_geometry_min_max_eigen_ratio': .08,
+                     'refinement_stationary': True, 'map_from_scan': matrix,
+                     'gate_reasons': ['AMBIGUOUS_ALTERNATIVES']}
+        value = {'status': 'OBSERVATION_ONLY_UNVERIFIED', 'map_frame': context['map_frame'],
+                 'scan_frame': context['source_frame'], 'frame_id': context['source_frame'],
+                 'source_stamp_ns': context['source_stamp_ns'], 'session_id': context['observer_epoch'],
+                 'map_id': 'sha256:' + context['map']['sha256'],
+                 'input_points': 100, 'reference_points': context['map']['point_count'],
+                 'selected_candidate': None, 'gate_reasons': ['AMBIGUOUS_ALTERNATIVES'],
+                 'candidates': [candidate]}
+        apply_ambiguity_override(value, allow_ambiguous=True)
+        ExternalGlobalObservationRunner._validate_result(value, context, allow_ambiguous=True)
+        for field in ('enabled', 'applied'):
+            with self.subTest(field=field):
+                numeric = copy.deepcopy(value)
+                numeric['ambiguity_override'][field] = 1
+                with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+                    ExternalGlobalObservationRunner._validate_result(numeric, context, allow_ambiguous=True)
+        compact = copy.deepcopy(value)
+        compact['selected_candidate'] = None
+        compact.pop('estimate_label')
+        compact['ambiguity_override'] = {'enabled': 1, 'applied': 0}
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+            ExternalGlobalObservationRunner._validate_result(compact, context, allow_ambiguous=True)
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+            ExternalGlobalObservationRunner._validate_result(value, context, allow_ambiguous=False)
+        value['candidates'][0]['gate_reasons'].append('REFINEMENT_NOT_STATIONARY')
+        with self.assertRaisesRegex(ExternalGlobalObservationError, 'AMBIGUITY_OVERRIDE_INVALID'):
+            ExternalGlobalObservationRunner._validate_result(value, context, allow_ambiguous=True)
+
     def test_success_keeps_stamp_zero_population_and_rejections(self):
         result = self.run_one(self.runner())
         self.assertEqual(result['source_stamp_ns'], self.context['source_stamp_ns'])
         self.assertEqual(result['input_points'], 2)
         self.assertIsNone(result['selected_candidate'])
         self.assertEqual(result['candidates'][0]['gate_reasons'], ['RMSE_ABOVE_0.05M', 'REFINEMENT_NOT_STATIONARY'])
-        evaluation = result['residual_comparisons'][0]['evaluation']
-        self.assertTrue(evaluation['residual_passed'])
-        self.assertFalse(evaluation['original_residual_passed'])
-        self.assertIsNone(evaluation['overall_candidate_accepted'])
+        policy = result['residual_comparison_policy']
+        self.assertEqual(policy['schema'], 'robot-scope.residual-comparison-policy.v1')
+        self.assertEqual(policy['policy']['max_rmse_m'], .10)
+        self.assertEqual(policy['original_policy']['max_rmse_m'], .05)
+        self.assertEqual(policy['candidate_index_basis'], 'CANDIDATE_ARRAY_INDEX')
+        self.assertFalse(policy['overall_candidate_acceptance_evaluated'])
+        self.assertIsNone(policy['overall_candidate_accepted'])
+        self.assertEqual(policy['comparison_fields'], ['residual_passed', 'original_residual_passed'])
+        comparison = result['residual_comparisons'][0]
+        self.assertEqual(comparison, [True, False])
         self.assertTrue(result['execution']['worker_reaped'])
+
+    def test_missing_rmse_is_explicitly_unverified(self):
+        source = FAKE.replace("'rmse_m':.07", "'rmse_m':None")
+        result = self.run_one(self.runner(source))
+        self.assertIsNone(result['candidates'][0]['rmse_m'])
+        self.assertEqual(result['residual_comparisons'], [{'reason': 'INVALID_STORED_RMSE'}])
+
+    def test_near_limit_backend_diagnostics_survive_sidecar_and_job_envelope(self):
+        runner = self.runner(NEAR_LIMIT)
+        result = self.run_one(runner)
+        self.assertEqual(len(result['candidates']), 18)
+        self.assertEqual(sum(len(candidate['refinement_stages']) for candidate in result['candidates']), 36)
+        self.assertTrue(result['candidates'][0]['refinement_diagnostics']['trace'].startswith('d'))
+        self.assertEqual(len(result['residual_comparisons']), 18)
+        self.assertLessEqual(len(json.dumps(result, allow_nan=False, separators=(',', ':')).encode()), 65_536)
+
+        manager = GlobalObservationJobManager(
+            lambda payload, *, cancel_event: runner.run_arrays(
+                scan_bytes=self.raw, map_bytes=self.raw, context=self.context,
+                cancel_event=cancel_event),
+            lambda captured: captured,
+            max_result_bytes=65_536,
+        )
+        self.addCleanup(manager.close)
+        job_id = manager.start('near-limit', self.context, {})['job_id']
+        self.assertTrue(manager.wait(job_id, 5.))
+        job = manager.job(job_id)
+        self.assertEqual(job['state'], 'succeeded', job['reason'])
+        observation = job['result']['observation']
+        self.assertEqual(len(observation['candidates']), 18)
+        self.assertEqual(observation['candidates'][0]['refinement_diagnostics']['trace'],
+                         result['candidates'][0]['refinement_diagnostics']['trace'])
+
+    def test_near_limit_with_provisional_selection_metadata_still_fits(self):
+        runner = self.runner(NEAR_LIMIT_WITH_SELECTION)
+        result = self.run_one(runner)
+        self.assertEqual(result['selection_policy']['scope'], 'PROVISIONAL_OBSERVATION_ONLY')
+        self.assertEqual(len(result['candidates']), 18)
+        self.assertEqual(sum(len(candidate['refinement_stages']) for candidate in result['candidates']), 36)
+        self.assertTrue(all(candidate['original_residual_gate'] == 'RMSE_ABOVE_0.05M'
+                            for candidate in result['candidates']))
+        self.assertTrue(all(stage['original_residual_gate'] == 'RMSE_ABOVE_0.05M'
+                            for candidate in result['candidates'] for stage in candidate['refinement_stages']))
+        self.assertTrue(result['candidates'][0]['refinement_diagnostics']['trace'].startswith('d'))
+        self.assertLessEqual(len(json.dumps(result, allow_nan=False, separators=(',', ':')).encode()), 65_536)
+        manager = GlobalObservationJobManager(
+            lambda payload, *, cancel_event: runner.run_arrays(
+                scan_bytes=self.raw, map_bytes=self.raw, context=self.context,
+                cancel_event=cancel_event),
+            lambda captured: captured,
+            max_result_bytes=65_536,
+        )
+        self.addCleanup(manager.close)
+        job_id = manager.start('near-limit-adapter', self.context, {})['job_id']
+        self.assertTrue(manager.wait(job_id, 5.))
+        job = manager.job(job_id)
+        self.assertEqual(job['state'], 'succeeded', job['reason'])
+        observation = job['result']['observation']
+        self.assertEqual(observation['selection_policy'], result['selection_policy'])
+        self.assertEqual(observation['candidates'][0]['refinement_diagnostics']['trace'],
+                         result['candidates'][0]['refinement_diagnostics']['trace'])
 
     def test_frame_identity_mismatch_rejected(self):
         with self.assertRaisesRegex(ExternalGlobalObservationError, 'IDENTITY_MISMATCH'):

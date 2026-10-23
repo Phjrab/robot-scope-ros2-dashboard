@@ -12,6 +12,9 @@ import time
 def main(folder: Path) -> None:
     started = time.monotonic()
     envelope = json.loads((folder / "input.json").read_text())
+    allow_ambiguous = envelope.get("allow_ambiguous")
+    if type(allow_ambiguous) is not bool:
+        raise ValueError("ambiguity opt-in must be a fixed boolean")
     source = Path(envelope["source_root"])
     pin = envelope["source_pin"]["files"]
     actual = {str(p.relative_to(source)) for p in (source / "auto_localization").rglob("*.py")}
@@ -30,6 +33,16 @@ def main(folder: Path) -> None:
     # Copy verified source only: an existing unverified .pyc cannot override it.
     sys.path.insert(0, str(verified_source))
     from auto_localization.isolated import run_se3_isolated
+    # -I omits the script directory. Add only this dashboard-owned directory;
+    # client input cannot choose a module or adapter. Unknown pins retain their
+    # original policy and never receive the provisional-selection label.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from v031_observation_compat import apply_ambiguity_override, run_provisional_isolated, supports_pin
+    reviewed = supports_pin(pin)
+    if allow_ambiguous and not reviewed:
+        raise ValueError("ambiguity opt-in requires reviewed source")
+    if reviewed:
+        run_se3_isolated = run_provisional_isolated
     import numpy as np
 
     context = envelope["context"]
@@ -53,6 +66,8 @@ def main(folder: Path) -> None:
     values = run_se3_isolated(str(path), timeout_s=remaining, max_results=1)
     if len(values) != 1:
         raise ValueError("expected one complete observation")
+    if reviewed:
+        apply_ambiguity_override(values[0], allow_ambiguous=allow_ambiguous)
     encoded = json.dumps(values[0], allow_nan=False, separators=(",", ":")).encode()
     if not 0 < len(encoded) <= 65_536:
         raise ValueError("result exceeds limit; diagnostics were not truncated")

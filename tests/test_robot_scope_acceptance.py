@@ -2,6 +2,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import stat
 import subprocess
 import sys
@@ -9,6 +10,7 @@ import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -454,10 +456,21 @@ class RobotScopeAcceptanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             runner, commands = self.make_runner(Path(temporary))
             runner.prepare_report_directory()
-            commit = runner.collect_read_only()
+            mapping_logs = Path(temporary) / "workspace" / "ws" / "go2_3d"
+            mapping_logs.mkdir(parents=True, mode=0o700)
+            maps = mapping_logs / "maps"
+            maps.mkdir(mode=0o700)
+            with patch.dict(os.environ, {
+                "ROBOT_SCOPE_WORKSPACE_ROOT": str(Path(temporary) / "workspace"),
+                "ROBOT_SCOPE_MAPPING_LOG_DIR": str(mapping_logs),
+                "ROBOT_SCOPE_MAPS_DIR": str(maps),
+            }):
+                commit = runner.collect_read_only()
             self.assertEqual(commit, "a" * 40)
             self.assertTrue(runner.checks)
             self.assertNotIn("FAIL", {item.status for item in runner.checks})
+            self.assertEqual({item.id: item.status for item in runner.checks}["filesystem.maps"], "PASS")
+            self.assertEqual({item.id: item.status for item in runner.checks}["filesystem.mapping_logs"], "PASS")
             for command in commands.commands:
                 joined = " ".join(command)
                 self.assertTrue("rev-parse HEAD" in joined or "systemctl show" in joined)

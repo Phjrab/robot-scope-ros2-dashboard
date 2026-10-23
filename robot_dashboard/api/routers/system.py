@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from ...application.lifecycle_coordinator import LifecycleCoordinator
+from ...application.ownership_readback import ownership_readback, SCHEMA as OWNERSHIP_SCHEMA
 from ...application.runtime import ApplicationRuntime
 from ...diagnostics import DiagnosticsBundleService, DiagnosticsUnavailable
 from ...control_bridge_lifecycle import (
@@ -35,6 +37,24 @@ from ..models import ControlBridgeLifecycleRequest, ServiceLifecycleRequest
 
 
 router = APIRouter()
+
+
+@router.get("/api/v1/system/ownership-readback")
+async def ownership_readback_status(request: Request, response: Response) -> Dict[str, Any]:
+    """A new path makes unsupported runtimes return 404, never an old status."""
+    runtime = runtime_from_request(request)
+    response.headers["Cache-Control"] = "no-store"
+    lock = runtime.pipeline_coordination_lock
+    if lock.locked() or any(not waiter.cancelled() for waiter in (lock._waiters or ())):
+        return {"schema": OWNERSHIP_SCHEMA, "globally_atomic": False,
+                "process_id": os.getpid(),
+                "restart_authorized": False, "sampled_constraints_clear": False,
+                "busy_components": ["pipeline_coordination"],
+                "unknown_components": ["owners_not_sampled"], "components": {}}
+    # An unlocked asyncio.Lock without pending waiters acquires immediately; no threadpool or await
+    # inside the projection can interleave the event-loop-owned records.
+    async with lock:
+        return ownership_readback(runtime)
 
 
 def _diagnostics(runtime: ApplicationRuntime) -> DiagnosticsBundleService:

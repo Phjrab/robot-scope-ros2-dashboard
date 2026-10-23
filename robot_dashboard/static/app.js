@@ -1,4 +1,4 @@
-import { createSavedMapScene, cloudPointCount, cloudPointSummary } from './features/maps/saved_scene.js';
+import { createSavedMapScene, cloudPointCount, cloudPointSummary, sameSavedCloudRevision } from './features/maps/saved_scene.js';
 import { overviewLidarReception } from './features/sensors/lidar_reception.js';
 import { api, latestApi } from './core/api.js';
 import { $, setStatePill } from './core/dom.js';
@@ -24,6 +24,7 @@ import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
 import { initializeMapEditor3D, savedCloudEditorSource } from './features/map_editor3d/workspace.js';
+import { createFullSourceSaveHandler, saveFullSourceCopy } from './features/map_editor3d/full_source.js';
 import { initializeMapCropFeature, suggestedDerivedMapName, validSavedMapName } from './features/maps/crop.js';
 import { createDiagnosticsExportFeature } from './features/settings/diagnostics.js';
 import { bindSensorPerception, createPerceptionClient } from './features/perception/result_overlay.js';
@@ -1500,14 +1501,14 @@ function formatBounds(bounds) {
   return span.every(Number.isFinite) ? `${span.map((value) => value.toFixed(1)).join(' × ')} m` : '—';
 }
 
-function updateSavedMapOverview() {
+function updateSavedMapOverview({ preserveSelection = false } = {}) {
   const cloud = savedSceneCloud();
   const entries = savedMapCatalog.length ? savedMapCatalog : (cloud ? [{
     id: '__fallback_cloud', name: cloud.demo_snapshot ? 'Public demo cloud' : 'Saved point cloud',
     kind: 'pointcloud3d', file_name: cloud.topic || '/saved/map', point_count: cloudPointCount(cloud),
     frame_id: cloud.frame_id || 'map', bounds: cloud.bounds,
   }] : []);
-  if (!selectedSavedMapMeta && entries.length) {
+  if (!preserveSelection && !selectedSavedMapMeta && entries.length) {
     selectedSavedMapMeta = entries[0];
     selectedSavedMapId = entries[0].id;
   }
@@ -3050,10 +3051,7 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
   }
   const meta = savedMapCatalog.find((entry) => entry.id === mapId);
   if (!meta) return;
-  // Retain the immutable reference during reload; changed selections still clear.
-  const retainLoadedCloud = meta.kind === 'pointcloud3d' && meta.revision &&
-    selectedSavedMapId === meta.id && selectedSavedMapMeta?.revision === meta.revision &&
-    offlineCloudSnapshot?.revision === meta.revision && !offlineCloudSnapshot.demo_snapshot;
+  const retainLoadedCloud = sameSavedCloudRevision(meta, selectedSavedMapId, selectedSavedMapMeta, offlineCloudSnapshot);
   const loadGeneration = ++savedMapSelectionGeneration;
   const expectedRevision = String(meta.revision || '');
   const loadIsCurrent = () => (
@@ -6895,4 +6893,6 @@ initializeMapEditor3D({
   is2DDirty: () => mapEditorHasChanges(mapEditorSession),
   redraw2D: () => scheduleMapEditorDraw(),
   getSource: () => savedCloudEditorSource(selectedSavedMapMeta, offlineCloudSnapshot),
+  saveFullSourceCopy: createFullSourceSaveHandler({ api, saveCopy: saveFullSourceCopy, showToast,
+    updateCatalog: payload => { savedMapCatalog = Object.assign(Array.isArray(payload.maps) ? payload.maps : [], { totalSizeBytes: payload.total_size_bytes }); updateSavedMapOverview({ preserveSelection: true }); } }),
 });

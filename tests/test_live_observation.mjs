@@ -348,6 +348,55 @@ test('subscription source changes clear candidates and mode switches fence late 
   assert.equal(model.applyAlignment(candidate, generation), false); assert.equal(model.registration, null);
 });
 
+test('source replacement waits for a fresh counterpart receipt before reanchor', () => {
+  for (const first of ['cloud', 'pose']) {
+    const { model } = setupSubscription();
+    const oldGeneration = model.generation;
+    const changed = first === 'cloud'
+      ? subscription(cloud(3), 'cloud', { session: '4'.repeat(32) })
+      : subscription(pose(3), 'pose', { session: '4'.repeat(32) });
+    const staleCounterpart = first === 'cloud'
+      ? subscription(pose(3, { observation: observation(3, 'f', 10.02) }), 'pose')
+      : subscription(cloud(3, { observation: observation(3, 'c', 10.02) }), 'cloud');
+    const refreshedCounterpart = first === 'cloud'
+      ? subscription(pose(4, { observation: observation(4, 'f', 10.04) }), 'pose')
+      : subscription(cloud(4, { observation: observation(4, 'c', 10.04) }), 'cloud');
+    const ingestCounterpart = first === 'cloud' ? value => model.ingestPose(value) : value => model.ingestCloud(value);
+    first === 'cloud' ? model.ingestCloud(changed) : model.ingestPose(changed);
+    assert.equal(model.anchor, null);
+    assert.equal(model.snapshot().canAnchor, undefined);
+    assert.throws(() => model.setAnchor(guess, true), /SOURCE_CHANGED/);
+    ingestCounterpart(staleCounterpart);
+    assert.equal(model.snapshot().canAnchor, undefined);
+    assert.throws(() => model.setAnchor(guess, true), /SOURCE_CHANGED/);
+    // Repeating the same seq with a later receipt cannot reopen a freshness window.
+    const repeated = structuredClone(staleCounterpart);
+    repeated.observation.received_monotonic_s = 10.04;
+    repeated.observation.subscription_evidence.graph.observed_monotonic_s = 9.94;
+    ingestCounterpart(repeated);
+    assert.equal(model.snapshot().canAnchor, undefined);
+    ingestCounterpart(refreshedCounterpart);
+    assert.equal(model.snapshot().canAnchor, true);
+    assert.equal(model.pair().paired.value.seq, first === 'cloud' ? 4 : 3);
+    model.setAnchor(guess, true);
+    assert.ok(model.snapshot().pose);
+    assert.ok(model.generation > oldGeneration);
+  }
+});
+
+test('staggered changes in both subscription streams need a second refresh', () => {
+  const { model } = setupSubscription();
+  model.ingestCloud(subscription(cloud(3), 'cloud', { session: '4'.repeat(32) }));
+  assert.equal(model.snapshot().canAnchor, undefined);
+  model.ingestPose(subscription(pose(3), 'pose', { session: '5'.repeat(32) }));
+  assert.equal(model.snapshot().status, 'POSE_SOURCE_CHANGED');
+  assert.equal(model.snapshot().canAnchor, undefined);
+  model.ingestCloud(subscription(cloud(4), 'cloud', { session: '4'.repeat(32) }));
+  assert.equal(model.snapshot().canAnchor, true);
+  model.setAnchor(guess, true);
+  assert.equal(model.snapshot().status, 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED');
+});
+
 test('subscription candidates require explicit unverified result labels and all original numeric gates', () => {
   const { model, setNow } = setupSubscription(); model.registrationEnabled = true;
   assert.equal(model.applyAlignment(result(model), model.generation), true);

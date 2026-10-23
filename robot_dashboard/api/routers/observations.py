@@ -1,0 +1,8 @@
+"""Observation APIs share composition, never robot control ownership."""
+from fastapi import APIRouter
+from .global_observation import router as global_router
+from .sensor_tracking import router as sensor_router
+
+router = APIRouter()
+router.include_router(global_router)
+router.include_router(sensor_router)

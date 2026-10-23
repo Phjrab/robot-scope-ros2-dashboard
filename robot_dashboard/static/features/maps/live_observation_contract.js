@@ -152,10 +152,14 @@ export class LiveMapObservation {
     this.alignmentRevision = 0;
     this.telemetrySummary = { pose: null, cloud: null };
     this.telemetryReceipt = { pose: null, cloud: null };
+    // A source replacement may reach the two subscriptions in either order.
+    // Keep the old input's sequence fence, but require a new counterpart receipt
+    // after the replacement before an operator may create another display anchor.
+    this.sourceRefreshAfter = { pose: null, cloud: null };
   }
   enable(value) {
     this.enabled = Boolean(value); this.invalidate(value ? 'NO_ANCHOR' : 'OFF');
-    this.pose = null; this.cloud = null; this.history = [];
+    this.pose = null; this.cloud = null; this.history = []; this.sourceRefreshAfter = { pose: null, cloud: null };
   }
   setProvenanceMode(mode) {
     if (!['native_publisher', 'subscription_observation'].includes(mode)) throw new Error('INVALID_PROVENANCE_MODE');
@@ -170,7 +174,7 @@ export class LiveMapObservation {
     this.anchor = null; this.reason = reason; this.trail = []; this.samples = []; this.geometryCache = null; this.registration = null; this.generation++;
     if (!keepTelemetry) this.telemetrySummary = { pose: null, cloud: null };
   }
-  resetInputs(reason) { this.invalidate(reason); this.pose = null; this.cloud = null; this.history = []; }
+  resetInputs(reason) { this.invalidate(reason); this.pose = null; this.cloud = null; this.history = []; this.sourceRefreshAfter = { pose: null, cloud: null }; }
   rememberTelemetry(kind, value) {
     const next = telemetryMetadata(value, kind, this.now()), previous = this.telemetrySummary[kind];
     const source = telemetrySource(next), receipt = this.telemetryReceipt[kind];
@@ -214,11 +218,18 @@ export class LiveMapObservation {
       if (value.state !== 'ok' || !finite(value.age_s) || value.age_s < 0 || value.age_s > 1) throw new Error('POSE_STALE');
       const last = this.pose;
       if (last?.key === key && value.seq <= last.value.seq) return; // late snapshot cannot renew freshness
-      if (last && last.key !== key) { this.invalidate('POSE_SOURCE_CHANGED'); this.history = []; }
+      if (last && last.key !== key) {
+        this.invalidate('POSE_SOURCE_CHANGED'); this.history = [];
+        this.sourceRefreshAfter.cloud = value.observation.received_monotonic_s;
+      }
       if (last?.key === key && BigInt(value.observation.source_stamp_ns) < BigInt(last.value.observation.source_stamp_ns)) this.invalidate('POSE_TIME_REVERSED');
       if (last?.key === key && jump(last.matrix, matrix)) this.invalidate('POSE_JUMP');
       this.pose = { value, key, matrix, arrived: this.now() };
-      this.history.push(this.pose); this.history = this.history.slice(-80);
+      if (this.sourceRefreshAfter.pose === null
+          || value.observation.received_monotonic_s >= this.sourceRefreshAfter.pose) {
+        this.history.push(this.pose); this.history = this.history.slice(-80);
+        this.sourceRefreshAfter.pose = null;
+      }
     } catch (error) { this.pose = null; this.history = []; this.invalidate(error.message, true); }
     finally { this.rememberTelemetry('pose', value); }
   }
@@ -228,9 +239,17 @@ export class LiveMapObservation {
       const key = sourceKey(value, this.provenanceMode, 'cloud');
       if (!value.points?.length || value.points.length % 3 || value.units !== 'm') throw new Error('CLOUD_INVALID');
       if (this.cloud?.key === key && value.seq <= this.cloud.value.seq) return;
-      if (this.cloud && this.cloud.key !== key) this.invalidate('CLOUD_SOURCE_CHANGED');
+      if (this.cloud && this.cloud.key !== key) {
+        this.invalidate('CLOUD_SOURCE_CHANGED');
+        // Retain this.pose for its seq/key fence, but never pair the new cloud
+        // with a pose captured before this source transition.
+        this.history = [];
+        this.sourceRefreshAfter.pose = value.observation.received_monotonic_s;
+      }
       if (this.cloud?.key === key && BigInt(value.observation.source_stamp_ns) < BigInt(this.cloud.value.observation.source_stamp_ns)) this.invalidate('CLOUD_TIME_REVERSED');
       this.cloud = { value, key, arrived: this.now() }; this.geometryCache = null;
+      if (this.sourceRefreshAfter.cloud !== null
+          && value.observation.received_monotonic_s >= this.sourceRefreshAfter.cloud) this.sourceRefreshAfter.cloud = null;
     } catch (error) { this.cloud = null; this.invalidate(error.message, true); }
     finally { this.rememberTelemetry('cloud', value); }
   }
@@ -277,6 +296,7 @@ export class LiveMapObservation {
     if (this.pose.value.age_s * 1000 + this.now() - this.pose.arrived > 1000 || this.now() - this.cloud.arrived > 1000) throw new Error('STALE');
     if (this.provenanceMode === 'subscription_observation' && [this.pose, this.cloud].some(input =>
       subscriptionGraphAge(input.value) + this.now() - input.arrived > 3000)) throw new Error('SUBSCRIPTION_GRAPH_STALE');
+    if (this.sourceRefreshAfter.pose !== null || this.sourceRefreshAfter.cloud !== null) throw new Error(this.reason);
     const pair = this.pair(), paired = pair.paired;
     if (!finite(paired.value.age_s) || paired.value.age_s < 0
         || paired.value.age_s * 1000 + this.now() - paired.arrived > 1000) throw new Error('STALE');
