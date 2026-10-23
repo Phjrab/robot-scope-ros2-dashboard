@@ -270,3 +270,7 @@ class ObservationApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(await request(request_body() | change), 422)
         self.assertEqual(await request(request_body()), 200)
         self.assertEqual(len(calls), 1)
+        self.assertFalse(calls[-1][2]['capture_inputs'])
+        self.assertEqual(await request(request_body() | {'capture_inputs': True}), 200)
+        self.assertTrue(calls[-1][2]['capture_inputs'])
+        self.assertEqual(await request(request_body() | {'capture_inputs': 'true'}), 422)

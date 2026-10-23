@@ -1,5 +1,10 @@
 # Latest follow-up — 2026-10-23 passive source capture preserved before power-off
 
+Latest offline preparation: [OBSERVATION_CAPTURE_UI_PREPARATION_20261023.md](OBSERVATION_CAPTURE_UI_PREPARATION_20261023.md)
+documents opt-in exact solver-input capture/replay and the 19-file merged UI
+candidate audit. No robot access or deployment; 15 static before hashes still
+require device readback. This feature cannot recover the missing movement XYZ.
+
 Later offline motion follow-up: see [OFFLINE_MOTION_FOLLOWUP_20261023.md](OFFLINE_MOTION_FOLLOWUP_20261023.md)
 for map identity retention, combined movement/transport checks, metadata replay
 limits and the prepared, undeployed two-static-file candidate.

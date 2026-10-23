@@ -365,7 +365,7 @@ class ObservationAligner:
             if provenance_mode == "subscription_observation" and assessment["status"] == "CANDIDATE":
                 assessment["status"] = "CANDIDATE_SOURCE_UNVERIFIED"
                 assessment["reason"] = "CANDIDATE_SOURCE_UNVERIFIED"
-            return {"schema": "robot-scope.observation-alignment.v1", "experimental": True,
+            payload = {"schema": "robot-scope.observation-alignment.v1", "experimental": True,
                 "operational_application": "NOT_RUN", "body_pose_verified": False, "absolute_accuracy_m": None,
                 "body_extrinsic_verified": False,
                 "provenance_mode": provenance_mode,
@@ -377,6 +377,16 @@ class ObservationAligner:
                 "correspondence_gate_m": MAX_CORRESPONDENCE_M, "sampling": "uniform_stride_query_max512_full_normalized_reference",
                 "reference_processing": "catalogue all usable points; count equality required; rounded 0.0001 m; catalogue frame unverified",
                 "total_runtime_ms": (time.monotonic() - started) * 1000}
+            if body.get("capture_inputs") is True:
+                from .observation_capture import capture_inputs
+                capture_started = time.monotonic()
+                with measure("input_capture"):
+                    payload["input_capture"] = capture_inputs(identifier=identifier, revision=revision,
+                        reference=reference, target_frame=target_frame, points=points, frame=frame,
+                        seed=seed, pose=pose, source=provenance)
+                payload["input_capture_runtime_ms"] = (time.monotonic() - capture_started) * 1000
+                payload["total_runtime_ms"] = (time.monotonic() - started) * 1000
+            return payload
         except ObservationAlignmentError:
             raise
         except (KeyError, TypeError, ValueError, OverflowError, np.linalg.LinAlgError) as exc:

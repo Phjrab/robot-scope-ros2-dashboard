@@ -1,5 +1,10 @@
 # Robot Scope 인계 갱신 — 2026-10-23
 
+**최신 입력 기록·UI 준비:** 선택적 정합 입력 보존/오프라인 재현과 통합 UI
+19파일 후보의 설치 소스 비교는
+[OBSERVATION_CAPTURE_UI_PREPARATION_20261023.md](OBSERVATION_CAPTURE_UI_PREPARATION_20261023.md)를 따른다.
+장비 접속·배포는 하지 않았으며 15 static 파일의 현재 설치 readback이 남아 있다.
+
 **최신 오프라인 후속:** 동일 지도 정보 갱신 시 연결 유지 수정, 이동·수신 복구
 재현, 미수렴 분석 한계와 미배포 2파일 후보는
 [OFFLINE_MOTION_FOLLOWUP_20261023.md](OFFLINE_MOTION_FOLLOWUP_20261023.md)를 따른다.

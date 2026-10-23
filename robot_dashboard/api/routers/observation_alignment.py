@@ -7,7 +7,7 @@ import logging
 import time
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 from ...relocalization.observation_timing import ObservationTiming, measure, note
@@ -30,6 +30,7 @@ class ObservationRequest(BaseModel):
     pose_epoch: str = Field(pattern=r"^[a-f0-9]{32}$")
     T_map_odom_seed: list[Row] = Field(min_length=4, max_length=4)
     provenance_mode: Literal["native_publisher", "subscription_observation"] = "native_publisher"
+    capture_inputs: StrictBool = False
 
 
 @router.post("/api/v1/observations/map-alignment")
@@ -58,7 +59,12 @@ async def estimate_observation(request: Request, body: ObservationRequest) -> JS
         LOGGER.info("observation_timing %s", json.dumps(dict(trace.summary(), http_status=500)))
         raise
     with trace.bind(), measure("serialization"):
-        response = JSONResponse(payload, status_code=status)
+        # The opt-in reference array can be ~3.2 MiB; keep its JSON encoding
+        # off the event loop that serves live pose/cloud WebSockets.
+        if body.capture_inputs:
+            response = await run_in_threadpool(JSONResponse, payload, status_code=status)
+        else:
+            response = JSONResponse(payload, status_code=status)
     # Fixed-size aggregate only; no inputs, coordinates, tokens or source identifiers.
     LOGGER.info("observation_timing %s", json.dumps(dict(trace.summary(), http_status=status)))
     return response
