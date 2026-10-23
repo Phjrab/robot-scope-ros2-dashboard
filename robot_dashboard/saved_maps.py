@@ -461,6 +461,33 @@ class SavedMapCatalog:
         with measured_lock(self._lock, "catalog_lock"):
             return self._find(map_id).public()
 
+    def observation_metadata(self, map_id: str) -> Dict[str, Any]:
+        """Revalidate a pinned observation map without rescanning unrelated maps.
+
+        The first lookup still uses catalogue admission. Only one record is
+        retained; every subsequent access checks the actual contained file,
+        header and revision. Removal/replacement never returns cached metadata.
+        """
+        with measured_lock(self._lock, "catalog_lock"):
+            previous = getattr(self, "_observation_record", None)
+            if previous is None or previous.map_id != map_id:
+                record = self._find(map_id)
+            else:
+                record = self._record_for(previous.root, previous.path)
+            if record is None or record.map_id != map_id or record.kind != "pointcloud3d":
+                raise SavedMapNotFound("observation map is unavailable")
+            self._observation_record = record
+            return record.public()
+
+    def observation_data(self, map_id: str, max_points: Optional[int] = None) -> Dict[str, Any]:
+        with measured_lock(self._lock, "catalog_lock"):
+            self.observation_metadata(map_id)
+            record = self._observation_record
+            payload = self._data_for_record(record, max_points)
+            if self.observation_metadata(map_id)["revision"] != record.revision:
+                raise SavedMapConflict("observation map changed while reading")
+            return payload
+
     def raw_global_reference(
         self, map_id: str, revision: str, *, max_points: int = 1_000_000,
         max_bytes: int = 32 * 1024 * 1024,
@@ -1126,30 +1153,33 @@ class SavedMapCatalog:
 
         with measured_lock(self._lock, "catalog_lock"):
             record = self._find(map_id)
-            try:
-                self._validate_record(record)
-                if record.format == "pcd-binary":
-                    payload = self._pcd_snapshot(
-                        record,
-                        self._point_limit(max_points),
-                    )
-                elif record.format == "robot-scope-json":
-                    payload = self._json_snapshot(
-                        record,
-                        self._point_limit(max_points),
-                    )
-                elif record.format == "map-server-pgm":
-                    payload = self._occupancy_snapshot(record)
-                else:
-                    raise SavedMapFormatError(
-                        f"unsupported saved map format: {record.format}"
-                    )
-                payload["revision"] = record.revision
-                return payload
-            except SavedMapError:
-                raise
-            except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
-                raise SavedMapFormatError("saved map data could not be read") from exc
+            return self._data_for_record(record, max_points)
+
+    def _data_for_record(self, record: SavedMapRecord, max_points: Optional[int]) -> Dict[str, Any]:
+        try:
+            self._validate_record(record)
+            if record.format == "pcd-binary":
+                payload = self._pcd_snapshot(
+                    record,
+                    self._point_limit(max_points),
+                )
+            elif record.format == "robot-scope-json":
+                payload = self._json_snapshot(
+                    record,
+                    self._point_limit(max_points),
+                )
+            elif record.format == "map-server-pgm":
+                payload = self._occupancy_snapshot(record)
+            else:
+                raise SavedMapFormatError(
+                    f"unsupported saved map format: {record.format}"
+                )
+            payload["revision"] = record.revision
+            return payload
+        except SavedMapError:
+            raise
+        except (OSError, ValueError, TypeError, OverflowError, UnicodeError) as exc:
+            raise SavedMapFormatError("saved map data could not be read") from exc
 
     def _annotation_record(self, map_id: str) -> SavedMapRecord:
         record = self._find(map_id)

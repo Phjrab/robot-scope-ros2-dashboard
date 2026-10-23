@@ -76,3 +76,64 @@ Device application, stationary registration and manual-motion evidence are
 recorded separately below after execution. Absolute accuracy remains unmeasured.
 Raw map/logs, source backups and the six-file deployment manifest remain in the
 private `same-start-20261023` evidence directory, outside Git.
+
+## First approved device execution and follow-up
+
+Code `522e4bd6721ca356b84f27a3f68bec2e835576db` was published to main. Its
+six-file patch was merged with the installed overlays and applied from private
+manifest `b00ee5cc47ce19784cd1678e13320dff6d85781a6581bd46968e8f267aeeae68`.
+The robot checkout remains `d7807de8f15fb457942039bb90ab41cf68d384c6` plus
+those overlays and the patch; it is not a checkout of public main. The approved
+dashboard restart produced PID 107139, active with NRestarts=0, and recovered
+its owned LiDAR preview. Control bridge stayed disabled/inactive.
+
+An isolated observation FAST-LIO was started at 14:14:03 KST under
+`robot-scope-same-start-20261023.service`, with a 3,600 s lifetime. Compiled-in
+Log/PCD directories are privately bind-mounted, and TF outputs are remapped.
+The original map/config/mapping logs were preserved. `/Odometry` and
+`/cloud_registered` were selected. The new map and approximate prior were
+entered in the existing Maps view. Fresh FAST-LIO IMU pose propagation was
+observed; no accepted live scan-to-map correction has yet been recorded.
+Manual movement and absolute accuracy remain untested.
+
+The first live attempts exceeded the unchanged 600 ms budget before ICP:
+whole-catalogue metadata took 824–912 ms and data lookup 1,411–2,612 ms under
+the dashboard process load. The reference was never cached. The follow-up
+retains one catalogue-admitted observation record and revalidates its actual
+contained file/header/revision before reads and at completion. It avoids
+rescanning unrelated maps. Immutable reference preparation survives a bounded
+failed attempt; every retry obtains fresh source samples and still uses the
+600 ms deadline. A slow OS file read can overrun that deadline before returning,
+but such an attempt cannot return a current candidate. No timing or residual
+threshold was increased.
+
+Continuous FAST-LIO display now handles independently sampled browser streams:
+already registered points use `T_M_O × points_O`; the latest fresh IMU pose uses
+`T_M_O × T_O_F(now)`. The UI labels this
+`REGISTERED_FRAME_INDEPENDENT_CURRENT_POSE`. It does not claim exact pairing of
+those two display samples. Backend corrections still require identical original
+FAST-LIO output timestamps; the strict display mode retains its old pairing.
+Stale, generation, map/source and jump invalidation remain in effect.
+
+Follow-up validation: full Python 2,415 tests, 3 skipped; JavaScript 595 tests;
+7 browser tests; 26 tests against the merged installed UI candidate. A separate
+robot process reading the pinned map measured selected metadata 0.304 ms,
+normalized data 85.825 ms, grid preparation 63.457 ms. These isolated numbers
+are not proof of performance inside the running dashboard.
+
+An offline diagnostic used a current captured cloud (original stamp
+1792733268642336606 ns) and an approximate stationary seed. It converged in
+32 iterations with point-to-point inlier RMSE 0.164048 m, overlap 0.997701,
+and 468.6 ms on the Mac. The independently read pose stamp was
+1792733268942628622 ns, so this is expressly not an exact-paired live result.
+Four additional local yaw seeds in ±0.3 rad did not pass the unchanged 10 cm
+policy (best RMSE about 0.16405 m, with convergence failures also retained).
+None was applied. The installed config uses 0.5 m surface/map filtering, and
+published saved points accumulate filtered scans; this is a relevant sampling
+limitation, not proof that sampling alone explains the residual.
+
+The four-file follow-up bundle is prepared with per-file hashes, original
+backups and guarded restore. Its additional dashboard restart requires separate
+approval because the first approval explicitly allowed one restart, already
+performed. Until that approval and a successful real rerun, D (accepted regional
+registration) and F (full stationary acceptance) remain incomplete.

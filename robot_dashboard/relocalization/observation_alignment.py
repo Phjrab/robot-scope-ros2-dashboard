@@ -190,7 +190,7 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
 class ObservationAligner:
     def __init__(self) -> None:
         self.lock = threading.Lock()
-        self.cache: tuple[tuple[str, str], np.ndarray, RadiusGrid, str] | None = None
+        self.cache: tuple[tuple[str, str], np.ndarray, RadiusGrid | None, str] | None = None
         self.last_started = float("-inf")
 
     def estimate(self, catalog: Any, agent: Any, body: dict[str, Any]) -> dict[str, Any]:
@@ -204,12 +204,16 @@ class ObservationAligner:
             deadline = started + .6
             provenance_mode = body.get("provenance_mode", "native_publisher")
             identifier, revision = body["map_id"], body["map_revision"]
+            metadata = getattr(catalog, "observation_metadata", catalog.metadata)
+            map_data = getattr(catalog, "observation_data", catalog.data)
             with measure("catalog_metadata"):
-                meta = catalog.metadata(identifier)
+                meta = metadata(identifier)
             if meta.get("kind") != "pointcloud3d" or meta.get("revision") != revision:
                 raise ObservationAlignmentError("MAP_CHANGED")
             if not 60 <= int(meta.get("point_count", 0)) <= 100_000:
                 raise ObservationAlignmentError("REFERENCE_LIMIT_60_TO_100000")
+            if time.monotonic() > deadline:
+                raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
             with measure("input_snapshot_and_validation"):
                 cloud = agent.pointcloud_binary_snapshot()
                 pose = (agent.observation_pose_near(cloud.get("observation") or {}, provenance_mode=provenance_mode)
@@ -224,20 +228,25 @@ class ObservationAligner:
             note("reference_cache_hit", self.cache is not None and self.cache[0] == (identifier, revision))
             if self.cache is None or self.cache[0] != (identifier, revision):
                 with measure("catalog_data"):
-                    data = catalog.data(identifier, None)
+                    data = map_data(identifier, None)
                 with measure("reference_array"):
                     reference_points = np.asarray(data["points"], dtype=np.float64).reshape(-1, 3)
                 if (data.get("revision") != revision or data.get("display_capped")
                         or int(data.get("source_points", len(reference_points))) != len(reference_points)):
                     raise ObservationAlignmentError("INCOMPLETE_REFERENCE")
                 Cloud(reference_points, data["frame_id"], "REGISTERED_MAP").validated(reference=True, max_points=100_000)
-                with measure("reference_grid"):
-                    grid = RadiusGrid(reference_points, deadline=deadline)
-                self.cache = ((identifier, revision), reference_points, grid, data["frame_id"])
+                # Keep immutable reference preparation across bounded attempts.
+                # A slow file read cannot consume every retry's live budget.
+                # No pose/result is retained: the next attempt selects fresh inputs.
+                self.cache = ((identifier, revision), reference_points, None, data["frame_id"])
             seed = validate_transform(body["T_map_odom_seed"])
             _, reference, grid, target_frame = self.cache
             if time.monotonic() > deadline:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+            if grid is None:
+                with measure("reference_grid"):
+                    grid = RadiusGrid(reference, deadline=deadline)
+                self.cache = ((identifier, revision), reference, grid, target_frame)
             def nearest(query, _):
                 with measure("nearest"):
                     return grid.nearest(query, deadline=deadline)
@@ -261,7 +270,7 @@ class ObservationAligner:
             result["metrics"]["inlier_count"] = len(matched)
             assessment = qualify_observation(result, inlier_count=len(matched), query_count=len(points))
             with measure("completion_validation"):
-                if catalog.metadata(identifier).get("revision") != revision:
+                if metadata(identifier).get("revision") != revision:
                     raise ObservationAlignmentError("MAP_CHANGED")
                 current_cloud, current_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
                 if observed_key(current_cloud, provenance_mode=provenance_mode) != observed_key(cloud, provenance_mode=provenance_mode):

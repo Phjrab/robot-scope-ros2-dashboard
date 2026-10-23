@@ -238,6 +238,18 @@ export class LiveMapObservation {
     const cloud = this.cloud?.value;
     if (!cloud) throw new Error('WAITING_CLOUD');
     const imu = fastlioImu(this.pose?.value);
+    // Registered points already live in O. Continuous display needs T_M_O
+    // for them and a fresh independent pose for T_M_O * T_O_F(now), not a
+    // scan-time pose that may have been skipped by browser stream sampling.
+    // The backend still requires exact FAST-LIO stamps for every correction.
+    if (this.continuousEstimate && imu && cloud.topic === '/cloud_registered'
+        && cloud.pipeline_stage === 'registered' && cloud.frame_id === this.pose.value.frame_id
+        && cloud.observation.observer_id === this.pose.value.observation.observer_id) {
+      return { paired: this.pose, pointsToOdom: identity(), kind: 'REGISTERED_CLOUD_FIXED_FRAME_UNVERIFIED',
+        extrinsic: null, pair_method: 'REGISTERED_FRAME_INDEPENDENT_CURRENT_POSE',
+        receipt_delta_s: this.pose.value.observation.received_monotonic_s - cloud.observation.received_monotonic_s,
+        source_delta_ns: String(BigInt(this.pose.value.observation.source_stamp_ns) - BigInt(cloud.observation.source_stamp_ns)) };
+    }
     const candidates = this.history.filter(p => p.value.observation.observer_id === cloud.observation.observer_id
       && p.key === this.pose?.key && (!imu || p.value.observation.source_stamp_ns === cloud.observation.source_stamp_ns));
     const paired = candidates.reduce((best, p) => !best || Math.abs(p.value.observation.received_monotonic_s - cloud.observation.received_monotonic_s)

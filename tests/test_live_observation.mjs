@@ -516,7 +516,7 @@ test('provisional results retain map, epoch, generation, timeout, freshness and 
   f.setNow(1001); assert.equal(f.model.snapshot().pose, null); assert.equal(f.model.anchor, null); assert.equal(f.model.registration, null);
 });
 
-test('FAST-LIO IMU uses exact scan stamps, a full 6DoF prior and sensor pose semantics', () => {
+test('FAST-LIO continuous display uses independent fixed-frame points and current IMU pose', () => {
   let now = 0;
   const model = new LiveMapObservation(() => now);
   model.enable(true); model.setMap(map, {revision: map.revision, frame_id: 'camera_init', points: [1,2,3]});
@@ -527,7 +527,7 @@ test('FAST-LIO IMU uses exact scan stamps, a full 6DoF prior and sensor pose sem
   const initial = model.snapshot();
   assert.equal(initial.pose_reference, 'FASTLIO_IMU');
   assert.equal(initial.tracked_frame, 'body');
-  assert.equal(initial.pair_method, 'FASTLIO_OUTPUT_STAMP_EXACT');
+  assert.equal(initial.pair_method, 'REGISTERED_FRAME_INDEPENDENT_CURRENT_POSE');
   assert.equal(initial.body_pose, null);
   for (const k of ['x','y','z','roll','pitch','yaw']) close(initial.pose[k], guess[k]);
   model.registrationEnabled = true;
@@ -537,9 +537,14 @@ test('FAST-LIO IMU uses exact scan stamps, a full 6DoF prior and sensor pose sem
   assert.equal(current.status, 'SAME_START_ODOMETRY_ESTIMATE');
   assert.notEqual(current.pose.x, initial.pose.x);
   assert.equal(current.source_stamp_ns, String(stamp + 2n));
-  // An unmatched newer cloud is never projected using receipt-nearest odometry.
+  // No cloud-time transform is needed for already registered fixed-frame points.
   model.ingestCloud(cloud(3, {frame_id: 'camera_init'}));
+  assert.ok(model.snapshot().pose);
+  assert.equal(model.snapshot().source_delta_ns, '-1');
+  assert.deepEqual(model.pair().pointsToOdom, [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]);
+  model.continuousEstimate = false;
   assert.throws(() => model.pair(), /WAITING_PAIRED_POSE/);
+  model.continuousEstimate = true;
   now = 1001;
   assert.equal(model.snapshot().pose, null);
   assert.equal(model.anchor, null);
