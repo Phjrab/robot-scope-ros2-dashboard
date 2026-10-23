@@ -4,6 +4,13 @@ The existing Maps observation panel can now track the installed FAST-LIO IMU
 state against a pinned saved 3D map. This is display-only: no map→odom TF,
 initialpose, goal, control output or body-extrinsic claim is added.
 
+**Current device result:** the operator-approved follow-up through `6333dca` is
+installed. Same-start IMU display stayed connected for a captured 119.6 s
+window. No map correction is accepted: the dashboard hits the unchanged 600 ms
+wall deadline under shared-process load, while the same deployed aligner in an
+isolated live-input diagnostic completes and rejects RMSE 0.164952 m. See the
+final execution section below; older pending-deployment notes are historical.
+
 Select the saved PCD, enable current inputs, and on Humble explicitly select
 subscription/graph evidence mode. Enable **동일 시작점 기반 연속 관측**, enter an
 approximate start pose in the tracked frame, confirm stationary placement, and
@@ -165,3 +172,75 @@ Final acceleration validation: full Python 2,417 tests passed (3 skipped),
 related JavaScript 26 passed, and the robot-native search tests above passed.
 The prepared follow-up remains four deployed files and one additional dashboard
 restart; the estimator's original one-hour lifetime is unchanged.
+
+
+## Approved follow-up execution — 14:41–14:52 KST
+
+After explicit approval, the four-file follow-up was installed with manifest
+`ca59a1f97b9691056ab625933952cf40a71cf36c3ead13a70410951a0aa2444f` and the
+additional dashboard restart was performed once. Dashboard PID is 138038,
+active, NRestarts=0; owned LiDAR preview recovered. The original observation
+FAST-LIO retained its process (wrapper 107991, estimator 108042) and its original
+15:14 KST lifetime limit. Control bridge is inactive/disabled. No robot motion,
+posture, Nav2 or operational TF application was performed.
+
+Installed source and all four protected original backups matched the manifest.
+The pinned PCD, FAST-LIO config and original mapping `Log/mat_pre.txt` hashes
+remain unchanged. Robot Git HEAD is still `d7807de8f15fb457942039bb90ab41cf68d384c6`
+plus retained installed overlays and the patches through public source commit
+`6333dca5c5f66fc886cb8dbce10f123b76773ccb`. Git publication and deployment are
+separate events; no wholesale checkout was installed.
+
+The map, subscription evidence mode, same-start continuous mode and recorded
+six-dimensional prior were reselected in the existing Maps panel. The anchor
+used current pose stamp 1792734152044028759 ns. The exported observation window
+contains 400 samples spanning 119.598786354 s, with 398 distinct, nondecreasing
+pose stamps, unchanged map revision, alignment revision 0 and
+`accepted_registration=false`. The UI remained `SAME_START_ODOMETRY_ESTIMATE`
+after numerical failures, with independently advancing registered-cloud and
+current IMU timestamps. This establishes stationary display continuity in that
+window, not physical pose accuracy or manual-motion tracking.
+
+The first catalogue admission still took about 896 ms and the first SciPy
+import/reference build took about 2.8 s; both attempts were correctly rejected.
+Prepared data/index were retained. Warm selected-map metadata took roughly
+10–33 ms instead of rescanning the full catalogue. Nevertheless, dashboard
+worker attempts reached the 600 ms wall deadline after only 7–9 nearest-search
+calls, with about 109–135 ms of worker CPU. SciPy was loaded in the actual
+service. A nearby historical fit used only as a numerical search seed also
+hit the same deadline. No such rejected seed/result was applied to the UI.
+Repeated dashboard alignment was then disabled; IMU display remains enabled.
+
+To distinguish computation contention from numerical fit quality, a separate
+read-only process used the **installed** aligner with a prepared identical
+reference. It captured real pointcloud/pose WebSocket messages with the exact
+same original source stamp 1792734562542991399 ns, host receipt delta
+0.012136981 s, and the dashboard's unmodified subscription evidence. It used
+fresh same-start prior initialization and the same 600 ms deadline. Completion
+re-read the latest dashboard cloud/pose and revalidated map revision, source,
+graph evidence and original-pair freshness. No timestamps were refreshed and no
+ROS publisher, UI result injection or operational application was involved.
+
+That actual live-input diagnostic completed in **268.852 ms total** (149.906 ms
+solver), converged in 29 iterations with 435/435 inliers, overlap **1.0**, and
+point-to-point RMSE **0.164951548 m**. Its sole gate reason is `HIGH_RESIDUAL`;
+both original 5 cm and provisional 10 cm policies reject it. The result remains
+a private diagnostic and is not the dashboard's current map correction.
+
+A/B/C are established for the pinned new map and approximate IMU connection.
+E is demonstrated for same-start odometry display only. Actual regional
+registration was executed but did not qualify; D and full F acceptance therefore
+remain incomplete. G (operator manual movement) and absolute accuracy are
+unmeasured. The remaining blockers are shared-process live computation delay
+and the roughly 16.5 cm point-to-point residual. The next minimum implementation
+step is isolated numerical execution with the same source/map/deadline fences;
+this alone cannot turn the residual failure into an accepted correction.
+
+Private evidence includes the protected backup manifest, deployment hash check,
+`stationary-ui-export.json`, `stationary-ui-summary.json`, exact-pair isolated
+probe JSON, actual service timing log, `deployed-map-view.png` and
+`deployed-observation-controls.png`. Raw maps, source backups and credentials are not included in Git.
+
+Post-deployment documentation validation: full Python 2,417 tests passed
+(3 skipped) and related JavaScript 26 passed; no additional source changes
+or service restarts were performed during this evidence update.
