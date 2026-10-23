@@ -76,6 +76,21 @@ case "$FASTLIO_DDS_MODE" in
     ;;
 esac
 
+# Observation reuses the same estimator and input/config selection. Its TF and
+# cumulative map are isolated from operational consumers. The caller must own
+# the process and preserve FAST-LIO's compiled-in Log directory (e.g. a private
+# systemd BindPaths mount); this mode does not stop any existing producer.
+if [[ "${ROBOT_SCOPE_FASTLIO_OBSERVATION_ONLY:-0}" == "1" ]]; then
+  exec ros2 run fast_lio fastlio_mapping --ros-args \
+    --params-file "$FASTLIO_CONFIG_PATH/$FASTLIO_CONFIG_FILE" \
+    -p use_sim_time:=false -p pcd_save.pcd_save_en:=false \
+    -p publish.map_en:=false -p publish.path_en:=false \
+    -r /tf:=/robot_scope/observation/tf \
+    -r /tf_static:=/robot_scope/observation/tf_static \
+    -r /Laser_map:=/robot_scope/observation/map \
+    -r /path:=/robot_scope/observation/path
+fi
+
 exec ros2 launch fast_lio mapping.launch.py \
   config_path:="$FASTLIO_CONFIG_PATH" \
   config_file:="$FASTLIO_CONFIG_FILE" \

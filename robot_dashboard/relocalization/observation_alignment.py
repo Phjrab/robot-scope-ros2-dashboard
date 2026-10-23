@@ -131,9 +131,19 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
         raise ObservationAlignmentError("RECEIPT_TIME_MISMATCH")
     if any(not 0 <= now - o["received_monotonic_s"] <= 1 for o in (co, po)):
         raise ObservationAlignmentError("STALE_INPUT")
+    fastlio_imu = (pose.get("topic") == "/Odometry" and pose.get("frame_id") == "camera_init"
+                   and pose.get("child_frame_id") == "body")
     if (cloud.get("units") != "m" or pose.get("state") != "ok"
-            or pose.get("child_frame_id") != "base_link"):
+            or (pose.get("child_frame_id") != "base_link" and not fastlio_imu)):
         raise ObservationAlignmentError("INVALID_INPUT")
+    if fastlio_imu:
+        # This installed FAST-LIO emits both outputs at lidar_end_time. Its
+        # `body` is the filter IMU state, not the Go2 base_link. Do not apply
+        # the configured body extrinsic or receipt-nearest pairing to it.
+        if (cloud.get("topic") != "/cloud_registered" or cloud.get("pipeline_stage") != "registered"
+                or cloud.get("frame_id") != pose["frame_id"]
+                or co["source_stamp_ns"] != po["source_stamp_ns"]):
+            raise ObservationAlignmentError("FASTLIO_SOURCE_TIME_MISMATCH")
     raw = np.frombuffer(cloud["points_bytes"], dtype="<f4").reshape(-1, 3)
     raw = raw[::max(1, int(np.ceil(len(raw) / 512)))].astype(np.float64)
     if len(raw) < 60 or not np.isfinite(raw).all():
@@ -163,7 +173,9 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
         "source_stamp_ns": co["source_stamp_ns"], "cloud_seq": cloud["seq"],
         "cloud_epoch": cloud_key[1], "pose_epoch": pose_key[1], "observer_id": cloud_key[0],
         "clock_relation": "UNVERIFIED", "body_extrinsic_verified": False,
-        "pair_method": "HOST_RECEIPT_NEAREST", "deskew_verified": False,
+        "pair_method": "FASTLIO_OUTPUT_STAMP_EXACT" if fastlio_imu else "HOST_RECEIPT_NEAREST", "deskew_verified": False,
+        "tracked_frame": pose["child_frame_id"], "pose_topic": pose["topic"],
+        "pose_reference": "FASTLIO_IMU" if fastlio_imu else "UNVERIFIED_BODY",
         "pose_source_stamp_ns": po["source_stamp_ns"],
         "received_monotonic_s": co["received_monotonic_s"],
         "pose_received_monotonic_s": po["received_monotonic_s"],

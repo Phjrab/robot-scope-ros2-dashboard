@@ -515,3 +515,63 @@ test('provisional results retain map, epoch, generation, timeout, freshness and 
   assert.equal(f.model.applyAlignment(provisionalResult(f.model), f.model.generation), true);
   f.setNow(1001); assert.equal(f.model.snapshot().pose, null); assert.equal(f.model.anchor, null); assert.equal(f.model.registration, null);
 });
+
+test('FAST-LIO IMU uses exact scan stamps, a full 6DoF prior and sensor pose semantics', () => {
+  let now = 0;
+  const model = new LiveMapObservation(() => now);
+  model.enable(true); model.setMap(map, {revision: map.revision, frame_id: 'camera_init', points: [1,2,3]});
+  model.setContinuousEstimate(true);
+  const p = pose(1, {topic: '/Odometry', frame_id: 'camera_init', child_frame_id: 'body'});
+  model.ingestPose(p); model.ingestCloud(cloud(1, {frame_id: 'camera_init'}));
+  model.setAnchor(guess, true);
+  const initial = model.snapshot();
+  assert.equal(initial.pose_reference, 'FASTLIO_IMU');
+  assert.equal(initial.tracked_frame, 'body');
+  assert.equal(initial.pair_method, 'FASTLIO_OUTPUT_STAMP_EXACT');
+  assert.equal(initial.body_pose, null);
+  for (const k of ['x','y','z','roll','pitch','yaw']) close(initial.pose[k], guess[k]);
+  model.registrationEnabled = true;
+  model.alignmentFailed('HIGH_RESIDUAL', model.generation);
+  model.ingestPose({...p, seq: 2, position: {...p.position, x: 2.1}, observation: observation(2, 'f')});
+  const current = model.snapshot();
+  assert.equal(current.status, 'SAME_START_ODOMETRY_ESTIMATE');
+  assert.notEqual(current.pose.x, initial.pose.x);
+  assert.equal(current.source_stamp_ns, String(stamp + 2n));
+  // An unmatched newer cloud is never projected using receipt-nearest odometry.
+  model.ingestCloud(cloud(3, {frame_id: 'camera_init'}));
+  assert.throws(() => model.pair(), /WAITING_PAIRED_POSE/);
+  now = 1001;
+  assert.equal(model.snapshot().pose, null);
+  assert.equal(model.anchor, null);
+});
+
+test('explicit continuous estimate propagates a retained correction through fresh same-generation odometry only', () => {
+  const {model, setNow} = setup();
+  model.setContinuousEstimate(true); model.setAnchor(guess, true); model.registrationEnabled = true;
+  assert.equal(model.applyAlignment(result(model), model.generation), true);
+  assert.equal(model.snapshot().status, 'MAP_CORRECTED_ESTIMATE_ACCURACY_UNVERIFIED');
+  model.alignmentFailed('NOT_CONVERGED', model.generation);
+  assert.equal(model.snapshot().status, 'MAP_CORRECTION_UNAVAILABLE_ODOMETRY_CONTINUING');
+  for (let seq = 2; seq <= 25; seq++) {
+    setNow(seq * 100);
+    model.ingestPose(pose(seq, {observation: observation(seq, 'f', 10 + seq / 10)}));
+    model.ingestCloud(cloud(seq, {observation: observation(seq, 'c', 10 + seq / 10)}));
+  }
+  assert.ok(model.snapshot().pose);
+  assert.equal(model.snapshot().source_stamp_ns, String(stamp + 25n));
+  model.ingestPose(pose(26, {observation: observation(26, 'e', 12.6)}));
+  assert.equal(model.snapshot().pose, null);
+  assert.equal(model.anchor, null);
+});
+
+test('continuous estimate retains the existing map, stale-result and source-time fences', () => {
+  const {model, setNow} = setup();
+  model.setContinuousEstimate(true); model.setAnchor(guess, true); model.registrationEnabled = true;
+  const historical = result(model), generation = model.generation;
+  setNow(1001);
+  model.ingestPose(pose(2)); model.ingestCloud(cloud(2));
+  assert.equal(model.applyAlignment(historical, generation, 0), false);
+  assert.equal(model.anchor.accepted_registration, false);
+  model.setMap({...map, revision:'e'.repeat(64)}, {revision:'e'.repeat(64), frame_id:'map', points:[1,2,3]});
+  assert.equal(model.snapshot().pose, null);
+});

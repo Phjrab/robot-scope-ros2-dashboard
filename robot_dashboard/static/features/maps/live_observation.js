@@ -1,4 +1,4 @@
-import { LiveMapObservation } from './live_observation_contract.js';
+import { LiveMapObservation, rpyMatrix } from './live_observation_contract.js';
 
 export function observationAvailabilityText(state) {
   if (state.status !== 'SOURCE_IDENTITY_UNAVAILABLE') return '';
@@ -32,7 +32,8 @@ export function observationRegistrationText(registration) {
     ? `잠정 10cm 잔차 ${e ? (e.residual_passed ? '통과' : '미통과') : '미평가'} · 원본 5cm 잔차 ${e ? (e.original_residual_passed ? '통과' : '미통과') : '미평가'}`
     : `원본 5cm 잔차 ${m?.rmse_m == null ? '미평가' : m.rmse_m <= .05 ? '통과' : '미통과'}`;
   const original = registration.original_assessment;
-  return `RMSE ${rmse} · overlap ${overlap} · ${residual}${original ? ` · 원본 판정 ${original.status} (${original.reason})` : ''} · 정합 잔차≠실제 위치오차 · 본체/추적 미검증`;
+  const runtime = Number.isFinite(registration.total_runtime_ms) ? ` · 처리 ${registration.total_runtime_ms.toFixed(1)} ms` : '';
+  return `RMSE ${rmse} · overlap ${overlap} · ${residual}${original ? ` · 원본 판정 ${original.status} (${original.reason})` : ''}${runtime} · 정합 잔차≠실제 위치오차 · 본체/추적 미검증`;
 }
 
 export function initializeLiveMapObservation({ scene, getContext, demandChanged }) {
@@ -44,12 +45,13 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   panel.innerHTML = `<div class="saved-live-heading"><strong>저장 3D 지도 · 실험 관측</strong><label><input id="savedLiveEnabled" type="checkbox"> 현재 점군·pose 읽기</label></div>
     <p>지도 기준 초기 위치는 사용자 추정값입니다. 본체 교정·시계·scan deskew는 미검증이며 운영 위치로 적용하지 않습니다.</p>
     <label><input id="savedLiveSourceUnverified" type="checkbox"> 출처 미검증 관측 후보 허용 (주행 적용 없음)</label>
+    <label><input id="savedLiveContinuous" type="checkbox"> 동일 시작점 기반 연속 관측 · 정합 실패 시 신선한 odometry 유지</label>
     <p id="savedLiveProvenanceNote" hidden>로컬 subscription과 ROS graph만 확인합니다. 메시지별 publisher·센서 외부변환·본체 자세는 검증되지 않습니다. 모드를 바꾸면 새 확인과 기준점 연결이 필요합니다.</p>
     <div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div>
     <label><input id="savedLiveConfirm" type="checkbox"> 정지 상태에서 입력한 지도 위치·방향을 근사 기준점으로 사용합니다. 원점 0은 자동으로 검증되지 않습니다.</label>
     <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">현재 pose를 후보 기준점에 연결</button><button id="savedLiveClear" type="button">기준점 해제</button><button id="savedLiveCenter" type="button">후보 중심</button><button id="savedLiveExport" type="button">관측 JSON</button></div>
     <label><input id="savedLiveRegistration" type="checkbox"> 저장 지도에 scan-to-map 반복 계산 (최대 1 Hz · 운영 적용 없음)</label>
-    <strong id="savedLiveState" role="status">OFF</strong><p id="savedLiveAvailability" hidden></p><span id="savedLiveMetrics"></span><small id="savedLiveSource"></small>`;
+    <strong id="savedLiveState" role="status">OFF</strong><small id="savedLiveMap"></small><p id="savedLiveAvailability" hidden></p><span id="savedLiveMetrics"></span><small id="savedLiveSource"></small>`;
   // Keep the shared LiDAR/VSLAM preview and inspector row at its fixed size.
   layout.after(panel);
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();
@@ -59,6 +61,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     scene.setStatus({ online: null, lidarOnline: null, snapshot: true, message: model.snapshot().status });
     if (dynamicCleared && !force) return;
     scene.setPointCloudOverlay(null); scene.setRobotPose(null); scene.setRobotVisible(false); scene.setTrail([]); scene.setTrailVisible(false); geometryKey = '';
+    scene.setSensorObservationOverlay?.(null);
     dynamicCleared = true;
   }
   function render(baseChanged = false) {
@@ -72,6 +75,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     const state = model.snapshot();
     el('State').textContent = error || state.status;
     el('State').dataset.status = error ? 'ERROR' : state.status;
+    el('Map').textContent = state.map ? `고정 지도 ${state.map.name || state.map.id} · ${state.map.id} · ${state.map.point_count ?? '—'}점 · 저장 ${state.map.saved_at || '미상'} · revision ${state.map.revision}` : '';
     el('Anchor').disabled = !state.canAnchor || !el('Confirm').checked;
     el('Center').disabled = !state.pose; el('Export').disabled = !model.samples.length;
     el('Registration').disabled = !state.anchor;
@@ -81,7 +85,8 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     const r = state.registration;
     el('Metrics').textContent = state.pose
       ? `X ${state.pose.x.toFixed(3)} · Y ${state.pose.y.toFixed(3)} · Z ${state.pose.z.toFixed(3)} m | R ${(state.pose.roll*180/Math.PI).toFixed(1)}° · P ${(state.pose.pitch*180/Math.PI).toFixed(1)}° · Y ${(state.pose.yaw*180/Math.PI).toFixed(1)}° | 수신 pair Δ ${(state.receipt_pair_delta_s*1000).toFixed(0)} ms${r?.metrics ? ` | ${observationRegistrationText(r)}` : ''}` : (state.status === 'SOURCE_IDENTITY_UNAVAILABLE' ? '지도 정합: UNAVAILABLE · NOT_RUN · 지도 기준 pose·잔차 없음' : r ? `${r.reason}${r.metrics ? ` | ${observationRegistrationText(r)}` : ''} · 이전 후보는 현재 결과로 표시하지 않습니다.` : '유효한 현재 입력과 근사 기준점이 필요합니다.');
-    el('Source').textContent = observationTelemetryText(state.telemetry);
+    el('Source').textContent = observationTelemetryText(state.telemetry) + (state.pose
+      ? ` | 추적 ${state.pose_reference} (${state.tracked_frame}) · ${state.pose_topic} [${state.odometry_frame}] → ${state.map.frame} · ${state.pair_method} · pose ${state.source_stamp_ns} ns` : '');
     if (!model.enabled) return false;
     if (!context.visible || !state.pose || !state.points) { clearDynamic(baseChanged); return true; }
     dynamicCleared = false;
@@ -95,8 +100,15 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     scene.options.robotPoseLabel = r?.provisional === true
       ? `GO2 ESTIMATE · PROVISIONAL · ${state.provenance_mode === 'subscription_observation' ? 'SOURCE / BODY UNVERIFIED' : 'BODY UNVERIFIED'}`
       : state.provenance_mode === 'subscription_observation' ? 'GO2 ESTIMATE · SOURCE UNVERIFIED' : 'GO2 ESTIMATE · UNVERIFIED';
-    scene.setRobotVisible(context.robotVisible); scene.setRobotPose(state.pose);
-    scene.setTrail(state.trail); scene.setTrailVisible(true);
+    if (state.pose_reference === 'FASTLIO_IMU') {
+      scene.setRobotVisible(false); scene.setRobotPose(null); scene.setTrailVisible(false);
+      scene.setSensorObservationOverlay({ frameId: state.map.frame, T_map_sensor: rpyMatrix(state.pose),
+        trail: state.trail.slice(-40).map(rpyMatrix), referenceLabel: 'FAST-LIO IMU · BODY UNVERIFIED' });
+    } else {
+      scene.setSensorObservationOverlay?.(null);
+      scene.setRobotVisible(context.robotVisible); scene.setRobotPose(state.pose);
+      scene.setTrail(state.trail); scene.setTrailVisible(true);
+    }
     scene.setStatus({ online: true, snapshot: false, message: state.status });
     return true;
   }
@@ -122,6 +134,10 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     error = ''; clearDynamic(); demandChanged(); render();
   });
   el('Confirm').addEventListener('change', () => render());
+  el('Continuous').addEventListener('change', () => {
+    model.setContinuousEstimate(el('Continuous').checked); el('Confirm').checked = false;
+    requestController?.abort(); error = ''; clearDynamic(); render();
+  });
   el('SourceUnverified').addEventListener('change', () => {
     model.setProvenanceMode(el('SourceUnverified').checked ? 'subscription_observation' : 'native_publisher');
     el('Confirm').checked = false; el('Registration').checked = false; requestController?.abort();
@@ -140,7 +156,8 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     model.registrationEnabled = el('Registration').checked; model.registration = null; model.generation++;
     model.geometryCache = null; render(); void estimate();
   });
-  el('Center').addEventListener('click', () => scene.centerOnPose());
+  el('Center').addEventListener('click', () => model.snapshot().pose_reference === 'FASTLIO_IMU'
+    ? scene.centerOnSensorObservation() : scene.centerOnPose());
   el('Export').addEventListener('click', () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(model.exportRecord(), null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = 'robot-scope-map-observation.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);

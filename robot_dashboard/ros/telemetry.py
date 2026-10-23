@@ -319,6 +319,12 @@ class TelemetryHub:
             candidates = [p for p in self.pose_history
                           if p["observation"]["publisher_epoch"] == current_epoch
                           and p["observation"]["observer_id"] == observation.get("observer_id")]
+            if (self.pose.get("topic") == "/Odometry"
+                    and (observation.get("subscription_evidence") or {}).get("topic") == "/cloud_registered"):
+                # FAST-LIO registered cloud and IMU state share lidar_end_time.
+                # Retain the exact original stamp; never substitute receipt time.
+                candidates = [p for p in candidates if p["observation"].get("source_stamp_ns")
+                              == observation.get("source_stamp_ns")]
             if provenance_mode == "subscription_observation":
                 evidence_checks += 1
                 current_key = subscription_evidence_key(self.pose.get("observation"), now)

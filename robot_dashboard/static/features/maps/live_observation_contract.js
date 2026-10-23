@@ -2,6 +2,7 @@
 import { identity, isRigidTransform, multiply, matrixPose, transformPoints } from '../experiments/recorded_report.js';
 
 const finite = v => typeof v === 'number' && Number.isFinite(v);
+const fastlioImu = p => p?.topic === '/Odometry' && p.frame_id === 'camera_init' && p.child_frame_id === 'body';
 const exactStamp = v => typeof v === 'string' && /^[1-9][0-9]{0,19}$/.test(v);
 const ORIGINAL_POLICY_ID = 'robot-scope.residual-policy.original-0.05m.v1';
 const PROVISIONAL_POLICY_ID = 'robot-scope.residual-policy.provisional-0.10m.v1';
@@ -147,6 +148,7 @@ export class LiveMapObservation {
     this.reason = 'OFF'; this.generation = 0; this.geometryCache = null; this.samples = [];
     this.registration = null; this.registrationEnabled = false;
     this.provenanceMode = 'native_publisher';
+    this.continuousEstimate = false;
     this.alignmentRevision = 0;
     this.telemetrySummary = { pose: null, cloud: null };
     this.telemetryReceipt = { pose: null, cloud: null };
@@ -159,6 +161,10 @@ export class LiveMapObservation {
     if (!['native_publisher', 'subscription_observation'].includes(mode)) throw new Error('INVALID_PROVENANCE_MODE');
     if (mode === this.provenanceMode) return;
     this.provenanceMode = mode; this.registrationEnabled = false; this.resetInputs('PROVENANCE_MODE_CHANGED');
+  }
+  setContinuousEstimate(value) {
+    this.continuousEstimate = Boolean(value);
+    this.invalidate('NO_ANCHOR');
   }
   invalidate(reason, keepTelemetry = false) {
     this.anchor = null; this.reason = reason; this.trail = []; this.samples = []; this.geometryCache = null; this.registration = null; this.generation++;
@@ -195,7 +201,8 @@ export class LiveMapObservation {
   setMap(meta, loaded) {
     const next = meta?.kind === 'pointcloud3d' && meta.id && meta.revision && loaded?.points?.length
       && !loaded.demo_snapshot && loaded.revision === meta.revision
-      ? { id: meta.id, revision: meta.revision, frame: loaded.frame_id } : null;
+      ? { id: meta.id, revision: meta.revision, frame: loaded.frame_id,
+        name: meta.name, point_count: meta.point_count, saved_at: meta.modified_at } : null;
     if (JSON.stringify(next) !== JSON.stringify(this.map)) this.invalidate('MAP_CHANGED');
     this.map = next;
   }
@@ -203,7 +210,7 @@ export class LiveMapObservation {
     if (!this.enabled) return;
     try {
       const key = sourceKey(value, this.provenanceMode, 'pose'), matrix = odometryMatrix(value);
-      if (value.child_frame_id !== 'base_link') throw new Error('BODY_FRAME_UNAVAILABLE');
+      if (value.child_frame_id !== 'base_link' && !fastlioImu(value)) throw new Error('BODY_FRAME_UNAVAILABLE');
       if (value.state !== 'ok' || !finite(value.age_s) || value.age_s < 0 || value.age_s > 1) throw new Error('POSE_STALE');
       const last = this.pose;
       if (last?.key === key && value.seq <= last.value.seq) return; // late snapshot cannot renew freshness
@@ -230,8 +237,9 @@ export class LiveMapObservation {
   pair() {
     const cloud = this.cloud?.value;
     if (!cloud) throw new Error('WAITING_CLOUD');
+    const imu = fastlioImu(this.pose?.value);
     const candidates = this.history.filter(p => p.value.observation.observer_id === cloud.observation.observer_id
-      && p.key === this.pose?.key);
+      && p.key === this.pose?.key && (!imu || p.value.observation.source_stamp_ns === cloud.observation.source_stamp_ns));
     const paired = candidates.reduce((best, p) => !best || Math.abs(p.value.observation.received_monotonic_s - cloud.observation.received_monotonic_s)
       < Math.abs(best.value.observation.received_monotonic_s - cloud.observation.received_monotonic_s) ? p : best, null);
     if (!paired) throw new Error('WAITING_PAIRED_POSE');
@@ -247,6 +255,7 @@ export class LiveMapObservation {
       pointsToOdom = multiply(paired.matrix, inverseRigid(extrinsic)); kind = 'RAW_CLOUD_CONFIGURED_EXTRINSIC_UNVERIFIED';
     } else throw new Error('CLOUD_POSE_FRAME_RELATION_UNAVAILABLE');
     return { paired, pointsToOdom, kind, extrinsic, receipt_delta_s: delta,
+      pair_method: imu ? 'FASTLIO_OUTPUT_STAMP_EXACT' : 'HOST_RECEIPT_NEAREST',
       source_delta_ns: String(BigInt(paired.value.observation.source_stamp_ns) - BigInt(cloud.observation.source_stamp_ns)) };
   }
   ready() {
@@ -269,6 +278,9 @@ export class LiveMapObservation {
       T_map_odom: multiply(targetMatrix, inverseRigid(this.pose.matrix)), target_pose: { ...target },
       pose_stamp_ns: this.pose.value.observation.source_stamp_ns, kind: pair.kind, extrinsic: pair.extrinsic,
       basis: 'OPERATOR_APPROXIMATE_DISPLAY_ANCHOR', accepted_registration: false, body_calibration_verified: false,
+      tracked_frame: this.pose.value.child_frame_id, pose_topic: this.pose.value.topic,
+      pose_reference: fastlioImu(this.pose.value) ? 'FASTLIO_IMU' : 'UNVERIFIED_BODY',
+      continuous_estimate: this.continuousEstimate,
       provenance_mode: this.provenanceMode, per_message_publisher_verified: this.provenanceMode === 'native_publisher', body_extrinsic_verified: false };
     this.reason = this.provenanceMode === 'subscription_observation' ? 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'; this.trail = []; this.samples = []; this.geometryCache = null;
     this.registration = null;
@@ -292,7 +304,8 @@ export class LiveMapObservation {
     const registrationStale = this.registration && (this.now() - this.registration.received > 2000
       || this.cloud.value.observation.received_monotonic_s - (this.registration.source?.received_monotonic_s ?? -Infinity) > 1);
     const candidate = this.provenanceMode === 'subscription_observation' ? 'CANDIDATE_SOURCE_UNVERIFIED' : 'CANDIDATE';
-    if (this.registrationEnabled && (!this.registration || this.registration.status !== candidate || registrationStale)) {
+    const correctionUnavailable = this.registrationEnabled && (!this.registration || this.registration.status !== candidate || registrationStale);
+    if (correctionUnavailable && !this.continuousEstimate) {
       return { ...base, canAnchor: true, status: this.registration
         ? `SCAN_TO_MAP_${registrationStale && this.registration.status === candidate ? 'STALE' : this.registration.status} · ${this.registration.reason}`
         : 'SCAN_TO_MAP_WAITING', registration: this.registration };
@@ -317,10 +330,16 @@ export class LiveMapObservation {
         source_delta_ns: pair.source_delta_ns, clock_relation: 'UNVERIFIED', observed_browser_ms: this.now() });
       this.samples = this.samples.slice(-400);
     }
-    return { ...base, status: this.provenanceMode === 'subscription_observation'
+    const estimateStatus = this.anchor.accepted_registration
+      ? (correctionUnavailable ? 'MAP_CORRECTION_UNAVAILABLE_ODOMETRY_CONTINUING' : 'MAP_CORRECTED_ESTIMATE_ACCURACY_UNVERIFIED')
+      : 'SAME_START_ODOMETRY_ESTIMATE';
+    return { ...base, status: this.continuousEstimate ? estimateStatus : this.provenanceMode === 'subscription_observation'
       ? (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED')
       : (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'), canAnchor: true, pose,
       registration: this.registration,
+      tracked_frame: this.anchor.tracked_frame, pose_reference: this.anchor.pose_reference,
+      pair_method: pair.pair_method, pose_topic: this.pose.value.topic, odometry_frame: this.pose.value.frame_id,
+      source_stamp_ns: this.pose.value.observation.source_stamp_ns,
       points: this.geometryCache.points, geometryKey: cacheKey, trail: this.trail,
       pairing: pair.kind, receipt_pair_delta_s: pair.receipt_delta_s, source_delta_ns: pair.source_delta_ns,
       pose_age_ms: this.now()-this.pose.arrived, cloud_age_ms: this.now()-this.cloud.arrived,
@@ -371,6 +390,8 @@ export class LiveMapObservation {
     }
     if (jump(multiply(this.anchor.T_map_odom, this.pose.matrix), multiply(value.T_map_odom, this.pose.matrix))) { this.invalidate('ALIGNMENT_JUMP'); return false; }
     this.anchor.T_map_odom = value.T_map_odom;
+    this.anchor.accepted_registration = true;
+    this.anchor.correction_source_stamp_ns = value.source.source_stamp_ns;
     this.alignmentRevision++;
     // Each correction defines a new display segment; do not join different map estimates.
     this.trail = []; this.samples = []; this.geometryCache = null;

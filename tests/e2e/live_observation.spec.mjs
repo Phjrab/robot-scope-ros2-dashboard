@@ -19,22 +19,22 @@ function obs(seq, epoch='c', identityUnavailable=false, evidence=null) {
     graph:{state:'ok',observed_monotonic_s:received-evidence.graphAge,endpoint_count:1,reported_publisher_count:1,fingerprint:evidence.fingerprint,
       endpoints:[{node_name:'synthetic',node_namespace:'/',topic_type:type,endpoint_gid:'3'.repeat(48),qos}]},
   }}:{}) }; }
-function binary(seq, observation) {
+function binary(seq, observation, frameId='odom') {
   const metadata = Buffer.from(JSON.stringify({ seq, stream_id:'synthetic-observer', topic:'/cloud_registered', pipeline_stage:'registered',
-    frame_id:'odom', units:'m', encoding:'float32le', point_count:points.length/3, source_points:points.length/3, observation }));
+    frame_id:frameId, units:'m', encoding:'float32le', point_count:points.length/3, source_points:points.length/3, observation }));
   const offset=(16+metadata.length+3)&~3, frame=Buffer.alloc(offset+points.length*4);
   frame.write('RSPC'); frame.writeUInt8(1,4); frame.writeUInt16LE(metadata.length,6);
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false}={}) {
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
     session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false }, writes=[], errors=[];
   const evidence=kind=>subscriptionEvidence?{kind,session:state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=> { if(r.method()!=='GET') writes.push(new URL(r.url()).pathname); });
   const backend=await installDashboardBackend(page,{ pointcloudFrame:seq=> {
-    if(!state.streaming) return null; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud')); return binary(seq,state.lastCloud);
+    if(!state.streaming) return null; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud')); return binary(seq,state.lastCloud,imu?'camera_init':'odom');
   }});
   backend.on('/api/v1/saved-maps',({json})=>json({maps:[meta],total_size_bytes:1000}));
   backend.on(meta.data_url,({json})=>json({...meta,map_id:id,seq:1,points,units:'m',source_points:5}));
@@ -61,8 +61,8 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
       ...(provisional?{inlier_count:80}:{})}});
   });
   await page.routeWebSocket('**/api/v1/ws/pose',socket=>{
-    let seq=0; const send=()=>{ if(state.streaming) socket.send(JSON.stringify({seq:++seq,topic:'/Odometry',frame_id:'odom',child_frame_id:'base_link',
-      state:'ok',age_s:0,position:{x:state.jump?5:0,y:0,z:.3},orientation:{x:0,y:0,z:0,w:1},observation:obs(seq,'f',state.identityUnavailable,evidence('pose'))})); };
+    let seq=0; const send=()=>{ if(state.streaming) socket.send(JSON.stringify({seq:++seq,topic:'/Odometry',frame_id:imu?'camera_init':'odom',child_frame_id:imu?'body':'base_link',
+      state:'ok',age_s:0,position:{x:state.jump?5:0,y:0,z:.3},orientation:{x:0,y:0,z:0,w:1},observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&state.lastCloud?{source_stamp_ns:state.lastCloud.source_stamp_ns}:{})}})); };
     send(); const timer=setInterval(send,150); socket.onClose(()=>clearInterval(timer));
   });
   await page.goto('/#maps');
@@ -229,5 +229,28 @@ test('source-unverified provisional observation still rejects altered residual-p
   expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
   await expect(page.locator('#savedLiveMetrics')).not.toContainText('잠정 10cm 잔차 통과');
   expect(writes.length).toBeGreaterThan(0); expect(writes.every(p=>p==='/api/v1/observations/map-alignment')).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+
+test('same-start IMU estimate keeps current pose on fit failure and hides on stale input', async({page},testInfo)=>{
+  const {state,errors}=await fixture(page,{imu:true});
+  await page.locator('#savedLiveContinuous').check();
+  await page.locator('#savedLiveConfirm').check();
+  await page.locator('#savedLiveAnchor').click();
+  await expect(page.locator('#savedLiveState')).toContainText('SAME_START_ODOMETRY_ESTIMATE');
+  await expect(page.locator('#savedLiveSource')).toContainText('FASTLIO_IMU (body)');
+  await expect.poll(()=>page.evaluate(()=>Boolean(window.observationScene.sensorObservationOverlay))).toBe(true);
+  expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
+  state.rejected=true;
+  await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTION_UNAVAILABLE_ODOMETRY_CONTINUING');
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await page.locator('#savedLiveCenter').click();
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-same-start-imu.png')});
+  state.streaming=false;
+  await expect(page.locator('#savedLiveState')).toHaveText('STALE');
+  expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay)).toBeNull();
   expect(errors).toEqual([]);
 });
