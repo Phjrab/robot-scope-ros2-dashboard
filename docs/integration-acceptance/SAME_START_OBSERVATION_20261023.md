@@ -4,14 +4,14 @@ The existing Maps observation panel can now track the installed FAST-LIO IMU
 state against a pinned saved 3D map. This is display-only: no map→odom TF,
 initialpose, goal, control output or body-extrinsic claim is added.
 
-**Current device result:** the operator-approved follow-up through `6333dca` is
-installed. Same-start IMU display stayed connected for a captured 119.6 s
-window. No map correction is accepted: the dashboard hits the unchanged 600 ms
-wall deadline under shared-process load, while the same deployed aligner in an
-isolated live-input diagnostic completes and rejects RMSE 0.164952 m. See the
-execution sections below; older pending-deployment notes are historical. The
-original observation run has since ended. The new process-isolation candidate
-is locally implemented and awaiting separate device application.
+**Current device result:** the separately approved five-file process-isolation
+patch from `2b3b441` is installed. Actual dashboard computations now complete
+(median worker 223.1 ms in the recorded window), but the exported latest result
+still rejects RMSE 0.161319 m. A new 119.6 s same-start IMU display window is
+preserved. No map correction has been accepted. The renewed observation run
+started at 15:24:15 KST and has a one-hour maximum lifetime. Earlier pending
+application and expired-run notes below are historical; see the final execution
+section for the current installation and remaining limitations.
 
 Select the saved PCD, enable current inputs, and on Humble explicitly select
 subscription/graph evidence mode. Enable **동일 시작점 기반 연속 관측**, enter an
@@ -330,3 +330,94 @@ A further finite historical comparison perturbed the first fit's XY seed by
 ±0.3 m in eight directions. All converged, with RMSE 0.160892–0.164749 m and
 unchanged overlap scoring; all remain rejected. The comparison is diagnostic
 only and does not add multi-start search to the live path.
+
+
+## Approved isolated-worker execution — 15:23–15:33 KST
+
+The operator explicitly approved main publication, the five-file deployment,
+one additional dashboard restart and one new maximum-one-hour observation run.
+Public main source commit `2b3b441` was pushed, then its overlay-preserving
+candidate was installed under private manifest
+`fb118dca394a72385a84f23eeffb17cb73451e15577daf9cad93dee7cd13b7dd`.
+Robot Git base remains `d7807de8f15fb457942039bb90ab41cf68d384c6`; this is a
+selective installation with retained local overlays, not a public-main checkout.
+
+Dashboard restarted once to PID 183435, active with NRestarts=0. Its LiDAR preview
+recovered; the control bridge remained inactive/disabled. Fresh ownership
+readback reported no busy or unknown component before application. All five
+installed hashes and all four original backups matched. The original map,
+FAST-LIO config and original mapping log hash remained unchanged. The new
+numerical worker was observed as an actual child of the dashboard process.
+No motion, posture, Nav2 or operational TF application was performed.
+
+`robot-scope-same-start-20261023-fix2.service` started at **15:24:15 KST**, with
+wrapper PID 184366 and estimator PID 184424. RuntimeMaxSec remains 3600, so the
+new run is expected to end around **16:24:15 KST**. Its Log/PCD directories are
+separately bind-mounted and TF/map/path outputs remain observation-only. The
+old run had already ended; no duplicate estimator was started.
+
+The same pinned new map, six-dimensional approximate start prior and existing
+Maps observation controls were used. Current IMU anchor source stamp is
+1792736734047701358 ns. The final UI export contains 400 samples spanning
+119.600332022 s, 394 distinct nondecreasing pose source stamps, alignment
+revision 0, unchanged map revision and accepted_registration=false. State stays
+SAME_START_ODOMETRY_ESTIMATE through failed correction attempts. This verifies
+stationary display continuity, not independent pose accuracy or manual motion.
+
+The final exported **actual dashboard** response used an exact FAST-LIO
+cloud/pose source-stamp pair and returned REJECTED/HIGH_RESIDUAL:
+
+- point-to-point RMSE **0.161318901 m**;
+- overlap **0.997674419**, 429/430 inliers;
+- converged in 30 iterations;
+- numerical time **135.84 ms**, total worker time **183.74 ms**;
+- both original 5 cm and provisional 10 cm assessments fail.
+
+The captured 15:25:30–15:28:42 service interval contains 162 attempts, 92
+numerically completed HTTP 200 responses and 70 HTTP 409 refusals. HTTP 200
+means a numerical assessment was returned, not an accepted map correction.
+Completed worker elapsed time spans 181.18–562.28 ms, median **223.06 ms**;
+whole dispatch-to-response time spans 194.76–662.38 ms, median **284.58 ms**.
+The latter includes scheduling/serialization outside the existing worker budget.
+Completed isolated numerical exchange time has median 176.68 ms. Cold catalogue
+admission took 929.31 ms and correctly failed. Some warm attempts still fail
+because of admission/pairing, numerical deadline or catalogue-lock contention
+at completion. Those refusals remain; no deadline was raised or failure hidden.
+
+Repeated numerical alignment was turned OFF after the recorded window; current
+inputs and same-start IMU display remain ON for the bounded observer lifetime.
+Actual screenshots are retained privately as `fix-2/deployed-map-view.png` and
+`fix-2/deployed-observation-controls.png`, alongside the full UI exports, service
+log, timing summary and installation hash verification.
+
+A subsequent six-second-maximum passive subscription probe retained three
+current registered-cloud/pose exact pairs and nearby existing converted raw
+scans, then exited normally. It changed no producer, parameter or selected
+source. Historical raw comparison used the configured extrinsic and a stationary
+pose approximation; raw scan-time/deskew qualification was not claimed. With the
+same final point-to-point scoring, 500 strided raw samples give RMSE
+0.145473–0.146825 m and overlap 0.964–0.968, also rejected. Simply bypassing the
+published filtered cloud therefore did not demonstrate a qualifying alternative.
+No raw diagnostic result was applied to the display.
+
+The mapping log shows online extrinsic estimates varied (roll roughly -1.43°
+to 0°, pitch -0.09° to 1.12°, yaw 89.68° to 90.08°), whereas the stopped new
+run remains near its configured start values. A constant extrinsic difference
+can be absorbed by rigid alignment; this variation alone does not prove the
+residual's cause. Spatial missing support, scene changes, accumulated-map
+geometry and sampling remain distinct hypotheses. Surface seeds, eight local
+XY seeds and raw diagnostics all preserve their failed original scores.
+
+The computational blocker is substantially reduced and actual dashboard
+numerical results are now visible. D (qualifying saved-map correction), full F,
+G (manual movement) and absolute accuracy remain incomplete. The next task is
+to resolve the observed map/scan shape mismatch with the operator's scene-change
+information and preserved inputs, while retaining existing scoring and the
+working same-start display. No claim of completed saved-map localization is made.
+
+Closeout readback at 15:35:59 KST: dashboard PID 183435 and renewed observer
+PID 184366 remain active, NRestarts=0; numerical child PID 189025 is retained
+idle after repeated fitting was disabled. Control bridge remains inactive and
+disabled. Closeout documentation checks: full Python 2,427 tests passed
+(3 skipped), related JavaScript 26 passed. No further deployment or restart was
+performed while recording these results.
