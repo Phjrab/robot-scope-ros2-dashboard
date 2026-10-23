@@ -4,14 +4,19 @@ The existing Maps observation panel can now track the installed FAST-LIO IMU
 state against a pinned saved 3D map. This is display-only: no map→odom TF,
 initialpose, goal, control output or body-extrinsic claim is added.
 
-**Current device result:** the separately approved five-file process-isolation
-patch from `2b3b441` is installed. Actual dashboard computations now complete
-(median worker 223.1 ms in the recorded window), but the exported latest result
-still rejects RMSE 0.161319 m. A new 119.6 s same-start IMU display window is
-preserved. No map correction has been accepted. The renewed observation run
-started at 15:24:15 KST and has a one-hour maximum lifetime. Earlier pending
-application and expired-run notes below are historical; see the final execution
-section for the current installation and remaining limitations.
+**Current device result:** after the operator restored the robot to standing at
+the reported mapping-start position and height, the existing dashboard accepted
+and applied an actual saved-map correction under the unchanged provisional
+10 cm policy. The exported fit has RMSE **0.078076 m**, overlap **1.0**, and
+total worker time **94.50 ms**; the original 5 cm policy still rejects it.
+A subsequent **120.0 s / 399-sample** stationary window retains the correction
+and advances original IMU timestamps. A–F are demonstrated for this provisional,
+subscription/graph-evidence IMU observation path. Manual movement and absolute
+accuracy remain unmeasured. Source `2b3b441` remains installed; no new deployment
+or dashboard restart was performed. The newly approved observation run started
+at **16:47:27 KST**, with a one-hour maximum lifetime. Earlier failed runs below
+are historical; the operator later identified their posture as seated. See the
+final standing-run section for current evidence and remaining limitations.
 
 Select the saved PCD, enable current inputs, and on Humble explicitly select
 subscription/graph evidence mode. Enable **동일 시작점 기반 연속 관측**, enter an
@@ -421,3 +426,101 @@ idle after repeated fitting was disabled. Control bridge remains inactive and
 disabled. Closeout documentation checks: full Python 2,427 tests passed
 (3 skipped), related JavaScript 26 passed. No further deployment or restart was
 performed while recording these results.
+
+## Approved standing run — 16:47 KST onward
+
+The operator reported that the previous run was seated, powered the robot off
+for charging, and then restored it to standing stationary at the reported
+mapping-start position and height. A passive three-scan diagnostic placed a
+floor-like plane near IMU z=-0.4837 m, versus approximately -0.2343 m in the
+seated capture and -0.4929 m in the retained map prefix. These fitted planes
+support the height difference; their physical-ground interpretation is not
+independently measured. Posture/height is a material changed condition, not a
+controlled proof of the entire earlier residual's cause.
+
+After explicit approval, one isolated observation FAST-LIO run started under
+`robot-scope-same-start-20261023-standing-1640.service` at **16:47:27 KST**.
+Its wrapper PID is 12056, estimator PID 12115, and RuntimeMaxSec is 3600
+(expected expiry **17:47:27 KST**). No competing estimator was present before
+launch. Existing settings and installed code were reused, with separate private
+Log/PCD bind mounts. Actual node/parameter readback confirms observation-only TF,
+0.5 m filtering, online extrinsic estimation, and disabled map/path/PCD saving.
+The dashboard remains the reboot-started PID 963, active with NRestarts=0;
+this validation performed no deployment or dashboard restart.
+
+The same 41,073-point map and approximate six-dimensional IMU start prior were
+retained. The previous connection correctly became invalid after the reboot.
+Fresh standing-session input was connected through the existing Maps controls,
+using subscription/graph evidence mode. Early cold catalogue/reference work
+still failed the unchanged 600 ms deadline, and an initial stale input cleared
+the anchor. After warm, fresh input was available, the operator-provided prior
+was connected again. Subsequent actual dashboard corrections were applied.
+There is no claim of uninterrupted display from the first cold attempt.
+
+The actual UI export at **16:56:18 KST** records
+`MAP_CORRECTED_ESTIMATE_ACCURACY_UNVERIFIED` and
+`anchor.accepted_registration=true`. Its backend response is
+`CANDIDATE_SOURCE_UNVERIFIED`, qualified as a provisional observation hypothesis:
+
+- Point-to-point RMSE **0.078075653 m**, overlap **1.0**, 428/428 inliers.
+- Converged in 5 iterations; numerical time **34.73 ms**, total worker time
+  **94.50 ms**, correspondence radius unchanged at 0.75 m.
+- Provisional 10 cm assessment passes; original 5 cm assessment remains
+  `REJECTED / HIGH_RESIDUAL`.
+- Cloud and pose retain the identical original stamp
+  **1792742177876285552 ns**, `FASTLIO_OUTPUT_STAMP_EXACT`, source delta 0 ns.
+  Their host receipt delta is 27.50 ms. This does not establish physical sensor
+  clock synchronization or deskew accuracy.
+- Both ROS graphs identify one `laser_mapping` publisher. Installed Humble
+  lacks per-message publisher evidence; source, body extrinsic, Go2 body pose,
+  and independent absolute accuracy remain explicitly unverified.
+
+The recorded timing snapshot contains 292 attempts: 148 completed numerical
+HTTP 200 assessments and 144 HTTP 409 refusals. A 200 response alone is not an
+accepted correction. Completed worker time is 65.47–583.86 ms, median
+**108.80 ms**; dispatch-to-response time is 84.07–677.90 ms, median
+**175.00 ms**. Cold loading, admission/pairing, completion and rate-limit
+refusals remain visible. An exported `RATE_LIMIT_1HZ` state retains an already
+accepted correction and continues current odometry. No score, deadline or
+freshness gate was relaxed.
+
+Repeated fitting was temporarily disabled at 16:56:37 KST to measure a single
+corrected display segment. The **16:58:37 KST** export contains **399 samples**
+over **120.000757 s** of source time (119.974 s browser time), **392 distinct
+nondecreasing pose stamps**, and one retained alignment revision, 142. Maximum
+sample interval is 642 ms and maximum pose source-stamp gap is 0.601 s. The
+map revision/source identities are unchanged and accepted correction stamp
+1792742196774750232 ns is retained. Median displayed IMU XYZ is approximately
+(-0.31468, -0.11202, +0.02455) m, yaw about +8.6°. Maximum distance from the
+stationary window's median position is **3.56 mm**. This is display stability,
+not absolute accuracy; the prior and roughly 0.33 m / 8.6° correction are not
+independent ground truth. Accepted corrections begin separate trail segments;
+this window specifically measures propagation of one retained correction.
+
+The operator chose to finish with stationary validation; manual-motion
+validation remains **NOT_RUN**. Repeated regional fitting was re-enabled for
+the remaining approved observer lifetime, with live inputs and corrected IMU
+display kept on. At expiry, stale inputs must stop being represented as current;
+this is a bounded validation run, not a persistent localization service.
+After re-enabling, the 17:02:31 KST UI export again records an applied candidate:
+RMSE 0.076627273 m, overlap 1.0, total worker time 83.2 ms, with the original
+5 cm rejection preserved.
+
+Closeout hashes match all five installed Python files from the `2b3b441`
+deployment manifest and the installed observation launcher. Original map,
+FAST-LIO configuration and original mapping log hashes remain unchanged.
+Robot Git base remains `d7807de8f15fb457942039bb90ab41cf68d384c6` plus retained
+overlays/selective patches. `robot-scope-control-bridge.service` remains
+inactive, disabled, MainPID=0. No motion, posture, Nav2, initialpose, or
+operational TF application occurred.
+
+Closeout software checks: full Python **2,427 tests passed (3 skipped)**,
+related JavaScript **26 passed**, observation browser **7 passed**. This
+publication updates evidence only. Private `standing-1640/` evidence contains
+the accepted and rate-limit UI exports, continuity export/summary, timing log,
+session manifest, preservation readback, and actual screenshots
+`standing-map-view.png` and `standing-accepted-controls.png`; raw data remains
+outside Git. The next verification is operator-controlled short movement and
+turning when available, within an authorized observation run. Independent
+absolute accuracy and Go2 body-frame calibration remain separate unmeasured
+quantities.
