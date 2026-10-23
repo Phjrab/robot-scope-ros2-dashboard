@@ -107,6 +107,13 @@ class DatasetAppContractTests(unittest.TestCase):
         self.assertIn("dataset_capture_active", constants)
         self.assertIn("dataset_capture_state_unknown", constants)
 
+        runtime_source = (SOURCE_PATH.parent / "application" / "runtime.py").read_text()
+        cleanup = next(node for node in ast.parse(runtime_source).body
+                       if isinstance(node, ast.AsyncFunctionDef)
+                       and node.name == "close_observation_resources")
+        self.assertIn("await asyncio.to_thread(runtime.dataset_capture.close)",
+                      ast.get_source_segment(runtime_source, cleanup))
+
         lifespan = self.functions["lifespan"]
         segment = ast.get_source_segment(self.source, lifespan)
         self.assertIn("runtime.lifecycle.close", segment)
@@ -120,10 +127,10 @@ class DatasetAppContractTests(unittest.TestCase):
         )
         self.assertLess(
             segment.index("runtime.agent.shutdown_control()"),
-            segment.index("runtime.dataset_capture.close"),
+            segment.index("await close_observation_resources(runtime, LOGGER)"),
         )
         self.assertLess(
-            segment.index("runtime.dataset_capture.close"),
+            segment.index("await close_observation_resources(runtime, LOGGER)"),
             segment.index("runtime.mapping.close"),
         )
         self.assertLess(

@@ -239,16 +239,55 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
     }
 
 
+def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline):
+    """Pure numerical work shared by inline diagnostics and the isolated worker."""
+    def nearest(query, _):
+        with measure("nearest"):
+            return grid.nearest(query, deadline=deadline)
+    with measure("registration"):
+        result = register_se3(Cloud(reference, target_frame, "REGISTERED_MAP"),
+            Cloud(points, frame, "REGISTERED_QUERY", stamp_ns=stamp_ns), seed,
+            reference_limit=100_000, nearest=nearest)
+    p = result["pose"]
+    transform = from_translation_rpy([p[k] for k in ("x", "y", "z")], [p[k] for k in ("roll_rad", "pitch_rad", "yaw_rad")])
+    indices, squared = nearest(transform_points(transform, points), reference)
+    note("iterations", result["metrics"]["iterations"])
+    matched = reference[indices[squared <= MAX_CORRESPONDENCE_M ** 2]]
+    ratio = 0.0
+    if len(matched) >= 60:
+        centered = matched - matched.mean(axis=0)
+        eigen = np.linalg.eigvalsh(centered.T @ centered / len(matched))
+        ratio = float(eigen[0] / max(eigen[-1], 1e-12))
+    if ratio < MIN_GEOMETRY_RATIO:
+        result["status"], result["reason"] = "REJECTED", "DEGENERATE_MATCHED_GEOMETRY"
+    result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
+    result["metrics"]["inlier_count"] = len(matched)
+    return result, transform
+
+
 class ObservationAligner:
-    def __init__(self) -> None:
+    def __init__(self, *, isolated: bool = False) -> None:
         self.lock = threading.Lock()
         self.cache: tuple[tuple[str, str], np.ndarray, ReferenceIndex | None, str] | None = None
         self.last_started = float("-inf")
+        self.closed = False
+        self.worker = None
+        if isolated:
+            from .observation_worker import RegistrationWorker
+            self.worker = RegistrationWorker()
+
+    def close(self) -> None:
+        with self.lock:
+            self.closed = True
+            if self.worker is not None:
+                self.worker.close()
 
     def estimate(self, catalog: Any, agent: Any, body: dict[str, Any]) -> dict[str, Any]:
         if not self.lock.acquire(blocking=False):
             raise ObservationAlignmentError("BUSY")
         try:
+            if self.closed:
+                raise ObservationAlignmentError("WORKER_CLOSED")
             started = time.monotonic()
             if started - self.last_started < 1:
                 raise ObservationAlignmentError("RATE_LIMIT_1HZ")
@@ -295,32 +334,18 @@ class ObservationAligner:
             _, reference, grid, target_frame = self.cache
             if time.monotonic() > deadline:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
-            if grid is None:
+            if grid is None and self.worker is None:
                 with measure("reference_grid"):
                     grid = ReferenceIndex(reference, deadline=deadline)
                 self.cache = ((identifier, revision), reference, grid, target_frame)
-            def nearest(query, _):
-                with measure("nearest"):
-                    return grid.nearest(query, deadline=deadline)
-            with measure("registration"):
-                result = register_se3(Cloud(reference, target_frame, "REGISTERED_MAP"),
-                    Cloud(points, frame, "REGISTERED_QUERY", stamp_ns=int(provenance["source_stamp_ns"])), seed,
-                    reference_limit=100_000, nearest=nearest)
-            p = result["pose"]
-            transform = from_translation_rpy([p[k] for k in ("x", "y", "z")], [p[k] for k in ("roll_rad", "pitch_rad", "yaw_rad")])
-            indices, squared = nearest(transform_points(transform, points), reference)
-            note("iterations", result["metrics"]["iterations"])
-            matched = reference[indices[squared <= MAX_CORRESPONDENCE_M ** 2]]
-            ratio = 0.0
-            if len(matched) >= 60:
-                centered = matched - matched.mean(axis=0)
-                eigen = np.linalg.eigvalsh(centered.T @ centered / len(matched))
-                ratio = float(eigen[0] / max(eigen[-1], 1e-12))
-            if ratio < MIN_GEOMETRY_RATIO:
-                result["status"], result["reason"] = "REJECTED", "DEGENERATE_MATCHED_GEOMETRY"
-            result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
-            result["metrics"]["inlier_count"] = len(matched)
-            assessment = qualify_observation(result, inlier_count=len(matched), query_count=len(points))
+            if self.worker is None:
+                result, transform = solve_prepared(reference, grid, target_frame, points, frame,
+                                                   int(provenance["source_stamp_ns"]), seed, deadline)
+            else:
+                with measure("isolated_registration"):
+                    result, transform = self.worker.solve((identifier, revision), reference, target_frame,
+                        points, frame, int(provenance["source_stamp_ns"]), seed, deadline)
+            assessment = qualify_observation(result, inlier_count=result["metrics"]["inlier_count"], query_count=len(points))
             with measure("completion_validation"):
                 if metadata(identifier).get("revision") != revision:
                     raise ObservationAlignmentError("MAP_CHANGED")

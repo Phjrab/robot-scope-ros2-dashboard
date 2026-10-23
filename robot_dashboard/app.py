@@ -27,7 +27,7 @@ from .application.mapping_coordinator import (
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
-from .application.runtime import ApplicationRuntime, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
+from .application.runtime import ApplicationRuntime, close_observation_resources, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
 from .application.global_observation import close_global_observation, configure_global_observation
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
@@ -213,12 +213,7 @@ async def lifespan(fastapi: FastAPI):
         await close_slam(runtime, LOGGER)
         if runtime.perception is not None:
             runtime.perception.close()
-        if runtime.dataset_capture is not None:
-            try:
-                await asyncio.to_thread(runtime.dataset_capture.close)
-            except Exception:
-                # Dataset durability must not skip the remaining ROS cleanup.
-                LOGGER.exception("dataset capture shutdown failed")
+        await close_observation_resources(runtime, LOGGER)
         try:
             if runtime.mapping is not None:
                 await runtime.mapping.close()

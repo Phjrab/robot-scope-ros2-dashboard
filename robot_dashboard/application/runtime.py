@@ -74,6 +74,21 @@ class ApplicationRuntime:
         return self.agent
 
 
+async def close_observation_resources(runtime: ApplicationRuntime, logger: Any) -> None:
+    """Close non-motion observers after the control shutdown boundary."""
+    if runtime.observation_aligner is not None:
+        try:
+            await asyncio.to_thread(runtime.observation_aligner.close)
+        except Exception:
+            logger.exception("observation numerical worker shutdown failed")
+    if runtime.dataset_capture is not None:
+        try:
+            await asyncio.to_thread(runtime.dataset_capture.close)
+        except Exception:
+            # Dataset durability must not skip the remaining ROS cleanup.
+            logger.exception("dataset capture shutdown failed")
+
+
 async def close_relocalization(runtime: ApplicationRuntime, logger: Any) -> None:
     """Close the optional worker without preventing remaining safety cleanup."""
 

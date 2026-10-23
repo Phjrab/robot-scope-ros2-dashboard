@@ -9,7 +9,9 @@ installed. Same-start IMU display stayed connected for a captured 119.6 s
 window. No map correction is accepted: the dashboard hits the unchanged 600 ms
 wall deadline under shared-process load, while the same deployed aligner in an
 isolated live-input diagnostic completes and rejects RMSE 0.164952 m. See the
-final execution section below; older pending-deployment notes are historical.
+execution sections below; older pending-deployment notes are historical. The
+original observation run has since ended. The new process-isolation candidate
+is locally implemented and awaiting separate device application.
 
 Select the saved PCD, enable current inputs, and on Humble explicitly select
 subscription/graph evidence mode. Enable **동일 시작점 기반 연속 관측**, enter an
@@ -244,3 +246,87 @@ probe JSON, actual service timing log, `deployed-map-view.png` and
 Post-deployment documentation validation: full Python 2,417 tests passed
 (3 skipped) and related JavaScript 26 passed; no additional source changes
 or service restarts were performed during this evidence update.
+
+## Follow-up implementation — isolated numerical worker (not deployed)
+
+The original one-hour FAST-LIO run is now over. Read-only inspection at
+15:14:56 KST found its unit inactive/dead, MainPID=0, Result=success. Dashboard
+PID 138038 remained active and the new worker file was absent. No additional
+restart, estimator start or product deployment was performed for this follow-up.
+The previous 119.6 s display record remains historical stationary evidence;
+there is no claim of a fresh FAST-LIO pose after the estimator exits.
+
+The API now selects one private numerical subprocess per dashboard. It imports
+no ROS runtime, inherits only its private IPC descriptor, and opens no network
+listener. Reference preparation can survive an over-budget attempt; scan work
+cannot. Every retry selects fresh parent inputs. The parent still enforces the
+single-flight lock, 1 Hz admission, unchanged 600 ms elapsed deadline, complete
+reference, exact FAST-LIO source pairing and completion map/source/evidence/
+freshness checks. The child receives that same absolute monotonic deadline.
+Partial/blocked IPC writes are bounded. A timed-out solve is terminated and
+reaped, and request/map identifiers reject a mismatched response. Shutdown
+closes the worker after the existing control shutdown boundary; dataset close
+retains its original ordering before mapping/ROS cleanup.
+
+Inline diagnostics and the child call the same extracted numerical function.
+Correspondences, iterations, convergence, residual/overlap/geometry policies
+and the displayed response contract are unchanged. No surface-based candidate,
+point exclusion, threshold change or historical timestamp refresh was added to
+the product. No dependency, ROS/OS or FAST-LIO configuration was changed.
+
+Five exact-source-stamp cloud/IMU pairs were passively copied while the original
+observer was still running, covering 1792735459645022869–1792735463746481180 ns.
+Historical local fits retain 431–435 uniformly sampled query points and the
+41,073-point normalized new reference. RMSE spans 0.159028–0.164699 m, overlap
+0.997680–1.0; two fits also fail convergence at the unchanged 40 iterations.
+Two diagnostic surface-based initializations on the first pair, rescored by
+unchanged point-to-point ICP, converge near 0.160889 m and remain rejected.
+They are not installed algorithms or live corrections.
+
+On the first pair, 0–2 m returns account for 22.3% of squared error, 2–5 m for
+39.5%, and 5–10 m for 38.2%. Removing near returns would not explain away the
+remaining approximately 15 cm range-bin residuals. Several largest errors
+match query returns around z=0.52–0.55 m to saved neighbours near z=-0.03 m.
+These spatial mismatches require further scene/geometry investigation; they do
+not prove calibration error, moving objects or map sparsity as a sole cause.
+No returns were excluded from qualification.
+
+A local historical benchmark with an additional Python CPU-contention thread
+compared identical inputs and policies. Inline work exceeded its deadline at
+605.36 ms; the prepared subprocess returned in 472.29 ms (440.98 ms numerical),
+with the identical RMSE 0.164698838 m and REJECTED/HIGH_RESIDUAL. This supports
+the process-isolation change; it is not installed-dashboard latency evidence.
+
+A five-file deployment candidate preserves the actual installed overlays:
+`app.py`, `application/runtime.py`, `api/routers/observation_alignment.py`,
+`relocalization/observation_alignment.py`, and new
+`relocalization/observation_worker.py`. Private per-file before/after hashes,
+four original-file backups, new-file absence/guarded removal, atomic replacement
+and guarded rollback are prepared. A disposable local install/rollback rehearsal
+passed, including refusing to overwrite subsequent edits. Deployment needs one
+additional dashboard restart and a new isolated, maximum-one-hour observation
+FAST-LIO run because both previously approved restarts and the original run
+have been consumed. Original map/config/mapping logs remain protected.
+
+Validation details are recorded after the final runs below. The browser fixture
+previously reanchored after only one of two independent source replacements;
+it now delivers and observes both replacements before reanchoring. The product
+continues to invalidate an anchor on either source change. Architecture size
+limits and dataset shutdown-order checks remain enforced through the extracted
+runtime cleanup helper.
+
+Final follow-up software validation: Python 2,427 tests passed (3 skipped),
+related JavaScript 26 passed, observation browser 7 passed, and 49 targeted
+Python tests passed against the exact merged installed-source candidate. Ten
+new worker/lifecycle tests cover numerical equivalence, reuse, preparation,
+backpressure, death, timeout/reaping, stale/mismatched responses, completion
+fences and cleanup failure. Full-suite intermediate failures identified the
+app size ceiling and a source-location-dependent shutdown assertion; cleanup
+was extracted and the assertion now follows that function without relaxing
+shutdown ordering or size limits. No device performance or localization pass
+is inferred from these software results.
+
+A further finite historical comparison perturbed the first fit's XY seed by
+±0.3 m in eight directions. All converged, with RMSE 0.160892–0.164749 m and
+unchanged overlap scoring; all remain rejected. The comparison is diagnostic
+only and does not add multi-start search to the live path.

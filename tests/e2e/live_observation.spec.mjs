@@ -30,7 +30,7 @@ function binary(seq, observation, frameId='odom') {
 async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
     session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false }, writes=[], errors=[];
-  const evidence=kind=>subscriptionEvidence?{kind,session:state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
+  const evidence=kind=>subscriptionEvidence?{kind,session:state[`${kind}Session`]??state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=> { if(r.method()!=='GET') writes.push(new URL(r.url()).pathname); });
   const backend=await installDashboardBackend(page,{ pointcloudFrame:seq=> {
@@ -175,7 +175,12 @@ test('subscription graph candidates require explicit opt-in and reanchor after m
   await expect(page.locator('#savedLiveProvenanceNote')).toContainText('메시지별 publisher·센서 외부변환·본체 자세는 검증되지 않습니다.');
   expect(await page.evaluate(()=>window.observationScene.options.robotPoseLabel)).toBe('GO2 ESTIMATE · SOURCE UNVERIFIED');
   await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-source-unverified-candidate.png')});
-  state.session='4'.repeat(32);
+  // Deliver the two independent subscription replacements in order. Reanchoring
+  // after only the first arrival is correctly invalidated by the second.
+  state.poseSession='4'.repeat(32);
+  await expect(page.locator('#savedLiveState')).toHaveText('POSE_SOURCE_CHANGED');
+  state.cloudSession='4'.repeat(32);
+  await expect(page.locator('#savedLiveState')).toHaveText('CLOUD_SOURCE_CHANGED');
   await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
   await page.locator('#savedLiveAnchor').click();

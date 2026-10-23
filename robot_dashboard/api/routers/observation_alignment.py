@@ -39,7 +39,7 @@ async def estimate_observation(request: Request, body: ObservationRequest) -> JS
     catalog = require_component(runtime.saved_maps, "saved maps unavailable")
     agent = require_component(runtime.agent, "observations unavailable")
     if runtime.observation_aligner is None:
-        runtime.observation_aligner = ObservationAligner()
+        runtime.observation_aligner = ObservationAligner(isolated=True)
     trace = ObservationTiming()
     def worker():
         with trace.bind():
