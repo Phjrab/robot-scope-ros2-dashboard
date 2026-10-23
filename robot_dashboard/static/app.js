@@ -6,6 +6,7 @@ import { formatHz, safeNumber } from './core/format.js';
 import { captureStickyLogScroll, scheduleStickyLogScroll } from './core/log_scroll.js';
 import { LidarSourceIdentity } from './features/sensors/lidar_identity.js';
 import { createPointcloudTransport } from './features/sensors/pointcloud_transport.js';
+import { createPoseTransport } from './features/sensors/socket_watchdog.js';
 import { createCameraDemandController } from './features/sensors/camera_demand.js';
 import { cameraObservabilityState, createLatestCameraFrameQueue, projectCameraObservability } from './features/sensors/camera_observability.js';
 import { initializeRealSenseProfileFeature } from './features/sensors/realsense_profile.js';
@@ -374,7 +375,7 @@ let cameraSocket = null;
 let cameraSocketGeneration = 0;
 let cameraReconnectTimer = 0;
 let jointSocket = null;
-let poseSocket = null;
+let poseTransport = null;
 let cameraMeta = null;
 let cameraStatusMeta = null;
 let videoDecoder = null;
@@ -3049,6 +3050,10 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
   }
   const meta = savedMapCatalog.find((entry) => entry.id === mapId);
   if (!meta) return;
+  // Retain the immutable reference during reload; changed selections still clear.
+  const retainLoadedCloud = meta.kind === 'pointcloud3d' && meta.revision &&
+    selectedSavedMapId === meta.id && selectedSavedMapMeta?.revision === meta.revision &&
+    offlineCloudSnapshot?.revision === meta.revision && !offlineCloudSnapshot.demo_snapshot;
   const loadGeneration = ++savedMapSelectionGeneration;
   const expectedRevision = String(meta.revision || '');
   const loadIsCurrent = () => (
@@ -3062,7 +3067,7 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
   savedMapViewPreference = meta.kind === 'occupancy2d' ? 'occupancy' : 'cloud';
   ui.savedMapViewMode.value = savedMapViewPreference;
   if (meta.kind === 'occupancy2d') savedOccupancySnapshot = null;
-  else offlineCloudSnapshot = null;
+  else if (!retainLoadedCloud) offlineCloudSnapshot = null;
   updateSavedMapOverview();
   try {
     const cacheKey = pointBudgetCacheKey(meta.id, savedPointLimit, meta.kind, meta.revision);
@@ -5541,15 +5546,13 @@ function connectJoints() {
 }
 
 function connectPose() {
-  if (poseSocket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(poseSocket.readyState)) return;
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  poseSocket = new WebSocket(`${scheme}//${location.host}/api/v1/ws/pose`);
-  poseSocket.onmessage = (event) => {
-    try { applyPoseSnapshot(JSON.parse(event.data)); }
-    catch (error) { console.warn('pose stream:', error); }
-  };
-  poseSocket.onclose = () => setTimeout(connectPose, 1200);
-  poseSocket.onerror = () => poseSocket.close();
+  poseTransport ??= createPoseTransport({
+    url: `${scheme}//${location.host}/api/v1/ws/pose`,
+    onSnapshot: applyPoseSnapshot,
+    onError: error => console.warn('pose stream:', error),
+  });
+  poseTransport.start();
 }
 
 function cameraTransportWanted() {

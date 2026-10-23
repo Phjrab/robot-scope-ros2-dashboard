@@ -1,3 +1,5 @@
+import { createSocketWatchdog } from './socket_watchdog.js';
+
 const DEFAULT_RECONNECT_DELAY_MS = 1200;
 
 function defaultSocketUrl(locationValue) {
@@ -42,6 +44,7 @@ export function createPointcloudTransport(options = {}) {
   let reconnectTimer = 0;
   let pendingFrame = null;
   let pendingFrameRequest = 0;
+  let pendingFrameTimer = 0, frameGeneration = 0, socketWatch = null;
   let requestInFlight = false;
   let binaryHttpAvailable = true;
   let lastSequence = -1;
@@ -120,22 +123,37 @@ export function createPointcloudTransport(options = {}) {
         options.onError?.(error);
       }
     }
-    if (pendingFrame && !pendingFrameRequest) pendingFrameRequest = requestFrame(drainFrame);
   }
 
   function queueFrame(buffer, generation) {
     pendingFrame = { buffer, generation };
-    if (!pendingFrameRequest) pendingFrameRequest = requestFrame(drainFrame);
+    if (pendingFrameRequest) return;
+    const token = ++frameGeneration;
+    const flush = () => {
+      if (token !== frameGeneration) return;
+      frameGeneration++;
+      if (pendingFrameRequest) cancelFrame?.(pendingFrameRequest);
+      if (pendingFrameTimer) clearTimer?.(pendingFrameTimer);
+      pendingFrameRequest = 0; pendingFrameTimer = 0;
+      drainFrame();
+    };
+    pendingFrameRequest = requestFrame(flush);
+    // A suspended animation frame must not block fresh observation ingestion.
+    pendingFrameTimer = setTimer?.(flush, 100) || 0;
   }
 
   function disconnect(reason = 'pointcloud demand inactive') {
     requestGeneration += 1;
     connectionGeneration += 1;
+    socketWatch?.stop(); socketWatch = null;
+    frameGeneration++;
     if (reconnectTimer) clearTimer?.(reconnectTimer);
     reconnectTimer = 0;
     pendingFrame = null;
     if (pendingFrameRequest) cancelFrame?.(pendingFrameRequest);
     pendingFrameRequest = 0;
+    if (pendingFrameTimer) clearTimer?.(pendingFrameTimer);
+    pendingFrameTimer = 0;
     const previous = socket;
     socket = null;
     if (previous && [0, 1].includes(previous.readyState)) {
@@ -150,12 +168,20 @@ export function createPointcloudTransport(options = {}) {
     const nextSocket = socketFactory(socketUrl);
     socket = nextSocket;
     connectionCount += 1;
+    const watch = createSocketWatchdog(() => {
+      if (socket !== nextSocket || generation !== connectionGeneration || !wanted()) return;
+      disconnect('pointcloud receive timeout');
+      connect();
+    }, { setTimeout: setTimer, clearTimeout: clearTimer });
+    socketWatch = watch;
     nextSocket.binaryType = 'arraybuffer';
     nextSocket.onmessage = (event) => {
       if (socket !== nextSocket || generation !== connectionGeneration || !(event.data instanceof ArrayBuffer)) return;
+      watch.received();
       queueFrame(event.data, generation);
     };
     nextSocket.onclose = () => {
+      watch.stop();
       if (socket !== nextSocket || generation !== connectionGeneration) return;
       socket = null;
       if (wanted()) {

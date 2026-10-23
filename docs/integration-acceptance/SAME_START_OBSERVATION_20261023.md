@@ -4,16 +4,28 @@ The existing Maps observation panel can now track the installed FAST-LIO IMU
 state against a pinned saved 3D map. This is display-only: no map→odom TF,
 initialpose, goal, control output or body-extrinsic claim is added.
 
-**Current device result:** after the operator restored the robot to standing at
+**Current result after manual movement:** stationary saved-map correction and
+the 120-second stationary display remain demonstrated. Three operator-controlled
+movement attempts have now been recorded, but continuous moving UI display has
+**not passed**. The first two attempts encountered stale browser input while
+passive device WebSockets continued receiving. The approved three-file transport
+recovery patch was installed without restarting services. After reload, native
+inputs were fresh, but the UI subsequently cleared its anchor with `MAP_CHANGED`
+while the same map ID/revision was displayed. A same-revision reload defect was
+then reproduced and fixed locally; this additional change is **not deployed**.
+The one-hour observer has ended; final logs are retained locally. See the manual
+movement section below for measured results and the remaining device check.
+
+**Earlier standing result:** after the operator restored the robot to standing at
 the reported mapping-start position and height, the existing dashboard accepted
 and applied an actual saved-map correction under the unchanged provisional
 10 cm policy. The exported fit has RMSE **0.078076 m**, overlap **1.0**, and
 total worker time **94.50 ms**; the original 5 cm policy still rejects it.
 A subsequent **120.0 s / 399-sample** stationary window retains the correction
 and advances original IMU timestamps. A–F are demonstrated for this provisional,
-subscription/graph-evidence IMU observation path. Manual movement and absolute
-accuracy remain unmeasured. Source `2b3b441` remains installed; no new deployment
-or dashboard restart was performed. The newly approved observation run started
+subscription/graph-evidence IMU observation path. At that checkpoint manual
+movement and absolute accuracy were unmeasured. Source `2b3b441` was installed;
+that checkpoint performed no deployment or dashboard restart. The run started
 at **16:47:27 KST**, with a one-hour maximum lifetime. Earlier failed runs below
 are historical; the operator later identified their posture as seated. See the
 final standing-run section for current evidence and remaining limitations.
@@ -497,8 +509,8 @@ not absolute accuracy; the prior and roughly 0.33 m / 8.6° correction are not
 independent ground truth. Accepted corrections begin separate trail segments;
 this window specifically measures propagation of one retained correction.
 
-The operator chose to finish with stationary validation; manual-motion
-validation remains **NOT_RUN**. Repeated regional fitting was re-enabled for
+At this checkpoint the operator chose stationary validation; manual-motion
+validation was **NOT_RUN** (superseded by the later attempts below). Repeated regional fitting was re-enabled for
 the remaining approved observer lifetime, with live inputs and corrected IMU
 display kept on. At expiry, stale inputs must stop being represented as current;
 this is a bounded validation run, not a persistent localization service.
@@ -524,3 +536,131 @@ outside Git. The next verification is operator-controlled short movement and
 turning when available, within an authorized observation run. Independent
 absolute accuracy and Go2 body-frame calibration remain separate unmeasured
 quantities.
+
+## Manual movement and transport recovery, 17:16–17:47 KST
+
+The operator subsequently made three manual movement attempts. No movement,
+posture, control bridge, Nav2, initialpose or operational TF command was sent by
+this task. The same standing observer/source generation and pinned map were
+used throughout. These are observation attempts, not a passing moving-display
+acceptance test.
+
+1. The operator reported approximately 0.5 m straight movement. Browser cloud
+   receipt became stale for roughly 13 seconds and invalidated the connection.
+   At the arrival, a fresh same-generation native pose was combined with the
+   historical correction as an explicitly approximate seed. A new actual
+   registration at **17:21:31** was applied: RMSE **0.065930752 m**, overlap 1.0,
+   406 inliers, 8 iterations, numerical time 40.75 ms, total 95.02 ms. Provisional
+   10 cm passed; original 5 cm remained rejected. This arrival correction does
+   not recover the missing continuous moving UI segment.
+2. The operator then reported another short straight movement and left turn.
+   Passive device WebSocket evidence contains 937 pose and 514 cloud samples in
+   the analyzed 109.90-second segment, nondecreasing original source stamps and
+   maximum receipt gaps of 0.460/0.532 s. Historical native odometry propagated
+   through the fixed baseline map transform measures approximately **0.447 m**
+   displacement and **+27.09°** yaw. Browser input became stale for about 19.7 s
+   and invalidated its trail. These numbers are estimator observations, not
+   independent ground truth or a recovered UI trail.
+3. After the approved transport patch and browser reload, the operator made one
+   more short movement/turn. A five-minute passive recording completed with
+   **2,465 pose / 1,418 cloud** messages, nondecreasing source stamps and maximum
+   receipt gaps **0.523/0.652 s**. Initial/final native pose medians differ by
+   approximately **0.499 m / −29.82° yaw**. The operator confirmed completion
+   without specifying the final direction; the sign here is the estimator's
+   convention, not a ground-truth turn measurement.
+
+Before the third attempt, the approximate arrival seed was XYZ
+(0.881757, 0.049819, 0.037956) m and RPY (−0.774667, −0.546795, 39.190650) degrees.
+It came from the second-motion baseline's historical `T_map_odom` multiplied by
+a fresh matching observer/epoch/subscription `T_odom_imu`; the original mapping
+start was not reused as the robot's current position. Fresh local registration
+was attempted. The retained **17:43:31** assessment has RMSE **0.058632607 m**,
+overlap 1.0 and total time **220.21 ms**, but reached 40 iterations without
+convergence: **REJECTED / NOT_CONVERGED**. It was not applied despite passing
+the provisional residual comparison. The UI remained an approximate odometry
+estimate at that checkpoint.
+
+At **17:45:26**, after the third movement, the visible status was `MAP_CHANGED`
+with no current map pose or trail. Cloud and pose receipt ages were **116/85 ms**
+and the source subscriptions were unchanged. At 17:46:45 the displayed map still
+had the pinned ID, revision and 41,073 points. Thus the last failure is distinct
+from the earlier stale-input failures. Continuous browser reception across the
+entire movement was not instrumented, and the precise live event that triggered
+the map reload has not been proven.
+
+### Installed transport patch and local follow-up
+
+Explicit approval covered `app.js`, `pointcloud_transport.js`, new
+`socket_watchdog.js`, and browser reload only. The patch reconnects silent pose
+and cloud sockets, fences callbacks from replaced sockets, and drains pending
+binary cloud frames with a 100 ms timer fallback when animation frames pause.
+It changes no source timestamps, freshness, convergence, residual or deadline
+gate. The initial receive wait is 3 seconds, subsequent silence limit 600 ms.
+Transport recovery alone did not complete moving UI validation.
+
+The installation bundle was
+`transport-recovery-20261023-1736`, archive SHA256
+`1ea13146c34c5fab65e6163ab28f8783b5edffbebebd7fd79fced24c52d1531c`.
+Original files were backed up; guarded install/rollback was rehearsed. Installed
+and HTTP-served hashes matched:
+
+| File | Installed SHA256 |
+| --- | --- |
+| `socket_watchdog.js` | `de5a16f92a994d43719fb095aac384b79f5b70714a110e21d2d4333e8271fcfe` |
+| `pointcloud_transport.js` | `102be6e04099f926ece28867c03dd97fd21cc19f06ddbae372e557bdd96c1803` |
+| `app.js` with retained device overlays | `3dc4b8464492580502e0110432a81c0471defc25127d8fff61e71125206e516a` |
+
+Dashboard PID 963 and observer wrapper PID 12056 were unchanged after deployment.
+Original map/config hashes matched. The robot Git base remains `d7807de8` with
+retained overlays and selective patches; it is not the public main checkout.
+
+Offline browser reproduction then demonstrated that a completed mapping-status
+readback can clear the display cache and reload the same selected map. During
+the asynchronous reload, `selectSavedMap` cleared the loaded reference; live
+render ticks interpreted the temporary absence as a map change and discarded
+the accepted connection. The added regression failed on that path before the
+fix. The local follow-up retains the already-loaded reference only for the same
+map ID and nonempty matching revision. A real revision change still clears it
+immediately, and existing source/stale gates remain unchanged. The regression
+now passes for both same-revision retention and changed-revision invalidation.
+This reproduces a plausible cause of the observed failure, not proof of the
+exact live trigger. **This additional app.js change has not been deployed.**
+The private `reload-fix/` candidate merges only that follow-up into the installed
+app variant. Its SHA256 is
+`3c899d975bb14ec5393b1e3ca507de3f985c5c15a7b91bb042ca7371a0af8600`;
+syntax and guarded install/restore rehearsal passed against a temporary local
+checkout. No further robot write or restart was performed.
+
+Validation after the follow-up: full Python 2,427 tests (3 skipped), all JS 601
+tests, and 8 observation browser tests. The newly added transport unit coverage
+includes silent sockets, late callbacks, suspended animation frames and demand
+release. The full JS run initially hit the existing application line-count
+limit after the new comment; the comment was shortened without changing code
+behavior or the test limit, then the suite was rerun.
+An initial final Python invocation used the system interpreter without FastAPI
+and Pydantic (34 import errors); the full suite was rerun in the existing project
+virtual environment. No dependency installation or test exclusion was used.
+
+### End of authorized run and retained evidence
+
+The original 17:47:27 maximum end time was not extended. At **17:47:35**, the
+observer unit was inactive/dead, MainPID=0, Result=success. Dashboard PID 963
+remained active; the control bridge was inactive/disabled, MainPID=0. Ownership
+readback showed no busy components. Later source disappearance/change hid the
+current pose as required; no old correction was reused as a current result.
+
+Private `manual-motion-1716/` evidence includes the accepted first-arrival UI
+export, second-motion baseline and historical motion summary, five-minute raw
+WebSocket metadata recordings, `post-fix-arrival-prior.json`, rejected
+`post-fix-ui-initial.json`, `post-fix-final-dom.json`, `post-fix-motion-summary.json`,
+deployment manifests/backups, expiry readback, and `observer-log-final.tar`
+(six entries, 10,482,825 uncompressed bytes). Actual device screenshots include
+`post-fix-arrival-screen.png` and `expired-controls.png`; raw evidence stays
+outside Git. The operator was told the robot could be shut down normally after
+the observer exited and final logs were copied.
+
+Next device step: apply the tested same-revision reload fix under a new explicit
+deployment/run approval, then verify one continuous manually moved UI segment.
+Until then, A–F retain their earlier stationary evidence; G is **attempted but
+not passed for continuous UI display**. Absolute accuracy and Go2 body-frame
+calibration remain unmeasured.

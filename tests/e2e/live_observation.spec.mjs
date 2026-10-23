@@ -82,7 +82,7 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     await page.locator('#savedLiveAnchor').click();
     await expect(page.locator('#savedLiveState')).toHaveText('ODOMETRY_PROPAGATED_UNVERIFIED');
   }
-  return {state,writes,errors};
+  return {state,writes,errors,backend};
 }
 
 test('3D observation keeps saved reference, separates scan estimate, and hides stale/rejected geometry',async({page},testInfo)=>{
@@ -257,5 +257,45 @@ test('same-start IMU estimate keeps current pose on fit failure and hides on sta
   state.streaming=false;
   await expect(page.locator('#savedLiveState')).toHaveText('STALE');
   expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay)).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test('same revision reload retains the current connection; changed revision still clears it', async({page})=>{
+  const {backend,errors}=await fixture(page,{imu:true});
+  await page.locator('#savedLiveContinuous').check();
+  await page.locator('#savedLiveConfirm').check();
+  await page.locator('#savedLiveAnchor').click();
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
+  await page.locator('#savedLiveRegistration').uncheck();
+  let release, requested=false;
+  const pending=new Promise(resolve=>{release=resolve;});
+  backend.on(meta.data_url,async({json})=>{
+    requested=true; await pending;
+    return json({...meta,map_id:id,seq:1,points,units:'m',source_points:5});
+  });
+  // A completed mapping readback clears the display cache and refreshes the
+  // catalogue even when the selected immutable map is unchanged.
+  backend.state.mapping.operation={state:'succeeded',kind:'save',job_id:'reload-same',map_name:'synthetic'};
+  await expect.poll(()=>requested).toBe(true);
+  await page.waitForTimeout(350); // Let multiple live render ticks see the pending reload.
+  await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  release();
+  await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
+
+  const changed={...meta,revision:'e'.repeat(64)};
+  backend.on('/api/v1/saved-maps',({json})=>json({maps:[changed],total_size_bytes:1000}));
+  let releaseChanged, changedRequested=false;
+  const changedPending=new Promise(resolve=>{releaseChanged=resolve;});
+  backend.on(meta.data_url,async({json})=>{
+    changedRequested=true; await changedPending;
+    return json({...changed,map_id:id,seq:1,points,units:'m',source_points:5});
+  });
+  backend.state.mapping.operation={state:'succeeded',kind:'save',job_id:'reload-changed',map_name:'synthetic'};
+  await expect.poll(()=>changedRequested).toBe(true);
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  releaseChanged();
+  await expect(page.locator('#savedLiveState')).toHaveText('MAP_CHANGED');
   expect(errors).toEqual([]);
 });
