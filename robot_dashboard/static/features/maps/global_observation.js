@@ -94,8 +94,9 @@ export function initializeGlobalMapObservation({ getContext, canChangeHistory = 
   if (!layout) return null;
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/static/features/maps/global_observation.css'; document.head.append(style);
   const panel = document.createElement('section'); panel.id = 'savedGlobalObservation'; panel.className = 'panel saved-global-observation';
-  panel.innerHTML = `<strong>저장 3D 지도 · 비동기 전역 관측</strong>
-    <p>수신 PointCloud2의 XYZ 전체 한 장으로 초기 위치 가설을 찾습니다. 5cm·10cm RMSE는 비교값이며 잠정 관측 후보 선택의 문턱은 아닙니다. 모호성 임시 허용은 서버 설정이며 원본 gate·대안은 보존합니다. 변환 전 센서 원본 archive는 아니며, upstream 처리도 미검증입니다. 완료돼도 과거 관측으로만 보존합니다.</p>
+  panel.innerHTML = `<div class="panel-header compact saved-global-heading"><div><div class="eyebrow">실험 관측</div><h2>저장 3D 지도 · 전역 관측</h2></div><span class="saved-global-scope">과거 관측 · 운영 적용 없음</span></div>
+    <div class="saved-global-body">
+    <p class="saved-global-intro">수신 점군 한 장에서 위치 후보를 찾습니다. 본체 변환·추적·정밀 정확도는 미검증입니다. 5cm·10cm RMSE는 비교값이며 후보 선택 문턱이 아닙니다. 모호성 임시 허용은 서버 설정이며 원본 gate·대안은 보존합니다.</p>
     <p id="savedGlobalProvider" role="status">실행 환경 확인 중</p>
     <div class="saved-global-actions"><button id="savedGlobalStart" type="button" disabled>수신 점군 전역 관측 시작</button><button id="savedGlobalRetry" type="button" hidden>같은 요청 재확인</button><button id="savedGlobalCancel" type="button" disabled>관측 취소</button><button id="savedGlobalExport" type="button" disabled>과거 관측 JSON</button></div>
     <div class="saved-global-actions">
@@ -106,10 +107,12 @@ export function initializeGlobalMapObservation({ getContext, canChangeHistory = 
     </div>
     <p id="savedGlobalHistoryHelp">목록은 현재 서버의 최근 결과와 이 화면에서 연 결과입니다. 다른 보존 결과는 작업 ID로 조회할 수 있으며 서버 재시작 후 보존은 보장되지 않습니다. 명시적으로 연 결과만 표시하며 새 관측·추적을 시작하지 않습니다.</p>
     <p id="savedGlobalHistoryStatus" role="status"></p>
-    <strong id="savedGlobalState" role="status">IDLE · HISTORICAL_ONLY</strong><p id="savedGlobalCapture"></p>
+    <strong id="savedGlobalState" role="status">IDLE · HISTORICAL_ONLY</strong>
     <p id="savedGlobalSummary"></p><p id="savedGlobalResidual"></p>
+    <details class="saved-global-capture-details"><summary>캡처 출처·기준 지도</summary><p id="savedGlobalCapture"></p><p>수신 PointCloud2의 XYZ 전체를 사용합니다. 변환 전 센서 원본 archive가 아니며 upstream 처리는 미검증입니다.</p></details>
     <details id="savedGlobalDetails" hidden><summary>원본 후보·gate·잔차·변환 전체 기록</summary><pre id="savedGlobalRecord"></pre></details>
-    <small>운영 적용 없음 · 본체 변환/추적/정밀 정확도 미검증. 이 패널은 카메라·주행·TF를 시작하지 않습니다.</small>`;
+    <small class="saved-global-safety-note">과거 관측만 보존하며 현재 위치·본체 pose·추적으로 적용하지 않습니다. 이 패널은 카메라·주행·TF를 시작하지 않습니다.</small>
+    </div>`;
   (document.querySelector('#savedLiveObservation') || layout).after(panel);
   const el = name => panel.querySelector(`#savedGlobal${name}`);
   let disposed = false, visible = false, historyMapKey = '', historyFingerprint = '';

@@ -73,7 +73,7 @@ test('explicit saved-result open survives a page reload without any mutation or 
   await page.locator('#savedGlobalDetails').evaluate(element => { element.open = true; });
   await expect(page.locator('#savedGlobalRecord')).toContainText('0.230319');
   await expect(page.locator('#savedGlobalRecord')).toContainText('0.90325');
-  await expect(page.locator('#savedGlobalObservation')).toContainText('본체 변환/추적/정밀 정확도 미검증');
+  await expect(page.locator('#savedGlobalObservation')).toContainText('본체 변환·추적·정밀 정확도는 미검증입니다');
   const download = page.waitForEvent('download'); await page.locator('#savedGlobalExport').click();
   const file = await download, exported = JSON.parse(await readFile(await file.path(), 'utf8'));
   expect(exported.job_id).toBe(ID); expect(exported.historical_only).toBe(true);

@@ -111,7 +111,7 @@ test('diagnostics UI is an explicit read-only Settings surface', () => {
   for (const id of ['diagnosticsExportState', 'diagnosticsExportMessage', 'diagnosticsExportButton']) {
     assert.match(indexSource, new RegExp(`id="${id}"`));
   }
-  assert.match(indexSource, /제어·매핑·Nav2·데이터셋 작업을 중지하지 않으며/);
+  assert.match(indexSource, /읽기 전용 진단 ZIP\.<\/strong> 실행 중인 로봇 작업은 계속됩니다/);
   assert.match(featureSource, /'\/api\/v1\/system\/diagnostics\/export'/);
   assert.match(featureSource, /method: 'POST'/);
   assert.match(featureSource, /new AbortController\(\)/);

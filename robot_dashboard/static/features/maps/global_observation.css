@@ -1,11 +1,26 @@
-.saved-global-observation { margin-top: 12px; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
-.saved-global-observation p { margin: 8px 0; font-size: 13px; line-height: 1.5; }
-.saved-global-observation small { display: block; margin-top: 10px; color: var(--text-muted, #8a98ad); }
-.saved-global-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.saved-global-observation { margin-top: 12px; min-width: 0; overflow-wrap: anywhere; }
+.saved-global-heading { flex-wrap: wrap; }
+.saved-global-scope { color: var(--amber); font-size: var(--type-micro); }
+.saved-global-body { display: grid; gap: 12px; padding: 16px; }
+.saved-global-observation p { margin: 0; font-size: var(--type-secondary); line-height: var(--leading-body); }
+.saved-global-observation :is(.saved-global-intro, .saved-global-safety-note) { color: var(--muted); }
+.saved-global-observation small { display: block; font-size: var(--type-secondary); line-height: var(--leading-body); }
+.saved-global-observation :is(#savedGlobalSummary, #savedGlobalResidual):empty { display: none; }
+.saved-global-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.saved-global-actions label { flex: 1 1 280px; min-width: 0; }
+.saved-global-actions :is(select, input) { display: block; width: 100%; max-width: 100%; min-width: 0; min-height: 44px; }
 .saved-global-actions button { min-height: 44px; padding: 9px 12px; color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); font-size: var(--type-control); }
 .saved-global-actions button:hover:not(:disabled) { color: var(--green); border-color: var(--green); }
 .saved-global-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .saved-global-observation :is(button, summary):focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
 #savedGlobalState { display: block; padding: 10px 12px; color: var(--amber); border-left: 3px solid var(--amber); background: var(--bg-soft); }
-.saved-global-observation pre { max-height: 360px; overflow: auto; white-space: pre-wrap; font-size: 12px; }
-.saved-global-observation details { margin-top: 12px; }
+.saved-global-observation pre { max-height: 360px; max-width: 100%; overflow: auto; white-space: pre-wrap; font-size: var(--type-micro); }
+.saved-global-observation details { min-width: 0; border-top: 1px solid var(--line); }
+.saved-global-observation summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: var(--muted); font-size: var(--type-secondary); }
+.saved-global-observation details > p { margin: 0 0 12px; color: var(--muted); }
+.saved-global-observation #savedGlobalCapture { font-family: var(--font-mono); font-size: var(--type-micro); }
+.saved-global-safety-note { border-top: 1px solid var(--line); padding-top: 12px; }
+@media (max-width: 480px) {
+  .saved-global-body { padding: 12px; }
+  .saved-global-actions > button { flex: 1 1 auto; }
+}

@@ -13,7 +13,7 @@
 }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-section-heading h2,
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-section-heading h3 { margin: 4px 0 0; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-section-heading h3 { font-size: 14px; font-weight: 600; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-section-heading h3 { font-size: var(--type-body); font-weight: 600; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-workspace-menu {
   display: flex;
   align-items: end;
@@ -25,27 +25,27 @@
 }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-workspace-menu .slam-field { flex: 1 1 240px; max-width: 390px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-library-menu { width: min(100%, 320px); }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-field > select { flex: none; height: 40px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-field { min-width: 0; font-size: 12px; gap: 7px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-field > select { flex: none; height: 44px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-field { min-width: 0; font-size: var(--type-micro); gap: 7px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(select, input[type="text"], input:not([type])) {
   background: var(--bg-soft);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text);
-  font: 13px var(--font-ui);
+  font: var(--type-control) var(--font-ui);
   width: 100%;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 10px;
 }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(button, a[download]) {
-  min-height: 40px;
+  min-height: 44px;
   padding: 9px 13px;
   background: var(--panel-strong);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text);
-  font: 500 12px/1.5 var(--font-ui);
+  font: 500 var(--type-control)/1.5 var(--font-ui);
   text-decoration: none;
   text-align: center;
 }
@@ -54,16 +54,16 @@
   outline: 2px solid var(--green);
   outline-offset: 3px;
 }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamStart { background: var(--green); border-color: var(--green); color: #10291c; font-weight: 700; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamStart { background: var(--green); border-color: var(--green); color: #10291c; font-weight: 600; }
 html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #fff; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(#slamStop, #slamPackageDelete, #slamDiscardThenStop) { border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); color: var(--danger); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamSessionState {
   border: 1px solid var(--line-strong);
   color: var(--green);
   background: var(--bg-soft);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 11px 14px;
-  font: 600 12px var(--font-mono);
+  font: 600 var(--type-micro) var(--font-mono);
   align-self: end;
 }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(#slamMessage, #slamPackageStatus) {
@@ -71,7 +71,7 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
   padding: 12px 20px;
   background: var(--bg-soft);
   border-bottom: 1px solid var(--line);
-  font: 12px/1.7 var(--font-ui);
+  font: var(--type-secondary)/1.7 var(--font-ui);
 }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-session-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(.slam-session-form, .slam-session-diagnostics) { padding: 20px; min-width: 0; }
@@ -82,20 +82,20 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-check input { flex: none; margin-top: 5px; accent-color: var(--green); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-muted { line-height: 1.8; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-session-diagnostics > p { margin: 12px 0; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-technical { border-top: 1px solid var(--line); margin: 12px 0 0; padding-top: 12px; font-size: 12px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-technical > summary { cursor: pointer; color: var(--muted); line-height: 1.8; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-technical { border-top: 1px solid var(--line); margin: 12px 0 0; padding-top: 12px; font-size: var(--type-micro); }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-technical > summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: var(--muted); line-height: 1.8; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-lidar-session { margin: 0; border: 0; padding: 0; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-lidar-session > summary { padding: 12px 20px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-detail { font: 12px/1.8 var(--font-mono); color: var(--muted); }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-detail { font: var(--type-micro)/1.8 var(--font-mono); color: var(--muted); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-availability { margin: 0; padding: 16px 20px; border-top: 1px solid var(--line); gap: 8px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-availability p { background: var(--bg-soft); border-radius: 8px; padding: 10px 12px; font-size: 12px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-availability p { background: var(--bg-soft); border-radius: var(--radius); padding: 10px 12px; font-size: var(--type-micro); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-availability [data-availability="available"] { border-color: var(--green); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-views { margin: 0; padding: 0 20px 20px; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-view { padding: 0; border-radius: var(--radius); overflow: hidden; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-view .panel-header { padding: 16px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-view-body { padding: 16px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-view canvas { border: 1px solid var(--line); height: clamp(240px, 30dvh, 360px); background: #10171d; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(#slamImageStatus, #slamMapCoverage, #slamCameraViewStatus) { font-size: 12px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] :is(#slamImageStatus, #slamMapCoverage, #slamCameraViewStatus) { font-size: var(--type-micro); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamCameraPose { border-top: 1px solid var(--line); padding-top: 12px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-layer-row { gap: 8px 14px; margin: 12px 0; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-stream-notes { border-top: 1px solid var(--line); padding: 10px 20px; background: var(--bg-soft); }
@@ -134,7 +134,7 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
   padding: 16px 20px;
   margin: 0;
 }
-#slamPackageLibrary[data-presentation] :is(.slam-archive-layout, .saved-layout) .panel-header :is(h2, h3) { margin: 4px 0 0; font-size: 14px; font-weight: 600; }
+#slamPackageLibrary[data-presentation] :is(.slam-archive-layout, .saved-layout) .panel-header :is(h2, h3) { margin: 4px 0 0; font-size: var(--type-body); font-weight: 600; }
 #slamPackageLibrary[data-presentation] :is(.slam-archive-preview, .saved-map-panel) { overflow: hidden; }
 #slamPackageLibrary[data-presentation] .slam-archive-health { padding: 12px 16px 0; justify-content: space-between; flex-wrap: wrap; }
 #slamPackageLibrary[data-presentation] :is(.saved-map-stage, #slamPackageCanvas, .slam-archive-empty) {
@@ -147,29 +147,29 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
   border: 0;
   border-radius: 0;
 }
-#slamPackageLibrary[data-presentation] .saved-map-stage :is(button, select) { width: auto; min-height: 28px; padding: 4px 7px; font-size: 10px; }
+#slamPackageLibrary[data-presentation] .saved-map-stage :is(button, select) { width: auto; min-height: 36px; padding: 6px 8px; font-size: var(--type-micro); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list { display: grid; gap: 8px; margin: 0; padding: 16px; max-height: 240px; overflow: auto; }
 #slamPackageLibrary[data-presentation] .saved-map-list { max-height: 240px; padding: 16px; }
 #slamPackageLibrary[data-presentation] .saved-map-detail { padding: 16px; }
 #slamPackageLibrary[data-presentation] #savedMapDeleteButton { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button { display: grid; gap: 5px; padding: 13px; text-align: left; min-height: 64px; line-height: 1.8; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button small { color: var(--muted); font-size: 11px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button small { color: var(--muted); font-size: var(--type-micro); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-list button[aria-pressed="true"] { border-color: var(--green); background: color-mix(in srgb, var(--green) 10%, var(--panel)); box-shadow: inset 3px 0 var(--green); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-library-tools { padding: 16px; border-top: 1px solid var(--line); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-library-tools .slam-control-row { display: grid; margin: 0 0 16px; gap: 16px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-library-tools a { color: var(--green); font-size: 12px; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] input[type="file"] { max-width: 100%; min-width: 0; font: 12px var(--font-ui); color: var(--muted); }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] input::file-selector-button { background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px; border-radius: 6px; margin-right: 8px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-library-tools a { color: var(--green); font-size: var(--type-micro); }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] input[type="file"] { max-width: 100%; min-width: 0; font: var(--type-control) var(--font-ui); color: var(--muted); }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] input::file-selector-button { background: var(--panel-strong); border: 1px solid var(--line); color: var(--text); padding: 8px; border-radius: var(--radius); margin-right: 8px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-empty { display: grid; align-content: center; justify-items: center; padding: 32px; text-align: center; background: var(--bg-soft); }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-empty p { max-width: 370px; font-size: 13px; color: var(--muted); line-height: 1.8; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-list-empty { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-empty p { max-width: 370px; font-size: var(--type-secondary); color: var(--muted); line-height: 1.8; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-list-empty { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: var(--type-micro); line-height: 1.8; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-detail { border: 0; padding: 0; margin: 0; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-selected-management { border-top: 1px solid var(--line); padding: 16px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] #slamPackageDetail { max-height: 230px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-management { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-management .slam-field { grid-column: 1 / -1; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-package-management a { grid-column: span 3; }
-:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support { border-top: 1px solid var(--line); padding: 16px; font-size: 12px; }
+:is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support { border-top: 1px solid var(--line); padding: 16px; font-size: var(--type-micro); }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support > p { margin: 0; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-archive-support .slam-control-row { display: grid; }
 :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-dialog { background: var(--panel); color: var(--text); }
@@ -204,4 +204,30 @@ html[data-theme="light"] #slamConsole[data-presentation] #slamStart { color: #ff
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-session-actions #slamStart { grid-column: 1 / -1; }
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-views { padding: 0 12px 12px; }
   :is(#slamConsole, #slamPackageLibrary)[data-presentation] .slam-view-body { padding: 12px; }
+}
+
+/* Secondary capture workflow follows the primary map, using the same panels. */
+#depthCaptureConsole { padding: 0; grid-column: 1 / -1; }
+#depthCaptureConsole .panel-header { margin: 0; padding: 16px 20px; }
+#depthCaptureConsole .panel-header h2 { margin: 4px 0 0; font-size: var(--type-section); }
+#depthCaptureConsole .panel-state { font: 500 var(--type-micro) var(--font-mono); }
+#depthCaptureConsole .depth-capture-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+#depthCaptureConsole .depth-capture-body > section { min-width: 0; padding: 16px 20px; }
+#depthCaptureConsole .depth-capture-controls { border-right: 1px solid var(--line); }
+#depthCaptureConsole :is(p, label, .slam-detail) { font: var(--type-secondary)/var(--leading-body) var(--font-ui); color: var(--muted); }
+#depthCaptureConsole .depth-capture-controls > p:first-child { margin-top: 0; }
+#depthCaptureConsole h3 { margin: 0 0 12px; font-size: var(--type-body); }
+#depthCaptureConsole .slam-check { min-height: 32px; align-items: center; }
+#depthCaptureConsole .slam-check input { accent-color: var(--green); }
+#depthCaptureConsole .slam-control-row { gap: 8px 12px; }
+#depthCaptureConsole :is(button, a) { min-height: 44px; padding: 9px 12px; border-radius: var(--radius); font: 500 var(--type-control)/1.5 var(--font-ui); }
+#depthCaptureConsole button { color: var(--text); background: var(--panel-strong); border: 1px solid var(--line-strong); }
+#depthCaptureConsole a { color: var(--green); }
+#depthCaptureConsole button:hover:not(:disabled) { border-color: var(--green); }
+#depthCaptureConsole #depthCaptureStop { color: var(--danger); }
+#depthCaptureConsole :is(button, input, a):focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+@media (max-width: 800px) {
+  #depthCaptureConsole .depth-capture-body { grid-template-columns: minmax(0, 1fr); }
+  #depthCaptureConsole .depth-capture-controls { border-right: 0; border-bottom: 1px solid var(--line); }
+  #depthCaptureConsole .depth-capture-body > section { padding: 16px; }
 }

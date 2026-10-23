@@ -280,3 +280,26 @@ footer { flex-wrap: wrap; gap: 8px 20px; }
   .map-annotation-editor { grid-template-columns: minmax(0, 1fr); }
   .food-production-toolbar > :is(select, button, label) { width: 100%; }
 }
+/* Optional instructions share one disclosure style; live status stays outside. */
+.page-view .ui-disclosure {
+  min-width: 0;
+  margin: 12px 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--type-secondary);
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+}
+.page-view .ui-disclosure > summary {
+  min-height: 44px;
+  padding: 11px 0;
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.page-view .ui-disclosure > summary::marker { color: var(--green); }
+.page-view .ui-disclosure > summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.page-view .ui-disclosure > p { margin: 0 0 12px; color: var(--muted); }
+.page-view .ui-disclosure > ol { margin: 0 0 12px; padding-left: 24px; }
+.page-view .ui-disclosure li + li { margin-top: 8px; }
+.page-view :is(.mission-setup-help, .dataset-browser-help) { margin: 12px 18px; }

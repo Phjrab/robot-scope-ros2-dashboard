@@ -42,16 +42,36 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   if (!host || !layout || !scene) return null;
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/static/features/maps/live_observation.css'; document.head.append(style);
   const panel = document.createElement('section'); panel.className = 'panel saved-live-observation'; panel.id = 'savedLiveObservation';
-  panel.innerHTML = `<div class="saved-live-heading"><strong>저장 3D 지도 · 실험 관측</strong><label><input id="savedLiveEnabled" type="checkbox"> 현재 점군·pose 읽기</label></div>
-    <p>이 패널은 별도의 수동 기준점 실험입니다. 지도 기준 초기 위치는 사용자 추정값이며 새 전역 후보·센서 연속 관측과 연결되지 않습니다. 본체 교정·시계·scan deskew는 미검증이며 운영 위치로 적용하지 않습니다.</p>
-    <label><input id="savedLiveSourceUnverified" type="checkbox"> 출처 미검증 관측 후보 허용 (주행 적용 없음)</label>
-    <label><input id="savedLiveContinuous" type="checkbox"> 동일 시작점 기반 연속 관측 · 정합 실패 시 신선한 odometry 유지</label>
-    <p id="savedLiveProvenanceNote" hidden>로컬 subscription과 ROS graph만 확인합니다. 메시지별 publisher·센서 외부변환·본체 자세는 검증되지 않습니다. 모드를 바꾸면 새 확인과 기준점 연결이 필요합니다.</p>
-    <div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div>
-    <label><input id="savedLiveConfirm" type="checkbox"> 정지 상태에서 입력한 지도 위치·방향을 근사 기준점으로 사용합니다. 원점 0은 자동으로 검증되지 않습니다.</label>
-    <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">현재 pose를 후보 기준점에 연결</button><button id="savedLiveClear" type="button">기준점 해제</button><button id="savedLiveCenter" type="button">후보 중심</button><button id="savedLiveExport" type="button">관측 JSON</button></div>
-    <label><input id="savedLiveRegistration" type="checkbox"> 저장 지도에 scan-to-map 반복 계산 (최대 1 Hz · 운영 적용 없음)</label>
-    <strong id="savedLiveState" role="status">OFF</strong><small id="savedLiveMap"></small><p id="savedLiveAvailability" hidden></p><span id="savedLiveMetrics"></span><small id="savedLiveSource"></small>`;
+  panel.innerHTML = `<div class="saved-live-heading"><strong>저장 지도 · 실험 관측</strong><label class="saved-live-toggle"><input id="savedLiveEnabled" type="checkbox"> 현재 점군·pose 읽기</label></div>
+    <div class="saved-live-overview">
+      <div class="saved-live-status"><strong id="savedLiveState" role="status">OFF</strong><span class="saved-live-qualification">미검증 추정 · 운영 위치 적용 없음</span></div>
+      <p>수동 기준점 실험이며 새 전역 후보·센서 연속 관측과 연결되지 않습니다.</p>
+      <span id="savedLiveMetrics"></span>
+      <p id="savedLiveAvailability" hidden></p>
+      <p id="savedLiveProvenanceNote" hidden>로컬 subscription과 ROS graph만 확인합니다. 메시지별 publisher·센서 외부변환·본체 자세는 검증되지 않습니다. 모드를 바꾸면 새 확인과 기준점 연결이 필요합니다.</p>
+    </div>
+    <div class="saved-live-actions saved-live-result-actions"><button id="savedLiveCenter" type="button">후보 중심</button><button id="savedLiveExport" type="button">관측 JSON</button></div>
+    <details class="saved-live-details" id="savedLiveAnchorDetails">
+      <summary><span>기준점 설정</span><small>지도 위치·방향</small></summary>
+      <div class="saved-live-details-body">
+        <p>지도 초기 위치는 사용자 추정값입니다. 본체 교정·시계·scan deskew는 미검증입니다.</p>
+        <div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div>
+        <label><input id="savedLiveConfirm" type="checkbox"> 정지 상태에서 입력한 위치·방향을 근사 기준점으로 사용합니다. 원점 0은 자동으로 검증되지 않습니다.</label>
+        <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">현재 pose를 기준점에 연결</button><button id="savedLiveClear" type="button">기준점 해제</button></div>
+      </div>
+    </details>
+    <details class="saved-live-details" id="savedLiveAdvancedDetails">
+      <summary><span>고급 관측 옵션</span><small>정합·연속 관측·출처 허용</small></summary>
+      <div class="saved-live-details-body saved-live-options">
+        <label><input id="savedLiveRegistration" type="checkbox"><span>지도 정합 반복 계산<small>scan-to-map · 최대 1 Hz · 운영 적용 없음</small></span></label>
+        <label><input id="savedLiveContinuous" type="checkbox"><span>동일 시작점 기반 연속 관측<small>정합 실패 시 신선한 odometry 유지</small></span></label>
+        <label><input id="savedLiveSourceUnverified" type="checkbox"><span>출처 미검증 관측 후보 허용<small>로컬 subscription·ROS graph 기준 · 주행 적용 없음</small></span></label>
+      </div>
+    </details>
+    <details class="saved-live-details" id="savedLiveSourceDetails">
+      <summary><span>지도·수신 상세</span><small>원본 출처·시각·frame</small></summary>
+      <div class="saved-live-details-body"><small id="savedLiveMap"></small><small id="savedLiveSource"></small></div>
+    </details>`;
   // Keep the shared LiDAR/VSLAM preview and inspector row at its fixed size.
   layout.after(panel);
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();

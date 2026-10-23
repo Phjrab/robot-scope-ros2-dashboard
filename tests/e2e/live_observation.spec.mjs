@@ -75,6 +75,8 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     };
   });
   await page.locator('#savedLiveEnabled').check();
+  await page.locator('#savedLiveAnchorDetails > summary').click();
+  await page.locator('#savedLiveAdvancedDetails > summary').click();
   await page.locator('#savedLiveConfirm').check();
   if(identityUnavailable) await expect(page.locator('#savedLiveState')).toHaveText('SOURCE_IDENTITY_UNAVAILABLE');
   else {
@@ -84,6 +86,31 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
   }
   return {state,writes,errors,backend};
 }
+
+test('observation disclosures keep current result and qualifications visible on narrow screens',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const {state,errors}=await fixture(page);
+  const panel=page.locator('#savedLiveObservation');
+  await page.locator('#savedLiveAnchorDetails > summary').click();
+  await page.locator('#savedLiveAdvancedDetails > summary').click();
+  await expect(page.locator('#savedLive_x')).toBeHidden();
+  await expect(page.locator('#savedLiveRegistration')).toBeHidden();
+  await expect(page.locator('#savedLiveSource')).toBeHidden();
+  await expect(page.locator('#savedLiveState')).toBeVisible();
+  await expect(page.locator('#savedLiveMetrics')).toBeVisible();
+  await expect(panel.getByText('미검증 추정 · 운영 위치 적용 없음',{exact:true})).toBeVisible();
+  expect(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  const sourceSummary=page.locator('#savedLiveSourceDetails > summary');
+  await sourceSummary.focus(); await sourceSummary.press('Enter');
+  await expect(page.locator('#savedLiveSource')).toBeVisible();
+  expect(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  await sourceSummary.press('Enter');
+  state.streaming=false;
+  await expect(page.locator('#savedLiveState')).toHaveText('STALE');
+  await expect(page.locator('#savedLiveState')).toBeVisible();
+  await expect(page.locator('#savedLiveSource')).toBeHidden();
+  expect(errors).toEqual([]);
+});
 
 test('3D observation keeps saved reference, separates scan estimate, and hides stale/rejected geometry',async({page},testInfo)=>{
   const {state,writes,errors}=await fixture(page);
