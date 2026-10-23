@@ -127,3 +127,25 @@ class RadiusGridVectorizedTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReferenceIndexTests(unittest.TestCase):
+    def test_exact_index_matches_direct_search_at_boundaries_and_ties(self):
+        from robot_dashboard.relocalization.observation_alignment import ReferenceIndex
+        rng = np.random.default_rng(19)
+        reference = np.vstack((rng.uniform(-3, 3, (5000, 3)), [[10.75, 0, 0], [20.125, 0, 0], [19.875, 0, 0], [40.45, .6, 0], [50.7500000000001, 0, 0]]))
+        query = np.vstack((rng.uniform(-4, 4, (140, 3)), [[10, 0, 0], [20, 0, 0], [30, 0, 0], [40, 0, 0], [50, 0, 0]]))
+        actual = ReferenceIndex(reference).nearest(query)
+        expected = direct_nearest(reference, query)
+        np.testing.assert_array_equal(actual[0], expected[0])
+        np.testing.assert_allclose(actual[1], expected[1], atol=1e-15, rtol=1e-15)
+
+    def test_exact_index_preserves_deadline(self):
+        import time
+        from robot_dashboard.relocalization.observation_alignment import ReferenceIndex
+        points = np.zeros((1000, 3))
+        with self.assertRaisesRegex(ObservationAlignmentError, 'COMPUTE_BUDGET_EXCEEDED'):
+            ReferenceIndex(points, deadline=time.monotonic() - 1)
+        index = ReferenceIndex(points)
+        with self.assertRaisesRegex(ObservationAlignmentError, 'COMPUTE_BUDGET_EXCEEDED'):
+            index.nearest(points[:200], deadline=time.monotonic() - 1)

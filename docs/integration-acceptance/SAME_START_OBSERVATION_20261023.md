@@ -137,3 +137,31 @@ backups and guarded restore. Its additional dashboard restart requires separate
 approval because the first approval explicitly allowed one restart, already
 performed. Until that approval and a successful real rerun, D (accepted regional
 registration) and F (full stationary acceptance) remain incomplete.
+
+The same follow-up aligner also uses `scipy.spatial.cKDTree` when SciPy is
+already installed, with the existing RadiusGrid as the no-SciPy fallback. No
+dependency was installed/upgraded on either machine. Search is exact (`eps=0`,
+one worker), preserves the complete reference, recomputes squared distances,
+resolves equal-distance ties by original point ID, and enforces the original
+0.75 m gate after boundary over-fetching. Queries are checked against the same
+deadline in 64-point batches. All solver/policy/source gates remain unchanged.
+
+Eight search regression tests passed against the robot's installed SciPy,
+including ties, radius boundaries and deadlines. On the same preserved real
+cloud, the robot's isolated native-index run completed in 147.802 ms, 32
+iterations, overlap 0.9977011494, RMSE 0.1640478345 m. This agrees with the
+RadiusGrid diagnostic within floating-point precision and **remains rejected**.
+A 508-point search against the pinned map took 3.071 ms versus 125.489 ms for
+RadiusGrid in the same isolated process. This does not establish a successful
+live registration or dashboard latency under load.
+
+A real screen capture shows the selected 41,073-point map and the sensor axis
+label `FAST-LIO IMU · BODY UNVERIFIED` after approximate reanchoring. The old
+installed frontend can still lose the anchor on stale exact-pair browser history;
+the prepared independent-display fix has not yet been applied. This screenshot
+is evidence of same-start odometry display, not an accepted map correction.
+
+Final acceleration validation: full Python 2,417 tests passed (3 skipped),
+related JavaScript 26 passed, and the robot-native search tests above passed.
+The prepared follow-up remains four deployed files and one additional dashboard
+restart; the estimator's original one-hour lifetime is unchanged.

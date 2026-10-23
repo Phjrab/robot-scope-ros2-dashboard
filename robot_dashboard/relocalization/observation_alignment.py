@@ -91,6 +91,58 @@ class RadiusGrid:
         return ids, distances
 
 
+class ReferenceIndex:
+    """Use an already installed native index, retaining exact radius/tie semantics.
+
+    SciPy is optional: environments without it use the existing RadiusGrid.
+    Batches and post-call checks preserve the same wall-clock deadline. The
+    native index releases the GIL during searches in the dashboard process.
+    """
+    def __init__(self, points: np.ndarray, *, deadline: float = float("inf")) -> None:
+        self.points = points
+        try:
+            from scipy.spatial import cKDTree
+        except ImportError:
+            self.tree = None
+            self.fallback = RadiusGrid(points, deadline=deadline)
+        else:
+            self.tree = cKDTree(points)
+        if time.monotonic() > deadline:
+            raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+
+    def nearest(self, query: np.ndarray, *, deadline: float = float("inf")) -> tuple[np.ndarray, np.ndarray]:
+        if self.tree is None:
+            return self.fallback.nearest(query, deadline=deadline)
+        ids = np.zeros(len(query), dtype=np.int64)
+        squared = np.full(len(query), np.inf)
+        # Slightly over-fetch at the boundary, then apply the original squared gate.
+        radius = MAX_CORRESPONDENCE_M + 1e-12
+        for start in range(0, len(query), 64):
+            if time.monotonic() > deadline:
+                raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+            rows = query[start:start + 64]
+            distance, indices = self.tree.query(rows, k=2, eps=0, distance_upper_bound=radius, workers=1)
+            valid_rows = np.flatnonzero(indices[:, 0] < len(self.points))
+            winners = indices[valid_rows, 0].copy()
+            # A tree may return any duplicate/equidistant point. Inspect
+            # ties using original coordinates, retaining lowest input ID.
+            ties = np.flatnonzero(distance[valid_rows, 1] - distance[valid_rows, 0] <= 1e-12)
+            for slot in ties:
+                local = valid_rows[slot]
+                candidates = np.sort(self.tree.query_ball_point(rows[local], distance[local, 0] + 1e-12))
+                diff = self.points[candidates] - rows[local]
+                costs = np.einsum("ij,ij->i", diff, diff)
+                winners[slot] = candidates[np.argmin(costs)]
+            diff = self.points[winners] - rows[valid_rows]
+            costs = np.einsum("ij,ij->i", diff, diff)
+            inside = costs <= MAX_CORRESPONDENCE_M ** 2
+            ids[start + valid_rows[inside]] = winners[inside]
+            squared[start + valid_rows[inside]] = costs[inside]
+            if time.monotonic() > deadline:
+                raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+        return ids, squared
+
+
 def observed_key(value: dict[str, Any], *, provenance_mode: str = "native_publisher",
                  now: float | None = None) -> tuple[str, str]:
     observation = value.get("observation") or {}
@@ -190,7 +242,7 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
 class ObservationAligner:
     def __init__(self) -> None:
         self.lock = threading.Lock()
-        self.cache: tuple[tuple[str, str], np.ndarray, RadiusGrid | None, str] | None = None
+        self.cache: tuple[tuple[str, str], np.ndarray, ReferenceIndex | None, str] | None = None
         self.last_started = float("-inf")
 
     def estimate(self, catalog: Any, agent: Any, body: dict[str, Any]) -> dict[str, Any]:
@@ -245,7 +297,7 @@ class ObservationAligner:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
             if grid is None:
                 with measure("reference_grid"):
-                    grid = RadiusGrid(reference, deadline=deadline)
+                    grid = ReferenceIndex(reference, deadline=deadline)
                 self.cache = ((identifier, revision), reference, grid, target_frame)
             def nearest(query, _):
                 with measure("nearest"):
