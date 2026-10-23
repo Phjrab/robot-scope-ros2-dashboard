@@ -13,6 +13,27 @@ STOP 버튼을 덮는 문제를 재현하고 `mission-control.css`의 설정 화
 readback 대상은 **16파일**이다. 새 CSS 후보와 화면 증거는 private
 `same-start-20261023/offline-ui-recheck/`에 별도 보존한다. 장비 적용은 미실시다.
 
+**후속 UI 통일성 점검:** 12개 화면을 390/1440px와 dark/light 조합으로 비교했다.
+자원 화면을 대시보드에 넣을 때 중복되던 h1·main을 제거하고, 단독 자원 화면의
+제목은 유지했다. 일반 입력창과 미션 버튼은 공통 15px 글자·44px 높이를 사용하며,
+자원 패널 제목은 18px/600, 센서 관측 설명은 15px/1.55로 맞췄다. 미션과 자원
+화면의 포커스는 테마 accent를 사용하고 센서 진단 펼침에도 같은 표시를 적용했다.
+지도·영상의 데이터 색상과 관측/제어 동작은 변경하지 않았다.
+
+이번 변경은 static **5파일**이다. 기존 후보 `dashboard-polish.css`,
+`features/maps/sensor_tracking.css`를 갱신하고,
+`features/mission_route/workspace.css`, `features/resources/dashboard_page.js`,
+`features/resources/view.css`를 추가했다. 따라서 현재 통합 UI 후보는
+**23파일**, 실제 설치 바이트 readback 대상은 **19파일**이다. 이는 배포 목록 확정이
+아니며 추가 3파일의 설치 전 SHA도 미확인이다. 후보 소스·해시·전후 화면과 검증
+기록은 private `same-start-20261023/offline-ui-consistency/`에 보존한다.
+이번 점검도 장비 접속·배포를 수행하지 않았다. 아래 19파일 표는 최초 비교 기록이다.
+통일성 점검 후 전체 브라우저 186개, 별도 테마 3개, JS 643개, JS 문법 100모듈이
+통과했다. 48개 화면 조합에서 가로 넘침·page error는 없었고, 보이는 글자 대비의
+최솟값은 dark 6.33:1/light 6.12:1이었다. Python 최초 전체 실행에서 기존 정합
+벤치마크 1개가 실패했으나 코드·수치 기준 변경 없이 관련 16개 분리 실행과
+전체 2,636개 재실행(4 skipped)이 통과했다. 최초 실패 로그도 private에 보존한다.
+
 ## 선택적 입력 기록과 재현
 
 기존 `POST /api/v1/observations/map-alignment` 요청에 `capture_inputs: true`를

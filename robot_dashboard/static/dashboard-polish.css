@@ -63,8 +63,9 @@ body { font-size: var(--type-body); line-height: 1.55; }
 .page-view:not(.cockpit-page) :is(select, textarea,
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"])) {
   min-height: 40px;
-  font-size: .875rem;
+  font-size: var(--type-control);
   line-height: 1.5;
+  border-radius: var(--radius);
 }
 /* Native selects ignore line-height when computing their intrinsic height.
    Give single-line fields one border-box height and vertical inset. */
@@ -107,9 +108,9 @@ input::placeholder, textarea::placeholder { color: #8da49b; opacity: 1; }
 .route-planner-safety-banner p { color: #b7aed6; font-size: .875rem; line-height: 1.6; }
 #dashboardMissionHost { padding: 20px; }
 #dashboardMissionHost .cockpit-mission-panel { gap: 16px; font-size: 1rem; }
-#dashboardMissionHost :is(button, .cockpit-mission-order, .cockpit-mission-route) { font-size: .875rem; line-height: 1.55; }
+#dashboardMissionHost :is(button, .cockpit-mission-order, .cockpit-mission-route) { font-size: var(--type-control); line-height: var(--leading-body); }
 #dashboardMissionHost .cockpit-mission-actions { gap: 10px; }
-#dashboardMissionHost button { min-height: 40px; padding: 8px 12px; }
+#dashboardMissionHost button { min-height: 44px; padding: 8px 12px; }
 #dashboardMissionHost .cockpit-mission-header { flex-wrap: wrap; }
 #dashboardMissionHost .cockpit-mission-header span,
 #dashboardMissionHost .cockpit-mission-metrics span { color: var(--muted); font-size: .875rem; }

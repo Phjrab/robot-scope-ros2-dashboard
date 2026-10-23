@@ -16,7 +16,15 @@ async function sync() {
     const content = source.querySelector('main.resource-content');
     const badge = source.querySelector('#connectionState');
     if (!content || !badge) throw new Error('자원 화면을 찾을 수 없습니다.');
-    host.replaceChildren(document.importNode(badge, true), document.importNode(content, true));
+    // The dashboard already owns the page heading and main landmark. Keep the
+    // standalone monitor's title there, and embed only its content here.
+    const embedded = document.createElement('div');
+    embedded.className = content.className;
+    embedded.append(...Array.from(content.childNodes, (node) => document.importNode(node, true)));
+    embedded.querySelector('.intro h1')?.remove();
+    embedded.querySelector('.intro > div > .eyebrow')?.remove();
+    embedded.querySelector('.intro > div').prepend(document.importNode(badge, true));
+    host.replaceChildren(embedded);
     // Route links stay within the existing dashboard and its safety lifecycle.
     host.querySelectorAll('a[href="/#topics"]').forEach((link) => { link.href = '#topics'; });
     monitor = createResourceMonitor(host, { active });
