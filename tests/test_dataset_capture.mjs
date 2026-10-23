@@ -67,7 +67,7 @@ test('Sensors exposes a server-side dataset capture panel and compact global sta
   assert.match(indexSource, /value="both"/);
   assert.match(indexSource, /id="datasetCaptureHz"[^>]+min="0\.2"[^>]+max="5"/);
   assert.match(indexSource, /브라우저를 닫거나 Controls 화면으로 이동해도 저장은 계속됩니다/);
-  assert.match(indexSource, /이미지별 분류 라벨·주석 기능을 제공하지 않습니다/);
+  assert.match(indexSource, /이미지별 분류 라벨과 주석은 지원하지 않습니다/);
   assert.match(stylesSource, /\.dataset-capture-panel, \.dataset-library-panel, \.model-registry-panel\s*\{\s*grid-column:1\/-1/);
 });
 
@@ -103,7 +103,7 @@ test('finalized export and model state use fixed read-only lifecycle contracts',
   assert.equal(registry.models[0].isActive, true);
   assert.equal(registry.models[1].isPrevious, true);
   assert.match(indexSource, /완료된 세션만 내보낼 수 있습니다/);
-  assert.match(indexSource, /브라우저 새로고침이나 네트워크 재연결로 모델을 활성화하지 않습니다/);
+  assert.match(indexSource, /새로고침·재연결로 활성화되지 않습니다/);
   assert.doesNotMatch(datasetSource, /\/api\/v1\/models\/(?:activate|rollback)/);
 });
 

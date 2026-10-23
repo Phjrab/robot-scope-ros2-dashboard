@@ -455,7 +455,7 @@ test('center-pixel readiness does not imply 5x5 validity; the preview shows hole
   assert.match(h.el('point-quality').textContent, /중심 픽셀.*5×5/);
   assert.match(h.el('diagnostics-body').textContent, /1\/25.*4%.*주변 유효 깊이 부족/);
   assert.match(h.el('diagnostics-spread').textContent, /너비.*높이/);
-  assert.match(html, /12–20개.*정확히 6개/);
+  assert.match(html, /12–20개[\s\S]*?정확히 6개/);
 });
 
 test('quality failure retains every point diagnostic without a result or export, including on sample switch', async () => {

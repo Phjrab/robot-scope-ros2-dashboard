@@ -104,3 +104,44 @@ test('changing maps before a start response cancels late work and discards its r
   await expect(page.locator('#savedGlobalRecord')).toHaveText('');
   expect(writes.map(w => w.path)).toEqual([root, `${root}/${baseJob.job_id}/cancel`]); expect(errors).toEqual([]);
 });
+
+test('capture details stay optional while historical limits and rejection remain visible', async ({ page }) => {
+  const { state, writes, errors } = await fixture(page);
+  const panel = page.locator('#savedGlobalObservation');
+  const captureDetails = panel.locator('.saved-global-capture-details');
+  await expect(panel.getByRole('heading', { name: '저장 3D 지도 · 전역 관측' })).toBeVisible();
+  await expect(panel.getByText('과거 관측 · 운영 적용 없음', { exact: true })).toBeVisible();
+  await expect(panel.locator('.saved-global-intro')).toContainText('본체 변환·추적·정밀 정확도는 미검증');
+  await page.locator('#savedGlobalStart').click();
+  await expect(page.locator('#savedGlobalState')).toContainText('RUNNING');
+  await expect(page.locator('#savedGlobalCapture')).not.toBeVisible();
+  await captureDetails.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#savedGlobalCapture')).toBeVisible();
+  state.completed = true;
+  await expect(page.locator('#savedGlobalCapture')).toContainText('8.300 s');
+  await expect(captureDetails).toHaveAttribute('open', '');
+  await captureDetails.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#savedGlobalCapture')).not.toBeVisible();
+  await expect(page.locator('#savedGlobalSummary')).toBeVisible();
+  await expect(page.locator('#savedGlobalSummary')).toContainText('REFINEMENT_NOT_STATIONARY');
+  await expect(panel.locator('.saved-global-safety-note')).toBeVisible();
+  await expect(panel.locator('.saved-global-safety-note')).toContainText('현재 위치·본체 pose·추적으로 적용하지 않습니다');
+  for (const [theme, width] of [['dark', 1440], ['light', 390]]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(value => document.documentElement.dataset.theme = value, theme);
+    const geometry = await panel.evaluate(element => ({
+      width: element.clientWidth, scroll: element.scrollWidth,
+      noteColor: getComputedStyle(element.querySelector('.saved-global-safety-note')).color,
+      muted: getComputedStyle(element).getPropertyValue('--muted').trim(),
+    }));
+    expect(geometry.scroll).toBeLessThanOrEqual(geometry.width + 1);
+    const mutedColor = await page.evaluate(color => {
+      const probe = document.createElement('span'); probe.style.color = color; document.body.append(probe);
+      const rendered = getComputedStyle(probe).color; probe.remove(); return rendered;
+    }, geometry.muted);
+    expect(geometry.noteColor).toBe(mutedColor);
+  }
+  expect(writes.map(w => w.path)).toEqual([root]); expect(errors).toEqual([]);
+});

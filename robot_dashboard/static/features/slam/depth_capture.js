@@ -72,7 +72,7 @@ export function mountDepthCapture(doc = document, options = {}) {
     node.addEventListener(event, fn); listeners.push(() => node.removeEventListener(event, fn));
   };
   const panel = el('section', { id: 'depthCaptureConsole', class: 'panel slam-console', 'aria-label': '정지 Depth 캡처' });
-  const status = el('strong', { id: 'depthCaptureState', text: 'CHECKING', role: 'status' });
+  const status = el('strong', { id: 'depthCaptureState', class: 'panel-state', text: 'CHECKING', role: 'status' });
   const message = el('p', { id: 'depthCaptureMessage', class: 'slam-muted', role: 'status', 'aria-live': 'polite' });
   const checks = {};
   const labels = { robot_seated: '로봇이 앉아 있습니다.', robot_stationary: '로봇이 정지해 있습니다.',
@@ -92,13 +92,17 @@ export function mountDepthCapture(doc = document, options = {}) {
   const image = el('img', { id: 'depthCaptureImage', alt: '저장된 무손실 IR 원본 영상', hidden: true,
     style: 'display:block;max-width:100%;height:auto;object-fit:contain' });
   const downloads = el('div', { class: 'slam-control-row' });
-  panel.append(el('div', { class: 'slam-heading' }, el('h2', { text: '정지 Depth 캡처' }), status),
-    el('p', { class: 'slam-muted', text: '별도 카메라 모드입니다. 먼저 실행 중인 VSLAM을 직접 중지하세요. VSLAM의 중지·지도 폐기·재시작은 자동 실행하지 않습니다.' }),
-    el('p', { class: 'slam-muted', text: '매 시작·저장 직전에 세 조건을 다시 확인하세요. 앉은 본체가 수평이라고 가정하지 않으며, 본체 자세는 미측정으로 기록합니다. TF·SLAM 보정에 자동 적용하지 않습니다.' }),
-    confirmations, el('div', { class: 'slam-control-row' }, start, capture, stop, refresh), message,
-    el('h3', { text: '저장된 샘플' }), list, detail, downloads, image);
-  const slamPanel = doc.getElementById('slamConsole');
-  if (slamPanel?.parentNode === host) slamPanel.after(panel); else host.prepend(panel);
+  panel.append(el('div', { class: 'slam-heading panel-header compact' },
+    el('div', {}, el('div', { class: 'eyebrow', text: 'DEPTH CAPTURE' }), el('h2', { text: '정지 Depth 캡처' })), status),
+    el('div', { class: 'depth-capture-body' },
+      el('section', { class: 'depth-capture-controls', 'aria-label': 'Depth 캡처 설정' },
+        el('p', { class: 'slam-muted', text: '실행 중인 VSLAM을 먼저 직접 중지하세요. VSLAM 중지·지도 폐기·재시작은 자동으로 실행하지 않습니다.' }),
+        el('p', { class: 'slam-muted', text: '매 시작·저장 전 세 조건을 확인하세요. 본체 자세는 미측정이며 수평을 가정하지 않습니다. TF·SLAM 보정에 자동 적용하지 않습니다.' }),
+        confirmations, el('div', { class: 'slam-control-row' }, start, capture, stop, refresh), message),
+      el('section', { class: 'depth-capture-library', 'aria-label': '저장된 Depth 샘플' },
+        el('h3', { text: '저장된 샘플' }), list, detail, downloads, image)));
+  // Keep the main map and its session controls first in visual and keyboard order.
+  host.append(panel);
 
   const visible = () => !state.disposed && !doc.hidden && state.activePage === 'mapping';
   const confirmation = () => Object.fromEntries(Object.entries(checks).map(([key, node]) => [key, node.checked === true]));

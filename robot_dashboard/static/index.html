@@ -309,7 +309,7 @@
         <section class="saved-tools-grid">
           <article class="panel map-conversion-panel">
             <div class="panel-header compact">
-              <div><div class="eyebrow">PCD2PGM · PDF 09</div><h2>3D 점군 → 2D 지도</h2></div>
+              <div><div class="eyebrow">MAP CONVERSION</div><h2>3D 점군 → 2D 지도</h2></div>
               <div class="panel-state waiting" id="mapConvertState"><span></span>IDLE</div>
             </div>
             <div class="map-conversion-body">
@@ -320,9 +320,9 @@
                 <label><span>thre_z_max (m)</span><input id="mapConvertZMax" type="number" min="-20" max="20" step="0.05" value="0.8"></label>
                 <label><span>resolution (m)</span><input id="mapConvertResolution" type="number" min="0.01" max="1" step="0.01" value="0.05"></label>
               </div>
-              <p class="map-conversion-help">z=0은 XT16 LiDAR 높이 기준입니다. min은 아래쪽, max는 위쪽 슬라이스 경계이며 기본값 -0.2~0.8 m에서 결과를 보며 조정하세요.</p>
+              <p class="map-conversion-help">z=0은 XT16 LiDAR 높이 기준입니다. 기본 범위 −0.2~0.8 m에서 결과를 보며 조정하세요.</p>
               <details class="map-conversion-advanced">
-                <summary>Advanced · 자동 점 노이즈 필터 (2D 투영)</summary>
+                <summary>자동 점 노이즈 필터 (2D 투영)</summary>
                 <div>
                   <label><span>radius (m)</span><input id="mapConvertRadius" type="number" min="0.01" max="2" step="0.01" value="0.1"></label>
                   <label><span>min neighbors</span><input id="mapConvertNeighbors" type="number" min="1" max="1000" step="1" value="10"></label>
@@ -341,7 +341,7 @@
 
           <article class="panel map-editor-panel">
             <div class="panel-header compact">
-              <div><div class="eyebrow">NON-DESTRUCTIVE CLEANUP</div><h2>2D 지도 잡음 편집</h2></div>
+              <div><div class="eyebrow">MAP EDITOR</div><h2>2D 지도 잡음 편집</h2></div>
               <div class="panel-state waiting" id="mapEditorState"><span></span>NO MAP</div>
             </div>
             <div id="mapEditor2D">
@@ -379,7 +379,7 @@
           </article>
           <article class="panel map-crop-panel">
             <div class="panel-header compact">
-              <div><div class="eyebrow">NON-DESTRUCTIVE BOUNDARY</div><h2>2D 경기장 지도 크롭</h2></div>
+              <div><div class="eyebrow">MAP CROP</div><h2>2D 경기장 지도 크롭</h2></div>
               <div class="panel-state waiting" id="mapCropState"><span></span>NO MAP</div>
             </div>
             <div class="map-crop-toolbar">
@@ -485,7 +485,7 @@
                   <button id="datasetCaptureStop" class="dataset-stop-button" type="button" disabled>STOP &amp; FINALIZE</button>
                 </div>
                 <p class="dataset-persistence-note"><strong>SERVER-SIDE</strong> 브라우저를 닫거나 Controls 화면으로 이동해도 저장은 계속됩니다. 중지 버튼으로 세션을 안전하게 마무리하세요.</p>
-                <p class="dataset-label-note">현재 버전은 이미지별 분류 라벨·주석 기능을 제공하지 않습니다. 선택 입력은 세션을 구분하는 표시용 이름이며 이미지 파일명이나 저장 경로를 바꾸지 않습니다.</p>
+                <details class="ui-disclosure dataset-help"><summary>세션 이름·라벨 안내</summary><p>세션 이름은 구분용입니다. 이미지 파일명·저장 경로는 바뀌지 않으며, 이미지별 분류 라벨과 주석은 지원하지 않습니다.</p></details>
               </section>
               <section class="dataset-capture-readout" aria-label="데이터셋 캡처 상태">
                 <div class="dataset-capture-summary">
@@ -527,7 +527,7 @@
                   <button id="datasetPageOlder" type="button" disabled>OLDER</button>
                 </nav>
                 <div class="dataset-sample-gallery" id="datasetSampleGallery"><div class="dataset-library-empty">왼쪽에서 세션을 선택하면 저장 이미지를 웹에서 확인할 수 있습니다.</div></div>
-                <p class="dataset-browser-note">한 페이지에 최대 24개 샘플을 보여 주며 NEWER·OLDER로 세션 전체를 탐색합니다. Safari에서 원격 Jetson의 Finder·파일 앱 폴더를 직접 여는 기능은 제공하지 않습니다.</p>
+                <details class="ui-disclosure dataset-browser-help"><summary>저장 파일 탐색 안내</summary><p>한 페이지에 최대 24개 샘플을 표시합니다. NEWER·OLDER로 이동하거나 완료된 세션을 ZIP으로 내려받으세요. 원격 Jetson 폴더를 Finder·파일 앱에서 직접 열 수는 없습니다.</p></details>
               </section>
             </div>
           </article>
@@ -537,7 +537,7 @@
               <span class="muted" id="modelRegistryMode">LOCAL OPERATOR ONLY</span>
             </div>
             <div class="model-registry-summary">
-              <p>모델 업로드, target engine 검증, activation과 rollback은 서로 분리됩니다. 이 화면은 상태만 표시하며 브라우저 새로고침이나 네트워크 재연결로 모델을 활성화하지 않습니다.</p>
+              <p>모델 상태를 조회합니다. 업로드·검증·활성화·롤백은 별도 작업이며, 새로고침·재연결로 활성화되지 않습니다.</p>
               <button id="modelRegistryRefresh" type="button">REFRESH MODELS</button>
             </div>
             <div class="model-registry-list" id="modelRegistryList"><div class="dataset-library-empty">모델 registry 상태를 확인하고 있습니다.</div></div>
@@ -648,7 +648,8 @@
       <section class="page-view" data-page="missions" hidden>
         <article class="panel mission-dashboard-panel">
           <div class="panel-header"><h2>코스 미션</h2><a href="#navigation">지도·초기 위치 준비 → 주행</a></div>
-          <p class="mission-page-help">Navigation에서 지도 선택 → 장소 등록·SAVE ANNOTATIONS → 여기서 방문 지점과 순서 선택 → CREATE PINNED MISSION. 실제 START 전에는 같은 지도로 Nav2와 초기 위치를 준비하세요. 화면 이동·새로고침은 미션을 중지하지 않습니다. 중단은 PAUSE 또는 ABORT를 사용하세요.</p>
+          <p class="mission-page-help">화면 이동·새로고침은 미션을 중지하지 않습니다. 중단하려면 PAUSE 또는 ABORT를 사용하세요.</p>
+          <details class="ui-disclosure mission-setup-help"><summary>미션 준비 순서</summary><ol><li>주행 화면에서 지도를 선택하고 장소를 등록·저장합니다.</li><li>여기서 방문 지점과 순서를 선택해 미션을 생성합니다.</li><li>실행 전 같은 지도로 Nav2와 초기 위치를 준비합니다.</li></ol></details>
           <div id="dashboardMissionHost"></div>
         </article>
       </section>
@@ -715,7 +716,7 @@
             </div>
             <section class="map-annotation-panel" aria-labelledby="mapAnnotationHeading">
               <div class="map-annotation-header">
-                <div><div class="eyebrow">REVISION-PINNED MAP OPERATIONS</div><h3 id="mapAnnotationHeading">음식점·배달 장소 이름 지정</h3></div>
+                <div><div class="eyebrow">MAP PLACES</div><h3 id="mapAnnotationHeading">음식점·배달 장소 이름 지정</h3></div>
                 <div class="panel-state waiting" id="mapAnnotationState"><span></span>NO MAP</div>
               </div>
               <p class="map-annotation-note">주석은 원본 PGM/YAML과 분리해 저장됩니다. KEEP OUT·SLOW·WAIT 영역은 현재 표시·미션 선택용이며 Nav2 costmap을 자동 변경하지 않습니다.</p>
@@ -798,7 +799,7 @@
 
         <article class="panel navigation-parameters-panel">
           <div class="panel-header">
-            <div><div class="eyebrow">PDF 11 · TUNED PROFILE</div><h2>주행 설정값</h2></div>
+            <div><div class="eyebrow">NAVIGATION SETTINGS</div><h2>주행 설정값</h2></div>
             <div class="panel-state waiting" id="navigationParameterState"><span></span>LOADING</div>
           </div>
           <div class="navigation-parameter-toolbar">
@@ -876,7 +877,7 @@
               <div id="mount-calibration-status" class="panel-state waiting" role="status" aria-live="polite">IMPORT ONLY · 저장 샘플 / JSON</div>
             </div>
             <div class="settings-card-body">
-              <p class="calibration-intro">앉은 채 정지한 Go2에서 카메라 피치만 조절하고, 같은 전방 벽의 깊이 점으로 기준 촬영 대비 회전을 비교합니다. Mapping의 ‘정지 Depth 캡처’로 저장한 샘플 또는 JSON 파일을 가져오세요. 이 화면은 저장 데이터만 읽습니다. 기준 촬영의 0°는 몸체 기준 절대 0°가 아닙니다.</p>
+              <p class="calibration-intro">저장된 Depth 샘플로 기준 촬영 대비 카메라 피치를 비교합니다. 기준의 0°는 몸체 기준 절대 0°가 아니며, TF·SLAM에 적용되지 않습니다.</p>
     <div id="mount-calibration-notice" class="notice" role="status" aria-live="polite" hidden></div>
     <div class="calibration-workspace">
       <aside class="sample-panel calibration-card">
@@ -888,10 +889,10 @@
           <p id="mount-calibration-saved-status" class="section-copy" role="status" aria-live="polite">새로고침하면 서버의 보관 샘플을 조회합니다. 카메라는 실행하지 않습니다.</p>
           <div id="mount-calibration-saved-list" class="saved-list"></div>
           <button id="mount-calibration-saved-import" type="button" disabled>선택한 저장 샘플 가져오기</button>
-          <p class="section-copy">선택한 샘플로 아래 분석 목록을 교체합니다. 과거 촬영의 정지 조건과 같은 벽 여부는 직접 확인하세요.</p>
+          <p class="section-copy">가져오면 분석 목록이 교체됩니다. 촬영 당시의 정지·동일 벽 조건을 확인하세요.</p>
         </div>
         <div id="mount-calibration-sample-list" class="sample-list" aria-label="촬영 데이터"></div>
-        <div class="import-hint"><strong>가져오기 형식</strong><p>샘플, {samples}, 또는 내보낸 {input} JSON. 여러 파일을 함께 선택할 수 있습니다.<br>이전 목록을 교체합니다. 합계 최대 30 MB · 12개 촬영 · 640 × 480</p><details><summary>데이터 조건 보기</summary><p>보정된 깊이 영상의 실제 픽셀만 선택합니다. 깊이는 미터 단위 optical_z이며, 같은 깊이 스트림의 내부 파라미터가 필요합니다. RGB 사진과 깊이 픽셀의 일치는 가정하지 않습니다.</p></details></div>
+        <details class="ui-disclosure import-hint"><summary>JSON 형식·데이터 조건</summary><p>샘플, {samples}, 또는 내보낸 {input} JSON을 여러 파일로 가져올 수 있습니다. 기존 목록이 교체됩니다.</p><p>합계 최대 30 MB · 12개 촬영 · 640 × 480</p><p>깊이는 미터 단위 optical_z이며 같은 깊이 스트림의 내부 파라미터가 필요합니다. 보정된 깊이 영상의 실제 픽셀을 선택하며, RGB와 깊이 픽셀의 일치는 가정하지 않습니다.</p></details>
       </aside>
       <section class="depth-panel calibration-card" aria-labelledby="mount-calibration-depth-heading">
         <div class="depth-heading"><div><div class="eyebrow small">DEPTH POINT PICKER</div><h3 id="mount-calibration-depth-heading">전방 벽에서 점 선택</h3></div><span id="mount-calibration-source-badge" class="source-badge" hidden>가져오기 대기</span></div>
@@ -900,7 +901,8 @@
         <div id="mount-calibration-depth-legend" class="depth-legend"><span>가까움 <b id="mount-calibration-depth-min">—</b></span><div class="gradient-line"></div><span><b id="mount-calibration-depth-max">—</b> 멀음</span></div>
         <div class="point-toolbar"><div><strong id="mount-calibration-point-count">0</strong><span>개 선택</span><span class="muted"> / 최소 6개</span></div><div><button id="mount-calibration-undo-button" class="button subtle" type="button">↶ 되돌리기</button><button id="mount-calibration-clear-button" class="button subtle" type="button">모두 지우기</button></div></div>
         <p id="mount-calibration-point-quality" class="point-quality">한 직선에 모이지 않도록 가로·세로로 넓게 선택하세요.</p>
-        <p class="point-guidance">클릭 시에는 중심 1픽셀의 0.1–30 m 깊이만 확인합니다. 분석은 5×5 주변의 유효 깊이 수와 사분위 범위(IQR), 평면 잔차를 따로 검사합니다. 영상 가장자리의 주변 영역은 잘립니다. 같은 벽의 가로·세로에 12–20개 점을 넓게 선택하고 물체 경계·가림·반사면을 피하세요. 평면 인라이어는 주변 검사를 통과한 점의 65% 이상이면서 최소 6개가 필요합니다. 정확히 6개를 선택하면 6개 모두 주변 검사와 평면 인라이어 기준을 통과해야 합니다.</p>
+        <p class="point-guidance">같은 벽에 12–20개 점을 넓게 선택하세요. 물체 경계·가림·반사면은 피하세요.</p>
+        <details class="ui-disclosure calibration-quality-help"><summary>점 선택·품질 판정 기준</summary><p>클릭 시 중심 1픽셀의 0.1–30 m 깊이를 확인합니다. 분석 시에는 5×5 주변의 유효 깊이 수, 사분위 범위(IQR), 평면 잔차를 검사합니다. 영상 가장자리의 주변 영역은 잘립니다.</p><p>평면 인라이어는 주변 검사를 통과한 점의 65% 이상이면서 최소 6개가 필요합니다. 정확히 6개를 선택했다면 모두 주변 검사와 평면 인라이어 기준을 통과해야 합니다.</p></details>
         <section id="mount-calibration-diagnostics" class="point-diagnostics" hidden aria-labelledby="mount-calibration-diagnostics-heading">
           <h4 id="mount-calibration-diagnostics-heading">선택점 품질 진단</h4>
           <p id="mount-calibration-diagnostics-status" role="status"></p>
@@ -979,7 +981,7 @@
             </div>
             <div class="settings-card-body diagnostics-export-body">
               <div>
-                <p class="service-lifecycle-warning"><strong>읽기 전용 진단 자료입니다.</strong> 제어·매핑·Nav2·데이터셋 작업을 중지하지 않으며 key, credential, 전체 환경, raw argv와 절대 경로는 포함하지 않습니다.</p>
+                <p class="service-lifecycle-warning"><strong>읽기 전용 진단 ZIP.</strong> 실행 중인 로봇 작업은 계속됩니다.</p><details class="ui-disclosure"><summary>진단 자료에 포함되지 않는 정보</summary><p>인증 키·자격 증명, 전체 환경 변수, 원본 실행 인자, 절대 경로는 포함하지 않습니다.</p></details>
                 <p id="diagnosticsExportMessage" class="service-lifecycle-message" role="status" aria-live="polite">로봇 작업을 중지하지 않고 redacted 진단 ZIP을 생성합니다.</p>
               </div>
               <button id="diagnosticsExportButton" class="service-restart-button" type="button">EXPORT DIAGNOSTICS ZIP</button>
