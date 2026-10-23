@@ -1,5 +1,9 @@
 # Latest follow-up — 2026-10-23 passive source capture preserved before power-off
 
+Repository integration update: see [MAIN_INTEGRATION_20261023.md](MAIN_INTEGRATION_20261023.md)
+for the later branch/UI merge, validation and branch cleanup. The records below
+remain historical device/analysis evidence; the Git integration does not deploy to the robot.
+
 After explicit additional user authorization to preserve measurements before01:00KST,
 one passive10s subscriber recorded existing LiDAR inputs at00:39:26–37KST. No sensor,
 service, camera or bridge was started/restarted; no control/TF publish or registration.

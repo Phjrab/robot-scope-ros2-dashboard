@@ -1,5 +1,9 @@
 # Robot Scope 인계 갱신 — 2026-10-23
 
+**최신 저장소 통합:** 열린 브랜치와 최근 UI 병합·검사·정리 내역은
+[MAIN_INTEGRATION_20261023.md](MAIN_INTEGRATION_20261023.md)를 따른다.
+아래 내용은 각 시점의 장비/분석 기록이며 이번 Git 통합은 장비 배포가 아니다.
+
 **전원 종료 전 추가 승인 수집 완료:** 00:39:26–37 KST 기존 LiDAR 입력만10초
 passive 구독했다. raw64,000점×3/converted16,000점×3의 원본CDR·전체payload·XYZ와
 선택IMU/odom/lowstate를 맥북에 보존했다.55파일19.3MB의 원격/로컬SHA일치,

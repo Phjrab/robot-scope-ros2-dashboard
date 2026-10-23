@@ -14,7 +14,6 @@ from pathlib import Path
 import selectors
 import signal
 import subprocess
-import tempfile
 import threading
 import time
 from typing import Any
