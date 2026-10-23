@@ -6,6 +6,13 @@
 실제 정지/이동 관측 결과는 [SAME_START_OBSERVATION_20261023.md](SAME_START_OBSERVATION_20261023.md),
 이전 최소 수정은 [OFFLINE_MOTION_FOLLOWUP_20261023.md](OFFLINE_MOTION_FOLLOWUP_20261023.md)를 따른다.
 
+**후속 UI 재점검:** 720×450 화면에서 설정의 제어 상세를 펼치면 상단 바가
+STOP 버튼을 덮는 문제를 재현하고 `mission-control.css`의 설정 화면 겹침
+순서를 수정했다. 명령·권한 동작은 변경하지 않았다. 아래 19파일 후보는 그전
+비교 기록이며, 이 CSS를 포함한 통합 UI 후보는 **20파일**, 실제 설치 바이트
+readback 대상은 **16파일**이다. 새 CSS 후보와 화면 증거는 private
+`same-start-20261023/offline-ui-recheck/`에 별도 보존한다. 장비 적용은 미실시다.
+
 ## 선택적 입력 기록과 재현
 
 기존 `POST /api/v1/observations/map-alignment` 요청에 `capture_inputs: true`를

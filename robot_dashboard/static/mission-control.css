@@ -38,6 +38,9 @@ html[data-navigation-collapsed="true"] .sidebar { display: none; }
 .sidebar .read-only-note { display: none; }
 .workspace { padding: 16px 20px 60px; }
 html[data-active-page="settings"] .workspace { padding-bottom: 260px; }
+/* The fixed control HUD must not be trapped below the topbar by .shell's
+   stacking context when its details expand in a short viewport. */
+html[data-active-page="settings"] .shell { z-index: auto; }
 .diagnostics-export-body { display: flex; flex-direction: column; align-items: flex-start; }
 .page-heading { gap: 12px; align-items: center; margin: 0 0 12px; min-height: 52px; }
 .page-heading h1 { margin: 0; line-height: 1.2; }

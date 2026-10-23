@@ -1242,7 +1242,7 @@ test('active manual lease auto-locks Layout Edit and cancels an in-flight pointe
   await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeEnabled();
 });
 
-test('Settings control status clears stale cached values and keeps STOP usable on a narrow viewport', async ({ page }) => {
+test('Settings control status clears stale cached values and keeps STOP usable on narrow and short viewports', async ({ page }, testInfo) => {
   const backend = await openDashboard(page, {}, 'settings');
   const hud = page.locator('#cockpitSafetyHud');
   await expect(hud.locator('[data-safety-field="go2-link"]')).toHaveText('LIVE');
@@ -1254,20 +1254,31 @@ test('Settings control status clears stale cached values and keeps STOP usable o
   await expect(hud.locator('[data-safety-field="armed"]')).toHaveText('UNKNOWN');
   await expect(hud.locator('[data-safety-field="battery"]')).toHaveText('WAITING');
 
-  await page.setViewportSize({ width: 520, height: 720 });
-  await expect(hud).toBeVisible();
-  await expect(hud).toHaveAttribute('data-expanded', 'false');
-  await expect(hud.locator('.cockpit-safety-summary')).toContainText('ARM UNKNOWN');
-  await expect(hud.locator('[data-safety-field="control-source"]')).toBeHidden();
-  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
-  const bounds = await page.locator('[data-cockpit-software-stop]').boundingBox();
-  expect(bounds.x).toBeGreaterThanOrEqual(0);
-  expect(bounds.y).toBeGreaterThanOrEqual(0);
-  expect(bounds.x + bounds.width).toBeLessThanOrEqual(520);
-  expect(bounds.y + bounds.height).toBeLessThanOrEqual(720);
-  await hud.locator('.cockpit-safety-toggle').click();
-  await expect(hud.locator('[data-safety-field="control-source"]')).toBeVisible();
-  await expect(page.locator('[data-cockpit-software-stop]')).toBeVisible();
+  const stop = page.locator('[data-cockpit-software-stop]');
+  const toggle = hud.locator('.cockpit-safety-toggle');
+  for (const viewport of [{ width: 520, height: 720 }, { width: 720, height: 450 }]) {
+    await page.setViewportSize(viewport);
+    if (await hud.getAttribute('data-expanded') === 'true') await toggle.click();
+    await expect(hud).toBeVisible();
+    await expect(hud).toHaveAttribute('data-expanded', 'false');
+    await expect(hud.locator('.cockpit-safety-summary')).toContainText('ARM UNKNOWN');
+    await expect(hud.locator('[data-safety-field="control-source"]')).toBeHidden();
+    await stop.click({ trial: true });
+    const bounds = await stop.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+    await toggle.focus(); await toggle.press('Enter');
+    await expect(hud.locator('[data-safety-field="control-source"]')).toBeVisible();
+    // Visibility alone misses a topbar intercepting the fixed button.
+    await stop.click({ trial: true });
+    expect(await stop.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+    })).toBe(true);
+  }
+  await page.screenshot({ path: testInfo.outputPath('settings-expanded-stop-short.png') });
+  expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
 });
 
 test('Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply', async ({ page }) => {

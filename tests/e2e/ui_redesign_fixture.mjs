@@ -38,6 +38,29 @@ export async function installMissionFixture(page, options = {}) {
   backend = await installDashboardBackend(page, { ...options, syntheticFixture: true,
     pointcloudFrame: (seq) => backend?.state.online && backend.state.uiCloudStreaming !== false ? syntheticCloudFrame(seq) : null });
   backend.state.uiCloudStreaming = true;
+  // Current pages also read SLAM catalogue and offline calibration status.
+  // Keep these explicit and read-only so captures show the UI, not fake 404s.
+  const readOnly = {
+    '/api/v1/slam/engines': { engines: [
+      { engine_id: 'lidar_fastlio', available_now: false, tasks: ['mapping'], blocked_reason: 'SYNTHETIC_NO_HARDWARE' },
+      { engine_id: 'visual_stereo', available_now: false, tasks: ['mapping'], blocked_reason: 'SYNTHETIC_NO_HARDWARE' },
+    ] },
+    '/api/v1/slam/session': { active_session: null, generation: 0, jobs: [] },
+    '/api/v1/slam/packages': { packages: [] },
+    '/api/v1/slam/depth/samples': { samples: [] },
+    '/api/v1/settings/mount-calibration/status': {
+      status: 'ok', schema_version: '1.0.0', mode: 'offline', input_source: 'imported_depth_json',
+      input_sources: ['imported_depth_json', 'saved_depth_samples'],
+      saved_samples_endpoint: '/api/v1/slam/depth/samples', saved_sample_access: 'read_only',
+      live_capture_available: false, hardware_access: false, persistence: false,
+      body_extrinsic_validated: false, absolute_pitch_validated: false,
+      max_request_bytes: 64 * 1024 * 1024, provenance: 'SYNTHETIC_BROWSER_FIXTURE',
+    },
+  };
+  for (const [path, value] of Object.entries(readOnly)) backend.on(path, ({ method, json }) => {
+    if (method !== 'GET') throw new Error(`Unexpected fixture mutation: ${method} ${path}`);
+    return json(value);
+  });
   const width = 72; const height = 64;
   const cells = Buffer.alloc(width * height);
   for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) {

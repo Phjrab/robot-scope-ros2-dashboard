@@ -103,7 +103,7 @@ test('Mission Control presets preserve singleton lifecycle, camera cleanup, resi
   expect(backend.state.requests.filter((entry) => /control\/(arm|acquire|command)|navigation\/(start|goal)|mapping\/(start|save)/.test(entry.path))).toEqual([]);
 });
 
-test('Mission Control keeps stale camera/cloud distinct and disconnected STOP available on every route', async ({ page }) => {
+test('Mission Control keeps stale camera/cloud distinct and disconnected STOP available in Settings', async ({ page }) => {
   test.skip(phase === 'before');
   const { backend } = await isolated(page);
   await page.goto('/#cockpit');
@@ -119,7 +119,8 @@ test('Mission Control keeps stale camera/cloud distinct and disconnected STOP av
   for (const route of ['cockpit', 'mapping', 'maps', 'navigation', 'sensors', 'controls', 'route-planner', 'settings']) {
     await page.goto(`/?offline=${route}#${route}`);
     await expect(page.locator('#connectionLabel')).toContainText('연결 끊김');
-    await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+    if (route === 'settings') await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+    else await expect(page.locator('[data-cockpit-software-stop]')).toBeHidden();
   }
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 });
@@ -129,7 +130,7 @@ test('Mission Control mock STOP distinguishes pending, server acknowledgement an
   const { backend } = await isolated(page);
   let dialogs = 0; page.on('dialog', () => { dialogs += 1; });
   backend.on('/api/v1/control/stop', async ({ json }) => { await new Promise((resolve) => setTimeout(resolve, 200)); return json({ state: 'stopped', estop_latched: true }); });
-  await page.goto('/#mapping');
+  await page.goto('/#settings');
   await page.locator('[data-cockpit-software-stop]').click();
   await expect(page.locator('#softwareStopFeedback')).toHaveAttribute('data-state', 'pending');
   await expect(page.locator('#softwareStopFeedback')).toHaveAttribute('data-state', 'acknowledged');
@@ -174,21 +175,29 @@ test('Mission Control viewport, keyboard, safety hit target and token contrast a
     await page.setViewportSize(size);
     await page.goto(`/?viewport=${size.width}#cockpit`);
     await expect(page.locator('#cockpitWorkspace')).toBeVisible();
-    await page.locator('[data-cockpit-software-stop]').click({ trial: true });
+    await expect(page.locator('[data-cockpit-software-stop]')).toBeHidden();
     const bounds = await page.evaluate(() => {
       const workspace = document.querySelector('#cockpitWorkspace').getBoundingClientRect();
       const scene = document.querySelector('#cockpitSceneCanvas').getBoundingClientRect();
-      const stop = document.querySelector('[data-cockpit-software-stop]').getBoundingClientRect();
-      return { workspaceWidth: workspace.width, sceneWidth: scene.width, sceneHeight: scene.height, stopHeight: stop.height,
+      return { workspaceWidth: workspace.width, sceneWidth: scene.width, sceneHeight: scene.height,
         tools: ['.cockpit-overlay-layer', '.cockpit-scene-controls', '#cockpitLayoutLibrary', '#cockpitCompetitionStatus'].map((selector) => { const node = document.querySelector(selector); const style = getComputedStyle(node); return { selector, box: node.getBoundingClientRect().toJSON(), column: style.gridColumn, row: style.gridRow, columns: style.gridTemplateColumns }; }),
-        stopInView: stop.top >= 0 && stop.bottom <= innerHeight, overflow: document.documentElement.scrollWidth > innerWidth };
+        overflow: document.documentElement.scrollWidth > innerWidth };
     });
-    expect(bounds.overflow).toBe(false); expect(bounds.stopInView).toBe(true); expect(bounds.stopHeight).toBeGreaterThanOrEqual(44);
+    expect(bounds.overflow).toBe(false);
     if (size.width >= 1024) {
       expect(bounds.sceneWidth / bounds.workspaceWidth).toBeGreaterThanOrEqual(0.6);
       expect(bounds.tools[3].box.bottom).toBeLessThanOrEqual(bounds.tools[0].box.bottom);
     }
-    expect(bounds.sceneHeight).toBeGreaterThan(200); geometry.push({ ...size, ...bounds });
+    expect(bounds.sceneHeight).toBeGreaterThan(200);
+    await page.evaluate(() => { location.hash = 'settings'; });
+    const stop = page.locator('[data-cockpit-software-stop]');
+    await stop.click({ trial: true });
+    const stopBounds = await stop.boundingBox();
+    expect(stopBounds.height).toBeGreaterThanOrEqual(44);
+    expect(stopBounds.x).toBeGreaterThanOrEqual(0); expect(stopBounds.y).toBeGreaterThanOrEqual(0);
+    expect(stopBounds.x + stopBounds.width).toBeLessThanOrEqual(size.width);
+    expect(stopBounds.y + stopBounds.height).toBeLessThanOrEqual(size.height);
+    geometry.push({ ...size, ...bounds, stopBounds, stopRoute: 'settings' });
   }
   await page.locator('.cockpit-safety-toggle').focus();
   await page.keyboard.press('Enter');
@@ -242,15 +251,18 @@ test('Mission Control long map names and server errors stay escaped and empty ma
   await page.locator('.saved-map-item').click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   backend.on('/api/v1/control/stop', ({ json }) => json({ detail: long }, 503));
+  await page.goto('/#settings');
   await page.locator('[data-cockpit-software-stop]').click();
   await expect(page.locator('#softwareStopFeedback')).toHaveAttribute('data-state', 'failed');
   await expect(page.locator('#softwareStopFeedback')).toContainText('정지 미확인');
   expect(await page.evaluate(() => window.__unsafeName)).toBeUndefined();
   backend.on('/api/v1/saved-maps', ({ json }) => json({ maps: [], total_size_bytes: 0 }));
+  await page.goto('/#maps');
   await page.reload();
   await expect(page.locator('[data-saved-map-id="' + map.id + '"]')).toHaveCount(0);
   await expect(page.locator('#savedMapList')).toContainText('Public demo cloud');
   await expect(page.locator('[data-saved-map-id="__fallback_cloud"]')).toHaveCount(1);
+  await page.goto('/#settings');
   await page.locator('[data-cockpit-software-stop]').click({ trial: true });
   expect(pageErrors).toEqual([]);
 });
