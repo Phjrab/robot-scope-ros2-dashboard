@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from dataclasses import dataclass
 from pathlib import Path
 import selectors
 import signal
@@ -27,16 +28,63 @@ from .external_global_observation import (
 )
 from .residual_policy import PROVISIONAL_RESIDUAL_POLICY, evaluate_residual
 from .v031_observation_compat import SELECTION_POLICY, supports_pin
+from .native_observation_scope import NativeObservationScope, ScopeWorkDirectory
 
 
 START_DEADLINE_S = 30.0
-# Existing local observation_alignment compute deadline is 0.6 s. Do not widen.
+# Restoration default; disable explicitly without removing the independent watchdog.
 ALIGN_DEADLINE_S = 0.6
+ALIGN_OPERATION_WATCHDOG_S = 60.0
+PROCESSING_BUDGET_ENV = "ROBOT_SCOPE_SENSOR_TRACKING_PROCESSING_BUDGET_S"
 _WORKER = Path(__file__).with_name("sensor_tracking_worker.py")
 
 
 class SensorTrackingError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class SensorTrackingExecutionPolicy:
+    """Server-owned limits; API requests cannot alter this policy.
+
+    ``None`` disables only the processing budget. The finite watchdog still
+    invalidates the operation and terminates/reaps its owned process group.
+    This is a process containment boundary, not a hard realtime guarantee for
+    Python validation code, the OS scheduler, or uninterruptible kernel work.
+    """
+
+    processing_budget_s: float | None = ALIGN_DEADLINE_S
+    operation_watchdog_s: float = ALIGN_OPERATION_WATCHDOG_S
+
+    def __post_init__(self) -> None:
+        for name, value in (("processing_budget_s", self.processing_budget_s),
+                            ("operation_watchdog_s", self.operation_watchdog_s)):
+            if name == "processing_budget_s" and value is None:
+                continue
+            if type(value) not in (int, float) or not math.isfinite(value) or value <= 0.:
+                raise ValueError(name + " must be finite and positive")
+
+    @classmethod
+    def from_environment(cls) -> SensorTrackingExecutionPolicy:
+        text = os.environ.get(PROCESSING_BUDGET_ENV)
+        if text is None:
+            return cls()
+        if text == "disabled":
+            return cls(processing_budget_s=None)
+        try:
+            return cls(processing_budget_s=float(text))
+        except (ValueError, TypeError) as exc:
+            raise ValueError(PROCESSING_BUDGET_ENV + " must be 'disabled' or a positive finite number") from exc
+
+    def snapshot(self) -> dict[str, Any]:
+        return {"schema": "robot-scope.sensor-tracking-execution-policy.v1",
+                "processing_budget_s": self.processing_budget_s,
+                "processing_budget_enabled": self.processing_budget_s is not None,
+                "operation_watchdog_s": self.operation_watchdog_s,
+                "watchdog_boundary": "OWNED_PROCESS_GROUP_TERM_KILL_REAP",
+                "startup_deadline_s": START_DEADLINE_S,
+                "legacy_processing_budget_s": .6,
+                "legacy_budget_override_supported": False}
 
 
 def _context_value(context: dict[str, Any], name: str) -> str:
@@ -96,20 +144,30 @@ class SensorTrackingProcess:
     """One map and one observer stream per process; close after loss or change.
 
     `start` may spend up to 30 s loading Open3D and the map once. Each `align`
-    call has a 0.6 s end-to-end cap. A timeout/cancel kills the entire owned
-    process group, so no late result can be accepted on a later scan.
+    has a separately configured processing budget and finite operation watchdog.
+    A timeout/cancel kills the entire owned process group, so no late result can
+    be accepted on a later scan. Receipt freshness remains the owner's gate.
     """
 
-    def __init__(self, external_runner: ExternalGlobalObservationRunner):
+    def __init__(self, external_runner: ExternalGlobalObservationRunner, *,
+                 execution_policy: SensorTrackingExecutionPolicy | None = None):
         if not isinstance(external_runner, ExternalGlobalObservationRunner):
             raise TypeError("an existing external observation runner is required")
         self._runner = external_runner
+        self._execution_policy = (SensorTrackingExecutionPolicy()
+                                  if execution_policy is None else execution_policy)
+        if not isinstance(self._execution_policy, SensorTrackingExecutionPolicy):
+            raise TypeError("an explicit sensor tracking execution policy is required")
         self._call_lock = threading.Lock()
+        self._close_lock = threading.Lock()
         self._state_lock = threading.Lock()
         self._process: subprocess.Popen[bytes] | None = None
+        self._reap_pending_process: subprocess.Popen[bytes] | None = None
+        self._resource_scope: NativeObservationScope | None = None
+        self._resource_admission: dict[str, Any] | None = None
         self._channel: socket.socket | None = None
-        self._folder: tempfile.TemporaryDirectory[str] | None = None
-        self._pending_folders: list[tempfile.TemporaryDirectory[str]] = []
+        self._folder: tempfile.TemporaryDirectory[str] | ScopeWorkDirectory | None = None
+        self._pending_folders: list[tempfile.TemporaryDirectory[str] | ScopeWorkDirectory] = []
         self._closed = False
         self._started = False
         self._map_context: dict[str, Any] | None = None
@@ -117,11 +175,57 @@ class SensorTrackingProcess:
         self._stream: tuple[str, str] | None = None
         self._last_stamp = 0
         self._sequence = 0
+        self._operation_token: object | None = None
+        self._operation_timer: threading.Timer | None = None
+        self._operation_deadline: float | None = None
+        self._watchdog_expired = False
+
+    def resource_admission_snapshot(self) -> dict[str, Any] | None:
+        with self._state_lock:
+            value = self._resource_admission
+        return _strict_json(json.dumps(value, allow_nan=False).encode()) if value is not None else None
+
+    def _begin_alignment_watchdog(self) -> tuple[object, float]:
+        started = time.monotonic()
+        token = object()
+        watchdog_deadline = started + self._execution_policy.operation_watchdog_s
+        timer = threading.Timer(self._execution_policy.operation_watchdog_s,
+                                self._expire_alignment, args=(token,))
+        timer.daemon = True
+        with self._state_lock:
+            if self._closed:
+                raise SensorTrackingError("SENSOR_PROCESS_CLOSED")
+            self._operation_token, self._operation_timer = token, timer
+            self._operation_deadline = watchdog_deadline
+            timer.start()
+        budget = self._execution_policy.processing_budget_s
+        return token, (min(watchdog_deadline, started + budget)
+                       if budget is not None else watchdog_deadline)
+
+    def _expire_alignment(self, token: object) -> None:
+        with self._state_lock:
+            if self._operation_token is not token or self._closed:
+                return
+            # Mark failure under the same lock used to commit a successful
+            # reply. A late watchdog callback cannot kill a subsequent call.
+            self._watchdog_expired = True
+        self.close()
+
+    def _end_alignment_unlocked(self, token: object | None) -> None:
+        if token is not None and self._operation_token is token:
+            timer = self._operation_timer
+            self._operation_token = self._operation_timer = None
+            self._operation_deadline = None
+            if timer is not None:
+                timer.cancel()
 
     def _check(self, deadline: float, cancel_event: threading.Event | None) -> None:
         if _cancelled(cancel_event):
             raise SensorTrackingError("SENSOR_CANCELLED")
         with self._state_lock:
+            if self._watchdog_expired or (self._operation_deadline is not None
+                                           and time.monotonic() >= self._operation_deadline):
+                raise SensorTrackingError("SENSOR_OPERATION_WATCHDOG_EXCEEDED")
             if self._closed:
                 raise SensorTrackingError("SENSOR_PROCESS_CLOSED")
             process = self._process
@@ -132,6 +236,7 @@ class SensorTrackingProcess:
 
     def _exchange(self, request: dict[str, Any], deadline: float,
                   cancel_event: threading.Event | None) -> dict[str, Any]:
+        self._check(deadline, cancel_event)
         with self._state_lock:
             channel = self._channel
         if channel is None:
@@ -166,6 +271,7 @@ class SensorTrackingProcess:
                                 needed = 4 + size
                 self._check(deadline, cancel_event)
         except (OSError, ValueError) as exc:
+            self._check(deadline, cancel_event)
             raise SensorTrackingError("SENSOR_WORKER_CHANNEL_FAILED") from exc
         value = _strict_json(bytes(received[4:]))
         if not isinstance(value, dict):
@@ -180,6 +286,8 @@ class SensorTrackingProcess:
 
     def _drain_folders(self) -> None:
         with self._state_lock:
+            if self._reap_pending_process is not None:
+                return
             folders, self._pending_folders = self._pending_folders, []
         for folder in folders:
             folder.cleanup()
@@ -206,7 +314,9 @@ class SensorTrackingProcess:
             self._runner._array(map_bytes, context["map"])
             map_context["map"] = {key: context["map"][key] for key in
                                   ("encoding", "point_count", "sha256")}
-            folder = tempfile.TemporaryDirectory(prefix="robot-scope-sensor-track-")
+            folder = (ScopeWorkDirectory(prefix="robot-scope-sensor-track-")
+                      if self._runner.resource_scope_enabled else
+                      tempfile.TemporaryDirectory(prefix="robot-scope-sensor-track-"))
             with self._state_lock:
                 if self._closed:
                     folder.cleanup()
@@ -225,12 +335,21 @@ class SensorTrackingProcess:
                 environment = {key: value for key, value in os.environ.items()
                                if not key.startswith(("PYTHON", "LD_", "DYLD_"))}
                 environment.update(OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
-                process = subprocess.Popen(
-                    [str(python), "-I", str(_WORKER), str(work), str(child.fileno())],
-                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    cwd=work, env=environment, pass_fds=(child.fileno(),),
-                    close_fds=True, start_new_session=True,
-                )
+                if self._runner.resource_scope_enabled:
+                    scope = NativeObservationScope(python=python, worker=_WORKER, folder=work,
+                        kind="sensor", environment=environment,
+                        runtime_s=math.ceil(self._execution_policy.operation_watchdog_s),
+                        socket_fd=child.fileno(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    process = scope.process
+                    with self._state_lock:
+                        self._resource_scope = scope
+                else:
+                    process = subprocess.Popen(
+                        [str(python), "-I", str(_WORKER), str(work), str(child.fileno())],
+                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                        cwd=work, env=environment, pass_fds=(child.fileno(),),
+                        close_fds=True, start_new_session=True,
+                    )
             except BaseException:
                 parent.close()
                 raise
@@ -238,10 +357,14 @@ class SensorTrackingProcess:
                 child.close()
             with self._state_lock:
                 if self._closed:
-                    _stop_group(process)
+                    self._reap_pending_process = process
                     parent.close()
                     raise SensorTrackingError("SENSOR_PROCESS_CLOSED")
                 self._process, self._channel = process, parent
+            if self._resource_scope is not None:
+                proof = self._resource_scope.admit(cancel=cancel_event, deadline=deadline)
+                with self._state_lock:
+                    self._resource_admission = proof
             ready = self._receive_ready(deadline, cancel_event)
             _, _, _, final_pin_sha = self._runner._configuration()
             if (ready.get("ready") is not True or ready.get("source_pin_sha256") != pin_sha
@@ -300,10 +423,11 @@ class SensorTrackingProcess:
 
     def align(self, scan_bytes: bytes, context: dict[str, Any], seed_matrix: Any,
               cancel_event: threading.Event | None) -> dict[str, Any]:
-        deadline = time.monotonic() + ALIGN_DEADLINE_S
         if not self._call_lock.acquire(blocking=False):
             raise SensorTrackingError("SENSOR_PROCESS_BUSY")
+        operation_token: object | None = None
         try:
+            operation_token, deadline = self._begin_alignment_watchdog()
             self._check(deadline, cancel_event)
             with self._state_lock:
                 stored = self._map_context
@@ -335,6 +459,7 @@ class SensorTrackingProcess:
             _, _, _, current_pin_sha = self._runner._configuration()
             if current_pin_sha != pin_sha:
                 raise SensorTrackingError("SENSOR_SOURCE_PIN_CHANGED")
+            self._check(deadline, cancel_event)
             work = Path(folder.name)
             scan_path = work / f"scan-{sequence:08d}.f64"
             _private_file(work, scan_path.name, scan_bytes)
@@ -382,9 +507,17 @@ class SensorTrackingProcess:
                 raise SensorTrackingError("SENSOR_ENVELOPED_RESULT_LIMIT_NO_TRUNCATION")
             self._check(deadline, cancel_event)
             with self._state_lock:
+                if self._watchdog_expired or (self._operation_deadline is not None
+                                               and time.monotonic() >= self._operation_deadline):
+                    raise SensorTrackingError("SENSOR_OPERATION_WATCHDOG_EXCEEDED")
                 if self._closed:
                     raise SensorTrackingError("SENSOR_PROCESS_CLOSED")
+                if _cancelled(cancel_event):
+                    raise SensorTrackingError("SENSOR_CANCELLED")
+                if time.monotonic() >= deadline:
+                    raise SensorTrackingError("SENSOR_DEADLINE_EXCEEDED")
                 self._stream, self._last_stamp, self._sequence = identity, int(stamp_text), sequence
+                self._end_alignment_unlocked(operation_token)
             return cast(dict[str, Any], result)
         except (ExternalGlobalObservationError, ValueError, TypeError, KeyError) as exc:
             self.close()
@@ -393,20 +526,37 @@ class SensorTrackingProcess:
             self.close()
             raise
         finally:
+            with self._state_lock:
+                self._end_alignment_unlocked(operation_token)
             self._call_lock.release()
             self._drain_folders()
 
     def close(self) -> bool:
-        with self._state_lock:
-            self._closed = True
-            process, channel, folder = self._process, self._channel, self._folder
-            self._process = self._channel = self._folder = None
-            self._started = False
-            if folder is not None:
-                self._pending_folders.append(folder)
-        if channel is not None:
-            channel.close()
-        reaped = _stop_group(process)
+        # A watchdog and caller may close concurrently. Both must wait for the
+        # one owned group reap instead of a second close reporting early success.
+        with self._close_lock:
+            with self._state_lock:
+                self._closed = True
+                self._end_alignment_unlocked(self._operation_token)
+                scope = self._resource_scope
+                process = (self._process or self._reap_pending_process
+                           or (scope.process if scope is not None else None))
+                channel, folder = self._channel, self._folder
+                self._process = self._channel = self._folder = None
+                self._reap_pending_process = process
+                self._started = False
+                if folder is not None:
+                    self._pending_folders.append(folder)
+            if channel is not None:
+                channel.close()
+            try:
+                reaped = scope.close() if scope is not None else _stop_group(process)
+            except OSError:
+                reaped = False
+            with self._state_lock:
+                if reaped and self._reap_pending_process is process:
+                    self._reap_pending_process = None
+                    self._resource_scope = None
         if not self._call_lock.locked():
             self._drain_folders()
         return reaped

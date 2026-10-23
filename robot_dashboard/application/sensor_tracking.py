@@ -44,6 +44,7 @@ _REQUEST = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 _STAMP = re.compile(r"[0-9]{1,30}\Z")
 _ACTIVE = {"INITIALIZING", "ACQUIRING_FRESH_SCAN", "SENSOR_CANDIDATE"}
 _MAX_TRAIL = 40
+SESSION_WATCHDOG_S = 60.0
 
 
 def _finite_number(value: Any) -> float | None:
@@ -183,6 +184,8 @@ class SensorTrackingOwner:
     def __init__(self, catalog: Any, agent: Any, global_observation: Any,
                  process_factory: Callable[[], Any], *, pin_provider: Callable[[], dict[str, Any]] | None = None,
                  allow_ambiguous: bool = False,
+                 execution_policy: dict[str, Any] | None = None,
+                 session_watchdog_s: float = SESSION_WATCHDOG_S,
                  capture_timeout_s: float = 1.,
                  max_points: int = 1_000_000, max_bytes: int = 32 * 1024 * 1024,
                  now: Callable[[], float] = time.monotonic) -> None:
@@ -191,9 +194,17 @@ class SensorTrackingOwner:
         if type(allow_ambiguous) is not bool:
             raise ValueError("allow_ambiguous must be an explicit boolean")
         self._allow_ambiguous = allow_ambiguous
+        self._execution_policy = copy.deepcopy(execution_policy)
+        if (type(session_watchdog_s) not in (int, float)
+                or not math.isfinite(session_watchdog_s) or session_watchdog_s <= 0.):
+            raise ValueError("session_watchdog_s must be finite and positive")
+        self._session_watchdog_s = float(session_watchdog_s)
+        self._session_timer: threading.Timer | None = None
+        self._session_deadline: float | None = None
         self._ambiguity_override: dict[str, Any] | None = None
         self._ambiguity_source: str | None = None
         self._last_alignment: dict[str, Any] | None = None
+        self._resource_admission: dict[str, Any] | None = None
         self._capture_timeout_s, self._max_points, self._max_bytes = capture_timeout_s, max_points, max_bytes
         self._lock = threading.RLock()
         self._generation = 0
@@ -213,6 +224,7 @@ class SensorTrackingOwner:
         self._cancel: threading.Event | None = None
         self._capture_id: str | None = None
         self._process: Any | None = None
+        self._cleanup_complete: bool | None = None
         self._thread: threading.Thread | None = None
         self._closed = False
 
@@ -224,6 +236,8 @@ class SensorTrackingOwner:
         return {"schema": "robot-scope.sensor-tracking.v1", "state": self._state,
                 "reason": self._reason, "generation": self._generation,
                 "worker_active": self._thread is not None and self._thread.is_alive(),
+                "cleanup_complete": (self._cleanup_complete is not False and self._process is None
+                                     and (self._thread is None or not self._thread.is_alive())),
                 "source_global_job": copy.deepcopy(self._global_job),
                 "map": _safe_map(self._context) if self._context else None,
                 "source": source, "sensor_pose": copy.deepcopy(self._sensor_pose),
@@ -233,12 +247,28 @@ class SensorTrackingOwner:
                 "estimate_label": ("AMBIGUOUS_UNVERIFIED_ESTIMATE" if self._ambiguity_override
                                    else "UNVERIFIED_SENSOR_ESTIMATE"),
                 "last_alignment": copy.deepcopy(self._last_alignment),
+                "execution_policy": copy.deepcopy(self._execution_policy),
+                "resource_admission": copy.deepcopy(self._resource_admission),
+                "session_watchdog": {
+                    "timeout_s": self._session_watchdog_s,
+                    "active": self._session_timer is not None,
+                    "remaining_s": (max(0., self._session_deadline - time.monotonic())
+                                    if self._session_deadline is not None else None),
+                    "scope": "STARTUP_CAPTURE_ALIGNMENT_UNTIL_CLEANUP",
+                    "boundary": "GENERATION_CANCEL_OWNED_PROCESS_GROUP_REAP",
+                    "hard_realtime_guarantee": False},
                 "temporal_consistency_confirmed": self._state == "SENSOR_CANDIDATE",
                 "globally_verified": False, "body_pose": None, "tracking_verified": False,
                 "source_clock_verified": False, "body_extrinsic_verified": False,
                 "operational_application": "NOT_RUN"}
 
     def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            expired = (self._session_deadline is not None
+                       and time.monotonic() >= self._session_deadline)
+            generation, process = self._generation, self._process
+        if expired and process is not None:
+            self._expire_session(generation, process)
         with self._lock:
             active = self._state in {"INITIALIZING", "ACQUIRING_FRESH_SCAN", "SENSOR_CANDIDATE"}
             context = self._context if active else None
@@ -257,11 +287,21 @@ class SensorTrackingOwner:
                         self._lose_locked("STALE", "GLOBAL_OBSERVATION_CHANGED" if not global_matches
                                           else "CURRENT_SOURCE_OR_MAP_CHANGED")
         with self._lock:
+            cleanup_process, cleanup_capture = None, None
+            if (self._session_deadline is not None
+                    and time.monotonic() >= self._session_deadline and self._process is not None):
+                cleanup_process = self._process
+                _, cleanup_capture = self._expire_session_locked(self._generation, cleanup_process)
             if self._state == "SENSOR_CANDIDATE" and self._source is not None:
                 receipt = _finite_number(self._source.get("received_monotonic_s"))
                 if receipt is None or not 0 <= self._now() - receipt <= 1.:
                     self._lose_locked("STALE", "SCAN_RECEIPT_STALE")
-            return self._snapshot_locked()
+            view = self._snapshot_locked()
+        if cleanup_process is not None:
+            self._cleanup_expired_session(cleanup_process, cleanup_capture)
+            with self._lock:
+                return self._snapshot_locked()
+        return view
 
     def _lose_locked(self, state: str, reason: str) -> None:
         self._state, self._reason = state, reason
@@ -270,6 +310,57 @@ class SensorTrackingOwner:
         self._confirmations = 0
         if self._cancel is not None:
             self._cancel.set()
+
+    def _cancel_session_watchdog_locked(self) -> None:
+        timer, self._session_timer = self._session_timer, None
+        self._session_deadline = None
+        if timer is not None:
+            timer.cancel()
+
+    def _close_owned_process(self, process: Any) -> bool:
+        try:
+            reaped = process.close() is True
+        except Exception:
+            reaped = False
+        with self._lock:
+            if self._process is process:
+                self._cleanup_complete = reaped
+                if reaped:
+                    self._process = None
+        return reaped
+
+    def _require_session_live_locked(self) -> None:
+        if (self._session_deadline is not None
+                and time.monotonic() >= self._session_deadline):
+            self._cancel_session_watchdog_locked()
+            self._generation += 1
+            self._lose_locked("LOST", "SENSOR_SESSION_WATCHDOG_EXCEEDED")
+            raise SensorTrackingConflict("SENSOR_SESSION_WATCHDOG_EXCEEDED")
+
+    def _expire_session_locked(self, generation: int, process: Any) -> tuple[bool, str | None]:
+        if generation != self._generation or self._process is not process:
+            return False, None
+        self._cancel_session_watchdog_locked()
+        # Invalidate before cancellation/cleanup so a concurrent old reply
+        # can never republish a pose, even if its Python thread is delayed.
+        self._generation += 1
+        self._lose_locked("LOST", "SENSOR_SESSION_WATCHDOG_EXCEEDED")
+        capture_id, self._capture_id = self._capture_id, None
+        return True, capture_id
+
+    def _cleanup_expired_session(self, process: Any, capture_id: str | None) -> None:
+        if capture_id:
+            try:
+                self._agent.cancel_raw_pointcloud_capture(capture_id)
+            except Exception:
+                pass
+        self._close_owned_process(process)
+
+    def _expire_session(self, generation: int, process: Any) -> None:
+        with self._lock:
+            expired, capture_id = self._expire_session_locked(generation, process)
+        if expired:
+            self._cleanup_expired_session(process, capture_id)
 
     def _global_matches(self, expected_generation: Any) -> bool:
         if type(expected_generation) is not int:
@@ -348,6 +439,8 @@ class SensorTrackingOwner:
                 return self._snapshot_locked()
             if self._thread is not None and self._thread.is_alive():
                 raise SensorTrackingConflict("SENSOR_TRACKING_ALREADY_ACTIVE")
+            if self._process is not None or self._cleanup_complete is False:
+                raise SensorTrackingConflict("SENSOR_PREVIOUS_PROCESS_CLEANUP_PENDING")
             if global_job_id in self._used_global_jobs:
                 raise SensorTrackingConflict("GLOBAL_CANDIDATE_ALREADY_USED")
             if not self._global_matches(job["generation"]):
@@ -369,9 +462,11 @@ class SensorTrackingOwner:
             self._ambiguity_override = copy.deepcopy(observation["ambiguity_override"]) if ambiguous else None
             self._ambiguity_source = "GLOBAL" if ambiguous else None
             self._last_alignment = None
+            self._resource_admission = None
             self._trail, self._confirmations = [], 0
             self._last_stamp, self._last_receipt = _stamp(context["source_stamp_ns"]) or 0, 0.
             self._cancel, self._process = cancel, process
+            self._cleanup_complete = False
             self._used_global_jobs.add(global_job_id)
             self._requests[request_id] = global_job_id
             if len(self._requests) > 64:
@@ -380,19 +475,25 @@ class SensorTrackingOwner:
             worker = threading.Thread(target=self._run, args=(generation, cancel, process),
                                       name=f"sensor-tracking-{generation}", daemon=True)
             self._thread = worker
+            timer = threading.Timer(self._session_watchdog_s, self._expire_session,
+                                    args=(generation, process))
+            timer.daemon = True
+            self._session_deadline = time.monotonic() + self._session_watchdog_s
+            self._session_timer = timer
             try:
+                timer.start()
                 worker.start()
             except RuntimeError as exc:
+                self._cancel_session_watchdog_locked()
                 self._lose_locked("LOST", "WORKER_START_FAILED")
                 self._thread = None
-                try:
-                    process.close()
-                except Exception:
-                    pass
+                self._close_owned_process(process)
                 raise SensorTrackingUnavailable("LOCAL_TRACKING_WORKER_UNAVAILABLE") from exc
             return self._snapshot_locked()
 
     def _capture(self, context: dict[str, Any], cancel: threading.Event) -> tuple[bytes, dict[str, Any]]:
+        with self._lock:
+            self._require_session_live_locked()
         if not self._current_matches(context):
             raise SensorTrackingConflict("CURRENT_SOURCE_OR_MAP_CHANGED")
         try:
@@ -405,10 +506,13 @@ class SensorTrackingOwner:
         capture_id = ticket["capture_id"]
         try:
             with self._lock:
+                self._require_session_live_locked()
                 self._capture_id = capture_id
                 if cancel.is_set():
                     raise SensorTrackingConflict("CAPTURE_CANCELLED")
             while not cancel.is_set():
+                with self._lock:
+                    self._require_session_live_locked()
                 status = self._agent.raw_pointcloud_capture_snapshot(capture_id)
                 if status and status.get("state") == "ready":
                     break
@@ -528,8 +632,15 @@ class SensorTrackingOwner:
                     or hashlib.sha256(map_bytes).hexdigest() != old["sha256"]
                     or not np.isfinite(np.frombuffer(map_bytes, dtype="<f8")).all()):
                 raise SensorTrackingConflict("MAP_INPUT_CHANGED")
+            with self._lock:
+                self._require_session_live_locked()
+                if cancel.is_set() or generation != self._generation:
+                    return
             process.start(map_bytes, context, cancel)
             with self._lock:
+                self._resource_admission = (process.resource_admission_snapshot()
+                    if hasattr(process, "resource_admission_snapshot") else None)
+                self._require_session_live_locked()
                 if cancel.is_set() or generation != self._generation:
                     return
                 self._state = "ACQUIRING_FRESH_SCAN"
@@ -546,6 +657,10 @@ class SensorTrackingOwner:
                 align_context.update(map={key: context["map"][key] for key in
                                           ("encoding", "point_count", "sha256")},
                                      scan=scan, source_stamp_ns=str(stamp))
+                with self._lock:
+                    self._require_session_live_locked()
+                    if cancel.is_set() or generation != self._generation:
+                        return
                 result = process.align(payload, align_context, seed, cancel)
                 matrix, rmse, overlap = self._validate_alignment(
                     result, context, scan, stamp, allow_ambiguous=self._allow_ambiguous)
@@ -554,6 +669,7 @@ class SensorTrackingOwner:
                 if not _motion_consistent(seed, matrix):
                     raise SensorTrackingConflict("TEMPORAL_POSE_JUMP")
                 with self._lock:
+                    self._require_session_live_locked()
                     if cancel.is_set() or generation != self._generation:
                         return
                     self._last_stamp, self._last_receipt, self._last_matrix = stamp, receipt, matrix
@@ -591,19 +707,23 @@ class SensorTrackingOwner:
                     state = "STALE" if "STALE" in reason or "FRESHNESS" in reason else "LOST"
                     self._lose_locked(state, reason)
         finally:
-            try:
-                process.close()
-            except Exception:
-                pass
+            if hasattr(process, "resource_admission_snapshot"):
+                with self._lock:
+                    if self._thread is threading.current_thread():
+                        self._resource_admission = process.resource_admission_snapshot()
+            self._close_owned_process(process)
             with self._lock:
-                if generation == self._generation:
-                    self._process = None
+                if self._thread is threading.current_thread():
+                    self._cancel_session_watchdog_locked()
                     self._capture_id = None
 
     def stop(self) -> dict[str, Any]:
         with self._lock:
-            if self._state == "STOPPED" and (self._thread is None or not self._thread.is_alive()):
+            if (self._state == "STOPPED" and self._process is None
+                    and self._cleanup_complete is not False
+                    and (self._thread is None or not self._thread.is_alive())):
                 return self._snapshot_locked()
+            self._cancel_session_watchdog_locked()
             self._generation += 1
             if self._cancel is not None:
                 self._cancel.set()
@@ -618,15 +738,12 @@ class SensorTrackingOwner:
             except Exception:
                 pass
         if process is not None:
-            try:
-                process.close()
-            except Exception:
-                pass
+            self._close_owned_process(process)
         if worker is not None and worker is not threading.current_thread():
             worker.join(timeout=1.)
         with self._lock:
             if worker is not None and not worker.is_alive() and self._thread is worker:
-                self._thread, self._process, self._cancel, self._capture_id = None, None, None, None
+                self._thread, self._cancel, self._capture_id = None, None, None
         return self.snapshot()
 
     def close(self) -> bool:
@@ -634,17 +751,26 @@ class SensorTrackingOwner:
             self._closed = True
         self.stop()
         with self._lock:
-            return self._thread is None or not self._thread.is_alive()
+            return ((self._thread is None or not self._thread.is_alive())
+                    and self._process is None and self._cleanup_complete is not False)
 
 
 def configure_sensor_tracking(runtime: Any) -> None:
     from ..relocalization.external_global_observation import ExternalGlobalObservationRunner
-    from ..relocalization.sensor_tracking_process import SensorTrackingProcess
+    from ..relocalization.sensor_tracking_process import (
+        SensorTrackingExecutionPolicy, SensorTrackingProcess,
+    )
 
     runner = ExternalGlobalObservationRunner.from_environment()
+    policy = SensorTrackingExecutionPolicy.from_environment()
+    if policy.processing_budget_s is None and not runner.resource_scope_enabled:
+        raise ValueError("disabled tracking budget requires user_scope_v1 resource mode")
+    readback = policy.snapshot()
+    readback["resource_mode"] = "user_scope_v1" if runner.resource_scope_enabled else "DIRECT_LEGACY"
     runtime.sensor_tracking = SensorTrackingOwner(runtime.saved_maps, runtime.require_agent(),
-        runtime.global_observation, lambda: SensorTrackingProcess(runner), pin_provider=runner.status,
-        allow_ambiguous=runner.allow_ambiguous)
+        runtime.global_observation, lambda: SensorTrackingProcess(runner, execution_policy=policy),
+        pin_provider=runner.status, allow_ambiguous=runner.allow_ambiguous,
+        execution_policy=readback)
 
 
 async def close_sensor_tracking(runtime: Any, logger: Any) -> None:

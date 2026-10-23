@@ -6,8 +6,13 @@ import { initializeSensorTrackingObservation } from './sensor_tracking.js';
 // model, and never request the continuous cloud/pose transport.
 export function initializeSavedMapObservations(options) {
   const live = initializeLiveMapObservation(options);
-  const global = initializeGlobalMapObservation({ getContext: options.getContext });
-  const sensor = initializeSensorTrackingObservation({ scene: options.scene,
+  let sensor = null;
+  const global = initializeGlobalMapObservation({ getContext: options.getContext,
+    canChangeHistory: () => {
+      const state = sensor?.snapshot();
+      return Boolean(state && !state.active && !state.previewSuppressed && !state.stopRequested && !state.canRetry);
+    } });
+  sensor = initializeSensorTrackingObservation({ scene: options.scene,
     getContext: options.getContext, getGlobalRecord: () => global?.snapshot().record,
     onExclusive: active => live?.suspend(active) });
   return {

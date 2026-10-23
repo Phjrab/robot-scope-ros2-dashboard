@@ -23,6 +23,9 @@ import numpy as np
 
 from .residual_policy import PROVISIONAL_RESIDUAL_POLICY, evaluate_residual
 from .v031_observation_compat import valid_ambiguity_override, supports_pin
+from .native_observation_scope import (
+    NativeObservationScope, ScopeWorkDirectory, resource_mode_from_environment,
+)
 
 MAX_RESULT_BYTES = 65_536
 MAX_ARRAY_BYTES = 32 * 1024 * 1024
@@ -44,7 +47,7 @@ def _strict_json(raw: bytes) -> Any:
 class ExternalGlobalObservationRunner:
     def __init__(self, python: str | None = None, source_root: str | None = None,
                  pin_file: str | None = None, *, timeout_s: float = 120.,
-                 allow_ambiguous: bool = False) -> None:
+                 allow_ambiguous: bool = False, resource_scope_enabled: bool = False) -> None:
         if isinstance(timeout_s, bool) or not math.isfinite(timeout_s) or not 0 < timeout_s <= 120:
             raise ValueError("deadline must be positive and at most 120 seconds")
         if type(allow_ambiguous) is not bool:
@@ -54,6 +57,26 @@ class ExternalGlobalObservationRunner:
         self.pin_file = pin_file
         self.timeout_s = timeout_s
         self._allow_ambiguous = allow_ambiguous
+        if type(resource_scope_enabled) is not bool:
+            raise ValueError("resource_scope_enabled must be an explicit bool")
+        self.resource_scope_enabled = resource_scope_enabled
+        self._scope_cleanup_lock = threading.Lock()
+        self._pending_scope_cleanup: list[tuple[NativeObservationScope, ScopeWorkDirectory]] = []
+
+    def cleanup_pending_scopes(self) -> bool:
+        with self._scope_cleanup_lock:
+            remaining = []
+            for scope, folder in self._pending_scope_cleanup:
+                try:
+                    settled = scope.close()
+                    if settled:
+                        folder.cleanup()
+                except (OSError, ValueError, subprocess.SubprocessError):
+                    settled = False
+                if not settled:
+                    remaining.append((scope, folder))
+            self._pending_scope_cleanup = remaining
+            return not remaining
 
     @property
     def allow_ambiguous(self) -> bool:
@@ -64,7 +87,8 @@ class ExternalGlobalObservationRunner:
         return cls(os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_PYTHON"),
                    os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_SOURCE"),
                    os.environ.get("ROBOT_SCOPE_GLOBAL_OBSERVATION_PIN"),
-                   allow_ambiguous=os.environ.get("ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS") == "1")
+                   allow_ambiguous=os.environ.get("ROBOT_SCOPE_OBSERVATION_ALLOW_AMBIGUOUS") == "1",
+                   resource_scope_enabled=resource_mode_from_environment())
 
     def _configuration(self) -> tuple[Path, Path, dict[str, Any], str]:
         if not all((self.python, self.source_root, self.pin_file)):
@@ -102,6 +126,9 @@ class ExternalGlobalObservationRunner:
             return {"available": True, "reason": None, "backend_id": BACKEND_ID,
                     "source_pin_sha256": pin_sha, "deadline_s": self.timeout_s,
                     "allow_ambiguous": self.allow_ambiguous,
+                    "resource_mode": "user_scope_v1" if self.resource_scope_enabled else "DIRECT_LEGACY",
+                    "resource_admission_performed": False,
+                    "scope_cleanup_pending": bool(self._pending_scope_cleanup),
                     "dependency_runtime_probe_performed": False}
         except (OSError, ValueError, TypeError, ExternalGlobalObservationError) as exc:
             reason = str(exc) if isinstance(exc, ExternalGlobalObservationError) else "GLOBAL_SOURCE_PIN_INVALID"
@@ -131,6 +158,8 @@ class ExternalGlobalObservationRunner:
                 raise ExternalGlobalObservationError("GLOBAL_DEADLINE_EXCEEDED")
 
         check()
+        if not self.cleanup_pending_scopes():
+            raise ExternalGlobalObservationError("GLOBAL_RESOURCE_SCOPE_CLEANUP_PENDING")
         python, source, pin, pin_sha = self._configuration()
         for name in ("map_id", "map_revision", "map_frame", "source_frame", "observer_id", "observer_epoch", "source_stamp_ns"):
             if not isinstance(context.get(name), str) or not context[name]:
@@ -141,7 +170,9 @@ class ExternalGlobalObservationRunner:
         self._array(map_bytes, context["map"])
         # Copy strict JSON before crossing the process boundary; no mutable alias.
         context = _strict_json(json.dumps(context, allow_nan=False).encode())
-        with tempfile.TemporaryDirectory(prefix="robot-scope-global-") as name:
+        work_folder = ScopeWorkDirectory(prefix="robot-scope-global-")
+        resource_scope: NativeObservationScope | None = None
+        with work_folder as name:
             folder = Path(name)
             folder.chmod(0o700)
             for filename, data in (("scan.f64", scan_bytes), ("map.f64", map_bytes)):
@@ -156,11 +187,19 @@ class ExternalGlobalObservationRunner:
             environment = {k: v for k, v in os.environ.items()
                            if not k.startswith(("PYTHON", "LD_", "DYLD_"))}
             environment.update(OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
-            process = subprocess.Popen([str(python), "-I", str(_WORKER), str(folder)],
-                                       stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                       env=environment, start_new_session=True)
+            if self.resource_scope_enabled:
+                resource_scope = NativeObservationScope(python=python, worker=_WORKER, folder=folder,
+                    kind="global", environment=environment, runtime_s=math.ceil(self.timeout_s),
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                process = resource_scope.process
+            else:
+                process = subprocess.Popen([str(python), "-I", str(_WORKER), str(folder)],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    env=environment, start_new_session=True)
             output_bytes = 0
             try:
+                if resource_scope is not None:
+                    resource_scope.admit(cancel=cancel_event, deadline=deadline)
                 with selectors.DefaultSelector() as selector:
                     for stream in (process.stdout, process.stderr):
                         os.set_blocking(stream.fileno(), False)
@@ -187,22 +226,38 @@ class ExternalGlobalObservationRunner:
                 self._validate_result(result, context, allow_ambiguous=self.allow_ambiguous)
                 check()
             finally:
+                scope_cleanup_failed = False
                 # Reap descendants too: the trusted backend may spawn a native worker.
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                try:
+                if resource_scope is not None:
+                    work_folder.retain = True
+                    try:
+                        scope_settled = resource_scope.close()
+                    except (OSError, ValueError, subprocess.SubprocessError):
+                        scope_settled = False
+                    if scope_settled:
+                        work_folder.retain = False
+                    else:
+                        with self._scope_cleanup_lock:
+                            self._pending_scope_cleanup.append((resource_scope, work_folder))
+                        scope_cleanup_failed = True
+                else:
+                    try:
+                        os.killpg(process.pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                    try:
+                        process.wait(timeout=.2)
+                    except subprocess.TimeoutExpired:
+                        pass
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                     process.wait(timeout=.2)
-                except subprocess.TimeoutExpired:
-                    pass
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait(timeout=.2)
                 for stream in (process.stdout, process.stderr):
                     stream.close()
+                if scope_cleanup_failed:
+                    raise ExternalGlobalObservationError("GLOBAL_RESOURCE_SCOPE_CLEANUP_PENDING")
             check()
         # This sidecar never reselects; the pinned backend owns its own
         # selection policy, ranking, ambiguity and non-residual gates.
@@ -229,6 +284,8 @@ class ExternalGlobalObservationRunner:
                       execution={"elapsed_s": time.monotonic() - started, "source_pin_sha256": pin_sha,
                                  "backend_id": BACKEND_ID, "deadline_s": self.timeout_s,
                                  "worker_reaped": True, "worker_log_bytes": output_bytes})
+        if resource_scope is not None:
+            result["execution"]["resource_admission"] = resource_scope.proof
         if len(json.dumps(result, allow_nan=False, separators=(",", ":")).encode()) > MAX_RESULT_BYTES:
             raise ExternalGlobalObservationError("GLOBAL_ENVELOPED_RESULT_LIMIT_NO_TRUNCATION")
         check()
