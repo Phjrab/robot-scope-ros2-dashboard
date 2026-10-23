@@ -1,0 +1,84 @@
+{
+  "base_level_assumed": false,
+  "calibration_verified": false,
+  "cdr_bytes": 724,
+  "cdr_encoding": "cdr",
+  "cdr_provenance": "original raw subscription bytes, not reserialized",
+  "cdr_sha256": "86919a98bf26efc26eba4c2647aaaf49eec91bc2d3bce1edd9c9ed9bd7a83c88",
+  "clock_verified": false,
+  "dds_received_timestamp_ns": null,
+  "dds_source_timestamp_ns": null,
+  "diagnostic": {
+    "angular_velocity_xyz": [
+      0.0,
+      -0.011717907153069973,
+      -0.02237055078148842
+    ],
+    "child_frame": "base_link",
+    "diagnostic_ros_rpy_rad": [
+      -0.022397354012842922,
+      0.009346541049903326,
+      2.774925001118173
+    ],
+    "linear_velocity_xyz": [
+      -5.810508518777624e-09,
+      -1.221315382160526e-09,
+      7.315710348620996e-08
+    ],
+    "orientation_xyzw": [
+      0.00663619814440608,
+      0.010158732533454895,
+      -0.9831786155700684,
+      -0.18224367499351501
+    ],
+    "position_xyz": [
+      -0.0024337959475815296,
+      0.003733570920303464,
+      0.3095998466014862
+    ],
+    "quaternion_norm": 1.0000000930809538
+  },
+  "frame": "odom",
+  "message_info_available": false,
+  "message_info_unavailable_reason": "raw callback supplied CDR only",
+  "message_type": "nav_msgs/msg/Odometry",
+  "publisher_evidence": {
+    "basis": "unique_publisher_graph_observation_only",
+    "graph_receipt_monotonic_ns": 10247416978807,
+    "graph_receipt_wall_ns": 1792683567462421708,
+    "limitation": "graph observation does not prove which publisher sent this message when per-message GID is unavailable",
+    "per_message_gid_observed": false,
+    "per_message_publisher_inferred_from_graph": false,
+    "unique_publisher_at_graph_observation": {
+      "gid_hex": "011043aa18cf4217056a8ece000029030000000000000000",
+      "namespace": "_CREATED_BY_BARE_DDS_APP_",
+      "node": "_CREATED_BY_BARE_DDS_APP_",
+      "qos_depth": 1,
+      "qos_durability": "DurabilityPolicy.VOLATILE",
+      "qos_reliability": "ReliabilityPolicy.RELIABLE",
+      "type": "nav_msgs/msg/Odometry"
+    }
+  },
+  "publisher_gid_hex": null,
+  "publisher_graph_at_selection": [
+    {
+      "gid_hex": "011043aa18cf4217056a8ece000029030000000000000000",
+      "namespace": "_CREATED_BY_BARE_DDS_APP_",
+      "node": "_CREATED_BY_BARE_DDS_APP_",
+      "qos_depth": 1,
+      "qos_durability": "DurabilityPolicy.VOLATILE",
+      "qos_reliability": "ReliabilityPolicy.RELIABLE",
+      "type": "nav_msgs/msg/Odometry"
+    }
+  ],
+  "receipt_monotonic_ns": 10247416341860,
+  "receipt_wall_ns": 1792683567461784633,
+  "sequence_in_topic": 1,
+  "source_stamp_ns": 1792683567477388143,
+  "source_topic": "/utlidar/robot_odom",
+  "unavailable_dds_metadata_fields": [
+    "publisher_gid_hex",
+    "dds_source_timestamp_ns",
+    "dds_received_timestamp_ns"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "base_level_assumed": false,
+  "calibration_verified": false,
+  "cdr_bytes": 324,
+  "cdr_encoding": "cdr",
+  "cdr_provenance": "original raw subscription bytes, not reserialized",
+  "cdr_sha256": "b74e36441df79ded7a8eb5bc81bee6d898092c29fee146ec2a4cce3a0ce04033",
+  "clock_verified": false,
+  "dds_received_timestamp_ns": null,
+  "dds_source_timestamp_ns": null,
+  "diagnostic": {
+    "angular_velocity_xyz": [
+      -0.015978964045643806,
+      0.010652642697095871,
+      -0.0063915858045220375
+    ],
+    "diagnostic_ros_rpy_rad": [
+      -0.022414002822742477,
+      0.009361841716958641,
+      2.7664902255089685
+    ],
+    "linear_acceleration_xyz": [
+      -0.34835633635520935,
+      -0.3447650372982025,
+      9.430760383605957
+    ],
+    "orientation_covariance": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "orientation_supplied_by_message": true,
+    "orientation_xyzw": [
+      0.006688048850728577,
+      0.010137405150111639,
+      -0.9824010925946689,
+      -0.18638832467699107
+    ],
+    "quaternion_norm": 1.000000005643851
+  },
+  "frame": "body_imu",
+  "message_info_available": false,
+  "message_info_unavailable_reason": "raw callback supplied CDR only",
+  "message_type": "sensor_msgs/msg/Imu",
+  "publisher_evidence": {
+    "basis": "unique_publisher_graph_observation_only",
+    "graph_receipt_monotonic_ns": 10247415119680,
+    "graph_receipt_wall_ns": 1792683567460561205,
+    "limitation": "graph observation does not prove which publisher sent this message when per-message GID is unavailable",
+    "per_message_gid_observed": false,
+    "per_message_publisher_inferred_from_graph": false,
+    "unique_publisher_at_graph_observation": {
+      "gid_hex": "01101870589f1e61ae551808000016030000000000000000",
+      "namespace": "/",
+      "node": "xt16_fastlio_bridge",
+      "qos_depth": 5,
+      "qos_durability": "DurabilityPolicy.VOLATILE",
+      "qos_reliability": "ReliabilityPolicy.RELIABLE",
+      "type": "sensor_msgs/msg/Imu"
+    }
+  },
+  "publisher_gid_hex": null,
+  "publisher_graph_at_selection": [
+    {
+      "gid_hex": "01101870589f1e61ae551808000016030000000000000000",
+      "namespace": "/",
+      "node": "xt16_fastlio_bridge",
+      "qos_depth": 5,
+      "qos_durability": "DurabilityPolicy.VOLATILE",
+      "qos_reliability": "ReliabilityPolicy.RELIABLE",
+      "type": "sensor_msgs/msg/Imu"
+    }
+  ],
+  "receipt_monotonic_ns": 10247412638582,
+  "receipt_wall_ns": 1792683567458081163,
+  "sequence_in_topic": 1,
+  "source_stamp_ns": 1792683567439360126,
+  "source_topic": "/imu/body",
+  "unavailable_dds_metadata_fields": [
+    "publisher_gid_hex",
+    "dds_source_timestamp_ns",
+    "dds_received_timestamp_ns"
+  ]
+}

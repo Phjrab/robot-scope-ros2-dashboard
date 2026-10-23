@@ -1,0 +1,129 @@
+{
+  "base_level_assumed": false,
+  "calibration_verified": false,
+  "cdr_bytes": 352196,
+  "cdr_encoding": "cdr",
+  "cdr_provenance": "original raw subscription bytes, not reserialized",
+  "cdr_sha256": "12291b8540a14cb466c5d6c8fa5c31ef4d5a3d97160047f1ac9dd6745aef1775",
+  "clock_verified": false,
+  "cloud_layout": {
+    "fields": [
+      {
+        "count": 1,
+        "datatype": 7,
+        "name": "x",
+        "offset": 0
+      },
+      {
+        "count": 1,
+        "datatype": 7,
+        "name": "y",
+        "offset": 4
+      },
+      {
+        "count": 1,
+        "datatype": 7,
+        "name": "z",
+        "offset": 8
+      },
+      {
+        "count": 1,
+        "datatype": 7,
+        "name": "intensity",
+        "offset": 12
+      },
+      {
+        "count": 1,
+        "datatype": 7,
+        "name": "time",
+        "offset": 16
+      },
+      {
+        "count": 1,
+        "datatype": 4,
+        "name": "ring",
+        "offset": 20
+      }
+    ],
+    "height": 1,
+    "is_bigendian": false,
+    "is_dense": true,
+    "point_count": 16000,
+    "point_data_bytes": 352000,
+    "point_step": 22,
+    "row_step": 352000,
+    "width": 16000
+  },
+  "dds_received_timestamp_ns": null,
+  "dds_source_timestamp_ns": null,
+  "diagnostic": null,
+  "frame": "hesai_lidar",
+  "message_info_available": false,
+  "message_info_unavailable_reason": "raw callback supplied CDR only",
+  "message_type": "sensor_msgs/msg/PointCloud2",
+  "npz_sha256": "bc2e49cb1b53edee1c8c971f983e9fa0333be258c60af003e5583acabea7d4a6",
+  "pointcloud2_data_sha256": "2944102c537593592d5d2d57ab1a010a829e4be76878aaf670c1264ee28b8859",
+  "publisher_evidence": {
+    "basis": "unique_publisher_graph_observation_only",
+    "graph_receipt_monotonic_ns": 10254379534866,
+    "graph_receipt_wall_ns": 1792683574424977703,
+    "limitation": "graph observation does not prove which publisher sent this message when per-message GID is unavailable",
+    "per_message_gid_observed": false,
+    "per_message_publisher_inferred_from_graph": false,
+    "unique_publisher_at_graph_observation": {
+      "gid_hex": "01101870589f1e61ae551808000015030000000000000000",
+      "namespace": "/",
+      "node": "xt16_fastlio_bridge",
+      "qos_depth": 5,
+      "qos_durability": "DurabilityPolicy.VOLATILE",
+      "qos_reliability": "ReliabilityPolicy.RELIABLE",
+      "type": "sensor_msgs/msg/PointCloud2"
+    }
+  },
+  "publisher_gid_hex": null,
+  "publisher_graph_at_selection": [
+    {
+      "gid_hex": "01101870589f1e61ae551808000015030000000000000000",
+      "namespace": "/",
+      "node": "xt16_fastlio_bridge",
+      "qos_depth": 5,
+      "qos_durability": "DurabilityPolicy.VOLATILE",
+      "qos_reliability": "ReliabilityPolicy.RELIABLE",
+      "type": "sensor_msgs/msg/PointCloud2"
+    }
+  ],
+  "receipt_monotonic_ns": 10254378663351,
+  "receipt_wall_ns": 1792683574424106284,
+  "sequence_in_topic": 70,
+  "source_kind": "CONVERTED_POINTCLOUD2",
+  "source_semantics": "received PointCloud2 from existing upstream producer; not a packet archive",
+  "source_stamp_ns": 1792683574267504692,
+  "source_topic": "/velodyne_points",
+  "unavailable_dds_metadata_fields": [
+    "publisher_gid_hex",
+    "dds_source_timestamp_ns",
+    "dds_received_timestamp_ns"
+  ],
+  "units": "m",
+  "units_basis": "ROS_POINTCLOUD2_CONVENTION_UNVERIFIED",
+  "xyz_count": 16000,
+  "xyz_encoding": "float64_le_xyz_row_major_source_order_all_rows",
+  "xyz_f64le_sha256": "b1fb6d864e97db24f5ee661610093f89c9e494467eb756adab3417d72b72251e",
+  "xyz_nonfinite_count": 0,
+  "xyz_sampling_applied": false,
+  "xyz_statistics": {
+    "max_xyz": [
+      3.3014028072357178,
+      8.131638526916504,
+      2.0733377933502197
+    ],
+    "min_xyz": [
+      -5.0730881690979,
+      -6.859531402587891,
+      -0.8990727066993713
+    ],
+    "nonfinite_count": 0,
+    "point_count": 16000
+  },
+  "xyz_transform_applied": false
+}
