@@ -207,7 +207,9 @@ export class LiveMapObservation {
       && !loaded.demo_snapshot && loaded.revision === meta.revision
       ? { id: meta.id, revision: meta.revision, frame: loaded.frame_id,
         name: meta.name, point_count: meta.point_count, saved_at: meta.modified_at } : null;
-    if (JSON.stringify(next) !== JSON.stringify(this.map)) this.invalidate('MAP_CHANGED');
+    // Catalogue labels/counts may refresh without changing the pinned reference.
+    if (Boolean(next) !== Boolean(this.map)
+        || ['id', 'revision', 'frame'].some(key => next?.[key] !== this.map?.[key])) this.invalidate('MAP_CHANGED');
     this.map = next;
   }
   ingestPose(value) {

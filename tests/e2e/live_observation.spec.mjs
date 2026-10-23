@@ -29,12 +29,19 @@ function binary(seq, observation, frameId='odom') {
 }
 async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
-    session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false }, writes=[], errors=[];
+    session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false,
+    x:0, yaw:0 }, writes=[], errors=[];
   const evidence=kind=>subscriptionEvidence?{kind,session:state[`${kind}Session`]??state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
+  let poseSequence=0, cloudSequence=0;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=> { if(r.method()!=='GET') writes.push(new URL(r.url()).pathname); });
-  const backend=await installDashboardBackend(page,{ pointcloudFrame:seq=> {
-    if(!state.streaming) return null; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud')); return binary(seq,state.lastCloud,imu?'camera_init':'odom');
+  const backend=await installDashboardBackend(page,{ pointcloudFrame:()=> {
+    if(!state.streaming) return null;
+    const seq=++cloudSequence; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud'));
+    // FAST-LIO supplies a matching pose for each registered scan. Independent
+    // timers alone could omit that exact stamp and fail setup on a busy runner.
+    if(imu) state.emitPose?.(state.lastCloud.source_stamp_ns);
+    return binary(seq,state.lastCloud,imu?'camera_init':'odom');
   }});
   backend.on('/api/v1/saved-maps',({json})=>json({maps:[meta],total_size_bytes:1000}));
   backend.on(meta.data_url,({json})=>json({...meta,map_id:id,seq:1,points,units:'m',source_points:5}));
@@ -61,9 +68,16 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
       ...(provisional?{inlier_count:80}:{})}});
   });
   await page.routeWebSocket('**/api/v1/ws/pose',socket=>{
-    let seq=0; const send=()=>{ if(state.streaming) socket.send(JSON.stringify({seq:++seq,topic:'/Odometry',frame_id:imu?'camera_init':'odom',child_frame_id:imu?'body':'base_link',
-      state:'ok',age_s:0,position:{x:state.jump?5:0,y:0,z:.3},orientation:{x:0,y:0,z:0,w:1},observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&state.lastCloud?{source_stamp_ns:state.lastCloud.source_stamp_ns}:{})}})); };
-    send(); const timer=setInterval(send,150); socket.onClose(()=>clearInterval(timer));
+    const send=(sourceStamp=state.lastCloud?.source_stamp_ns)=>{ if(state.streaming) {
+      const seq=++poseSequence;
+      socket.send(JSON.stringify({seq,topic:'/Odometry',frame_id:imu?'camera_init':'odom',child_frame_id:imu?'body':'base_link',
+        state:'ok',age_s:0,position:{x:state.jump?5:state.x,y:0,z:.3},orientation:{x:0,y:0,z:Math.sin(state.yaw/2),w:Math.cos(state.yaw/2)},
+        observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&sourceStamp?{source_stamp_ns:sourceStamp}:{})}}));
+    } };
+    state.emitPose=send;
+    send(); const timer=setInterval(()=>send(),150); socket.onClose(()=>{
+      clearInterval(timer); if(state.emitPose===send) state.emitPose=null;
+    });
   });
   await page.goto('/#maps');
   await page.locator('.saved-map-item').filter({hasText:meta.name}).click();
@@ -287,29 +301,39 @@ test('same-start IMU estimate keeps current pose on fit failure and hides on sta
   expect(errors).toEqual([]);
 });
 
-test('same revision reload retains the current connection; changed revision still clears it', async({page})=>{
-  const {backend,errors}=await fixture(page,{imu:true});
+test('moving IMU trail survives same revision and catalogue refresh; changed revision still clears it', async({page})=>{
+  const {state,backend,writes,errors}=await fixture(page,{imu:true});
   await page.locator('#savedLiveContinuous').check();
   await page.locator('#savedLiveConfirm').check();
   await page.locator('#savedLiveAnchor').click();
   await page.locator('#savedLiveRegistration').check();
   await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
   await page.locator('#savedLiveRegistration').uncheck();
+  const updated={...meta,name:'SYNTHETIC refreshed label',modified_at:'2026-10-23T08:00:00Z',point_count:6};
+  backend.on('/api/v1/saved-maps',({json})=>json({maps:[updated],total_size_bytes:1000}));
   let release, requested=false;
   const pending=new Promise(resolve=>{release=resolve;});
   backend.on(meta.data_url,async({json})=>{
     requested=true; await pending;
-    return json({...meta,map_id:id,seq:1,points,units:'m',source_points:5});
+    return json({...updated,map_id:id,seq:1,points,units:'m',source_points:6});
   });
   // A completed mapping readback clears the display cache and refreshes the
   // catalogue even when the selected immutable map is unchanged.
   backend.state.mapping.operation={state:'succeeded',kind:'save',job_id:'reload-same',map_name:'synthetic'};
   await expect.poll(()=>requested).toBe(true);
+  state.x=.3; state.yaw=Math.PI/6;
   await page.waitForTimeout(350); // Let multiple live render ticks see the pending reload.
   await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
   await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.sensorObservationOverlay?.pose.origin[0])).toBeCloseTo(.3, 4);
   release();
   await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
+  state.x=.5;
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.sensorObservationOverlay?.pose.origin[0])).toBeCloseTo(.5, 4);
+  const moved=await page.evaluate(()=>window.observationScene.sensorObservationOverlay);
+  expect(Math.atan2(moved.pose.axes[0][1],moved.pose.axes[0][0])).toBeCloseTo(Math.PI/6, 4);
+  expect(moved.trail.length).toBeGreaterThan(1);
+  expect(moved.trail[0].origin[0]).toBeCloseTo(0, 4);
 
   const changed={...meta,revision:'e'.repeat(64)};
   backend.on('/api/v1/saved-maps',({json})=>json({maps:[changed],total_size_bytes:1000}));
@@ -324,5 +348,7 @@ test('same revision reload retains the current connection; changed revision stil
   await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   releaseChanged();
   await expect(page.locator('#savedLiveState')).toHaveText('MAP_CHANGED');
+  expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay)).toBeNull();
+  expect(writes.every(path=>path==='/api/v1/observations/map-alignment')).toBe(true);
   expect(errors).toEqual([]);
 });

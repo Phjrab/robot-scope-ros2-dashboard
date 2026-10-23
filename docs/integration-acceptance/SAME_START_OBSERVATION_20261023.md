@@ -659,6 +659,11 @@ deployment manifests/backups, expiry readback, and `observer-log-final.tar`
 outside Git. The operator was told the robot could be shut down normally after
 the observer exited and final logs were copied.
 
+Offline follow-up: [OFFLINE_MOTION_FOLLOWUP_20261023.md](OFFLINE_MOTION_FOLLOWUP_20261023.md)
+records metadata-only map refresh retention, combined movement/transport tests,
+private metadata replays and the prepared two-static-file bundle. No device
+deployment or new observation run was performed during that follow-up.
+
 Next device step: apply the tested same-revision reload fix under a new explicit
 deployment/run approval, then verify one continuous manually moved UI segment.
 Until then, A–F retain their earlier stationary evidence; G is **attempted but

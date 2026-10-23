@@ -120,6 +120,49 @@ test('source epoch, map revision, reversal and jump clear candidate and exported
   }
 });
 
+test('same map identity retains the accepted correction and moving trail across catalogue metadata refresh', () => {
+  const { model, setNow } = setup();
+  model.registrationEnabled = true;
+  assert.equal(model.applyAlignment(result(model), model.generation), true);
+  model.snapshot();
+  setNow(300);
+  model.ingestPose(pose(2, { position: { x: 2.2, y: 3, z: .5 } }));
+  model.ingestCloud(cloud(2));
+  const before = model.snapshot(), generation = model.generation;
+  const anchor = model.anchor, registration = model.registration;
+  const samples = structuredClone(model.exportRecord().samples);
+  assert.ok(before.trail.length > 1);
+  const updated = { ...map, name: 'Updated catalogue label', point_count: 41073, modified_at: '2026-10-23T08:00:00Z' };
+  model.setMap(updated, { revision: map.revision, frame_id: 'map', points: [1, 2, 3] });
+  const after = model.snapshot();
+  assert.equal(model.generation, generation);
+  assert.equal(model.anchor, anchor); assert.equal(model.registration, registration);
+  assert.deepEqual(after.pose, before.pose); assert.deepEqual(after.trail, before.trail);
+  assert.deepEqual(model.exportRecord().samples, samples);
+  assert.equal(after.map.name, updated.name); assert.equal(after.map.point_count, updated.point_count);
+  assert.equal(after.map.saved_at, updated.modified_at);
+  assert.equal(after.status, 'SCAN_TO_MAP_CANDIDATE_UNVERIFIED');
+});
+
+test('changed map identity, frame or unavailable reference still clears the connection', () => {
+  const loaded = { revision: map.revision, frame_id: 'map', points: [1, 2, 3] };
+  for (const [meta, reference] of [
+    [{ ...map, id: 'e'.repeat(24) }, loaded],
+    [{ ...map, revision: 'e'.repeat(64) }, { ...loaded, revision: 'e'.repeat(64) }],
+    [map, { ...loaded, frame_id: 'other-map-frame' }],
+    [map, { ...loaded, revision: 'e'.repeat(64) }],
+    [map, { ...loaded, demo_snapshot: true }],
+    [map, { ...loaded, points: [] }], [map, null], [null, loaded],
+  ]) {
+    const { model } = setup(); model.snapshot();
+    const generation = model.generation;
+    model.setMap(meta, reference);
+    assert.ok(model.generation > generation); assert.equal(model.anchor, null);
+    assert.equal(model.snapshot().pose, null);
+    assert.deepEqual(model.exportRecord().samples, []); assert.deepEqual(model.trail, []);
+  }
+});
+
 test('stale pose uses backend age plus browser elapsed and duplicates do not refresh input', () => {
   const { model, setNow } = setup();
   model.ingestPose(pose(2, { age_s: .9 })); setNow(101);

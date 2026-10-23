@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPoseTransport, createSocketWatchdog } from '../robot_dashboard/static/features/sensors/socket_watchdog.js';
 import { createPointcloudTransport } from '../robot_dashboard/static/features/sensors/pointcloud_transport.js';
+import { LiveMapObservation } from '../robot_dashboard/static/features/maps/live_observation_contract.js';
 
 function fixture() {
   let now = 0, id = 0;
@@ -21,7 +22,7 @@ function fixture() {
     const socket = { readyState: 1, close() { this.readyState = 3; this.onclose?.(); } };
     sockets.push(socket); return socket;
   };
-  return { setTimeout, clearTimeout, tick, timers, sockets, socketFactory, frames,
+  return { now: () => now, setTimeout, clearTimeout, tick, timers, sockets, socketFactory, frames,
     requestAnimationFrame(fn) { const key = ++id; frames.set(key, fn); return key; },
     cancelAnimationFrame(key) { frames.delete(key); } };
 }
@@ -106,4 +107,52 @@ test('healthy pointcloud input reuses one socket and releasing demand cancels qu
   t.replaceDemand([]); queued(); f.tick(10000);
   assert.equal(values.length, 19); assert.equal(f.timers.size, 0);
   t.destroy();
+});
+
+test('moving IMU estimate survives brief socket silence, paused RAF and same-map refresh but never stale input', () => {
+  const f = fixture(), model = new LiveMapObservation(f.now);
+  const map = { id: 'a'.repeat(24), revision: 'b'.repeat(64), kind: 'pointcloud3d' };
+  const reference = { revision: map.revision, frame_id: 'map', points: [1, 2, 3] };
+  model.enable(true); model.setContinuousEstimate(true); model.setMap(map, reference);
+  const observed = (seq, epoch) => ({ observer_id: 'd'.repeat(32), publisher_epoch: epoch.repeat(32),
+    publisher_gid: epoch.repeat(32), publisher_count: 1, identity_status: 'OBSERVED_PUBLISHER',
+    source_stamp_ns: String(1792309179130175352n + BigInt(seq)), received_monotonic_s: 100 + f.now() / 1000,
+    receipt_clock: 'OBSERVER_HOST_MONOTONIC' });
+  const pt = createPoseTransport({ ...f, url: 'ws://test/pose', onSnapshot: v => model.ingestPose(v) });
+  const ct = createPointcloudTransport({ ...f, fetchFn: async () => ({ status: 204, ok: true }),
+    // Synthetic geometry exercises transport/state only, never registration accuracy.
+    decodeFrame: b => JSON.parse(new TextDecoder().decode(b)) });
+  pt.start(); ct.subscribe('model', v => model.ingestCloud(v)); ct.replaceDemand(['maps']);
+  function deliver(poseSocket, cloudSocket, seq, x, yaw = 0, epoch = 'c') {
+    poseSocket.onmessage({ data: JSON.stringify({ seq, topic: '/Odometry', frame_id: 'camera_init', child_frame_id: 'body',
+      state: 'ok', age_s: 0, position: { x, y: 0, z: .3 }, orientation: { x: 0, y: 0, z: Math.sin(yaw / 2), w: Math.cos(yaw / 2) },
+      observation: observed(seq, epoch) }) });
+    cloudSocket.onmessage({ data: new TextEncoder().encode(JSON.stringify({ seq, stream_id: 'same-source',
+      topic: '/cloud_registered', pipeline_stage: 'registered', frame_id: 'camera_init', units: 'm',
+      points: [1, 2, 3], observation: observed(seq, epoch) })).buffer });
+  }
+  const [oldPose, oldCloud] = f.sockets;
+  deliver(oldPose, oldCloud, 1, 0); f.tick(100);
+  model.setAnchor({ x: 0, y: 0, z: .3, roll: 0, pitch: 0, yaw: 0 }, true); model.snapshot();
+  f.tick(250); deliver(oldPose, oldCloud, 2, .2); f.tick(100); model.snapshot();
+  const generation = model.generation;
+  f.tick(600); // Both watchdogs replace sockets, without changing publisher identity.
+  assert.equal(f.sockets.length, 4);
+  model.setMap({ ...map, name: 'Refreshed label', point_count: 41073 }, reference);
+  deliver(oldPose, oldCloud, 99, 99, 0, 'e'); // Fenced late callbacks must not change source or pose.
+  deliver(f.sockets[2], f.sockets[3], 3, .4, .3); f.tick(100);
+  const moving = model.snapshot();
+  assert.equal(model.generation, generation); assert.equal(moving.status, 'SAME_START_ODOMETRY_ESTIMATE');
+  assert.equal(moving.pose.x, .4); assert.ok(Math.abs(moving.pose.yaw - .3) < 1e-8);
+  assert.equal(moving.trail[0].x, 0); assert.equal(moving.trail.length, 3);
+  assert.equal(moving.source_stamp_ns, String(1792309179130175355n));
+  assert.equal(model.cloud.value.observation.received_monotonic_s, 101.05);
+  f.tick(1001);
+  const stale = model.snapshot();
+  assert.equal(stale.status, 'STALE'); assert.equal(stale.pose, null); assert.equal(model.anchor, null);
+  deliver(f.sockets[4], f.sockets[5], 4, .5); f.tick(100);
+  assert.equal(model.snapshot().pose, null, 'fresh recovery cannot silently restore an invalidated anchor');
+  assert.deepEqual(model.trail, []);
+  pt.destroy(); ct.destroy();
+  assert.equal(f.timers.size, 0);
 });

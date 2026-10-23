@@ -1,5 +1,9 @@
 # Robot Scope 인계 갱신 — 2026-10-23
 
+**최신 오프라인 후속:** 동일 지도 정보 갱신 시 연결 유지 수정, 이동·수신 복구
+재현, 미수렴 분석 한계와 미배포 2파일 후보는
+[OFFLINE_MOTION_FOLLOWUP_20261023.md](OFFLINE_MOTION_FOLLOWUP_20261023.md)를 따른다.
+
 **최신 저장소 통합:** 열린 브랜치와 최근 UI 병합·검사·정리 내역은
 [MAIN_INTEGRATION_20261023.md](MAIN_INTEGRATION_20261023.md)를 따른다.
 아래 내용은 각 시점의 장비/분석 기록이며 이번 Git 통합은 장비 배포가 아니다.

@@ -1,5 +1,9 @@
 # Latest follow-up — 2026-10-23 passive source capture preserved before power-off
 
+Later offline motion follow-up: see [OFFLINE_MOTION_FOLLOWUP_20261023.md](OFFLINE_MOTION_FOLLOWUP_20261023.md)
+for map identity retention, combined movement/transport checks, metadata replay
+limits and the prepared, undeployed two-static-file candidate.
+
 Repository integration update: see [MAIN_INTEGRATION_20261023.md](MAIN_INTEGRATION_20261023.md)
 for the later branch/UI merge, validation and branch cleanup. The records below
 remain historical device/analysis evidence; the Git integration does not deploy to the robot.
