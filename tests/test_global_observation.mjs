@@ -18,6 +18,20 @@ function completed(changes = {}) {
     captured_context: capture, observation: { status: 'OBSERVATION_ONLY_UNVERIFIED', selected_candidate: null,
       rejection_reasons: ['REFINEMENT_NOT_STATIONARY'], candidates: [{ rmse_m: .07, gate_reasons: ['RMSE_ABOVE_0.05M'] }] }, ...flags }, ...changes });
 }
+function completedWithContexts(captured, resultCaptured) {
+  const value = completed();
+  return { ...value, captured_context: captured, result: { ...value.result, captured_context: resultCaptured } };
+}
+function reorderObjectKeys(value) {
+  if (Array.isArray(value)) return value.map(reorderObjectKeys);
+  return value !== null && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorderObjectKeys(item)]))
+    : value;
+}
+function nestedCapture() {
+  return { ...capture, profile: { id: 'synthetic-profile', stream: { width: 640, height: 480, fps: 30 },
+    channels: [{ name: 'left', enabled: true }, { name: 'right', enabled: false }], optional: null } };
+}
 function status(value = null, available = true) { return { schema: 'robot-scope.raw-global-observations.v1', generation: value?.generation || 0,
   provider: { available, reason: available ? null : 'TRUSTED_LOCAL_RUNNER_UNAVAILABLE', backend_id: 'synthetic' },
   active: value?.worker_active ? value : null, latest: value, ...flags }; }
@@ -110,6 +124,49 @@ test('job contract rejects unsafe current/body results and mismatched map, frame
     assert.equal(validateGlobalJob(completed({ captured_context: { ...capture, ...change } }), identity), false);
   }
   assert.equal(validateGlobalJob(completed(), identity, { observer_epoch: 'changed' }), false);
+});
+
+test('captured contexts accept recursively reordered object keys without changing array order', () => {
+  const captured = nestedCapture(), resultCaptured = reorderObjectKeys(captured);
+  assert.notEqual(JSON.stringify(captured), JSON.stringify(resultCaptured));
+  assert.equal(validateGlobalJob(completedWithContexts(captured, resultCaptured), globalMapIdentity(map)), true);
+});
+
+test('captured contexts still reject changed values, types, missing/extra keys and reordered arrays', () => {
+  const captured = nestedCapture();
+  const changes = [
+    ['frame', value => { value.source_frame = 'other_sensor'; }],
+    ['epoch', value => { value.observer_epoch = 'other_epoch'; }],
+    ['stamp', value => { value.source_stamp_ns = '1792309179130175353'; }],
+    ['profile', value => { value.profile.id = 'other-profile'; }],
+    ['unknown key', value => { value.unknown = { source: 'unexpected' }; }],
+    ['missing key', value => { delete value.profile; }],
+    ['nested missing key', value => { delete value.profile.stream.fps; }],
+    ['nested extra key', value => { value.profile.stream.format = 'unexpected'; }],
+    ['array order', value => { value.profile.channels.reverse(); }],
+    ['primitive type', value => { value.profile.stream.width = '640'; }],
+    ['array/object type', value => { value.profile.channels = { 0: value.profile.channels[0], 1: value.profile.channels[1] }; }],
+    ['null/object type', value => { value.profile.optional = {}; }],
+  ];
+  for (const [label, change] of changes) {
+    const resultCaptured = reorderObjectKeys(captured);
+    change(resultCaptured);
+    assert.equal(validateGlobalJob(completedWithContexts(captured, resultCaptured), globalMapIdentity(map)), false, label);
+  }
+});
+
+test('controller adopts a completed historical record whose captured context object keys were reordered', async () => {
+  const captured = nestedCapture(), value = completedWithContexts(captured, reorderObjectKeys(captured));
+  let finished = false;
+  const { model, calls } = controller(async (_url, options) => options.method === 'POST'
+    ? response(job({ captured_context: captured })) : response(status(finished ? value : null)));
+  await model.poll(); await model.start(); finished = true; await model.poll();
+  assert.equal(model.snapshot().error, '');
+  assert.deepEqual(model.snapshot().record, value);
+  assert.equal(model.snapshot().record.historical_only, true);
+  assert.equal(model.snapshot().record.current_result, null);
+  assert.equal(model.pending, null);
+  assert.equal(calls.filter(call => call.method === 'POST').length, 1);
 });
 
 test('a later server generation clears export without promoting a historical result', async () => {
