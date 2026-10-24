@@ -1,0 +1,96 @@
+         1452273 function calls in 2.616 seconds
+
+   Ordered by: cumulative time
+   List reduced from 86 to 40 due to restriction <40>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.090    0.090    2.616    2.616 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py:25(build_path)
+    73620    0.100    0.000    2.192    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py:33(allowed)
+    74278    1.371    0.000    2.121    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:129(polygon_collision)
+    18405    0.014    0.000    1.777    0.000 {built-in method builtins.all}
+    73620    0.125    0.000    1.764    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py:40(<genexpr>)
+   361349    0.259    0.000    0.259    0.000 {built-in method builtins.max}
+   298527    0.255    0.000    0.255    0.000 {built-in method builtins.min}
+    74278    0.130    0.000    0.234    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:116(polygon)
+        1    0.082    0.082    0.141    0.141 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:82(plan)
+    74284    0.086    0.000    0.086    0.000 {built-in method numpy.asarray}
+        2    0.006    0.003    0.041    0.021 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_morphology.py:2435(distance_transform_edt)
+        2    0.028    0.014    0.028    0.014 {built-in method scipy.ndimage._nd_image.euclidean_feature_transform}
+    73660    0.011    0.000    0.011    0.000 {method 'get' of 'dict' objects}
+    73882    0.011    0.000    0.011    0.000 {built-in method math.hypot}
+    74278    0.009    0.000    0.009    0.000 {built-in method math.cos}
+    74278    0.008    0.000    0.008    0.000 {built-in method math.sin}
+      317    0.003    0.000    0.008    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:120(sat_overlap)
+    74277    0.006    0.000    0.006    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/multiarray.py:391(where)
+    10835    0.004    0.000    0.004    0.000 {built-in method _heapq.heappop}
+        4    0.003    0.001    0.003    0.001 {method 'astype' of 'numpy.ndarray' objects}
+      332    0.002    0.000    0.003    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1219(roll)
+        1    0.000    0.000    0.002    0.002 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py:1874(maximum_filter)
+        2    0.002    0.001    0.002    0.001 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1779(indices)
+        1    0.000    0.000    0.002    0.002 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py:1735(_min_or_max_filter)
+        2    0.000    0.000    0.002    0.001 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py:1678(maximum_filter1d)
+        2    0.002    0.001    0.002    0.001 {built-in method scipy.ndimage._nd_image.min_or_max_filter1d}
+      411    0.000    0.000    0.002    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2241(clip)
+    11056    0.002    0.000    0.002    0.000 {built-in method _heapq.heappush}
+      411    0.000    0.000    0.002    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:51(_wrapfunc)
+      411    0.000    0.000    0.001    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:41(_wrapit)
+        3    0.001    0.000    0.001    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      411    0.000    0.000    0.001    0.000 {method 'clip' of 'numpy.ndarray' objects}
+      954    0.001    0.000    0.001    0.000 {built-in method numpy.array}
+      332    0.000    0.000    0.001    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1420(normalize_axis_tuple)
+      411    0.001    0.000    0.001    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/_methods.py:98(_clip)
+       45    0.000    0.000    0.000    0.000 {method 'copy' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.000    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:98(zeros_like)
+      664    0.000    0.000    0.000    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1469(<genexpr>)
+        4    0.000    0.000    0.000    0.000 {built-in method numpy.zeros}
+      471    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+
+
+         1452273 function calls in 2.616 seconds
+
+   Ordered by: internal time
+   List reduced from 86 to 40 due to restriction <40>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    74278    1.371    0.000    2.121    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:129(polygon_collision)
+   361349    0.259    0.000    0.259    0.000 {built-in method builtins.max}
+   298527    0.255    0.000    0.255    0.000 {built-in method builtins.min}
+    74278    0.130    0.000    0.234    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:116(polygon)
+    73620    0.125    0.000    1.764    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py:40(<genexpr>)
+    73620    0.100    0.000    2.192    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py:33(allowed)
+        1    0.090    0.090    2.616    2.616 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py:25(build_path)
+    74284    0.086    0.000    0.086    0.000 {built-in method numpy.asarray}
+        1    0.082    0.082    0.141    0.141 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:82(plan)
+        2    0.028    0.014    0.028    0.014 {built-in method scipy.ndimage._nd_image.euclidean_feature_transform}
+    18405    0.014    0.000    1.777    0.000 {built-in method builtins.all}
+    73660    0.011    0.000    0.011    0.000 {method 'get' of 'dict' objects}
+    73882    0.011    0.000    0.011    0.000 {built-in method math.hypot}
+    74278    0.009    0.000    0.009    0.000 {built-in method math.cos}
+    74278    0.008    0.000    0.008    0.000 {built-in method math.sin}
+    74277    0.006    0.000    0.006    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/multiarray.py:391(where)
+        2    0.006    0.003    0.041    0.021 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_morphology.py:2435(distance_transform_edt)
+    10835    0.004    0.000    0.004    0.000 {built-in method _heapq.heappop}
+        4    0.003    0.001    0.003    0.001 {method 'astype' of 'numpy.ndarray' objects}
+      317    0.003    0.000    0.008    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:120(sat_overlap)
+        2    0.002    0.001    0.002    0.001 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1779(indices)
+        2    0.002    0.001    0.002    0.001 {built-in method scipy.ndimage._nd_image.min_or_max_filter1d}
+      332    0.002    0.000    0.003    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1219(roll)
+    11056    0.002    0.000    0.002    0.000 {built-in method _heapq.heappush}
+        3    0.001    0.000    0.001    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      954    0.001    0.000    0.001    0.000 {built-in method numpy.array}
+      411    0.001    0.000    0.001    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/_methods.py:98(_clip)
+      411    0.000    0.000    0.001    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:41(_wrapit)
+      332    0.000    0.000    0.001    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1420(normalize_axis_tuple)
+      411    0.000    0.000    0.002    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:51(_wrapfunc)
+      411    0.000    0.000    0.002    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2241(clip)
+       45    0.000    0.000    0.000    0.000 {method 'copy' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.000    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:98(zeros_like)
+      411    0.000    0.000    0.001    0.000 {method 'clip' of 'numpy.ndarray' objects}
+        4    0.000    0.000    0.000    0.000 {built-in method numpy.zeros}
+      471    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+      822    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        1    0.000    0.000    0.000    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:247(ones_like)
+      823    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+      411    0.000    0.000    0.000    0.000 {built-in method math.atan2}
+
+

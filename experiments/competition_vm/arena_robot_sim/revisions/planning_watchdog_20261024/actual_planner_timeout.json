@@ -1,0 +1,10 @@
+{
+  "status": "TIMEOUT",
+  "elapsed_s": 0.11142237399963051,
+  "planner_budget_s": 0.1,
+  "worker_cleaned": true,
+  "output_samples": 11,
+  "all_recorded_outputs_zero_after_launch": true,
+  "source": "frozen curved_progress_20261024 build_path with observed initial OPEN grid; no hidden truth raster",
+  "limitations": "real clock harness, not integrated robot/ROS navigation"
+}

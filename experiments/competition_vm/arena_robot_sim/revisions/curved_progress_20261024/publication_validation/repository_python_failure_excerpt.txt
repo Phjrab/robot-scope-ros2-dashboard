@@ -1,0 +1,62 @@
+All 25 error headings from the current run:
+ERROR: test_depth_and_stereo_share_broker_reservation_and_capture_retry (test_depth_capture_integration.DepthBrokerTests.test_depth_and_stereo_share_broker_reservation_and_capture_retry)
+ERROR: test_busy_operation_rejects_save_stop_release_and_cancel_remains_available (test_slam_broker.SlamBrokerTests.test_busy_operation_rejects_save_stop_release_and_cancel_remains_available)
+ERROR: test_camera_probe_failure_keeps_specific_resource_reason_over_private_broker (test_slam_broker.SlamBrokerTests.test_camera_probe_failure_keeps_specific_resource_reason_over_private_broker)
+ERROR: test_capability_and_preflight_never_acquire_camera_or_start_engine (test_slam_broker.SlamBrokerTests.test_capability_and_preflight_never_acquire_camera_or_start_engine)
+ERROR: test_cleanup_child_failure_keeps_physical_camera_reserved (test_slam_broker.SlamBrokerTests.test_cleanup_child_failure_keeps_physical_camera_reserved)
+ERROR: test_foreign_or_unavailable_peer_uid_is_denied_before_dispatch (test_slam_broker.SlamBrokerTests.test_foreign_or_unavailable_peer_uid_is_denied_before_dispatch)
+ERROR: test_localize_epoch_rotation_rejects_old_epoch_status (test_slam_broker.SlamBrokerTests.test_localize_epoch_rotation_rejects_old_epoch_status)
+ERROR: test_lost_release_ack_can_retry_without_releasing_another_owner (test_slam_broker.SlamBrokerTests.test_lost_release_ack_can_retry_without_releasing_another_owner)
+ERROR: test_lost_reserve_ack_is_reconciled_against_real_broker_owner (test_slam_broker.SlamBrokerTests.test_lost_reserve_ack_is_reconciled_against_real_broker_owner)
+ERROR: test_native_errors_are_sanitized_and_invalid_hints_never_reach_engine (test_slam_broker.SlamBrokerTests.test_native_errors_are_sanitized_and_invalid_hints_never_reach_engine)
+ERROR: test_native_path_symlink_unsafe_directory_and_root_are_rejected (test_slam_broker.SlamBrokerTests.test_native_path_symlink_unsafe_directory_and_root_are_rejected)
+ERROR: test_native_paths_are_private_server_staging_and_scratch_only (test_slam_broker.SlamBrokerTests.test_native_paths_are_private_server_staging_and_scratch_only)
+ERROR: test_operation_allowlist_and_operation_specific_extra_fields (test_slam_broker.SlamBrokerTests.test_operation_allowlist_and_operation_specific_extra_fields)
+ERROR: test_private_socket_permissions_parent_and_existing_socket_are_enforced (test_slam_broker.SlamBrokerTests.test_private_socket_permissions_parent_and_existing_socket_are_enforced)
+ERROR: test_protocol_rejects_oversize_malformed_and_nonfinite_requests (test_slam_broker.SlamBrokerTests.test_protocol_rejects_oversize_malformed_and_nonfinite_requests)
+ERROR: test_proxy_cancellation_reaches_running_broker_operation (test_slam_broker.SlamBrokerTests.test_proxy_cancellation_reaches_running_broker_operation)
+ERROR: test_proxy_rejects_malformed_response_envelope_without_leaking_parser_exceptions (test_slam_broker.SlamBrokerTests.test_proxy_rejects_malformed_response_envelope_without_leaking_parser_exceptions)
+ERROR: test_reservation_is_idempotent_and_survives_proxy_client_disconnect (test_slam_broker.SlamBrokerTests.test_reservation_is_idempotent_and_survives_proxy_client_disconnect)
+ERROR: test_resource_conflict_keeps_bounded_details_and_status (test_slam_broker.SlamBrokerTests.test_resource_conflict_keeps_bounded_details_and_status)
+ERROR: test_response_limit_and_exact_nanosecond_stamp_are_preserved (test_slam_broker.SlamBrokerTests.test_response_limit_and_exact_nanosecond_stamp_are_preserved)
+ERROR: test_session_validation_and_old_generation_cannot_steal_ownership (test_slam_broker.SlamBrokerTests.test_session_validation_and_old_generation_cannot_steal_ownership)
+ERROR: test_start_failure_does_not_implicitly_release_camera_under_a_child (test_slam_broker.SlamBrokerTests.test_start_failure_does_not_implicitly_release_camera_under_a_child)
+ERROR: test_start_stop_and_release_confirm_child_cleanup_before_unlocking (test_slam_broker.SlamBrokerTests.test_start_stop_and_release_confirm_child_cleanup_before_unlocking)
+ERROR: test_uncertain_cleanup_confirmed_foreign_owner_is_left_untouched (test_slam_broker.SlamBrokerTests.test_uncertain_cleanup_confirmed_foreign_owner_is_left_untouched)
+ERROR: test_unreachable_cleanup_retains_uncertain_reservation (test_slam_broker.SlamBrokerTests.test_unreachable_cleanup_retains_uncertain_reservation)
+
+Representative complete socket-error traceback:
+ERROR: test_depth_and_stereo_share_broker_reservation_and_capture_retry (test_depth_capture_integration.DepthBrokerTests.test_depth_and_stereo_share_broker_reservation_and_capture_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b09eacf6919d/robot-scope-d0-demo-publish-20261024/tests/test_depth_capture_integration.py", line 106, in setUp
+    broker_fixture.SlamBrokerTests.setUp(self)
+  File "/workspace/scratch/b09eacf6919d/robot-scope-d0-demo-publish-20261024/tests/test_slam_broker.py", line 108, in setUp
+    self.server = BrokerServer(self.socket_path, self.dispatcher)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/b09eacf6919d/robot-scope-d0-demo-publish-20261024/robot_dashboard/slam_broker.py", line 271, in __init__
+    super().__init__(str(path), BrokerHandler)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socketserver.py", line 453, in __init__
+    self.socket = socket.socket(self.address_family,
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 233, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+Manifest failure and final result:
+FAIL: test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion (test_competition_mission.CompetitionContractTests.test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b09eacf6919d/robot-scope-d0-demo-publish-20261024/tests/test_competition_mission.py", line 97, in test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion
+    self.assertEqual(vm_evidence()['traffic_signals']['scope'], 'SYNTHETIC_ONLY')
+AssertionError: 'UNAVAILABLE_OR_CHANGED' != 'SYNTHETIC_ONLY'
+- UNAVAILABLE_OR_CHANGED
++ SYNTHETIC_ONLY
+
+
+----------------------------------------------------------------------
+Ran 2691 tests in 90.659s
+
+FAILED (failures=1, errors=25, skipped=1)
+{"status": "BLOCKED", "output": "/tmp/tmptfvm3s3u/blocked.json"}
+{"status": "COMPUTED_DECLARED_INPUTS", "output": "/tmp/tmpdiu2rib6/result.json"}

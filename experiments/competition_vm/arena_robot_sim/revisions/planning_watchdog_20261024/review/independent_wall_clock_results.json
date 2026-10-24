@@ -1,0 +1,17 @@
+[
+  {
+    "test": "controller_stall",
+    "first_zero_elapsed_s": 0.10105390199987596,
+    "elapsed_s": 0.18017030500050168
+  },
+  {
+    "test": "cpu_busy_worker",
+    "elapsed_s": 0.10845241700008046,
+    "zero_samples": 10
+  },
+  {
+    "test": "planner_timeout",
+    "elapsed_s": 0.10854234099952009,
+    "status": "TIMEOUT"
+  }
+]

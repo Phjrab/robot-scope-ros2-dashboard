@@ -1,0 +1,31 @@
+{
+  "optimization": "Per-build_path lru_cache(maxsize=None) of allowed() keyed by exact (x,y) float tuple; no rounding, unchanged geometry, fresh cache for each call.",
+  "scope": "Initial OPEN fixture only; no full-run, other-layout, hardware or concurrency qualification",
+  "unprofiled": {
+    "samples_s": [
+      1.302086061999944,
+      1.381999741999607,
+      1.3881130429999757,
+      1.2856147129996316,
+      1.3059142279998923
+    ],
+    "min_s": 1.2856147129996316,
+    "median_s": 1.3059142279998923,
+    "p95_s": 1.386890382799902,
+    "max_s": 1.3881130429999757,
+    "median_tick_ratio": 13.059142279998923,
+    "median_freshness_ratio": 5.223656911999569
+  },
+  "profile_wall_s": 1.579612962000283,
+  "cache_info": {
+    "hits": 32489,
+    "misses": 41131,
+    "maxsize": null,
+    "currsize": 41131
+  },
+  "float64_bitwise_equal": true,
+  "baseline_path_sha256": "5c6c7f607d9dd2beeeca22273a41ba2bada63083ff5b490d905c03dace947e97",
+  "speedup_from_medians": 1.689425414545811,
+  "remaining_median_tick_ratio": 13.059142279998923,
+  "remaining_median_freshness_ratio": 5.223656911999569
+}

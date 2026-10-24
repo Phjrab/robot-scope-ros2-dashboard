@@ -1,0 +1,499 @@
+{
+  "scope": "VM real-clock synthetic output guard, not ROS/actuator/physical stop",
+  "tests": 15,
+  "wall_clock_tests": [
+    {
+      "test": "controller_stall",
+      "first_zero_elapsed_s": 0.10099417200035532,
+      "elapsed_s": 0.18016287200043735
+    },
+    {
+      "test": "cpu_busy_worker",
+      "elapsed_s": 0.10873515200000838,
+      "zero_samples": 10
+    },
+    {
+      "test": "planner_timeout",
+      "elapsed_s": 0.10939943399989716,
+      "status": "TIMEOUT"
+    }
+  ],
+  "actual_frozen_planner": {
+    "status": "TIMEOUT",
+    "elapsed_s": 0.11142237399963051,
+    "planner_budget_s": 0.1,
+    "worker_cleaned": true,
+    "output_samples": 11,
+    "all_recorded_outputs_zero_after_launch": true,
+    "source": "frozen curved_progress_20261024 build_path with observed initial OPEN grid; no hidden truth raster",
+    "limitations": "real clock harness, not integrated robot/ROS navigation"
+  },
+  "profile": {
+    "scope": "VM-only frozen build_path; initial OPEN occupancy from ideal raycast plus Occupancy.update, not hidden raster truth",
+    "source_sha256": {
+      "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+      "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/run_candidate.py": "12f43f7ad28ffdfc9975f27ead95072a971d9c0d609cc8df20e7f4e67bd03559",
+      "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b",
+      "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+      "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/simulate.py": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947"
+    },
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "numpy": "2.3.5",
+    "cpu_count": 9,
+    "setup_wall_s": 0.6797151219998341,
+    "grid_shape": [
+      600,
+      800
+    ],
+    "static_cells": 425784,
+    "observed_blocked_cells": 425903,
+    "unknown_cells": 0,
+    "path_waypoints": 411,
+    "path_sha256": "5c6c7f607d9dd2beeeca22273a41ba2bada63083ff5b490d905c03dace947e97",
+    "baseline_unprofiled": {
+      "samples_s": [
+        2.1297584150006514,
+        2.1748385079999935,
+        2.2720139609991747,
+        2.2324502649998976,
+        2.206244685999991
+      ],
+      "min_s": 2.1297584150006514,
+      "median_s": 2.206244685999991,
+      "p95_s": 2.2641012217993195,
+      "max_s": 2.2720139609991747,
+      "median_tick_ratio": 22.06244685999991,
+      "median_freshness_ratio": 8.824978743999964
+    },
+    "baseline_profile_wall_s": 2.616327750999517,
+    "baseline_profile_total_s": 2.6162013109999998,
+    "baseline_hotspots": [
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py",
+        "line": 25,
+        "name": "build_path",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_s": 0.089840351,
+        "cumulative_s": 2.616172327,
+        "cumulative_share": 0.999988921341841,
+        "self_share": 0.03433999922798755
+      },
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py",
+        "line": 33,
+        "name": "allowed",
+        "primitive_calls": 73620,
+        "calls": 73620,
+        "self_s": 0.099964883,
+        "cumulative_s": 2.191612247,
+        "cumulative_share": 0.8377078009193003,
+        "self_share": 0.03820993536685832
+      },
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py",
+        "line": 129,
+        "name": "polygon_collision",
+        "primitive_calls": 74278,
+        "calls": 74278,
+        "self_s": 1.370521899,
+        "cumulative_s": 2.121263918,
+        "cumulative_share": 0.8108183070931884,
+        "self_share": 0.5238594955355865
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method builtins.all>",
+        "primitive_calls": 18405,
+        "calls": 18405,
+        "self_s": 0.013863332,
+        "cumulative_s": 1.777390513,
+        "cumulative_share": 0.6793783435268679,
+        "self_share": 0.005299031057629495
+      },
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py",
+        "line": 40,
+        "name": "<genexpr>",
+        "primitive_calls": 73620,
+        "calls": 73620,
+        "self_s": 0.12454748300000001,
+        "cumulative_s": 1.7635271810000002,
+        "cumulative_share": 0.6740793124692385,
+        "self_share": 0.04760623063536108
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method builtins.max>",
+        "primitive_calls": 361349,
+        "calls": 361349,
+        "self_s": 0.25904836400000003,
+        "cumulative_s": 0.25904836400000003,
+        "cumulative_share": 0.09901698424766214,
+        "self_share": 0.09901698424766214
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method builtins.min>",
+        "primitive_calls": 298527,
+        "calls": 298527,
+        "self_s": 0.25505758700000003,
+        "cumulative_s": 0.25505758700000003,
+        "cumulative_share": 0.09749157525745161,
+        "self_share": 0.09749157525745161
+      },
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py",
+        "line": 116,
+        "name": "polygon",
+        "primitive_calls": 74278,
+        "calls": 74278,
+        "self_s": 0.13024348300000002,
+        "cumulative_s": 0.233638757,
+        "cumulative_share": 0.0893045791306845,
+        "self_share": 0.049783433122054584
+      },
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py",
+        "line": 82,
+        "name": "plan",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_s": 0.082140432,
+        "cumulative_s": 0.140962953,
+        "cumulative_share": 0.05388077454411153,
+        "self_share": 0.0313968316026121
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method numpy.asarray>",
+        "primitive_calls": 74284,
+        "calls": 74284,
+        "self_s": 0.08599016000000001,
+        "cumulative_s": 0.08599016000000001,
+        "cumulative_share": 0.032868326928225444,
+        "self_share": 0.032868326928225444
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_morphology.py",
+        "line": 2435,
+        "name": "distance_transform_edt",
+        "primitive_calls": 2,
+        "calls": 2,
+        "self_s": 0.006265906000000001,
+        "cumulative_s": 0.041287687,
+        "cumulative_share": 0.015781540520755442,
+        "self_share": 0.002395039698839139
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method scipy.ndimage._nd_image.euclidean_feature_transform>",
+        "primitive_calls": 2,
+        "calls": 2,
+        "self_s": 0.028403075000000003,
+        "cumulative_s": 0.028403075000000003,
+        "cumulative_share": 0.010856609115123254,
+        "self_share": 0.010856609115123254
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<method 'get' of 'dict' objects>",
+        "primitive_calls": 73660,
+        "calls": 73660,
+        "self_s": 0.010953295,
+        "cumulative_s": 0.010953295,
+        "cumulative_share": 0.004186717189516767,
+        "self_share": 0.004186717189516767
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method math.hypot>",
+        "primitive_calls": 73882,
+        "calls": 73882,
+        "self_s": 0.01073081,
+        "cumulative_s": 0.01073081,
+        "cumulative_share": 0.004101675950884042,
+        "self_share": 0.004101675950884042
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method math.cos>",
+        "primitive_calls": 74278,
+        "calls": 74278,
+        "self_s": 0.009029243000000001,
+        "cumulative_s": 0.009029243000000001,
+        "cumulative_share": 0.003451279900379196,
+        "self_share": 0.003451279900379196
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method math.sin>",
+        "primitive_calls": 74278,
+        "calls": 74278,
+        "self_s": 0.008378575000000001,
+        "cumulative_s": 0.008378575000000001,
+        "cumulative_share": 0.003202572739632727,
+        "self_share": 0.003202572739632727
+      },
+      {
+        "file": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py",
+        "line": 120,
+        "name": "sat_overlap",
+        "primitive_calls": 317,
+        "calls": 317,
+        "self_s": 0.002785225,
+        "cumulative_s": 0.007552327,
+        "cumulative_share": 0.0028867530064470644,
+        "self_share": 0.0010646065301967889
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/multiarray.py",
+        "line": 391,
+        "name": "where",
+        "primitive_calls": 74277,
+        "calls": 74277,
+        "self_s": 0.006391641,
+        "cumulative_s": 0.006391641,
+        "cumulative_share": 0.002443099838351851,
+        "self_share": 0.002443099838351851
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method _heapq.heappop>",
+        "primitive_calls": 10835,
+        "calls": 10835,
+        "self_s": 0.004328102,
+        "cumulative_s": 0.004328102,
+        "cumulative_share": 0.0016543459334731603,
+        "self_share": 0.0016543459334731603
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<method 'astype' of 'numpy.ndarray' objects>",
+        "primitive_calls": 4,
+        "calls": 4,
+        "self_s": 0.0032487360000000003,
+        "cumulative_s": 0.0032487360000000003,
+        "cumulative_share": 0.0012417760003178902,
+        "self_share": 0.0012417760003178902
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py",
+        "line": 1219,
+        "name": "roll",
+        "primitive_calls": 332,
+        "calls": 332,
+        "self_s": 0.002038967,
+        "cumulative_s": 0.002846542,
+        "cumulative_share": 0.0010880439467832682,
+        "self_share": 0.000779361661286164
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py",
+        "line": 1874,
+        "name": "maximum_filter",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_s": 6.539e-06,
+        "cumulative_s": 0.002493543,
+        "cumulative_share": 0.0009531158743464142,
+        "self_share": 2.4994253968554795e-06
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py",
+        "line": 1779,
+        "name": "indices",
+        "primitive_calls": 2,
+        "calls": 2,
+        "self_s": 0.0024274360000000003,
+        "cumulative_s": 0.002490298,
+        "cumulative_share": 0.0009518755263707611,
+        "self_share": 0.0009278475588991097
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py",
+        "line": 1735,
+        "name": "_min_or_max_filter",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_s": 2.5445e-05,
+        "cumulative_s": 0.002487004,
+        "cumulative_share": 0.0009506164489495588,
+        "self_share": 9.725933510167866e-06
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py",
+        "line": 1678,
+        "name": "maximum_filter1d",
+        "primitive_calls": 2,
+        "calls": 2,
+        "self_s": 1.2247000000000001e-05,
+        "cumulative_s": 0.0023976400000000004,
+        "cumulative_share": 0.0009164585270708935,
+        "self_share": 4.6812146865406115e-06
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method scipy.ndimage._nd_image.min_or_max_filter1d>",
+        "primitive_calls": 2,
+        "calls": 2,
+        "self_s": 0.002373374,
+        "cumulative_s": 0.002373374,
+        "cumulative_share": 0.0009071832469546531,
+        "self_share": 0.0009071832469546531
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py",
+        "line": 2241,
+        "name": "clip",
+        "primitive_calls": 411,
+        "calls": 411,
+        "self_s": 0.000277572,
+        "cumulative_s": 0.0020980260000000002,
+        "cumulative_share": 0.0008019359944430516,
+        "self_share": 0.00010609733999938357
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method _heapq.heappush>",
+        "primitive_calls": 11056,
+        "calls": 11056,
+        "self_s": 0.0019398500000000001,
+        "cumulative_s": 0.0019398500000000001,
+        "cumulative_share": 0.0007414758152760518,
+        "self_share": 0.0007414758152760518
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py",
+        "line": 51,
+        "name": "_wrapfunc",
+        "primitive_calls": 411,
+        "calls": 411,
+        "self_s": 0.00034025,
+        "cumulative_s": 0.0018204540000000002,
+        "cumulative_share": 0.000695838654443668,
+        "self_share": 0.00013005497649183008
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py",
+        "line": 41,
+        "name": "_wrapit",
+        "primitive_calls": 411,
+        "calls": 411,
+        "self_s": 0.00047748200000000005,
+        "cumulative_s": 0.001437326,
+        "cumulative_share": 0.0005493942663955802,
+        "self_share": 0.00018250965550410585
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<method 'reduce' of 'numpy.ufunc' objects>",
+        "primitive_calls": 3,
+        "calls": 3,
+        "self_s": 0.0007738510000000001,
+        "cumulative_s": 0.0007738510000000001,
+        "cumulative_share": 0.0002957918401562945,
+        "self_share": 0.0002957918401562945
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<method 'clip' of 'numpy.ndarray' objects>",
+        "primitive_calls": 411,
+        "calls": 411,
+        "self_s": 0.000147956,
+        "cumulative_s": 0.000709889,
+        "cumulative_share": 0.0002713434157437436,
+        "self_share": 5.655375195246205e-05
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method numpy.array>",
+        "primitive_calls": 954,
+        "calls": 954,
+        "self_s": 0.000685161,
+        "cumulative_s": 0.000685161,
+        "cumulative_share": 0.0002618915437123256,
+        "self_share": 0.0002618915437123256
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py",
+        "line": 1420,
+        "name": "normalize_axis_tuple",
+        "primitive_calls": 332,
+        "calls": 332,
+        "self_s": 0.000398722,
+        "cumulative_s": 0.000626273,
+        "cumulative_share": 0.00023938257249806876,
+        "self_share": 0.00015240493853571044
+      },
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/_methods.py",
+        "line": 98,
+        "name": "_clip",
+        "primitive_calls": 411,
+        "calls": 411,
+        "self_s": 0.000561933,
+        "cumulative_s": 0.000561933,
+        "cumulative_share": 0.00021478966379128158,
+        "self_share": 0.00021478966379128158
+      }
+    ]
+  },
+  "memo_experiment": {
+    "optimization": "Per-build_path lru_cache(maxsize=None) of allowed() keyed by exact (x,y) float tuple; no rounding, unchanged geometry, fresh cache for each call.",
+    "scope": "Initial OPEN fixture only; no full-run, other-layout, hardware or concurrency qualification",
+    "unprofiled": {
+      "samples_s": [
+        1.302086061999944,
+        1.381999741999607,
+        1.3881130429999757,
+        1.2856147129996316,
+        1.3059142279998923
+      ],
+      "min_s": 1.2856147129996316,
+      "median_s": 1.3059142279998923,
+      "p95_s": 1.386890382799902,
+      "max_s": 1.3881130429999757,
+      "median_tick_ratio": 13.059142279998923,
+      "median_freshness_ratio": 5.223656911999569
+    },
+    "profile_wall_s": 1.579612962000283,
+    "cache_info": {
+      "hits": 32489,
+      "misses": 41131,
+      "maxsize": null,
+      "currsize": 41131
+    },
+    "float64_bitwise_equal": true,
+    "baseline_path_sha256": "5c6c7f607d9dd2beeeca22273a41ba2bada63083ff5b490d905c03dace947e97",
+    "speedup_from_medians": 1.689425414545811,
+    "remaining_median_tick_ratio": 13.059142279998923,
+    "remaining_median_freshness_ratio": 5.223656911999569
+  },
+  "independent_review": {
+    "status": "PASS_AFTER_TWO_REPRODUCED_FIXES",
+    "tests": 15,
+    "late_receive": "TIMEOUT; result None",
+    "cancel_receive_race": "CANCELLED; result None",
+    "limit": "recv return duration is not bounded; zero-output gating only"
+  },
+  "existing_sources_unchanged": true,
+  "publication": "NOT_RUN"
+}

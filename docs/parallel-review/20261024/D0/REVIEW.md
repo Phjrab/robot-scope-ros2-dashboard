@@ -194,3 +194,21 @@ A	experiments/competition_vm/traffic_signals/tests/test_lifecycle_d0.py
 새 fresh copy에서 관련 검사95 PASS(기본 gait10+10, slalom10, curved14, flat7, 기존 독립16, 새 독립14+14), JavaScript660 PASS, 저장소 및 gzip 확장 내용 secret scan PASS, 영상3개의 hash/ffprobe frame·크기·시간 검사 PASS. 두 새 독립14검사에는 공통6 synthetic fixture가 반복되므로95를95개 고유 물리 시나리오로 해석하면 안 된다. 전체 Python2691검사는1manifest failure/25socket PermissionErrors/1skip로 실패했다. 이는 이번 fresh 실행 traceback에 따른 결과이며 원격 CI에서도25errors가 난다고 주장하지 않는다. 최초 D0230검사는 소스 변경이 없어 이번 추가분에서 재실행하지 않았다.
 
 `curved_progress_20261024` 및 이후 개선 후보는 이 게시에 포함하지 않는다. main/PR/merge/기기 접속/운영 설정 변경은 수행하지 않는다. 기존 C1 revision evidence 연결 차단은 여전히 해결되지 않았으며, 이 결과 게시를 통합 승인으로 간주하지 않는다.
+
+## H. 후속 승인: 진행 목표 연속화 및 실제 시계 watchdog 실험
+
+최초 영상·자료 게시 HEAD는 `dd2063bba0211307f1313389179e130b38a17554`이며 그 산출물을 수정하지 않고, 완료된 `curved_progress_20261024`와 `planning_watchdog_20261024`만 별도 추가한다. 추가 영상이나 원래 좁은 배치 성공 승격은 없다.
+
+- OPEN 고정 fixture의 연속 선분 투영·보간 목표 후보는 명령 linear-vector RMS jerk1.248742→0.150522m/s³, velocity total variation3.142048→0.440989m/s로 감소했지만 주행 시간은51.7→57.4초로 늘었다. 일반 경로 연속성·물리 부드러움·실시간성을 입증한 것은 아니다. 좁은 원래 배치는 여전히 SAFE_WAIT이며 fault-stop의 slew 예외를 정상 가속도 제한 통과로 표시하지 않는다. 새 후보에 대한 관절/visual-mesh 외피 검사는 수행하지 않았다.
+- 실제 monotonic clock의 별도 planner process 및 command-lease output gate를 구현한 VM harness다. planner pending/timeout/cancel/identity 변경에서 synthetic zero output을 유지한다. 늦은 recv 및 cancel race 발견·수정과 이전 source 재현 증거를 보존했다. **recv 호출 자체가 bounded인 것은 아니며**, zero gate와 결과 채택 deadline만 분리 검증했다. hard realtime/물리 정지/운영 watchdog 보장이 아니다.
+- 실제 raycast 관측 fixture 기준 planner median2.206초, isolated memoized실험1.306초로 여전히0.1초tick/0.25초freshness budget을 초과한다. 이 최적화를 기존 controller에 통합하지 않았다. CPU quota/사용자 운영 제한/TTL을 늘리거나 변경하지 않았다.
+- 각 revision의 publication manifest와 복원·검증 도구가 게시 subset 기준이다. 최종 fixture는 원본 SHA/size 일치 lossless압축을 사용하며 큰 후보·반복 trace는 hash와 summary로 보존한다. 원래 source/test를 변경하지 않고 portable 검증 절차를 별도로 추가했다. 원본 문서의 no-publication 표기는 제작 당시 이력이다.
+- 이 추가분 역시 오직 D0 review branch에 게시하며 main/PR/merge/기기/대시보드/설정 변경은 없다. 기존 C1 immutable evidence 연결 실패는 해결하지 않는다. 최종 commit의 CI와 fresh 검증 결과는 게시 응답 및 각 publication 검증 기록으로 구분한다.
+
+이번 publication copy 실행: 원본 progress22검사와 watchdog15검사 PASS. 기존 독립 기하 review를 portable 경로로 재실행하여6report가 저장 결과와 일치했고, 실제 planner timeout과2race probe도 PASS했다. 이 경로 재지정 실행은 새로운 독립 검토와 구분한다. 이전 dd2063b의 CI run40100898933은 두 환경 모두2691검사 중1manifest failure/2skip/0error로 종료했다.
+
+후속 전체 Python2691검사는1동일manifest failure/25socket PermissionErrors/1skip로 실패, JavaScript660 및 tracked/new artifact secret scan은 PASS했다. 실제 planner timeout 재실행은 약0.111100초, zero output11개, 자식 정리 완료였으며 보장된 응답시간으로 해석하지 않는다. 이전2161개 tracked 파일은 이 REVIEW 문서 외에 byte 변경이 없음을 확인했다.
+
+### 읽기 전용 Nav2 후속 근거
+
+`evidence/nav2_parameter_evidence_20261024/addendum_1411/`는 원격 C3의 추가8native기록을 정적으로 대조한 연구 부록이다. 기대결과7/8이며 MPPI diagnostic은65초 목표제한을 넘겨 실패했다. MPPI는 DiffDrive/vy_max0이므로 Omni·4족 비교가 아니다. 옛0회 보고는 당시 시점으로 보존했다. 이 자료를 D0 실행 결과나 C1 통합 승인으로 해석하지 않는다. source/manifest/static검토만 게시하고 외부artifactZIP·C3코드는 포함하지 않았으며 보고서의 로컬보존과 원격subset 차이는 PUBLICATION.md에 명시했다. 추가알고리즘·UI·설정·기기 작업은 없다.

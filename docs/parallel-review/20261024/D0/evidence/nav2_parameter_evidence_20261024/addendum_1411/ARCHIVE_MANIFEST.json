@@ -1,0 +1,637 @@
+[
+  {
+    "name": "docker-version.txt",
+    "bytes": 769,
+    "sha256": "89f3378e2014e92109a733fee8764d2fb3fca6b87bca9d5672293f7e3d61d82e"
+  },
+  {
+    "name": "image-lock.json",
+    "bytes": 46891,
+    "sha256": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e"
+  },
+  {
+    "name": "minimum/minimum-summary.json",
+    "bytes": 18120,
+    "sha256": "e6fff60dd88f2fe7b85e4517715b7beecba6dccd77a279825036413e90f49a60"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/container_receipt.json",
+    "bytes": 1537,
+    "sha256": "51d2024e1e93b7f645a25368f7aebc4c4e2e9298421bb6ad2fff78e59b6cba6a"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/environment.json",
+    "bytes": 47804,
+    "sha256": "b031bd358d64c47eabb913a4ebeb58dfea77823488c3e46f701c071940c721df"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/fixture.json",
+    "bytes": 1474,
+    "sha256": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/native.log",
+    "bytes": 37939,
+    "sha256": "bf33ba661e29420c7032b7f840c9feea8025d6c9872fbc82034ce5b3634e8232"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/params.yaml",
+    "bytes": 7174,
+    "sha256": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/raw_commands.jsonl",
+    "bytes": 515441,
+    "sha256": "171fbee16573edd70442feb40883ef70c36ec57228ae37ac9a5d8b311dbf9833"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/reference_feasibility.json",
+    "bytes": 267,
+    "sha256": "ce0bc309054f0f24814df3d7a3c4bd39bc181d873db2b3c78fb53bc09ddc3dbc"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/resources.jsonl",
+    "bytes": 273649,
+    "sha256": "17fe472ed14f578e23055326bad2d3bcfa384ccdea7745a19b3cbfcc72c9feb5"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/result.json",
+    "bytes": 433586,
+    "sha256": "3b3c4bf4fd3624b0bc33475092f83d713839a4c68a67ca806329c74a658e9937"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/run.json",
+    "bytes": 87,
+    "sha256": "28b297cda5e52e959062824db01d09622a057b59105cf57010c16257c5af8f73"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/scans.jsonl",
+    "bytes": 95338,
+    "sha256": "df6f2e9c432027b5191bc3da4ec8e2cdd408ce65ea845c77cefd206de6ecb0ee"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/trace.jsonl",
+    "bytes": 1152214,
+    "sha256": "b5b7433e705107a0369e81ca26d20936cfd720237327bd841645e5ad5440314c"
+  },
+  {
+    "name": "minimum/mppi-diagnostic_single_obstacle/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/mppi-empty/container_receipt.json",
+    "bytes": 1495,
+    "sha256": "d048ace9cf0c76194585210179f5ec3b88bb9a59a16ce9fe94922ec22f72b4fd"
+  },
+  {
+    "name": "minimum/mppi-empty/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/mppi-empty/run/environment.json",
+    "bytes": 47804,
+    "sha256": "161a52cc269e585da1bf192361d0d055baf3fed2bb18cbf93ef5daea8d4c781d"
+  },
+  {
+    "name": "minimum/mppi-empty/run/fixture.json",
+    "bytes": 859,
+    "sha256": "d98f1d013b7c5b098233c47e58f1d87adb19017df49148858659c4f97816c01b"
+  },
+  {
+    "name": "minimum/mppi-empty/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/mppi-empty/run/native.log",
+    "bytes": 27568,
+    "sha256": "79f875a8406d6e6c69ec53ff9348378f526c233c3f4047c5161242108af5b375"
+  },
+  {
+    "name": "minimum/mppi-empty/run/params.yaml",
+    "bytes": 7174,
+    "sha256": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997"
+  },
+  {
+    "name": "minimum/mppi-empty/run/raw_commands.jsonl",
+    "bytes": 165516,
+    "sha256": "5afd13f48122e9898c9380dec4ee87b1b6a4e796ac825b1bf2b5ae3e1908561b"
+  },
+  {
+    "name": "minimum/mppi-empty/run/resources.jsonl",
+    "bytes": 95388,
+    "sha256": "8bfa84564c25279e13725447957e18cc3fc0017fa8d7e032c3ebf3f213741a6a"
+  },
+  {
+    "name": "minimum/mppi-empty/run/result.json",
+    "bytes": 151390,
+    "sha256": "13a22cd1400e5e9c1496e7b650cca5f4e8babf53fc8a0d3d4821d228ad571112"
+  },
+  {
+    "name": "minimum/mppi-empty/run/run.json",
+    "bytes": 87,
+    "sha256": "28b297cda5e52e959062824db01d09622a057b59105cf57010c16257c5af8f73"
+  },
+  {
+    "name": "minimum/mppi-empty/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/mppi-empty/run/scans.jsonl",
+    "bytes": 35433,
+    "sha256": "1b93fe5d3c3c27a7168aeb2eb802bd3b2d066b181aa8cbcf23bb6e10c7f71578"
+  },
+  {
+    "name": "minimum/mppi-empty/run/trace.jsonl",
+    "bytes": 370280,
+    "sha256": "57d5f88a470bf0bd6db62316c588063254c974c9c6a52b9651c7226fcac1372c"
+  },
+  {
+    "name": "minimum/mppi-empty/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/container_receipt.json",
+    "bytes": 1511,
+    "sha256": "9fa863c16bbc54f2cfe9aa972d345cdfe92f711784d5065028c84c28182ab139"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/environment.json",
+    "bytes": 47804,
+    "sha256": "161a52cc269e585da1bf192361d0d055baf3fed2bb18cbf93ef5daea8d4c781d"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/fixture.json",
+    "bytes": 1981,
+    "sha256": "018d525b9bdeff06e77fdcae9898f83cc571f964bef1d16082570d754368cf96"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/native.log",
+    "bytes": 25299,
+    "sha256": "963adb488f78dbe1c55637ca68326358b6ad0e006c15930f9f16d60997a97bfd"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/params.yaml",
+    "bytes": 7174,
+    "sha256": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/raw_commands.jsonl",
+    "bytes": 15924,
+    "sha256": "5c334ff131cf6c45ae62bdd891afc3ff4b790941ca2067fbe9a13dd79df673e6"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/resources.jsonl",
+    "bytes": 42699,
+    "sha256": "7cb58eacb30a320cc755518f0f57b734b6c8db605c2985980640e80321c6832e"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/result.json",
+    "bytes": 48803,
+    "sha256": "4c8719b90ba020f5ca97204097e853938d4ac3335d4442bd601d23f7bdf07044"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/run.json",
+    "bytes": 87,
+    "sha256": "28b297cda5e52e959062824db01d09622a057b59105cf57010c16257c5af8f73"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/scans.jsonl",
+    "bytes": 13659,
+    "sha256": "3ac5997415ae8be61cee4423afd95eb31a559753bf0720b20a4a8af8ebcd2903"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/trace.jsonl",
+    "bytes": 129431,
+    "sha256": "f5466e7f482a23ac4d462e37ad361ebddc3b88e6aae040da2dc0195fe6e231e9"
+  },
+  {
+    "name": "minimum/mppi-fully_blocked/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/container_receipt.json",
+    "bytes": 1509,
+    "sha256": "c41972d0a1af9e57b91dc4cd538faca3a81740a26f0255371fd7aaf78b03b8d2"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/environment.json",
+    "bytes": 47804,
+    "sha256": "b031bd358d64c47eabb913a4ebeb58dfea77823488c3e46f701c071940c721df"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/fixture.json",
+    "bytes": 893,
+    "sha256": "1705705c11485b3b3dccabceaa94f1804b140ba798081e0fd35755f457dab218"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/native.log",
+    "bytes": 28928,
+    "sha256": "779c6accdb846ca73352bed715d770209ab498839e9ece244e70bb54f0c3bb62"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/params.yaml",
+    "bytes": 7174,
+    "sha256": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/raw_commands.jsonl",
+    "bytes": 18473,
+    "sha256": "6352478649ce4ee4ea5ae12c8a02c37b399a724d7ce5261f1a5b2e54956b2dc0"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/resources.jsonl",
+    "bytes": 34915,
+    "sha256": "af63f0497f2ce67edba487b704af1da2ebb28a5e60f20c1e540cd2ccb2015b84"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/result.json",
+    "bytes": 36371,
+    "sha256": "ad0c0c715ab96078a03a194faf77c56da0aea38b9831e6c4593a49cab254ea5f"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/run.json",
+    "bytes": 87,
+    "sha256": "28b297cda5e52e959062824db01d09622a057b59105cf57010c16257c5af8f73"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/scans.jsonl",
+    "bytes": 5008,
+    "sha256": "c3e00c92edc19e5b66b4872ac6699b5064b4c56985ec4e5d8718c3653495c4a1"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/trace.jsonl",
+    "bytes": 106293,
+    "sha256": "dc21d133c46d98c106229d67cf175f417a11523e46e973b60d540584f490a6b7"
+  },
+  {
+    "name": "minimum/mppi-sensor_stale/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/container_receipt.json",
+    "bytes": 1535,
+    "sha256": "366fc6242f22e2c4888a08a88db858813377ce74f63c6e682cc4905b12f6a969"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/environment.json",
+    "bytes": 47804,
+    "sha256": "bd6f4a2e4f413e9486934856961f2e7131e55769446c67763bc2e7004216e141"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/fixture.json",
+    "bytes": 1474,
+    "sha256": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/native.log",
+    "bytes": 26868,
+    "sha256": "6a0b9a9d1fa5ccd0d10fdd309cde1071a9a8cc34d7f4add2830bdfa0d05bee0b"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/params.yaml",
+    "bytes": 7049,
+    "sha256": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/raw_commands.jsonl",
+    "bytes": 219270,
+    "sha256": "5cf037fd3e96513d4085da93dc7b10c1c960a6aab5a7498c71650078e868da31"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/reference_feasibility.json",
+    "bytes": 267,
+    "sha256": "ce0bc309054f0f24814df3d7a3c4bd39bc181d873db2b3c78fb53bc09ddc3dbc"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/resources.jsonl",
+    "bytes": 118615,
+    "sha256": "6305df06c17d0e48c5694d1e838fd8ee5a08a31e0b365ca3a130b6e58acb5e03"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/result.json",
+    "bytes": 198573,
+    "sha256": "db39d2b48e9230458a23e81e3e00b566cf807e12ea76f4d97613dec850ddce5a"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/run.json",
+    "bytes": 86,
+    "sha256": "ab1a62e876bd86b89315944dc76f00bf6ff23ddbcab5d52b2dcd86501358a37a"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/scans.jsonl",
+    "bytes": 47101,
+    "sha256": "0139c2fb8e71be9a4e83f761b3cbd8cf249f467e56aaab281d69da54d900d506"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/trace.jsonl",
+    "bytes": 482221,
+    "sha256": "cdad181e6e5caef736f0dec5a76173857774790da32e5a462df71b03e3514f78"
+  },
+  {
+    "name": "minimum/rpp-diagnostic_single_obstacle/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/rpp-empty/container_receipt.json",
+    "bytes": 1493,
+    "sha256": "be2fa8bfed1debdb2d8e67bd4f5e20d4be9e3e22583c6b4ac2bec81f30949cd5"
+  },
+  {
+    "name": "minimum/rpp-empty/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/rpp-empty/run/environment.json",
+    "bytes": 47804,
+    "sha256": "bd6f4a2e4f413e9486934856961f2e7131e55769446c67763bc2e7004216e141"
+  },
+  {
+    "name": "minimum/rpp-empty/run/fixture.json",
+    "bytes": 859,
+    "sha256": "d98f1d013b7c5b098233c47e58f1d87adb19017df49148858659c4f97816c01b"
+  },
+  {
+    "name": "minimum/rpp-empty/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/rpp-empty/run/native.log",
+    "bytes": 24608,
+    "sha256": "4c000e9ac57addf9f9d6b0430ab027ef37aadaa00c20b97d61d3095b5086805f"
+  },
+  {
+    "name": "minimum/rpp-empty/run/params.yaml",
+    "bytes": 7049,
+    "sha256": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b"
+  },
+  {
+    "name": "minimum/rpp-empty/run/raw_commands.jsonl",
+    "bytes": 136288,
+    "sha256": "9fc21ee90736a6cd0a4c21f692ce7eef9bbd40aa1564e8a9d681339f537cd4b7"
+  },
+  {
+    "name": "minimum/rpp-empty/run/resources.jsonl",
+    "bytes": 83521,
+    "sha256": "d55845875a0655aae4f0202b1fc5173980c3607325b599b64ab4e0f06d64c639"
+  },
+  {
+    "name": "minimum/rpp-empty/run/result.json",
+    "bytes": 133593,
+    "sha256": "841d4b6d951d76645554d5a888ef68b494f04cc25403e0f5887609f116e79571"
+  },
+  {
+    "name": "minimum/rpp-empty/run/run.json",
+    "bytes": 86,
+    "sha256": "ab1a62e876bd86b89315944dc76f00bf6ff23ddbcab5d52b2dcd86501358a37a"
+  },
+  {
+    "name": "minimum/rpp-empty/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/rpp-empty/run/scans.jsonl",
+    "bytes": 30152,
+    "sha256": "d12433f28e32a6408e40a81dc1a7f16d9412fb691b591cdeee5bf871d520da56"
+  },
+  {
+    "name": "minimum/rpp-empty/run/trace.jsonl",
+    "bytes": 310922,
+    "sha256": "33d49e3465e2e223aa7239fe90b593fa0831f431606d9b89138e6c56d7cd6b38"
+  },
+  {
+    "name": "minimum/rpp-empty/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/container_receipt.json",
+    "bytes": 1509,
+    "sha256": "7f95b977d732b0b048c9f7c1905c7bd49981061e56881203aa46a9785bb54778"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/environment.json",
+    "bytes": 47804,
+    "sha256": "161a52cc269e585da1bf192361d0d055baf3fed2bb18cbf93ef5daea8d4c781d"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/fixture.json",
+    "bytes": 1981,
+    "sha256": "018d525b9bdeff06e77fdcae9898f83cc571f964bef1d16082570d754368cf96"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/native.log",
+    "bytes": 23114,
+    "sha256": "eb7c94ab27dc43dae2a9df6576244bb96b7e9a419a708b5486aa5ac48860a47f"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/params.yaml",
+    "bytes": 7049,
+    "sha256": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/raw_commands.jsonl",
+    "bytes": 15920,
+    "sha256": "ebfa97698363d9e4c2eb98fdb6b9f3ccf93fe7ff9c0652b60b68ea0cc71750f6"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/resources.jsonl",
+    "bytes": 43108,
+    "sha256": "197bc18b84b23e6cd9c5e35c541b2851978f51fe25bf02d8b666bec5b84a4f47"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/result.json",
+    "bytes": 49155,
+    "sha256": "3d737a98cd7ccd7dce6bfb97173c9074f772e94381530fb04f73479e43283a87"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/run.json",
+    "bytes": 86,
+    "sha256": "ab1a62e876bd86b89315944dc76f00bf6ff23ddbcab5d52b2dcd86501358a37a"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/scans.jsonl",
+    "bytes": 13521,
+    "sha256": "0290100ef46a78777b311d4897afc4c5ad2c7005f74208d368ce56355319492a"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/trace.jsonl",
+    "bytes": 128758,
+    "sha256": "ce0427923fade649cc984a084c48ed91dfbb123d2be630db2f25676579c53706"
+  },
+  {
+    "name": "minimum/rpp-fully_blocked/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/container_receipt.json",
+    "bytes": 1507,
+    "sha256": "bc37442d32a11af7355bac0fbd07aac0f3727fa2a0f161a60c8efd7739844fc3"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/cleanup.json",
+    "bytes": 90,
+    "sha256": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/environment.json",
+    "bytes": 47804,
+    "sha256": "b031bd358d64c47eabb913a4ebeb58dfea77823488c3e46f701c071940c721df"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/fixture.json",
+    "bytes": 893,
+    "sha256": "1705705c11485b3b3dccabceaa94f1804b140ba798081e0fd35755f457dab218"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/map.yaml",
+    "bytes": 121,
+    "sha256": "8538b20d30f289340a144c2ec7b2903a95fd7de085be7809420d89da09128060"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/native.log",
+    "bytes": 26858,
+    "sha256": "24af269b47157ec8ff55558299515dc8ab0695871ac5bac3f26a65c928613fae"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/params.yaml",
+    "bytes": 7049,
+    "sha256": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/raw_commands.jsonl",
+    "bytes": 17441,
+    "sha256": "e3576bee4fd8bf1fb2676e4a79b3f6a028e796692a1b8b002a76750c5381d47b"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/resources.jsonl",
+    "bytes": 34892,
+    "sha256": "2e11503836227578e0bf5fa54409459cdaf55c8a3f14a1798cdcc81255c970e9"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/result.json",
+    "bytes": 36555,
+    "sha256": "d76654016391610f5581d11333f712c73cebfc09fc8541c3f787777b4dfdc038"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/run.json",
+    "bytes": 86,
+    "sha256": "ab1a62e876bd86b89315944dc76f00bf6ff23ddbcab5d52b2dcd86501358a37a"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/runner.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/scans.jsonl",
+    "bytes": 4844,
+    "sha256": "b220a8cf0637471808d8cfab823e312b32ec81411471ec83397dd088e0034f8c"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/trace.jsonl",
+    "bytes": 103121,
+    "sha256": "18b7c73712dce4bcadb35445dc5a203ef1cb4eb27be5231b59a055caece0dfc2"
+  },
+  {
+    "name": "minimum/rpp-sensor_stale/run/validation.json",
+    "bytes": 71,
+    "sha256": "87a45d631cf51b84785d650db8ca97db54189e3f381f1f40050d490f5fb0e0a2"
+  },
+  {
+    "name": "runner.txt",
+    "bytes": 120,
+    "sha256": "58132fb1b39ce84e4e04550b51b85fce125cb3196c4d04a2e6e8d84eeaf000d8"
+  },
+  {
+    "name": "source-sha.txt",
+    "bytes": 41,
+    "sha256": "df5329cc007760ab49314139e5e48bfcfb1590e71e96d3d66636e8ec23d0aa5f"
+  }
+]

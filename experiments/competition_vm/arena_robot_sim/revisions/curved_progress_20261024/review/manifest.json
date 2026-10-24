@@ -1,0 +1,26 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "numpy": "2.3.5",
+  "scipy": "1.17.0",
+  "repeat_equals_original_after_removing": [
+    "wall_time_s",
+    "planning_wall_s",
+    "planning_p95_s"
+  ],
+  "repeat_equal": true,
+  "repeat_sorted_compact_json_sha256": "09750008c7b8480e8fdba5977368bd120438e75cbbd54058bc1de64ba05e5b50",
+  "files": {
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/simulate_curved.py": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/results/candidate02/source.py": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/run_candidate.py": "12f43f7ad28ffdfc9975f27ead95072a971d9c0d609cc8df20e7f4e67bd03559",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/test_progress.py": "0126d61d8450157d5a55eeca9680b9a7cd1f60c3b5c606c6d14eeff3601fe660",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/test_regression.py": "d6bb734d6715d4e7c7fbc446ee9370b3aeb9d1321c575e06d7d1ec7f52329e4d",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024/compare_progress.py": "c84ef0de83e9b7c87e7089f07351b7800f9389a25f1cc711ff98289025be5500",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/audit.py": "59da10ea36c71a16d6159b6369d352888ef34af5b324613d3119e494bbcb840f",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/simulate.py": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+    "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/assets/competition-arena/revisions/corridor-parallel-20261024/geometry.py": "2f190a554c9ce891d0b997f0ba67648c81e3a6a77e44d25533fb7e476c21856d"
+  }
+}

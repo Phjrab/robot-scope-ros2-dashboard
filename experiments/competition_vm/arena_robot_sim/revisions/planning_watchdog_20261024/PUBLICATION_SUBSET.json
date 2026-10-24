@@ -1,0 +1,215 @@
+{
+  "schema": "followup-publication-subset.v1",
+  "revision": "planning_watchdog_20261024",
+  "state": "LOCAL_PREPARATION_NOT_PUBLISHED",
+  "source_repository_head": "70091a007624f8afd45fdb7ca60f550fdb03ac05",
+  "source_revision_tracking": "untracked completed frozen revision; provenance is file hashes, not HEAD membership",
+  "source_root": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/planning_watchdog_20261024",
+  "frozen_manifest_sha256": "08a785bd8bef72af3ac126bc192d0e0830c90f9882e7260ca0c8ff62ceb1e3ca",
+  "publication_base_local_head": "2a3ef70436f8491e51a597cc4fdd7d79b8084909",
+  "publication_base_remote_head_reported_by_parent": "dd2063bba0211307f1313389179e130b38a17554",
+  "publication_base_tree": "ef52ba65c6cce9f26cec04f24061a0f15faa1749",
+  "preservation": "All original frozen source/test/review/report bytes are unchanged. New publication helpers and verification are separate. SHA256SUMS.txt is the original production inventory and includes omitted/uncompressed paths; it is not the publication subset inventory.",
+  "included_original_files": [
+    {
+      "source_path": "README.md",
+      "source_bytes": 4170,
+      "source_sha256": "12de8513725394322237f739ae8cb066078074346ab0013f22b6ab1fb8161615",
+      "publication_path": "README.md",
+      "publication_bytes": 4170,
+      "publication_sha256": "12de8513725394322237f739ae8cb066078074346ab0013f22b6ab1fb8161615",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "SHA256SUMS.txt",
+      "source_bytes": 1827,
+      "source_sha256": "08a785bd8bef72af3ac126bc192d0e0830c90f9882e7260ca0c8ff62ceb1e3ca",
+      "publication_path": "SHA256SUMS.txt",
+      "publication_bytes": 1827,
+      "publication_sha256": "08a785bd8bef72af3ac126bc192d0e0830c90f9882e7260ca0c8ff62ceb1e3ca",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "VALIDATION.json",
+      "source_bytes": 18364,
+      "source_sha256": "1fbc98643a1d3b32ca6d3638c9ce9e207c436607de1f6dc275ed23ac0fc5a0f6",
+      "publication_path": "VALIDATION.json",
+      "publication_bytes": 18364,
+      "publication_sha256": "1fbc98643a1d3b32ca6d3638c9ce9e207c436607de1f6dc275ed23ac0fc5a0f6",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "actual_planner_timeout.json",
+      "source_bytes": 378,
+      "source_sha256": "3ab424f869f479f77cd5501e21f419586736ed2846b8731798ea7b0a4d975431",
+      "publication_path": "actual_planner_timeout.json",
+      "publication_bytes": 378,
+      "publication_sha256": "3ab424f869f479f77cd5501e21f419586736ed2846b8731798ea7b0a4d975431",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "actual_planner_timeout.py",
+      "source_bytes": 1277,
+      "source_sha256": "b01cb4b0f3a3424e825e3b7000a3319a4abd7f0aad2d08e20819bcdf2e630313",
+      "publication_path": "actual_planner_timeout.py",
+      "publication_bytes": 1277,
+      "publication_sha256": "b01cb4b0f3a3424e825e3b7000a3319a4abd7f0aad2d08e20819bcdf2e630313",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "initial_open_observed_fixture.npz",
+      "source_bytes": 11226,
+      "source_sha256": "64d61fa1ac713bb1f106bf77c76a36e4b9d289d62fa53847d937cd37e5001a18",
+      "publication_path": "initial_open_observed_fixture.npz",
+      "publication_bytes": 11226,
+      "publication_sha256": "64d61fa1ac713bb1f106bf77c76a36e4b9d289d62fa53847d937cd37e5001a18",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/REPORT.md",
+      "source_bytes": 6077,
+      "source_sha256": "dd137e798ba4c49d7578e9989520e40f0952e759df722db366e3e9f2b0d7154a",
+      "publication_path": "profile/REPORT.md",
+      "publication_bytes": 6077,
+      "publication_sha256": "dd137e798ba4c49d7578e9989520e40f0952e759df722db366e3e9f2b0d7154a",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/baseline_profile.txt",
+      "source_bytes": 10977,
+      "source_sha256": "1ea027c3956bc20549999c70f2de54b0f7fd26d13b063eafa120f2275ab98265",
+      "publication_path": "profile/baseline_profile.txt",
+      "publication_bytes": 10977,
+      "publication_sha256": "1ea027c3956bc20549999c70f2de54b0f7fd26d13b063eafa120f2275ab98265",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/memoization_results.json",
+      "source_bytes": 1105,
+      "source_sha256": "c9990770482c3c23f3a9a100a33a60160ddec207e347ec5ea79b395e7db0d7b5",
+      "publication_path": "profile/memoization_results.json",
+      "publication_bytes": 1105,
+      "publication_sha256": "c9990770482c3c23f3a9a100a33a60160ddec207e347ec5ea79b395e7db0d7b5",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/memoized_build_path.py",
+      "source_bytes": 1804,
+      "source_sha256": "c7a78be22db36fec00c91c8e1c2bcfe9de1e0d4907761c16fcf0b169c0dac854",
+      "publication_path": "profile/memoized_build_path.py",
+      "publication_bytes": 1804,
+      "publication_sha256": "c7a78be22db36fec00c91c8e1c2bcfe9de1e0d4907761c16fcf0b169c0dac854",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/memoized_profile.txt",
+      "source_bytes": 4275,
+      "source_sha256": "193a5a5ef75cb64b439962741177bb4bc70cda5fd88b768c9a3647f4ca730896",
+      "publication_path": "profile/memoized_profile.txt",
+      "publication_bytes": 4275,
+      "publication_sha256": "193a5a5ef75cb64b439962741177bb4bc70cda5fd88b768c9a3647f4ca730896",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/profile_planning.py",
+      "source_bytes": 4045,
+      "source_sha256": "2f3258b0519f0c6c7000ad783208984ced6d94f9400cc4e8004a015a423a8065",
+      "publication_path": "profile/profile_planning.py",
+      "publication_bytes": 4045,
+      "publication_sha256": "2f3258b0519f0c6c7000ad783208984ced6d94f9400cc4e8004a015a423a8065",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/results.json",
+      "source_bytes": 15058,
+      "source_sha256": "f815470eb9972d4191a6743dc8a0273266f538612ab339b22ded7a8cec3f0ad8",
+      "publication_path": "profile/results.json",
+      "publication_bytes": 15058,
+      "publication_sha256": "f815470eb9972d4191a6743dc8a0273266f538612ab339b22ded7a8cec3f0ad8",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "profile/test_memoization.py",
+      "source_bytes": 2713,
+      "source_sha256": "587bd7d1a3f0429fce2c6d2a3abd9a32a671fb022baa5ac980369f9a7ecd68fb",
+      "publication_path": "profile/test_memoization.py",
+      "publication_bytes": 2713,
+      "publication_sha256": "587bd7d1a3f0429fce2c6d2a3abd9a32a671fb022baa5ac980369f9a7ecd68fb",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "review/independent_wall_clock_results.json",
+      "source_bytes": 332,
+      "source_sha256": "cc4b6c8f8ea825c6ff681ff45b8d6ac9ef3d7c5ec2f4c50d46b90b76f253fcb9",
+      "publication_path": "review/independent_wall_clock_results.json",
+      "publication_bytes": 332,
+      "publication_sha256": "cc4b6c8f8ea825c6ff681ff45b8d6ac9ef3d7c5ec2f4c50d46b90b76f253fcb9",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "review/probe_result_races.py",
+      "source_bytes": 1556,
+      "source_sha256": "dbf603be7dda8ec490098f675fb8a0b05b1b34dc7886fbe13f29a94452b4fa05",
+      "publication_path": "review/probe_result_races.py",
+      "publication_bytes": 1556,
+      "publication_sha256": "dbf603be7dda8ec490098f675fb8a0b05b1b34dc7886fbe13f29a94452b4fa05",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "runtime_guard.py",
+      "source_bytes": 6328,
+      "source_sha256": "5bde8363076f882b59019c4fb569d07197c319b5fb55d5e2f1fae39d7213f1d3",
+      "publication_path": "runtime_guard.py",
+      "publication_bytes": 6328,
+      "publication_sha256": "5bde8363076f882b59019c4fb569d07197c319b5fb55d5e2f1fae39d7213f1d3",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "runtime_guard_before_review.py",
+      "source_bytes": 5523,
+      "source_sha256": "f43debd9ff53a5dfaaf7e8936fe60eab1e2e30854718f6af537a57b78058e4b1",
+      "publication_path": "runtime_guard_before_review.py",
+      "publication_bytes": 5523,
+      "publication_sha256": "f43debd9ff53a5dfaaf7e8936fe60eab1e2e30854718f6af537a57b78058e4b1",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "test_runtime_guard.py",
+      "source_bytes": 5532,
+      "source_sha256": "0104adf89a79158f80b7cbd951dc898325b353b9d199ab067d474550caa64c92",
+      "publication_path": "test_runtime_guard.py",
+      "publication_bytes": 5532,
+      "publication_sha256": "0104adf89a79158f80b7cbd951dc898325b353b9d199ab067d474550caa64c92",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "tests.log",
+      "source_bytes": 1601,
+      "source_sha256": "402cb32eace9ebcfa0f4757e33f4977a8add8ac2fbde9aa8fc5d265d97d56e3d",
+      "publication_path": "tests.log",
+      "publication_bytes": 1601,
+      "publication_sha256": "402cb32eace9ebcfa0f4757e33f4977a8add8ac2fbde9aa8fc5d265d97d56e3d",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "wall_clock_results.json",
+      "source_bytes": 332,
+      "source_sha256": "8e9567d17e6b43202a794206eedf39b156705c770f57b324ddec5ee3f1d38990",
+      "publication_path": "wall_clock_results.json",
+      "publication_bytes": 332,
+      "publication_sha256": "8e9567d17e6b43202a794206eedf39b156705c770f57b324ddec5ee3f1d38990",
+      "encoding": "unchanged"
+    }
+  ],
+  "omitted_original_files": [],
+  "cache_policy": "__pycache__ and bytecode are not evidence and are not copied.",
+  "dependencies": [
+    "Existing repository assets, core, left_slalom_20261024 and curved_slalom_20261024 baseline files remain unchanged."
+  ],
+  "limitations": [
+    "VM-only synthetic planar or output-gate evidence, not real-time or physical robot validation.",
+    "Progress candidate02 has no new animated/articulated-mesh validation; tight layout remains SAFE_WAIT.",
+    "Watchdog recv duration is not bounded; recorded output gate holds zero while planning is pending.",
+    "No main/UI/hardware changes and no GitHub writes or commits in this preparation."
+  ]
+}

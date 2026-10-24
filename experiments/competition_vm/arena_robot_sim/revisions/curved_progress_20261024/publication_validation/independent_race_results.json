@@ -1,0 +1,31 @@
+{
+  "post_budget_receive": {
+    "status": "TIMEOUT",
+    "elapsed_s": 0.13380020200020226,
+    "budget_s": 0.1,
+    "result": null,
+    "output": {
+      "wall_time": 8297.254917066,
+      "command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reason": "RECEIVER_STALE"
+    }
+  },
+  "cancel_during_receive": {
+    "before_receive_resumes": "CANCELLED",
+    "after_receive_resumes": "CANCELLED",
+    "result": null,
+    "output": {
+      "wall_time": 8297.26605074,
+      "command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reason": "RECEIVER_STALE"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "scope": "Existing published repository dependencies; unchanged and not recopied. slalom_5 is needed only for optional scenario regeneration.",
+  "files": [
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py",
+      "bytes": 5867,
+      "sha256": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/audit.py",
+      "bytes": 2051,
+      "sha256": "59da10ea36c71a16d6159b6369d352888ef34af5b324613d3119e494bbcb840f"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/simulate.py",
+      "bytes": 8388,
+      "sha256": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947"
+    },
+    {
+      "path": "experiments/competition_vm/avoidance/core.py",
+      "bytes": 11259,
+      "sha256": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d"
+    },
+    {
+      "path": "assets/competition-arena/revisions/corridor-parallel-20261024/geometry.py",
+      "bytes": 10310,
+      "sha256": "2f190a554c9ce891d0b997f0ba67648c81e3a6a77e44d25533fb7e476c21856d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal.json",
+      "bytes": 15083828,
+      "sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+      "packed_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal.json.gz",
+      "packed_sha256": "f5e731cc6d29791c991ebe5fd3a35d13531979a0974de83e4c96ff5b12f8393c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5.json",
+      "bytes": 6285999,
+      "sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+      "packed_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5.json.gz",
+      "packed_sha256": "a0cd54bf3d977eb4be615ced8c7c75aba6c969cfa513eb1aa6eaebc25d2a3283"
+    }
+  ]
+}

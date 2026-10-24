@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+/results/candidate02/open_normal.json
+/results/candidate02/tight_normal.json
+/results/candidate02/open_dropout.json
+/results/candidate02/open_delay.json
+/results/candidate02/blocked_5.json

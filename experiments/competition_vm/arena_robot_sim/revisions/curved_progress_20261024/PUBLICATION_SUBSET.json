@@ -1,0 +1,360 @@
+{
+  "schema": "followup-publication-subset.v1",
+  "revision": "curved_progress_20261024",
+  "state": "LOCAL_PREPARATION_NOT_PUBLISHED",
+  "source_repository_head": "70091a007624f8afd45fdb7ca60f550fdb03ac05",
+  "source_revision_tracking": "untracked completed frozen revision; provenance is file hashes, not HEAD membership",
+  "source_root": "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/arena_robot_sim/revisions/curved_progress_20261024",
+  "frozen_manifest_sha256": "457ac5a9b1f3b82129864025a53c543d817b95c867db8fa9220cef089750f909",
+  "publication_base_local_head": "2a3ef70436f8491e51a597cc4fdd7d79b8084909",
+  "publication_base_remote_head_reported_by_parent": "dd2063bba0211307f1313389179e130b38a17554",
+  "publication_base_tree": "ef52ba65c6cce9f26cec04f24061a0f15faa1749",
+  "preservation": "All original frozen source/test/review/report bytes are unchanged. New publication helpers and verification are separate. SHA256SUMS.txt is the original production inventory and includes omitted/uncompressed paths; it is not the publication subset inventory.",
+  "included_original_files": [
+    {
+      "source_path": "README.md",
+      "source_bytes": 3184,
+      "source_sha256": "ec47285c525d523a38f4062b0f5710730300d33089d27ac4208b2cfa46119851",
+      "publication_path": "README.md",
+      "publication_bytes": 3184,
+      "publication_sha256": "ec47285c525d523a38f4062b0f5710730300d33089d27ac4208b2cfa46119851",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "SHA256SUMS.txt",
+      "source_bytes": 2493,
+      "source_sha256": "457ac5a9b1f3b82129864025a53c543d817b95c867db8fa9220cef089750f909",
+      "publication_path": "SHA256SUMS.txt",
+      "publication_bytes": 2493,
+      "publication_sha256": "457ac5a9b1f3b82129864025a53c543d817b95c867db8fa9220cef089750f909",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "VALIDATION.json",
+      "source_bytes": 8174,
+      "source_sha256": "d44aaebb890b1f71044ea4c67d92ec462bf6a4d7a552dd1035b7fbd18c18111e",
+      "publication_path": "VALIDATION.json",
+      "publication_bytes": 8174,
+      "publication_sha256": "d44aaebb890b1f71044ea4c67d92ec462bf6a4d7a552dd1035b7fbd18c18111e",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "compare_progress.py",
+      "source_bytes": 1179,
+      "source_sha256": "c84ef0de83e9b7c87e7089f07351b7800f9389a25f1cc711ff98289025be5500",
+      "publication_path": "compare_progress.py",
+      "publication_bytes": 1179,
+      "publication_sha256": "c84ef0de83e9b7c87e7089f07351b7800f9389a25f1cc711ff98289025be5500",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "repeat_progress.py",
+      "source_bytes": 653,
+      "source_sha256": "d6bbcd33821b14bd0af668574f5973fb05210a6690812b73e31b33228c518d14",
+      "publication_path": "repeat_progress.py",
+      "publication_bytes": 653,
+      "publication_sha256": "d6bbcd33821b14bd0af668574f5973fb05210a6690812b73e31b33228c518d14",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "results/candidate02/blocked_5.json",
+      "source_bytes": 619783,
+      "source_sha256": "74be19a01ab7fbf535f097d37f768089abfab93facd3968ce932bd4ec460bd60",
+      "publication_path": "results/candidate02/blocked_5.json.gz",
+      "publication_bytes": 10267,
+      "publication_sha256": "d5bd482a92c5cc042569d0a343b365d328166db99647adc8a44653a58f445d1b",
+      "encoding": "gzip-lossless"
+    },
+    {
+      "source_path": "results/candidate02/comparison.json",
+      "source_bytes": 6934,
+      "source_sha256": "d304415802eb735817ffa616b91b904d625419a723c667562b9870bc9ab2488f",
+      "publication_path": "results/candidate02/comparison.json",
+      "publication_bytes": 6934,
+      "publication_sha256": "d304415802eb735817ffa616b91b904d625419a723c667562b9870bc9ab2488f",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "results/candidate02/open_delay.json",
+      "source_bytes": 2785962,
+      "source_sha256": "6752ab77959941a15bb8c6d92966fb2e2833a50a026e8d50f0be2877b0930635",
+      "publication_path": "results/candidate02/open_delay.json.gz",
+      "publication_bytes": 609585,
+      "publication_sha256": "071e958872a347a2928d471b9f317a2c57d14d890bc074f811777ef418dc0b00",
+      "encoding": "gzip-lossless"
+    },
+    {
+      "source_path": "results/candidate02/open_dropout.json",
+      "source_bytes": 2785965,
+      "source_sha256": "bc28b42ea65593d9062ef6e6898526af291b8228e4f0801a0e0f50168db1f646",
+      "publication_path": "results/candidate02/open_dropout.json.gz",
+      "publication_bytes": 609581,
+      "publication_sha256": "67d5d34bdea31cbfb3ddb8699231298448c0ac860506952429652b197abff9b6",
+      "encoding": "gzip-lossless"
+    },
+    {
+      "source_path": "results/candidate02/open_normal.json",
+      "source_bytes": 16780043,
+      "source_sha256": "869276f6c3fb43c4dd36ea879f8601a0941f795e6ac1f88954ec15987ff740cf",
+      "publication_path": "results/candidate02/open_normal.json.gz",
+      "publication_bytes": 2306647,
+      "publication_sha256": "ecc85f3fdfcfdc5725d33aae6adb9e59f216989c1215275267fbd9ff7e2dffef",
+      "encoding": "gzip-lossless"
+    },
+    {
+      "source_path": "results/candidate02/reproducibility.json",
+      "source_bytes": 147,
+      "source_sha256": "dab4eb4c91824c5baf9bf138c2c7345e4d0f30841e7835f3e023fb504211947b",
+      "publication_path": "results/candidate02/reproducibility.json",
+      "publication_bytes": 147,
+      "publication_sha256": "dab4eb4c91824c5baf9bf138c2c7345e4d0f30841e7835f3e023fb504211947b",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "results/candidate02/source.py",
+      "source_bytes": 9870,
+      "source_sha256": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+      "publication_path": "results/candidate02/source.py",
+      "publication_bytes": 9870,
+      "publication_sha256": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "results/candidate02/test_output.txt",
+      "source_bytes": 2133,
+      "source_sha256": "b95984c0e5d6297d1693636ffe3c297654720f3f06789803ce85a2aa094fb1c3",
+      "publication_path": "results/candidate02/test_output.txt",
+      "publication_bytes": 2133,
+      "publication_sha256": "b95984c0e5d6297d1693636ffe3c297654720f3f06789803ce85a2aa094fb1c3",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "results/candidate02/tight_normal.json",
+      "source_bytes": 9481437,
+      "source_sha256": "5b4b3759342135800dd5acf8b3d55bba3cf86231ce80f6286f3710d21a1c7da7",
+      "publication_path": "results/candidate02/tight_normal.json.gz",
+      "publication_bytes": 2274168,
+      "publication_sha256": "dbc2e2360fc12e1e2fc4ec6595f2d4bcb604785d395730ff030bd765af369092",
+      "encoding": "gzip-lossless"
+    },
+    {
+      "source_path": "review/REVIEW.md",
+      "source_bytes": 6042,
+      "source_sha256": "05fd80346fb7e47d250f8741a71daf9d95534e60702861bc86051d2ec8f09943",
+      "publication_path": "review/REVIEW.md",
+      "publication_bytes": 6042,
+      "publication_sha256": "05fd80346fb7e47d250f8741a71daf9d95534e60702861bc86051d2ec8f09943",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "review/independent_results.json",
+      "source_bytes": 4960,
+      "source_sha256": "38a4458b0e3d4b30a90eb7511b4c43f33d7dfd6da5a408e4da471582fa7b63f5",
+      "publication_path": "review/independent_results.json",
+      "publication_bytes": 4960,
+      "publication_sha256": "38a4458b0e3d4b30a90eb7511b4c43f33d7dfd6da5a408e4da471582fa7b63f5",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "review/manifest.json",
+      "source_bytes": 2906,
+      "source_sha256": "3e55bffda7c36c9a87df61fa82c242269b98739c56649e5e82f0f9c179dc77f5",
+      "publication_path": "review/manifest.json",
+      "publication_bytes": 2906,
+      "publication_sha256": "3e55bffda7c36c9a87df61fa82c242269b98739c56649e5e82f0f9c179dc77f5",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "review/review.py",
+      "source_bytes": 5059,
+      "source_sha256": "565f40ffe8a08a024664f78c1d4d00a4ebca232dac9083494df635d5945e85d6",
+      "publication_path": "review/review.py",
+      "publication_bytes": 5059,
+      "publication_sha256": "565f40ffe8a08a024664f78c1d4d00a4ebca232dac9083494df635d5945e85d6",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "review/tests.log",
+      "source_bytes": 2133,
+      "source_sha256": "2e7f144e48f9202d1ec69a5705686ee01430ce17996c0a3d1b5d068009a09698",
+      "publication_path": "review/tests.log",
+      "publication_bytes": 2133,
+      "publication_sha256": "2e7f144e48f9202d1ec69a5705686ee01430ce17996c0a3d1b5d068009a09698",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "run_candidate.py",
+      "source_bytes": 659,
+      "source_sha256": "12f43f7ad28ffdfc9975f27ead95072a971d9c0d609cc8df20e7f4e67bd03559",
+      "publication_path": "run_candidate.py",
+      "publication_bytes": 659,
+      "publication_sha256": "12f43f7ad28ffdfc9975f27ead95072a971d9c0d609cc8df20e7f4e67bd03559",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "simulate_curved.py",
+      "source_bytes": 9870,
+      "source_sha256": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+      "publication_path": "simulate_curved.py",
+      "publication_bytes": 9870,
+      "publication_sha256": "5258fc6697beedc02f4b44b3d9c5415640e74484a60df4429c4f7f8ec6942aff",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "test_progress.py",
+      "source_bytes": 763,
+      "source_sha256": "0126d61d8450157d5a55eeca9680b9a7cd1f60c3b5c606c6d14eeff3601fe660",
+      "publication_path": "test_progress.py",
+      "publication_bytes": 763,
+      "publication_sha256": "0126d61d8450157d5a55eeca9680b9a7cd1f60c3b5c606c6d14eeff3601fe660",
+      "encoding": "unchanged"
+    },
+    {
+      "source_path": "test_regression.py",
+      "source_bytes": 3651,
+      "source_sha256": "d6bb734d6715d4e7c7fbc446ee9370b3aeb9d1321c575e06d7d1ec7f52329e4d",
+      "publication_path": "test_regression.py",
+      "publication_bytes": 3651,
+      "publication_sha256": "d6bb734d6715d4e7c7fbc446ee9370b3aeb9d1321c575e06d7d1ec7f52329e4d",
+      "encoding": "unchanged"
+    }
+  ],
+  "omitted_original_files": [
+    {
+      "source_path": "results/candidate01/open_normal.json",
+      "source_bytes": 2340052,
+      "source_sha256": "2999dc8db662c04a423e168adb96a555884cbb0d4e24e3e971974a1a4db68321",
+      "reason": "Rejected exploratory or duplicate repeat evidence; not required by selected tests.",
+      "summary": {
+        "metrics": {
+          "planning_calls": 4,
+          "planning_wall_s": 7.96609611599979,
+          "planning_p95_s": 2.082921155899976,
+          "outcome": "SAFE_WAIT",
+          "contacts": 0,
+          "sim_time_s": 6.1,
+          "path_length_m": 0.3412190707117505,
+          "emergency_slew_overrides": 1,
+          "rejected_delayed_samples": 0,
+          "wall_time_s": 12.19546831200023,
+          "yaw_min": 1.45409088693708,
+          "yaw_max": 1.5672963267948965
+        },
+        "frames": 61,
+        "scene_name": null
+      }
+    },
+    {
+      "source_path": "results/candidate01/open_normal_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/candidate01/source.py",
+      "source_bytes": 9870,
+      "source_sha256": "0330c74924674ac4962ef20fb5e3909fdc664c7f282762e178a693ec45067f8f",
+      "reason": "Rejected exploratory or duplicate repeat evidence; not required by selected tests."
+    },
+    {
+      "source_path": "results/candidate01/tight_normal.json",
+      "source_bytes": 6278042,
+      "source_sha256": "256d60338998aba4cd134de314a356175d0d98b5a5bc541853adf94d6d304e3b",
+      "reason": "Rejected exploratory or duplicate repeat evidence; not required by selected tests.",
+      "summary": {
+        "metrics": {
+          "planning_calls": 8,
+          "planning_wall_s": 15.871127306000744,
+          "planning_p95_s": 2.4658884085000863,
+          "outcome": "SAFE_WAIT",
+          "contacts": 0,
+          "sim_time_s": 15.9,
+          "path_length_m": 1.5576075388133868,
+          "emergency_slew_overrides": 1,
+          "rejected_delayed_samples": 0,
+          "wall_time_s": 24.95694671199999,
+          "yaw_min": 1.557467489922277,
+          "yaw_max": 1.5845201009017906
+        },
+        "frames": 159,
+        "scene_name": null
+      }
+    },
+    {
+      "source_path": "results/candidate01/tight_normal_scene_mesh.json",
+      "source_bytes": 25900,
+      "source_sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/candidate02/blocked_5_scene_mesh.json",
+      "source_bytes": 24697,
+      "source_sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/candidate02/open_delay_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/candidate02/open_dropout_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/candidate02/open_normal_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/candidate02/tight_normal_scene_mesh.json",
+      "source_bytes": 25900,
+      "source_sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    },
+    {
+      "source_path": "results/repeat02/open_normal.json",
+      "source_bytes": 16780044,
+      "source_sha256": "ebc83bfb3529f74be476ee7815aa97d6914faeb34b2bf72383dd6e99c06664d3",
+      "reason": "Rejected exploratory or duplicate repeat evidence; not required by selected tests.",
+      "summary": {
+        "metrics": {
+          "planning_calls": 29,
+          "planning_wall_s": 29.891193718999602,
+          "planning_p95_s": 1.948828025000148,
+          "outcome": "GOAL_REACHED",
+          "contacts": 0,
+          "sim_time_s": 57.4,
+          "path_length_m": 4.249818658537967,
+          "emergency_slew_overrides": 0,
+          "rejected_delayed_samples": 0,
+          "wall_time_s": 60.80084309299946,
+          "yaw_min": 1.45134764917562,
+          "yaw_max": 1.6907962032631023
+        },
+        "frames": 574,
+        "scene_name": null
+      }
+    },
+    {
+      "source_path": "results/repeat02/open_normal_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "Scene-only renderer input; no new articulated render or envelope validation is claimed."
+    }
+  ],
+  "cache_policy": "__pycache__ and bytecode are not evidence and are not copied.",
+  "dependencies": [
+    "Existing repository assets, core, left_slalom_20261024 and curved_slalom_20261024 baseline files remain unchanged."
+  ],
+  "limitations": [
+    "VM-only synthetic planar or output-gate evidence, not real-time or physical robot validation.",
+    "Progress candidate02 has no new animated/articulated-mesh validation; tight layout remains SAFE_WAIT.",
+    "Watchdog recv duration is not bounded; recorded output gate holds zero while planning is pending.",
+    "No main/UI/hardware changes and no GitHub writes or commits in this preparation."
+  ]
+}

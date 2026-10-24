@@ -1,0 +1,38 @@
+         1038582 function calls in 1.577 seconds
+
+   Ordered by: cumulative time
+   List reduced from 97 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.075    0.075    1.577    1.577 /workspace/scratch/b09eacf6919d/planning-profile-20261024/memoized_build_path.py:1(build_path_memoized)
+    73620    0.081    0.000    1.193    0.000 /workspace/scratch/b09eacf6919d/planning-profile-20261024/memoized_build_path.py:9(allowed)
+    41131    0.042    0.000    1.112    0.000 /workspace/scratch/b09eacf6919d/planning-profile-20261024/memoized_build_path.py:11(allowed_cached)
+    41789    0.710    0.000    1.100    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:129(polygon_collision)
+    18405    0.010    0.000    1.001    0.000 {built-in method builtins.all}
+    73620    0.106    0.000    0.991    0.000 /workspace/scratch/b09eacf6919d/planning-profile-20261024/memoized_build_path.py:19(<genexpr>)
+   231393    0.141    0.000    0.141    0.000 {built-in method builtins.max}
+        1    0.079    0.079    0.135    0.135 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:82(plan)
+   168571    0.131    0.000    0.131    0.000 {built-in method builtins.min}
+    41789    0.067    0.000    0.119    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:116(polygon)
+    41795    0.042    0.000    0.042    0.000 {built-in method numpy.asarray}
+        2    0.006    0.003    0.039    0.020 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_morphology.py:2435(distance_transform_edt)
+        2    0.027    0.013    0.027    0.013 {built-in method scipy.ndimage._nd_image.euclidean_feature_transform}
+    73660    0.011    0.000    0.011    0.000 {method 'get' of 'dict' objects}
+    73882    0.010    0.000    0.010    0.000 {built-in method math.hypot}
+      317    0.003    0.000    0.007    0.000 /workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/experiments/competition_vm/avoidance/core.py:120(sat_overlap)
+    41789    0.005    0.000    0.005    0.000 {built-in method math.cos}
+    41789    0.004    0.000    0.004    0.000 {built-in method math.sin}
+    10835    0.004    0.000    0.004    0.000 {built-in method _heapq.heappop}
+    41788    0.003    0.000    0.003    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/multiarray.py:391(where)
+      411    0.000    0.000    0.003    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2241(clip)
+        4    0.003    0.001    0.003    0.001 {method 'astype' of 'numpy.ndarray' objects}
+      411    0.001    0.000    0.003    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:51(_wrapfunc)
+        1    0.000    0.000    0.003    0.003 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py:1874(maximum_filter)
+        1    0.000    0.000    0.003    0.003 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py:1735(_min_or_max_filter)
+      332    0.002    0.000    0.003    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1219(roll)
+        2    0.000    0.000    0.003    0.001 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/scipy/ndimage/_filters.py:1678(maximum_filter1d)
+        2    0.003    0.001    0.003    0.001 {built-in method scipy.ndimage._nd_image.min_or_max_filter1d}
+        2    0.002    0.001    0.002    0.001 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/numeric.py:1779(indices)
+      411    0.000    0.000    0.002    0.000 /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:41(_wrapit)
+
+
